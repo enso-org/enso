@@ -463,6 +463,17 @@ type Float
 
              Complex.Value 3 4 . to Number
 
+       ? Creating `Decimal`s and Converting to `Decimal`
+
+         When creating a `Decimal` from a literal floating-point value, the
+         preferred method is to express the literal as a string and use
+         `Decimal.from_text`, since this will give a `Decimal` that matches the
+         value precisely.
+
+         To convert a `Float` or `Integer` to a `Decimal`, use its `.to_decimal`
+         method. You can also use `Float.to Decimal` to convert a `Float` to a
+         `Decimal`.
+
        > Example
          `.from` conversion methods may have additional arguments
          with default values. Thus the conversion from `Complex` to

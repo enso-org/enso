@@ -106,28 +106,53 @@ type Decimal
          The textual format for a Decimal is defined at
          https://docs.oracle.com/javase/8/docs/api/java/math/BigDecimal.html#BigDecimal-java.lang.String-.
 
-       ! Error Conditions
+       ? Creating `Decimal`s and Converting to `Decimal`
 
-         - If the `Text` argument is incorrectly formatted, a `Number_Parse_Error`
+         When creating a `Decimal` from a literal floating-point value, the
+         preferred method is to express the literal as a string and use
+         `Decimal.from_text`, since this will give a `Decimal` that matches the
+         value precisely.
+
+         to convert a `float` or `integer` to a `decimal`, use its `.to_decimal`
+         method. You can also use `Float.to Decimal` to convert a `Float` to a
+         `Decimal`.
+
+       ! Error and Warning Conditions in creating and using `Decimal`s
+
+         - If a `Text` argument is incorrectly formatted, a `Number_Parse_Error`
            is thrown.
          - If the construction of the Decimal results in a loss of precision, a
-           `Loss_Of_Numeric_Precision` warning is attached. This can only happen
-           if a `Math_Context` value is explicitly passed.
+           `Loss_Of_Numeric_Precision` warning is attached. This can happen in
+           the followoing ways:
+           - A `Float` value is implicitly converted to a `Decimal` (either by
+             calling `Decimal.from` or by passing the `Float` as a parameter of
+             type `Decimal`)
+           - A `Math_Context` value is explicitly passed, and the precision it
+             specifies is not sufficient to precisely represent the argument to
+             be converted
+         - If an arithmetic operation is used on mixed arguments (a `Decimal`
+           and a `Float`), an `Illegal_Argument` error is thrown.
+         - If an arithmetic operation is used on a `Decimal` that was implicitly
+           converted from a `Float` (either by calling `Decimal.from` or by
+           passing the `Float` as a parameter of type `Decimal`), an
+           `Illegal_Argument` error is thrown.
+         - If a floating-poing argument is `NaN` or `+/- Inf`, an
+           `Illegal_Argument` error is thrown.
 
         ^ Example
           Create a `Decimal` from a `Text`.
 
-              c = Decimal.new "12.345"
+              c = Decimal.from_text "12.345"
 
         ^ Example
           Create a `Decimal` from an `Integer`.
 
-              c = Decimal.new 12345
+              c = 12345.to_decimal
 
         ^ Example
           Create a `Decimal` from a `Float`.
 
-              c = Decimal.new 12.345
+              c = 12.345.to_decimal
     new : Text | Integer | Float -> Math_Context | Nothing -> Decimal ! Arithmetic_Error | Number_Parse_Error
     new (x : Text | Integer | Float) (mc : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error | Number_Parse_Error =
         handle_java_exception <|
@@ -151,12 +176,38 @@ type Decimal
          The textual format for a Decimal is defined at
          https://docs.oracle.com/javase/8/docs/api/java/math/BigDecimal.html#BigDecimal-java.lang.String-.
 
-       ! Error Conditions
+       ? Creating `Decimal`s and Converting to `Decimal`
 
-         - If `s` is incorrectly formatted, a `Number_Parse_Error` is thrown.
+         When creating a `Decimal` from a literal floating-point value, the
+         preferred method is to express the literal as a string and use
+         `Decimal.from_text`, since this will give a `Decimal` that matches the
+         value precisely.
+
+         to convert a `float` or `integer` to a `decimal`, use its `.to_decimal`
+         method. You can also use `Float.to Decimal` to convert a `Float` to a
+         `Decimal`.
+
+       ! Error and Warning Conditions in creating and using `Decimal`s
+
+         - If a `Text` argument is incorrectly formatted, a `Number_Parse_Error`
+           is thrown.
          - If the construction of the Decimal results in a loss of precision, a
-           `Loss_Of_Numeric_Precision` warning is attached. This can only happen
-           if a `Math_Context` value is explicitly passed.
+           `Loss_Of_Numeric_Precision` warning is attached. This can happen in
+           the followoing ways:
+           - A `Float` value is implicitly converted to a `Decimal` (either by
+             calling `Decimal.from` or by passing the `Float` as a parameter of
+             type `Decimal`)
+           - A `Math_Context` value is explicitly passed, and the precision it
+             specifies is not sufficient to precisely represent the argument to
+             be converted
+         - If an arithmetic operation is used on mixed arguments (a `Decimal`
+           and a `Float`), an `Illegal_Argument` error is thrown.
+         - If an arithmetic operation is used on a `Decimal` that was implicitly
+           converted from a `Float` (either by calling `Decimal.from` or by
+           passing the `Float` as a parameter of type `Decimal`), an
+           `Illegal_Argument` error is thrown.
+         - If a floating-poing argument is `NaN` or `+/- Inf`, an
+           `Illegal_Argument` error is thrown.
 
         ^ Example
           Create a `Decimal` from a `Text`.
@@ -179,16 +230,43 @@ type Decimal
          If a `Math_Context` is used, there is a possibility of a loss of
          precision.
 
-       ! Error Conditions
+       ? Creating `Decimal`s and Converting to `Decimal`
 
+         When creating a `Decimal` from a literal floating-point value, the
+         preferred method is to express the literal as a string and use
+         `Decimal.from_text`, since this will give a `Decimal` that matches the
+         value precisely.
+
+         to convert a `float` or `integer` to a `decimal`, use its `.to_decimal`
+         method. You can also use `Float.to Decimal` to convert a `Float` to a
+         `Decimal`.
+
+       ! Error and Warning Conditions in creating and using `Decimal`s
+
+         - If a `Text` argument is incorrectly formatted, a `Number_Parse_Error`
+           is thrown.
          - If the construction of the Decimal results in a loss of precision, a
-           `Loss_Of_Numeric_Precision` warning is attached. This can only happen
-           if a `Math_Context` value is explicitly passed.
+           `Loss_Of_Numeric_Precision` warning is attached. This can happen in
+           the followoing ways:
+           - A `Float` value is implicitly converted to a `Decimal` (either by
+             calling `Decimal.from` or by passing the `Float` as a parameter of
+             type `Decimal`)
+           - A `Math_Context` value is explicitly passed, and the precision it
+             specifies is not sufficient to precisely represent the argument to
+             be converted
+         - If an arithmetic operation is used on mixed arguments (a `Decimal`
+           and a `Float`), an `Illegal_Argument` error is thrown.
+         - If an arithmetic operation is used on a `Decimal` that was implicitly
+           converted from a `Float` (either by calling `Decimal.from` or by
+           passing the `Float` as a parameter of type `Decimal`), an
+           `Illegal_Argument` error is thrown.
+         - If a floating-poing argument is `NaN` or `+/- Inf`, an
+           `Illegal_Argument` error is thrown.
 
         ^ Example
           Create a `Decimal` from an `Integer`.
 
-              d = Decimal.from_integer 12
+              c = 12345.to_decimal
     from_integer : Integer -> Math_Context | Nothing -> Decimal
     from_integer (i : Integer) (mc : Math_Context | Nothing = Nothing) -> Decimal =
         handle_java_exception <|
@@ -214,16 +292,43 @@ type Decimal
          a `Float` always attaches a `Loss_Of_Numeric_Precision` warning to the
          result.
 
-       ! Error Conditions
+       ? Creating `Decimal`s and Converting to `Decimal`
 
-         - A `Loss_Of_Numeric_Precision` warning is always attached when
-           converting to `Decimal` from `Float`.
-         - If `f` is NaN or +/-Inf, an Illegal_Argument error is thrown.
+         When creating a `Decimal` from a literal floating-point value, the
+         preferred method is to express the literal as a string and use
+         `Decimal.from_text`, since this will give a `Decimal` that matches the
+         value precisely.
+
+         to convert a `float` or `integer` to a `decimal`, use its `.to_decimal`
+         method. You can also use `Float.to Decimal` to convert a `Float` to a
+         `Decimal`.
+
+       ! Error and Warning Conditions in creating and using `Decimal`s
+
+         - If a `Text` argument is incorrectly formatted, a `Number_Parse_Error`
+           is thrown.
+         - If the construction of the Decimal results in a loss of precision, a
+           `Loss_Of_Numeric_Precision` warning is attached. This can happen in
+           the followoing ways:
+           - A `Float` value is implicitly converted to a `Decimal` (either by
+             calling `Decimal.from` or by passing the `Float` as a parameter of
+             type `Decimal`)
+           - A `Math_Context` value is explicitly passed, and the precision it
+             specifies is not sufficient to precisely represent the argument to
+             be converted
+         - If an arithmetic operation is used on mixed arguments (a `Decimal`
+           and a `Float`), an `Illegal_Argument` error is thrown.
+         - If an arithmetic operation is used on a `Decimal` that was implicitly
+           converted from a `Float` (either by calling `Decimal.from` or by
+           passing the `Float` as a parameter of type `Decimal`), an
+           `Illegal_Argument` error is thrown.
+         - If a floating-poing argument is `NaN` or `+/- Inf`, an
+           `Illegal_Argument` error is thrown.
 
         ^ Example
           Create a `Decimal` from a `Float`.
 
-              d = Decimal.from_integer 12.345
+              c = 12.345.to_decimal
     from_float : Float -> Math_Context | Nothing -> Boolean -> Decimal ! Arithmetic_Error | Illegal_Argument
     from_float (f : Float) (mc : Math_Context | Nothing = Nothing) (explicit : Boolean = True) -> Decimal ! Arithmetic_Error | Illegal_Argument =
         is_exceptional = f.is_nan || f.is_infinite
