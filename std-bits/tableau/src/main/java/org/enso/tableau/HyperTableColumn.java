@@ -3,7 +3,6 @@ package org.enso.tableau;
 import com.tableau.hyperapi.Nullability;
 import com.tableau.hyperapi.TableDefinition;
 import com.tableau.hyperapi.TypeTag;
-
 import java.sql.Types;
 import java.util.OptionalInt;
 
@@ -15,9 +14,9 @@ public record HyperTableColumn(
     OptionalInt length,
     OptionalInt precision,
     OptionalInt scale) {
-  //** Type ID for JSON data. */
+  // ** Type ID for JSON data. */
   public static final int JSON = 10001;
-  //** Type ID for INTERVAL data. */
+  // ** Type ID for INTERVAL data. */
   public static final int INTERVAL = 10002;
 
   static HyperTableColumn FromHyperColumn(int index, TableDefinition.Column hyperColumn) {

@@ -6,7 +6,6 @@ import com.tableau.hyperapi.HyperProcess;
 import com.tableau.hyperapi.SchemaName;
 import com.tableau.hyperapi.TableName;
 import com.tableau.hyperapi.Telemetry;
-
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;
@@ -23,7 +22,7 @@ import java.util.stream.IntStream;
 import org.enso.table.data.table.Column;
 import org.enso.table.problems.ProblemAggregator;
 
-//** Class responsible for reading from Tableau Hyper files. */
+// ** Class responsible for reading from Tableau Hyper files. */
 public class HyperReader {
   public static final Path HYPER_PATH = Path.of(getHyperPath());
   private static HyperProcess process;
