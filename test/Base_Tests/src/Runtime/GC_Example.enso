@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Base.Runtime.Ref.Ref
 
@@ -15,27 +16,42 @@ type My_Resource
 
 close_resource resource = resource.close
 
-repeat_cleanup_until_done counter =
-    go i =
-        if counter.get == 0 then Nothing else
-            if i % 100 == 0 then
-                IO.println "Still "+counter.get.to_text+" resources to clean up..."
-            Runtime.gc
-            @Tail_Call go i+1
-    go 1
+repeat_cleanup_until_done counter println =
+    deadline = Date_Time.now + (Duration.new minutes=5)
+    while_counter_not_zero i = if counter.get != 0 then
+        if i % 10 == 0 then
+            println "Still "+counter.get.to_text+" resources to clean up..."
+
+        Runtime.gc
+
+        deadline_not_reached at = if at < deadline then True else
+            message = "Timeout has been reached, but there are "+counter.get.to_text+" resources remaining that were not cleaned up."
+            println message
+            False
+
+        if deadline_not_reached Date_Time.now then
+            @Tail_Call while_counter_not_zero i+1
+
+    while_counter_not_zero 1
 
 perform_test n:Integer println =
-
+    resource_holder = Ref.new Nothing
     counter = Ref.new 0
-    println "Allocating "+n.to_text+" resources..."
-    0.up_to n . each _->
-        My_Resource.allocate counter
 
-    println "Cleaning up..."
-    repeat_cleanup_until_done counter
-    println "All cleaned up! Remaining: "+counter.get.to_text
+    println "Allocating "+n.to_text+" resources..."
+    allocate_resources ref =
+        all = 0.up_to n . map _->
+            My_Resource.allocate counter
+        ref.put all
+    allocate_resources resource_holder
+
+    println "Cleaning up "+resource_holder.get.length.to_text+" resources"
+    # We replace the vector with Nothing to make the resources inaccessible and schedule them for GC
+    resource_holder.put Nothing
+
+    repeat_cleanup_until_done counter println
+    println "Cleaning finished! Remaining: "+counter.get.to_text
     counter.get
 
 main n=1000000 =
     perform_test n IO.println
-

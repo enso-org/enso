@@ -305,6 +305,20 @@ type Table
         col = self.get selector if_missing=Nothing
         if Nothing == col then if_missing else col.get index if_missing
 
+    ## ALIAS row
+       GROUP Standard.Base.Selections
+       ICON select_row
+       Gets a row from the table.
+
+       Arguments:
+       - index: The index of the row to get within the table.
+       - if_missing: The value to use if the selector isn't present.
+    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.row_count-1)
+    get_row : Integer -> Any -> Any
+    get_row self index:Integer=0 ~if_missing=Nothing =
+        if index < -self.row_count || index >= self.row_count then if_missing else
+            Row.Value self (if index < 0 then index + self.row_count else index)
+
     ## ALIAS first cell
        GROUP Standard.Base.Selections
        ICON local_scope4
@@ -819,7 +833,7 @@ type Table
     aggregate : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> Vector Aggregate_Column -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
     aggregate self group_by=[] columns=[] (error_on_missing_columns:Boolean=False) (on_problems:Problem_Behavior=..Report_Warning) =
         normalized_group_by = Vector.unify_vector_or_element group_by
-        if normalized_group_by.is_empty && columns.is_empty then Error.throw (No_Output_Columns.Error "At least one column must be specified.") else
+        if normalized_group_by.is_empty && columns.is_empty then Error.throw (No_Output_Columns.Error "No columns specified in aggregate.") else
             validated = Aggregate_Column_Helper.prepare_aggregate_columns self.column_naming_helper normalized_group_by columns self error_on_missing_columns=error_on_missing_columns
 
             on_problems.attach_problems_before validated.problems <| Illegal_Argument.handle_java_exception <|
@@ -2864,7 +2878,7 @@ type Table
         resolved_value_column = if value_column.is_nothing then Nothing else (self.at value_column)
         java_value_column = if value_column.is_nothing then Nothing else resolved_value_column.java_column
 
-        unused_columns = columns_helper.internal_columns.filter (Filter_Condition.Is_In resolved_element_columns+resolved_attribute_columns+[resolved_value_column] Filter_Action.Remove) . map .name
+        unused_columns = columns_helper.internal_columns.filter (Filter_Condition.Is_In resolved_element_columns+resolved_attribute_columns+[resolved_value_column] ..Remove) . map .name
         if unused_columns.length > 0 then problem_builder.report_other_warning (Unexpected_Extra_Columns.Warning unused_columns)
 
         problem_builder.attach_problems_before on_problems <|

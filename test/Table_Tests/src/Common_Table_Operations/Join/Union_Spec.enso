@@ -153,7 +153,7 @@ run_union_tests group_builder setup call_union =
 
         t4 = call_union [t1, t2, t3] columns_to_keep=..In_All on_problems=..Ignore
         t4.should_fail_with No_Output_Columns
-        t4.catch.to_display_text . should_equal "No columns in the result, because of another problem: Unmatched columns are set to be dropped, but no common column names were found."
+        t4.catch.to_display_text . should_equal "Unmatched columns are set to be dropped, but no common column names were found."
 
     table4 = Lazy_Ref.Value <|
         table_builder [["A", [1]], ["X", [2]], ["B", ["a"]], ["Y", [3]]]

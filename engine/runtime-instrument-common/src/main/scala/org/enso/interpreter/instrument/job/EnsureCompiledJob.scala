@@ -25,6 +25,7 @@ import org.enso.interpreter.instrument.{
 }
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.service.error.ModuleNotFoundForFileException
+import org.enso.logger.masking.MaskedPath
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.StackItem
@@ -59,10 +60,11 @@ final class EnsureCompiledJob(
     ctx.locking.withWriteCompilationLock(
       this.getClass,
       () => {
-        val compilationResult = ensureCompiledFiles(files)(
-          implicitly[RuntimeContext],
-          ctx.executionService.getLogger
-        )
+        val compilationResult =
+          ensureCompiledFiles(files)(
+            ctx,
+            ctx.executionService.getLogger
+          )
         setCacheWeights()
         compilationResult
       }
@@ -336,7 +338,18 @@ final class EnsureCompiledJob(
           this.getClass,
           () => {
             val pendingEdits = ctx.state.pendingEdits.dequeue(file)
-            val edits        = pendingEdits.map(_.edit)
+            val idMap        = ctx.state.pendingEdits.removeIdMap(file)
+            ctx.executionService.getLogger
+              .log(
+                Level.FINEST,
+                s"Applying pending file [{0}] edits [{1}] idMap [{2}]",
+                Array[Any](
+                  MaskedPath(file.toPath),
+                  pendingEdits.length,
+                  idMap.map(_.values.length)
+                )
+              )
+            val edits = pendingEdits.map(_.edit)
             val shouldExecute =
               pendingEdits.isEmpty || pendingEdits.exists(_.execute)
             val module = ctx.executionService.getContext
@@ -346,7 +359,7 @@ final class EnsureCompiledJob(
               module.getLiteralSource,
               module.getIr
             )
-            val changeset = changesetBuilder.build(pendingEdits)
+            val changeset = changesetBuilder.build(pendingEdits, idMap)
             ctx.executionService.modifyModuleSources(
               module,
               edits,

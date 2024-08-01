@@ -9,6 +9,6 @@ export const INITIAL_ROW_STATE: assetsTable.AssetRowState = Object.freeze({
     // Ignored. This MUST be replaced by the row component. It should also update `visibility`.
   },
   isEditingName: false,
-  temporarilyAddedLabels: set.EMPTY,
-  temporarilyRemovedLabels: set.EMPTY,
+  temporarilyAddedLabels: set.EMPTY_SET,
+  temporarilyRemovedLabels: set.EMPTY_SET,
 })

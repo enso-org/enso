@@ -3,6 +3,7 @@
 import * as React from 'react'
 
 import * as authProvider from '#/providers/AuthProvider'
+import { useSelectedKeys, useSetSelectedKeys } from '#/providers/DriveProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -10,7 +11,7 @@ import AssetEventType from '#/events/AssetEventType'
 
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import type Category from '#/layouts/CategorySwitcher/Category'
-import * as categoryModule from '#/layouts/CategorySwitcher/Category'
+import { CategoryType, isCloudCategory } from '#/layouts/CategorySwitcher/Category'
 import GlobalContextMenu from '#/layouts/GlobalContextMenu'
 
 import ContextMenu from '#/components/ContextMenu'
@@ -25,6 +26,7 @@ import * as backendModule from '#/services/Backend'
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import type * as pasteDataModule from '#/utilities/pasteData'
 import * as permissions from '#/utilities/permissions'
+import { EMPTY_SET } from '#/utilities/set'
 import * as uniqueString from '#/utilities/uniqueString'
 
 // =================
@@ -38,8 +40,6 @@ export interface AssetsTableContextMenuProps {
   readonly category: Category
   readonly rootDirectoryId: backendModule.DirectoryId
   readonly pasteData: pasteDataModule.PasteData<ReadonlySet<backendModule.AssetId>> | null
-  readonly selectedKeys: ReadonlySet<backendModule.AssetId>
-  readonly clearSelectedKeys: () => void
   readonly nodeMapRef: React.MutableRefObject<
     ReadonlyMap<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>
   >
@@ -55,14 +55,16 @@ export interface AssetsTableContextMenuProps {
 /** A context menu for an `AssetsTable`, when no row is selected, or multiple rows
  * are selected. */
 export default function AssetsTableContextMenu(props: AssetsTableContextMenuProps) {
-  const { hidden = false, backend, category, pasteData, selectedKeys, clearSelectedKeys } = props
+  const { hidden = false, backend, category, pasteData } = props
   const { nodeMapRef, event, rootDirectoryId } = props
   const { doCopy, doCut, doPaste } = props
   const { user } = authProvider.useFullUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const isCloud = categoryModule.isCloudCategory(category)
+  const isCloud = isCloudCategory(category)
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
+  const selectedKeys = useSelectedKeys()
+  const setSelectedKeys = useSetSelectedKeys()
 
   // This works because all items are mutated, ensuring their value stays
   // up to date.
@@ -94,7 +96,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
             : getText('deleteSelectedAssetsActionText', selectedKeys.size)
           }
           doDelete={() => {
-            clearSelectedKeys()
+            setSelectedKeys(EMPTY_SET)
             dispatchAssetEvent({ type: AssetEventType.delete, ids: selectedKeys })
           }}
         />,
@@ -102,7 +104,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
     }
   }
 
-  if (category.type === categoryModule.CategoryType.trash) {
+  if (category.type === CategoryType.trash) {
     return selectedKeys.size === 0 ?
         null
       : <ContextMenus key={uniqueString.uniqueString()} hidden={hidden} event={event}>
@@ -135,7 +137,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
                         : getText('deleteSelectedAssetsForeverActionText', selectedKeys.size)
                       }
                       doDelete={() => {
-                        clearSelectedKeys()
+                        setSelectedKeys(EMPTY_SET)
                         dispatchAssetEvent({
                           type: AssetEventType.deleteForever,
                           ids: selectedKeys,
@@ -148,7 +150,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
             )}
           </ContextMenu>
         </ContextMenus>
-  } else if (category.type === categoryModule.CategoryType.recent) {
+  } else if (category.type === CategoryType.recent) {
     return null
   } else {
     return (
@@ -200,7 +202,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
             )}
           </ContextMenu>
         )}
-        {(category.type !== categoryModule.CategoryType.cloud ||
+        {(category.type !== CategoryType.cloud ||
           user.plan == null ||
           user.plan === backendModule.Plan.solo) && (
           <GlobalContextMenu

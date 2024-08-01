@@ -140,9 +140,7 @@ final class RefactoringRenameJob(
       this.getClass,
       () => {
         val pendingEdits =
-          fileEdit.edits.map(
-            PendingEdit.ApplyEdit(_, execute = true, idMap = None)
-          )
+          fileEdit.edits.map(PendingEdit.ApplyEdit(_, execute = true))
         ctx.state.pendingEdits.enqueue(fileEdit.path, pendingEdits)
       }
     )
