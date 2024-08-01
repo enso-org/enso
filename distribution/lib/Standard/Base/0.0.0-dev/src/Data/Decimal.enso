@@ -778,7 +778,7 @@ type Decimal
         back_to_decimal = BigDecimal.new as_biginteger
         are_equal = (self.big_decimal.compareTo back_to_decimal) == 0
         if are_equal then as_biginteger else
-            Warning.attach (Loss_Of_Numeric_Precision.Warning self as_biginteger) as_biginteger
+            attach_loss_of_numeric_precision self as_biginteger
 
     ## GROUP Conversions
        ICON convert
@@ -1105,8 +1105,7 @@ handle_number_format_exception ~action =
 handle_precision_loss : Any -> ConversionResult -> Any
 handle_precision_loss original_value conversion_result:ConversionResult -> Any =
     if conversion_result.hasPrecisionLoss.not then conversion_result.newValue else
-        new_value = conversion_result.newValue
-        Warning.attach (Loss_Of_Numeric_Precision.Warning original_value new_value) new_value
+        attach_loss_of_numeric_precision original_value conversion_result.newValue
 
 ## PRIVATE
 attach_loss_of_numeric_precision : Float -> Any -> Any
