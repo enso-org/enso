@@ -9,6 +9,7 @@ import Standard.Table.Internal.Java_Problems
 
 polyglot java import java.sql.Types
 polyglot java import org.enso.tableau.HyperReader
+polyglot java import org.enso.tableau.HyperTableColumn
 
 type Hyper_File
     ## Creates a Hyper_File
@@ -81,8 +82,8 @@ type Hyper_Table
                 Types.TIME -> Value_Type.Time
                 Types.TIMESTAMP -> Value_Type.Date_Time with_timezone=False
                 Types.TIMESTAMP_WITH_TIMEZONE -> Value_Type.Date_Time with_timezone=True
-                HyperReader.JSON -> Value_Type.Unsupported_Data_Type "JSON" JS_Object
-                HyperReader.INTERVAL -> Value_Type.Unsupported_Data_Type "INTERVAL" Duration
+                HyperTableColumn.JSON -> Value_Type.Unsupported_Data_Type "JSON" JS_Object
+                HyperTableColumn.INTERVAL -> Value_Type.Unsupported_Data_Type "INTERVAL" Duration
                 _ -> Value_Type.Unsupported_Data_Type "Unknown" Any
             Hyper_Column.Value column.name value_type column.nullable
 

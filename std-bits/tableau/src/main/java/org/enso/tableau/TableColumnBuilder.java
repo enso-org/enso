@@ -1,19 +1,33 @@
 package org.enso.tableau;
 
 import com.tableau.hyperapi.Result;
+
 import java.sql.Types;
 import java.time.Duration;
 import java.time.Period;
 import java.time.ZoneId;
 import java.util.function.Consumer;
-import org.enso.table.data.column.builder.*;
+
+import org.enso.table.data.column.builder.BigDecimalBuilder;
+import org.enso.table.data.column.builder.BigIntegerBuilder;
+import org.enso.table.data.column.builder.BoolBuilder;
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.DateBuilder;
+import org.enso.table.data.column.builder.DateTimeBuilder;
+import org.enso.table.data.column.builder.InferredBuilder;
+import org.enso.table.data.column.builder.NumericBuilder;
+import org.enso.table.data.column.builder.ObjectBuilder;
 import org.enso.table.data.column.builder.StringBuilder;
+import org.enso.table.data.column.builder.TimeOfDayBuilder;
+
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.TextType;
+
 import org.enso.table.problems.ProblemAggregator;
 
-public record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
+//** A builder for a single column of a table. */
+record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
   private static Consumer<Result> nullAppender(Builder builder, Consumer<Result> inner) {
     return r -> {
       if (r.isNull(0)) {
@@ -24,6 +38,7 @@ public record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod)
     };
   }
 
+  //** Convert a Tableau Interval into either a Duration or a Period (with fallback to String if needed). */
   private static Object readInterval(Result r, int index) {
     var interval = r.getInterval(index);
     if (interval.getMonths() == 0 && interval.getYears() == 0) {
@@ -45,7 +60,7 @@ public record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod)
   }
 
   public static TableColumnBuilder create(
-      HyperReader.TableColumn column, int initialRowCount, ProblemAggregator problemAggregator) {
+      HyperTableColumn column, int initialRowCount, ProblemAggregator problemAggregator) {
     switch (column.typeID()) {
       case Types.BOOLEAN:
         var boolBuilder = new BoolBuilder(initialRowCount);
@@ -138,12 +153,12 @@ public record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod)
             nullAppender(
                 dateTimeTzBuilder,
                 r -> dateTimeTzBuilder.append(r.getZonedDateTime(column.index()))));
-      case HyperReader.JSON:
+      case HyperTableColumn.JSON:
         var jsonBuilder = new ObjectBuilder(initialRowCount);
         return new TableColumnBuilder(
             jsonBuilder,
             nullAppender(jsonBuilder, r -> jsonBuilder.append(r.getString(column.index()))));
-      case HyperReader.INTERVAL:
+      case HyperTableColumn.INTERVAL:
         var intervalBuilder = new InferredBuilder(initialRowCount, problemAggregator);
         return new TableColumnBuilder(
             intervalBuilder,

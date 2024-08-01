@@ -3,12 +3,10 @@ package org.enso.tableau;
 import com.tableau.hyperapi.Catalog;
 import com.tableau.hyperapi.Connection;
 import com.tableau.hyperapi.HyperProcess;
-import com.tableau.hyperapi.Nullability;
 import com.tableau.hyperapi.SchemaName;
-import com.tableau.hyperapi.TableDefinition;
 import com.tableau.hyperapi.TableName;
 import com.tableau.hyperapi.Telemetry;
-import com.tableau.hyperapi.TypeTag;
+
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;
@@ -16,17 +14,16 @@ import java.net.URISyntaxException;
 import java.nio.channels.Channels;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.OptionalInt;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.IntStream;
 import org.enso.table.data.table.Column;
 import org.enso.table.problems.ProblemAggregator;
 
+//** Class responsible for reading from Tableau Hyper files. */
 public class HyperReader {
   public static final Path HYPER_PATH = Path.of(getHyperPath());
   private static HyperProcess process;
@@ -80,7 +77,6 @@ public class HyperReader {
           case OTHER -> throw new IOException(
               "Unsupported platform: " + OSPlatform.CurrentPlatform);
         }
-        ;
       }
     } catch (Exception e) {
       throw new IOException("Failed to download hyperd.", e);
@@ -95,7 +91,7 @@ public class HyperReader {
         try {
           process = new HyperProcess(HYPER_PATH, Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU);
         } catch (Throwable ioe) {
-          ioe.printStackTrace();
+          LOGGER.log(Level.SEVERE, "Failed to start Hyper process.", ioe);
           throw ioe;
         }
       } finally {
@@ -131,9 +127,6 @@ public class HyperReader {
     }
   }
 
-  // ** Record type for representing a Hyper table. */
-  public record HyperTable(String schema, String name) {}
-
   public static HyperTable[] listTablesAllSchemas(String path) throws IOException {
     var process = getProcess();
     try (var connection = new Connection(process.getEndpoint(), path)) {
@@ -163,51 +156,7 @@ public class HyperReader {
     return output.toArray(HyperTable[]::new);
   }
 
-  public static final int JSON = 10001;
-  public static final int INTERVAL = 10002;
-
-  public record TableColumn(
-      int index,
-      String name,
-      int typeID,
-      boolean nullable,
-      OptionalInt length,
-      OptionalInt precision,
-      OptionalInt scale) {
-    public static TableColumn FromHyperColumn(int index, TableDefinition.Column hyperColumn) {
-      return new TableColumn(
-          index,
-          hyperColumn.getName().getUnescaped(),
-          mapTypeTag(hyperColumn.getType().getTag()),
-          hyperColumn.getNullability().equals(Nullability.NULLABLE),
-          hyperColumn.getType().getMaxLength(),
-          hyperColumn.getType().getPrecision(),
-          hyperColumn.getType().getScale());
-    }
-
-    private static int mapTypeTag(TypeTag tag) {
-      return switch (tag) {
-        case BOOL -> Types.BOOLEAN;
-        case BIG_INT -> Types.BIGINT;
-        case SMALL_INT -> Types.SMALLINT;
-        case INT -> Types.INTEGER;
-        case NUMERIC -> Types.NUMERIC;
-        case FLOAT -> Types.FLOAT;
-        case DOUBLE -> Types.DOUBLE;
-        case TEXT, VARCHAR -> Types.VARCHAR;
-        case CHAR -> Types.CHAR;
-        case DATE -> Types.DATE;
-        case TIME -> Types.TIME;
-        case TIMESTAMP -> Types.TIMESTAMP;
-        case TIMESTAMP_TZ -> Types.TIMESTAMP_WITH_TIMEZONE;
-        case JSON -> JSON;
-        case INTERVAL -> INTERVAL;
-        default -> Types.OTHER;
-      };
-    }
-  }
-
-  public static TableColumn[] readStructure(String path, String schemaName, String tableName)
+  public static HyperTableColumn[] readStructure(String path, String schemaName, String tableName)
       throws IOException {
     var tableNameObject = new TableName(new SchemaName(schemaName), tableName);
     var process = getProcess();
@@ -216,14 +165,14 @@ public class HyperReader {
     }
   }
 
-  private static TableColumn[] readStructureInternal(
+  private static HyperTableColumn[] readStructureInternal(
       Connection connection, TableName tableNameObject) {
     var catalog = connection.getCatalog();
     var definition = catalog.getTableDefinition(tableNameObject);
     var columns = definition.getColumns();
     return IntStream.range(0, columns.size())
-        .mapToObj(i -> TableColumn.FromHyperColumn(i, columns.get(i)))
-        .toArray(TableColumn[]::new);
+        .mapToObj(i -> HyperTableColumn.FromHyperColumn(i, columns.get(i)))
+        .toArray(HyperTableColumn[]::new);
   }
 
   public static Column[] readTable(
