@@ -392,19 +392,22 @@ public class ErrorCompilerTest extends CompilerTest {
   @Test
   public void malformedExport9() throws Exception {
     var ir = parse("from export all");
-    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 15);
+    assertSingleSyntaxError(
+        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 15);
   }
 
   @Test
   public void malformedExport10() throws Exception {
     var ir = parse("from Foo export all hiding");
-    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 26);
+    assertSingleSyntaxError(
+        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 26);
   }
 
   @Test
   public void malformedExport11() throws Exception {
     var ir = parse("from Foo export all hiding X.Y");
-    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 30);
+    assertSingleSyntaxError(
+        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 30);
   }
 
   @Test
@@ -583,7 +586,7 @@ public class ErrorCompilerTest extends CompilerTest {
         from project.Module export all
         """);
     assertSingleSyntaxError(
-            ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 30);
+        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 30);
   }
 
   @Test
@@ -592,7 +595,7 @@ public class ErrorCompilerTest extends CompilerTest {
         from project.Module export all hiding Foo
         """);
     assertSingleSyntaxError(
-            ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 41);
+        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 41);
   }
 
   private void assertSingleSyntaxError(
