@@ -1,0 +1,45 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+from Standard.Base.Metadata.Choice import Option
+from Standard.Base.Metadata.Widget import Single_Choice
+
+polyglot java import org.enso.tableau.HyperReader
+
+## Represents a Tableau Hyper Extract file.
+type Hyper_File
+    ## ICON data_input
+       Creates a Hyper_File
+
+       Arguments:
+       - file: The file to read.
+    new : File -> Hyper_File
+    new file:File = Hyper_File.Value file
+
+    ## PRIVATE
+       A representation of a Tableau Hyper Extract file.
+    private Value file:File
+
+    ## ICON metadata
+       Returns the list of schemas for the connection within the current database (or catalog).
+    schemas : Vector Text
+    schemas self =
+        array = HyperReader.readSchemas self.file.path
+        Vector.from_polyglot_array array
+
+    ## GROUP Standard.Base.Metadata
+       ICON metadata
+       Returns the list of tables for the connection within the current database (or catalog).
+    @schema (hyper -> make_schema_selector hyper True)
+    tables : Text -> Vector Hyper_Table
+    tables self schema:Text='*' =
+        array = case schema of
+            "" -> Error.throw (Illegal_Argument.Error "Schema name cannot be empty.")
+            "*" -> HyperReader.listTablesAllSchemas self.file.path
+            _ -> HyperReader.listTables self.file.path schema
+        array.map t-> Hyper_Table.Value self t.schema t.name
+
+## PRIVATE
+make_schema_selector hyper_file:Hyper_File include_any:Boolean=False =
+    schemas = hyper_file.schemas.map t-> Option t t.pretty
+    any_entry = if include_any then [Option "<Any Schema>" "'*'"] else []
+    Single_Choice values=schemas+any_entry
