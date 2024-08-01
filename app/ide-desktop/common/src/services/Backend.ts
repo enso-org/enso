@@ -413,6 +413,7 @@ export interface CognitoCredentials {
 
 /** Subscription plans. */
 export enum Plan {
+  free = 'free',
   solo = 'solo',
   team = 'team',
   enterprise = 'enterprise',
@@ -437,7 +438,8 @@ export interface CheckoutSessionStatus {
   /** Status of the payment for the checkout session. */
   readonly paymentStatus: string
   /** Status of the checkout session. */
-  readonly status: string
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  readonly status: 'active' | 'trialing' | (string & {})
 }
 
 /** Resource usage of a VM. */
@@ -468,7 +470,7 @@ export interface OrganizationInfo {
   readonly website: HttpsUrl | null
   readonly address: string | null
   readonly picture: HttpsUrl | null
-  readonly subscription: Subscription
+  readonly subscription: Subscription | null
 }
 
 /** A user group and its associated metadata. */
@@ -1161,6 +1163,8 @@ export interface ListVersionsRequestParams {
 export interface CreateCheckoutSessionRequestParams {
   readonly plan: Plan
   readonly paymentMethodId: string
+  readonly quantity: number
+  readonly interval: number
 }
 
 // ==============================

@@ -16,6 +16,7 @@ import * as gtag from 'enso-common/src/gtag'
 
 import * as appUtils from '#/appUtils'
 
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as gtagHooks from '#/hooks/gtagHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
@@ -27,7 +28,6 @@ import * as textProvider from '#/providers/TextProvider'
 import * as ariaComponents from '#/components/AriaComponents'
 import * as resultComponent from '#/components/Result'
 
-import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import type RemoteBackend from '#/services/RemoteBackend'
 
@@ -93,7 +93,7 @@ interface AuthContextType {
   ) => Promise<boolean>
   readonly authQueryKey: reactQuery.QueryKey
   readonly confirmSignUp: (email: string, code: string) => Promise<boolean>
-  readonly setUsername: (backend: Backend, username: string, email: string) => Promise<boolean>
+  readonly setUsername: (username: string) => Promise<boolean>
   readonly signInWithGoogle: () => Promise<boolean>
   readonly signInWithGitHub: () => Promise<boolean>
   readonly signInWithPassword: (email: string, password: string) => Promise<boolean>
@@ -249,6 +249,11 @@ export default function AuthProvider(props: AuthProviderProps) {
     meta: { invalidates: [usersMeQuery.queryKey], awaitInvalidates: true },
   })
 
+  const updateUserMutation = reactQuery.useMutation({
+    mutationFn: (user: backendModule.UpdateUserRequestBody) => remoteBackend.updateUser(user),
+    meta: { invalidates: [usersMeQuery.queryKey], awaitInvalidates: true },
+  })
+
   /** Wrap a function returning a {@link Promise} to display a loading toast notification
    * until the returned {@link Promise} finishes loading. */
   const withLoadingToast =
@@ -282,23 +287,25 @@ export default function AuthProvider(props: AuthProviderProps) {
     })
   }
 
-  const signUp = async (username: string, password: string, organizationId: string | null) => {
-    if (cognito == null) {
-      return false
-    } else {
-      gtagEvent('cloud_sign_up')
-      const result = await cognito.signUp(username, password, organizationId)
-      if (result.ok) {
-        toastSuccess(getText('signUpSuccess'))
-        navigate(appUtils.LOGIN_PATH)
+  const signUp = useEventCallback(
+    async (username: string, password: string, organizationId: string | null) => {
+      if (cognito == null) {
+        return false
       } else {
-        toastError(result.val.message)
+        gtagEvent('cloud_sign_up')
+        const result = await cognito.signUp(username, password, organizationId)
+        if (result.ok) {
+          toastSuccess(getText('signUpSuccess'))
+          navigate(appUtils.LOGIN_PATH)
+        } else {
+          toastError(result.val.message)
+        }
+        return result.ok
       }
-      return result.ok
-    }
-  }
+    },
+  )
 
-  const confirmSignUp = async (email: string, code: string) => {
+  const confirmSignUp = useEventCallback(async (email: string, code: string) => {
     if (cognito == null) {
       return false
     } else {
@@ -323,9 +330,9 @@ export default function AuthProvider(props: AuthProviderProps) {
       navigate(appUtils.LOGIN_PATH)
       return result.ok
     }
-  }
+  })
 
-  const signInWithPassword = async (email: string, password: string) => {
+  const signInWithPassword = useEventCallback(async (email: string, password: string) => {
     if (cognito == null) {
       return false
     } else {
@@ -334,6 +341,7 @@ export default function AuthProvider(props: AuthProviderProps) {
       if (result.ok) {
         toastSuccess(getText('signInWithPasswordSuccess'))
         void queryClient.invalidateQueries({ queryKey: sessionQueryKey })
+        navigate(appUtils.DASHBOARD_PATH)
       } else {
         if (result.val.type === cognitoModule.CognitoErrorType.userNotFound) {
           // It may not be safe to pass the user's password in the URL.
@@ -343,49 +351,33 @@ export default function AuthProvider(props: AuthProviderProps) {
       }
       return result.ok
     }
-  }
+  })
 
-  const setUsername = async (backend: Backend, username: string, email: string) => {
+  const setUsername = useEventCallback(async (username: string) => {
     if (cognito == null) {
-      return false
-    } else if (backend.type === backendModule.BackendType.local) {
-      toastError(getText('setUsernameLocalBackendError'))
       return false
     } else {
       gtagEvent('cloud_user_created')
 
-      try {
+      if (userData?.type === UserSessionType.full) {
+        await updateUserMutation.mutateAsync({ username: username })
+      } else {
         const organizationId = await cognito.organizationId()
-        // This should not omit success and error toasts as it is not possible
-        // to render this optimistically.
-        await toast.toast.promise(
-          createUserMutation.mutateAsync({
-            userName: username,
-            userEmail: backendModule.EmailAddress(email),
-            organizationId:
-              organizationId != null ? backendModule.OrganizationId(organizationId) : null,
-          }),
-          {
-            success: getText('setUsernameSuccess'),
-            error: getText('setUsernameError'),
-            pending: getText('settingUsername'),
-          },
-        )
-        const redirectTo = localStorage.get('loginRedirect')
-        if (redirectTo != null) {
-          localStorage.delete('loginRedirect')
-          location.href = redirectTo
-        } else {
-          navigate(appUtils.DASHBOARD_PATH)
-        }
-        return true
-      } catch {
-        return false
-      }
-    }
-  }
+        const email = session?.email ?? ''
 
-  const deleteUser = async () => {
+        await createUserMutation.mutateAsync({
+          userName: username,
+          userEmail: backendModule.EmailAddress(email),
+          organizationId:
+            organizationId != null ? backendModule.OrganizationId(organizationId) : null,
+        })
+      }
+
+      return true
+    }
+  })
+
+  const deleteUser = useEventCallback(async () => {
     if (cognito == null) {
       return false
     } else {
@@ -395,9 +387,9 @@ export default function AuthProvider(props: AuthProviderProps) {
 
       return true
     }
-  }
+  })
 
-  const restoreUser = async () => {
+  const restoreUser = useEventCallback(async () => {
     if (cognito == null) {
       return false
     } else {
@@ -407,14 +399,14 @@ export default function AuthProvider(props: AuthProviderProps) {
 
       return true
     }
-  }
+  })
 
   /**
    * Update the user session data in the React Query cache.
    * This only works for full user sessions.
    * @deprecated Never use this function. Prefer particular functions like `setUsername` or `deleteUser`.
    */
-  const setUser = (user: Partial<backendModule.User>) => {
+  const setUser = useEventCallback((user: Partial<backendModule.User>) => {
     const currentUser = queryClient.getQueryData(usersMeQuery.queryKey)
 
     if (currentUser != null && currentUser.type === UserSessionType.full) {
@@ -423,9 +415,9 @@ export default function AuthProvider(props: AuthProviderProps) {
 
       queryClient.setQueryData(usersMeQuery.queryKey, { ...currentUser, user: nextUserData })
     }
-  }
+  })
 
-  const forgotPassword = async (email: string) => {
+  const forgotPassword = useEventCallback(async (email: string) => {
     if (cognito == null) {
       return false
     } else {
@@ -438,9 +430,9 @@ export default function AuthProvider(props: AuthProviderProps) {
       }
       return result.ok
     }
-  }
+  })
 
-  const resetPassword = async (email: string, code: string, password: string) => {
+  const resetPassword = useEventCallback(async (email: string, code: string, password: string) => {
     if (cognito == null) {
       return false
     } else {
@@ -453,9 +445,9 @@ export default function AuthProvider(props: AuthProviderProps) {
       }
       return result.ok
     }
-  }
+  })
 
-  const changePassword = async (oldPassword: string, newPassword: string) => {
+  const changePassword = useEventCallback(async (oldPassword: string, newPassword: string) => {
     if (cognito == null) {
       return false
     } else {
@@ -467,11 +459,13 @@ export default function AuthProvider(props: AuthProviderProps) {
       }
       return result.ok
     }
-  }
+  })
 
-  const isUserMarkedForDeletion = () => !!(userData && 'user' in userData && userData.user.removeAt)
+  const isUserMarkedForDeletion = useEventCallback(
+    () => !!(userData && 'user' in userData && userData.user.removeAt),
+  )
 
-  const isUserDeleted = () => {
+  const isUserDeleted = useEventCallback(() => {
     if (userData && 'user' in userData && userData.user.removeAt) {
       const removeAtDate = new Date(userData.user.removeAt)
       const now = new Date()
@@ -480,9 +474,9 @@ export default function AuthProvider(props: AuthProviderProps) {
     } else {
       return false
     }
-  }
+  })
 
-  const isUserSoftDeleted = () => {
+  const isUserSoftDeleted = useEventCallback(() => {
     if (userData && 'user' in userData && userData.user.removeAt) {
       const removeAtDate = new Date(userData.user.removeAt)
       const now = new Date()
@@ -491,7 +485,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     } else {
       return false
     }
-  }
+  })
 
   React.useEffect(() => {
     if (userData?.type === UserSessionType.full) {
@@ -531,7 +525,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     isUserSoftDeleted,
     restoreUser,
     deleteUser,
-    signInWithGoogle: () => {
+    signInWithGoogle: useEventCallback(() => {
       if (cognito == null) {
         return Promise.resolve(false)
       } else {
@@ -544,8 +538,8 @@ export default function AuthProvider(props: AuthProviderProps) {
             () => false,
           )
       }
-    },
-    signInWithGitHub: () => {
+    }),
+    signInWithGitHub: useEventCallback(() => {
       if (cognito == null) {
         return Promise.resolve(false)
       } else {
@@ -558,7 +552,7 @@ export default function AuthProvider(props: AuthProviderProps) {
             () => false,
           )
       }
-    },
+    }),
     signInWithPassword: signInWithPassword,
     forgotPassword: withLoadingToast(forgotPassword),
     resetPassword: withLoadingToast(resetPassword),
@@ -614,7 +608,7 @@ export function ProtectedLayout() {
   if (session == null) {
     return <router.Navigate to={appUtils.LOGIN_PATH} />
   } else if (session.type === UserSessionType.partial) {
-    return <router.Navigate to={appUtils.SET_USERNAME_PATH} />
+    return <router.Navigate to={appUtils.SETUP_PATH} />
   } else {
     return <router.Outlet context={session} />
   }
@@ -630,17 +624,14 @@ export function SemiProtectedLayout() {
   const { session } = useAuth()
   const { localStorage } = localStorageProvider.useLocalStorage()
 
-  if (session?.type === UserSessionType.full) {
-    const redirectTo = localStorage.get('loginRedirect')
-    if (redirectTo != null) {
-      localStorage.delete('loginRedirect')
-      location.href = redirectTo
-      return
-    } else {
-      return <router.Navigate to={appUtils.DASHBOARD_PATH} />
-    }
-  } else if (session?.type !== UserSessionType.partial) {
-    return <router.Navigate to={appUtils.LOGIN_PATH} />
+  // The user is not logged in - redirect to the login page.
+  if (session == null) {
+    return <router.Navigate to={appUtils.LOGIN_PATH} replace />
+    // User is registered, redirect to dashboard or to the redirect path specified during the registration / login.
+  } else if (session.type === UserSessionType.full) {
+    const redirectTo = localStorage.delete('loginRedirect') ?? appUtils.DASHBOARD_PATH
+    return <router.Navigate to={redirectTo} replace />
+    // User is in the process of registration, allow them to complete the registration.
   } else {
     return <router.Outlet context={session} />
   }
@@ -657,7 +648,7 @@ export function GuestLayout() {
   const { localStorage } = localStorageProvider.useLocalStorage()
 
   if (session?.type === UserSessionType.partial) {
-    return <router.Navigate to={appUtils.SET_USERNAME_PATH} />
+    return <router.Navigate to={appUtils.SETUP_PATH} />
   } else if (session?.type === UserSessionType.full) {
     const redirectTo = localStorage.get('loginRedirect')
     if (redirectTo != null) {
@@ -707,7 +698,11 @@ export function SoftDeletedUserLayout() {
 /** A React context hook returning the user session
  * for a user that has not yet completed registration. */
 export function usePartialUserSession() {
-  return router.useOutletContext<PartialUserSession>()
+  const { session } = useAuth()
+
+  invariant(session?.type === UserSessionType.partial, 'Expected a partial user session.')
+
+  return session
 }
 
 // ================================
@@ -716,7 +711,7 @@ export function usePartialUserSession() {
 
 /** A React context hook returning the user session for a user that can perform actions. */
 export function useNonPartialUserSession() {
-  return router.useOutletContext<Exclude<UserSession, PartialUserSession>>()
+  return useFullUserSession()
 }
 
 // ======================
@@ -725,7 +720,7 @@ export function useNonPartialUserSession() {
 
 /** A React context hook returning the user session for a user that may or may not be logged in. */
 export function useUserSession() {
-  return router.useOutletContext<UserSession | undefined>()
+  return useAuth().session
 }
 
 /**

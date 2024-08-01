@@ -6,11 +6,10 @@ import * as appUtils from '#/appUtils'
 
 import * as textProvider from '#/providers/TextProvider'
 
-import * as constants from '#/pages/subscribe/constants'
-
 import * as ariaComponents from '#/components/AriaComponents'
 import * as result from '#/components/Result'
 
+import { PLAN_TO_TEXT_ID } from '#/modules/payments'
 import * as backend from '#/services/Backend'
 
 // ========================
@@ -31,7 +30,7 @@ export function SubscribeSuccess() {
       <result.Result
         className="h-full"
         title={getText('subscribeSuccessTitle')}
-        subtitle={getText('subscribeSuccessSubtitle', getText(constants.PLAN_TO_TEXT_ID[plan]))}
+        subtitle={getText('subscribeSuccessSubtitle', getText(PLAN_TO_TEXT_ID[plan]))}
         status="success"
       >
         <ariaComponents.ButtonGroup align="center">
