@@ -17,6 +17,12 @@ type Error_Mapper
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
+    is_table_already_exists_error : SQL_Error -> Boolean
+    is_table_already_exists_error error =
+        _ = error
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
        Called by `Table.read`, allowing the dialect to transform a generic
        `SQL_Error` into a more specific error type, if applicable.
     transform_custom_errors : SQL_Error -> Any
