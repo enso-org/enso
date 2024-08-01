@@ -396,6 +396,9 @@ importers:
         specifier: ^3.23.8
         version: 3.23.8
     devDependencies:
+      '@codemirror/theme-one-dark':
+        specifier: ^6.1.2
+        version: 6.1.2
       '@danmarshall/deckgl-typings':
         specifier: ^4.9.28
         version: 4.9.28
@@ -792,6 +795,9 @@ importers:
       esbuild-plugin-wasm:
         specifier: ^1.1.0
         version: 1.1.0
+      nodemon:
+        specifier: ^3.1.4
+        version: 3.1.4
       typescript:
         specifier: ^5.5.3
         version: 5.5.3

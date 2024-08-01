@@ -47,6 +47,7 @@ const node = computed((): Node => {
     vis: undefined,
     documentation: undefined,
     conditionalPorts: new Set(),
+    type: 'component',
   }
 })
 
@@ -64,7 +65,7 @@ const keyboard = useKeyboard()
 const navigator = useNavigator(ref(), keyboard)
 const allPortsEnabled = () => true
 const SetupStory = createSetupComponent((app) => {
-  const selection = provideGraphSelection._mock([navigator, mockRects, allPortsEnabled], app)
+  const selection = provideGraphSelection._mock([navigator, mockRects, allPortsEnabled, {}], app)
   watchEffect(() => {
     if (selected.value) {
       selection.selectAll()
@@ -82,6 +83,7 @@ const SetupStory = createSetupComponent((app) => {
       <GraphNode
         :edited="false"
         :node="node"
+        :graphNodeSelections="undefined"
         @movePosition="
           (nodeX += $event.x),
             (nodeY += $event.y),

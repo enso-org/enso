@@ -11,7 +11,5 @@
     "../../build.json",
     "src/config.json"
   ],
-  "references": [
-    { "path": "../../dashboard" }
-  ]
+  "references": [{ "path": "../../dashboard" }]
 }

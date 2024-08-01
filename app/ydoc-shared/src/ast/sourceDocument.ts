@@ -48,7 +48,7 @@ export class SourceDocument {
           assertDefined(oldSpan)
           const oldCode = this.text_.slice(oldSpan[0], oldSpan[1])
           const newCode = printed.code.slice(range[0], range[1])
-          const subedits = textChangeToEdits(oldCode, newCode).map((textEdit) =>
+          const subedits = textChangeToEdits(oldCode, newCode).map(textEdit =>
             offsetEdit(textEdit, oldSpan[0]),
           )
           subtreeTextEdits.push(...subedits)

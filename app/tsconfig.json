@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "lib": ["ES2021", "DOM"],
+    "lib": ["ES2021", "DOM", "DOM.Iterable"],
     "composite": true,
     "rootDir": "../..",
     "allowSyntheticDefaultImports": true,

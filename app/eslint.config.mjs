@@ -196,7 +196,7 @@ export default [
   eslintJs.configs.recommended,
   {
     // Playwright build cache and Vite build directory.
-    ignores: ['**/.cache/**', '**/playwright-report', '**/dist'],
+    ignores: ['**/.cache/**', '**/playwright-report', '**/dist', '**/build.mjs'],
   },
   {
     settings: {
@@ -403,6 +403,7 @@ export default [
   },
   {
     files: ['**/*.js', '**/*.jsx', '**/*.cjs', '**/*.mjs'],
+    ignores: ['**/build.mjs'],
     rules: {
       '@typescript-eslint/no-var-requires': 'off',
       // Parameter types must be specified using JSDoc in JS files.

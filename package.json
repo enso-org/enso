@@ -15,11 +15,11 @@
   "scripts": {
     "dev:gui2": "pnpm run --parallel -r --filter enso-gui2 --filter ydoc-server-nodejs /^dev:/",
     "format": "prettier --write .",
-    "prettier": "prettier --check .",
-    "lint": "npm --workspaces --if-present run lint",
-    "test": "npm --workspaces --if-present run test",
-    "typecheck": "npm --workspaces --if-present run typecheck",
-    "ci-check": "run-p test prettier lint typecheck"
+    "ci-check": "pnpm run --aggregate-output /^ci:/",
+    "ci:prettier": "prettier --check .",
+    "ci:lint": "pnpm run -r lint",
+    "ci:test": "pnpm run -r test",
+    "ci:typecheck": "pnpm run -r typecheck"
   },
   "pnpm": {
     "//": "To completely ignore deep dependencies, see .pnpmfile.cjs",

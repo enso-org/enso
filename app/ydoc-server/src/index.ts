@@ -11,8 +11,7 @@
 import type { Server } from 'http'
 import type { Http2SecureServer } from 'http2'
 import type { WebSocket } from 'isomorphic-ws'
-import { IncomingMessage } from 'node:http'
-import { parse } from 'url'
+import type { IncomingMessage } from 'node:http'
 import { ConnectionData, docName } from './auth.js'
 import { setupGatewayClient } from './ydoc.js'
 
@@ -23,6 +22,7 @@ export async function createGatewayServer(
   overrideLanguageServerUrl?: string,
 ) {
   const { WebSocketServer } = await import('isomorphic-ws')
+  const { parse } = await import('node:url')
 
   const wss = new WebSocketServer({ noServer: true })
   wss.on('connection', (ws: WebSocket, _request: IncomingMessage, data: ConnectionData) => {
@@ -46,29 +46,29 @@ export async function createGatewayServer(
       }
     })
   })
-}
 
-function onWebSocketError(err: Error) {
-  console.log('WebSocket error:', err)
-}
+  function onWebSocketError(err: Error) {
+    console.log('WebSocket error:', err)
+  }
 
-function onHttpSocketError(err: Error) {
-  console.log('HTTP socket error:', err)
-}
+  function onHttpSocketError(err: Error) {
+    console.log('HTTP socket error:', err)
+  }
 
-function authenticate(
-  request: IncomingMessage,
-  callback: (err: Error | null, authData: ConnectionData | null) => void,
-) {
-  // FIXME: Stub. We don't implement authentication for now. Need to be implemented in combination
-  // with the language server.
-  const user = 'mock-user'
+  function authenticate(
+    request: IncomingMessage,
+    callback: (err: Error | null, authData: ConnectionData | null) => void,
+  ) {
+    // FIXME: Stub. We don't implement authentication for now. Need to be implemented in combination
+    // with the language server.
+    const user = 'mock-user'
 
-  if (request.url == null) return callback(null, null)
-  const { pathname, query } = parse(request.url, true)
-  if (pathname == null) return callback(null, null)
-  const doc = docName(pathname)
-  const lsUrl = query.ls
-  const data = doc != null && typeof lsUrl === 'string' ? { lsUrl, doc, user } : null
-  callback(null, data)
+    if (request.url == null) return callback(null, null)
+    const { pathname, query } = parse(request.url, true)
+    if (pathname == null) return callback(null, null)
+    const doc = docName(pathname)
+    const lsUrl = query.ls
+    const data = doc != null && typeof lsUrl === 'string' ? { lsUrl, doc, user } : null
+    callback(null, data)
+  }
 }

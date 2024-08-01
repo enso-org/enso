@@ -76,7 +76,7 @@ export function applyTextEditsToSpans(textEdits: SourceRangeEdit[], spansBefore:
   const endMap = new Map<number, number>()
   let offset = 0
   for (const { range, insert } of textEdits) {
-    starts.advanceWhile((start) => {
+    starts.advanceWhile(start => {
       if (start < range[0]) {
         startMap.set(start, start + offset)
         return true
@@ -86,7 +86,7 @@ export function applyTextEditsToSpans(textEdits: SourceRangeEdit[], spansBefore:
       }
       return false
     })
-    ends.advanceWhile((end) => {
+    ends.advanceWhile(end => {
       if (end <= range[0]) {
         endMap.set(end, end + offset)
         return true
@@ -98,8 +98,8 @@ export function applyTextEditsToSpans(textEdits: SourceRangeEdit[], spansBefore:
     })
     offset += insert.length - rangeLength(range)
   }
-  starts.forEach((start) => startMap.set(start, start + offset))
-  ends.forEach((end) => endMap.set(end, end + offset))
+  starts.forEach(start => startMap.set(start, start + offset))
+  ends.forEach(end => endMap.set(end, end + offset))
 
   // Apply the translations to the map.
   const spansBeforeAndAfter = new Array<readonly [SourceRange, SourceRange]>()
@@ -129,7 +129,7 @@ export function enclosingSpans<NodeId>(
   for (const child of tree.children()) {
     const childSpan = child.span()
     const childRanges: SourceRange[] = []
-    ranges = ranges.filter((range) => {
+    ranges = ranges.filter(range => {
       if (rangeEncloses(childSpan, range)) {
         childRanges.push(range)
         return false

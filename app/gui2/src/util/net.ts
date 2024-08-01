@@ -6,7 +6,7 @@ import {
   ReconnectingWebSocketTransport,
 } from 'ydoc-shared/util/net'
 
-export { AbortScope } from 'ydoc-shared/util/net'
+export { AbortScope, MockWebSocketTransport }
 
 export function createRpcTransport(url: string): ReconnectingWebSocketTransport {
   if (url.startsWith('mock://')) {

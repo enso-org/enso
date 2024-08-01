@@ -1,4 +1,4 @@
-import type { Uuid } from './index'
+import { Uuid } from '../yjsModel'
 
 export type SuggestionId = number
 

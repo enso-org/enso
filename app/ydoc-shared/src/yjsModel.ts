@@ -157,7 +157,7 @@ export function sourceRangeKey(range: SourceRange): SourceRangeKey {
   return `${range[0].toString(16)}:${range[1].toString(16)}` as SourceRangeKey
 }
 export function sourceRangeFromKey(key: SourceRangeKey): SourceRange {
-  return key.split(':').map((x) => parseInt(x, 16)) as [number, number]
+  return key.split(':').map(x => parseInt(x, 16)) as [number, number]
 }
 
 export class IdMap {

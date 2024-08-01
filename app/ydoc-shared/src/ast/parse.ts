@@ -148,7 +148,7 @@ class Abstractor {
     let node: Owned
     switch (tree.type) {
       case RawAst.Tree.Type.BodyBlock: {
-        const lines = Array.from(tree.statements, (line) => {
+        const lines = Array.from(tree.statements, line => {
           const newline = this.abstractToken(line.newline)
           const expression = line.expression ? this.abstractTree(line.expression) : undefined
           return { newline, expression }
@@ -158,7 +158,7 @@ class Abstractor {
       }
       case RawAst.Tree.Type.Function: {
         const name = this.abstractTree(tree.name)
-        const argumentDefinitions = Array.from(tree.args, (arg) => this.abstractChildren(arg))
+        const argumentDefinitions = Array.from(tree.args, arg => this.abstractChildren(arg))
         const equals = this.abstractToken(tree.equals)
         const body = tree.body !== undefined ? this.abstractTree(tree.body) : undefined
         node = Function.concrete(this.module, name, argumentDefinitions, equals, body)
@@ -264,7 +264,7 @@ class Abstractor {
       case RawAst.Tree.Type.TextLiteral: {
         const open = tree.open ? this.abstractToken(tree.open) : undefined
         const newline = tree.newline ? this.abstractToken(tree.newline) : undefined
-        const elements = Array.from(tree.elements, (raw) => this.abstractTextElement(raw))
+        const elements = Array.from(tree.elements, raw => this.abstractTextElement(raw))
         const close = tree.close ? this.abstractToken(tree.close) : undefined
         node = TextLiteral.concrete(this.module, open, newline, elements, close)
         break
@@ -440,7 +440,7 @@ export function spanMapToSpanGetter(spans: SpanMap): (id: AstId) => SourceRange 
       reverseMap.set(ast.id, sourceRangeFromKey(key))
     }
   }
-  return (id) => reverseMap.get(id)
+  return id => reverseMap.get(id)
 }
 
 /** Return stringification with associated ID map. This is only exported for testing. */
@@ -627,7 +627,7 @@ export function parseExtended(code: string, idMap?: IdMap | undefined, inModule?
 /** Return the number of `Ast`s in the tree, including the provided root. */
 export function astCount(ast: Ast): number {
   let count = 0
-  ast.visitRecursiveAst((_subtree) => {
+  ast.visitRecursiveAst(_subtree => {
     count += 1
   })
   return count
@@ -704,7 +704,7 @@ export function repair(
   const fixes = module ?? root.module.edit()
   for (const ast of lostInline) {
     if (ast instanceof Group) continue
-    fixes.getVersion(ast).update((ast) => Group.new(fixes, ast))
+    fixes.getVersion(ast).update(ast => Group.new(fixes, ast))
   }
 
   // Verify that it's fixed.
@@ -736,7 +736,7 @@ function resync(
   edit: MutableModule,
 ) {
   const parentsOfBadSubtrees = new Set<AstId>()
-  const badAstIds = new Set(Array.from(badAsts, (ast) => ast.id))
+  const badAstIds = new Set(Array.from(badAsts, ast => ast.id))
   for (const id of subtreeRoots(edit, badAstIds)) {
     const parent = edit.get(id)?.parentId
     if (parent) parentsOfBadSubtrees.add(parent)
@@ -846,7 +846,7 @@ function calculateCorrespondence(
     partAfterToAstBefore.set(sourceRangeKey(partAfter), astBefore)
   }
   const matchingPartsAfter = spansBeforeAndAfter.map(([_before, after]) => after)
-  const parsedSpanTree = new AstWithSpans(parsedRoot, (id) => newSpans.get(id)!)
+  const parsedSpanTree = new AstWithSpans(parsedRoot, id => newSpans.get(id)!)
   const astsMatchingPartsAfter = enclosingSpans(parsedSpanTree, matchingPartsAfter)
   for (const [astAfter, partsAfter] of astsMatchingPartsAfter) {
     for (const partAfter of partsAfter) {
@@ -873,8 +873,8 @@ function calculateCorrespondence(
   const newHashes = syntaxHash(parsedRoot).hashes
   const oldHashes = syntaxHash(ast).hashes
   for (const [hash, newAsts] of newHashes) {
-    const unmatchedNewAsts = newAsts.filter((ast) => !newIdsMatched.has(ast.id))
-    const unmatchedOldAsts = oldHashes.get(hash)?.filter((ast) => !oldIdsMatched.has(ast.id)) ?? []
+    const unmatchedNewAsts = newAsts.filter(ast => !newIdsMatched.has(ast.id))
+    const unmatchedOldAsts = oldHashes.get(hash)?.filter(ast => !oldIdsMatched.has(ast.id)) ?? []
     for (const [unmatchedNew, unmatchedOld] of zip(unmatchedNewAsts, unmatchedOldAsts)) {
       toSync.set(unmatchedOld.id, unmatchedNew)
       // Update the matched-IDs indices.
@@ -948,7 +948,7 @@ function syncTree(
     target.fields.get('metadata').set('externalId', newExternalId())
   }
   const newRoot = syncRoot ? target : newContent
-  newRoot.visitRecursiveAst((ast) => {
+  newRoot.visitRecursiveAst(ast => {
     const syncFieldsFrom = toSync.get(ast.id)
     const editAst = edit.getVersion(ast)
     if (syncFieldsFrom) {

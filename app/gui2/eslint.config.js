@@ -28,12 +28,7 @@ const conf = [
       parserOptions: {
         tsconfigRootDir: DIR_NAME,
         ecmaVersion: 'latest',
-        project: [
-          './tsconfig.app.json',
-          './tsconfig.node.json',
-          './tsconfig.app.vitest.json',
-          './tsconfig.story.json',
-        ],
+        project: ['./tsconfig.app.json', './tsconfig.node.json', './tsconfig.app.vitest.json'],
       },
     },
     rules: {

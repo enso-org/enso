@@ -13,13 +13,12 @@ const ctx = await esbuild.context({
   platform: 'browser',
   plugins: [usePolyglotFfi()],
   conditions: watchMode ? ['source'] : [],
+  external: ['node:url'], // Not actually used, tree-shaken out
   format: 'cjs',
-  metafile: true,
 })
 if (watchMode) await ctx.watch()
 else {
   const result = await ctx.rebuild()
-  await fs.writeFile('meta.json', JSON.stringify(result.metafile))
   await ctx.dispose()
 }
 

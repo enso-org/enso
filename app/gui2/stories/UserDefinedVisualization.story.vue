@@ -45,6 +45,7 @@ const props = defineProps<{ data: unknown }>()
 \x3c/style>`)
 
 const width = ref(0)
+const height = ref(500)
 const data = ref<any>({
   axis: {
     x: { label: 'x-axis label', scale: 'linear' },
@@ -84,6 +85,7 @@ const mockFsWrapperProps = computed(() => ({
           :currentType="currentType"
           :dataSource="{ type: 'raw', data }"
           :width="width"
+          :height="height"
           :scale="1"
           :nodePosition="nodePosition"
           :nodeSize="nodeSize"

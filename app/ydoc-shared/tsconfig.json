@@ -7,5 +7,5 @@
     "rootDir": "src",
     "outDir": "dist",
     "types": ["node", "vitest/importMeta"]
-  },
+  }
 }

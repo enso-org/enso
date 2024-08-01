@@ -22,7 +22,7 @@ export abstract class LazyObject {
 
   children(): LazyObject[] {
     const children: LazyObject[] = []
-    this.visitChildren((child) => {
+    this.visitChildren(child => {
       children.push(child)
     })
     return children

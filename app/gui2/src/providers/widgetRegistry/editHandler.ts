@@ -162,15 +162,15 @@ export class WidgetEditHandlerRoot extends WidgetEditHandlerParent implements In
     this.onEnd()
   }
 
-  pointerdown(event: PointerEvent, navigator: GraphNavigator) {
+  override pointerdown(event: PointerEvent, navigator: GraphNavigator) {
     return super.pointerdown(event, navigator)
   }
 
-  protected root() {
+  protected override root() {
     return this
   }
 
-  isActive() {
+  override isActive() {
     return this.interactionHandler.isActive(this)
   }
 

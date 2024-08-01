@@ -14,8 +14,10 @@
     "./src/tailwind.css": "./src/tailwind.css"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "compile": "tsc",
+    "typecheck": "tsc",
     "build": "vite build",
+    "lint": "eslint .",
     "dev": "vite",
     "dev:e2e": "vite -c vite.test.config.ts",
     "dev:e2e:ci": "vite -c vite.test.config.ts build && vite preview --port 8080 --strictPort",

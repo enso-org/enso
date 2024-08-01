@@ -14,10 +14,9 @@
   "compilerOptions": {
     "composite": true,
     "noEmit": false,
-    "outDir": "dist",
+    "outDir": "../../node_modules/.cache/tsc",
     "paths": { "#/*": ["./src/*"] },
     "target": "ESNext",
     "lib": ["ESNext", "DOM", "DOM.Iterable", "ES2023"]
   }
 }
- 

@@ -109,7 +109,7 @@ export class ArgumentPlaceholder extends Argument {
     return this.argInfo.defaultValue
   }
 
-  get hideByDefault(): boolean {
+  override get hideByDefault(): boolean {
     return this.argInfo.hasDefault && this.dynamicConfig?.display !== DisplayMode.Always
   }
 }

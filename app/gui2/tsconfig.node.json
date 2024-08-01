@@ -16,6 +16,6 @@
     "baseUrl": ".",
     "module": "ESNext",
     "verbatimModuleSyntax": true,
-    "types": ["node", "vitest/importMeta"],
+    "types": ["node", "vitest/importMeta"]
   }
 }
