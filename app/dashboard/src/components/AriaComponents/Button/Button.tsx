@@ -100,7 +100,6 @@ export const BUTTON_STYLES = twv.tv({
     },
     loading: { true: { base: 'cursor-wait' } },
     fullWidth: { true: 'w-full' },
-    fullWidthText: { true: { text: 'w-full' } },
     size: {
       custom: { base: '', extraClickZone: '', icon: 'h-full' },
       hero: { base: 'px-8 py-4 text-lg font-bold', content: 'gap-[0.75em]' },
@@ -295,7 +294,6 @@ export const Button = React.forwardRef(function Button(
     iconPosition,
     size,
     fullWidth,
-    fullWidthText,
     rounded,
     tooltip,
     tooltipPlacement,
@@ -389,7 +387,6 @@ export const Button = React.forwardRef(function Button(
     isActive,
     loading: isLoading,
     fullWidth,
-    fullWidthText,
     size,
     rounded,
     variant,

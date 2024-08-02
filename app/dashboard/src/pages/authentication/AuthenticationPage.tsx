@@ -18,7 +18,6 @@ import Page from '#/components/Page'
 export interface AuthenticationPageProps extends Readonly<React.PropsWithChildren> {
   readonly supportsOffline?: boolean
   readonly 'data-testid'?: string
-  readonly isNotForm?: boolean
   readonly title: string
   readonly footer?: React.ReactNode
   readonly onSubmit?: (event: React.FormEvent<HTMLFormElement>) => void
@@ -26,7 +25,8 @@ export interface AuthenticationPageProps extends Readonly<React.PropsWithChildre
 
 /** A styled authentication page. */
 export default function AuthenticationPage(props: AuthenticationPageProps) {
-  const { isNotForm = false, title, onSubmit, children, footer, supportsOffline = false } = props
+  const { title, onSubmit, children, footer, supportsOffline = false } = props
+  const isForm = onSubmit != null
 
   const { getText } = textProvider.useText()
   const { isOffline } = offlineHooks.useOffline()
@@ -62,7 +62,7 @@ export default function AuthenticationPage(props: AuthenticationPageProps) {
           )}
 
           <div className="row-start-2 row-end-3 flex w-full flex-col items-center gap-auth">
-            {isNotForm ?
+            {!isForm ?
               <div className={containerClasses}>
                 {heading}
                 {children}
@@ -71,7 +71,7 @@ export default function AuthenticationPage(props: AuthenticationPageProps) {
                 className={containerClasses}
                 onSubmit={(event) => {
                   event.preventDefault()
-                  onSubmit?.(event)
+                  onSubmit(event)
                 }}
               >
                 {heading}

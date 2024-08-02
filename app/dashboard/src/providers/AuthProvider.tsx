@@ -343,7 +343,6 @@ export default function AuthProvider(props: AuthProviderProps) {
       gtagEvent('cloud_sign_in', { provider: 'Email' })
       const result = await cognito.signInWithPassword(email, password)
       if (result.ok) {
-        toastSuccess(getText('signInWithPasswordSuccess'))
         void queryClient.invalidateQueries({ queryKey: sessionQueryKey })
         navigate(appUtils.DASHBOARD_PATH)
       } else {
@@ -351,7 +350,8 @@ export default function AuthProvider(props: AuthProviderProps) {
           // It may not be safe to pass the user's password in the URL.
           navigate(`${appUtils.REGISTRATION_PATH}?${new URLSearchParams({ email }).toString()}`)
         }
-        toastError(result.val.message)
+        // eslint-disable-next-line no-restricted-syntax
+        throw new Error(result.val.message)
       }
       return result.ok
     }
