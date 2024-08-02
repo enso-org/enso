@@ -1115,7 +1115,8 @@ test_table_append group_builder (data : Data) source_table_builder target_table_
 
         result = dest.update_rows src update_action=Update_Action.Insert key_columns=[]
         warning = Problems.expect_warning Inexact_Type_Coercion result
-        warning.requested_type.is_integer . should_be_true
+
+        setup.is_integer_type warning.requested_type . should_be_true
         warning.actual_type.is_floating_point . should_be_true
 
         result.column_names . should_equal ["X"]
