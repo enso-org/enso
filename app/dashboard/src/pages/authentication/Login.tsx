@@ -100,7 +100,7 @@ export default function Login() {
               required
               type="email"
               autoComplete="email"
-              defaultValue={initialEmail ?? ''}
+              defaultValue={initialEmail ?? undefined}
               placeholder={getText('emailPlaceholder')}
               {...register('email')}
             />

@@ -86,17 +86,13 @@ export type UserSession = FullUserSession | PartialUserSession
  *
  * See `Cognito` for details on each of the authentication functions. */
 interface AuthContextType {
-  readonly signUp: (
-    email: string,
-    password: string,
-    organizationId: string | null,
-  ) => Promise<boolean>
+  readonly signUp: (email: string, password: string, organizationId: string | null) => Promise<void>
   readonly authQueryKey: reactQuery.QueryKey
   readonly confirmSignUp: (email: string, code: string) => Promise<boolean>
   readonly setUsername: (username: string) => Promise<boolean>
   readonly signInWithGoogle: () => Promise<boolean>
   readonly signInWithGitHub: () => Promise<boolean>
-  readonly signInWithPassword: (email: string, password: string) => Promise<boolean>
+  readonly signInWithPassword: (email: string, password: string) => Promise<void>
   readonly forgotPassword: (email: string) => Promise<boolean>
   readonly changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>
   readonly resetPassword: (email: string, code: string, password: string) => Promise<boolean>
@@ -293,18 +289,14 @@ export default function AuthProvider(props: AuthProviderProps) {
 
   const signUp = useEventCallback(
     async (username: string, password: string, organizationId: string | null) => {
-      if (cognito == null) {
-        return false
-      } else {
+      if (cognito != null) {
         gtagEvent('cloud_sign_up')
         const result = await cognito.signUp(username, password, organizationId)
         if (result.ok) {
-          toastSuccess(getText('signUpSuccess'))
           navigate(appUtils.LOGIN_PATH)
         } else {
-          toastError(result.val.message)
+          throw new Error(result.val.message)
         }
-        return result.ok
       }
     },
   )
@@ -337,9 +329,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   })
 
   const signInWithPassword = useEventCallback(async (email: string, password: string) => {
-    if (cognito == null) {
-      return false
-    } else {
+    if (cognito != null) {
       gtagEvent('cloud_sign_in', { provider: 'Email' })
       const result = await cognito.signInWithPassword(email, password)
       if (result.ok) {
@@ -353,7 +343,6 @@ export default function AuthProvider(props: AuthProviderProps) {
         // eslint-disable-next-line no-restricted-syntax
         throw new Error(result.val.message)
       }
-      return result.ok
     }
   })
 
@@ -521,7 +510,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   }, [userData, onAuthenticated])
 
   const value: AuthContextType = {
-    signUp: withLoadingToast(signUp),
+    signUp,
     confirmSignUp: withLoadingToast(confirmSignUp),
     setUsername,
     isUserMarkedForDeletion,

@@ -1,10 +1,10 @@
 /** @file Registration container responsible for rendering and interactions in sign up flow. */
 import * as React from 'react'
-
 import * as router from 'react-router-dom'
 
+import * as z from 'zod'
+
 import AtIcon from '#/assets/at.svg'
-import CreateAccountIcon from '#/assets/create_account.svg'
 import GoBackIcon from '#/assets/go_back.svg'
 import LockIcon from '#/assets/lock.svg'
 
@@ -17,10 +17,9 @@ import * as textProvider from '#/providers/TextProvider'
 
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 
-import Input from '#/components/Input'
 import Link from '#/components/Link'
-import SubmitButton from '#/components/SubmitButton'
 
+import { Form, Input } from '#/components/AriaComponents'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as string from '#/utilities/string'
 import * as validation from '#/utilities/validation'
@@ -59,11 +58,6 @@ export default function Registration() {
   const organizationId = query.get('organization_id')
   const redirectTo = query.get('redirect_to')
 
-  const [email, setEmail] = React.useState(initialEmail ?? '')
-  const [password, setPassword] = React.useState('')
-  const [confirmPassword, setConfirmPassword] = React.useState('')
-  const [isSubmitting, setIsSubmitting] = React.useState(false)
-
   React.useEffect(() => {
     if (redirectTo != null) {
       localStorage.set('loginRedirect', redirectTo)
@@ -72,58 +66,62 @@ export default function Registration() {
     }
   }, [localStorage, redirectTo])
 
+  const form = Form.useForm({
+    schema: z.object({
+      email: z.string(),
+      password: z.string(),
+      confirmPassword: z.string(),
+    }),
+  })
+
   return (
     <AuthenticationPage
+      form={form}
       title={getText('createANewAccount')}
       supportsOffline={supportsOffline}
       footer={
         <Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text={getText('alreadyHaveAnAccount')} />
       }
-      onSubmit={async (event) => {
-        event.preventDefault()
-        setIsSubmitting(true)
-        await auth.signUp(email, password, organizationId)
-        setIsSubmitting(false)
+      onSubmit={async ({ email, password, confirmPassword }) => {
+        if (!validation.PASSWORD_REGEX.test(password)) {
+          throw new Error(getText('passwordValidationError'))
+        } else if (password !== confirmPassword) {
+          throw new Error(getText('passwordMismatchError'))
+        } else {
+          await auth.signUp(email, password, organizationId)
+        }
       }}
     >
-      <Input
-        autoFocus
-        required
-        validate
-        type="email"
-        autoComplete="email"
-        icon={AtIcon}
-        placeholder={getText('emailPlaceholder')}
-        value={email}
-        setValue={setEmail}
-      />
-      <Input
-        required
-        validate
-        allowShowingPassword
-        type="password"
-        autoComplete="new-password"
-        icon={LockIcon}
-        placeholder={getText('passwordPlaceholder')}
-        pattern={validation.PASSWORD_PATTERN}
-        error={getText('passwordValidationError')}
-        value={password}
-        setValue={setPassword}
-      />
-      <Input
-        required
-        validate
-        allowShowingPassword
-        type="password"
-        autoComplete="new-password"
-        icon={LockIcon}
-        placeholder={getText('confirmPasswordPlaceholder')}
-        pattern={string.regexEscape(password)}
-        error={getText('passwordMismatchError')}
-        value={confirmPassword}
-        setValue={setConfirmPassword}
-      />
-      <SubmitButton isDisabled={isSubmitting} text={getText('register')} icon={CreateAccountIcon} />
+      {({ register }) => (
+        <>
+          <Input
+            autoFocus
+            required
+            type="email"
+            autoComplete="email"
+            placeholder={getText('emailPlaceholder')}
+            defaultValue={initialEmail ?? undefined}
+            {...register('email')}
+          />
+          <Input
+            required
+            type="password"
+            autoComplete="new-password"
+            placeholder={getText('passwordPlaceholder')}
+            pattern={validation.PASSWORD_PATTERN}
+            {...register('password')}
+          />
+          <Input
+            required
+            type="password"
+            autoComplete="new-password"
+            placeholder={getText('confirmPasswordPlaceholder')}
+            {...register('confirmPassword')}
+          />
+          <Form.FormError />
+          <Form.Submit className="w-full">{getText('register')}</Form.Submit>
+        </>
+      )}
     </AuthenticationPage>
   )
 }
