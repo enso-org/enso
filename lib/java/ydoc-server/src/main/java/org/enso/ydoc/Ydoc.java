@@ -121,7 +121,7 @@ public final class Ydoc implements AutoCloseable {
       throw new AssertionError(
           YDOC_PATH
               + " not found in resources. You probably need to first built it with: "
-              + "`corepack npm -r compile`");
+              + "`corepack pnpm -r compile`");
     }
     var ydocJs = Source.newBuilder("js", ydoc).build();
 
