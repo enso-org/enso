@@ -4,22 +4,17 @@ import * as router from 'react-router-dom'
 
 import * as z from 'zod'
 
+import { LOGIN_PATH } from '#/appUtils'
 import GoBackIcon from '#/assets/go_back.svg'
-
-import * as appUtils from '#/appUtils'
-
-import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
-import * as localStorageProvider from '#/providers/LocalStorageProvider'
-import * as textProvider from '#/providers/TextProvider'
-
-import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
-
-import Link from '#/components/Link'
-
 import { Form, Input } from '#/components/AriaComponents'
+import Link from '#/components/Link'
+import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
+import { useAuth } from '#/providers/AuthProvider'
+import { useLocalBackend } from '#/providers/BackendProvider'
+import { useLocalStorage } from '#/providers/LocalStorageProvider'
+import { useText } from '#/providers/TextProvider'
 import LocalStorage from '#/utilities/LocalStorage'
-import * as validation from '#/utilities/validation'
+import { PASSWORD_PATTERN, PASSWORD_REGEX } from '#/utilities/validation'
 
 // ============================
 // === Global configuration ===
@@ -49,11 +44,11 @@ const REGISTRATION_FORM_SCHEMA = z.object({
 
 /** A form for users to register an account. */
 export default function Registration() {
-  const auth = authProvider.useAuth()
+  const auth = useAuth()
   const location = router.useLocation()
-  const { localStorage } = localStorageProvider.useLocalStorage()
-  const { getText } = textProvider.useText()
-  const localBackend = backendProvider.useLocalBackend()
+  const { localStorage } = useLocalStorage()
+  const { getText } = useText()
+  const localBackend = useLocalBackend()
   const supportsOffline = localBackend != null
 
   const query = new URLSearchParams(location.search)
@@ -74,11 +69,9 @@ export default function Registration() {
       schema={REGISTRATION_FORM_SCHEMA}
       title={getText('createANewAccount')}
       supportsOffline={supportsOffline}
-      footer={
-        <Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text={getText('alreadyHaveAnAccount')} />
-      }
+      footer={<Link to={LOGIN_PATH} icon={GoBackIcon} text={getText('alreadyHaveAnAccount')} />}
       onSubmit={async ({ email, password, confirmPassword }): Promise<void> => {
-        if (!validation.PASSWORD_REGEX.test(password)) {
+        if (!PASSWORD_REGEX.test(password)) {
           throw new Error(getText('passwordValidationError'))
         } else if (password !== confirmPassword) {
           throw new Error(getText('passwordMismatchError'))
@@ -103,7 +96,7 @@ export default function Registration() {
         type="password"
         autoComplete="new-password"
         placeholder={getText('passwordPlaceholder')}
-        pattern={validation.PASSWORD_PATTERN}
+        pattern={PASSWORD_PATTERN}
       />
       <Input
         required

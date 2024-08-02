@@ -2,21 +2,18 @@
  * flow. */
 import * as React from 'react'
 
-import ArrowRightIcon from '#/assets/arrow_right.svg'
-import AtIcon from '#/assets/at.svg'
+import * as z from 'zod'
+
+import { LOGIN_PATH } from '#/appUtils'
 import GoBackIcon from '#/assets/go_back.svg'
-
-import * as appUtils from '#/appUtils'
-
-import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
-import * as textProvider from '#/providers/TextProvider'
-
-import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
-
-import Input from '#/components/Input'
+import { Form, Input } from '#/components/AriaComponents'
 import Link from '#/components/Link'
-import SubmitButton from '#/components/SubmitButton'
+import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
+import { useAuth } from '#/providers/AuthProvider'
+import { useLocalBackend } from '#/providers/BackendProvider'
+import { useText } from '#/providers/TextProvider'
+
+const FORGOT_PASSWORD_FORM_SCHEMA = z.object({ email: z.string() })
 
 // ======================
 // === ForgotPassword ===
@@ -24,34 +21,32 @@ import SubmitButton from '#/components/SubmitButton'
 
 /** A form for users to request for their password to be reset. */
 export default function ForgotPassword() {
-  const { forgotPassword } = authProvider.useAuth()
-  const { getText } = textProvider.useText()
-  const [email, setEmail] = React.useState('')
-  const localBackend = backendProvider.useLocalBackend()
+  const { forgotPassword } = useAuth()
+  const { getText } = useText()
+  const localBackend = useLocalBackend()
   const supportsOffline = localBackend != null
 
   return (
     <AuthenticationPage
       title={getText('forgotYourPassword')}
-      footer={<Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text={getText('goBackToLogin')} />}
+      schema={FORGOT_PASSWORD_FORM_SCHEMA}
+      footer={<Link to={LOGIN_PATH} icon={GoBackIcon} text={getText('goBackToLogin')} />}
       supportsOffline={supportsOffline}
-      onSubmit={async (event) => {
-        event.preventDefault()
+      onSubmit={async ({ email }) => {
         await forgotPassword(email)
       }}
     >
       <Input
         autoFocus
         required
-        validate
+        name="email"
         type="email"
         autoComplete="email"
-        icon={AtIcon}
         placeholder={getText('emailPlaceholder')}
-        value={email}
-        setValue={setEmail}
       />
-      <SubmitButton text={getText('sendLink')} icon={ArrowRightIcon} />
+
+      <Form.FormError />
+      <Form.Submit className="w-full">{getText('sendLink')}</Form.Submit>
     </AuthenticationPage>
   )
 }
