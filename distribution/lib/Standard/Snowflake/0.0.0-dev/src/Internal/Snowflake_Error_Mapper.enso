@@ -8,9 +8,8 @@ type Snowflake_Error_Mapper
     ## PRIVATE
     is_primary_key_violation : SQL_Error -> Boolean
     is_primary_key_violation error =
-        # TODO
-        IO.println "is_primary_key_violation? ("+error.java_exception.getErrorCode.to_text+")"+error.to_text
-        error.java_exception.getMessage.contains "duplicate key value violates unique constraint"
+        # TODO https://github.com/enso-org/enso/issues/7117
+        error.java_exception.getMessage.contains "A primary key already exists."
 
     ## PRIVATE
     is_table_already_exists_error : SQL_Error -> Boolean
