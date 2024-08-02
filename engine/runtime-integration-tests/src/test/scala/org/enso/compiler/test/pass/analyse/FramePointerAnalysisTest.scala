@@ -87,46 +87,39 @@ class FramePointerAnalysisTest extends CompilerTest {
         """
           |main x y = x + y
           |""".stripMargin.preprocessModule.analyse
-      val framePointers = collectAllFramePointers(ir)
-      framePointers.size shouldBe 4
-      framePointers(0)._2.framePointer shouldEqual new FramePointer(0, 1)
-      framePointers(1)._2.framePointer shouldEqual new FramePointer(0, 2)
-    }
-
-    "attach frame pointers inside nested scope" in {
-      implicit val ctx: ModuleContext = mkModuleContext
-      val ir =
-        """
-          |main =
-          |    nested x y = x + y
-          |    nested 1 2
-          |""".stripMargin.preprocessModule.analyse
-      val mainScope = ir.bindings.head
+      val aliasGraph = ir.bindings.head
         .unsafeGetMetadata(AliasAnalysis, "should exist")
         .asInstanceOf[Info.Scope.Root]
+        .graph
+      val xDefIr = findAssociatedIr(
+        aliasGraph.symbolToIds[Graph.Occurrence.Def]("x").head,
+        ir
+      )
+      expectFramePointer(xDefIr, new FramePointer(0, 1))
 
+      val xUseIr = findAssociatedIr(
+        aliasGraph.symbolToIds[Graph.Occurrence.Use]("x").head,
+        ir
+      )
       withClue(
-        "Both definition and usage of `x` should be associated with the same frame pointer"
+        "x is used as an argument to a method call, so is in a separate scope from root scope." +
+        " Its FramePointer should therefore have parentLevel = 1"
       ) {
-        mainScope.graph.symbolToIds[Graph.Occurrence]("x").foreach { xId =>
-          val xIr = findAssociatedIr(xId, ir)
-          expectFramePointer(xIr, new FramePointer(0, 1))
-        }
-      }
-      withClue(
-        "Both definition and usage of `y` should be associated with the same frame pointer"
-      ) {
-        mainScope.graph.symbolToIds[Graph.Occurrence]("y").foreach { yId =>
-          val yIr = findAssociatedIr(yId, ir)
-          expectFramePointer(yIr, new FramePointer(0, 2))
-        }
+        expectFramePointer(xUseIr, new FramePointer(1, 1))
       }
 
-      mainScope.graph.symbolToIds[Graph.Occurrence]("nested").foreach {
-        nestedId =>
-          val nestedIr = findAssociatedIr(nestedId, ir)
-          expectFramePointer(nestedIr, new FramePointer(0, 1))
+      val plusUseIr = findAssociatedIr(
+        aliasGraph.symbolToIds[Graph.Occurrence.Use]("+").head,
+        ir
+      )
+      withClue(
+        "There should be no associated FramePointer with usage of `+`, because it is not defined " +
+        "in any scope"
+      ) {
+        plusUseIr.passData().get(FramePointerAnalysis) shouldNot be(defined)
       }
+      val framePointers = collectAllFramePointers(ir)
+      framePointers.size shouldBe 4
     }
 
     "attach frame pointer in nested scope that uses parent scope" in {
@@ -142,6 +135,8 @@ class FramePointerAnalysisTest extends CompilerTest {
       val mainScope = ir.bindings.head
         .unsafeGetMetadata(AliasAnalysis, "should exist")
         .asInstanceOf[Info.Scope.Root]
+      val allFps = collectAllFramePointers(ir)
+      allFps.size shouldBe 4
       val xDefIr = findAssociatedIr(
         mainScope.graph.symbolToIds[Graph.Occurrence.Def]("x").head,
         ir
@@ -158,7 +153,7 @@ class FramePointerAnalysisTest extends CompilerTest {
         mainScope.graph.symbolToIds[Graph.Occurrence.Use]("x").head,
         ir
       )
-      expectFramePointer(xUseIr, new FramePointer(1, 1))
+      expectFramePointer(xUseIr, new FramePointer(2, 1))
 
       val nestedUseIr = findAssociatedIr(
         mainScope.graph.symbolToIds[Graph.Occurrence.Use]("nested").head,
