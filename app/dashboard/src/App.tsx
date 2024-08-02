@@ -364,6 +364,10 @@ function AppRouter(props: AppRouterProps) {
 
   const mainPageUrl = getMainPageUrl()
 
+  // Subscribe to `termsOfService` updates to trigger a rerender when the terms of service
+  // has been accepted.
+  const [] = localStorageProvider.useLocalStorageState('termsOfService')
+
   const authService = React.useMemo(() => {
     const authConfig = { navigate, ...props }
     return authServiceModule.initAuthService(authConfig)

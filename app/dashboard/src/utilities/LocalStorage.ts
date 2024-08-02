@@ -60,7 +60,7 @@ export default class LocalStorage {
   private readonly eventTarget = new EventTarget()
 
   /** Create a {@link LocalStorage}. */
-  constructor(private readonly triggerRerender: () => void) {
+  constructor() {
     const savedValues: unknown = JSON.parse(localStorage.getItem(this.localStorageKey) ?? '{}')
     const newValues: Partial<Record<LocalStorageKey, LocalStorageData[LocalStorageKey]>> = {}
     if (typeof savedValues === 'object' && savedValues != null) {
@@ -140,6 +140,5 @@ export default class LocalStorage {
   /** Save the current value of the stored data.. */
   protected save() {
     localStorage.setItem(this.localStorageKey, JSON.stringify(this.values))
-    this.triggerRerender()
   }
 }
