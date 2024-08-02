@@ -87,10 +87,10 @@ polyglot java import org.enso.base.numeric.Decimal_Utils
    an explicit precision using a `Math_Context`.
 type Decimal
     ## PRIVATE
-    Value (big_decimal : BigDecimal)
+    private Value (big_decimal : BigDecimal)
 
     ## PRIVATE
-    From_Float (big_decimal : BigDecimal) (original_value : Float)
+    private From_Float (big_decimal : BigDecimal) (original_value : Float)
 
     ## ICON input_number
        Construct a `Decimal` from a `Text`, `Integer` or `Float`.
