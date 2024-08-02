@@ -6,7 +6,6 @@ import project.Data.Text.Text
 import project.Error.Error
 import project.Errors.Common.Arithmetic_Error
 import project.Errors.Common.Incomparable_Values
-import project.Errors.Common.No_Such_Conversion
 import project.Errors.Common.Unsupported_Argument_Types
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Function.Function
@@ -443,64 +442,6 @@ type Number
      floating point numbers.
 @Builtin_Type
 type Float
-    ## GROUP Conversions
-       ICON convert
-       Generic conversion of an arbitrary Enso value to requested type.
-       Delegates to appropriate `.from` conversion method, if it exists.
-       If such method doesn't exist, `No_Such_Conversion` panic is raised.
-
-       Arguments:
-       - target_type: the requested type.
-
-       > Example
-         Following code defines conversion of a `Complex` type to a `Number`
-         by computing absolute distance from `0`. The code yields `5.0`:
-
-             type Complex
-                 Value re:Number im:Number
-
-             Number.from (that:Complex) = that.re*that.re+that.im*that.im . sqrt
-
-             Complex.Value 3 4 . to Number
-
-       ? Creating `Decimal`s and Converting to `Decimal`
-
-         When creating a `Decimal` from a literal floating-point value, the
-         preferred method is to express the literal as a string and use
-         `Decimal.from_text`, since this will give a `Decimal` that matches the
-         value precisely.
-
-         To convert a `Float` or `Integer` to a `Decimal`, use its `.to_decimal`
-         method. You can also use `Float.to Decimal` to convert a `Float` to a
-         `Decimal`.
-
-       > Example
-         `.from` conversion methods may have additional arguments
-         with default values. Thus the conversion from `Complex` to
-         `Number` may take additional argument:
-
-             type Complex
-                 Value re:Number im:Number
-
-             Number.from (that:Complex) = that.re*that.re+that.im*that.im . sqrt
-
-             Complex.Value 3 4 . to Number
-
-             type Complex
-                 Value re:Number im:Number
-
-             Number.from (that:Complex) (ignore_im:Boolean=False) = case ignore_im of
-                 False -> that.re*that.re+that.im*that.im . sqrt
-                 True -> that.re
-
-             yields_3 = Complex.Value 3 4 . to Number ignore_im=True
-             yields_5 = Complex.Value 3 4 . to Number ignore_im=False
-             default5 = Complex.Value 3 4 . to Number
-    to : Any -> Any ! No_Such_Conversion
-    to self target_type = case target_type of
-        Decimal -> Decimal.from_float self
-        _ -> Any.to self target_type ...
-
     ## ALIAS add, plus
        GROUP Operators
        ICON math

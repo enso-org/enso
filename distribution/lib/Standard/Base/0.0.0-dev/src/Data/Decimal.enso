@@ -114,8 +114,7 @@ type Decimal
          value precisely.
 
          To convert a `Float` or `Integer` to a `Decimal`, use its `.to_decimal`
-         method. You can also use `Float.to Decimal` to convert a `Float` to a
-         `Decimal`.
+         method.
 
          You can also use the convenience method `dec` to convert any `Integer`,
          `Float`, or `Text` value to a `Decimal`. `dec` does not attach a
@@ -193,8 +192,7 @@ type Decimal
          value precisely.
 
          To convert a `Float` or `Integer` to a `Decimal`, use its `.to_decimal`
-         method. You can also use `Float.to Decimal` to convert a `Float` to a
-         `Decimal`.A
+         method.
 
          You can also use the convenience method `dec` to convert any `Integer`,
          `Float`, or `Text` value to a `Decimal`. `dec` does not attach a
@@ -256,8 +254,7 @@ type Decimal
          value precisely.
 
          To convert a `Float` or `Integer` to a `Decimal`, use its `.to_decimal`
-         method. You can also use `Float.to Decimal` to convert a `Float` to a
-         `Decimal`.
+         method.
 
          You can also use the convenience method `dec` to convert any `Integer`,
          `Float`, or `Text` value to a `Decimal`. `dec` does not attach a
@@ -327,8 +324,7 @@ type Decimal
          value precisely.
 
          To convert a `Float` or `Integer` to a `Decimal`, use its `.to_decimal`
-         method. You can also use `Float.to Decimal` to convert a `Float` to a
-         `Decimal`.
+         method.
 
          You can also use the convenience method `dec` to convert any `Integer`,
          `Float`, or `Text` value to a `Decimal`. `dec` does not attach a

@@ -396,7 +396,7 @@ add_specs suite_builder =
 
     suite_builder.group "(Decimal_Spec) edge cases" group_builder->
         group_builder.specify "can support values outside the double range" <|
-            d = Float.max_value . to Decimal
+            d = Float.max_value . to_decimal
             (d == Float.max_value) . should_be_true
             ((d * d) == Float.max_value) . should_be_false
             ((-(d * d)) == -Float.max_value) . should_be_false
@@ -406,7 +406,7 @@ add_specs suite_builder =
             Ordering.hash ((-(d * d)) + 0.1.to_decimal) . should_equal -1048576
 
         group_builder.specify "from conversion supports values outside the double range" <|
-            d = Float.max_value . to Decimal
+            d = Float.max_value . to_decimal
             (d == Float.max_value) . should_be_true
             ((d * d) == Float.max_value) . should_be_false
             ((-(d * d)) == -Float.max_value) . should_be_false
@@ -631,7 +631,7 @@ add_specs suite_builder =
 
         group_builder.specify "Conversion from float to decimal should use the correct constructor" <|
             is_value_constructor (dec 0.1) . should_be_true
-            is_value_constructor (0.1 . to Decimal) . should_be_true
+            is_value_constructor (0.1 . to_decimal) . should_be_true
             is_value_constructor (0.1 . to_decimal) . should_be_true
             is_value_constructor (Decimal.from_float 0.1) . should_be_true
 
@@ -640,13 +640,13 @@ add_specs suite_builder =
             is_value_constructor (Decimal.from_float 0.1 explicit=False) . should_be_false
             is_value_constructor (id_decimal 0.1) . should_be_false
 
-        group_builder.specify "Explicit conversions to Decimal do not attach a warning" <|
+        group_builder.specify "Explicit conversions to_decimal do not attach a warning" <|
             Problems.assume_no_problems (dec 0.1)
-            Problems.assume_no_problems (0.1 . to Decimal)
+            Problems.assume_no_problems (0.1 . to_decimal)
             Problems.assume_no_problems (0.1 . to_decimal)
             Problems.assume_no_problems (Decimal.from_float 0.1)
 
-        group_builder.specify "Implicit conversions to Decimal attach a warning" <|
+        group_builder.specify "Implicit conversions to_decimal attach a warning" <|
             Problems.expect_only_warning Loss_Of_Numeric_Precision (Decimal.new 0.1)
             Problems.expect_only_warning Loss_Of_Numeric_Precision (Decimal.from 0.1)
             Problems.expect_only_warning Loss_Of_Numeric_Precision (Decimal.from_float 0.1 explicit=False)
@@ -662,7 +662,7 @@ add_specs suite_builder =
 
         group_builder.specify "Arithmetic with decimal and explicitly converted float should succeed" <|
             ((Decimal.new 1) + (dec 0.1)) . should_equal 1.1
-            ((Decimal.new 1) + (0.1 . to Decimal)) . should_equal 1.1
+            ((Decimal.new 1) + (0.1 . to_decimal)) . should_equal 1.1
             ((Decimal.new 1) + (0.1 . to_decimal)) . should_equal 1.1
             ((Decimal.new 1) + (Decimal.from_float 0.1)) . should_equal 1.1
 
