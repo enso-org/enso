@@ -3641,8 +3641,10 @@ lazy val `std-tableau` = project
     },
     fetchZipToUnmanaged := {
       val unmanagedDirectory = (Compile / unmanagedBase).value
+      val logger             = state.value.log
       if (IO.listFiles(unmanagedDirectory).size < 2) { // Heuristic, should have at least hyperapi jar and os-specific one.
-        System.out.println(
+        logger.log(
+          Level.Info,
           "std-tableau's unmanaged dependencies are not up-to-date. fetching..."
         )
         unmanagedDirectory.mkdirs()
@@ -3657,25 +3659,22 @@ lazy val `std-tableau` = project
                   "javadoc"
                 ) && !f.contains("jna")
             )
-            files.map(f => IO.move(f, unmanagedPath.resolve(f.getName).toFile))
+            files.map { f =>
+              IO.move(f, unmanagedPath.resolve(f.getName).toFile)
+              Attributed.blank(unmanagedPath.resolve(f.getName).toFile)
+            }.toSeq
           },
           keepDirectory = false
         )
       } else {
-        System.out.println(
-          "std-tableau's unmanaged dependencies are up-to-date"
-        )
+        Seq[Attributed[File]]()
       }
     },
-    Compile / compile / compileInputs := (Compile / compile / compileInputs)
-      .dependsOn(SPIHelpers.ensureSPIConsistency)
-      .value,
-    Compile / compile := (Compile / compile)
-      .dependsOn(fetchZipToUnmanaged)
-      .value,
-    Compile / unmanagedClasspath := (Compile / unmanagedClasspath)
-      .dependsOn(fetchZipToUnmanaged)
-      .value,
+    Compile / unmanagedClasspath := Def.task {
+      val additionalFiles: Seq[Attributed[File]] = fetchZipToUnmanaged.value
+      val result                                 = (Compile / unmanagedClasspath).value
+      result ++ additionalFiles
+    }.value,
     Compile / packageBin / artifactPath :=
       `std-tableau-polyglot-root` / "std-tableau.jar",
     libraryDependencies ++= Seq(
@@ -3698,7 +3697,7 @@ lazy val `std-tableau` = project
   .dependsOn(`std-table` % "provided")
 
 lazy val fetchZipToUnmanaged =
-  taskKey[Unit](
+  taskKey[Seq[Attributed[File]]](
     "Download zip file from an `unmanagedExternalZip` url and unpack jars to unmanaged libs directory"
   )
 lazy val unmanagedExternalZip =
