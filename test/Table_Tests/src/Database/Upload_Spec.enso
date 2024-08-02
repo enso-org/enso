@@ -593,7 +593,7 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
             preexisting2.at "X" . to_vector . should_equal [42]
 
     suite_builder.group prefix+"(Upload_Spec) Appending an in-memory table to a Database table" group_builder->
-        test_table_append group_builder data in_memory_table_builder (database_table_builder "target-table")
+        test_table_append setup group_builder data in_memory_table_builder (database_table_builder "target-table")
 
         group_builder.specify "will issue a friendly error if using in-memory table as target" <|
             t1 = Table.new [["X", [1, 2, 3]]]
@@ -603,7 +603,7 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
             r1.to_display_text.should_contain "in-memory tables are immutable"
 
     suite_builder.group prefix+"(Upload_Spec) Appending a Database table to a Database table" group_builder->
-        test_table_append group_builder data (database_table_builder "source-table") (database_table_builder "target-table")
+        test_table_append setup group_builder data (database_table_builder "source-table") (database_table_builder "target-table")
 
     suite_builder.group prefix+"(Upload_Spec) Deleting rows from a Database table (source=in-memory)" group_builder->
         test_table_delete group_builder data in_memory_table_builder (database_table_builder "target-table")
@@ -748,7 +748,7 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
         tests group_builder data make_new_connection (database_table_builder "ec-tests-table") " (from Database table)" persistent_connector
 
 
-test_table_append group_builder (data : Data) source_table_builder target_table_builder =
+test_table_append setup group_builder (data : Data) source_table_builder target_table_builder =
     group_builder.specify "should be able to append new rows to a table" <|
         dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"] connection=data.connection
         src = source_table_builder [["X", [4, 5, 6]], ["Y", ['d', 'e', 'f']]] connection=data.connection
