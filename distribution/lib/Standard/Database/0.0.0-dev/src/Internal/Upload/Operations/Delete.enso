@@ -106,7 +106,7 @@ type Delete_Rows_Dry_Run_Source
        The callback gets the temporary table, as well as a (possibly empty) suffix to add to the dry-run message.
     run_in_transaction self connection (callback : DB_Table -> Text -> Integer) -> Integer = case self of
         Delete_Rows_Dry_Run_Source.Existing_DB_Query db_table ->
-            connection.run_within_transaction <| Context.Output.with_enabled <|
+            connection.jdbc_connection.run_within_transaction <| Context.Output.with_enabled <|
                 callback db_table ""
         Delete_Rows_Dry_Run_Source.Temporary_Table recipe dry_run_message_suffix ->
             DDL_Transaction.run_transaction_with_tables connection [recipe.table_description] _-> Context.Output.with_enabled <|

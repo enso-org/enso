@@ -12,7 +12,7 @@ from project.Internal.Upload.Helpers.Error_Helpers import handle_upload_errors
 from project.Internal.Upload.Operations.Internal_Core import internal_upload_table
 
 ## PRIVATE
-select_into_table_implementation source_table connection table_name primary_key temporary on_problems =
+select_into_table_implementation source_table connection table_name primary_key temporary on_problems:Problem_Behavior =
     connection.base_connection.maybe_run_maintenance
     table_naming_helper = connection.base_connection.table_naming_helper
     table_naming_helper.verify_table_name table_name <|

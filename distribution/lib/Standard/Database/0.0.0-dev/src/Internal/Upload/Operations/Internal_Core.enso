@@ -72,7 +72,7 @@ internal_upload_table source_table connection (table_name : Text) (primary_key :
 
 
 ## PRIVATE
-internal_upload_in_memory_table source_table connection table_name primary_key temporary remove_after_transaction structure_hint on_problems:Problem_Behavior row_limit = table_name.if_not_error <|
+internal_upload_in_memory_table (source_table : Table) connection table_name primary_key temporary remove_after_transaction structure_hint on_problems:Problem_Behavior row_limit = table_name.if_not_error <|
     check_outside_transaction
     verify_structure_hint structure_hint source_table.column_names
 
@@ -95,7 +95,7 @@ internal_upload_in_memory_table source_table connection table_name primary_key t
     Table_Upload_Operation.Value table_description callback
 
 ## PRIVATE
-internal_upload_database_table source_table connection table_name primary_key temporary remove_after_transaction structure_hint on_problems:Problem_Behavior row_limit =
+internal_upload_database_table (source_table : DB_Table) connection table_name primary_key temporary remove_after_transaction structure_hint on_problems:Problem_Behavior row_limit =
     check_outside_transaction
     connection_check = if source_table.connection.jdbc_connection == connection.jdbc_connection then True else
         Error.throw (Unsupported_Database_Operation.Error "The Database table to be uploaded must be coming from the same connection as the connection on which the new table is being created. Cross-connection uploads are currently not supported. To work around this, you can first `.read` the table into memory and then upload it from memory to a different connection.")
