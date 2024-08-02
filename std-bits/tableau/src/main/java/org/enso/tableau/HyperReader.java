@@ -1,11 +1,8 @@
 package org.enso.tableau;
 
-import com.tableau.hyperapi.Catalog;
-import com.tableau.hyperapi.Connection;
-import com.tableau.hyperapi.HyperProcess;
-import com.tableau.hyperapi.SchemaName;
-import com.tableau.hyperapi.TableName;
-import com.tableau.hyperapi.Telemetry;
+import com.tableau.hyperapi.*;
+
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;
@@ -67,8 +64,10 @@ public class HyperReader {
               "https://enso-data-samples.s3.us-west-1.amazonaws.com/tableau/macos-arm64/hyperd",
               "hyperd",
               true);
-          case MAX_X64 -> throw new IOException(
-              "Unsupported platform: Only ARM64 Mac is supported.");
+          case MAX_X64 -> downloadHyper(
+              "https://enso-data-samples.s3.us-west-1.amazonaws.com/tableau/macos-x64/hyperd",
+              "hyperd",
+              true);
           case LINUX -> downloadHyper(
               "https://enso-data-samples.s3.us-west-1.amazonaws.com/tableau/linux/hyperd",
               "hyperd",
@@ -91,7 +90,7 @@ public class HyperReader {
           process = new HyperProcess(HYPER_PATH, Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU);
         } catch (Throwable ioe) {
           LOGGER.log(Level.SEVERE, "Failed to start Hyper process.", ioe);
-          throw ioe;
+          throw new IOException("Failed to start Hyper process.", ioe);
         }
       } finally {
         Thread.currentThread().setContextClassLoader(contextClassLoader);
@@ -116,9 +115,21 @@ public class HyperReader {
     }
   }
 
-  public static String[] readSchemas(String path) throws IOException {
+  private static Connection getConnection(String path) throws IOException {
     var process = getProcess();
-    try (var connection = new Connection(process.getEndpoint(), path)) {
+    try {
+      return new Connection(process.getEndpoint(), path, CreateMode.NONE);
+    } catch (HyperException e) {
+      if (e.getMessage().contains("The database does not exist")) {
+        throw new FileNotFoundException("Database not found: " + path);
+      } else {
+        throw new IOException("Failed to open database: " + path, e);
+      }
+    }
+  }
+
+  public static String[] readSchemas(String path) throws IOException {
+    try (var connection = getConnection(path)) {
       var catalog = connection.getCatalog();
       return catalog.getSchemaNames().stream()
           .map(s -> s.getName().getUnescaped())
@@ -127,8 +138,7 @@ public class HyperReader {
   }
 
   public static HyperTable[] listTablesAllSchemas(String path) throws IOException {
-    var process = getProcess();
-    try (var connection = new Connection(process.getEndpoint(), path)) {
+    try (var connection = getConnection(path)) {
       var catalog = connection.getCatalog();
       return listTablesImpl(catalog, catalog.getSchemaNames());
     }
@@ -136,8 +146,7 @@ public class HyperReader {
 
   public static HyperTable[] listTables(String path, String schemaName) throws IOException {
     var schemaNames = List.of(new SchemaName(schemaName));
-    var process = getProcess();
-    try (var connection = new Connection(process.getEndpoint(), path)) {
+    try (var connection = getConnection(path)) {
       var catalog = connection.getCatalog();
       return listTablesImpl(catalog, schemaNames);
     }
@@ -158,8 +167,7 @@ public class HyperReader {
   public static HyperTableColumn[] readStructure(String path, String schemaName, String tableName)
       throws IOException {
     var tableNameObject = new TableName(new SchemaName(schemaName), tableName);
-    var process = getProcess();
-    try (var connection = new Connection(process.getEndpoint(), path)) {
+    try (var connection = getConnection(path)) {
       return readStructureInternal(connection, tableNameObject);
     }
   }
@@ -183,8 +191,7 @@ public class HyperReader {
       throws IOException {
     var tableNameObject = new TableName(new SchemaName(schemaName), tableName);
     var query = "SELECT * FROM " + tableNameObject + (rowLimit == null ? "" : " LIMIT " + rowLimit);
-    var process = getProcess();
-    try (var connection = new Connection(process.getEndpoint(), path)) {
+    try (var connection = getConnection(path)) {
       var columns = readStructureInternal(connection, tableNameObject);
 
       var builders =

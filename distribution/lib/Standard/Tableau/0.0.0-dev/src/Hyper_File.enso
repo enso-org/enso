@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
@@ -19,7 +20,9 @@ type Hyper_File
        - file: The file to read.
        - schema: The schema to read or `*` for all schemas.
     new : File -> Text -> Hyper_File
-    new file:File schema:Text='*' = Hyper_File.Value file schema
+    new file:File schema:Text='*' =
+        if schema == "" then Error.throw (Illegal_Argument.Error "Schema cannot be empty.") else
+            Hyper_File.Value file schema
 
     ## PRIVATE
        A representation of a Tableau Hyper Extract file.
@@ -28,7 +31,7 @@ type Hyper_File
     ## ICON metadata
        Returns the list of schemas for the connection within the current database (or catalog).
     schemas : Vector Text
-    schemas self =
+    schemas self = File_Error.handle_java_exceptions self.file <|
         array = HyperReader.readSchemas self.file.path
         Vector.from_polyglot_array array
 
@@ -47,7 +50,8 @@ type Hyper_File
     set_schema : Text -> Hyper_File
     set_schema self schema =
         if schema == self.schema then self else
-            Hyper_File.Value self.file schema
+            if schema == "" then Error.throw (Illegal_Argument.Error "Schema cannot be empty.") else
+                Hyper_File.Value self.file schema
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -55,10 +59,11 @@ type Hyper_File
     @schema (hyper -> make_schema_selector hyper True)
     tables : Text -> Vector Hyper_Table
     tables self schema:Text=self.schema = if schema == "" then self.tables self.schema else
-        array = case schema of
-            "*" -> HyperReader.listTablesAllSchemas self.file.path
-            _ -> HyperReader.listTables self.file.path schema
-        array.map t-> Hyper_Table.Value self t.schema t.name
+        File_Error.handle_java_exceptions self.file <|
+            array = case schema of
+                "*" -> HyperReader.listTablesAllSchemas self.file.path
+                _ -> HyperReader.listTables self.file.path schema
+            array.map t-> Hyper_Table.Value self t.schema t.name
 
     ## ALIAS sheet, get
        GROUP Standard.Base.Input
