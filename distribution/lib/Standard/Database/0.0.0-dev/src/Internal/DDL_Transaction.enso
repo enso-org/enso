@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Data.Vector.Builder as Vector_Builder
 import Standard.Base.Data.Vector.No_Wrap
+import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Context
 
 import project.Column_Description.Column_Description
