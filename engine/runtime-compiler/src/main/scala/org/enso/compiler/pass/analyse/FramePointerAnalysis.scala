@@ -54,7 +54,7 @@ case object FramePointerAnalysis extends IRPass {
         getAliasAnalysisGraph(m) match {
           case Some(graph) =>
             m.copy(
-              body = m.body.mapExpressions(processExpression(_, graph))
+              body = processExpression(m.body, graph)
             )
           case _ => m
         }
@@ -101,21 +101,8 @@ case object FramePointerAnalysis extends IRPass {
     args: List[DefinitionArgument],
     graph: Graph
   ): List[DefinitionArgument] = {
-    args.map {
-      case arg @ DefinitionArgument.Specified(
-            name,
-            ascribedType,
-            defaultValue,
-            _,
-            _,
-            _,
-            _
-          ) =>
-        arg.copy(
-          name         = maybeAttachFramePointer(name, graph),
-          ascribedType = ascribedType.map(processExpression(_, graph)),
-          defaultValue = defaultValue.map(processExpression(_, graph))
-        )
+    args.map { arg =>
+      maybeAttachFramePointer(arg, graph)
     }
   }
 
@@ -155,10 +142,11 @@ case object FramePointerAnalysis extends IRPass {
   ): Application = {
     application match {
       case app @ Application.Prefix(func, arguments, _, _, _, _) =>
-        app.copy(
-          function  = processExpression(func, graph),
-          arguments = processCallArguments(arguments, graph)
-        )
+        maybeAttachFramePointer(app, graph)
+          .copy(
+            function  = processExpression(func, graph),
+            arguments = processCallArguments(arguments, graph)
+          )
       case app @ Application.Force(expr, _, _, _) =>
         app.copy(target = processExpression(expr, graph))
       case app @ Application.Sequence(items, _, _, _) =>
@@ -179,10 +167,11 @@ case object FramePointerAnalysis extends IRPass {
     graph: Graph
   ): List[CallArgument] = {
     arguments.map { case arg @ CallArgument.Specified(name, value, _, _, _) =>
-      arg.copy(
-        name  = name.map(maybeAttachFramePointer(_, graph)),
-        value = processExpression(value, graph)
-      )
+      maybeAttachFramePointer(arg, graph)
+        .copy(
+          name  = name.map(maybeAttachFramePointer(_, graph)),
+          value = processExpression(value, graph)
+        )
     }
   }
 
