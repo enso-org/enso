@@ -65,7 +65,7 @@ run_transaction_with_tables connection (tables : Vector Transactional_Table_Desc
 private create_tables_inside_transaction connection (tables : Vector Transactional_Table_Description) (callback : Vector DB_Table -> Any) -> Any =
     connection.jdbc_connection.run_within_transaction <|
         created = tables.map t-> t.create connection
-        result = callback created
+        result = created.if_not_error <| callback created
 
         ## We drop the temporary tables after the main transaction is finished.
            We don't have to worry about error handling - if the `callback` throws,
