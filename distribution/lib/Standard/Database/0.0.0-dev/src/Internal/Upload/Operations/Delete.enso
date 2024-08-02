@@ -25,28 +25,27 @@ common_delete_rows (target_table : DB_Table) (key_values_to_delete : Table | DB_
             case dry_run of
                 True ->
                     source = Delete_Rows_Dry_Run_Source.prepare connection key_values_to_delete key_columns
-                    source.run_in_transaction connection source_db_table-> dry_run_message_suffix->
-                        check_preconditions raw_source_table=key_values_to_delete source_db_table=source_db_table target_table key_columns allow_duplicate_matches <|
-                            affected_row_count = target_table.join source_db_table on=key_columns join_kind=Join_Kind.Inner . row_count
-                            warning = Dry_Run_Operation.Warning "Only a dry run of `delete_rows` was performed - the target table has not been changed. Press the Write button ▶ to update the actual table."+dry_run_message_suffix
-                            Warning.attach warning affected_row_count
+                    source.run_in_transaction connection source_db_table_uploader-> dry_run_message_suffix->
+                        ## We check NULL values in source table (key_values_to_delete) and only if that passes we
+                           perform the actual upload into the temporary table.
+                           Both check and upload are done in a transaction, so we can be sure there are no external changes to the table visible.
+                           The check is needed as otherwise the upload would fail due to NULL constraint violations.
+                        check_for_null_keys key_values_to_delete key_columns <|
+                            source_db_table = source_db_table_uploader.materialize
+                            check_duplicate_key_matches_for_delete target_table source_db_table key_columns allow_duplicate_matches <|
+                                affected_row_count = target_table.join source_db_table on=key_columns join_kind=Join_Kind.Inner . row_count
+                                warning = Dry_Run_Operation.Warning "Only a dry run of `delete_rows` was performed - the target table has not been changed. Press the Write button ▶ to update the actual table."+dry_run_message_suffix
+                                Warning.attach warning affected_row_count
                 False ->
                     source = Delete_Rows_Source.prepare connection key_values_to_delete key_columns
-                    source.run_in_transaction connection source_table_name-> source_db_table->
-                        check_preconditions raw_source_table=key_values_to_delete source_db_table=source_db_table target_table key_columns allow_duplicate_matches <|
-                            delete_statement = connection.dialect.generate_sql <|
-                                Query.Delete_Matching_Rows target_table.name source_table_name key_columns
-                            affected_row_count = connection.execute_update delete_statement
-                            affected_row_count
-
-## PRIVATE
-check_preconditions raw_source_table source_db_table target_table key_columns allow_duplicate_matches ~continuation =
-    ## The NULL check is ran on the original source table, not the temporary one.
-       That is OK - because we are inside of a transaction, the source table could not have been modified after we have copied it into the temporary one.
-    check_for_null_keys raw_source_table key_columns <|
-        ## However, the duplicate key check is ran on the temporary table, as it will perform a JOIN so it needs both tables to be in the same DB.
-        check_duplicate_key_matches_for_delete target_table source_db_table key_columns allow_duplicate_matches <|
-            continuation
+                    source.run_in_transaction connection source_table_name-> source_db_table_uploader->
+                        check_for_null_keys key_values_to_delete key_columns <|
+                            source_db_table = source_db_table_uploader.materialize
+                            check_duplicate_key_matches_for_delete target_table source_db_table key_columns allow_duplicate_matches <|
+                                delete_statement = connection.dialect.generate_sql <|
+                                    Query.Delete_Matching_Rows target_table.name source_table_name key_columns
+                                affected_row_count = connection.execute_update delete_statement
+                                affected_row_count
 
 ## PRIVATE
     We select only the key columns and discard anything else.
@@ -70,12 +69,12 @@ type Delete_Rows_Source
         Delete_Rows_Source.Temporary_DB_Table copied_table tmp_table_name
 
     ## PRIVATE
-       Runs the provided callback in transaction, having first created the temporary table.
-       The callback gets the temporary table name and reference as arguments.
-    run_in_transaction self connection (callback : Text -> DB_Table -> Integer) -> Integer =
+       Runs the provided callback in transaction, having first created an empty temporary table.
+       The user must call `materialize` on `Source_DB_Table_Uploader` to actually upload the table contents - after verifying that the preconditions are met.
+       The callback gets the `Source_DB_Table_Uploader` name and reference as arguments.
+    run_in_transaction self connection (callback : Text -> Source_DB_Table_Uploader -> Integer) -> Integer =
         DDL_Transaction.run_transaction_with_tables connection [self.recipe.table_description] _-> Context.Output.with_enabled <|
-            tmp_table = self.recipe.perform_upload
-            callback self.tmp_table_name tmp_table
+            callback self.tmp_table_name (Source_DB_Table_Uploader.Temporary_DB_Table self.recipe)
 
 type Delete_Rows_Dry_Run_Source
     ## PRIVATE
@@ -105,13 +104,29 @@ type Delete_Rows_Dry_Run_Source
                 Delete_Rows_Dry_Run_Source.Temporary_Table upload_recipe dry_run_message_suffix
 
     ## PRIVATE
-       Runs the provided callback in transaction, having first created any required temporary tables.
-       The callback gets the temporary table, as well as a (possibly empty) suffix to add to the dry-run message.
-    run_in_transaction self connection (callback : DB_Table -> Text -> Integer) -> Integer = case self of
+       Runs the provided callback in transaction, having first created empty temporary tables.
+       The user must call `materialize` on `Source_DB_Table_Uploader` to actually upload the table contents - after verifying that the preconditions are met.
+       The callback gets the `Source_DB_Table_Uploader`, as well as a (possibly empty) suffix to add to the dry-run message.
+    run_in_transaction self connection (callback : Source_DB_Table_Uploader -> Text -> Integer) -> Integer = case self of
         Delete_Rows_Dry_Run_Source.Existing_DB_Query db_table ->
             connection.jdbc_connection.run_within_transaction <| Context.Output.with_enabled <|
-                callback db_table ""
+                callback (Source_DB_Table_Uploader.Existing_DB_Query db_table) ""
         Delete_Rows_Dry_Run_Source.Temporary_Table recipe dry_run_message_suffix ->
             DDL_Transaction.run_transaction_with_tables connection [recipe.table_description] _-> Context.Output.with_enabled <|
-                tmp_table = recipe.perform_upload
-                callback tmp_table dry_run_message_suffix
+                callback (Source_DB_Table_Uploader.Temporary_DB_Table recipe) dry_run_message_suffix
+
+## PRIVATE
+type Source_DB_Table_Uploader
+    ## PRIVATE
+    Existing_DB_Query (db_table : DB_Table)
+
+    ## PRIVATE
+    Temporary_DB_Table (recipe : Table_Upload_Operation)
+
+    ## PRIVATE
+       Performs an upload of the source table (if needed) and returns a reference to it.
+       This method should be called after the invariant checks have passed -
+       otherwise the upload itself could fail due to NULL constraint violations.
+    materialize self -> DB_Table = case self of
+        Source_DB_Table_Uploader.Existing_DB_Query db_table -> db_table
+        Source_DB_Table_Uploader.Temporary_DB_Table recipe -> recipe.perform_upload
