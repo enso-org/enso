@@ -3,7 +3,7 @@ import { type NavigateOptions, useNavigate as useRouterNavigate } from 'react-ro
 
 import type { AppFullPath, AppPath } from '#/appUtils'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useFullUserSession } from '#/providers/AuthProvider'
+import { useUserSession } from '#/providers/AuthProvider'
 import { useLocalBackend } from '#/providers/BackendProvider'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import type { User } from 'enso-common/src/services/Backend'
@@ -54,7 +54,8 @@ export function useAuthNavigate() {
 /** A type-safe function to navigate to a specific page. */
 export function useNavigate(): (url: AppFullPath | PathObject, options?: NavigateOptions) => void {
   const navigate = useAuthNavigate()
-  const { user } = useFullUserSession()
+  const session = useUserSession()
+  const user = session && 'user' in session ? session.user : null
   return useEventCallback((url: AppFullPath | PathObject, options?: NavigateOptions) => {
     navigate(user, url, options)
   })
