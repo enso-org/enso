@@ -22,7 +22,7 @@ import java.util.stream.IntStream;
 import org.enso.table.data.table.Column;
 import org.enso.table.problems.ProblemAggregator;
 
-// ** Class responsible for reading from Tableau Hyper files. */
+/** Class responsible for reading from Tableau Hyper files. */
 public class HyperReader {
   public static final Path HYPER_PATH = Path.of(getHyperPath());
   private static HyperProcess process;
@@ -170,7 +170,7 @@ public class HyperReader {
     var definition = catalog.getTableDefinition(tableNameObject);
     var columns = definition.getColumns();
     return IntStream.range(0, columns.size())
-        .mapToObj(i -> HyperTableColumn.FromHyperColumn(i, columns.get(i)))
+        .mapToObj(i -> HyperTableColumn.fromHyperColumn(i, columns.get(i)))
         .toArray(HyperTableColumn[]::new);
   }
 

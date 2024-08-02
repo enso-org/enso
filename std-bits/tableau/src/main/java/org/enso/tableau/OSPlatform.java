@@ -7,7 +7,7 @@ public enum OSPlatform {
   LINUX,
   OTHER;
 
-  // ** Returns the current platform. */
+  /** Returns the current platform. */
   public static final OSPlatform CurrentPlatform = getPlatform();
 
   private static OSPlatform getPlatform() {

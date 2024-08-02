@@ -22,7 +22,7 @@ import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.problems.ProblemAggregator;
 
-// ** A builder for a single column of a table. */
+/** A builder for a single column of a table. */
 record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
   private static Consumer<Result> nullAppender(Builder builder, int index, Consumer<Result> inner) {
     return r -> {
@@ -34,8 +34,7 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
     };
   }
 
-  // ** Convert a Tableau Interval into either a Duration or a Period (with fallback to String if
-  // needed). */
+  /** Convert a Tableau Interval into either a Duration or a Period (with fallback to String if needed). */
   private static Object readInterval(Result r, int index) {
     var interval = r.getInterval(index);
     if (interval.getMonths() == 0 && interval.getYears() == 0) {

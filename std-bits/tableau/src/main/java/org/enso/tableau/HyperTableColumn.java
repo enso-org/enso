@@ -14,12 +14,12 @@ public record HyperTableColumn(
     OptionalInt length,
     OptionalInt precision,
     OptionalInt scale) {
-  // ** Type ID for JSON data. */
+  /** Type ID for JSON data. */
   public static final int JSON = 10001;
-  // ** Type ID for INTERVAL data. */
+  /** Type ID for INTERVAL data. */
   public static final int INTERVAL = 10002;
 
-  static HyperTableColumn FromHyperColumn(int index, TableDefinition.Column hyperColumn) {
+  static HyperTableColumn fromHyperColumn(int index, TableDefinition.Column hyperColumn) {
     return new HyperTableColumn(
         index,
         hyperColumn.getName().getUnescaped(),

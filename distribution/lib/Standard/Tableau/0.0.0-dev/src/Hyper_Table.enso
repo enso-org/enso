@@ -29,8 +29,8 @@ type Hyper_Table
     ## GROUP Standard.Base.Metadata
        ICON metadata
        Reads The Columns for the Table
-    columns : Vector Hyper_Column
-    columns self =
+    column_metadata : Vector Hyper_Column
+    column_metadata self =
         array = HyperReader.readStructure self.file.file.path self.schema self.table
         array.map column->
             value_type = case column.typeID of
@@ -58,6 +58,14 @@ type Hyper_Table
                 HyperTableColumn.INTERVAL -> Value_Type.Unsupported_Data_Type "INTERVAL" Duration
                 _ -> Value_Type.Unsupported_Data_Type "Unknown" Any
             Hyper_Column.Value column.name value_type column.nullable
+
+    ## GROUP Standard.Base.Metadata
+       ICON metadata
+       Reads The Column Info for the Table
+    column_info : Table
+    column_info self =
+        metadata = self.column_metadata
+
 
     ## GROUP Standard.Base.Input
        ICON data_input
