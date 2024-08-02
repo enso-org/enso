@@ -726,7 +726,9 @@ object Graph {
       identifier: UUID @Identifier,
       externalId: Option[UUID @ExternalID],
       isLazy: Boolean = false
-    ) extends Occurrence
+    ) extends Occurrence {
+      override def toString: String = s"Def($id, $symbol)"
+    }
 
     /** A usage of a symbol in the aliasing graph
       *
@@ -745,7 +747,9 @@ object Graph {
       override val symbol: Graph.Symbol,
       identifier: UUID @Identifier,
       externalId: Option[UUID @ExternalID]
-    ) extends Occurrence
+    ) extends Occurrence {
+      override def toString: String = s"Use($id, $symbol)"
+    }
 
     // TODO [AA] At some point the analysis should make use of these.
     /** Represents a global symbol that has been _asked for_ in the program.

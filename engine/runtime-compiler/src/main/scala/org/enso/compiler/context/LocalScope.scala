@@ -151,7 +151,7 @@ class LocalScope(
   }
 
   override def toString: String = {
-    s"LocalScope(${allFrameSlotIdxs.keySet})"
+    s"LocalScope(flattenToParent = ${flattenToParent}, allFrameSlotIdxs = ${allFrameSlotIdxs.keySet})"
   }
 }
 object LocalScope {
