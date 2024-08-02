@@ -35,12 +35,15 @@ common_update_table (source_table : DB_Table | Table) (target_table : DB_Table) 
                 # We ignore non-critical problems in `internal_upload_table` because we already checked the structure.
                 tmp_table_uploader = internal_upload_table source_table connection tmp_table_name primary_key=effective_key_columns structure_hint=structure_hint temporary=True remove_after_transaction=True on_problems=Problem_Behavior.Ignore row_limit=row_limit
                 DDL_Transaction.run_transaction_with_tables connection [tmp_table_uploader.table_description] _-> Context.Output.with_enabled <|
-                    tmp_table = tmp_table_uploader.perform_upload
-                    tmp_table.if_not_error <| check_for_null_keys_if_any_keys_set tmp_table effective_key_columns <|
-                        resulting_table = append_to_existing_table tmp_table target_table update_action effective_key_columns dry_run=dry_run
-                        if dry_run.not then resulting_table else
-                            warning = Dry_Run_Operation.Warning "Only a dry run of `update_rows` was performed - the target table has been returned unchanged.  Press the Write button ▶ to update the actual table."
-                            Warning.attach warning resulting_table
+                    ## The table was only created but not yet uploaded.
+                       Now we are in transaction so we can atomically check the source_table and only after it meets criteria - upload that table contents to tmp.
+                    check_for_null_keys_if_any_keys_set source_table effective_key_columns <|
+                        tmp_table = tmp_table_uploader.perform_upload
+                        tmp_table.if_not_error <|
+                            resulting_table = append_to_existing_table tmp_table target_table update_action effective_key_columns dry_run=dry_run
+                            if dry_run.not then resulting_table else
+                                warning = Dry_Run_Operation.Warning "Only a dry run of `update_rows` was performed - the target table has been returned unchanged.  Press the Write button ▶ to update the actual table."
+                                Warning.attach warning resulting_table
 
 ## PRIVATE
    Assumes that `source_table` is a simple table query without any filters,

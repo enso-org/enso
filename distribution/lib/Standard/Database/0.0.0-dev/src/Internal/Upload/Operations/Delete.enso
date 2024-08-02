@@ -26,22 +26,25 @@ common_delete_rows (target_table : DB_Table) (key_values_to_delete : Table | DB_
                 True ->
                     source = Delete_Rows_Dry_Run_Source.prepare connection key_values_to_delete key_columns
                     source.run_in_transaction connection source_db_table-> dry_run_message_suffix->
-                        check_preconditions target_table source_db_table key_columns allow_duplicate_matches <|
+                        check_preconditions raw_source_table=key_values_to_delete source_db_table=source_db_table target_table key_columns allow_duplicate_matches <|
                             affected_row_count = target_table.join source_db_table on=key_columns join_kind=Join_Kind.Inner . row_count
                             warning = Dry_Run_Operation.Warning "Only a dry run of `delete_rows` was performed - the target table has not been changed. Press the Write button ▶ to update the actual table."+dry_run_message_suffix
                             Warning.attach warning affected_row_count
                 False ->
                     source = Delete_Rows_Source.prepare connection key_values_to_delete key_columns
                     source.run_in_transaction connection source_table_name-> source_db_table->
-                        check_preconditions target_table source_db_table key_columns allow_duplicate_matches <|
+                        check_preconditions raw_source_table=key_values_to_delete source_db_table=source_db_table target_table key_columns allow_duplicate_matches <|
                             delete_statement = connection.dialect.generate_sql <|
                                 Query.Delete_Matching_Rows target_table.name source_table_name key_columns
                             affected_row_count = connection.execute_update delete_statement
                             affected_row_count
 
 ## PRIVATE
-check_preconditions source_db_table target_table key_columns allow_duplicate_matches ~continuation =
-    check_for_null_keys source_db_table key_columns <|
+check_preconditions raw_source_table source_db_table target_table key_columns allow_duplicate_matches ~continuation =
+    ## The NULL check is ran on the original source table, not the temporary one.
+       That is OK - because we are inside of a transaction, the source table could not have been modified after we have copied it into the temporary one.
+    check_for_null_keys raw_source_table key_columns <|
+        ## However, the duplicate key check is ran on the temporary table, as it will perform a JOIN so it needs both tables to be in the same DB.
         check_duplicate_key_matches_for_delete target_table source_db_table key_columns allow_duplicate_matches <|
             continuation
 
