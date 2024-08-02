@@ -1,5 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Data.Vector.Builder as Vector_Builder
+import Standard.Base.Data.Vector.No_Wrap
+import Standard.Base.Runtime.Context
 
 import project.Column_Description.Column_Description
 import project.DB_Table.DB_Table
@@ -39,7 +41,9 @@ type Transactional_Table_Description
     Value name:Text temporary:Boolean (structure : Vector Column_Description) (primary_key : Vector Text | Nothing) (remove_after_transaction:Boolean) (on_problems:Problem_Behavior)
 
     ## PRIVATE
-    private create self connection -> DB_Table =
+       This operation creates the tables regardless of the Output Context setting.
+       It is the responsibility of the caller to ensure that the operation may proceed.
+    private create self connection -> DB_Table = Context.Output.with_enabled <|
         created_name = internal_create_table_structure connection self.name self.structure primary_key=self.primary_key temporary=self.temporary on_problems=self.on_problems
         connection.query (SQL_Query.Table_Name created_name)
 
@@ -64,7 +68,7 @@ run_transaction_with_tables connection (tables : Vector Transactional_Table_Desc
 ## PRIVATE
 private create_tables_inside_transaction connection (tables : Vector Transactional_Table_Description) (callback : Vector DB_Table -> Any) -> Any =
     connection.jdbc_connection.run_within_transaction <|
-        created = tables.map t-> t.create connection
+        created = tables.map on_problems=No_Wrap t-> t.create connection
         created.if_not_error <|
             result = callback created
 
@@ -82,7 +86,7 @@ private create_tables_outside_transaction connection (tables : Vector Transactio
         Panic.throw caught_panic
 
     Panic.catch Any handler=handle_panic <|
-        created = tables.map t->
+        created = tables.map on_problems=No_Wrap t->
             table = t.create connection
             # We only register a table for cleanup if it was successfully created.
             table.if_not_error <|
