@@ -38,6 +38,7 @@ import * as backendModule from '#/services/Backend'
 import * as localBackend from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
 
+import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
 import * as download from '#/utilities/download'
@@ -50,6 +51,7 @@ import * as permissions from '#/utilities/permissions'
 import * as set from '#/utilities/set'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
+import { useQuery } from '@tanstack/react-query'
 
 // =================
 // === Constants ===
@@ -156,6 +158,14 @@ export default function AssetRow(props: AssetRowProps) {
   const undoDeleteAsset = undoDeleteAssetMutation.mutateAsync
   const openProject = openProjectMutation.mutateAsync
   const closeProject = closeProjectMutation.mutateAsync
+
+  const { data: projectState } = useQuery({
+    // This is SAFE, as `isOpened` is only true for projects.
+    // eslint-disable-next-line no-restricted-syntax
+    ...createGetProjectDetailsQuery.createPassiveListener(item.item.id as backendModule.ProjectId),
+    select: (data) => data.state.type,
+    enabled: item.type === backendModule.AssetType.project,
+  })
 
   const setSelected = useEventCallback((newSelected: boolean) => {
     const { selectedKeys } = driveStore.getState()
@@ -801,7 +811,12 @@ export default function AssetRow(props: AssetRowProps) {
                   }
                 }}
                 onDragStart={(event) => {
-                  if (rowState.isEditingName) {
+                  if (
+                    rowState.isEditingName ||
+                    (projectState !== backendModule.ProjectState.closed &&
+                      projectState !== backendModule.ProjectState.created &&
+                      projectState != null)
+                  ) {
                     event.preventDefault()
                   } else {
                     props.onDragStart?.(event)

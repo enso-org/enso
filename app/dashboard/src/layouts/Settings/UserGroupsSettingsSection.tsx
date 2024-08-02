@@ -64,6 +64,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
     [users],
   )
   const isLoading = userGroups == null || users == null
+  const isAdmin = user.isOrganizationAdmin
 
   const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
 
@@ -75,6 +76,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
     scrollHooks.useStickyTableHeaderOnScroll(rootRef, bodyRef, { trackShadowClass: true })
 
   const { dragAndDropHooks } = aria.useDragAndDrop({
+    isDisabled: !isAdmin,
     getDropOperation: (target, types, allowedOperations) =>
       (
         allowedOperations.includes('copy') &&
@@ -138,41 +140,43 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
 
   return (
     <>
-      <ariaComponents.ButtonGroup verticalAlign="center">
-        {shouldDisplayPaywall && (
-          <paywallComponents.PaywallDialogButton
-            feature="userGroupsFull"
-            variant="bar"
-            size="medium"
-            rounded="full"
-            iconPosition="end"
-            tooltip={getText('userGroupsPaywallMessage')}
-          >
-            {getText('newUserGroup')}
-          </paywallComponents.PaywallDialogButton>
-        )}
-        {!shouldDisplayPaywall && (
-          <ariaComponents.Button
-            size="medium"
-            variant="bar"
-            onPress={(event) => {
-              const rect = event.target.getBoundingClientRect()
-              const position = { pageX: rect.left, pageY: rect.top }
-              setModal(<NewUserGroupModal backend={backend} event={position} />)
-            }}
-          >
-            {getText('newUserGroup')}
-          </ariaComponents.Button>
-        )}
+      {isAdmin && (
+        <ariaComponents.ButtonGroup verticalAlign="center">
+          {shouldDisplayPaywall && (
+            <paywallComponents.PaywallDialogButton
+              feature="userGroupsFull"
+              variant="bar"
+              size="medium"
+              rounded="full"
+              iconPosition="end"
+              tooltip={getText('userGroupsPaywallMessage')}
+            >
+              {getText('newUserGroup')}
+            </paywallComponents.PaywallDialogButton>
+          )}
+          {!shouldDisplayPaywall && (
+            <ariaComponents.Button
+              size="medium"
+              variant="bar"
+              onPress={(event) => {
+                const rect = event.target.getBoundingClientRect()
+                const position = { pageX: rect.left, pageY: rect.top }
+                setModal(<NewUserGroupModal backend={backend} event={position} />)
+              }}
+            >
+              {getText('newUserGroup')}
+            </ariaComponents.Button>
+          )}
 
-        {isUnderPaywall && (
-          <span className="text-xs">
-            {userGroupsLeft <= 0 ?
-              getText('userGroupsPaywallMessage')
-            : getText('userGroupsLimitMessage', userGroupsLeft)}
-          </span>
-        )}
-      </ariaComponents.ButtonGroup>
+          {isUnderPaywall && (
+            <span className="text-xs">
+              {userGroupsLeft <= 0 ?
+                getText('userGroupsPaywallMessage')
+              : getText('userGroupsLimitMessage', userGroupsLeft)}
+            </span>
+          )}
+        </ariaComponents.ButtonGroup>
+      )}
       <div
         ref={rootRef}
         className={tailwindMerge.twMerge(

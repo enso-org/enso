@@ -23,6 +23,8 @@ import NewLabelModal from '#/modals/NewLabelModal'
 
 import type Backend from '#/services/Backend'
 
+import AssetEventType from '#/events/AssetEventType'
+import { useDispatchAssetEvent } from '#/layouts/AssetsTable/EventListProvider'
 import * as array from '#/utilities/array'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as drag from '#/utilities/drag'
@@ -46,9 +48,15 @@ export default function Labels(props: LabelsProps) {
   const currentNegativeLabels = query.negativeLabels
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
+  const dispatchAssetEvent = useDispatchAssetEvent()
   const labels = useListTags(backend) ?? []
-
-  const deleteTag = useMutation(backendMutationOptions(backend, 'deleteTag')).mutate
+  const deleteTag = useMutation(
+    backendMutationOptions(backend, 'deleteTag', {
+      onSuccess: (_data, [, labelName]) => {
+        dispatchAssetEvent({ type: AssetEventType.deleteLabel, labelName })
+      },
+    }),
+  ).mutate
 
   return (
     <FocusArea direction="vertical">

@@ -8,14 +8,12 @@ import { backendMutationOptions } from '#/hooks/backendHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
+import type { GetText } from '#/providers/TextProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 
 import * as backendModule from '#/services/Backend'
-
-import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
 // === Constants ===
@@ -62,59 +60,67 @@ export function SetOrganizationNameModal() {
         hideCloseButton
         modalProps={{ isOpen: shouldShowModal }}
       >
-        <ariaComponents.Form
-          gap="medium"
-          defaultValues={{ name: '' }}
-          schema={ariaComponents.Form.useFormSchema((z) =>
-            z.object({
-              name: z
-                .string()
-                .min(1, getText('arbitraryFieldRequired'))
-                // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-                .max(255, getText('arbitraryFieldTooLong')),
-            }),
-          )}
-          onSubmit={({ name }) => updateOrganization([{ name }])}
-        >
-          {({ register, formState }) => {
-            return (
-              <>
-                <aria.TextField
-                  autoFocus
-                  inputMode="text"
-                  autoComplete="off"
-                  className="flex w-full flex-col"
-                  {...register('name')}
-                >
-                  <aria.Label className="mb-1 ml-0.5 block text-sm">
-                    {getText('organization')}
-                  </aria.Label>
-
-                  <aria.Input
-                    className={(values) =>
-                      tailwindMerge.twMerge(
-                        'rounded-md border border-gray-300 p-1.5 text-sm transition-[outline]',
-                        (values.isFocused || values.isFocusVisible) &&
-                          'outline outline-2 outline-primary',
-                        values.isInvalid && 'border-red-500 outline-red-500',
-                      )
-                    }
-                  />
-
-                  <aria.FieldError className="text-sm text-red-500">
-                    {formState.errors.name?.message}
-                  </aria.FieldError>
-                </aria.TextField>
-
-                <ariaComponents.Form.FormError />
-
-                <ariaComponents.Form.Submit />
-              </>
-            )
+        <SetOrganizationNameForm
+          onSubmit={async (name) => {
+            await updateOrganization([{ name }])
           }}
-        </ariaComponents.Form>
+        />
       </ariaComponents.Dialog>
+
       <router.Outlet context={session} />
     </>
+  )
+}
+
+/**
+ * Props for the SetOrganizationNameForm component.
+ */
+export interface SetOrganizationNameFormProps {
+  readonly onSubmit: (name: string) => Promise<void>
+}
+
+export const ORGANIZATION_NAME_MAX_LENGTH = 64
+
+// eslint-disable-next-line no-restricted-syntax
+export const SET_ORGANIZATION_NAME_FORM_SCHEMA = (getText: GetText) =>
+  ariaComponents.Form.schema.object({
+    name: ariaComponents.Form.schema
+      .string()
+      .min(1, getText('arbitraryFieldRequired'))
+      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+      .max(ORGANIZATION_NAME_MAX_LENGTH, getText('arbitraryFieldTooLong')),
+  })
+
+/**
+ * Form for setting the organization name.
+ */
+export function SetOrganizationNameForm(props: SetOrganizationNameFormProps) {
+  const { onSubmit } = props
+  const { getText } = textProvider.useText()
+
+  return (
+    <ariaComponents.Form
+      gap="medium"
+      method="dialog"
+      defaultValues={{ name: '' }}
+      schema={SET_ORGANIZATION_NAME_FORM_SCHEMA(getText)}
+      onSubmit={({ name }) => onSubmit(name)}
+    >
+      <ariaComponents.Input
+        name="name"
+        autoFocus
+        inputMode="text"
+        autoComplete="off"
+        label={getText('organizationNameSettingsInput')}
+        description={getText(
+          'organizationNameSettingsInputDescription',
+          ORGANIZATION_NAME_MAX_LENGTH,
+        )}
+      />
+
+      <ariaComponents.Form.FormError />
+
+      <ariaComponents.Form.Submit />
+    </ariaComponents.Form>
   )
 }

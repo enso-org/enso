@@ -9,7 +9,7 @@ import * as aria from '#/components/aria'
 
 import * as mergeRefs from '#/utilities/mergeRefs'
 
-import * as varants from './variants'
+import * as variants from '../variants'
 
 /**
  * Props for a {@link ResizableInput}.
@@ -51,7 +51,7 @@ export const ResizableInput = React.forwardRef(function ResizableInput(
     inputContainer,
     resizableSpan,
     textArea,
-  } = varants.INPUT_STYLES({ isInvalid: textFieldProps.isInvalid })
+  } = variants.INPUT_STYLES({ invalid: textFieldProps.isInvalid })
 
   return (
     <aria.TextField {...textFieldProps}>

@@ -27,9 +27,9 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 export interface MembersTableProps {
   readonly backend: Backend
   /** If `true`, initialize the users list with self to avoid needing a loading spinner. */
-  readonly populateWithSelf?: true
-  readonly draggable?: true
-  readonly allowDelete?: true
+  readonly populateWithSelf?: boolean
+  readonly draggable?: boolean
+  readonly allowDelete?: boolean
 }
 
 /** A list of members in the organization. */
