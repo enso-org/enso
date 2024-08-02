@@ -232,11 +232,9 @@ fn expression_to_pattern(mut input: syntax::Tree<'_>) -> syntax::Tree<'_> {
         }
         Variant::TypeAnnotated(box TypeAnnotated { ref mut expression, .. }) =>
             transform_tree(expression, expression_to_pattern),
-        Variant::OprApp(box OprApp { opr: Ok(ref opr), .. }) =>
-            if opr.code == "." {
-                if !is_qualified_name(&input) {
-                    error = Some(SyntaxError::PatternUnexpectedDot);
-                }
+        Variant::OprApp(box OprApp { opr: Ok(ref opr), .. }) if opr.code == "." =>
+            if !is_qualified_name(&input) {
+                error = Some(SyntaxError::PatternUnexpectedDot);
             },
 
         // === Transformations ===
