@@ -1,7 +1,6 @@
 package org.enso.tableau;
 
 import com.tableau.hyperapi.*;
-
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
