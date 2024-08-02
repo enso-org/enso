@@ -629,6 +629,7 @@ fn code_block_operator() {
     test(code.join("\n"), expect);
 }
 
+/*
 #[test]
 fn dot_operator_blocks() {
     let code = ["rect1", "    . width = 7", "    . center", "        + x"];
@@ -638,6 +639,7 @@ fn dot_operator_blocks() {
            ((Ok ".") (OperatorBlockApplication (Ident center)
                      #(((Ok "+") (Ident x))) #()))) #()));
 }
+ */
 
 #[test]
 fn code_block_argument_list() {

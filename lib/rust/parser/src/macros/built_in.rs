@@ -5,6 +5,7 @@ use crate::macros::*;
 
 use crate::empty_tree;
 use crate::expect_qualified_name;
+use crate::expression_to_pattern;
 use crate::source::Code;
 use crate::syntax::operator;
 use crate::syntax::token;
@@ -79,13 +80,13 @@ fn import_body<'s>(
     let mut incomplete_import = false;
     for segment in segments {
         let header = segment.header;
-        let tokens = segment.result.tokens();
+        let mut tokens = segment.result.tokens();
         let body;
         let field = match header.code.as_ref() {
             "polyglot" => {
                 body = Some(
                     precedence
-                        .resolve(tokens)
+                        .resolve(&mut tokens)
                         .map(expect_ident)
                         .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
@@ -94,7 +95,7 @@ fn import_body<'s>(
             "from" => {
                 body = Some(
                     precedence
-                        .resolve(tokens)
+                        .resolve(&mut tokens)
                         .map(expect_qualified_name)
                         .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
@@ -105,7 +106,7 @@ fn import_body<'s>(
                     Some(_) => expect_ident,
                     None => expect_qualified_name,
                 };
-                body = sequence_tree(precedence, tokens, expect);
+                body = sequence_tree(precedence, &mut tokens, expect);
                 incomplete_import = body.is_none();
                 &mut import
             }
@@ -118,7 +119,7 @@ fn import_body<'s>(
             "as" => {
                 body = Some(
                     precedence
-                        .resolve(tokens)
+                        .resolve(&mut tokens)
                         .map(expect_ident)
                         .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
@@ -126,7 +127,7 @@ fn import_body<'s>(
             }
             "hiding" => {
                 body = Some(
-                    sequence_tree(precedence, tokens, expect_ident)
+                    sequence_tree(precedence, &mut tokens, expect_ident)
                         .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
                 &mut hiding
@@ -175,13 +176,13 @@ fn export_body<'s>(
     let mut incomplete_export = false;
     for segment in segments {
         let header = segment.header;
-        let tokens = segment.result.tokens();
+        let mut tokens = segment.result.tokens();
         let body;
         let field = match header.code.as_ref() {
             "from" => {
                 body = Some(
                     precedence
-                        .resolve(tokens)
+                        .resolve(&mut tokens)
                         .map(expect_qualified_name)
                         .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
@@ -192,7 +193,7 @@ fn export_body<'s>(
                     Some(_) => expect_ident,
                     None => expect_qualified_name,
                 };
-                body = sequence_tree(precedence, tokens, expect);
+                body = sequence_tree(precedence, &mut tokens, expect);
                 incomplete_export = body.is_none();
                 &mut export
             }
@@ -205,7 +206,7 @@ fn export_body<'s>(
             "as" => {
                 body = Some(
                     precedence
-                        .resolve(tokens)
+                        .resolve(&mut tokens)
                         .map(expect_ident)
                         .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
@@ -213,7 +214,7 @@ fn export_body<'s>(
             }
             "hiding" => {
                 body = Some(
-                    sequence_tree(precedence, tokens, expect_ident)
+                    sequence_tree(precedence, &mut tokens, expect_ident)
                         .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
                 &mut hiding
@@ -275,8 +276,8 @@ fn lambda_body<'s>(
     let operator = segment.header;
     let Token { left_offset, code, .. } = operator;
     let operator = token::lambda_operator(left_offset, code);
-    let arrow = segment.result.tokens();
-    let arrow = precedence.resolve(arrow);
+    let mut arrow = segment.result.tokens();
+    let arrow = precedence.resolve(&mut arrow);
     syntax::Tree::lambda(operator, arrow)
 }
 
@@ -293,10 +294,9 @@ fn case_body<'s>(
     let (of, mut rest) = segments.pop();
     let case = rest.pop().unwrap();
     let case_ = case.header.with_variant(token::variant::CaseKeyword());
-    let expression = case.result.tokens();
-    let expression = precedence.resolve(expression);
+    let mut expression = case.result.tokens();
+    let expression = precedence.resolve(&mut expression);
     let of_ = of.header.with_variant(token::variant::OfKeyword());
-    let mut case_builder = CaseBuilder::default();
     let mut initial_case = vec![];
     let mut block = default();
     for item in of.result.tokens() {
@@ -305,113 +305,121 @@ fn case_body<'s>(
             _ => initial_case.push(item),
         }
     }
+    let mut case_lines = vec![];
+    let mut error = None;
     if !initial_case.is_empty() {
         let location = of_.code.position_after();
         let newline = token::newline(location.clone(), location);
-        case_builder.push(syntax::item::Line { newline, items: initial_case });
+        let line = syntax::item::Line { newline, items: initial_case };
+        let (case, initial_case_error) = parse_case_line(line, precedence);
+        case_lines.push(case);
+        error = initial_case_error;
     }
-    block.into_vec().into_iter().for_each(|line| case_builder.push(line));
-    let (case_lines, any_invalid) = case_builder.finish();
+    case_lines.reserve(case_lines.len() + block.len());
+    for line in block.into_vec() {
+        let (case, case_error) = parse_case_line(line, precedence);
+        case_lines.push(case);
+        error = error.or(case_error);
+    }
     let tree = Tree::case_of(case_, expression, of_, case_lines);
-    if any_invalid {
-        return tree.with_error("Invalid case expression.");
-    }
-    tree
+    maybe_with_error(tree, error)
 }
 
-#[derive(Default)]
-struct CaseBuilder<'s> {
-    // Case components
-    documentation: Option<syntax::tree::DocComment<'s>>,
-    pattern:       Option<syntax::Tree<'s>>,
-    arrow:         Option<token::ArrowOperator<'s>>,
-    // Within-case state
-    spaces:        bool,
-    tokens:        Vec<Item<'s>>,
-    resolver:      operator::Precedence<'s>,
-    // Output
-    case_lines:    Vec<syntax::tree::CaseLine<'s>>,
-    any_invalid:   bool,
+fn parse_case_line<'s>(
+    line: syntax::item::Line<'s>,
+    precedence: &mut operator::Precedence<'s>,
+) -> (syntax::tree::CaseLine<'s>, Option<SyntaxError>) {
+    let syntax::item::Line { newline, mut items } = line;
+    if let documentation @ Some(_) = try_parse_doc_comment(&mut items, precedence) {
+        return (
+            syntax::tree::CaseLine {
+                newline: newline.into(),
+                case:    Some(syntax::tree::Case { documentation, ..default() }),
+            },
+            default(),
+        );
+    }
+    let (case, error) = parse_case(&mut items, precedence);
+    (syntax::tree::CaseLine { newline: newline.into(), case: Some(case) }, error)
 }
 
-impl<'s> CaseBuilder<'s> {
-    fn push(&mut self, line: syntax::item::Line<'s>) {
-        let syntax::item::Line { newline, items } = line;
-        self.case_lines.push(syntax::tree::CaseLine { newline: newline.into(), ..default() });
-        for token in items {
-            if let Item::Token(token @ Token { left_offset, variant, .. }) = &token {
-                if self.arrow.is_none()
-                    && let token::Variant::ArrowOperator(arrow_op) = variant
-                    && !left_offset.is_empty()
-                {
-                    self.resolver.extend(self.tokens.drain(..));
-                    self.arrow = Some(token.clone().with_variant(*arrow_op));
-                    self.pattern = self.resolver.finish().map(crate::expression_to_pattern);
-                    continue;
-                }
-                self.spaces = self.spaces || (!left_offset.is_empty() && !self.tokens.is_empty());
-            }
-            self.tokens.push(token);
-        }
-        self.finish_line();
-    }
-
-    fn finish_line(&mut self) {
-        if self.arrow.is_none() && !self.spaces {
-            for (i, token) in self.tokens.iter().enumerate() {
-                if let Item::Token(
-                    token @ Token { variant: token::Variant::ArrowOperator(arrow_op), .. },
-                ) = token
-                {
-                    self.arrow = Some(token.clone().with_variant(*arrow_op));
-                    let including_arrow = self.tokens.drain(..=i);
-                    self.resolver.extend(including_arrow.take(i));
-                    self.pattern = self.resolver.finish().map(crate::expression_to_pattern);
-                    break;
-                }
-            }
-        }
-        self.spaces = false;
-        self.resolver.extend(self.tokens.drain(..));
-        let pattern = self.pattern.take();
-        let arrow = self.arrow.take();
-        let expression = match self.resolver.finish() {
-            Some(syntax::Tree {
-                span,
-                variant:
-                    syntax::tree::Variant::Documented(box syntax::tree::Documented {
-                        mut documentation,
-                        expression: None,
-                    }),
-                ..
-            }) if self.documentation.is_none() => {
-                documentation.open.left_offset += span.left_offset;
-                if self.case_lines.is_empty() {
-                    self.case_lines.push(default());
-                }
-                let case = self.case_lines.last_mut().unwrap().case.get_or_insert_default();
-                case.documentation = documentation.into();
-                return;
-            }
-            e => e,
+fn parse_case<'s>(
+    items: &mut Vec<Item<'s>>,
+    precedence: &mut operator::Precedence<'s>,
+) -> (syntax::tree::Case<'s>, Option<SyntaxError>) {
+    let mut arrow = None;
+    let mut pattern = None;
+    let expression;
+    if let Some(arrow_i) = find_top_level_arrow(items) {
+        expression = if arrow_i + 1 < items.len() {
+            precedence.resolve_offset(arrow_i + 1, items)
+        } else {
+            None
         };
-        if pattern.is_none() && arrow.is_none() && expression.is_none() {
-            return;
-        }
-        self.any_invalid =
-            self.any_invalid || pattern.is_none() || arrow.is_none() || expression.is_none();
-        if self.case_lines.is_empty() {
-            self.case_lines.push(default());
-        }
-        let case = &mut self.case_lines.last_mut().unwrap().case.get_or_insert_default();
-        case.pattern = pattern;
-        case.arrow = arrow;
-        case.expression = expression;
+        let Some(Item::Token(op)) = items.pop() else { unreachable!() };
+        arrow = Some(op.with_variant(token::variant::ArrowOperator()));
+        pattern = precedence.resolve(items).map(expression_to_pattern);
+    } else {
+        expression = precedence.resolve(items);
     }
+    let error = match (&pattern, &arrow, &expression) {
+        (Some(_), Some(_), Some(_)) | (None, None, None) => None,
+        _ => Some(SyntaxError::CaseOfInvalidCase),
+    };
+    (syntax::tree::Case { pattern, arrow, expression, ..default() }, error)
+}
 
-    fn finish(mut self) -> (Vec<syntax::tree::CaseLine<'s>>, bool) {
-        self.finish_line();
-        (self.case_lines, self.any_invalid)
+fn find_top_level_arrow(items: &[Item]) -> Option<usize> {
+    let mut spaced = false;
+    let mut arrow_i = None;
+    for (i, item) in items.iter().enumerate() {
+        if let Item::Token(token) = item
+            && token.is_spaced()
+        {
+            if let Token { variant: token::Variant::ArrowOperator(_), .. } = token {
+                arrow_i = Some(i);
+                break;
+            }
+            if i != 0 {
+                spaced = true;
+            }
+        }
+    }
+    if arrow_i.is_none() && !spaced {
+        items.iter().enumerate().find_map(|(i, item)| match item {
+            Item::Token(Token { variant: token::Variant::ArrowOperator(_), .. }) => Some(i),
+            _ => None,
+        })
+    } else {
+        arrow_i
+    }
+}
+
+fn try_parse_doc_comment<'s>(
+    items: &mut Vec<Item<'s>>,
+    precedence: &mut operator::Precedence<'s>,
+) -> Option<syntax::tree::DocComment<'s>> {
+    if let Some(Item::Token(token @ Token { variant: token::Variant::TextStart(_), .. })) =
+        items.first()
+        && token.code == "##"
+    {
+        let Some(syntax::Tree {
+            variant:
+                syntax::tree::Variant::Documented(box syntax::tree::Documented {
+                    mut documentation,
+                    expression: None,
+                    ..
+                }),
+            span,
+            ..
+        }) = precedence.resolve(items)
+        else {
+            unreachable!()
+        };
+        documentation.open.left_offset += span.left_offset;
+        Some(documentation)
+    } else {
+        None
     }
 }
 
@@ -456,42 +464,42 @@ fn grouped_sequence<'s>(
     let right = into_close_symbol(right.header);
     let left = rest.pop().unwrap();
     let left_ = into_open_symbol(left.header);
-    let (first, rest) = sequence(precedence, left.result.tokens());
+    let (first, rest) = sequence(precedence, &mut left.result.tokens());
     GroupedSequence { left: left_, first, rest, right }
 }
 
 fn sequence<'s>(
     precedence: &mut operator::Precedence<'s>,
-    tokens: impl IntoIterator<Item = Item<'s>>,
+    tokens: &mut Vec<Item<'s>>,
 ) -> (Option<syntax::Tree<'s>>, Vec<syntax::tree::OperatorDelimitedTree<'s>>) {
     use syntax::tree::*;
-    let mut first = None;
-    let mut rest: Vec<OperatorDelimitedTree<'s>> = default();
-    for token in tokens {
-        match token {
-            Item::Token(Token { left_offset, code, variant: token::Variant::CommaOperator(_) }) => {
-                *(match rest.last_mut() {
-                    Some(rest) => &mut rest.body,
-                    None => &mut first,
-                }) = precedence.finish();
-                let operator = Token(left_offset, code, token::variant::Operator());
-                rest.push(OperatorDelimitedTree { operator, body: default() });
+    let mut rest = vec![];
+    if tokens.len() > 0 {
+        let mut i = tokens.len() - 1;
+        loop {
+            if let Item::Token(Token { variant: token::Variant::CommaOperator(_), .. }) =
+                tokens.get(i).unwrap()
+            {
+                let body =
+                    if i < tokens.len() { precedence.resolve_offset(i + 1, tokens) } else { None };
+                let Some(Item::Token(operator)) = tokens.pop() else { unreachable!() };
+                let operator = operator.with_variant(token::variant::Operator());
+                rest.push(OperatorDelimitedTree { operator, body });
             }
-            _ => {
-                precedence.push(token);
+            if i == 0 {
+                break;
             }
+            i -= 1;
         }
     }
-    *(match rest.last_mut() {
-        Some(rest) => &mut rest.body,
-        None => &mut first,
-    }) = precedence.finish();
+    rest.reverse();
+    let first = precedence.resolve(tokens);
     (first, rest)
 }
 
 fn sequence_tree<'s>(
     precedence: &mut operator::Precedence<'s>,
-    tokens: impl IntoIterator<Item = Item<'s>>,
+    tokens: &mut Vec<Item<'s>>,
     mut f: impl FnMut(syntax::Tree<'s>) -> syntax::Tree<'s>,
 ) -> Option<syntax::Tree<'s>> {
     use syntax::tree::*;
@@ -520,8 +528,8 @@ fn splice_body<'s>(
     let close = into_close_symbol(close.header);
     let segment = segments.pop().unwrap();
     let open = into_open_symbol(segment.header);
-    let expression = segment.result.tokens();
-    let expression = precedence.resolve(expression);
+    let mut expression = segment.result.tokens();
+    let expression = precedence.resolve(&mut expression);
     let splice = syntax::tree::TextElement::Splice { open, expression, close };
     syntax::Tree::text_literal(default(), default(), vec![splice], default())
 }
@@ -543,8 +551,7 @@ fn capture_expressions<'s>(
     use syntax::tree::*;
     Tree::multi_segment_app(segments.mapped(|s| {
         let header = s.header;
-        let body = s.result.tokens();
-        let body = precedence.resolve(body);
+        let body = precedence.resolve(&mut s.result.tokens());
         MultiSegmentAppSegment { header, body }
     }))
 }

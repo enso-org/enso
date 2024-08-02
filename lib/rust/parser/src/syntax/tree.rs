@@ -827,6 +827,7 @@ pub enum SyntaxError {
     AnnotationOpMustBeAppliedToIdent,
     PatternUnexpectedExpression,
     PatternUnexpectedDot,
+    CaseOfInvalidCase,
 }
 
 impl From<SyntaxError> for Cow<'static, str> {
@@ -860,6 +861,7 @@ impl From<SyntaxError> for Cow<'static, str> {
             ImportsNoHidingInExport => "`hiding` not allowed in `export` statement",
             PatternUnexpectedExpression => "Expression invalid in a pattern",
             PatternUnexpectedDot => "In a pattern, the dot operator can only be used in a qualified name",
+            CaseOfInvalidCase => "Invalid case expression.",
         })
         .into()
     }
@@ -952,9 +954,7 @@ pub fn apply_operator<'s>(
                     token::Variant::Operator(_)
                     | token::Variant::DotOperator(_)
                     | token::Variant::ArrowOperator(_)
-                    | token::Variant::TypeAnnotationOperator(_)
-                    // Old lambda syntax: (a = b) -> a
-                    | token::Variant::AssignmentOperator(_),
+                    | token::Variant::TypeAnnotationOperator(_),
                     _,
                     _,
                 ) => None,

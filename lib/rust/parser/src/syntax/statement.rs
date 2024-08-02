@@ -143,7 +143,7 @@ fn parse_body_block_statement<'s>(
         Ok(top_level_operator) => top_level_operator.map(|(i, t)| (i + start, t)),
         Err(e) =>
             return precedence
-                .resolve_non_section(items.drain(start..))
+                .resolve_non_section_offset(start, items)
                 .unwrap()
                 .with_error(e)
                 .into(),
@@ -152,11 +152,11 @@ fn parse_body_block_statement<'s>(
         Some((i, Token { variant: Variant::AssignmentOperator(_), .. })) =>
             parse_assignment_like_statement(items, start, i, precedence, args_buffer).into(),
         Some((i, Token { variant: Variant::TypeAnnotationOperator(_), .. })) => {
-            let type_ = precedence.resolve_non_section(items.drain(i + 1..));
+            let type_ = precedence.resolve_non_section_offset(i + 1, items);
             let Some(Item::Token(operator)) = items.pop() else { unreachable!() };
             let Variant::TypeAnnotationOperator(variant) = operator.variant else { unreachable!() };
             let operator = operator.with_variant(variant);
-            let lhs = precedence.resolve_non_section(items.drain(start..));
+            let lhs = precedence.resolve_non_section_offset(start, items);
             let type_ = type_.unwrap_or_else(|| {
                 empty_tree(operator.code.position_after()).with_error(SyntaxError::ExpectedType)
             });
@@ -171,7 +171,7 @@ fn parse_body_block_statement<'s>(
             }
         }
         Some(_) => unreachable!(),
-        None => precedence.resolve(items.drain(start..)),
+        None => precedence.resolve_offset(start, items),
     };
     debug_assert_eq!(items.len(), start);
     statement
@@ -186,12 +186,12 @@ fn parse_assignment_like_statement<'s>(
 ) -> Tree<'s> {
     if operator == start {
         return precedence
-            .resolve_non_section(items.drain(start..))
+            .resolve_non_section_offset(start, items)
             .unwrap()
             .with_error(SyntaxError::StmtInvalidAssignmentOrMethod);
     }
 
-    let mut expression = precedence.resolve(items.drain(operator + 1..));
+    let mut expression = precedence.resolve_offset(operator + 1, items);
 
     let Some(Item::Token(operator)) = items.pop() else { unreachable!() };
     let token::Variant::AssignmentOperator(variant) = operator.variant else { unreachable!() };
@@ -219,16 +219,16 @@ fn parse_assignment_like_statement<'s>(
             Tree::function(qn, args, return_, operator, Some(e))
         }
         (Some(expression), None) =>
-            parse_assignment(items.drain(start..), operator, expression, precedence),
+            parse_assignment(start, items, operator, expression, precedence),
         (Some(expression), Some(1)) if items.len() == start + 1 =>
-            parse_assignment(items.drain(start..), operator, expression, precedence),
+            parse_assignment(start, items, operator, expression, precedence),
         (e, Some(qn_len)) => {
             let (qn, args, return_) =
                 parse_function_decl(items, start, qn_len, precedence, args_buffer);
             Tree::function(qn, args, return_, operator, e)
         }
         (None, None) => Tree::opr_app(
-            precedence.resolve_non_section(items.drain(start..)),
+            precedence.resolve_non_section_offset(start, items),
             Ok(operator.with_variant(token::variant::Operator())),
             None,
         )
@@ -237,12 +237,14 @@ fn parse_assignment_like_statement<'s>(
 }
 
 fn parse_assignment<'s>(
-    items: impl IntoIterator<Item = Item<'s>>,
+    start: usize,
+    items: &mut Vec<Item<'s>>,
     operator: token::AssignmentOperator<'s>,
     expression: Tree<'s>,
     precedence: &mut Precedence<'s>,
 ) -> Tree<'s> {
-    let pattern = expression_to_pattern(precedence.resolve_non_section(items).unwrap());
+    let pattern =
+        expression_to_pattern(precedence.resolve_non_section_offset(start, items).unwrap());
     Tree::assignment(pattern, operator, expression)
 }
 
@@ -257,21 +259,24 @@ fn parse_pattern<'s>(
     );
     let pattern_start = arg_start + have_suspension as usize;
     let pattern = if items.len() - pattern_start == 1 {
-        Some(match items.pop().unwrap() {
-            Item::Token(token) => match token.variant {
-                token::Variant::Ident(variant) => Tree::ident(token.with_variant(variant)),
-                token::Variant::Wildcard(variant) =>
-                    Tree::wildcard(token.with_variant(variant), None),
-                _ => tree::to_ast(token).with_error(SyntaxError::ArgDefExpectedPattern),
-            },
-            item => precedence
-                .resolve_non_section(Some(item))
+        Some(match items.last().unwrap() {
+            Item::Token(_) => {
+                let Some(Item::Token(token)) = items.pop() else { unreachable!() };
+                match token.variant {
+                    token::Variant::Ident(variant) => Tree::ident(token.with_variant(variant)),
+                    token::Variant::Wildcard(variant) =>
+                        Tree::wildcard(token.with_variant(variant), None),
+                    _ => tree::to_ast(token).with_error(SyntaxError::ArgDefExpectedPattern),
+                }
+            }
+            _ => precedence
+                .resolve_non_section_offset(items.len() - 1, items)
                 .map(|tree| tree.with_error(SyntaxError::ArgDefExpectedPattern))
                 .unwrap(),
         })
     } else {
         precedence
-            .resolve_non_section(items.drain(pattern_start..))
+            .resolve_non_section_offset(pattern_start, items)
             .map(|tree| tree.with_error(SyntaxError::ArgDefExpectedPattern))
     };
     let suspension = have_suspension.then(|| {
