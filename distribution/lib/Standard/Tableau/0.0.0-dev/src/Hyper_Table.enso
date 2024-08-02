@@ -15,7 +15,15 @@ polyglot java import org.enso.tableau.HyperTableColumn
 type Hyper_Table
     ## PRIVATE
        Represents a Tableau Hyper Table.
-    private Value file:Hyper_File schema:Text table:Text
+    private Value file:Hyper_File internal_schema:Text internal_table:Text
+
+    ## The schema of the table.
+    schema : Text
+    schema self = self.internal_schema
+
+    ## The name of the table.
+    table : Text
+    table self = self.internal_table
 
     ## PRIVATE
     to_display_text : Text
@@ -26,8 +34,7 @@ type Hyper_Table
     to_js_object self =
         JS_Object.from_pairs [["type", "Hyper_Table"], ["schema", self.schema], ["table", self.table], ["file", self.file.file.path]]
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ICON metadata
        Reads The Columns for the Table
     column_metadata : Vector Hyper_Column
     column_metadata self =
@@ -61,11 +68,13 @@ type Hyper_Table
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
-       Reads The Column Info for the Table
+       Returns a Table describing this table's contents.
+
+       The table lists all columns and value types of each column.
     column_info : Table
     column_info self =
-        metadata = self.column_metadata
-
+        cols = self.column_metadata
+        Table.new [["Column", cols.map .name], ["Value Type", cols.map .value_type], ["Nullable", cols.map .nullable]]
 
     ## GROUP Standard.Base.Input
        ICON data_input

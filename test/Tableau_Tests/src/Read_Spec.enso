@@ -1,0 +1,13 @@
+from Standard.Base import all
+
+from Standard.Tableau import Hyper_File
+
+from Standard.Test import all
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+
+add_specs suite_builder = suite_builder.group "Read Tables" group_builder->
+    _ = group_builder
