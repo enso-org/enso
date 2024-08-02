@@ -3,6 +3,7 @@ import Standard.Base.Errors.File_Error.File_Error
 
 from Standard.Table import all
 from Standard.Tableau import Hyper_File
+import Standard.Tableau.Hyper_Errors.Table_Not_Found
 
 from Standard.Test import all
 
@@ -16,13 +17,13 @@ add_specs suite_builder = suite_builder.group "Read Tables" group_builder->
     names_file = enso_project.data / "names.hyper"
     names_table = Hyper_File.new names_file . tables . first
 
-    check_names_table table =
-        table.row_count.should_equal 14
+    check_names_table table rows=14 =
+        table.row_count.should_equal rows
         table.columns.map .name . should_equal ["first_name", "last_name", "age", "Calculation1"]
-        table.columns.map .value_type . should_equal [Value_Type.Char Nothing variable_length=True, Value_Type.Char Nothing variable_length=True, Value_Type.Integer ..Bits_64, Value_Type.Integer ..Bits_64]
-        table.at "first_name" . to_vector . should_equal ["James", "John", "Robert", "Michael", "William", "David", "Richard", "Joseph", "Charles", "Thomas", "Daniel", Nothing, "Anthony", Nothing]
-        table.at "last_name" . to_vector . should_equal ["Smith", "Johnson", "Williams", "Jones", "Brown", "Davis", "Miller", "Wilson", "Moore", "Taylor", "Anderson", "Garcia", Nothing, Nothing]
-        table.at "age" . to_vector . should_equal [39, 40, 41, 42, 43, 44, 39, 9, 10, 11, 12, 1, 2, 25]
+        table.columns.map .value_type . should_equal ([Value_Type.Char Nothing variable_length=True, Value_Type.Char Nothing variable_length=True, Value_Type.Integer ..Bits_64, Value_Type.Integer ..Bits_64].take rows)
+        table.at "first_name" . to_vector . should_equal (["James", "John", "Robert", "Michael", "William", "David", "Richard", "Joseph", "Charles", "Thomas", "Daniel", Nothing, "Anthony", Nothing].take rows)
+        table.at "last_name" . to_vector . should_equal (["Smith", "Johnson", "Williams", "Jones", "Brown", "Davis", "Miller", "Wilson", "Moore", "Taylor", "Anderson", "Garcia", Nothing, Nothing].take rows)
+        table.at "age" . to_vector . should_equal ([39, 40, 41, 42, 43, 44, 39, 9, 10, 11, 12, 1, 2, 25].take rows)
 
     group_builder.specify "should be able to read the structure of a table" <|
         metadata =  names_table.column_metadata
@@ -45,7 +46,21 @@ add_specs suite_builder = suite_builder.group "Read Tables" group_builder->
         table_2 = Hyper_File.new names_file . read "Extract"
         check_names_table table_2
 
+    group_builder.specify "should be able to read a table with limited rows" <|
+        table = names_table.read (..First 5)
+        check_names_table table 5
+
+        table_2 = Hyper_File.new names_file . read "Extract"  limit=(..First 7)
+        check_names_table table_2 7
+
     group_builder.specify "should handle a missing file when reading a table" <|
         r1 = Hyper_File.new no_file . read "Extract"
         r1.should_fail_with File_Error
         r1.catch.should_be_a File_Error.Not_Found
+
+    group_builder.specify "should handle a missing table when reading a table" <|
+        r1 = Hyper_File.new names_file . read "NoTable"
+        r1.should_fail_with Table_Not_Found
+
+        r2 = Hyper_File.new names_file . read "NoTable" schema="Extract"
+        r2.should_fail_with Table_Not_Found

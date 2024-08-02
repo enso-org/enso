@@ -173,12 +173,22 @@ public class HyperReader {
 
   private static HyperTableColumn[] readStructureInternal(
       Connection connection, TableName tableNameObject) {
-    var catalog = connection.getCatalog();
-    var definition = catalog.getTableDefinition(tableNameObject);
-    var columns = definition.getColumns();
-    return IntStream.range(0, columns.size())
-        .mapToObj(i -> HyperTableColumn.fromHyperColumn(i, columns.get(i)))
-        .toArray(HyperTableColumn[]::new);
+    try {
+      var catalog = connection.getCatalog();
+      var definition = catalog.getTableDefinition(tableNameObject);
+      var columns = definition.getColumns();
+      return IntStream.range(0, columns.size())
+          .mapToObj(i -> HyperTableColumn.fromHyperColumn(i, columns.get(i)))
+          .toArray(HyperTableColumn[]::new);
+    } catch (HyperException e) {
+      if (e.getMessage().contains(" does not exist: ")) {
+        var schemaObject = tableNameObject.getSchemaName();
+        var schemaName = schemaObject.isPresent() ? schemaObject.get().getName().getUnescaped() : "";
+        throw new HyperTableNotFound(schemaName, tableNameObject.getName().getUnescaped(), e);
+      } else {
+        throw new HyperQueryError(e.getMessage(), "TABLE_INFO " + tableNameObject, e);
+      }
+    }
   }
 
   public static Column[] readTable(
@@ -210,6 +220,12 @@ public class HyperReader {
       return IntStream.range(0, columns.length)
           .mapToObj(i -> new Column(columns[i].name(), storages.get(i)))
           .toArray(Column[]::new);
+    } catch (HyperException e) {
+      if (e.getMessage().contains(" does not exist: ")) {
+        throw new HyperTableNotFound(schemaName, tableName, e);
+      } else {
+        throw new HyperQueryError(e.getMessage(), query, e);
+      }
     }
   }
 }

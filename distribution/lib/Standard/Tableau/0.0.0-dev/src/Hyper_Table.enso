@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.File_Error.File_Error
 
 from Standard.Table import Column, Table, Value_Type
 import Standard.Table.Rows_To_Read.Rows_To_Read
@@ -6,6 +7,7 @@ import Standard.Table.Internal.Java_Problems
 
 import project.Hyper_Column.Hyper_Column
 import project.Hyper_File.Hyper_File
+import project.Hyper_Errors
 
 polyglot java import java.sql.Types
 polyglot java import org.enso.tableau.HyperReader
@@ -37,7 +39,7 @@ type Hyper_Table
     ## ICON metadata
        Reads The Columns for the Table
     column_metadata : Vector Hyper_Column
-    column_metadata self =
+    column_metadata self = File_Error.handle_java_exceptions self.file.file <| Hyper_Errors.handle_java_exceptions <|
         array = HyperReader.readStructure self.file.file.path self.schema self.table
         array.map column->
             value_type = case column.typeID of
@@ -84,7 +86,7 @@ type Hyper_Table
        - max_rows: specifies the maximum number of rows to read.
     @max_rows Rows_To_Read.default_widget
     read : Rows_To_Read -> Table
-    read self (max_rows : Rows_To_Read = ..All_Rows) =
+    read self (max_rows : Rows_To_Read = ..All_Rows) =  File_Error.handle_java_exceptions self.file.file <| Hyper_Errors.handle_java_exceptions <|
         Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
             row_count = if max_rows == Rows_To_Read.All_Rows then Nothing else max_rows.rows
             java_columns = HyperReader.readTable self.file.file.path self.schema self.table row_count java_problem_aggregator
