@@ -1272,11 +1272,13 @@ fn pattern_irrefutable() {
     test!("Point x_val = my_point",
         (Assignment (App (Ident Point) (Ident x_val)) (Ident my_point)));
     test!("Vector _ = x", (Assignment (App (Ident Vector) (Wildcard -1)) (Ident x)));
+    test!("X.y = z", (Function (OprApp (Ident X) (Ok ".") (Ident y)) #() () (Ident z)));
 }
 
 #[test]
 fn pattern_invalid() {
     expect_invalid_node("x + y = z");
+    expect_invalid_node("(x y) = z");
 }
 
 #[test]

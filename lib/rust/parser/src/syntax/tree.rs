@@ -12,6 +12,7 @@ use crate::syntax::treebuilding::Spacing;
 use enso_parser_syntax_tree_visitor::Visitor;
 
 
+
 // ==============
 // === Export ===
 // ==============
@@ -824,6 +825,8 @@ pub enum SyntaxError {
     ImportsNoHidingInExport,
     ImportsExpectedNameInExport,
     AnnotationOpMustBeAppliedToIdent,
+    PatternUnexpectedExpression,
+    PatternUnexpectedDot,
 }
 
 impl From<SyntaxError> for Cow<'static, str> {
@@ -855,6 +858,8 @@ impl From<SyntaxError> for Cow<'static, str> {
             ImportsExpectedNameInExport => "Expected name following `export` keyword",
             ImportsNoAllInExport => "`all` not allowed in `export` statement",
             ImportsNoHidingInExport => "`hiding` not allowed in `export` statement",
+            PatternUnexpectedExpression => "Expression invalid in a pattern",
+            PatternUnexpectedDot => "In a pattern, the dot operator can only be used in a qualified name",
         })
         .into()
     }

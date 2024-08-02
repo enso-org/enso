@@ -216,35 +216,46 @@ fn expression_to_pattern(mut input: syntax::Tree<'_>) -> syntax::Tree<'_> {
         wildcard.de_bruijn_index = None;
         return input;
     }
-    let error = "Expression invalid in a pattern.";
-    let mut out = match input.variant {
-        Variant::TemplateFunction(box TemplateFunction { ast, .. }) => expression_to_pattern(ast),
-        Variant::Group(box Group { body: ref mut body @ Some(_), .. }) => {
-            *body = Some(expression_to_pattern(body.take().unwrap()));
-            return input;
-        }
+    let mut error = None;
+    match input.variant {
+        // === Special-case errors ===
         Variant::App(box App { func: Tree { variant: Variant::Ident(ref ident), .. }, .. })
             if !ident.token.is_type =>
-            return input.with_error(error),
+            error = Some(SyntaxError::PatternUnexpectedExpression),
+
+        // === Recursions ===
+        Variant::Group(box Group { body: ref mut body @ Some(_), .. }) =>
+            if let Some(body) = body {
+                transform_tree(body, expression_to_pattern)
+            },
         Variant::App(box App { ref mut func, ref mut arg }) => {
             transform_tree(func, expression_to_pattern);
             transform_tree(arg, expression_to_pattern);
-            return input;
         }
-        Variant::TypeAnnotated(box TypeAnnotated { ref mut expression, .. }) => {
-            transform_tree(expression, expression_to_pattern);
-            return input;
-        }
-        Variant::AutoscopedIdentifier(_) => return input.with_error(error),
-        Variant::OprApp(ref op) =>
-            return match op.opr.as_ref() {
-                Ok(op) if op.code.repr.0 == "." => input,
-                _ => input.with_error(error),
+        Variant::TypeAnnotated(box TypeAnnotated { ref mut expression, .. }) =>
+            transform_tree(expression, expression_to_pattern),
+        Variant::OprApp(box OprApp { opr: Ok(ref opr), .. }) =>
+            if opr.code == "." {
+                if !is_qualified_name(&input) {
+                    error = Some(SyntaxError::PatternUnexpectedDot);
+                }
             },
-        _ => return input,
+
+        // === Transformations ===
+        Variant::TemplateFunction(box TemplateFunction { ast, .. }) => {
+            let mut out = expression_to_pattern(ast);
+            out.span.left_offset += input.span.left_offset;
+            return out;
+        }
+
+        // === Unconditional and fallthrough errors ===
+        Variant::AutoscopedIdentifier(_) => error = Some(SyntaxError::PatternUnexpectedExpression),
+        Variant::OprApp(_) => error = Some(SyntaxError::PatternUnexpectedExpression),
+
+        // === Unhandled ===
+        _ => {}
     };
-    out.span.left_offset += input.span.left_offset;
-    out
+    maybe_with_error(input, error)
 }
 
 thread_local! {
