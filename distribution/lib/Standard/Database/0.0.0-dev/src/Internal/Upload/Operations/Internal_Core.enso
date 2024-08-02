@@ -45,7 +45,7 @@ type Table_Upload_Operation
        Performs the actual data upload.
        This method should be called inside of `run_transaction_with_tables`
        block which had the `table_description` passed to it.
-    perform_upload self = self.internal_upload_callback Nothing
+    perform_upload self -> DB_Table = self.internal_upload_callback Nothing
 
 ## PRIVATE
    A helper to prepare an upload operation for a table.
@@ -60,19 +60,19 @@ type Table_Upload_Operation
    - temporary: if `True`, the table will be created as temporary.
    - structure_hint: If set, it can be used to hint what types should be used for the columns of the table. Useful if the types slightly differ from the in-memory source types.
    - row_limit: if set, only the first `row_limit` rows will be uploaded.
-internal_upload_table : DB_Table | Table -> Connection -> Text -> Nothing | Vector Text -> Boolean -> Vector Column_Description ->  Integer|Nothing -> Table_Upload_Operation
-internal_upload_table source_table connection table_name primary_key temporary structure_hint=Nothing (on_problems:Problem_Behavior=..Report_Error) (row_limit : Integer | Nothing = Nothing) -> Table_Upload_Operation =
+internal_upload_table : DB_Table | Table -> Connection -> Text -> Nothing | Vector Text -> Boolean -> Boolean -> Nothing | Vector Column_Description ->  Problem_Behavior -> Integer | Nothing -> Table_Upload_Operation
+internal_upload_table source_table connection (table_name : Text) (primary_key : Nothing | Vector Text) (temporary : Boolean) (remove_after_transaction : Boolean = False) structure_hint=Nothing (on_problems:Problem_Behavior=..Report_Error) (row_limit : Integer | Nothing = Nothing) -> Table_Upload_Operation =
     case source_table of
         _ : Table ->
-            internal_upload_in_memory_table source_table connection table_name primary_key temporary structure_hint on_problems row_limit
+            internal_upload_in_memory_table source_table connection table_name primary_key temporary remove_after_transaction structure_hint on_problems row_limit
         _ : DB_Table ->
-            internal_upload_database_table source_table connection table_name primary_key temporary structure_hint on_problems row_limit
+            internal_upload_database_table source_table connection table_name primary_key temporary remove_after_transaction structure_hint on_problems row_limit
         _ ->
             Panic.throw <| Illegal_Argument.Error ("Unsupported table type: " + Meta.get_qualified_type_name source_table)
 
 
 ## PRIVATE
-internal_upload_in_memory_table source_table connection table_name primary_key temporary structure_hint on_problems:Problem_Behavior row_limit = table_name.if_not_error <|
+internal_upload_in_memory_table source_table connection table_name primary_key temporary remove_after_transaction structure_hint on_problems:Problem_Behavior row_limit = table_name.if_not_error <|
     check_outside_transaction
     verify_structure_hint structure_hint source_table.column_names
 
@@ -82,7 +82,7 @@ internal_upload_in_memory_table source_table connection table_name primary_key t
     structure = structure_hint.if_nothing source_table
     aligned_structure = align_structure connection structure
     expected_type_hints = aligned_structure.map .value_type
-    table_description = Transactional_Table_Description.Value table_name temporary=temporary structure=aligned_structure primary_key=primary_key remove_after_transaction=False on_problems=on_problems
+    table_description = Transactional_Table_Description.Value table_name temporary=temporary structure=aligned_structure primary_key=primary_key remove_after_transaction=remove_after_transaction on_problems=on_problems
 
     callback _ = In_Transaction.ensure_in_transaction <|
         upload_status = internal_translate_known_upload_errors source_table connection primary_key <|
@@ -95,7 +95,7 @@ internal_upload_in_memory_table source_table connection table_name primary_key t
     Table_Upload_Operation.Value table_description callback
 
 ## PRIVATE
-internal_upload_database_table source_table connection table_name primary_key temporary structure_hint on_problems:Problem_Behavior row_limit =
+internal_upload_database_table source_table connection table_name primary_key temporary remove_after_transaction structure_hint on_problems:Problem_Behavior row_limit =
     check_outside_transaction
     connection_check = if source_table.connection.jdbc_connection == connection.jdbc_connection then True else
         Error.throw (Unsupported_Database_Operation.Error "The Database table to be uploaded must be coming from the same connection as the connection on which the new table is being created. Cross-connection uploads are currently not supported. To work around this, you can first `.read` the table into memory and then upload it from memory to a different connection.")
@@ -103,7 +103,7 @@ internal_upload_database_table source_table connection table_name primary_key te
     connection_check.if_not_error <| table_name.if_not_error <|
         structure = structure_hint.if_nothing source_table
         aligned_structure = align_structure connection structure
-        table_description = Transactional_Table_Description.Value table_name temporary=temporary structure=aligned_structure primary_key=primary_key remove_after_transaction=False on_problems=on_problems
+        table_description = Transactional_Table_Description.Value table_name temporary=temporary structure=aligned_structure primary_key=primary_key remove_after_transaction=remove_after_transaction on_problems=on_problems
 
         effective_source_table = case row_limit of
             Nothing -> source_table
