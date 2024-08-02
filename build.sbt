@@ -3675,6 +3675,9 @@ lazy val `std-tableau` = project
       val result                                 = (Compile / unmanagedClasspath).value
       result ++ additionalFiles
     }.value,
+    Compile / unmanagedJars := (Compile / unmanagedJars)
+      .dependsOn(fetchZipToUnmanaged)
+      .value,
     Compile / packageBin / artifactPath :=
       `std-tableau-polyglot-root` / "std-tableau.jar",
     libraryDependencies ++= Seq(
