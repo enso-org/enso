@@ -183,7 +183,8 @@ public class HyperReader {
     } catch (HyperException e) {
       if (e.getMessage().contains(" does not exist: ")) {
         var schemaObject = tableNameObject.getSchemaName();
-        var schemaName = schemaObject.isPresent() ? schemaObject.get().getName().getUnescaped() : "";
+        var schemaName =
+            schemaObject.isPresent() ? schemaObject.get().getName().getUnescaped() : "";
         throw new HyperTableNotFound(schemaName, tableNameObject.getName().getUnescaped(), e);
       } else {
         throw new HyperQueryError(e.getMessage(), "TABLE_INFO " + tableNameObject, e);
