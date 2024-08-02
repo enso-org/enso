@@ -13,7 +13,7 @@
     "compile": "tsc",
     "typecheck": "tsc --noEmit",
     "clean": "rimraf --glob src/ast/generated/*.{json,ts}",
-    "generate": "corepeack pnpm run generate:ast-schema && corepeack pnpm run generate:ast-types",
+    "generate": "corepack pnpm run generate:ast-schema && corepack pnpm run generate:ast-types",
     "generate:ast-schema": "cargo run -p enso-parser-schema > src/ast/generated/ast-schema.json",
     "generate:ast-types": "vite-node ./parser-codegen/index.ts src/ast/generated/ast-schema.json src/ast/generated/ast.ts",
     "format": "prettier --version && prettier --write src/ && eslint . --fix",
