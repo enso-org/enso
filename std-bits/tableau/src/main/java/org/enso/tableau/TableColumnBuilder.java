@@ -34,7 +34,10 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
     };
   }
 
-  /** Convert a Tableau Interval into either a Duration or a Period (with fallback to String if needed). */
+  /**
+   * Convert a Tableau Interval into either a Duration or a Period (with fallback to String if
+   * needed).
+   */
   private static Object readInterval(Result r, int index) {
     var interval = r.getInterval(index);
     if (interval.getMonths() == 0 && interval.getYears() == 0) {

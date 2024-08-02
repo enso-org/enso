@@ -16,6 +16,7 @@ public record HyperTableColumn(
     OptionalInt scale) {
   /** Type ID for JSON data. */
   public static final int JSON = 10001;
+
   /** Type ID for INTERVAL data. */
   public static final int INTERVAL = 10002;
 
