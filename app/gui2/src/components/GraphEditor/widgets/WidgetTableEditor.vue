@@ -48,7 +48,7 @@ const editHandler = WidgetEditHandler.New('WidgetTableEditor', props.input, {
 
 // === Resizing ===
 
-const size = ref(new Vec2(200, 50))
+const size = ref(new Vec2(200, 150))
 const graphNav = injectGraphNavigator()
 
 const clientBounds = computed({
@@ -109,6 +109,7 @@ export const widgetDefinition = defineWidget(
   align-items: center;
   justify-content: center;
   border-radius: var(--node-port-border-radius);
+  position: relative;
 }
 
 .grid {

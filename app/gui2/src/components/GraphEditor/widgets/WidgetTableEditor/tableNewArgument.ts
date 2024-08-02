@@ -13,7 +13,17 @@ await initializeFFI()
 
 export type RowData = {
   index: number
-  cells: Record<string, AstId>
+  /* Column id to given row's cell id. */
+  cells: Record<AstId, AstId>
+}
+
+/** A more specialized version of AGGrid's `ColDef` to simplify testing (the tests need to provide
+ * only values actually used by the composable) */
+interface ColumnDef {
+  colId?: string
+  headerName: string
+  valueGetter: ({ data }: { data: RowData | undefined }) => any
+  valueSetter: ({ data, newValue }: { data: RowData; newValue: any }) => boolean
 }
 
 namespace cellValueConversion {
@@ -87,10 +97,10 @@ export function useTableNewArgument(
     }
   }
 
-  function addRow(edit: MutableModule, columnWithValue: string, value: unknown) {
+  function addRow(edit: MutableModule, columnWithValue?: Ast.AstId, value?: unknown) {
     for (const column of columns.value) {
       const editedCol = edit.getVersion(column.data)
-      if (column.name === columnWithValue) {
+      if (column.data.id === columnWithValue) {
         editedCol.push(cellValueConversion.agGridToAst(value, edit))
       } else {
         editedCol.push(Ast.TextLiteral.new('', edit))
@@ -99,7 +109,6 @@ export function useTableNewArgument(
   }
 
   function addColumn(edit: MutableModule, rowWithValue: number, value: unknown) {
-    if (columnsAst.value == null) return false
     const newColumnSize = Math.max(rowCount.value, rowWithValue + 1)
     function* cellsGenerator() {
       for (let i = 0; i < newColumnSize; ++i) {
@@ -109,50 +118,65 @@ export function useTableNewArgument(
     }
     const cells = Ast.Vector.new(edit, Array.from(cellsGenerator()))
     const newCol = Ast.Vector.new(edit, [Ast.TextLiteral.new('New Column'), cells])
-    edit.getVersion(columnsAst.value).push(newCol)
-    return true
+    if (columnsAst.value) {
+      edit.getVersion(columnsAst.value).push(newCol)
+    } else {
+      const inputAst = edit.getVersion(toValue(input).value)
+      const newArg = Ast.Vector.new(edit, [newCol])
+      if (inputAst instanceof Ast.MutableApp) {
+        inputAst.setArgument(newArg)
+      } else {
+        inputAst.updateValue((func) => Ast.App.new(edit, func, undefined, newArg))
+      }
+    }
   }
 
-  const newColumnDef = computed<ColDef<RowData>>(() => ({
-    headerName: 'New Column',
-    valueGetter: () => undefined,
-    valueSetter: ({ data, newValue }: { data: RowData; newValue: any }) => {
-      if (columnsAst.value == null) return false
-      const edit = graph.startEdit()
-      if (data.index === rowCount.value) {
-        addRow(edit, 'New Column', newValue)
-      }
-      addColumn(edit, data.index, newValue)
-      onUpdate({ edit })
-      return true
-    },
-  }))
+  const newColumnDef = computed<ColumnDef>(
+    () =>
+      ({
+        headerName: 'New Column',
+        valueGetter: () => undefined,
+        valueSetter: ({ data, newValue }: { data: RowData; newValue: any }) => {
+          const edit = graph.startEdit()
+          if (data.index === rowCount.value) {
+            addRow(edit)
+          }
+          addColumn(edit, data.index, newValue)
+          onUpdate({ edit })
+          return true
+        },
+      }) satisfies ColDef<RowData>,
+  )
 
   const columnDefs = computed(() => {
-    const cols: ColDef<RowData>[] = Array.from(columns.value, (col) => ({
-      colId: col.data.id,
-      headerName: col.name,
-      valueGetter: ({ data }: { data: RowData | undefined }) => {
-        if (data == null) return undefined
-        const ast = toValue(input).value.module.tryGet(data.cells[col.name])
-        if (ast == null) return undefined
-        return cellValueConversion.astToAgGrid(ast)
-      },
-      valueSetter: ({ data, newValue }: { data: RowData; newValue: any }): boolean => {
-        const astId = data?.cells[col.name]
-        const edit = graph.startEdit()
-        fixColumns(edit)
-        if (data.index === rowCount.value) {
-          addRow(edit, col.name, newValue)
-        } else {
-          const newValueAst = cellValueConversion.agGridToAst(newValue, edit)
-          if (astId != null) edit.replaceValue(astId, newValueAst)
-          else edit.getVersion(col.data).set(data.index, newValueAst)
-        }
-        onUpdate({ edit })
-        return true
-      },
-    }))
+    const cols: ColumnDef[] = Array.from(
+      columns.value,
+      (col) =>
+        ({
+          colId: col.data.id,
+          headerName: col.name,
+          valueGetter: ({ data }: { data: RowData | undefined }) => {
+            if (data == null) return undefined
+            const ast = toValue(input).value.module.tryGet(data.cells[col.data.id])
+            if (ast == null) return undefined
+            return cellValueConversion.astToAgGrid(ast)
+          },
+          valueSetter: ({ data, newValue }: { data: RowData; newValue: any }): boolean => {
+            const astId = data?.cells[col.data.id]
+            const edit = graph.startEdit()
+            fixColumns(edit)
+            if (data.index === rowCount.value) {
+              addRow(edit, col.data.id, newValue)
+            } else {
+              const newValueAst = cellValueConversion.agGridToAst(newValue, edit)
+              if (astId != null) edit.replaceValue(astId, newValueAst)
+              else edit.getVersion(col.data).set(data.index, newValueAst)
+            }
+            onUpdate({ edit })
+            return true
+          },
+        }) satisfies ColDef<RowData>,
+    )
     cols.push(newColumnDef.value)
     return cols
   })
@@ -167,7 +191,7 @@ export function useTableNewArgument(
           rows.push(row)
         }
         if (value?.id) {
-          row.cells[col.name] = value?.id
+          row.cells[col.data.id] = value?.id
         }
       }
     }

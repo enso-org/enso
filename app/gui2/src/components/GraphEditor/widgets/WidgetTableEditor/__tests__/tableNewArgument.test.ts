@@ -1,8 +1,8 @@
 import { useTableNewArgument } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableNewArgument'
 import { WidgetInput } from '@/providers/widgetRegistry'
 import { assert } from '@/util/assert'
+import { Ast } from '@/util/ast'
 import { start } from 'repl'
-import { Ast } from 'shared/ast'
 import { expect, test, vi } from 'vitest'
 
 test.each([
@@ -18,6 +18,11 @@ test.each([
   },
   {
     code: 'Table.new []',
+    expectedColumnDefs: [{ headerName: 'New Column' }],
+    expectedRows: [{}],
+  },
+  {
+    code: 'Table.new',
     expectedColumnDefs: [{ headerName: 'New Column' }],
     expectedRows: [{}],
   },
@@ -94,6 +99,18 @@ test.each([
     expected: "Table.new [['New Column', [8]]]",
   },
   {
+    code: 'Table.new',
+    description: 'Adding parameter',
+    edit: { column: 0, row: 0, value: 8 },
+    expected: "Table.new [['New Column', [8]]]",
+  },
+  {
+    code: 'Table.new _',
+    description: 'Update parameter',
+    edit: { column: 0, row: 0, value: 8 },
+    expected: "Table.new [['New Column', [8]]]",
+  },
+  {
     code: "Table.new [['a', [1, 2, 3]], ['b', [4, 5, 6]]]",
     description: 'Adding new row',
     edit: { column: 0, row: 3, value: 4.5 },
@@ -131,15 +148,20 @@ test.each([
     expected: "Table.new [['a', [1, 2, 3]]]",
   },
 ])('Editing table $code: $description', ({ code, edit, expected }) => {
-  const ast = Ast.parse(code)
-  const input = WidgetInput.FromAst(ast)
+  const ast = Ast.parseBlock(code)
+  const inputAst = [...ast.statements()][0]
+  assert(inputAst != null)
+  const input = WidgetInput.FromAst(inputAst)
   const onUpdate = vi.fn((update) => {
-    expect(update.edit.getVersion(ast).code()).toBe(expected)
+    const inputAst = [...update.edit.getVersion(ast).statements()][0]
+    expect(inputAst?.code()).toBe(expected)
   })
   const tableNewArgs = useTableNewArgument(input, { startEdit: () => ast.module.edit() }, onUpdate)
   const editedRow = tableNewArgs.rowData.value[edit.row]
-  console.log(editedRow)
   assert(editedRow != null)
-  tableNewArgs.columnDefs.value[edit.column]?.valueSetter({ data: editedRow, newValue: edit.value })
+  tableNewArgs.columnDefs.value[edit.column]?.valueSetter?.({
+    data: editedRow,
+    newValue: edit.value,
+  })
   expect(onUpdate).toHaveBeenCalledOnce()
 })

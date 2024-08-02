@@ -2381,8 +2381,8 @@ export class Vector extends Ast {
     yield ensureUnspaced(open, verbatim)
     let isFirst = true
     for (const { delimiter, value } of elements) {
-      if (isFirst && value) {
-        yield preferUnspaced(value)
+      if (isFirst) {
+        if (value) yield preferUnspaced(value)
       } else {
         yield preferUnspaced(delimiter)
         if (value) yield preferSpaced(value)
