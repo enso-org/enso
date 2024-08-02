@@ -224,10 +224,8 @@ fn expression_to_pattern(mut input: syntax::Tree<'_>) -> syntax::Tree<'_> {
             error = Some(SyntaxError::PatternUnexpectedExpression),
 
         // === Recursions ===
-        Variant::Group(box Group { body: ref mut body @ Some(_), .. }) =>
-            if let Some(body) = body {
-                transform_tree(body, expression_to_pattern)
-            },
+        Variant::Group(box Group { body: Some(ref mut body), .. }) =>
+            transform_tree(body, expression_to_pattern),
         Variant::App(box App { ref mut func, ref mut arg }) => {
             transform_tree(func, expression_to_pattern);
             transform_tree(arg, expression_to_pattern);
