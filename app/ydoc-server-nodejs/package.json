@@ -11,7 +11,7 @@
   "scripts": {
     "compile": "node ./build.mjs build",
     "start": "node ./dist/main.mjs",
-    "dev": "pnpm run /^dev:/",
+    "dev": "corepack pnpm run /^^^^dev:/",
     "dev:esbuild": "node ./build.mjs watch",
     "dev:start": "nodemon --watch dist ./dist/main.mjs",
     "lint": "eslint .",
