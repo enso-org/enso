@@ -11,6 +11,9 @@ const ctx = await esbuild.context({
   entryPoints: ['src/main.ts'],
   bundle: true,
   platform: 'browser',
+  define: {
+    self: 'globalThis',
+  },
   plugins: [usePolyglotFfi()],
   conditions: watchMode ? ['source'] : [],
   external: ['node:url'], // Not actually used, tree-shaken out
