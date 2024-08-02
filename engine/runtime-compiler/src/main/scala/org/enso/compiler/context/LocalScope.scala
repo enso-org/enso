@@ -174,7 +174,7 @@ object LocalScope {
     * Every tuple of the list denotes frame slot kind and its name.
     * Note that `info` for a frame slot is not used by Enso.
     */
-  def monadicStateSlotName: String   = "<<monadic_state>>"
-  private def internalSlotsSize: Int = 1
+  def monadicStateSlotName: String = "<<monadic_state>>"
+  def internalSlotsSize: Int       = 1
 
 }
