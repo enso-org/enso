@@ -27,7 +27,6 @@ import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.atom.StructsLibrary;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
-import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.state.State;
 
@@ -134,7 +133,10 @@ public abstract class EqualsAtomNode extends Node {
 
   @Specialization(
       replaces = {"equalsAtomsWithDefaultComparator", "equalsAtomsWithCustomComparator"})
-  boolean equalsAtomsUncached(VirtualFrame frame, Atom self, Atom other,
+  boolean equalsAtomsUncached(
+      VirtualFrame frame,
+      Atom self,
+      Atom other,
       @Shared @CachedLibrary(limit = "10") WarningsLibrary warnings) {
     if (self.getConstructor() != other.getConstructor()) {
       return false;
@@ -144,7 +146,8 @@ public abstract class EqualsAtomNode extends Node {
   }
 
   @CompilerDirectives.TruffleBoundary
-  private boolean equalsAtomsUncached(MaterializedFrame frame, Atom self, Atom other, WarningsLibrary warnings) {
+  private boolean equalsAtomsUncached(
+      MaterializedFrame frame, Atom self, Atom other, WarningsLibrary warnings) {
     Type customComparator = CustomComparatorNode.getUncached().execute(self);
     if (customComparator != null) {
       Function compareFunc = findCompareMethod(customComparator);
