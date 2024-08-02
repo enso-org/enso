@@ -22,7 +22,6 @@ import Input from '#/components/Input'
 import Link from '#/components/Link'
 import SubmitButton from '#/components/SubmitButton'
 
-import * as eventModule from '#/utilities/event'
 import * as string from '#/utilities/string'
 import * as validation from '#/utilities/validation'
 
@@ -122,11 +121,7 @@ export default function ResetPassword() {
         value={newPasswordConfirm}
         setValue={setNewPasswordConfirm}
       />
-      <SubmitButton
-        text={getText('reset')}
-        icon={ArrowRightIcon}
-        onPress={eventModule.submitForm}
-      />
+      <SubmitButton text={getText('reset')} icon={ArrowRightIcon} />
     </AuthenticationPage>
   )
 }

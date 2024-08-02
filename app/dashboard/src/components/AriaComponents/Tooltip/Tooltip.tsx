@@ -4,6 +4,7 @@ import * as portal from '#/components/Portal'
 
 import * as twv from '#/utilities/tailwindVariants'
 
+import { DIALOG_BACKGROUND } from '../Dialog'
 import * as text from '../Text'
 
 // =================
@@ -11,12 +12,12 @@ import * as text from '../Text'
 // =================
 
 export const TOOLTIP_STYLES = twv.tv({
-  base: 'group flex justify-center items-center text-center text-balance break-words',
+  base: 'group flex justify-center items-center text-center text-balance break-words z-50',
   variants: {
     variant: {
       custom: '',
-      primary: 'bg-primary/80 text-white/80',
-      inverted: 'bg-white/80 text-primary/80',
+      primary: DIALOG_BACKGROUND({ variant: 'dark', className: 'text-white/80' }),
+      inverted: DIALOG_BACKGROUND({ variant: 'light', className: 'text-primary' }),
     },
     size: {
       custom: '',
@@ -70,7 +71,12 @@ export interface TooltipProps
 
 /** Displays the description of an element on hover or focus. */
 export function Tooltip(props: TooltipProps) {
-  const { className, containerPadding = DEFAULT_CONTAINER_PADDING, ...ariaTooltipProps } = props
+  const {
+    className,
+    containerPadding = DEFAULT_CONTAINER_PADDING,
+    variant,
+    ...ariaTooltipProps
+  } = props
   const root = portal.useStrictPortalContext()
 
   return (
@@ -79,7 +85,7 @@ export function Tooltip(props: TooltipProps) {
       containerPadding={containerPadding}
       UNSTABLE_portalContainer={root}
       className={aria.composeRenderProps(className, (classNames, values) =>
-        TOOLTIP_STYLES({ className: classNames, ...values }),
+        TOOLTIP_STYLES({ className: classNames, variant, ...values }),
       )}
       data-ignore-click-outside
       {...ariaTooltipProps}

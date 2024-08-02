@@ -69,6 +69,7 @@ export interface BaseButtonProps<Render>
   /** Defaults to `full`. When `full`, the entire button will be replaced with the loader.
    * When `icon`, only the icon will be replaced with the loader. */
   readonly loaderPosition?: 'full' | 'icon'
+  readonly styles?: typeof BUTTON_STYLES
 }
 
 export const BUTTON_STYLES = twv.tv({
@@ -196,7 +197,7 @@ export const BUTTON_STYLES = twv.tv({
       delete:
         'bg-danger/80 hover:bg-danger text-white focus-visible:outline-danger focus-visible:bg-danger',
       icon: {
-        base: 'opacity-80 hover:opacity-100 focus-visible:opacity-100',
+        base: 'text-primary opacity-80 hover:opacity-100 focus-visible:opacity-100',
         wrapper: 'w-full h-full',
         content: 'w-full h-full',
         extraClickZone: 'w-full h-full',
@@ -253,7 +254,7 @@ export const BUTTON_STYLES = twv.tv({
     isActive: 'none',
     loading: false,
     fullWidth: false,
-    size: 'xsmall',
+    size: 'medium',
     rounded: 'full',
     variant: 'primary',
     iconPosition: 'start',

@@ -155,7 +155,7 @@ export default function Dashboard(props: DashboardProps) {
           updateModal((oldModal) => {
             if (oldModal == null) {
               const currentPathname = pathnameRef.current
-              if (!currentPathname.startsWith('/editor')) {
+              if (currentPathname.startsWith('/settings/')) {
                 navigate('/drive')
               }
             }

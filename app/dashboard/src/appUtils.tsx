@@ -18,7 +18,7 @@ const APP_PATHS = [
   'restore-user',
   'forgot-password',
   'password-reset',
-  'set-username',
+  'setup',
   'subscribe',
   'subscribe/success',
 ] as const
@@ -49,6 +49,13 @@ export const ALL_PATHS_REGEX = new RegExp(
  */
 export function getUpgradeURL(plan: string): AppFullPath {
   return `/subscribe?plan=${plan}`
+}
+
+/**
+ * Return the mailto URL for contacting sales.
+ */
+export function getSalesEmail(): string {
+  return 'mailto:contact@enso.org'
 }
 
 /**

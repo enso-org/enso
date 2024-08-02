@@ -1,17 +1,13 @@
 /** @file A page to show when a user successfully subscribes to a plan. */
-import * as routerDom from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 
-import { useNavigate } from '#/hooks/routerHooks'
-
-import * as textProvider from '#/providers/TextProvider'
-
-import * as constants from '#/pages/subscribe/constants'
-
-import * as ariaComponents from '#/components/AriaComponents'
+import { Button, ButtonGroup } from '#/components/AriaComponents'
 import Navigate from '#/components/Navigate'
-import * as result from '#/components/Result'
-
-import * as backend from '#/services/Backend'
+import { Result } from '#/components/Result'
+import { useNavigate } from '#/hooks/routerHooks'
+import { PLAN_TO_TEXT_ID } from '#/modules/payments'
+import { useText } from '#/providers/TextProvider'
+import { Plan, isPlan } from '#/services/Backend'
 
 // ========================
 // === SubscribeSuccess ===
@@ -19,23 +15,23 @@ import * as backend from '#/services/Backend'
 
 /** A page to show when a user successfully subscribes to a plan. */
 export function SubscribeSuccess() {
-  const { getText } = textProvider.useText()
-  const [searchParams] = routerDom.useSearchParams()
+  const { getText } = useText()
+  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const plan = searchParams.get('plan') ?? backend.Plan.solo
+  const plan = searchParams.get('plan') ?? Plan.solo
 
-  if (!backend.isPlan(plan)) {
+  if (!isPlan(plan)) {
     return <Navigate to="/drive" replace />
   } else {
     return (
-      <result.Result
+      <Result
         className="h-full"
         title={getText('subscribeSuccessTitle')}
-        subtitle={getText('subscribeSuccessSubtitle', getText(constants.PLAN_TO_TEXT_ID[plan]))}
+        subtitle={getText('subscribeSuccessSubtitle', getText(PLAN_TO_TEXT_ID[plan]))}
         status="success"
       >
-        <ariaComponents.ButtonGroup align="center">
-          <ariaComponents.Button
+        <ButtonGroup align="center">
+          <Button
             variant="submit"
             size="large"
             onPress={() => {
@@ -43,9 +39,9 @@ export function SubscribeSuccess() {
             }}
           >
             {getText('subscribeSuccessSubmit')}
-          </ariaComponents.Button>
-        </ariaComponents.ButtonGroup>
-      </result.Result>
+          </Button>
+        </ButtonGroup>
+      </Result>
     )
   }
 }

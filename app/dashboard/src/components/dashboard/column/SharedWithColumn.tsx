@@ -102,7 +102,6 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
           feature="share"
           variant="icon"
           size="medium"
-          tooltipPlacement="left"
           className="opacity-0 group-hover:opacity-100"
           children={false}
         />

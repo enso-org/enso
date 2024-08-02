@@ -221,7 +221,7 @@ export default function Drive(props: DriveProps) {
           subtitle={`${getText('notEnabledSubtitle')}${localBackend == null ? ' ' + getText('downloadFreeEditionMessage') : ''}`}
         >
           <ariaComponents.ButtonGroup align="center">
-            <ariaComponents.Button variant="tertiary" size="medium" href="/subscribe">
+            <ariaComponents.Button variant="primary" size="medium" href="/subscribe">
               {getText('upgrade')}
             </ariaComponents.Button>
 
@@ -229,6 +229,7 @@ export default function Drive(props: DriveProps) {
               <ariaComponents.Button
                 data-testid="download-free-edition"
                 size="medium"
+                variant="tertiary"
                 onPress={async () => {
                   const downloadUrl = await github.getDownloadUrl()
                   if (downloadUrl == null) {

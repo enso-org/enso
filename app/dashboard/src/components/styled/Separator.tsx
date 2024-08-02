@@ -18,7 +18,7 @@ export default function Separator(props: SeparatorProps) {
 
   return (
     !hidden && (
-      <aria.Separator className="mx-context-menu-entry-px my-separator-y border-t-[0.5px] border-black/[0.16]" />
+      <aria.Separator className="mx-context-menu-entry-px my-separator-y border-t-0.5 border-black/[0.16]" />
     )
   )
 }

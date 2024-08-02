@@ -33,6 +33,7 @@ export default function SettingsInputEntry(props: SettingsInputEntryProps) {
   const { nameId, getValue, setValue, validate, getEditable } = data
   const { getText } = textProvider.useText()
   const [errorMessage, setErrorMessage] = React.useState('')
+  const isSubmitting = React.useRef(false)
   const value = getValue(context)
   const isEditable = getEditable(context)
 
@@ -42,6 +43,9 @@ export default function SettingsInputEntry(props: SettingsInputEntryProps) {
       key={value}
       type="text"
       onSubmit={(event) => {
+        // Technically causes the form to submit twice when pressing `Enter` due to `Enter`
+        // also triggering the submit button.This is worked around by using a ref
+        // tracking whether the form is currently being submitted.
         event.currentTarget.form?.requestSubmit()
       }}
     />
@@ -52,14 +56,18 @@ export default function SettingsInputEntry(props: SettingsInputEntryProps) {
       validationErrors={{ [FIELD_NAME]: errorMessage }}
       onSubmit={async (event) => {
         event.preventDefault()
-        const [[, newValue] = []] = new FormData(event.currentTarget)
-        if (typeof newValue === 'string') {
-          setErrorMessage('')
-          try {
-            await setValue(context, newValue)
-          } catch (error) {
-            setErrorMessage(errorModule.getMessageOrToString(error))
+        if (!isSubmitting.current) {
+          isSubmitting.current = true
+          const [[, newValue] = []] = new FormData(event.currentTarget)
+          if (typeof newValue === 'string') {
+            setErrorMessage('')
+            try {
+              await setValue(context, newValue)
+            } catch (error) {
+              setErrorMessage(errorModule.getMessageOrToString(error))
+            }
           }
+          isSubmitting.current = false
         }
       }}
     >

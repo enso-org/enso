@@ -181,7 +181,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
               }
             },
             validate: (name) => (/\S/.test(name) ? true : ''),
-            getEditable: () => true,
+            getEditable: (context) => context.user.isOrganizationAdmin,
           },
           {
             type: 'input',
@@ -198,7 +198,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
               isEmail(email) ? true
               : email === '' ? ''
               : context.getText('invalidEmailValidationError'),
-            getEditable: () => true,
+            getEditable: (context) => context.user.isOrganizationAdmin,
           },
           {
             type: 'input',
@@ -211,7 +211,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
                 await context.updateOrganization([{ website: newWebsite }])
               }
             },
-            getEditable: () => true,
+            getEditable: (context) => context.user.isOrganizationAdmin,
           },
           {
             type: 'input',
@@ -223,7 +223,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
                 await context.updateOrganization([{ address: newLocation }])
               }
             },
-            getEditable: () => true,
+            getEditable: (context) => context.user.isOrganizationAdmin,
           },
         ],
       },
@@ -325,7 +325,11 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           {
             type: 'custom',
             render: (context) => (
-              <MembersTable backend={context.backend} draggable populateWithSelf />
+              <MembersTable
+                backend={context.backend}
+                draggable={context.user.isOrganizationAdmin}
+                populateWithSelf
+              />
             ),
           },
         ],

@@ -4,7 +4,6 @@ import * as React from 'react'
 import * as router from 'react-router-dom'
 
 import * as common from 'enso-common'
-import * as detect from 'enso-common/src/detect'
 
 import ArrowRightIcon from '#/assets/arrow_right.svg'
 import AtIcon from '#/assets/at.svg'
@@ -26,8 +25,6 @@ import Input from '#/components/Input'
 import Link from '#/components/Link'
 import SubmitButton from '#/components/SubmitButton'
 import TextLink from '#/components/TextLink'
-
-import * as eventModule from '#/utilities/event'
 
 // =============
 // === Login ===
@@ -58,16 +55,18 @@ export default function Login() {
       title={getText('loginToYourAccount')}
       supportsOffline={supportsOffline}
       footer={
-        <Link
-          openInBrowser={detect.isOnElectron()}
-          to={
-            detect.isOnElectron() ?
-              `https://${common.CLOUD_DASHBOARD_DOMAIN}/registration`
-            : '/registration'
-          }
-          icon={CreateAccountIcon}
-          text={getText('dontHaveAnAccount')}
-        />
+        <>
+          <Link
+            openInBrowser={localBackend != null}
+            to={
+              localBackend != null ?
+                `https://${common.CLOUD_DASHBOARD_DOMAIN}/registration`
+              : '/registration'
+            }
+            icon={CreateAccountIcon}
+            text={getText('dontHaveAnAccount')}
+          />
+        </>
       }
     >
       <div className="flex flex-col gap-auth">
@@ -110,7 +109,6 @@ export default function Login() {
           await signInWithPassword(email, password)
           shouldReportValidityRef.current = true
           setIsSubmitting(false)
-          navigate('/drive')
         }}
       >
         <Input
@@ -147,7 +145,6 @@ export default function Login() {
           isLoading={isSubmitting}
           text={getText('login')}
           icon={ArrowRightIcon}
-          onPress={eventModule.submitForm}
         />
       </form>
     </AuthenticationPage>

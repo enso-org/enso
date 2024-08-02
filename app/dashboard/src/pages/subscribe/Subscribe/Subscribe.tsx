@@ -1,22 +1,14 @@
 /** @file A page in which the currently active payment plan can be changed. */
-import * as React from 'react'
-
-import * as reactQuery from '@tanstack/react-query'
-import * as router from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 
 import Back from '#/assets/arrow_left.svg'
-
+import { Button, Text } from '#/components/AriaComponents'
 import { useNavigate } from '#/hooks/routerHooks'
-
-import * as backendProvider from '#/providers/BackendProvider'
-import * as textProvider from '#/providers/TextProvider'
-
-import * as ariaComponents from '#/components/AriaComponents'
-
+import { PlanSelector } from '#/modules/payments'
+import { useFullUserSession } from '#/providers/AuthProvider'
+import { useText } from '#/providers/TextProvider'
 import * as backendModule from '#/services/Backend'
-
-import * as components from './components'
-import * as componentForPlan from './getComponentForPlan'
+import { isPlan } from '#/services/Backend'
 
 /**
  * The mutation data for the `onCompleteMutation` mutation.
@@ -41,81 +33,39 @@ interface CreateCheckoutSessionMutation {
  */
 export function Subscribe() {
   const navigate = useNavigate()
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
+  const { user } = useFullUserSession()
 
-  const [searchParams] = router.useSearchParams()
-  const backend = backendProvider.useRemoteBackendStrict()
+  const [searchParams] = useSearchParams()
 
-  const plan = searchParams.get('plan')
+  const maybePlan = searchParams.get('plan')
 
-  const onCompleteMutation = reactQuery.useMutation({
-    mutationFn: async (mutationData: CreateCheckoutSessionMutation) => {
-      const { id } = await backend.createCheckoutSession({
-        plan: mutationData.plan,
-        paymentMethodId: mutationData.paymentMethodId,
-      })
-      return backend.getCheckoutSession(id)
-    },
-    onSuccess: (data, mutationData) => {
-      if (['trialing', 'active'].includes(data.status)) {
-        navigate({ pathname: '/subscribe/success', search: `plan=${mutationData.plan}` })
-        return
-      } else {
-        throw new Error(
-          'Session not complete, please contact the support team or try with another payment method.',
-        )
-      }
-    },
-  })
+  const chosenPlan = isPlan(maybePlan) ? maybePlan : null
 
   return (
-    <div className="flex h-full w-full flex-col overflow-y-auto bg-hover-bg text-xs text-primary">
+    <div className="flex h-full w-full flex-col overflow-y-auto bg-hover-bg">
       <div className="mx-auto mt-16 flex w-full min-w-96 max-w-[1400px] flex-col items-start justify-center p-12">
         <div className="flex flex-col items-start">
-          <ariaComponents.Button variant="icon" icon={Back} href="/drive" className="-ml-2">
+          <Button variant="icon" size="medium" icon={Back} href="/drive" className="-ml-2">
             {getText('returnToDashboard')}
-          </ariaComponents.Button>
+          </Button>
 
-          <ariaComponents.Text.Heading
-            level={1}
-            variant="custom"
-            className="mb-5 self-start text-start text-4xl"
-          >
+          <Text.Heading level={1} variant="custom" className="mb-5 self-start text-start text-4xl">
             {getText('subscribeTitle')}
-          </ariaComponents.Text.Heading>
+          </Text.Heading>
         </div>
 
-        <div className="w-full rounded-default bg-selected-frame p-8">
-          <div className="flex gap-6 overflow-auto scroll-hidden">
-            {backendModule.PLANS.map((newPlan) => {
-              const planProps = componentForPlan.getComponentPerPlan(newPlan, getText)
-
-              return (
-                <components.Card
-                  key={newPlan}
-                  className="min-w-64 flex-1"
-                  features={planProps.features}
-                  subtitle={planProps.subtitle}
-                  title={planProps.title}
-                  submitButton={
-                    <planProps.submitButton
-                      onSubmit={async (paymentMethodId) => {
-                        await onCompleteMutation.mutateAsync({
-                          plan: newPlan,
-                          paymentMethodId,
-                        })
-                      }}
-                      plan={newPlan}
-                      defaultOpen={newPlan === plan}
-                    />
-                  }
-                  learnMore={<planProps.learnMore />}
-                  pricing={planProps.pricing}
-                />
-              )
-            })}
-          </div>
-        </div>
+        <PlanSelector
+          plan={chosenPlan}
+          showFreePlan={false}
+          userPlan={user.plan}
+          onSubscribeSuccess={(plan) => {
+            navigate({
+              pathname: '/subscribe/success',
+              search: new URLSearchParams({ plan }).toString(),
+            })
+          }}
+        />
       </div>
     </div>
   )

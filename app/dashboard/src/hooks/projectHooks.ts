@@ -144,11 +144,11 @@ export function useOpenProjectMutation() {
       client.setQueryData(queryKey, { state: { type: backendModule.ProjectState.openInProgress } })
 
       void client.cancelQueries({ queryKey })
-      void client.invalidateQueries({ queryKey })
     },
-    onError: async (_, { id }) => {
-      await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
-    },
+    onSuccess: (_, { id }) =>
+      client.resetQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) }),
+    onError: (_, { id }) =>
+      client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) }),
   })
 }
 
@@ -177,7 +177,6 @@ export function useCloseProjectMutation() {
       client.setQueryData(queryKey, { state: { type: backendModule.ProjectState.closing } })
 
       void client.cancelQueries({ queryKey })
-      void client.invalidateQueries({ queryKey })
     },
     onSuccess: (_, { id }) =>
       client.resetQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) }),

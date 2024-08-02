@@ -92,60 +92,53 @@ export default function Editor(props: EditorProps) {
     networkMode: project.type === backendModule.BackendType.remote ? 'online' : 'always',
   })
 
-  if (isOpeningFailed) {
-    // eslint-disable-next-line no-restricted-syntax
-    return (
+  const isProjectClosed = projectQuery.data?.state.type === backendModule.ProjectState.closed
+  const shouldRefetch = !projectQuery.isError && !projectQuery.isLoading
+
+  if (!isOpeningFailed && !isOpening && isProjectClosed && shouldRefetch) {
+    startProject(project)
+  }
+
+  return isOpeningFailed ?
       <errorBoundary.ErrorDisplay
         error={openingError}
         resetErrorBoundary={() => {
           startProject(project)
         }}
       />
-    )
-  }
-
-  const isProjectClosed = projectQuery.data?.state.type === backendModule.ProjectState.closed
-  const shouldRefetch = !(projectQuery.isError || projectQuery.isLoading)
-
-  if (!isOpening && isProjectClosed && shouldRefetch) {
-    startProject(project)
-  }
-
-  return (
-    <div
-      className={twMerge.twJoin('contents', hidden && 'hidden')}
-      data-testvalue={project.id}
-      data-testid="editor"
-    >
-      {(() => {
-        if (projectQuery.isError) {
-          return (
-            <errorBoundary.ErrorDisplay
-              error={projectQuery.error}
-              resetErrorBoundary={() => projectQuery.refetch()}
-            />
-          )
-        } else if (
-          projectQuery.isLoading ||
-          projectQuery.data?.state.type !== backendModule.ProjectState.opened
-        ) {
-          return <suspense.Loader loaderProps={{ minHeight: 'full' }} />
-        } else {
-          return (
-            <errorBoundary.ErrorBoundary>
-              <suspense.Suspense>
-                <EditorInternal
-                  {...props}
-                  openedProject={projectQuery.data}
-                  backendType={project.type}
-                />
-              </suspense.Suspense>
-            </errorBoundary.ErrorBoundary>
-          )
-        }
-      })()}
-    </div>
-  )
+    : <div
+        className={twMerge.twJoin('contents', hidden && 'hidden')}
+        data-testvalue={project.id}
+        data-testid="editor"
+      >
+        {(() => {
+          if (projectQuery.isError) {
+            return (
+              <errorBoundary.ErrorDisplay
+                error={projectQuery.error}
+                resetErrorBoundary={() => projectQuery.refetch()}
+              />
+            )
+          } else if (
+            projectQuery.isLoading ||
+            projectQuery.data?.state.type !== backendModule.ProjectState.opened
+          ) {
+            return <suspense.Loader loaderProps={{ minHeight: 'full' }} />
+          } else {
+            return (
+              <errorBoundary.ErrorBoundary>
+                <suspense.Suspense>
+                  <EditorInternal
+                    {...props}
+                    openedProject={projectQuery.data}
+                    backendType={project.type}
+                  />
+                </suspense.Suspense>
+              </errorBoundary.ErrorBoundary>
+            )
+          }
+        })()}
+      </div>
 }
 
 // ======================

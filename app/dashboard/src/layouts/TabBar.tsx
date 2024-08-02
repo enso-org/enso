@@ -5,14 +5,14 @@ import * as reactQuery from '@tanstack/react-query'
 import { useLocation } from 'react-router'
 import invariant from 'tiny-invariant'
 
-import type * as text from 'enso-common/src/text'
+import type { TextId } from 'enso-common/src/text'
 
 import type { AppPath } from '#/appUtils'
 
 import * as projectHooks from '#/hooks/projectHooks'
 
 import type { LaunchedProject } from '#/providers/ProjectsProvider'
-import * as textProvider from '#/providers/TextProvider'
+import { useText } from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
@@ -22,6 +22,8 @@ import SvgMask from '#/components/SvgMask'
 
 import * as backend from '#/services/Backend'
 
+import { useInputBindings } from '#/providers/InputBindingsProvider'
+import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
@@ -87,8 +89,8 @@ export default function TabBar(props: TabBarProps) {
           const tabRight = bounds.right - rootBounds.left - TAB_RADIUS_PX
           const rightSegments = [
             'M 0 0',
-            `L ${rootBounds.width} 0`,
-            `L ${rootBounds.width} ${rootBounds.height}`,
+            `L ${rootBounds.width + window.outerWidth} 0`,
+            `L ${rootBounds.width + window.outerWidth} ${rootBounds.height}`,
             `L ${tabRight + TAB_RADIUS_PX} ${rootBounds.height}`,
             `A ${TAB_RADIUS_PX} ${TAB_RADIUS_PX} 0 0 1 ${tabRight} ${rootBounds.height - TAB_RADIUS_PX}`,
           ]
@@ -187,7 +189,7 @@ interface InternalTabProps extends Readonly<React.PropsWithChildren> {
   readonly project?: LaunchedProject
   readonly isHidden?: boolean
   readonly icon: string
-  readonly labelId: text.TextId
+  readonly labelId: TextId
   readonly onClose?: () => void
   readonly onLoadEnd?: () => void
 }
@@ -196,10 +198,11 @@ interface InternalTabProps extends Readonly<React.PropsWithChildren> {
 export function Tab(props: InternalTabProps) {
   const { path, project, isHidden = false, icon, labelId, children, onClose } = props
   const { onLoadEnd } = props
+  const { getText } = useText()
+  const inputBindings = useInputBindings()
   const { setSelectedTab } = useTabBarContext()
   const ref = React.useRef<HTMLDivElement | null>(null)
-  const isLoadingRef = React.useRef(false)
-  const { getText } = textProvider.useText()
+  const isLoadingRef = React.useRef(true)
   const { pathname } = useLocation()
   const isActive = pathname.startsWith(path)
   const actuallyActive = isActive && !isHidden
@@ -230,6 +233,16 @@ export function Tab(props: InternalTabProps) {
       }
     }
   })
+
+  React.useEffect(() => {
+    if (actuallyActive && onClose) {
+      return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
+        closeTab: onClose,
+      })
+    } else {
+      return
+    }
+  }, [inputBindings, actuallyActive, onClose])
 
   React.useLayoutEffect(() => {
     if (actuallyActive && ref.current) {
