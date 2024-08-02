@@ -629,6 +629,7 @@ lazy val `text-buffer` = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    commands += WithDebugCommand.withDebug,
     libraryDependencies ++= Seq(
       "org.scalatest"  %% "scalatest"  % scalatestVersion  % Test,
       "org.scalacheck" %% "scalacheck" % scalacheckVersion % Test

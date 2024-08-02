@@ -86,4 +86,17 @@ class EditorOpsSpec extends AnyFlatSpec with Matchers with EitherValues {
     result.map(_.toString) mustBe Right("foo")
   }
 
+  it should "be able to edit text with emoji" in {
+    //given
+    val oldKeyEmoji       = "\uD83D\uDDDD"
+    val variationSelector = "\uFE0F"
+    val codeToEdit        = Rope(s"$oldKeyEmoji$variationSelector")
+    val range             = Range(Position(0, 1), Position(0, 1))
+    val diff              = TextEdit(range, "xyz")
+    //when
+    val result = EditorOps.applyEdits(codeToEdit, Seq(diff))
+    //then
+    result.map(_.toString) mustBe Right("\uD83D\uDDDDxyz\uFE0F")
+  }
+
 }
