@@ -56,6 +56,8 @@ public class IRDumper {
   /** Whether to include some pass data in the GraphViz file. */
   private static final boolean INCLUDE_PASS_DATA = true;
 
+  public static final String DEFAULT_DUMP_DIR = "ir-dumps";
+
   private final OutputStream out;
   private final Set<GraphVizNode> nodes = new HashSet<>();
   private final Set<GraphVizEdge> edges = new HashSet<>();

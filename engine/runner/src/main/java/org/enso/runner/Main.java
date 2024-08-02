@@ -61,6 +61,7 @@ public class Main {
   private static final String RUN_OPTION = "run";
   private static final String INSPECT_OPTION = "inspect";
   private static final String DUMP_GRAPHS_OPTION = "dump-graphs";
+  private static final String DUMP_IRS_OPTION = "dump-irs";
   private static final String HELP_OPTION = "help";
   private static final String NEW_OPTION = "new";
   private static final String PROJECT_NAME_OPTION = "new-project-name";
@@ -140,6 +141,11 @@ public class Main {
         cliOptionBuilder()
             .longOpt(DUMP_GRAPHS_OPTION)
             .desc("Dumps IGV graphs when --run is used.")
+            .build();
+    var dumpIrs =
+        cliOptionBuilder()
+            .longOpt(DUMP_IRS_OPTION)
+            .desc("Dumps IRs in the ir-dumps directory when --run is used.")
             .build();
     var docs =
         cliOptionBuilder()
@@ -462,6 +468,7 @@ public class Main {
         .addOption(run)
         .addOption(inspect)
         .addOption(dumpGraphs)
+        .addOption(dumpIrs)
         .addOption(docs)
         .addOption(preinstall)
         .addOption(newOpt)
@@ -660,7 +667,8 @@ public class Main {
    *     ignored.
    * @param enableStaticAnalysis whether or not static type checking should be enabled
    * @param inspect shall inspect option be enabled
-   * @param dump shall graphs be sent to the IGV
+   * @param dumpIGVGraphs shall graphs be sent to the IGV
+   * @param dumpIrs shall IRs be dumped into local directory
    * @param executionEnvironment name of the execution environment to use during execution or {@code
    *     null}
    */
@@ -676,7 +684,8 @@ public class Main {
       boolean enableStaticAnalysis,
       boolean enableDebugServer,
       boolean inspect,
-      boolean dump,
+      boolean dumpIGVGraphs,
+      boolean dumpIrs,
       String executionEnvironment,
       int warningsLimit)
       throws IOException {
@@ -688,7 +697,7 @@ public class Main {
     var file = fileAndProject._2();
     var projectRoot = fileAndProject._3();
     var options = new HashMap<String, String>();
-    if (dump) {
+    if (dumpIGVGraphs) {
       options.put("engine.TraceCompilation", "true");
       options.put("engine.MultiTier", "false");
     }
@@ -699,6 +708,7 @@ public class Main {
             .logLevel(logLevel)
             .logMasking(logMasking)
             .enableIrCaches(enableIrCaches)
+            .dumpIrs(dumpIrs)
             .disablePrivateCheck(disablePrivateCheck)
             .strictErrors(true)
             .enableAutoParallelism(enableAutoParallelism)
@@ -1105,6 +1115,7 @@ public class Main {
           line.hasOption(REPL_OPTION),
           line.hasOption(INSPECT_OPTION),
           line.hasOption(DUMP_GRAPHS_OPTION),
+          line.hasOption(DUMP_IRS_OPTION),
           line.getOptionValue(EXECUTION_ENVIRONMENT_OPTION),
           scala.Option.apply(line.getOptionValue(WARNINGS_LIMIT))
               .map(Integer::parseInt)

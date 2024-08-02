@@ -150,6 +150,7 @@ public final class EnsoContext {
             true,
             !isPrivateCheckDisabled,
             isStaticTypeAnalysisEnabled,
+            getOption(RuntimeOptions.DUMP_IRS_KEY),
             getOption(RuntimeOptions.STRICT_ERRORS_KEY),
             getOption(RuntimeOptions.DISABLE_LINTING_KEY),
             scala.Option.empty());
