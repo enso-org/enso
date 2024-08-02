@@ -72,12 +72,12 @@ class FramePointerAnalysisTest extends CompilerTest {
           .name shouldEqual "b"
       }
       withClue("Expression.Binding must have FramePointer associated") {
-        allOcc.head._1.passData().get(FramePointerAnalysis) shouldBe Some(
-          new FramePointer(0, 1)
-        )
-        allOcc.last._1.passData().get(FramePointerAnalysis) shouldBe Some(
-          new FramePointer(0, 2)
-        )
+        allOcc.head._1
+          .unsafeGetMetadata(FramePointerAnalysis, "should exist")
+          .framePointer shouldEqual new FramePointer(0, 1)
+        allOcc.last._1
+          .unsafeGetMetadata(FramePointerAnalysis, "should exist")
+          .framePointer shouldEqual new FramePointer(0, 2)
       }
     }
 
