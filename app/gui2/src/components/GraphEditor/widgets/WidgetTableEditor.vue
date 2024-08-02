@@ -1,24 +1,50 @@
 <script setup lang="ts">
 import { WidgetInputIsSpecificMethodCall } from '@/components/GraphEditor/widgets/WidgetFunction.vue'
-import { useTableNewArgument } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableNewArgument'
+import {
+  useTableNewArgument,
+  type RowData,
+} from '@/components/GraphEditor/widgets/WidgetTableEditor/tableNewArgument'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import AgGridTableView from '@/components/widgets/AgGridTableView.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { useGraphStore } from '@/stores/graph'
+import { targetIsOutside } from '@/util/autoBlur'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
-import { computed, ref, watch } from 'vue'
+import { unrefElement } from '@vueuse/core'
+import type { IHeaderComp, IHeaderParams } from 'ag-grid-community'
+import { computed, ref, watch, type ComponentInstance } from 'vue'
+import type { ComponentExposed } from 'vue-component-type-helpers'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
+// TODO explain
+const grid = ref<
+  ComponentExposed<typeof AgGridTableView<RowData, any>> &
+    ComponentInstance<typeof AgGridTableView<RowData, any>>
+>()
 
 const { rowData, columnDefs } = useTableNewArgument(() => props.input, graph, props.onUpdate)
 
 watch(rowData, (rowData) => console.log(rowData), { flush: 'sync' })
 watch(columnDefs, (columnDefs) => console.log(columnDefs), { flush: 'sync' })
+
+const editHandler = WidgetEditHandler.New('WidgetTableEditor', props.input, {
+  cancel() {
+    grid.value?.gridApi?.stopEditing(true)
+  },
+  end() {
+    grid.value?.gridApi?.stopEditing(false)
+  },
+  pointerdown(event) {
+    if (targetIsOutside(event, unrefElement(grid))) editHandler.end()
+    return false
+  },
+})
 
 // === Resizing ===
 
@@ -60,11 +86,18 @@ export const widgetDefinition = defineWidget(
 <template>
   <div class="WidgetTableEditor" :style="widgetStyle">
     <AgGridTableView
+      ref="grid"
       class="grid"
       :defaultColDef="{ editable: true, resizable: true }"
       :columnDefs="columnDefs"
       :rowData="rowData"
       :getRowId="(row) => `${row.data.index}`"
+      @keydown.enter.stop
+      @keydown.escape.stop
+      @cellEditingStarted="editHandler.start()"
+      @cellEditingStopped="editHandler.end()"
+      @rowEditingStarted="editHandler.start()"
+      @rowEditingStopped="editHandler.end()"
     />
     <ResizeHandles v-model="clientBounds" bottom right />
   </div>

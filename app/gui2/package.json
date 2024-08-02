@@ -89,6 +89,7 @@
     "sucrase": "^3.34.0",
     "veaury": "^2.3.18",
     "vue": "^3.4.19",
+    "vue-component-type-helpers": "^2.0.29",
     "ws": "^8.13.0",
     "y-codemirror.next": "^0.3.2",
     "y-protocols": "^1.0.5",
