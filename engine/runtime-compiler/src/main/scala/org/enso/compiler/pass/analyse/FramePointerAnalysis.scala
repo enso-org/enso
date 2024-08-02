@@ -119,47 +119,6 @@ case object FramePointerAnalysis extends IRPass {
     }
   }
 
-  /** Returns the index of the given `defOcc` definition in the given `scope`
-    * @param scope This scope must contain the given `defOcc`
-    * @param defOcc This occurrence must be in the given `scope`
-    */
-  private def getFrameSlotIdxInScope(
-    graph: Graph,
-    scope: Graph.Scope,
-    defOcc: Graph.Occurrence.Def
-  ): Int = {
-    assert(
-      graph.scopeFor(defOcc.id).contains(scope),
-      "Def occurrence must be in the given scope"
-    )
-    assert(
-      scope.allDefinitions.contains(defOcc),
-      "The given scope must contain the given Def occurrence"
-    )
-    val idxInScope = scope.allDefinitions.zipWithIndex
-      .find { case (def_, _) => def_.id == defOcc.id }
-      .map(_._2)
-      .getOrElse(
-        throw new IllegalStateException(
-          "Def occurrence must be in the given scope"
-        )
-      )
-    idxInScope + LocalScope.internalSlotsSize
-  }
-
-  private def getScopeDistance(
-    parentScope: Graph.Scope,
-    childScope: Graph.Scope
-  ): Int = {
-    var currScope: Option[Graph.Scope] = Some(childScope)
-    var scopeDistance                  = 0
-    while (currScope.isDefined && currScope.get != parentScope) {
-      currScope = currScope.get.parent
-      scopeDistance += 1
-    }
-    scopeDistance
-  }
-
   private def processExpression(
     exprIr: Expression,
     graph: Graph
@@ -290,6 +249,53 @@ case object FramePointerAnalysis extends IRPass {
         }
       case _ => ir
     }
+  }
+
+  /** Returns the index of the given `defOcc` definition in the given `scope`
+    * @param scope This scope must contain the given `defOcc`
+    * @param defOcc This occurrence must be in the given `scope`
+    */
+  private def getFrameSlotIdxInScope(
+    graph: Graph,
+    scope: Graph.Scope,
+    defOcc: Graph.Occurrence.Def
+  ): Int = {
+    assert(
+      graph.scopeFor(defOcc.id).contains(scope),
+      "Def occurrence must be in the given scope"
+    )
+    assert(
+      scope.allDefinitions.contains(defOcc),
+      "The given scope must contain the given Def occurrence"
+    )
+    val idxInScope = scope.allDefinitions.zipWithIndex
+      .find { case (def_, _) => def_.id == defOcc.id }
+      .map(_._2)
+      .getOrElse(
+        throw new IllegalStateException(
+          "Def occurrence must be in the given scope"
+        )
+      )
+    idxInScope + LocalScope.internalSlotsSize
+  }
+
+  /** Returns the *scope distance* of the given `childScope` to the given `parentScope`.
+    * Scope distance is the number of parents from the `childScope`.
+    * @param parentScope Some of the parent scopes of `childScope`.
+    * @param childScope Nested child scope of `parentScope`.
+    * @return
+    */
+  private def getScopeDistance(
+    parentScope: Graph.Scope,
+    childScope: Graph.Scope
+  ): Int = {
+    var currScope: Option[Graph.Scope] = Some(childScope)
+    var scopeDistance                  = 0
+    while (currScope.isDefined && currScope.get != parentScope) {
+      currScope = currScope.get.parent
+      scopeDistance += 1
+    }
+    scopeDistance
   }
 
   private def getAliasAnalysisMeta(
