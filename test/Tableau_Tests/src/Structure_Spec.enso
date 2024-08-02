@@ -21,7 +21,7 @@ add_specs suite_builder = suite_builder.group "Structure" group_builder->
 
     group_builder.specify "should be able to list schema" <|
         schemas = Hyper_File.new names_file . schemas
-        schemas.should_equal ["public", "Extract"]
+        schemas.sort.should_equal ["Extract", "public"]
 
         schemas_2 = Hyper_File.new empty_file . schemas
         schemas_2.should_equal ["public"]
