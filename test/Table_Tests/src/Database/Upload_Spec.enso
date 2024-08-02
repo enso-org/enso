@@ -370,7 +370,8 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
                 r1 = data.in_memory_table.select_into_database_table data.connection (Name_Generator.random_name "primary-key-4") primary_key=["X", "nonexistent"]
                 r1.should_fail_with Missing_Input_Columns
 
-        group_builder.specify "should fail if the primary key is not unique" <|
+        snowflake_constraints_pending = if prefix.contains "Snowflake" then "Disabled until https://github.com/enso-org/enso/issues/10737 is resolved."
+        group_builder.specify "should fail if the primary key is not unique" pending=snowflake_constraints_pending <|
             t1 = Table.new [["X", [1, 2, 1]], ["Y", ['b', 'b', 'a']]]
 
             run_with_and_without_output <|
@@ -524,8 +525,8 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
                 r1 = db_table.select_into_database_table data.connection (Name_Generator.random_name "copied-table") temporary=True primary_key=["nonexistent"]
                 r1.should_fail_with Missing_Input_Columns
 
-        snowflake_constraints_pending = if prefix.contains "Snowflake" then "Not tested on Snowflake as it does not enforce constraints (https://docs.snowflake.com/en/sql-reference/constraints-overview), unless we start using Hybrid tables."
-        group_builder.specify "should fail when the primary key is not unique" <|
+        snowflake_constraints_pending = if prefix.contains "Snowflake" then "Disabled until https://github.com/enso-org/enso/issues/10737 is resolved."
+        group_builder.specify "should fail when the primary key is not unique" pending=snowflake_constraints_pending <|
             t = Table.new [["X", [1, 2, 1]], ["Y", ['b', 'b', 'a']]]
             db_table = t.select_into_database_table data.connection (Name_Generator.random_name "source-table") temporary=True primary_key=Nothing
             Problems.assume_no_problems db_table
@@ -929,7 +930,8 @@ test_table_append group_builder (data : Data) source_table_builder target_table_
             r5 = dest.update_rows src update_action=Update_Action.Align_Records key_columns=[]
             r5.should_fail_with Illegal_Argument
 
-    group_builder.specify "should fail if the key is not unique in the input table" <|
+    snowflake_constraints_pending = if group_builder.name.contains "Snowflake" then "Disabled until https://github.com/enso-org/enso/issues/10737 is resolved."
+    group_builder.specify "should fail if the key is not unique in the input table" pending=snowflake_constraints_pending <|
         d1 = target_table_builder [["X", [0, 10, 100]]] primary_key=["X"] connection=data.connection
         d2 = target_table_builder [["X", [0, 10, 100]]] connection=data.connection
         src = source_table_builder [["X", [1, 1, 3]]] connection=data.connection
