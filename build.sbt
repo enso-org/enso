@@ -3661,6 +3661,10 @@ lazy val `std-tableau` = project
           },
           keepDirectory = false
         )
+      } else {
+        System.out.println(
+          "std-tableau's unmanaged dependencies are up-to-date"
+        )
       }
     },
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
