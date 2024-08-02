@@ -54,7 +54,7 @@ export function getUpgradeURL(plan: string): AppFullPath {
 /**
  * Return the mailto URL for contacting sales.
  */
-export function getSalesEmail(): string {
+export function getSalesEmail(): `mailto:${string}` {
   return 'mailto:contact@enso.org'
 }
 

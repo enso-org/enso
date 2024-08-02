@@ -39,8 +39,6 @@ import * as reactQuery from '@tanstack/react-query'
 import * as router from 'react-router-dom'
 import * as toastify from 'react-toastify'
 
-import * as detect from 'enso-common/src/detect'
-
 import { definePath } from '#/appUtils'
 
 import * as inputBindingsModule from '#/configurations/inputBindings'

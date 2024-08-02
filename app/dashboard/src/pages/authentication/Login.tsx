@@ -12,8 +12,6 @@ import GithubIcon from '#/assets/github.svg'
 import GoogleIcon from '#/assets/google.svg'
 import LockIcon from '#/assets/lock.svg'
 
-import { useNavigate } from '#/hooks/routerHooks'
-
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -33,7 +31,6 @@ import TextLink from '#/components/TextLink'
 /** A form for users to log in. */
 export default function Login() {
   const location = router.useLocation()
-  const navigate = useNavigate()
   const { signInWithGoogle, signInWithGitHub, signInWithPassword } = authProvider.useAuth()
   const { getText } = textProvider.useText()
 

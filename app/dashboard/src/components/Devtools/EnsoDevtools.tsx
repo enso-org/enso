@@ -11,8 +11,6 @@ import { IS_DEV_MODE } from 'enso-common/src/detect'
 
 import DevtoolsLogo from '#/assets/enso_logo.svg'
 
-import { SETUP_PATH } from '#/appUtils'
-
 import * as billing from '#/hooks/billing'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -160,7 +158,7 @@ export function EnsoDevtools(props: EnsoDevtoolsProps) {
                 <ariaComponents.Separator orientation="horizontal" className="my-3" />
 
                 {/* eslint-disable-next-line no-restricted-syntax */}
-                <ariaComponents.Button variant="link" href={SETUP_PATH + '?__qd-debg__=true'}>
+                <ariaComponents.Button variant="link" href="/setup?__qd-debg__=true">
                   Open setup page
                 </ariaComponents.Button>
 

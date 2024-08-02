@@ -7,16 +7,7 @@ import { useNavigate } from '#/hooks/routerHooks'
 import { PlanSelector } from '#/modules/payments'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useText } from '#/providers/TextProvider'
-import * as backendModule from '#/services/Backend'
 import { isPlan } from '#/services/Backend'
-
-/**
- * The mutation data for the `onCompleteMutation` mutation.
- */
-interface CreateCheckoutSessionMutation {
-  readonly plan: backendModule.Plan
-  readonly paymentMethodId: string
-}
 
 /** A page in which the currently active payment plan can be changed.
  *

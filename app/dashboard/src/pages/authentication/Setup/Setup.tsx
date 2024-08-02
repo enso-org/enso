@@ -12,8 +12,6 @@ import type * as text from 'enso-common/src/text'
 
 import ArrowRight from '#/assets/arrow_right.svg'
 
-import { DASHBOARD_PATH, LOGIN_PATH } from '#/appUtils'
-
 import { useIsFirstRender } from '#/hooks/mountHooks'
 
 import { useAuth, UserSessionType } from '#/providers/AuthProvider'
@@ -232,7 +230,7 @@ export function Setup() {
 
   if (session?.type !== UserSessionType.full && session?.type !== UserSessionType.partial) {
     // eslint-disable-next-line no-restricted-syntax
-    return <Navigate to={LOGIN_PATH} />
+    return <Navigate to="/login" />
   }
 
   const hideNext =
@@ -304,7 +302,7 @@ export function Setup() {
 
                   {isLast && (
                     <ariaComponents.Button
-                      href={DASHBOARD_PATH}
+                      href="/drive"
                       variant="primary"
                       size="medium"
                       icon={ArrowRight}

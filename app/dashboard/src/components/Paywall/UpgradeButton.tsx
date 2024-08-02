@@ -3,23 +3,18 @@
  *
  * A button that links to the upgrade page.
  */
-import * as React from 'react'
-
-import * as appUtils from '#/appUtils'
-
+import { getContactSalesURL, getUpgradeURL } from '#/appUtils'
+import { Button, type ButtonProps } from '#/components/AriaComponents'
 import * as billingHooks from '#/hooks/billing'
-
-import * as textProvider from '#/providers/TextProvider'
-
-import * as ariaComponents from '#/components/AriaComponents'
+import { useText } from '#/providers/TextProvider'
 
 /**
  * Props for an {@link UpgradeButton}.
  */
 // eslint-disable-next-line no-restricted-syntax
-export type UpgradeButtonProps = Omit<ariaComponents.ButtonProps, 'variant'> & {
+export type UpgradeButtonProps = Omit<ButtonProps, 'variant'> & {
   readonly feature: billingHooks.PaywallFeatureName
-  readonly variant?: ariaComponents.ButtonProps['variant']
+  readonly variant?: ButtonProps['variant']
 }
 
 /**
@@ -35,7 +30,7 @@ export function UpgradeButton(props: UpgradeButtonProps) {
     children,
     ...buttonProps
   } = props
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
 
   const { getFeature } = billingHooks.usePaywallFeatures()
 
@@ -47,26 +42,21 @@ export function UpgradeButton(props: UpgradeButtonProps) {
     children ?? (isEnterprise ? getText('contactSales') : getText('upgradeTo', levelLabel))
 
   return (
-    <ariaComponents.Button
+    <Button
       variant={variant ?? VARIANT_BY_LEVEL[level.name]}
       size={size}
       rounded={rounded}
-      href={
-        isEnterprise ? appUtils.getContactSalesURL() : href ?? appUtils.getUpgradeURL(level.name)
-      }
+      href={isEnterprise ? getContactSalesURL() : href ?? getUpgradeURL(level.name)}
       /* This is safe because we are passing all props to the button */
       /* eslint-disable-next-line @typescript-eslint/no-explicit-any,no-restricted-syntax */
       {...(buttonProps as any)}
     >
       {child}
-    </ariaComponents.Button>
+    </Button>
   )
 }
 
-const VARIANT_BY_LEVEL: Record<
-  billingHooks.PaywallLevelName,
-  ariaComponents.ButtonProps['variant']
-> = {
+const VARIANT_BY_LEVEL: Record<billingHooks.PaywallLevelName, ButtonProps['variant']> = {
   free: 'primary',
   enterprise: 'primary',
   solo: 'outline',

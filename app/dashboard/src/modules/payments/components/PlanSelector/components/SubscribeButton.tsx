@@ -69,7 +69,7 @@ export function SubscribeButton(props: SubscribeButtonProps) {
       return (
         <>
           {getText('downgradeInfo')}{' '}
-          <Button variant="link" href={getSalesEmail() + `?subject=Downgrade%20our%20plan`}>
+          <Button variant="link" href={`${getSalesEmail()}?subject=Downgrade%20our%20plan`}>
             {getText('contactSales')}
           </Button>
         </>
