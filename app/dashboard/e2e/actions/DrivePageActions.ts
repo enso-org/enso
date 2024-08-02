@@ -226,7 +226,7 @@ export default class DrivePageActions extends PageActions {
   /** Create a new folder using the icon in the Drive Bar. */
   createFolder() {
     return this.step('Create folder', (page) =>
-      page.getByRole('button', { name: 'New Folder' }).click(),
+      page.getByRole('button', { name: 'New Folder', exact: true }).click(),
     )
   }
 

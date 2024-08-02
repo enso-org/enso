@@ -177,29 +177,34 @@ public final class ResourceManager {
      */
     @Override
     protected void perform(ThreadLocalAction.Access access) {
+      var isMyThreadChoosen = false;
       for (; ; ) {
         Item[] toProcess;
         synchronized (pendingItems) {
-          request.cancel(false);
+          if (!isMyThreadChoosen) {
+            if (request == null || request.isCancelled()) {
+              // some thread is already handing the request
+              return;
+            } else {
+              // I am choosen and I will loop and process pendingItems
+              // until they are available
+              isMyThreadChoosen = true;
+              // signal others this request has choosen thread
+              request.cancel(false);
+            }
+          }
           if (pendingItems.isEmpty()) {
-            // nothing to process,
-            // signal request is finished
+            // nothing to process anymore,
+            // signal request is finished and new one shall be scheduled
             request = null;
             return;
           }
           toProcess = pendingItems.toArray(Item[]::new);
-          // mark as being processed
-          pendingItems.set(0, null);
+          pendingItems.clear();
         }
-        try {
-          for (var it : toProcess) {
-            it.finalizeNow(context);
-            removeFromItems(it);
-          }
-        } finally {
-          synchronized (pendingItems) {
-            pendingItems.subList(0, toProcess.length).clear();
-          }
+        for (var it : toProcess) {
+          it.finalizeNow(context);
+          removeFromItems(it);
         }
       }
     }

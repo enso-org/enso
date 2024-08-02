@@ -3,6 +3,7 @@ package org.enso.database;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -12,6 +13,7 @@ import java.time.ZonedDateTime;
 import org.enso.polyglot.common_utils.Core_Date_Utils;
 
 public class JDBCUtils {
+
   /** Gets a LocalDate from a ResultSet. */
   public static LocalDate getLocalDate(ResultSet rs, int columnIndex) throws SQLException {
     var sqlDate = rs.getDate(columnIndex);
@@ -70,9 +72,22 @@ public class JDBCUtils {
     stmt.setObject(columnIndex, localTime, Types.TIME);
   }
 
+  /**
+   * Sets a LocalTime in a PreparedStatement via TimeStamp.
+   *
+   * @param stmt
+   */
+  public static void setLocalTimeViaTimeStamp(
+      PreparedStatement stmt, int columnIndex, LocalTime localTime) throws SQLException {
+
+    Timestamp timestamp = Timestamp.valueOf(localTime.atDate(LocalDate.of(1970, 1, 1)));
+    stmt.setTimestamp(columnIndex, timestamp);
+  }
+
   /** Sets a LocalDate in a PreparedStatement. */
   public static void setLocalDate(PreparedStatement stmt, int columnIndex, LocalDate localDate)
       throws SQLException {
+
     stmt.setObject(columnIndex, localDate, Types.DATE);
   }
 }

@@ -18,22 +18,22 @@ import * as common from 'enso-common'
 import * as buildUtils from 'enso-common/src/buildUtils'
 import GLOBAL_CONFIG from 'enso-common/src/config.json' assert { type: 'json' }
 
-import * as authentication from 'authentication'
-import * as projectManager from 'bin/project-manager'
-import * as server from 'bin/server'
-import * as config from 'config'
-import * as configParser from 'config/parser'
-import * as contentConfig from 'content-config'
-import * as debug from 'debug'
-import * as detect from 'detect'
-import * as fileAssociations from 'file-associations'
-import * as ipc from 'ipc'
-import * as log from 'log'
-import * as naming from 'naming'
-import * as paths from 'paths'
-import * as projectManagement from 'project-management'
-import * as security from 'security'
-import * as urlAssociations from 'url-associations'
+import * as authentication from '@/authentication'
+import * as config from '@/config'
+import * as configParser from '@/configParser'
+import * as contentConfig from '@/contentConfig'
+import * as debug from '@/debug'
+import * as detect from '@/detect'
+import * as fileAssociations from '@/fileAssociations'
+import * as ipc from '@/ipc'
+import * as log from '@/log'
+import * as naming from '@/naming'
+import * as paths from '@/paths'
+import * as projectManagement from '@/projectManagement'
+import * as projectManager from '@/projectManager'
+import * as security from '@/security'
+import * as server from '@/server'
+import * as urlAssociations from '@/urlAssociations'
 
 const logger = contentConfig.logger
 
@@ -67,20 +67,6 @@ class App {
         this.setProjectToOpenOnStartup(project.id)
       }
     })
-
-    electron.app.commandLine.appendSwitch('allow-insecure-localhost', 'true')
-    electron.app.commandLine.appendSwitch('ignore-certificate-errors', 'true')
-    electron.app.commandLine.appendSwitch('ignore-ssl-errors', 'true')
-    electron.app.commandLine.appendSwitch('ignore-certificate-errors-spki-list', 'true')
-    electron.app.on(
-      'certificate-error',
-      (event, _webContents, _url, _error, _certificate, callback) => {
-        // Prevent having error
-        event.preventDefault()
-        // and continue
-        callback(true)
-      },
-    )
 
     const { windowSize, chromeOptions, fileToOpen, urlToOpen } = this.processArguments()
     if (this.args.options.version.value) {
@@ -226,10 +212,8 @@ class App {
     }
     logger.groupMeasured('Setting Chrome options', () => {
       const perfOpts = this.args.groups.performance.options
-      add('ignore-certificate-errors-spki-list')
-      add('allow-insecure-localhost')
+      // Needed to accept localhost self-signed cert
       add('ignore-certificate-errors')
-      add('ignore-ssl-errors')
       addIf(perfOpts.disableGpuSandbox, 'disable-gpu-sandbox')
       addIf(perfOpts.disableGpuVsync, 'disable-gpu-vsync')
       addIf(perfOpts.disableSandbox, 'no-sandbox')

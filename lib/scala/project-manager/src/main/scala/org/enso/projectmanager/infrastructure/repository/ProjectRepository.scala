@@ -44,6 +44,13 @@ trait ProjectRepository[F[+_, +_]] {
     */
   def delete(projectId: UUID): F[ProjectRepositoryFailure, Unit]
 
+  /** Move the provided project to the trash bin.
+    *
+    * @param projectId the project id trash
+    * @return `true` if the operation was successful
+    */
+  def moveToTrash(projectId: UUID): F[ProjectRepositoryFailure, Boolean]
+
   /** Renames a project.
     *
     * @param projectId the project id to rename

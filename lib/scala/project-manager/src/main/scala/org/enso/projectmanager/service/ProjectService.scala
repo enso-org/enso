@@ -144,14 +144,26 @@ class ProjectService[
   override def deleteUserProject(
     projectId: UUID,
     projectsDirectory: Option[File]
-  ): F[ProjectServiceFailure, Unit] =
-    log.debug("Deleting project [{}].", projectId) *>
-    ensureProjectIsNotRunning(projectId) *>
-    projectRepositoryFactory
-      .getProjectRepository(projectsDirectory)
-      .delete(projectId)
-      .mapError(toServiceFailure) *>
-    log.info("Project deleted [{}].", projectId)
+  ): F[ProjectServiceFailure, Unit] = {
+    val projectRepository =
+      projectRepositoryFactory.getProjectRepository(projectsDirectory)
+    val moveProjectToTrash =
+      projectRepository.moveToTrash(projectId).mapError(toServiceFailure)
+    val deleteProject =
+      projectRepository.delete(projectId).mapError(toServiceFailure)
+
+    for {
+      _ <- log.debug("Preparing to delete the project [{}].", projectId)
+      _ <- ensureProjectIsNotRunning(projectId)
+      _ <- CovariantFlatMap[F].ifM(moveProjectToTrash)(
+        ifTrue = log.info("Project moved to trash [{}].", projectId),
+        ifFalse =
+          log.info("Failed to trash the project. Deleting [{}].", projectId) *>
+          deleteProject *>
+          log.info("Project deleted [{}]", projectId)
+      )
+    } yield ()
+  }
 
   private def ensureProjectIsNotRunning(
     projectId: UUID

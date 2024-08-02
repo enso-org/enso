@@ -81,6 +81,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     rootDirectoryId: defaultDirectoryId,
     userGroups: null,
     plan: backend.Plan.enterprise,
+    isOrganizationAdmin: true,
   }
   const defaultOrganization: backend.OrganizationInfo = {
     id: defaultOrganizationId,
@@ -261,6 +262,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       isEnabled: true,
       userGroups: null,
       plan: backend.Plan.enterprise,
+      isOrganizationAdmin: true,
       ...rest,
     }
     users.push(user)
@@ -787,6 +789,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         rootDirectoryId,
         userGroups: null,
         plan: backend.Plan.enterprise,
+        isOrganizationAdmin: true,
       }
       await route.fulfill({ json: currentUser })
     })

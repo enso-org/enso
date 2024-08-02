@@ -56,7 +56,6 @@ export function Submit(props: SubmitProps): React.JSX.Element {
     formnovalidate = false,
     loading = false,
     children,
-    rounded = 'large',
     ...buttonProps
   } = props
 
@@ -72,7 +71,6 @@ export function Submit(props: SubmitProps): React.JSX.Element {
       /* This is safe because we are passing all props to the button */
       /* eslint-disable-next-line @typescript-eslint/no-explicit-any,no-restricted-syntax */
       {...(buttonProps as any)}
-      rounded={rounded}
       type={type}
       variant={variant}
       size={size}
