@@ -1,30 +1,25 @@
 /** @file Login component responsible for rendering and interactions in sign in flow. */
 import * as React from 'react'
-
 import * as router from 'react-router-dom'
 
-import * as common from 'enso-common'
+import { CLOUD_DASHBOARD_DOMAIN } from 'enso-common'
 
+import { FORGOT_PASSWORD_PATH, REGISTRATION_PATH } from '#/appUtils'
 import ArrowRightIcon from '#/assets/arrow_right.svg'
 import AtIcon from '#/assets/at.svg'
 import CreateAccountIcon from '#/assets/create_account.svg'
 import GithubIcon from '#/assets/github.svg'
 import GoogleIcon from '#/assets/google.svg'
 import LockIcon from '#/assets/lock.svg'
-
-import * as appUtils from '#/appUtils'
-
-import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
-import * as textProvider from '#/providers/TextProvider'
-
-import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
-
-import * as ariaComponents from '#/components/AriaComponents'
+import { Button } from '#/components/AriaComponents'
 import Input from '#/components/Input'
 import Link from '#/components/Link'
 import SubmitButton from '#/components/SubmitButton'
 import TextLink from '#/components/TextLink'
+import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
+import { useAuth } from '#/providers/AuthProvider'
+import { useLocalBackend } from '#/providers/BackendProvider'
+import { useText } from '#/providers/TextProvider'
 
 // =============
 // === Login ===
@@ -33,8 +28,8 @@ import TextLink from '#/components/TextLink'
 /** A form for users to log in. */
 export default function Login() {
   const location = router.useLocation()
-  const { signInWithGoogle, signInWithGitHub, signInWithPassword } = authProvider.useAuth()
-  const { getText } = textProvider.useText()
+  const { signInWithGoogle, signInWithGitHub, signInWithPassword } = useAuth()
+  const { getText } = useText()
 
   const query = new URLSearchParams(location.search)
   const initialEmail = query.get('email')
@@ -45,7 +40,7 @@ export default function Login() {
   const shouldReportValidityRef = React.useRef(true)
   const formRef = React.useRef<HTMLFormElement>(null)
 
-  const localBackend = backendProvider.useLocalBackend()
+  const localBackend = useLocalBackend()
   const supportsOffline = localBackend != null
 
   return (
@@ -59,8 +54,8 @@ export default function Login() {
             openInBrowser={localBackend != null}
             to={
               localBackend != null ?
-                'https://' + common.CLOUD_DASHBOARD_DOMAIN + appUtils.REGISTRATION_PATH
-              : appUtils.REGISTRATION_PATH
+                'https://' + CLOUD_DASHBOARD_DOMAIN + REGISTRATION_PATH
+              : REGISTRATION_PATH
             }
             icon={CreateAccountIcon}
             text={getText('dontHaveAnAccount')}
@@ -69,7 +64,7 @@ export default function Login() {
       }
     >
       <div className="flex flex-col gap-auth">
-        <ariaComponents.Button
+        <Button
           size="custom"
           variant="custom"
           fullWidthText
@@ -82,8 +77,8 @@ export default function Login() {
           }}
         >
           {getText('signUpOrLoginWithGoogle')}
-        </ariaComponents.Button>
-        <ariaComponents.Button
+        </Button>
+        <Button
           size="custom"
           variant="custom"
           fullWidthText
@@ -96,7 +91,7 @@ export default function Login() {
           }}
         >
           {getText('signUpOrLoginWithGitHub')}
-        </ariaComponents.Button>
+        </Button>
       </div>
       <div />
       <form
@@ -136,7 +131,7 @@ export default function Login() {
             setValue={setPassword}
             shouldReportValidityRef={shouldReportValidityRef}
           />
-          <TextLink to={appUtils.FORGOT_PASSWORD_PATH} text={getText('forgotYourPassword')} />
+          <TextLink to={FORGOT_PASSWORD_PATH} text={getText('forgotYourPassword')} />
         </div>
 
         <SubmitButton
