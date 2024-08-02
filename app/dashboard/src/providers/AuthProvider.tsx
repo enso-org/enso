@@ -295,6 +295,7 @@ export default function AuthProvider(props: AuthProviderProps) {
         if (result.ok) {
           navigate(appUtils.LOGIN_PATH)
         } else {
+          // eslint-disable-next-line no-restricted-syntax
           throw new Error(result.val.message)
         }
       }

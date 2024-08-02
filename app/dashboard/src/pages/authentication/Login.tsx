@@ -17,6 +17,11 @@ import { useLocalBackend } from '#/providers/BackendProvider'
 import { useText } from '#/providers/TextProvider'
 import { useMutation } from '@tanstack/react-query'
 
+const LOGIN_FORM_SCHEMA = z.object({
+  email: z.string(),
+  password: z.string(),
+})
+
 // =============
 // === Login ===
 // =============
@@ -30,13 +35,6 @@ export default function Login() {
   const initialEmail = query.get('email')
   const localBackend = useLocalBackend()
   const supportsOffline = localBackend != null
-
-  const form = Form.useForm({
-    schema: z.object({
-      email: z.string(),
-      password: z.string(),
-    }),
-  })
 
   const signInWithGoogleMutation = useMutation({ mutationFn: auth.signInWithGoogle })
   const signInWithGitHubMutation = useMutation({ mutationFn: auth.signInWithGitHub })
@@ -89,37 +87,33 @@ export default function Login() {
       </div>
       <div />
       <Form
-        form={form}
+        schema={LOGIN_FORM_SCHEMA}
         className="flex flex-col gap-6"
         onSubmit={(values) => signInWithPassword(values)}
       >
-        {({ register }) => (
-          <>
-            <Input
-              autoFocus
-              required
-              type="email"
-              autoComplete="email"
-              defaultValue={initialEmail ?? undefined}
-              placeholder={getText('emailPlaceholder')}
-              {...register('email')}
-            />
-            <div className="flex w-full flex-col">
-              <Input
-                required
-                type="password"
-                autoComplete="current-password"
-                placeholder={getText('passwordPlaceholder')}
-                error={getText('passwordValidationError')}
-                {...register('password')}
-              />
-              <TextLink to={FORGOT_PASSWORD_PATH} text={getText('forgotYourPassword')} />
-            </div>
+        <Input
+          autoFocus
+          required
+          name="email"
+          type="email"
+          autoComplete="email"
+          defaultValue={initialEmail ?? undefined}
+          placeholder={getText('emailPlaceholder')}
+        />
+        <div className="flex w-full flex-col">
+          <Input
+            required
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            placeholder={getText('passwordPlaceholder')}
+            error={getText('passwordValidationError')}
+          />
+          <TextLink to={FORGOT_PASSWORD_PATH} text={getText('forgotYourPassword')} />
+        </div>
 
-            <Form.FormError />
-            <Form.Submit className="w-full">{getText('login')}</Form.Submit>
-          </>
-        )}
+        <Form.FormError />
+        <Form.Submit className="w-full">{getText('login')}</Form.Submit>
       </Form>
     </AuthenticationPage>
   )

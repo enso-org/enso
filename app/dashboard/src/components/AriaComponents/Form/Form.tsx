@@ -18,6 +18,17 @@ import * as components from './components'
 import * as styles from './styles'
 import type * as types from './types'
 
+/**
+ * Maps the value to the event object.
+ */
+function mapValueOnEvent(value: unknown) {
+  if (typeof value === 'object' && value != null && 'target' in value && 'type' in value) {
+    return value
+  } else {
+    return { target: { value } }
+  }
+}
+
 /** Form component. It wraps a `form` and provides form context.
  * It also handles form submission.
  * Provides better error handling and form state management and better UX out of the box. */
@@ -147,30 +158,13 @@ export const Form = React.forwardRef(function Form<
       register: (name, options) => {
         const registered = register(name, options)
 
-        /**
-         * Maps the value to the event object.
-         */
-        function mapValueOnEvent(value: unknown) {
-          if (typeof value === 'object' && value != null && 'target' in value && 'type' in value) {
-            return value
-          } else {
-            return { target: { value } }
-          }
-        }
-
-        const onChange: types.UseFormRegisterReturn<Schema, TFieldValues>['onChange'] = (value) =>
-          registered.onChange(mapValueOnEvent(value))
-
-        const onBlur: types.UseFormRegisterReturn<Schema, TFieldValues>['onBlur'] = (value) =>
-          registered.onBlur(mapValueOnEvent(value))
-
         const result: types.UseFormRegisterReturn<Schema, TFieldValues, typeof name> = {
           ...registered,
-          ...(registered.disabled != null ? { isDisabled: registered.disabled } : {}),
-          ...(registered.required != null ? { isRequired: registered.required } : {}),
-          isInvalid: !!formState.errors[name],
-          onChange,
-          onBlur,
+          isDisabled: registered.disabled ?? false,
+          isRequired: registered.required ?? false,
+          isInvalid: Boolean(formState.errors[name]),
+          onChange: (value) => registered.onChange(mapValueOnEvent(value)),
+          onBlur: (value) => registered.onBlur(mapValueOnEvent(value)),
         }
 
         return result

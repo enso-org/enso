@@ -4,9 +4,7 @@ import * as router from 'react-router-dom'
 
 import * as z from 'zod'
 
-import AtIcon from '#/assets/at.svg'
 import GoBackIcon from '#/assets/go_back.svg'
-import LockIcon from '#/assets/lock.svg'
 
 import * as appUtils from '#/appUtils'
 
@@ -21,7 +19,6 @@ import Link from '#/components/Link'
 
 import { Form, Input } from '#/components/AriaComponents'
 import LocalStorage from '#/utilities/LocalStorage'
-import * as string from '#/utilities/string'
 import * as validation from '#/utilities/validation'
 
 // ============================
@@ -38,6 +35,12 @@ declare module '#/utilities/LocalStorage' {
 LocalStorage.registerKey('loginRedirect', {
   isUserSpecific: true,
   tryParse: (value) => (typeof value === 'string' ? value : null),
+})
+
+const REGISTRATION_FORM_SCHEMA = z.object({
+  email: z.string(),
+  password: z.string(),
+  confirmPassword: z.string(),
 })
 
 // ====================
@@ -66,62 +69,52 @@ export default function Registration() {
     }
   }, [localStorage, redirectTo])
 
-  const form = Form.useForm({
-    schema: z.object({
-      email: z.string(),
-      password: z.string(),
-      confirmPassword: z.string(),
-    }),
-  })
-
   return (
     <AuthenticationPage
-      form={form}
+      schema={REGISTRATION_FORM_SCHEMA}
       title={getText('createANewAccount')}
       supportsOffline={supportsOffline}
       footer={
         <Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text={getText('alreadyHaveAnAccount')} />
       }
-      onSubmit={async ({ email, password, confirmPassword }) => {
+      onSubmit={async ({ email, password, confirmPassword }): Promise<void> => {
         if (!validation.PASSWORD_REGEX.test(password)) {
           throw new Error(getText('passwordValidationError'))
         } else if (password !== confirmPassword) {
           throw new Error(getText('passwordMismatchError'))
         } else {
           await auth.signUp(email, password, organizationId)
+          return
         }
       }}
     >
-      {({ register }) => (
-        <>
-          <Input
-            autoFocus
-            required
-            type="email"
-            autoComplete="email"
-            placeholder={getText('emailPlaceholder')}
-            defaultValue={initialEmail ?? undefined}
-            {...register('email')}
-          />
-          <Input
-            required
-            type="password"
-            autoComplete="new-password"
-            placeholder={getText('passwordPlaceholder')}
-            pattern={validation.PASSWORD_PATTERN}
-            {...register('password')}
-          />
-          <Input
-            required
-            type="password"
-            autoComplete="new-password"
-            placeholder={getText('confirmPasswordPlaceholder')}
-            {...register('confirmPassword')}
-          />
-          <Form.FormError />
-          <Form.Submit className="w-full">{getText('register')}</Form.Submit>
-        </>
-      )}
+      <Input
+        autoFocus
+        required
+        name="email"
+        type="email"
+        autoComplete="email"
+        placeholder={getText('emailPlaceholder')}
+        defaultValue={initialEmail ?? undefined}
+      />
+      <Input
+        required
+        name="password"
+        type="password"
+        autoComplete="new-password"
+        placeholder={getText('passwordPlaceholder')}
+        pattern={validation.PASSWORD_PATTERN}
+      />
+      <Input
+        required
+        name="confirmPassword"
+        type="password"
+        autoComplete="new-password"
+        placeholder={getText('confirmPasswordPlaceholder')}
+      />
+
+      <Form.FormError />
+      <Form.Submit className="w-full">{getText('register')}</Form.Submit>
     </AuthenticationPage>
   )
 }

@@ -1,13 +1,13 @@
 /** @file A styled authentication page.
  * This is a component, NOT a page, but it is here because it is related to the authentication pages
  * and nothing else. */
-import { ReactNode } from 'react'
+import type { ReactNode } from 'react'
 
 import {
   DIALOG_BACKGROUND,
   type FieldValues,
   Form,
-  FormProps,
+  type FormProps,
   type TSchema,
   Text,
 } from '#/components/AriaComponents'
@@ -42,8 +42,8 @@ export default function AuthenticationPage<
   TTransformedValues extends FieldValues<Schema> | undefined = undefined,
 >(props: AuthenticationPageProps<Schema, TFieldValues, TTransformedValues>) {
   const { title, children, footer, supportsOffline = false, ...formProps } = props
-  const { form, onSubmit } = formProps
-  const isForm = onSubmit != null && form != null
+  const { form, schema, onSubmit } = formProps
+  const isForm = onSubmit != null && (form != null || schema != null)
 
   const { getText } = useText()
   const { isOffline } = useOffline()
@@ -90,11 +90,16 @@ export default function AuthenticationPage<
                   return children
                 })()}
               </div>
-            : <Form {...formProps} className={containerClasses}>
-                {(props) => (
+            : <Form
+                // This is SAFE, as the props type of this type extends `FormProps`.
+                // eslint-disable-next-line no-restricted-syntax
+                {...(formProps as FormProps<Schema, TFieldValues, TTransformedValues>)}
+                className={containerClasses}
+              >
+                {(innerProps) => (
                   <>
                     {heading}
-                    {typeof children === 'function' ? children(props) : children}
+                    {typeof children === 'function' ? children(innerProps) : children}
                   </>
                 )}
               </Form>
