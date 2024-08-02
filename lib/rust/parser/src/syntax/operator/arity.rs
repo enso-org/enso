@@ -229,9 +229,11 @@ where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s> + GroupHierarchyCon
     }
 }
 
-impl<'s, Inner: OperatorConsumer<'s>> OperatorConsumer<'s> for ClassifyArity<'s, Inner> {
+impl<'s, Inner> OperatorConsumer<'s> for ClassifyArity<'s, Inner>
+where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>
+{
     fn push_operator(&mut self, operator: Operator<'s>) {
-        self.inner.push_operator(operator);
+        self.emit(operator);
     }
 }
 

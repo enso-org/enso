@@ -1574,6 +1574,9 @@ fn inline_builtin_annotations() {
     test!("@Tail_Call go\n a\n b",
         (AnnotatedBuiltin Tail_Call #()
          (ArgumentBlockApplication (Ident go) #((Ident a) (Ident b)))));
+    test!("map _-> @Tail_Call f",
+        (App (Ident map)
+         (OprApp (Wildcard 0) (Ok "->") (AnnotatedBuiltin Tail_Call #() (Ident f)))));
 }
 
 #[test]
