@@ -306,6 +306,15 @@ type Snowflake_Dialect
         Value_Type.Date_Time _ -> True
         _                      -> False
 
+    ## PRIVATE
+       In Snowflake we need to create tables outside of transactions.
+       However, currently we decide to opt-out of the integrity check for
+       performance reasons - there is too much overhead to each query. The check
+       would fail extremely rarely so it currently does not seem worth the cost.
+       We can revisit this choice in the future.
+    should_check_table_integrity_at_beginning_of_transaction self -> Boolean =
+        False
+
 ## PRIVATE
 make_dialect_operations =
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]

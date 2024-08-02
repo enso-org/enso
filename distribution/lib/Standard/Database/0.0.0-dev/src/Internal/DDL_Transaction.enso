@@ -96,16 +96,8 @@ private create_tables_outside_transaction connection (tables : Vector Transactio
         # If there were no errors, we now run the callback inside of a proper transaction.
         result = created.if_not_error <|
             connection.jdbc_connection.run_within_transaction <|
-                created.each created_table->
-                    ## We use a trick here - `is_trivial_query` checks if the current table definition and the one returned by `connection.query` are matching.
-                       This allows us to ensure that in the short time between creating the table outside transaction and entering the transaction, no one else modified the table structure.
-                       Additionally, we check that no other actors inserted any data into the table - the table was newly created so the row count should be 0.
-                    was_changed_in_the_meantime = created_table.is_trivial_query.not || (created_table.row_count != 0)
-                    if was_changed_in_the_meantime then
-                        ## Technically we could try recovery - restart the whole creation process from beginning.
-                           But this should be an extremely rare occurrence and hard to test - so it's likely better to
-                           keep it simple and just tell the user to retry.
-                        Panic.throw (Illegal_State.Error "During a table modification operation, unexpected external table modifications occurred, breaking operation invariants. The operation was aborted. Please retry.")
+                if connection.dialect.should_check_table_integrity_at_beginning_of_transaction then
+                    created.each check_table_integrity
                 callback created
 
         ## If the operation failed, we clean up all the tables we created.
@@ -119,3 +111,18 @@ private cleanup_tables_silently connection table_names = Context.Output.with_ena
 
 private cleanup_transaction_scoped_tables connection tables = Context.Output.with_enabled <|
     tables.each (t-> if t.remove_after_transaction then connection.drop_table t.name if_exists=True)
+
+## PRIVATE
+   A helper that checks if the table was not modified between its creation and entering the transaction.
+   Only applicable to `create_tables_outside_transaction`.
+check_table_integrity created_table =
+    ## We use a trick here - `is_trivial_query` checks if the current table definition and the one returned by `connection.query` are matching.
+       This allows us to ensure that in the short time between creating the table outside transaction and entering the transaction, no one else modified the table structure.
+       Additionally, we check that no other actors inserted any data into the table - the table was newly created so the row count should be 0.
+       TODO: this performs 2 DB queries, it could be optimized to do the check in just 1.
+    was_changed_in_the_meantime = created_table.is_trivial_query.not || (created_table.row_count != 0)
+    if was_changed_in_the_meantime then
+        ## Technically we could try recovery - restart the whole creation process from beginning.
+           But this should be an extremely rare occurrence and hard to test - so it's likely better to
+           keep it simple and just tell the user to retry.
+        Panic.throw (Illegal_State.Error "During a table modification operation, unexpected external table modifications occurred, breaking operation invariants. The operation was aborted. Please retry.")
