@@ -905,7 +905,6 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
     }
     let error = match Spacing::of_tree(&arg) {
         Spacing::Spaced => None,
-        Spacing::Unspaced if matches!(arg.variant, Variant::SuspendedDefaultArguments(_)) => None,
         Spacing::Unspaced => Some("Space required between terms."),
     };
     maybe_with_error(Tree::app(func, arg), error)
