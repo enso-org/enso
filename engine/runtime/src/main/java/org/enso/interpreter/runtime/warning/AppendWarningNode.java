@@ -2,14 +2,12 @@ package org.enso.interpreter.runtime.warning;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.Cached.Exclusive;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
@@ -122,8 +120,10 @@ public abstract class AppendWarningNode extends Node {
     var maxWarns = withWarnings.maxWarnings;
     var warnsMap = withWarnings.warnings;
     var curWarnsCnt = warnsMap.getHashSize();
-    warnsMap = mapInsertAllNode.executeInsertAll(frame, warnsMap, newWarnsMap, maxWarns - curWarnsCnt);
-    var isLimitReached = withWarnings.warnings.getHashSize() + newWarnsMap.getHashSize() >= maxWarns;
+    warnsMap =
+        mapInsertAllNode.executeInsertAll(frame, warnsMap, newWarnsMap, maxWarns - curWarnsCnt);
+    var isLimitReached =
+        withWarnings.warnings.getHashSize() + newWarnsMap.getHashSize() >= maxWarns;
     return new WithWarnings(withWarnings.value, withWarnings.maxWarnings, isLimitReached, warnsMap);
   }
 
