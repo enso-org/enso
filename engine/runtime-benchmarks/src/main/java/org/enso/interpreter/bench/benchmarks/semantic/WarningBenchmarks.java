@@ -73,14 +73,19 @@ public class WarningBenchmarks {
 
     benchmarkName = SrcUtil.findName(params);
 
-    var code =
-        new StringBuilder(
-            """
+    var benchCode =
+        """
         from Standard.Base import all
 
         vec_sum_bench : Vector Integer -> Integer
         vec_sum_bench vec =
             vec.fold 0 (x->y->x+y)
+        """;
+
+    var setupCode =
+        new StringBuilder(
+            """
+        from Standard.Base import all
 
         create_vec size elem =
             Vector.fill size elem
@@ -103,31 +108,37 @@ public class WarningBenchmarks {
     var randomIntVectorName = "vector_with_random_values";
     var vectorWithRandomValues =
         generateRandomVector(random, randomIntVectorName, INPUT_DIFF_VEC_SIZE, 3_000);
-    code.append(vectorWithRandomValues.repr());
+    setupCode.append(vectorWithRandomValues.repr());
     randomVectorSum = vectorWithRandomValues.sum();
 
-    var src = SrcUtil.source(benchmarkName, code.toString());
-    Value module = ctx.eval(src);
-    vecSumBench =
-        Objects.requireNonNull(
-            module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "vec_sum_bench"));
+    var setupSrc = SrcUtil.source(benchmarkName + "_Setup", setupCode.toString());
+    Value setupModule = ctx.eval(setupSrc);
     createVec =
         Objects.requireNonNull(
-            module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "create_vec"));
+            setupModule.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "create_vec"));
     mapVecWithWarnings =
         Objects.requireNonNull(
-            module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "map_vector_with_warnings"));
+            setupModule.invokeMember(
+                MethodNames.Module.EVAL_EXPRESSION, "map_vector_with_warnings"));
     constElem =
-        Objects.requireNonNull(module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "elem"));
+        Objects.requireNonNull(
+            setupModule.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "elem"));
     constElemWithWarning =
         Objects.requireNonNull(
-            module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "elem_const_with_warning"));
+            setupModule.invokeMember(
+                MethodNames.Module.EVAL_EXPRESSION, "elem_const_with_warning"));
     noWarningsVec = createVec.execute(INPUT_VEC_SIZE, constElem);
     sameWarningVec = createVec.execute(INPUT_VEC_SIZE, constElemWithWarning);
     randomVec =
         Objects.requireNonNull(
-            module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, randomIntVectorName));
+            setupModule.invokeMember(MethodNames.Module.EVAL_EXPRESSION, randomIntVectorName));
     randomElemsWithWarningsVec = mapVecWithWarnings.execute(randomVec);
+
+    var benchSrc = SrcUtil.source(benchmarkName + "_Bench", benchCode);
+    Value benchModule = ctx.eval(benchSrc);
+    vecSumBench =
+        Objects.requireNonNull(
+            benchModule.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "vec_sum_bench"));
   }
 
   @TearDown
