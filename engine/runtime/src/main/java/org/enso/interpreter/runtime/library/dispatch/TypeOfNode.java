@@ -70,8 +70,8 @@ public abstract class TypeOfNode extends Node {
   }
 
   @Specialization
-  Object doWarning(WithWarnings value) {
-    return execute(value.getValue());
+  Object doWarning(WithWarnings value, @Cached TypeOfNode withoutWarning) {
+    return withoutWarning.execute(value.getValue());
   }
 
   static boolean isWithoutType(Object value, TypesLibrary types) {
