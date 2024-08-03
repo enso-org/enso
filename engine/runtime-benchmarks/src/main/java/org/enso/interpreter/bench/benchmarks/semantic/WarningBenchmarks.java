@@ -87,20 +87,20 @@ public class WarningBenchmarks {
             """
         from Standard.Base import all
 
-        create_vec size elem =
+        create_vec size elem = Runtime.no_inline <|
             Vector.fill size elem
 
         elem =
             42
 
-        elem_const_with_warning =
+        elem_const_with_warning = Runtime.no_inline <|
             x = 42
             Warning.attach "Foo!" x
 
-        elem_with_warning v =
+        elem_with_warning v = Runtime.no_inline <|
             Warning.attach "Foo!" v
 
-        map_vector_with_warnings vec =
+        map_vector_with_warnings vec = Runtime.no_inline <|
             vec.map (e-> elem_with_warning e)
         """);
 
