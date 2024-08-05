@@ -525,7 +525,7 @@ add_specs suite_builder =
 
     suite_builder.group "caching" group_builder->
         group_builder.specify "Replacer cache drops old values" <|
-            pattern = Regex.compile('([a-c])')
+            pattern = Regex.compile '([a-c])'
 
             # Add enough values to flush out the first values.
             0.up_to get_lru_size+1 . map i->

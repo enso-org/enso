@@ -210,11 +210,6 @@ const baseCases: ApplySuggestionCase[] = [
     expected: 'Data.Vector.new ',
   },
   {
-    code: 'Dat . V .',
-    suggestion: makeStaticMethod('Standard.Base.Data.Vector.new'),
-    expected: 'Data . Vector . new ',
-  },
-  {
     code: '(type_method some_arg).Vector.',
     suggestion: makeStaticMethod('Standard.Base.Data.Vector.new'),
     expected: '(type_method some_arg).Vector.new ',
@@ -238,6 +233,15 @@ const baseCases: ApplySuggestionCase[] = [
     code: 'a -> a.',
     suggestion: makeMethod('Standard.Base.Data.Vector.get'),
     expected: 'a -> a.get ',
+  },
+]
+const simpleCases: ApplySuggestionCase[] = [
+  ...baseCases,
+  // This case would cause a syntax error if a spaced-operator suffix were added.
+  {
+    code: 'Dat . V .',
+    suggestion: makeStaticMethod('Standard.Base.Data.Vector.new'),
+    expected: 'Data . Vector . new ',
   },
 ]
 
