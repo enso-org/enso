@@ -25,6 +25,10 @@ public abstract class AppendWarningNode extends Node {
     return AppendWarningNodeGen.create();
   }
 
+  public static AppendWarningNode getUncached() {
+    return AppendWarningNodeGen.getUncached();
+  }
+
   /**
    * Appends a warning to the given object.
    *
