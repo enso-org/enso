@@ -1,7 +1,7 @@
 package org.enso.interpreter.runtime.warning;
 
-import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
@@ -68,8 +68,8 @@ public final class Warning implements EnsoObject {
   }
 
   /** Slow version of {@link #fromMapToArray(EnsoHashMap, ArrayLikeLengthNode, ArrayLikeAtNode)}. */
+  @TruffleBoundary
   public static Warning[] fromMapToArray(EnsoHashMap map) {
-    CompilerAsserts.neverPartOfCompilation("Converting warngins to Warning[] is slow!");
     return fromMapToArray(map, ArrayLikeLengthNode.getUncached(), ArrayLikeAtNode.getUncached());
   }
 
