@@ -25,6 +25,8 @@ use crate::syntax::Item;
 use crate::syntax::Token;
 use crate::syntax::Tree;
 
+pub use function_def::parse_args;
+
 /// Parses normal statements.
 #[derive(Debug, Default)]
 pub struct BodyBlockParser<'s> {

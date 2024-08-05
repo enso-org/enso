@@ -629,17 +629,16 @@ fn code_block_operator() {
     test(code.join("\n"), expect);
 }
 
-/*
 #[test]
 fn dot_operator_blocks() {
-    let code = ["rect1", "    . width = 7", "    . center", "        + x"];
+    let code = ["rect1", "    . width * 7", "    . abs", "        + x"];
     test!(code.join("\n"),
         (OperatorBlockApplication (Ident rect1)
-         #(((Ok ".") (OprApp (Ident width) (Ok "=") (Number () "7" ())))
-           ((Ok ".") (OperatorBlockApplication (Ident center)
+         #(((Ok ".") (OprApp (Ident width) (Ok "*") (Number () "7" ())))
+           ((Ok ".") (OperatorBlockApplication (Ident abs)
                      #(((Ok "+") (Ident x))) #()))) #()));
+    expect_invalid_node("rect1\n    . width = 7");
 }
- */
 
 #[test]
 fn code_block_argument_list() {
@@ -1244,8 +1243,32 @@ fn interpolated_literals_in_multiline_text() {
 
 #[test]
 fn new_lambdas() {
-    test!(r#"\v -> v"#, (Lambda "\\" (OprApp (Ident v) (Ok "->") (Ident v))));
-    test!(r#"\a b -> x"#, (Lambda "\\" (OprApp (App (Ident a) (Ident b)) (Ok "->") (Ident x))));
+    test!(r#"\v-> v"#, (Lambda "\\" #((() (Ident v) () ())) "->" (Ident v)));
+    test!(r#"\ v -> v"#, (Lambda "\\" #((() (Ident v) () ())) "->" (Ident v)));
+    test!(r#"\v -> v"#, (Lambda "\\" #((() (Ident v) () ())) "->" (Ident v)));
+    test!(r#"\ v-> v"#, (Lambda "\\" #((() (Ident v) () ())) "->" (Ident v)));
+    test!(r#"\ x -> x + y"#,
+        (Lambda "\\" #((() (Ident x) () ())) "->" (OprApp (Ident x) (Ok "+") (Ident y))));
+    test!("\\v->\n    v", (Lambda "\\" #((() (Ident v) () ())) "->" (BodyBlock #((Ident v)))));
+    test!("\\ v ->\n    v", (Lambda "\\" #((() (Ident v) () ())) "->" (BodyBlock #((Ident v)))));
+    test!("f \\ v ->\n    v",
+        (App (Ident f) (Lambda "\\" #((() (Ident v) () ())) "->" (BodyBlock #((Ident v))))));
+    test!(r#"\a b -> x"#,
+        (Lambda "\\" #((() (Ident a) () ()) (() (Ident b) () ())) "->" (Ident x)));
+    test!(r#"\~x -> x"#, (Lambda "\\" #(("~" (Ident x) () ())) "->" (Ident x)));
+    test!(r#"\a (b = f _ 1) -> f a"#,
+        (Lambda "\\"
+         #((() (Ident a) () ())
+           (() (Ident b) ()
+               ((App (App (Ident f) (TemplateFunction 1 (Wildcard 0)))
+                     (Number () "1" ())))))
+         "->" (App (Ident f) (Ident a))));
+    expect_invalid_node("\\");
+    expect_invalid_node("\\ v");
+    expect_invalid_node("\\v");
+    expect_invalid_node("\\v->");
+    expect_invalid_node("\\v->\n");
+    expect_invalid_node("\\v->\nv");
 }
 
 #[test]
@@ -1612,6 +1635,17 @@ fn skip() {
                          (App (OprApp (Ident x) (Ok ".") (Ident f)) (Ident y))))));
 }
 
+// === Context errors ===
+
+#[test]
+fn statement_in_expression_context() {
+    test!("x = y = z", (Assignment (Ident x) (Invalid)));
+    test!("(y = z)", (Group (Invalid)));
+    test!("(y = z) x", (App (Group (Invalid)) (Ident x)));
+    test!("(f x = x)", (Group (Invalid)));
+    test!("y = f x = x", (Assignment (Ident y) (Invalid)));
+}
+
 
 
 // =========================
@@ -1857,6 +1891,7 @@ impl Errors {
 /// Checks that an input contains an `Invalid` node somewhere.
 fn expect_invalid_node(code: &str) {
     let ast = enso_parser::Parser::new().run(code);
+    expect_tree_representing_code(code, &ast);
     let errors = Errors::collect(&ast, code);
     assert!(errors.invalid_node, "{}", to_s_expr(&ast, code));
 }
@@ -1864,6 +1899,7 @@ fn expect_invalid_node(code: &str) {
 /// Checks that an input contains a multiple-operator error somewhere.
 fn expect_multiple_operator_error(code: &str) {
     let ast = enso_parser::Parser::new().run(code);
+    expect_tree_representing_code(code, &ast);
     let errors = Errors::collect(&ast, code);
     assert!(errors.multiple_operator || errors.invalid_node, "{}", to_s_expr(&ast, code));
     assert!(errors.multiple_operator, "{:?}", ast);
@@ -1872,6 +1908,7 @@ fn expect_multiple_operator_error(code: &str) {
 /// Check that the input can be parsed, and doesn't yield any `Invalid` nodes.
 fn expect_valid(code: &str) {
     let ast = enso_parser::Parser::new().run(code);
+    expect_tree_representing_code(code, &ast);
     let errors = Errors::collect(&ast, code);
     assert!(!errors.invalid_node);
 }

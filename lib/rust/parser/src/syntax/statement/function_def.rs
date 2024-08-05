@@ -14,6 +14,7 @@ use crate::syntax::tree::ArgumentDefinitionLine;
 use crate::syntax::tree::ArgumentType;
 use crate::syntax::tree::ReturnSpecification;
 use crate::syntax::tree::SyntaxError;
+use crate::syntax::treebuilding::Spacing;
 use crate::syntax::Item;
 use crate::syntax::Token;
 use crate::syntax::Tree;
@@ -48,6 +49,27 @@ pub fn parse_function_decl<'s>(
     let qn = precedence.resolve_non_section_offset(start, items).unwrap();
 
     (qn, args, return_)
+}
+
+/// Parse a sequence of argument definitions.
+pub fn parse_args<'s>(
+    items: &mut Vec<Item<'s>>,
+    start: usize,
+    precedence: &mut Precedence<'s>,
+) -> Vec<ArgumentDefinition<'s>> {
+    let mut arg_starts = vec![];
+    for (i, item) in items.iter().enumerate().skip(start) {
+        if i == start || matches!(Spacing::of_item(item), Spacing::Spaced) {
+            arg_starts.push(i);
+        }
+    }
+    let mut defs: Vec<_> = arg_starts
+        .drain(..)
+        .rev()
+        .map(|arg_start| parse_arg_def(items, arg_start, precedence))
+        .collect();
+    defs.reverse();
+    defs
 }
 
 pub fn parse_constructor_definition<'s>(
@@ -197,7 +219,6 @@ enum IsParenthesized {
     Parenthesized,
     Unparenthesized,
 }
-use crate::syntax::treebuilding::Spacing;
 use IsParenthesized::*;
 
 struct ArgDefInfo {

@@ -293,8 +293,10 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         },
         /// A lambda expression.
         Lambda {
-            pub operator: token::LambdaOperator<'s>,
-            pub arrow: Option<Tree<'s>>,
+            pub backslash: token::LambdaOperator<'s>,
+            pub arguments: Vec<ArgumentDefinition<'s>>,
+            pub arrow: token::ArrowOperator<'s>,
+            pub body: Tree<'s>,
         },
         /// An array literal.
         Array {

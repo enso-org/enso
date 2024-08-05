@@ -265,20 +265,22 @@ fn if_body<'s>(
 /// The lambda operator `\` is similar to a unary operator, but is implemented as a macro because it
 /// doesn't follow the whitespace precedence rules.
 pub fn lambda<'s>() -> Definition<'s> {
-    crate::macro_definition! {("\\", everything()) lambda_body}
+    crate::macro_definition! {("\\", everything(), "->", everything()) lambda_body}
 }
 
 fn lambda_body<'s>(
     segments: NonEmptyVec<MatchedSegment<'s>>,
     precedence: &mut operator::Precedence<'s>,
 ) -> syntax::Tree<'s> {
-    let (segment, _) = segments.pop();
-    let operator = segment.header;
-    let Token { left_offset, code, .. } = operator;
-    let operator = token::lambda_operator(left_offset, code);
-    let mut arrow = segment.result.tokens();
-    let arrow = precedence.resolve(&mut arrow);
-    syntax::Tree::lambda(operator, arrow)
+    let (body, mut rest) = segments.pop();
+    let arguments = rest.pop().unwrap();
+    let backslash = arguments.header.with_variant(token::variant::LambdaOperator());
+    let arguments = syntax::parse_args(&mut arguments.result.tokens(), 0, precedence);
+    let arrow = body.header.with_variant(token::variant::ArrowOperator());
+    let body_expression = precedence.resolve(&mut body.result.tokens());
+    let body_expression =
+        body_expression.unwrap_or_else(|| expected_nonempty(arrow.code.position_after()));
+    syntax::Tree::lambda(backslash, arguments, arrow, body_expression)
 }
 
 /// Case expression.
