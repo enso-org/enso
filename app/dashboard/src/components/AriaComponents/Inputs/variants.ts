@@ -44,8 +44,9 @@ export const INPUT_STYLES = tv({
     },
   },
   slots: {
-    addonStart: '',
-    addonEnd: '',
+    addonStart: 'flex items-center mt-[-1px]',
+    addonEnd: 'flex items-center mt-[-1px]',
+    content: 'flex items-center gap-2',
     inputContainer: TEXT_STYLE({
       className: 'flex w-full items-center max-h-32 min-h-6 relative overflow-auto',
       variant: 'body',

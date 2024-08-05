@@ -1,6 +1,5 @@
 /** @file Login component responsible for rendering and interactions in sign in flow. */
 import * as router from 'react-router-dom'
-import * as z from 'zod'
 
 import { CLOUD_DASHBOARD_DOMAIN } from 'enso-common'
 import isEmail from 'validator/lib/isEmail'
@@ -11,20 +10,12 @@ import GithubIcon from '#/assets/github.svg'
 import GoogleIcon from '#/assets/google.svg'
 import { Button, Form, Input } from '#/components/AriaComponents'
 import Link from '#/components/Link'
-import TextLink from '#/components/TextLink'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
+import { passwordSchema } from '#/pages/authentication/schemas'
 import { useAuth } from '#/providers/AuthProvider'
 import { useLocalBackend } from '#/providers/BackendProvider'
 import { type GetText, useText } from '#/providers/TextProvider'
 import { useMutation } from '@tanstack/react-query'
-
-/** Create the schema for this page. */
-function createLoginFormSchema(getText: GetText) {
-  return z.object({
-    email: z.string().refine(isEmail, getText('invalidEmailValidationError')),
-    password: z.string(),
-  })
-}
 
 // =============
 // === Login ===
@@ -89,34 +80,48 @@ export default function Login() {
           {getText('signUpOrLoginWithGitHub')}
         </Button>
       </div>
-      <div />
+
       <Form
-        schema={createLoginFormSchema(getText)}
-        className="flex flex-col gap-6"
+        schema={(z) =>
+          z.object({
+            email: z
+              .string()
+              .min(1, getText('arbitraryFieldRequired'))
+              .email(getText('invalidEmailValidationError')),
+            password: passwordSchema(getText),
+          })
+        }
+        gap="medium"
         onSubmit={(values) => signInWithPassword(values)}
       >
         <Input
           autoFocus
           required
           name="email"
+          label={getText('email')}
           type="email"
           autoComplete="email"
           defaultValue={initialEmail ?? undefined}
           placeholder={getText('emailPlaceholder')}
         />
+
         <div className="flex w-full flex-col">
           <Input
             required
+            label={getText('password')}
             name="password"
             type="password"
             autoComplete="current-password"
             placeholder={getText('passwordPlaceholder')}
-            error={getText('passwordValidationError')}
           />
-          <TextLink to={FORGOT_PASSWORD_PATH} text={getText('forgotYourPassword')} />
+
+          <Button variant="link" href={FORGOT_PASSWORD_PATH} size="small" className="self-end">
+            {getText('forgotYourPassword')}
+          </Button>
         </div>
 
         <Form.FormError />
+
         <Form.Submit className="w-full">{getText('login')}</Form.Submit>
       </Form>
     </AuthenticationPage>

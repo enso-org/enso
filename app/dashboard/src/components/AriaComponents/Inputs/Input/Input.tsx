@@ -134,17 +134,19 @@ export const Input = React.forwardRef(function Input<
         className={classes.base()}
         onClick={() => privateInputRef.current?.focus({ preventScroll: true })}
       >
-        <div className={classes.inputContainer()}>
+        <div className={classes.content()}>
           {addonStart != null && <div className={classes.addonStart()}>{addonStart}</div>}
 
-          <aria.Input
-            ref={mergeRefs.mergeRefs(inputRef, privateInputRef, fieldRef)}
-            {...aria.mergeProps<aria.InputProps>()(
-              { className: classes.textArea(), type, name, min, max, isRequired, isDisabled },
-              inputProps,
-              omit(field, 'required', 'disabled'),
-            )}
-          />
+          <div className={classes.inputContainer()}>
+            <aria.Input
+              ref={mergeRefs.mergeRefs(inputRef, privateInputRef, fieldRef)}
+              {...aria.mergeProps<aria.InputProps>()(
+                { className: classes.textArea(), type, name, min, max, isRequired, isDisabled },
+                inputProps,
+                omit(field, 'required', 'disabled'),
+              )}
+            />
+          </div>
 
           {addonEnd != null && <div className={classes.addonEnd()}>{addonEnd}</div>}
         </div>
