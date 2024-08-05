@@ -357,10 +357,7 @@ impl Processor {
                             repo_root.app.dashboard.playwright_report,
                             "dashboard-playwright-report",
                         );
-                        let (gui_result, dashboard_result) =
-                            std::future::join!(gui_report, dashboard_report).await;
-                        gui_result?;
-                        dashboard_result?;
+                        try_join!(gui_report, dashboard_report)?;
                     }
                     check_result
                 }
@@ -788,9 +785,7 @@ pub async fn main_internal(config: Option<Config>) -> Result {
                 enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::Format);
             let our_formatter =
                 enso_formatter::process_path(&ctx.repo_root, enso_formatter::Action::Format);
-            let (r1, r2) = join!(prettier, our_formatter).await;
-            r1?;
-            r2?;
+            try_join!(prettier, our_formatter)?;
         }
         Target::Release(release) => match release.action {
             Action::CreateDraft => {
