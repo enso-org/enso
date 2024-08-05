@@ -349,16 +349,18 @@ impl Processor {
                         enso_build::web::run_script(&repo_root, enso_build::web::Script::CiCheck)
                             .await;
                     if is_in_env() {
-                        ide_ci::actions::artifacts::upload_directory(
+                        let gui_report = ide_ci::actions::artifacts::upload_directory(
                             &repo_root.app.gui_2.playwright_report,
                             "gui-playwright-report",
-                        )
-                        .await?;
-                        ide_ci::actions::artifacts::upload_directory(
+                        );
+                        let dashboard_report = ide_ci::actions::artifacts::upload_directory(
                             repo_root.app.dashboard.playwright_report,
                             "dashboard-playwright-report",
-                        )
-                        .await?;
+                        );
+                        let (gui_result, dashboard_result) =
+                            std::future::join!(gui_report, dashboard_report).await;
+                        gui_result?;
+                        dashboard_result?;
                     }
                     check_result
                 }
