@@ -476,7 +476,7 @@ fn sequence<'s>(
 ) -> (Option<syntax::Tree<'s>>, Vec<syntax::tree::OperatorDelimitedTree<'s>>) {
     use syntax::tree::*;
     let mut rest = vec![];
-    if tokens.len() > 0 {
+    if !tokens.is_empty() {
         let mut i = tokens.len() - 1;
         loop {
             if let Item::Token(Token { variant: token::Variant::CommaOperator(_), .. }) =
