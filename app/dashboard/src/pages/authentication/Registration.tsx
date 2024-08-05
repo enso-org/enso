@@ -10,12 +10,13 @@ import GoBackIcon from '#/assets/go_back.svg'
 import { Form, Input } from '#/components/AriaComponents'
 import Link from '#/components/Link'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
+import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
 import { useAuth } from '#/providers/AuthProvider'
 import { useLocalBackend } from '#/providers/BackendProvider'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import { type GetText, useText } from '#/providers/TextProvider'
 import LocalStorage from '#/utilities/LocalStorage'
-import { PASSWORD_PATTERN, PASSWORD_REGEX } from '#/utilities/validation'
+import { PASSWORD_PATTERN } from '#/utilities/validation'
 
 // ============================
 // === Global configuration ===
@@ -38,9 +39,7 @@ function createRegistrationFormSchema(getText: GetText) {
   return z
     .object({
       email: z.string().refine(isEmail, getText('invalidEmailValidationError')),
-      password: z
-        .string()
-        .refine((password) => PASSWORD_REGEX.test(password), getText('passwordValidationError')),
+      password: passwordWithPatternSchema(getText),
       confirmPassword: z.string(),
     })
     .refine(

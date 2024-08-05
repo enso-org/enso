@@ -12,10 +12,10 @@ import { Form, Input } from '#/components/AriaComponents'
 import Link from '#/components/Link'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
+import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
 import { useAuth } from '#/providers/AuthProvider'
 import { useLocalBackend } from '#/providers/BackendProvider'
 import { type GetText, useText } from '#/providers/TextProvider'
-import { PASSWORD_REGEX } from '#/utilities/validation'
 
 /** Create the schema for this page. */
 function createResetPasswordFormSchema(getText: GetText) {
@@ -23,9 +23,7 @@ function createResetPasswordFormSchema(getText: GetText) {
     .object({
       email: z.string().refine(isEmail, getText('invalidEmailValidationError')),
       verificationCode: z.string(),
-      newPassword: z
-        .string()
-        .refine((password) => PASSWORD_REGEX.test(password), getText('passwordValidationError')),
+      newPassword: passwordWithPatternSchema(getText),
       confirmNewPassword: z.string(),
     })
     .refine(
