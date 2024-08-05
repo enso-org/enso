@@ -76,7 +76,7 @@ public final class Warning implements EnsoObject {
   public static Warning[] fromMapToArray(
       EnsoHashMap map, ArrayLikeLengthNode lengthNode, ArrayLikeAtNode atNode) {
     var vec = map.getCachedVectorRepresentation();
-    var vecLen = Math.toIntExact(lengthNode.executeLength(vec));
+    var vecLen = (int) lengthNode.executeLength(vec);
     Warning[] warns = new Warning[vecLen];
     try {
       for (int i = 0; i < vecLen; i++) {
