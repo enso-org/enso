@@ -892,6 +892,7 @@ export async function mockAllAndLoginAndExposeAPI({ page, setupAPI }: MockParams
   return await test.test.step('Execute all mocks and login', async () => {
     const api = await mockApi({ page, setupAPI })
     await mockDate({ page, setupAPI })
+    await page.goto('/')
     await login({ page, setupAPI })
     return api
   })
