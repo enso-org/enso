@@ -10,6 +10,6 @@ export default defineConfig({
     },
   },
   resolve: {
-    conditions: ['sources'],
+    conditions: ['source'],
   },
 })
