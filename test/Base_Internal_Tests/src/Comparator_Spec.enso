@@ -2,12 +2,10 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-polyglot java import org.enso.base.ObjectComparator
-
-polyglot java import org.enso.base.CompareException
-
 from Standard.Test import all
 
+import Standard.Base.Internal.Extra_Imports.ObjectComparator
+import Standard.Base.Internal.Extra_Imports.CompareException
 
 # === Test Resources ===
 
