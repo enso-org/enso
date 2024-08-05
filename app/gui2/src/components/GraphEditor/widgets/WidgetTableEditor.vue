@@ -30,7 +30,9 @@ const grid = ref<
 
 const { rowData, columnDefs } = useTableNewArgument(() => props.input, graph, props.onUpdate)
 
-const editHandler = WidgetEditHandler.New('WidgetTableEditor', props.input, {
+// === Edit Handlers ===
+
+const cellEditHandler = WidgetEditHandler.New('WidgetTableEditor.cellEditHandler', props.input, {
   cancel() {
     grid.value?.gridApi?.stopEditing(true)
   },
@@ -38,10 +40,28 @@ const editHandler = WidgetEditHandler.New('WidgetTableEditor', props.input, {
     grid.value?.gridApi?.stopEditing(false)
   },
   pointerdown(event) {
-    if (targetIsOutside(event, unrefElement(grid))) editHandler.end()
+    if (targetIsOutside(event, unrefElement(grid))) cellEditHandler.end()
     return false
   },
 })
+
+let stopHeaderEditing: ((cancel: boolean) => void) | undefined
+const headerEditHandler = WidgetEditHandler.New(
+  'WidgetTableEditor.headerEditHandler',
+  props.input,
+  {
+    cancel() {
+      stopHeaderEditing?.(true)
+    },
+    end() {
+      stopHeaderEditing?.(false)
+    },
+    pointerdown(event) {
+      if (targetIsOutside(event, unrefElement(grid))) cellEditHandler.end()
+      return false
+    },
+  },
+)
 
 // === Resizing ===
 
@@ -89,8 +109,15 @@ export const widgetDefinition = defineWidget(
         editable: true,
         resizable: true,
         headerComponentParams: {
-          onNameChanged: (colId: string, newName: string) =>
-            console.log('Received', colId, newName),
+          onHeaderEditingStarted(stopCb: (cancel: boolean) => void) {
+            // If another header is edited, stop it
+            headerEditHandler.end()
+            stopHeaderEditing = stopCb
+            headerEditHandler.start()
+          },
+          onHeaderEditingStopped() {
+            headerEditHandler.end()
+          },
         },
       }"
       :columnDefs="columnDefs"
@@ -99,10 +126,10 @@ export const widgetDefinition = defineWidget(
       :components="{ agColumnHeader: TableHeader }"
       @keydown.enter.stop
       @keydown.escape.stop
-      @cellEditingStarted="editHandler.start()"
-      @cellEditingStopped="editHandler.end()"
-      @rowEditingStarted="editHandler.start()"
-      @rowEditingStopped="editHandler.end()"
+      @cellEditingStarted="cellEditHandler.start()"
+      @cellEditingStopped="cellEditHandler.end()"
+      @rowEditingStarted="cellEditHandler.start()"
+      @rowEditingStopped="cellEditHandler.end()"
       @pointerdown.stop
       @click.stop
     />

@@ -5,6 +5,8 @@ import { ref, watch } from 'vue'
 export interface HeaderParams {
   nameSetter?: (newName: string) => void
   virtualColumn?: boolean
+  onHeaderEditingStarted?: (stop: (cancel: boolean) => void) => void
+  onHeaderEditingStopped?: () => void
 }
 </script>
 
@@ -16,6 +18,17 @@ const props = defineProps<{
 const editing = ref(false)
 const inputElement = ref<HTMLInputElement>()
 
+watch(editing, (newVal, oldVal) => {
+  if (newVal && !oldVal) {
+    props.params.onHeaderEditingStarted?.((cancel: boolean) => {
+      if (cancel) editing.value = false
+      else acceptNewName()
+    })
+  } else {
+    props.params.onHeaderEditingStopped?.()
+  }
+})
+
 watch(inputElement, (newVal, oldVal) => {
   if (newVal != null && oldVal == null) {
     // Whenever input field appears, focus and select text
@@ -24,11 +37,13 @@ watch(inputElement, (newVal, oldVal) => {
   }
 })
 
-function changeName(newName: string) {
-  console.log('Setting new column name', props.params.column.getColId(), newName)
-  props.params.nameSetter?.(newName)
+function acceptNewName() {
+  if (inputElement.value == null) {
+    console.error('Tried to accept header new name without input element!')
+    return
+  }
+  props.params.nameSetter?.(inputElement.value.value)
   editing.value = false
-  props.params.api.stopEditing
 }
 </script>
 
@@ -40,7 +55,7 @@ function changeName(newName: string) {
         ref="inputElement"
         class="ag-input-field-input ag-text-field-input"
         :value="params.displayName"
-        @change="changeName(($event.target as HTMLInputElement).value)"
+        @change="acceptNewName()"
         @keydown.arrow-left.stop
         @keydown.arrow-right.stop
         @keydown.arrow-up.stop

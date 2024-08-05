@@ -567,7 +567,8 @@ test('Table widget', async ({ page }) => {
   await widget.locator('.ag-cell').dblclick()
   await page.keyboard.type('Value')
   await page.keyboard.press('Enter')
-  // There will be new blank column and new blank row allowing adding new columns and rows (so 4 cells in total)
+  // There will be new blank column and new blank row allowing adding new columns and rows
+  // (so 4 cells in total)
   await expect(widget.locator('.ag-header-cell-text')).toHaveText(['New Column', 'New Column'])
   await expect(widget.locator('.ag-cell')).toHaveText(['Value', '', '', ''])
 
@@ -576,4 +577,17 @@ test('Table widget', async ({ page }) => {
   await page.keyboard.type('Header')
   await page.keyboard.press('Enter')
   await expect(widget.locator('.ag-header-cell-text')).toHaveText(['Header', 'New Column'])
+
+  // Switching edit between cells and headers - check we will never edit two things at once.
+  await expect(widget.locator('.ag-text-field-input')).toHaveCount(0)
+  await widget.locator('.ag-header-cell-text').first().dblclick()
+  await expect(widget.locator('.ag-text-field-input')).toHaveCount(1)
+  await widget.locator('.ag-cell').first().dblclick()
+  await expect(widget.locator('.ag-text-field-input')).toHaveCount(1)
+  await widget.locator('.ag-header-cell-text').first().dblclick()
+  await expect(widget.locator('.ag-text-field-input')).toHaveCount(1)
+  await widget.locator('.ag-header-cell-text').last().dblclick()
+  await expect(widget.locator('.ag-text-field-input')).toHaveCount(1)
+  await page.keyboard.press('Escape')
+  await expect(widget.locator('.ag-text-field-input')).toHaveCount(0)
 })
