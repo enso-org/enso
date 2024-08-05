@@ -76,7 +76,7 @@ type Enso_File
     ## ICON folder
        Represents the root folder of the current users.
     root : Enso_File
-    root = Enso_File.Value (Enso_Path.root_for Enso_User.current.organization_name)
+    root = Enso_File.Value Enso_Path.root
 
     ## ICON folder
        Represents the current working directory.
@@ -403,10 +403,6 @@ type Enso_File
     / : Text -> Enso_File ! Not_Found
     / self (name : Text) -> Enso_File ! Not_Found =
         Enso_File.Value (self.enso_path.resolve name)
-
-    ## PRIVATE
-    is_current_user_root self -> Boolean =
-        self.enso_path.is_root && self.enso_path.organization_name == Enso_User.current.organization_name
 
     ## PRIVATE
        Returns the text representation of the file descriptor.
