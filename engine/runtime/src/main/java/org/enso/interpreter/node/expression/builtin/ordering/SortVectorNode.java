@@ -146,7 +146,7 @@ public abstract class SortVectorNode extends Node {
     try {
       return sortPrimitiveVector(elems, javaComparator);
     } catch (CompareException e) {
-      return DataflowError.withoutTrace(
+      return DataflowError.withDefaultTrace(
           incomparableValuesError(e.leftOperand, e.rightOperand), this);
     }
   }
@@ -266,7 +266,7 @@ public abstract class SortVectorNode extends Node {
                 ctx.getBuiltins()
                     .error()
                     .makeIncomparableValues(firstIncomparableElem, secondIncomparableElem);
-            return DataflowError.withoutTrace(err, this);
+            return DataflowError.withDefaultTrace(err, this);
           } else {
             // Just one comparator, different from Default_Comparator
             if (!gatheredWarnings.isEmpty()) {
@@ -289,7 +289,7 @@ public abstract class SortVectorNode extends Node {
         default -> throw EnsoContext.get(this).raiseAssertionPanic(this, "unreachable", null);
       }
     } catch (CompareException e) {
-      return DataflowError.withoutTrace(
+      return DataflowError.withDefaultTrace(
           incomparableValuesError(e.leftOperand, e.rightOperand), this);
     }
   }

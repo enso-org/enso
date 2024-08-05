@@ -11,7 +11,7 @@ from a desired _edition_. The root directory of the docker build context can be
 provided in the `docker build` command:
 
 ```bash
-docker build -t <my-custom-name> -f tools/ci/docker/DockerFile --build-context docker-tools=tools/ci/docker built-distribution/enso-engine-$VERSION-linux-amd64/enso-$VERSION
+docker build -t <my-custom-name> -f tools/ci/docker/Dockerfile --build-context docker-tools=tools/ci/docker built-distribution/enso-engine-$VERSION-linux-amd64/enso-$VERSION
 ```
 
 where for a locally built distribution on Linux it would be `VERSION=0.0.0-dev`.

@@ -35,7 +35,8 @@ class FileSystemServiceSpec
         config.storage,
         testClock,
         fileSystem,
-        gen
+        gen,
+        trash
       )
     new FileSystemService[ZIO[ZAny, +*, +*]](
       fileSystem,

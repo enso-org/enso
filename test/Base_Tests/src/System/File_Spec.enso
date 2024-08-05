@@ -12,6 +12,9 @@ import Standard.Base.System.File.Generic.Writable_File.Writable_File
 polyglot java import org.enso.base_test_helpers.FileSystemHelper
 
 from Standard.Test import all
+import Standard.Test.Test_Environment
+
+import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 
 ## We rely on a less strict equality for `File` as it is fine if a relative file gets resolved to absolute.
 File.should_equal self other frames_to_skip=0 =
@@ -360,6 +363,57 @@ add_specs suite_builder =
 
             (File.new ".").name . should_equal (File.new "." . absolute . normalize . name)
             (File.new "..").name . should_equal (File.new "." . parent . absolute . normalize . name)
+
+        current_project_root = enso_project.root
+        base_directory = current_project_root.parent
+        is_correct_working_directory = (File.current_directory . normalize . path) == current_project_root.absolute.normalize.path
+        group_builder.specify "will resolve relative paths relative to the currently running project" pending=(if is_correct_working_directory.not then "The working directory is not set-up as expected, so this test cannot run. Please run the tests using `ensoup` to ensure the working directory is correct.") <|
+            root = File.new "."
+            root.should_be_a File
+            # The `.` path should resolve to the base path
+            root.absolute.normalize.path . should_equal base_directory.absolute.normalize.path
+
+            expected_file = base_directory / "abc" / "def.txt"
+            f = File.new "abc/def.txt"
+            f.should_be_a File
+            f.absolute.normalize.path . should_equal expected_file.absolute.normalize.path
+
+            (File.new "abc").create_directory . should_succeed
+            txt = "test-content"+Random.uuid
+            txt.write expected_file . should_succeed
+            Panic.with_finalizer expected_file.delete_if_exists <|
+                f.read_text . should_equal txt
+                Data.read "abc/def.txt" . should_equal txt
+
+        cloud_setup = Cloud_Tests_Setup.prepare
+        with_temporary_cloud_root ~action =
+            subdir = (Enso_File.root / ("my_test_CWD-" + Random.uuid.take 5)).create_directory
+            subdir.should_succeed
+            cleanup =
+                Enso_User.flush_caches
+                subdir.delete
+            Panic.with_finalizer cleanup <|
+                Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_PROJECT_DIRECTORY_PATH" subdir.path <|
+                    # Flush caches to ensure fresh dir is used
+                    Enso_User.flush_caches
+                    action
+
+        group_builder.specify "will resolve relative paths as Cloud paths if running in the Cloud" pending=cloud_setup.real_cloud_pending <|
+            with_temporary_cloud_root <|
+                root = File.new "."
+                root.should_be_a Enso_File
+                root.should_equal Enso_File.current_working_directory
+
+                f = File.new "abc/def.txt"
+                f.should_be_a Enso_File
+                f.should_equal (Enso_File.current_working_directory / "abc" / "def.txt")
+
+                # Data.read should be consistent too
+                txt = "test-content"+Random.uuid
+                (File.new "abc").create_directory . should_succeed
+                txt.write f . should_succeed
+                Panic.with_finalizer f.delete_if_exists <|
+                    Data.read "abc/def.txt" . should_equal txt
 
     suite_builder.group "read_text" group_builder->
         group_builder.specify "should allow reading a UTF-8 file" <|

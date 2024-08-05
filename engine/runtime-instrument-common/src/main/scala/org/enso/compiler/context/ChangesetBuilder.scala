@@ -56,10 +56,11 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
   /** Build the changeset containing the nodes invalidated by the edits.
     *
     * @param edits the edits applied to the source
+    * @param idMap the idMap of the source
     * @return the computed changeset
     */
   @throws[CompilerError]
-  def build(edits: Seq[PendingEdit]): Changeset[A] = {
+  def build(edits: Seq[PendingEdit], idMap: Option[IdMap]): Changeset[A] = {
 
     val simpleEditOptionFromSetValue: Option[PendingEdit.SetExpressionValue] =
       edits.collect { case edit: PendingEdit.SetExpressionValue =>
@@ -117,8 +118,6 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
           case _ => None
         }
       }
-
-    val idMap = edits.flatMap(_.idMap).lastOption
 
     Changeset(source, ir, simpleUpdateOption, compute(edits.map(_.edit)), idMap)
   }

@@ -461,6 +461,7 @@ public final class Module implements EnsoObject {
    */
   void unsafeSetIdMap(IdMap idMap) {
     this.idMap = idMap;
+    this.uuidsMap = null;
   }
 
   /**

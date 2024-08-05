@@ -15,35 +15,35 @@ from project.Errors import Nothing_Value_In_Filter_Condition
 make_filter_column source_column filter_condition on_problems:Problem_Behavior =
     base_column = case filter_condition of
         # Equality
-        Equal value _ ->
+        Equal value ->
             warn_on_nothing_in_comparison filter_condition value <|
                 Warning.with_suspended source_column source_column->
                     Warning.with_suspended value value->
                         on_problems.escalate_warnings <|
                             source_column == value
-        Not_Equal value _ ->
+        Not_Equal value ->
             warn_on_nothing_in_comparison filter_condition value <|
                 Warning.with_suspended source_column source_column->
                     Warning.with_suspended value value->
                         on_problems.escalate_warnings <|
                             source_column != value
         # Nothing
-        Is_Nothing _ -> source_column.is_nothing
-        Not_Nothing _ -> source_column.is_nothing.not
+        Is_Nothing -> source_column.is_nothing
+        Not_Nothing -> source_column.is_nothing.not
         # Boolean
-        Is_True _ -> Value_Type.expect_boolean source_column <| source_column
-        Is_False _ -> Value_Type.expect_boolean source_column <| source_column.not
+        Is_True -> Value_Type.expect_boolean source_column <| source_column
+        Is_False -> Value_Type.expect_boolean source_column <| source_column.not
         # Comparisons
-        Less value _ ->
+        Less value ->
             warn_on_nothing_in_comparison filter_condition value <|
                 source_column < value
-        Equal_Or_Less value _ ->
+        Equal_Or_Less value ->
             warn_on_nothing_in_comparison filter_condition value <|
                 source_column <= value
-        Equal_Or_Greater value _ ->
+        Equal_Or_Greater value ->
             warn_on_nothing_in_comparison filter_condition value <|
                 source_column >= value
-        Greater value _ ->
+        Greater value ->
             warn_on_nothing_in_comparison filter_condition value <|
                 source_column > value
         Between lower upper _ ->
@@ -59,13 +59,14 @@ make_filter_column source_column filter_condition on_problems:Problem_Behavior =
             source_column.ends_with suffix case_sensitivity
         Contains substring case_sensitivity _ ->
             source_column.contains substring case_sensitivity
-        Is_Empty _ -> source_column.is_empty
-        Not_Empty _ -> source_column.is_empty.not
+        Is_Empty -> source_column.is_empty
+        Not_Empty -> source_column.is_empty.not
         Like pattern _ -> source_column.like pattern
         # Numeric
-        Is_Nan _ -> source_column.is_nan
-        Is_Infinite _ -> source_column.is_infinite
-        Is_Finite _ ->
+        Is_Nan -> source_column.is_nan
+        Not_Nan -> source_column.is_nan.not
+        Is_Infinite -> source_column.is_infinite
+        Is_Finite ->
             is_infinite_column = source_column.is_infinite
             is_nan_column = source_column.is_nan
             ## We check is_nan_column for error, since some Database backends may
