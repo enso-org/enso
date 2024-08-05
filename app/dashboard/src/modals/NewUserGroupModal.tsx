@@ -16,6 +16,7 @@ import type Backend from '#/services/Backend'
 import * as eventModule from '#/utilities/event'
 import * as string from '#/utilities/string'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
+import { useQuery } from '@tanstack/react-query'
 
 // =========================
 // === NewUserGroupModal ===
@@ -34,7 +35,9 @@ export default function NewUserGroupModal(props: NewUserGroupModalProps) {
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [name, setName] = React.useState('')
-  const listUserGroupsQuery = backendHooks.useBackendQuery(backend, 'listUserGroups', [])
+  const listUserGroupsQuery = useQuery(
+    backendHooks.backendQueryOptions(backend, 'listUserGroups', []),
+  )
   const userGroups = listUserGroupsQuery.data ?? null
   const userGroupNames = React.useMemo(
     () =>

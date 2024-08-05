@@ -179,7 +179,7 @@ export function useObserveBackend(backend: Backend | null) {
 }
 
 // ==============================
-// === useBackendQueryOptions ===
+// === reactQuery.useQuery(backendQueryOptionsOptions ===)
 // ==============================
 
 export function backendQueryOptions<Method extends backendQuery.BackendMethods>(
@@ -223,34 +223,6 @@ export function backendQueryOptions<Method extends backendQuery.BackendMethods>(
     // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
     queryFn: () => (backend?.[method] as any)?.(...args),
   })
-}
-
-// =======================
-// === useBackendQuery ===
-// =======================
-
-export function useBackendQuery<Method extends backendQuery.BackendMethods>(
-  backend: Backend,
-  method: Method,
-  args: Parameters<Backend[Method]>,
-  options?: Omit<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn'>,
-): reactQuery.UseQueryResult<Awaited<ReturnType<Backend[Method]>>>
-export function useBackendQuery<Method extends backendQuery.BackendMethods>(
-  backend: Backend | null,
-  method: Method,
-  args: Parameters<Backend[Method]>,
-  options?: Omit<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn'>,
-): reactQuery.UseQueryResult<Awaited<ReturnType<Backend[Method]>> | undefined>
-/** Wrap a backend method call in a React Query. */
-export function useBackendQuery<Method extends backendQuery.BackendMethods>(
-  backend: Backend | null,
-  method: Method,
-  args: Parameters<Backend[Method]>,
-  options?: Omit<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn'>,
-) {
-  return reactQuery.useQuery<Awaited<ReturnType<Backend[Method]>> | undefined>(
-    backendQueryOptions(backend, method, args, options),
-  )
 }
 
 // ============================
@@ -430,7 +402,7 @@ function toNonPlaceholder<T extends object>(object: T) {
 export function useBackendListUsers(
   backend: Backend,
 ): readonly WithPlaceholder<backendModule.User>[] | null {
-  const listUsersQuery = useBackendQuery(backend, 'listUsers', [])
+  const listUsersQuery = reactQuery.useQuery(backendQueryOptions(backend, 'listUsers', []))
   const changeUserGroupVariables = useBackendMutationVariables(backend, 'changeUserGroup')
   return React.useMemo(() => {
     if (listUsersQuery.data == null) {
@@ -459,7 +431,9 @@ export function useBackendListUserGroups(
   backend: Backend,
 ): readonly WithPlaceholder<backendModule.UserGroupInfo>[] | null {
   const { user } = authProvider.useNonPartialUserSession()
-  const listUserGroupsQuery = useBackendQuery(backend, 'listUserGroups', [])
+  const listUserGroupsQuery = reactQuery.useQuery(
+    backendQueryOptions(backend, 'listUserGroups', []),
+  )
   const createUserGroupVariables = useBackendMutationVariables(backend, 'createUserGroup')
   const deleteUserGroupVariables = useBackendMutationVariables(backend, 'deleteUserGroup')
   return React.useMemo(() => {
@@ -503,7 +477,7 @@ export function useBackendListUserGroupsWithUsers(
 ): readonly WithPlaceholder<UserGroupInfoWithUsers>[] | null {
   const userGroupsRaw = useBackendListUserGroups(backend)
   // Old user list
-  const listUsersQuery = useBackendQuery(backend, 'listUsers', [])
+  const listUsersQuery = reactQuery.useQuery(backendQueryOptions(backend, 'listUsers', []))
   // Current user list, including optimistic updates
   const users = useBackendListUsers(backend)
   return React.useMemo(() => {
@@ -538,7 +512,7 @@ export function useBackendListUserGroupsWithUsers(
 export function useBackendListTags(
   backend: Backend | null,
 ): readonly WithPlaceholder<backendModule.Label>[] | null {
-  const listTagsQuery = useBackendQuery(backend, 'listTags', [])
+  const listTagsQuery = reactQuery.useQuery(backendQueryOptions(backend, 'listTags', []))
   const createTagVariables = useBackendMutationVariables(backend, 'createTag')
   const deleteTagVariables = useBackendMutationVariables(backend, 'deleteTag')
   return React.useMemo(() => {
@@ -568,7 +542,7 @@ export function useBackendListTags(
 
 /** The current user, taking into account optimistic state. */
 export function useBackendUsersMe(backend: Backend | null) {
-  const usersMeQuery = useBackendQuery(backend, 'usersMe', [])
+  const usersMeQuery = reactQuery.useQuery(backendQueryOptions(backend, 'usersMe', []))
   const updateUserVariables = useBackendMutationVariables(backend, 'updateUser')
   const uploadUserPictureVariables = useBackendMutationVariables(backend, 'uploadUserPicture')
   return React.useMemo(() => {
@@ -598,7 +572,9 @@ export function useBackendUsersMe(backend: Backend | null) {
 
 /** The current user's organization, taking into account optimistic state. */
 export function useBackendGetOrganization(backend: Backend | null) {
-  const getOrganizationQuery = useBackendQuery(backend, 'getOrganization', [])
+  const getOrganizationQuery = reactQuery.useQuery(
+    backendQueryOptions(backend, 'getOrganization', []),
+  )
   const updateOrganizationVariables = useBackendMutationVariables(backend, 'updateOrganization')
   const uploadOrganizationPictureVariables = useBackendMutationVariables(
     backend,

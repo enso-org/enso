@@ -25,6 +25,7 @@ import * as backendModule from '#/services/Backend'
 import * as dateTime from '#/utilities/dateTime'
 import * as sorting from '#/utilities/sorting'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
+import { useQuery } from '@tanstack/react-query'
 
 // =================
 // === Constants ===
@@ -80,7 +81,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
     React.useState<sorting.SortInfo<ActivityLogSortableColumn> | null>(null)
   const users = backendHooks.useBackendListUsers(backend)
   const allEmails = React.useMemo(() => (users ?? []).map((user) => user.email), [users])
-  const logsQuery = backendHooks.useBackendQuery(backend, 'getLogEvents', [])
+  const logsQuery = useQuery(backendHooks.backendQueryOptions(backend, 'getLogEvents', []))
   const logs = logsQuery.data
   const filteredLogs = React.useMemo(() => {
     const typesSet = new Set(types.length > 0 ? types : backendModule.EVENT_TYPES)

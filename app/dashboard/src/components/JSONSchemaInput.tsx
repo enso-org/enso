@@ -12,10 +12,11 @@ import Checkbox from '#/components/styled/Checkbox'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
 
-import { useBackendQuery } from '#/hooks/backendHooks'
+import { backendQueryOptions } from '#/hooks/backendHooks'
 import * as jsonSchema from '#/utilities/jsonSchema'
 import * as object from '#/utilities/object'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
+import { useQuery } from '@tanstack/react-query'
 
 // =======================
 // === JSONSchemaInput ===
@@ -50,7 +51,9 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
     schema.type === 'string' &&
     'format' in schema &&
     schema.format === 'enso-secret'
-  const { data: secrets } = useBackendQuery(remoteBackend, 'listSecrets', [], { enabled: isSecret })
+  const { data: secrets } = useQuery(
+    backendQueryOptions(remoteBackend, 'listSecrets', [], { enabled: isSecret }),
+  )
   const autocompleteItems = isSecret ? secrets?.map((secret) => secret.path) ?? null : null
 
   // NOTE: `enum` schemas omitted for now as they are not yet used.

@@ -87,6 +87,7 @@ import * as string from '#/utilities/string'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import * as uniqueString from '#/utilities/uniqueString'
 import Visibility from '#/utilities/Visibility'
+import { useQuery } from '@tanstack/react-query'
 
 // ============================
 // === Global configuration ===
@@ -989,21 +990,23 @@ export default function AssetsTable(props: AssetsTableProps) {
     }
   }, [backend, category])
 
-  const rootDirectoryQuery = backendHooks.useBackendQuery(
-    backend,
-    'listDirectory',
-    [
-      {
-        parentId: null,
-        filterBy: CATEGORY_TO_FILTER_BY[category],
-        recentProjects: category === Category.recent,
-        labels: null,
-      },
-      // The root directory has no name. This is also SAFE, as there is a different error
-      // message when the directory is the root directory (when `parentId == null`).
-      '(root)',
-    ],
-    { queryKey: [], staleTime: 0, meta: { persist: false } },
+  const rootDirectoryQuery = useQuery(
+    backendHooks.backendQueryOptions(
+      backend,
+      'listDirectory',
+      [
+        {
+          parentId: null,
+          filterBy: CATEGORY_TO_FILTER_BY[category],
+          recentProjects: category === Category.recent,
+          labels: null,
+        },
+        // The root directory has no name. This is also SAFE, as there is a different error
+        // message when the directory is the root directory (when `parentId == null`).
+        '(root)',
+      ],
+      { staleTime: 0, meta: { persist: false } },
+    ),
   )
   const isLoading = rootDirectoryQuery.isLoading
 
