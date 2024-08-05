@@ -129,7 +129,16 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
             <div>
               <Text variant="subtitle">{getText('adjustYourPlan')}</Text>
 
-              <Form form={form} className="flex flex-row">
+              <Form form={form} className="mt-1">
+                <Selector
+                  form={form}
+                  name="period"
+                  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+                  items={[1, 12, 36]}
+                  itemToString={(item) => billingPeriodToString(getText, item)}
+                  label={getText('billingPeriod')}
+                />
+
                 <Input
                   isRequired
                   readOnly={maxSeats === 1}
@@ -141,14 +150,6 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
                   min="1"
                   label={getText('seats')}
                   description={getText(`${plan}PlanSeatsDescription`, maxSeats)}
-                />
-                <Selector
-                  form={form}
-                  name="period"
-                  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-                  items={[1, 12, 36]}
-                  itemToString={(item) => billingPeriodToString(getText, item)}
-                  label={getText('billingPeriod')}
                 />
               </Form>
             </div>
@@ -205,11 +206,7 @@ function Summary(props: SummaryProps) {
   const { getText } = useText()
 
   const { data, isLoading, isError, refetch, error } = useQuery({
-    ...createSubscriptionPriceQuery({
-      plan,
-      seats,
-      period,
-    }),
+    ...createSubscriptionPriceQuery({ plan, seats, period }),
     enabled: !isInvalid,
   })
 
@@ -260,37 +257,38 @@ function Summary(props: SummaryProps) {
           )}
         </div>
 
-        {data && data.discount !== 0 && (
-          <div className="table-row">
-            <Text className="table-cell w-[0%]" variant="body" nowrap>
-              {getText('originalPrice')}
-            </Text>
-            <Text className="table-cell text-danger" variant="body">
+        <div className="table-row">
+          <Text className="table-cell w-[0%]" variant="body" nowrap>
+            {getText('originalPrice')}
+          </Text>
+          {data && (
+            <Text className="table-cell" variant="body">
               {formatter.format(data.fullPrice)}
             </Text>
-          </div>
-        )}
-
-        {data && data.discount !== 0 && (
-          <div className="table-row">
-            <Text className="table-cell w-[0%]" variant="body" nowrap>
-              {getText('youSave')}
-            </Text>
-            <Text className="table-cell" variant="body">
-              {formatter.format(data.discount)}
-            </Text>
-          </div>
-        )}
+          )}
+        </div>
 
         <div className="table-row">
           <Text className="table-cell w-[0%]" variant="body" nowrap>
-            {getText('totalPrice')}
+            {getText('youSave')}
           </Text>
           {data && (
             <Text
-              className={twMerge('table-cell', data.discount !== 0 && 'text-accent-dark')}
+              className="table-cell"
+              color={data.discount > 0 ? 'success' : 'primary'}
               variant="body"
             >
+              {formatter.format(data.discount)}
+            </Text>
+          )}
+        </div>
+
+        <div className="table-row">
+          <Text className="table-cell w-[0%]" variant="body" nowrap>
+            {getText('subtotalPrice')}
+          </Text>
+          {data && (
+            <Text className="table-cell" variant="body">
               {formatter.format(data.totalPrice)}
             </Text>
           )}
