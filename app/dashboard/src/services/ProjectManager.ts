@@ -8,6 +8,7 @@ import * as backend from '#/services/Backend'
 import * as appBaseUrl from '#/utilities/appBaseUrl'
 import * as dateTime from '#/utilities/dateTime'
 import * as newtype from '#/utilities/newtype'
+import invariant from 'tiny-invariant'
 
 // =================
 // === Constants ===
@@ -387,6 +388,13 @@ export default class ProjectManager {
   async dispose() {
     const socket = await this.socketPromise
     socket.close()
+  }
+
+  /** Get the path of a project. */
+  getProjectPath(projectId: UUID) {
+    const projectPath = this.internalProjectPaths.get(projectId)
+    invariant(projectPath, `Unknown project path for project '${projectId}'.`)
+    return projectPath
   }
 
   /** Get the directory path of a project. */

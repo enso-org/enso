@@ -51,6 +51,11 @@ public final class RuntimeOptions {
   public static final OptionDescriptor INTERACTIVE_MODE_DESCRIPTOR =
       OptionDescriptor.newBuilder(INTERACTIVE_MODE_KEY, INTERACTIVE_MODE).build();
 
+  public static final String DISABLE_LINTING = optionName("disableLinting");
+  public static final OptionKey<Boolean> DISABLE_LINTING_KEY = new OptionKey<>(false);
+  public static final OptionDescriptor DISABLE_LINTING_DESCRIPTOR =
+          OptionDescriptor.newBuilder(DISABLE_LINTING_KEY, DISABLE_LINTING).build();
+
   public static final String INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION =
       interpreterOptionName("sequentialCommandExecution");
   public static final OptionKey<Boolean> INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_KEY =
@@ -150,6 +155,7 @@ public final class RuntimeOptions {
               ENABLE_PROJECT_SUGGESTIONS_DESCRIPTOR,
               ENABLE_GLOBAL_SUGGESTIONS_DESCRIPTOR,
               INTERACTIVE_MODE_DESCRIPTOR,
+              DISABLE_LINTING_DESCRIPTOR,
               LANGUAGE_HOME_OVERRIDE_DESCRIPTOR,
               EDITION_OVERRIDE_DESCRIPTOR,
               INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_DESCRIPTOR,

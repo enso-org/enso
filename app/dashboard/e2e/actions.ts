@@ -225,7 +225,7 @@ export function locateNotEnabledStub(page: test.Locator | test.Page) {
 
 /** Find a "new folder" icon (if any) on the current page. */
 export function locateNewFolderIcon(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'New Folder' })
+  return page.getByRole('button', { name: 'New Folder', exact: true })
 }
 
 /** Find a "new secret" icon (if any) on the current page. */
