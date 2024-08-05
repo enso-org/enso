@@ -84,7 +84,9 @@ abstract class InstantiateNode extends ExpressionNode {
         anyWarnings = true;
         try {
           var argumentWarnsMap = warnings.getWarnings(argument, false);
-          accumulatedWarnings = mapInsertAllNode.executeInsertAll(frame, accumulatedWarnings, argumentWarnsMap, maxWarnings);
+          accumulatedWarnings =
+              mapInsertAllNode.executeInsertAll(
+                  frame, accumulatedWarnings, argumentWarnsMap, maxWarnings);
           argumentValues[i] = warnings.removeWarnings(argument);
         } catch (UnsupportedMessageException e) {
           throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);

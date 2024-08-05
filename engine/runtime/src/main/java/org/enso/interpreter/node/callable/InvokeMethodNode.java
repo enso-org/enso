@@ -53,8 +53,6 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.data.hash.HashMapInsertAllNode;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
-import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
@@ -527,7 +525,8 @@ public abstract class InvokeMethodNode extends BaseNode {
         anyWarnings = true;
         try {
           EnsoHashMap rWarnsMap = warnings.getWarnings(r, false);
-          accumulatedWarnings = mapInsertAllNode.executeInsertAll(frame, accumulatedWarnings, rWarnsMap, maxWarnings);
+          accumulatedWarnings =
+              mapInsertAllNode.executeInsertAll(frame, accumulatedWarnings, rWarnsMap, maxWarnings);
           args[i] = warnings.removeWarnings(r);
         } catch (UnsupportedMessageException e) {
           var ctx = EnsoContext.get(this);
