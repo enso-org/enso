@@ -74,7 +74,13 @@ type Enso_File
     private Value (enso_path : Enso_Path)
 
     ## ICON folder
-       Represents the root folder of the current users.
+       Represents the root folder of the organization.
+
+       ? Organization Root Directory
+
+         The organization root directory cannot be directly written into.
+         You should put your files and projects in a subdirectory dedicated to a
+         given user or team in the `Users` or `Teams` subdirectories within it.
     root : Enso_File
     root = Enso_File.Value Enso_Path.root
 
