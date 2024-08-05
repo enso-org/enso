@@ -21,7 +21,7 @@
     "dev": "vite",
     "dev:e2e": "vite -c vite.test.config.ts",
     "dev:e2e:ci": "vite -c vite.test.config.ts build && vite preview --port 8080 --strictPort",
-    "test": "corepack pnpm run /^test:.*/",
+    "test": "corepack pnpm run /^^^^test:.*/",
     "test:unit": "vitest run",
     "test-dev:unit": "vitest",
     "test:e2e": "cross-env NODE_ENV=production playwright test",

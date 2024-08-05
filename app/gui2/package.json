@@ -13,7 +13,7 @@
     "build": "corepack pnpm -r --filter enso-dashboard run compile && corepack pnpm run build:vite",
     "build-cloud": "cross-env CLOUD_BUILD=true corepack pnpm run build",
     "preview": "vite preview",
-    "test": "corepack pnpm run /^test:.*/",
+    "test": "corepack pnpm run /^^^^test:.*/",
     "test:unit": "vitest run",
     "test-dev:unit": "vitest",
     "test:e2e": "playwright test",
