@@ -2,8 +2,10 @@ import { useTableNewArgument } from '@/components/GraphEditor/widgets/WidgetTabl
 import { WidgetInput } from '@/providers/widgetRegistry'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import { start } from 'repl'
+import { initializeFFI } from 'shared/ast/ffi'
 import { expect, test, vi } from 'vitest'
+
+initializeFFI()
 
 test.each([
   {

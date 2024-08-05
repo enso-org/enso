@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { WidgetInputIsSpecificMethodCall } from '@/components/GraphEditor/widgets/WidgetFunction.vue'
+import TableHeader from '@/components/GraphEditor/widgets/WidgetTableEditor/TableHeader.vue'
 import {
   useTableNewArgument,
   type RowData,
@@ -16,7 +17,6 @@ import { Vec2 } from '@/util/data/vec2'
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
 import { unrefElement } from '@vueuse/core'
-import type { IHeaderComp, IHeaderParams } from 'ag-grid-community'
 import { computed, ref, watch, type ComponentInstance } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 
@@ -88,16 +88,26 @@ export const widgetDefinition = defineWidget(
     <AgGridTableView
       ref="grid"
       class="grid"
-      :defaultColDef="{ editable: true, resizable: true }"
+      :defaultColDef="{
+        editable: true,
+        resizable: true,
+        headerComponentParams: {
+          onNameChanged: (colId: string, newName: string) =>
+            console.log('Received', colId, newName),
+        },
+      }"
       :columnDefs="columnDefs"
       :rowData="rowData"
       :getRowId="(row) => `${row.data.index}`"
+      :components="{ agColumnHeader: TableHeader }"
       @keydown.enter.stop
       @keydown.escape.stop
       @cellEditingStarted="editHandler.start()"
       @cellEditingStopped="editHandler.end()"
       @rowEditingStarted="editHandler.start()"
       @rowEditingStopped="editHandler.end()"
+      @pointerdown.stop
+      @click.stop
     />
     <ResizeHandles v-model="clientBounds" bottom right />
   </div>

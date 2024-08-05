@@ -1,3 +1,4 @@
+import type { HeaderParams } from '@/components/GraphEditor/widgets/WidgetTableEditor/TableHeader.vue'
 import type { WidgetInput, WidgetUpdate } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
 import { filterDefined } from '@/util/data/iterable'
@@ -5,11 +6,11 @@ import type { ToValue } from '@/util/reactivity'
 import { type ColDef } from 'ag-grid-community'
 import { mapIterator } from 'lib0/iterator'
 import type { AstId, MutableModule } from 'shared/ast'
-import { initializeFFI } from 'shared/ast/ffi'
 import { assert } from 'shared/util/assert'
 import { computed, toValue } from 'vue'
 
-await initializeFFI()
+const NEW_COLUMN_ID = 'NewColumn'
+const NEW_COLUMN_HEADER = 'New Column'
 
 export type RowData = {
   index: number
@@ -24,6 +25,7 @@ interface ColumnDef {
   headerName: string
   valueGetter: ({ data }: { data: RowData | undefined }) => any
   valueSetter: ({ data, newValue }: { data: RowData; newValue: any }) => boolean
+  headerComponentParams?: HeaderParams
 }
 
 namespace cellValueConversion {
@@ -71,7 +73,7 @@ export function useTableNewArgument(
     columns.value.filter((col) => col.data.length < rowCount.value),
   )
 
-  function readColumn(ast: Ast.Ast): { name: string; data: Ast.Vector } | undefined {
+  function readColumn(ast: Ast.Ast): { name: Ast.TextLiteral; data: Ast.Vector } | undefined {
     if (!(ast instanceof Ast.Vector)) return undefined
     const elements = ast.values()
     const first = elements.next()
@@ -82,7 +84,7 @@ export function useTableNewArgument(
 
     if (!(first.value instanceof Ast.TextLiteral)) return undefined
     if (!(second.value instanceof Ast.Vector)) return undefined
-    return { name: first.value.rawTextContent, data: second.value }
+    return { name: first.value, data: second.value }
   }
 
   function fixColumns(edit: Ast.MutableModule) {
@@ -108,8 +110,8 @@ export function useTableNewArgument(
     }
   }
 
-  function addColumn(edit: MutableModule, rowWithValue: number, value: unknown) {
-    const newColumnSize = Math.max(rowCount.value, rowWithValue + 1)
+  function addColumn(edit: MutableModule, name: string, rowWithValue?: number, value?: unknown) {
+    const newColumnSize = Math.max(rowCount.value, rowWithValue != null ? rowWithValue + 1 : 0)
     function* cellsGenerator() {
       for (let i = 0; i < newColumnSize; ++i) {
         if (i === rowWithValue) yield cellValueConversion.agGridToAst(value, edit)
@@ -117,7 +119,7 @@ export function useTableNewArgument(
       }
     }
     const cells = Ast.Vector.new(edit, Array.from(cellsGenerator()))
-    const newCol = Ast.Vector.new(edit, [Ast.TextLiteral.new('New Column'), cells])
+    const newCol = Ast.Vector.new(edit, [Ast.TextLiteral.new(name), cells])
     if (columnsAst.value) {
       edit.getVersion(columnsAst.value).push(newCol)
     } else {
@@ -131,22 +133,29 @@ export function useTableNewArgument(
     }
   }
 
-  const newColumnDef = computed<ColumnDef>(
-    () =>
-      ({
-        headerName: 'New Column',
-        valueGetter: () => undefined,
-        valueSetter: ({ data, newValue }: { data: RowData; newValue: any }) => {
-          const edit = graph.startEdit()
-          if (data.index === rowCount.value) {
-            addRow(edit)
-          }
-          addColumn(edit, data.index, newValue)
-          onUpdate({ edit })
-          return true
-        },
-      }) satisfies ColDef<RowData>,
-  )
+  const newColumnDef = computed<ColumnDef>(() => ({
+    colId: NEW_COLUMN_ID,
+    headerName: NEW_COLUMN_HEADER,
+    valueGetter: () => undefined,
+    valueSetter: ({ data, newValue }: { data: RowData; newValue: any }) => {
+      const edit = graph.startEdit()
+      if (data.index === rowCount.value) {
+        addRow(edit)
+      }
+      addColumn(edit, NEW_COLUMN_HEADER, data.index, newValue)
+      onUpdate({ edit })
+      return true
+    },
+    headerComponentParams: {
+      nameSetter: (newName: string) => {
+        const edit = graph.startEdit()
+        fixColumns(edit)
+        addColumn(edit, newName)
+        onUpdate({ edit })
+      },
+      virtualColumn: true,
+    },
+  }))
 
   const columnDefs = computed(() => {
     const cols: ColumnDef[] = Array.from(
@@ -154,7 +163,7 @@ export function useTableNewArgument(
       (col) =>
         ({
           colId: col.data.id,
-          headerName: col.name,
+          headerName: col.name.rawTextContent,
           valueGetter: ({ data }: { data: RowData | undefined }) => {
             if (data == null) return undefined
             const ast = toValue(input).value.module.tryGet(data.cells[col.data.id])
@@ -174,6 +183,14 @@ export function useTableNewArgument(
             }
             onUpdate({ edit })
             return true
+          },
+          headerComponentParams: {
+            nameSetter: (newName: string) => {
+              const edit = graph.startEdit()
+              fixColumns(edit)
+              edit.getVersion(col.name).setRawTextContent(newName)
+              onUpdate({ edit })
+            },
           },
         }) satisfies ColDef<RowData>,
     )

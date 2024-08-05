@@ -32,6 +32,7 @@ const _props = defineProps<{
   columnDefs: (ColDef<TData, TValue> | ColGroupDef<TData>)[] | null
   defaultColDef: ColDef<TData>
   getRowId: GetRowIdFunc<TData>
+  components: Record<string, unknown>
 }>()
 const emit = defineEmits<{
   cellEditingStarted: [event: CellEditingStartedEvent]
@@ -137,6 +138,7 @@ defineExpose({ gridApi })
     :suppressFieldDotNotation="true"
     :enableRangeSelection="true"
     :popupParent="popupParent"
+    :components="components"
     @gridReady="onGridReady"
     @firstDataRendered="updateColumnWidths"
     @rowDataUpdated="updateColumnWidths"
