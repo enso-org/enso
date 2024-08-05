@@ -1386,7 +1386,10 @@ public class Main {
                 return BoxedUnit.UNIT;
               });
         } catch (IOException ex) {
-          System.err.println(ex.getMessage());
+          if (logger.isDebugEnabled()) {
+            logger.error("Error during execution", ex);
+          }
+          System.out.println("Command failed with an error: " + ex);
           throw exitFail();
         }
       } catch (WrongOption e) {
