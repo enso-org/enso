@@ -36,6 +36,7 @@ export interface InputProps<
   readonly style?: React.CSSProperties
   readonly inputRef?: React.Ref<HTMLInputElement>
   readonly addonStart?: React.ReactNode
+  readonly addonMiddle?: React.ReactNode
   readonly addonEnd?: React.ReactNode
   readonly placeholder?: string
 }
@@ -61,6 +62,7 @@ export const Input = React.forwardRef(function Input<
     description,
     inputRef,
     addonStart,
+    addonMiddle,
     addonEnd,
     label,
     size,
@@ -146,6 +148,7 @@ export const Input = React.forwardRef(function Input<
                 omit(field, 'required', 'disabled'),
               )}
             />
+            {addonMiddle}
           </div>
 
           {addonEnd != null && <div className={classes.addonEnd()}>{addonEnd}</div>}

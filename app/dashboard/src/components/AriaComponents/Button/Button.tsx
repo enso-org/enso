@@ -217,7 +217,7 @@ export const BUTTON_STYLES = twv.tv({
         extraClickZone: 'flex relative after:absolute after:cursor-pointer',
       },
       false: {
-        extraClickZone: '',
+        extraClickZone: 'after:inset-0',
       },
       xxsmall: {
         extraClickZone: 'after:inset-[-2px]',

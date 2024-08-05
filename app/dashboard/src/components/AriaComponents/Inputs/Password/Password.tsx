@@ -22,7 +22,10 @@ export interface PasswordProps<
   TFieldValues extends FieldValues<Schema>,
   TFieldName extends Path<TFieldValues>,
   TTransformedValues extends FieldValues<Schema> | undefined = undefined,
-> extends Omit<InputProps<Schema, TFieldValues, TFieldName, TTransformedValues>, 'type'> {}
+> extends Omit<
+    InputProps<Schema, TFieldValues, TFieldName, TTransformedValues>,
+    'addonMiddle' | 'type'
+  > {}
 
 /** A component wrapping {@link Input} with the ability to show and hide password. */
 export function Password<
@@ -34,17 +37,21 @@ export function Password<
   const [showPassword, setShowPassword] = useState(false)
 
   return (
-    <div className="relative w-full">
-      <Input {...props} type={showPassword ? 'text' : 'password'} />
-      <Button
-        size="medium"
-        variant="icon"
-        icon={showPassword ? EyeIcon : EyeCrossedIcon}
-        className="absolute right-3 top-1/2 -translate-y-1/2"
-        onPress={() => {
-          setShowPassword(!showPassword)
-        }}
-      />
-    </div>
+    <Input
+      {...props}
+      type={showPassword ? 'text' : 'password'}
+      addonMiddle={
+        <Button
+          size="medium"
+          variant="icon"
+          icon={showPassword ? EyeIcon : EyeCrossedIcon}
+          className="absolute right-0 top-1/2 -translate-y-1/2"
+          extraClickZone={false}
+          onPress={() => {
+            setShowPassword(!showPassword)
+          }}
+        />
+      }
+    />
   )
 }
