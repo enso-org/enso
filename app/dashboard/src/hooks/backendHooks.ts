@@ -187,37 +187,37 @@ export function backendQueryOptions<Method extends backendQuery.BackendMethods>(
   method: Method,
   args: Parameters<Backend[Method]>,
   options?: Omit<
-    reactQuery.UseQueryOptions<
-      Awaited<ReturnType<Backend[Method]>>,
-      Error,
-      Awaited<ReturnType<Backend[Method]>>,
-      readonly unknown[]
-    >,
-    'queryFn'
-  >,
-): reactQuery.UseQueryOptions<
-  Awaited<ReturnType<Backend[Method]>>,
-  Error,
-  Awaited<ReturnType<Backend[Method]>>,
-  readonly unknown[]
->
+    reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>,
+    'queryFn' | 'queryKey'
+  > &
+    Partial<Pick<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
+): reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>
 export function backendQueryOptions<Method extends backendQuery.BackendMethods>(
   backend: Backend | null,
   method: Method,
   args: Parameters<Backend[Method]>,
-  options?: Omit<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn'>,
-): reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>> | undefined>
+  options?: Omit<
+    reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>,
+    'queryFn' | 'queryKey'
+  > &
+    Partial<Pick<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
+): reactQuery.UseQueryOptions<
+  // eslint-disable-next-line no-restricted-syntax
+  Awaited<ReturnType<Backend[Method]>> | undefined
+>
 /** Wrap a backend method call in a React Query. */
 export function backendQueryOptions<Method extends backendQuery.BackendMethods>(
   backend: Backend | null,
   method: Method,
   args: Parameters<Backend[Method]>,
-  options?: Omit<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn'>,
+  options?: Omit<
+    reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>,
+    'queryFn' | 'queryKey'
+  > &
+    Partial<Pick<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
 ) {
-  return reactQuery.queryOptions<
-    Awaited<ReturnType<Backend[Method]>>
-    // @ts-expect-error This function is generic over the presence of `initialData`.
-  >({
+  // @ts-expect-error This function is generic over the presence of `initialData`.
+  return reactQuery.queryOptions<Awaited<ReturnType<Backend[Method]>>>({
     ...options,
     ...backendQuery.backendQueryOptions(backend, method, args, options?.queryKey),
     // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return

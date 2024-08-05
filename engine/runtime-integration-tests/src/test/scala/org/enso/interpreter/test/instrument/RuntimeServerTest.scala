@@ -7,7 +7,7 @@ import org.enso.interpreter.test.Metadata
 import org.enso.common.LanguageInfo
 import org.enso.common.MethodNames
 import org.enso.polyglot.data.TypeGraph
-import org.enso.polyglot.RuntimeOptions
+import org.enso.common.RuntimeOptions
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.editing.model

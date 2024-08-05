@@ -14,7 +14,7 @@ import org.enso.pkg.QualifiedName
 import org.enso.common.LanguageInfo
 import org.enso.common.MethodNames
 import org.enso.compiler.phase.exports.Node
-import org.enso.polyglot.RuntimeOptions
+import org.enso.common.RuntimeOptions
 import org.graalvm.polyglot.{Context, Engine}
 import org.scalatest.BeforeAndAfter
 import org.scalatest.matchers.should.Matchers

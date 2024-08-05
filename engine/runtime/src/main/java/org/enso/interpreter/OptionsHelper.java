@@ -5,7 +5,7 @@ import com.oracle.truffle.api.TruffleLanguage;
 import java.io.File;
 import java.net.URISyntaxException;
 import java.util.Optional;
-import org.enso.polyglot.RuntimeOptions;
+import org.enso.common.RuntimeOptions;
 
 public final class OptionsHelper {
   private OptionsHelper() {}

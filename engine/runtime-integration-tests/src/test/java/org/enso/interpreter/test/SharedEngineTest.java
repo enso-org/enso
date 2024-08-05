@@ -4,7 +4,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.nio.file.Paths;
 import java.util.logging.Level;
-import org.enso.polyglot.RuntimeOptions;
+import org.enso.common.RuntimeOptions;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;

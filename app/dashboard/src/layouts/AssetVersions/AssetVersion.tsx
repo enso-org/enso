@@ -75,6 +75,7 @@ export default function AssetVersion(props: AssetVersionProps) {
           <ariaComponents.DialogTrigger>
             <ariaComponents.TooltipTrigger>
               <ariaComponents.Button
+                size="medium"
                 variant="icon"
                 aria-label={getText('compareWithLatest')}
                 icon={CompareIcon}
@@ -91,6 +92,7 @@ export default function AssetVersion(props: AssetVersionProps) {
                   <ariaComponents.ButtonGroup>
                     <ariaComponents.TooltipTrigger>
                       <ariaComponents.Button
+                        size="medium"
                         variant="icon"
                         aria-label={getText('restoreThisVersion')}
                         icon={RestoreIcon}
@@ -106,6 +108,7 @@ export default function AssetVersion(props: AssetVersionProps) {
                     </ariaComponents.TooltipTrigger>
                     <ariaComponents.TooltipTrigger>
                       <ariaComponents.Button
+                        size="medium"
                         variant="icon"
                         aria-label={getText('duplicateThisVersion')}
                         icon={DuplicateIcon}
@@ -134,6 +137,7 @@ export default function AssetVersion(props: AssetVersionProps) {
         {isProject && (
           <ariaComponents.TooltipTrigger>
             <ariaComponents.Button
+              size="medium"
               variant="icon"
               aria-label={getText('restoreThisVersion')}
               icon={RestoreIcon}
@@ -146,6 +150,7 @@ export default function AssetVersion(props: AssetVersionProps) {
         {isProject && (
           <ariaComponents.TooltipTrigger>
             <ariaComponents.Button
+              size="medium"
               variant="icon"
               aria-label={getText('duplicateThisVersion')}
               icon={DuplicateIcon}

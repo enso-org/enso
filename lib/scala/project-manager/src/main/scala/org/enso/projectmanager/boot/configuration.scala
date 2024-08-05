@@ -69,7 +69,9 @@ object configuration {
     @throws[IOException]
     def userProjectsPath: File = {
       val projectsRootDirectory =
-        projectsRoot.getOrElse(Platform.getDirectories.getDocuments.toFile)
+        projectsRoot.getOrElse(
+          Platform.getOperatingSystem.getDirectories.getDocuments.toFile
+        )
       new File(projectsRootDirectory, projectsDirectory)
     }
   }

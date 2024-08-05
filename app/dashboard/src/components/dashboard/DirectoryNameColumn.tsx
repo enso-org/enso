@@ -9,6 +9,7 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
+import { useDriveStore } from '#/providers/DriveProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -44,11 +45,12 @@ export interface DirectoryNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   const { item, setItem, selected, state, rowState, setRowState, isEditable } = props
-  const { backend, selectedKeys, nodeMap } = state
+  const { backend, nodeMap } = state
   const { doToggleDirectoryExpansion } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
+  const driveStore = useDriveStore()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   if (item.type !== backendModule.AssetType.directory) {
     // eslint-disable-next-line no-restricted-syntax
@@ -173,7 +175,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         } else if (
           eventModule.isSingleClick(event) &&
           selected &&
-          selectedKeys.current.size === 1
+          driveStore.getState().selectedKeys.size === 1
         ) {
           event.stopPropagation()
           setIsEditing(true)

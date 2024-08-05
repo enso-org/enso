@@ -8,10 +8,10 @@ import static org.hamcrest.Matchers.is;
 
 import java.io.IOException;
 import java.util.Set;
+import org.enso.common.RuntimeOptions;
 import org.enso.compiler.data.BindingsMap.ResolvedConversionMethod;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
-import org.enso.polyglot.RuntimeOptions;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ModuleUtils;
 import org.enso.test.utils.ProjectUtils;

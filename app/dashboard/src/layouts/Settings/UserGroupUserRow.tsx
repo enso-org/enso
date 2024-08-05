@@ -17,6 +17,7 @@ import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 
 import type * as backend from '#/services/Backend'
 
+import { useFullUserSession } from '#/providers/AuthProvider'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ========================
@@ -33,8 +34,10 @@ export interface UserGroupUserRowProps {
 /** A row of the user groups table representing a user. */
 export default function UserGroupUserRow(props: UserGroupUserRowProps) {
   const { user, userGroup, doRemoveUserFromUserGroup } = props
+  const { user: currentUser } = useFullUserSession()
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
+  const isAdmin = currentUser.isOrganizationAdmin
   const contextMenuRef = contextMenuHooks.useContextMenuRef(
     user.userId,
     getText('userGroupUserContextMenuLabel'),
@@ -58,6 +61,7 @@ export default function UserGroupUserRow(props: UserGroupUserRowProps) {
         }}
       />
     ),
+    { enabled: isAdmin },
   )
 
   return (
@@ -77,28 +81,30 @@ export default function UserGroupUserRow(props: UserGroupUserRowProps) {
         </div>
       </aria.Cell>
       <aria.Cell className="relative bg-transparent p-0 opacity-0 group-hover-2:opacity-100">
-        <ariaComponents.Button
-          size="custom"
-          variant="custom"
-          onPress={() => {
-            setModal(
-              <ConfirmDeleteModal
-                actionText={getText(
-                  'removeUserFromUserGroupActionText',
-                  user.name,
-                  userGroup.groupName,
-                )}
-                actionButtonLabel={getText('remove')}
-                doDelete={() => {
-                  doRemoveUserFromUserGroup(user, userGroup)
-                }}
-              />,
-            )
-          }}
-          className="absolute right-full mr-4 size-4 -translate-y-1/2"
-        >
-          <img src={Cross2} className="size-4" />
-        </ariaComponents.Button>
+        {isAdmin && (
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
+            onPress={() => {
+              setModal(
+                <ConfirmDeleteModal
+                  actionText={getText(
+                    'removeUserFromUserGroupActionText',
+                    user.name,
+                    userGroup.groupName,
+                  )}
+                  actionButtonLabel={getText('remove')}
+                  doDelete={() => {
+                    doRemoveUserFromUserGroup(user, userGroup)
+                  }}
+                />,
+              )
+            }}
+            className="absolute right-full mr-4 size-4 -translate-y-1/2"
+          >
+            <img src={Cross2} className="size-4" />
+          </ariaComponents.Button>
+        )}
       </aria.Cell>
     </aria.Row>
   )

@@ -1,4 +1,4 @@
-/** @file A loading screen, displayed while the user is logging in. */
+/** @file A screen displaying an error. */
 import * as React from 'react'
 
 import * as textProvider from '#/providers/TextProvider'
@@ -16,7 +16,7 @@ export interface ErrorScreenProps {
   readonly error: unknown
 }
 
-/** A loading screen. */
+/** A screen displaying an error. */
 export default function ErrorScreen(props: ErrorScreenProps) {
   const { error } = props
   const { getText } = textProvider.useText()

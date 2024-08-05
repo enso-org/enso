@@ -1,5 +1,6 @@
 package org.enso.polyglot
 
+import org.enso.common.RuntimeOptions
 import org.graalvm.polyglot.Context
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

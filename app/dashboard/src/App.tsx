@@ -49,6 +49,7 @@ import * as backendHooks from '#/hooks/backendHooks'
 
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
 import BackendProvider, { useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
+import DriveProvider from '#/providers/DriveProvider'
 import DevtoolsProvider from '#/providers/EnsoDevtoolsProvider'
 import * as httpClientProvider from '#/providers/HttpClientProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
@@ -66,7 +67,7 @@ import Login from '#/pages/authentication/Login'
 import Registration from '#/pages/authentication/Registration'
 import ResetPassword from '#/pages/authentication/ResetPassword'
 import RestoreAccount from '#/pages/authentication/RestoreAccount'
-import SetUsername from '#/pages/authentication/SetUsername'
+import * as setup from '#/pages/authentication/Setup'
 import Dashboard from '#/pages/dashboard/Dashboard'
 import * as subscribe from '#/pages/subscribe/Subscribe'
 import * as subscribeSuccess from '#/pages/subscribe/SubscribeSuccess'
@@ -435,57 +436,44 @@ function AppRouter(props: AppRouterProps) {
       {/* Protected pages are visible to authenticated users. */}
       <router.Route element={<authProvider.NotDeletedUserLayout />}>
         <router.Route element={<authProvider.ProtectedLayout />}>
-          <router.Route
-            element={
-              detect.IS_DEV_MODE ?
-                <devtools.EnsoDevtools>
-                  <router.Outlet />
-                </devtools.EnsoDevtools>
-              : null
-            }
-          >
-            <router.Route element={<termsOfServiceModal.TermsOfServiceModal />}>
-              <router.Route element={<setOrganizationNameModal.SetOrganizationNameModal />}>
-                <router.Route element={<openAppWatcher.OpenAppWatcher />}>
-                  <router.Route
-                    path={appUtils.DASHBOARD_PATH}
-                    element={shouldShowDashboard && <Dashboard {...props} />}
-                  />
+          <router.Route element={<termsOfServiceModal.TermsOfServiceModal />}>
+            <router.Route element={<setOrganizationNameModal.SetOrganizationNameModal />}>
+              <router.Route element={<openAppWatcher.OpenAppWatcher />}>
+                <router.Route
+                  path={appUtils.DASHBOARD_PATH}
+                  element={shouldShowDashboard && <Dashboard {...props} />}
+                />
 
-                  <router.Route
-                    path={appUtils.SUBSCRIBE_PATH}
-                    element={
-                      <errorBoundary.ErrorBoundary>
-                        <suspense.Suspense>
-                          <subscribe.Subscribe />
-                        </suspense.Suspense>
-                      </errorBoundary.ErrorBoundary>
-                    }
-                  />
-                </router.Route>
+                <router.Route
+                  path={appUtils.SUBSCRIBE_PATH}
+                  element={
+                    <errorBoundary.ErrorBoundary>
+                      <suspense.Suspense>
+                        <subscribe.Subscribe />
+                      </suspense.Suspense>
+                    </errorBoundary.ErrorBoundary>
+                  }
+                />
               </router.Route>
             </router.Route>
-
-            <router.Route
-              path={appUtils.SUBSCRIBE_SUCCESS_PATH}
-              element={
-                <errorBoundary.ErrorBoundary>
-                  <suspense.Suspense>
-                    <subscribeSuccess.SubscribeSuccess />
-                  </suspense.Suspense>
-                </errorBoundary.ErrorBoundary>
-              }
-            />
           </router.Route>
+
+          <router.Route
+            path={appUtils.SUBSCRIBE_SUCCESS_PATH}
+            element={
+              <errorBoundary.ErrorBoundary>
+                <suspense.Suspense>
+                  <subscribeSuccess.SubscribeSuccess />
+                </suspense.Suspense>
+              </errorBoundary.ErrorBoundary>
+            }
+          />
         </router.Route>
       </router.Route>
 
       <router.Route element={<termsOfServiceModal.TermsOfServiceModal />}>
-        {/* Semi-protected pages are visible to users currently registering. */}
         <router.Route element={<authProvider.NotDeletedUserLayout />}>
-          <router.Route element={<authProvider.SemiProtectedLayout />}>
-            <router.Route path={appUtils.SET_USERNAME_PATH} element={<SetUsername />} />
-          </router.Route>
+          <router.Route path={appUtils.SETUP_PATH} element={<setup.Setup />} />
         </router.Route>
       </router.Route>
 
@@ -514,6 +502,17 @@ function AppRouter(props: AppRouterProps) {
     </>
   )
 
+  result = (
+    <>
+      {result}
+
+      <errorBoundary.ErrorBoundary>
+        <suspense.Suspense>
+          <devtools.EnsoDevtools />
+        </suspense.Suspense>
+      </errorBoundary.ErrorBoundary>
+    </>
+  )
   result = <errorBoundary.ErrorBoundary>{result}</errorBoundary.ErrorBoundary>
   result = <InputBindingsProvider inputBindings={inputBindings}>{result}</InputBindingsProvider>
   result = (
@@ -549,6 +548,9 @@ function AppRouter(props: AppRouterProps) {
       {result}
     </rootComponent.Root>
   )
+  // Ideally this would be in `Drive.tsx`, but it currently must be all the way out here
+  // due to modals being in `TheModal`.
+  result = <DriveProvider>{result}</DriveProvider>
   result = (
     <offlineNotificationManager.OfflineNotificationManager>
       {result}

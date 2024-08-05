@@ -79,7 +79,6 @@ export default function Drive(props: DriveProps) {
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
   const [suggestions, setSuggestions] = React.useState<readonly assetSearchBar.Suggestion[]>([])
-  const [canDownload, setCanDownload] = React.useState(false)
   const [didLoadingProjectManagerFail, setDidLoadingProjectManagerFail] = React.useState(false)
   const [assetPanelPropsRaw, setAssetPanelProps] =
     React.useState<assetPanel.AssetPanelRequiredProps | null>(null)
@@ -222,7 +221,7 @@ export default function Drive(props: DriveProps) {
           subtitle={`${getText('notEnabledSubtitle')}${localBackend == null ? ' ' + getText('downloadFreeEditionMessage') : ''}`}
         >
           <ariaComponents.ButtonGroup align="center">
-            <ariaComponents.Button variant="tertiary" size="medium" href={appUtils.SUBSCRIBE_PATH}>
+            <ariaComponents.Button variant="primary" size="medium" href={appUtils.SUBSCRIBE_PATH}>
               {getText('upgrade')}
             </ariaComponents.Button>
 
@@ -230,6 +229,7 @@ export default function Drive(props: DriveProps) {
               <ariaComponents.Button
                 data-testid="download-free-edition"
                 size="medium"
+                variant="tertiary"
                 onPress={async () => {
                   const downloadUrl = await github.getDownloadUrl()
                   if (downloadUrl == null) {
@@ -260,7 +260,6 @@ export default function Drive(props: DriveProps) {
               setQuery={setQuery}
               suggestions={suggestions}
               category={category}
-              canDownload={canDownload}
               isAssetPanelOpen={isAssetPanelVisible}
               setIsAssetPanelOpen={(valueOrUpdater) => {
                 const newValue =
@@ -315,7 +314,6 @@ export default function Drive(props: DriveProps) {
                   hidden={hidden}
                   query={query}
                   setQuery={setQuery}
-                  setCanDownload={setCanDownload}
                   category={category}
                   setSuggestions={setSuggestions}
                   initialProjectName={initialProjectName}
