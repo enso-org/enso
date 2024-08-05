@@ -14,7 +14,12 @@
   "name": "root",
   "scripts": {
     "dev:gui": "corepack pnpm run --parallel -r --filter enso-gui2 --filter ydoc-server-nodejs  --aggregate-output /^^^^dev:/",
+    "build:gui": "corepack pnpm run -r --filter enso-gui2 build",
+    "build:ide": "corepack pnpm run -r --filter enso build",
+    "build:icons": "corepack pnpm run -r --filter enso-icons build",
+    "dist:ide": "corepack pnpm run -r --filter enso dist",
     "format": "prettier --write .",
+    "format:workflows": "prettier --write .github/workflows",
     "ci-check": "corepack pnpm run --aggregate-output /^ci:/",
     "ci:prettier": "prettier --check .",
     "ci:lint": "corepack pnpm run -r lint",

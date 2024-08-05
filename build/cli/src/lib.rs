@@ -341,31 +341,35 @@ impl Processor {
         match gui.command {
             arg::gui::Command::Build(job) => self.build(job),
             arg::gui::Command::Get(source) => self.get(source).void_ok().boxed(),
-            arg::gui::Command::Test => {
+            arg::gui::Command::Check => {
                 let repo_root = self.repo_root.clone();
-                let gui_tests = run_and_upload_dir(
-                    gui::tests(&repo_root),
-                    &repo_root.app.gui_2.playwright_report,
-                    "gui-playwright-report",
-                );
-                let dashboard_tests = run_and_upload_dir(
-                    gui::dashboard_tests(&repo_root),
-                    &repo_root.app.dashboard.playwright_report,
-                    "dashboard-playwright-report",
-                );
-                try_join(gui_tests, dashboard_tests).void_ok().boxed()
+                async {
+                    let check_result =
+                        enso_build::web::run_script(&repo_root, enso_build::web::Script::CiCheck)
+                            .await;
+                    if is_in_env() {
+                        ide_ci::actions::artifacts::upload_directory(
+                            &repo_root.app.gui_2.playwright_report,
+                            "gui-playwright-report",
+                        )
+                        .await?;
+                        ide_ci::actions::artifacts::upload_directory(
+                            repo_root.app.dashboard.playwright_report,
+                            "dashboard-playwright-report",
+                        )
+                        .await?;
+                    }
+                    check_result
+                }
+                .void_ok()
+                .boxed()
             }
-            arg::gui::Command::Watch => gui::watch(&self.repo_root),
-            arg::gui::Command::Lint => gui::lint(&self.repo_root),
         }
     }
 
     pub fn handle_runtime(&self, gui: arg::runtime::Target) -> BoxFuture<'static, Result> {
-        // todo!()
         match gui.command {
             arg::runtime::Command::Build(job) => self.build(job),
-            //     arg::gui::Command::Get(source) => self.get(source).void_ok().boxed(),
-            //     arg::gui::Command::Watch(job) => self.watch_and_wait(job),
         }
     }
 
@@ -774,11 +778,6 @@ pub async fn main_internal(config: Option<Config>) -> Result {
                 .await?;
 
             enso_build::rust::enso_linter::lint_all(ctx.repo_root.clone()).await?;
-
-            enso_build::web::install(&ctx.repo_root).await?;
-            enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::Typecheck).await?;
-            enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::Lint).await?;
-            enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::Prettier).await?;
         }
         Target::Fmt => {
             enso_build::web::install(&ctx.repo_root).await?;
