@@ -36,7 +36,6 @@ final class CommandHandler(protocol: Protocol) {
   private def consoleLoggingOff: ZIO[ZAny, Throwable, Unit] =
     ZIO.attempt {
       val loggerSetup = LoggerSetup.get()
-      loggerSetup.teardown()
       // sets up only the default (file) logger
       loggerSetup.setup()
     }
