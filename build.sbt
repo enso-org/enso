@@ -3636,7 +3636,7 @@ lazy val `std-tableau` = project
         "x86_64"
       }
       new URI(
-        s"https://downloads.tableau.com/tssoftware//tableauhyperapi-java-$platform-$arch-release-main.$tableauVersion.zip"
+        s"https://downloads.tableau.com/tssoftware/tableauhyperapi-java-$platform-$arch-release-main.$tableauVersion.zip"
       ).toURL()
     },
     fetchZipToUnmanaged := {
