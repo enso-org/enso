@@ -1640,9 +1640,9 @@ fn skip() {
 #[test]
 fn statement_in_expression_context() {
     test!("x = y = z", (Assignment (Ident x) (Invalid)));
-    test!("(y = z)", (Group (Invalid)));
+    test!("(y = z)", (Group(Invalid)));
     test!("(y = z) x", (App (Group (Invalid)) (Ident x)));
-    test!("(f x = x)", (Group (Invalid)));
+    test!("(f x = x)", (Group(Invalid)));
     test!("y = f x = x", (Assignment (Ident y) (Invalid)));
 }
 
