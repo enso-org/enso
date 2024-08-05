@@ -11,7 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "compile": "tsc",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc",
     "clean": "rimraf --glob src/ast/generated/*.{json,ts}",
     "generate": "corepack pnpm run generate:ast-schema && corepack pnpm run generate:ast-types",
     "generate:ast-schema": "cargo run -p enso-parser-schema > src/ast/generated/ast-schema.json",
