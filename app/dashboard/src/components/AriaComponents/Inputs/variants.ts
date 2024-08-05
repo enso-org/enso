@@ -23,7 +23,7 @@ export const INPUT_STYLES = tv({
       false: 'cursor-text',
     },
     size: {
-      medium: { base: 'px-[11px] pb-1.5 pt-2' },
+      medium: { base: 'px-[11px] pb-[6.5px] pt-[8.5px]' },
       small: { base: 'px-[11px] pb-0.5 pt-1' },
     },
     rounded: {
