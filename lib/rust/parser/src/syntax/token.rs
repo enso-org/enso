@@ -95,6 +95,7 @@
 
 
 
+mod collect;
 mod operator;
 
 use crate::prelude::*;

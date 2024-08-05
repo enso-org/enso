@@ -1,6 +1,5 @@
 use crate::prelude::*;
 
-use crate::source;
 use crate::syntax::token;
 use crate::syntax::treebuilding::Spacing;
 use crate::syntax::treebuilding::SpacingLookaheadTokenConsumer;
@@ -67,46 +66,6 @@ pub trait Finish {
 
     /// Indicates end of input.
     fn finish(&mut self) -> Self::Result;
-}
-
-impl<'s> TokenConsumer<'s> for Vec<Token<'s>> {
-    fn push_token(&mut self, token: Token<'s>) {
-        self.push(token);
-    }
-}
-
-impl<'s> NewlineConsumer<'s> for Vec<Token<'s>> {
-    fn push_newline(&mut self, token: token::Newline<'s>) {
-        self.push(token.into());
-    }
-}
-
-impl<'s> BlockHierarchyConsumer for Vec<Token<'s>> {
-    fn start_block(&mut self) {
-        self.push(Token(source::Offset::default(), default(), token::Variant::block_start()));
-    }
-
-    fn end_block(&mut self) {
-        self.push(Token(source::Offset::default(), default(), token::Variant::block_end()));
-    }
-}
-
-impl<'s> GroupHierarchyConsumer<'s> for Vec<Token<'s>> {
-    fn start_group(&mut self, open: token::OpenSymbol<'s>) {
-        self.push(open.into())
-    }
-
-    fn end_group(&mut self, close: token::CloseSymbol<'s>) {
-        self.push(close.into())
-    }
-}
-
-impl<'s> Finish for Vec<Token<'s>> {
-    type Result = Vec<Token<'s>>;
-
-    fn finish(&mut self) -> Self::Result {
-        mem::take(self)
-    }
 }
 
 /// Trait for a type that wraps another type, and exposes it.
@@ -179,5 +138,97 @@ where Inner: Finish
 
     fn finish(&mut self) -> Self::Result {
         self.parser.finish()
+    }
+}
+
+
+// =================
+// === Debugging ===
+// =================
+
+/// Debugging tool. Can be inserted into parsing pipeline at different stages to debug components.
+#[derive(Debug, Default)]
+pub struct Inspect<Inner>(pub(crate) Inner);
+
+impl<Inner> Inspect<Inner> {
+    pub(crate) fn observe(&self, event: &impl Debug) {
+        eprintln!("-> {:?}", event);
+    }
+
+    pub(crate) fn observe_received(&self, event: &impl Debug) {
+        eprintln!("<- {:?}", event);
+    }
+
+    pub(crate) fn observe_token<'a: 'b, 'b, T: Into<token::Ref<'a, 'b>>>(&self, token: T) {
+        eprintln!("-> Token({})", token.into().code.repr.0);
+    }
+}
+
+impl<T: Debug, Inner: ScopeHierarchyConsumer<Result = T>> ScopeHierarchyConsumer
+    for Inspect<Inner>
+{
+    type Result = Inner::Result;
+
+    fn start_scope(&mut self) {
+        self.observe(&"StartScope");
+        self.0.start_scope();
+    }
+
+    fn end_scope(&mut self) -> Self::Result {
+        self.observe(&"EndScope");
+        let result = self.0.end_scope();
+        self.observe_received(&result);
+        result
+    }
+}
+
+impl<'s, Inner: GroupHierarchyConsumer<'s>> GroupHierarchyConsumer<'s> for Inspect<Inner> {
+    fn start_group(&mut self, open: token::OpenSymbol<'s>) {
+        self.observe_token(&open);
+        self.0.start_group(open);
+    }
+
+    fn end_group(&mut self, close: token::CloseSymbol<'s>) {
+        self.observe_token(&close);
+        self.0.end_group(close);
+    }
+}
+
+impl<'s, Inner: SpacingLookaheadTokenConsumer<'s>> SpacingLookaheadTokenConsumer<'s>
+    for Inspect<Inner>
+{
+    fn push_token(&mut self, token: Token<'s>, following_spacing: Option<Spacing>) {
+        self.observe_token(&token);
+        self.0.push_token(token, following_spacing);
+    }
+}
+
+impl<'s, Inner: SpacingLookaheadTreeConsumer<'s>> SpacingLookaheadTreeConsumer<'s>
+    for Inspect<Inner>
+{
+    fn push_tree(&mut self, tree: Tree<'s>, following_spacing: Option<Spacing>) {
+        self.observe(&tree);
+        self.0.push_tree(tree, following_spacing);
+    }
+}
+
+impl<'s, Inner: ItemConsumer<'s>> ItemConsumer<'s> for Inspect<Inner> {
+    fn push_item(&mut self, item: Item<'s>) {
+        match &item {
+            Item::Token(token) => self.observe_token(token),
+            _ => self.observe(&item),
+        }
+        self.0.push_item(item);
+    }
+}
+
+impl<T: Debug, Inner: Finish<Result = T>> Finish for Inspect<Inner> {
+    type Result = Inner::Result;
+
+    fn finish(&mut self) -> Self::Result {
+        self.observe(&"Finish");
+        let result = self.0.finish();
+        self.observe_received(&result);
+        result
     }
 }

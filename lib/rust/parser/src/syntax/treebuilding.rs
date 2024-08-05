@@ -27,12 +27,10 @@ pub use whitespace::SpacingLookaheadTreeConsumer;
 // === TokenOrTree ===
 // ===================
 
-/// A token or tree.
+#[allow(missing_docs)]
 #[derive(Debug)]
 pub enum TokenOrTree<'s> {
-    /// A token.
     Token(Token<'s>),
-    /// A tree.
     Tree(Tree<'s>),
 }
 

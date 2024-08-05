@@ -2,13 +2,7 @@ use crate::syntax::operator::section::MaybeSection;
 use crate::syntax::token;
 use crate::syntax::tree;
 use crate::syntax::treebuilding::Spacing;
-use crate::syntax::treebuilding::SpacingLookaheadTokenConsumer;
-use crate::syntax::treebuilding::SpacingLookaheadTreeConsumer;
-use crate::syntax::Finish;
-use crate::syntax::GroupHierarchyConsumer;
-use crate::syntax::Item;
-use crate::syntax::ItemConsumer;
-use crate::syntax::ScopeHierarchyConsumer;
+use crate::syntax::Inspect;
 use crate::syntax::Token;
 use crate::syntax::Tree;
 use crate::syntax::TreeConsumer;
@@ -16,6 +10,8 @@ use crate::syntax::TreeConsumer;
 use crate::syntax::operator::annotations::Annotation;
 use crate::syntax::operator::named_app::NamedApp;
 use std::fmt::Debug;
+
+
 // ================
 // === Operator ===
 // ================
@@ -161,23 +157,6 @@ pub trait NamedOperandConsumer<'s> {
 
 // === Debugging ===
 
-#[derive(Debug, Default)]
-pub struct Inspect<Inner>(Inner);
-
-impl<Inner> Inspect<Inner> {
-    fn observe(&self, event: &impl Debug) {
-        eprintln!("-> {:?}", event);
-    }
-
-    fn observe_received(&self, event: &impl Debug) {
-        eprintln!("<- {:?}", event);
-    }
-
-    fn observe_token<'a: 'b, 'b, T: Into<token::Ref<'a, 'b>>>(&self, token: T) {
-        eprintln!("-> Token({})", token.into().code.repr.0);
-    }
-}
-
 impl<'s, Inner: NamedOperandConsumer<'s>> NamedOperandConsumer<'s> for Inspect<Inner> {
     fn push_maybe_named_operand(&mut self, operand: OperandMaybeNamed<'s>) {
         self.observe(&operand);
@@ -192,74 +171,6 @@ impl<'s, Inner: OperatorConsumer<'s>> OperatorConsumer<'s> for Inspect<Inner> {
     }
 }
 
-impl<T: Debug, Inner: ScopeHierarchyConsumer<Result = T>> ScopeHierarchyConsumer
-    for Inspect<Inner>
-{
-    type Result = Inner::Result;
-
-    fn start_scope(&mut self) {
-        self.observe(&"StartScope");
-        self.0.start_scope();
-    }
-
-    fn end_scope(&mut self) -> Self::Result {
-        self.observe(&"EndScope");
-        let result = self.0.end_scope();
-        self.observe_received(&result);
-        result
-    }
-}
-
-impl<'s, Inner: GroupHierarchyConsumer<'s>> GroupHierarchyConsumer<'s> for Inspect<Inner> {
-    fn start_group(&mut self, open: token::OpenSymbol<'s>) {
-        self.observe_token(&open);
-        self.0.start_group(open);
-    }
-
-    fn end_group(&mut self, close: token::CloseSymbol<'s>) {
-        self.observe_token(&close);
-        self.0.end_group(close);
-    }
-}
-
-impl<'s, Inner: SpacingLookaheadTokenConsumer<'s>> SpacingLookaheadTokenConsumer<'s>
-    for Inspect<Inner>
-{
-    fn push_token(&mut self, token: Token<'s>, following_spacing: Option<Spacing>) {
-        self.observe_token(&token);
-        self.0.push_token(token, following_spacing);
-    }
-}
-
-impl<'s, Inner: SpacingLookaheadTreeConsumer<'s>> SpacingLookaheadTreeConsumer<'s>
-    for Inspect<Inner>
-{
-    fn push_tree(&mut self, tree: Tree<'s>, following_spacing: Option<Spacing>) {
-        self.observe(&tree);
-        self.0.push_tree(tree, following_spacing);
-    }
-}
-
-impl<'s, Inner: ItemConsumer<'s>> ItemConsumer<'s> for Inspect<Inner> {
-    fn push_item(&mut self, item: Item<'s>) {
-        match &item {
-            Item::Token(token) => self.observe_token(token),
-            _ => self.observe(&item),
-        }
-        self.0.push_item(item);
-    }
-}
-
-impl<T: Debug, Inner: Finish<Result = T>> Finish for Inspect<Inner> {
-    type Result = Inner::Result;
-
-    fn finish(&mut self) -> Self::Result {
-        self.observe(&"Finish");
-        let result = self.0.finish();
-        self.observe_received(&result);
-        result
-    }
-}
 
 // === Conversions ===
 
