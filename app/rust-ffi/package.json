@@ -5,7 +5,8 @@
   ],
   "version": "0.1.0",
   "scripts": {
-    "compile": "wasm-pack build . --release --out-dir pkg --target bundler"
+    "compile": "wasm-pack build . --release --out-dir pkg --target bundler",
+    "postinstall": "corepack pnpm compile"
   },
   "exports": {
     ".": "./pkg/rust_ffi.js"
