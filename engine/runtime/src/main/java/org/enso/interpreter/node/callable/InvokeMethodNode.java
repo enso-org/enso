@@ -52,6 +52,7 @@ import org.enso.interpreter.runtime.data.EnsoTimeOfDay;
 import org.enso.interpreter.runtime.data.EnsoTimeZone;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
+import org.enso.interpreter.runtime.data.hash.HashMapInsertAllNode;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
@@ -512,11 +513,11 @@ public abstract class InvokeMethodNode extends BaseNode {
       @Cached BranchProfile anyWarningsProfile,
       @Cached HostMethodCallNode hostMethodCallNode,
       @Shared @Cached AppendWarningNode appendWarningNode,
-      @Cached ArrayLikeLengthNode lengthNode,
-      @Cached ArrayLikeAtNode atNode) {
+      @Cached HashMapInsertAllNode mapInsertAllNode) {
     Object[] args = new Object[argExecutors.length];
     boolean anyWarnings = false;
-    ArrayRope<Warning> accumulatedWarnings = new ArrayRope<>();
+    var accumulatedWarnings = EnsoHashMap.empty();
+    var maxWarnings = EnsoContext.get(this).getWarningsLimit();
     for (int i = 0; i < argExecutors.length; i++) {
       var r = argExecutors[i].executeThunk(frame, arguments[i + 1], state, TailStatus.NOT_TAIL);
       if (r instanceof DataflowError) {
@@ -527,8 +528,7 @@ public abstract class InvokeMethodNode extends BaseNode {
         anyWarnings = true;
         try {
           EnsoHashMap rWarnsMap = warnings.getWarnings(r, false);
-          Warning[] rWarnsArray = Warning.fromMapToArray(rWarnsMap, lengthNode, atNode);
-          accumulatedWarnings = accumulatedWarnings.append(rWarnsArray);
+          accumulatedWarnings = mapInsertAllNode.executeInsertAll(frame, accumulatedWarnings, rWarnsMap, maxWarnings);
           args[i] = warnings.removeWarnings(r);
         } catch (UnsupportedMessageException e) {
           var ctx = EnsoContext.get(this);
