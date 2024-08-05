@@ -17,6 +17,10 @@ import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
     language = LanguageInfo.ID)
 public abstract class HashMapInsertAllNode extends Node {
 
+  public static HashMapInsertAllNode build() {
+    return HashMapInsertAllNodeGen.create();
+  }
+
   /**
    * Insert all the elements from the given container into the given map.
    *
