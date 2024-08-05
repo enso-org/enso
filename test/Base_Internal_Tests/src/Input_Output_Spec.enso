@@ -44,6 +44,7 @@ add_specs suite_builder =
 
             is.available . should_equal 0
 
+    suite_builder.group "Host File values behaviour in Enso" group_builder->
         group_builder.specify "File in Dictionary supports host objects as keys" <|
             # java.nio.path.Path has proper implementation of hashCode
             dict = Dictionary.singleton (File_Utils.toPath "/home/user/file.txt") 42
@@ -59,7 +60,6 @@ add_specs suite_builder =
             (path3 == path2).should_be_false
 
 
-    suite_builder.group "Internal comparators" group_builder->
 
 foreign js is_like data available = """
     let at = 0
