@@ -3,6 +3,7 @@ import * as router from 'react-router-dom'
 import * as z from 'zod'
 
 import { CLOUD_DASHBOARD_DOMAIN } from 'enso-common'
+import isEmail from 'validator/lib/isEmail'
 
 import { FORGOT_PASSWORD_PATH, REGISTRATION_PATH } from '#/appUtils'
 import CreateAccountIcon from '#/assets/create_account.svg'
@@ -14,14 +15,16 @@ import TextLink from '#/components/TextLink'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { useAuth } from '#/providers/AuthProvider'
 import { useLocalBackend } from '#/providers/BackendProvider'
-import { useText } from '#/providers/TextProvider'
+import { type GetText, useText } from '#/providers/TextProvider'
 import { useMutation } from '@tanstack/react-query'
-import isEmail from 'validator/lib/isEmail'
 
-const LOGIN_FORM_SCHEMA = z.object({
-  email: z.string(),
-  password: z.string(),
-})
+/** Create the schema for this page. */
+function createLoginFormSchema(getText: GetText) {
+  return z.object({
+    email: z.string().refine(isEmail, getText('invalidEmailValidationError')),
+    password: z.string(),
+  })
+}
 
 // =============
 // === Login ===
@@ -88,16 +91,9 @@ export default function Login() {
       </div>
       <div />
       <Form
-        schema={LOGIN_FORM_SCHEMA}
+        schema={createLoginFormSchema(getText)}
         className="flex flex-col gap-6"
-        onSubmit={async (values) => {
-          if (!isEmail(values.email)) {
-            throw new Error(getText('invalidEmailValidationError'))
-          } else {
-            await signInWithPassword(values)
-            return
-          }
-        }}
+        onSubmit={(values) => signInWithPassword(values)}
       >
         <Input
           autoFocus

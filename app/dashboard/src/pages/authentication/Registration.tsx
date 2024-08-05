@@ -2,6 +2,7 @@
 import * as React from 'react'
 import * as router from 'react-router-dom'
 
+import isEmail from 'validator/lib/isEmail'
 import * as z from 'zod'
 
 import { LOGIN_PATH } from '#/appUtils'
@@ -12,10 +13,9 @@ import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { useAuth } from '#/providers/AuthProvider'
 import { useLocalBackend } from '#/providers/BackendProvider'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
-import { useText } from '#/providers/TextProvider'
+import { type GetText, useText } from '#/providers/TextProvider'
 import LocalStorage from '#/utilities/LocalStorage'
 import { PASSWORD_PATTERN, PASSWORD_REGEX } from '#/utilities/validation'
-import isEmail from 'validator/lib/isEmail'
 
 // ============================
 // === Global configuration ===
@@ -33,11 +33,21 @@ LocalStorage.registerKey('loginRedirect', {
   tryParse: (value) => (typeof value === 'string' ? value : null),
 })
 
-const REGISTRATION_FORM_SCHEMA = z.object({
-  email: z.string(),
-  password: z.string(),
-  confirmPassword: z.string(),
-})
+/** Create the schema for this page. */
+function createRegistrationFormSchema(getText: GetText) {
+  return z
+    .object({
+      email: z.string().refine(isEmail, getText('invalidEmailValidationError')),
+      password: z
+        .string()
+        .refine((password) => PASSWORD_REGEX.test(password), getText('passwordValidationError')),
+      confirmPassword: z.string(),
+    })
+    .refine(
+      (object) => object.password === object.confirmPassword,
+      getText('passwordMismatchError'),
+    )
+}
 
 // ====================
 // === Registration ===
@@ -67,22 +77,11 @@ export default function Registration() {
 
   return (
     <AuthenticationPage
-      schema={REGISTRATION_FORM_SCHEMA}
+      schema={createRegistrationFormSchema(getText)}
       title={getText('createANewAccount')}
       supportsOffline={supportsOffline}
       footer={<Link to={LOGIN_PATH} icon={GoBackIcon} text={getText('alreadyHaveAnAccount')} />}
-      onSubmit={async ({ email, password, confirmPassword }): Promise<void> => {
-        if (!isEmail(email)) {
-          throw new Error(getText('invalidEmailValidationError'))
-        } else if (!PASSWORD_REGEX.test(password)) {
-          throw new Error(getText('passwordValidationError'))
-        } else if (password !== confirmPassword) {
-          throw new Error(getText('passwordMismatchError'))
-        } else {
-          await auth.signUp(email, password, organizationId)
-          return
-        }
-      }}
+      onSubmit={({ email, password }) => auth.signUp(email, password, organizationId)}
     >
       <Input
         autoFocus

@@ -3,6 +3,7 @@
 import * as React from 'react'
 import * as router from 'react-router-dom'
 
+import isEmail from 'validator/lib/isEmail'
 import * as z from 'zod'
 
 import { LOGIN_PATH } from '#/appUtils'
@@ -13,15 +14,25 @@ import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { useAuth } from '#/providers/AuthProvider'
 import { useLocalBackend } from '#/providers/BackendProvider'
-import { useText } from '#/providers/TextProvider'
+import { type GetText, useText } from '#/providers/TextProvider'
 import { PASSWORD_REGEX } from '#/utilities/validation'
 
-const RESET_PASSWORD_FORM_SCHEMA = z.object({
-  email: z.string(),
-  verificationCode: z.string(),
-  newPassword: z.string(),
-  confirmNewPassword: z.string(),
-})
+/** Create the schema for this page. */
+function createResetPasswordFormSchema(getText: GetText) {
+  return z
+    .object({
+      email: z.string().refine(isEmail, getText('invalidEmailValidationError')),
+      verificationCode: z.string(),
+      newPassword: z
+        .string()
+        .refine((password) => PASSWORD_REGEX.test(password), getText('passwordValidationError')),
+      confirmNewPassword: z.string(),
+    })
+    .refine(
+      (object) => object.newPassword === object.confirmNewPassword,
+      getText('passwordMismatchError'),
+    )
+}
 
 // =====================
 // === ResetPassword ===
@@ -38,35 +49,28 @@ export default function ResetPassword() {
   const supportsOffline = localBackend != null
 
   const query = new URLSearchParams(location.search)
-  const email = query.get('email')
-  const verificationCode = query.get('verification_code')
+  const defaultEmail = query.get('email')
+  const defaultVerificationCode = query.get('verification_code')
 
   React.useEffect(() => {
-    if (email == null) {
+    if (defaultEmail == null) {
       toastAndLog('missingEmailError')
       navigate(LOGIN_PATH)
-    } else if (verificationCode == null) {
+    } else if (defaultVerificationCode == null) {
       toastAndLog('missingVerificationCodeError')
       navigate(LOGIN_PATH)
     }
-  }, [email, navigate, verificationCode, getText, toastAndLog])
+  }, [defaultEmail, navigate, defaultVerificationCode, getText, toastAndLog])
 
   return (
     <AuthenticationPage
       supportsOffline={supportsOffline}
       title={getText('resetYourPassword')}
-      schema={RESET_PASSWORD_FORM_SCHEMA}
+      schema={createResetPasswordFormSchema(getText)}
       footer={<Link to={LOGIN_PATH} icon={GoBackIcon} text={getText('goBackToLogin')} />}
-      onSubmit={async ({ newPassword, confirmNewPassword }) => {
-        if (!PASSWORD_REGEX.test(newPassword)) {
-          throw new Error(getText('passwordValidationError'))
-        } else if (newPassword !== confirmNewPassword) {
-          throw new Error(getText('passwordMismatchError'))
-        } else {
-          // These should never be nullish, as the effect should immediately navigate away.
-          return await resetPassword(email ?? '', verificationCode ?? '', newPassword)
-        }
-      }}
+      onSubmit={({ email, verificationCode, newPassword }) =>
+        resetPassword(email, verificationCode, newPassword)
+      }
     >
       <Input
         required
@@ -76,7 +80,7 @@ export default function ResetPassword() {
         type="email"
         autoComplete="email"
         placeholder={getText('emailPlaceholder')}
-        value={email ?? ''}
+        value={defaultEmail ?? ''}
       />
       <Input
         required
@@ -86,7 +90,7 @@ export default function ResetPassword() {
         type="text"
         autoComplete="one-time-code"
         placeholder={getText('confirmationCodePlaceholder')}
-        value={verificationCode ?? ''}
+        value={defaultVerificationCode ?? ''}
       />
       <Input
         autoFocus

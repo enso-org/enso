@@ -2,6 +2,7 @@
  * flow. */
 import * as React from 'react'
 
+import isEmail from 'validator/lib/isEmail'
 import * as z from 'zod'
 
 import { LOGIN_PATH } from '#/appUtils'
@@ -11,9 +12,14 @@ import Link from '#/components/Link'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { useAuth } from '#/providers/AuthProvider'
 import { useLocalBackend } from '#/providers/BackendProvider'
-import { useText } from '#/providers/TextProvider'
+import { type GetText, useText } from '#/providers/TextProvider'
 
-const FORGOT_PASSWORD_FORM_SCHEMA = z.object({ email: z.string() })
+/** Create the schema for this page. */
+function createForgotPasswordFormSchema(getText: GetText) {
+  return z.object({
+    email: z.string().refine(isEmail, getText('invalidEmailValidationError')),
+  })
+}
 
 // ======================
 // === ForgotPassword ===
@@ -29,12 +35,10 @@ export default function ForgotPassword() {
   return (
     <AuthenticationPage
       title={getText('forgotYourPassword')}
-      schema={FORGOT_PASSWORD_FORM_SCHEMA}
+      schema={createForgotPasswordFormSchema(getText)}
       footer={<Link to={LOGIN_PATH} icon={GoBackIcon} text={getText('goBackToLogin')} />}
       supportsOffline={supportsOffline}
-      onSubmit={async ({ email }) => {
-        await forgotPassword(email)
-      }}
+      onSubmit={({ email }) => forgotPassword(email)}
     >
       <Input
         autoFocus

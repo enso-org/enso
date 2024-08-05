@@ -93,9 +93,9 @@ interface AuthContextType {
   readonly signInWithGoogle: () => Promise<boolean>
   readonly signInWithGitHub: () => Promise<boolean>
   readonly signInWithPassword: (email: string, password: string) => Promise<void>
-  readonly forgotPassword: (email: string) => Promise<boolean>
+  readonly forgotPassword: (email: string) => Promise<void>
   readonly changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>
-  readonly resetPassword: (email: string, code: string, password: string) => Promise<boolean>
+  readonly resetPassword: (email: string, code: string, password: string) => Promise<void>
   readonly signOut: () => Promise<void>
   /**
    * @deprecated Never use this function. Prefer particular functions like `setUsername` or `deleteUser`.
@@ -412,32 +412,26 @@ export default function AuthProvider(props: AuthProviderProps) {
   })
 
   const forgotPassword = useEventCallback(async (email: string) => {
-    if (cognito == null) {
-      return false
-    } else {
+    if (cognito != null) {
       const result = await cognito.forgotPassword(email)
       if (result.ok) {
-        toastSuccess(getText('forgotPasswordSuccess'))
         navigate(appUtils.LOGIN_PATH)
+        return
       } else {
-        toastError(result.val.message)
+        throw new Error(result.val.message)
       }
-      return result.ok
     }
   })
 
   const resetPassword = useEventCallback(async (email: string, code: string, password: string) => {
-    if (cognito == null) {
-      return false
-    } else {
+    if (cognito != null) {
       const result = await cognito.forgotPasswordSubmit(email, code, password)
       if (result.ok) {
-        toastSuccess(getText('resetPasswordSuccess'))
         navigate(appUtils.LOGIN_PATH)
+        return
       } else {
-        toastError(result.val.message)
+        throw new Error(result.val.message)
       }
-      return result.ok
     }
   })
 
@@ -548,8 +542,8 @@ export default function AuthProvider(props: AuthProviderProps) {
       }
     }),
     signInWithPassword: signInWithPassword,
-    forgotPassword: withLoadingToast(forgotPassword),
-    resetPassword: withLoadingToast(resetPassword),
+    forgotPassword: forgotPassword,
+    resetPassword: resetPassword,
     changePassword: withLoadingToast(changePassword),
     refetchSession: usersMeQuery.refetch,
     session: userData,
