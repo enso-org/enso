@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { IHeaderParams } from 'ag-grid-community'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 
 export interface HeaderParams {
   nameSetter?: (newName: string) => void
@@ -14,6 +14,15 @@ const props = defineProps<{
 }>()
 
 const editing = ref(false)
+const inputElement = ref<HTMLInputElement>()
+
+watch(inputElement, (newVal, oldVal) => {
+  if (newVal != null && oldVal == null) {
+    // Whenever input field appears, focus and select text
+    newVal.focus()
+    newVal.select()
+  }
+})
 
 function changeName(newName: string) {
   console.log('Setting new column name', props.params.column.getColId(), newName)
@@ -28,6 +37,7 @@ function changeName(newName: string) {
     <div class="ag-header-cell-label" role="presentation">
       <input
         v-if="editing"
+        ref="inputElement"
         class="ag-input-field-input ag-text-field-input"
         :value="params.displayName"
         @change="changeName(($event.target as HTMLInputElement).value)"

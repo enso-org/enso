@@ -5,7 +5,7 @@ import { Ast } from '@/util/ast'
 import { initializeFFI } from 'shared/ast/ffi'
 import { expect, test, vi } from 'vitest'
 
-initializeFFI()
+await initializeFFI()
 
 test.each([
   {
@@ -148,6 +148,12 @@ test.each([
     description: 'Setting missing value',
     edit: { column: 0, row: 2, value: 3 },
     expected: "Table.new [['a', [1, 2, 3]]]",
+  },
+  {
+    code: "Table.new [['a', [1, 2]], ['a', [3, 4]]]",
+    description: 'Editing with duplicated column name',
+    edit: { column: 0, row: 1, value: 5 },
+    expected: "Table.new [['a', [1, 5]], ['a', [3, 4]]]",
   },
 ])('Editing table $code: $description', ({ code, edit, expected }) => {
   const ast = Ast.parseBlock(code)
