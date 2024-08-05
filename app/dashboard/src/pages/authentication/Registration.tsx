@@ -15,6 +15,7 @@ import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
 import LocalStorage from '#/utilities/LocalStorage'
 import { PASSWORD_PATTERN, PASSWORD_REGEX } from '#/utilities/validation'
+import isEmail from 'validator/lib/isEmail'
 
 // ============================
 // === Global configuration ===
@@ -71,7 +72,9 @@ export default function Registration() {
       supportsOffline={supportsOffline}
       footer={<Link to={LOGIN_PATH} icon={GoBackIcon} text={getText('alreadyHaveAnAccount')} />}
       onSubmit={async ({ email, password, confirmPassword }): Promise<void> => {
-        if (!PASSWORD_REGEX.test(password)) {
+        if (!isEmail(email)) {
+          throw new Error(getText('invalidEmailValidationError'))
+        } else if (!PASSWORD_REGEX.test(password)) {
           throw new Error(getText('passwordValidationError'))
         } else if (password !== confirmPassword) {
           throw new Error(getText('passwordMismatchError'))

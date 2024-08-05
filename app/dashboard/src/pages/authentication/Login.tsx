@@ -16,6 +16,7 @@ import { useAuth } from '#/providers/AuthProvider'
 import { useLocalBackend } from '#/providers/BackendProvider'
 import { useText } from '#/providers/TextProvider'
 import { useMutation } from '@tanstack/react-query'
+import isEmail from 'validator/lib/isEmail'
 
 const LOGIN_FORM_SCHEMA = z.object({
   email: z.string(),
@@ -89,7 +90,14 @@ export default function Login() {
       <Form
         schema={LOGIN_FORM_SCHEMA}
         className="flex flex-col gap-6"
-        onSubmit={(values) => signInWithPassword(values)}
+        onSubmit={async (values) => {
+          if (!isEmail(values.email)) {
+            throw new Error(getText('invalidEmailValidationError'))
+          } else {
+            await signInWithPassword(values)
+            return
+          }
+        }}
       >
         <Input
           autoFocus

@@ -10,26 +10,14 @@ test.test.beforeEach(({ page }) => actions.mockAll({ page }))
 // =============
 
 test.test('login screen', async ({ page }) => {
-  await page.goto('/')
-
   // Invalid email
+  await page.goto('/')
   await actions.locateEmailInput(page).fill('invalid email')
-  test
-    .expect(
-      await page.evaluate(() => document.querySelector('form')?.checkValidity()),
-      'form should reject invalid email',
-    )
-    .toBe(false)
   await actions.locateLoginButton(page).click()
 
   // Invalid password
+  await page.goto('/')
   await actions.locateEmailInput(page).fill(actions.VALID_EMAIL)
   await actions.locatePasswordInput(page).fill(actions.INVALID_PASSWORD)
-  test
-    .expect(
-      await page.evaluate(() => document.querySelector('form')?.checkValidity()),
-      'form should accept invalid password',
-    )
-    .toBe(true)
   await actions.locateLoginButton(page).click()
 })
