@@ -74,6 +74,13 @@ type Enso_File
     private Value (enso_path : Enso_Path)
 
     ## ICON folder
+       Represents the current user's home directory.
+    home : Enso_File
+    home -> Enso_File =
+        Enso_File.new "enso://Users/"+Enso_User.current.name
+
+
+    ## ICON folder
        Represents the root folder of the organization.
 
        ? Organization Root Directory
