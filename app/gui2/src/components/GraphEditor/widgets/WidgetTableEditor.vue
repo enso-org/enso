@@ -30,9 +30,6 @@ const grid = ref<
 
 const { rowData, columnDefs } = useTableNewArgument(() => props.input, graph, props.onUpdate)
 
-watch(rowData, (rowData) => console.log(rowData), { flush: 'sync' })
-watch(columnDefs, (columnDefs) => console.log(columnDefs), { flush: 'sync' })
-
 const editHandler = WidgetEditHandler.New('WidgetTableEditor', props.input, {
   cancel() {
     grid.value?.gridApi?.stopEditing(true)

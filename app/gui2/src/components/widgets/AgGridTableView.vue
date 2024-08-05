@@ -1,3 +1,9 @@
+<script lang="ts">
+if (typeof import.meta.env.VITE_ENSO_AG_GRID_LICENSE_KEY !== 'string') {
+  console.warn('The AG_GRID_LICENSE_KEY is not defined.')
+}
+</script>
+
 <script setup lang="ts" generic="TData, TValue">
 import {
   clipboardNodeData,
@@ -10,20 +16,23 @@ import '@ag-grid-community/styles/ag-theme-alpine.css'
 import type {
   CellEditingStartedEvent,
   CellEditingStoppedEvent,
-  ColDef,
-  ColGroupDef,
   ColumnResizedEvent,
   FirstDataRenderedEvent,
-  GetRowIdFunc,
-  GridApi,
   GridReadyEvent,
   RowDataUpdatedEvent,
   RowEditingStartedEvent,
   RowEditingStoppedEvent,
-  RowHeightParams,
 } from 'ag-grid-community'
+import type {
+  ColDef,
+  ColGroupDef,
+  GetRowIdFunc,
+  GridApi,
+  RowHeightParams,
+} from 'ag-grid-enterprise'
+import { LicenseManager } from 'ag-grid-enterprise'
 import { AgGridVue } from 'ag-grid-vue3'
-import { type ComponentInstance, reactive, ref, shallowRef } from 'vue'
+import { type ComponentInstance, onMounted, reactive, ref, shallowRef } from 'vue'
 
 const DEFAULT_ROW_HEIGHT = 22
 
@@ -31,8 +40,8 @@ const _props = defineProps<{
   rowData: TData[]
   columnDefs: (ColDef<TData, TValue> | ColGroupDef<TData>)[] | null
   defaultColDef: ColDef<TData>
-  getRowId: GetRowIdFunc<TData>
-  components: Record<string, unknown>
+  getRowId?: GetRowIdFunc<TData>
+  components?: Record<string, unknown>
 }>()
 const emit = defineEmits<{
   cellEditingStarted: [event: CellEditingStartedEvent]
@@ -76,10 +85,9 @@ function updateColumnWidths(event: FirstDataRenderedEvent | RowDataUpdatedEvent)
     return
   }
   const cols = event.columnApi.getAllGridColumns().filter((c) => {
-    const id = c.getColDef().colId
+    const id = c.getColId()
     return id && !widths.has(id)
   })
-  console.log(cols)
   event.columnApi.autoSizeColumns(cols)
 }
 
@@ -121,6 +129,29 @@ function sendToClipboard({ data }: { data: string }) {
   })
 }
 
+onMounted(() => {
+  const agGridLicenseKey = import.meta.env.VITE_ENSO_AG_GRID_LICENSE_KEY
+  if (typeof agGridLicenseKey === 'string') {
+    LicenseManager.setLicenseKey(agGridLicenseKey)
+  } else if (import.meta.env.DEV) {
+    // Hide annoying license validation errors in dev mode when the license is not defined. The
+    // missing define warning is still displayed to not forget about it, but it isn't as obnoxious.
+    const origValidateLicense = LicenseManager.prototype.validateLicense
+    LicenseManager.prototype.validateLicense = function (this) {
+      if (!('licenseManager' in this))
+        Object.defineProperty(this, 'licenseManager', {
+          configurable: true,
+          set(value: any) {
+            Object.getPrototypeOf(value).validateLicense = () => {}
+            delete this.licenseManager
+            this.licenseManager = value
+          },
+        })
+      origValidateLicense.call(this)
+    }
+  }
+})
+
 defineExpose({ gridApi })
 </script>
 
@@ -134,7 +165,6 @@ defineExpose({ gridApi })
     :columnDefs="columnDefs"
     :defaultColDef="defaultColDef"
     :sendToClipboard="sendToClipboard"
-    :copyHeadersToClipboard="true"
     :suppressFieldDotNotation="true"
     :enableRangeSelection="true"
     :popupParent="popupParent"

@@ -41,8 +41,8 @@ function changeName(newName: string) {
         class="ag-header-cell-text"
         :class="{ virtualColumn: params.virtualColumn === true }"
         @dblclick="editing = params.nameSetter != null"
-        v-text="params.displayName"
-      ></span>
+        >{{ params.displayName }}</span
+      >
     </div>
   </div>
 </template>
