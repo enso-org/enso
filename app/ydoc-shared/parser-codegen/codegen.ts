@@ -8,7 +8,7 @@
  */
 
 import ts from 'typescript'
-import * as Schema from './schema.js'
+import type * as Schema from './schema.js'
 import {
   Type,
   abstractTypeDeserializer,

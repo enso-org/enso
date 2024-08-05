@@ -16,8 +16,9 @@
     "generate": "corepack pnpm run generate:ast-schema && corepack pnpm run generate:ast-types",
     "generate:ast-schema": "cargo run -p enso-parser-schema > src/ast/generated/ast-schema.json",
     "generate:ast-types": "vite-node ./parser-codegen/index.ts src/ast/generated/ast-schema.json src/ast/generated/ast.ts",
+    "generate:ast-types-lazy": "vite-node ./parser-codegen/index.ts src/ast/generated/ast-schema.json src/ast/generated/ast.ts --if-changed",
     "format": "prettier --version && prettier --write src/ && eslint . --fix",
-    "postinstall": "corepack pnpm generate"
+    "postinstall": "corepack pnpm run generate:ast-schema && corepack pnpm run generate:ast-types-lazy"
   },
   "exports": {
     "./ast": {

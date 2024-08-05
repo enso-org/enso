@@ -344,6 +344,7 @@ impl Processor {
             arg::gui::Command::Check => {
                 let repo_root = self.repo_root.clone();
                 async {
+                    enso_build::web::install(&repo_root).await?;
                     let check_result =
                         enso_build::web::run_script(&repo_root, enso_build::web::Script::CiCheck)
                             .await;
