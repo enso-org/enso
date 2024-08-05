@@ -117,7 +117,7 @@ final class Array implements EnsoObject {
       if (warnings.hasWarnings(v)) {
         v = warnings.removeWarnings(v);
       }
-      return appendWarningNode.execute(null, v, extractedWarnsMap);
+      return appendWarningNode.executeAppend(null, v, extractedWarnsMap);
     }
 
     return v;

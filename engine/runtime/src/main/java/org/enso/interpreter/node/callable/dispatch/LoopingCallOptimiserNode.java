@@ -79,7 +79,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
       @Shared("loopNode") @Cached(value = "createLoopNode()") LoopNode loopNode,
       @Shared @Cached AppendWarningNode appendWarningNode) {
     Object result = dispatch(function, callerInfo, state, arguments, loopNode);
-    return appendWarningNode.execute(null, result, warnings);
+    return appendWarningNode.executeAppend(null, result, warnings);
   }
 
   private Object dispatch(
@@ -122,7 +122,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
       @Shared @Cached AppendWarningNode appendWarningNode) {
     Object result =
         loopUntilCompletion(frame, function, callerInfo, state, arguments, executeCallNode);
-    return appendWarningNode.execute(null, result, warnings);
+    return appendWarningNode.executeAppend(null, result, warnings);
   }
 
   private Object loopUntilCompletion(

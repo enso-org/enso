@@ -90,7 +90,7 @@ public abstract class CaseNode extends ExpressionNode {
     try {
       var ws = warnings.getWarnings(object, false);
       Object result = doMatch(frame, warnings.removeWarnings(object), warnings);
-      return appendWarningNode.execute(null, result, ws);
+      return appendWarningNode.executeAppend(null, result, ws);
     } catch (UnsupportedMessageException e) {
       throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }

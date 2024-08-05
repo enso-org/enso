@@ -42,6 +42,7 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
+import org.enso.interpreter.runtime.warning.AppendWarningNode;
 import org.enso.interpreter.runtime.warning.AppendWarningNodeGen;
 import org.enso.interpreter.runtime.warning.Warning;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
@@ -373,7 +374,7 @@ public abstract class SortVectorNode extends Node {
         return vector;
       } else {
         var warn = Warning.create(ctx, text, this);
-        return AppendWarningNodeGen.getUncached().execute(null, vector, warn);
+        return AppendWarningNode.getUncached().executeAppend(null, vector, warn);
       }
     } else {
       return vector;

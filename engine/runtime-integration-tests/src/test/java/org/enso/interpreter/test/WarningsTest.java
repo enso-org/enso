@@ -59,8 +59,8 @@ public class WarningsTest {
           var warn2 = Warning.create(ensoContext, "w2", this);
           var value = 42L;
 
-          var with1 = AppendWarningNode.getUncached().execute(null, value, warn1);
-          var with2 = AppendWarningNode.getUncached().execute(null, with1, warn2);
+          var with1 = AppendWarningNode.getUncached().executeAppend(null, value, warn1);
+          var with2 = AppendWarningNode.getUncached().executeAppend(null, with1, warn2);
 
           assertEquals(value, with1.getValue());
           assertEquals(value, with2.getValue());
@@ -75,7 +75,7 @@ public class WarningsTest {
     var value = 42;
     WithWarnings without;
     try {
-      without = AppendWarningNode.getUncached().execute(null, 42, new Warning[0]);
+      without = AppendWarningNode.getUncached().executeAppend(null, 42, new Warning[0]);
     } catch (AssertionError e) {
       // OK
       return;

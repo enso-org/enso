@@ -88,7 +88,7 @@ public abstract class IndirectInvokeCallableNode extends Node {
               isTail);
 
       var extracted = warnings.getWarnings(warning, false);
-      return appendWarningNode.execute(null, result, extracted);
+      return appendWarningNode.executeAppend(null, result, extracted);
     } catch (UnsupportedMessageException e) {
       var ctx = EnsoContext.get(this);
       throw ctx.raiseAssertionPanic(this, null, e);

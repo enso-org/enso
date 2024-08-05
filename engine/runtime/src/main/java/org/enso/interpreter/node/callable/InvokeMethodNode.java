@@ -477,7 +477,7 @@ public abstract class InvokeMethodNode extends BaseNode {
 
     try {
       Object result = childDispatch.execute(frame, state, symbol, selfWithoutWarnings, arguments);
-      return appendWarningNode.execute(null, result, warnsMap);
+      return appendWarningNode.executeAppend(null, result, warnsMap);
     } catch (TailCallException e) {
       CompilerDirectives.transferToInterpreter();
       throw new TailCallException(e, Warning.fromMapToArray(warnsMap));
@@ -539,7 +539,7 @@ public abstract class InvokeMethodNode extends BaseNode {
     Object res = hostMethodCallNode.execute(polyglotCallType, symbol.getName(), self, args);
     if (anyWarnings) {
       anyWarningsProfile.enter();
-      res = appendWarningNode.execute(null, res, accumulatedWarnings);
+      res = appendWarningNode.executeAppend(null, res, accumulatedWarnings);
     }
     return res;
   }

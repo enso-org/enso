@@ -237,7 +237,7 @@ public abstract class InvokeConversionNode extends BaseNode {
         that.getWarningsArray(false, warnsLib, mapInsertNode, interop, lengthNode, atNode);
     try {
       Object result = childDispatch.execute(frame, state, conversion, self, value, arguments);
-      return appendWarningNode.execute(null, result, warnings);
+      return appendWarningNode.executeAppend(null, result, warnings);
     } catch (TailCallException e) {
       throw new TailCallException(e, warnings);
     }

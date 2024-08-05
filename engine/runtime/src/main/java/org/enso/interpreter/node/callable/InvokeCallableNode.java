@@ -325,7 +325,7 @@ public abstract class InvokeCallableNode extends BaseNode {
       if (result instanceof DataflowError) {
         return result;
       } else {
-        return appendWarningNode.execute(null, result, extracted);
+        return appendWarningNode.executeAppend(null, result, extracted);
       }
     } catch (TailCallException e) {
       throw new TailCallException(e, Warning.fromMapToArray(extracted));

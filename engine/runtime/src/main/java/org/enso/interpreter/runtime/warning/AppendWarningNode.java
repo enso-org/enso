@@ -37,7 +37,7 @@ public abstract class AppendWarningNode extends Node {
    *     It is expected that all the elements in the container are of {@link Warning} class.
    * @return A wrapped object with warnings
    */
-  public abstract WithWarnings execute(VirtualFrame frame, Object object, Object warnings);
+  public abstract WithWarnings executeAppend(VirtualFrame frame, Object object, Object warnings);
 
   @Specialization
   WithWarnings doSingleWarning(

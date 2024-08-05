@@ -64,7 +64,7 @@ public final class Warning implements EnsoObject {
       Object origin,
       @Cached AppendWarningNode appendWarningNode) {
     var warn = new Warning(warning, origin, ctx.nextSequenceId());
-    return appendWarningNode.execute(null, value, warn);
+    return appendWarningNode.executeAppend(null, value, warn);
   }
 
   /** Slow version of {@link #fromMapToArray(EnsoHashMap, ArrayLikeLengthNode, ArrayLikeAtNode)}. */

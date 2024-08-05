@@ -82,7 +82,7 @@ public abstract class HostValueToEnsoNode extends Node {
     if (nothing != value && nullWarningProfile.profile(warningsLibrary.hasWarnings(value))) {
       try {
         var attachedWarnings = warningsLibrary.getWarnings(value, false);
-        return appendWarningNode.execute(null, nothing, attachedWarnings);
+        return appendWarningNode.executeAppend(null, nothing, attachedWarnings);
       } catch (UnsupportedMessageException e) {
         return nothing;
       }

@@ -258,7 +258,7 @@ abstract class Vector implements EnsoObject {
         if (warnings.hasWarnings(v)) {
           v = warnings.removeWarnings(v);
         }
-        return appendWarningNode.execute(null, toEnso.execute(v), extracted);
+        return appendWarningNode.executeAppend(null, toEnso.execute(v), extracted);
       }
       return toEnso.execute(v);
     }

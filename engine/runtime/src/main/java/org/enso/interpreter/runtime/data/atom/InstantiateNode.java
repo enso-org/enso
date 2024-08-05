@@ -99,7 +99,7 @@ abstract class InstantiateNode extends ExpressionNode {
       }
     }
     if (anyWarningsProfile.profile(anyWarnings)) {
-      return appendWarningNode.execute(
+      return appendWarningNode.executeAppend(
           frame, createInstanceNode.execute(argumentValues), accumulatedWarnings);
     } else {
       return createInstanceNode.execute(argumentValues);
