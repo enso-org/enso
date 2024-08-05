@@ -1,0 +1,9 @@
+name: Base_Internal_Tests
+namespace: enso_dev
+enso-version: default
+version: 0.0.1
+license: MIT
+author: enso-dev@enso.org
+maintainer: enso-dev@enso.org
+# Base_Internal_Tests may import stuff from Helpers sibling project. So we need this property here.
+prefer-local-libraries: true
