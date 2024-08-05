@@ -11,12 +11,10 @@ import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.data.ArrayRope;
-import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
-import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
+import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
+import org.enso.interpreter.runtime.data.hash.HashMapInsertAllNode;
 import org.enso.interpreter.runtime.type.TypesGen;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
-import org.enso.interpreter.runtime.warning.Warning;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 /**
@@ -70,11 +68,11 @@ abstract class InstantiateNode extends ExpressionNode {
       VirtualFrame frame,
       @Cached(parameters = {"constructor"}) AtomConstructorInstanceNode createInstanceNode,
       @Cached AppendWarningNode appendWarningNode,
-      @Cached ArrayLikeLengthNode lengthNode,
-      @Cached ArrayLikeAtNode atNode) {
+      @Cached HashMapInsertAllNode mapInsertAllNode) {
     Object[] argumentValues = new Object[arguments.length];
     boolean anyWarnings = false;
-    ArrayRope<Warning> accumulatedWarnings = new ArrayRope<>();
+    var accumulatedWarnings = EnsoHashMap.empty();
+    var maxWarnings = EnsoContext.get(this).getWarningsLimit();
     for (int i = 0; i < arguments.length; i++) {
       CountingConditionProfile profile = profiles[i];
       CountingConditionProfile warningProfile = warningProfiles[i];
@@ -86,9 +84,7 @@ abstract class InstantiateNode extends ExpressionNode {
         anyWarnings = true;
         try {
           var argumentWarnsMap = warnings.getWarnings(argument, false);
-          accumulatedWarnings =
-              accumulatedWarnings.append(
-                  Warning.fromMapToArray(argumentWarnsMap, lengthNode, atNode));
+          accumulatedWarnings = mapInsertAllNode.executeInsertAll(frame, accumulatedWarnings, argumentWarnsMap, maxWarnings);
           argumentValues[i] = warnings.removeWarnings(argument);
         } catch (UnsupportedMessageException e) {
           throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);

@@ -148,7 +148,6 @@ public class MethodProcessor
           "org.enso.interpreter.runtime.callable.function.FunctionSchema",
           "org.enso.interpreter.runtime.EnsoContext",
           "org.enso.interpreter.runtime.builtin.Builtins",
-          "org.enso.interpreter.runtime.data.ArrayRope",
           "org.enso.interpreter.runtime.data.hash.EnsoHashMap",
           "org.enso.interpreter.runtime.data.hash.HashMapInsertNode",
           "org.enso.interpreter.runtime.data.hash.HashMapInsertAllNode",
