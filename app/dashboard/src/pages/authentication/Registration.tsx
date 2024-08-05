@@ -7,7 +7,7 @@ import * as z from 'zod'
 
 import { LOGIN_PATH } from '#/appUtils'
 import GoBackIcon from '#/assets/go_back.svg'
-import { Form, Input } from '#/components/AriaComponents'
+import { Form, Input, Password } from '#/components/AriaComponents'
 import Link from '#/components/Link'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
@@ -91,18 +91,16 @@ export default function Registration() {
         placeholder={getText('emailPlaceholder')}
         defaultValue={initialEmail ?? undefined}
       />
-      <Input
+      <Password
         required
         name="password"
-        type="password"
         autoComplete="new-password"
         placeholder={getText('passwordPlaceholder')}
         pattern={PASSWORD_PATTERN}
       />
-      <Input
+      <Password
         required
         name="confirmPassword"
-        type="password"
         autoComplete="new-password"
         placeholder={getText('confirmPasswordPlaceholder')}
       />

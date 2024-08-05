@@ -7,7 +7,7 @@ import { FORGOT_PASSWORD_PATH, REGISTRATION_PATH } from '#/appUtils'
 import CreateAccountIcon from '#/assets/create_account.svg'
 import GithubIcon from '#/assets/github.svg'
 import GoogleIcon from '#/assets/google.svg'
-import { Button, Form, Input } from '#/components/AriaComponents'
+import { Button, Form, Input, Password } from '#/components/AriaComponents'
 import Link from '#/components/Link'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordSchema } from '#/pages/authentication/schemas'
@@ -94,11 +94,10 @@ export default function Login() {
         />
 
         <div className="flex w-full flex-col">
-          <Input
+          <Password
             required
             label={getText('password')}
             name="password"
-            type="password"
             autoComplete="current-password"
             placeholder={getText('passwordPlaceholder')}
           />

@@ -8,7 +8,7 @@ import * as z from 'zod'
 
 import { LOGIN_PATH } from '#/appUtils'
 import GoBackIcon from '#/assets/go_back.svg'
-import { Form, Input } from '#/components/AriaComponents'
+import { Form, Input, Password } from '#/components/AriaComponents'
 import Link from '#/components/Link'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
@@ -90,18 +90,16 @@ export default function ResetPassword() {
         placeholder={getText('confirmationCodePlaceholder')}
         value={defaultVerificationCode ?? ''}
       />
-      <Input
+      <Password
         autoFocus
         required
         name="newPassword"
-        type="password"
         autoComplete="new-password"
         placeholder={getText('newPasswordPlaceholder')}
       />
-      <Input
+      <Password
         required
         name="confirmNewPassword"
-        type="password"
         autoComplete="new-password"
         placeholder={getText('confirmNewPasswordPlaceholder')}
       />
