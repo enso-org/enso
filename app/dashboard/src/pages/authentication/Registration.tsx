@@ -55,7 +55,7 @@ function createRegistrationFormSchema(getText: GetText) {
 
 /** A form for users to register an account. */
 export default function Registration() {
-  const auth = useAuth()
+  const { signUp } = useAuth()
   const location = router.useLocation()
   const { localStorage } = useLocalStorage()
   const { getText } = useText()
@@ -81,7 +81,7 @@ export default function Registration() {
       title={getText('createANewAccount')}
       supportsOffline={supportsOffline}
       footer={<Link to={LOGIN_PATH} icon={GoBackIcon} text={getText('alreadyHaveAnAccount')} />}
-      onSubmit={({ email, password }) => auth.signUp(email, password, organizationId)}
+      onSubmit={({ email, password }) => signUp(email, password, organizationId)}
     >
       <Input
         autoFocus

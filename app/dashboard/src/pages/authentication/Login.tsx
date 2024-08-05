@@ -2,7 +2,6 @@
 import * as router from 'react-router-dom'
 
 import { CLOUD_DASHBOARD_DOMAIN } from 'enso-common'
-import isEmail from 'validator/lib/isEmail'
 
 import { FORGOT_PASSWORD_PATH, REGISTRATION_PATH } from '#/appUtils'
 import CreateAccountIcon from '#/assets/create_account.svg'
@@ -14,8 +13,7 @@ import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordSchema } from '#/pages/authentication/schemas'
 import { useAuth } from '#/providers/AuthProvider'
 import { useLocalBackend } from '#/providers/BackendProvider'
-import { type GetText, useText } from '#/providers/TextProvider'
-import { useMutation } from '@tanstack/react-query'
+import { useText } from '#/providers/TextProvider'
 
 // =============
 // === Login ===
@@ -24,22 +22,12 @@ import { useMutation } from '@tanstack/react-query'
 /** A form for users to log in. */
 export default function Login() {
   const location = router.useLocation()
-  const auth = useAuth()
+  const { signInWithGoogle, signInWithGitHub, signInWithPassword } = useAuth()
   const { getText } = useText()
   const query = new URLSearchParams(location.search)
   const initialEmail = query.get('email')
   const localBackend = useLocalBackend()
   const supportsOffline = localBackend != null
-
-  const signInWithGoogleMutation = useMutation({ mutationFn: auth.signInWithGoogle })
-  const signInWithGitHubMutation = useMutation({ mutationFn: auth.signInWithGitHub })
-  const signInWithPasswordMutation = useMutation({
-    mutationFn: ({ email, password }: { email: string; password: string }) =>
-      auth.signInWithPassword(email, password),
-  })
-  const signInWithGoogle = signInWithGoogleMutation.mutateAsync
-  const signInWithGitHub = signInWithGitHubMutation.mutateAsync
-  const signInWithPassword = signInWithPasswordMutation.mutateAsync
 
   return (
     <AuthenticationPage
@@ -92,7 +80,7 @@ export default function Login() {
           })
         }
         gap="medium"
-        onSubmit={(values) => signInWithPassword(values)}
+        onSubmit={({ email, password }) => signInWithPassword(email, password)}
       >
         <Input
           autoFocus
