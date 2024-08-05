@@ -126,16 +126,6 @@ public final class RuntimeOptions {
       OptionDescriptor.newBuilder(USE_GLOBAL_IR_CACHE_LOCATION_KEY, USE_GLOBAL_IR_CACHE_LOCATION)
           .build();
 
-  public static final String DUMP_IRS = optionName("dumpIrs");
-  public static final OptionKey<Boolean> DUMP_IRS_KEY = new OptionKey<>(false);
-  public static final OptionDescriptor DUMP_IRS_DESCRIPTOR =
-      OptionDescriptor.newBuilder(DUMP_IRS_KEY, DUMP_IRS)
-          .help(
-              "Dumps Enso IRs in GraphViz format to the local ir-dumps directory. " +
-                  "See org.enso.compiler.dump.IRDumper class docs."
-          )
-          .build();
-
   public static final String ENABLE_EXECUTION_TIMER = optionName("enableExecutionTimer");
 
   /* Enables timer that counts down the execution time of expressions. */
@@ -172,7 +162,6 @@ public final class RuntimeOptions {
               INTERPRETER_RANDOM_DELAYED_COMMAND_EXECUTION_DESCRIPTOR,
               JOB_PARALLELISM_DESCRIPTOR,
               DISABLE_IR_CACHES_DESCRIPTOR,
-              DUMP_IRS_DESCRIPTOR,
               PREINITIALIZE_DESCRIPTOR,
               WAIT_FOR_PENDING_SERIALIZATION_JOBS_DESCRIPTOR,
               USE_GLOBAL_IR_CACHE_LOCATION_DESCRIPTOR,

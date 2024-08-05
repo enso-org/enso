@@ -11,9 +11,9 @@ for future goals.
 
 ## Visualization
 
-The IR can be visualized using `--dump-irs` command line option to the engine
-runner. This will output a `.dot` file in [GraphViz](www.graphviz.org) format in
-the `ir-dumps` directory for each IR in the program. The _dot_ file format is a
+The IR can be visualized using `-Denso.compiler.dumpIr` system property. This
+will output a `.dot` file in [GraphViz](www.graphviz.org) format in the
+`ir-dumps` directory for each IR in the program. The _dot_ file format is a
 minimal textual format, that can be converted to a graphical representation
 using the `dot` command from the GraphViz package. For example, on Ubuntu,
 install `dot` with `sudo apt install graphviz`. Then, convert the `.dot` file to

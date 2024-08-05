@@ -57,6 +57,7 @@ public class IRDumper {
   private static final boolean INCLUDE_PASS_DATA = true;
 
   public static final String DEFAULT_DUMP_DIR = "ir-dumps";
+  public static final String SYSTEM_PROP = "enso.compiler.dumpIr";
 
   private final OutputStream out;
   private final Set<GraphVizNode> nodes = new HashSet<>();
@@ -221,7 +222,7 @@ public class IRDumper {
                 .addLabelLine("name: " + builtinAnnotation.name());
         addNode(bldr.build());
       }
-      case org.enso.compiler.core.ir.Type.Ascription ascription ->  {
+      case org.enso.compiler.core.ir.Type.Ascription ascription -> {
         var ascriptionNode = GraphVizNode.Builder.fromIr(ascription).build();
         addNode(ascriptionNode);
         var typed = ascription.typed();

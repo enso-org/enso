@@ -40,7 +40,6 @@ public final class ContextFactory {
   private Level logLevel;
   private boolean logMasking;
   private boolean enableIrCaches;
-  private boolean dumpIrs;
   private boolean disablePrivateCheck;
   private boolean enableStaticAnalysis;
   private boolean strictErrors;
@@ -94,11 +93,6 @@ public final class ContextFactory {
 
   public ContextFactory enableIrCaches(boolean enableIrCaches) {
     this.enableIrCaches = enableIrCaches;
-    return this;
-  }
-
-  public ContextFactory dumpIrs(boolean dumpIrs) {
-    this.dumpIrs = dumpIrs;
     return this;
   }
 
@@ -166,7 +160,6 @@ public final class ContextFactory {
                 RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION,
                 Boolean.toString(useGlobalIrCacheLocation))
             .option(RuntimeOptions.DISABLE_IR_CACHES, Boolean.toString(!enableIrCaches))
-            .option(RuntimeOptions.DUMP_IRS, Boolean.toString(dumpIrs))
             .option(RuntimeOptions.DISABLE_PRIVATE_CHECK, Boolean.toString(disablePrivateCheck))
             .option(RuntimeOptions.ENABLE_STATIC_ANALYSIS, Boolean.toString(enableStaticAnalysis))
             .option(RuntimeOptions.LOG_MASKING, Boolean.toString(logMasking))
