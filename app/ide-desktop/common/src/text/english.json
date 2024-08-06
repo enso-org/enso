@@ -541,6 +541,7 @@
   "originalPrice": "Original Price",
   "youSave": "You Save",
   "totalPrice": "Total Price",
+  "subtotalPrice": "Subtotal Price",
   "returnToDashboard": "Return to Dashboard",
   "subscribeTitle": "Enso Pricing",
   "subscribeSuccessSubmit": "Go to Dashboard",

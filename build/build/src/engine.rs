@@ -247,7 +247,7 @@ impl Default for BuildConfigurationFlags {
             build_project_manager_package: false,
             build_launcher_bundle: false,
             build_project_manager_bundle: false,
-            generate_java_from_rust: true,
+            generate_java_from_rust: false,
             test_java_generated_from_rust: false,
             verify_packages: false,
         }

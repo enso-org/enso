@@ -122,14 +122,9 @@ test.each([
       { type: Tree.Type.Ident, repr: 'foo' },
     ],
   ],
-  ['(', [{ type: Tree.Type.Invalid, repr: '(' }]],
-  [
-    '(foo',
-    [
-      { type: Tree.Type.Invalid, repr: '(' },
-      { type: Tree.Type.Ident, repr: 'foo' },
-    ],
-  ],
+  // These are Invalid nodes, so the child is a subtree containing the whole expression.
+  ['(', [{ type: Tree.Type.Group, repr: '(' }]],
+  ['(foo', [{ type: Tree.Type.Group, repr: '(foo' }]],
 ])("Reading children of '%s'", (code, expected) => {
   const ast = parseEnsoLine(code)
   const children = Array.from(childrenAstNodes(ast))
