@@ -1,3 +1,4 @@
+use crate::syntax::tree;
 use crate::syntax::Token;
 use crate::syntax::Tree;
 
@@ -5,7 +6,7 @@ use crate::syntax::Tree;
 
 mod block;
 mod compound_token;
-mod consumer;
+mod numbers;
 mod whitespace;
 
 
@@ -14,21 +15,21 @@ mod whitespace;
 // ===============
 
 pub use block::FlattenBlockTrees;
-pub use compound_token::AssembleCompoundTokens;
-pub use consumer::Finish;
-pub use consumer::ItemConsumer;
-pub use consumer::TreeConsumer;
+pub use compound_token::CompoundTokens;
+pub use numbers::ParseNumbers;
 pub use whitespace::PeekSpacing;
 pub use whitespace::Spacing;
 pub use whitespace::SpacingLookaheadTokenConsumer;
+pub use whitespace::SpacingLookaheadTreeConsumer;
 
 
 // ===================
 // === TokenOrTree ===
 // ===================
 
+#[allow(missing_docs)]
 #[derive(Debug)]
-enum TokenOrTree<'s> {
+pub enum TokenOrTree<'s> {
     Token(Token<'s>),
     Tree(Tree<'s>),
 }
@@ -42,5 +43,14 @@ impl<'s> From<Token<'s>> for TokenOrTree<'s> {
 impl<'s> From<Tree<'s>> for TokenOrTree<'s> {
     fn from(tree: Tree<'s>) -> Self {
         TokenOrTree::Tree(tree)
+    }
+}
+
+impl<'s> From<TokenOrTree<'s>> for Tree<'s> {
+    fn from(t: TokenOrTree<'s>) -> Self {
+        match t {
+            TokenOrTree::Token(token) => tree::to_ast(token),
+            TokenOrTree::Tree(tree) => tree,
+        }
     }
 }
