@@ -1,6 +1,8 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
+
+import com.ibm.icu.text.Normalizer;
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
@@ -124,6 +126,30 @@ public final class StringStorage extends SpecializedStorage<String> {
             return Text_Utils.contains(a, b);
           }
         });
+    t.add(new StringBooleanOp(Maps.LT) {
+      @Override
+      protected boolean doString(String a, String b) {
+        return Text_Utils.compare_normalized(a, b) < 0;
+      }
+    });
+    t.add(new StringBooleanOp(Maps.LTE) {
+      @Override
+      protected boolean doString(String a, String b) {
+        return Text_Utils.compare_normalized(a, b) <= 0;
+      }
+    });
+    t.add(new StringBooleanOp(Maps.GT) {
+      @Override
+      protected boolean doString(String a, String b) {
+        return Text_Utils.compare_normalized(a, b) > 0;
+      }
+    });
+    t.add(new StringBooleanOp(Maps.GTE) {
+      @Override
+      protected boolean doString(String a, String b) {
+        return Text_Utils.compare_normalized(a, b) >= 0;
+      }
+    });
     t.add(new LikeOp());
     t.add(new StringIsInOp<>());
     t.add(
