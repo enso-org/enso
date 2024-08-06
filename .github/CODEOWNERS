@@ -21,6 +21,8 @@ Cargo.toml
 
 # Scala Libraries
 /lib/scala/ @4e6 @jaroslavtulach @hubertp @Akirathan
+
+# Java libraries
 /lib/java/ @4e6 @jaroslavtulach @hubertp @Akirathan
 
 # GUI
