@@ -66,9 +66,14 @@ case object FramePointerAnalysis extends IRPass {
           case Some(graph) =>
             processArgumentDefs(t.params, graph)
             t.members.foreach { member =>
-              processArgumentDefs(member.arguments, graph)
+              val memberGraph = getAliasRootScope(member) match {
+                case Some(memberRootScope) =>
+                  memberRootScope.graph
+                case _ => graph
+              }
+              processArgumentDefs(member.arguments, memberGraph)
               member.annotations.foreach { annotation =>
-                processExpression(annotation.expression, graph)
+                processExpression(annotation.expression, memberGraph)
               }
             }
           case _ => ()
@@ -257,6 +262,15 @@ case object FramePointerAnalysis extends IRPass {
       case Some(aliasInfo: Info) =>
         Some(aliasInfo)
       case _ => None
+    }
+  }
+
+  private def getAliasRootScope(
+    ir: IR
+  ): Option[Info.Scope.Root] = {
+    ir.passData().get(AliasAnalysis) match {
+      case Some(root: Info.Scope.Root) => Some(root)
+      case _                           => None
     }
   }
 

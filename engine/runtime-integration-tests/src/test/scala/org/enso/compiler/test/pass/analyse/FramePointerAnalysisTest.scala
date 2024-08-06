@@ -3,13 +3,14 @@ package org.enso.compiler.test.pass.analyse
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FramePointer, FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.Expression
+import org.enso.compiler.core.ir.{DefinitionArgument, Expression, Module}
 import org.enso.compiler.core.Implicits.AsMetadata
-import org.enso.compiler.core.ir.Module
 import org.enso.compiler.pass.analyse.alias.{Graph, Info}
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.pass.analyse.{AliasAnalysis, FramePointerAnalysis}
 import org.enso.compiler.test.CompilerTest
+
+import scala.reflect.ClassTag
 
 class FramePointerAnalysisTest extends CompilerTest {
 
@@ -161,6 +162,72 @@ class FramePointerAnalysisTest extends CompilerTest {
       )
       expectFramePointer(nestedUseIr, new FramePointer(0, 2))
     }
+
+    "attach frame pointers to constructor parameters" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+      val ir =
+        """
+          |type My_Type
+          |    Cons x y
+          |""".stripMargin.preprocessModule.analyse
+      val xArg =
+        findIRElement[DefinitionArgument.Specified](ir, _.name.name == "x")
+      val yArg =
+        findIRElement[DefinitionArgument.Specified](ir, _.name.name == "y")
+      expectFramePointer(xArg, new FramePointer(0, 1))
+      expectFramePointer(yArg, new FramePointer(0, 2))
+    }
+
+    "attach frame pointers to constructor parameters with default values" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+      val ir =
+        """
+          |type My_Type
+          |    Cons x=1 y=(x + 1)
+          |""".stripMargin.preprocessModule.analyse
+      val xArg =
+        findIRElement[DefinitionArgument.Specified](ir, _.name.name == "x")
+      val yArg =
+        findIRElement[DefinitionArgument.Specified](ir, _.name.name == "y")
+      expectFramePointer(xArg, new FramePointer(0, 1))
+      expectFramePointer(yArg, new FramePointer(0, 2))
+    }
+
+    "attach frame pointers to constructor parameters with type ascriptions" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+      val ir =
+        """
+          |type My_Integer
+          |type My_Type
+          |    Cons x:My_Integer (y:My_Integer = 1)
+          |""".stripMargin.preprocessModule.analyse
+      val xArg =
+        findIRElement[DefinitionArgument.Specified](ir, _.name.name == "x")
+      val yArg =
+        findIRElement[DefinitionArgument.Specified](ir, _.name.name == "y")
+      expectFramePointer(xArg, new FramePointer(0, 1))
+      expectFramePointer(yArg, new FramePointer(0, 2))
+    }
+  }
+
+  /** Find the first IR element of the given `T` type by the given `filterCondition`.
+    * @param filterCondition Filter condition will be applied to all the elements of the desired type.
+    *                        The first element that matches the condition will be returned
+    * @tparam T type of the IR element to be found
+    * @return
+    */
+  private def findIRElement[T <: IR: ClassTag](
+    rootIr: IR,
+    filterCondition: T => Boolean
+  ): T = {
+    rootIr
+      .preorder()
+      .flatMap {
+        case childIr: T =>
+          Some(childIr).filter(filterCondition)
+        case _ => None
+      }
+      .head
   }
 
   /** Asserts that the given `ir` has the given `framePointer` attached as metadata.
