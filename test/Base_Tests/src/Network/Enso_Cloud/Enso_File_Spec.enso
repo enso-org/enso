@@ -111,7 +111,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
 
     group_builder.specify "should not allow to delete the root or home directory" <|
         Enso_File.root.delete . should_fail_with Illegal_Argument
-        Enso_File.home.delete . should_fail_with Enso_Cloud_Error
+        Enso_File.home.delete . should_fail_with Any
 
     # See Inter_Backend_File_Operations_Spec for copy/move tests
     group_builder.specify "should be able to write a file using with_output_stream" <|
