@@ -47,7 +47,7 @@ type Named_Pattern
         Named_Pattern.Trailing_Whitespace -> "\s+$"
         Named_Pattern.Duplicate_Whitespace -> "(?<=\s)\s+"
         Named_Pattern.All_Whitespace -> "\s+"
-        Named_Pattern.Newlines -> "(\n|\r)"
+        Named_Pattern.Newlines -> "(\r\n?|\n)"
         Named_Pattern.Leading_Numbers -> "^\d+"
         Named_Pattern.Trailing_Numbers -> "\d+$"
         Named_Pattern.Non_ASCII -> "[^\x00-\x7F]"
