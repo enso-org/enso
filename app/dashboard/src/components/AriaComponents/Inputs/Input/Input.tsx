@@ -93,6 +93,7 @@ export const Input = React.forwardRef(function Input<
     invalid: fieldState.invalid,
     readOnly: inputProps.readOnly,
     disabled: isDisabled || formInstance.formState.isSubmitting,
+    hasIcon: icon != null,
   })
 
   const { ref: fieldRef, ...field } = formInstance.register(name, {
