@@ -33,16 +33,33 @@ export default class RegisterPageActions extends BaseActions {
     email = VALID_EMAIL,
     password = VALID_PASSWORD,
     confirmPassword = password,
-    error?: string,
+    {
+      assert = {},
+    }: {
+      assert?: {
+        emailError?: string | null
+        passwordError?: string | null
+        confirmPasswordError?: string | null
+        formError?: string | null
+      }
+    } = {},
   ) {
+    const { emailError, passwordError, confirmPasswordError, formError } = assert
     const next = this.step('Register (should fail)', () =>
       this.registerInternal(email, password, confirmPassword),
     )
-    if (error == null) {
+      .expectInputError('email', 'email', emailError)
+      .expectInputError('password', 'password', passwordError)
+      .expectInputError('confirmPassword', 'confirmPassword', confirmPasswordError)
+    if (formError === undefined) {
       return next
+    } else if (formError != null) {
+      return next.step(`Expect form error to be '${formError}'`, async (page) => {
+        await test.expect(page.getByTestId('form-submit-error')).toHaveText(formError)
+      })
     } else {
-      return next.step(`Expect error to be '${error}'`, async (page) => {
-        await test.expect(page.getByTestId('form-submit-error')).toHaveText(error)
+      return next.step('Expect no form error', async (page) => {
+        await test.expect(page.getByTestId('form-submit-error')).not.toBeVisible()
       })
     }
   }

@@ -5,6 +5,7 @@ import {
   INVALID_PASSWORD,
   mockAll,
   passTermsAndConditionsDialog,
+  TEXT,
   VALID_EMAIL,
   VALID_PASSWORD,
 } from './actions'
@@ -15,7 +16,13 @@ import {
 
 test.test('login screen', ({ page }) =>
   mockAll({ page })
-    .loginThatShouldFail('invalid email', VALID_PASSWORD, 'Please enter a valid email address')
+    .loginThatShouldFail('invalid email', VALID_PASSWORD, {
+      assert: {
+        emailError: TEXT.invalidEmailValidationError,
+        passwordError: null,
+        formError: null,
+      },
+    })
     // Technically it should not be allowed, but
     .login(VALID_EMAIL, INVALID_PASSWORD)
     .do(async (thePage) => {

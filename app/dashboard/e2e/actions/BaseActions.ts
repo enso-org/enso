@@ -155,4 +155,24 @@ export default class BaseActions implements Promise<void> {
       await page.keyboard.up(await actions.modModifier(page))
     })
   }
+
+  /** Expect an input to have an error (or no error if the expected value is `null`).
+   * If the expected value is `undefined`, the assertion is skipped. */
+  expectInputError(name: string, description: string, expected: string | null | undefined) {
+    if (expected === undefined) {
+      return this
+    } else if (expected != null) {
+      return this.step(`Expect ${description} error to be '${expected}'`, async (page) => {
+        // eslint-disable-next-line no-restricted-properties
+        const element = page.locator(`fieldset:has(input[name=${name}]) > span.text-danger`)
+        await test.expect(element).toHaveText(expected)
+      })
+    } else {
+      return this.step(`Expect no ${description} error`, async (page) => {
+        // eslint-disable-next-line no-restricted-properties
+        const element = page.locator(`fieldset:has(input[name=${name}]) > span.text-danger`)
+        await test.expect(element).not.toBeVisible()
+      })
+    }
+  }
 }

@@ -36,13 +36,32 @@ export default class LoginPageActions extends BaseActions {
   }
 
   /** Perform a failing login. */
-  loginThatShouldFail(email = VALID_EMAIL, password = VALID_PASSWORD, error?: string) {
+  loginThatShouldFail(
+    email = VALID_EMAIL,
+    password = VALID_PASSWORD,
+    {
+      assert = {},
+    }: {
+      assert?: {
+        emailError?: string | null
+        passwordError?: string | null
+        formError?: string | null
+      }
+    } = {},
+  ) {
+    const { emailError, passwordError, formError } = assert
     const next = this.step('Login (should fail)', () => this.loginInternal(email, password))
-    if (error == null) {
+      .expectInputError('email', 'email', emailError)
+      .expectInputError('password', 'password', passwordError)
+    if (formError === undefined) {
       return next
+    } else if (formError != null) {
+      return next.step(`Expect form error to be '${formError}'`, async (page) => {
+        await test.expect(page.getByTestId('form-submit-error')).toHaveText(formError)
+      })
     } else {
-      return next.step(`Expect error to be '${error}'`, async (page) => {
-        await test.expect(page.getByTestId('form-submit-error')).toHaveText(error)
+      return next.step('Expect no form error', async (page) => {
+        await test.expect(page.getByTestId('form-submit-error')).not.toBeVisible()
       })
     }
   }
