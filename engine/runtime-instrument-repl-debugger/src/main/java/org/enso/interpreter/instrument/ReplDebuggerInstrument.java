@@ -6,18 +6,23 @@ import com.oracle.truffle.api.TruffleStackTrace;
 import com.oracle.truffle.api.debug.DebuggerTags;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.EventContext;
 import com.oracle.truffle.api.instrumentation.ExecutionEventNode;
+import com.oracle.truffle.api.instrumentation.ExecutionEventNodeFactory;
 import com.oracle.truffle.api.instrumentation.Instrumenter;
 import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
+import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.nodes.RootNode;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import org.enso.compiler.context.FramePointer;
+import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.node.expression.debug.CaptureResultScopeNode;
@@ -61,8 +66,10 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
             ctx ->
                 ctx.getInstrumentedNode() instanceof DebugBreakpointNode
                     ? new ReplExecutionEventNodeImpl(
-                        ctx, handler, env.getLogger(ReplExecutionEventNodeImpl.class))
+                        true, ctx, handler, env.getLogger(ReplExecutionEventNodeImpl.class))
                     : null);
+        var lastReplChance = new AtTheEndOfFirstMethod(handler, env, instrumenter);
+        lastReplChance.activate();
       } else {
         env.getLogger(ReplDebuggerInstrument.class)
             .warning("ReplDebuggerInstrument was initialized, " + "but no client connected");
@@ -87,6 +94,7 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
   /** The actual node that's installed as a probe on any node the instrument was launched for. */
   private static class ReplExecutionEventNodeImpl extends ExecutionEventNode
       implements ReplExecutionEventNode {
+    private final boolean atEnter;
     private @Child EvalNode evalNode = EvalNode.buildWithResultScopeCapture();
     private @Child ToJavaStringNode toJavaStringNode = ToJavaStringNode.build();
 
@@ -98,7 +106,11 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     private TruffleLogger logger;
 
     private ReplExecutionEventNodeImpl(
-        EventContext eventContext, DebuggerMessageHandler handler, TruffleLogger logger) {
+        boolean atEnter,
+        EventContext eventContext,
+        DebuggerMessageHandler handler,
+        TruffleLogger logger) {
+      this.atEnter = atEnter;
       this.eventContext = eventContext;
       this.handler = handler;
       this.logger = logger;
@@ -175,12 +187,23 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
      */
     @Override
     protected void onEnter(VirtualFrame frame) {
-      CallerInfo lastScope = Function.ArgumentsHelper.getCallerInfo(frame.getArguments());
-      Object lastReturn = EnsoContext.get(this).getNothing();
-      // Note [Safe Access to State in the Debugger Instrument]
-      monadicState = Function.ArgumentsHelper.getState(frame.getArguments());
-      nodeState = new ReplExecutionEventNodeState(lastReturn, lastScope);
-      startSession();
+      if (atEnter) {
+        startSession(getRootNode(), frame);
+      }
+    }
+
+    @Override
+    public void onReturnValue(VirtualFrame frame, Object result) {
+      if (!atEnter) {
+        startSession(getRootNode(), frame);
+      }
+    }
+
+    @Override
+    public void onReturnExceptional(VirtualFrame frame, Throwable exception) {
+      if (!atEnter) {
+        startSession(getRootNode(), frame);
+      }
     }
 
     /* Note [Safe Access to State in the Debugger Instrument]
@@ -204,8 +227,23 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
       return nodeState.getLastReturn();
     }
 
+    private void startSession(RootNode root, VirtualFrame frame) {
+      CallerInfo lastScope = Function.ArgumentsHelper.getCallerInfo(frame.getArguments());
+      if (lastScope == null && root instanceof EnsoRootNode enso) {
+        lastScope =
+            new CallerInfo(frame.materialize(), enso.getLocalScope(), enso.getModuleScope());
+      }
+      if (lastScope != null) {
+        var lastReturn = EnsoContext.get(this).getNothing();
+        // Note [Safe Access to State in the Debugger Instrument]
+        monadicState = Function.ArgumentsHelper.getState(frame.getArguments());
+        nodeState = new ReplExecutionEventNodeState(lastReturn, lastScope);
+        startSessionImpl();
+      }
+    }
+
     @CompilerDirectives.TruffleBoundary
-    private void startSession() {
+    private void startSessionImpl() {
       if (handler.hasClient()) {
         handler.startSession(this);
       } else {
@@ -239,6 +277,32 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
       CallerInfo getLastScope() {
         return lastScope;
       }
+    }
+  }
+
+  private final class AtTheEndOfFirstMethod implements ExecutionEventNodeFactory {
+    private final Instrumenter instr;
+    private final DebuggerMessageHandler handler;
+    private final TruffleInstrument.Env env;
+    private EventBinding<?> firstMethod;
+
+    AtTheEndOfFirstMethod(DebuggerMessageHandler h, TruffleInstrument.Env env, Instrumenter instr) {
+      this.instr = instr;
+      this.handler = h;
+      this.env = env;
+    }
+
+    final void activate() {
+      var anyMethod =
+          SourceSectionFilter.newBuilder().tagIs(StandardTags.RootBodyTag.class).build();
+      this.firstMethod = instr.attachExecutionEventFactory(anyMethod, this);
+    }
+
+    @Override
+    public ExecutionEventNode create(EventContext ctx) {
+      firstMethod.dispose();
+      return new ReplExecutionEventNodeImpl(
+          false, ctx, handler, env.getLogger(ReplExecutionEventNodeImpl.class));
     }
   }
 }

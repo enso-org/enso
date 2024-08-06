@@ -896,9 +896,8 @@ public class Main {
     var dummySourceToTriggerRepl =
         """
          from Standard.Base import all
-         import Standard.Base.Runtime.Debug
 
-         $mainMethodName = Debug.breakpoint
+         $mainMethodName = Nothing
          """
             .replace("$mainMethodName", mainMethodName);
     var replModuleName = "Internal_Repl_Module___";
