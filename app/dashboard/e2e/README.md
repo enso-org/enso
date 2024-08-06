@@ -25,7 +25,7 @@ PROD=1 npm run test:e2e:debug -- e2e/file-name-here.spec.ts
 ## Getting started
 
 ```ts
-test.test("test name here", ({ page }) =>
+test.test('test name here', ({ page }) =>
   actions.mockAllAndLogin({ page }).then(
     // ONLY chain methods from `pageActions`.
     // Using methods not in `pageActions` is UNDEFINED BEHAVIOR.
@@ -34,20 +34,20 @@ test.test("test name here", ({ page }) =>
     // not `Promise`s, which causes Playwright to output a type error.
     async ({ pageActions }) => await pageActions.goTo.drive(),
   ),
-);
+)
 ```
 
 ### Perform arbitrary actions (e.g. actions on the API)
 
 ```ts
-test.test("test name here", ({ page }) =>
+test.test('test name here', ({ page }) =>
   actions.mockAllAndLogin({ page }).then(
     async ({ pageActions, api }) =>
       await pageActions.do(() => {
-        api.foo();
-        api.bar();
-        test.expect(api.baz()?.quux).toEqual("bar");
+        api.foo()
+        api.bar()
+        test.expect(api.baz()?.quux).toEqual('bar')
       }),
   ),
-);
+)
 ```

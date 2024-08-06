@@ -1,5 +1,5 @@
-@import url("https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@300;400;500;600;700&display=swap");
-@import "react-toastify/dist/ReactToastify.css";
+@import url('https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@300;400;500;600;700&display=swap');
+@import 'react-toastify/dist/ReactToastify.css';
 
 /* Scoped to `.enso-dashboard, .enso-chat, .enso-portal-root` in tailwind config. */
 @tailwind base;
@@ -178,9 +178,7 @@
   /* The vertical gap between sections of the asset panel. */
   --asset-panel-gap: 2rem;
   --asset-panel-padding-left: 0.75rem;
-  --permission-type-selector-corner-radius: calc(
-    var(--default-corner-radius) + 0.25rem
-  );
+  --permission-type-selector-corner-radius: calc(var(--default-corner-radius) + 0.25rem);
   --permission-type-selector-padding: 0.25rem;
   --permission-type-button-padding: 0.25rem;
   /* The horizontal gap between elements in a permission type button. */
@@ -219,9 +217,7 @@
 
   --radio-button-size: 1rem;
   --radio-button-dot-size: 0.5rem;
-  --radio-button-dot-padding: calc(
-    var(--radio-button-size) / 2 - var(--radio-button-dot-size) / 2
-  );
+  --radio-button-dot-padding: calc(var(--radio-button-size) / 2 - var(--radio-button-dot-size) / 2);
 
   /***********\
   |* Indents *|
@@ -412,13 +408,13 @@
 
 :where(body:not(.vibrancy)) {
   &::before {
-    content: "";
+    content: '';
     inset: 0 -16vw -16vh 0;
     z-index: -1;
 
     background-color: #b09778ff;
 
-    @apply fixed bg-cover pointer-events-none;
+    @apply pointer-events-none fixed bg-cover;
   }
 
   & > * {
@@ -431,7 +427,7 @@
 }
 
 :where(.enso-dashboard) {
-  @apply absolute inset-0 overflow-hidden flex flex-col;
+  @apply absolute inset-0 flex flex-col overflow-hidden;
 }
 
 /* These styles MUST still be copied
@@ -441,7 +437,7 @@
   -webkit-text-size-adjust: 100%;
   -moz-tab-size: 4;
   tab-size: 4;
-  font-family: "Enso Prose", "Enso", "M PLUS 1", "Roboto Light", sans-serif;
+  font-family: 'Enso Prose', 'Enso', 'M PLUS 1', 'Roboto Light', sans-serif;
   font-feature-settings: normal;
 
   @apply font-medium;
@@ -451,7 +447,7 @@
   }
 
   kbd {
-    font-family: "Enso Prose", "Enso", "M PLUS 1", "Roboto Light", sans-serif;
+    font-family: 'Enso Prose', 'Enso', 'M PLUS 1', 'Roboto Light', sans-serif;
   }
 
   :focus {

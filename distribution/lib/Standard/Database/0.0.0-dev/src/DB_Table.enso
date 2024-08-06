@@ -1323,9 +1323,10 @@ type DB_Table
     distinct self columns=self.column_names case_sensitivity:Case_Sensitivity=..Default on_problems:Problem_Behavior=..Report_Warning =
         key_columns = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=True error_on_missing_columns=True on_problems=on_problems . catch No_Output_Columns _->
             Error.throw No_Input_Columns_Selected
-        problem_builder = Problem_Builder.new
-        new_table = self.connection.dialect.prepare_distinct self key_columns case_sensitivity problem_builder
-        problem_builder.attach_problems_before on_problems new_table
+        key_columns.if_not_error <|
+            problem_builder = Problem_Builder.new
+            new_table = self.connection.dialect.prepare_distinct self key_columns case_sensitivity problem_builder
+            problem_builder.attach_problems_before on_problems new_table
 
     ## GROUP Standard.Base.Selections
        ICON preparation
@@ -1981,18 +1982,22 @@ type DB_Table
     aggregate self group_by=[] columns=[] (error_on_missing_columns:Boolean=False) (on_problems:Problem_Behavior=..Report_Warning) =
         normalized_group_by = Vector.unify_vector_or_element group_by
         if normalized_group_by.is_empty && columns.is_empty then Error.throw (No_Output_Columns.Error "At least one column must be specified.") else
-            validated = Aggregate_Column_Helper.prepare_aggregate_columns self.column_naming_helper normalized_group_by columns self error_on_missing_columns=error_on_missing_columns
+            ## This is a workaround for #10321 - if the source query contains an ORDER BY,
+               we need to push it into a subquery to not interfere with aggregations.
+            base_table = if self.context.orders.not_empty then self.as_subquery else self
+
+            validated = Aggregate_Column_Helper.prepare_aggregate_columns base_table.column_naming_helper normalized_group_by columns base_table error_on_missing_columns=error_on_missing_columns
 
             key_columns = validated.key_columns
             key_problems = key_columns.flat_map internal_column->
-                column = self.make_column internal_column
+                column = base_table.make_column internal_column
                 case column.value_type.is_floating_point of
                     True -> [Floating_Point_Equality.Error column.name]
                     False -> []
             on_problems.attach_problems_before validated.problems+key_problems <|
                 resolved_aggregates = validated.valid_columns
                 key_expressions = key_columns.map .expression
-                new_ctx = self.context.set_groups key_expressions
+                new_ctx = base_table.context.set_groups key_expressions
                 problem_builder = Problem_Builder.new
                 ## TODO [RW] here we will perform as many fetches as there are
                    aggregate columns, but technically we could perform just one
@@ -2002,15 +2007,15 @@ type DB_Table
                    point to a single query.
                    See #6118.
                 infer_from_database_callback expression =
-                    SQL_Type_Reference.new self.connection self.context expression
-                dialect = self.connection.dialect
+                    SQL_Type_Reference.new base_table.connection base_table.context expression
+                dialect = base_table.connection.dialect
                 type_mapping = dialect.get_type_mapping
                 infer_return_type op_kind columns expression =
                     type_mapping.infer_return_type infer_from_database_callback op_kind columns expression
                 results = resolved_aggregates.map p->
                     agg = p.second
                     as = p.first
-                    result = Aggregate_Helper.make_aggregate_column self agg as dialect infer_return_type problem_builder
+                    result = Aggregate_Helper.make_aggregate_column base_table agg as dialect infer_return_type problem_builder
                     ## If the `result` did contain an error, we catch it to be
                        able to store it in a vector and then we will partition the
                        created columns and failures.
@@ -2030,7 +2035,7 @@ type DB_Table
                             first_problem = if problems.is_empty then Nothing else problems.first
                             Error.throw (No_Output_Columns.Error first_problem)
                         if new_columns.is_empty then handle_no_output_columns else
-                            result = self.updated_context_and_columns new_ctx new_columns subquery=True
+                            result = base_table.updated_context_and_columns new_ctx new_columns subquery=True
                             if validated.old_style.not then result else
                                 Warning.attach (Deprecated.Warning "Standard.Table.Aggregate_Column.Aggregate_Column" "Group_By" "Deprecated: `Group_By` constructor has been deprecated, use the `group_by` argument instead.") result
 
@@ -2612,16 +2617,8 @@ type DB_Table
             actual_types = materialized_table.columns.map .value_type
             expected_types.zip actual_types expected_type-> actual_type->
                 if expected_type == actual_type then Nothing else
-                    expected_type_kind = Meta.meta expected_type . constructor
-                    actual_type_kind = Meta.meta actual_type . constructor
-                    ## We ignore simple approximations that our in-memory backend does - things like adding default
-                       timezone (because we do not have Date_Time without timezone in-memory),
-                       or changing Float32 to Float64 are silently ignored.
-                       However, bigger changes, like a Binary type column getting coerced to Mixed - _will_ still be reported.
-                    if expected_type_kind == actual_type_kind then Nothing else
-                        # If the reverse was an implicit conversion, undoing it also should not yield warnings:
-                        if self.connection.dialect.get_type_mapping.is_implicit_conversion actual_type expected_type then Nothing else
-                            warnings_builder.append (Inexact_Type_Coercion.Warning expected_type actual_type)
+                    if self.connection.dialect.get_type_mapping.should_warn_on_materialize expected_type actual_type then
+                        warnings_builder.append (Inexact_Type_Coercion.Warning expected_type actual_type)
 
             result = max_rows.attach_warning materialized_table
             Problem_Behavior.Report_Warning.attach_problems_before warnings_builder.to_vector result

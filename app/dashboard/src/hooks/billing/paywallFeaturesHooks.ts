@@ -15,16 +15,16 @@ export function usePaywallFeatures() {
   const getFeature = eventCallbackHooks.useEventCallback(
     <Key extends paywallFeaturesConfiguration.PaywallFeatureName>(feature: Key) => {
       return paywallFeaturesConfiguration.getFeatureConfiguration<Key>(feature)
-    }
+    },
   )
 
   const valueIsFeature = eventCallbackHooks.useEventCallback(
     (value: string): value is paywallFeaturesConfiguration.PaywallFeatureName =>
-      value in paywallFeaturesConfiguration.PAYWALL_FEATURES
+      value in paywallFeaturesConfiguration.PAYWALL_FEATURES,
   )
 
   const getMaybeFeature = eventCallbackHooks.useEventCallback((feature: string) =>
-    valueIsFeature(feature) ? getFeature(feature) : null
+    valueIsFeature(feature) ? getFeature(feature) : null,
   )
 
   return {

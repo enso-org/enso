@@ -15,7 +15,7 @@ export function useDebouncedCallback<Fn extends (...args: never[]) => unknown>(
   callback: Fn,
   deps: React.DependencyList,
   delay: number,
-  maxWait = 0
+  maxWait = 0,
 ): DebouncedFunction<Fn> {
   const stableCallback = callbackHooks.useEventCallback(callback)
   const timeoutIdRef = React.useRef<ReturnType<typeof setTimeout>>()

@@ -36,7 +36,7 @@ export default function LocalStorageProvider(props: LocalStorageProviderProps) {
       new LocalStorage(() => {
         doRefresh()
       }),
-    [doRefresh]
+    [doRefresh],
   )
 
   return (

@@ -38,7 +38,7 @@ export function OfflineNotificationManager(props: OfflineNotificationManagerProp
   const toastId = 'offline'
   const { getText } = textProvider.useText()
 
-  offlineHooks.useOfflineChange(isOffline => {
+  offlineHooks.useOfflineChange((isOffline) => {
     toast.toast.dismiss(toastId)
 
     if (isOffline) {

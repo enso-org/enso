@@ -3,7 +3,6 @@ import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
 import invariant from 'tiny-invariant'
-import * as z from 'zod'
 
 import { merge } from 'enso-common/src/utilities/data/object'
 
@@ -11,52 +10,20 @@ import * as eventCallbacks from '#/hooks/eventCallbackHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
-import * as projectsProvider from '#/providers/ProjectsProvider'
+import {
+  TabType,
+  useAddLaunchedProject,
+  useProjectsStore,
+  useRemoveLaunchedProject,
+  useSetPage,
+  useUpdateLaunchedProjects,
+  type LaunchedProject,
+  type LaunchedProjectId,
+} from '#/providers/ProjectsProvider'
 
 import * as backendModule from '#/services/Backend'
 import type LocalBackend from '#/services/LocalBackend'
 import type RemoteBackend from '#/services/RemoteBackend'
-
-import LocalStorage from '#/utilities/LocalStorage'
-
-// ============================
-// === Global configuration ===
-// ============================
-
-declare module '#/utilities/LocalStorage' {
-  /** */
-  interface LocalStorageData {
-    readonly launchedProjects: z.infer<typeof LAUNCHED_PROJECT_SCHEMA>
-  }
-}
-
-// =================
-// === Constants ===
-// =================
-
-const PROJECT_SCHEMA = z
-  .object({
-    id: z.custom<backendModule.ProjectId>(x => typeof x === 'string'),
-    parentId: z.custom<backendModule.DirectoryId>(x => typeof x === 'string'),
-    title: z.string(),
-    type: z.nativeEnum(backendModule.BackendType),
-  })
-  .readonly()
-const LAUNCHED_PROJECT_SCHEMA = z.array(PROJECT_SCHEMA).readonly()
-
-/**
- * Launched project information.
- */
-export type Project = z.infer<typeof PROJECT_SCHEMA>
-/**
- * Launched project ID.
- */
-export type ProjectId = backendModule.ProjectId
-
-LocalStorage.registerKey('launchedProjects', {
-  isUserSpecific: true,
-  schema: LAUNCHED_PROJECT_SCHEMA,
-})
 
 // ====================================
 // === createGetProjectDetailsQuery ===
@@ -124,8 +91,8 @@ export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOp
     },
   })
 }
-createGetProjectDetailsQuery.getQueryKey = (id: ProjectId) => ['project', id] as const
-createGetProjectDetailsQuery.createPassiveListener = (id: ProjectId) =>
+createGetProjectDetailsQuery.getQueryKey = (id: LaunchedProjectId) => ['project', id] as const
+createGetProjectDetailsQuery.createPassiveListener = (id: LaunchedProjectId) =>
   reactQuery.queryOptions<backendModule.Project>({
     queryKey: createGetProjectDetailsQuery.getQueryKey(id),
   })
@@ -144,7 +111,13 @@ export function useOpenProjectMutation() {
   return reactQuery.useMutation({
     mutationKey: ['openProject'],
     networkMode: 'always',
-    mutationFn: ({ title, id, type, parentId }: Project) => {
+    mutationFn: ({
+      title,
+      id,
+      type,
+      parentId,
+      inBackground = false,
+    }: LaunchedProject & { inBackground?: boolean }) => {
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
 
       invariant(backend != null, 'Backend is null')
@@ -152,7 +125,7 @@ export function useOpenProjectMutation() {
       return backend.openProject(
         id,
         {
-          executeAsync: false,
+          executeAsync: inBackground,
           cognitoCredentials: {
             accessToken: session.accessToken,
             refreshToken: session.accessToken,
@@ -162,7 +135,7 @@ export function useOpenProjectMutation() {
           },
           parentId,
         },
-        title
+        title,
       )
     },
     onMutate: ({ id }) => {
@@ -191,7 +164,7 @@ export function useCloseProjectMutation() {
 
   return reactQuery.useMutation({
     mutationKey: ['closeProject'],
-    mutationFn: async ({ type, id, title }: Project) => {
+    mutationFn: ({ type, id, title }: LaunchedProject) => {
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
 
       invariant(backend != null, 'Backend is null')
@@ -222,11 +195,11 @@ export function useRenameProjectMutation() {
   const client = reactQuery.useQueryClient()
   const remoteBackend = backendProvider.useRemoteBackendStrict()
   const localBackend = backendProvider.useLocalBackend()
-  const updateLaunchedProjects = projectsProvider.useUpdateLaunchedProjects()
+  const updateLaunchedProjects = useUpdateLaunchedProjects()
 
   return reactQuery.useMutation({
     mutationKey: ['renameProject'],
-    mutationFn: ({ newName, project }: { newName: string; project: Project }) => {
+    mutationFn: ({ newName, project }: { newName: string; project: LaunchedProject }) => {
       const { type, id, title } = project
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
 
@@ -235,10 +208,10 @@ export function useRenameProjectMutation() {
       return backend.updateProject(id, { projectName: newName, ami: null, ideVersion: null }, title)
     },
     onSuccess: (_, { newName, project }) => {
-      updateLaunchedProjects(projects =>
-        projects.map(otherProject =>
-          project.id !== otherProject.id ? otherProject : merge(otherProject, { title: newName })
-        )
+      updateLaunchedProjects((projects) =>
+        projects.map((otherProject) =>
+          project.id !== otherProject.id ? otherProject : merge(otherProject, { title: newName }),
+        ),
       )
       return client.invalidateQueries({
         queryKey: createGetProjectDetailsQuery.getQueryKey(project.id),
@@ -251,57 +224,36 @@ export function useRenameProjectMutation() {
 // === useOpenProject ===
 // ======================
 
-/** Options for {@link useOpenProject}. */
-export interface OpenProjectOptions {
-  /** Whether to open the project in the background.
-   * Set to `false` to navigate to the project tab.
-   * @default true */
-  readonly openInBackground?: boolean
-}
-
 /** A callback to open a project. */
 export function useOpenProject() {
   const client = reactQuery.useQueryClient()
-  const projectsStore = projectsProvider.useProjectsStore()
-  const addLaunchedProject = projectsProvider.useAddLaunchedProject()
+  const projectsStore = useProjectsStore()
+  const addLaunchedProject = useAddLaunchedProject()
   const closeAllProjects = useCloseAllProjects()
   const openProjectMutation = useOpenProjectMutation()
-  const openEditor = useOpenEditor()
-
-  return eventCallbacks.useEventCallback((project: Project, options: OpenProjectOptions = {}) => {
-    const { openInBackground = true } = options
-
+  return eventCallbacks.useEventCallback((project: LaunchedProject) => {
     // Since multiple tabs cannot be opened at the sametime, the opened projects need to be closed first.
     if (projectsStore.getState().launchedProjects.length > 0) {
       closeAllProjects()
     }
-
-    const isOpeningTheSameProject =
-      client.getMutationCache().find({
-        mutationKey: ['openProject'],
-        predicate: mutation => mutation.options.scope?.id === project.id,
-      })?.state.status === 'pending'
-
+    const existingMutation = client.getMutationCache().find({
+      mutationKey: ['openProject'],
+      predicate: (mutation) => mutation.options.scope?.id === project.id,
+    })
+    const isOpeningTheSameProject = existingMutation?.state.status === 'pending'
     if (!isOpeningTheSameProject) {
       openProjectMutation.mutate(project)
-
       const openingProjectMutation = client.getMutationCache().find({
         mutationKey: ['openProject'],
         // this is unsafe, but we can't do anything about it
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        predicate: mutation => mutation.state.variables?.id === project.id,
+        predicate: (mutation) => mutation.state.variables?.id === project.id,
       })
-
       openingProjectMutation?.setOptions({
         ...openingProjectMutation.options,
         scope: { id: project.id },
       })
-
       addLaunchedProject(project)
-
-      if (!openInBackground) {
-        openEditor(project.id)
-      }
     }
   })
 }
@@ -312,8 +264,8 @@ export function useOpenProject() {
 
 /** A function to open the editor. */
 export function useOpenEditor() {
-  const setPage = projectsProvider.useSetPage()
-  return eventCallbacks.useEventCallback((projectId: ProjectId) => {
+  const setPage = useSetPage()
+  return eventCallbacks.useEventCallback((projectId: LaunchedProjectId) => {
     React.startTransition(() => {
       setPage(projectId)
     })
@@ -328,38 +280,38 @@ export function useOpenEditor() {
 export function useCloseProject() {
   const client = reactQuery.useQueryClient()
   const closeProjectMutation = useCloseProjectMutation()
-  const removeLaunchedProject = projectsProvider.useRemoveLaunchedProject()
-  const setPage = projectsProvider.useSetPage()
+  const removeLaunchedProject = useRemoveLaunchedProject()
+  const projectsStore = useProjectsStore()
+  const setPage = useSetPage()
 
-  return eventCallbacks.useEventCallback((project: Project) => {
+  return eventCallbacks.useEventCallback((project: LaunchedProject) => {
     client
       .getMutationCache()
       .findAll({
         mutationKey: ['openProject'],
-        predicate: mutation => mutation.options.scope?.id === project.id,
+        predicate: (mutation) => mutation.options.scope?.id === project.id,
       })
-      .forEach(mutation => {
+      .forEach((mutation) => {
         mutation.setOptions({ ...mutation.options, retry: false })
         mutation.destroy()
       })
-
     closeProjectMutation.mutate(project)
-
     client
       .getMutationCache()
       .findAll({
         mutationKey: ['closeProject'],
         // this is unsafe, but we can't do anything about it
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        predicate: mutation => mutation.state.variables?.id === project.id,
+        predicate: (mutation) => mutation.state.variables?.id === project.id,
       })
-      .forEach(mutation => {
+      .forEach((mutation) => {
         mutation.setOptions({ ...mutation.options, scope: { id: project.id } })
       })
-
     removeLaunchedProject(project.id)
 
-    setPage(projectsProvider.TabType.drive)
+    if (projectsStore.getState().page === project.id) {
+      setPage(TabType.drive)
+    }
   })
 }
 
@@ -369,7 +321,7 @@ export function useCloseProject() {
 
 /** A function to close all projects. */
 export function useCloseAllProjects() {
-  const projectsStore = projectsProvider.useProjectsStore()
+  const projectsStore = useProjectsStore()
   const closeProject = useCloseProject()
   return eventCallbacks.useEventCallback(() => {
     for (const launchedProject of projectsStore.getState().launchedProjects) {

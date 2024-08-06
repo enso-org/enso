@@ -48,12 +48,13 @@ import * as inputBindingsModule from '#/configurations/inputBindings'
 import * as backendHooks from '#/hooks/backendHooks'
 
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
-import BackendProvider from '#/providers/BackendProvider'
+import BackendProvider, { useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
+import DevtoolsProvider from '#/providers/EnsoDevtoolsProvider'
 import * as httpClientProvider from '#/providers/HttpClientProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
 import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
-import LoggerProvider from '#/providers/LoggerProvider'
 import type * as loggerProvider from '#/providers/LoggerProvider'
+import LoggerProvider from '#/providers/LoggerProvider'
 import ModalProvider, * as modalProvider from '#/providers/ModalProvider'
 import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 import SessionProvider from '#/providers/SessionProvider'
@@ -72,6 +73,7 @@ import * as subscribeSuccess from '#/pages/subscribe/SubscribeSuccess'
 
 import type * as editor from '#/layouts/Editor'
 import * as openAppWatcher from '#/layouts/OpenAppWatcher'
+import VersionChecker from '#/layouts/VersionChecker'
 
 import * as devtools from '#/components/Devtools'
 import * as errorBoundary from '#/components/ErrorBoundary'
@@ -84,8 +86,7 @@ import * as setOrganizationNameModal from '#/modals/SetOrganizationNameModal'
 import * as termsOfServiceModal from '#/modals/TermsOfServiceModal'
 
 import LocalBackend from '#/services/LocalBackend'
-import * as projectManager from '#/services/ProjectManager'
-import ProjectManager from '#/services/ProjectManager'
+import ProjectManager, * as projectManager from '#/services/ProjectManager'
 import RemoteBackend from '#/services/RemoteBackend'
 
 import * as appBaseUrl from '#/utilities/appBaseUrl'
@@ -108,17 +109,17 @@ declare module '#/utilities/LocalStorage' {
 }
 
 LocalStorage.registerKey('inputBindings', {
-  tryParse: value =>
-    typeof value !== 'object' || value == null
-      ? null
-      : Object.fromEntries(
-          Object.entries<unknown>({ ...value }).flatMap(kv => {
-            const [k, v] = kv
-            return Array.isArray(v) && v.every((item): item is string => typeof item === 'string')
-              ? [[k, v]]
-              : []
-          })
-        ),
+  tryParse: (value) =>
+    typeof value !== 'object' || value == null ?
+      null
+    : Object.fromEntries(
+        Object.entries<unknown>({ ...value }).flatMap((kv) => {
+          const [k, v] = kv
+          return Array.isArray(v) && v.every((item): item is string => typeof item === 'string') ?
+              [[k, v]]
+            : []
+        }),
+      ),
 })
 
 // ======================
@@ -274,16 +275,13 @@ function AppRouter(props: AppRouterProps) {
 
   const localBackend = React.useMemo(
     () => (projectManagerInstance != null ? new LocalBackend(projectManagerInstance) : null),
-    [projectManagerInstance]
+    [projectManagerInstance],
   )
 
   const remoteBackend = React.useMemo(
     () => new RemoteBackend(httpClient, logger, getText),
-    [httpClient, logger, getText]
+    [httpClient, logger, getText],
   )
-
-  backendHooks.useObserveBackend(remoteBackend)
-  backendHooks.useObserveBackend(localBackend)
 
   if (detect.IS_DEV_MODE) {
     // @ts-expect-error This is used exclusively for debugging.
@@ -297,7 +295,7 @@ function AppRouter(props: AppRouterProps) {
     if (savedInputBindings != null) {
       const filteredInputBindings = object.mapEntries(
         inputBindingsRaw.metadata,
-        k => savedInputBindings[k]
+        (k) => savedInputBindings[k],
       )
       for (const [bindingKey, newBindings] of object.unsafeEntries(filteredInputBindings)) {
         for (const oldBinding of inputBindingsRaw.metadata[bindingKey].bindings) {
@@ -315,11 +313,11 @@ function AppRouter(props: AppRouterProps) {
       localStorage.set(
         'inputBindings',
         Object.fromEntries(
-          Object.entries(inputBindingsRaw.metadata).map(kv => {
+          Object.entries(inputBindingsRaw.metadata).map((kv) => {
             const [k, v] = kv
             return [k, v.bindings]
-          })
-        )
+          }),
+        ),
       )
     }
     return {
@@ -439,11 +437,11 @@ function AppRouter(props: AppRouterProps) {
         <router.Route element={<authProvider.ProtectedLayout />}>
           <router.Route
             element={
-              detect.IS_DEV_MODE ? (
+              detect.IS_DEV_MODE ?
                 <devtools.EnsoDevtools>
                   <router.Outlet />
                 </devtools.EnsoDevtools>
-              ) : null
+              : null
             }
           >
             <router.Route element={<termsOfServiceModal.TermsOfServiceModal />}>
@@ -508,7 +506,13 @@ function AppRouter(props: AppRouterProps) {
     </router.Routes>
   )
 
-  let result = routes
+  let result = (
+    <>
+      <MutationListener />
+      <VersionChecker />
+      {routes}
+    </>
+  )
 
   result = <errorBoundary.ErrorBoundary>{result}</errorBoundary.ErrorBoundary>
   result = <InputBindingsProvider inputBindings={inputBindings}>{result}</InputBindingsProvider>
@@ -555,8 +559,23 @@ function AppRouter(props: AppRouterProps) {
       {result}
     </httpClientProvider.HttpClientProvider>
   )
-
   result = <LoggerProvider logger={logger}>{result}</LoggerProvider>
+  result = <DevtoolsProvider>{result}</DevtoolsProvider>
 
   return result
+}
+
+// ========================
+// === MutationListener ===
+// ========================
+
+/** A component that applies state updates for successful mutations. */
+function MutationListener() {
+  const remoteBackend = useRemoteBackend()
+  const localBackend = useLocalBackend()
+
+  backendHooks.useObserveBackend(remoteBackend)
+  backendHooks.useObserveBackend(localBackend)
+
+  return null
 }

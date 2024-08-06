@@ -9,13 +9,14 @@ import * as gtagHooks from '#/hooks/gtagHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
+import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as errorBoundary from '#/components/ErrorBoundary'
 import * as suspense from '#/components/Suspense'
 
-import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
 
 import * as twMerge from '#/utilities/tailwindMerge'
 
@@ -66,8 +67,8 @@ export interface EditorProps {
   readonly isOpening: boolean
   readonly isOpeningFailed: boolean
   readonly openingError: Error | null
-  readonly startProject: (project: projectHooks.Project) => void
-  readonly project: projectHooks.Project
+  readonly startProject: (project: LaunchedProject) => void
+  readonly project: LaunchedProject
   readonly hidden: boolean
   readonly ydocUrl: string | null
   readonly appRunner: GraphEditorRunner | null
@@ -116,7 +117,11 @@ export default function Editor(props: EditorProps) {
   }
 
   return (
-    <div className={twMerge.twJoin('contents', hidden && 'hidden')} data-testvalue={project.id}>
+    <div
+      className={twMerge.twJoin('contents', hidden && 'hidden')}
+      data-testvalue={project.id}
+      data-testid="editor"
+    >
       {(() => {
         if (projectQuery.isError) {
           return (
@@ -174,7 +179,7 @@ function EditorInternal(props: EditorInternalProps) {
         void remoteBackend.logEvent(message, projectId, metadata)
       }
     },
-    [remoteBackend]
+    [remoteBackend],
   )
 
   React.useEffect(() => {
@@ -188,7 +193,7 @@ function EditorInternal(props: EditorInternalProps) {
   const appProps = React.useMemo<GraphEditorProps>(() => {
     const jsonAddress = openedProject.jsonAddress
     const binaryAddress = openedProject.binaryAddress
-    const ydocAddress = ydocUrl ?? ''
+    const ydocAddress = openedProject.ydocAddress ?? ydocUrl ?? ''
     const backend = backendType === backendModule.BackendType.remote ? remoteBackend : localBackend
 
     if (jsonAddress == null) {

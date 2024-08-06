@@ -35,6 +35,7 @@ crate = use_extension("@rules_rust//crate_universe:extension.bzl", "crate")
 crate.from_cargo(
     name = "crates",
     cargo_lockfile = "//:Cargo.lock",
+    cargo_config = "//:.cargo/config.toml",
     manifests = [
         "//:build_tools/ci-gen/Cargo.toml",
         "//:build_tools/cli/Cargo.toml",

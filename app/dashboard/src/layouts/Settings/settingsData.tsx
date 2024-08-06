@@ -1,15 +1,17 @@
 /** @file Metadata for rendering each settings section. */
 import * as React from 'react'
 
+import type * as reactQuery from '@tanstack/react-query'
 import isEmail from 'validator/lib/isEmail'
 
 import type * as text from 'enso-common/src/text'
 
 import ComputerIcon from '#/assets/computer.svg'
+import CreditCardIcon from '#/assets/credit_card.svg'
 import KeyboardShortcutsIcon from '#/assets/keyboard_shortcuts.svg'
 import LogIcon from '#/assets/log.svg'
-import PeopleSettingsIcon from '#/assets/people_settings.svg'
 import PeopleIcon from '#/assets/people.svg'
+import PeopleSettingsIcon from '#/assets/people_settings.svg'
 import SettingsIcon from '#/assets/settings.svg'
 
 import * as inputBindings from '#/configurations/inputBindings'
@@ -32,9 +34,10 @@ import UserGroupsSettingsSection from '#/layouts/Settings/UserGroupsSettingsSect
 
 import * as menuEntry from '#/components/MenuEntry'
 
-import * as backend from '#/services/Backend'
 import type Backend from '#/services/Backend'
+import * as backend from '#/services/Backend'
 import type LocalBackend from '#/services/LocalBackend'
+import type RemoteBackend from '#/services/RemoteBackend'
 
 import * as object from '#/utilities/object'
 
@@ -58,7 +61,7 @@ export const SETTINGS_NO_RESULTS_SECTION_DATA: SettingsSectionData = {
   entries: [
     {
       type: SettingsEntryType.custom,
-      render: context => (
+      render: (context) => (
         <div className="grid max-w-[512px] justify-center">{context.getText('noResultsFound')}</div>
       ),
     },
@@ -77,28 +80,26 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           {
             type: SettingsEntryType.input,
             nameId: 'userNameSettingsInput',
-            getValue: context => context.user.name,
+            getValue: (context) => context.user.name,
             setValue: async (context, newName) => {
               const oldName = context.user.name
               if (newName !== oldName) {
                 await context.updateUser([{ username: newName }])
               }
             },
-            validate: name => (/\S/.test(name) ? true : ''),
+            validate: (name) => (/\S/.test(name) ? true : ''),
             getEditable: () => true,
           },
           {
             type: SettingsEntryType.input,
             nameId: 'userEmailSettingsInput',
-            getValue: context => context.user.email,
+            getValue: (context) => context.user.email,
             // A user's email currently cannot be changed.
             setValue: async () => {},
             validate: (email, context) =>
-              isEmail(email)
-                ? true
-                : email === ''
-                  ? ''
-                  : context.getText('invalidEmailValidationError'),
+              isEmail(email) ? true
+              : email === '' ? ''
+              : context.getText('invalidEmailValidationError'),
             getEditable: () => false,
           },
         ],
@@ -110,7 +111,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             type: SettingsEntryType.custom,
             aliasesId: 'changePasswordSettingsCustomEntryAliases',
             render: ChangePasswordForm,
-            getVisible: context => {
+            getVisible: (context) => {
               // The shape of the JWT payload is statically known.
               // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
               const username: string | null =
@@ -139,7 +140,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           {
             type: SettingsEntryType.custom,
             aliasesId: 'profilePictureSettingsCustomEntryAliases',
-            render: context => context.backend && <ProfilePictureInput backend={context.backend} />,
+            render: (context) => <ProfilePictureInput backend={context.backend} />,
           },
         ],
       },
@@ -157,20 +158,20 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           {
             type: SettingsEntryType.input,
             nameId: 'organizationNameSettingsInput',
-            getValue: context => context.organization?.name ?? '',
+            getValue: (context) => context.organization?.name ?? '',
             setValue: async (context, newName) => {
               const oldName = context.organization?.name ?? null
               if (oldName !== newName) {
                 await context.updateOrganization([{ name: newName }])
               }
             },
-            validate: name => (/\S/.test(name) ? true : ''),
+            validate: (name) => (/\S/.test(name) ? true : ''),
             getEditable: () => true,
           },
           {
             type: SettingsEntryType.input,
             nameId: 'organizationEmailSettingsInput',
-            getValue: context => context.organization?.email ?? '',
+            getValue: (context) => context.organization?.email ?? '',
             setValue: async (context, newValue) => {
               const newEmail = backend.EmailAddress(newValue)
               const oldEmail = context.organization?.email ?? null
@@ -179,17 +180,15 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
               }
             },
             validate: (email, context) =>
-              isEmail(email)
-                ? true
-                : email === ''
-                  ? ''
-                  : context.getText('invalidEmailValidationError'),
+              isEmail(email) ? true
+              : email === '' ? ''
+              : context.getText('invalidEmailValidationError'),
             getEditable: () => true,
           },
           {
             type: SettingsEntryType.input,
             nameId: 'organizationWebsiteSettingsInput',
-            getValue: context => context.organization?.website ?? '',
+            getValue: (context) => context.organization?.website ?? '',
             setValue: async (context, newValue) => {
               const newWebsite = backend.HttpsUrl(newValue)
               const oldWebsite = context.organization?.website ?? null
@@ -202,7 +201,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           {
             type: SettingsEntryType.input,
             nameId: 'organizationLocationSettingsInput',
-            getValue: context => context.organization?.address ?? '',
+            getValue: (context) => context.organization?.address ?? '',
             setValue: async (context, newLocation) => {
               const oldLocation = context.organization?.address ?? null
               if (oldLocation !== newLocation) {
@@ -220,8 +219,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           {
             type: SettingsEntryType.custom,
             aliasesId: 'organizationProfilePictureSettingsCustomEntryAliases',
-            render: context =>
-              context.backend && <OrganizationProfilePictureInput backend={context.backend} />,
+            render: (context) => <OrganizationProfilePictureInput backend={context.backend} />,
           },
         ],
       },
@@ -229,9 +227,9 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
   },
   [SettingsTabType.local]: {
     nameId: 'localSettingsTab',
-    settingsTab: SettingsTabType.organization,
+    settingsTab: SettingsTabType.local,
     icon: ComputerIcon,
-    visible: context => context.localBackend != null,
+    visible: (context) => context.localBackend != null,
     sections: [
       {
         nameId: 'localSettingsSection',
@@ -239,13 +237,40 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           {
             type: SettingsEntryType.input,
             nameId: 'localRootPathSettingsInput',
-            getValue: context => context.localBackend?.rootPath ?? '',
+            getValue: (context) => context.localBackend?.rootPath ?? '',
             setValue: (context, value) => context.updateLocalRootPath(value),
             getEditable: () => true,
           },
         ],
       },
     ],
+  },
+  [SettingsTabType.billingAndPlans]: {
+    nameId: 'billingAndPlansSettingsTab',
+    settingsTab: SettingsTabType.billingAndPlans,
+    icon: CreditCardIcon,
+    organizationOnly: true,
+    visible: (context) => context.organization?.subscription != null,
+    sections: [],
+    onPress: (context) =>
+      context.queryClient
+        .getMutationCache()
+        .build(context.queryClient, {
+          mutationKey: ['billing', 'customerPortalSession'],
+          mutationFn: () =>
+            context.backend
+              .createCustomerPortalSession()
+              .then((url) => {
+                if (url != null) {
+                  window.open(url, '_blank')?.focus()
+                }
+              })
+              .catch((err) => {
+                context.toastAndLog('arbitraryErrorTitle', err)
+                throw err
+              }),
+        })
+        .execute({} satisfies unknown),
   },
   [SettingsTabType.members]: {
     nameId: 'membersSettingsTab',
@@ -256,12 +281,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     sections: [
       {
         nameId: 'membersSettingsSection',
-        entries: [
-          {
-            type: SettingsEntryType.custom,
-            render: () => <MembersSettingsSection />,
-          },
-        ],
+        entries: [{ type: SettingsEntryType.custom, render: () => <MembersSettingsSection /> }],
       },
     ],
   },
@@ -278,8 +298,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         entries: [
           {
             type: SettingsEntryType.custom,
-            render: context =>
-              context.backend && <UserGroupsSettingsSection backend={context.backend} />,
+            render: (context) => <UserGroupsSettingsSection backend={context.backend} />,
           },
         ],
       },
@@ -290,10 +309,9 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         entries: [
           {
             type: SettingsEntryType.custom,
-            render: context =>
-              context.backend && (
-                <MembersTable backend={context.backend} draggable populateWithSelf />
-              ),
+            render: (context) => (
+              <MembersTable backend={context.backend} draggable populateWithSelf />
+            ),
           },
         ],
       },
@@ -310,10 +328,10 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           {
             type: SettingsEntryType.custom,
             aliasesId: 'keyboardShortcutsSettingsCustomEntryAliases',
-            getExtraAliases: context => {
+            getExtraAliases: (context) => {
               const rebindableBindings = object
                 .unsafeEntries(inputBindings.BINDINGS)
-                .flatMap(kv => {
+                .flatMap((kv) => {
                   const [k, v] = kv
                   if (v.rebindable === false) {
                     return []
@@ -321,7 +339,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
                     return menuEntry.ACTION_TO_TEXT_ID[k]
                   }
                 })
-              return rebindableBindings.map(binding => context.getText(binding))
+              return rebindableBindings.map((binding) => context.getText(binding))
             },
             render: KeyboardShortcutsSettingsSection,
           },
@@ -340,8 +358,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         entries: [
           {
             type: SettingsEntryType.custom,
-            render: context =>
-              context.backend && <ActivityLogSettingsSection backend={context.backend} />,
+            render: (context) => <ActivityLogSettingsSection backend={context.backend} />,
           },
         ],
       },
@@ -355,11 +372,13 @@ export const SETTINGS_DATA: SettingsData = [
     tabs: [
       SETTINGS_TAB_DATA[SettingsTabType.account],
       SETTINGS_TAB_DATA[SettingsTabType.organization],
+      SETTINGS_TAB_DATA[SettingsTabType.local],
     ],
   },
   {
     nameId: 'accessSettingsTabSection',
     tabs: [
+      SETTINGS_TAB_DATA[SettingsTabType.billingAndPlans],
       SETTINGS_TAB_DATA[SettingsTabType.members],
       SETTINGS_TAB_DATA[SettingsTabType.userGroups],
     ],
@@ -374,8 +393,8 @@ export const SETTINGS_DATA: SettingsData = [
   },
 ]
 
-export const ALL_SETTINGS_TABS = SETTINGS_DATA.flatMap(section =>
-  section.tabs.map(tab => tab.settingsTab)
+export const ALL_SETTINGS_TABS = SETTINGS_DATA.flatMap((section) =>
+  section.tabs.map((tab) => tab.settingsTab),
 )
 
 // =======================
@@ -386,16 +405,17 @@ export const ALL_SETTINGS_TABS = SETTINGS_DATA.flatMap(section =>
 export interface SettingsContext {
   readonly accessToken: string
   readonly user: backend.User
-  readonly backend: Backend | null
+  readonly backend: RemoteBackend
   readonly localBackend: LocalBackend | null
   readonly organization: backend.OrganizationInfo | null
   readonly updateUser: (variables: Parameters<Backend['updateUser']>) => Promise<void>
   readonly updateOrganization: (
-    variables: Parameters<Backend['updateOrganization']>
+    variables: Parameters<Backend['updateOrganization']>,
   ) => Promise<backend.OrganizationInfo | null | undefined>
   readonly updateLocalRootPath: (rootPath: string) => Promise<void>
   readonly toastAndLog: toastAndLogHooks.ToastAndLogCallback
   readonly getText: textProvider.GetText
+  readonly queryClient: reactQuery.QueryClient
 }
 
 // ==============================
@@ -463,6 +483,7 @@ export interface SettingsTabData {
    * a paywall is shown instead of the settings tab. */
   readonly feature?: billing.PaywallFeatureName
   readonly sections: readonly SettingsSectionData[]
+  readonly onPress?: (context: SettingsContext) => Promise<void> | void
 }
 
 // ==============================

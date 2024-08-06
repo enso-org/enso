@@ -34,7 +34,7 @@ export default function AssetSummary(props: AssetSummaryProps) {
     <div
       className={tailwindMerge.twMerge(
         'flex min-h-row items-center gap-icon-with-text rounded-default bg-frame px-button-x',
-        className
+        className,
       )}
     >
       <div className="grid size-4 place-items-center">

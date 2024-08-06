@@ -35,7 +35,7 @@ const STATUS_ICON_MAP: Readonly<Record<Status, StatusIcon>> = {
 }
 
 const RESULT_STYLES = twv.tv({
-  base: 'flex flex-col items-center justify-center px-6 py-4 text-center h-[max-content]',
+  base: 'flex flex-col items-center justify-center max-w-full px-6 py-4 text-center h-[max-content]',
   variants: {
     centered: {
       horizontal: 'mx-auto',
@@ -113,40 +113,32 @@ export function Result(props: ResultProps) {
 
   return (
     <section className={classes.base({ className })} data-testid={testId}>
-      {showIcon ? (
+      {showIcon ?
         <>
-          {statusIcon != null ? (
+          {statusIcon != null ?
             <div className={classes.statusIcon({ className: statusIcon.bgClassName })}>
-              {typeof statusIcon.icon === 'string' ? (
+              {typeof statusIcon.icon === 'string' ?
                 <SvgMask
                   src={icon ?? statusIcon.icon}
                   className={classes.icon({ className: statusIcon.colorClassName })}
                 />
-              ) : (
-                statusIcon.icon
-              )}
+              : statusIcon.icon}
             </div>
-          ) : (
-            status
-          )}
+          : status}
         </>
-      ) : null}
+      : null}
 
-      {typeof title === 'string' ? (
+      {typeof title === 'string' ?
         <ariaComponents.Text.Heading level={2} className={classes.title()} variant="subtitle">
           {title}
         </ariaComponents.Text.Heading>
-      ) : (
-        title
-      )}
+      : title}
 
-      {typeof subtitle === 'string' ? (
+      {typeof subtitle === 'string' ?
         <ariaComponents.Text elementType="p" className={classes.subtitle()} balance variant="body">
           {subtitle}
         </ariaComponents.Text>
-      ) : (
-        subtitle
-      )}
+      : subtitle}
 
       {children != null && <div className={classes.content()}>{children}</div>}
     </section>

@@ -88,27 +88,24 @@ export default function Drive(props: DriveProps) {
   const assetPanelProps =
     backend.type === assetPanelPropsRaw?.backend?.type ? assetPanelPropsRaw : null
   const [isAssetPanelEnabled, setIsAssetPanelEnabled] = React.useState(
-    () => localStorage.get('isAssetPanelVisible') ?? false
+    () => localStorage.get('isAssetPanelVisible') ?? false,
   )
   const [isAssetPanelTemporarilyVisible, setIsAssetPanelTemporarilyVisible] = React.useState(false)
   const rootDirectoryId = React.useMemo(
     () => backend.rootDirectoryId(user) ?? backendModule.DirectoryId(''),
-    [backend, user]
+    [backend, user],
   )
   const targetDirectoryNodeRef = React.useRef<AssetTreeNode<backendModule.DirectoryAsset> | null>(
-    null
+    null,
   )
   const isCloud = categoryModule.isCloud(category)
   const supportLocalBackend = localBackend != null
 
   const status =
-    !isCloud && didLoadingProjectManagerFail
-      ? DriveStatus.noProjectManager
-      : isCloud && isOffline
-        ? DriveStatus.offline
-        : isCloud && !user.isEnabled
-          ? DriveStatus.notEnabled
-          : DriveStatus.ok
+    !isCloud && didLoadingProjectManagerFail ? DriveStatus.noProjectManager
+    : isCloud && isOffline ? DriveStatus.offline
+    : isCloud && !user.isEnabled ? DriveStatus.notEnabled
+    : DriveStatus.ok
 
   const isAssetPanelVisible = isAssetPanelEnabled || isAssetPanelTemporarilyVisible
 
@@ -122,12 +119,12 @@ export default function Drive(props: DriveProps) {
     }
     document.addEventListener(
       projectManager.ProjectManagerEvents.loadingFailed,
-      onProjectManagerLoadingFailed
+      onProjectManagerLoadingFailed,
     )
     return () => {
       document.removeEventListener(
         projectManager.ProjectManagerEvents.loadingFailed,
-        onProjectManagerLoadingFailed
+        onProjectManagerLoadingFailed,
       )
     }
   }, [])
@@ -146,7 +143,7 @@ export default function Drive(props: DriveProps) {
         })
       }
     },
-    [isCloud, rootDirectoryId, toastAndLog, isOffline, dispatchAssetListEvent]
+    [isCloud, rootDirectoryId, toastAndLog, isOffline, dispatchAssetListEvent],
   )
 
   const doEmptyTrash = React.useCallback(() => {
@@ -154,7 +151,12 @@ export default function Drive(props: DriveProps) {
   }, [dispatchAssetListEvent])
 
   const doCreateProject = React.useCallback(
-    (templateId: string | null = null, templateName: string | null = null) => {
+    (
+      templateId: string | null = null,
+      templateName: string | null = null,
+      onCreated?: (project: backendModule.CreatedProject) => void,
+      onError?: () => void,
+    ) => {
       dispatchAssetListEvent({
         type: AssetListEventType.newProject,
         parentKey: targetDirectoryNodeRef.current?.key ?? rootDirectoryId,
@@ -162,9 +164,11 @@ export default function Drive(props: DriveProps) {
         templateId,
         datalinkId: null,
         preferredName: templateName,
+        ...(onCreated ? { onCreated } : {}),
+        ...(onError ? { onError } : {}),
       })
     },
-    [rootDirectoryId, dispatchAssetListEvent]
+    [rootDirectoryId, dispatchAssetListEvent],
   )
 
   const doCreateDirectory = React.useCallback(() => {
@@ -185,7 +189,7 @@ export default function Drive(props: DriveProps) {
         value,
       })
     },
-    [rootDirectoryId, dispatchAssetListEvent]
+    [rootDirectoryId, dispatchAssetListEvent],
   )
 
   const doCreateDatalink = React.useCallback(
@@ -198,7 +202,7 @@ export default function Drive(props: DriveProps) {
         value,
       })
     },
-    [rootDirectoryId, dispatchAssetListEvent]
+    [rootDirectoryId, dispatchAssetListEvent],
   )
 
   switch (status) {
@@ -260,11 +264,11 @@ export default function Drive(props: DriveProps) {
               category={category}
               canDownload={canDownload}
               isAssetPanelOpen={isAssetPanelVisible}
-              setIsAssetPanelOpen={valueOrUpdater => {
+              setIsAssetPanelOpen={(valueOrUpdater) => {
                 const newValue =
-                  typeof valueOrUpdater === 'function'
-                    ? valueOrUpdater(isAssetPanelVisible)
-                    : valueOrUpdater
+                  typeof valueOrUpdater === 'function' ?
+                    valueOrUpdater(isAssetPanelVisible)
+                  : valueOrUpdater
                 setIsAssetPanelTemporarilyVisible(false)
                 setIsAssetPanelEnabled(newValue)
               }}
@@ -288,7 +292,7 @@ export default function Drive(props: DriveProps) {
                   />
                 )}
               </div>
-              {status === DriveStatus.offline ? (
+              {status === DriveStatus.offline ?
                 <result.Result
                   status="info"
                   className="my-12"
@@ -309,8 +313,7 @@ export default function Drive(props: DriveProps) {
                     </ariaComponents.Button>
                   )}
                 </result.Result>
-              ) : (
-                <AssetsTable
+              : <AssetsTable
                   assetManagementApiRef={assetsManagementApiRef}
                   hidden={hidden}
                   query={query}
@@ -323,13 +326,13 @@ export default function Drive(props: DriveProps) {
                   setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
                   targetDirectoryNodeRef={targetDirectoryNodeRef}
                 />
-              )}
+              }
             </div>
           </div>
           <div
             className={tailwindMerge.twMerge(
               'flex flex-col overflow-hidden transition-min-width duration-side-panel ease-in-out',
-              isAssetPanelVisible ? 'min-w-side-panel' : 'min-w'
+              isAssetPanelVisible ? 'min-w-side-panel' : 'min-w',
             )}
           >
             <AssetPanel

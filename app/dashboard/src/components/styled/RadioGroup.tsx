@@ -117,7 +117,7 @@ function RadioGroup(props: aria.RadioGroupProps, ref: React.ForwardedRef<HTMLDiv
         label,
         validationBehavior: props.validationBehavior ?? 'native',
       },
-      state
+      state,
     )
   // This single line is the reason this file exists!
   delete radioGroupProps.onKeyDown

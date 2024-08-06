@@ -2,14 +2,18 @@
  * the current directory and some configuration options. */
 import * as React from 'react'
 
+import { skipToken, useQuery } from '@tanstack/react-query'
+
 import AddDatalinkIcon from '#/assets/add_datalink.svg'
 import AddFolderIcon from '#/assets/add_folder.svg'
 import AddKeyIcon from '#/assets/add_key.svg'
 import DataDownloadIcon from '#/assets/data_download.svg'
 import DataUploadIcon from '#/assets/data_upload.svg'
+import Plus2Icon from '#/assets/plus2.svg'
 import RightPanelIcon from '#/assets/right_panel.svg'
 
 import * as offlineHooks from '#/hooks/offlineHooks'
+import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
 
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
@@ -31,6 +35,7 @@ import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
 import type Backend from '#/services/Backend'
+import { ProjectState, type CreatedProject, type Project, type ProjectId } from '#/services/Backend'
 
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
@@ -50,7 +55,12 @@ export interface DriveBarProps {
   readonly isAssetPanelOpen: boolean
   readonly setIsAssetPanelOpen: React.Dispatch<React.SetStateAction<boolean>>
   readonly doEmptyTrash: () => void
-  readonly doCreateProject: () => void
+  readonly doCreateProject: (
+    templateId?: string | null,
+    templateName?: string | null,
+    onCreated?: (project: CreatedProject) => void,
+    onError?: () => void,
+  ) => void
   readonly doCreateDirectory: () => void
   readonly doCreateSecret: (name: string, value: string) => void
   readonly doCreateDatalink: (name: string, value: unknown) => void
@@ -71,26 +81,59 @@ export default function DriveBar(props: DriveBarProps) {
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)
   const isCloud = categoryModule.isCloud(category)
   const { isOffline } = offlineHooks.useOffline()
+  const [isCreatingProjectFromTemplate, setIsCreatingProjectFromTemplate] = React.useState(false)
+  const [isCreatingProject, setIsCreatingProject] = React.useState(false)
+  const [createdProjectId, setCreatedProjectId] = React.useState<ProjectId | null>(null)
 
   const shouldBeDisabled = isCloud && isOffline
 
   React.useEffect(() => {
     return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
-      ...(isCloud
-        ? {
-            newFolder: () => {
-              doCreateDirectory()
-            },
-          }
-        : {}),
+      ...(isCloud ?
+        {
+          newFolder: () => {
+            doCreateDirectory()
+          },
+        }
+      : {}),
       newProject: () => {
-        doCreateProject()
+        setIsCreatingProject(true)
+        doCreateProject(
+          null,
+          null,
+          (project) => {
+            setCreatedProjectId(project.projectId)
+          },
+          () => {
+            setIsCreatingProject(false)
+          },
+        )
       },
       uploadFiles: () => {
         uploadFilesRef.current?.click()
       },
     })
   }, [isCloud, doCreateDirectory, doCreateProject, inputBindings])
+
+  const createdProjectQuery = useQuery<Project>(
+    createdProjectId ?
+      createGetProjectDetailsQuery.createPassiveListener(createdProjectId)
+    : { queryKey: ['__IGNORE__'], queryFn: skipToken },
+  )
+
+  const isFetching =
+    (createdProjectQuery.isLoading ||
+      (createdProjectQuery.data &&
+        createdProjectQuery.data.state.type !== ProjectState.opened &&
+        createdProjectQuery.data.state.type !== ProjectState.closing)) ??
+    false
+
+  React.useEffect(() => {
+    if (!isFetching) {
+      setIsCreatingProject(false)
+      setIsCreatingProjectFromTemplate(false)
+    }
+  }, [isFetching])
 
   const searchBar = (
     <AssetSearchBar
@@ -114,7 +157,7 @@ export default function DriveBar(props: DriveBarProps) {
           icon={RightPanelIcon}
           aria-label={isAssetPanelOpen ? getText('openAssetPanel') : getText('closeAssetPanel')}
           onPress={() => {
-            setIsAssetPanelOpen(isOpen => !isOpen)
+            setIsAssetPanelOpen((isOpen) => !isOpen)
           }}
         />
       </div>
@@ -142,7 +185,7 @@ export default function DriveBar(props: DriveBarProps) {
                 <ConfirmDeleteModal
                   actionText={getText('allTrashedItemsForever')}
                   doDelete={doEmptyTrash}
-                />
+                />,
               )
             }}
           >
@@ -158,18 +201,52 @@ export default function DriveBar(props: DriveBarProps) {
       return (
         <ariaComponents.ButtonGroup className="my-0.5 grow-0">
           <aria.DialogTrigger>
-            <ariaComponents.Button size="medium" variant="tertiary" isDisabled={shouldBeDisabled}>
+            <ariaComponents.Button
+              size="medium"
+              variant="tertiary"
+              isDisabled={shouldBeDisabled || isCreatingProject || isCreatingProjectFromTemplate}
+              icon={Plus2Icon}
+              loading={isCreatingProjectFromTemplate}
+              loaderPosition="icon"
+            >
               {getText('startWithATemplate')}
             </ariaComponents.Button>
 
-            <StartModal createProject={doCreateProject} />
+            <StartModal
+              createProject={(templateId, templateName) => {
+                setIsCreatingProjectFromTemplate(true)
+                doCreateProject(
+                  templateId,
+                  templateName,
+                  (project) => {
+                    setCreatedProjectId(project.projectId)
+                  },
+                  () => {
+                    setIsCreatingProjectFromTemplate(false)
+                  },
+                )
+              }}
+            />
           </aria.DialogTrigger>
           <ariaComponents.Button
             size="medium"
             variant="bar"
-            isDisabled={shouldBeDisabled}
+            isDisabled={shouldBeDisabled || isCreatingProject || isCreatingProjectFromTemplate}
+            icon={Plus2Icon}
+            loading={isCreatingProject}
+            loaderPosition="icon"
             onPress={() => {
-              doCreateProject()
+              setIsCreatingProject(true)
+              doCreateProject(
+                null,
+                null,
+                (project) => {
+                  setCreatedProjectId(project.projectId)
+                },
+                () => {
+                  setIsCreatingProject(false)
+                },
+              )
             }}
           >
             {getText('newEmptyProject')}
@@ -214,7 +291,7 @@ export default function DriveBar(props: DriveBarProps) {
               type="file"
               multiple
               className="hidden"
-              onInput={event => {
+              onInput={(event) => {
                 if (event.currentTarget.files != null) {
                   doUploadFiles(Array.from(event.currentTarget.files))
                 }

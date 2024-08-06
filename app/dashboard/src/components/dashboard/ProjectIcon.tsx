@@ -16,8 +16,8 @@ import * as ariaComponents from '#/components/AriaComponents'
 import Spinner from '#/components/Spinner'
 import StatelessSpinner, * as spinner from '#/components/StatelessSpinner'
 
-import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
@@ -74,16 +74,17 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
 
-  const isRunningInBackground = item.projectState.executeAsync ?? false
   const {
-    data: status,
+    data: projectState,
     isLoading,
     isError,
   } = reactQuery.useQuery({
     ...projectHooks.createGetProjectDetailsQuery.createPassiveListener(item.id),
-    select: data => data.state.type,
+    select: (data) => data.state,
     enabled: isOpened,
   })
+  const status = projectState?.type
+  const isRunningInBackground = projectState?.executeAsync ?? false
 
   const isCloud = backend.type === backendModule.BackendType.remote
 
@@ -119,8 +120,8 @@ export default function ProjectIcon(props: ProjectIconProps) {
     } else if (status == null) {
       return spinner.SpinnerState.loadingSlow
     } else {
-      return backend.type === backendModule.BackendType.remote
-        ? REMOTE_SPINNER_STATE[status]
+      return backend.type === backendModule.BackendType.remote ?
+          REMOTE_SPINNER_STATE[status]
         : LOCAL_SPINNER_STATE[status]
     }
   })()
@@ -137,7 +138,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
 
   switch (state) {
     case null:
-    case backendModule.ProjectState.created:
     case backendModule.ProjectState.new:
     case backendModule.ProjectState.closing:
     case backendModule.ProjectState.closed:
@@ -149,9 +149,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
           aria-label={getText('openInEditor')}
           tooltipPlacement="left"
           extraClickZone="xsmall"
+          isDisabled={projectState?.type === backendModule.ProjectState.closing}
           onPress={doOpenProject}
         />
       )
+    case backendModule.ProjectState.created:
     case backendModule.ProjectState.openInProgress:
     case backendModule.ProjectState.scheduled:
     case backendModule.ProjectState.provisioned:
@@ -174,7 +176,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
             state={spinnerState}
             className={tailwindMerge.twMerge(
               'pointer-events-none absolute inset-0',
-              isRunningInBackground && 'text-green'
+              isRunningInBackground && 'text-green',
             )}
           />
         </div>
@@ -199,7 +201,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
               state={spinner.SpinnerState.done}
               className={tailwindMerge.twMerge(
                 'pointer-events-none absolute inset-0',
-                isRunningInBackground && 'text-green'
+                isRunningInBackground && 'text-green',
               )}
             />
           </div>

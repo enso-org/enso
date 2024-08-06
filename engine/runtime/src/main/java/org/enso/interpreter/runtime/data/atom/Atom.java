@@ -142,7 +142,7 @@ public abstract class Atom implements EnsoObject {
    */
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
-  EnsoObject getMembers(boolean includeInternal) throws UnsupportedMessageException {
+  EnsoObject getMembers(boolean includeInternal) {
     Set<Function> members =
         constructor.getDefinitionScope().getMethodsForType(constructor.getType());
     Set<Function> allFuncMembers = new HashSet<>();

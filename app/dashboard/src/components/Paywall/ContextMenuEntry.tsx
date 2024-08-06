@@ -39,7 +39,7 @@ export function ContextMenuEntry(props: ContextMenuEntryProps) {
         icon={LockIcon}
         doAction={() => {
           setModal(
-            <paywallDialog.PaywallDialog modalProps={{ defaultOpen: true }} feature={feature} />
+            <paywallDialog.PaywallDialog modalProps={{ defaultOpen: true }} feature={feature} />,
           )
         }}
       />

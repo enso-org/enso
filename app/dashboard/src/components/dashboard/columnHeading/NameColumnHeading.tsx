@@ -15,7 +15,7 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 /** A heading for the "Name" column. */
 export default function NameColumnHeading(
-  props: column.AssetColumnHeadingProps
+  props: column.AssetColumnHeadingProps,
 ): React.JSX.Element {
   const { state } = props
   const { sortInfo, setSortInfo } = state
@@ -28,16 +28,16 @@ export default function NameColumnHeading(
       size="custom"
       variant="custom"
       aria-label={
-        !isSortActive
-          ? getText('sortByName')
-          : isDescending
-            ? getText('stopSortingByName')
-            : getText('sortByNameDescending')
+        !isSortActive ? getText('sortByName')
+        : isDescending ?
+          getText('stopSortingByName')
+        : getText('sortByNameDescending')
       }
       className="group flex h-table-row w-full items-center justify-start gap-icon-with-text px-name-column-x"
       onPress={() => {
-        const nextDirection = isSortActive
-          ? sorting.nextSortDirection(sortInfo.direction)
+        const nextDirection =
+          isSortActive ?
+            sorting.nextSortDirection(sortInfo.direction)
           : sorting.SortDirection.ascending
         if (nextDirection == null) {
           setSortInfo(null)
@@ -53,7 +53,7 @@ export default function NameColumnHeading(
         className={tailwindMerge.twMerge(
           'transition-all duration-arrow',
           isSortActive ? 'selectable active' : 'opacity-0 group-hover:selectable',
-          isDescending && 'rotate-180'
+          isDescending && 'rotate-180',
         )}
       />
     </ariaComponents.Button>

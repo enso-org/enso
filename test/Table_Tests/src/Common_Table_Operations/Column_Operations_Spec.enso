@@ -18,7 +18,8 @@ from Standard.Test import all
 
 import enso_dev.Base_Tests.Data.Round_Spec
 
-from project.Common_Table_Operations.Util import run_default_backend, within_table
+import project.Common_Table_Operations.Main.Char_Max_Size_After_Substring_Behavior
+from project.Common_Table_Operations.Util import run_default_backend, within_table, is_float_or_decimal
 
 main filter=Nothing = run_default_backend add_specs filter
 
@@ -487,16 +488,20 @@ add_specs suite_builder setup =
                 True -> actual.at "col0" . value_type . should_equal (Value_Type.Char size=3 variable_length=True)
                 False -> actual.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
 
-        group_builder.specify "should allow to fill_nothing a fixed width of width 1 correctly expanding ouptut types" <|
+        group_builder.specify "should allow to fill_nothing a fixed width of width 1 correctly expanding output types" <|
             t = table_builder [["col0", ["a", Nothing, " "]]] . cast "col0" (Value_Type.Char size=1 variable_length=False)
             fillBlank = t.fill_nothing ["col0"] ""
             fillOneSpace = t.fill_nothing ["col0"] " "
             fillTwoSpaces = t.fill_nothing ["col0"] "  "
             case setup.test_selection.length_restricted_text_columns of
-                True -> fillBlank.at "col0" . value_type . should_equal (Value_Type.Char size=1 variable_length=True)
-                    fillOneSpace.at "col0" . value_type . should_equal (Value_Type.Char size=1 variable_length=False)
+                True ->
+                    fillBlank.at "col0" . value_type . should_equal (Value_Type.Char size=1 variable_length=True)
+                    case setup.test_selection.fixed_length_text_columns of
+                        True  -> fillOneSpace.at "col0" . value_type . should_equal (Value_Type.Char size=1 variable_length=False)
+                        False -> fillOneSpace.at "col0" . value_type . should_equal (Value_Type.Char size=1 variable_length=True)
                     fillTwoSpaces.at "col0" . value_type . should_equal (Value_Type.Char size=2 variable_length=True)
-                False -> fillBlank.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
+                False ->
+                    fillBlank.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
                     fillOneSpace.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
                     fillTwoSpaces.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
 
@@ -514,8 +519,12 @@ add_specs suite_builder setup =
             t = table_builder [["col0", [Nothing, "200", Nothing, "400", "500", Nothing]]] . cast "col0" (Value_Type.Char size=3 variable_length=False)
             actual = t.fill_nothing ["col0"] "   "
             actual.at "col0" . to_vector . should_equal ["   ", "200", "   ", "400", "500", "   "]
-            case setup.test_selection.fixed_length_text_columns of
-                True -> actual.at "col0" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
+
+            case setup.test_selection.length_restricted_text_columns of
+                True ->
+                    case setup.test_selection.fixed_length_text_columns of
+                        True  -> actual.at "col0" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
+                        False -> actual.at "col0" . value_type . should_equal (Value_Type.Char size=3 variable_length=True)
                 False -> actual.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
 
         group_builder.specify "should allow to fill_nothing from other columns" <|
@@ -649,26 +658,67 @@ add_specs suite_builder setup =
 
     suite_builder.group prefix+"(Column_Operations_Spec) Column Comparisons" group_builder->
         table_builder = build_sorted_table table_builder=setup.light_table_builder
-        group_builder.specify "should allow to compare numbers" <|
-            with_mixed_columns_if_supported [["x", [1, 4, 5, Nothing]], ["y", [2.0, 3.25, 5.0, Nothing]]] t2->
-                x = t2.at "x"
-                y = t2.at "y"
-                setup.is_integer_type x.inferred_precise_value_type . should_be_true
-                y.inferred_precise_value_type . should_be_a (Value_Type.Float ...)
 
-                (x < y).to_vector . should_equal [True, False, False, Nothing]
-                (x <= y).to_vector . should_equal [True, False, True, Nothing]
-                (x > y).to_vector . should_equal (x <= y).not.to_vector
-                (x >= y).to_vector . should_equal (x < y).not.to_vector
+        group_builder.specify "(Column_Operations_Spec) should infer the correct precise value type for mixed columns" <|
+            with_mixed_columns_if_supported [["i", [1, 4, 5, Nothing]], ["f", [2.0, 3.25, 5.0, Nothing]], ["d", [dec "2.0", dec "3.25", dec "5.0", Nothing]]] t->
+                setup.is_integer_type (t.at "i").inferred_precise_value_type . should_be_true
+                (t.at "f").inferred_precise_value_type . should_be_a (Value_Type.Float ...)
 
-                (x < 1000).to_vector . should_equal [True, True, True, Nothing]
+                case setup.test_selection.supports_decimal_type of
+                    True ->
+                        (t.at "d").inferred_precise_value_type . should_be_a (Value_Type.Decimal ...)
+                    False ->
+                        (t.at "d").inferred_precise_value_type . should_be_a (Value_Type.Integer ...)
 
-                [(<), (<=), (>), (>=)].each op->
-                    op x y . value_type . should_equal Value_Type.Boolean
-                    op x y . to_vector . should_succeed
-                    op x 23 . to_vector . should_succeed
-                    op y 23 . to_vector . should_succeed
-                    op x 1.5 . to_vector . should_succeed
+        if setup.test_selection.run_advanced_edge_case_tests then
+            group_builder.specify "(Column_Operations_Spec) should allow to compare numbers (including mixed types)" <|
+                x_values = [1.25, 4.5, 5.0]
+                y_values = [2.0, 3.0, 5.0]
+
+                converters = [.truncate, x->x, dec]
+                converters.map x_converter-> converters.map y_converter->
+                    x_values_converted = x_values.map x_converter
+                    y_values_converted = y_values.map y_converter
+                    with_mixed_columns_if_supported [['x', x_values_converted + [Nothing]], ['y', y_values_converted + [Nothing]]] t->
+                        x = t.at "x"
+                        y = t.at "y"
+
+                        Test.with_clue " comparison: "+x.value_type.to_text+', '+y.value_type.to_text+" " <|
+                            (x < y).to_vector . should_equal [True, False, False, Nothing]
+                            (x <= y).to_vector . should_equal [True, False, True, Nothing]
+                            (x > y).to_vector . should_equal (x <= y).not.to_vector
+                            (x >= y).to_vector . should_equal (x < y).not.to_vector
+
+                            converters.map converter->
+                                const_float = 3.0
+                                constant = converter const_float
+                                Test.with_clue " constant: "+(Meta.get_simple_type_name constant) <|
+                                    (x == constant).to_vector . should_equal [False, False, False, Nothing]
+                                    (x != constant).to_vector . should_equal [True, True, True, Nothing]
+                                    (y == constant).to_vector . should_equal [False, True, False, Nothing]
+                                    (y != constant).to_vector . should_equal [True, False, True, Nothing]
+
+                            [6.5, 1000.5].map const_float->
+                                converters.map converter->
+                                    constant = converter const_float
+                                    Test.with_clue " constant: "+(Meta.get_simple_type_name constant) <|
+                                        (x < -constant).to_vector . should_equal [False, False, False, Nothing]
+                                        (x < constant).to_vector . should_equal [True, True, True, Nothing]
+                                        (x <= -constant).to_vector . should_equal [False, False, False, Nothing]
+                                        (x <= constant).to_vector . should_equal [True, True, True, Nothing]
+
+                                        (y > -constant).to_vector . should_equal [True, True, True, Nothing]
+                                        (y > constant).to_vector . should_equal [False, False, False, Nothing]
+                                        (y >= -constant).to_vector . should_equal [True, True, True, Nothing]
+                                        (y >= constant).to_vector . should_equal [False, False, False, Nothing]
+
+                            [(<), (<=), (>), (>=)].each op->
+                                op x y . value_type . should_equal Value_Type.Boolean
+                                op x y . to_vector . should_succeed
+                                op x 23 . to_vector . should_succeed
+                                op y 23 . to_vector . should_succeed
+                                op x 1.5 . to_vector . should_succeed
+                                op x (dec 1.5) . to_vector . should_succeed
 
         group_builder.specify "should allow to compare texts" <|
             t0 = table_builder [["X", ["a", "b", "c"]], ["Y", ["a", "b", "d"]]]
@@ -788,29 +838,30 @@ add_specs suite_builder setup =
             setup.expect_integer_type <| (data.x + data.x)
             (data.x + data.y).value_type . should_be_a (Value_Type.Float ...)
             setup.expect_integer_type <| (data.x + 2)
-            (data.x + 1.5).value_type . should_be_a (Value_Type.Float ...)
+            is_float_or_decimal (data.x + 1.5)
 
             setup.expect_integer_type <| (data.x - data.x)
             (data.x - data.y).value_type . should_be_a (Value_Type.Float ...)
             setup.expect_integer_type <| (data.x - 2)
-            (data.x - 1.5).value_type . should_be_a (Value_Type.Float ...)
+            is_float_or_decimal (data.x - 1.5)
 
             setup.expect_integer_type <| (data.x * data.x)
             (data.x * data.y).value_type . should_be_a (Value_Type.Float ...)
             setup.expect_integer_type <| (data.x * 2)
-            (data.x * 1.5).value_type . should_be_a (Value_Type.Float ...)
+            is_float_or_decimal <| (data.x * 1.5)
 
             (data.x ^ data.x).value_type . is_numeric . should_be_true
 
         if setup.test_selection.supports_decimal_type then
+            # TODO in-memory specific tests may be added in In_Memory/Table_Spec as part of #10429
             divide_in_memory_pending = if setup.is_database.not then "TODO: https://github.com/enso-org/enso/issues/10429"
             group_builder.specify "should correctly infer the types (for decimal division)" pending=divide_in_memory_pending <|
-                (data.x / data.x).value_type . is_floating_point . should_be_true
-                (data.x / data.y).value_type . is_floating_point . should_be_true
-                (data.x / data.z).value_type . is_decimal . should_be_true
-                (data.y / data.z).value_type . is_decimal . should_be_true
-                (data.x / 2).value_type . is_floating_point  . should_be_true
-                (data.x / 1.5).value_type . is_floating_point . should_be_true
+                is_float_or_decimal (data.x / data.x)
+                is_float_or_decimal (data.x / data.y)
+                is_float_or_decimal (data.x / data.z)
+                is_float_or_decimal (data.y / data.z)
+                is_float_or_decimal (data.x / 2)
+                is_float_or_decimal (data.x / 1.5)
 
         group_builder.specify "should check types" <|
             t = table_builder [["X", [1, 2]], ["Y", ["a", "b"]], ["Z", [True, False]]]
@@ -889,11 +940,11 @@ add_specs suite_builder setup =
 
             r2 = (t.at "A") / (t.at "B")
             r2 . to_vector . should_equal r
-            r2.value_type . should_be_a (Value_Type.Float ...)
+            is_float_or_decimal r2
 
             r3 = (t.at "A") / 2
             r3 . to_vector . should_equal [0.5, 2.5, 5.0, 50.0]
-            r3.value_type . should_be_a (Value_Type.Float ...)
+            is_float_or_decimal r3
 
             a2 = [1.2, 5, 10.2, 100]
             b2 = [1.2, 2, 2, 5]
@@ -906,11 +957,11 @@ add_specs suite_builder setup =
 
             r5 = (t2.at "A") / (t2.at "B")
             r5 . to_vector . should_equal r4
-            r5.value_type . should_be_a (Value_Type.Float ...)
+            is_float_or_decimal r5
 
             r6 = (t2.at "A") / 2
             r6 . to_vector . should_equal [0.6, 2.5, 5.1, 50.0]
-            r6.value_type . should_be_a (Value_Type.Float ...)
+            is_float_or_decimal r6
 
         db_pending = if setup.is_database then "Arithmetic error handling is currently not implemented for the Database backend."
         group_builder.specify "should allow division by 0 and report warnings" pending=db_pending <|
@@ -991,9 +1042,6 @@ add_specs suite_builder setup =
             group_builder.specify "should allow round on a "+type.to_text+" column (to >0 decimal places)" <|
                 table = table_builder [["x", [0.51, 0.59, 3.51, 3.59, -0.51, -0.59, -3.51, -3.59]]]
                 result = table.at "x" . cast type . round 1
-                # TODO why it's becoming an Int?
-                IO.println (result.value_type)
-                IO.println (result.cast Value_Type.Char . to_vector)
                 result.to_vector.should_equal [0.5, 0.6, 3.5, 3.6, -0.5, -0.6, -3.5, -3.6]
                 result.name . should_equal "round([x])"
 
@@ -1055,7 +1103,8 @@ add_specs suite_builder setup =
             table.at "x" . round 16 . should_fail_with Illegal_Argument
 
         if setup.test_selection.supports_decimal_type then
-            group_builder.specify "should return decimals when rounding decimals" <|
+            pending = if setup.is_database.not then "https://github.com/enso-org/enso/issues/10644"
+            group_builder.specify "should return decimals when rounding decimals" pending=pending <|
                 i1 = 9223372036854775807 - 1
                 c = table_builder [["X", [i1]]] . at "X"
                 decimal_col = c.cast Value_Type.Decimal
@@ -1152,12 +1201,15 @@ add_specs suite_builder setup =
                 resRight.name . should_equal "text_right([strings], 1)"
                 resLeft . to_vector . should_equal ["a", "f", "", Nothing, "c", "I"]
                 resRight . to_vector . should_equal ["a", "r", "", Nothing, "é", "."]
-                case setup.is_database of
-                    False -> resLeft . value_type . should_equal (Value_Type.Char size=286 variable_length=True)
-                    True -> resLeft . value_type . should_equal (Value_Type.Char variable_length=True)
-                case setup.is_database of
-                    False -> resRight . value_type . should_equal (Value_Type.Char size=286 variable_length=True)
-                    True -> resRight . value_type . should_equal (Value_Type.Char variable_length=True)
+
+                expected_new_size = case setup.test_selection.char_max_size_after_substring of
+                    Char_Max_Size_After_Substring_Behavior.Reset   -> Nothing
+                    Char_Max_Size_After_Substring_Behavior.Kept    -> 286
+                    Char_Max_Size_After_Substring_Behavior.Reduced -> 1
+
+                Test.with_clue "(Expected behaviour for substring size = "+setup.test_selection.char_max_size_after_substring.to_text+".) " <|
+                    resLeft.value_type . should_equal (Value_Type.Char size=expected_new_size variable_length=True)
+                    resRight.value_type . should_equal (Value_Type.Char size=expected_new_size variable_length=True)
 
         group_builder.specify "should handle operation text_left and text_right of grapheme and non-grapheme" <|
             with_mixed_columns_if_supported [["strings", ["a", "foobar", "", Nothing, "👩‍🔬👩‍🔬V👩‍🔬👩‍🔬", "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
@@ -1260,8 +1312,8 @@ add_specs suite_builder setup =
 
             s1.is_empty . value_type . should_equal Value_Type.Boolean
             s1.is_blank . value_type . should_equal Value_Type.Boolean
-            s1.fill_empty "<>" . value_type . is_text . should_be_true
-            s1.fill_empty s2 . value_type . is_text . should_be_true
+            s1.fill_empty "<>" . value_type . should_be_a (Value_Type.Char ...)
+            s1.fill_empty s2 . value_type . should_be_a (Value_Type.Char ...)
 
         group_builder.specify "should support text concatenation with the + operator" <|
             with_mixed_columns_if_supported [["s1", ["foobar", "bar", "baz", "BAB", Nothing]], ["s2", ["foo", "ar", "a", "b", Nothing]]] t3->
@@ -1269,60 +1321,58 @@ add_specs suite_builder setup =
                 s2 = t3.at "s2"
                 c1 = s1 + s2
                 c1.to_vector . should_equal ["foobarfoo", "barar", "baza", "BABb", Nothing]
-                c1.value_type.is_text . should_be_true
+                c1.value_type.should_be_a (Value_Type.Char ...)
 
                 c2 = s1 + "_SUF"
                 c2.to_vector . should_equal ["foobar_SUF", "bar_SUF", "baz_SUF", "BAB_SUF", Nothing]
-                c2.value_type.is_text . should_be_true
+                c2.value_type.should_be_a (Value_Type.Char ...)
 
                 c3 = s1 + Nothing
                 c3.to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing]
-                c3.value_type.is_text . should_be_true
+                c3.value_type.should_be_a (Value_Type.Char ...)
 
     suite_builder.group prefix+"(Column_Operations_Spec) Min/Max Operations" group_builder->
         data = Min_Max_Data.setup setup.table_builder
         group_builder.specify "should allow one or more args and return the correct type" <|
             c1 = data.a.min 2
             c1.to_vector . should_equal [1, 2, 2]
-            c1.value_type.is_integer . should_be_true
+            setup.expect_integer_type c1
 
             c2 = data.a.max 2
             c2.to_vector . should_equal [2, 2, 3]
-            c2.value_type.is_integer . should_be_true
+            setup.expect_integer_type c2
 
             c3 = data.a.min [2.5, 2]
             c3.to_vector . should_equal [1, 2, 2]
-            Test.with_clue "c3.value_type="+c3.value_type.to_display_text <|
-                c3.value_type.is_floating_point . should_be_true
+            c3.value_type.should_be_a (Value_Type.Float ...)
 
             c4 = data.a.max [2.5, 2]
             c4.to_vector . should_equal [2.5, 2.5, 3]
-            c4.value_type.is_floating_point . should_be_true
+            c4.value_type.should_be_a (Value_Type.Float ...)
 
             c5 = data.a.min data.b
             c5.to_vector . should_equal [1, 2, 3]
-            Test.with_clue "c5.value_type="+c5.value_type.to_display_text+": " <|
-                c5.value_type.is_floating_point . should_be_true
+            c5.value_type.should_be_a (Value_Type.Float ...)
 
             c6 = data.a.max data.b
             c6.to_vector . should_equal [4.5, 5.5, 6.5]
-            c6.value_type.is_floating_point . should_be_true
+            c6.value_type.should_be_a (Value_Type.Float ...)
 
             c7 = data.a.min [data.a, data.b, 1]
             c7.to_vector . should_equal [1, 1, 1]
-            c7.value_type.is_floating_point . should_be_true
+            c7.value_type.should_be_a (Value_Type.Float ...)
 
             c8 = data.a.max [data.a, data.b, 1]
             c8.to_vector . should_equal [4.5, 5.5, 6.5]
-            c8.value_type.is_floating_point . should_be_true
+            c8.value_type.should_be_a (Value_Type.Float ...)
 
             c9 = (data.t.at "d").min False
             c9.to_vector . should_equal [False, False, False]
-            c9.value_type.is_boolean . should_be_true
+            c9.value_type.should_equal Value_Type.Boolean
 
             c10 = (data.t.at "d").max False
             c10.to_vector . should_equal [True, False, True]
-            c10.value_type.is_boolean . should_be_true
+            c10.value_type.should_equal Value_Type.Boolean
 
         group_builder.specify "should check types" <|
             [(.min), (.max)].each op->
@@ -1687,12 +1737,19 @@ add_specs suite_builder setup =
         group_builder.specify "Should create a column of the correct type on a table with no rows" <|
             t = table_builder [["x", ["1", "2", "3"]]]
             empty = t.take 0
-            [[False, .is_boolean], [42,  .is_integer], ["42",  .is_text], ["foo", .is_text], [1.1, .is_floating_point]].map pair->
-                value = pair.at 0
-                pred = pair.at 1
+
+            check value expected_type =
                 c = empty.make_constant_column value
-                pred c.value_type . should_be_true
-                pred ((empty.set c).at c.name . value_type) . should_be_true
+                c.value_type.should_be_a expected_type
+                (empty.set c).at c.name . value_type . should_be_a expected_type
+
+            check False Value_Type.Boolean
+            check "42" (Value_Type.Char ...)
+            check "foo" (Value_Type.Char ...)
+            check 1.1 (Value_Type.Float ...)
+
+            c = empty.make_constant_column 42
+            setup.expect_integer_type c
 
         nulls_db_pending = if setup.is_database then "Empty NULL columns are unsupported in the database backends"
         group_builder.specify "Should create a column of the correct type on a table with no rows" pending=nulls_db_pending <|

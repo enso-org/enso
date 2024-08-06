@@ -64,17 +64,19 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <span class="WidgetApplication" :class="appClass">
-    <NodeWidget :input="targetMaybePort" />
+  <div class="WidgetApplication" :class="appClass">
+    <NodeWidget :input="targetMaybePort" :nest="application.isInnermost" />
     <div v-if="application.infixOperator" class="infixOp" :style="operatorStyle">
       <NodeWidget :input="WidgetInput.FromAst(application.infixOperator)" />
     </div>
     <SizeTransition width leftGap>
-      <div v-if="tree.extended || !application.argument.hideByDefault" class="argument">
-        <NodeWidget :input="application.argument.toWidgetInput()" nest />
-      </div>
+      <NodeWidget
+        v-if="tree.extended || !application.argument.hideByDefault"
+        :input="application.argument.toWidgetInput()"
+        nest
+      />
     </SizeTransition>
-  </span>
+  </div>
 </template>
 
 <style scoped>
@@ -84,7 +86,7 @@ export const widgetDefinition = defineWidget(
   flex-direction: row;
   justify-content: center;
   &.prefix {
-    gap: 4px;
+    gap: var(--widget-token-pad-unit);
   }
 }
 
@@ -102,11 +104,5 @@ export const widgetDefinition = defineWidget(
     display: inline;
     white-space: pre;
   }
-}
-
-.argument {
-  display: flex;
-  flex-direction: row;
-  place-items: center;
 }
 </style>

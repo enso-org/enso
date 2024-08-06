@@ -12,7 +12,7 @@ import Standard.Test.Extensions
 from Standard.Database.Errors import Unsupported_Database_Operation
 from Standard.Table import Column, Table, Value_Type, Auto, Bits
 from Standard.Table.Errors import Invalid_Value_Type, Invalid_Column_Names
-from project.Common_Table_Operations.Util import run_default_backend
+from project.Common_Table_Operations.Util import run_default_backend, build_sorted_table
 
 from Standard.Test import all
 
@@ -24,13 +24,12 @@ main filter=Nothing = run_default_backend add_specs filter
 add_specs suite_builder setup =
     prefix = setup.prefix
     materialize = setup.materialize
-    table_builder = setup.table_builder
     suite_builder.group prefix+"Table Text Cleanse" group_builder->
         flight = ["Flight", [" BA0123", "BA0123 ", "  SG0456  ", "BA  0123", " S G 0 4 5 6 "]]
         passenger = ["Passenger", ["   Albert Einstein", "Marie Curie   ", "   Isaac Newton   ", "Stephen   Hawking", " A d a Lovelace "]]
         ticket_price = ["Ticket Price", [101, 576, 73, 112, 74]]
         table = Lazy_Ref.Value <|
-            table_builder [flight, passenger, ticket_price]
+            build_sorted_table setup [flight, passenger, ticket_price]
         group_builder.specify "should remove leading whitespace" <|
             clean_flight = ["Flight", ["BA0123", "BA0123 ", "SG0456  ", "BA  0123", "S G 0 4 5 6 "]]
             clean_passenger = ["Passenger", ["Albert Einstein", "Marie Curie   ", "Isaac Newton   ", "Stephen   Hawking", "A d a Lovelace "]]

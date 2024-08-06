@@ -43,6 +43,7 @@ const rootStyle = computed(() => {
 <style scoped>
 .GraphNodeSelection {
   position: absolute;
+  contain: strict;
   inset: calc(0px - var(--selected-node-border-width));
   width: calc(var(--selected-node-border-width) * 2 + var(--node-size-x));
   height: calc(var(--selected-node-border-width) * 2 + var(--node-size-y));

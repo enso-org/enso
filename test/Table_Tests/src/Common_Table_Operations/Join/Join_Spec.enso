@@ -478,7 +478,7 @@ add_specs suite_builder setup =
                 r4.at "Z" . to_vector . should_equal [2.0, 2.0, 2.0, 2.0]
                 r4.at "W" . to_vector . should_equal [1, 3, 1, 3]
                 expected_problems = [Floating_Point_Equality.Error "Z", Floating_Point_Equality.Error "X"]
-                Problems.get_attached_warnings r3 . should_contain_the_same_elements_as expected_problems
+                Problems.get_attached_warnings r3 . should_equal_ignoring_order expected_problems
 
         group_builder.specify "should correctly handle nulls in equality conditions" <|
             t1 = table_builder [["X", ["A", Nothing, "a", Nothing, "ą", "b"]], ["Y", [0, 1, 2, 3, 4, 5]]]

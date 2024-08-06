@@ -58,7 +58,7 @@ interface AutoScrollInsets {
 /** Scroll a container when the mouse is near the edges of a container. */
 export function useAutoScroll(
   scrollContainerRef: React.MutableRefObject<HTMLDivElement | null>,
-  options: AutoScrollOptions = {}
+  options: AutoScrollOptions = {},
 ) {
   const isScrolling = React.useRef(false)
   const animationFrameHandle = React.useRef(0)

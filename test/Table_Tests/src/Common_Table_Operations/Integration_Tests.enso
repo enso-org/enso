@@ -95,6 +95,16 @@ add_specs suite_builder setup =
             t3.at "Letter" . to_vector . should_equal ["A", "B", "C"]
             t3.at "Sum Points" . to_vector . should_equal [-97, 5, 13]
 
+        group_builder.specify "ordering before aggregate" <|
+            t1 = table_builder [["X", [5, 4, 1, 3, 2]], ["Y", ["b", "a", "d", "c", "e"]]]
+            t2 = t1.sort "Y"
+            t3 = t2.aggregate columns=[Aggregate_Column.Count, Aggregate_Column.Sum "X", Aggregate_Column.Minimum "X"]
+            t3.columns.map .name . should_equal ["Count", "Sum X", "Minimum X"]
+            m3 = materialize t3
+            m3.at "Count" . to_vector . should_equal [5]
+            m3.at "Sum X" . to_vector . should_equal [15]
+            m3.at "Minimum X" . to_vector . should_equal [1]
+
         group_builder.specify "distinct and ordering" <|
             t1 = table_builder [["X", [1, 2, 2, 1]], ["Y", ["a", "b", "b", "a"]], ["Z", [1, 2, 3, 4]]]
 
@@ -149,7 +159,7 @@ add_specs suite_builder setup =
                 t4 = t.filter "B" (Filter_Condition.Equal 5)
                 t5 = t4.distinct ["A"] on_problems=..Report_Error
                 r5 = t5 |> materialize
-                r5.at "A" . to_vector . should_contain_the_same_elements_as ["b", "a"]
+                r5.at "A" . to_vector . should_equal_ignoring_order ["b", "a"]
                 r5.at "B" . to_vector . should_equal [5, 5]
 
             ## This mostly checks that various operations handle all kinds of Integer storage implementations
