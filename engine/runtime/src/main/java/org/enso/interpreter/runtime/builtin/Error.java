@@ -157,6 +157,7 @@ public final class Error {
    * @param symbol the method being called
    * @return a runtime representation of the error
    */
+  @CompilerDirectives.TruffleBoundary
   public Atom makeNoSuchMethod(Object target, UnresolvedSymbol symbol) {
     new RuntimeException("#10750 " + symbol.getName()).printStackTrace();
     return noSuchMethod.newInstance(target, symbol);
