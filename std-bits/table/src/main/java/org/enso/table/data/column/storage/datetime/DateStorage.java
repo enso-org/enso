@@ -2,6 +2,7 @@ package org.enso.table.data.column.storage.datetime;
 
 import java.time.LocalDate;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
+import org.enso.table.data.column.operation.map.bool.GenericBinaryOpReturningBoolean;
 import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
 import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
@@ -21,6 +22,41 @@ public final class DateStorage extends SpecializedStorage<LocalDate> {
     MapOperationStorage<LocalDate, SpecializedStorage<LocalDate>> t =
         ObjectStorage.buildObjectOps();
     t.add(new DateTimeIsInOp<>(LocalDate.class));
+    t.add(
+        new GenericBinaryOpReturningBoolean<>(Maps.EQ, LocalDate.class) {
+          @Override
+          protected boolean doOperation(LocalDate a, LocalDate b) {
+            return a.isEqual(b);
+          }
+        });
+    t.add(
+        new GenericBinaryOpReturningBoolean<>(Maps.LT, LocalDate.class) {
+          @Override
+          protected boolean doOperation(LocalDate a, LocalDate b) {
+            return a.compareTo(b) < 0;
+          }
+        });
+    t.add(
+        new GenericBinaryOpReturningBoolean<>(Maps.LTE, LocalDate.class) {
+          @Override
+          protected boolean doOperation(LocalDate a, LocalDate b) {
+            return a.compareTo(b) <= 0;
+          }
+        });
+    t.add(
+        new GenericBinaryOpReturningBoolean<>(Maps.GT, LocalDate.class) {
+          @Override
+          protected boolean doOperation(LocalDate a, LocalDate b) {
+            return a.compareTo(b) > 0;
+          }
+        });
+    t.add(
+        new GenericBinaryOpReturningBoolean<>(Maps.GTE, LocalDate.class) {
+          @Override
+          protected boolean doOperation(LocalDate a, LocalDate b) {
+            return a.compareTo(b) >= 0;
+          }
+        });
     return t;
   }
 

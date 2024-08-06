@@ -6,6 +6,7 @@ import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.ObjectBuilder;
 import org.enso.table.data.column.operation.map.GenericBinaryObjectMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
+import org.enso.table.data.column.operation.map.bool.GenericBinaryOpReturningBoolean;
 import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
 import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
@@ -25,6 +26,41 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
     MapOperationStorage<ZonedDateTime, SpecializedStorage<ZonedDateTime>> t =
         ObjectStorage.buildObjectOps();
     t.add(new DateTimeIsInOp<>(ZonedDateTime.class));
+    t.add(
+        new GenericBinaryOpReturningBoolean<>(Maps.EQ, ZonedDateTime.class) {
+          @Override
+          protected boolean doOperation(ZonedDateTime a, ZonedDateTime b) {
+            return a.isEqual(b);
+          }
+        });
+    t.add(
+        new GenericBinaryOpReturningBoolean<>(Maps.LT, ZonedDateTime.class) {
+          @Override
+          protected boolean doOperation(ZonedDateTime a, ZonedDateTime b) {
+            return a.compareTo(b) < 0;
+          }
+        });
+    t.add(
+        new GenericBinaryOpReturningBoolean<>(Maps.LTE, ZonedDateTime.class) {
+          @Override
+          protected boolean doOperation(ZonedDateTime a, ZonedDateTime b) {
+            return a.compareTo(b) <= 0;
+          }
+        });
+    t.add(
+        new GenericBinaryOpReturningBoolean<>(Maps.GT, ZonedDateTime.class) {
+          @Override
+          protected boolean doOperation(ZonedDateTime a, ZonedDateTime b) {
+            return a.compareTo(b) > 0;
+          }
+        });
+    t.add(
+        new GenericBinaryOpReturningBoolean<>(Maps.GTE, ZonedDateTime.class) {
+          @Override
+          protected boolean doOperation(ZonedDateTime a, ZonedDateTime b) {
+            return a.compareTo(b) >= 0;
+          }
+        });
     t.add(
         new GenericBinaryObjectMapOperation<
             ZonedDateTime, SpecializedStorage<ZonedDateTime>, Duration>(

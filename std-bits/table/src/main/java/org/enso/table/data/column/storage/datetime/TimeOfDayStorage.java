@@ -6,6 +6,7 @@ import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.ObjectBuilder;
 import org.enso.table.data.column.operation.map.GenericBinaryObjectMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
+import org.enso.table.data.column.operation.map.bool.GenericBinaryOpReturningBoolean;
 import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
 import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
@@ -25,6 +26,41 @@ public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
     MapOperationStorage<LocalTime, SpecializedStorage<LocalTime>> t =
         ObjectStorage.buildObjectOps();
     t.add(new DateTimeIsInOp<>(LocalTime.class));
+    t.add(
+        new GenericBinaryOpReturningBoolean<>(Maps.EQ, LocalTime.class) {
+          @Override
+          protected boolean doOperation(LocalTime a, LocalTime b) {
+            return a.equals(b);
+          }
+        });
+    t.add(
+        new GenericBinaryOpReturningBoolean<>(Maps.LT, LocalTime.class) {
+          @Override
+          protected boolean doOperation(LocalTime a, LocalTime b) {
+            return a.compareTo(b) < 0;
+          }
+        });
+    t.add(
+        new GenericBinaryOpReturningBoolean<>(Maps.LTE, LocalTime.class) {
+          @Override
+          protected boolean doOperation(LocalTime a, LocalTime b) {
+            return a.compareTo(b) <= 0;
+          }
+        });
+    t.add(
+        new GenericBinaryOpReturningBoolean<>(Maps.GT, LocalTime.class) {
+          @Override
+          protected boolean doOperation(LocalTime a, LocalTime b) {
+            return a.compareTo(b) > 0;
+          }
+        });
+    t.add(
+        new GenericBinaryOpReturningBoolean<>(Maps.GTE, LocalTime.class) {
+          @Override
+          protected boolean doOperation(LocalTime a, LocalTime b) {
+            return a.compareTo(b) >= 0;
+          }
+        });
     t.add(
         new GenericBinaryObjectMapOperation<LocalTime, SpecializedStorage<LocalTime>, Duration>(
             Maps.SUB, LocalTime.class, TimeOfDayStorage.class) {
