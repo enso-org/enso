@@ -2,12 +2,13 @@ package org.enso.text.editing
 
 import org.enso.text.buffer.Rope
 
+@annotation.nowarn("msg=Unicode escapes")
 object TestData {
 
   val code =
     """
       |main =
-      |    apply = v f -> f v
+      |    apply = \uD83D\uDDDDv f -> f v
       |    adder = a b -> a + b
       |    plusOne = apply (f = adder 1)
       |    result = plusOne 10
