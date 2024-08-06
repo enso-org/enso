@@ -61,7 +61,9 @@ it the following system properties:
 ```bash
 enso$ env JAVA_OPTS='-Dgraal.Dump=Truffle:2 -Dgraal.PrintGraph=File' ./built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso --run yourprogram.enso
 ```
-See [Graal system props docs](https://github.com/oracle/graal/blob/master/compiler/docs/Debugging.md#jvmci-and-compiler-specific-options)
+
+See
+[Graal system props docs](https://github.com/oracle/graal/blob/master/compiler/docs/Debugging.md#jvmci-and-compiler-specific-options)
 for the description of the `graal` system properties.
 
 When executed on [GraalVM 22.3.1](http://graalvm.org) these options instruct the
