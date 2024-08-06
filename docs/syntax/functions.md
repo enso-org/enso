@@ -34,17 +34,19 @@ arguments.
 
 ## Lambdas
 
-A lambda is an anonymous function introduced by the `\` operator, followed by any
-arguments definitions, followed by the `->` operator and a body expression, e.g.
-`\a b -> a + b`.
+A lambda is an anonymous function introduced by the `\` operator, followed by
+any arguments definitions, followed by the `->` operator and a body expression,
+e.g. `\a b -> a + b`.
 
 Argument definitions: Each argument may have any combination of:
+
 - a suspension operator `~`
 - a type declaration `: Type`
-- a default value `= value` (when used in conjunction with a type declaration, the
-  type declaration must come first)
-The full syntax is: `\((~a:Type) = value) -> a`. The parentheses can be omitted when they
-contain no spaces.
+- a default value `= value` (when used in conjunction with a type declaration,
+  the type declaration must come first)
+
+The full syntax is: `\((~a:Type) = value) -> a`. The parentheses can be omitted
+when they contain no spaces.
 
 Lambdas can close over variables in their surrounding scope.
 
