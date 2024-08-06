@@ -336,12 +336,8 @@ export default function AuthProvider(props: AuthProviderProps) {
       if (result.ok) {
         void queryClient.invalidateQueries({ queryKey: sessionQueryKey })
         navigate(appUtils.DASHBOARD_PATH)
+        return
       } else {
-        if (result.val.type === cognitoModule.CognitoErrorType.userNotFound) {
-          // It may not be safe to pass the user's password in the URL.
-          navigate(`${appUtils.REGISTRATION_PATH}?${new URLSearchParams({ email }).toString()}`)
-        }
-        // eslint-disable-next-line no-restricted-syntax
         throw new Error(result.val.message)
       }
     }
@@ -541,9 +537,9 @@ export default function AuthProvider(props: AuthProviderProps) {
           )
       }
     }),
-    signInWithPassword: signInWithPassword,
-    forgotPassword: forgotPassword,
-    resetPassword: resetPassword,
+    signInWithPassword,
+    forgotPassword,
+    resetPassword,
     changePassword: withLoadingToast(changePassword),
     refetchSession: usersMeQuery.refetch,
     session: userData,

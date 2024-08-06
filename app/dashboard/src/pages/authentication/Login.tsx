@@ -17,6 +17,7 @@ import { passwordSchema } from '#/pages/authentication/schemas'
 import { useAuth } from '#/providers/AuthProvider'
 import { useLocalBackend } from '#/providers/BackendProvider'
 import { useText } from '#/providers/TextProvider'
+import { useState } from 'react'
 
 // =============
 // === Login ===
@@ -29,6 +30,7 @@ export default function Login() {
   const { getText } = useText()
   const query = new URLSearchParams(location.search)
   const initialEmail = query.get('email')
+  const [emailInput, setEmailInput] = useState('')
   const localBackend = useLocalBackend()
   const supportsOffline = localBackend != null
 
@@ -39,11 +41,12 @@ export default function Login() {
       footer={
         <Link
           openInBrowser={localBackend != null}
-          to={
-            localBackend != null ?
-              'https://' + CLOUD_DASHBOARD_DOMAIN + REGISTRATION_PATH
-            : REGISTRATION_PATH
-          }
+          to={(() => {
+            const newQuery = new URLSearchParams({ email: emailInput }).toString()
+            return localBackend != null ?
+                `https://${CLOUD_DASHBOARD_DOMAIN}${REGISTRATION_PATH}?${newQuery}`
+              : `${REGISTRATION_PATH}?${newQuery}`
+          })()}
           icon={CreateAccountIcon}
           text={getText('dontHaveAnAccount')}
         />
@@ -95,6 +98,9 @@ export default function Login() {
           icon={AtIcon}
           defaultValue={initialEmail ?? undefined}
           placeholder={getText('emailPlaceholder')}
+          onBlur={(event) => {
+            setEmailInput(event.currentTarget.value)
+          }}
         />
 
         <div className="flex w-full flex-col">
