@@ -137,8 +137,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
       @Cached HashMapInsertAllNode mapInsertAllNode,
       @CachedLibrary(limit = "3") InteropLibrary interop) {
     arguments[thisArgumentPosition] = self.getValue();
-    Warning[] warnings =
-        self.getWarningsArray(false, warnsLib, mapInsertAllNode, interop);
+    Warning[] warnings = self.getWarningsArray(false, warnsLib, mapInsertAllNode, interop);
     Object result =
         childDispatch.execute(
             frame,

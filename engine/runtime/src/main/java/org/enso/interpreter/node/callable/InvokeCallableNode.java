@@ -37,7 +37,6 @@ import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
-import org.enso.interpreter.runtime.warning.Warning;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 /**

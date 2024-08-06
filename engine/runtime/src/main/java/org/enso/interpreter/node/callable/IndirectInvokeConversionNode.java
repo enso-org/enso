@@ -165,8 +165,7 @@ abstract class IndirectInvokeConversionNode extends Node {
       @Cached HashMapInsertAllNode mapInsertAllNode,
       @CachedLibrary(limit = "3") InteropLibrary interop) {
     arguments[thatArgumentPosition] = that.getValue();
-    Warning[] warnings =
-        that.getWarningsArray(false, warnsLib, mapInsertAllNode, interop);
+    Warning[] warnings = that.getWarningsArray(false, warnsLib, mapInsertAllNode, interop);
     Object result =
         childDispatch.execute(
             frame,

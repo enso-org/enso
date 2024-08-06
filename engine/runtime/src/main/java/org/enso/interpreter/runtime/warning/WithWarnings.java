@@ -21,7 +21,6 @@ import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.data.hash.HashMapInsertAllNode;
-import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
 import org.enso.interpreter.runtime.data.hash.HashMapInsertNodeGen;
 import org.enso.interpreter.runtime.data.hash.HashMapSizeNode;
 import org.enso.interpreter.runtime.data.text.Text;
@@ -144,16 +143,15 @@ public final class WithWarnings implements EnsoObject {
   }
 
   /**
-   * Slow version of {@link #getWarningsArray(boolean, WarningsLibrary, HashMapInsertAllNode, InteropLibrary)} that uses uncached version of nodes and
-   * libraries parameters.
+   * Slow version of {@link #getWarningsArray(boolean, WarningsLibrary, HashMapInsertAllNode,
+   * InteropLibrary)} that uses uncached version of nodes and libraries parameters.
    */
   public Warning[] getWarningsArray(boolean shouldWrap) {
     return getWarningsArray(
         shouldWrap,
         WarningsLibrary.getUncached(),
         HashMapInsertAllNode.getUncached(),
-        InteropLibrary.getUncached()
-    );
+        InteropLibrary.getUncached());
   }
 
   public Warning[] getWarningsArray(
@@ -165,7 +163,8 @@ public final class WithWarnings implements EnsoObject {
     if (warningsLibrary != null && warningsLibrary.hasWarnings(value)) {
       try {
         var valueWarnings = warningsLibrary.getWarnings(value, shouldWrap);
-        var allWarns = mapInsertAllNode.executeInsertAll(null, warnings, valueWarnings, maxWarnings);
+        var allWarns =
+            mapInsertAllNode.executeInsertAll(null, warnings, valueWarnings, maxWarnings);
         allWarnsArray = Warning.fromMapToArray(allWarns, interop);
       } catch (UnsupportedMessageException e) {
         throw EnsoContext.get(warningsLibrary).raiseAssertionPanic(warningsLibrary, null, e);

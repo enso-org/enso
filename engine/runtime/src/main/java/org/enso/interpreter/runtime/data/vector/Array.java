@@ -115,7 +115,8 @@ final class Array implements EnsoObject {
     if (this.hasWarnings(warnings)) {
       hasWarningsProfile.enter();
       var extractedWarnsMap =
-          this.getWarnings(false, warnings, mapInsertNode, shouldWrapProfile, mapSizeNode, mapInsertAllNode);
+          this.getWarnings(
+              false, warnings, mapInsertNode, shouldWrapProfile, mapSizeNode, mapInsertAllNode);
       if (warnings.hasWarnings(v)) {
         v = warnings.removeWarnings(v);
       }
@@ -207,7 +208,13 @@ final class Array implements EnsoObject {
       var warnLimit = EnsoContext.get(warnings).getWarningsLimit();
       var allWarnsMap =
           collectAllWarnings(
-              warnings, mapInsertNode, shouldWrap, mapInsertAllNode, warnLimit, shouldWrapProfile, mapSizeNode);
+              warnings,
+              mapInsertNode,
+              shouldWrap,
+              mapInsertAllNode,
+              warnLimit,
+              shouldWrapProfile,
+              mapSizeNode);
       if (shouldWrap) {
         cachedWarningsWrapped = allWarnsMap;
         cache = cachedWarningsWrapped;
@@ -289,7 +296,8 @@ final class Array implements EnsoObject {
     try {
       int limit = EnsoContext.get(warnsLib).getWarningsLimit();
       var ourWarnings =
-          getWarnings(false, warnsLib, mapInsertNode, shouldWrapProfile, mapSizeNode, mapInsertAllNode);
+          getWarnings(
+              false, warnsLib, mapInsertNode, shouldWrapProfile, mapSizeNode, mapInsertAllNode);
       return (int) mapSizeNode.execute(ourWarnings) >= limit;
     } catch (UnsupportedMessageException e) {
       return false;

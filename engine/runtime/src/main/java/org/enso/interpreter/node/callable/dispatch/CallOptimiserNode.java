@@ -7,7 +7,6 @@ import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.state.State;
-import org.enso.interpreter.runtime.warning.Warning;
 
 /**
  * This node handles optimising calls. It performs detection based on the kind of call being made,

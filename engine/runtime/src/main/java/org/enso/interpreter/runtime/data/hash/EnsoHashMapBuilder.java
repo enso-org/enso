@@ -226,8 +226,7 @@ final class EnsoHashMapBuilder {
    *
    * @return true if the removal was successful false otherwise.
    */
-  boolean remove(
-      VirtualFrame frame, Object key, HashCodeNode hashCodeNode, EqualsNode equalsNode) {
+  boolean remove(VirtualFrame frame, Object key, HashCodeNode hashCodeNode, EqualsNode equalsNode) {
     assert actualSize <= generation;
     var at = findWhereToStart(key, hashCodeNode);
     var nextGeneration = ++generation;

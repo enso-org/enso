@@ -11,7 +11,6 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.state.State;
-import org.enso.interpreter.runtime.warning.Warning;
 
 /**
  * Optimistic version of {@link CallOptimiserNode} for the non tail call recursive case. Tries to

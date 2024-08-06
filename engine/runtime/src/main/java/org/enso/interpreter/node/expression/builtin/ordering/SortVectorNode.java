@@ -43,7 +43,6 @@ import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
-import org.enso.interpreter.runtime.warning.AppendWarningNodeGen;
 import org.enso.interpreter.runtime.warning.Warning;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.enso.interpreter.runtime.warning.WithWarnings;

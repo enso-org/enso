@@ -4,7 +4,6 @@ import com.oracle.truffle.api.nodes.ControlFlowException;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
-import org.enso.interpreter.runtime.warning.Warning;
 
 /**
  * Used to model the switch of control-flow from standard stack-based execution to looping.
@@ -15,8 +14,10 @@ public class TailCallException extends ControlFlowException {
   private final Function function;
   private final CallerInfo callerInfo;
   private final Object[] arguments;
+
   /**
    * May be null.
+   *
    * @see org.enso.interpreter.runtime.warning.WithWarnings#warnings
    */
   private final EnsoHashMap warnings;

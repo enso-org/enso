@@ -23,7 +23,6 @@ import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
-import org.enso.interpreter.runtime.warning.Warning;
 
 /**
  * A version of {@link CallOptimiserNode} that is fully prepared to handle tail calls. Tail calls

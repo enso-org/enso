@@ -376,7 +376,8 @@ public class MethodProcessor
         out.println("      internals.anyWarningsProfile.enter();");
         out.println("      Object result;");
         out.println(wrapInTryCatch("result = " + executeCall + ";", 6));
-        out.println("      return appendWarningNode.executeAppend(frame, result, gatheredWarnings);");
+        out.println(
+            "      return appendWarningNode.executeAppend(frame, result, gatheredWarnings);");
         out.println("    } else {");
         out.println(wrapInTryCatch("return " + executeCall + ";", 6));
         out.println("    }");

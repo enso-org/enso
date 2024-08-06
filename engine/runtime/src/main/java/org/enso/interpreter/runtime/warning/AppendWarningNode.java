@@ -108,13 +108,14 @@ public abstract class AppendWarningNode extends Node {
    */
   @Specialization(guards = {"!isWithWarns(object)"})
   WithWarnings doObjectMultipleWarningsHashMap(
-      VirtualFrame frame, Object object, EnsoHashMap newWarnsMap,
+      VirtualFrame frame,
+      Object object,
+      EnsoHashMap newWarnsMap,
       @Shared @Cached HashMapSizeNode mapSizeNode) {
     assert !(object instanceof WithWarnings);
     int warnsLimit = EnsoContext.get(this).getWarningsLimit();
     var limitReached = mapSizeNode.execute(newWarnsMap) >= warnsLimit;
-    return new WithWarnings(
-        object, warnsLimit, limitReached, newWarnsMap);
+    return new WithWarnings(object, warnsLimit, limitReached, newWarnsMap);
   }
 
   @Specialization
