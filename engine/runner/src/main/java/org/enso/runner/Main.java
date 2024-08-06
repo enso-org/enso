@@ -910,7 +910,6 @@ public class Main {
       boolean enableIrCaches,
       boolean enableStaticAnalysis) {
     var mainMethodName = "internal_repl_entry_point___";
-    var replModuleName = "Internal_Repl_Module___";
     var projectRoot = projectPath != null ? projectPath : "";
     var options = Collections.singletonMap(DebugServerInfo.ENABLE_OPTION, "true");
 
@@ -927,17 +926,7 @@ public class Main {
                 .enableStaticAnalysis(enableStaticAnalysis)
                 .build());
 
-    var sb = new StringBuilder();
-    sb.append("import Standard.Base.Runtime.Debug\n");
-
-    for (var libName : context.getTopScope().getLibraries()) {
-      sb.append("from ").append(libName).append(" import all\n");
-    }
-
-    sb.append("\n");
-    sb.append(mainMethodName).append(" = Debug.breakpoint");
-
-    var mainModule = context.evalModule(sb.toString(), replModuleName);
+    var mainModule = context.evalReplModule(mainMethodName);
     runMain(mainModule, null, Collections.emptyList(), mainMethodName);
     throw exitSuccess();
   }

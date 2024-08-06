@@ -5,6 +5,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.List;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
+import org.enso.polyglot.PolyglotContext;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.TypeLiteral;
@@ -38,5 +39,14 @@ public class ListLibrariesTest {
     assertTrue("DB found " + list, list.contains("Standard.Database"));
     assertTrue("AWS found " + list, list.contains("Standard.AWS"));
     assertTrue("Geo found " + list, list.contains("Standard.Geo"));
+  }
+
+  @Test
+  public void evaluateDefaultReplScript() {
+    var pc = new PolyglotContext(ctx);
+    final var fnName = "main_fn_name__";
+    var module = pc.evalReplModule(fnName);
+    var result = module.evalExpression(fnName);
+    assertTrue("Returns Nothing", result.isNull());
   }
 }

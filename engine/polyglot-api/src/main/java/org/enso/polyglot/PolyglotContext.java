@@ -31,6 +31,24 @@ public record PolyglotContext(Context context) {
   }
 
   /**
+   * Generates and evaluates default repl script for this context.
+   *
+   * @param mainMethodName name of the main method
+   * @return module representing evaluated code
+   */
+  public Module evalReplModule(String mainMethodName) {
+    var replModuleName = "Internal_Repl_Module___";
+    var sb = new StringBuilder();
+    sb.append("import Standard.Base.Runtime.Debug\n");
+    for (var libName : getTopScope().getLibraries()) {
+      sb.append("from ").append(libName).append(" import all\n");
+    }
+    sb.append("\n");
+    sb.append(mainMethodName).append(" = Debug.breakpoint");
+    return evalModule(sb.toString(), replModuleName);
+  }
+
+  /**
    * @return the top scope of Enso execution context
    */
   public TopScope getTopScope() {
