@@ -2,7 +2,7 @@
 import * as test from '@playwright/test'
 
 import { TEXT, VALID_EMAIL, VALID_PASSWORD } from '../actions'
-import BaseActions from './BaseActions'
+import BaseActions, { type LocatorCallback } from './BaseActions'
 import DrivePageActions from './DrivePageActions'
 import RegisterPageActions from './RegisterPageActions'
 import SetUsernamePageActions from './SetUsernamePageActions'
@@ -64,6 +64,20 @@ export default class LoginPageActions extends BaseActions {
         await test.expect(page.getByTestId('form-submit-error')).not.toBeVisible()
       })
     }
+  }
+
+  /** Fill the email input. */
+  fillEmail(email: string) {
+    return this.step(`Fill email with '${email}'`, (page) =>
+      page.getByPlaceholder(TEXT.emailPlaceholder).fill(email),
+    )
+  }
+
+  /** Interact with the email input. */
+  withEmailInput(callback: LocatorCallback) {
+    return this.step('Interact with email input', async (page) => {
+      await callback(page.getByPlaceholder(TEXT.emailPlaceholder))
+    })
   }
 
   /** Internal login logic shared between all public methods. */
