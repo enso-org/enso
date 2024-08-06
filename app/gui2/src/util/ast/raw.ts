@@ -17,7 +17,6 @@ export type HasAstRange = SourceRange | RawAst.Tree | RawAst.Token
  */
 export function parseEnsoLine(code: string): RawAst.Tree {
   const block = parseEnso(code)
-  assert(block.type === RawAst.Tree.Type.BodyBlock)
   const soleExpression = tryGetSoleValue(block.statements)?.expression
   assertDefined(soleExpression)
   return soleExpression

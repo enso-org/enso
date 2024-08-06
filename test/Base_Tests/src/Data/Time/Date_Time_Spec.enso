@@ -812,7 +812,7 @@ js_parse text format=Date_Time_Formatter.default_enso_zoned_date_time =
 
 js_array_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Time_Zone.system =
     arr = Panic.catch Any (js_array_datetimeCreate year month day hour minute second nanosecond) (err -> Error.throw (Time_Error.Error err.payload))
-    js_set_zone arr.at(0) zone
+    js_set_zone (arr.at 0) zone
 
 foreign js js_array_datetimeCreate year month day hour minute second nanosecond = """
     if (month > 12 || month < 1) {
@@ -852,7 +852,7 @@ java_parse date_text_raw pattern=Nothing =
   utc_replaced = date_text_raw.replace "[UTC]" "Z"
   date_text = if utc_replaced.ends_with "ZZ" then date_text_raw else utc_replaced
   if pattern == Nothing then Panic.catch Any (maybe_parse_java_zoned date_text) (cause -> parse_java_local cause.payload date_text pattern) else
-      formatter = DateTimeFormatter.ofPattern(pattern)
+      formatter = DateTimeFormatter.ofPattern pattern
       Panic.catch Any (maybe_parse_java_zoned date_text formatter) (cause -> parse_java_local cause.payload date_text pattern)
 
 main filter=Nothing =

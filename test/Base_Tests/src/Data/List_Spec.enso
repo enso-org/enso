@@ -40,7 +40,7 @@ add_specs suite_builder = suite_builder.group "List" group_builder->
         Test.expect_panic_with (l.any "invalid arg") Type_Error
 
     group_builder.specify "should allow checking if all elements satisfy a predicate with `.all`" <|
-        all_even = l.all(x -> x % 2 == 0)
+        all_even = l.all x-> x % 2 == 0
         all_less_than_four = l.all (< 4)
         all_even . should_be_false
         all_less_than_four . should_be_true

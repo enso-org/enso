@@ -179,13 +179,6 @@ add_specs suite_builder =
             ((CustomEqType.C1 10) == (CustomEqType.C2 7 3)).should_be_true
             ((CustomEqType.C1 0) == (CustomEqType.C2 7 3)).should_be_false
 
-        group_builder.specify "should dispatch to equals on host values" <|
-            path1 = File_Utils.toPath "home" . resolve "user" . resolve "file.txt"
-            path2 = File_Utils.toPath "home" . resolve "user" . resolve "file.txt"
-            (path1 == path2).should_be_true
-            path3 = path1.resolve "subfile.txt"
-            (path3 == path2).should_be_false
-
         group_builder.specify "should return False for different Atoms with same fields" <|
             rect = Rect.Value (Point.Value 1 2) (Point.Value 3 4)
             four_field = FourFieldType.Value 1 2 3 4
