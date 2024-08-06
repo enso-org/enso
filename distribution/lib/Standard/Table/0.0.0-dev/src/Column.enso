@@ -2839,6 +2839,10 @@ apply_unary_operation column:Column operation:UnaryOperation new_name:Text|Nothi
     used_name = new_name.if_nothing (naming_helper.function_name operation.getName [column])
     Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning java_problem_aggregator->
         java_column = UnaryOperation.apply column.java_column operation used_name java_problem_aggregator
+        if java_column.is_nothing then
+            f = (Meta.type_of column.java_column.getStorage . to_display_text) + " . " + operation.getName
+            if Java_Storage.reportedFallbacks.add f then
+                IO.println "NON VECTORIZED UNARY: "+f
         if java_column.is_nothing then if_unsupported else Column.Value java_column
 
 ## PRIVATE
