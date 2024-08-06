@@ -6,7 +6,7 @@
   comparisons.][10614]
 - [Relative paths are now resolved relative to the project location, also in the
   Cloud.][10660]
-- [Added Newline option to Text_Cleanse/Text_Replace][10761]
+- [Added Newline option to Text_Cleanse/Text_Replace.][10761]
 
 [10614]: https://github.com/enso-org/enso/pull/10614
 [10660]: https://github.com/enso-org/enso/pull/10660
