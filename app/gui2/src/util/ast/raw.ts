@@ -1,4 +1,4 @@
-import { assert, assertDefined } from '@/util/assert'
+import { assertDefined } from '@/util/assert'
 import * as map from 'lib0/map'
 import * as RawAst from 'ydoc-shared/ast/generated/ast'
 import { parseEnso } from 'ydoc-shared/ast/parse'

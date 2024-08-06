@@ -260,7 +260,7 @@ const insideBracketsCases = makeComplexCase('(', ')')
 const insideListCases = makeComplexCase('[foo, ', ', bar]')
 
 test.each([
-  ...baseCases,
+  ...simpleCases,
   ...insideInfixCases,
   ...insideBracketsCases,
   ...insideListCases,
