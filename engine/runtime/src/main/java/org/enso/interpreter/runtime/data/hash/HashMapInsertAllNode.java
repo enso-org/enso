@@ -21,6 +21,10 @@ public abstract class HashMapInsertAllNode extends Node {
     return HashMapInsertAllNodeGen.create();
   }
 
+  public static HashMapInsertAllNode getUncached() {
+    return HashMapInsertAllNodeGen.getUncached();
+  }
+
   /**
    * Insert all the elements from the given container into the given map.
    *

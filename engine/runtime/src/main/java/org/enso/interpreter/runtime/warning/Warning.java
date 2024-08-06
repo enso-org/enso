@@ -4,11 +4,15 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
+import com.oracle.truffle.api.interop.StopIterationException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.Builtin;
+import org.enso.interpreter.node.expression.builtin.error.IndexOutOfBounds;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
@@ -67,28 +71,34 @@ public final class Warning implements EnsoObject {
     return appendWarningNode.executeAppend(null, value, warn);
   }
 
-  /** Slow version of {@link #fromMapToArray(EnsoHashMap, ArrayLikeLengthNode, ArrayLikeAtNode)}. */
+  /** Slow version of {@link #fromMapToArray(EnsoHashMap, InteropLibrary)}. */
   @TruffleBoundary
   public static Warning[] fromMapToArray(EnsoHashMap map) {
-    return fromMapToArray(map, ArrayLikeLengthNode.getUncached(), ArrayLikeAtNode.getUncached());
+    return fromMapToArray(map, InteropLibrary.getUncached());
   }
 
-  public static Warning[] fromMapToArray(
-      EnsoHashMap map, ArrayLikeLengthNode lengthNode, ArrayLikeAtNode atNode) {
-    var vec = map.getCachedVectorRepresentation();
-    var vecLen = (int) lengthNode.executeLength(vec);
-    Warning[] warns = new Warning[vecLen];
+  public static Warning[] fromMapToArray(EnsoHashMap map, InteropLibrary interop) {
+    assert interop.hasHashEntries(map);
+    Warning[] warns = null;
     try {
-      for (int i = 0; i < vecLen; i++) {
-        var entry = atNode.executeAt(vec, i);
-        assert lengthNode.executeLength(entry) == 2;
-        var value = atNode.executeAt(entry, 1);
-        warns[i] = (Warning) value;
+      long mapSize = interop.getHashSize(map);
+      assert mapSize < Integer.MAX_VALUE;
+      warns = new Warning[(int) mapSize];
+      var hashValuesIt = interop.getHashValuesIterator(map);
+      assert interop.isIterator(hashValuesIt);
+      int warnsIdx = 0;
+      while (interop.hasIteratorNextElement(hashValuesIt)) {
+        var value = interop.getIteratorNextElement(hashValuesIt);
+        warns[warnsIdx] = (Warning) value;
+        warnsIdx++;
       }
-    } catch (InvalidArrayIndexException | ClassCastException e) {
+      return warns;
+    } catch (UnsupportedMessageException | ClassCastException | ArrayIndexOutOfBoundsException e) {
       throw CompilerDirectives.shouldNotReachHere(e);
+    } catch (StopIterationException e) {
+      assert warns != null;
+      return warns;
     }
-    return warns;
   }
 
   public static EnsoHashMap fromArrayToMap(Warning[] warnings, HashMapInsertNode mapInsertNode) {

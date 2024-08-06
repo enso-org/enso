@@ -20,10 +20,8 @@ import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
+import org.enso.interpreter.runtime.data.hash.HashMapInsertAllNode;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
-import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
@@ -164,13 +162,11 @@ abstract class IndirectInvokeConversionNode extends Node {
       @Cached IndirectInvokeConversionNode childDispatch,
       @Cached AppendWarningNode appendWarningNode,
       @CachedLibrary(limit = "3") WarningsLibrary warnsLib,
-      @Cached HashMapInsertNode mapInsertNode,
-      @CachedLibrary(limit = "3") InteropLibrary interop,
-      @Cached ArrayLikeLengthNode lengthNode,
-      @Cached ArrayLikeAtNode atNode) {
+      @Cached HashMapInsertAllNode mapInsertAllNode,
+      @CachedLibrary(limit = "3") InteropLibrary interop) {
     arguments[thatArgumentPosition] = that.getValue();
     Warning[] warnings =
-        that.getWarningsArray(false, warnsLib, mapInsertNode, interop, lengthNode, atNode);
+        that.getWarningsArray(false, warnsLib, mapInsertAllNode, interop);
     Object result =
         childDispatch.execute(
             frame,

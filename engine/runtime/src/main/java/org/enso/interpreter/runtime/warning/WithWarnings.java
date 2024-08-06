@@ -6,7 +6,6 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -21,6 +20,7 @@ import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
+import org.enso.interpreter.runtime.data.hash.HashMapInsertAllNode;
 import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
 import org.enso.interpreter.runtime.data.hash.HashMapInsertNodeGen;
 import org.enso.interpreter.runtime.data.text.Text;
@@ -142,40 +142,36 @@ public final class WithWarnings implements EnsoObject {
   }
 
   /**
-   * Slow version of {@link #getWarningsArray(boolean, WarningsLibrary, HashMapInsertNode,
-   * InteropLibrary, ArrayLikeLengthNode, ArrayLikeAtNode)} that uses uncached version of nodes and
+   * Slow version of {@link #getWarningsArray(boolean, WarningsLibrary, HashMapInsertAllNode, InteropLibrary)} that uses uncached version of nodes and
    * libraries parameters.
    */
   public Warning[] getWarningsArray(boolean shouldWrap) {
     return getWarningsArray(
         shouldWrap,
         WarningsLibrary.getUncached(),
-        HashMapInsertNodeGen.getUncached(),
-        InteropLibrary.getUncached(),
-        ArrayLikeLengthNodeGen.getUncached(),
-        ArrayLikeAtNodeGen.getUncached());
+        HashMapInsertAllNode.getUncached(),
+        InteropLibrary.getUncached()
+    );
   }
 
   public Warning[] getWarningsArray(
       boolean shouldWrap,
       WarningsLibrary warningsLibrary,
-      HashMapInsertNode insertNode,
-      InteropLibrary interop,
-      ArrayLikeLengthNode lengthNode,
-      ArrayLikeAtNode atNode) {
-    Warning[] allWarnings;
+      HashMapInsertAllNode mapInsertAllNode,
+      InteropLibrary interop) {
+    Warning[] allWarnsArray;
     if (warningsLibrary != null && warningsLibrary.hasWarnings(value)) {
       try {
         var valueWarnings = warningsLibrary.getWarnings(value, shouldWrap);
-        var tmp = cloneSetAndAppend(maxWarnings, warnings, valueWarnings, insertNode, interop);
-        allWarnings = Warning.fromMapToArray(tmp, lengthNode, atNode);
+        var allWarns = mapInsertAllNode.executeInsertAll(null, warnings, valueWarnings, maxWarnings);
+        allWarnsArray = Warning.fromMapToArray(allWarns, interop);
       } catch (UnsupportedMessageException e) {
         throw EnsoContext.get(warningsLibrary).raiseAssertionPanic(warningsLibrary, null, e);
       }
     } else {
-      allWarnings = Warning.fromMapToArray(warnings, lengthNode, atNode);
+      allWarnsArray = Warning.fromMapToArray(warnings, interop);
     }
-    return allWarnings;
+    return allWarnsArray;
   }
 
   @CompilerDirectives.TruffleBoundary
@@ -271,30 +267,6 @@ public final class WithWarnings implements EnsoObject {
   @ExportMessage
   RuntimeException throwException(@Bind("$node") Node node) {
     throw asException(node);
-  }
-
-  private EnsoHashMap cloneSetAndAppend(
-      int maxWarnings,
-      EnsoHashMap initial,
-      EnsoHashMap newEntries,
-      HashMapInsertNode insertNode,
-      InteropLibrary interop) {
-    if (initial.getHashSize() == maxWarnings) {
-      return initial;
-    }
-    var set = initial;
-    var newEntriesVec = newEntries.getCachedVectorRepresentation();
-    try {
-      for (long i = 0; i < interop.getArraySize(newEntriesVec); i++) {
-        var entry = interop.readArrayElement(newEntriesVec, i);
-        var key = interop.readArrayElement(entry, 0);
-        var value = interop.readArrayElement(entry, 1);
-        set = insertNode.execute(null, set, key, value);
-      }
-    } catch (UnsupportedMessageException | InvalidArrayIndexException e) {
-      throw CompilerDirectives.shouldNotReachHere(e);
-    }
-    return set;
   }
 
   @Override

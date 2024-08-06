@@ -24,10 +24,8 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
+import org.enso.interpreter.runtime.data.hash.HashMapInsertAllNode;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
-import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
@@ -136,13 +134,11 @@ public abstract class IndirectInvokeMethodNode extends Node {
       @Cached IndirectInvokeMethodNode childDispatch,
       @Cached AppendWarningNode appendWarningNode,
       @CachedLibrary(limit = "3") WarningsLibrary warnsLib,
-      @Cached HashMapInsertNode mapInsertNode,
-      @CachedLibrary(limit = "3") InteropLibrary interop,
-      @Cached ArrayLikeLengthNode lengthNode,
-      @Cached ArrayLikeAtNode atNode) {
+      @Cached HashMapInsertAllNode mapInsertAllNode,
+      @CachedLibrary(limit = "3") InteropLibrary interop) {
     arguments[thisArgumentPosition] = self.getValue();
     Warning[] warnings =
-        self.getWarningsArray(false, warnsLib, mapInsertNode, interop, lengthNode, atNode);
+        self.getWarningsArray(false, warnsLib, mapInsertAllNode, interop);
     Object result =
         childDispatch.execute(
             frame,
