@@ -37,7 +37,6 @@ export interface InputProps<
   readonly style?: React.CSSProperties
   readonly inputRef?: React.Ref<HTMLInputElement>
   readonly addonStart?: React.ReactNode
-  readonly addonMiddle?: React.ReactNode
   readonly addonEnd?: React.ReactNode
   readonly placeholder?: string
   /** The icon to display in the input. */
@@ -65,7 +64,6 @@ export const Input = React.forwardRef(function Input<
     description,
     inputRef,
     addonStart,
-    addonMiddle,
     addonEnd,
     label,
     size,
@@ -95,7 +93,6 @@ export const Input = React.forwardRef(function Input<
     invalid: fieldState.invalid,
     readOnly: inputProps.readOnly,
     disabled: isDisabled || formInstance.formState.isSubmitting,
-    hasIcon: icon != null,
   })
 
   const { ref: fieldRef, ...field } = formInstance.register(name, {
@@ -147,10 +144,10 @@ export const Input = React.forwardRef(function Input<
       >
         <div className={classes.content()}>
           {addonStart != null && <div className={classes.addonStart()}>{addonStart}</div>}
+          {icon != null &&
+            (typeof icon === 'string' ? <SvgMask src={icon} className={classes.icon()} /> : icon)}
 
           <div className={classes.inputContainer()}>
-            {icon != null &&
-              (typeof icon === 'string' ? <SvgMask src={icon} className={classes.icon()} /> : icon)}
             <aria.Input
               ref={mergeRefs.mergeRefs(inputRef, privateInputRef, fieldRef)}
               {...aria.mergeProps<aria.InputProps>()(
@@ -159,7 +156,6 @@ export const Input = React.forwardRef(function Input<
                 omit(field, 'required', 'disabled'),
               )}
             />
-            {addonMiddle}
           </div>
 
           {addonEnd != null && <div className={classes.addonEnd()}>{addonEnd}</div>}

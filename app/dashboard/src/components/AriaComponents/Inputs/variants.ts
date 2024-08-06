@@ -10,7 +10,6 @@ import { TEXT_STYLE } from '../Text'
 export const INPUT_STYLES = tv({
   base: 'block w-full overflow-hidden bg-transparent transition-[border-color,outline] duration-200',
   variants: {
-    hasIcon: { true: '' },
     disabled: {
       true: { base: 'cursor-default opacity-50', textArea: 'cursor-default' },
       false: { base: 'cursor-text', textArea: 'cursor-text' },
@@ -50,7 +49,7 @@ export const INPUT_STYLES = tv({
   },
   slots: {
     label: '',
-    icon: 'absolute top-1/2 -translate-y-1/2 left-0',
+    icon: '',
     addonStart: 'flex items-center mt-[-1px]',
     addonEnd: 'flex items-center mt-[-1px]',
     content: 'flex items-center gap-2',
@@ -76,16 +75,6 @@ export const INPUT_STYLES = tv({
     {
       readOnly: true,
       class: { base: 'focus-within:outline-transparent' },
-    },
-    {
-      hasIcon: true,
-      size: 'medium',
-      class: { textArea: 'pl-6' },
-    },
-    {
-      hasIcon: true,
-      size: 'small',
-      class: { textArea: 'pl-5' },
     },
   ],
   defaultVariants: {

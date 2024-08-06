@@ -51,7 +51,7 @@ export const FIELD_STYLES = twv.tv({
       settings: {
         base: 'flex-row flex-wrap',
         labelContainer: 'flex min-h-row items-center gap-5 w-full',
-        label: 'text my-auto w-40 shrink-0',
+        label: 'text mb-auto w-40 shrink-0',
         error: 'ml-[180px]',
       },
     },

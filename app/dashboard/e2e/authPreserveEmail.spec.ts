@@ -2,7 +2,7 @@
 import * as test from '@playwright/test'
 import { VALID_EMAIL, mockAll } from './actions'
 
-test.test('login screen', ({ page }) =>
+test.test('preserve email input when changing pages', ({ page }) =>
   mockAll({ page })
     .fillEmail(VALID_EMAIL)
     .goToPage.register()
