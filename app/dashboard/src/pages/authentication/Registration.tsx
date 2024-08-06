@@ -43,10 +43,15 @@ function createRegistrationFormSchema(getText: GetText) {
       password: passwordWithPatternSchema(getText),
       confirmPassword: z.string(),
     })
-    .refine(
-      (object) => object.password === object.confirmPassword,
-      getText('passwordMismatchError'),
-    )
+    .superRefine((object, context) => {
+      if (object.password !== object.confirmPassword) {
+        context.addIssue({
+          path: ['confirmPassword'],
+          code: 'custom',
+          message: getText('passwordMismatchError'),
+        })
+      }
+    })
 }
 
 // ====================

@@ -28,10 +28,15 @@ function createResetPasswordFormSchema(getText: GetText) {
       newPassword: passwordWithPatternSchema(getText),
       confirmNewPassword: z.string(),
     })
-    .refine(
-      (object) => object.newPassword === object.confirmNewPassword,
-      getText('passwordMismatchError'),
-    )
+    .superRefine((object, context) => {
+      if (object.newPassword !== object.confirmNewPassword) {
+        context.addIssue({
+          path: ['confirmNewPassword'],
+          code: 'custom',
+          message: getText('passwordMismatchError'),
+        })
+      }
+    })
 }
 
 // =====================
