@@ -72,7 +72,7 @@ add_database_specs suite_builder create_connection_fn =
         default_connection.get.base_connection.create_literal_table (Table.new columns) "literal_table"
     materialize = .read
 
-    Common_Spec.add_specs suite_builder prefix create_connection_fn
+    Common_Spec.add_specs suite_builder prefix create_connection_fn default_connection
     add_redshift_specific_specs suite_builder create_connection_fn
 
     common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=True order_by_unicode_normalization_by_default=True allows_mixed_type_comparisons=False supports_decimal_type=True run_advanced_edge_case_tests_by_default=False
