@@ -207,7 +207,7 @@ pub struct OperatorBlockExpression<'s> {
 
 /// Interpret the given expression as an `OperatorBlockExpression`, if it fits the correct pattern.
 fn to_operator_block_expression<'s>(
-    items: Vec<Item<'s>>,
+    mut items: Vec<Item<'s>>,
     precedence: &mut operator::Precedence<'s>,
 ) -> Result<OperatorBlockExpression<'s>, Tree<'s>> {
     if let Some(b) = items.get(1)
@@ -216,13 +216,12 @@ fn to_operator_block_expression<'s>(
         && let Some(properties) = &a.operator_properties()
         && properties.can_form_section()
     {
-        let operator = Ok(Token(a.left_offset.clone(), a.code.clone(), token::variant::Operator()));
-        let mut items = items.into_iter();
-        items.next();
-        let expression = precedence.resolve(items).unwrap();
+        let expression = precedence.resolve_offset(1, &mut items).unwrap();
+        let Some(Item::Token(operator)) = items.pop() else { unreachable!() };
+        let operator = Ok(operator.with_variant(token::variant::Operator()));
         Ok(OperatorBlockExpression { operator, expression })
     } else {
-        Err(precedence.resolve(items).unwrap())
+        Err(precedence.resolve(&mut items).unwrap())
     }
 }
 
@@ -307,7 +306,7 @@ impl<'s> Builder<'s> {
     pub fn push(
         &mut self,
         newline: token::Newline<'s>,
-        items: Vec<Item<'s>>,
+        mut items: Vec<Item<'s>>,
         precedence: &mut operator::Precedence<'s>,
     ) {
         match &mut self.state {
@@ -326,9 +325,9 @@ impl<'s> Builder<'s> {
                 };
             }
             State::Argument =>
-                self.body_lines.push(Line { newline, expression: precedence.resolve(items) }),
+                self.body_lines.push(Line { newline, expression: precedence.resolve(&mut items) }),
             State::Operator if !self.body_lines.is_empty() =>
-                self.body_lines.push(Line { newline, expression: precedence.resolve(items) }),
+                self.body_lines.push(Line { newline, expression: precedence.resolve(&mut items) }),
             State::Operator if items.is_empty() => self.operator_lines.push(newline.into()),
             State::Operator => match to_operator_block_expression(items, precedence) {
                 Ok(expression) =>
