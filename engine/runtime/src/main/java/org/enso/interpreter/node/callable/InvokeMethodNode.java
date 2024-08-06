@@ -480,7 +480,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       return appendWarningNode.executeAppend(null, result, warnsMap);
     } catch (TailCallException e) {
       CompilerDirectives.transferToInterpreter();
-      throw new TailCallException(e, Warning.fromMapToArray(warnsMap));
+      throw new TailCallException(e, warnsMap);
     }
   }
 

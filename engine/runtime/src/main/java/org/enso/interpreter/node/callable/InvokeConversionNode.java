@@ -22,6 +22,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
@@ -204,11 +205,7 @@ public abstract class InvokeConversionNode extends BaseNode {
       WithWarnings that,
       Object[] arguments,
       @Cached AppendWarningNode appendWarningNode,
-      @CachedLibrary(limit = "3") WarningsLibrary warnsLib,
-      @Cached HashMapInsertNode mapInsertNode,
-      @CachedLibrary(limit = "3") InteropLibrary interop,
-      @Cached ArrayLikeLengthNode lengthNode,
-      @Cached ArrayLikeAtNode atNode) {
+      @CachedLibrary(limit = "3") WarningsLibrary warnsLib) {
     // Cannot use @Cached for childDispatch, because we need to call notifyInserted.
     if (childDispatch == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -233,8 +230,12 @@ public abstract class InvokeConversionNode extends BaseNode {
     }
     Object value = that.getValue();
     arguments[thatArgumentPosition] = value;
-    Warning[] warnings =
-        that.getWarningsArray(false, warnsLib, mapInsertNode, interop, lengthNode, atNode);
+    EnsoHashMap warnings;
+    try {
+      warnings = warnsLib.getWarnings(that, false);
+    } catch (UnsupportedMessageException e) {
+      throw CompilerDirectives.shouldNotReachHere(e);
+    }
     try {
       Object result = childDispatch.execute(frame, state, conversion, self, value, arguments);
       return appendWarningNode.executeAppend(null, result, warnings);

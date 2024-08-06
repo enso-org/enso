@@ -20,6 +20,7 @@ import org.enso.interpreter.node.callable.ExecuteCallNodeGen;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
+import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
 import org.enso.interpreter.runtime.warning.Warning;
@@ -64,7 +65,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
       CallerInfo callerInfo,
       State state,
       Object[] arguments,
-      Warning[] warnings,
+      EnsoHashMap warnings,
       @Shared("loopNode") @Cached(value = "createLoopNode()") LoopNode loopNode) {
     return dispatch(function, callerInfo, state, arguments, loopNode);
   }
@@ -75,7 +76,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
       CallerInfo callerInfo,
       State state,
       Object[] arguments,
-      Warning[] warnings,
+      EnsoHashMap warnings,
       @Shared("loopNode") @Cached(value = "createLoopNode()") LoopNode loopNode,
       @Shared @Cached AppendWarningNode appendWarningNode) {
     Object result = dispatch(function, callerInfo, state, arguments, loopNode);
@@ -104,7 +105,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
       CallerInfo callerInfo,
       State state,
       Object[] arguments,
-      Warning[] warnings,
+      EnsoHashMap warnings,
       @Shared("executeCallNode") @Cached ExecuteCallNode executeCallNode) {
     return loopUntilCompletion(frame, function, callerInfo, state, arguments, executeCallNode);
   }
@@ -117,7 +118,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
       CallerInfo callerInfo,
       State state,
       Object[] arguments,
-      Warning[] warnings,
+      EnsoHashMap warnings,
       @Shared("executeCallNode") @Cached ExecuteCallNode executeCallNode,
       @Shared @Cached AppendWarningNode appendWarningNode) {
     Object result =

@@ -328,7 +328,7 @@ public abstract class InvokeCallableNode extends BaseNode {
         return appendWarningNode.executeAppend(null, result, extracted);
       }
     } catch (TailCallException e) {
-      throw new TailCallException(e, Warning.fromMapToArray(extracted));
+      throw new TailCallException(e, extracted);
     }
   }
 
