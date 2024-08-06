@@ -63,7 +63,7 @@ function Dropdown<T>(props: DropdownProps<T>, ref: React.ForwardedRef<HTMLDivEle
   const multiple = props.multiple === true
   const selectedIndex = 'selectedIndex' in props ? props.selectedIndex : null
   const selectedIndices = 'selectedIndices' in props ? props.selectedIndices : []
-  const selectedItems = selectedIndices.flatMap(index => {
+  const selectedItems = selectedIndices.flatMap((index) => {
     const item = items[index]
     return item != null ? [item] : []
   })
@@ -109,15 +109,16 @@ function Dropdown<T>(props: DropdownProps<T>, ref: React.ForwardedRef<HTMLDivEle
             const item = items[tempSelectedIndex]
             if (item != null) {
               if (multiple) {
-                const newIndices = selectedIndices.includes(tempSelectedIndex)
-                  ? selectedIndices.filter(index => index !== tempSelectedIndex)
+                const newIndices =
+                  selectedIndices.includes(tempSelectedIndex) ?
+                    selectedIndices.filter((index) => index !== tempSelectedIndex)
                   : [...selectedIndices, tempSelectedIndex]
                 props.onClick(
-                  newIndices.flatMap(index => {
+                  newIndices.flatMap((index) => {
                     const otherItem = items[index]
                     return otherItem != null ? [otherItem] : []
                   }),
-                  newIndices
+                  newIndices,
                 )
               } else {
                 props.onClick(item, tempSelectedIndex)
@@ -134,11 +135,13 @@ function Dropdown<T>(props: DropdownProps<T>, ref: React.ForwardedRef<HTMLDivEle
           if (!isDropdownVisible) break
           event.preventDefault()
           setTempSelectedIndex(
-            tempSelectedIndex == null ||
-              tempSelectedIndex === 0 ||
-              tempSelectedIndex >= items.length
-              ? items.length - 1
-              : tempSelectedIndex - 1
+            (
+              tempSelectedIndex == null ||
+                tempSelectedIndex === 0 ||
+                tempSelectedIndex >= items.length
+            ) ?
+              items.length - 1
+            : tempSelectedIndex - 1,
           )
           break
         }
@@ -146,9 +149,9 @@ function Dropdown<T>(props: DropdownProps<T>, ref: React.ForwardedRef<HTMLDivEle
           if (!isDropdownVisible) break
           event.preventDefault()
           setTempSelectedIndex(
-            tempSelectedIndex == null || tempSelectedIndex >= items.length - 1
-              ? 0
-              : tempSelectedIndex + 1
+            tempSelectedIndex == null || tempSelectedIndex >= items.length - 1 ?
+              0
+            : tempSelectedIndex + 1,
           )
           break
         }
@@ -159,7 +162,7 @@ function Dropdown<T>(props: DropdownProps<T>, ref: React.ForwardedRef<HTMLDivEle
   return (
     <FocusRing placement="outset">
       <div
-        ref={element => {
+        ref={(element) => {
           if (typeof ref === 'function') {
             ref(element)
           } else if (ref != null) {
@@ -170,16 +173,16 @@ function Dropdown<T>(props: DropdownProps<T>, ref: React.ForwardedRef<HTMLDivEle
         tabIndex={0}
         className={tailwindMerge.twMerge(
           'focus-child group relative flex w-max cursor-pointer flex-col items-start whitespace-nowrap rounded-input leading-cozy',
-          className
+          className,
         )}
-        onFocus={event => {
+        onFocus={(event) => {
           if (!justBlurredRef.current && !readOnly && event.target === event.currentTarget) {
             setIsDropdownVisible(true)
             justFocusedRef.current = true
           }
           justBlurredRef.current = false
         }}
-        onBlur={event => {
+        onBlur={(event) => {
           if (!readOnly && event.target === event.currentTarget) {
             setIsDropdownVisible(false)
             justBlurredRef.current = true
@@ -189,28 +192,28 @@ function Dropdown<T>(props: DropdownProps<T>, ref: React.ForwardedRef<HTMLDivEle
         onKeyUp={() => {
           justFocusedRef.current = false
         }}
-        onClick={event => {
+        onClick={(event) => {
           event.stopPropagation()
         }}
       >
         <div
           className={tailwindMerge.twMerge(
             'absolute left-0 h-full w-full min-w-max',
-            isDropdownVisible ? 'z-1' : 'overflow-hidden'
+            isDropdownVisible ? 'z-1' : 'overflow-hidden',
           )}
         >
           <div
             className={tailwindMerge.twMerge(
-              'relative before:absolute before:top before:w-full before:rounded-input before:border before:border-primary/10 before:backdrop-blur-default before:transition-colors',
-              isDropdownVisible
-                ? 'before:h-full before:shadow-soft'
-                : 'before:h-text group-hover:before:bg-hover-bg'
+              'relative before:absolute before:top before:w-full before:rounded-input before:border-0.5 before:border-primary/20 before:backdrop-blur-default before:transition-colors',
+              isDropdownVisible ?
+                'before:h-full before:shadow-soft'
+              : 'before:h-text group-hover:before:bg-hover-bg',
             )}
           >
             {/* Spacing. */}
             <div
               className="padding relative h-text"
-              onClick={event => {
+              onClick={(event) => {
                 event.stopPropagation()
                 if (!justFocusedRef.current && !readOnly) {
                   setIsDropdownVisible(!isDropdownVisible)
@@ -221,7 +224,7 @@ function Dropdown<T>(props: DropdownProps<T>, ref: React.ForwardedRef<HTMLDivEle
             <div
               className={tailwindMerge.twMerge(
                 'relative grid max-h-dropdown-items w-full overflow-auto rounded-input transition-grid-template-rows',
-                isDropdownVisible ? 'grid-rows-1fr' : 'grid-rows-0fr'
+                isDropdownVisible ? 'grid-rows-1fr' : 'grid-rows-0fr',
               )}
             >
               <div className="overflow-hidden">
@@ -231,12 +234,12 @@ function Dropdown<T>(props: DropdownProps<T>, ref: React.ForwardedRef<HTMLDivEle
                     className={tailwindMerge.twMerge(
                       'flex h-text items-center gap-dropdown-arrow rounded-input px-input-x transition-colors',
                       multiple && 'hover:font-semibold',
-                      i === visuallySelectedIndex
-                        ? 'cursor-default bg-frame font-bold focus-ring'
-                        : 'hover:bg-hover-bg'
+                      i === visuallySelectedIndex ?
+                        'cursor-default bg-frame font-bold focus-ring'
+                      : 'hover:bg-hover-bg',
                     )}
                     key={i}
-                    onMouseDown={event => {
+                    onMouseDown={(event) => {
                       event.preventDefault()
                       isMouseDown.current = true
                     }}
@@ -246,15 +249,16 @@ function Dropdown<T>(props: DropdownProps<T>, ref: React.ForwardedRef<HTMLDivEle
                     onClick={() => {
                       if (i !== visuallySelectedIndex) {
                         if (multiple) {
-                          const newIndices = selectedIndices.includes(i)
-                            ? selectedIndices.filter(index => index !== i)
+                          const newIndices =
+                            selectedIndices.includes(i) ?
+                              selectedIndices.filter((index) => index !== i)
                             : [...selectedIndices, i]
                           props.onClick(
-                            newIndices.flatMap(index => {
+                            newIndices.flatMap((index) => {
                               const otherItem = items[index]
                               return otherItem != null ? [otherItem] : []
                             }),
-                            newIndices
+                            newIndices,
                           )
                           rootRef.current?.focus()
                         } else {
@@ -290,9 +294,9 @@ function Dropdown<T>(props: DropdownProps<T>, ref: React.ForwardedRef<HTMLDivEle
           className={tailwindMerge.twMerge(
             'relative flex h-text items-center gap-dropdown-arrow px-input-x',
             isDropdownVisible && 'z-1',
-            readOnly && 'read-only'
+            readOnly && 'read-only',
           )}
-          onClick={event => {
+          onClick={(event) => {
             event.stopPropagation()
             if (!justFocusedRef.current && !readOnly) {
               setIsDropdownVisible(!isDropdownVisible)
@@ -302,11 +306,9 @@ function Dropdown<T>(props: DropdownProps<T>, ref: React.ForwardedRef<HTMLDivEle
         >
           <SvgMask src={FolderArrowIcon} className="rotate-90" />
           <div className="grow">
-            {visuallySelectedItem != null ? (
+            {visuallySelectedItem != null ?
               <Child item={visuallySelectedItem} />
-            ) : (
-              multiple && <props.renderMultiple items={selectedItems} render={Child} />
-            )}
+            : multiple && <props.renderMultiple items={selectedItems} render={Child} />}
           </div>
         </div>
         {/* Hidden, but required to exist for the width of the parent element to be correct.
@@ -328,5 +330,5 @@ function Dropdown<T>(props: DropdownProps<T>, ref: React.ForwardedRef<HTMLDivEle
 // This is REQUIRED, as `React.forwardRef` does not preserve types of generic functions.
 // eslint-disable-next-line no-restricted-syntax
 export default React.forwardRef(Dropdown) as <T>(
-  props: DropdownProps<T> & React.RefAttributes<HTMLDivElement>
+  props: DropdownProps<T> & React.RefAttributes<HTMLDivElement>,
 ) => React.JSX.Element

@@ -59,7 +59,7 @@ export interface BaseButtonProps<Render>
    * Handler that is called when the press is released over the target.
    * If the handler returns a promise, the button will be in a loading state until the promise resolves.
    */
-  readonly onPress?: (event: aria.PressEvent) => Promise<void> | void
+  readonly onPress?: ((event: aria.PressEvent) => Promise<void> | void) | null | undefined
   readonly contentClassName?: string
   readonly testId?: string
   readonly isDisabled?: boolean
@@ -67,6 +67,7 @@ export interface BaseButtonProps<Render>
   /** Defaults to `full`. When `full`, the entire button will be replaced with the loader.
    * When `icon`, only the icon will be replaced with the loader. */
   readonly loaderPosition?: 'full' | 'icon'
+  readonly styles?: typeof BUTTON_STYLES
 }
 
 export const BUTTON_STYLES = twv.tv({
@@ -194,7 +195,7 @@ export const BUTTON_STYLES = twv.tv({
       delete:
         'bg-danger/80 hover:bg-danger text-white focus-visible:outline-danger focus-visible:bg-danger',
       icon: {
-        base: 'opacity-80 hover:opacity-100 focus-visible:opacity-100',
+        base: 'text-primary opacity-80 hover:opacity-100 focus-visible:opacity-100',
         wrapper: 'w-full h-full',
         content: 'w-full h-full',
         extraClickZone: 'w-full h-full',
@@ -244,14 +245,14 @@ export const BUTTON_STYLES = twv.tv({
     wrapper: 'relative block',
     loader: 'absolute inset-0 flex items-center justify-center',
     content: 'flex items-center gap-[0.5em]',
-    text: 'inline-flex items-center justify-center gap-1',
+    text: 'inline-flex items-center justify-center gap-1 w-full',
     icon: 'h-[1.906cap] w-[1.906cap] flex-none aspect-square flex items-center justify-center',
   },
   defaultVariants: {
     isActive: 'none',
     loading: false,
     fullWidth: false,
-    size: 'xsmall',
+    size: 'medium',
     rounded: 'full',
     variant: 'primary',
     iconPosition: 'start',
@@ -280,7 +281,7 @@ export const BUTTON_STYLES = twv.tv({
 /** A button allows a user to perform an action, with mouse, touch, and keyboard interactions. */
 export const Button = React.forwardRef(function Button(
   props: ButtonProps,
-  ref: React.ForwardedRef<HTMLButtonElement>
+  ref: React.ForwardedRef<HTMLButtonElement>,
 ) {
   const {
     className,
@@ -341,17 +342,17 @@ export const Button = React.forwardRef(function Button(
     if (isLoading) {
       const loaderAnimation = loaderRef.current?.animate(
         [{ opacity: 0 }, { opacity: 0, offset: 1 }, { opacity: 1 }],
-        { duration: delay, easing: 'linear', delay: 0, fill: 'forwards' }
+        { duration: delay, easing: 'linear', delay: 0, fill: 'forwards' },
       )
       const contentAnimation =
-        loaderPosition !== 'full'
-          ? null
-          : contentRef.current?.animate([{ opacity: 1 }, { opacity: 0 }], {
-              duration: 0,
-              easing: 'linear',
-              delay,
-              fill: 'forwards',
-            })
+        loaderPosition !== 'full' ? null : (
+          contentRef.current?.animate([{ opacity: 1 }, { opacity: 0 }], {
+            duration: 0,
+            easing: 'linear',
+            delay,
+            fill: 'forwards',
+          })
+        )
 
       return () => {
         loaderAnimation?.cancel()
@@ -364,7 +365,7 @@ export const Button = React.forwardRef(function Button(
 
   const handlePress = (event: aria.PressEvent): void => {
     if (!isDisabled) {
-      const result = onPress(event)
+      const result = onPress?.(event)
 
       if (result instanceof Promise) {
         setImplicitlyLoading(true)
@@ -399,7 +400,7 @@ export const Button = React.forwardRef(function Button(
   })
 
   const childrenFactory = (
-    render: aria.ButtonRenderProps | aria.LinkRenderProps
+    render: aria.ButtonRenderProps | aria.LinkRenderProps,
   ): React.ReactNode => {
     const iconComponent = (() => {
       if (icon == null) {
@@ -447,12 +448,12 @@ export const Button = React.forwardRef(function Button(
         // onPress on EXTRA_CLICK_ZONE, but onPress{start,end} are triggered
         onPressEnd: handlePress,
         className: aria.composeRenderProps(className, (classNames, states) =>
-          base({ className: classNames, ...states })
+          base({ className: classNames, ...states }),
         ),
       })}
     >
       {/* @ts-expect-error any here is safe because we transparently pass it to the children, and ts infer the type outside correctly */}
-      {render => (
+      {(render) => (
         <>
           <span className={wrapper()}>
             <span ref={contentRef} className={content({ className: contentClassName })}>
@@ -471,17 +472,15 @@ export const Button = React.forwardRef(function Button(
     </Tag>
   )
 
-  return tooltipElement == null ? (
-    button
-  ) : (
-    <ariaComponents.TooltipTrigger delay={0} closeDelay={0}>
-      {button}
+  return tooltipElement == null ? button : (
+      <ariaComponents.TooltipTrigger delay={0} closeDelay={0}>
+        {button}
 
-      <ariaComponents.Tooltip
-        {...(tooltipPlacement != null ? { placement: tooltipPlacement } : {})}
-      >
-        {tooltipElement}
-      </ariaComponents.Tooltip>
-    </ariaComponents.TooltipTrigger>
-  )
+        <ariaComponents.Tooltip
+          {...(tooltipPlacement != null ? { placement: tooltipPlacement } : {})}
+        >
+          {tooltipElement}
+        </ariaComponents.Tooltip>
+      </ariaComponents.TooltipTrigger>
+    )
 })

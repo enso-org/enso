@@ -21,8 +21,8 @@ import DatalinkInput from '#/components/dashboard/DatalinkInput'
 import Label from '#/components/dashboard/Label'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 
-import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
@@ -57,23 +57,23 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   const [description, setDescription] = React.useState('')
   const [datalinkValue, setDatalinkValue] = React.useState<NonNullable<unknown> | null>(null)
   const [editedDatalinkValue, setEditedDatalinkValue] = React.useState<NonNullable<unknown> | null>(
-    datalinkValue
+    datalinkValue,
   )
   const [isDatalinkFetched, setIsDatalinkFetched] = React.useState(false)
   const isDatalinkSubmittable = React.useMemo(
     () => datalinkValidator.validateDatalink(datalinkValue),
-    [datalinkValue]
+    [datalinkValue],
   )
   const setItem = React.useCallback(
     (valueOrUpdater: React.SetStateAction<assetTreeNode.AnyAssetTreeNode>) => {
       setItemInner(valueOrUpdater)
       setItemRaw(valueOrUpdater)
     },
-    [setItemRaw]
+    [setItemRaw],
   )
   const labels = backendHooks.useBackendListTags(backend) ?? []
   const self = item.item.permissions?.find(
-    backendModule.isUserPermissionAnd(permission => permission.user.userId === user.userId)
+    backendModule.isUserPermissionAnd((permission) => permission.user.userId === user.userId),
   )
   const ownsThisAsset = self?.permission === permissions.PermissionAction.own
   const canEditThisAsset =
@@ -83,11 +83,11 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   const isDatalink = item.item.type === backendModule.AssetType.datalink
   const isDatalinkDisabled = datalinkValue === editedDatalinkValue || !isDatalinkSubmittable
   const isCloud = backend.type === backendModule.BackendType.remote
-  const path = isCloud
-    ? null
-    : item.item.type === backendModule.AssetType.project
-      ? localBackend?.getProjectDirectoryPath(item.item.id) ?? null
-      : localBackendModule.extractTypeAndId(item.item.id).id
+  const path =
+    isCloud ? null
+    : item.item.type === backendModule.AssetType.project ?
+      localBackend?.getProjectPath(item.item.id) ?? null
+    : localBackendModule.extractTypeAndId(item.item.id).id
 
   const createDatalinkMutation = backendHooks.useBackendMutation(backend, 'createDatalink')
   const getDatalinkMutation = backendHooks.useBackendMutation(backend, 'getDatalink')
@@ -113,7 +113,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     setIsEditingDescription(false)
     if (description !== item.item.description) {
       const oldDescription = item.item.description
-      setItem(oldItem => oldItem.with({ item: object.merge(oldItem.item, { description }) }))
+      setItem((oldItem) => oldItem.with({ item: object.merge(oldItem.item, { description }) }))
       try {
         await updateAssetMutation.mutateAsync([
           item.item.id,
@@ -122,8 +122,8 @@ export default function AssetProperties(props: AssetPropertiesProps) {
         ])
       } catch (error) {
         toastAndLog('editDescriptionError')
-        setItem(oldItem =>
-          oldItem.with({ item: object.merge(oldItem.item, { description: oldDescription }) })
+        setItem((oldItem) =>
+          oldItem.with({ item: object.merge(oldItem.item, { description: oldDescription }) }),
         )
       }
     }
@@ -153,12 +153,11 @@ export default function AssetProperties(props: AssetPropertiesProps) {
           data-testid="asset-panel-description"
           className="self-stretch py-side-panel-description-y"
         >
-          {!isEditingDescription ? (
+          {!isEditingDescription ?
             <aria.Text className="text">{item.item.description}</aria.Text>
-          ) : (
-            <form className="flex flex-col gap-modal pr-4" onSubmit={doEditDescription}>
+          : <form className="flex flex-col gap-modal pr-4" onSubmit={doEditDescription}>
               <textarea
-                ref={element => {
+                ref={(element) => {
                   if (element != null && queuedDescription != null) {
                     element.value = queuedDescription
                     setQueuedDescripion(null)
@@ -167,10 +166,10 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                 value={description}
                 className="w-full resize-none rounded-default border-0.5 border-primary/20 p-2"
                 onBlur={doEditDescription}
-                onChange={event => {
+                onChange={(event) => {
                   setDescription(event.currentTarget.value)
                 }}
-                onKeyDown={event => {
+                onKeyDown={(event) => {
                   event.stopPropagation()
                   switch (event.key) {
                     case 'Escape': {
@@ -192,7 +191,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                 </ariaComponents.Button>
               </ariaComponents.ButtonGroup>
             </form>
-          )}
+          }
         </div>
       </div>
       {!isCloud && (
@@ -248,13 +247,13 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                   <aria.Label className="text inline-block">{getText('labels')}</aria.Label>
                 </td>
                 <td className="w-full p">
-                  {item.item.labels?.map(value => {
-                    const label = labels.find(otherLabel => otherLabel.value === value)
+                  {item.item.labels?.map((value) => {
+                    const label = labels.find((otherLabel) => otherLabel.value === value)
                     return label == null ? null : (
-                      <Label key={value} active isDisabled color={label.color} onPress={() => {}}>
-                        {value}
-                      </Label>
-                    )
+                        <Label key={value} active isDisabled color={label.color} onPress={() => {}}>
+                          {value}
+                        </Label>
+                      )
                   })}
                 </td>
               </tr>
@@ -270,12 +269,11 @@ export default function AssetProperties(props: AssetPropertiesProps) {
           >
             {getText('datalink')}
           </aria.Heading>
-          {!isDatalinkFetched ? (
+          {!isDatalinkFetched ?
             <div className="grid place-items-center self-stretch">
               <StatelessSpinner size={48} state={statelessSpinner.SpinnerState.loadingMedium} />
             </div>
-          ) : (
-            <>
+          : <>
               <DatalinkInput
                 readOnly={!canEditThisAsset}
                 dropdownTitle="Type"
@@ -288,9 +286,9 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                     size="medium"
                     variant="submit"
                     isDisabled={isDatalinkDisabled}
-                    {...(isDatalinkDisabled
-                      ? { title: 'Edit the Datalink before updating it.' }
-                      : {})}
+                    {...(isDatalinkDisabled ?
+                      { title: 'Edit the Datalink before updating it.' }
+                    : {})}
                     onPress={() => {
                       void (async () => {
                         if (item.item.type === backendModule.AssetType.datalink) {
@@ -329,7 +327,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                 </ariaComponents.ButtonGroup>
               )}
             </>
-          )}
+          }
         </div>
       )}
     </>

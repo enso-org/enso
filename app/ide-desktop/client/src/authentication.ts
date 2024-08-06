@@ -80,9 +80,9 @@ import opener from 'opener'
 import * as common from 'enso-common'
 import type * as dashboard from 'enso-dashboard'
 
-import * as contentConfig from 'content-config'
-import * as ipc from 'ipc'
-import * as urlAssociations from 'url-associations'
+import * as contentConfig from '@/contentConfig'
+import * as ipc from '@/ipc'
+import * as urlAssociations from '@/urlAssociations'
 
 const logger = contentConfig.logger
 
@@ -97,71 +97,69 @@ const logger = contentConfig.logger
  * does not use the `window` until after it is initialized, so while the lambda may return `null` in
  * theory, it never will in practice. */
 export function initAuthentication(window: () => electron.BrowserWindow) {
-    // Listen for events to open a URL externally in a browser the user trusts. This is used for
-    // OAuth authentication, both for trustworthiness and for convenience (the ability to use the
-    // browser's saved passwords).
-    electron.ipcMain.on(ipc.Channel.openUrlInSystemBrowser, (_event, url: string) => {
-        logger.log(`Opening URL '${url}' in the default browser.`)
-        opener(url)
-    })
+  // Listen for events to open a URL externally in a browser the user trusts. This is used for
+  // OAuth authentication, both for trustworthiness and for convenience (the ability to use the
+  // browser's saved passwords).
+  electron.ipcMain.on(ipc.Channel.openUrlInSystemBrowser, (_event, url: string) => {
+    logger.log(`Opening URL '${url}' in the default browser.`)
+    opener(url)
+  })
 
-    // Listen for events to handle deep links.
-    urlAssociations.registerUrlCallback(url => {
-        logger.log(`Received 'open-url' event for '${url.toString()}'.`)
-        if (url.protocol !== `${common.DEEP_LINK_SCHEME}:`) {
-            logger.error(`'${url.toString()}' is not a deep link, ignoring.`)
-        } else {
-            logger.log(`'${url.toString()}' is a deep link, sending to renderer.`)
-            window().webContents.send(ipc.Channel.openDeepLink, url.toString())
+  // Listen for events to handle deep links.
+  urlAssociations.registerUrlCallback(url => {
+    logger.log(`Received 'open-url' event for '${url.toString()}'.`)
+    if (url.protocol !== `${common.DEEP_LINK_SCHEME}:`) {
+      logger.error(`'${url.toString()}' is not a deep link, ignoring.`)
+    } else {
+      logger.log(`'${url.toString()}' is a deep link, sending to renderer.`)
+      window().webContents.send(ipc.Channel.openDeepLink, url.toString())
+    }
+  })
+
+  // Listen for events to save the given user credentials to `~/.enso/credentials`.
+  electron.ipcMain.on(
+    ipc.Channel.saveAccessToken,
+    (event, accessTokenPayload: dashboard.AccessToken | null) => {
+      event.preventDefault()
+
+      /** Home directory for the credentials file.  */
+      const credentialsDirectoryName = `.${common.PRODUCT_NAME.toLowerCase()}`
+      /** File name of the credentials file. */
+      const credentialsFileName = 'credentials'
+      /** System agnostic credentials directory home path. */
+      const credentialsHomePath = path.join(os.homedir(), credentialsDirectoryName)
+
+      if (accessTokenPayload == null) {
+        try {
+          fs.unlinkSync(path.join(credentialsHomePath, credentialsFileName))
+        } catch {
+          // Ignored, most likely the path does not exist.
         }
-    })
-
-    // Listen for events to save the given user credentials to `~/.enso/credentials`.
-    electron.ipcMain.on(
-        ipc.Channel.saveAccessToken,
-        (event, accessTokenPayload: dashboard.AccessToken | null) => {
-            event.preventDefault()
-
-            /** Home directory for the credentials file.  */
-            const credentialsDirectoryName = `.${common.PRODUCT_NAME.toLowerCase()}`
-            /** File name of the credentials file. */
-            const credentialsFileName = 'credentials'
-            /** System agnostic credentials directory home path. */
-            const credentialsHomePath = path.join(os.homedir(), credentialsDirectoryName)
-
-            if (accessTokenPayload == null) {
-                try {
-                    fs.unlinkSync(path.join(credentialsHomePath, credentialsFileName))
-                } catch {
-                    // Ignored, most likely the path does not exist.
+      } else {
+        fs.mkdir(credentialsHomePath, { recursive: true }, error => {
+          if (error) {
+            logger.error(`Could not create '${credentialsDirectoryName}' directory.`)
+          } else {
+            fs.writeFile(
+              path.join(credentialsHomePath, credentialsFileName),
+              JSON.stringify({
+                /* eslint-disable @typescript-eslint/naming-convention */
+                client_id: accessTokenPayload.clientId,
+                access_token: accessTokenPayload.accessToken,
+                refresh_token: accessTokenPayload.refreshToken,
+                refresh_url: accessTokenPayload.refreshUrl,
+                expire_at: accessTokenPayload.expireAt,
+                /* eslint-enable @typescript-eslint/naming-convention */
+              }),
+              innerError => {
+                if (innerError) {
+                  logger.error(`Could not write to '${credentialsFileName}' file.`)
                 }
-            } else {
-                fs.mkdir(credentialsHomePath, { recursive: true }, error => {
-                    if (error) {
-                        logger.error(`Could not create '${credentialsDirectoryName}' directory.`)
-                    } else {
-                        fs.writeFile(
-                            path.join(credentialsHomePath, credentialsFileName),
-                            JSON.stringify({
-                                /* eslint-disable @typescript-eslint/naming-convention */
-                                client_id: accessTokenPayload.clientId,
-                                access_token: accessTokenPayload.accessToken,
-                                refresh_token: accessTokenPayload.refreshToken,
-                                refresh_url: accessTokenPayload.refreshUrl,
-                                expire_at: accessTokenPayload.expireAt,
-                                /* eslint-enable @typescript-eslint/naming-convention */
-                            }),
-                            innerError => {
-                                if (innerError) {
-                                    logger.error(
-                                        `Could not write to '${credentialsFileName}' file.`
-                                    )
-                                }
-                            }
-                        )
-                    }
-                })
-            }
-        }
-    )
+              },
+            )
+          }
+        })
+      }
+    },
+  )
 }

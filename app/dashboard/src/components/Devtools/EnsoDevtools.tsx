@@ -7,11 +7,20 @@ import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
 
+import { IS_DEV_MODE } from 'enso-common/src/detect'
+
 import DevtoolsLogo from '#/assets/enso_logo.svg'
+
+import { SETUP_PATH } from '#/appUtils'
 
 import * as billing from '#/hooks/billing'
 
 import * as authProvider from '#/providers/AuthProvider'
+import { UserSessionType } from '#/providers/AuthProvider'
+import {
+  useEnableVersionChecker,
+  useSetEnableVersionChecker,
+} from '#/providers/EnsoDevtoolsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
@@ -52,8 +61,9 @@ export function EnsoDevtools(props: EnsoDevtoolsProps) {
   const { children } = props
 
   const { getText } = textProvider.useText()
-  const { authQueryKey } = authProvider.useAuth()
-  const session = authProvider.useFullUserSession()
+  const { authQueryKey, session } = authProvider.useAuth()
+  const enableVersionChecker = useEnableVersionChecker()
+  const setEnableVersionChecker = useSetEnableVersionChecker()
 
   const [features, setFeatures] = React.useState<
     Record<billing.PaywallFeatureName, PaywallDevtoolsFeatureConfiguration>
@@ -72,9 +82,9 @@ export function EnsoDevtools(props: EnsoDevtoolsProps) {
 
   const onConfigurationChange = React.useCallback(
     (feature: billing.PaywallFeatureName, configuration: PaywallDevtoolsFeatureConfiguration) => {
-      setFeatures(prev => ({ ...prev, [feature]: configuration }))
+      setFeatures((prev) => ({ ...prev, [feature]: configuration }))
     },
-    []
+    [],
   )
 
   return (
@@ -100,49 +110,86 @@ export function EnsoDevtools(props: EnsoDevtoolsProps) {
 
             <ariaComponents.Separator orientation="horizontal" className="my-3" />
 
-            <ariaComponents.Text variant="subtitle">
-              {getText('paywallDevtoolsPlanSelectSubtitle')}
+            {session?.type === UserSessionType.full && (
+              <>
+                <ariaComponents.Text variant="subtitle">
+                  {getText('paywallDevtoolsPlanSelectSubtitle')}
+                </ariaComponents.Text>
+
+                <ariaComponents.Form
+                  gap="small"
+                  schema={(schema) => schema.object({ plan: schema.string() })}
+                  defaultValues={{ plan: session.user.plan ?? 'free' }}
+                >
+                  {({ form }) => (
+                    <>
+                      <ariaComponents.RadioGroup
+                        form={form}
+                        name="plan"
+                        onChange={(value) => {
+                          queryClient.setQueryData(authQueryKey, {
+                            ...session,
+                            user: { ...session.user, plan: value },
+                          })
+                        }}
+                      >
+                        <ariaComponents.Radio label={getText('free')} value={'free'} />
+                        <ariaComponents.Radio label={getText('solo')} value={backend.Plan.solo} />
+                        <ariaComponents.Radio label={getText('team')} value={backend.Plan.team} />
+                        <ariaComponents.Radio
+                          label={getText('enterprise')}
+                          value={backend.Plan.enterprise}
+                        />
+                      </ariaComponents.RadioGroup>
+
+                      <ariaComponents.Button
+                        size="small"
+                        variant="outline"
+                        onPress={() =>
+                          queryClient.invalidateQueries({ queryKey: authQueryKey }).then(() => {
+                            form.reset()
+                          })
+                        }
+                      >
+                        {getText('reset')}
+                      </ariaComponents.Button>
+                    </>
+                  )}
+                </ariaComponents.Form>
+
+                <ariaComponents.Separator orientation="horizontal" className="my-3" />
+
+                {/* eslint-disable-next-line no-restricted-syntax */}
+                <ariaComponents.Button variant="link" href={SETUP_PATH + '?__qd-debg__=true'}>
+                  Open setup page
+                </ariaComponents.Button>
+
+                <ariaComponents.Separator orientation="horizontal" className="my-3" />
+              </>
+            )}
+
+            <ariaComponents.Text variant="subtitle" className="mb-2">
+              {getText('productionOnlyFeatures')}
             </ariaComponents.Text>
+            <div className="flex flex-col">
+              <aria.Switch
+                className="group flex items-center gap-1"
+                isSelected={enableVersionChecker ?? !IS_DEV_MODE}
+                onChange={setEnableVersionChecker}
+              >
+                <div className="box-border flex h-4 w-[28px] shrink-0 cursor-default items-center rounded-full bg-primary/30 bg-clip-padding p-0.5 shadow-inner outline-none ring-black transition duration-200 ease-in-out group-focus-visible:ring-2 group-pressed:bg-primary/60 group-selected:bg-primary group-selected:group-pressed:bg-primary/50">
+                  <span className="aspect-square h-full flex-none translate-x-0 transform rounded-full bg-white transition duration-200 ease-in-out group-selected:translate-x-[100%]" />
+                </div>
 
-            <ariaComponents.Form
-              gap="small"
-              schema={schema => schema.object({ plan: schema.string() })}
-              defaultValues={{ plan: session.user.plan ?? 'free' }}
-            >
-              {({ form }) => (
-                <>
-                  <ariaComponents.RadioGroup
-                    form={form}
-                    name="plan"
-                    onChange={value => {
-                      queryClient.setQueryData(authQueryKey, {
-                        ...session,
-                        user: { ...session.user, plan: value },
-                      })
-                    }}
-                  >
-                    <ariaComponents.Radio label={getText('free')} value="free" />
-                    <ariaComponents.Radio label={getText('solo')} value={backend.Plan.solo} />
-                    <ariaComponents.Radio label={getText('team')} value={backend.Plan.team} />
-                    <ariaComponents.Radio
-                      label={getText('enterprise')}
-                      value={backend.Plan.enterprise}
-                    />
-                  </ariaComponents.RadioGroup>
+                <ariaComponents.Text className="flex-1">
+                  {getText('enableVersionChecker')}
+                </ariaComponents.Text>
+              </aria.Switch>
 
-                  <ariaComponents.Button
-                    variant="outline"
-                    onPress={() =>
-                      queryClient.invalidateQueries({ queryKey: authQueryKey }).then(() => {
-                        form.reset()
-                      })
-                    }
-                  >
-                    {getText('reset')}
-                  </ariaComponents.Button>
-                </>
-              )}
-            </ariaComponents.Form>
+              <ariaComponents.Text variant="body" color="disabled">
+                {getText('enableVersionCheckerDescription')}
+              </ariaComponents.Text>
+            </div>
 
             <ariaComponents.Separator orientation="horizontal" className="my-3" />
 
@@ -155,12 +202,13 @@ export function EnsoDevtools(props: EnsoDevtoolsProps) {
                 // eslint-disable-next-line no-restricted-syntax
                 const featureName = feature as billing.PaywallFeatureName
                 const { label, descriptionTextId } = getFeature(featureName)
+
                 return (
                   <div key={feature} className="flex flex-col">
                     <aria.Switch
                       className="group flex items-center gap-1"
                       isSelected={configuration.isForceEnabled ?? true}
-                      onChange={value => {
+                      onChange={(value) => {
                         onConfigurationChange(featureName, {
                           isForceEnabled: value,
                         })

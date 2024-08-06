@@ -152,8 +152,8 @@ make_json_for_xml_element xml_element max_items type:Text="XML_Element" =
             " " + ((c.attributes.to_vector.take 5 . map a-> a.first+'="'+a.second+'"') . join " ") + (if c.attributes.length > 5 then " ..." else "")
         render_end = case c.child_count of
             0 -> "/>"
-            1 -> if c.children.first.is_a Text then ">" + c.children.first + "</"+c.name+">" else "> ... 1 child element ... </"+c.name+">"
-            _ -> ">..." + c.child_count.to_text + " child elements...</"+c.name+">"
+            1 -> if c.children.first.is_a Text then ">" + c.children.first + "</" + c.name + ">" else "> ... 1 child element ... </" + c.name + ">"
+            _ -> ">..." + c.child_count.to_text + " child elements...</" + c.name + ">"
         [i.to_text, "Element", render_start+render_attribs+render_end]
     map_vector = Warning.clear (attribs + children)
 

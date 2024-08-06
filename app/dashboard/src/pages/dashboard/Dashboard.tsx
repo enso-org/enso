@@ -20,7 +20,16 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import ProjectsProvider, * as projectsProvider from '#/providers/ProjectsProvider'
+import ProjectsProvider, {
+  PAGES_SCHEMA,
+  TabType,
+  useClearLaunchedProjects,
+  useLaunchedProjects,
+  usePage,
+  useProjectsStore,
+  useSetPage,
+  type LaunchedProject,
+} from '#/providers/ProjectsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import AssetEventType from '#/events/AssetEventType'
@@ -35,8 +44,7 @@ import Drive from '#/layouts/Drive'
 import type * as editor from '#/layouts/Editor'
 import Editor from '#/layouts/Editor'
 import Settings from '#/layouts/Settings'
-import * as tabBar from '#/layouts/TabBar'
-import TabBar from '#/layouts/TabBar'
+import TabBar, * as tabBar from '#/layouts/TabBar'
 import UserBar from '#/layouts/UserBar'
 
 import * as aria from '#/components/aria'
@@ -107,9 +115,9 @@ function DashboardInner(props: DashboardProps) {
   const assetManagementApiRef = React.useRef<assetTable.AssetManagementApi | null>(null)
 
   const initialLocalProjectId =
-    initialProjectNameRaw != null && validator.isUUID(initialProjectNameRaw)
-      ? localBackendModule.newProjectId(projectManager.UUID(initialProjectNameRaw))
-      : null
+    initialProjectNameRaw != null && validator.isUUID(initialProjectNameRaw) ?
+      localBackendModule.newProjectId(projectManager.UUID(initialProjectNameRaw))
+    : null
   const initialProjectName = initialLocalProjectId ?? initialProjectNameRaw
 
   const [category, setCategory] = searchParamsState.useSearchParamsState(
@@ -125,53 +133,30 @@ function DashboardInner(props: DashboardProps) {
       } else {
         return false
       }
-    }
+    },
   )
 
-  const page = projectsProvider.usePage()
-  const launchedProjects = projectsProvider.useLaunchedProjects()
-  const selectedProject = launchedProjects.find(p => p.id === page) ?? null
+  const projectsStore = useProjectsStore()
+  const page = usePage()
+  const launchedProjects = useLaunchedProjects()
+  const selectedProject = launchedProjects.find((p) => p.id === page) ?? null
 
-  const setPage = projectsProvider.useSetPage()
+  const setPage = useSetPage()
   const openEditor = projectHooks.useOpenEditor()
   const openProject = projectHooks.useOpenProject()
   const closeProject = projectHooks.useCloseProject()
   const closeAllProjects = projectHooks.useCloseAllProjects()
-  const clearLaunchedProjects = projectsProvider.useClearLaunchedProjects()
+  const clearLaunchedProjects = useClearLaunchedProjects()
   const openProjectMutation = projectHooks.useOpenProjectMutation()
   const renameProjectMutation = projectHooks.useRenameProjectMutation()
 
-  eventListProvider.useAssetEventListener(event => {
-    switch (event.type) {
-      case AssetEventType.openProject: {
-        const { title, parentId, backendType, id, runInBackground } = event
-        openProject(
-          { title, parentId, type: backendType, id },
-          { openInBackground: runInBackground }
-        )
-        break
-      }
-      case AssetEventType.closeProject: {
-        const { title, parentId, backendType, id } = event
-        closeProject({ title, parentId, type: backendType, id })
-        break
-      }
-      default: {
-        // Ignored. Any missing project-related events should be handled by `ProjectNameColumn`.
-        // `delete`, `deleteForever`, `restore`, `download`, and `downloadSelected`
-        // are handled by`AssetRow`.
-        break
-      }
-    }
-  })
-
   React.useEffect(() => {
-    window.projectManagementApi?.setOpenProjectHandler(project => {
+    window.projectManagementApi?.setOpenProjectHandler((project) => {
       setCategory(Category.local)
-      dispatchAssetListEvent({
-        type: AssetListEventType.openProject,
-        backendType: backendModule.BackendType.local,
-        id: localBackendModule.newProjectId(projectManager.UUID(project.id)),
+      const projectId = localBackendModule.newProjectId(projectManager.UUID(project.id))
+      openProject({
+        type: backendModule.BackendType.local,
+        id: projectId,
         title: project.name,
         parentId: localBackendModule.newDirectoryId(backendModule.Path(project.parentDirectory)),
       })
@@ -179,21 +164,20 @@ function DashboardInner(props: DashboardProps) {
     return () => {
       window.projectManagementApi?.setOpenProjectHandler(() => {})
     }
-  }, [dispatchAssetListEvent, setCategory])
+  }, [dispatchAssetListEvent, openEditor, openProject, setCategory])
 
   React.useEffect(
     () =>
       inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
         closeModal: () => {
-          updateModal(oldModal => {
+          updateModal((oldModal) => {
             if (oldModal == null) {
-              queueMicrotask(() => {
-                setPage(localStorage.get('page') ?? projectsProvider.TabType.drive)
-              })
-              return oldModal
-            } else {
-              return null
+              const currentPage = projectsStore.getState().page
+              if (currentPage === TabType.settings) {
+                setPage(TabType.drive)
+              }
             }
+            return null
           })
           if (modalRef.current == null) {
             // eslint-disable-next-line no-restricted-syntax
@@ -201,7 +185,7 @@ function DashboardInner(props: DashboardProps) {
           }
         },
       }),
-    [inputBindings, modalRef, localStorage, updateModal, setPage]
+    [inputBindings, modalRef, localStorage, updateModal, setPage, projectsStore],
   )
 
   React.useEffect(() => {
@@ -219,13 +203,13 @@ function DashboardInner(props: DashboardProps) {
     }
   }, [inputBindings])
 
-  const doRemoveSelf = eventCallbacks.useEventCallback((project: projectHooks.Project) => {
+  const doRemoveSelf = eventCallbacks.useEventCallback((project: LaunchedProject) => {
     dispatchAssetListEvent({ type: AssetListEventType.removeSelf, id: project.id })
     closeProject(project)
   })
 
   const onSignOut = eventCallbacks.useEventCallback(() => {
-    setPage(projectsProvider.TabType.drive)
+    setPage(TabType.drive)
     closeAllProjects()
     clearLaunchedProjects()
   })
@@ -235,14 +219,16 @@ function DashboardInner(props: DashboardProps) {
       const asset = assetManagementApiRef.current.getAsset(selectedProject.id)
       const self =
         asset?.permissions?.find(
-          backendModule.isUserPermissionAnd(permissions => permissions.user.userId === user.userId)
+          backendModule.isUserPermissionAnd(
+            (permissions) => permissions.user.userId === user.userId,
+          ),
         ) ?? null
 
       if (asset != null && self != null) {
         setModal(
           <ManagePermissionsModal
             item={asset}
-            setItem={updater => {
+            setItem={(updater) => {
               const nextAsset = updater instanceof Function ? updater(asset) : updater
               assetManagementApiRef.current?.setAsset(asset.id, nextAsset)
             }}
@@ -251,7 +237,7 @@ function DashboardInner(props: DashboardProps) {
               doRemoveSelf(selectedProject)
             }}
             eventTarget={null}
-          />
+          />,
         )
       }
     }
@@ -260,17 +246,17 @@ function DashboardInner(props: DashboardProps) {
   return (
     <Page hideInfoBar hideChat>
       <div
-        className="flex text-xs text-primary"
-        onContextMenu={event => {
+        className="flex min-h-full flex-col text-xs text-primary"
+        onContextMenu={(event) => {
           event.preventDefault()
           unsetModal()
         }}
       >
         <aria.Tabs
-          className="relative flex h-screen grow select-none flex-col container-size"
+          className="relative flex min-h-full grow select-none flex-col container-size"
           selectedKey={page}
-          onSelectionChange={newPage => {
-            const validated = projectsProvider.PAGES_SCHEMA.safeParse(newPage)
+          onSelectionChange={(newPage) => {
+            const validated = PAGES_SCHEMA.safeParse(newPage)
             if (validated.success) {
               setPage(validated.data)
             }
@@ -279,15 +265,15 @@ function DashboardInner(props: DashboardProps) {
           <div className="flex">
             <TabBar>
               <tabBar.Tab
-                id={projectsProvider.TabType.drive}
-                isActive={page === projectsProvider.TabType.drive}
+                id={TabType.drive}
+                isActive={page === TabType.drive}
                 icon={DriveIcon}
                 labelId="drivePageName"
               >
                 {getText('drivePageName')}
               </tabBar.Tab>
 
-              {launchedProjects.map(project => (
+              {launchedProjects.map((project) => (
                 <tabBar.Tab
                   data-testid="editor-tab-button"
                   id={project.id}
@@ -309,12 +295,12 @@ function DashboardInner(props: DashboardProps) {
 
               <tabBar.Tab
                 isActive
-                id={projectsProvider.TabType.settings}
-                isHidden={page !== projectsProvider.TabType.settings}
+                id={TabType.settings}
+                isHidden={page !== TabType.settings}
                 icon={SettingsIcon}
                 labelId="settingsPageName"
                 onClose={() => {
-                  setPage(projectsProvider.TabType.drive)
+                  setPage(TabType.drive)
                 }}
               >
                 {getText('settingsPageName')}
@@ -325,30 +311,30 @@ function DashboardInner(props: DashboardProps) {
               onShareClick={selectedProject ? doOpenShareModal : undefined}
               setIsHelpChatOpen={setIsHelpChatOpen}
               goToSettingsPage={() => {
-                setPage(projectsProvider.TabType.settings)
+                setPage(TabType.settings)
               }}
               onSignOut={onSignOut}
             />
           </div>
           <aria.TabPanel
             shouldForceMount
-            id={projectsProvider.TabType.drive}
-            className="flex grow [&[data-inert]]:hidden"
+            id={TabType.drive}
+            className="flex min-h-0 grow [&[data-inert]]:hidden"
           >
             <Drive
               assetsManagementApiRef={assetManagementApiRef}
               category={category}
               setCategory={setCategory}
-              hidden={page !== projectsProvider.TabType.drive}
+              hidden={page !== TabType.drive}
               initialProjectName={initialProjectName}
             />
           </aria.TabPanel>
           {appRunner != null &&
-            launchedProjects.map(project => (
+            launchedProjects.map((project) => (
               <aria.TabPanel
                 shouldForceMount
                 id={project.id}
-                className="flex grow [&[data-inert]]:hidden"
+                className="flex min-h-0 grow [&[data-inert]]:hidden"
               >
                 <Editor
                   key={project.id}
@@ -361,7 +347,7 @@ function DashboardInner(props: DashboardProps) {
                   isOpeningFailed={openProjectMutation.isError}
                   openingError={openProjectMutation.error}
                   startProject={openProjectMutation.mutate}
-                  renameProject={async newName => {
+                  renameProject={async (newName) => {
                     try {
                       await renameProjectMutation.mutateAsync({ newName, project })
                       dispatchAssetEvent({
@@ -380,11 +366,11 @@ function DashboardInner(props: DashboardProps) {
                 />
               </aria.TabPanel>
             ))}
-          <aria.TabPanel id={projectsProvider.TabType.settings} className="flex grow">
+          <aria.TabPanel id={TabType.settings} className="flex min-h-0 grow">
             <Settings />
           </aria.TabPanel>
         </aria.Tabs>
-        {process.env.ENSO_CLOUD_CHAT_URL != null ? (
+        {process.env.ENSO_CLOUD_CHAT_URL != null ?
           <Chat
             isOpen={isHelpChatOpen}
             doClose={() => {
@@ -392,14 +378,13 @@ function DashboardInner(props: DashboardProps) {
             }}
             endpoint={process.env.ENSO_CLOUD_CHAT_URL}
           />
-        ) : (
-          <ChatPlaceholder
+        : <ChatPlaceholder
             isOpen={isHelpChatOpen}
             doClose={() => {
               setIsHelpChatOpen(false)
             }}
           />
-        )}
+        }
       </div>
     </Page>
   )

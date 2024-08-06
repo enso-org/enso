@@ -190,7 +190,7 @@ add_specs suite_builder setup =
 
             t3 = t1.zip t2
             expected_problems = [Row_Count_Mismatch.Error 2 1, Duplicate_Output_Column_Names.Error ["Right X"]]
-            Problems.get_attached_warnings t3 . should_contain_the_same_elements_as expected_problems
+            Problems.get_attached_warnings t3 . should_equal_ignoring_order expected_problems
 
         group_builder.specify "should allow to zip the table with itself" <|
             ## Even though this does not seem very useful, we should verify that

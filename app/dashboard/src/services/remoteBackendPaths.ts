@@ -27,9 +27,7 @@ export const DELETE_ORGANIZATION_PATH = 'organizations/me'
 export const UPLOAD_ORGANIZATION_PICTURE_PATH = 'organizations/me/picture'
 /** Relative HTTP path to the "invite user" endpoint of the Cloud backend API. */
 export const INVITE_USER_PATH = 'users/invite'
-/**
- * Relative HTTP path to the "list invitations" endpoint of the Cloud backend API.
- */
+/** Relative HTTP path to the "list invitations" endpoint of the Cloud backend API. */
 export const INVITATION_PATH = 'invitations'
 /** Relative HTTP path to the "create permission" endpoint of the Cloud backend API. */
 export const CREATE_PERMISSION_PATH = 'permissions'
@@ -74,6 +72,20 @@ export const CANCEL_SUBSCRIPTION_PATH = 'payments/subscription'
 export const GET_LOG_EVENTS_PATH = 'log_events'
 /** Relative HTTP path to the "post log event" endpoint of the Cloud backend API. */
 export const POST_LOG_EVENT_PATH = 'logs'
+
+/**
+ * Relative HTTP path to the "get customer portal session" endpoint of the Cloud backend API.
+ */
+export function getCustomerPortalSessionPath(returnUrl?: string) {
+  const baseUrl = 'payments/customer-portal-sessions/create'
+
+  if (returnUrl === undefined) {
+    return baseUrl
+  } else {
+    return `${baseUrl}?returnUrl=${returnUrl}`
+  }
+}
+
 /** Relative HTTP path to the "change user groups" endpoint of the Cloud backend API. */
 export function changeUserGroupPath(userId: backend.UserId) {
   return `users/${userId}/usergroups`

@@ -10,12 +10,14 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import * as aria from '#/components/aria'
+import { Text } from '#/components/AriaComponents'
 import MenuEntry from '#/components/MenuEntry'
 import Modal from '#/components/Modal'
 import FocusArea from '#/components/styled/FocusArea'
 
 import AboutModal from '#/modals/AboutModal'
+
+import { Plan } from '#/services/Backend'
 
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
@@ -36,10 +38,11 @@ export interface UserMenuProps {
 /** Handling the UserMenuItem click event logic and displaying its content. */
 export default function UserMenu(props: UserMenuProps) {
   const { hidden = false, goToSettingsPage, onSignOut } = props
+
   const [initialized, setInitialized] = React.useState(false)
   const localBackend = backendProvider.useLocalBackend()
   const { signOut } = authProvider.useAuth()
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useFullUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -63,16 +66,16 @@ export default function UserMenu(props: UserMenuProps) {
         {...(!hidden ? { 'data-testid': 'user-menu' } : {})}
         className={tailwindMerge.twMerge(
           'absolute right-2 top-2 flex flex-col gap-user-menu rounded-default bg-selected-frame backdrop-blur-default transition-all duration-user-menu',
-          initialized ? 'w-user-menu p-user-menu' : 'size-row-h'
+          initialized ? 'w-user-menu p-user-menu' : 'size-row-h',
         )}
-        onClick={event => {
+        onClick={(event) => {
           event.stopPropagation()
         }}
       >
         <div
           className={tailwindMerge.twMerge(
             'flex items-center gap-icons overflow-hidden transition-all duration-user-menu',
-            initialized && 'px-menu-entry'
+            initialized && 'px-menu-entry',
           )}
         >
           <div className="flex size-row-h shrink-0 items-center overflow-clip rounded-full">
@@ -81,16 +84,23 @@ export default function UserMenu(props: UserMenuProps) {
               className="pointer-events-none size-row-h"
             />
           </div>
-          <aria.Text className="text">{user.name}</aria.Text>
+
+          <div className="flex flex-col">
+            <Text disableLineHeightCompensation variant="body" truncate="1" weight="semibold">
+              {user.name}
+            </Text>
+
+            <Text disableLineHeightCompensation>{getText(`${user.plan ?? Plan.free}`)}</Text>
+          </div>
         </div>
         <div
           className={tailwindMerge.twMerge(
             'grid transition-all duration-user-menu',
-            initialized ? 'grid-rows-1fr' : 'grid-rows-0fr'
+            initialized ? 'grid-rows-1fr' : 'grid-rows-0fr',
           )}
         >
           <FocusArea direction="vertical">
-            {innerProps => (
+            {(innerProps) => (
               <div
                 aria-label={getText('userMenuLabel')}
                 className="flex flex-col overflow-hidden"

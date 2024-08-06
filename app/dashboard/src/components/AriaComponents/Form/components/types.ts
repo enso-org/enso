@@ -7,17 +7,14 @@ import type * as React from 'react'
 import type * as reactHookForm from 'react-hook-form'
 import type * as z from 'zod'
 
-import type * as aria from '#/components/aria'
-
 import type * as schemaModule from './schema'
 
 /**
  * Field values type.
  */
 // eslint-disable-next-line no-restricted-syntax
-export type FieldValues<Schema extends TSchema | undefined> = Schema extends z.AnyZodObject
-  ? z.infer<Schema>
-  : reactHookForm.FieldValues
+export type FieldValues<Schema extends TSchema | undefined> =
+  Schema extends z.AnyZodObject ? z.infer<Schema> : reactHookForm.FieldValues
 
 /**
  * Field path type.
@@ -48,11 +45,11 @@ export interface UseFormProps<Schema extends TSchema, TFieldValues extends Field
  * Return type of the useForm hook.
  * @alias reactHookForm.UseFormReturn
  */
-export type UseFormReturn<
+export interface UseFormReturn<
   Schema extends TSchema,
   TFieldValues extends FieldValues<Schema>,
   TTransformedValues extends Record<string, unknown> | undefined = undefined,
-> = reactHookForm.UseFormReturn<TFieldValues, unknown, TTransformedValues>
+> extends reactHookForm.UseFormReturn<TFieldValues, unknown, TTransformedValues> {}
 
 /**
  * Form state type.
@@ -69,7 +66,7 @@ export type FormState<
  */
 export type FormInstance<
   Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
+  TFieldValues extends FieldValues<Schema> = FieldValues<Schema>,
   TTransformedValues extends Record<string, unknown> | undefined = undefined,
 > = UseFormReturn<Schema, TFieldValues, TTransformedValues>
 
@@ -82,20 +79,52 @@ export interface FormWithValueValidation<
   TFieldValues extends FieldValues<Schema>,
   TFieldName extends FieldPath<Schema, TFieldValues>,
   TTransformedValues extends FieldValues<Schema> | undefined = undefined,
+  ErrorType = [
+    'Type mismatch: Expected',
+    TFieldValues[TFieldName],
+    'got',
+    BaseValueType,
+    'instead.',
+  ],
 > {
   readonly form?:
-    | (BaseValueType extends TFieldValues[TFieldName]
-        ? FormInstance<Schema, TFieldValues, TTransformedValues>
-        : 'Type mismatch: Field with this name has a different type than the value of the component.')
+    | (BaseValueType extends TFieldValues[TFieldName] ?
+        FormInstance<Schema, TFieldValues, TTransformedValues>
+      : ErrorType)
     | undefined
 }
 
 /**
  * Props for the Field component.
  */
-export interface FieldProps extends aria.AriaLabelingProps {
-  readonly isRequired?: boolean
-  readonly label?: React.ReactNode
-  readonly description?: React.ReactNode
-  readonly error?: React.ReactNode
+// Readonly omitted here to avoid type mismatch with native HTML attributes
+// eslint-disable-next-line no-restricted-syntax
+export interface FieldProps {
+  readonly isRequired?: boolean | undefined
+  readonly label?: React.ReactNode | undefined
+  readonly description?: React.ReactNode | undefined
+  readonly error?: React.ReactNode | undefined
+  /**
+   * Defines a string value that labels the current element.
+   */
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  'aria-label'?: string | undefined
+
+  /**
+   * Identifies the element (or elements) that labels the current element.
+   */
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  'aria-labelledby'?: string | undefined
+
+  /**
+   * Identifies the element (or elements) that describes the object.
+   */
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  'aria-describedby'?: string | undefined
+
+  /**
+   * Identifies the element (or elements) that provide a detailed, extended description for the object.
+   */
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  'aria-details'?: string | undefined
 }

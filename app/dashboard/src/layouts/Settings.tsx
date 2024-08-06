@@ -41,12 +41,12 @@ export interface SettingsProps {
 
 /** Settings screen. */
 export default function Settings() {
-  const backend = backendProvider.useRemoteBackend()
+  const backend = backendProvider.useRemoteBackendStrict()
   const localBackend = backendProvider.useLocalBackend()
   const [tab, setTab] = searchParamsState.useSearchParamsState(
     'SettingsTab',
     SettingsTabType.account,
-    array.includesPredicate(Object.values(SettingsTabType))
+    array.includesPredicate(Object.values(SettingsTabType)),
   )
   const { user, accessToken } = authProvider.useNonPartialUserSession()
   const { authQueryKey } = authProvider.useAuth()
@@ -58,6 +58,7 @@ export default function Settings() {
   const organization = backendHooks.useBackendGetOrganization(backend)
   const isQueryBlank = !/\S/.test(query)
 
+  const client = reactQuery.useQueryClient()
   const updateUserMutation = backendHooks.useBackendMutation(backend, 'updateUser', {
     meta: { invalidates: [authQueryKey], awaitInvalidates: true },
   })
@@ -75,6 +76,7 @@ export default function Settings() {
     },
     meta: { invalidates: [[localBackend?.type, 'listDirectory']], awaitInvalidates: true },
   })
+
   const updateLocalRootPath = updateLocalRootPathMutation.mutateAsync
 
   const context = React.useMemo<settingsData.SettingsContext>(
@@ -89,6 +91,7 @@ export default function Settings() {
       updateLocalRootPath,
       toastAndLog,
       getText,
+      queryClient: client,
     }),
     [
       accessToken,
@@ -101,7 +104,8 @@ export default function Settings() {
       updateOrganization,
       updateUser,
       user,
-    ]
+      client,
+    ],
   )
 
   const isMatch = React.useMemo(() => {
@@ -121,32 +125,30 @@ export default function Settings() {
           if (doesAliasesIdMatch) {
             return true
           } else {
-            return entry.getExtraAliases == null
-              ? false
+            return entry.getExtraAliases == null ?
+                false
               : entry.getExtraAliases(context).some(isMatch)
           }
         }
       }
     },
-    [context, getText, isMatch]
+    [context, getText, isMatch],
   )
 
   const tabsToShow = React.useMemo<readonly SettingsTabType[]>(() => {
     if (isQueryBlank) {
       return settingsData.ALL_SETTINGS_TABS
     } else {
-      return settingsData.SETTINGS_DATA.flatMap(tabSection =>
+      return settingsData.SETTINGS_DATA.flatMap((tabSection) =>
         tabSection.tabs
-          .filter(tabData =>
-            isMatch(getText(tabData.nameId)) || isMatch(getText(tabSection.nameId))
-              ? true
-              : tabData.sections.some(section =>
-                  isMatch(getText(section.nameId))
-                    ? true
-                    : section.entries.some(doesEntryMatchQuery)
-                )
+          .filter((tabData) =>
+            isMatch(getText(tabData.nameId)) || isMatch(getText(tabSection.nameId)) ?
+              true
+            : tabData.sections.some((section) =>
+                isMatch(getText(section.nameId)) ? true : section.entries.some(doesEntryMatchQuery),
+              ),
           )
-          .map(tabData => tabData.settingsTab)
+          .map((tabData) => tabData.settingsTab),
       )
     }
   }, [isQueryBlank, doesEntryMatchQuery, getText, isMatch])
@@ -160,9 +162,10 @@ export default function Settings() {
       if (isMatch(getText(tabData.nameId))) {
         return tabData
       } else {
-        const sections = tabData.sections.flatMap(section => {
-          const matchingEntries = isMatch(getText(section.nameId))
-            ? section.entries
+        const sections = tabData.sections.flatMap((section) => {
+          const matchingEntries =
+            isMatch(getText(section.nameId)) ?
+              section.entries
             : section.entries.filter(doesEntryMatchQuery)
           if (matchingEntries.length === 0) {
             return []
@@ -197,8 +200,9 @@ export default function Settings() {
             />
           </aria.Popover>
         </aria.MenuTrigger>
+
         <ariaComponents.Text variant="h1" className="font-bold">
-          <span>{getText('settingsFor')}</span>
+          {getText('settingsFor')}
         </ariaComponents.Text>
 
         <ariaComponents.Text

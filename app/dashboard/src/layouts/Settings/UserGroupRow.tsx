@@ -17,6 +17,7 @@ import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 
 import type * as backend from '#/services/Backend'
 
+import { useFullUserSession } from '#/providers/AuthProvider'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ====================
@@ -32,12 +33,14 @@ export interface UserGroupRowProps {
 /** A row representing a user group. */
 export default function UserGroupRow(props: UserGroupRowProps) {
   const { userGroup, doDeleteUserGroup } = props
+  const { user } = useFullUserSession()
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
+  const isAdmin = user.isOrganizationAdmin
   const contextMenuRef = contextMenuHooks.useContextMenuRef(
     userGroup.id,
     getText('userGroupContextMenuLabel'),
-    position => (
+    (position) => (
       <ContextMenuEntry
         action="delete"
         doAction={() => {
@@ -48,11 +51,12 @@ export default function UserGroupRow(props: UserGroupRowProps) {
               doDelete={() => {
                 doDeleteUserGroup(userGroup)
               }}
-            />
+            />,
           )
         }}
       />
-    )
+    ),
+    { enabled: isAdmin },
   )
 
   return (
@@ -60,7 +64,7 @@ export default function UserGroupRow(props: UserGroupRowProps) {
       id={userGroup.id}
       className={tailwindMerge.twMerge(
         'group h-row select-none rounded-rows-child',
-        userGroup.isPlaceholder && 'pointer-events-none placeholder'
+        userGroup.isPlaceholder && 'pointer-events-none placeholder',
       )}
       ref={contextMenuRef}
     >
@@ -72,23 +76,25 @@ export default function UserGroupRow(props: UserGroupRowProps) {
         </div>
       </aria.Cell>
       <aria.Cell className="relative bg-transparent p-0 opacity-0 group-hover-2:opacity-100">
-        <ariaComponents.Button
-          size="custom"
-          variant="custom"
-          onPress={() => {
-            setModal(
-              <ConfirmDeleteModal
-                actionText={getText('deleteUserGroupActionText', userGroup.groupName)}
-                doDelete={() => {
-                  doDeleteUserGroup(userGroup)
-                }}
-              />
-            )
-          }}
-          className="absolute right-full mr-4 size-4 -translate-y-1/2"
-        >
-          <img src={Cross2} className="size-4" />
-        </ariaComponents.Button>
+        {isAdmin && (
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
+            onPress={() => {
+              setModal(
+                <ConfirmDeleteModal
+                  actionText={getText('deleteUserGroupActionText', userGroup.groupName)}
+                  doDelete={() => {
+                    doDeleteUserGroup(userGroup)
+                  }}
+                />,
+              )
+            }}
+            className="absolute right-full mr-4 size-4 -translate-y-1/2"
+          >
+            <img src={Cross2} className="size-4" />
+          </ariaComponents.Button>
+        )}
       </aria.Cell>
     </aria.Row>
   )

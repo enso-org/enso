@@ -30,7 +30,7 @@ export default function SharedWithColumnHeading(props: column.AssetColumnHeading
     <div className="flex h-table-row w-full items-center gap-icon-with-text">
       <ariaComponents.Button
         variant="icon"
-        size="xsmall"
+        size="medium"
         icon={PeopleIcon}
         aria-label={getText('sharedWithColumnHide')}
         onPress={() => {
@@ -46,7 +46,7 @@ export default function SharedWithColumnHeading(props: column.AssetColumnHeading
             feature="share"
             variant="icon"
             children={false}
-            size="xsmall"
+            size="medium"
           />
         )}
       </div>

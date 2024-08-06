@@ -56,6 +56,7 @@ import { computedFallback } from '@/util/reactivity'
 import { until } from '@vueuse/core'
 import { encoding, set } from 'lib0'
 import { encodeMethodPointer } from 'shared/languageServerTypes'
+import * as iterable from 'shared/util/data/iterable'
 import { isDevMode } from 'shared/util/detect'
 import {
   computed,
@@ -206,7 +207,6 @@ const toasts = useGraphEditorToasts(projectStore)
 
 // === Selection ===
 
-const graphNodeSelections = shallowRef<HTMLElement>()
 const nodeSelection = provideGraphSelection(
   graphNavigator,
   graphStore.nodeRects,
@@ -388,7 +388,6 @@ const { handleClick } = useDoubleClick(
 
 function deleteSelected() {
   graphStore.deleteNodes(nodeSelection.selected)
-  nodeSelection.deselectAll()
 }
 
 // === Code Editor ===
@@ -547,7 +546,12 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
 // === Node Collapsing ===
 
 function collapseNodes() {
-  const selected = nodeSelection.selected
+  const selected = new Set(
+    iterable.filter(
+      nodeSelection.selected,
+      (id) => graphStore.db.nodeIdToNode.get(id)?.type === 'component',
+    ),
+  )
   if (selected.size == 0) return
   try {
     const info = prepareCollapsedInfo(selected, graphStore.db)
@@ -655,12 +659,16 @@ const groupColors = computed(() => {
 </script>
 
 <template>
-  <div class="GraphEditor" @dragover.prevent @drop.prevent="handleFileDrop($event)">
+  <div
+    class="GraphEditor"
+    :class="{ draggingEdge: graphStore.mouseEditedEdge != null }"
+    @dragover.prevent
+    @drop.prevent="handleFileDrop($event)"
+  >
     <div class="vertical">
       <div
         ref="viewportNode"
         class="viewport"
-        :class="{ draggingEdge: graphStore.mouseEditedEdge != null }"
         :style="groupColors"
         v-on.="graphNavigator.pointerEvents"
         v-on..="nodeSelection.events"
@@ -668,19 +676,11 @@ const groupColors = computed(() => {
         @pointermove.capture="graphNavigator.pointerEventsCapture.pointermove"
         @wheel.capture="graphNavigator.pointerEventsCapture.wheel"
       >
-        <div class="layer" :style="{ transform: graphNavigator.transform }">
-          <GraphNodes
-            :graphNodeSelections="graphNodeSelections"
-            @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
-            @nodeDoubleClick="(id) => stackNavigator.enterNode(id)"
-            @createNodes="createNodesFromSource"
-            @setNodeColor="setSelectedNodesColor"
-          />
-        </div>
-        <div
-          ref="graphNodeSelections"
-          class="layer"
-          :style="{ transform: graphNavigator.transform, 'z-index': -1 }"
+        <GraphNodes
+          @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
+          @nodeDoubleClick="(id) => stackNavigator.enterNode(id)"
+          @createNodes="createNodesFromSource"
+          @setNodeColor="setSelectedNodesColor"
         />
         <GraphEdges :navigator="graphNavigator" @createNodeFromEdge="handleEdgeDrop" />
         <ComponentBrowser
@@ -772,19 +772,6 @@ const groupColors = computed(() => {
   overflow: clip;
   --group-color-fallback: #006b8a;
   --node-color-no-type: #596b81;
-}
-
-.layer {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 0;
-  height: 0;
-  contain: layout size style;
-  will-change: transform;
-}
-
-.layer.nodes:deep(::selection) {
-  background-color: rgba(255, 255, 255, 20%);
+  --output-node-color: #006b8a;
 }
 </style>

@@ -16,6 +16,7 @@ import java.io.PrintStream;
 import java.util.List;
 import java.util.Objects;
 import org.enso.common.LanguageInfo;
+import org.enso.common.RuntimeOptions;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.LocalScope;
@@ -43,7 +44,6 @@ import org.enso.interpreter.runtime.tag.Patchable;
 import org.enso.interpreter.util.FileDetector;
 import org.enso.lockmanager.client.ConnectedLockManager;
 import org.enso.logger.masking.MaskingFactory;
-import org.enso.polyglot.RuntimeOptions;
 import org.enso.syntax2.Line;
 import org.enso.syntax2.Tree;
 import org.graalvm.options.OptionCategory;
@@ -233,7 +233,13 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
       var outputRedirect = new ByteArrayOutputStream();
       var redirectConfigWithStrictErrors =
           new CompilerConfig(
-              false, false, true, false, true, scala.Option.apply(new PrintStream(outputRedirect)));
+              false,
+              false,
+              true,
+              false,
+              true,
+              false,
+              scala.Option.apply(new PrintStream(outputRedirect)));
       var moduleContext =
           new ModuleContext(
               module.asCompilerModule(),

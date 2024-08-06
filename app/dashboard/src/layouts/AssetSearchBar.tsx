@@ -86,10 +86,10 @@ function Tags(props: InternalTagsProps) {
       data-testid="asset-search-tag-names"
       className="pointer-events-auto flex flex-wrap gap-2 whitespace-nowrap px-1.5"
     >
-      {(isCloud ? AssetQuery.tagNames : AssetQuery.localTagNames).flatMap(entry => {
+      {(isCloud ? AssetQuery.tagNames : AssetQuery.localTagNames).flatMap((entry) => {
         const [key, tag] = entry
-        return tag == null || isShiftPressed !== tag.startsWith('-')
-          ? []
+        return tag == null || isShiftPressed !== tag.startsWith('-') ?
+            []
           : [
               <FocusRing key={key}>
                 <ariaComponents.Button
@@ -133,7 +133,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
   const [suggestions, setSuggestions] = React.useState(rawSuggestions)
   const suggestionsRef = React.useRef(rawSuggestions)
   const [selectedIndices, setSelectedIndices] = React.useState<ReadonlySet<number>>(
-    new Set<number>()
+    new Set<number>(),
   )
   const [selectedIndex, setSelectedIndex] = React.useState<number | null>(null)
   const [areSuggestionsVisible, setAreSuggestionsVisible] = React.useState(false)
@@ -203,7 +203,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
           event.stopImmediatePropagation()
           querySource.current = QuerySource.tabbing
           const reverse = event.key === 'ArrowUp'
-          setSelectedIndex(oldIndex => {
+          setSelectedIndex((oldIndex) => {
             const length = Math.max(1, suggestionsRef.current.length)
             if (reverse) {
               return oldIndex == null ? length - 1 : (oldIndex + length - 1) % length
@@ -279,7 +279,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
 
   return (
     <FocusArea direction="horizontal">
-      {innerProps => (
+      {(innerProps) => (
         <aria.Label
           data-testid="asset-search-bar"
           {...aria.mergeProps<aria.LabelProps>()(innerProps, {
@@ -289,7 +289,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
             onFocus: () => {
               setAreSuggestionsVisible(true)
             },
-            onBlur: event => {
+            onBlur: (event) => {
               if (!event.currentTarget.contains(event.relatedTarget)) {
                 if (querySource.current === QuerySource.tabbing) {
                   querySource.current = QuerySource.external
@@ -304,108 +304,115 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
             className={ariaComponents.DIALOG_BACKGROUND({
               className: tailwindMerge.twMerge(
                 'absolute left-0 top-0 z-1 flex w-full flex-col overflow-hidden rounded-default border-0.5 border-primary/20 -outline-offset-1 outline-primary transition-colors',
-                areSuggestionsVisible ? '' : 'bg-transparent'
+                areSuggestionsVisible ? '' : 'bg-transparent',
               ),
             })}
           >
             <div className="h-[32px]" />
 
-            {areSuggestionsVisible && (
-              <div className="relative mt-3 flex flex-col gap-3">
-                {/* Tags (`name:`, `modified:`, etc.) */}
-                <Tags
-                  isCloud={isCloud}
-                  querySource={querySource}
-                  query={query}
-                  setQuery={setQuery}
-                />
-                {/* Asset labels */}
-                {isCloud && labels.length !== 0 && (
-                  <div
-                    data-testid="asset-search-labels"
-                    className="pointer-events-auto flex gap-2 px-1.5"
-                  >
-                    {[...labels]
-                      .sort((a, b) => string.compareCaseInsensitive(a.value, b.value))
-                      .map(label => {
-                        const negated = query.negativeLabels.some(term =>
-                          array.shallowEqual(term, [label.value])
-                        )
-                        return (
-                          <Label
-                            key={label.id}
-                            color={label.color}
-                            active={
-                              negated ||
-                              query.labels.some(term => array.shallowEqual(term, [label.value]))
-                            }
-                            negated={negated}
-                            onPress={event => {
-                              querySource.current = QuerySource.internal
-                              setQuery(oldQuery => {
-                                const newQuery = oldQuery.withToggled(
-                                  'labels',
-                                  'negativeLabels',
-                                  label.value,
-                                  event.shiftKey
-                                )
-                                baseQuery.current = newQuery
-                                return newQuery
-                              })
-                            }}
-                          >
-                            {label.value}
-                          </Label>
-                        )
-                      })}
-                  </div>
-                )}
-                {/* Suggestions */}
-                <div className="flex max-h-search-suggestions-list flex-col overflow-y-auto overflow-x-hidden pb-0.5 pl-0.5">
-                  {suggestions.map((suggestion, index) => (
-                    // This should not be a `<button>`, since `render()` may output a
-                    // tree containing a button.
-                    <aria.Button
-                      data-testid="asset-search-suggestion"
-                      key={index}
-                      ref={el => {
-                        if (index === selectedIndex) {
-                          el?.focus()
-                        }
-                      }}
-                      className={tailwindMerge.twMerge(
-                        'flex cursor-pointer rounded-l-default rounded-r-sm px-[7px] py-0.5 text-left transition-[background-color] hover:bg-primary/5',
-                        selectedIndices.has(index) && 'bg-primary/10',
-                        index === selectedIndex && 'bg-selected-frame'
-                      )}
-                      onPress={event => {
-                        querySource.current = QuerySource.internal
-                        setQuery(
-                          selectedIndices.has(index)
-                            ? suggestion.deleteFromQuery(event.shiftKey ? query : baseQuery.current)
-                            : suggestion.addToQuery(event.shiftKey ? query : baseQuery.current)
-                        )
-                        if (event.shiftKey) {
-                          setSelectedIndices(
-                            new Set(
-                              selectedIndices.has(index)
-                                ? [...selectedIndices].filter(otherIndex => otherIndex !== index)
-                                : [...selectedIndices, index]
-                            )
-                          )
-                        } else {
-                          setAreSuggestionsVisible(false)
-                        }
-                      }}
+            <div
+              className={tailwindMerge.twMerge(
+                'grid transition-grid-template-rows duration-200',
+                areSuggestionsVisible ? 'grid-rows-1fr' : 'grid-rows-0fr',
+              )}
+            >
+              <div className="overflow-y-auto overflow-x-hidden">
+                <div className="relative mt-3 flex flex-col gap-3">
+                  {/* Tags (`name:`, `modified:`, etc.) */}
+                  <Tags
+                    isCloud={isCloud}
+                    querySource={querySource}
+                    query={query}
+                    setQuery={setQuery}
+                  />
+                  {/* Asset labels */}
+                  {isCloud && labels.length !== 0 && (
+                    <div
+                      data-testid="asset-search-labels"
+                      className="pointer-events-auto flex gap-2 px-1.5"
                     >
-                      <ariaComponents.Text variant="body" truncate="1" className="w-full">
-                        {suggestion.render()}
-                      </ariaComponents.Text>
-                    </aria.Button>
-                  ))}
+                      {[...labels]
+                        .sort((a, b) => string.compareCaseInsensitive(a.value, b.value))
+                        .map((label) => {
+                          const negated = query.negativeLabels.some((term) =>
+                            array.shallowEqual(term, [label.value]),
+                          )
+                          return (
+                            <Label
+                              key={label.id}
+                              color={label.color}
+                              active={
+                                negated ||
+                                query.labels.some((term) => array.shallowEqual(term, [label.value]))
+                              }
+                              negated={negated}
+                              onPress={(event) => {
+                                querySource.current = QuerySource.internal
+                                setQuery((oldQuery) => {
+                                  const newQuery = oldQuery.withToggled(
+                                    'labels',
+                                    'negativeLabels',
+                                    label.value,
+                                    event.shiftKey,
+                                  )
+                                  baseQuery.current = newQuery
+                                  return newQuery
+                                })
+                              }}
+                            >
+                              {label.value}
+                            </Label>
+                          )
+                        })}
+                    </div>
+                  )}
+                  {/* Suggestions */}
+                  <div className="flex max-h-search-suggestions-list flex-col overflow-y-auto overflow-x-hidden pb-0.5 pl-0.5">
+                    {suggestions.map((suggestion, index) => (
+                      // This should not be a `<button>`, since `render()` may output a
+                      // tree containing a button.
+                      <aria.Button
+                        data-testid="asset-search-suggestion"
+                        key={index}
+                        ref={(el) => {
+                          if (index === selectedIndex) {
+                            el?.focus()
+                          }
+                        }}
+                        className={tailwindMerge.twMerge(
+                          'flex cursor-pointer rounded-l-default rounded-r-sm px-[7px] py-0.5 text-left transition-[background-color] hover:bg-primary/5',
+                          selectedIndices.has(index) && 'bg-primary/10',
+                          index === selectedIndex && 'bg-selected-frame',
+                        )}
+                        onPress={(event) => {
+                          querySource.current = QuerySource.internal
+                          setQuery(
+                            selectedIndices.has(index) ?
+                              suggestion.deleteFromQuery(event.shiftKey ? query : baseQuery.current)
+                            : suggestion.addToQuery(event.shiftKey ? query : baseQuery.current),
+                          )
+                          if (event.shiftKey) {
+                            setSelectedIndices(
+                              new Set(
+                                selectedIndices.has(index) ?
+                                  [...selectedIndices].filter((otherIndex) => otherIndex !== index)
+                                : [...selectedIndices, index],
+                              ),
+                            )
+                          } else {
+                            setAreSuggestionsVisible(false)
+                          }
+                        }}
+                      >
+                        <ariaComponents.Text variant="body" truncate="1" className="w-full">
+                          {suggestion.render()}
+                        </ariaComponents.Text>
+                      </aria.Button>
+                    ))}
+                  </div>
                 </div>
               </div>
-            )}
+            </div>
           </div>
           <SvgMask
             src={FindIcon}
@@ -416,7 +423,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
               aria-label={getText('assetSearchFieldLabel')}
               className="relative grow before:text before:absolute before:-inset-x-1 before:my-auto before:rounded-full before:transition-all"
               value={query.query}
-              onKeyDown={event => {
+              onKeyDown={(event) => {
                 event.continuePropagation()
               }}
             >
@@ -425,20 +432,20 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                 ref={searchRef}
                 size={1}
                 placeholder={
-                  isCloud
-                    ? detect.isOnMacOS()
-                      ? getText('remoteBackendSearchPlaceholderMacOs')
-                      : getText('remoteBackendSearchPlaceholder')
-                    : getText('localBackendSearchPlaceholder')
+                  isCloud ?
+                    detect.isOnMacOS() ?
+                      getText('remoteBackendSearchPlaceholderMacOs')
+                    : getText('remoteBackendSearchPlaceholder')
+                  : getText('localBackendSearchPlaceholder')
                 }
                 className="focus-child peer text relative z-1 w-full bg-transparent placeholder-primary/40"
-                onChange={event => {
+                onChange={(event) => {
                   if (querySource.current !== QuerySource.internal) {
                     querySource.current = QuerySource.typing
                     setQuery(AssetQuery.fromString(event.target.value))
                   }
                 }}
-                onKeyDown={event => {
+                onKeyDown={(event) => {
                   if (
                     event.key === 'Enter' &&
                     !event.shiftKey &&

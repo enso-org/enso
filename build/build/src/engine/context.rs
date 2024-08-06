@@ -243,7 +243,7 @@ impl RunContext {
 
 
         let _test_results_upload_guard =
-            if self.config.test_jvm || self.config.test_standard_library {
+            if self.config.test_jvm || self.config.test_standard_library.is_some() {
                 // If we run tests, make sure that old and new results won't end up mixed together.
                 let test_results_dir = ENSO_TEST_JUNIT_DIR
                     .get()
@@ -274,6 +274,9 @@ impl RunContext {
         // sbt:warning: java.lang.ClassNotFoundException:
         // org.enso.interpreter.node.expression.builtin.bool.True
         ide_ci::fs::remove_if_exists(&self.paths.repo_root.engine.runtime.target)?;
+        // cleanup distribution from previous build
+        // it is fast to assemble it again
+        ide_ci::fs::remove_if_exists(&self.paths.repo_root.built_distribution)?;
 
         // We want to start this earlier, and await only before Engine build starts.
         let perhaps_generate_java_from_rust_job =
@@ -390,14 +393,16 @@ impl RunContext {
             Ok(())
         };
 
-        if self.config.test_standard_library {
-            enso.run_tests(IrCaches::No, &sbt, PARALLEL_ENSO_TESTS).await?;
+        match &self.config.test_standard_library {
+            Some(selection) => {
+                enso.run_tests(IrCaches::No, &sbt, PARALLEL_ENSO_TESTS, selection.clone()).await?;
+            }
+            None => {}
         }
 
         perhaps_test_java_generated_from_rust_job.await.transpose()?;
 
         // === Run benchmarks ===
-        debug!("Running benchmarks.");
         let build_benchmark_task = if self.config.build_benchmarks {
             let build_benchmark_task_names = [
                 "runtime-benchmarks/compile",
@@ -419,6 +424,7 @@ impl RunContext {
             build_benchmark_task.as_deref().into_iter().chain(execute_benchmark_tasks);
         let benchmark_command = Sbt::sequential_tasks(build_and_execute_benchmark_task);
         if !benchmark_command.is_empty() {
+            debug!("Running benchmarks.");
             sbt.call_arg(benchmark_command).await?;
         } else {
             debug!("No SBT tasks to run.");
@@ -655,12 +661,10 @@ pub async fn runner_sanity_test(
             .args(["--run", repo_root.test.join("Base_Tests").as_str()])
             .set_env_opt(ENSO_JAVA, enso_java)?
             .set_env(ENSO_DATA_DIRECTORY, engine_package)?
-            .run_stdout()
-            .await?;
-        ensure!(
-            test_base.contains("0 tests failed."),
-            "All tests shall succeed. Output:\n{test_base}",
-        );
+            .run_ok()
+            .await;
+        test_base
+    } else {
+        Ok(())
     }
-    Ok(())
 }

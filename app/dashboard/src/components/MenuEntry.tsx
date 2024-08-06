@@ -44,6 +44,7 @@ export const ACTION_TO_TEXT_ID: Readonly<
   >
 > = {
   settings: 'settingsShortcut',
+  closeTab: 'closeTabShortcut',
   open: 'openShortcut',
   run: 'runShortcut',
   close: 'closeShortcut',
@@ -120,11 +121,11 @@ export default function MenuEntry(props: MenuEntryProps) {
   const info = inputBindings.metadata[action]
   const labelTextId: text.TextId = (() => {
     if (action === 'openInFileBrowser') {
-      return detect.isOnMacOS()
-        ? 'openInFileBrowserShortcutMacOs'
-        : detect.isOnWindows()
-          ? 'openInFileBrowserShortcutWindows'
-          : 'openInFileBrowserShortcut'
+      return (
+        detect.isOnMacOS() ? 'openInFileBrowserShortcutMacOs'
+        : detect.isOnWindows() ? 'openInFileBrowserShortcutWindows'
+        : 'openInFileBrowserShortcut'
+      )
     } else {
       return ACTION_TO_TEXT_ID[action]
     }
@@ -143,25 +144,27 @@ export default function MenuEntry(props: MenuEntryProps) {
   }, [isDisabled, inputBindings, action, doAction])
 
   return hidden ? null : (
-    <FocusRing>
-      <aria.Button
-        {...aria.mergeProps<aria.ButtonProps>()(focusChildProps, {
-          isDisabled,
-          className: 'group flex w-full rounded-menu-entry',
-          onPress: () => {
-            unsetModal()
-            doAction()
-          },
-        })}
-      >
-        <div className={MENU_ENTRY_VARIANTS(variantProps)}>
-          <div title={title} className="flex items-center gap-menu-entry whitespace-nowrap">
-            <SvgMask src={icon ?? info.icon ?? BlankIcon} color={info.color} className="size-4" />
-            <ariaComponents.Text slot="label">{label ?? getText(labelTextId)}</ariaComponents.Text>
+      <FocusRing>
+        <aria.Button
+          {...aria.mergeProps<aria.ButtonProps>()(focusChildProps, {
+            isDisabled,
+            className: 'group flex w-full rounded-menu-entry',
+            onPress: () => {
+              unsetModal()
+              doAction()
+            },
+          })}
+        >
+          <div className={MENU_ENTRY_VARIANTS(variantProps)}>
+            <div title={title} className="flex items-center gap-menu-entry whitespace-nowrap">
+              <SvgMask src={icon ?? info.icon ?? BlankIcon} color={info.color} className="size-4" />
+              <ariaComponents.Text slot="label">
+                {label ?? getText(labelTextId)}
+              </ariaComponents.Text>
+            </div>
+            <KeyboardShortcut action={action} />
           </div>
-          <KeyboardShortcut action={action} />
-        </div>
-      </aria.Button>
-    </FocusRing>
-  )
+        </aria.Button>
+      </FocusRing>
+    )
 }

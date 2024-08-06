@@ -47,17 +47,18 @@ export interface UserBarProps {
 export default function UserBar(props: UserBarProps) {
   const { invisible = false, setIsHelpChatOpen, onShareClick, goToSettingsPage, onSignOut } = props
 
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useFullUserSession()
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const { isFeatureUnderPaywall } = billing.usePaywall({ plan: user.plan })
+
   const shouldShowUpgradeButton = isFeatureUnderPaywall('inviteUser')
   const shouldShowShareButton = onShareClick != null
   const shouldShowInviteButton = !shouldShowShareButton && !shouldShowUpgradeButton
 
   return (
     <FocusArea active={!invisible} direction="horizontal">
-      {innerProps => (
+      {(innerProps) => (
         <div className="bg-primary/5 pt-0.5">
           <div
             className="flex h-[46px] shrink-0 cursor-default items-center gap-user-bar pl-icons-x pr-3"
@@ -77,7 +78,7 @@ export default function UserBar(props: UserBarProps) {
             )}
 
             {shouldShowUpgradeButton && (
-              <paywall.PaywallDialogButton feature={'inviteUser'} size="medium" variant="tertiary">
+              <paywall.PaywallDialogButton feature="inviteUser" size="medium" variant="tertiary">
                 {getText('invite')}
               </paywall.PaywallDialogButton>
             )}

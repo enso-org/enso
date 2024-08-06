@@ -45,6 +45,7 @@ export default function Spinner(props: SpinnerProps) {
       viewBox="0 0 24 24"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
     >
       <rect
         x={1.5}
@@ -57,7 +58,7 @@ export default function Spinner(props: SpinnerProps) {
         strokeWidth={3}
         className={tailwindMerge.twMerge(
           'pointer-events-none origin-center !animate-spin-ease transition-stroke-dasharray [transition-duration:var(--spinner-slow-transition-duration)]',
-          SPINNER_CSS_CLASSES[state]
+          SPINNER_CSS_CLASSES[state],
         )}
       />
     </svg>

@@ -144,4 +144,19 @@ object Warning {
     override def diagnosticKeys(): Array[Any] = Array(ir.name)
   }
 
+  case class Syntax(ir: IR, message: String) extends Warning {
+
+    /** @return a human-readable description of this error condition.
+      */
+    override def message(source: (IdentifiedLocation => String)): String =
+      message
+
+    /** The location at which the diagnostic occurs. */
+    override val location: Option[IdentifiedLocation] = ir.location
+
+    /** The important keys identifying identity of the diagnostic
+      */
+    override def diagnosticKeys(): Array[Any] = Array()
+  }
+
 }

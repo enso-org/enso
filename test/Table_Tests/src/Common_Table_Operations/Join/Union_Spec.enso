@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Runtime.Ref.Ref
 
 from Standard.Table import all
 from Standard.Table.Errors import all
@@ -10,6 +11,7 @@ from Standard.Database.Errors import Unsupported_Database_Operation, Integrity_E
 from Standard.Test import all
 
 from project.Common_Table_Operations.Util import all
+from project.Common_Table_Operations.Date_Time_Spec import as_local_date_time_repr
 import project.Util
 
 main filter=Nothing = run_default_backend add_specs filter
@@ -17,13 +19,9 @@ main filter=Nothing = run_default_backend add_specs filter
 type My_Type
     Value x y
 
-type Data
-    Value ~connection
+type Lazy_Ref
+    Value ~get
 
-    setup create_connection_fn =
-        Data.Value (create_connection_fn Nothing)
-
-    teardown self = self.connection.close
 # the ... operator used in the calls for Table.from_union and first.union "freezes" the default arguments so that they can be specified later, allowing us to run the full suite of tests
 call_static_union tables =
     Table.from_union tables ...
@@ -48,94 +46,128 @@ add_specs suite_builder setup =
             r.catch.to_display_text . should_contain "at least 1"
 
 run_union_tests group_builder setup call_union =
-    create_connection_fn = setup.create_connection_func
-    data = Data.setup create_connection_fn
-    group_builder.teardown <|
-        data.teardown
-    table_builder cols =
-        setup.table_builder cols connection=data.connection
+    materialize = setup.materialize
+    ## In Database backends we cannot make assumptions about the order of rows in the result, so we sort the table after materializing.
+       In the in-memory backend, we avoid the sorting on purpose, to test that the order of rows in the result is as expected.
+    materialize_and_maybe_sort table column_for_sort="rowid" =
+        if setup.is_database.not then table else
+            # We also remove the rowid column from the result to avoid interfering with the test.
+            materialize table . sort column_for_sort . remove_columns "rowid" on_problems=..Ignore
+    ## A paired builder to `materialize_and_maybe_sort`.
+       In Database, it adds a rowid column to the table. In in-memory, it just delegates to `table_builder`.
+       For convenience, to avoid having to specify the starting id on each call, we just use a global counter.
+       This way, tables created next to each other will have increasing rowids, as we'd expect.
+    rowid_counter = Ref.new 0
+    build_table_with_maybe_rowid structure =
+        if setup.is_database.not then setup.table_builder structure else
+            length = structure.first.second.length
+            start = rowid_counter.modify (+length)
+            # The rowid column is first to work correctly with By Position matching.
+            setup.table_builder ([["rowid", start.up_to (start+length) . to_vector]] + structure)
+
+    table_builder = setup.table_builder
     group_builder.specify "should merge columns from multiple tables" <|
         t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]], ["C", [True, False, True]]]
         t2 = table_builder [["A", [4, 5, 6]], ["B", ["d", "e", "f"]], ["C", [False, True, False]]]
-        t3 = table_builder [["A", [7, 8, 9]], ["B", ["g", "h", "i"]], ["C", [True, False, False]]]
 
         t4 = call_union [t1, t2]
         expect_column_names ["A", "B", "C"] t4
-        t4.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6]
-        t4.at "B" . to_vector . should_equal ["a", "b", "c", "d", "e", "f"]
-        t4.at "C" . to_vector . should_equal [True, False, True, False, True, False]
 
-        t5 = call_union [t3, t1, t2]
-        expect_column_names ["A", "B", "C"] t5
-        t5.at "A" . to_vector . should_equal [7, 8, 9, 1, 2, 3, 4, 5, 6]
-        t5.at "B" . to_vector . should_equal ["g", "h", "i", "a", "b", "c", "d", "e", "f"]
-        t5.at "C" . to_vector . should_equal [True, False, False, True, False, True, False, True, False]
+        m4 = materialize_and_maybe_sort t4 "A"
+        m4.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6]
+        m4.at "B" . to_vector . should_equal ["a", "b", "c", "d", "e", "f"]
+        m4.at "C" . to_vector . should_equal [True, False, True, False, True, False]
 
+        # In in-memory we also check one more test with ordering:
+        if setup.is_database.not then
+            t3 = table_builder [["A", [7, 8, 9]], ["B", ["g", "h", "i"]], ["C", [True, False, False]]]
+            t5 = call_union [t3, t1, t2]
+            expect_column_names ["A", "B", "C"] t5
+            t5.at "A" . to_vector . should_equal [7, 8, 9, 1, 2, 3, 4, 5, 6]
+            t5.at "B" . to_vector . should_equal ["g", "h", "i", "a", "b", "c", "d", "e", "f"]
+            t5.at "C" . to_vector . should_equal [True, False, False, True, False, True, False, True, False]
+
+    table1 = Lazy_Ref.Value <|
+        build_table_with_maybe_rowid [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
+    table2 = Lazy_Ref.Value <|
+        build_table_with_maybe_rowid [["C", ["d", "e", "f"]], ["A", [4, 5, 6]]]
+    table3 = Lazy_Ref.Value <|
+        build_table_with_maybe_rowid [["D", [Nothing, Nothing, 0]], ["C", ["g", "h", "i"]]]
     group_builder.specify "should fill unmatched columns (by name matching) with nulls and report a warning by default" <|
-        t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
-        t2 = table_builder [["C", ["d", "e", "f"]], ["A", [4, 5, 6]]]
-        t3 = table_builder [["D", [Nothing, Nothing, 0]], ["C", ["g", "h", "i"]]]
+        t1 = table1.get
+        t2 = table2.get
+        t3 = table3.get
 
         action = call_union [t1, t2, t3] on_problems=_
         tester table =
-            expect_column_names ["A", "B", "C", "D"] table
-            table.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6, Nothing, Nothing, Nothing]
-            table.at "B" . to_vector . should_equal ["a", "b", "c", Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
-            table.at "C" . to_vector . should_equal [Nothing, Nothing, Nothing, "d", "e", "f", "g", "h", "i"]
-            table.at "D" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, 0]
+            m = materialize_and_maybe_sort table
+            expect_column_names ["A", "B", "C", "D"] m
+            m.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6, Nothing, Nothing, Nothing]
+            m.at "B" . to_vector . should_equal ["a", "b", "c", Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+            m.at "C" . to_vector . should_equal [Nothing, Nothing, Nothing, "d", "e", "f", "g", "h", "i"]
+            m.at "D" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, 0]
         problems = [Unmatched_Columns.Error ["A", "B", "C", "D"]]
         Problems.test_problem_handling action problems tester
 
         action2 = call_union [t2, t3] on_problems=_
         tester2 table =
-            expect_column_names ["C", "A", "D"] table
-            table.at "C" . to_vector . should_equal ["d", "e", "f", "g", "h", "i"]
-            table.at "A" . to_vector . should_equal [4, 5, 6, Nothing, Nothing, Nothing]
-            table.at "D" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, 0]
+            m = materialize_and_maybe_sort table
+            expect_column_names ["C", "A", "D"] m
+            m.at "C" . to_vector . should_equal ["d", "e", "f", "g", "h", "i"]
+            m.at "A" . to_vector . should_equal [4, 5, 6, Nothing, Nothing, Nothing]
+            m.at "D" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, 0]
         problems2 = [Unmatched_Columns.Error ["A", "D"]]
         Problems.test_problem_handling action2 problems2 tester2
 
     group_builder.specify "should fill unmatched columns with nulls with no warning, if In_Any is explicitly chosen" <|
-        t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
-        t2 = table_builder [["C", ["d", "e", "f"]], ["A", [4, 5, 6]]]
-        t3 = table_builder [["D", [Nothing, Nothing, 0]], ["C", ["g", "h", "i"]]]
+        t1 = table1.get
+        t2 = table2.get
+        t3 = table3.get
 
         table = call_union [t1, t2, t3] columns_to_keep=..In_Any on_problems=..Report_Error
         Problems.assume_no_problems table
-        expect_column_names ["A", "B", "C", "D"] table
-        table.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6, Nothing, Nothing, Nothing]
-        table.at "B" . to_vector . should_equal ["a", "b", "c", Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
-        table.at "C" . to_vector . should_equal [Nothing, Nothing, Nothing, "d", "e", "f", "g", "h", "i"]
-        table.at "D" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, 0]
+        m = materialize_and_maybe_sort table
+        expect_column_names ["A", "B", "C", "D"] m
+        m.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6, Nothing, Nothing, Nothing]
+        m.at "B" . to_vector . should_equal ["a", "b", "c", Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+        m.at "C" . to_vector . should_equal [Nothing, Nothing, Nothing, "d", "e", "f", "g", "h", "i"]
+        m.at "D" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, 0]
 
     group_builder.specify "should drop unmatched columns and warn, if In_All is selected" <|
-        t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
-        t2 = table_builder [["C", ["d", "e", "f"]], ["A", [4, 5, 6]]]
-        t3 = table_builder [["A", [Nothing, Nothing, 0]], ["C", ["g", "h", "i"]]]
+        t1 = table1.get                             # A, B
+        t2 = table2.get                             # C, A
+        t3 = table3.get.rename_columns [["D", "A"]] # A, C
 
         t4 = call_union [t1, t2, t3] columns_to_keep=..In_All
         w = Problems.expect_only_warning Unmatched_Columns t4
         w.column_names.should_equal ["B", "C"]
-        expect_column_names ["A"] t4
-        t4.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6, Nothing, Nothing, 0]
+        m = materialize_and_maybe_sort t4
+        expect_column_names ["A"] m
+        m.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6, Nothing, Nothing, 0]
 
     group_builder.specify "should fail if asked to drop unmatched columns but the set of common columns is empty" <|
-        t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
-        t2 = table_builder [["C", ["d", "e", "f"]], ["A", [4, 5, 6]]]
-        t3 = table_builder [["D", [Nothing, Nothing, 0]], ["C", ["g", "h", "i"]]]
+        # We cannot have the rowid column here as we explicitly want to have no common columns.
+        t1 = table1.get.remove_columns "rowid" on_problems=..Ignore
+        t2 = table2.get.remove_columns "rowid" on_problems=..Ignore
+        t3 = table3.get.remove_columns "rowid" on_problems=..Ignore
 
         t4 = call_union [t1, t2, t3] columns_to_keep=..In_All on_problems=..Ignore
         t4.should_fail_with No_Output_Columns
-        t4.catch.to_display_text . should_equal "No columns in the result, because of another problem: Unmatched columns are set to be dropped, but no common column names were found."
+        t4.catch.to_display_text . should_equal "Unmatched columns are set to be dropped, but no common column names were found."
 
+    table4 = Lazy_Ref.Value <|
+        table_builder [["A", [1]], ["X", [2]], ["B", ["a"]], ["Y", [3]]]
+    table5 = Lazy_Ref.Value <|
+        table_builder [["A", [4]], ["Z", [5]], ["B", ["b"]], ["X", [6]]]
     group_builder.specify "should allow to select specified columns for union by In_List, using the ordering from the list" <|
-        t1 = table_builder [["A", [1]], ["X", [2]], ["B", ["a"]], ["Y", [3]]]
-        t2 = table_builder [["A", [4]], ["Z", [5]], ["B", ["b"]], ["X", [6]]]
+        t1 = table4.get
+        t2 = table5.get
 
         t3 = call_union [t1, t2] columns_to_keep=(..In_List ["B", "A"])
         expect_column_names ["B", "A"] t3
-        t3.at "B" . to_vector . should_equal ["a", "b"]
-        t3.at "A" . to_vector . should_equal [1, 4]
+        m3 = materialize_and_maybe_sort t3 "A"
+        m3.at "B" . to_vector . should_equal ["a", "b"]
+        m3.at "A" . to_vector . should_equal [1, 4]
 
     group_builder.specify "should add a Null column for unmatched columns from In_List" <|
         t1 = table_builder [["A", [1]], ["X", [2]]]
@@ -143,18 +175,19 @@ run_union_tests group_builder setup call_union =
 
         t3 = call_union [t1, t2] columns_to_keep=(..In_List ["B", "A"])
         expect_column_names ["B", "A"] t3
-        t3.at "B" . to_vector . should_equal [Nothing, Nothing]
-        t3.at "A" . to_vector . should_equal [1, 5]
+        m3 = materialize_and_maybe_sort t3 "A"
+        m3.at "B" . to_vector . should_equal [Nothing, Nothing]
+        m3.at "A" . to_vector . should_equal [1, 5]
 
     group_builder.specify "does not allow an empty list in In_List" <|
-        t1 = table_builder [["A", [1]], ["X", [2]]]
-        t2 = table_builder [["Z", [4]], ["A", [5]]]
+        t1 = table1.get
+        t2 = table2.get
         r = call_union [t1, t2] columns_to_keep=(..In_List [])
         r.should_fail_with Illegal_Argument
 
     group_builder.specify "does not error if duplicate entries appear in the In_List" <|
-        t1 = table_builder [["A", [1]], ["X", [2]], ["B", ["a"]], ["Y", [3]]]
-        t2 = table_builder [["A", [4]], ["Z", [5]], ["B", ["b"]], ["X", [6]]]
+        t1 = table4.get
+        t2 = table5.get
 
         t3 = call_union [t1, t2] columns_to_keep=(..In_List ["B", "B", "A", "A", "B"])
         expect_column_names ["B", "A"] t3
@@ -165,8 +198,9 @@ run_union_tests group_builder setup call_union =
 
         t3 = call_union [t1, t2]  match_columns=Match_Columns.By_Position
         expect_column_names ["A", "Y"] t3
-        t3.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6]
-        t3.at "Y" . to_vector . should_equal ["a", "b", "c", "d", "e", "f"]
+        m3 = materialize_and_maybe_sort t3 "A"
+        m3.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6]
+        m3.at "Y" . to_vector . should_equal ["a", "b", "c", "d", "e", "f"]
 
     group_builder.specify "should fill extra columns (positional matching) with nulls and report a warning by default" <|
         t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
@@ -176,9 +210,10 @@ run_union_tests group_builder setup call_union =
         action = call_union [t1, t2, t3] match_columns=Match_Columns.By_Position on_problems=_
         tester table =
             expect_column_names ["A1", "B1", "C"] table
-            table.at "A1" . to_vector . should_equal [1, 2, 3, 4, 5, 6, 10, 20, 30]
-            table.at "B1" . to_vector . should_equal ["a", "b", "c", "d", "e", "f", Nothing, Nothing, Nothing]
-            table.at "C" . to_vector . should_equal [Nothing, Nothing, Nothing, 7, 8, 9, Nothing, Nothing, Nothing]
+            m = materialize_and_maybe_sort table "A1"
+            m.at "A1" . to_vector . should_equal [1, 2, 3, 4, 5, 6, 10, 20, 30]
+            m.at "B1" . to_vector . should_equal ["a", "b", "c", "d", "e", "f", Nothing, Nothing, Nothing]
+            m.at "C" . to_vector . should_equal [Nothing, Nothing, Nothing, 7, 8, 9, Nothing, Nothing, Nothing]
         problems = [Column_Count_Mismatch.Error 3 1]
         Problems.test_problem_handling action problems tester
 
@@ -189,7 +224,7 @@ run_union_tests group_builder setup call_union =
 
         t4 = call_union [t1, t2, t3] columns_to_keep=..In_All match_columns=..By_Position
         expect_column_names ["A"] t4
-        t4.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6, 10, 20, 30]
+        t4.at "A" . to_vector . should_equal_ignoring_order [1, 2, 3, 4, 5, 6, 10, 20, 30]
         w = Problems.expect_only_warning Column_Count_Mismatch t4
         w.expected.should_equal 3
         w.actual.should_equal 1
@@ -202,13 +237,14 @@ run_union_tests group_builder setup call_union =
         t4 = call_union [t1, t2, t3] columns_to_keep=..In_Any match_columns=..By_Position on_problems=..Report_Error
         Problems.assume_no_problems t4
         expect_column_names ["A1", "B1", "C"] t4
-        t4.at "A1" . to_vector . should_equal [1, 2, 3, 4, 5, 6, 10, 20, 30]
-        t4.at "B1" . to_vector . should_equal ["a", "b", "c", "d", "e", "f", Nothing, Nothing, Nothing]
-        t4.at "C" . to_vector . should_equal [Nothing, Nothing, Nothing, 7, 8, 9, Nothing, Nothing, Nothing]
+        m4 = materialize_and_maybe_sort t4 "A1"
+        m4.at "A1" . to_vector . should_equal [1, 2, 3, 4, 5, 6, 10, 20, 30]
+        m4.at "B1" . to_vector . should_equal ["a", "b", "c", "d", "e", "f", Nothing, Nothing, Nothing]
+        m4.at "C" . to_vector . should_equal [Nothing, Nothing, Nothing, 7, 8, 9, Nothing, Nothing, Nothing]
 
     group_builder.specify "does not allow In_List with positional matching" <|
-        t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
-        t2 = table_builder [["A1", [4, 5, 6]], ["B1", ["d", "e", "f"]], ["C", [7, 8, 9]]]
+        t1 = table4.get
+        t2 = table5.get
         r = call_union [t1, t2] columns_to_keep=(..In_List ["A", "B"]) match_columns=Match_Columns.By_Position
         r.should_fail_with Illegal_Argument
 
@@ -218,42 +254,58 @@ run_union_tests group_builder setup call_union =
 
         check table =
             expect_column_names ["X", "A"] table
-            table.at "X" . to_vector . should_equal [1, 2, 3, 4, 5, 6]
-            table.at "A" . to_vector . should_equal [Nothing, Nothing, Nothing, "a", "b", "c"]
+            m = materialize_and_maybe_sort table "X"
+            m.at "X" . to_vector . should_equal [1, 2, 3, 4, 5, 6]
+            m.at "A" . to_vector . should_equal [Nothing, Nothing, Nothing, "a", "b", "c"]
 
         t3 = call_union [t1, t2] match_columns=Match_Columns.By_Position
         within_table t3 <|
             check t3
         Problems.get_attached_warnings t3 . should_equal [Column_Count_Mismatch.Error 2 1]
 
-        t5 = table_builder [["Y", [7, 8, 9]], ["A", ["d", "e", "f"]], ["Z", [10, 11, 12]]]
-        t6 = table_builder [["W", [0]]]
-        t7 = table_builder [["X", [7, 8, 9]], ["Y", ["d", "e", "f"]], ["Z", [10, 11, 12]]]
+        t5 = setup.light_table_builder [["Y", [7, 8, 9]], ["A", ["d", "e", "f"]], ["Z", [10, 11, 12]]]
+        t6 = setup.light_table_builder [["W", [0]]]
+        t7 = setup.light_table_builder [["X", [7, 8, 9]], ["Y", ["d", "e", "f"]], ["Z", [10, 11, 12]]]
         t8 = call_union [t1, t2, t5, t6, t7] match_columns=Match_Columns.By_Position
         expect_column_names ["Y", "A", "Z"] t8
 
     group_builder.specify "should allow to merge a table with itself" <|
-        t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
-        t2 = call_union [t1, t1, t1]
+        t1 = table1.get
+        t2 = call_union [t1, t1, t1] . remove_columns "rowid" on_problems=..Ignore
         expect_column_names ["A", "B"] t2
-        t2.at "A" . to_vector . should_equal [1, 2, 3, 1, 2, 3, 1, 2, 3]
-        t2.at "B" . to_vector . should_equal ["a", "b", "c", "a", "b", "c", "a", "b", "c"]
+        case setup.is_database of
+            False ->
+                t2.at "A" . to_vector . should_equal [1, 2, 3, 1, 2, 3, 1, 2, 3]
+                t2.at "B" . to_vector . should_equal ["a", "b", "c", "a", "b", "c", "a", "b", "c"]
+            True ->
+                m2 = materialize t2
+                m2.at "A" . to_vector . should_equal_ignoring_order [1, 1, 1, 2, 2, 2, 3, 3, 3]
+                m2.at "B" . to_vector . should_equal_ignoring_order ["a", "a", "a", "b", "b", "b", "c", "c", "c"]
 
     group_builder.specify "should not de-duplicate rows" <|
+        # We don't use build_table_with_maybe_rowid here on purpose, as that would make the rows no longer duplicated.
         t1 = table_builder [["A", [1, 1, 3]], ["B", ["a", "a", "c"]]]
         t2 = table_builder [["A", [1, 2, 2]], ["B", ["a", "b", "b"]]]
         t3 = call_union [t1, t2]
         expect_column_names ["A", "B"] t3
-        t3.at "A" . to_vector . should_equal [1, 1, 3, 1, 2, 2]
-        t3.at "B" . to_vector . should_equal ["a", "a", "c", "a", "b", "b"]
+        m3 = materialize t3
+        case setup.is_database of
+            False ->
+                m3.at "A" . to_vector . should_equal [1, 1, 3, 1, 2, 2]
+                m3.at "B" . to_vector . should_equal ["a", "a", "c", "a", "b", "b"]
+            True ->
+                sorted = m3.sort "A"
+                sorted.at "A" . to_vector . should_equal [1, 1, 1, 2, 2, 3]
+                sorted.at "B" . to_vector . should_equal ["a", "a", "a", "b", "b", "c"]
 
     group_builder.specify "should gracefully handle the case where no tables to union were provided" <|
-        t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
+        t1 = table1.get.remove_columns "rowid" on_problems=..Ignore
 
         check_same table =
             expect_column_names ["A", "B"] table
-            table.at "A" . to_vector . should_equal [1, 2, 3]
-            table.at "B" . to_vector . should_equal ["a", "b", "c"]
+            m = materialize_and_maybe_sort table "A"
+            m.at "A" . to_vector . should_equal [1, 2, 3]
+            m.at "B" . to_vector . should_equal ["a", "b", "c"]
 
         check_same <| call_union [t1]
         check_same <| call_union [t1] match_columns=Match_Columns.By_Position
@@ -276,47 +328,50 @@ run_union_tests group_builder setup call_union =
         t3 = call_union [t1, t2]
         expect_column_names ["A"] t3
         Problems.assume_no_problems t3
-        t3.at "A" . to_vector . should_equal ["a", "b", "c", "xyz", "abc", "def"]
-        t3.at "A" . value_type . is_text . should_be_true
-        Test.with_clue "t3[A].value_type="+(t3.at "A").value_type.to_display_text+": " <|
-            t3.at "A" . value_type . variable_length . should_be_true
+        t3.at "A" . to_vector . should_equal_ignoring_order ["a", "b", "c", "xyz", "abc", "def"]
+        t3.at "A" . value_type . should_be_a (Value_Type.Char ...)
+        t3.at "A" . value_type . variable_length . should_be_true
 
     group_builder.specify "should find a common type that will fit the merged columns (Integer + Float)" <|
         t1 = table_builder [["A", [0, 1, 2]]]
         t2 = table_builder [["A", [1.0, 2.0, 2.5]]]
 
         setup.expect_integer_type <| t1.at "A"
-        t2.at "A" . value_type . is_floating_point . should_be_true
+        t2.at "A" . value_type . should_be_a (Value_Type.Float ...)
 
         t3 = call_union [t1, t2]
         expect_column_names ["A"] t3
         Problems.assume_no_problems t3
-        t3.at "A" . value_type . is_floating_point . should_be_true
-        t3.at "A" . to_vector . should_equal [0, 1, 2, 1.0, 2.0, 2.5]
+        is_float_or_decimal (t3.at "A")
+        t3.at "A" . to_vector . should_equal_ignoring_order [0, 1, 2, 1.0, 2.0, 2.5]
 
     group_builder.specify "should find a common type that will fit the merged columns (numeric + Boolean)" <|
-        t1 = table_builder [["A", [0, 1, 20]]]
-        t2 = table_builder [["A", [True, False, True]]]
+        t1 = build_table_with_maybe_rowid [["A", [0, 1, 20]]]
+        t2 = build_table_with_maybe_rowid [["A", [True, False, True]]]
 
         setup.expect_integer_type <| t1.at "A"
         t2.at "A" . value_type . should_equal Value_Type.Boolean
 
         t3 = call_union [t1, t2]
-        expect_column_names ["A"] t3
-        Problems.assume_no_problems t3
         setup.expect_integer_type <| t3.at "A"
-        t3.at "A" . to_vector . should_equal [0, 1, 20, 1, 0, 1]
+        Problems.assume_no_problems t3
 
-        t4 = table_builder [["A", [1.5, 0.0, 2.0]]]
+        m3 = materialize_and_maybe_sort t3
+        expect_column_names ["A"] m3
+        m3.at "A" . to_vector . should_equal [0, 1, 20, 1, 0, 1]
+
+        t4 = build_table_with_maybe_rowid [["A", [1.5, 0.0, 2.0]]]
         t5 = call_union [t2, t4]
         Problems.assume_no_problems t5
-        t5.at "A" . value_type . is_floating_point . should_be_true
-        t5.at "A" . to_vector . should_equal [1.0, 0.0, 1.0, 1.5, 0.0, 2.0]
+        t5.at "A" . value_type . should_be_a (Value_Type.Float ...)
+
+        m5 = materialize_and_maybe_sort t5
+        m5.at "A" . to_vector . should_equal [1.0, 0.0, 1.0, 1.5, 0.0, 2.0]
 
     group_builder.specify "should warn about loss of precision when converting large Integer to Float" pending=(if setup.is_database then "Loss_Of_Integer_Precision not yet supported in DB.") <|
         # 2^70 is not exactly representable as a Float.
-        t1 = table_builder [["A", [2^70, 2^10, 2]]]
-        t2 = table_builder [["A", [1.5, 2.0, 2.5]]]
+        t1 = build_table_with_maybe_rowid [["A", [2^70, 2^10, 2]]]
+        t2 = build_table_with_maybe_rowid [["A", [1.5, 2.0, 2.5]]]
         t1.at "A" . value_type . is_decimal . should_be_true
         t2.at "A" . value_type . is_floating_point . should_be_true
 
@@ -325,8 +380,10 @@ run_union_tests group_builder setup call_union =
         w = Problems.expect_only_warning Loss_Of_Integer_Precision t3
         # TODO should we try to include column name here for context? may be worth it...
         w.affected_rows_count.should_equal 1
-        t3.at "A" . value_type . is_floating_point . should_be_true
-        t3.at "A" . to_vector . should_equal [(2^70).to_float, 2^10, 2, 1.5, 2.0, 2.5]
+
+        t3.at "A" . value_type . should_be_a (Value_Type.Float ...)
+        m3 = materialize_and_maybe_sort t3
+        m3.at "A" . to_vector . should_equal [(2^70).to_float, 2^10, 2, 1.5, 2.0, 2.5]
 
     group_builder.specify "should find a common type (Integer and Char of different sizes)" <|
         t1 = (table_builder [["X", [0, 1, 2]], ["Y", ['aa', 'bb', 'cc']]]) . cast "X" (Value_Type.Integer Bits.Bits_16) . cast "Y" (Value_Type.Char size=2 variable_length=False)
@@ -341,19 +398,29 @@ run_union_tests group_builder setup call_union =
                 t12.at "X" . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
                 t12.at "Y" . value_type . should_equal (Value_Type.Char size=2 variable_length=True)
 
-                t12.at "X" . to_vector . should_equal [0, 1, 2, 3, 4, 5]
-                t12.at "Y" . to_vector . should_equal ['aa', 'bb', 'cc', 'x', 'y', 'z']
+                m12 = materialize_and_maybe_sort t12 "X"
+                m12.at "X" . to_vector . should_equal [0, 1, 2, 3, 4, 5]
+                m12.at "Y" . to_vector . should_equal ['aa', 'bb', 'cc', 'x', 'y', 'z']
 
     date_time_pending = if setup.test_selection.date_time.not then "Date/Time operations are not supported."
     group_builder.specify "should warn when converting a Date to Date_Time" pending=date_time_pending <|
-        t1 = table_builder [["D", [Date_Time.new 2024 5 16 16 48 23]]]
-        t2 = table_builder [["D", [Date.new 2019 10 23, Date.new 2020]]]
+        t1 = build_table_with_maybe_rowid [["D", [Date_Time.new 2024 5 16 16 48 23]]]
+        t2 = build_table_with_maybe_rowid [["D", [Date.new 2019 10 23, Date.new 2020]]]
 
         action = call_union [t1, t2] on_problems=_
         tester table =
-            expect_column_names ["D"] table
-            table.at "D" . value_type . should_equal Value_Type.Date_Time
-            table.at "D" . to_vector . should_equal_tz_agnostic [Date_Time.new 2024 5 16 16 48 23, Date_Time.new 2019 10 23 0 0 0, Date_Time.new 2020 1 1 0 0 0]
+            m = materialize_and_maybe_sort table
+            expect_column_names ["D"] m
+            m.at "D" . value_type . should_equal Value_Type.Date_Time
+            ## Some backends will preserve the local time but change the offset (e.g. Snowflake)
+               and some will preserve the time instant but change the local time in the process of aligning offset (e.g. Postgres).
+            dt_vec = m.at "D" . to_vector
+            Test.with_clue <| "(D = "+dt_vec.to_display_text+") " <|
+                as_local dt = dt.format "YYYY-MM-DD HH:mm:ss"
+                preserves_local = (dt_vec.map as_local) == ["2024-05-16 16:48:23", "2019-10-23 00:00:00", "2020-01-01 00:00:00"]
+                at_utc dt = dt.at_zone Time_Zone.utc
+                preserves_instant = (dt_vec.map at_utc) == ([Date_Time.new 2024 5 16 16 48 23, Date_Time.new 2019 10 23 0 0 0, Date_Time.new 2020 1 1 0 0 0].map at_utc)
+                (preserves_local || preserves_instant) . should_be_true
         problems = [Mixing_Date_Time_Types.Date_To_Date_Time "D"]
         problems.first.to_display_text . should_contain "[D]"
         Problems.test_problem_handling action problems tester
@@ -395,14 +462,15 @@ run_union_tests group_builder setup call_union =
         action = call_union [t1, t2] on_problems=_
         result_checker table =
             expect_column_names ["A", "B", "C"] table
+            m = materialize_and_maybe_sort table "A"
             # If type was matched - the columns are merged as is:
-            table.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6]
+            m.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6]
             setup.expect_integer_type <| table.at "A"
             # If mixed, they are converted to text representation:
-            table.at "B" . to_vector . should_equal ["a", "b", "c", "1", "2", "3"]
+            m.at "B" . to_vector . should_equal ["a", "b", "c", "1", "2", "3"]
             table.at "B" . value_type . is_text . should_be_true
 
-            v = table.at "C" . to_vector
+            v = m.at "C" . to_vector
             # The check needs to be case insensitive because various database backends may represent Booleans with lower or uppercase.
             v.take 2 . map (t -> t.to_case Case.Lower) . should_equal ["true", "false"]
             # Nothing is preserved, not converted to text because we want to preserve the meaning of 'missing value':
@@ -422,18 +490,21 @@ run_union_tests group_builder setup call_union =
                 types = w.types.map value_type->
                     Meta.meta value_type . constructor . name
                 Test.with_clue "(should be one of...) " <|
-                    [["Char", "Integer"], ["Boolean", "Char"]].should_contain types
+                    [["Char", "Decimal"], ["Char", "Integer"], ["Boolean", "Char"]].should_contain types
         Problems.test_advanced_problem_handling action error_checker warnings_checker result_checker
 
     group_builder.specify "if no common type can be found, will fall back to converting all types to text and warn (Date+Time)" pending=date_time_pending <|
-        t1 = table_builder [["D", [Time_Of_Day.new 12, Time_Of_Day.new 13, Time_Of_Day.new 14]]]
-        t2 = table_builder [["D", [Date.new 2019, Date.new 2020, Date.new 2021]]]
+        t1 = build_table_with_maybe_rowid [["D", [Time_Of_Day.new 12, Time_Of_Day.new 13, Time_Of_Day.new 14]]]
+        t2 = build_table_with_maybe_rowid [["D", [Date.new 2019, Date.new 2020, Date.new 2021]]]
 
         action = call_union [t1, t2] on_problems=_
         tester table =
-            expect_column_names ["D"] table
-            table.at "D" . to_vector . should_equal ["12:00:00", "13:00:00", "14:00:00", "2019-01-01", "2020-01-01", "2021-01-01"]
-            table.at "D" . value_type . is_text . should_be_true
+            m = materialize_and_maybe_sort table
+            expect_column_names ["D"] m
+            # The nanoseconds suffix in time of day is optional - we strip it for the comparison.
+            strip_ns s = s.replace "\.0+$".to_regex ""
+            m.at "D" . to_vector . map strip_ns . should_equal ["12:00:00", "13:00:00", "14:00:00", "2019-01-01", "2020-01-01", "2021-01-01"]
+            m.at "D" . value_type . is_text . should_be_true
         problems = [No_Common_Type.Warning_Convert_To_Text [Value_Type.Time, Value_Type.Date] "D"]
         Problems.test_problem_handling action problems tester
 
@@ -442,13 +513,13 @@ run_union_tests group_builder setup call_union =
         t2 = table_builder [["B", ["a"]]]
         r1 = call_union [t1, t2] match_columns=Match_Columns.By_Position
         expect_column_names ["A"] r1
-        r1.at "A" . value_type . is_text . should_be_true
-        r1.at "A" . to_vector . should_equal ["1", "a"]
+        r1.at "A" . value_type . should_be_a (Value_Type.Char ...)
+        r1.at "A" . to_vector . should_equal_ignoring_order ["1", "a"]
         w = Problems.expect_only_warning No_Common_Type r1
         w.related_column_name.should_equal "A"
 
     group_builder.specify "should gracefully handle tables from different backends" <|
-        t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
+        t1 = table1.get
 
         alternative_connection = Database.connect (SQLite.In_Memory)
         t0 = (Table.new [["A", [1, 2, 4]], ["B", ["10", "20", "30"]]]).select_into_database_table alternative_connection "T0" temporary=True

@@ -1,3 +1,4 @@
+use crate::engine::StandardLibraryTestsSelection;
 use crate::prelude::*;
 
 use crate::paths::Paths;
@@ -6,8 +7,11 @@ use crate::paths::ENSO_META_TEST_ARGS;
 use crate::paths::ENSO_META_TEST_COMMAND;
 use crate::paths::ENSO_TEST_ANSI_COLORS;
 use crate::postgres;
-use crate::postgres::EndpointConfiguration;
+use crate::postgres::EndpointConfiguration as PostgresEndpointConfiguration;
 use crate::postgres::Postgresql;
+use crate::sqlserver;
+use crate::sqlserver::EndpointConfiguration as SQLServerEndpointConfiguration;
+use crate::sqlserver::SQLServer;
 
 use ide_ci::future::AsyncPolicy;
 use ide_ci::programs::docker::ContainerId;
@@ -74,6 +78,7 @@ impl BuiltEnso {
 
     pub async fn run_benchmarks(&self, opt: BenchmarkOptions) -> Result {
         let filename = format!("enso{}", if TARGET_OS == OS::Windows { ".exe" } else { "" });
+        let base_working_directory = self.paths.repo_root.test.benchmarks.try_parent()?;
         let enso = self
             .paths
             .repo_root
@@ -84,6 +89,7 @@ impl BuiltEnso {
             .join(filename);
         let benchmarks = Command::new(&enso)
             .args(["--jvm", "--run", self.paths.repo_root.test.benchmarks.as_str()])
+            .current_dir(base_working_directory)
             .set_env(ENSO_BENCHMARK_TEST_DRY_RUN, &Boolean::from(opt.dry_run))?
             .run_ok()
             .await;
@@ -92,10 +98,12 @@ impl BuiltEnso {
 
     pub fn run_test(&self, test_path: impl AsRef<Path>, ir_caches: IrCaches) -> Result<Command> {
         let mut command = self.cmd()?;
+        let base_working_directory = test_path.try_parent()?;
         command
             .arg(ir_caches)
             .arg("--run")
             .arg(test_path.as_ref())
+            .current_dir(base_working_directory)
             // This flag enables assertions in the JVM. Some of our stdlib tests had in the past
             // failed on Graal/Truffle assertions, so we want to have them triggered.
             .set_env(JAVA_OPTS, &ide_ci::programs::java::Option::EnableAssertions.as_ref())?;
@@ -113,6 +121,7 @@ impl BuiltEnso {
         ir_caches: IrCaches,
         sbt: &crate::engine::sbt::Context,
         async_policy: AsyncPolicy,
+        test_selection: StandardLibraryTestsSelection,
     ) -> Result {
         let paths = &self.paths;
         // Environment for meta-tests. See:
@@ -131,9 +140,27 @@ impl BuiltEnso {
             ide_ci::fs::write(google_api_test_data_dir.join("secret.json"), gdoc_key)?;
         }
 
+        let std_tests = match &test_selection {
+            StandardLibraryTestsSelection::All =>
+                crate::paths::discover_standard_library_tests(&paths.repo_root)?,
+            StandardLibraryTestsSelection::Selected(only) =>
+                only.iter().map(|test| paths.repo_root.test.join(test)).collect(),
+        };
+        let may_need_postgres = match &test_selection {
+            StandardLibraryTestsSelection::All => true,
+            StandardLibraryTestsSelection::Selected(only) =>
+                only.iter().any(|test| test.contains("Table_Tests")),
+        };
+        let may_need_sqlserver = match &test_selection {
+            StandardLibraryTestsSelection::All => true,
+            StandardLibraryTestsSelection::Selected(only) =>
+                only.iter().any(|test| test.contains("Microsoft_Tests")),
+        };
+
         let _httpbin = crate::httpbin::get_and_spawn_httpbin_on_free_port(sbt).await?;
+
         let _postgres = match TARGET_OS {
-            OS::Linux => {
+            OS::Linux if may_need_postgres => {
                 let runner_context_string = crate::env::ENSO_RUNNER_CONTAINER_NAME
                     .get_raw()
                     .or_else(|_| ide_ci::actions::env::RUNNER_NAME.get())
@@ -147,7 +174,7 @@ impl BuiltEnso {
                     database_name:      "enso_test_db".to_string(),
                     user:               "enso_test_user".to_string(),
                     password:           "enso_test_password".to_string(),
-                    endpoint:           EndpointConfiguration::deduce()?,
+                    endpoint:           PostgresEndpointConfiguration::deduce()?,
                     version:            "latest".to_string(),
                 };
                 let postgres = Postgresql::start(config).await?;
@@ -156,7 +183,30 @@ impl BuiltEnso {
             _ => None,
         };
 
-        let std_tests = crate::paths::discover_standard_library_tests(&paths.repo_root)?;
+        let _sqlserver = match TARGET_OS {
+            OS::Linux if may_need_sqlserver => {
+                let runner_context_string = crate::env::ENSO_RUNNER_CONTAINER_NAME
+                    .get_raw()
+                    .or_else(|_| ide_ci::actions::env::RUNNER_NAME.get())
+                    .unwrap_or_else(|_| Uuid::new_v4().to_string());
+                // GH-hosted runners are named like "GitHub Actions 10". Spaces are not allowed in
+                // the container name.
+                let container_name =
+                    format!("sqlserver-for-{runner_context_string}").replace(' ', "_");
+                let config = sqlserver::Configuration {
+                    sqlserver_container: ContainerId(container_name),
+                    database_name:       "tempdb".to_string(),
+                    user:                "sa".to_string(),
+                    password:            "enso_test_password_<YourStrong@Passw0rd>".to_string(),
+                    endpoint:            SQLServerEndpointConfiguration::deduce()?,
+                    version:             "latest".to_string(),
+                };
+                let sqlserver = SQLServer::start(config).await?;
+                Some(sqlserver)
+            }
+            _ => None,
+        };
+
         let futures = std_tests.into_iter().map(|test_path| {
             let command = self.run_test(test_path, ir_caches);
             async move { command?.run_ok().await }

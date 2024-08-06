@@ -37,11 +37,11 @@ export function DialogStackProvider(props: React.PropsWithChildren) {
   const [stack, setStack] = React.useState<DialogStackItem[]>([])
 
   const addToStack = eventCallbackHooks.useEventCallback((item: DialogStackItem) => {
-    setStack(currentStack => [...currentStack, item])
+    setStack((currentStack) => [...currentStack, item])
   })
 
   const sliceFromStack = eventCallbackHooks.useEventCallback((currentId: string) => {
-    setStack(currentStack => {
+    setStack((currentStack) => {
       const lastItem = currentStack.at(-1)
 
       if (lastItem?.id === currentId) {
@@ -62,11 +62,11 @@ updated properly.`)
   const value = React.useMemo<DialogStackContextType>(
     () => ({
       stack,
-      dialogsStack: stack.filter(item => ['dialog-fullscreen', 'dialog'].includes(item.type)),
+      dialogsStack: stack.filter((item) => ['dialog-fullscreen', 'dialog'].includes(item.type)),
       add: addToStack,
       slice: sliceFromStack,
     }),
-    [stack, addToStack, sliceFromStack]
+    [stack, addToStack, sliceFromStack],
   )
 
   return <DialogStackContext.Provider value={value}>{children}</DialogStackContext.Provider>
@@ -118,7 +118,7 @@ export function useDialogStackState(props: UseDialogStackStateProps) {
   const { id } = props
 
   const isLatest = ctx.stack.at(-1)?.id === id
-  const index = ctx.stack.findIndex(item => item.id === id)
+  const index = ctx.stack.findIndex((item) => item.id === id)
 
   return { isLatest, index }
 }

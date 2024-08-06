@@ -742,7 +742,9 @@ impl<'s> Lexer<'s> {
 
 fn analyze_operator(token: &str) -> token::OperatorProperties {
     let mut operator = token::OperatorProperties::new();
-    if token.ends_with("->") && !token.starts_with("<-") {
+    let has_right_arrow = token.ends_with("->");
+    let has_left_arrow = token.starts_with("<-");
+    if has_right_arrow && !has_left_arrow {
         operator = operator.as_right_associative();
     }
     if token.ends_with('=') && !token.bytes().all(|c| c == b'=') {
@@ -776,6 +778,7 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
                 .as_annotation(),
         "-" =>
             return operator
+                .as_value_operation()
                 .with_unary_prefix_mode(token::Precedence::unary_minus())
                 .with_binary_infix_precedence(15),
         // "There are a few operators with the lowest precedence possible."
@@ -800,14 +803,16 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
                 .with_lhs_section_termination(operator::SectionTermination::Unwrap)
                 .as_compile_time_operation()
                 .as_arrow(),
-        "!" => return operator.with_binary_infix_precedence(3),
-        "||" | "\\\\" | "&&" => return operator.with_binary_infix_precedence(4),
+
+        "!" => return operator.with_binary_infix_precedence(3).as_value_operation(),
+        "||" | "\\\\" | "&&" =>
+            return operator.with_binary_infix_precedence(4).as_value_operation(),
         ">>" | "<<" => return operator.with_binary_infix_precedence(5),
         "|>" | "|>>" => return operator.with_binary_infix_precedence(6),
         "<|" | "<<|" => return operator.with_binary_infix_precedence(6).as_right_associative(),
         // Other special operators.
-        "<=" | ">=" => return operator.with_binary_infix_precedence(14),
-        "==" | "!=" => return operator.with_binary_infix_precedence(5),
+        "<=" | ">=" => return operator.with_binary_infix_precedence(14).as_value_operation(),
+        "==" | "!=" => return operator.with_binary_infix_precedence(5).as_value_operation(),
         "," =>
             return operator
                 .with_binary_infix_precedence(1)
@@ -833,14 +838,19 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
     let binary = match precedence_char.unwrap() {
         '!' => 10,
         '|' => 11,
-        '^' => 12,
         '&' => 13,
         '<' | '>' => 14,
         '+' | '-' => 15,
         '*' | '/' | '%' => 16,
-        _ => 17,
+        '^' => 17,
+        _ => 18,
     };
-    operator.with_binary_infix_precedence(binary)
+    let operator = operator.with_binary_infix_precedence(binary);
+    if !has_right_arrow && !has_left_arrow {
+        operator.as_value_operation()
+    } else {
+        operator
+    }
 }
 
 

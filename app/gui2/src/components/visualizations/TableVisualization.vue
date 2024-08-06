@@ -5,6 +5,7 @@ import {
   tsvTableToEnsoExpression,
   writeClipboard,
 } from '@/components/GraphEditor/clipboard'
+import TextFormattingSelector from '@/components/TextFormattingSelector.vue'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import { useAutoBlur } from '@/util/autoBlur'
@@ -16,6 +17,7 @@ import type {
   CellClickedEvent,
   ColumnResizedEvent,
   ICellRendererParams,
+  RowHeightParams,
 } from 'ag-grid-community'
 import type { ColDef, GridOptions } from 'ag-grid-enterprise'
 import {
@@ -90,6 +92,12 @@ interface UnknownTable {
   links: string[] | undefined
 }
 
+export enum TextFormatOptions {
+  Partial,
+  On,
+  Off,
+}
+
 declare module 'ag-grid-enterprise' {
   // These type parameters are defined on the original interface.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -123,6 +131,7 @@ const SQLITE_CONNECTIONS_NODE_TYPE =
   'Standard.Database.Internal.SQLite.SQLite_Connection.SQLite_Connection'
 const POSTGRES_CONNECTIONS_NODE_TYPE =
   'Standard.Database.Internal.Postgres.Postgres_Connection.Postgres_Connection'
+const DEFAULT_ROW_HEIGHT = 22
 
 const rowLimit = ref(0)
 const page = ref(0)
@@ -145,19 +154,22 @@ const defaultColDef = {
 }
 const agGridOptions: Ref<GridOptions & Required<Pick<GridOptions, 'defaultColDef'>>> = ref({
   headerHeight: 26,
-  rowHeight: 22,
+  getRowHeight: getRowHeight,
   rowData: [],
   columnDefs: [],
   defaultColDef: defaultColDef as typeof defaultColDef & { manuallySized: boolean },
   onFirstDataRendered: updateColumnWidths,
   onRowDataUpdated: updateColumnWidths,
   onColumnResized: lockColumnSize,
-  copyHeadersToClipboard: true,
   sendToClipboard: ({ data }: { data: string }) => sendToClipboard(data),
   suppressFieldDotNotation: true,
   enableRangeSelection: true,
   popupParent: document.body,
 })
+const textFormatterSelected = ref<TextFormatOptions>(TextFormatOptions.Partial)
+const updateTextFormat = (option: TextFormatOptions) => {
+  textFormatterSelected.value = option
+}
 
 const isRowCountSelectorVisible = computed(() => rowCount.value >= 1000)
 
@@ -242,6 +254,46 @@ function formatNumber(params: ICellRendererParams) {
   return needsGrouping ? numberFormatGroupped.format(value) : numberFormat.format(value)
 }
 
+function formatText(params: ICellRendererParams) {
+  if (textFormatterSelected.value === TextFormatOptions.Off) {
+    return params.value
+  }
+  const partialMappings = {
+    '\r': '<span style="color: #df8800">␍</span> <br>',
+    '\n': '<span style="color: #df8800;">␊</span> <br>',
+    '\t': '<span style="white-space: break-spaces;">    </span>',
+  }
+  const fullMappings = {
+    '\r': '<span style="color: #df8800">␍</span> <br>',
+    '\n': '<span style="color: #df8800">␊</span> <br>',
+    '\t': '<span style="color: #df8800; white-space: break-spaces;">&#8594;   </span>',
+  }
+
+  const replaceSpaces =
+    textFormatterSelected.value === TextFormatOptions.On ?
+      params.value.replaceAll(' ', '<span style="color: #df8800">&#183;</span>')
+    : params.value.replace(/ {2,}/g, function (match: string) {
+        return `<span style="color: #df8800">${'&#183;'.repeat(match.length)}</span>`
+      })
+
+  const replaceReturns = replaceSpaces.replace(
+    /\r\n/g,
+    '<span style="color: #df8800">␍␊</span> <br>',
+  )
+
+  const renderOtherWhitespace = (match: string) => {
+    return textFormatterSelected.value === TextFormatOptions.On && match != ' ' ?
+        '<span style="color: #df8800">&#9744;</span>'
+      : match
+  }
+  const newString = replaceReturns.replace(/[\s]/g, function (match: string) {
+    const mapping =
+      textFormatterSelected.value === TextFormatOptions.On ? fullMappings : partialMappings
+    return mapping[match as keyof typeof mapping] || renderOtherWhitespace(match)
+  })
+  return `<span > ${newString} <span>`
+}
+
 function setRowLimit(newRowLimit: number) {
   if (newRowLimit !== rowLimit.value) {
     rowLimit.value = newRowLimit
@@ -265,6 +317,29 @@ function escapeHTML(str: string) {
   return str.replace(/[&<>"']/g, (m) => mapping[m]!)
 }
 
+function getRowHeight(params: RowHeightParams): number {
+  if (textFormatterSelected.value === TextFormatOptions.Off) {
+    return DEFAULT_ROW_HEIGHT
+  }
+
+  const rowData = Object.values(params.data)
+  const textValues = rowData.filter((r): r is string => typeof r === 'string')
+
+  if (!textValues.length) {
+    return DEFAULT_ROW_HEIGHT
+  }
+
+  const returnCharsCount = textValues.map((text: string) => {
+    const crlfCount = (text.match(/\r\n/g) || []).length
+    const crCount = (text.match(/\r/g) || []).length
+    const lfCount = (text.match(/\n/g) || []).length
+    return crCount + lfCount - crlfCount
+  })
+
+  const maxReturnCharsCount = Math.max(...returnCharsCount)
+  return (maxReturnCharsCount + 1) * DEFAULT_ROW_HEIGHT
+}
+
 function cellClass(params: CellClassParams) {
   if (params.colDef.field === '#') return null
   if (typeof params.value === 'number' || params.value === null) return 'ag-right-aligned-cell'
@@ -282,6 +357,7 @@ function cellRenderer(params: ICellRendererParams) {
   else if (params.value === undefined) return ''
   else if (params.value === '') return '<span style="color:grey; font-style: italic;">Empty</span>'
   else if (typeof params.value === 'number') return formatNumber(params)
+  else if (typeof params.value === 'string') return formatText(params)
   else if (Array.isArray(params.value)) return `[Vector ${params.value.length} items]`
   else if (typeof params.value === 'object') {
     const valueType = params.value?.type
@@ -349,6 +425,13 @@ function toField(name: string, valueType?: ValueType | null | undefined): ColDef
   }
 }
 
+function toRowField(name: string, valueType?: ValueType | null | undefined) {
+  return {
+    ...toField(name, valueType),
+    cellDataType: false,
+  }
+}
+
 function getAstPattern(selector: string | number, action: string) {
   return Pattern.new((ast) =>
     Ast.App.positional(
@@ -407,7 +490,7 @@ function toLinkField(fieldName: string): ColDef {
     tooltipValueGetter: () => {
       return `Double click to view this ${newNodeSelectorValues.value.tooltipValue} in a separate component`
     },
-    cellRenderer: (params: any) => `<a href='#'> ${params.value} </a>`,
+    cellRenderer: (params: any) => `<div class='link'> ${params.value} </div>`,
   }
 }
 
@@ -490,8 +573,8 @@ watchEffect(() => {
     const dataHeader =
       ('header' in data_ ? data_.header : [])?.map((v, i) => {
         const valueType = data_.value_type ? data_.value_type[i] : null
-        if (config.nodeType === ROW_NODE_TYPE && v === 'column') {
-          return toLinkField(v)
+        if (config.nodeType === ROW_NODE_TYPE) {
+          return v === 'column' ? toLinkField(v) : toRowField(v, valueType)
         }
         return toField(v, valueType)
       }) ?? []
@@ -642,7 +725,10 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <VisualizationContainer :belowToolbar="true" :overflow="true">
+  <VisualizationContainer :belowToolbar="true" :overflow="true" :toolbarOverflow="true">
+    <template #toolbar>
+      <TextFormattingSelector @changeFormat="(i) => updateTextFormat(i)" />
+    </template>
     <div ref="rootNode" class="TableVisualization" @wheel.stop @pointerdown.stop>
       <div class="table-visualization-status-bar">
         <select
@@ -683,6 +769,7 @@ onUnmounted(() => {
   --ag-grid-size: 3px;
   --ag-list-item-height: 20px;
   flex-grow: 1;
+  font-family: var(--font-mono);
 }
 
 .table-visualization-status-bar {
@@ -701,12 +788,12 @@ onUnmounted(() => {
 /* Tag selectors are inefficient to compute, and should be replaced with a class selector
  * if possible.
  * See https://vuejs.org/api/sfc-css-features.html#scoped-style-tips */
-:deep(a) {
+:deep(.link) {
   color: blue;
   text-decoration: underline;
 }
 
-:deep(a):hover {
+:deep(.link):hover {
   color: darkblue;
 }
 </style>

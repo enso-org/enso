@@ -1,8 +1,8 @@
 /** @file A styled input specific to settings pages. */
 import * as React from 'react'
 
-import EyeCrossedIcon from '#/assets/eye_crossed.svg'
 import EyeIcon from '#/assets/eye.svg'
+import EyeCrossedIcon from '#/assets/eye_crossed.svg'
 
 import * as focusHooks from '#/hooks/focusHooks'
 
@@ -11,6 +11,7 @@ import * as textProvider from '#/providers/TextProvider'
 import * as aria from '#/components/aria'
 import Button from '#/components/styled/Button'
 import FocusRing from '#/components/styled/FocusRing'
+import { twMerge } from '#/utilities/tailwindMerge'
 
 // =====================
 // === SettingsInput ===
@@ -61,8 +62,10 @@ function SettingsInput(props: SettingsInputProps, ref: React.ForwardedRef<HTMLIn
             {...aria.mergeProps<aria.InputProps & React.RefAttributes<HTMLInputElement>>()(
               {
                 ref,
-                className:
-                  'w-full rounded-full bg-transparent font-bold placeholder-black/30 transition-colors invalid:border invalid:border-red-700 hover:bg-selected-frame focus:bg-selected-frame',
+                className: twMerge(
+                  'w-full rounded-full bg-transparent font-bold placeholder-black/30 transition-colors invalid:border invalid:border-red-700 hover:bg-selected-frame focus:bg-selected-frame px-1 border-0.5 border-transparent',
+                  !isDisabled && 'border-primary/20',
+                ),
                 ...(type == null ? {} : { type: isShowingPassword ? 'text' : type }),
                 disabled: isDisabled,
                 size: 1,
@@ -70,13 +73,13 @@ function SettingsInput(props: SettingsInputProps, ref: React.ForwardedRef<HTMLIn
                 placeholder,
                 onKeyDown,
                 onChange,
-                onBlur: event => {
+                onBlur: (event) => {
                   if (!cancelled.current) {
                     onSubmit?.(event)
                   }
                 },
               },
-              focusChildProps
+              focusChildProps,
             )}
           />
           {type === 'password' && (
@@ -86,7 +89,7 @@ function SettingsInput(props: SettingsInputProps, ref: React.ForwardedRef<HTMLIn
               alt={isShowingPassword ? getText('hidePassword') : getText('showPassword')}
               buttonClassName="absolute right-2 top-1 cursor-pointer rounded-full size-6"
               onPress={() => {
-                setIsShowingPassword(show => !show)
+                setIsShowingPassword((show) => !show)
               }}
             />
           )}

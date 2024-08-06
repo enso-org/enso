@@ -1,12 +1,28 @@
 # Next Release
 
+#### Enso Standard Library
+
+- [Implemented in-memory and database mixed `Decimal` column
+  comparisons.][10614]
+- [Relative paths are now resolved relative to the project location, also in the
+  Cloud.][10660]
+
+[10614]: https://github.com/enso-org/enso/pull/10614
+[10660]: https://github.com/enso-org/enso/pull/10660
+
+# Enso 2023.3
+
 #### Enso Language & Runtime
 
 - [Enforce conversion method return type][10468]
 - [Renaming launcher executable to ensoup][10535]
+- [Space-precedence does not apply to value-level operators][10597]
+- [Must specify `--repl` to enable debug server][10709]
 
 [10468]: https://github.com/enso-org/enso/pull/10468
 [10535]: https://github.com/enso-org/enso/pull/10535
+[10597]: https://github.com/enso-org/enso/pull/10597
+[10709]: https://github.com/enso-org/enso/pull/10709
 
 #### Enso IDE
 
@@ -16,13 +32,23 @@
 - [Redesigned "record control" panel][10509]. Now it contains more intuitive
   "refresh" and "write all" buttons.
 - [Warning messages do not obscure visualization buttons][10546].
+- [Output component in collapsed function changed][10577]. It cannot be deleted
+  anymore, except by directily editing the code.
+- [Improved handling of spacing around rounded node widgets][10599], added
+  support for widgets of arbitrary sizes.
+- [Multiselect drop-down widget visuals are improved][10607].
+- [Text displayed in monospace and whitespace rendered as symbols][10563].
 
 [10433]: https://github.com/enso-org/enso/pull/10443
 [10457]: https://github.com/enso-org/enso/pull/10457
 [10509]: https://github.com/enso-org/enso/pull/10509
 [10546]: https://github.com/enso-org/enso/pull/10546
+[10577]: https://github.com/enso-org/enso/pull/10577
+[10599]: https://github.com/enso-org/enso/pull/10599
+[10607]: https://github.com/enso-org/enso/pull/10607
+[10563]: https://github.com/enso-org/enso/pull/10563
 
-#### Enso Enso Standard Library
+#### Enso Standard Library
 
 - [Renamed `Data.list_directory` to `Data.list`. Removed list support from read
   methods.][10434]
@@ -34,6 +60,7 @@
 - [Compare two objects with `Ordering.compare` and define comparator with
   `Comparable.new`][10468]
 - [Added `dec` construction function for creating `Decimal`s.][10517]
+- [Added initial read support for SQLServer][10324]
 
 [10434]: https://github.com/enso-org/enso/pull/10434
 [10445]: https://github.com/enso-org/enso/pull/10445
@@ -41,6 +68,7 @@
 [10467]: https://github.com/enso-org/enso/pull/10467
 [10474]: https://github.com/enso-org/enso/pull/10474
 [10517]: https://github.com/enso-org/enso/pull/10517
+[10324]: https://github.com/enso-org/enso/pull/10324
 
 # Enso 2024.2
 

@@ -25,7 +25,7 @@ const STATUS_ICON_MAP: Readonly<Record<Status, StatusIcon>> = {
   info: {
     icon: (
       // eslint-disable-next-line no-restricted-syntax
-      <ariaComponents.Text variant="custom" className="pb-0.5 text-xl leading-[0]">
+      <ariaComponents.Text variant="custom" className="pb-0.5 text-xl leading-[0]" aria-hidden>
         !
       </ariaComponents.Text>
     ),
@@ -35,7 +35,7 @@ const STATUS_ICON_MAP: Readonly<Record<Status, StatusIcon>> = {
 }
 
 const RESULT_STYLES = twv.tv({
-  base: 'flex flex-col items-center justify-center px-6 py-4 text-center h-[max-content]',
+  base: 'flex flex-col items-center justify-center max-w-full px-6 py-4 text-center h-[max-content]',
   variants: {
     centered: {
       horizontal: 'mx-auto',
@@ -47,14 +47,12 @@ const RESULT_STYLES = twv.tv({
   slots: {
     statusIcon:
       'mb-2 flex h-8 w-8 flex-none items-center justify-center rounded-full bg-opacity-25 p-1 text-green',
-    icon: 'h-8 w-8 flex-none',
+    icon: 'h-6 w-6 flex-none',
     title: '',
     subtitle: 'max-w-[750px]',
     content: 'mt-3 w-full',
   },
-  defaultVariants: {
-    centered: 'all',
-  },
+  defaultVariants: { centered: 'all' },
 })
 
 // ==============
@@ -113,40 +111,32 @@ export function Result(props: ResultProps) {
 
   return (
     <section className={classes.base({ className })} data-testid={testId}>
-      {showIcon ? (
+      {showIcon ?
         <>
-          {statusIcon != null ? (
+          {statusIcon != null ?
             <div className={classes.statusIcon({ className: statusIcon.bgClassName })}>
-              {typeof statusIcon.icon === 'string' ? (
+              {typeof statusIcon.icon === 'string' ?
                 <SvgMask
                   src={icon ?? statusIcon.icon}
                   className={classes.icon({ className: statusIcon.colorClassName })}
                 />
-              ) : (
-                statusIcon.icon
-              )}
+              : statusIcon.icon}
             </div>
-          ) : (
-            status
-          )}
+          : status}
         </>
-      ) : null}
+      : null}
 
-      {typeof title === 'string' ? (
+      {typeof title === 'string' ?
         <ariaComponents.Text.Heading level={2} className={classes.title()} variant="subtitle">
           {title}
         </ariaComponents.Text.Heading>
-      ) : (
-        title
-      )}
+      : title}
 
-      {typeof subtitle === 'string' ? (
+      {typeof subtitle === 'string' ?
         <ariaComponents.Text elementType="p" className={classes.subtitle()} balance variant="body">
           {subtitle}
         </ariaComponents.Text>
-      ) : (
-        subtitle
-      )}
+      : subtitle}
 
       {children != null && <div className={classes.content()}>{children}</div>}
     </section>

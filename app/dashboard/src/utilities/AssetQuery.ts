@@ -101,7 +101,7 @@ export default class AssetQuery {
     readonly owners: string[][],
     readonly negativeOwners: string[][],
     readonly nos: string[][],
-    readonly negativeNos: string[][]
+    readonly negativeNos: string[][],
   ) {
     this.query = query ?? ''
     if (query == null) {
@@ -119,15 +119,13 @@ export default class AssetQuery {
         terms.push({
           tag: tag ?? null,
           values:
-            valuesRaw === ''
-              ? []
-              : values.map(value =>
-                  AssetQuery.jsonValueRegex.test(value)
-                    ? String(
-                        JSON.parse(value.endsWith('"') && value.length > 1 ? value : value + '"')
-                      )
-                    : value
-                ),
+            valuesRaw === '' ?
+              []
+            : values.map((value) =>
+                AssetQuery.jsonValueRegex.test(value) ?
+                  String(JSON.parse(value.endsWith('"') && value.length > 1 ? value : value + '"'))
+                : value,
+              ),
         })
       }
     }
@@ -138,7 +136,7 @@ export default class AssetQuery {
   static termToString(term: AssetQueryTerm) {
     const tagSegment = term.tag == null ? '' : term.tag + ':'
     const valueSegment = term.values
-      .map(value => (AssetQuery.plainValueRegex.test(value) ? value : JSON.stringify(value)))
+      .map((value) => (AssetQuery.plainValueRegex.test(value) ? value : JSON.stringify(value)))
       .join(',')
     return tagSegment + valueSegment
   }
@@ -216,7 +214,7 @@ export default class AssetQuery {
       owners,
       negativeOwners,
       nos,
-      negativeNos
+      negativeNos,
     )
   }
 
@@ -232,8 +230,8 @@ export default class AssetQuery {
       if (toAdd != null) {
         const termsAfterAdditions = [
           ...terms,
-          ...toAdd.filter(otherTerm =>
-            terms.every(term => !array.shallowEqual([...term].sort(), [...otherTerm].sort()))
+          ...toAdd.filter((otherTerm) =>
+            terms.every((term) => !array.shallowEqual([...term].sort(), [...otherTerm].sort())),
           ),
         ]
         if (termsAfterAdditions.length !== terms.length) {
@@ -242,8 +240,10 @@ export default class AssetQuery {
         }
       }
       if (toRemove != null) {
-        const termsAfterRemovals = terms.filter(term =>
-          toRemove.every(otherTerm => !array.shallowEqual([...term].sort(), [...otherTerm].sort()))
+        const termsAfterRemovals = terms.filter((term) =>
+          toRemove.every(
+            (otherTerm) => !array.shallowEqual([...term].sort(), [...otherTerm].sort()),
+          ),
         )
         if (termsAfterRemovals.length !== terms.length) {
           terms = termsAfterRemovals
@@ -256,8 +256,8 @@ export default class AssetQuery {
 
   /** Return a new array of terms, after applying the given updates to the last term. */
   static updatedLastTerm(original: string[][], toAdd: string[] | null, toRemove: string[] | null) {
-    toAdd = toAdd?.filter(term => term.length !== 0) ?? null
-    toRemove = toRemove?.filter(term => term.length !== 0) ?? null
+    toAdd = toAdd?.filter((term) => term.length !== 0) ?? null
+    toRemove = toRemove?.filter((term) => term.length !== 0) ?? null
     toAdd = toAdd?.length === 0 ? null : toAdd
     toRemove = toRemove?.length === 0 ? null : toRemove
     let lastTerm = original[original.length - 1]
@@ -272,7 +272,7 @@ export default class AssetQuery {
       if (toAdd != null) {
         const lastTermAfterAdditions = [
           ...lastTerm,
-          ...toAdd.filter(word => lastTerm?.includes(word) === false),
+          ...toAdd.filter((word) => lastTerm?.includes(word) === false),
         ]
         if (lastTermAfterAdditions.length !== lastTerm.length) {
           lastTerm = lastTermAfterAdditions
@@ -280,7 +280,7 @@ export default class AssetQuery {
         }
       }
       if (toRemove != null) {
-        const lastTermAfterRemovals = lastTerm.filter(word => toRemove.includes(word) === false)
+        const lastTermAfterRemovals = lastTerm.filter((word) => toRemove.includes(word) === false)
         if (lastTermAfterRemovals.length !== lastTerm.length) {
           lastTerm = lastTermAfterRemovals
           changed = true
@@ -292,8 +292,8 @@ export default class AssetQuery {
 
   /** Return a new array of terms, after applying the given updates to the last term. */
   static updatedEveryTerm(original: string[][], toAdd: string[] | null, toRemove: string[] | null) {
-    toAdd = toAdd?.filter(term => term.length !== 0) ?? null
-    toRemove = toRemove?.filter(term => term.length !== 0) ?? null
+    toAdd = toAdd?.filter((term) => term.length !== 0) ?? null
+    toRemove = toRemove?.filter((term) => term.length !== 0) ?? null
     toAdd = toAdd?.length === 0 ? null : toAdd
     toRemove = toRemove?.length === 0 ? null : toRemove
     if (toAdd == null && (toRemove == null || original.length === 0)) {
@@ -306,7 +306,7 @@ export default class AssetQuery {
         if (toAdd != null) {
           const termAfterAdditions = [
             ...newTerm,
-            ...toAdd.filter(word => newTerm.includes(word) === false),
+            ...toAdd.filter((word) => newTerm.includes(word) === false),
           ]
           if (termAfterAdditions.length !== newTerm.length) {
             newTerm = termAfterAdditions
@@ -314,7 +314,7 @@ export default class AssetQuery {
           }
         }
         if (toRemove != null) {
-          const termAfterRemovals = newTerm.filter(word => toRemove.includes(word) === false)
+          const termAfterRemovals = newTerm.filter((word) => toRemove.includes(word) === false)
           if (termAfterRemovals.length !== newTerm.length) {
             newTerm = termAfterRemovals
             changed = true
@@ -349,7 +349,7 @@ export default class AssetQuery {
       this.owners,
       this.negativeOwners,
       this.nos,
-      this.negativeNos
+      this.negativeNos,
     )
   }
 
@@ -378,7 +378,7 @@ export default class AssetQuery {
         updates.owners ?? this.owners,
         updates.negativeOwners ?? this.negativeOwners,
         updates.nos ?? this.nos,
-        updates.negativeNos ?? this.negativeNos
+        updates.negativeNos ?? this.negativeNos,
       )
     }
   }
@@ -471,7 +471,7 @@ export default class AssetQuery {
     positiveTag: AssetQueryKey,
     negativeTag: AssetQueryKey,
     value: string,
-    fromLastTerm = false
+    fromLastTerm = false,
   ) {
     // This aliasing is INTENTIONAL because the variable is (potentially) reassigned.
     // eslint-disable-next-line @typescript-eslint/no-this-alias

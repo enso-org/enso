@@ -75,10 +75,8 @@ export interface SuggestionEntry {
 export function entryQn(entry: SuggestionEntry): QualifiedName {
   if (entry.kind == SuggestionKind.Module) {
     return entry.definedIn
-  } else if (entry.memberOf) {
-    return qnJoin(entry.memberOf, entry.name)
   } else {
-    return qnJoin(entry.definedIn, entry.name)
+    return qnJoin(entry.memberOf ?? entry.definedIn, entry.name)
   }
 }
 

@@ -23,9 +23,10 @@ export interface FieldComponentProps
   readonly name: string
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly form?: types.FormInstance<any, any, any>
-  readonly isInvalid?: boolean
+  readonly isInvalid?: boolean | undefined
   readonly className?: string | undefined
   readonly children?: React.ReactNode | ((props: FieldChildrenRenderProps) => React.ReactNode)
+  readonly style?: React.CSSProperties | undefined
 }
 
 /**
@@ -47,7 +48,7 @@ export const FIELD_STYLES = twv.tv({
   },
   slots: {
     labelContainer: 'contents',
-    label: text.TEXT_STYLE({ variant: 'subtitle' }),
+    label: text.TEXT_STYLE({ variant: 'body', disableLineHeightCompensation: true }),
     content: 'flex flex-col items-start w-full',
     description: text.TEXT_STYLE({ variant: 'body', color: 'disabled' }),
     error: text.TEXT_STYLE({ variant: 'body', color: 'danger' }),
@@ -60,7 +61,7 @@ export const FIELD_STYLES = twv.tv({
  */
 export const Field = React.forwardRef(function Field(
   props: FieldComponentProps,
-  ref: React.ForwardedRef<HTMLFieldSetElement>
+  ref: React.ForwardedRef<HTMLFieldSetElement>,
 ) {
   const {
     form = formContext.useFormContext(),
@@ -106,19 +107,26 @@ export const Field = React.forwardRef(function Field(
         {label != null && (
           <span id={labelId} className={classes.label()}>
             {label}
+
+            {isRequired && (
+              /* eslint-disable-next-line no-restricted-syntax */
+              <span aria-hidden="true" className="scale-80 text-danger">
+                {' *'}
+              </span>
+            )}
           </span>
         )}
 
         <div className={classes.content()}>
-          {typeof children === 'function'
-            ? children({
-                isInvalid: invalid,
-                isDirty: fieldState.isDirty,
-                isTouched: fieldState.isTouched,
-                isValidating: fieldState.isValidating,
-                error: fieldState.error?.message,
-              })
-            : children}
+          {typeof children === 'function' ?
+            children({
+              isInvalid: invalid,
+              isDirty: fieldState.isDirty,
+              isTouched: fieldState.isTouched,
+              isValidating: fieldState.isValidating,
+              error: fieldState.error?.message,
+            })
+          : children}
         </div>
       </aria.Label>
 

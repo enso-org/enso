@@ -19,6 +19,7 @@ import project.Internal.Common.Database_Distinct_Helper
 import project.Internal.Common.Database_Join_Helper
 import project.Internal.Error_Mapper.Error_Mapper
 import project.Internal.IR.Context.Context
+import project.Internal.IR.Context.Context_Extension
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Nulls_Order.Nulls_Order
@@ -78,6 +79,12 @@ type Postgres_Dialect
         Base_Generator.truncate_table_truncate_table_style self table_name
 
     ## PRIVATE
+       Generates SQL modifier for limiting the number of rows and its position in the query
+    get_limit_sql_modifier : Integer -> Any
+    get_limit_sql_modifier self limit =
+        [700, SQL_Builder.code (" LIMIT " + limit.to_text)]
+
+    ## PRIVATE
        Wraps and possibly escapes the identifier so that it can be used in a
        generated query regardless of what characters it contains.
        The quotes used will depend on the dialect.
@@ -122,7 +129,7 @@ type Postgres_Dialect
         distinct_expressions = new_key_columns.map column->
             value_type = type_mapping.sql_type_to_value_type column.sql_type_reference.get
             Database_Distinct_Helper.make_distinct_expression case_sensitivity problem_builder column value_type
-        new_context = Context.for_subquery setup.subquery . set_distinct_on distinct_expressions
+        new_context = Context.for_subquery setup.subquery . add_extension (make_distinct_extension distinct_expressions)
         table.updated_context_and_columns new_context new_columns subquery=True
 
     ## PRIVATE
@@ -174,6 +181,11 @@ type Postgres_Dialect
     ## PRIVATE
     supports_float_round_decimal_places : Boolean
     supports_float_round_decimal_places self = False
+
+    ## PRIVATE
+       Specifies whether the Database supports CREATE TEMPORARY TABLE syntax.
+    suppports_temporary_table_syntax : Boolean
+    suppports_temporary_table_syntax self = True
 
     ## PRIVATE
        There is a bug in Postgres type inference, where if we unify two
@@ -236,7 +248,7 @@ type Postgres_Dialect
     ## PRIVATE
     prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement
     prepare_fetch_types_query self expression context =
-        Dialect.default_fetch_types_query self expression context
+        Base_Generator.default_fetch_types_query self expression context
 
     ## PRIVATE
     check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation
@@ -763,6 +775,12 @@ as_int64 expr =
    Alters the expression casting the value to a 32-bit integer (the default choice for integers in Postgres).
 as_int32 expr =
     SQL_Builder.code "(" ++ expr ++ "::int4)"
+
+## PRIVATE
+make_distinct_extension expressions =
+    run_generator sql_expressions =
+        SQL_Builder.code "DISTINCT ON (" ++ (SQL_Builder.join ", " sql_expressions) ++ ") "
+    Context_Extension.Value position=120 expressions=expressions run_generator=run_generator
 
 ## PRIVATE
    The RUNTIME_ERROR operation should allow the query to compile fine and it

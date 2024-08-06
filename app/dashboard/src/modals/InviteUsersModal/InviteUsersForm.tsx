@@ -26,12 +26,11 @@ import * as parserUserEmails from '#/utilities/parseUserEmails'
 /** Props for an {@link InviteUsersForm}. */
 export interface InviteUsersFormProps {
   readonly onSubmitted: (emails: backendModule.EmailAddress[]) => void
-  readonly organizationId: backendModule.OrganizationId
 }
 
 /** A modal with inputs for user email and permission level. */
 export function InviteUsersForm(props: InviteUsersFormProps) {
-  const { onSubmitted, organizationId } = props
+  const { onSubmitted } = props
   const { getText } = textProvider.useText()
   const backend = backendProvider.useRemoteBackendStrict()
   const inputRef = React.useRef<HTMLDivElement>(null)
@@ -61,12 +60,11 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
   const isUnderPaywall = isFeatureUnderPaywall('inviteUserFull')
   const feature = getFeature('inviteUser')
 
-  const seatsLeft = isUnderPaywall
-    ? Math.max(feature.meta.maxSeats - (usersCount + invitationsCount), 0)
-    : Infinity
+  const seatsLeft =
+    isUnderPaywall ? Math.max(feature.meta.maxSeats - (usersCount + invitationsCount), 0) : Infinity
 
   const getEmailsFromInput = eventCallbackHooks.useEventCallback((value: string) =>
-    parserUserEmails.parseUserEmails(value)
+    parserUserEmails.parseUserEmails(value),
   )
 
   const highlightEmails = eventCallbackHooks.useEventCallback((value: string): void => {
@@ -127,7 +125,7 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
           .string()
           .min(1, { message: getText('emailIsRequired') })
           .refine(
-            value => {
+            (value) => {
               const result = validateEmailField(value)
 
               if (result != null) {
@@ -136,7 +134,7 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
 
               return result == null
             },
-            { message: getText('emailIsInvalid') }
+            { message: getText('emailIsInvalid') },
           ),
       })}
       defaultValues={{ emails: '' }}
@@ -147,9 +145,7 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
           .filter((value): value is backendModule.EmailAddress => isEmail(value))
 
         await Promise.all(
-          emailsToSubmit.map(userEmail =>
-            inviteUserMutation.mutateAsync([{ userEmail, organizationId }])
-          )
+          emailsToSubmit.map((userEmail) => inviteUserMutation.mutateAsync([{ userEmail }])),
         ).then(() => {
           onSubmitted(emailsToSubmit)
         })

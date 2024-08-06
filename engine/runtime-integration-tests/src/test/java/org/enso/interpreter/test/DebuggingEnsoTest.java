@@ -32,7 +32,7 @@ import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.enso.common.MethodNames.Module;
-import org.enso.polyglot.RuntimeOptions;
+import org.enso.common.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.Language;
@@ -42,6 +42,7 @@ import org.graalvm.polyglot.io.IOAccess;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class DebuggingEnsoTest {
@@ -428,6 +429,95 @@ public class DebuggingEnsoTest {
                   "Assignments should not be evaluated",
                   DebugException.class,
                   () -> event.getTopStackFrame().eval("tmp = 45"));
+            })) {
+      session.suspendNextExecution();
+      fooFunc.execute(0);
+    }
+  }
+
+  @Test
+  public void testAtomFieldsAreReadable() {
+    var fooFunc =
+        createEnsoMethod(
+            """
+        type My_Type
+            Cons field_1 field_2
+
+        foo x =
+            obj = My_Type.Cons 1 2
+            obj
+        """,
+            "foo");
+    try (DebuggerSession session =
+        debugger.startSession(
+            (SuspendedEvent event) -> {
+              switch (event.getSourceSection().getCharacters().toString().strip()) {
+                case "obj" -> {
+                  DebugScope scope = event.getTopStackFrame().getScope();
+                  DebugValue objValue = scope.getDeclaredValue("obj");
+                  assertThat(objValue.isReadable(), is(true));
+                  assertThat(objValue.isInternal(), is(false));
+                  assertThat(objValue.hasReadSideEffects(), is(false));
+
+                  var field1Prop = objValue.getProperty("field_1");
+                  assertThat(field1Prop.isReadable(), is(true));
+                  assertThat(field1Prop.isNumber(), is(true));
+                  assertThat(field1Prop.asInt(), is(1));
+
+                  assertThat(objValue.getProperties().size(), is(2));
+                  for (var prop : objValue.getProperties()) {
+                    assertThat(
+                        "Property '" + prop.getName() + "' should be readable",
+                        prop.isReadable(),
+                        is(true));
+                    assertThat(prop.isNumber(), is(true));
+                  }
+                }
+              }
+              event.getSession().suspendNextExecution();
+            })) {
+      session.suspendNextExecution();
+      fooFunc.execute(0);
+    }
+  }
+
+  @Ignore("https://github.com/enso-org/enso/issues/10675")
+  @Test
+  public void testAtomFieldAreReadable_MultipleConstructors() {
+    var fooFunc =
+        createEnsoMethod(
+            """
+        type My_Type
+            Cons_1 f1 f2
+            Cons_2 g1 g2 g3
+
+        foo x =
+            obj = My_Type.Cons_1 1 2
+            obj
+        """,
+            "foo");
+    try (DebuggerSession session =
+        debugger.startSession(
+            (SuspendedEvent event) -> {
+              switch (event.getSourceSection().getCharacters().toString().strip()) {
+                case "obj" -> {
+                  DebugScope scope = event.getTopStackFrame().getScope();
+                  DebugValue objValue = scope.getDeclaredValue("obj");
+                  assertThat(objValue.isReadable(), is(true));
+                  assertThat(objValue.isInternal(), is(false));
+                  assertThat(objValue.hasReadSideEffects(), is(false));
+
+                  assertThat("Has fields f1 and f2", objValue.getProperties().size(), is(2));
+                  for (var prop : objValue.getProperties()) {
+                    assertThat(
+                        "Property '" + prop.getName() + "' should be readable",
+                        prop.isReadable(),
+                        is(true));
+                    assertThat(prop.isNumber(), is(true));
+                  }
+                }
+              }
+              event.getSession().suspendNextExecution();
             })) {
       session.suspendNextExecution();
       fooFunc.execute(0);

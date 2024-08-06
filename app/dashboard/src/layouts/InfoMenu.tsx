@@ -31,8 +31,7 @@ export interface InfoMenuProps {
 /** A menu containing info about the app. */
 export default function InfoMenu(props: InfoMenuProps) {
   const { hidden = false } = props
-  const session = authProvider.useUserSession()
-  const { signOut } = authProvider.useAuth()
+  const { signOut, session } = authProvider.useAuth()
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const [initialized, setInitialized] = React.useState(false)
@@ -49,16 +48,16 @@ export default function InfoMenu(props: InfoMenuProps) {
         {...(!hidden ? { 'data-testid': 'info-menu' } : {})}
         className={tailwindMerge.twMerge(
           'absolute right-2.5 top-2.5 flex flex-col gap-user-menu rounded-default bg-selected-frame backdrop-blur-default transition-all duration-user-menu',
-          initialized ? 'w-user-menu p-user-menu' : 'size-row-h'
+          initialized ? 'w-user-menu p-user-menu' : 'size-row-h',
         )}
-        onClick={event => {
+        onClick={(event) => {
           event.stopPropagation()
         }}
       >
         <div
           className={tailwindMerge.twMerge(
             'flex items-center gap-icons overflow-hidden transition-all duration-user-menu',
-            initialized && 'px-menu-entry'
+            initialized && 'px-menu-entry',
           )}
         >
           <SvgMask src={LogoIcon} className="pointer-events-none h-7 w-7" />
@@ -67,11 +66,11 @@ export default function InfoMenu(props: InfoMenuProps) {
         <div
           className={tailwindMerge.twMerge(
             'grid transition-all duration-user-menu',
-            initialized ? 'grid-rows-1fr' : 'grid-rows-0fr'
+            initialized ? 'grid-rows-1fr' : 'grid-rows-0fr',
           )}
         >
           <FocusArea direction="vertical">
-            {innerProps => (
+            {(innerProps) => (
               <div
                 aria-label={getText('infoMenuLabel')}
                 className="flex flex-col overflow-hidden"

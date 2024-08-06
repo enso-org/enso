@@ -20,8 +20,6 @@ interface AssetEvents {
   readonly updateFiles: AssetUpdateFilesEvent
   readonly newDatalink: AssetNewDatalinkEvent
   readonly newSecret: AssetNewSecretEvent
-  readonly openProject: AssetOpenProjectEvent
-  readonly closeProject: AssetCloseProjectEvent
   readonly copy: AssetCopyEvent
   readonly cut: AssetCutEvent
   readonly cancelCut: AssetCancelCutEvent
@@ -57,6 +55,8 @@ export interface AssetNewProjectEvent extends AssetBaseEvent<AssetEventType.newP
   readonly datalinkId: backend.DatalinkId | null
   readonly originalId: backend.ProjectId | null
   readonly versionId: backend.S3ObjectVersionId | null
+  readonly onCreated?: (project: backend.CreatedProject) => void
+  readonly onError?: () => void
 }
 
 /** A signal to create a directory. */
@@ -84,23 +84,6 @@ export interface AssetNewDatalinkEvent extends AssetBaseEvent<AssetEventType.new
 export interface AssetNewSecretEvent extends AssetBaseEvent<AssetEventType.newSecret> {
   readonly placeholderId: backend.SecretId
   readonly value: string
-}
-
-/** A signal to open the specified project. */
-export interface AssetOpenProjectEvent extends AssetBaseEvent<AssetEventType.openProject> {
-  readonly id: backend.ProjectId
-  readonly backendType: backend.BackendType
-  readonly title: string
-  readonly parentId: backend.DirectoryId
-  readonly runInBackground: boolean
-}
-
-/** A signal to close the specified project. */
-export interface AssetCloseProjectEvent extends AssetBaseEvent<AssetEventType.closeProject> {
-  readonly id: backend.ProjectId
-  readonly backendType: backend.BackendType
-  readonly title: string
-  readonly parentId: backend.DirectoryId
 }
 
 /** A signal that multiple assets should be copied. `ids` are the `Id`s of the newly created

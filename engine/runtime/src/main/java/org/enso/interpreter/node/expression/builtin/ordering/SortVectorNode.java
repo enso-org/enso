@@ -146,7 +146,7 @@ public abstract class SortVectorNode extends Node {
     try {
       return sortPrimitiveVector(elems, javaComparator);
     } catch (CompareException e) {
-      return DataflowError.withoutTrace(
+      return DataflowError.withDefaultTrace(
           incomparableValuesError(e.leftOperand, e.rightOperand), this);
     }
   }
@@ -266,7 +266,7 @@ public abstract class SortVectorNode extends Node {
                 ctx.getBuiltins()
                     .error()
                     .makeIncomparableValues(firstIncomparableElem, secondIncomparableElem);
-            return DataflowError.withoutTrace(err, this);
+            return DataflowError.withDefaultTrace(err, this);
           } else {
             // Just one comparator, different from Default_Comparator
             if (!gatheredWarnings.isEmpty()) {
@@ -289,7 +289,7 @@ public abstract class SortVectorNode extends Node {
         default -> throw EnsoContext.get(this).raiseAssertionPanic(this, "unreachable", null);
       }
     } catch (CompareException e) {
-      return DataflowError.withoutTrace(
+      return DataflowError.withDefaultTrace(
           incomparableValuesError(e.leftOperand, e.rightOperand), this);
     }
   }
@@ -358,15 +358,19 @@ public abstract class SortVectorNode extends Node {
   }
 
   private Object attachDifferentComparatorsWarning(Object vector, List<Group> groups) {
-    var diffCompsMsg =
-        groups.stream()
-            .map(Group::comparator)
-            .map(comparator -> comparator.getQualifiedName().toString())
-            .collect(Collectors.joining(", "));
-    var text = Text.create("Different comparators: [" + diffCompsMsg + "]");
-    var ctx = EnsoContext.get(this);
-    var warn = Warning.create(ctx, text, this);
-    return WithWarnings.appendTo(ctx, vector, false, warn);
+    if (groups.size() > 1) {
+      var diffCompsMsg =
+          groups.stream()
+              .map(Group::comparator)
+              .map(comparator -> comparator.getQualifiedName().toString())
+              .collect(Collectors.joining(", "));
+      var text = Text.create("Different comparators: [" + diffCompsMsg + "]");
+      var ctx = EnsoContext.get(this);
+      var warn = Warning.create(ctx, text, this);
+      return WithWarnings.appendTo(ctx, vector, false, warn);
+    } else {
+      return vector;
+    }
   }
 
   private String getDefaultComparatorQualifiedName() {

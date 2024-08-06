@@ -9,7 +9,7 @@ import * as aria from '#/components/aria'
 
 import * as mergeRefs from '#/utilities/mergeRefs'
 
-import * as varants from './variants'
+import * as variants from '../variants'
 
 /**
  * Props for a {@link ResizableInput}.
@@ -24,7 +24,7 @@ export interface ResizableInputProps extends aria.TextFieldProps {
  */
 export const ResizableInput = React.forwardRef(function ResizableInput(
   props: ResizableInputProps,
-  ref: React.ForwardedRef<HTMLTextAreaElement>
+  ref: React.ForwardedRef<HTMLTextAreaElement>,
 ) {
   const { value = '', placeholder = '', description = null, ...textFieldProps } = props
   const inputRef = React.useRef<HTMLTextAreaElement>(null)
@@ -36,7 +36,7 @@ export const ResizableInput = React.forwardRef(function ResizableInput(
       event.preventDefault()
       const text = event.clipboardData.getData('text/plain')
       document.execCommand('insertHTML', false, text)
-    }
+    },
   )
 
   React.useLayoutEffect(() => {
@@ -51,13 +51,13 @@ export const ResizableInput = React.forwardRef(function ResizableInput(
     inputContainer,
     resizableSpan,
     textArea,
-  } = varants.INPUT_STYLES({ isInvalid: textFieldProps.isInvalid })
+  } = variants.INPUT_STYLES({ invalid: textFieldProps.isInvalid })
 
   return (
     <aria.TextField {...textFieldProps}>
       <div
         className={base()}
-        onClick={event => {
+        onClick={(event) => {
           if (event.target !== inputRef.current && inputRef.current) {
             inputRef.current.focus({ preventScroll: true })
           }

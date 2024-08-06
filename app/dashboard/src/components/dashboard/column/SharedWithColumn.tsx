@@ -54,7 +54,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
 
   const { setModal } = modalProvider.useSetModal()
   const self = asset.permissions?.find(
-    backendModule.isUserPermissionAnd(permission => permission.user.userId === user.userId)
+    backendModule.isUserPermissionAnd((permission) => permission.user.userId === user.userId),
   )
   const plusButtonRef = React.useRef<HTMLButtonElement>(null)
   const managesThisAsset =
@@ -64,35 +64,35 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
       self?.permission === permissions.PermissionAction.admin)
   const setAsset = React.useCallback(
     (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
-      setItem(oldItem =>
+      setItem((oldItem) =>
         oldItem.with({
           item:
             typeof valueOrUpdater !== 'function' ? valueOrUpdater : valueOrUpdater(oldItem.item),
-        })
+        }),
       )
     },
-    [setItem]
+    [setItem],
   )
 
   return (
     <div className="group flex items-center gap-column-items">
-      {(asset.permissions ?? []).map(other => (
+      {(asset.permissions ?? []).map((other) => (
         <PermissionDisplay
           key={backendModule.getAssetPermissionId(other)}
           action={other.permission}
           onPress={
-            setQuery == null
-              ? null
-              : event => {
-                  setQuery(oldQuery =>
-                    oldQuery.withToggled(
-                      'owners',
-                      'negativeOwners',
-                      backendModule.getAssetPermissionName(other),
-                      event.shiftKey
-                    )
-                  )
-                }
+            setQuery == null ? null : (
+              (event) => {
+                setQuery((oldQuery) =>
+                  oldQuery.withToggled(
+                    'owners',
+                    'negativeOwners',
+                    backendModule.getAssetPermissionName(other),
+                    event.shiftKey,
+                  ),
+                )
+              }
+            )
           }
         >
           {backendModule.getAssetPermissionName(other)}
@@ -102,7 +102,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
         <paywall.PaywallDialogButton
           feature="share"
           variant="icon"
-          size="xxsmall"
+          size="medium"
           className="opacity-0 group-hover:opacity-100"
           children={false}
         />
@@ -125,7 +125,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
                 doRemoveSelf={() => {
                   dispatchAssetEvent({ type: AssetEventType.removeSelf, id: asset.id })
                 }}
-              />
+              />,
             )
           }}
         />

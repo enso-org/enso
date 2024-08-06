@@ -24,6 +24,7 @@ class RuntimeManagementTest extends InterpreterTest {
         """import Standard.Base.Runtime.Thread
           |import Standard.Base.IO
           |import Standard.Base.Nothing
+          |import Standard.Base.Data.Numbers.Number
           |
           |foo x =
           |    if x == 0 then IO.println "Start." else Nothing
@@ -84,8 +85,8 @@ class RuntimeManagementTest extends InterpreterTest {
         if (round % 10 == 0) {
           forceGC();
         }
-        val res = eval("main a b = a * b").execute(7, 6)
-        assertResult(42)(res.asInt)
+        val res = eval("main a b = a + b").execute("Hello", "Enso")
+        assertResult("HelloEnso")(res.asString)
         Thread.sleep(100)
         totalOut ++= consumeOut
       }
@@ -130,6 +131,7 @@ class RuntimeManagementTest extends InterpreterTest {
           |from Standard.Base.Runtime.Resource import Managed_Resource
           |import Standard.Base.IO
           |import Standard.Base.Nothing
+          |import Standard.Base.Data.Numbers.Number
           |
           |type Mock_File
           |    Value i
@@ -164,6 +166,7 @@ class RuntimeManagementTest extends InterpreterTest {
           |from Standard.Base.Runtime.Resource import Managed_Resource
           |import Standard.Base.IO
           |import Standard.Base.Nothing
+          |import Standard.Base.Data.Numbers.Number
           |
           |type Mock_File
           |    Value i

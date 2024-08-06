@@ -8,13 +8,13 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as textProvider from '#/providers/TextProvider'
 
-import * as aria from '#/components/aria'
 import PermissionSelector from '#/components/dashboard/PermissionSelector'
 import FocusArea from '#/components/styled/FocusArea'
 
-import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
 
+import { Text } from '#/components/AriaComponents'
 import * as object from '#/utilities/object'
 
 // =================
@@ -84,8 +84,8 @@ export default function Permission(props: PermissionProps) {
 
   return (
     <FocusArea active={!isDisabled} direction="horizontal">
-      {innerProps => (
-        <div className="flex items-center gap-user-permission" {...innerProps}>
+      {(innerProps) => (
+        <div className="flex w-full items-center gap-user-permission" {...innerProps}>
           <PermissionSelector
             showDelete
             isDisabled={isDisabled}
@@ -93,14 +93,14 @@ export default function Permission(props: PermissionProps) {
             selfPermission={self.permission}
             action={permission.permission}
             assetType={asset.type}
-            onChange={async permissions => {
+            onChange={async (permissions) => {
               await doSetPermission(object.merge(permission, { permission: permissions }))
             }}
             doDelete={() => {
               doDelete(backendModule.getAssetPermissionId(permission))
             }}
           />
-          <aria.Text className="text">{backendModule.getAssetPermissionName(permission)}</aria.Text>
+          <Text truncate="1">{backendModule.getAssetPermissionName(permission)}</Text>
         </div>
       )}
     </FocusArea>

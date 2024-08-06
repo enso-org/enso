@@ -323,6 +323,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
           for (const id of ids) {
             const node = db.nodeIdToNode.get(id)
             if (!node) continue
+            if (node.type !== 'component') continue
             const usages = db.getNodeUsages(id)
             for (const usage of usages) updatePortValue(edit, usage, undefined)
             const outerExpr = edit.getVersion(node.outerExpr)

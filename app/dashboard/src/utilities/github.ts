@@ -9,13 +9,14 @@ import * as detect from 'enso-common/src/detect'
 // =================
 
 const ONE_HOUR_MS = 3_600_000
+export const LATEST_RELEASE_PAGE_URL = 'https://github.com/enso-org/enso/releases/latest'
 
 // ==================
 // === GitHub API ===
 // ==================
 
 /** Metadata for a GitHub user. */
-interface GithubSimpleUser {
+interface GitHubSimpleUser {
   readonly name?: string
   readonly email?: string
   readonly login: string
@@ -59,7 +60,7 @@ interface GitHubReleaseAsset {
   readonly download_count: number
   readonly created_at: string
   readonly updated_at: string
-  readonly uploader?: GithubSimpleUser
+  readonly uploader?: GitHubSimpleUser
 }
 
 /** Metadata for a GitHub release. */
@@ -71,7 +72,7 @@ interface GitHubRelease {
   readonly tarball_url?: string
   readonly zipball_url?: string
   readonly id: number
-  readonly author: GithubSimpleUser
+  readonly author: GitHubSimpleUser
   readonly node_id: string
   /** The name of the tag. */
   readonly tag_name: string
@@ -101,7 +102,7 @@ interface CachedRelease {
 const LOCAL_STORAGE_KEY = `${common.PRODUCT_NAME.toLowerCase()}-cached-release`
 
 /** Gets the metadata for the latest release of the app. */
-async function getLatestRelease() {
+export async function getLatestRelease() {
   const savedCachedRelease = localStorage.getItem(LOCAL_STORAGE_KEY)
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const cachedRelease: CachedRelease | null =
@@ -122,7 +123,7 @@ async function getLatestRelease() {
       JSON.stringify({
         lastFetchEpochMs: Number(new Date()),
         gitHubRelease: data,
-      } satisfies CachedRelease)
+      } satisfies CachedRelease),
     )
     return data
   }
@@ -144,7 +145,7 @@ const appExtension = (() => {
 export async function getDownloadUrl() {
   const assets = (await getLatestRelease()).assets
   return (
-    assets.find(item => item.browser_download_url.endsWith(appExtension))?.browser_download_url ??
+    assets.find((item) => item.browser_download_url.endsWith(appExtension))?.browser_download_url ??
     null
   )
 }

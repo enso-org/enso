@@ -159,11 +159,11 @@ add_specs suite_builder setup =
             no_rows.select_blank_columns . columns . map .name . should_equal ["X"]
             r2 = no_rows.remove_blank_columns
             r2.should_fail_with No_Output_Columns
-            r2.catch.to_display_text . should_equal "No columns in the result, because of another problem: All columns were blank."
+            r2.catch.to_display_text . should_equal "All columns were blank."
 
             r3 = t.select_blank_columns
             r3.should_fail_with No_Output_Columns
-            r3.catch.to_display_text . should_equal "No columns in the result, because of another problem: No columns were blank."
+            r3.catch.to_display_text . should_equal "No columns were blank."
 
     suite_builder.group prefix+"Filling Missing Values" group_builder->
         group_builder.specify "should coerce long and double types to double" <|
@@ -253,7 +253,7 @@ add_specs suite_builder setup =
                 mix_filled.to_vector . should_equal [1, 0, 2, 0]
                 mix_filled.value_type . should_equal Value_Type.Mixed
 
-        group_builder.specify "should correctly unify text columns of various lengths" pending=(if setup.test_selection.fixed_length_text_columns.not then "Fixed-length Char columns are not supported by this backend.") <|
+        group_builder.specify "should correctly unify text columns of various fixed lengths" pending=(if setup.test_selection.fixed_length_text_columns.not then "Fixed-length Char columns are not supported by this backend.") <|
             t0 = table_builder [["A", ["a", Nothing, "c"]], ["B", ["X", "Y", "Z"]], ["C", ["xyz", "abc", "def"]]]
             t1 = t0 . cast "A" (Value_Type.Char size=1 variable_length=False) . cast "B" (Value_Type.Char size=1 variable_length=False) . cast "C" (Value_Type.Char size=3 variable_length=False)
 
@@ -273,6 +273,31 @@ add_specs suite_builder setup =
             e.value_type.should_be_a (Value_Type.Char ...)
             Test.with_clue "e.value_type="+e.value_type.to_display_text+": " <|
                 e.value_type.variable_length.should_be_true
+                max_len = e.value_type.size
+                (max_len.is_nothing || (max_len.integer >= 3)).should_be_true
+
+        group_builder.specify "should correctly unify text columns of various varying lengths" pending=(if setup.test_selection.text_length_limited_columns.not then "Length-limited Char columns are not supported by this backend.") <|
+            t0 = table_builder [["A", ["a", Nothing, "c"]], ["B", ["X", "Y", "Z"]], ["C", ["xyz", "abc", "def"]]]
+            t1 = t0 . cast "A" (Value_Type.Char size=1 variable_length=True) . cast "B" (Value_Type.Char size=1 variable_length=True) . cast "C" (Value_Type.Char size=3 variable_length=True)
+
+            a = t1.at "A"
+            b = t1.at "B"
+            c = t1.at "C"
+            a.value_type.should_equal (Value_Type.Char size=1 variable_length=True)
+            b.value_type.should_equal (Value_Type.Char size=1 variable_length=True)
+            c.value_type.should_equal (Value_Type.Char size=3 variable_length=True)
+
+            d = a.fill_nothing b
+            d.to_vector . should_equal ["a", "Y", "c"]
+            d.value_type . should_equal (Value_Type.Char size=1 variable_length=True)
+
+            e = a.fill_nothing c
+            e.to_vector . should_equal ["a", "abc", "c"]
+            e.value_type.should_be_a (Value_Type.Char ...)
+            Test.with_clue "e.value_type="+e.value_type.to_display_text+": " <|
+                e.value_type.variable_length.should_be_true
+                max_len = e.value_type.size
+                (max_len.is_nothing || (max_len.integer >= 3)).should_be_true
 
         group_builder.specify "should allow setting a default column by reference" <|
             t = table_builder [["A", ["x", "", Nothing]], ["B", ["a", "b", "c"]], ["C", [Nothing, Nothing, "ZZZ"]], ["D", [Nothing, "2", "3"]]]

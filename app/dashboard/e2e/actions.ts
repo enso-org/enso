@@ -225,7 +225,7 @@ export function locateNotEnabledStub(page: test.Locator | test.Page) {
 
 /** Find a "new folder" icon (if any) on the current page. */
 export function locateNewFolderIcon(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'New Folder' })
+  return page.getByRole('button', { name: 'New Folder', exact: true })
 }
 
 /** Find a "new secret" icon (if any) on the current page. */
@@ -621,7 +621,7 @@ export namespace settings {
  * DO NOT assume the left side of the outer container will change. This means that it is NOT SAFE
  * to do anything with the returned values other than comparing them. */
 export function getAssetRowLeftPx(locator: test.Locator) {
-  return locator.evaluate(el => el.children[0]?.children[0]?.getBoundingClientRect().left ?? 0)
+  return locator.evaluate((el) => el.children[0]?.children[0]?.getBoundingClientRect().left ?? 0)
 }
 
 // ===================================
@@ -644,7 +644,7 @@ export async function expectOpacity0(locator: test.Locator) {
   await test.test.step('Expect `opacity: 0`', async () => {
     await test
       .expect(async () => {
-        test.expect(await locator.evaluate(el => getComputedStyle(el).opacity)).toBe('0')
+        test.expect(await locator.evaluate((el) => getComputedStyle(el).opacity)).toBe('0')
       })
       .toPass()
   })
@@ -655,7 +655,7 @@ export async function expectNotOpacity0(locator: test.Locator) {
   await test.test.step('Expect not `opacity: 0`', async () => {
     await test
       .expect(async () => {
-        test.expect(await locator.evaluate(el => getComputedStyle(el).opacity)).not.toBe('0')
+        test.expect(await locator.evaluate((el) => getComputedStyle(el).opacity)).not.toBe('0')
       })
       .toPass()
   })
@@ -667,13 +667,13 @@ export async function expectOnScreen(locator: test.Locator) {
     await test
       .expect(async () => {
         const pageBounds = await locator.evaluate(() => document.body.getBoundingClientRect())
-        const bounds = await locator.evaluate(el => el.getBoundingClientRect())
+        const bounds = await locator.evaluate((el) => el.getBoundingClientRect())
         test
           .expect(
             bounds.left < pageBounds.right &&
               bounds.right > pageBounds.left &&
               bounds.top < pageBounds.bottom &&
-              bounds.bottom > pageBounds.top
+              bounds.bottom > pageBounds.top,
           )
           .toBe(true)
       })
@@ -687,13 +687,13 @@ export async function expectNotOnScreen(locator: test.Locator) {
     await test
       .expect(async () => {
         const pageBounds = await locator.evaluate(() => document.body.getBoundingClientRect())
-        const bounds = await locator.evaluate(el => el.getBoundingClientRect())
+        const bounds = await locator.evaluate((el) => el.getBoundingClientRect())
         test
           .expect(
             bounds.left >= pageBounds.right ||
               bounds.right <= pageBounds.left ||
               bounds.top >= pageBounds.bottom ||
-              bounds.bottom <= pageBounds.top
+              bounds.bottom <= pageBounds.top,
           )
           .toBe(true)
       })
@@ -773,7 +773,7 @@ export async function login(
   { page, setupAPI }: MockParams,
   email = 'email@example.com',
   password = VALID_PASSWORD,
-  first = true
+  first = true,
 ) {
   await test.test.step('Login', async () => {
     await page.goto('/')
@@ -812,7 +812,7 @@ export async function reload({ page }: MockParams) {
 export async function relog(
   { page, setupAPI }: MockParams,
   email = 'email@example.com',
-  password = VALID_PASSWORD
+  password = VALID_PASSWORD,
 ) {
   await test.test.step('Relog', async () => {
     await page.getByAltText('User Settings').locator('visible=true').click()
@@ -901,7 +901,7 @@ export function mockAllAndLogin({ page, setupAPI }: MockParams) {
       await mockApi({ page, setupAPI })
       await mockDate({ page, setupAPI })
     })
-    .do(thePage => login({ page: thePage, setupAPI }))
+    .do((thePage) => login({ page: thePage, setupAPI }))
 }
 
 // ===================================

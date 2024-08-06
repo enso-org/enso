@@ -28,13 +28,12 @@ import type * as types from './types'
  */
 export function useForm<
   Schema extends types.TSchema,
-  TFieldValues extends types.FieldValues<Schema>,
-  // eslint-disable-next-line no-restricted-syntax
+  TFieldValues extends types.FieldValues<Schema> = types.FieldValues<Schema>,
   TTransformedValues extends types.FieldValues<Schema> | undefined = undefined,
 >(
   optionsOrFormInstance:
     | types.UseFormProps<Schema, TFieldValues>
-    | types.UseFormReturn<Schema, TFieldValues, TTransformedValues>
+    | types.UseFormReturn<Schema, TFieldValues, TTransformedValues>,
 ): types.UseFormReturn<Schema, TFieldValues, TTransformedValues> {
   const initialTypePassed = React.useRef(getArgsType(optionsOrFormInstance))
 
@@ -45,7 +44,7 @@ export function useForm<
     `
     Found a switch between form options and form instance. This is not allowed. Please use either form options or form instance and stick to it.\n\n
     Initially passed: ${initialTypePassed.current}, Currently passed: ${argsType}.
-    `
+    `,
   )
 
   if ('formState' in optionsOrFormInstance) {
@@ -53,7 +52,6 @@ export function useForm<
   } else {
     const { schema, ...options } = optionsOrFormInstance
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const computedSchema = typeof schema === 'function' ? schema(schemaModule.schema) : schema
 
     return reactHookForm.useForm<TFieldValues, unknown, TTransformedValues>({
@@ -69,12 +67,11 @@ export function useForm<
 function getArgsType<
   Schema extends types.TSchema,
   TFieldValues extends types.FieldValues<Schema>,
-  // eslint-disable-next-line no-restricted-syntax
   TTransformedValues extends types.FieldValues<Schema> | undefined = undefined,
 >(
   args:
     | types.UseFormProps<Schema, TFieldValues>
-    | types.UseFormReturn<Schema, TFieldValues, TTransformedValues>
+    | types.UseFormReturn<Schema, TFieldValues, TTransformedValues>,
 ) {
   return 'formState' in args ? 'formInstance' : 'formOptions'
 }

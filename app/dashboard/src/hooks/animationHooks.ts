@@ -28,7 +28,7 @@ export function useRaf(active: boolean, fn: (t: number, dt: number) => void, pri
   const callback = React.useMemo(() => ({ fn, priority }), [fn, priority])
   React.useEffect(() => {
     if (active) {
-      const idx = RAF_CALLBACKS.findIndex(cb => cb.priority > priority)
+      const idx = RAF_CALLBACKS.findIndex((cb) => cb.priority > priority)
       if (idx >= 0) {
         RAF_CALLBACKS.splice(idx, 0, callback)
       } else {
@@ -92,7 +92,7 @@ export function useApproach(
   // eslint-disable-next-line @typescript-eslint/no-magic-numbers
   timeHorizon: number = 100,
   // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  epsilon = 0.005
+  epsilon = 0.005,
 ) {
   const [value, setValue] = React.useState(target)
   const targetRef = React.useRef(target)

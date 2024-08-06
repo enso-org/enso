@@ -62,17 +62,22 @@ export default function AuthenticationPage(props: AuthenticationPageProps) {
           )}
 
           <div className="row-start-2 row-end-3 flex w-full flex-col items-center gap-auth">
-            {isNotForm ? (
+            {isNotForm ?
               <div className={containerClasses}>
                 {heading}
                 {children}
               </div>
-            ) : (
-              <form className={containerClasses} onSubmit={onSubmit}>
+            : <form
+                className={containerClasses}
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  onSubmit?.(event)
+                }}
+              >
                 {heading}
                 {children}
               </form>
-            )}
+            }
             {footer}
           </div>
         </div>

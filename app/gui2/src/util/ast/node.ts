@@ -16,7 +16,7 @@ export function initializePrefixes() {
   prefixes = prefixes ?? makePrefixes()
 }
 
-export function nodeFromAst(ast: Ast.Ast): NodeDataFromAst | undefined {
+export function nodeFromAst(ast: Ast.Ast, isLastLine: boolean): NodeDataFromAst | undefined {
   const { nodeCode, documentation } =
     ast instanceof Ast.Documented ?
       { nodeCode: ast.expression, documentation: ast.documentation() }
@@ -25,8 +25,10 @@ export function nodeFromAst(ast: Ast.Ast): NodeDataFromAst | undefined {
   const pattern = nodeCode instanceof Ast.Assignment ? nodeCode.pattern : undefined
   const rootExpr = nodeCode instanceof Ast.Assignment ? nodeCode.expression : nodeCode
   const { innerExpr, matches } = prefixes.extractMatches(rootExpr)
+  const type = pattern == null && isLastLine ? 'output' : 'component'
   const primaryApplication = primaryApplicationSubject(innerExpr)
   return {
+    type,
     outerExpr: ast,
     pattern,
     rootExpr,
@@ -49,7 +51,7 @@ export function primaryApplicationSubject(
   const { subject, accessChain } = Ast.accessChain(ast)
   // Require at least one property access.
   if (accessChain.length === 0) return
-  // The leftmost element must be an identifier.
-  if (!(subject instanceof Ast.Ident)) return
+  // The leftmost element must be an identifier or a placeholder.
+  if (!(subject instanceof Ast.Ident || subject instanceof Ast.Wildcard)) return
   return { subject: subject.id, accessChain: accessChain.map((ast) => ast.id) }
 }

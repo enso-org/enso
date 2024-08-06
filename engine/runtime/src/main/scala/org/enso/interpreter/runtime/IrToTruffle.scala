@@ -240,7 +240,7 @@ class IrToTruffle(
           val err = Text.create(
             s"Incorrect polyglot java import: ${i.getJavaName}"
           )
-          hostSymbol = DataflowError.withoutTrace(err, null)
+          hostSymbol = DataflowError.withDefaultTrace(err, null)
         }
         this.scopeBuilder.registerPolyglotSymbol(
           poly.getVisibleName,

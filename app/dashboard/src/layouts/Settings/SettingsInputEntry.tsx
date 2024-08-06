@@ -33,6 +33,7 @@ export default function SettingsInputEntry(props: SettingsInputEntryProps) {
   const { nameId, getValue, setValue, validate, getEditable } = data
   const { getText } = textProvider.useText()
   const [errorMessage, setErrorMessage] = React.useState('')
+  const isSubmitting = React.useRef(false)
   const value = getValue(context)
   const isEditable = getEditable(context)
 
@@ -41,7 +42,10 @@ export default function SettingsInputEntry(props: SettingsInputEntryProps) {
       isDisabled={!isEditable}
       key={value}
       type="text"
-      onSubmit={event => {
+      onSubmit={(event) => {
+        // Technically causes the form to submit twice when pressing `Enter` due to `Enter`
+        // also triggering the submit button.This is worked around by using a ref
+        // tracking whether the form is currently being submitted.
         event.currentTarget.form?.requestSubmit()
       }}
     />
@@ -50,16 +54,20 @@ export default function SettingsInputEntry(props: SettingsInputEntryProps) {
   return (
     <aria.Form
       validationErrors={{ [FIELD_NAME]: errorMessage }}
-      onSubmit={async event => {
+      onSubmit={async (event) => {
         event.preventDefault()
-        const [[, newValue] = []] = new FormData(event.currentTarget)
-        if (typeof newValue === 'string') {
-          setErrorMessage('')
-          try {
-            await setValue(context, newValue)
-          } catch (error) {
-            setErrorMessage(errorModule.getMessageOrToString(error))
+        if (!isSubmitting.current) {
+          isSubmitting.current = true
+          const [[, newValue] = []] = new FormData(event.currentTarget)
+          if (typeof newValue === 'string') {
+            setErrorMessage('')
+            try {
+              await setValue(context, newValue)
+            } catch (error) {
+              setErrorMessage(errorModule.getMessageOrToString(error))
+            }
           }
+          isSubmitting.current = false
         }
       }}
     >
@@ -68,19 +76,17 @@ export default function SettingsInputEntry(props: SettingsInputEntryProps) {
         name={FIELD_NAME}
         defaultValue={value}
         className="flex h-row gap-settings-entry"
-        {...(validate ? { validate: newValue => validate(newValue, context) } : {})}
+        {...(validate ? { validate: (newValue) => validate(newValue, context) } : {})}
       >
         <aria.Label className="text my-auto w-organization-settings-label">
           {getText(nameId)}
         </aria.Label>
-        {validate ? (
+        {validate ?
           <div className="flex grow flex-col">
             {input}
             <aria.FieldError className="text-red-700" />
           </div>
-        ) : (
-          input
-        )}
+        : input}
         <aria.Button type="submit" className="sr-only" />
       </aria.TextField>
     </aria.Form>

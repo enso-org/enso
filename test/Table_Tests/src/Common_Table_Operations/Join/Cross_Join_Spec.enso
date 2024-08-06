@@ -45,7 +45,7 @@ add_specs suite_builder setup =
             expected_rows = [r0, r1, r2, r3]
 
             case setup.is_database of
-                True -> r.should_contain_the_same_elements_as expected_rows
+                True -> r.should_equal_ignoring_order expected_rows
                 False -> r.should_equal expected_rows
 
         group_builder.specify "should work correctly with empty tables" <|
@@ -97,7 +97,7 @@ add_specs suite_builder setup =
             r4 = [1, 4, 'b']
             expected_rows = [r1, r3, r1, r3, r2, r4, r2, r4, r1, r3, r1, r3, r1, r3, r1, r3]
             case setup.is_database of
-                True -> r.should_contain_the_same_elements_as expected_rows
+                True -> r.should_equal_ignoring_order expected_rows
                 False -> r.should_equal expected_rows
 
         group_builder.specify "should allow self-joins" <|
@@ -114,7 +114,7 @@ add_specs suite_builder setup =
             r3 = [2, 5, 2, 5]
             expected_rows = [r0, r1, r2, r3]
             case setup.is_database of
-                True -> r.should_contain_the_same_elements_as expected_rows
+                True -> r.should_equal_ignoring_order expected_rows
                 False -> r.should_equal expected_rows
 
         group_builder.specify "should rename columns of the right table to avoid duplicates" <|
@@ -160,7 +160,7 @@ add_specs suite_builder setup =
             r5 = [100, 4, 'a', 'x']
             expected_rows = [r0, r1, r2, r3, r4, r5]
             case setup.is_database of
-                True -> r.should_contain_the_same_elements_as expected_rows
+                True -> r.should_equal_ignoring_order expected_rows
                 False -> r.should_equal expected_rows
 
         group_builder.specify "Cross join is not possible via call to .join" <|

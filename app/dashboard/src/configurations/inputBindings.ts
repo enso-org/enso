@@ -10,15 +10,16 @@ import ArrowLeftIcon from '#/assets/arrow_left.svg'
 import ArrowRightIcon from '#/assets/arrow_right.svg'
 import CameraIcon from '#/assets/camera.svg'
 import CloseIcon from '#/assets/close.svg'
+import CloseTabIcon from '#/assets/close_tab.svg'
 import CloudToIcon from '#/assets/cloud_to.svg'
-import CopyAsPathIcon from '#/assets/copy_as_path.svg'
 import CopyIcon from '#/assets/copy.svg'
+import CopyAsPathIcon from '#/assets/copy_as_path.svg'
 import DataDownloadIcon from '#/assets/data_download.svg'
 import DataUploadIcon from '#/assets/data_upload.svg'
 import DuplicateIcon from '#/assets/duplicate.svg'
 import LogoIcon from '#/assets/enso_logo.svg'
-import OpenInFileBrowserIcon from '#/assets/open_in_file_browser.svg'
 import OpenIcon from '#/assets/open.svg'
+import OpenInFileBrowserIcon from '#/assets/open_in_file_browser.svg'
 import PasteIcon from '#/assets/paste.svg'
 import PenIcon from '#/assets/pen.svg'
 import PeopleIcon from '#/assets/people.svg'
@@ -52,6 +53,8 @@ export function createBindings() {
 
 export const BINDINGS = inputBindings.defineBindings({
   settings: { name: 'Settings', bindings: ['Mod+,'], icon: SettingsIcon },
+  // An alternative shortcut is required because Mod+W cannot be overridden in browsers.
+  closeTab: { name: 'Close Tab', bindings: ['Mod+W', 'Mod+Alt+W'], icon: CloseTabIcon },
   open: { name: 'Open', bindings: ['Enter'], icon: OpenIcon },
   run: { name: 'Execute as Task', bindings: ['Shift+Enter'], icon: Play2Icon },
   close: { name: 'Close', bindings: [], icon: CloseIcon },

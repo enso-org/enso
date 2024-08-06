@@ -20,9 +20,7 @@ import type * as types from './types'
 
 /** Form component. It wraps a `form` and provides form context.
  * It also handles form submission.
- * Provides better error handling and form state management and better UX out of the box.
- *
- * ## Component is in BETA and will be improved in the future. */
+ * Provides better error handling and form state management and better UX out of the box. */
 // There is no way to avoid type casting here
 // eslint-disable-next-line no-restricted-syntax
 export const Form = React.forwardRef(function Form<
@@ -31,7 +29,7 @@ export const Form = React.forwardRef(function Form<
   TTransformedValues extends components.FieldValues<Schema> | undefined = undefined,
 >(
   props: types.FormProps<Schema, TFieldValues, TTransformedValues>,
-  ref: React.Ref<HTMLFormElement>
+  ref: React.Ref<HTMLFormElement>,
 ) {
   const formId = React.useId()
 
@@ -67,7 +65,7 @@ export const Form = React.forwardRef(function Form<
       shouldFocusError: true,
       schema,
       ...formOptions,
-    }
+    },
   )
 
   const dialogContext = dialog.useDialogContext()
@@ -96,8 +94,9 @@ export const Form = React.forwardRef(function Form<
           })
         }
 
-        const message = isJSError
-          ? getText('arbitraryFormErrorMessage')
+        const message =
+          isJSError ?
+            getText('arbitraryFormErrorMessage')
           : errorUtils.tryGetMessage(error, getText('arbitraryFormErrorMessage'))
 
         innerForm.setError('root.submit', { message })
@@ -109,7 +108,6 @@ export const Form = React.forwardRef(function Form<
     },
     onError: onSubmitFailed,
     onSuccess: onSubmitSuccess,
-    onMutate: onSubmitted,
     onSettled: onSubmitted,
   })
 
@@ -120,14 +118,14 @@ export const Form = React.forwardRef(function Form<
   const { isOffline } = offlineHooks.useOffline()
 
   offlineHooks.useOfflineChange(
-    offline => {
+    (offline) => {
       if (offline) {
         innerForm.setError('root.offline', { message: getText('unavailableOffline') })
       } else {
         innerForm.clearErrors('root.offline')
       }
     },
-    { isDisabled: canSubmitOffline }
+    { isDisabled: canSubmitOffline },
   )
 
   const {
@@ -160,10 +158,10 @@ export const Form = React.forwardRef(function Form<
           }
         }
 
-        const onChange: types.UseFormRegisterReturn<Schema, TFieldValues>['onChange'] = value =>
+        const onChange: types.UseFormRegisterReturn<Schema, TFieldValues>['onChange'] = (value) =>
           registered.onChange(mapValueOnEvent(value))
 
-        const onBlur: types.UseFormRegisterReturn<Schema, TFieldValues>['onBlur'] = value =>
+        const onBlur: types.UseFormRegisterReturn<Schema, TFieldValues>['onBlur'] = (value) =>
           registered.onBlur(mapValueOnEvent(value))
 
         const result: types.UseFormRegisterReturn<Schema, TFieldValues, typeof name> = {
@@ -198,14 +196,14 @@ export const Form = React.forwardRef(function Form<
     Object.entries(formState.errors).map(([key, error]) => {
       const message = error?.message ?? getText('arbitraryFormErrorMessage')
       return [key, message]
-    })
+    }),
   ) as Record<keyof TFieldValues, string>
 
   return (
     <form
       id={id}
       ref={ref}
-      onSubmit={event => {
+      onSubmit={(event) => {
         event.preventDefault()
         event.stopPropagation()
 
@@ -234,7 +232,7 @@ export const Form = React.forwardRef(function Form<
   TTransformedValues extends components.FieldValues<Schema> | undefined = undefined,
 >(
   props: React.RefAttributes<HTMLFormElement> &
-    types.FormProps<Schema, TFieldValues, TTransformedValues>
+    types.FormProps<Schema, TFieldValues, TTransformedValues>,
   // eslint-disable-next-line no-restricted-syntax
 ) => React.JSX.Element) & {
   /* eslint-disable @typescript-eslint/naming-convention */

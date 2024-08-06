@@ -19,22 +19,22 @@ const CHECKSUM_TYPE = 'sha256'
  * @param {ChecksumType} type - The checksum algorithm to use.
  * @returns {Promise<string>} A promise that resolves to the checksum. */
 function getChecksum(path, type) {
-    return new Promise(
-        // This JSDoc annotation is required for correct types that are also type-safe.
-        /** Promise handler resolving to the file's checksum.
-         * @param {(value: string) => void} resolve - Fulfill the promise with the given value. */
-        (resolve, reject) => {
-            const hash = cryptoModule.createHash(type)
-            const input = fs.createReadStream(path)
-            input.on('error', reject)
-            input.on('data', chunk => {
-                hash.update(chunk)
-            })
-            input.on('close', () => {
-                resolve(hash.digest('hex'))
-            })
-        }
-    )
+  return new Promise(
+    // This JSDoc annotation is required for correct types that are also type-safe.
+    /** Promise handler resolving to the file's checksum.
+     * @param {(value: string) => void} resolve - Fulfill the promise with the given value. */
+    (resolve, reject) => {
+      const hash = cryptoModule.createHash(type)
+      const input = fs.createReadStream(path)
+      input.on('error', reject)
+      input.on('data', chunk => {
+        hash.update(chunk)
+      })
+      input.on('close', () => {
+        resolve(hash.digest('hex'))
+      })
+    },
+  )
 }
 
 /** Based on https://stackoverflow.com/a/57371333.
@@ -42,18 +42,18 @@ function getChecksum(path, type) {
  * @param {string} extension - The new extension of the file.
  * @returns A path with the new exension. */
 function changeExtension(file, extension) {
-    const basename = pathModule.basename(file, pathModule.extname(file))
-    return pathModule.join(pathModule.dirname(file), `${basename}.${extension}`)
+  const basename = pathModule.basename(file, pathModule.extname(file))
+  return pathModule.join(pathModule.dirname(file), `${basename}.${extension}`)
 }
 
 /** Write the file checksum to the provided path.
  * @param {string} path - The path to the file.
  * @param {ChecksumType} type - The checksum algorithm to use. */
 async function writeFileChecksum(path, type) {
-    const checksum = await getChecksum(path, type)
-    const targetPath = changeExtension(path, type)
-    console.log(`Writing ${targetPath}. Checksum is ${checksum}.`)
-    await fs.promises.writeFile(targetPath, checksum, 'utf8')
+  const checksum = await getChecksum(path, type)
+  const targetPath = changeExtension(path, type)
+  console.log(`Writing ${targetPath}. Checksum is ${checksum}.`)
+  await fs.promises.writeFile(targetPath, checksum, 'utf8')
 }
 
 // ================
@@ -65,11 +65,11 @@ async function writeFileChecksum(path, type) {
  * @returns {Promise<string[]>} afterAllArtifactBuild hook result.
  */
 export default async function (context) {
-    // `context` is BuildResult, see
-    // https://www.electron.build/configuration/configuration.html#buildresult
-    for (const file of context.artifactPaths) {
-        console.log(`Generating ${CHECKSUM_TYPE} checksum for ${file}.`)
-        await writeFileChecksum(file, CHECKSUM_TYPE)
-    }
-    return []
+  // `context` is BuildResult, see
+  // https://www.electron.build/configuration/configuration.html#buildresult
+  for (const file of context.artifactPaths) {
+    console.log(`Generating ${CHECKSUM_TYPE} checksum for ${file}.`)
+    await writeFileChecksum(file, CHECKSUM_TYPE)
+  }
+  return []
 }

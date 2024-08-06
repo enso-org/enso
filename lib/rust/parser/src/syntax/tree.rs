@@ -27,18 +27,19 @@ pub mod block;
 #[allow(missing_docs)]
 pub struct Tree<'s> {
     #[reflect(flatten, hide)]
-    pub span:    Span<'s>,
+    pub span:     Span<'s>,
+    pub warnings: Warnings,
     #[deref]
     #[deref_mut]
     #[reflect(subtype)]
-    pub variant: Box<Variant<'s>>,
+    pub variant:  Box<Variant<'s>>,
 }
 
 /// Constructor.
 #[allow(non_snake_case)]
 pub fn Tree<'s>(span: Span<'s>, variant: impl Into<Variant<'s>>) -> Tree<'s> {
     let variant = Box::new(variant.into());
-    Tree { variant, span }
+    Tree { variant, span, warnings: default() }
 }
 
 impl<'s> AsRef<Span<'s>> for Tree<'s> {
@@ -50,8 +51,9 @@ impl<'s> AsRef<Span<'s>> for Tree<'s> {
 impl<'s> Default for Tree<'s> {
     fn default() -> Self {
         Self {
-            variant: Box::new(Variant::Ident(Ident { token: Default::default() })),
-            span:    Span::empty_without_offset(),
+            variant:  Box::new(Variant::Ident(Ident { token: Default::default() })),
+            span:     Span::empty_without_offset(),
+            warnings: default(),
         }
     }
 }
@@ -752,6 +754,50 @@ impl<'s> span::Builder<'s> for OperatorDelimitedTree<'s> {
         span.add(&mut self.operator).add(&mut self.body)
     }
 }
+
+
+
+// ================
+// === Warnings ===
+// ================
+
+/// Warnings applicable to a [`Tree`].
+pub type Warnings = ColdVec<Warning>;
+
+
+// === Warning ===
+
+/// A warning associated with a [`Tree`].
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Reflect, Deserialize)]
+#[allow(missing_copy_implementations)] // Future warnings may have attached information.
+pub struct Warning {
+    id: u32,
+}
+
+impl Warning {
+    /// Spacing is inconsistent with effective operator precedence.
+    pub fn inconsistent_spacing() -> Self {
+        Self { id: WarningId::InconsistentSpacing as u32 }
+    }
+
+    /// Return a description of the warning.
+    pub fn message(&self) -> Cow<'static, str> {
+        WARNINGS[self.id as usize].into()
+    }
+}
+
+#[repr(u32)]
+#[derive(Debug)]
+enum WarningId {
+    InconsistentSpacing,
+    #[allow(non_camel_case_types)]
+    NUM_WARNINGS,
+}
+
+/// Template strings for printing warnings.
+// These must be defined in the same order as the [`WarningId`] variants.
+pub const WARNINGS: [&str; WarningId::NUM_WARNINGS as usize] =
+    ["Spacing is inconsistent with operator precedence"];
 
 
 

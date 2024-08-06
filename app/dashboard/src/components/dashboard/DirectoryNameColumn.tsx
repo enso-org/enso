@@ -1,13 +1,14 @@
 /** @file The icon and name of a {@link backendModule.DirectoryAsset}. */
 import * as React from 'react'
 
-import FolderArrowIcon from '#/assets/folder_arrow.svg'
 import FolderIcon from '#/assets/folder.svg'
+import FolderArrowIcon from '#/assets/folder_arrow.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
+import { useDriveStore } from '#/providers/DriveProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -43,11 +44,12 @@ export interface DirectoryNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   const { item, setItem, selected, state, rowState, setRowState, isEditable } = props
-  const { backend, selectedKeys, nodeMap } = state
+  const { backend, nodeMap } = state
   const { doToggleDirectoryExpansion } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
+  const driveStore = useDriveStore()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   if (item.type !== backendModule.AssetType.directory) {
     // eslint-disable-next-line no-restricted-syntax
@@ -89,16 +91,14 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
     }
   }
 
-  eventListProvider.useAssetEventListener(async event => {
+  eventListProvider.useAssetEventListener(async (event) => {
     if (isEditable) {
       switch (event.type) {
         case AssetEventType.newProject:
         case AssetEventType.uploadFiles:
         case AssetEventType.newDatalink:
         case AssetEventType.newSecret:
-        case AssetEventType.openProject:
         case AssetEventType.updateFiles:
-        case AssetEventType.closeProject:
         case AssetEventType.copy:
         case AssetEventType.cut:
         case AssetEventType.cancelCut:
@@ -154,20 +154,20 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
     <div
       className={tailwindMerge.twMerge(
         'group flex h-table-row min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y',
-        indent.indentClass(item.depth)
+        indent.indentClass(item.depth),
       )}
-      onKeyDown={event => {
+      onKeyDown={(event) => {
         if (rowState.isEditingName && event.key === 'Enter') {
           event.stopPropagation()
         }
       }}
-      onClick={event => {
+      onClick={(event) => {
         if (handleClick(event)) {
           // Already handled.
         } else if (
           eventModule.isSingleClick(event) &&
           selected &&
-          selectedKeys.current.size === 1
+          driveStore.getState().selectedKeys.size === 1
         ) {
           event.stopPropagation()
           setIsEditing(true)
@@ -182,7 +182,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         tooltipPlacement="left"
         className={tailwindMerge.twMerge(
           'm-0 hidden cursor-pointer border-0 transition-transform duration-arrow group-hover:m-name-column-icon group-hover:inline-block',
-          isExpanded && 'rotate-90'
+          isExpanded && 'rotate-90',
         )}
         onPress={() => {
           doToggleDirectoryExpansion(asset.id, item.key, asset.title)
@@ -194,9 +194,9 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         editable={rowState.isEditingName}
         className={tailwindMerge.twMerge(
           'text grow cursor-pointer bg-transparent font-naming',
-          rowState.isEditingName ? 'cursor-text' : 'cursor-pointer'
+          rowState.isEditingName ? 'cursor-text' : 'cursor-pointer',
         )}
-        checkSubmittable={newTitle =>
+        checkSubmittable={(newTitle) =>
           validation.DIRECTORY_NAME_REGEX.test(newTitle) &&
           item.isNewTitleValid(newTitle, nodeMap.current.get(item.directoryKey)?.children)
         }

@@ -14,7 +14,7 @@
 export function safeJsonParse<T = unknown>(
   value: string,
   defaultValue: T,
-  predicate: (parsed: unknown) => parsed is T
+  predicate: (parsed: unknown) => parsed is T,
 ): T {
   try {
     const parsed: unknown = JSON.parse(value)

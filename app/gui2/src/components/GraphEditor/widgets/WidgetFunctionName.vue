@@ -48,7 +48,7 @@ async function renameFunction(newName: string): Promise<Result> {
 </script>
 
 <script lang="ts">
-export const FunctionName: unique symbol = Symbol('FunctionName')
+export const FunctionName: unique symbol = Symbol.for('WidgetInput:FunctionName')
 declare module '@/providers/widgetRegistry' {
   export interface WidgetInput {
     [FunctionName]?: {
@@ -63,7 +63,7 @@ declare module '@/providers/widgetRegistry' {
 function isFunctionName(
   input: WidgetInput,
 ): input is WidgetInput & { value: Ast.Ast; [FunctionName]: { editableName: ExpressionId } } {
-  return WidgetInput.isAst(input) && FunctionName in input
+  return WidgetInput.isToken(input) && FunctionName in input
 }
 
 export const widgetDefinition = defineWidget(

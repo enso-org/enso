@@ -32,7 +32,7 @@ export default function InfoBar(props: InfoBarProps) {
 
   return (
     <FocusArea direction="horizontal">
-      {innerProps => (
+      {(innerProps) => (
         <div
           className="pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-user-bar rounded-full bg-frame backdrop-blur-default"
           {...innerProps}

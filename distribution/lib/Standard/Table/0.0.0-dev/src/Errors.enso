@@ -68,8 +68,8 @@ type Invalid_Column_Names
             Nothing -> ""
             message -> " "+message
         case self.column_names.length == 1 of
-            True -> "The name " + (self.column_names.at 0).to_display_text.pretty + " is invalid and may be replaced in the resulting table."+suffix
-            False -> "The names "+self.column_names.short_display_text+" are invalid and may be replaced in the resulting table."+suffix
+            True -> "The name " + (self.column_names.at 0).to_display_text.pretty + " is invalid and may be replaced in the resulting table." + suffix
+            False -> "The names "+self.column_names.short_display_text+" are invalid and may be replaced in the resulting table." + suffix
 
     ## PRIVATE
        Handles the Java counterpart `InvalidColumnNameException` and converts it into a dataflow error.
@@ -105,9 +105,10 @@ type No_Output_Columns
 
        Pretty prints the no output columns error.
     to_display_text : Text
-    to_display_text self =
-        if self.cause.is_nothing then "The result would contain no columns." else
-            "No columns in the result, because of another problem: "+self.cause.to_display_text
+    to_display_text self = case self.cause of
+        Nothing -> "The result would contain no columns."
+        _ : Text -> self.cause
+        _ -> "No columns in the result, because of another problem: "+self.cause.to_display_text
 
 ## Indicates that one column has been matched by multiple selectors, resulting
    in ambiguous new names.
@@ -652,11 +653,11 @@ type Conversion_Failure
 
         case self of
             Conversion_Failure.Error _ _ _ _ ->
-                rows_info + " could not be converted into the target type "+self.target_type.to_display_text+column_suffix+"."
+                rows_info + " could not be converted into the target type " + self.target_type.to_display_text + column_suffix + "."
             Conversion_Failure.Out_Of_Range _ _ _ _ ->
-                rows_info + " are out of the range of the target type "+self.target_type.to_display_text+column_suffix+"."
+                rows_info + " are out of the range of the target type " + self.target_type.to_display_text + column_suffix + "."
             Conversion_Failure.Text_Too_Long _ _ _ _ ->
-                rows_info + " have a text representation that does not fit the target type "+self.target_type.to_display_text+column_suffix+"."
+                rows_info + " have a text representation that does not fit the target type " + self.target_type.to_display_text + column_suffix + "."
 
 type Loss_Of_Integer_Precision
     ## PRIVATE
@@ -714,7 +715,7 @@ type Arithmetic_Overflow
             Nothing -> ""
             operands ->
                 " (e.g. operation " + (operands.map .to_display_text . join " ") + ")"
-        rows_info + op_info + " encountered integer overflow - the results do not fit the type "+self.target_type.to_display_text+". These values have ben replaced with `Nothing`."
+        rows_info + op_info + " encountered integer overflow - the results do not fit the type " + self.target_type.to_display_text + ". These values have ben replaced with `Nothing`."
 
     ## PRIVATE
     to_text : Text
@@ -834,7 +835,7 @@ type Non_Unique_Key
        Pretty print the non-unique primary key error.
     to_display_text : Text
     to_display_text self =
-        "The key " + self.key_column_names.to_display_text + " is not unique, for example key "+self.clashing_example_key_values.to_display_text+" corresponds to "+self.clashing_example_row_count.to_text+" rows."
+        "The key " + self.key_column_names.to_display_text + " is not unique, for example key " + self.clashing_example_key_values.to_display_text + " corresponds to " + self.clashing_example_row_count.to_text + " rows."
 
 type Null_Values_In_Key_Columns
     ## PRIVATE
@@ -847,7 +848,7 @@ type Null_Values_In_Key_Columns
     to_display_text : Text
     to_display_text self =
         suffix = if self.add_sql_suffix.not then "" else " The operation has been rolled back. Due to how NULL equality works in SQL, these rows would not be correctly matched to the target rows. Please use a key that does not contain NULLs."
-        "The operation encountered input rows that contained Nothing values in key columns (for example, the row " + self.example_row.to_display_text + ")."+suffix
+        "The operation encountered input rows that contained Nothing values in key columns (for example, the row " + self.example_row.to_display_text + ")." + suffix
 
 ## Indicates that the query may not have downloaded all rows that were
    available.

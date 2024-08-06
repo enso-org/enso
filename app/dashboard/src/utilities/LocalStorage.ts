@@ -68,8 +68,9 @@ export default class LocalStorage {
           // This is SAFE, as it is guarded by the `key in savedValues` check.
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, no-restricted-syntax, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
           const savedValue = (savedValues as any)[key]
-          const value = metadata.schema
-            ? metadata.schema.safeParse(savedValue).data
+          const value =
+            metadata.schema ?
+              metadata.schema.safeParse(savedValue).data
             : metadata.tryParse(savedValue)
           if (value != null) {
             newValues[key] = value

@@ -7,9 +7,14 @@ import org.enso.pkg.validation.NameValidation
 import java.io.{File, InputStream, OutputStream}
 import java.net.URI
 import scala.jdk.CollectionConverters._
+import scala.util.control.NonFatal
 import scala.util.{Failure, Try, Using}
 
-object CouldNotCreateDirectory extends Exception
+case class CouldNotCreateDirectory(cause: Throwable) extends RuntimeException {
+  override def getMessage: String =
+    s"Could not create directory: ${cause.getMessage}. Perhaps there is a permission issue."
+  override def toString: String = getMessage
+}
 
 /** Represents a source file with known qualified name.
   *
@@ -69,20 +74,15 @@ class Package[F](
   /** Stores the package metadata on the hard drive. If the package does not exist,
     * creates the required directory structure.
     */
-  def save(): Try[Unit] =
-    for {
-      _ <- Try {
-        if (!root.exists) createDirectories(root)
-        if (!sourceDir.exists) createSourceDir()
-      }
-      _ <- saveConfig()
-    } yield ()
+  def save(): Unit = {
+    try {
+      if (!root.exists) root.createDirectories()
+      if (!sourceDir.exists) sourceDir.createDirectories()
+    } catch {
+      case NonFatal(e) => throw CouldNotCreateDirectory(e)
+    }
 
-  /** Creates the package directory structure.
-    */
-  def createDirectories(file: F): Unit = {
-    val created = Try(file.createDirectories()).map(_ => true).getOrElse(false)
-    if (!created) throw CouldNotCreateDirectory
+    saveConfig()
   }
 
   /** Gets the cache root location within this package for a given Enso version.
@@ -148,15 +148,9 @@ class Package[F](
     newPkg
   }
 
-  /** Creates the sources directory.
-    */
-  private def createSourceDir(): Unit = {
-    Try(sourceDir.createDirectories()).getOrElse(throw CouldNotCreateDirectory)
-  }
-
   /** Saves the config metadata into the package configuration file.
     */
-  private def saveConfig(): Try[Unit] =
+  private def saveConfig(): Unit =
     Using(configFile.newBufferedWriter) { writer =>
       writer.write(config.toYaml)
     }
