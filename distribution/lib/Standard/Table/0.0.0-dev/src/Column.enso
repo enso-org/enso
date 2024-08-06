@@ -1483,6 +1483,7 @@ type Column
             - ..Trailing_Whitespace: Removes all whitspace from the end of the string.
             - ..Duplicate_Whitespace: Removes all duplicate whitspace from the string replacing it with the first whitespace character of the duplicated block.
             - ..All_Whitespace: Removes all whitspace from the string.
+            - ..Newlines: Removes all newline characters from the string. Line Feed and Carriage Return characters are considered newlines.
             - ..Leading_Numbers: Removes all numbers from the start of the string.
             - ..Trailing_Numbers: Removes all numbers from the end of the string.
             - ..Non_ASCII: Removes all non-ascii characters from the string.
