@@ -18,6 +18,7 @@ import { useLocalBackend } from '#/providers/BackendProvider'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import { type GetText, useText } from '#/providers/TextProvider'
 import LocalStorage from '#/utilities/LocalStorage'
+import { PASSWORD_REGEX } from '#/utilities/validation'
 
 // ============================
 // === Global configuration ===
@@ -44,7 +45,7 @@ function createRegistrationFormSchema(getText: GetText) {
       confirmPassword: z.string(),
     })
     .superRefine((object, context) => {
-      if (object.password !== object.confirmPassword) {
+      if (PASSWORD_REGEX.test(object.password) && object.password !== object.confirmPassword) {
         context.addIssue({
           path: ['confirmPassword'],
           code: 'custom',

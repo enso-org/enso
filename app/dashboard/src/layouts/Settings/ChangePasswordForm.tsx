@@ -8,6 +8,7 @@ import { useAuth, useNonPartialUserSession } from '#/providers/AuthProvider'
 import { type GetText, useText } from '#/providers/TextProvider'
 
 import { passwordSchema, passwordWithPatternSchema } from '#/pages/authentication/schemas'
+import { PASSWORD_REGEX } from '#/utilities/validation'
 
 /** Create the schema for this form. */
 function createChangePasswordFormSchema(getText: GetText) {
@@ -19,7 +20,10 @@ function createChangePasswordFormSchema(getText: GetText) {
       confirmNewPassword: z.string(),
     })
     .superRefine((object, context) => {
-      if (object.newPassword !== object.confirmNewPassword) {
+      if (
+        PASSWORD_REGEX.test(object.newPassword) &&
+        object.newPassword !== object.confirmNewPassword
+      ) {
         context.addIssue({
           path: ['confirmNewPassword'],
           code: 'custom',

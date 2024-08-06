@@ -18,6 +18,7 @@ import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
 import { useAuth } from '#/providers/AuthProvider'
 import { useLocalBackend } from '#/providers/BackendProvider'
 import { type GetText, useText } from '#/providers/TextProvider'
+import { PASSWORD_REGEX } from '#/utilities/validation'
 
 /** Create the schema for this form. */
 function createResetPasswordFormSchema(getText: GetText) {
@@ -29,7 +30,10 @@ function createResetPasswordFormSchema(getText: GetText) {
       confirmNewPassword: z.string(),
     })
     .superRefine((object, context) => {
-      if (object.newPassword !== object.confirmNewPassword) {
+      if (
+        PASSWORD_REGEX.test(object.newPassword) &&
+        object.newPassword !== object.confirmNewPassword
+      ) {
         context.addIssue({
           path: ['confirmNewPassword'],
           code: 'custom',
