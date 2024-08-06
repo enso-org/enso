@@ -42,9 +42,14 @@ export const INPUT_STYLES = tv({
         base: 'border-[0.5px] outline-offset-2 border-primary/20 focus-within:outline focus-within:outline-2 focus-within:outline-offset-[-1px] focus-within:outline-primary focus-within:border-primary/50',
         textArea: 'border-transparent focus-within:border-transparent',
       },
+      settings: {
+        base: 'flex h-row gap-settings-entry',
+        label: 'text my-auto w-change-password-settings-label',
+      },
     },
   },
   slots: {
+    label: '',
     icon: 'absolute top-1/2 -translate-y-1/2 left-0',
     addonStart: 'flex items-center mt-[-1px]',
     addonEnd: 'flex items-center mt-[-1px]',

@@ -2,7 +2,6 @@
 import * as React from 'react'
 import * as router from 'react-router-dom'
 
-import isEmail from 'validator/lib/isEmail'
 import * as z from 'zod'
 
 import { LOGIN_PATH } from '#/appUtils'
@@ -37,11 +36,11 @@ LocalStorage.registerKey('loginRedirect', {
   tryParse: (value) => (typeof value === 'string' ? value : null),
 })
 
-/** Create the schema for this page. */
+/** Create the schema for this form. */
 function createRegistrationFormSchema(getText: GetText) {
   return z
     .object({
-      email: z.string().refine(isEmail, getText('invalidEmailValidationError')),
+      email: z.string().email(getText('invalidEmailValidationError')),
       password: passwordWithPatternSchema(getText),
       confirmPassword: z.string(),
     })

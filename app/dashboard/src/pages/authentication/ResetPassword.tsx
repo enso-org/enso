@@ -19,7 +19,7 @@ import { useAuth } from '#/providers/AuthProvider'
 import { useLocalBackend } from '#/providers/BackendProvider'
 import { type GetText, useText } from '#/providers/TextProvider'
 
-/** Create the schema for this page. */
+/** Create the schema for this form. */
 function createResetPasswordFormSchema(getText: GetText) {
   return z
     .object({

@@ -75,6 +75,7 @@ export const Input = React.forwardRef(function Input<
     max,
     icon,
     type = 'text',
+    variant,
     ...inputProps
   } = props
 
@@ -88,6 +89,7 @@ export const Input = React.forwardRef(function Input<
   })
 
   const classes = variants.INPUT_STYLES({
+    variant,
     size,
     rounded,
     invalid: fieldState.invalid,
@@ -126,7 +128,7 @@ export const Input = React.forwardRef(function Input<
       form={formInstance}
       name={name}
       fullWidth
-      label={label}
+      label={<div className={classes.label()}>{label}</div>}
       aria-label={props['aria-label']}
       aria-labelledby={props['aria-labelledby']}
       aria-describedby={props['aria-describedby']}
