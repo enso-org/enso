@@ -8,6 +8,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.node.callable.InteropMethodCallNode;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
 
@@ -21,6 +22,10 @@ public abstract class HashMapSizeNode extends Node {
 
   public static HashMapSizeNode build() {
     return HashMapSizeNodeGen.create();
+  }
+
+  public static HashMapSizeNode getUncached() {
+    return HashMapSizeNodeGen.getUncached();
   }
 
   public abstract long execute(Object self);

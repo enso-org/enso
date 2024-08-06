@@ -99,7 +99,7 @@ public final class EnsoHashMap implements EnsoObject {
   }
 
   @ExportMessage
-  public int getHashSize() {
+  int getHashSize() {
     return size;
   }
 

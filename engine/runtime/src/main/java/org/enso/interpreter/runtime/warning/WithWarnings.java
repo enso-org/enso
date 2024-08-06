@@ -23,6 +23,7 @@ import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.data.hash.HashMapInsertAllNode;
 import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
 import org.enso.interpreter.runtime.data.hash.HashMapInsertNodeGen;
+import org.enso.interpreter.runtime.data.hash.HashMapSizeNode;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNodeGen;
@@ -78,13 +79,14 @@ public final class WithWarnings implements EnsoObject {
    */
   WithWarnings(Object value, int maxWarnings, boolean limitReached, EnsoHashMap warningsMap) {
     assert isAcceptableValue(value);
-    assert warningsMap.getHashSize() <= maxWarnings;
+    var mapSizeNode = HashMapSizeNode.getUncached();
+    assert mapSizeNode.execute(warningsMap) <= maxWarnings;
     if (limitReached) {
-      assert warningsMap.getHashSize() == maxWarnings;
+      assert mapSizeNode.execute(warningsMap) == maxWarnings;
     }
     this.value = value;
     this.maxWarnings = maxWarnings;
-    this.limitReached = limitReached || warningsMap.getHashSize() >= maxWarnings;
+    this.limitReached = limitReached || mapSizeNode.execute(warningsMap) >= maxWarnings;
     this.warnings = warningsMap;
   }
 
@@ -274,7 +276,7 @@ public final class WithWarnings implements EnsoObject {
     return "WithWarnings{"
         + value
         + " has "
-        + warnings.getHashSize()
+        + HashMapSizeNode.getUncached().execute(warnings)
         + " warnings"
         + (limitReached ? " (warnings limit reached)}" : "}");
   }
