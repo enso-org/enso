@@ -55,7 +55,7 @@ export default function AuthenticationPage<
   )
 
   const containerClasses = DIALOG_BACKGROUND({
-    className: 'flex w-full flex-col gap-auth rounded-4xl p-12',
+    className: 'flex w-full flex-col gap-4 rounded-4xl p-12',
   })
 
   const offlineAlertClasses = DIALOG_BACKGROUND({
