@@ -87,7 +87,14 @@ case object FramePointerAnalysis extends IRPass {
     graph: Graph
   ): Unit = {
     args.foreach { arg =>
-      maybeAttachFramePointer(arg, graph)
+      arg.name match {
+        case Name.Self(loc, synthetic, _, _) if loc.isEmpty && synthetic =>
+          // synthetic self argument has occurrence attached, but there is no Occurence.Def for it.
+          // So we have to handle it specially.
+         updateMeta(arg, new FramePointer(0, 1))
+        case _ =>
+          maybeAttachFramePointer(arg, graph)
+      }
     }
   }
 

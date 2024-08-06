@@ -3,7 +3,7 @@ package org.enso.compiler.test.pass.analyse
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FramePointer, FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{DefinitionArgument, Expression, Module}
+import org.enso.compiler.core.ir.{DefinitionArgument, Expression, Module, Name}
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.pass.analyse.alias.{Graph, Info}
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
@@ -207,6 +207,51 @@ class FramePointerAnalysisTest extends CompilerTest {
         findIRElement[DefinitionArgument.Specified](ir, _.name.name == "y")
       expectFramePointer(xArg, new FramePointer(0, 1))
       expectFramePointer(yArg, new FramePointer(0, 2))
+    }
+
+    "attach frame pointers to synthetic self argument" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+      val ir =
+        """
+          |type My_Type
+          |    static_method = 42
+          |""".stripMargin.preprocessModule.analyse
+      // synthetic self argument does not have location and is `synthetic == true`.
+      val syntheticSelfArg = findIRElement[DefinitionArgument.Specified](ir, _.name match {
+          case Name.Self(loc, synthetic, _, _) if loc.isEmpty && synthetic => true
+          case _ => false
+        }
+      )
+      expectFramePointer(syntheticSelfArg, new FramePointer(0, 1))
+    }
+
+    "attach frame pointers to arguments with synthetic self" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+      val ir =
+        """
+          |type My_Type
+          |    static_method x = 42
+          |""".stripMargin.preprocessModule.analyse
+      // synthetic self argument does not have location and is `synthetic == true`.
+      val syntheticSelfArg = findIRElement[DefinitionArgument.Specified](ir, _.name match {
+          case Name.Self(loc, synthetic, _, _) if loc.isEmpty && synthetic => true
+          case _ => false
+        }
+      )
+      val xArg = findIRElement[DefinitionArgument.Specified](ir, _.name.name == "x")
+      expectFramePointer(syntheticSelfArg, new FramePointer(0, 1))
+      expectFramePointer(xArg, new FramePointer(0, 2))
+    }
+
+    "attach frame pointers to self argument" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+      val ir =
+        """
+          |type My_Type
+          |    instance_method self = self.data + 42
+          |""".stripMargin.preprocessModule.analyse
+      val selfArg = findIRElement[DefinitionArgument.Specified](ir, _.name.isInstanceOf[Name.Self])
+      expectFramePointer(selfArg, new FramePointer(0, 1))
     }
   }
 
