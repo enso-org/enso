@@ -67,7 +67,13 @@ export default function ResetPassword() {
       supportsOffline={supportsOffline}
       title={getText('resetYourPassword')}
       schema={createResetPasswordFormSchema(getText)}
-      footer={<Link to={LOGIN_PATH} icon={GoBackIcon} text={getText('goBackToLogin')} />}
+      footer={
+        <Link
+          to={`${LOGIN_PATH}?${new URLSearchParams({ email: defaultEmail ?? '' }).toString()}`}
+          icon={GoBackIcon}
+          text={getText('goBackToLogin')}
+        />
+      }
       onSubmit={({ email, verificationCode, newPassword }) =>
         resetPassword(email, verificationCode, newPassword)
       }

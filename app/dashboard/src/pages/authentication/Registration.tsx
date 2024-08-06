@@ -1,6 +1,6 @@
 /** @file Registration container responsible for rendering and interactions in sign up flow. */
-import * as React from 'react'
-import * as router from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 
 import * as z from 'zod'
 
@@ -57,7 +57,7 @@ function createRegistrationFormSchema(getText: GetText) {
 /** A form for users to register an account. */
 export default function Registration() {
   const { signUp } = useAuth()
-  const location = router.useLocation()
+  const location = useLocation()
   const { localStorage } = useLocalStorage()
   const { getText } = useText()
   const localBackend = useLocalBackend()
@@ -67,8 +67,9 @@ export default function Registration() {
   const initialEmail = query.get('email')
   const organizationId = query.get('organization_id')
   const redirectTo = query.get('redirect_to')
+  const [emailInput, setEmailInput] = useState(initialEmail ?? '')
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (redirectTo != null) {
       localStorage.set('loginRedirect', redirectTo)
     } else {
@@ -81,7 +82,13 @@ export default function Registration() {
       schema={createRegistrationFormSchema(getText)}
       title={getText('createANewAccount')}
       supportsOffline={supportsOffline}
-      footer={<Link to={LOGIN_PATH} icon={GoBackIcon} text={getText('alreadyHaveAnAccount')} />}
+      footer={
+        <Link
+          to={`${LOGIN_PATH}?${new URLSearchParams({ email: emailInput }).toString()}`}
+          icon={GoBackIcon}
+          text={getText('alreadyHaveAnAccount')}
+        />
+      }
       onSubmit={({ email, password }) => signUp(email, password, organizationId)}
     >
       <Input
@@ -94,6 +101,9 @@ export default function Registration() {
         icon={AtIcon}
         placeholder={getText('emailPlaceholder')}
         defaultValue={initialEmail ?? undefined}
+        onBlur={(event) => {
+          setEmailInput(event.currentTarget.value)
+        }}
       />
       <Password
         required

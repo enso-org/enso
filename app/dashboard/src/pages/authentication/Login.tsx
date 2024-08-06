@@ -30,7 +30,7 @@ export default function Login() {
   const { getText } = useText()
   const query = new URLSearchParams(location.search)
   const initialEmail = query.get('email')
-  const [emailInput, setEmailInput] = useState('')
+  const [emailInput, setEmailInput] = useState(initialEmail ?? '')
   const localBackend = useLocalBackend()
   const supportsOffline = localBackend != null
 
@@ -113,7 +113,12 @@ export default function Login() {
             placeholder={getText('passwordPlaceholder')}
           />
 
-          <Button variant="link" href={FORGOT_PASSWORD_PATH} size="small" className="self-end">
+          <Button
+            variant="link"
+            href={`${FORGOT_PASSWORD_PATH}?${new URLSearchParams({ email: emailInput }).toString()}`}
+            size="small"
+            className="self-end"
+          >
             {getText('forgotYourPassword')}
           </Button>
         </div>
