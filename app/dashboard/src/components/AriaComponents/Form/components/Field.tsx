@@ -49,9 +49,10 @@ export const FIELD_STYLES = twv.tv({
     variant: {
       default: '',
       settings: {
-        base: 'flex-row',
-        labelContainer: 'flex h-row items-center gap-[19px] w-full',
+        base: 'flex-row flex-wrap',
+        labelContainer: 'flex h-row items-center gap-5 w-full',
         label: 'text my-auto w-40 shrink-0',
+        error: 'ml-[180px]',
       },
     },
   },

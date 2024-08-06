@@ -7,14 +7,14 @@ import { ButtonGroup, Form, Input } from '#/components/AriaComponents'
 import { useAuth, useNonPartialUserSession } from '#/providers/AuthProvider'
 import { type GetText, useText } from '#/providers/TextProvider'
 
-import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
+import { passwordSchema, passwordWithPatternSchema } from '#/pages/authentication/schemas'
 
 /** Create the schema for this form. */
 function createChangePasswordFormSchema(getText: GetText) {
   return z
     .object({
       username: z.string().email(getText('invalidEmailValidationError')),
-      currentPassword: passwordWithPatternSchema(getText),
+      currentPassword: passwordSchema(getText),
       newPassword: passwordWithPatternSchema(getText),
       confirmNewPassword: z.string(),
     })
