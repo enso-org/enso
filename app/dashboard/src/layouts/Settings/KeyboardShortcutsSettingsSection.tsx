@@ -55,6 +55,7 @@ export default function KeyboardShortcutsSettingsSection() {
     <>
       <ariaComponents.ButtonGroup>
         <ariaComponents.Button
+          size="medium"
           variant="bar"
           onPress={() => {
             setModal(

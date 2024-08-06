@@ -233,7 +233,13 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
       var outputRedirect = new ByteArrayOutputStream();
       var redirectConfigWithStrictErrors =
           new CompilerConfig(
-              false, false, true, false, true, scala.Option.apply(new PrintStream(outputRedirect)));
+              false,
+              false,
+              true,
+              false,
+              true,
+              false,
+              scala.Option.apply(new PrintStream(outputRedirect)));
       var moduleContext =
           new ModuleContext(
               module.asCompilerModule(),

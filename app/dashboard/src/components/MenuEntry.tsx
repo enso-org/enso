@@ -44,6 +44,7 @@ export const ACTION_TO_TEXT_ID: Readonly<
   >
 > = {
   settings: 'settingsShortcut',
+  closeTab: 'closeTabShortcut',
   open: 'openShortcut',
   run: 'runShortcut',
   close: 'closeShortcut',

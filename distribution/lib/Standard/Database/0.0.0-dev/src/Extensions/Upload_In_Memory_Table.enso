@@ -9,7 +9,7 @@ import project.Connection.Connection.Connection
 import project.DB_Table.DB_Table
 import project.Update_Action.Update_Action
 from project.Errors import all
-from project.Internal.Upload_Table import all
+from project.Internal.Upload.Operations.Select_Into import select_into_table_implementation
 
 ## GROUP Standard.Base.Output
    ICON data_output
