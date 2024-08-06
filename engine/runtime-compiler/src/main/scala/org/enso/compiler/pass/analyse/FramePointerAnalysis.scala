@@ -18,8 +18,6 @@ import org.enso.compiler.core.ir.{
   Name,
   ProcessingPass
 }
-import org.enso.compiler.core.Implicits.AsMetadata
-import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition.Method
 import org.enso.compiler.pass.IRPass
@@ -28,6 +26,7 @@ import org.enso.compiler.pass.analyse.alias.{Graph, Info}
 
 /** This pass attaches [[FramePointer]] as metadata to all the IR elements that already
   * have [[org.enso.compiler.pass.analyse.alias.Info.Occurrence]] attached.
+  * It does not replace the IR elements with errors, it just attaches metadata.
   */
 case object FramePointerAnalysis extends IRPass {
 
@@ -42,66 +41,47 @@ case object FramePointerAnalysis extends IRPass {
   override val invalidatedPasses: Seq[IRPass] = Seq(this)
 
   override def runModule(ir: Module, moduleContext: ModuleContext): Module = {
-    val newBindings = ir.bindings.map(processBinding)
-    ir.copy(bindings = newBindings)
+    ir.bindings.foreach(processBinding)
+    ir
   }
 
   private def processBinding(
     ir: Definition
-  ): Definition = {
+  ): Unit = {
     ir match {
       case m: Method.Explicit =>
         getAliasAnalysisGraph(m) match {
           case Some(graph) =>
-            m.copy(
-              body = processExpression(m.body, graph)
-            )
-          case _ => m
+            processExpression(m.body, graph)
+          case _ => ()
         }
       case m: Method.Conversion =>
         getAliasAnalysisGraph(m) match {
           case Some(graph) =>
-            m.copy(
-              body = m.body.mapExpressions(processExpression(_, graph))
-            )
-          case _ => m
+            processExpression(m.body, graph)
+          case _ => ()
         }
       case t: Definition.Type =>
         getAliasAnalysisGraph(t) match {
           case Some(graph) =>
-            t.copy(
-              params = processArgumentDefs(
-                t.params,
-                graph
-              ),
-              members = t.members.map(d => {
-                d.copy(
-                  arguments = processArgumentDefs(
-                    d.arguments,
-                    graph
-                  ),
-                  annotations = d.annotations.map { ann =>
-                    ann.copy(
-                      expression = processExpression(
-                        ann.expression,
-                        graph
-                      )
-                    )
-                  }
-                )
-              })
-            )
-          case _ => t
+            processArgumentDefs(t.params, graph)
+            t.members.foreach { member =>
+              processArgumentDefs(member.arguments, graph)
+              member.annotations.foreach { annotation =>
+                processExpression(annotation.expression, graph)
+              }
+            }
+          case _ => ()
         }
-      case _ => ir
+      case _ => ()
     }
   }
 
   private def processArgumentDefs(
     args: List[DefinitionArgument],
     graph: Graph
-  ): List[DefinitionArgument] = {
-    args.map { arg =>
+  ): Unit = {
+    args.foreach { arg =>
       maybeAttachFramePointer(arg, graph)
     }
   }
@@ -109,52 +89,44 @@ case object FramePointerAnalysis extends IRPass {
   private def processExpression(
     exprIr: Expression,
     graph: Graph
-  ): Expression = {
+  ): Unit = {
     exprIr match {
       case name: Name => maybeAttachFramePointer(name, graph)
       case block: Expression.Block =>
-        block.copy(
-          expressions = block.expressions.map { expr =>
-            processExpression(expr, graph)
-          },
-          returnValue = processExpression(block.returnValue, graph)
-        )
-      case lambda @ Function.Lambda(args, body, _, _, _, _) =>
-        lambda.copy(
-          arguments = processArgumentDefs(args, graph),
-          body      = processExpression(body, graph)
-        )
+        block.expressions.foreach { blockExpr =>
+          processExpression(blockExpr, graph)
+        }
+        processExpression(block.returnValue, graph)
+      case Function.Lambda(args, body, _, _, _, _) =>
+        processArgumentDefs(args, graph)
+        processExpression(body, graph)
       case binding @ Expression.Binding(name, expr, _, _, _) =>
         maybeAttachFramePointer(binding, graph)
-          .copy(
-            name       = maybeAttachFramePointer(name, graph),
-            expression = processExpression(expr, graph)
-          )
+        maybeAttachFramePointer(name, graph)
+        processExpression(expr, graph)
+        maybeAttachFramePointer(binding, graph)
       case app: Application => processApplication(app, graph)
-      case _ =>
-        exprIr.mapExpressions(processExpression(_, graph))
+      case _                => ()
     }
   }
 
   private def processApplication(
     application: Application,
     graph: Graph
-  ): Application = {
+  ): Unit = {
     application match {
       case app @ Application.Prefix(func, arguments, _, _, _, _) =>
         maybeAttachFramePointer(app, graph)
-          .copy(
-            function  = processExpression(func, graph),
-            arguments = processCallArguments(arguments, graph)
-          )
-      case app @ Application.Force(expr, _, _, _) =>
-        app.copy(target = processExpression(expr, graph))
-      case app @ Application.Sequence(items, _, _, _) =>
-        app.copy(items = items.map(processExpression(_, graph)))
-      case tSet @ Application.Typeset(expr, _, _, _) =>
-        tSet.copy(
-          expression = expr.map(processExpression(_, graph))
-        )
+        processExpression(func, graph)
+        processCallArguments(arguments, graph)
+      case Application.Force(expr, _, _, _) =>
+        processExpression(expr, graph)
+      case Application.Sequence(items, _, _, _) =>
+        items.foreach { item =>
+          processExpression(item, graph)
+        }
+      case Application.Typeset(expr, _, _, _) =>
+        expr.foreach(processExpression(_, graph))
       case _ =>
         throw new CompilerError(
           "Unexpected type of Application: " + application
@@ -165,13 +137,12 @@ case object FramePointerAnalysis extends IRPass {
   private def processCallArguments(
     arguments: List[CallArgument],
     graph: Graph
-  ): List[CallArgument] = {
-    arguments.map { case arg @ CallArgument.Specified(name, value, _, _, _) =>
-      maybeAttachFramePointer(arg, graph)
-        .copy(
-          name  = name.map(maybeAttachFramePointer(_, graph)),
-          value = processExpression(value, graph)
-        )
+  ): Unit = {
+    arguments.foreach {
+      case arg @ CallArgument.Specified(name, value, _, _, _) =>
+        maybeAttachFramePointer(arg, graph)
+        name.foreach(maybeAttachFramePointer(_, graph))
+        processExpression(value, graph)
     }
   }
 
@@ -179,14 +150,13 @@ case object FramePointerAnalysis extends IRPass {
     * appropriate [[Info.Occurrence]] already attached to it.
     * @param ir IR to attach the frame pointer metadata to.
     * @param graph Alias analysis graph
-    * @tparam T Type of IR.
     * @return Copy of `ir` with attached metadata, or just the `ir` if nothing
     *         was attached.
     */
-  private def maybeAttachFramePointer[T <: IR](
-    ir: T,
+  private def maybeAttachFramePointer(
+    ir: IR,
     graph: Graph
-  ): T = {
+  ): Unit = {
     getAliasAnalysisMeta(ir) match {
       case Some(Info.Occurrence(_, id)) =>
         graph.scopeFor(id) match {
@@ -205,39 +175,32 @@ case object FramePointerAnalysis extends IRPass {
                     val parentLevel = getScopeDistance(defScope, scope)
                     val frameSlotIdx =
                       getFrameSlotIdxInScope(graph, defScope, defOcc)
-                    ir.updateMetadata(
-                      new MetadataPair(
-                        this,
-                        new FramePointerMeta(
-                          new FramePointer(parentLevel, frameSlotIdx)
-                        )
-                      )
-                    )
+                    updateMeta(ir, new FramePointer(parentLevel, frameSlotIdx))
                   case None =>
                     // It is possible that there is no Def for this Use. It can, for example, be
                     // Use for some global symbol. In `IrToTruffle`, an UnresolvedSymbol will be
                     // generated for it.
                     // We will not attach any metadata in this case.
-                    ir
+                    ()
                 }
               case Some(defn: Graph.Occurrence.Def) =>
                 // The definition cannot write to parent's frame slots.
                 val parentLevel  = 0
                 val frameSlotIdx = getFrameSlotIdxInScope(graph, scope, defn)
-                ir.updateMetadata(
-                  new MetadataPair(
-                    this,
-                    new FramePointerMeta(
-                      new FramePointer(parentLevel, frameSlotIdx)
-                    )
-                  )
-                )
-              case _ => ir
+                updateMeta(ir, new FramePointer(parentLevel, frameSlotIdx))
+              case _ => ()
             }
-          case _ => ir
+          case _ => ()
         }
-      case _ => ir
+      case _ => ()
     }
+  }
+
+  private def updateMeta(
+    ir: IR,
+    framePointer: FramePointer
+  ): Unit = {
+    ir.passData().update(this, new FramePointerMeta(framePointer))
   }
 
   /** Returns the index of the given `defOcc` definition in the given `scope`
