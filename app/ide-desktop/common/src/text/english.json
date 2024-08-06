@@ -62,7 +62,9 @@
   "missingEmailError": "Missing email address",
   "missingVerificationCodeError": "Missing verification code",
   "passwordMismatchError": "Passwords do not match",
-  "passwordValidationError": "Your password must include numbers, letters (both lowercase and uppercase) and symbols, and must be between 6 and 256 characters long.",
+  "passwordLengthError": "Your password must be between 6 and 256 characters long.",
+  "passwordValidationMessage": "Your password must include numbers, letters (both lowercase and uppercase) and symbols.",
+  "passwordValidationError": "",
 
   "confirmSignUpError": "Incorrect email or confirmation code.",
   "setUsernameError": "Could not set your username.",

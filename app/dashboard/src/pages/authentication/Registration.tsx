@@ -18,7 +18,6 @@ import { useLocalBackend } from '#/providers/BackendProvider'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import { type GetText, useText } from '#/providers/TextProvider'
 import LocalStorage from '#/utilities/LocalStorage'
-import { PASSWORD_PATTERN } from '#/utilities/validation'
 
 // ============================
 // === Global configuration ===
@@ -112,7 +111,7 @@ export default function Registration() {
         autoComplete="new-password"
         icon={LockIcon}
         placeholder={getText('passwordPlaceholder')}
-        pattern={PASSWORD_PATTERN}
+        description={getText('passwordValidationMessage')}
       />
       <Password
         required

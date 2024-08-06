@@ -106,6 +106,7 @@ export default function ResetPassword() {
         autoComplete="new-password"
         icon={LockIcon}
         placeholder={getText('newPasswordPlaceholder')}
+        description={getText('passwordValidationMessage')}
       />
       <Password
         required

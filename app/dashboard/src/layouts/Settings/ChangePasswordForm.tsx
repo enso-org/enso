@@ -56,6 +56,7 @@ export default function ChangePasswordForm() {
         placeholder={getText('newPasswordPlaceholder')}
         autoComplete="new-password"
         variant="settings"
+        description={getText('passwordValidationMessage')}
       />
       <Input
         name="confirmNewPassword"
