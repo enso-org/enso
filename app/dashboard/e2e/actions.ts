@@ -497,17 +497,21 @@ export namespace settings {
 
     /** Find a "current password" input in the "user account" settings section. */
     export function locateCurrentPasswordInput(page: test.Page) {
-      return locate(page).getByLabel('Current password')
+      return locate(page).getByRole('group', { name: 'Current password' }).getByRole('textbox')
     }
 
     /** Find a "new password" input in the "user account" settings section. */
     export function locateNewPasswordInput(page: test.Page) {
-      return locate(page).getByLabel('New password', { exact: true })
+      return locate(page)
+        .getByRole('group', { name: /^New password/, exact: true })
+        .getByRole('textbox')
     }
 
     /** Find a "confirm new password" input in the "user account" settings section. */
     export function locateConfirmNewPasswordInput(page: test.Page) {
-      return locate(page).getByLabel('Confirm new password')
+      return locate(page)
+        .getByRole('group', { name: /^Confirm new password/, exact: true })
+        .getByRole('textbox')
     }
 
     /** Find a "change" button. */
