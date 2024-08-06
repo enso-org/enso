@@ -1511,7 +1511,8 @@ export default function AssetsTable(props: AssetsTableProps) {
   const onAssetListEvent = (event: assetListEvent.AssetListEvent) => {
     switch (event.type) {
       case AssetListEventType.newFolder: {
-        const siblings = nodeMapRef.current.get(event.parentKey)?.children ?? []
+        const parent = nodeMapRef.current.get(event.parentKey)
+        const siblings = parent?.children ?? []
         const directoryIndices = siblings
           .map((node) => node.item)
           .filter(backendModule.assetIsDirectory)
@@ -1525,7 +1526,12 @@ export default function AssetsTable(props: AssetsTableProps) {
           title,
           modifiedAt: dateTime.toRfc3339(new Date()),
           parentId: event.parentId,
-          permissions: permissions.tryGetSingletonOwnerPermission(user, category),
+          permissions: permissions.tryCreateOwnerPermission(
+            `${parent?.path ?? ''}/${title}`,
+            category,
+            users ?? [],
+            userGroups ?? [],
+          ),
           projectState: null,
           labels: [],
           description: null,
@@ -1537,6 +1543,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         break
       }
       case AssetListEventType.newProject: {
+        const parent = nodeMapRef.current.get(event.parentKey)
         const projectName = getNewProjectName(event.preferredName, event.parentId)
         const dummyId = backendModule.ProjectId(uniqueString.uniqueString())
         const path =
@@ -1547,7 +1554,12 @@ export default function AssetsTable(props: AssetsTableProps) {
           title: projectName,
           modifiedAt: dateTime.toRfc3339(new Date()),
           parentId: event.parentId,
-          permissions: permissions.tryGetSingletonOwnerPermission(user, category),
+          permissions: permissions.tryCreateOwnerPermission(
+            `${parent?.path ?? ''}/${projectName}`,
+            category,
+            users ?? [],
+            userGroups ?? [],
+          ),
           projectState: {
             type: backendModule.ProjectState.placeholder,
             volumeId: '',
@@ -1575,7 +1587,8 @@ export default function AssetsTable(props: AssetsTableProps) {
       case AssetListEventType.uploadFiles: {
         const localBackend = backend instanceof LocalBackend ? backend : null
         const reversedFiles = Array.from(event.files).reverse()
-        const siblingNodes = nodeMapRef.current.get(event.parentKey)?.children ?? []
+        const parent = nodeMapRef.current.get(event.parentKey)
+        const siblingNodes = parent?.children ?? []
         const siblings = siblingNodes.map((node) => node.item)
         const siblingFiles = siblings.filter(backendModule.assetIsFile)
         const siblingProjects = siblings.filter(backendModule.assetIsProject)
@@ -1587,7 +1600,12 @@ export default function AssetsTable(props: AssetsTableProps) {
         const duplicateProjects = projects.filter((project) =>
           siblingProjectTitles.has(backendModule.stripProjectExtension(project.name)),
         )
-        const ownerPermission = permissions.tryGetSingletonOwnerPermission(user, category)
+        const ownerPermission = permissions.tryCreateOwnerPermission(
+          parent?.path ?? '',
+          category,
+          users ?? [],
+          userGroups ?? [],
+        )
         const fileMap = new Map<backendModule.AssetId, File>()
         const getInitialAssetEvents = (
           id: backendModule.AssetId,
@@ -1705,13 +1723,19 @@ export default function AssetsTable(props: AssetsTableProps) {
         break
       }
       case AssetListEventType.newDatalink: {
+        const parent = nodeMapRef.current.get(event.parentKey)
         const placeholderItem: backendModule.DatalinkAsset = {
           type: backendModule.AssetType.datalink,
           id: backendModule.DatalinkId(uniqueString.uniqueString()),
           title: event.name,
           modifiedAt: dateTime.toRfc3339(new Date()),
           parentId: event.parentId,
-          permissions: permissions.tryGetSingletonOwnerPermission(user, category),
+          permissions: permissions.tryCreateOwnerPermission(
+            `${parent?.path ?? ''}/${event.name}`,
+            category,
+            users ?? [],
+            userGroups ?? [],
+          ),
           projectState: null,
           labels: [],
           description: null,
@@ -1727,13 +1751,19 @@ export default function AssetsTable(props: AssetsTableProps) {
         break
       }
       case AssetListEventType.newSecret: {
+        const parent = nodeMapRef.current.get(event.parentKey)
         const placeholderItem: backendModule.SecretAsset = {
           type: backendModule.AssetType.secret,
           id: backendModule.SecretId(uniqueString.uniqueString()),
           title: event.name,
           modifiedAt: dateTime.toRfc3339(new Date()),
           parentId: event.parentId,
-          permissions: permissions.tryGetSingletonOwnerPermission(user, category),
+          permissions: permissions.tryCreateOwnerPermission(
+            `${parent?.path ?? ''}/${event.name}`,
+            category,
+            users ?? [],
+            userGroups ?? [],
+          ),
           projectState: null,
           labels: [],
           description: null,
@@ -1749,7 +1779,8 @@ export default function AssetsTable(props: AssetsTableProps) {
         break
       }
       case AssetListEventType.duplicateProject: {
-        const siblings = nodeMapRef.current.get(event.parentKey)?.children ?? []
+        const parent = nodeMapRef.current.get(event.parentKey)
+        const siblings = parent?.children ?? []
         const siblingTitles = new Set(siblings.map((sibling) => sibling.item.title))
         let index = 1
         let title = `${event.original.title} (${index})`
@@ -1763,7 +1794,12 @@ export default function AssetsTable(props: AssetsTableProps) {
           title,
           modifiedAt: dateTime.toRfc3339(new Date()),
           parentId: event.parentId,
-          permissions: permissions.tryGetSingletonOwnerPermission(user, category),
+          permissions: permissions.tryCreateOwnerPermission(
+            `${parent?.path ?? ''}/${title}`,
+            category,
+            users ?? [],
+            userGroups ?? [],
+          ),
           projectState: {
             type: backendModule.ProjectState.placeholder,
             volumeId: '',

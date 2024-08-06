@@ -120,6 +120,8 @@ export default function AssetRow(props: AssetRowProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
+  const users = backendHooks.useBackendListUsers(backend)
+  const userGroups = backendHooks.useBackendListUserGroups(backend)
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
   const rootRef = React.useRef<HTMLElement | null>(null)
   const dragOverTimeoutHandle = React.useRef<number | null>(null)
@@ -206,7 +208,12 @@ export default function AssetRow(props: AssetRowProps) {
           object.merge(oldAsset, {
             title: oldAsset.title + ' (copy)',
             labels: [],
-            permissions: permissions.tryGetSingletonOwnerPermission(user, category),
+            permissions: permissions.tryCreateOwnerPermission(
+              `${item.path} (copy)`,
+              category,
+              users ?? [],
+              userGroups ?? [],
+            ),
             modifiedAt: dateTime.toRfc3339(new Date()),
           }),
         )
@@ -233,15 +240,18 @@ export default function AssetRow(props: AssetRowProps) {
       }
     },
     [
-      user,
-      rootDirectoryId,
-      asset,
-      category,
-      item.key,
-      toastAndLog,
-      copyAssetMutate,
-      nodeMap,
       setAsset,
+      rootDirectoryId,
+      copyAssetMutate,
+      asset.id,
+      asset.title,
+      nodeMap,
+      item.path,
+      item.key,
+      category,
+      users,
+      userGroups,
+      toastAndLog,
       dispatchAssetListEvent,
     ],
   )
