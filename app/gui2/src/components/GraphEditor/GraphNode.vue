@@ -291,7 +291,7 @@ const isRecordingOverridden = computed({
 
 const expressionInfo = computed(() => graph.db.getExpressionInfo(props.node.innerExpr.externalId))
 const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unknown')
-const suggestionEntry = computed(() => graph.db.nodeMainSuggestion.lookup(nodeId.value))
+const suggestionEntry = computed(() => graph.db.getNodeMainSuggestion(nodeId.value))
 const color = computed(() => graph.db.getNodeColorStyle(nodeId.value))
 const documentationUrl = computed(
   () => suggestionEntry.value && suggestionDocumentationUrl(suggestionEntry.value),

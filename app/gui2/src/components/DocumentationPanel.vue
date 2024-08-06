@@ -189,9 +189,9 @@ function openDocs(url: string) {
   line-height: 160%;
   color: var(--enso-docs-text-color);
   background-color: var(--enso-docs-background-color);
-  padding: 4px 12px 4px 4px;
+  padding: 4px 12px var(--doc-panel-bottom-clip, 0) 4px;
   white-space: normal;
-  clip-path: inset(0 0 4px 0);
+  clip-path: inset(0 0 var(--doc-panel-bottom-clip, 0) 0);
   height: 100%;
   overflow-y: auto;
   display: flex;

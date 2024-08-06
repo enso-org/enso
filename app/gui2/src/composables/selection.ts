@@ -9,6 +9,7 @@ import { intersectionSize } from '@/util/data/set'
 import type { Vec2 } from '@/util/data/vec2'
 import { dataAttribute, elementHierarchy } from '@/util/dom'
 import * as set from 'lib0/set'
+import { Err, Ok } from 'shared/util/data/result'
 import { computed, ref, shallowReactive, shallowRef } from 'vue'
 
 interface BaseSelectionOptions<T> {
@@ -119,6 +120,16 @@ function useSelectionImpl<T, PackedT>(
     setSelection(newSelection)
   }
 
+  function tryGetSoleSelection() {
+    if (selected.value.size === 0) {
+      return Err('No component selected')
+    } else if (selected.value.size > 1) {
+      return Err('Multiple components selected')
+    } else {
+      return Ok(set.first(selected.value)!)
+    }
+  }
+
   const selectionEventHandler = selectionMouseBindings.handler({
     replace() {
       setSelection(elementsToSelect.value)
@@ -215,6 +226,7 @@ function useSelectionImpl<T, PackedT>(
     },
     committedSelection,
     setSelection,
+    tryGetSoleSelection,
     // === Selection changes ===
     anchor,
     isChanging,

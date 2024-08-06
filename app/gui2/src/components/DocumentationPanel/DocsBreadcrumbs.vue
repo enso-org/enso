@@ -44,6 +44,8 @@ function shrinkFactor(index: number): number {
           :text="breadcrumb.label"
           :icon="index === props.breadcrumbs.length - 1 ? props.icon : undefined"
           :style="{ 'flex-shrink': shrinkFactor(index) }"
+          :class="{ nonInteractive: index === props.breadcrumbs.length - 1 }"
+          class="clickable"
           @click="emit('click', index)"
         />
       </template>
@@ -80,5 +82,9 @@ function shrinkFactor(index: number): number {
 
 .breadcrumbs-enter-from {
   opacity: 0;
+}
+
+.nonInteractive {
+  pointer-events: none;
 }
 </style>
