@@ -834,7 +834,8 @@ public class Main {
   }
 
   private void runSingleFile(
-      PolyglotContext context, File file, java.util.List<String> additionalArgs) {
+      PolyglotContext context, File file, java.util.List<String> additionalArgs)
+      throws IOException {
     var mainModule = context.evalModule(file);
     runMain(mainModule, file, additionalArgs, "main");
   }
