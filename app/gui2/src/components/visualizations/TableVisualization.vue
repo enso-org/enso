@@ -132,7 +132,7 @@ const SQLITE_CONNECTIONS_NODE_TYPE =
 const POSTGRES_CONNECTIONS_NODE_TYPE =
   'Standard.Database.Internal.Postgres.Postgres_Connection.Postgres_Connection'
 const SNOWFLAKE_CONNECTIONS_NODE_TYPE =
-  'Standard.Snowflake.Internal.Snowflake_Connection.Snowflake_Connection'
+  'Standard.Snowflake.Snowflake_Connection.Snowflake_Connection'
 const DEFAULT_ROW_HEIGHT = 22
 
 const rowLimit = ref(0)
