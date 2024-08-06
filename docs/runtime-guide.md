@@ -200,17 +200,16 @@ design choices. Here's a list with some explanations:
 7. **Microbenchmarks**: There are some microbenchmarks for tiny Enso programs
    for basic language constructs. They are located in
    [this directory](https://github.com/enso-org/enso/tree/develop/engine/runtime/src/bench).
-   They can be run through `sbt runtime/bench`. Each run will generate (or
-   append to) the `bench-report.xml` file. It will also fail the benchmark suite
-   if any benchmark is more than 20% slower than the fastest recorded run. Don't
-   use your computer when running these. It is also worth noting that these can
-   be run through the `withDebug` utility, which allows you to test truffle
-   compilations (and e.g. watch the graphs in IGV with
+   They can be run through `sbt runtime-benchmarks/bench`. Each run will
+   generate (or append to) the `bench-report.xml` file. See
+   [Benchmarks](infrastructure/benchmarks.md) for more information about the
+   benchmarking infrastructure.
    [Enso Language Support](../tools/enso4igv/README.md)).
 8. **Tests**: There are scalatests that comprehensively test all of the language
-   semantics and compiler passes. These are run with `sbt runtime/test`. For
-   newer functionalities, we prefer adding tests to the `Tests` project in the
-   standard library test. At this point, Enso is mature enough to self-test.
+   semantics and compiler passes. These are run with
+   `sbt runtime-integration-tests/test`. For newer functionalities, we prefer
+   adding tests to the `Tests` project in the standard library test. At this
+   point, Enso is mature enough to self-test.
 
 ### Language Server
 

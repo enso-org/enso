@@ -40,14 +40,14 @@ pub fn is_ident_or_operator(code: &str) -> u32 {
 #[wasm_bindgen]
 pub fn is_numeric_literal(code: &str) -> bool {
     let parsed = PARSER.with(|parser| parser.run(code));
-    let enso_parser::syntax::tree::Variant::BodyBlock(body) = *parsed.variant else { return false };
+    let enso_parser::syntax::tree::Variant::BodyBlock(body) = parsed.variant else { return false };
     let [stmt] = &body.statements[..] else { return false };
-    stmt.expression.as_ref().map_or(false, |expr| match &*expr.variant {
+    stmt.expression.as_ref().map_or(false, |expr| match &expr.variant {
         enso_parser::syntax::tree::Variant::Number(_) => true,
         enso_parser::syntax::tree::Variant::UnaryOprApp(app) =>
             app.opr.code == "-"
                 && app.rhs.as_ref().map_or(false, |rhs| {
-                    matches!(*rhs.variant, enso_parser::syntax::tree::Variant::Number(_))
+                    matches!(rhs.variant, enso_parser::syntax::tree::Variant::Number(_))
                 }),
         _ => false,
     })

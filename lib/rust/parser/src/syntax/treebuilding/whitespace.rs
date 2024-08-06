@@ -1,9 +1,11 @@
+use crate::syntax::consumer::Finish;
+use crate::syntax::consumer::TokenConsumer;
+use crate::syntax::consumer::TreeConsumer;
 use crate::syntax::token;
 use crate::syntax::tree;
-use crate::syntax::treebuilding::consumer::Finish;
-use crate::syntax::treebuilding::consumer::TokenConsumer;
-use crate::syntax::treebuilding::consumer::TreeConsumer;
 use crate::syntax::treebuilding::TokenOrTree;
+use crate::syntax::GroupHierarchyConsumer;
+use crate::syntax::Item;
 use crate::syntax::Token;
 use crate::syntax::Tree;
 
@@ -35,25 +37,33 @@ impl Spacing {
             true => Spacing::Spaced,
         }
     }
+
+    pub fn of_item(item: &Item) -> Self {
+        match item {
+            Item::Token(token) => Spacing::of_token(token),
+            Item::Tree(tree) => Spacing::of_tree(tree),
+            Item::Group(group) => Spacing::of_token(&group.open),
+            Item::Block(_) => Spacing::Spaced,
+        }
+    }
 }
 
 // Returns `true` for an item if that item should not follow any other item in a no-space group
 // (i.e. the item has "space" before it).
 fn token_starts_new_no_space_group<'a: 'b, 'b, T: Into<token::Ref<'a, 'b>>>(token: T) -> bool {
     let token = token.into();
-    match &token.data {
-        token::Variant::Operator(opr) if opr.properties.is_sequence() => true,
-        _ => token.left_offset.visible.width_in_spaces != 0,
-    }
+    token.left_offset.visible.width_in_spaces != 0
+        || matches!(token.data, token::Variant::CommaOperator(_))
 }
 
 fn tree_starts_new_no_space_group(tree: &Tree) -> bool {
     tree.span.left_offset.visible.width_in_spaces != 0
         || matches!(
             &tree.variant,
-            box tree::Variant::BodyBlock(_)
-                | box tree::Variant::OperatorBlockApplication(_)
-                | box tree::Variant::ArgumentBlockApplication(_)
+            tree::Variant::BodyBlock(_)
+                | tree::Variant::OperatorBlockApplication(_)
+                | tree::Variant::ArgumentBlockApplication(_)
+                | tree::Variant::SuspendedDefaultArguments(_)
         )
 }
 
@@ -72,13 +82,13 @@ pub trait SpacingLookaheadTokenConsumer<'s> {
 
 /// Maintains 1-token whitespace lookahead.
 #[derive(Debug, Default)]
-pub struct PeekSpacing<'s, T> {
+pub struct PeekSpacing<'s, Inner> {
     current: Option<TokenOrTree<'s>>,
-    inner:   T,
+    inner:   Inner,
 }
 
-impl<'s, T: SpacingLookaheadTreeConsumer<'s> + SpacingLookaheadTokenConsumer<'s>>
-    PeekSpacing<'s, T>
+impl<'s, Inner: SpacingLookaheadTreeConsumer<'s> + SpacingLookaheadTokenConsumer<'s>>
+    PeekSpacing<'s, Inner>
 {
     fn emit(&mut self, tt: Option<TokenOrTree<'s>>, rhs: Option<Spacing>) {
         match tt {
@@ -87,22 +97,26 @@ impl<'s, T: SpacingLookaheadTreeConsumer<'s> + SpacingLookaheadTokenConsumer<'s>
             None => {}
         }
     }
-}
 
-impl<'s, T: SpacingLookaheadTreeConsumer<'s> + SpacingLookaheadTokenConsumer<'s> + Finish> Finish
-    for PeekSpacing<'s, T>
-{
-    type Result = T::Result;
-
-    fn finish(&mut self) -> T::Result {
+    fn flush(&mut self) {
         let last = self.current.take();
         self.emit(last, None);
+    }
+}
+
+impl<'s, Inner: SpacingLookaheadTreeConsumer<'s> + SpacingLookaheadTokenConsumer<'s> + Finish>
+    Finish for PeekSpacing<'s, Inner>
+{
+    type Result = Inner::Result;
+
+    fn finish(&mut self) -> Inner::Result {
+        self.flush();
         self.inner.finish()
     }
 }
 
-impl<'s, T: SpacingLookaheadTreeConsumer<'s> + SpacingLookaheadTokenConsumer<'s>> TokenConsumer<'s>
-    for PeekSpacing<'s, T>
+impl<'s, Inner: SpacingLookaheadTreeConsumer<'s> + SpacingLookaheadTokenConsumer<'s>>
+    TokenConsumer<'s> for PeekSpacing<'s, Inner>
 {
     fn push_token(&mut self, token: Token<'s>) {
         let rhs = Spacing::of_token(&token);
@@ -111,8 +125,8 @@ impl<'s, T: SpacingLookaheadTreeConsumer<'s> + SpacingLookaheadTokenConsumer<'s>
     }
 }
 
-impl<'s, T: SpacingLookaheadTreeConsumer<'s> + SpacingLookaheadTokenConsumer<'s>> TreeConsumer<'s>
-    for PeekSpacing<'s, T>
+impl<'s, Inner: SpacingLookaheadTreeConsumer<'s> + SpacingLookaheadTokenConsumer<'s>>
+    TreeConsumer<'s> for PeekSpacing<'s, Inner>
 {
     fn push_tree(&mut self, tree: Tree<'s>) {
         let rhs = Spacing::of_tree(&tree);
@@ -121,8 +135,19 @@ impl<'s, T: SpacingLookaheadTreeConsumer<'s> + SpacingLookaheadTokenConsumer<'s>
     }
 }
 
-impl<'s, T: TreeConsumer<'s>> SpacingLookaheadTreeConsumer<'s> for T {
-    fn push_tree(&mut self, tree: Tree<'s>, _: Option<Spacing>) {
-        self.push_tree(tree);
+impl<'s, Inner> GroupHierarchyConsumer<'s> for PeekSpacing<'s, Inner>
+where Inner: GroupHierarchyConsumer<'s>
+        + SpacingLookaheadTreeConsumer<'s>
+        + SpacingLookaheadTokenConsumer<'s>
+{
+    fn start_group(&mut self, open: token::OpenSymbol<'s>) {
+        let prev = self.current.take();
+        self.emit(prev, Spacing::of_token(&open).into());
+        self.inner.start_group(open);
+    }
+
+    fn end_group(&mut self, close: token::CloseSymbol<'s>) {
+        self.flush();
+        self.inner.end_group(close);
     }
 }

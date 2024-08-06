@@ -117,8 +117,6 @@
   --label-icons-gap: 0.25rem;
   /* The transition duration of an arrow transitioning between two directions. */
   --arrow-transition-duration: 300ms;
-  /* The maximum height of the autocomplete suggestions list. */
-  --autocomplete-suggestions-height: 15rem;
   /* The horizontal gap between the arrow of a dropdown and the label of the current item. */
   --dropdown-arrow-gap: 0.25rem;
   --dropdown-items-height: 15rem;

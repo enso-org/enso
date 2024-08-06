@@ -5,30 +5,20 @@
  */
 import * as React from 'react'
 
+import invariant from 'tiny-invariant'
+
 import type * as text from 'enso-common/src/text'
 
 import OpenInNewTabIcon from '#/assets/open.svg'
-
-import * as appUtils from '#/appUtils'
 
 import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
 
-import AddPaymentMethodModal from '#/modals/AddPaymentMethodModal'
-
 import * as backendModule from '#/services/Backend'
 
-import * as constants from '../constants'
-
-/**
- * The props for the submit button.
- */
-interface SubmitButtonProps {
-  readonly onSubmit: (paymentMethodId: string) => Promise<void>
-  readonly plan: backendModule.Plan
-  readonly defaultOpen?: boolean
-}
+import * as constants from '../../constants'
+import { SubscribeButton, type SubscribeButtonProps } from './components'
 
 /**
  * The component for a plan.
@@ -39,7 +29,8 @@ export interface ComponentForPlan {
   readonly title: text.TextId
   readonly subtitle: text.TextId
   readonly learnMore: () => React.ReactNode
-  readonly submitButton: (props: SubmitButtonProps) => React.ReactNode
+  readonly submitButton: (props: SubscribeButtonProps) => React.ReactNode
+  readonly elevated?: boolean
 }
 
 /**
@@ -47,22 +38,27 @@ export interface ComponentForPlan {
  * @throws Error if the plan is invalid.
  */
 export function getComponentPerPlan(plan: backendModule.Plan, getText: textProvider.GetText) {
-  // we double check that the plan is valid
-  // eslint-disable-next-line no-restricted-syntax
   const result = COMPONENT_PER_PLAN[plan]
 
+  // We double-check that the plan exists in the map.
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (result == null) {
-    throw new Error(`Invalid plan: ${plan}`)
-  } else {
-    return {
-      ...result,
-      features: getText(result.features).split(';'),
-    }
+  invariant(result != null, `Plan ${plan} not found`)
+
+  return {
+    ...result,
+    features: getText(result.features).split(';'),
   }
 }
 
 const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
+  free: {
+    learnMore: () => null,
+    pricing: 'freePlanPricing',
+    features: 'freePlanFeatures',
+    title: constants.PLAN_TO_TEXT_ID['free'],
+    subtitle: 'freePlanSubtitle',
+    submitButton: (props) => <SubscribeButton {...props} isDisabled={true} />,
+  },
   [backendModule.Plan.solo]: {
     learnMore: () => {
       const { getText } = textProvider.useText()
@@ -81,24 +77,7 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
       )
     },
     pricing: 'soloPlanPricing',
-    submitButton: (props) => {
-      const { onSubmit, defaultOpen = false, plan } = props
-      const { getText } = textProvider.useText()
-
-      return (
-        <ariaComponents.DialogTrigger defaultOpen={defaultOpen}>
-          <ariaComponents.Button variant={'outline'} fullWidth size="large" rounded="full">
-            {getText('subscribe')}
-          </ariaComponents.Button>
-
-          <AddPaymentMethodModal
-            title={getText('upgradeTo', getText(plan))}
-            onSubmit={onSubmit}
-            submitText={getText('subscribeSubmit')}
-          />
-        </ariaComponents.DialogTrigger>
-      )
-    },
+    submitButton: SubscribeButton,
     features: 'soloPlanFeatures',
     subtitle: 'soloPlanSubtitle',
     title: constants.PLAN_TO_TEXT_ID['solo'],
@@ -124,24 +103,8 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
     features: 'teamPlanFeatures',
     title: constants.PLAN_TO_TEXT_ID['team'],
     subtitle: 'teamPlanSubtitle',
-    submitButton: (props) => {
-      const { onSubmit, defaultOpen = false, plan } = props
-      const { getText } = textProvider.useText()
-
-      return (
-        <ariaComponents.DialogTrigger defaultOpen={defaultOpen}>
-          <ariaComponents.Button variant={'submit'} fullWidth size="large" rounded="full">
-            {getText('subscribe')}
-          </ariaComponents.Button>
-
-          <AddPaymentMethodModal
-            title={getText('upgradeTo', getText(plan))}
-            onSubmit={onSubmit}
-            submitText={getText('subscribeSubmit')}
-          />
-        </ariaComponents.DialogTrigger>
-      )
-    },
+    elevated: true,
+    submitButton: SubscribeButton,
   },
   [backendModule.Plan.enterprise]: {
     learnMore: () => {
@@ -166,16 +129,10 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
     subtitle: 'enterprisePlanSubtitle',
     submitButton: () => {
       const { getText } = textProvider.useText()
+
       return (
-        <ariaComponents.Button
-          fullWidth
-          variant="primary"
-          size="large"
-          rounded="full"
-          target="_blank"
-          href={appUtils.getContactSalesURL()}
-        >
-          {getText('contactSales')}
+        <ariaComponents.Button fullWidth isDisabled variant="outline" size="medium" rounded="full">
+          {getText('comingSoon')}
         </ariaComponents.Button>
       )
     },

@@ -10,6 +10,7 @@ import ArrowLeftIcon from '#/assets/arrow_left.svg'
 import ArrowRightIcon from '#/assets/arrow_right.svg'
 import CameraIcon from '#/assets/camera.svg'
 import CloseIcon from '#/assets/close.svg'
+import CloseTabIcon from '#/assets/close_tab.svg'
 import CloudToIcon from '#/assets/cloud_to.svg'
 import CopyIcon from '#/assets/copy.svg'
 import CopyAsPathIcon from '#/assets/copy_as_path.svg'
@@ -52,6 +53,8 @@ export function createBindings() {
 
 export const BINDINGS = inputBindings.defineBindings({
   settings: { name: 'Settings', bindings: ['Mod+,'], icon: SettingsIcon },
+  // An alternative shortcut is required because Mod+W cannot be overridden in browsers.
+  closeTab: { name: 'Close Tab', bindings: ['Mod+W', 'Mod+Alt+W'], icon: CloseTabIcon },
   open: { name: 'Open', bindings: ['Enter'], icon: OpenIcon },
   run: { name: 'Execute as Task', bindings: ['Shift+Enter'], icon: Play2Icon },
   close: { name: 'Close', bindings: [], icon: CloseIcon },

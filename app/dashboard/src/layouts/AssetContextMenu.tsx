@@ -88,7 +88,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     category !== Category.cloud && category !== Category.local ? null
     : isCloud ? `${item.path}${item.type === backendModule.AssetType.datalink ? '.datalink' : ''}`
     : asset.type === backendModule.AssetType.project ?
-      localBackend?.getProjectDirectoryPath(asset.id) ?? null
+      localBackend?.getProjectPath(asset.id) ?? null
     : localBackendModule.extractTypeAndId(asset.id).id
   const copyMutation = copyHooks.useCopy({ copyText: path ?? '' })
 

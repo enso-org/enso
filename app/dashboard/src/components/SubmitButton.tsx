@@ -1,8 +1,8 @@
 /** @file A styled submit button. */
 import * as React from 'react'
 
-import type * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
+import { Button } from '#/components/AriaComponents'
+import { submitForm } from '#/utilities/event'
 
 // ====================
 // === SubmitButton ===
@@ -14,15 +14,14 @@ export interface SubmitButtonProps {
   readonly isDisabled?: boolean
   readonly text: string
   readonly icon: string
-  readonly onPress: (event: aria.PressEvent) => void
 }
 
 /** A styled submit button. */
 export default function SubmitButton(props: SubmitButtonProps) {
-  const { isDisabled = false, text, icon, onPress, isLoading } = props
+  const { isDisabled = false, text, icon, isLoading } = props
 
   return (
-    <ariaComponents.Button
+    <Button
       size="large"
       fullWidth
       variant="submit"
@@ -33,9 +32,9 @@ export default function SubmitButton(props: SubmitButtonProps) {
       icon={icon}
       iconPosition="end"
       rounded="full"
-      onPress={onPress}
+      onPress={submitForm}
     >
       {text}
-    </ariaComponents.Button>
+    </Button>
   )
 }
