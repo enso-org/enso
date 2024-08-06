@@ -16,8 +16,8 @@ import {
 import { mergeRefs } from '#/utilities/mergeRefs'
 
 import RadioGroup from '#/components/styled/RadioGroup'
+import { tv } from '#/utilities/tailwindVariants'
 import { Controller } from 'react-hook-form'
-import { SELECTOR_STYLES } from '../variants'
 import { SelectorOption } from './SelectorOption'
 
 /** * Props for the Selector component. */
@@ -44,8 +44,45 @@ export interface SelectorProps<
   readonly readOnly?: boolean
 }
 
+export const SELECTOR_STYLES = tv({
+  base: 'block w-full bg-transparent transition-[border-color,outline] duration-200',
+  variants: {
+    disabled: {
+      true: { base: 'cursor-default opacity-50', textArea: 'cursor-default' },
+      false: { base: 'cursor-text', textArea: 'cursor-text' },
+    },
+    readOnly: { true: 'cursor-default' },
+    size: {
+      medium: { base: '' },
+    },
+    rounded: {
+      none: 'rounded-none',
+      small: 'rounded-sm',
+      medium: 'rounded-md',
+      large: 'rounded-lg',
+      xlarge: 'rounded-xl',
+      xxlarge: 'rounded-2xl',
+      xxxlarge: 'rounded-3xl',
+      full: 'rounded-full',
+    },
+    variant: {
+      outline: {
+        base: 'border-[0.5px] border-primary/20',
+      },
+    },
+  },
+  defaultVariants: {
+    size: 'medium',
+    rounded: 'xxxlarge',
+    variant: 'outline',
+  },
+  slots: {
+    radioGroup: 'flex',
+  },
+})
+
 /**
- * Basic input component. Input component is a component that is used to get user input in a text field.
+ * A horizontal selector.
  */
 // eslint-disable-next-line no-restricted-syntax
 export const Selector = React.forwardRef(function Selector<

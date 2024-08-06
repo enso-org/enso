@@ -639,10 +639,7 @@ lazy val rustParserTargetDirectory =
   SettingKey[File]("target directory for the Rust parser")
 
 (`syntax-rust-definition` / rustParserTargetDirectory) := {
-  // setting "debug" for release, because it isn't yet safely integrated into
-  // the parser definition
-  val versionName = if (BuildInfo.isReleaseMode) "debug" else "debug"
-  target.value / "rust" / versionName
+  target.value / "rust" / "parser-jni"
 }
 
 val generateRustParserLib =
@@ -668,10 +665,13 @@ val generateRustParserLib =
     target.foreach { t =>
       Cargo.rustUp(t, log)
     }
-    val baseArguments = Seq(
+    val profile = if (BuildInfo.isReleaseMode) "release" else "fuzz"
+    val arguments = Seq(
       "build",
       "-p",
       "enso-parser-jni",
+      "--profile",
+      profile,
       "-Z",
       "unstable-options"
     ) ++ target.map(t => Seq("--target", t)).getOrElse(Seq()) ++
@@ -679,20 +679,18 @@ val generateRustParserLib =
         "--out-dir",
         (`syntax-rust-definition` / rustParserTargetDirectory).value.toString
       )
-    val adjustedArguments = baseArguments ++
-      (if (BuildInfo.isReleaseMode)
-         Seq("--release")
-       else Seq())
     val envVars = target
       .map(_ => Seq(("RUSTFLAGS", "-C target-feature=-crt-static")))
       .getOrElse(Seq())
-    Cargo.run(adjustedArguments, log, envVars)
+    Cargo.run(arguments, log, envVars)
   }
   FileTreeView.default.list(Seq(libGlob)).map(_._1.toFile)
 }
 
 `syntax-rust-definition` / generateRustParserLib / fileInputs +=
-  (`syntax-rust-definition` / baseDirectory).value.toGlob / "jni" / "src" / "*.rs"
+  (`syntax-rust-definition` / baseDirectory).value.toGlob / "jni" / "src" / ** / "*.rs"
+`syntax-rust-definition` / generateRustParserLib / fileInputs +=
+  (`syntax-rust-definition` / baseDirectory).value.toGlob / "src" / ** / "*.rs"
 
 val generateParserJavaSources = TaskKey[Seq[File]](
   "generateParserJavaSources",

@@ -209,7 +209,7 @@ export function Stepper(props: StepperProps) {
               }}
               transition={{
                 // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-                x: { type: 'spring', stiffness: 500, damping: 50, bounce: 10, duration: 0.35 },
+                x: { type: 'spring', stiffness: 500, damping: 50, duration: 0.2 },
                 // eslint-disable-next-line @typescript-eslint/no-magic-numbers
                 opacity: { duration: 0.2 },
               }}
@@ -362,7 +362,7 @@ function Step(props: StepProps) {
           }}
           transition={{
             // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-            rotate: { type: 'spring', stiffness: 500, damping: 100, bounce: 0, duration: 0.35 },
+            rotate: { type: 'spring', stiffness: 500, damping: 100, bounce: 0, duration: 0.2 },
           }}
         >
           {(() => {

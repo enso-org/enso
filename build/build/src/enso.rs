@@ -1,6 +1,6 @@
-use crate::engine::StandardLibraryTestsSelection;
 use crate::prelude::*;
 
+use crate::engine::StandardLibraryTestsSelection;
 use crate::paths::Paths;
 use crate::paths::ENSO_ENABLE_ASSERTIONS;
 use crate::paths::ENSO_META_TEST_ARGS;
@@ -107,6 +107,9 @@ impl BuiltEnso {
             // This flag enables assertions in the JVM. Some of our stdlib tests had in the past
             // failed on Graal/Truffle assertions, so we want to have them triggered.
             .set_env(JAVA_OPTS, &ide_ci::programs::java::Option::EnableAssertions.as_ref())?;
+        if test_path.as_str().contains("_Internal_") {
+            command.arg("--disable-private-check");
+        }
         Ok(command)
     }
 
