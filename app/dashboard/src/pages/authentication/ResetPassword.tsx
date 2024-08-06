@@ -96,6 +96,7 @@ export default function ResetPassword() {
         autoFocus
         required
         name="newPassword"
+        label={getText('newPasswordLabel')}
         autoComplete="new-password"
         icon={LockIcon}
         placeholder={getText('newPasswordPlaceholder')}
@@ -103,6 +104,7 @@ export default function ResetPassword() {
       <Password
         required
         name="confirmNewPassword"
+        label={getText('confirmNewPasswordLabel')}
         autoComplete="new-password"
         icon={LockIcon}
         placeholder={getText('confirmNewPasswordPlaceholder')}

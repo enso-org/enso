@@ -46,6 +46,7 @@ export default function ForgotPassword() {
         autoFocus
         required
         name="email"
+        label={getText('emailLabel')}
         type="email"
         autoComplete="email"
         icon={AtIcon}

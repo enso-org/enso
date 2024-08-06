@@ -89,6 +89,7 @@ export default function Registration() {
         autoFocus
         required
         name="email"
+        label={getText('emailLabel')}
         type="email"
         autoComplete="email"
         icon={AtIcon}
@@ -98,6 +99,7 @@ export default function Registration() {
       <Password
         required
         name="password"
+        label={getText('passwordLabel')}
         autoComplete="new-password"
         icon={LockIcon}
         placeholder={getText('passwordPlaceholder')}
@@ -106,13 +108,16 @@ export default function Registration() {
       <Password
         required
         name="confirmPassword"
+        label={getText('confirmPasswordLabel')}
         autoComplete="new-password"
         icon={LockIcon}
         placeholder={getText('confirmPasswordPlaceholder')}
       />
 
       <Form.FormError />
-      <Form.Submit icon={CreateAccountIcon} className="w-full">{getText('register')}</Form.Submit>
+      <Form.Submit icon={CreateAccountIcon} className="w-full">
+        {getText('register')}
+      </Form.Submit>
     </AuthenticationPage>
   )
 }

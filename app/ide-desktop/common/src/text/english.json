@@ -473,6 +473,8 @@
   "emailPlaceholder": "Enter your email",
   "confirmationCodePlaceholder": "Enter the confirmation code",
 
+  "emailLabel": "Email",
+  "passwordLabel": "Password",
   "changePassword": "Change Password",
   "currentPasswordLabel": "Current password",
   "currentPasswordPlaceholder": "Enter your current password",

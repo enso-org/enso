@@ -106,8 +106,8 @@ export default function Login() {
         <div className="flex w-full flex-col">
           <Password
             required
-            label={getText('password')}
             name="password"
+            label={getText('password')}
             autoComplete="current-password"
             icon={LockIcon}
             placeholder={getText('passwordPlaceholder')}
