@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Dry_Run_Operation
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
 import Standard.Base.Runtime.Context as Execution_Context
@@ -18,7 +19,9 @@ import project.DB_Table as DB_Table_Module
 import project.DB_Table.DB_Table
 import project.Dialect.Dialect
 import project.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
+import project.Internal.DDL_Transaction
 import project.Internal.Hidden_Table_Registry
+import project.Internal.In_Transaction.In_Transaction
 import project.Internal.IR.Context.Context
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Query.Query
@@ -33,7 +36,8 @@ import project.SQL_Type.SQL_Type
 from project.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
 from project.Internal.JDBC_Connection import handle_sql_errors, JDBC_Connection
 from project.Internal.Result_Set import read_column, result_set_to_table
-from project.Internal.Upload_Table import create_table_implementation, first_column_name_in_structure
+from project.Internal.Upload.Helpers.Default_Arguments import first_column_name_in_structure
+from project.Internal.Upload.Operations.Create import create_table_implementation
 
 polyglot java import java.lang.UnsupportedOperationException
 polyglot java import java.util.UUID
@@ -172,14 +176,14 @@ type Connection
         result = self.jdbc_connection.with_metadata metadata->
             table = Managed_Resource.bracket (metadata.getTables database schema name_like types_vector) .close result_set->
                 result_set_to_table result_set self.dialect.get_type_mapping.make_column_fetcher
-            renamed = table.rename_columns name_dict
+            renamed = table.rename_columns name_dict error_on_missing_columns=False on_problems=..Ignore
             if all_fields then renamed else
                 renamed.select_columns ["Database", "Schema", "Name", "Type", "Description"]
         case include_hidden of
             True -> result
             False ->
                 hidden_tables = self.hidden_table_registry.list_hidden_tables
-                result.filter "Name" (Filter_Condition.Is_In hidden_tables Filter_Action.Remove)
+                result.filter "Name" (Filter_Condition.Is_In hidden_tables ..Remove)
 
     ## PRIVATE
        Checks if the table with the given name exists in the database.
@@ -372,6 +376,7 @@ type Connection
         Execution_Context.Output.if_enabled disabled_message="Executing update queries is forbidden as the Output context is disabled." panic=False <|
             statement_setter = self.dialect.get_statement_setter
             self.jdbc_connection.with_prepared_statement query statement_setter stmt->
+                check_statement_is_allowed self stmt
                 result = case self.supports_large_update.get of
                     True -> Panic.catch UnsupportedOperationException stmt.executeLargeUpdate _->
                         self.supports_large_update.put False
@@ -514,3 +519,17 @@ make_table_for_name connection name alias internal_temporary_keep_alive_referenc
         DB_Table_Module.make_table connection name columns ctx on_problems=Problem_Behavior.Report_Warning
     result.catch SQL_Error sql_error->
         Error.throw (Table_Not_Found.Error name sql_error treated_as_query=False extra_message="")
+
+## PRIVATE
+private check_statement_is_allowed connection stmt =
+    trimmed = stmt.to_text.trim.to_case ..Lower
+    is_ddl_regex = "\s*(?:create|alter|drop).*".to_regex case_insensitive=True
+    is_ddl = is_ddl_regex.matches trimmed
+    if is_ddl && In_Transaction.is_in_transaction then
+        support_level = DDL_Transaction.Support_Level.get_from connection
+        if support_level != DDL_Transaction.Support_Level.Allowed then
+            message = case support_level of
+                DDL_Transaction.Support_Level.Unsupported -> "This Database does not allow DDL statements inside of transactions."
+                DDL_Transaction.Support_Level.Ignored -> "This Database ignores DDL statements inside of transactions, please execute such statements outside of a transaction."
+                DDL_Transaction.Support_Level.Causes_Commit -> "This Database commits open transactions when DDL statements are executed. To prevent from accidentally committing an unfinished transaction, the execution was blocked."
+            Panic.throw (Illegal_State.Error message)

@@ -1,0 +1,146 @@
+private
+
+from Standard.Base import all
+import Standard.Base.Errors.Common.Dry_Run_Operation
+import Standard.Base.Runtime.Context
+from Standard.Base.Runtime import assert
+
+from Standard.Table import Join_Kind, Table
+
+import project.Column_Description.Column_Description
+import project.DB_Table.DB_Table
+import project.Internal.DDL_Transaction
+import project.Internal.In_Transaction.In_Transaction
+import project.Internal.IR.Query.Query
+import project.Update_Action.Update_Action
+from project.Errors import SQL_Error, Rows_Already_Present, Unmatched_Rows
+from project.Internal.Upload.Helpers.Argument_Checks import all
+from project.Internal.Upload.Helpers.Check_Queries import check_multiple_rows_match, check_for_null_keys_if_any_keys_set
+from project.Internal.Upload.Helpers.Constants import dry_run_row_limit
+from project.Internal.Upload.Helpers.Error_Helpers import handle_upload_errors
+from project.Internal.Upload.Operations.Internal_Core import internal_upload_table
+
+## PRIVATE
+common_update_table (source_table : DB_Table | Table) (target_table : DB_Table) update_action key_columns error_on_missing_columns on_problems:Problem_Behavior =
+    check_target_table_for_update target_table <|
+        connection = target_table.connection
+        Panic.recover SQL_Error <| handle_upload_errors <|
+            effective_key_columns = if key_columns.is_nothing then [] else key_columns
+            check_update_arguments_structure_match source_table target_table effective_key_columns update_action error_on_missing_columns on_problems <|
+                tmp_table_name = connection.base_connection.table_naming_helper.generate_random_table_name "enso-temp-source-table-"
+                dry_run = Context.Output.is_enabled.not
+                row_limit = if dry_run then dry_run_row_limit else Nothing
+                structure_hint = target_table.select_columns source_table.column_names reorder=True . columns . map c->
+                    Column_Description.Value c.name c.value_type
+                # We ignore non-critical problems in `internal_upload_table` because we already checked the structure.
+                tmp_table_uploader = internal_upload_table source_table connection tmp_table_name primary_key=effective_key_columns structure_hint=structure_hint temporary=True remove_after_transaction=True on_problems=Problem_Behavior.Ignore row_limit=row_limit
+                DDL_Transaction.run_transaction_with_tables connection [tmp_table_uploader.table_description] _-> Context.Output.with_enabled <|
+                    ## The table was only created but not yet uploaded.
+                       Now we are in transaction so we can atomically check the source_table and only after it meets criteria - upload that table contents to tmp.
+                    check_for_null_keys_if_any_keys_set source_table effective_key_columns <|
+                        tmp_table = tmp_table_uploader.perform_upload
+                        tmp_table.if_not_error <|
+                            resulting_table = append_to_existing_table tmp_table target_table update_action effective_key_columns dry_run=dry_run
+                            if dry_run.not then resulting_table else
+                                warning = Dry_Run_Operation.Warning "Only a dry run of `update_rows` was performed - the target table has been returned unchanged.  Press the Write button ▶ to update the actual table."
+                                Warning.attach warning resulting_table
+
+## PRIVATE
+   Assumes that `source_table` is a simple table query without any filters,
+   joins and other composite operations - if a complex query is needed, it
+   should be first materialized into a temporary table.
+
+   If `dry_run` is set to True, only the checks are performed, but the
+   operations actually modifying the target table are not.
+append_to_existing_table source_table target_table update_action key_columns dry_run = In_Transaction.ensure_in_transaction <|
+    helper = Append_Helper.Context source_table target_table key_columns dry_run
+    upload_status = case update_action of
+        Update_Action.Insert ->
+            helper.check_already_existing_rows <|
+                helper.insert_rows source_table
+        Update_Action.Update ->
+            helper.check_rows_unmatched_in_target <|
+                helper.check_multiple_target_rows_match <|
+                    helper.update_common_rows
+        Update_Action.Update_Or_Insert ->
+            helper.check_multiple_target_rows_match <|
+                helper.update_common_rows . if_not_error <|
+                    helper.insert_rows helper.new_source_rows
+        Update_Action.Align_Records ->
+            helper.check_multiple_target_rows_match <|
+                helper.update_common_rows . if_not_error <|
+                    helper.insert_rows helper.new_source_rows . if_not_error <|
+                        helper.delete_unmatched_target_rows
+    upload_status.if_not_error target_table
+
+## PRIVATE
+type Append_Helper
+    ## PRIVATE
+    Context source_table target_table key_columns dry_run
+
+    ## PRIVATE
+    connection self = self.target_table.connection
+
+    ## PRIVATE
+       Runs the action only if running in normal mode.
+       In dry run mode, it will just return `Nothing`.
+    if_not_dry_run self ~action = if self.dry_run then Nothing else action
+
+    ## PRIVATE
+       The update only affects matched rows, unmatched rows are ignored.
+    update_common_rows self = self.if_not_dry_run <|
+        update_statement = self.connection.dialect.generate_sql <|
+            Query.Update_From_Table self.target_table.name self.source_table.name self.source_table.column_names self.key_columns
+        Panic.rethrow <| self.connection.execute_update update_statement
+
+    ## PRIVATE
+       Inserts all rows from the source.
+
+       Behaviour is ill-defined if any of the rows already exist in the target.
+       If only new rows are supposed to be inserted, they have to be filtered
+       before inserting.
+    insert_rows self table_to_insert = self.if_not_dry_run <|
+        insert_statement = self.connection.dialect.generate_sql <|
+            Query.Insert_From_Select self.target_table.name table_to_insert.column_names table_to_insert.to_select_query
+        Panic.rethrow <| self.connection.execute_update insert_statement
+
+    ## PRIVATE
+       Deletes rows from target table that were not present in the source.
+    delete_unmatched_target_rows self = self.if_not_dry_run <|
+        delete_statement = self.connection.dialect.generate_sql <|
+            Query.Delete_Unmatched_Rows self.target_table.name self.source_table.name self.key_columns
+        Panic.rethrow <| self.connection.execute_update delete_statement
+
+    ## PRIVATE
+       Finds rows that are present in the source but not in the target.
+    new_source_rows self =
+        self.source_table.join self.target_table on=self.key_columns join_kind=Join_Kind.Left_Exclusive
+
+    ## PRIVATE
+       Checks if any rows from the source table already exist in the target, and
+       if they do - raises an error.
+
+       Does nothing if `key_columns` is empty, as then there is no notion of
+       'matching' rows.
+    check_already_existing_rows self ~continuation =
+        if self.key_columns.is_empty then continuation else
+            joined = self.source_table.join self.target_table on=self.key_columns join_kind=Join_Kind.Inner
+            count = joined.row_count
+            if count == 0 then continuation else
+                Error.throw (Rows_Already_Present.Error count)
+
+    ## PRIVATE
+    check_rows_unmatched_in_target self ~continuation =
+        assert self.key_columns.not_empty
+        unmatched_rows = self.new_source_rows
+        count = unmatched_rows.row_count
+        if count != 0 then Error.throw (Unmatched_Rows.Error count) else continuation
+
+    ## PRIVATE
+       Check if there are rows in source that match multiple rows in the target.
+    check_multiple_target_rows_match self ~continuation =
+        ## This aggregation will only find duplicated in target, not in the source,
+           because the source is already guaranteed to be unique - that was checked
+           when uploading the temporary table with the key as its primary key.
+        check_multiple_rows_match self.target_table self.source_table self.key_columns <|
+            continuation

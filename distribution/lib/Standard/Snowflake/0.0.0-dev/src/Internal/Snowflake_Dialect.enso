@@ -31,8 +31,6 @@ import Standard.Database.Internal.IR.Order_Descriptor.Order_Descriptor
 import Standard.Database.Internal.IR.Query.Query
 import Standard.Database.Internal.IR.SQL_Expression.SQL_Expression
 import Standard.Database.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
-## TODO replace with custom one
-import Standard.Database.Internal.Postgres.Postgres_Error_Mapper.Postgres_Error_Mapper
 import Standard.Database.Internal.Replace_Params.Replace_Params
 import Standard.Database.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
@@ -45,6 +43,7 @@ from Standard.Database.Errors import SQL_Error, Unsupported_Database_Operation
 from Standard.Database.Internal.IR.Operation_Metadata import Date_Period_Metadata
 from Standard.Database.Internal.Statement_Setter import fill_hole_default
 
+import project.Internal.Snowflake_Error_Mapper.Snowflake_Error_Mapper
 import project.Internal.Snowflake_Type_Mapping.Snowflake_Type_Mapping
 
 polyglot java import org.enso.database.JDBCUtils
@@ -84,6 +83,12 @@ type Snowflake_Dialect
     generate_truncate_table_sql : Text -> SQL_Builder
     generate_truncate_table_sql self table_name =
         Base_Generator.truncate_table_truncate_table_style self table_name
+
+    ## PRIVATE
+       Generates SQL modifier for limiting the number of rows and its position in the query
+    get_limit_sql_modifier : Integer -> Any
+    get_limit_sql_modifier self limit =
+        [700, SQL_Builder.code (" LIMIT " + limit.to_text)]
 
     ## PRIVATE
        Wraps and possibly escapes the identifier so that it can be used in a
@@ -201,6 +206,11 @@ type Snowflake_Dialect
     supports_float_round_decimal_places self = True
 
     ## PRIVATE
+       Specifies whether the Database supports CREATE TEMPORARY TABLE syntax.
+    suppports_temporary_table_syntax : Boolean
+    suppports_temporary_table_syntax self = True
+
+    ## PRIVATE
     adapt_unified_column : Internal_Column -> Value_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
     adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback =
         _ = [approximate_result_type, infer_result_type_from_database_callback]
@@ -223,7 +233,7 @@ type Snowflake_Dialect
     ## PRIVATE
     prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement
     prepare_fetch_types_query self expression context =
-        Dialect.default_fetch_types_query self expression context
+        Base_Generator.default_fetch_types_query self expression context
 
     ## PRIVATE
     check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation
@@ -250,7 +260,7 @@ type Snowflake_Dialect
 
     ## PRIVATE
     get_error_mapper : Error_Mapper
-    get_error_mapper self = Postgres_Error_Mapper
+    get_error_mapper self = Snowflake_Error_Mapper
 
     ## PRIVATE
        The dialect-dependent strategy to get the Primary Key for a given table.
@@ -295,6 +305,15 @@ type Snowflake_Dialect
         Value_Type.Time        -> True
         Value_Type.Date_Time _ -> True
         _                      -> False
+
+    ## PRIVATE
+       In Snowflake we need to create tables outside of transactions.
+       However, currently we decide to opt-out of the integrity check for
+       performance reasons - there is too much overhead to each query. The check
+       would fail extremely rarely so it currently does not seem worth the cost.
+       We can revisit this choice in the future.
+    should_check_table_integrity_at_beginning_of_transaction self -> Boolean =
+        False
 
 ## PRIVATE
 make_dialect_operations =

@@ -178,12 +178,7 @@ export default function ManagePermissionsModal<
         setUserAndUserGroups([])
         setEmail('')
         if (email != null) {
-          await inviteUserMutation.mutateAsync([
-            {
-              organizationId: user.organizationId,
-              userEmail: backendModule.EmailAddress(email),
-            },
-          ])
+          await inviteUserMutation.mutateAsync([{ userEmail: backendModule.EmailAddress(email) }])
           toast.toast.success(getText('inviteSuccess', email))
         }
       } catch (error) {
@@ -322,7 +317,7 @@ export default function ManagePermissionsModal<
                     assetType={item.type}
                     onChange={setAction}
                   />
-                  <div className="-mx-button-px grow">
+                  <div className="grow">
                     <Autocomplete
                       multiple
                       autoFocus

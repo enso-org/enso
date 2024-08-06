@@ -185,7 +185,7 @@ pub enum Match<'s> {
     Identifier(syntax::Item<'s>),
     Expected(String, Box<Match<'s>>),
     Named(String, Box<Match<'s>>),
-    Block(Vec<syntax::item::Line<'s>>),
+    Block(Box<[syntax::item::Line<'s>]>),
     NotBlock(syntax::Item<'s>),
 }
 

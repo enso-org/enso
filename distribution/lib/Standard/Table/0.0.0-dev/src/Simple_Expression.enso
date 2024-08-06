@@ -244,9 +244,9 @@ type Date_Operation
         with_number = Widget_Helpers.make_column_ref_by_name_selector table add_number=True
 
         options = Vector.build builder->
-            builder.append (Option "add" "..Date_Add" [["length", with_number]])
-            builder.append (Option "part" "..Date_Part")
-            builder.append (Option "diff" "..Date_Diff" [["end", col_names]])
+            builder.append (Option "add" "..Add" [["length", with_number]])
+            builder.append (Option "part" "..Part")
+            builder.append (Option "diff" "..Diff" [["end", col_names]])
             builder.append (Option "truncate" "..Truncate")
             builder.append (Option "year" "..Year")
             builder.append (Option "month" "..Month")
@@ -315,7 +315,7 @@ type Simple_Calculation
     Math (operation : Math_Operation = ..Subtract 0)
 
     ## Perform a Date Operation
-    Date (operation : Date_Operation = ..Date_Add 1)
+    Date (operation : Date_Operation = ..Add)
 
     ## Perform a Logical Operation
     Logical (operation : Logical_Operation = ..Not)

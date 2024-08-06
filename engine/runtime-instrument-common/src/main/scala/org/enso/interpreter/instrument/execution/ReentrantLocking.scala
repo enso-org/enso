@@ -92,11 +92,11 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
       lockTimestamp = acquireWriteCompilationLock(where)
       callable.call()
     } catch {
-      case ie: InterruptedException =>
+      case _: InterruptedException =>
         logger.log(
-          Level.WARNING,
+          Level.FINE,
           "Failed [{0}] to acquire lock: interrupted",
-          Array[Any](where.getSimpleName, ie)
+          Array[Any](where.getSimpleName)
         )
         null.asInstanceOf[T]
     } finally {
@@ -139,11 +139,11 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
       lockTimestamp = acquireReadCompilationLock(where)
       callable.call()
     } catch {
-      case ie: InterruptedException =>
+      case _: InterruptedException =>
         logger.log(
-          Level.WARNING,
+          Level.FINE,
           "Failed [{0}] to acquire lock: interrupted",
-          Array[Any](where.getSimpleName, ie)
+          Array[Any](where.getSimpleName)
         )
         null.asInstanceOf[T]
     } finally {
@@ -178,11 +178,11 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
       lockTimestamp = acquirePendingEditsLock(where)
       callable.call()
     } catch {
-      case ie: InterruptedException =>
+      case _: InterruptedException =>
         logger.log(
-          Level.WARNING,
+          Level.FINE,
           "Failed [{0}] to acquire lock: interrupted",
-          Array[Any](where.getSimpleName, ie)
+          Array[Any](where.getSimpleName)
         )
         null.asInstanceOf[T]
     } finally {
@@ -216,11 +216,11 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
       ) //acquireContextLock(contextId)
       callable.call()
     } catch {
-      case ie: InterruptedException =>
+      case _: InterruptedException =>
         logger.log(
-          Level.WARNING,
+          Level.FINE,
           "Failed [{0}] to acquire lock: interrupted",
-          Array[Any](where.getSimpleName, ie)
+          Array[Any](where.getSimpleName)
         )
         null.asInstanceOf[T]
     } finally {
@@ -278,11 +278,11 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
       lockTimestamp = acquireFileLock(file, where)
       callable.call()
     } catch {
-      case ie: InterruptedException =>
+      case _: InterruptedException =>
         logger.log(
-          Level.WARNING,
+          Level.FINE,
           "Failed [{0}] to acquire lock: interrupted",
-          Array[Any](where.getSimpleName, ie)
+          Array[Any](where.getSimpleName)
         )
         null.asInstanceOf[T]
     } finally {

@@ -38,7 +38,7 @@ public class ProjectsMigrationTest {
 
   @Test
   public void setProjectDirectoryPermissions() throws IOException {
-    if (!Platform.isWindows()) {
+    if (!Platform.getOperatingSystem().isWindows()) {
       File projectsDir = tmp.newFolder("projects");
       createProjectStructure(projectsDir, "Project1");
 

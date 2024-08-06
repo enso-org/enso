@@ -31,6 +31,7 @@ members = [
     "lib/rust/prelude",
     "lib/rust/reflect",
     "lib/rust/zst",
+    "lib/rust/parser/debug/fuzz",
     "tools/language-server/logstat",
     "tools/language-server/wstest",
 ]
@@ -54,6 +55,11 @@ codegen-units = 16
 incremental = true
 debug = false
 debug-assertions = false
+
+[profile.fuzz]
+inherits = "release"
+debug-assertions = true
+overflow-checks = true
 
 [profile.bench]
 opt-level = 3

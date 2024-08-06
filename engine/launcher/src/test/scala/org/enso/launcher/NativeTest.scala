@@ -2,7 +2,7 @@ package org.enso.launcher
 
 import org.enso.cli.OS
 import org.enso.runtimeversionmanager.test.NativeTestHelper
-import org.enso.testkit.process.RunResult
+import org.enso.process.RunResult
 import org.scalatest.concurrent.{Signaler, TimeLimitedTests}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.matchers.{MatchResult, Matcher}

@@ -25,7 +25,7 @@ const STATUS_ICON_MAP: Readonly<Record<Status, StatusIcon>> = {
   info: {
     icon: (
       // eslint-disable-next-line no-restricted-syntax
-      <ariaComponents.Text variant="custom" className="pb-0.5 text-xl leading-[0]">
+      <ariaComponents.Text variant="custom" className="pb-0.5 text-xl leading-[0]" aria-hidden>
         !
       </ariaComponents.Text>
     ),
@@ -47,14 +47,12 @@ const RESULT_STYLES = twv.tv({
   slots: {
     statusIcon:
       'mb-2 flex h-8 w-8 flex-none items-center justify-center rounded-full bg-opacity-25 p-1 text-green',
-    icon: 'h-8 w-8 flex-none',
+    icon: 'h-6 w-6 flex-none',
     title: '',
     subtitle: 'max-w-[750px]',
     content: 'mt-3 w-full',
   },
-  defaultVariants: {
-    centered: 'all',
-  },
+  defaultVariants: { centered: 'all' },
 })
 
 // ==============

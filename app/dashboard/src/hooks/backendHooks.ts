@@ -168,28 +168,20 @@ export function useBackendQuery<Method extends backendQuery.BackendMethods>(
   method: Method,
   args: Parameters<Backend[Method]>,
   options?: Omit<
-    reactQuery.UseQueryOptions<
-      Awaited<ReturnType<Backend[Method]>>,
-      Error,
-      Awaited<ReturnType<Backend[Method]>>,
-      readonly unknown[]
-    >,
-    'queryFn'
-  >,
+    reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>,
+    'queryFn' | 'queryKey'
+  > &
+    Partial<Pick<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
 ): reactQuery.UseQueryResult<Awaited<ReturnType<Backend[Method]>>>
 export function useBackendQuery<Method extends backendQuery.BackendMethods>(
   backend: Backend | null,
   method: Method,
   args: Parameters<Backend[Method]>,
   options?: Omit<
-    reactQuery.UseQueryOptions<
-      Awaited<ReturnType<Backend[Method]>>,
-      Error,
-      Awaited<ReturnType<Backend[Method]>>,
-      readonly unknown[]
-    >,
-    'queryFn'
-  >,
+    reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>,
+    'queryFn' | 'queryKey'
+  > &
+    Partial<Pick<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
 ): reactQuery.UseQueryResult<
   // eslint-disable-next-line no-restricted-syntax
   Awaited<ReturnType<Backend[Method]>> | undefined
@@ -200,21 +192,12 @@ export function useBackendQuery<Method extends backendQuery.BackendMethods>(
   method: Method,
   args: Parameters<Backend[Method]>,
   options?: Omit<
-    reactQuery.UseQueryOptions<
-      Awaited<ReturnType<Backend[Method]>>,
-      Error,
-      Awaited<ReturnType<Backend[Method]>>,
-      readonly unknown[]
-    >,
-    'queryFn'
-  >,
+    reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>,
+    'queryFn' | 'queryKey'
+  > &
+    Partial<Pick<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
 ) {
-  return reactQuery.useQuery<
-    Awaited<ReturnType<Backend[Method]>>,
-    Error,
-    Awaited<ReturnType<Backend[Method]>>,
-    readonly unknown[]
-  >({
+  return reactQuery.useQuery<Awaited<ReturnType<Backend[Method]>>>({
     ...options,
     ...backendQuery.backendQueryOptions(backend, method, args, options?.queryKey),
     // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return

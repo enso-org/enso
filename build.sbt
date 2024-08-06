@@ -163,7 +163,11 @@ GatherLicenses.distributions := Seq(
   makeStdLibDistribution("Database", Distribution.sbtProjects(`std-database`)),
   makeStdLibDistribution("Image", Distribution.sbtProjects(`std-image`)),
   makeStdLibDistribution("AWS", Distribution.sbtProjects(`std-aws`)),
-  makeStdLibDistribution("Snowflake", Distribution.sbtProjects(`std-snowflake`))
+  makeStdLibDistribution(
+    "Snowflake",
+    Distribution.sbtProjects(`std-snowflake`)
+  ),
+  makeStdLibDistribution("Microsoft", Distribution.sbtProjects(`std-microsoft`))
 )
 
 GatherLicenses.licenseConfigurations := Set("compile")
@@ -335,6 +339,7 @@ lazy val enso = (project in file("."))
     `library-manager-test`,
     `connected-lock-manager`,
     `connected-lock-manager-server`,
+    `process-utils`,
     testkit,
     `test-utils`,
     `common-polyglot-core-utils`,
@@ -345,6 +350,7 @@ lazy val enso = (project in file("."))
     `std-table`,
     `std-aws`,
     `std-snowflake`,
+    `std-microsoft`,
     `http-test-helper`,
     `enso-test-java-helpers`,
     `exploratory-benchmark-java-helpers`,
@@ -562,6 +568,7 @@ val fansiVersion            = "0.4.0"
 val httpComponentsVersion   = "4.4.1"
 val apacheArrowVersion      = "14.0.1"
 val snowflakeJDBCVersion    = "3.15.0"
+val mssqlserverJDBCVersion  = "12.6.2.jre11"
 val jsoniterVersion         = "2.28.5"
 
 // ============================================================================
@@ -632,10 +639,7 @@ lazy val rustParserTargetDirectory =
   SettingKey[File]("target directory for the Rust parser")
 
 (`syntax-rust-definition` / rustParserTargetDirectory) := {
-  // setting "debug" for release, because it isn't yet safely integrated into
-  // the parser definition
-  val versionName = if (BuildInfo.isReleaseMode) "debug" else "debug"
-  target.value / "rust" / versionName
+  target.value / "rust" / "parser-jni"
 }
 
 val generateRustParserLib =
@@ -661,10 +665,13 @@ val generateRustParserLib =
     target.foreach { t =>
       Cargo.rustUp(t, log)
     }
-    val baseArguments = Seq(
+    val profile = if (BuildInfo.isReleaseMode) "release" else "fuzz"
+    val arguments = Seq(
       "build",
       "-p",
       "enso-parser-jni",
+      "--profile",
+      profile,
       "-Z",
       "unstable-options"
     ) ++ target.map(t => Seq("--target", t)).getOrElse(Seq()) ++
@@ -672,20 +679,18 @@ val generateRustParserLib =
         "--out-dir",
         (`syntax-rust-definition` / rustParserTargetDirectory).value.toString
       )
-    val adjustedArguments = baseArguments ++
-      (if (BuildInfo.isReleaseMode)
-         Seq("--release")
-       else Seq())
     val envVars = target
       .map(_ => Seq(("RUSTFLAGS", "-C target-feature=-crt-static")))
       .getOrElse(Seq())
-    Cargo.run(adjustedArguments, log, envVars)
+    Cargo.run(arguments, log, envVars)
   }
   FileTreeView.default.list(Seq(libGlob)).map(_._1.toFile)
 }
 
 `syntax-rust-definition` / generateRustParserLib / fileInputs +=
-  (`syntax-rust-definition` / baseDirectory).value.toGlob / "jni" / "src" / "*.rs"
+  (`syntax-rust-definition` / baseDirectory).value.toGlob / "jni" / "src" / ** / "*.rs"
+`syntax-rust-definition` / generateRustParserLib / fileInputs +=
+  (`syntax-rust-definition` / baseDirectory).value.toGlob / "src" / ** / "*.rs"
 
 val generateParserJavaSources = TaskKey[Seq[File]](
   "generateParserJavaSources",
@@ -1445,6 +1450,12 @@ val testLogProviderOptions = Seq(
   "-Dconfig.resource=application-test.conf"
 )
 
+/** engine/common project contains classes that are necessary to configure
+  * GraalVM's polyglot context. Most specifically it contains `ContextFactory`.
+  * As such it needs to depend on `org.graalvm.polyglot` package. Otherwise
+  * its dependencies shall be limited - no JSON & co. please. For purposes
+  * of consistently setting up loaders, the module depends on `logging-utils`.
+  */
 lazy val `engine-common` = project
   .in(file("engine/common"))
   .settings(
@@ -1456,6 +1467,8 @@ lazy val `engine-common` = project
       "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided"
     )
   )
+  .dependsOn(`logging-config`)
+  .dependsOn(`logging-utils`)
   .dependsOn(testkit % Test)
 
 lazy val `polyglot-api` = project
@@ -1933,6 +1946,7 @@ lazy val runtime = (project in file("engine/runtime"))
       .dependsOn(`std-table` / Compile / packageBin)
       .dependsOn(`std-aws` / Compile / packageBin)
       .dependsOn(`std-snowflake` / Compile / packageBin)
+      .dependsOn(`std-microsoft` / Compile / packageBin)
       .value
   )
   .dependsOn(`common-polyglot-core-utils`)
@@ -2869,8 +2883,11 @@ lazy val `desktop-environment` =
     .settings(
       frgaalJavaCompilerSetting,
       libraryDependencies ++= Seq(
-        "junit"          % "junit"           % junitVersion   % Test,
-        "com.github.sbt" % "junit-interface" % junitIfVersion % Test
+        "org.graalvm.sdk" % "graal-sdk"       % graalMavenPackagesVersion % "provided",
+        "commons-io"      % "commons-io"      % commonsIoVersion,
+        "org.slf4j"       % "slf4j-api"       % slf4jVersion,
+        "junit"           % "junit"           % junitVersion              % Test,
+        "com.github.sbt"  % "junit-interface" % junitIfVersion            % Test
       )
     )
 
@@ -3137,6 +3154,7 @@ lazy val `library-manager-test` = project
     )
   )
   .dependsOn(`library-manager`)
+  .dependsOn(`process-utils`)
   .dependsOn(`logging-utils` % "test->test")
   .dependsOn(testkit)
   .dependsOn(`logging-service-logback` % "test->test")
@@ -3189,9 +3207,19 @@ lazy val `runtime-version-manager` = project
   .dependsOn(pkg)
   .dependsOn(downloader)
   .dependsOn(cli)
+  .dependsOn(`process-utils`)
   .dependsOn(`version-output`)
   .dependsOn(`edition-updater`)
   .dependsOn(`distribution-manager`)
+
+/** `process-utils` provides utilities for correctly managing process execution such as providing
+  *  handlers for its stdout/stderr.
+  */
+lazy val `process-utils` = project
+  .in(file("lib/scala/process-utils"))
+  .settings(
+    frgaalJavaCompilerSetting
+  )
 
 lazy val `runtime-version-manager-test` = project
   .in(file("lib/scala/runtime-version-manager-test"))
@@ -3237,6 +3265,8 @@ val `std-aws-polyglot-root` =
   stdLibComponentRoot("AWS") / "polyglot" / "java"
 val `std-snowflake-polyglot-root` =
   stdLibComponentRoot("Snowflake") / "polyglot" / "java"
+val `std-microsoft-polyglot-root` =
+  stdLibComponentRoot("Microsoft") / "polyglot" / "java"
 
 lazy val `std-base` = project
   .in(file("std-bits") / "base")
@@ -3544,6 +3574,36 @@ lazy val `std-snowflake` = project
   .dependsOn(`std-table` % "provided")
   .dependsOn(`std-database` % "provided")
 
+lazy val `std-microsoft` = project
+  .in(file("std-bits") / "microsoft")
+  .settings(
+    frgaalJavaCompilerSetting,
+    autoScalaLibrary := false,
+    Compile / compile / compileInputs := (Compile / compile / compileInputs)
+      .dependsOn(SPIHelpers.ensureSPIConsistency)
+      .value,
+    Compile / packageBin / artifactPath :=
+      `std-microsoft-polyglot-root` / "std-microsoft.jar",
+    libraryDependencies ++= Seq(
+      "org.netbeans.api"        % "org-openide-util-lookup" % netbeansApiVersion % "provided",
+      "com.microsoft.sqlserver" % "mssql-jdbc"              % mssqlserverJDBCVersion
+    ),
+    Compile / packageBin := Def.task {
+      val result = (Compile / packageBin).value
+      val _ = StdBits
+        .copyDependencies(
+          `std-microsoft-polyglot-root`,
+          Seq("std-microsoft.jar"),
+          ignoreScalaLibrary = true
+        )
+        .value
+      result
+    }.value
+  )
+  .dependsOn(`std-base` % "provided")
+  .dependsOn(`std-table` % "provided")
+  .dependsOn(`std-database` % "provided")
+
 /* Note [Native Image Workaround for GraalVM 20.2]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * In GraalVM 20.2 the Native Image build of even simple Scala programs has
@@ -3690,6 +3750,7 @@ val stdBitsProjects =
     "Database",
     "Google_Api",
     "Image",
+    "Microsoft",
     "Snowflake",
     "Table"
   ) ++ allStdBitsSuffix
@@ -3761,6 +3822,8 @@ pkgStdLibInternal := Def.inputTask {
       (`std-aws` / Compile / packageBin).value
     case "Snowflake" =>
       (`std-snowflake` / Compile / packageBin).value
+    case "Microsoft" =>
+      (`std-microsoft` / Compile / packageBin).value
     case _ if buildAllCmd =>
       (`std-base` / Compile / packageBin).value
       (`enso-test-java-helpers` / Compile / packageBin).value
@@ -3772,6 +3835,7 @@ pkgStdLibInternal := Def.inputTask {
       (`std-google-api` / Compile / packageBin).value
       (`std-aws` / Compile / packageBin).value
       (`std-snowflake` / Compile / packageBin).value
+      (`std-microsoft` / Compile / packageBin).value
     case _ =>
   }
   val libs =
@@ -3794,7 +3858,6 @@ pkgStdLibInternal := Def.inputTask {
     if (generateIndex) {
       val stdlibStandardRoot = root / "lib" / standardNamespace
       DistributionPackage.indexStdLib(
-        libMajor       = stdlibStandardRoot,
         libName        = stdlibStandardRoot / lib,
         stdLibVersion  = defaultDevEnsoVersion,
         ensoVersion    = defaultDevEnsoVersion,

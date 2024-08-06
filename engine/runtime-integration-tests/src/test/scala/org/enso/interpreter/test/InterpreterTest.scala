@@ -14,7 +14,9 @@ import org.enso.polyglot.debugger.{
   SessionManager
 }
 import org.enso.common.LanguageInfo
-import org.enso.polyglot.{Function, PolyglotContext, RuntimeOptions}
+import org.enso.common.RuntimeOptions
+
+import org.enso.polyglot.{Function, PolyglotContext}
 import org.graalvm.polyglot.{Context, Value}
 import org.scalatest.Assertions
 import org.scalatest.matchers.should.Matchers

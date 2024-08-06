@@ -17,7 +17,7 @@ import Standard.Database.SQL_Query.SQL_Query
 import Standard.Database.SQL_Statement.SQL_Statement
 from Standard.Database.Connection.Connection import make_database_selector, make_schema_selector, make_structure_creator, make_table_name_selector, make_table_types_selector
 from Standard.Database.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
-from Standard.Database.Internal.Upload_Table import first_column_name_in_structure
+from Standard.Database.Internal.Upload.Helpers.Default_Arguments import first_column_name_in_structure
 
 import project.Internal.Snowflake_Dialect
 
