@@ -37,6 +37,7 @@ export default function ChangePasswordForm() {
   return (
     <Form
       schema={createChangePasswordFormSchema(getText)}
+      gap="none"
       onSubmit={({ currentPassword, newPassword }) => changePassword(currentPassword, newPassword)}
     >
       <Input hidden name="username" autoComplete="username" value={user.email} readOnly />
@@ -46,6 +47,7 @@ export default function ChangePasswordForm() {
         autoComplete="current-password"
         label={getText('currentPasswordLabel')}
         placeholder={getText('currentPasswordPlaceholder')}
+        variant="settings"
       />
       <Input
         name="newPassword"
@@ -53,6 +55,7 @@ export default function ChangePasswordForm() {
         label={getText('newPasswordLabel')}
         placeholder={getText('newPasswordPlaceholder')}
         autoComplete="new-password"
+        variant="settings"
       />
       <Input
         name="confirmNewPassword"
@@ -60,6 +63,7 @@ export default function ChangePasswordForm() {
         label={getText('confirmNewPasswordLabel')}
         placeholder={getText('confirmNewPasswordPlaceholder')}
         autoComplete="new-password"
+        variant="settings"
       />
 
       <Form.FormError />

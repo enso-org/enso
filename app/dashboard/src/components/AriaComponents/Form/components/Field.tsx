@@ -45,6 +45,15 @@ export const FIELD_STYLES = twv.tv({
   variants: {
     fullWidth: { true: 'w-full' },
     isInvalid: { true: { label: 'text-danger' } },
+    isHidden: { true: { base: 'hidden' } },
+    variant: {
+      default: '',
+      settings: {
+        base: 'flex-row',
+        labelContainer: 'flex h-row items-center gap-[19px] w-full',
+        label: 'text my-auto w-40 shrink-0',
+      },
+    },
   },
   slots: {
     labelContainer: 'contents',
@@ -53,7 +62,10 @@ export const FIELD_STYLES = twv.tv({
     description: text.TEXT_STYLE({ variant: 'body', color: 'disabled' }),
     error: text.TEXT_STYLE({ variant: 'body', color: 'danger' }),
   },
-  defaultVariants: { fullWidth: true },
+  defaultVariants: {
+    fullWidth: true,
+    variant: 'default',
+  },
 })
 
 /**
@@ -73,6 +85,8 @@ export const Field = React.forwardRef(function Field(
     fullWidth,
     error,
     name,
+    variant,
+    isHidden,
     isRequired = false,
   } = props
 
@@ -85,8 +99,10 @@ export const Field = React.forwardRef(function Field(
   const invalid = isInvalid === true || fieldState.invalid
 
   const classes = FIELD_STYLES({
+    variant,
     fullWidth,
     isInvalid: invalid,
+    isHidden,
   })
 
   const hasError = (error ?? fieldState.error?.message) != null

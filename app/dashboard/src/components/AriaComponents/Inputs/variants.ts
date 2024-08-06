@@ -43,8 +43,8 @@ export const INPUT_STYLES = tv({
         textArea: 'border-transparent focus-within:border-transparent',
       },
       settings: {
-        base: 'flex h-row gap-settings-entry',
-        label: 'text my-auto w-change-password-settings-label',
+        base: 'p-0',
+        textArea: 'rounded-2xl border-0.5 border-primary/20 px-1',
       },
     },
   },

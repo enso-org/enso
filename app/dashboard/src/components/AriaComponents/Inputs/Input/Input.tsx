@@ -128,6 +128,7 @@ export const Input = React.forwardRef(function Input<
       form={formInstance}
       name={name}
       fullWidth
+      isHidden={inputProps.hidden}
       label={<div className={classes.label()}>{label}</div>}
       aria-label={props['aria-label']}
       aria-labelledby={props['aria-labelledby']}
@@ -138,6 +139,7 @@ export const Input = React.forwardRef(function Input<
       ref={ref}
       style={props.style}
       className={props.className}
+      variant={variant === 'settings' ? 'settings' : 'default'}
     >
       <div
         className={classes.base()}
