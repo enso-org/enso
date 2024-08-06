@@ -20,7 +20,7 @@ import { setupGatewayClient } from './ydoc'
 export async function createGatewayServer(
   httpServer: Server | Http2SecureServer,
   rustFFIPath: string | undefined,
-  debug: boolean
+  debug: boolean,
 ) {
   await initializeFFI(rustFFIPath)
   const wss = new WebSocketServer({ noServer: true })

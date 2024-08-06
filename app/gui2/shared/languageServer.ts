@@ -144,7 +144,7 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
   constructor(
     private clientID: Uuid,
     private transport: ReconnectingTransportWithWebsocketEvents,
-    debug = false
+    debug = false,
   ) {
     super()
     this.initialized = this.scheduleInitializationAfterConnect()
