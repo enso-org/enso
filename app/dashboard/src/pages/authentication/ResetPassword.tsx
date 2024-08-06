@@ -7,7 +7,9 @@ import isEmail from 'validator/lib/isEmail'
 import * as z from 'zod'
 
 import { LOGIN_PATH } from '#/appUtils'
+import ArrowRightIcon from '#/assets/arrow_right.svg'
 import GoBackIcon from '#/assets/go_back.svg'
+import LockIcon from '#/assets/lock.svg'
 import { Form, Input, Password } from '#/components/AriaComponents'
 import Link from '#/components/Link'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
@@ -95,17 +97,21 @@ export default function ResetPassword() {
         required
         name="newPassword"
         autoComplete="new-password"
+        icon={LockIcon}
         placeholder={getText('newPasswordPlaceholder')}
       />
       <Password
         required
         name="confirmNewPassword"
         autoComplete="new-password"
+        icon={LockIcon}
         placeholder={getText('confirmNewPasswordPlaceholder')}
       />
 
       <Form.FormError />
-      <Form.Submit className="w-full">{getText('reset')}</Form.Submit>
+      <Form.Submit icon={ArrowRightIcon} className="w-full">
+        {getText('reset')}
+      </Form.Submit>
     </AuthenticationPage>
   )
 }

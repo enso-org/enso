@@ -4,9 +4,12 @@ import * as router from 'react-router-dom'
 import { CLOUD_DASHBOARD_DOMAIN } from 'enso-common'
 
 import { FORGOT_PASSWORD_PATH, REGISTRATION_PATH } from '#/appUtils'
+import ArrowRightIcon from '#/assets/arrow_right.svg'
+import AtIcon from '#/assets/at.svg'
 import CreateAccountIcon from '#/assets/create_account.svg'
 import GithubIcon from '#/assets/github.svg'
 import GoogleIcon from '#/assets/google.svg'
+import LockIcon from '#/assets/lock.svg'
 import { Button, Form, Input, Password } from '#/components/AriaComponents'
 import Link from '#/components/Link'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
@@ -89,6 +92,7 @@ export default function Login() {
           label={getText('email')}
           type="email"
           autoComplete="email"
+          icon={AtIcon}
           defaultValue={initialEmail ?? undefined}
           placeholder={getText('emailPlaceholder')}
         />
@@ -99,6 +103,7 @@ export default function Login() {
             label={getText('password')}
             name="password"
             autoComplete="current-password"
+            icon={LockIcon}
             placeholder={getText('passwordPlaceholder')}
           />
 
@@ -109,7 +114,9 @@ export default function Login() {
 
         <Form.FormError />
 
-        <Form.Submit className="w-full">{getText('login')}</Form.Submit>
+        <Form.Submit icon={ArrowRightIcon} className="w-full">
+          {getText('login')}
+        </Form.Submit>
       </Form>
     </AuthenticationPage>
   )

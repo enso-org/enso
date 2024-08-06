@@ -23,8 +23,8 @@ export const INPUT_STYLES = tv({
       false: 'cursor-text',
     },
     size: {
-      medium: { base: 'px-[11px] pb-1.5 pt-2' },
-      small: { base: 'px-[11px] pb-0.5 pt-1' },
+      medium: { base: 'px-[11px] pb-1.5 pt-2', icon: 'size-4' },
+      small: { base: 'px-[11px] pb-0.5 pt-1', icon: 'size-3' },
     },
     rounded: {
       none: 'rounded-none',
@@ -44,6 +44,7 @@ export const INPUT_STYLES = tv({
     },
   },
   slots: {
+    icon: '',
     addonStart: 'flex items-center mt-[-1px]',
     addonEnd: 'flex items-center mt-[-1px]',
     content: 'flex items-center gap-2',

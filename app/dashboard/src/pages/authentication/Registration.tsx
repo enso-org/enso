@@ -6,7 +6,10 @@ import isEmail from 'validator/lib/isEmail'
 import * as z from 'zod'
 
 import { LOGIN_PATH } from '#/appUtils'
+import AtIcon from '#/assets/at.svg'
+import CreateAccountIcon from '#/assets/create_account.svg'
 import GoBackIcon from '#/assets/go_back.svg'
+import LockIcon from '#/assets/lock.svg'
 import { Form, Input, Password } from '#/components/AriaComponents'
 import Link from '#/components/Link'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
@@ -88,6 +91,7 @@ export default function Registration() {
         name="email"
         type="email"
         autoComplete="email"
+        icon={AtIcon}
         placeholder={getText('emailPlaceholder')}
         defaultValue={initialEmail ?? undefined}
       />
@@ -95,6 +99,7 @@ export default function Registration() {
         required
         name="password"
         autoComplete="new-password"
+        icon={LockIcon}
         placeholder={getText('passwordPlaceholder')}
         pattern={PASSWORD_PATTERN}
       />
@@ -102,11 +107,12 @@ export default function Registration() {
         required
         name="confirmPassword"
         autoComplete="new-password"
+        icon={LockIcon}
         placeholder={getText('confirmPasswordPlaceholder')}
       />
 
       <Form.FormError />
-      <Form.Submit className="w-full">{getText('register')}</Form.Submit>
+      <Form.Submit icon={CreateAccountIcon} className="w-full">{getText('register')}</Form.Submit>
     </AuthenticationPage>
   )
 }

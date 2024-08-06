@@ -12,6 +12,7 @@ import * as ariaComponents from '#/components/AriaComponents'
 
 import * as mergeRefs from '#/utilities/mergeRefs'
 
+import SvgMask from '#/components/SvgMask'
 import { omit } from 'enso-common/src/utilities/data/object'
 import * as variants from '../variants'
 
@@ -39,6 +40,8 @@ export interface InputProps<
   readonly addonMiddle?: React.ReactNode
   readonly addonEnd?: React.ReactNode
   readonly placeholder?: string
+  /** The icon to display in the input. */
+  readonly icon?: React.ReactElement | string | null
 }
 
 /**
@@ -70,6 +73,7 @@ export const Input = React.forwardRef(function Input<
     isRequired = false,
     min,
     max,
+    icon,
     type = 'text',
     ...inputProps
   } = props
@@ -140,6 +144,8 @@ export const Input = React.forwardRef(function Input<
           {addonStart != null && <div className={classes.addonStart()}>{addonStart}</div>}
 
           <div className={classes.inputContainer()}>
+            {icon != null &&
+              (typeof icon === 'string' ? <SvgMask src={icon} className={classes.icon()} /> : icon)}
             <aria.Input
               ref={mergeRefs.mergeRefs(inputRef, privateInputRef, fieldRef)}
               {...aria.mergeProps<aria.InputProps>()(

@@ -6,6 +6,8 @@ import isEmail from 'validator/lib/isEmail'
 import * as z from 'zod'
 
 import { LOGIN_PATH } from '#/appUtils'
+import ArrowRightIcon from '#/assets/arrow_right.svg'
+import AtIcon from '#/assets/at.svg'
 import GoBackIcon from '#/assets/go_back.svg'
 import { Form, Input } from '#/components/AriaComponents'
 import Link from '#/components/Link'
@@ -46,11 +48,14 @@ export default function ForgotPassword() {
         name="email"
         type="email"
         autoComplete="email"
+        icon={AtIcon}
         placeholder={getText('emailPlaceholder')}
       />
 
       <Form.FormError />
-      <Form.Submit className="w-full">{getText('sendLink')}</Form.Submit>
+      <Form.Submit icon={ArrowRightIcon} className="w-full">
+        {getText('sendLink')}
+      </Form.Submit>
     </AuthenticationPage>
   )
 }
