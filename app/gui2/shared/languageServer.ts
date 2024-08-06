@@ -139,7 +139,7 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
   private initializationScheduled = false
   private shouldReconnect = true
   private retainCount = 1
-  private debug = false
+  debug = false
 
   constructor(
     private clientID: Uuid,
