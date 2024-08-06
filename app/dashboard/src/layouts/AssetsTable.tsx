@@ -674,48 +674,57 @@ export default function AssetsTable(props: AssetsTableProps) {
     },
   )
 
-  React.useEffect(() => {
-    const { selectedKeys } = driveStore.getState()
-    if (selectedKeys.size === 0) {
-      setTargetDirectory(null)
-    } else if (selectedKeys.size === 1) {
-      const [soleKey] = selectedKeys
-      const node = soleKey == null ? null : nodeMapRef.current.get(soleKey)
-      if (node != null && node.isType(backendModule.AssetType.directory)) {
-        setTargetDirectory(node)
-      }
-    } else {
-      let commonDirectoryKey: backendModule.AssetId | null = null
-      let otherCandidateDirectoryKey: backendModule.AssetId | null = null
-      for (const key of selectedKeys) {
-        const node = nodeMapRef.current.get(key)
-        if (node != null) {
-          if (commonDirectoryKey == null) {
-            commonDirectoryKey = node.directoryKey
-            otherCandidateDirectoryKey =
-              node.item.type === backendModule.AssetType.directory ? node.key : null
-          } else if (node.key === commonDirectoryKey || node.directoryKey === commonDirectoryKey) {
-            otherCandidateDirectoryKey = null
-          } else if (
-            otherCandidateDirectoryKey != null &&
-            (node.key === otherCandidateDirectoryKey ||
-              node.directoryKey === otherCandidateDirectoryKey)
-          ) {
-            commonDirectoryKey = otherCandidateDirectoryKey
-            otherCandidateDirectoryKey = null
+  React.useEffect(
+    () =>
+      driveStore.subscribe(({ selectedKeys }, { selectedKeys: oldSelectedKeys }) => {
+        if (selectedKeys !== oldSelectedKeys) {
+          if (selectedKeys.size === 0) {
+            setTargetDirectory(null)
+          } else if (selectedKeys.size === 1) {
+            const [soleKey] = selectedKeys
+            const node = soleKey == null ? null : nodeMapRef.current.get(soleKey)
+            if (node != null && node.isType(backendModule.AssetType.directory)) {
+              setTargetDirectory(node)
+            }
           } else {
-            // No match; there is no common parent directory for the entire selection.
-            commonDirectoryKey = null
-            break
+            let commonDirectoryKey: backendModule.AssetId | null = null
+            let otherCandidateDirectoryKey: backendModule.AssetId | null = null
+            for (const key of selectedKeys) {
+              const node = nodeMapRef.current.get(key)
+              if (node != null) {
+                if (commonDirectoryKey == null) {
+                  commonDirectoryKey = node.directoryKey
+                  otherCandidateDirectoryKey =
+                    node.item.type === backendModule.AssetType.directory ? node.key : null
+                } else if (
+                  node.key === commonDirectoryKey ||
+                  node.directoryKey === commonDirectoryKey
+                ) {
+                  otherCandidateDirectoryKey = null
+                } else if (
+                  otherCandidateDirectoryKey != null &&
+                  (node.key === otherCandidateDirectoryKey ||
+                    node.directoryKey === otherCandidateDirectoryKey)
+                ) {
+                  commonDirectoryKey = otherCandidateDirectoryKey
+                  otherCandidateDirectoryKey = null
+                } else {
+                  // No match; there is no common parent directory for the entire selection.
+                  commonDirectoryKey = null
+                  break
+                }
+              }
+            }
+            const node =
+              commonDirectoryKey == null ? null : nodeMapRef.current.get(commonDirectoryKey)
+            if (node != null && node.isType(backendModule.AssetType.directory)) {
+              setTargetDirectory(node)
+            }
           }
         }
-      }
-      const node = commonDirectoryKey == null ? null : nodeMapRef.current.get(commonDirectoryKey)
-      if (node != null && node.isType(backendModule.AssetType.directory)) {
-        setTargetDirectory(node)
-      }
-    }
-  }, [driveStore, setTargetDirectory])
+      }),
+    [driveStore, setTargetDirectory],
+  )
 
   React.useEffect(() => {
     const nodeToSuggestion = (
