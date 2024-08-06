@@ -25,5 +25,8 @@ export function passwordSchema(getText: GetText) {
  * A schema for validating passwords that match the required pattern.
  */
 export function passwordWithPatternSchema(getText: GetText) {
-  return passwordSchema(getText).refine((password) => PASSWORD_REGEX.test(password))
+  return passwordSchema(getText).refine(
+    (password) => PASSWORD_REGEX.test(password),
+    getText('passwordValidationError'),
+  )
 }
