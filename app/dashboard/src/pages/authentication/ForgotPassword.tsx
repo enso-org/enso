@@ -70,7 +70,7 @@ export default function ForgotPassword() {
       />
 
       <Form.FormError />
-      <Form.Submit icon={ArrowRightIcon} className="w-full">
+      <Form.Submit size="large" icon={ArrowRightIcon} className="w-full">
         {getText('sendLink')}
       </Form.Submit>
     </AuthenticationPage>

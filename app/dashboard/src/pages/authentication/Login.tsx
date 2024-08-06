@@ -125,7 +125,7 @@ export default function Login() {
 
         <Form.FormError />
 
-        <Form.Submit icon={ArrowRightIcon} className="w-full">
+        <Form.Submit size="large" icon={ArrowRightIcon} className="w-full">
           {getText('login')}
         </Form.Submit>
       </Form>

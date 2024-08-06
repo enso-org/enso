@@ -117,7 +117,7 @@ export default function ResetPassword() {
       />
 
       <Form.FormError />
-      <Form.Submit icon={ArrowRightIcon} className="w-full">
+      <Form.Submit size="large" icon={ArrowRightIcon} className="w-full">
         {getText('reset')}
       </Form.Submit>
     </AuthenticationPage>
