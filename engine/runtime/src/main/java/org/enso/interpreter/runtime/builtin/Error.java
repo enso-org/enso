@@ -158,6 +158,7 @@ public final class Error {
    * @return a runtime representation of the error
    */
   public Atom makeNoSuchMethod(Object target, UnresolvedSymbol symbol) {
+    new RuntimeException("#10750 " + symbol.getName()).printStackTrace();
     return noSuchMethod.newInstance(target, symbol);
   }
 
