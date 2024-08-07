@@ -602,7 +602,6 @@ onMounted(() => {
         :rowData="rowData"
         :defaultColDef="defaultColDef"
       />
-      <!-- <div ref="tableNode" class="scrollable ag-theme-alpine"></div> -->
     </div>
   </VisualizationContainer>
 </template>
@@ -613,13 +612,6 @@ onMounted(() => {
   flex-flow: column;
   position: relative;
   height: 100%;
-}
-
-.ag-theme-alpine {
-  --ag-grid-size: 3px;
-  --ag-list-item-height: 20px;
-  flex-grow: 1;
-  font-family: var(--font-mono);
 }
 
 .table-visualization-status-bar {

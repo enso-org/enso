@@ -45,6 +45,14 @@ namespace cellValueConversion {
   }
 }
 
+/**
+ * A composable responsible for interpreting `Table.new` expressions, creating AGGrid column
+ * definitions allowing also editing AST through AGGrid editing.
+ *
+ * @param input the widget's input
+ * @param graph the graph store
+ * @param onUpdate callback called when AGGrid was edited by user, resulting in AST change.
+ */
 export function useTableNewArgument(
   input: ToValue<WidgetInput & { value: Ast.Ast }>,
   graph: { startEdit(): Ast.MutableModule },

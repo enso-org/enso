@@ -1,4 +1,9 @@
 <script lang="ts">
+/**
+ * Component adding some useful logic to AGGrid table component (like keeping track of colum sizes),
+ * and using common style for tables in our application.
+ */
+
 import { LicenseManager } from 'ag-grid-enterprise'
 
 if (typeof import.meta.env.VITE_ENSO_AG_GRID_LICENSE_KEY !== 'string') {

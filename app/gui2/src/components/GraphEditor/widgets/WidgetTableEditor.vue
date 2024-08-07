@@ -11,24 +11,18 @@ import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { useGraphStore } from '@/stores/graph'
-import { targetIsOutside } from '@/util/autoBlur'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
-import { unrefElement } from '@vueuse/core'
 import type { CellEditingStartedEvent, CellEditingStoppedEvent } from 'ag-grid-community'
 import { Column } from 'ag-grid-enterprise'
-import { computed, ref, watch, type ComponentInstance } from 'vue'
+import { computed, ref } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
-// TODO explain
-const grid = ref<
-  ComponentExposed<typeof AgGridTableView<RowData, any>> &
-    ComponentInstance<typeof AgGridTableView<RowData, any>>
->()
+const grid = ref<ComponentExposed<typeof AgGridTableView<RowData, any>>>()
 
 const { rowData, columnDefs } = useTableNewArgument(() => props.input, graph, props.onUpdate)
 
