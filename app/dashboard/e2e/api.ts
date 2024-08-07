@@ -359,33 +359,41 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     await page.route('https://www.googletagmanager.com/gtag/js*', (route) =>
       route.fulfill({ contentType: 'text/javascript', body: 'export {};' }),
     )
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (process.env.MOCK_ALL_URLS === 'true') {
-      await page.route('https://fonts.googleapis.com/css2*', (route) =>
-        route.fulfill({ contentType: 'text/css', body: '' }),
-      )
-      await page.route('https://ensoanalytics.com/eula.json', (route) => {
-        route.fulfill({
+      await page.route('https://fonts.googleapis.com/css2*', async (route) => {
+        await route.fulfill({ contentType: 'text/css', body: '' })
+      })
+      await page.route('https://ensoanalytics.com/eula.json', async (route) => {
+        await route.fulfill({
           json: {
             path: '/eula.md',
+            // eslint-disable-next-line @typescript-eslint/no-magic-numbers
             size: 9472,
             modified: '2024-06-26T10:44:04.939Z',
             hash: '1c8a655202e59f0efebf5a83a703662527aa97247052964f959a8488382604b8',
           },
         })
       })
-      await page.route('https://api.github.com/repos/enso-org/enso/releases/latest', (route) => {
-        route.fulfill({ json: LATEST_GITHUB_RELEASES })
-      })
-      await page.route('https://github.com/enso-org/enso/releases/download/**', (route) =>
-        route.fulfill({
-          status: 302,
-          headers: { Location: 'https://objects.githubusercontent.com/foo/bar' },
-        }),
+      await page.route(
+        'https://api.github.com/repos/enso-org/enso/releases/latest',
+        async (route) => {
+          await route.fulfill({ json: LATEST_GITHUB_RELEASES })
+        },
       )
-      await page.route('https://objects.githubusercontent.com/**', (route) => {
-        route.fulfill({
+      await page.route('https://github.com/enso-org/enso/releases/download/**', async (route) => {
+        await route.fulfill({
+          // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+          status: 302,
+          headers: { location: 'https://objects.githubusercontent.com/foo/bar' },
+        })
+      })
+      await page.route('https://objects.githubusercontent.com/**', async (route) => {
+        await route.fulfill({
+          // eslint-disable-next-line @typescript-eslint/no-magic-numbers
           status: 200,
           headers: {
+            /* eslint-disable @typescript-eslint/naming-convention */
             'content-type': 'application/octet-stream',
             'last-modified': 'Wed, 24 Jul 2024 17:22:47 GMT',
             etag: '"0x8DCAC053D058EA5"',
@@ -407,6 +415,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
             'x-cache-hits': '48, 0',
             'x-timer': 'S1722246008.269342,VS0,VE895',
             'content-length': '1030383958',
+            /* eslint-enable @typescript-eslint/naming-convention */
           },
         })
       })
