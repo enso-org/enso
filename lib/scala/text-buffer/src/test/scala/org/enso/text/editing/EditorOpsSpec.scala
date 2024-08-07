@@ -7,14 +7,13 @@ import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.must.Matchers
 
-@annotation.nowarn("msg=Unicode escapes")
 class EditorOpsSpec extends AnyFlatSpec with Matchers with EitherValues {
 
   "An editor" should "be able to apply multiple diffs" in {
     //given
-    val signaturePosition = Range(Position(2, 12 + 1), Position(2, 13 + 1))
+    val signaturePosition = Range(Position(2, 12), Position(2, 13))
     val signatureDiff     = TextEdit(signaturePosition, "arg")
-    val bodyPosition      = Range(Position(2, 23 + 1), Position(2, 24 + 1))
+    val bodyPosition      = Range(Position(2, 23), Position(2, 24))
     val bodyDiff          = TextEdit(bodyPosition, "arg")
     val diffs             = List(signatureDiff, bodyDiff)
     //when
@@ -23,7 +22,28 @@ class EditorOpsSpec extends AnyFlatSpec with Matchers with EitherValues {
     result.map(_.toString) mustBe Right(
       """
         |main =
-        |    apply = \uD83D\uDDDDarg f -> f arg
+        |    apply = arg f -> f arg
+        |    adder = a b -> a + b
+        |    plusOne = apply (f = adder 1)
+        |    result = plusOne 10
+        |    result""".stripMargin
+    )
+  }
+
+  it should "be able to apply diffs with unicode symbols" in {
+    //given
+    val signaturePosition = Range(Position(2, 12), Position(2, 13))
+    val signatureDiff     = TextEdit(signaturePosition, "\uD83D\uDDDD")
+    val bodyPosition      = Range(Position(2, 22), Position(2, 23))
+    val bodyDiff          = TextEdit(bodyPosition, "\uD83D\uDDDD")
+    val diffs             = List(signatureDiff, bodyDiff)
+    //when
+    val result = EditorOps.applyEdits(testSnippet, diffs)
+    //then
+    result.map(_.toString) mustBe Right(
+      """
+        |main =
+        |    apply = 🗝 f -> f 🗝
         |    adder = a b -> a + b
         |    plusOne = apply (f = adder 1)
         |    result = plusOne 10
@@ -89,17 +109,16 @@ class EditorOpsSpec extends AnyFlatSpec with Matchers with EitherValues {
     result.map(_.toString) mustBe Right("foo")
   }
 
-  it should "be able to edit text with emoji" in {
+  it should "be able to edit text with unicode symbols" in {
     //given
     val oldKeyEmoji       = "\uD83D\uDDDD"
     val variationSelector = "\uFE0F"
     val codeToEdit        = Rope(s"$oldKeyEmoji$variationSelector")
-    val range             = Range(Position(0, 1), Position(0, 1))
+    val range             = Range(Position(0, 2), Position(0, 2))
     val diff              = TextEdit(range, "xyz")
     //when
     val result = EditorOps.applyEdits(codeToEdit, Seq(diff))
     //then
     result.map(_.toString) mustBe Right("\uD83D\uDDDDxyz\uFE0F")
   }
-
 }
