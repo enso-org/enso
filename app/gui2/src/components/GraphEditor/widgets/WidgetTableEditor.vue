@@ -17,6 +17,8 @@ import { Vec2 } from '@/util/data/vec2'
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
 import { unrefElement } from '@vueuse/core'
+import type { CellEditingStartedEvent, CellEditingStoppedEvent } from 'ag-grid-community'
+import { Column } from 'ag-grid-enterprise'
 import { computed, ref, watch, type ComponentInstance } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 
@@ -32,36 +34,92 @@ const { rowData, columnDefs } = useTableNewArgument(() => props.input, graph, pr
 
 // === Edit Handlers ===
 
-const cellEditHandler = WidgetEditHandler.New('WidgetTableEditor.cellEditHandler', props.input, {
-  cancel() {
-    grid.value?.gridApi?.stopEditing(true)
-  },
-  end() {
-    grid.value?.gridApi?.stopEditing(false)
-  },
-  pointerdown(event) {
-    if (targetIsOutside(event, unrefElement(grid))) cellEditHandler.end()
-    return false
-  },
-})
+class CellEditing {
+  handler: WidgetEditHandler
+  editedCell: { rowIndex: number; colKey: Column<RowData> } | undefined
+  supressNextStopEditEvent: boolean = false
 
-let stopHeaderEditing: ((cancel: boolean) => void) | undefined
-const headerEditHandler = WidgetEditHandler.New(
-  'WidgetTableEditor.headerEditHandler',
-  props.input,
-  {
-    cancel() {
-      stopHeaderEditing?.(true)
-    },
-    end() {
-      stopHeaderEditing?.(false)
-    },
-    pointerdown(event) {
-      if (targetIsOutside(event, unrefElement(grid))) cellEditHandler.end()
-      return false
-    },
-  },
-)
+  constructor() {
+    this.handler = WidgetEditHandler.New('WidgetTableEditor.cellEditHandler', props.input, {
+      cancel() {
+        grid.value?.gridApi?.stopEditing(true)
+      },
+      end() {
+        grid.value?.gridApi?.stopEditing(false)
+      },
+      suspend: () => {
+        return {
+          resume: () => {
+            this.editedCell && grid.value?.gridApi?.startEditingCell(this.editedCell)
+          },
+        }
+      },
+    })
+  }
+
+  cellEditedInGrid(event: CellEditingStartedEvent) {
+    this.editedCell =
+      event.rowIndex != null ? { rowIndex: event.rowIndex, colKey: event.column } : undefined
+    if (!this.handler.isActive()) {
+      this.handler.start()
+    }
+  }
+
+  cellEditingStoppedInGrid(event: CellEditingStoppedEvent) {
+    if (!this.handler.isActive()) return
+    if (this.supressNextStopEditEvent && this.editedCell) {
+      this.supressNextStopEditEvent = false
+      // If row data changed, the editing will be stopped, but we want to continue it.
+      grid.value?.gridApi?.startEditingCell(this.editedCell)
+    } else {
+      this.handler.end()
+    }
+  }
+
+  rowDataChanged() {
+    if (this.handler.isActive()) {
+      this.supressNextStopEditEvent = true
+    }
+  }
+}
+
+const cellEditHandler = new CellEditing()
+
+class HeaderEditing {
+  handler: WidgetEditHandler
+  stopEditingCallback: ((cancel: boolean) => void) | undefined
+
+  constructor() {
+    this.handler = WidgetEditHandler.New('WidgetTableEditor.headerEditHandler', props.input, {
+      cancel: () => {
+        this.stopEditingCallback?.(true)
+      },
+      end: () => {
+        this.stopEditingCallback?.(false)
+      },
+    })
+  }
+
+  headerEditedInGrid(stopCb: (cancel: boolean) => void) {
+    // If another header is edited, stop it (with the old callback).
+    if (this.handler.isActive()) {
+      this.stopEditingCallback?.(false)
+    }
+    this.stopEditingCallback = stopCb
+    if (!this.handler.isActive()) {
+      this.handler.start()
+    }
+  }
+
+  headerEditingStoppedInGrid() {
+    this.stopEditingCallback = undefined
+    if (this.handler.isActive()) {
+      this.handler.end()
+    }
+  }
+}
+
+const headerEditHandler = new HeaderEditing()
 
 // === Resizing ===
 
@@ -83,6 +141,17 @@ const widgetStyle = computed(() => {
     height: `${size.value.y}px`,
   }
 })
+
+// === Column Default Definition ===
+
+const defaultColDef = {
+  editable: true,
+  resizable: true,
+  headerComponentParams: {
+    onHeaderEditingStarted: headerEditHandler.headerEditedInGrid.bind(headerEditHandler),
+    onHeaderEditingStopped: headerEditHandler.headerEditingStoppedInGrid.bind(headerEditHandler),
+  },
+}
 </script>
 
 <script lang="ts">
@@ -105,31 +174,18 @@ export const widgetDefinition = defineWidget(
     <AgGridTableView
       ref="grid"
       class="grid"
-      :defaultColDef="{
-        editable: true,
-        resizable: true,
-        headerComponentParams: {
-          onHeaderEditingStarted(stopCb: (cancel: boolean) => void) {
-            // If another header is edited, stop it
-            headerEditHandler.end()
-            stopHeaderEditing = stopCb
-            headerEditHandler.start()
-          },
-          onHeaderEditingStopped() {
-            headerEditHandler.end()
-          },
-        },
-      }"
+      :defaultColDef="defaultColDef"
       :columnDefs="columnDefs"
       :rowData="rowData"
       :getRowId="(row) => `${row.data.index}`"
       :components="{ agColumnHeader: TableHeader }"
+      :singleClickEdit="true"
+      :stopEditingWhenCellsLoseFocus="true"
       @keydown.enter.stop
       @keydown.escape.stop
-      @cellEditingStarted="cellEditHandler.start()"
-      @cellEditingStopped="cellEditHandler.end()"
-      @rowEditingStarted="cellEditHandler.start()"
-      @rowEditingStopped="cellEditHandler.end()"
+      @cellEditingStarted="cellEditHandler.cellEditedInGrid($event)"
+      @cellEditingStopped="cellEditHandler.cellEditingStoppedInGrid($event)"
+      @rowDataUpdated="cellEditHandler.rowDataChanged()"
       @pointerdown.stop
       @click.stop
     />

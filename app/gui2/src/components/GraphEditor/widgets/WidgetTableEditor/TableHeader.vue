@@ -42,6 +42,7 @@ function acceptNewName() {
     console.error('Tried to accept header new name without input element!')
     return
   }
+  console.log('Accepting', inputElement.value.value)
   props.params.nameSetter?.(inputElement.value.value)
   editing.value = false
 }
@@ -65,7 +66,7 @@ function acceptNewName() {
         v-else
         class="ag-header-cell-text"
         :class="{ virtualColumn: params.virtualColumn === true }"
-        @dblclick="editing = params.nameSetter != null"
+        @click="editing = params.nameSetter != null"
         >{{ params.displayName }}</span
       >
     </div>

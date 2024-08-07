@@ -42,12 +42,15 @@ const _props = defineProps<{
   defaultColDef: ColDef<TData>
   getRowId?: GetRowIdFunc<TData>
   components?: Record<string, unknown>
+  singleClickEdit?: boolean
+  stopEditingWhenCellsLoseFocus?: boolean
 }>()
 const emit = defineEmits<{
   cellEditingStarted: [event: CellEditingStartedEvent]
   cellEditingStopped: [event: CellEditingStoppedEvent]
   rowEditingStarted: [event: RowEditingStartedEvent]
   rowEditingStopped: [event: RowEditingStoppedEvent]
+  rowDataUpdated: [event: RowDataUpdatedEvent]
 }>()
 
 const widths = reactive(new Map<string, number>())
@@ -169,9 +172,11 @@ defineExpose({ gridApi })
     :enableRangeSelection="true"
     :popupParent="popupParent"
     :components="components"
+    :singleClickEdit="singleClickEdit"
+    :stopEditingWhenCellsLoseFocus="stopEditingWhenCellsLoseFocus"
     @gridReady="onGridReady"
     @firstDataRendered="updateColumnWidths"
-    @rowDataUpdated="updateColumnWidths"
+    @rowDataUpdated="updateColumnWidths($event), emit('rowDataUpdated', $event)"
     @columnResized="lockColumnSize"
     @cellEditingStarted="emit('cellEditingStarted', $event)"
     @cellEditingStopped="emit('cellEditingStopped', $event)"
