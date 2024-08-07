@@ -1,6 +1,28 @@
 <script lang="ts">
+import { LicenseManager } from 'ag-grid-enterprise'
+
 if (typeof import.meta.env.VITE_ENSO_AG_GRID_LICENSE_KEY !== 'string') {
   console.warn('The AG_GRID_LICENSE_KEY is not defined.')
+  if (import.meta.env.DEV) {
+    // Hide annoying license validation errors in dev mode when the license is not defined. The
+    // missing define warning is still displayed to not forget about it, but it isn't as obnoxious.
+    const origValidateLicense = LicenseManager.prototype.validateLicense
+    LicenseManager.prototype.validateLicense = function (this) {
+      if (!('licenseManager' in this))
+        Object.defineProperty(this, 'licenseManager', {
+          configurable: true,
+          set(value: any) {
+            Object.getPrototypeOf(value).validateLicense = () => {}
+            delete this.licenseManager
+            this.licenseManager = value
+          },
+        })
+      origValidateLicense.call(this)
+    }
+  }
+} else {
+  const agGridLicenseKey = import.meta.env.VITE_ENSO_AG_GRID_LICENSE_KEY
+  LicenseManager.setLicenseKey(agGridLicenseKey)
 }
 </script>
 
@@ -30,9 +52,8 @@ import type {
   GridApi,
   RowHeightParams,
 } from 'ag-grid-enterprise'
-import { LicenseManager } from 'ag-grid-enterprise'
 import { AgGridVue } from 'ag-grid-vue3'
-import { type ComponentInstance, onMounted, reactive, ref, shallowRef } from 'vue'
+import { type ComponentInstance, reactive, ref, shallowRef } from 'vue'
 
 const DEFAULT_ROW_HEIGHT = 22
 
@@ -131,29 +152,6 @@ function sendToClipboard({ data }: { data: string }) {
     'text/plain': data,
   })
 }
-
-onMounted(() => {
-  const agGridLicenseKey = import.meta.env.VITE_ENSO_AG_GRID_LICENSE_KEY
-  if (typeof agGridLicenseKey === 'string') {
-    LicenseManager.setLicenseKey(agGridLicenseKey)
-  } else if (import.meta.env.DEV) {
-    // Hide annoying license validation errors in dev mode when the license is not defined. The
-    // missing define warning is still displayed to not forget about it, but it isn't as obnoxious.
-    const origValidateLicense = LicenseManager.prototype.validateLicense
-    LicenseManager.prototype.validateLicense = function (this) {
-      if (!('licenseManager' in this))
-        Object.defineProperty(this, 'licenseManager', {
-          configurable: true,
-          set(value: any) {
-            Object.getPrototypeOf(value).validateLicense = () => {}
-            delete this.licenseManager
-            this.licenseManager = value
-          },
-        })
-      origValidateLicense.call(this)
-    }
-  }
-})
 
 defineExpose({ gridApi })
 </script>

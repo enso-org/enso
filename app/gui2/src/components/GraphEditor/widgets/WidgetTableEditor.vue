@@ -182,7 +182,6 @@ export const widgetDefinition = defineWidget(
       :singleClickEdit="true"
       :stopEditingWhenCellsLoseFocus="true"
       @keydown.enter.stop
-      @keydown.escape.stop
       @cellEditingStarted="cellEditHandler.cellEditedInGrid($event)"
       @cellEditingStopped="cellEditHandler.cellEditingStoppedInGrid($event)"
       @rowDataUpdated="cellEditHandler.rowDataChanged()"
