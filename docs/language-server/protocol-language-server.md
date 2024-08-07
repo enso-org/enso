@@ -1006,8 +1006,8 @@ The range of `1` is
 ```
 
 For unicode characters, the range is measured in code units, for example given
-the function with the old key emoji `🗝` argument consisting of two unicode code
-units `\uD83D` and `\uDDDD`.
+the function with the old key emoji `foo 🗝 = ...` argument consisting of two
+unicode code units `\uD83D` and `\uDDDD`.
 
 ```rust
 0|foo \uD83D\uDDDD = ...
