@@ -8,7 +8,7 @@ import org.enso.compiler.context.{
   ModuleContext
 }
 import org.enso.compiler.core.{CompilerError, IR}
-import org.enso.compiler.core.ir.expression.Application
+import org.enso.compiler.core.ir.expression.{Application, Case}
 import org.enso.compiler.core.ir.{
   CallArgument,
   DefinitionArgument,
@@ -16,6 +16,7 @@ import org.enso.compiler.core.ir.{
   Function,
   Module,
   Name,
+  Pattern,
   ProcessingPass
 }
 import org.enso.compiler.core.ir.module.scope.Definition
@@ -118,7 +119,49 @@ case object FramePointerAnalysis extends IRPass {
         processExpression(expr, graph)
         maybeAttachFramePointer(binding, graph)
       case app: Application => processApplication(app, graph)
-      case _                => ()
+      case caseExpr: Case.Expr =>
+        processExpression(caseExpr.scrutinee, graph)
+        caseExpr.branches.foreach { branch =>
+          processCaseBranch(branch)
+        }
+      case _ => ()
+    }
+  }
+
+  private def processCaseBranch(
+    branch: Case.Branch
+  ): Unit = {
+    getAliasAnalysisGraph(branch) match {
+      case None =>
+        throw new CompilerError(
+          "An alias analysis graph is expected on " + branch
+        )
+      case Some(graph) =>
+        processExpression(branch.expression, graph)
+        processCasePattern(branch.pattern, graph)
+    }
+  }
+
+  /** @param graph Graph fetched from the corresponding Case.Branch
+    */
+  private def processCasePattern(
+    pattern: Pattern,
+    graph: Graph
+  ): Unit = {
+    pattern match {
+      case name: Pattern.Name =>
+        processExpression(name.name, graph)
+      case lit: Pattern.Literal =>
+        processExpression(lit.literal, graph)
+      case tp: Pattern.Type =>
+        processExpression(tp.name, graph)
+        processExpression(tp.tpe, graph)
+      case ctor: Pattern.Constructor =>
+        processExpression(ctor.constructor, graph)
+        ctor.fields.foreach { field =>
+          processCasePattern(field, graph)
+        }
+      case _: Pattern.Documentation => ()
     }
   }
 

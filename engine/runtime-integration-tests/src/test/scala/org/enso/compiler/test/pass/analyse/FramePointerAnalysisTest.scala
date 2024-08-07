@@ -217,8 +217,11 @@ class FramePointerAnalysisTest extends CompilerTest {
           |    static_method = 42
           |""".stripMargin.preprocessModule.analyse
       // synthetic self argument does not have location and is `synthetic == true`.
-      val syntheticSelfArg = findIRElement[DefinitionArgument.Specified](ir, _.name match {
-          case Name.Self(loc, synthetic, _, _) if loc.isEmpty && synthetic => true
+      val syntheticSelfArg = findIRElement[DefinitionArgument.Specified](
+        ir,
+        _.name match {
+          case Name.Self(loc, synthetic, _, _) if loc.isEmpty && synthetic =>
+            true
           case _ => false
         }
       )
@@ -233,12 +236,16 @@ class FramePointerAnalysisTest extends CompilerTest {
           |    static_method x = 42
           |""".stripMargin.preprocessModule.analyse
       // synthetic self argument does not have location and is `synthetic == true`.
-      val syntheticSelfArg = findIRElement[DefinitionArgument.Specified](ir, _.name match {
-          case Name.Self(loc, synthetic, _, _) if loc.isEmpty && synthetic => true
+      val syntheticSelfArg = findIRElement[DefinitionArgument.Specified](
+        ir,
+        _.name match {
+          case Name.Self(loc, synthetic, _, _) if loc.isEmpty && synthetic =>
+            true
           case _ => false
         }
       )
-      val xArg = findIRElement[DefinitionArgument.Specified](ir, _.name.name == "x")
+      val xArg =
+        findIRElement[DefinitionArgument.Specified](ir, _.name.name == "x")
       expectFramePointer(syntheticSelfArg, new FramePointer(0, 1))
       expectFramePointer(xArg, new FramePointer(0, 2))
     }
@@ -250,8 +257,44 @@ class FramePointerAnalysisTest extends CompilerTest {
           |type My_Type
           |    instance_method self = self.data + 42
           |""".stripMargin.preprocessModule.analyse
-      val selfArg = findIRElement[DefinitionArgument.Specified](ir, _.name.isInstanceOf[Name.Self])
+      val selfArg = findIRElement[DefinitionArgument.Specified](
+        ir,
+        _.name.isInstanceOf[Name.Self]
+      )
       expectFramePointer(selfArg, new FramePointer(0, 1))
+    }
+
+    "attach frame pointers to internal variables" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+      val ir =
+        """
+          |type My_Type
+          |
+          |method x =
+          |    case x of
+          |        _ : My_Type -> 42
+          |        _ -> 0
+          |""".stripMargin.preprocessModule.analyse
+      // <internal-0> = (FORCE x)
+      // case (FORCE <internal-0>) of
+      //   <internal-1> : My_Type -> 42
+      //   <internal-2> -> 0
+      val allOcc = collectAllOccurences(ir)
+      val internal0 =
+        findIRElement[Expression.Binding](ir, _.name.name == "<internal-0>")
+      val internal1 = findIRElement[Name.Literal](ir, _.name == "<internal-1>")
+      val internal2 = findIRElement[Name.Literal](ir, _.name == "<internal-2>")
+      // internal1 and internal2 are in different scopes.
+      withClue(
+        "<internal-0> is assigned after x is assigned and x has FramePointer(0, 2)"
+      ) {
+        expectFramePointer(internal0, new FramePointer(0, 3))
+      }
+      withClue("<internal-1> and <internal-2> are in different scopes") {
+        expectFramePointer(internal1, new FramePointer(0, 1))
+        expectFramePointer(internal2, new FramePointer(0, 1))
+      }
+      allOcc shouldNot be(null)
     }
   }
 
