@@ -16,8 +16,10 @@ public class AssetStore {
 
   public AssetStore() {
     rootDirectory = new Directory(ROOT_DIRECTORY_ID, "", null, new LinkedList<>());
-    Directory usersDirectory = new Directory(USERS_DIRECTORY_ID, "Users", rootDirectory.id, new LinkedList<>());
-    homeDirectory = new Directory(HOME_DIRECTORY_ID, "My test User 1", usersDirectory.id, new LinkedList<>());
+    Directory usersDirectory =
+        new Directory(USERS_DIRECTORY_ID, "Users", rootDirectory.id, new LinkedList<>());
+    homeDirectory =
+        new Directory(HOME_DIRECTORY_ID, "My test User 1", usersDirectory.id, new LinkedList<>());
 
     rootDirectory.children.add(usersDirectory);
     usersDirectory.children.add(homeDirectory);
@@ -77,13 +79,15 @@ public class AssetStore {
     while (!pathSegments.isEmpty()) {
       String nextSegment = pathSegments.poll();
       if (currentDirectory == null) {
-        throw new IllegalArgumentException("The path references a subdirectory of an asset that is not a directory");
+        throw new IllegalArgumentException(
+            "The path references a subdirectory of an asset that is not a directory");
       }
 
-      var nextDirectory = currentDirectory.children.stream()
-          .filter(directory -> directory.title.equals(nextSegment))
-          .findFirst()
-          .orElse(null);
+      var nextDirectory =
+          currentDirectory.children.stream()
+              .filter(directory -> directory.title.equals(nextSegment))
+              .findFirst()
+              .orElse(null);
       if (nextDirectory != null) {
         // Enter the subdirectory
         currentDirectory = nextDirectory;
@@ -91,10 +95,14 @@ public class AssetStore {
       } else {
         // Otherwise, start looking for secrets
         final var currentDirectoryId = currentDirectory.id;
-        var nextSecret = secrets.stream()
-            .filter(secret -> secret.title.equals(nextSegment) && secret.parentDirectoryId.equals(currentDirectoryId))
-            .findFirst()
-            .orElse(null);
+        var nextSecret =
+            secrets.stream()
+                .filter(
+                    secret ->
+                        secret.title.equals(nextSegment)
+                            && secret.parentDirectoryId.equals(currentDirectoryId))
+                .findFirst()
+                .orElse(null);
         if (nextSecret != null) {
           // Found a secret, mark it for return.
           currentAsset = nextSecret.asAsset();
@@ -109,8 +117,7 @@ public class AssetStore {
     return currentAsset;
   }
 
-  public record Asset(String id, String title, String parentId) {
-  }
+  public record Asset(String id, String title, String parentId) {}
 
   record Directory(String id, String title, String parentId, LinkedList<Directory> children) {
     Asset asAsset() {

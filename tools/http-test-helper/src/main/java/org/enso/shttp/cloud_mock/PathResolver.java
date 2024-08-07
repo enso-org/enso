@@ -2,12 +2,9 @@ package org.enso.shttp.cloud_mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.regex.Pattern;
 
-/**
- * In the mock, only the user
- */
+/** In the mock, only the user */
 public class PathResolver implements CloudHandler {
 
   private static final String PATH_RESOLVE = "path/resolve";
