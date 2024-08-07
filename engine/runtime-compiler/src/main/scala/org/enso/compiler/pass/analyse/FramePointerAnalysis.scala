@@ -91,7 +91,7 @@ case object FramePointerAnalysis extends IRPass {
         case Name.Self(loc, synthetic, _, _) if loc.isEmpty && synthetic =>
           // synthetic self argument has occurrence attached, but there is no Occurence.Def for it.
           // So we have to handle it specially.
-         updateMeta(arg, new FramePointer(0, 1))
+          updateMeta(arg, new FramePointer(0, 1))
         case _ =>
           maybeAttachFramePointer(arg, graph)
       }
@@ -320,5 +320,7 @@ case object FramePointerAnalysis extends IRPass {
     override def restoreFromSerialization(
       compiler: CompilerContext
     ): Option[ProcessingPass.Metadata] = Some(this)
+
+    override def toString: String = s"FramePointerMeta($framePointer)"
   }
 }
