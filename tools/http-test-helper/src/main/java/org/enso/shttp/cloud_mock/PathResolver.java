@@ -2,13 +2,15 @@ package org.enso.shttp.cloud_mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.regex.Pattern;
 
+/**
+ * In the mock, only the user
+ */
 public class PathResolver implements CloudHandler {
 
   private static final String PATH_RESOLVE = "path/resolve";
-
-  private final String ORGANIZATION_NAME = "Test.ORG";
 
   private final AssetStore assetStore;
   private final ObjectMapper jsonMapper = new ObjectMapper();
@@ -22,11 +24,11 @@ public class PathResolver implements CloudHandler {
     return subPath.startsWith(PATH_RESOLVE);
   }
 
-  private final Pattern pathPattern = Pattern.compile("enso://(.+?)/(.+)");
+  private final Pattern pathPattern = Pattern.compile("enso://(.+?)");
 
   @Override
   public void handleCloudAPI(CloudExchange exchange) throws IOException {
-    String queryString = exchange.getHttpExchange().getRequestURI().getQuery();
+    String queryString = exchange.getHttpExchange().getRequestURI().getQuery().replace("+", " ");
     if (queryString == null) {
       exchange.sendResponse(400, "Missing `path` parameter in query string (empty).");
       return;
@@ -45,36 +47,30 @@ public class PathResolver implements CloudHandler {
       return;
     }
 
-    String organization = matcher.group(1);
-    String subPath = matcher.group(2);
+    String[] pathSegments = matcher.group(1).split("/");
 
-    if (!organization.equals(ORGANIZATION_NAME)) {
-      exchange.sendResponse(404, "Organization not found: " + organization);
+    AssetStore.Asset foundAsset = null;
+    if (pathSegments.length == 0) {
+      foundAsset = assetStore.rootDirectory;
+    } else if (Arrays.equals(pathSegments, new String[] { assetStore.usersDirectory.title() })) {
+      foundAsset = assetStore.usersDirectory;
+    } else if (Arrays.equals(pathSegments, new String[] { assetStore.usersDirectory.title(), assetStore.homeDirectory.title() })) {
+      foundAsset = assetStore.homeDirectory;
+    } else if (pathSegments.length == 3) {
+      if (pathSegments[0].equals(assetStore.usersDirectory.title()) && pathSegments[1].equals(assetStore.homeDirectory.title())) {
+        var foundSecret = assetStore.findAssetInRootByTitle(pathSegments[2]);
+        if (foundSecret != null) {
+          foundAsset = foundSecret.asAsset();
+        }
+      }
+    }
+
+    if (foundAsset == null) {
+      exchange.sendResponse(404, "Asset not found: " + path);
       return;
     }
 
-    // The latter condition is a workaround for https://github.com/enso-org/cloud-v2/issues/1173 and
-    // it may be removed once that is fixed
-    boolean isRoot = subPath.isEmpty() || subPath.equals("/");
-    if (isRoot) {
-      String asJson = jsonMapper.writeValueAsString(assetStore.rootDirectory);
-      exchange.sendResponse(200, asJson);
-      return;
-    }
-
-    if (subPath.contains("/")) {
-      exchange.sendResponse(
-          400, "Invalid subpath: " + subPath + " - mock does not support subdirectories");
-      return;
-    }
-
-    AssetStore.Secret asset = assetStore.findAssetInRootByTitle(subPath);
-    if (asset == null) {
-      exchange.sendResponse(404, "Asset not found: " + subPath);
-      return;
-    }
-
-    String asJson = jsonMapper.writeValueAsString(asset.asAsset());
+    String asJson = jsonMapper.writeValueAsString(foundAsset);
     exchange.sendResponse(200, asJson);
   }
 }

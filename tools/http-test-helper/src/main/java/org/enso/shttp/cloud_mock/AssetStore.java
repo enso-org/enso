@@ -4,11 +4,13 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class AssetStore {
-  static final String ROOT_DIRECTORY_ID = "directory-27xJM00p8jWoL2qByTo6tQfciWC";
+  static final String HOME_DIRECTORY_ID = "directory-27xJM00p8jWoL2qByTo6tQfciWC";
+  static final String USERS_DIRECTORY_ID = "directory-27xJM00p8jWoL2qByTo6tQfciBB";
+  static final String ROOT_DIRECTORY_ID = "directory-27xJM00p8jWoL2qByTo6tQfciAA";
   private final List<Secret> secrets = new LinkedList<>();
 
   String createSecret(String parentDirectoryId, String title, String value) {
-    if (!parentDirectoryId.equals(ROOT_DIRECTORY_ID)) {
+    if (!parentDirectoryId.equals(HOME_DIRECTORY_ID)) {
       throw new IllegalArgumentException(
           "In Cloud Mock secrets can only be created in the root directory");
     }
@@ -39,7 +41,7 @@ public class AssetStore {
   }
 
   List<Secret> listAssets(String parentDirectoryId) {
-    if (!parentDirectoryId.equals(ROOT_DIRECTORY_ID)) {
+    if (!parentDirectoryId.equals(HOME_DIRECTORY_ID)) {
       throw new IllegalArgumentException(
           "In Cloud Mock secrets can only be listed in the root directory");
     }
@@ -51,7 +53,7 @@ public class AssetStore {
     return secrets.stream()
         .filter(
             secret ->
-                secret.title.equals(subPath) && secret.parentDirectoryId.equals(ROOT_DIRECTORY_ID))
+                secret.title.equals(subPath) && secret.parentDirectoryId.equals(HOME_DIRECTORY_ID))
         .findFirst()
         .orElse(null);
   }
@@ -65,4 +67,6 @@ public class AssetStore {
   public record Asset(String id, String title, String parentId) {}
 
   final Asset rootDirectory = new Asset(ROOT_DIRECTORY_ID, "", null);
+  final Asset usersDirectory = new Asset(USERS_DIRECTORY_ID, "Users", rootDirectory.id);
+  final Asset homeDirectory = new Asset(HOME_DIRECTORY_ID, "My test User 1", usersDirectory.id);
 }
