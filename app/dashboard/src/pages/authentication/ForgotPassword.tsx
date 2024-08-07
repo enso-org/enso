@@ -69,10 +69,11 @@ export default function ForgotPassword() {
         }}
       />
 
-      <Form.FormError />
-      <Form.Submit size="large" icon={ArrowRightIcon} className="w-full">
+      <Form.Submit size="large" icon={ArrowRightIcon} iconPosition="end" fullWidth>
         {getText('sendLink')}
       </Form.Submit>
+
+      <Form.FormError />
     </AuthenticationPage>
   )
 }

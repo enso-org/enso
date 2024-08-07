@@ -3,7 +3,6 @@
  *
  * Variants for the ResizableInput component.
  */
-
 import { tv } from '#/utilities/tailwindVariants'
 import { TEXT_STYLE } from '../Text'
 
@@ -38,7 +37,7 @@ export const INPUT_STYLES = tv({
     },
     variant: {
       outline: {
-        base: 'border-[0.5px] outline-offset-2 border-primary/20 focus-within:outline focus-within:outline-2 focus-within:outline-offset-[-1px] focus-within:outline-primary focus-within:border-primary/50',
+        base: 'border-[0.5px] border-primary/20 outline-offset-2 focus-within:border-primary/50 focus-within:outline focus-within:outline-2 focus-within:outline-offset-[-1px] focus-within:outline-primary',
         textArea: 'border-transparent focus-within:border-transparent',
       },
       settings: {
@@ -48,17 +47,17 @@ export const INPUT_STYLES = tv({
     },
   },
   slots: {
-    icon: '',
-    addonStart: 'flex items-center mt-[-1px]',
-    addonEnd: 'flex items-center mt-[-1px]',
+    icon: 'flex-none',
+    addonStart: 'mt-[-1px] flex flex-none items-center gap-1',
+    addonEnd: 'mt-[-1px] flex flex-none items-center gap-1',
     content: 'flex items-center gap-2',
     inputContainer: TEXT_STYLE({
-      className: 'flex w-full items-center max-h-32 min-h-6 relative overflow-auto',
+      className: 'relative flex max-h-32 min-h-6 w-full items-center overflow-clip',
       variant: 'body',
     }),
     selectorContainer: 'flex',
-    description: 'block select-none pointer-events-none opacity-80',
-    textArea: 'block h-auto w-full max-h-full resize-none bg-transparent',
+    description: 'pointer-events-none block select-none opacity-80',
+    textArea: 'block h-auto max-h-full w-full resize-none bg-transparent',
     resizableSpan: TEXT_STYLE({
       className:
         'pointer-events-none invisible absolute block max-h-32 min-h-10 overflow-y-auto break-all',

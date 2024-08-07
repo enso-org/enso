@@ -39,16 +39,17 @@ export function Password<
       type={showPassword ? 'text' : 'password'}
       addonEnd={
         <>
+          {props.addonEnd}
+
           <Button
             size="medium"
             variant="icon"
+            extraClickZone
             icon={showPassword ? EyeIcon : EyeCrossedIcon}
-            extraClickZone={false}
             onPress={() => {
               setShowPassword(!showPassword)
             }}
           />
-          {props.addonEnd}
         </>
       }
     />

@@ -128,10 +128,11 @@ export default function Registration() {
         placeholder={getText('confirmPasswordPlaceholder')}
       />
 
-      <Form.FormError />
       <Form.Submit size="large" icon={CreateAccountIcon} className="w-full">
         {getText('register')}
       </Form.Submit>
+
+      <Form.FormError />
     </AuthenticationPage>
   )
 }

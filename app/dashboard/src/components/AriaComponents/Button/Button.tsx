@@ -111,7 +111,7 @@ export const BUTTON_STYLES = twv.tv({
           className: 'flex px-[11px] py-[5.5px]',
         }),
         content: 'gap-2',
-        icon: 'mb-[-0.1cap] h-4.5 w-4.5',
+        icon: 'mb-[-0.1cap] h-4 w-4',
         extraClickZone: 'after:inset-[-6px]',
       },
       medium: {

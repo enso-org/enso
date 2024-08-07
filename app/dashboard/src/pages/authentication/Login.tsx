@@ -123,11 +123,11 @@ export default function Login() {
           </Button>
         </div>
 
-        <Form.FormError />
-
-        <Form.Submit size="large" icon={ArrowRightIcon} className="w-full">
+        <Form.Submit size="large" icon={ArrowRightIcon} iconPosition="end" fullWidth>
           {getText('login')}
         </Form.Submit>
+
+        <Form.FormError />
       </Form>
     </AuthenticationPage>
   )
