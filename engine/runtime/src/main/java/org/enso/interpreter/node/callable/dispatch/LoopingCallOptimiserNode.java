@@ -17,13 +17,12 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RepeatingNode;
 import org.enso.interpreter.node.callable.ExecuteCallNode;
 import org.enso.interpreter.node.callable.ExecuteCallNodeGen;
-import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
-import org.enso.interpreter.runtime.error.Warning;
-import org.enso.interpreter.runtime.error.WithWarnings;
+import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.state.State;
+import org.enso.interpreter.runtime.warning.AppendWarningNode;
 
 /**
  * A version of {@link CallOptimiserNode} that is fully prepared to handle tail calls. Tail calls
@@ -65,7 +64,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
       CallerInfo callerInfo,
       State state,
       Object[] arguments,
-      Warning[] warnings,
+      EnsoHashMap warnings,
       @Shared("loopNode") @Cached(value = "createLoopNode()") LoopNode loopNode) {
     return dispatch(function, callerInfo, state, arguments, loopNode);
   }
@@ -76,10 +75,11 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
       CallerInfo callerInfo,
       State state,
       Object[] arguments,
-      Warning[] warnings,
-      @Shared("loopNode") @Cached(value = "createLoopNode()") LoopNode loopNode) {
+      EnsoHashMap warnings,
+      @Shared("loopNode") @Cached(value = "createLoopNode()") LoopNode loopNode,
+      @Shared @Cached AppendWarningNode appendWarningNode) {
     Object result = dispatch(function, callerInfo, state, arguments, loopNode);
-    return WithWarnings.appendTo(EnsoContext.get(this), result, warnings);
+    return appendWarningNode.executeAppend(null, result, warnings);
   }
 
   private Object dispatch(
@@ -104,7 +104,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
       CallerInfo callerInfo,
       State state,
       Object[] arguments,
-      Warning[] warnings,
+      EnsoHashMap warnings,
       @Shared("executeCallNode") @Cached ExecuteCallNode executeCallNode) {
     return loopUntilCompletion(frame, function, callerInfo, state, arguments, executeCallNode);
   }
@@ -117,11 +117,12 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
       CallerInfo callerInfo,
       State state,
       Object[] arguments,
-      Warning[] warnings,
-      @Shared("executeCallNode") @Cached ExecuteCallNode executeCallNode) {
+      EnsoHashMap warnings,
+      @Shared("executeCallNode") @Cached ExecuteCallNode executeCallNode,
+      @Shared @Cached AppendWarningNode appendWarningNode) {
     Object result =
         loopUntilCompletion(frame, function, callerInfo, state, arguments, executeCallNode);
-    return WithWarnings.appendTo(EnsoContext.get(this), result, warnings);
+    return appendWarningNode.executeAppend(null, result, warnings);
   }
 
   private Object loopUntilCompletion(

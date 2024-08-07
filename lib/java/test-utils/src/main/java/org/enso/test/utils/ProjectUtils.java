@@ -84,7 +84,7 @@ prefer-local-libraries: true
    *     main} method
    */
   public static void testProjectRun(
-      Context.Builder ctxBuilder, Path projDir, Consumer<Value> resultConsumer) {
+      Context.Builder ctxBuilder, Path projDir, Consumer<Value> resultConsumer) throws IOException {
     if (!(projDir.toFile().exists() && projDir.toFile().isDirectory())) {
       throw new IllegalArgumentException(
           "Project directory " + projDir + " must already be created");
@@ -115,7 +115,8 @@ prefer-local-libraries: true
    * @param resultConsumer Any action that is to be evaluated on the result of running the {@code
    *     main} method
    */
-  public static void testProjectRun(Path projDir, Consumer<Value> resultConsumer) {
+  public static void testProjectRun(Path projDir, Consumer<Value> resultConsumer)
+      throws IOException {
     testProjectRun(ContextUtils.defaultContextBuilder(), projDir, resultConsumer);
   }
 

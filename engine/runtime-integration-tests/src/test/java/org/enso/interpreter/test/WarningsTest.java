@@ -6,12 +6,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.error.Warning;
-import org.enso.interpreter.runtime.error.WarningsLibrary;
-import org.enso.interpreter.runtime.error.WithWarnings;
+import org.enso.interpreter.runtime.warning.AppendWarningNode;
+import org.enso.interpreter.runtime.warning.Warning;
+import org.enso.interpreter.runtime.warning.WithWarnings;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
@@ -33,11 +32,7 @@ public class WarningsTest {
   public static void initEnsoContext() {
     ctx = ContextUtils.createDefaultContext();
     generator = ValuesGenerator.create(ctx, ValuesGenerator.Language.ENSO);
-    ensoContext =
-        (EnsoContext)
-            ctx.getBindings(LanguageInfo.ID)
-                .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
-                .asHostObject();
+    ensoContext = ContextUtils.leakContext(ctx);
     var module =
         ctx.eval(
             "enso",
@@ -57,19 +52,22 @@ public class WarningsTest {
 
   @Test
   public void doubleWithWarningsWrap() {
-    var warn1 = Warning.create(ensoContext, "w1", this);
-    var warn2 = Warning.create(ensoContext, "w2", this);
-    var value = 42L;
+    ContextUtils.executeInContext(
+        ctx,
+        () -> {
+          var warn1 = Warning.create(ensoContext, "w1", this);
+          var warn2 = Warning.create(ensoContext, "w2", this);
+          var value = 42L;
 
-    var with1 = WithWarnings.wrap(ensoContext, value, warn1);
-    var with2 = WithWarnings.wrap(ensoContext, with1, warn2);
+          var with1 = AppendWarningNode.getUncached().executeAppend(null, value, warn1);
+          var with2 = AppendWarningNode.getUncached().executeAppend(null, with1, warn2);
 
-    assertEquals(value, with1.getValue());
-    assertEquals(value, with2.getValue());
-    Assert.assertArrayEquals(
-        new Object[] {warn1}, with1.getWarningsArray(WarningsLibrary.getUncached(), false));
-    Assert.assertArrayEquals(
-        new Object[] {warn1, warn2}, with2.getWarningsArray(WarningsLibrary.getUncached(), false));
+          assertEquals(value, with1.getValue());
+          assertEquals(value, with2.getValue());
+          Assert.assertArrayEquals(new Object[] {warn1}, with1.getWarningsArray(false));
+          Assert.assertArrayEquals(new Object[] {warn1, warn2}, with2.getWarningsArray(false));
+          return null;
+        });
   }
 
   @Test
@@ -77,7 +75,7 @@ public class WarningsTest {
     var value = 42;
     WithWarnings without;
     try {
-      without = WithWarnings.wrap(ensoContext, 42, new Warning[0]);
+      without = AppendWarningNode.getUncached().executeAppend(null, 42, new Warning[0]);
     } catch (AssertionError e) {
       // OK
       return;

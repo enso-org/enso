@@ -857,6 +857,17 @@ final class TreeToIr {
       return callExpression;
     }
     return switch (tree) {
+      case Tree.Lambda lambda -> {
+        List<DefinitionArgument> args;
+        try {
+          args = translateArgumentsDefinition(lambda.getArguments());
+        } catch (SyntaxException ex) {
+          yield ex.toError();
+        }
+        var body = translateExpression(lambda.getBody(), false);
+        var at = getIdentifiedLocation(lambda);
+        yield new Function.Lambda(args, body, at, true, meta(), diag());
+      }
       case Tree.OprApp app -> {
         var op = app.getOpr().getRight();
         if (op == null) {

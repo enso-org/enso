@@ -34,7 +34,7 @@ pub fn try_parse_type_def<'s>(
         }
         _ =>
             return precedence
-                .resolve_non_section(items.drain(start..))
+                .resolve_non_section_offset(start, items)
                 .unwrap()
                 .with_error(SyntaxError::TypeDefExpectedTypeName)
                 .into(),

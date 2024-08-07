@@ -293,8 +293,10 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         },
         /// A lambda expression.
         Lambda {
-            pub operator: token::LambdaOperator<'s>,
-            pub arrow: Option<Tree<'s>>,
+            pub backslash: token::LambdaOperator<'s>,
+            pub arguments: Vec<ArgumentDefinition<'s>>,
+            pub arrow: token::ArrowOperator<'s>,
+            pub body: Tree<'s>,
         },
         /// An array literal.
         Array {
@@ -827,6 +829,7 @@ pub enum SyntaxError {
     AnnotationOpMustBeAppliedToIdent,
     PatternUnexpectedExpression,
     PatternUnexpectedDot,
+    CaseOfInvalidCase,
 }
 
 impl From<SyntaxError> for Cow<'static, str> {
@@ -860,6 +863,7 @@ impl From<SyntaxError> for Cow<'static, str> {
             ImportsNoHidingInExport => "`hiding` not allowed in `export` statement",
             PatternUnexpectedExpression => "Expression invalid in a pattern",
             PatternUnexpectedDot => "In a pattern, the dot operator can only be used in a qualified name",
+            CaseOfInvalidCase => "Invalid case expression.",
         })
         .into()
     }
@@ -905,7 +909,6 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
     }
     let error = match Spacing::of_tree(&arg) {
         Spacing::Spaced => None,
-        Spacing::Unspaced if matches!(arg.variant, Variant::SuspendedDefaultArguments(_)) => None,
         Spacing::Unspaced => Some("Space required between terms."),
     };
     maybe_with_error(Tree::app(func, arg), error)
@@ -953,9 +956,7 @@ pub fn apply_operator<'s>(
                     token::Variant::Operator(_)
                     | token::Variant::DotOperator(_)
                     | token::Variant::ArrowOperator(_)
-                    | token::Variant::TypeAnnotationOperator(_)
-                    // Old lambda syntax: (a = b) -> a
-                    | token::Variant::AssignmentOperator(_),
+                    | token::Variant::TypeAnnotationOperator(_),
                     _,
                     _,
                 ) => None,

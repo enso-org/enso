@@ -52,7 +52,7 @@
     "sharp": "^0.31.2",
     "to-ico": "^1.1.5",
     "tsx": "^4.7.1",
-    "vite": "^5.3.3"
+    "vite": "^5.3.5"
   },
   "//": [
     "vite is required for the watch script",

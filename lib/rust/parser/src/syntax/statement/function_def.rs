@@ -14,6 +14,7 @@ use crate::syntax::tree::ArgumentDefinitionLine;
 use crate::syntax::tree::ArgumentType;
 use crate::syntax::tree::ReturnSpecification;
 use crate::syntax::tree::SyntaxError;
+use crate::syntax::treebuilding::Spacing;
 use crate::syntax::Item;
 use crate::syntax::Token;
 use crate::syntax::Tree;
@@ -45,9 +46,30 @@ pub fn parse_function_decl<'s>(
     );
     let args = args_buffer.drain(..).rev().collect();
 
-    let qn = precedence.resolve_non_section(items.drain(start..)).unwrap();
+    let qn = precedence.resolve_non_section_offset(start, items).unwrap();
 
     (qn, args, return_)
+}
+
+/// Parse a sequence of argument definitions.
+pub fn parse_args<'s>(
+    items: &mut Vec<Item<'s>>,
+    start: usize,
+    precedence: &mut Precedence<'s>,
+) -> Vec<ArgumentDefinition<'s>> {
+    let mut arg_starts = vec![];
+    for (i, item) in items.iter().enumerate().skip(start) {
+        if i == start || matches!(Spacing::of_item(item), Spacing::Spaced) {
+            arg_starts.push(i);
+        }
+    }
+    let mut defs: Vec<_> = arg_starts
+        .drain(..)
+        .rev()
+        .map(|arg_start| parse_arg_def(items, arg_start, precedence))
+        .collect();
+    defs.reverse();
+    defs
 }
 
 pub fn parse_constructor_definition<'s>(
@@ -133,7 +155,7 @@ pub fn try_parse_foreign_function<'s>(
             items.push(Item::from(Token::from(operator)));
             items.extend(expression.take().map(Item::from));
             return precedence
-                .resolve_non_section(items.drain(start..))
+                .resolve_non_section_offset(start, items)
                 .unwrap()
                 .with_error(SyntaxError::ForeignFnExpectedLanguage)
                 .into();
@@ -146,7 +168,7 @@ pub fn try_parse_foreign_function<'s>(
             items.push(Item::from(Token::from(operator)));
             items.extend(expression.take().map(Item::from));
             return precedence
-                .resolve_non_section(items.drain(start..))
+                .resolve_non_section_offset(start, items)
                 .unwrap()
                 .with_error(SyntaxError::ForeignFnExpectedName)
                 .into();
@@ -197,7 +219,6 @@ enum IsParenthesized {
     Parenthesized,
     Unparenthesized,
 }
-use crate::syntax::treebuilding::Spacing;
 use IsParenthesized::*;
 
 struct ArgDefInfo {
@@ -210,7 +231,7 @@ fn parse_return_spec<'s>(
     arrow: usize,
     precedence: &mut Precedence<'s>,
 ) -> ReturnSpecification<'s> {
-    let r#type = precedence.resolve_non_section(items.drain(arrow + 1..));
+    let r#type = precedence.resolve_non_section_offset(arrow + 1, items);
     let Item::Token(arrow) = items.pop().unwrap() else { unreachable!() };
     let token::Variant::ArrowOperator(variant) = arrow.variant else { unreachable!() };
     let arrow = arrow.with_variant(variant);
@@ -242,7 +263,7 @@ fn parse_arg_def<'s>(
     let ArgDefInfo { type_, default } = match analyze_arg_def(&items[start..]) {
         Err(e) => {
             let pattern =
-                precedence.resolve_non_section(items.drain(start..)).unwrap().with_error(e);
+                precedence.resolve_non_section_offset(start, items).unwrap().with_error(e);
             return ArgumentDefinition {
                 open: open1,
                 open2: None,
@@ -257,7 +278,7 @@ fn parse_arg_def<'s>(
         Ok(arg_def) => arg_def,
     };
     let default = default.map(|default| {
-        let tree = precedence.resolve(items.drain(start + default + 1..));
+        let tree = precedence.resolve_offset(start + default + 1, items);
         let Item::Token(equals) = items.pop().unwrap() else { unreachable!() };
         let expression = tree.unwrap_or_else(|| {
             empty_tree(equals.code.position_after()).with_error(SyntaxError::ExpectedExpression)
@@ -286,7 +307,7 @@ fn parse_arg_def<'s>(
             start = 0;
         }
         let items = parenthesized_body.as_mut().unwrap_or(items);
-        let tree = precedence.resolve_non_section(items.drain(start + type_ + 1..));
+        let tree = precedence.resolve_non_section_offset(start + type_ + 1, items);
         let Item::Token(operator) = items.pop().unwrap() else { unreachable!() };
         let type_ = tree.unwrap_or_else(|| {
             empty_tree(operator.code.position_after()).with_error(SyntaxError::ExpectedType)
