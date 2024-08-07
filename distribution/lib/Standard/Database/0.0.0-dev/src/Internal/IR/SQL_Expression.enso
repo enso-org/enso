@@ -64,3 +64,6 @@ type SQL_Expression
          parametrized by additional settings can use this field to pass that
          information to the code generator.
     Operation (kind : Text) (expressions : Vector SQL_Expression) (metadata : Any | Nothing = Nothing)
+
+    With (binder : Text) (bindee : SQL_Expression) (body : SQL_Expression)
+    With_Ref (binder : Text)

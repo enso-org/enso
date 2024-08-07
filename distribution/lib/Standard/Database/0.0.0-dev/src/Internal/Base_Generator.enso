@@ -317,6 +317,12 @@ generate_expression dialect expr = case expr of
         case result of
             _ : Function -> result metadata
             _ -> result
+    SQL_Expression.With binder bindee body ->
+        bindee_exp = SQL_Builder.code "SELECT " ++ (generate_expression dialect bindee).paren ++ " AS " ++ binder
+        body_exp = SQL_Builder.code "SELECT " ++ (generate_expression dialect body) ++ " FROM " ++ binder
+        (SQL_Builder.code "WITH " ++ binder ++ " AS " ++ bindee_exp.paren ++ " " ++ body_exp.paren).paren
+    SQL_Expression.With_Ref binder ->
+        SQL_Builder.code binder ++ "." ++ binder
     query : Query -> generate_query dialect query
     descriptor : Order_Descriptor -> generate_order dialect descriptor
 
@@ -365,6 +371,17 @@ generate_from_part dialect from_spec = case from_spec of
     From_Spec.Sub_Query columns context as_name ->
         sub = generate_query dialect (Query.Select columns context)
         sub.paren ++ alias dialect as_name
+
+    From_Spec.With binding_from_spec inner_from_spec ->
+        binding_sql_builder = generate_from_part dialect binding_from_spec 
+        inner_sql_builder = generate_from_part dialect inner_from_spec
+        (SQL_Builder.code "WITH" ++ binding_from_spec.alias ++ "AS" ++ binding_sql_builder.paren ++ inner_sql_builder.paren).paren
+    ##
+        From_Spec.With_Query columns context as_name exp_columns exp_context exp_alias ->
+            binding_sql_builder = generate_query dialect (Query.Select exp_columns exp_context)
+            main_sql_builder = generate_query dialect (Query.Select columns context)
+            (SQL_Builder.code "WITH" ++ exp_alias ++ "AS" ++ binding_sql_builder.paren ++ main_sql_builder.paren).paren
+
 
 ## PRIVATE
 default_make_table_literal wrap_identifier vecs column_names as_name =
@@ -417,6 +434,13 @@ generate_order dialect order_descriptor =
         collation_name -> ' COLLATE "' + collation_name + '"'
     base_expression = generate_expression dialect order_descriptor.expression
     base_expression ++ collation ++ order_suffix ++ nulls_suffix
+
+##
+    generate_with_query_sql : Dialect -> Vector (Pair Text SQL_Expression) -> Context -> Text -> Vector (Pair Text SQL_Expression) -> Context -> SQL_Builder
+    generate_with_query_sql dialect columns ctx exp_name exp_columns exp_context =
+        binding_sql_builder = generate_select_query_sql dialect exp_columns exp_context
+        main_sql_builder = generate_select_query_sql dialect columns ctx
+        (SQL_Builder.code "WITH" ++ exp_name ++ "AS" ++ binding_sql_builder.paren ++ main_sql_builder.paren).paren
 
 ## PRIVATE
     Generates SQL code corresponding to a SELECT statement.
@@ -486,6 +510,13 @@ generate_query : Dialect -> Query -> SQL_Builder
 generate_query dialect query = case query of
     Query.Select columns ctx ->
         generate_select_query_sql dialect columns ctx
+    ##
+        Query.With binding_alias binding_query inner_query ->
+            binding_sql_builder = generate_query binding_query
+            innert_sql_builder = generate_query inner_query
+            (SQL_Builder.code "WITH" ++ binding_lias ++ "AS" ++ binding_sql_builder.paren ++ main_sql_builder.paren).paren
+    #Query.With columns ctx exp_name exp_columns exp_context ->
+    #    generate_with_query_sql diaklect columns ctx exp_name exp_columns exp_context ->
     Query.Insert table_name pairs ->
         generate_insert_query dialect table_name pairs
     Query.Create_Table name columns primary_key temporary ->
