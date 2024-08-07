@@ -33,7 +33,7 @@ public abstract class HashMapInsertAllNode extends Node {
    * @param maxItems Maximum number of items to insert into the map from the container.
    */
   public abstract EnsoHashMap executeInsertAll(
-      VirtualFrame frame, Object self, Object container, int maxItems);
+      VirtualFrame frame, EnsoHashMap self, EnsoHashMap container, int maxItems);
 
   @Specialization
   EnsoHashMap doEnsoHashMaps(
