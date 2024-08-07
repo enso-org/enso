@@ -7,10 +7,12 @@
 - [Relative paths are now resolved relative to the project location, also in the
   Cloud.][10660]
 - [Added Newline option to Text_Cleanse/Text_Replace.][10761]
+- [Support for reading from Tableau Hyper files.][10733]
 
 [10614]: https://github.com/enso-org/enso/pull/10614
 [10660]: https://github.com/enso-org/enso/pull/10660
 [10761]: https://github.com/enso-org/enso/pull/10761
+[10733]: https://github.com/enso-org/enso/pull/10733
 
 # Enso 2023.3
 
