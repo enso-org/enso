@@ -3,7 +3,7 @@ package org.enso.interpreter.runtime.control;
 import com.oracle.truffle.api.nodes.ControlFlowException;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.error.Warning;
+import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 
 /**
  * Used to model the switch of control-flow from standard stack-based execution to looping.
@@ -14,7 +14,13 @@ public class TailCallException extends ControlFlowException {
   private final Function function;
   private final CallerInfo callerInfo;
   private final Object[] arguments;
-  private final Warning[] warnings;
+
+  /**
+   * May be null.
+   *
+   * @see org.enso.interpreter.runtime.warning.WithWarnings#warnings
+   */
+  private final EnsoHashMap warnings;
 
   /**
    * Creates a new exception containing the necessary data to continue computation.
@@ -31,7 +37,7 @@ public class TailCallException extends ControlFlowException {
   }
 
   private TailCallException(
-      Function function, CallerInfo callerInfo, Object[] arguments, Warning[] warnings) {
+      Function function, CallerInfo callerInfo, Object[] arguments, EnsoHashMap warnings) {
     this.function = function;
     this.callerInfo = callerInfo;
     this.arguments = arguments;
@@ -44,7 +50,7 @@ public class TailCallException extends ControlFlowException {
    * @param origin the original tail call exception
    * @param warnings warnings to be associated with the tail call exception
    */
-  public TailCallException(TailCallException origin, Warning[] warnings) {
+  public TailCallException(TailCallException origin, EnsoHashMap warnings) {
     this(origin.getFunction(), origin.getCallerInfo(), origin.getArguments(), warnings);
   }
 
@@ -80,7 +86,7 @@ public class TailCallException extends ControlFlowException {
    *
    * @return the warnings to be appended to the result of the call, or null if empty
    */
-  public Warning[] getWarnings() {
+  public EnsoHashMap getWarnings() {
     return warnings;
   }
 }

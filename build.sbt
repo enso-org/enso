@@ -1422,6 +1422,7 @@ lazy val `interpreter-dsl-test` =
     )
     .dependsOn(`interpreter-dsl`)
     .dependsOn(`runtime`)
+    .dependsOn(`test-utils`)
 
 // ============================================================================
 // === Sub-Projects ===========================================================

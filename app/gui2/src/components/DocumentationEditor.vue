@@ -4,14 +4,14 @@ import { fetcherUrlTransformer } from '@/components/MarkdownEditor/imageUrlTrans
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import type { ToValue } from '@/util/reactivity'
-import { toRef, toValue } from 'vue'
+import { ref, toRef, toValue } from 'vue'
 import type { Path } from 'ydoc-shared/languageServerTypes'
 import { Err, Ok, mapOk, withContext, type Result } from 'ydoc-shared/util/data/result'
 
 const documentation = defineModel<string>({ required: true })
-const _props = defineProps<{
-  toolbarContainer: HTMLElement | undefined
-}>()
+const _props = defineProps<{}>()
+
+const toolbarElement = ref<HTMLElement>()
 
 const graphStore = useGraphStore()
 const projectStore = useProjectStore()
@@ -69,9 +69,36 @@ function useDocumentationImages(
 </script>
 
 <template>
-  <MarkdownEditor
-    v-model="documentation"
-    :transformImageUrl="transformImageUrl"
-    :toolbarContainer="toolbarContainer"
-  />
+  <div class="DocumentationEditor">
+    <div ref="toolbarElement" class="toolbar"></div>
+    <div class="scrollArea">
+      <MarkdownEditor
+        v-model="documentation"
+        :transformImageUrl="transformImageUrl"
+        :toolbarContainer="toolbarElement"
+      />
+    </div>
+  </div>
 </template>
+
+<style scoped>
+.DocumentationEditor {
+  display: flex;
+  flex-direction: column;
+}
+
+.scrollArea {
+  width: 100%;
+  overflow-y: auto;
+  padding-left: 10px;
+  /* Prevent touchpad back gesture, which can be triggered while panning. */
+  overscroll-behavior-x: none;
+  flex-grow: 1;
+}
+
+.toolbar {
+  height: 48px;
+  padding-left: 4px;
+  flex-shrink: 0;
+}
+</style>
