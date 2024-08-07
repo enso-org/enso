@@ -18,6 +18,7 @@ import src.main.scala.licenses.{
 import JPMSPlugin.autoImport._
 
 import java.io.File
+import java.nio.file.Files
 import java.nio.file.Paths
 
 // ============================================================================
@@ -163,7 +164,15 @@ GatherLicenses.distributions := Seq(
   makeStdLibDistribution("Database", Distribution.sbtProjects(`std-database`)),
   makeStdLibDistribution("Image", Distribution.sbtProjects(`std-image`)),
   makeStdLibDistribution("AWS", Distribution.sbtProjects(`std-aws`)),
-  makeStdLibDistribution("Snowflake", Distribution.sbtProjects(`std-snowflake`))
+  makeStdLibDistribution(
+    "Snowflake",
+    Distribution.sbtProjects(`std-snowflake`)
+  ),
+  makeStdLibDistribution(
+    "Microsoft",
+    Distribution.sbtProjects(`std-microsoft`)
+  ),
+  makeStdLibDistribution("Tableau", Distribution.sbtProjects(`std-tableau`))
 )
 
 GatherLicenses.licenseConfigurations := Set("compile")
@@ -346,6 +355,8 @@ lazy val enso = (project in file("."))
     `std-table`,
     `std-aws`,
     `std-snowflake`,
+    `std-microsoft`,
+    `std-tableau`,
     `http-test-helper`,
     `enso-test-java-helpers`,
     `exploratory-benchmark-java-helpers`,
@@ -521,6 +532,7 @@ val poiOoxmlVersion         = "5.2.3"
 val redshiftVersion         = "2.1.0.15"
 val univocityParsersVersion = "2.9.1"
 val xmlbeansVersion         = "5.1.1"
+val tableauVersion          = "0.0.19691.r2d7e5bc8"
 
 // === ZIO ====================================================================
 
@@ -563,7 +575,9 @@ val fansiVersion            = "0.4.0"
 val httpComponentsVersion   = "4.4.1"
 val apacheArrowVersion      = "14.0.1"
 val snowflakeJDBCVersion    = "3.15.0"
+val mssqlserverJDBCVersion  = "12.6.2.jre11"
 val jsoniterVersion         = "2.28.5"
+val jnaVersion              = "5.14.0"
 
 // ============================================================================
 // === Utility methods =====================================================
@@ -633,10 +647,7 @@ lazy val rustParserTargetDirectory =
   SettingKey[File]("target directory for the Rust parser")
 
 (`syntax-rust-definition` / rustParserTargetDirectory) := {
-  // setting "debug" for release, because it isn't yet safely integrated into
-  // the parser definition
-  val versionName = if (BuildInfo.isReleaseMode) "debug" else "debug"
-  target.value / "rust" / versionName
+  target.value / "rust" / "parser-jni"
 }
 
 val generateRustParserLib =
@@ -662,10 +673,13 @@ val generateRustParserLib =
     target.foreach { t =>
       Cargo.rustUp(t, log)
     }
-    val baseArguments = Seq(
+    val profile = if (BuildInfo.isReleaseMode) "release" else "fuzz"
+    val arguments = Seq(
       "build",
       "-p",
       "enso-parser-jni",
+      "--profile",
+      profile,
       "-Z",
       "unstable-options"
     ) ++ target.map(t => Seq("--target", t)).getOrElse(Seq()) ++
@@ -673,20 +687,18 @@ val generateRustParserLib =
         "--out-dir",
         (`syntax-rust-definition` / rustParserTargetDirectory).value.toString
       )
-    val adjustedArguments = baseArguments ++
-      (if (BuildInfo.isReleaseMode)
-         Seq("--release")
-       else Seq())
     val envVars = target
       .map(_ => Seq(("RUSTFLAGS", "-C target-feature=-crt-static")))
       .getOrElse(Seq())
-    Cargo.run(adjustedArguments, log, envVars)
+    Cargo.run(arguments, log, envVars)
   }
   FileTreeView.default.list(Seq(libGlob)).map(_._1.toFile)
 }
 
 `syntax-rust-definition` / generateRustParserLib / fileInputs +=
-  (`syntax-rust-definition` / baseDirectory).value.toGlob / "jni" / "src" / "*.rs"
+  (`syntax-rust-definition` / baseDirectory).value.toGlob / "jni" / "src" / ** / "*.rs"
+`syntax-rust-definition` / generateRustParserLib / fileInputs +=
+  (`syntax-rust-definition` / baseDirectory).value.toGlob / "src" / ** / "*.rs"
 
 val generateParserJavaSources = TaskKey[Seq[File]](
   "generateParserJavaSources",
@@ -1942,6 +1954,8 @@ lazy val runtime = (project in file("engine/runtime"))
       .dependsOn(`std-table` / Compile / packageBin)
       .dependsOn(`std-aws` / Compile / packageBin)
       .dependsOn(`std-snowflake` / Compile / packageBin)
+      .dependsOn(`std-microsoft` / Compile / packageBin)
+      .dependsOn(`std-tableau` / Compile / packageBin)
       .value
   )
   .dependsOn(`common-polyglot-core-utils`)
@@ -3260,6 +3274,10 @@ val `std-aws-polyglot-root` =
   stdLibComponentRoot("AWS") / "polyglot" / "java"
 val `std-snowflake-polyglot-root` =
   stdLibComponentRoot("Snowflake") / "polyglot" / "java"
+val `std-microsoft-polyglot-root` =
+  stdLibComponentRoot("Microsoft") / "polyglot" / "java"
+val `std-tableau-polyglot-root` =
+  stdLibComponentRoot("Tableau") / "polyglot" / "java"
 
 lazy val `std-base` = project
   .in(file("std-bits") / "base")
@@ -3567,6 +3585,125 @@ lazy val `std-snowflake` = project
   .dependsOn(`std-table` % "provided")
   .dependsOn(`std-database` % "provided")
 
+lazy val `std-microsoft` = project
+  .in(file("std-bits") / "microsoft")
+  .settings(
+    frgaalJavaCompilerSetting,
+    autoScalaLibrary := false,
+    Compile / compile / compileInputs := (Compile / compile / compileInputs)
+      .dependsOn(SPIHelpers.ensureSPIConsistency)
+      .value,
+    Compile / packageBin / artifactPath :=
+      `std-microsoft-polyglot-root` / "std-microsoft.jar",
+    libraryDependencies ++= Seq(
+      "org.netbeans.api"        % "org-openide-util-lookup" % netbeansApiVersion % "provided",
+      "com.microsoft.sqlserver" % "mssql-jdbc"              % mssqlserverJDBCVersion
+    ),
+    Compile / packageBin := Def.task {
+      val result = (Compile / packageBin).value
+      val _ = StdBits
+        .copyDependencies(
+          `std-microsoft-polyglot-root`,
+          Seq("std-microsoft.jar"),
+          ignoreScalaLibrary = true
+        )
+        .value
+      result
+    }.value
+  )
+  .dependsOn(`std-base` % "provided")
+  .dependsOn(`std-table` % "provided")
+  .dependsOn(`std-database` % "provided")
+
+lazy val `std-tableau` = project
+  .in(file("std-bits") / "tableau")
+  .settings(
+    frgaalJavaCompilerSetting,
+    autoScalaLibrary := false,
+    unmanagedExternalZip := {
+      val platform = if (Platform.isWindows) {
+        "windows"
+      } else if (Platform.isMacOS) {
+        "macos"
+      } else if (Platform.isLinux) {
+        "linux"
+      }
+      val arch = if (Platform.isArm64) {
+        "arm64"
+      } else {
+        "x86_64"
+      }
+      new URI(
+        s"https://downloads.tableau.com/tssoftware/tableauhyperapi-java-$platform-$arch-release-main.$tableauVersion.zip"
+      ).toURL()
+    },
+    fetchZipToUnmanaged := {
+      val unmanagedDirectory = (Compile / unmanagedBase).value
+      val logger             = state.value.log
+      if (IO.listFiles(unmanagedDirectory).size < 2) { // Heuristic, should have at least hyperapi jar and os-specific one.
+        logger.log(
+          Level.Info,
+          "std-tableau's unmanaged dependencies are not up-to-date. fetching..."
+        )
+        unmanagedDirectory.mkdirs()
+        val unmanagedPath = unmanagedDirectory.toPath
+        IO.withTemporaryDirectory(
+          tmp => {
+            val files = IO.unzipURL(
+              unmanagedExternalZip.value,
+              tmp,
+              f =>
+                f.endsWith(".jar") && !f.contains("gradle") && !f.contains(
+                  "javadoc"
+                ) && !f.contains("jna")
+            )
+            files.map { f =>
+              IO.move(f, unmanagedPath.resolve(f.getName).toFile)
+              Attributed.blank(unmanagedPath.resolve(f.getName).toFile)
+            }.toSeq
+          },
+          keepDirectory = false
+        )
+      } else {
+        Seq[Attributed[File]]()
+      }
+    },
+    Compile / unmanagedClasspath := Def.task {
+      val additionalFiles: Seq[Attributed[File]] = fetchZipToUnmanaged.value
+      val result                                 = (Compile / unmanagedClasspath).value
+      result ++ additionalFiles
+    }.value,
+    Compile / unmanagedJars := (Compile / unmanagedJars)
+      .dependsOn(fetchZipToUnmanaged)
+      .value,
+    Compile / packageBin / artifactPath :=
+      `std-tableau-polyglot-root` / "std-tableau.jar",
+    libraryDependencies ++= Seq(
+      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
+      "net.java.dev.jna" % "jna-platform"            % jnaVersion
+    ),
+    Compile / packageBin := Def.task {
+      val result = (Compile / packageBin).value
+      val _ = StdBits
+        .copyDependencies(
+          `std-tableau-polyglot-root`,
+          Seq("std-tableau.jar"),
+          ignoreScalaLibrary = true
+        )
+        .value
+      result
+    }.value
+  )
+  .dependsOn(`std-base` % "provided")
+  .dependsOn(`std-table` % "provided")
+
+lazy val fetchZipToUnmanaged =
+  taskKey[Seq[Attributed[File]]](
+    "Download zip file from an `unmanagedExternalZip` url and unpack jars to unmanaged libs directory"
+  )
+lazy val unmanagedExternalZip =
+  settingKey[URL]("URL to zip file with dependencies")
+
 /* Note [Native Image Workaround for GraalVM 20.2]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * In GraalVM 20.2 the Native Image build of even simple Scala programs has
@@ -3713,6 +3850,7 @@ val stdBitsProjects =
     "Database",
     "Google_Api",
     "Image",
+    "Microsoft",
     "Snowflake",
     "Table"
   ) ++ allStdBitsSuffix
@@ -3784,6 +3922,10 @@ pkgStdLibInternal := Def.inputTask {
       (`std-aws` / Compile / packageBin).value
     case "Snowflake" =>
       (`std-snowflake` / Compile / packageBin).value
+    case "Microsoft" =>
+      (`std-microsoft` / Compile / packageBin).value
+    case "Tableau" =>
+      (`std-tableau` / Compile / packageBin).value
     case _ if buildAllCmd =>
       (`std-base` / Compile / packageBin).value
       (`enso-test-java-helpers` / Compile / packageBin).value
@@ -3795,6 +3937,8 @@ pkgStdLibInternal := Def.inputTask {
       (`std-google-api` / Compile / packageBin).value
       (`std-aws` / Compile / packageBin).value
       (`std-snowflake` / Compile / packageBin).value
+      (`std-microsoft` / Compile / packageBin).value
+      (`std-tableau` / Compile / packageBin).value
     case _ =>
   }
   val libs =
@@ -3817,7 +3961,6 @@ pkgStdLibInternal := Def.inputTask {
     if (generateIndex) {
       val stdlibStandardRoot = root / "lib" / standardNamespace
       DistributionPackage.indexStdLib(
-        libMajor       = stdlibStandardRoot,
         libName        = stdlibStandardRoot / lib,
         stdLibVersion  = defaultDevEnsoVersion,
         ensoVersion    = defaultDevEnsoVersion,

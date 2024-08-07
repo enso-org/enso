@@ -135,6 +135,7 @@ public final class Ydoc implements AutoCloseable {
                   var bindings = ctx.getBindings("js");
                   bindings.putMember("YDOC_HOST", hostname);
                   bindings.putMember("YDOC_PORT", port);
+                  bindings.putMember("YDOC_LS_DEBUG", "false");
 
                   ctx.eval(ydocJs);
 

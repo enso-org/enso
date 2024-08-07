@@ -67,15 +67,16 @@ function InviteUsersModalContent(props: InviteUsersModalContentProps) {
     [],
   )
 
-  const invitationLink = `enso://auth/registration?organization_id=${organizationId}`
+  const invitationParams = new URLSearchParams({
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    organization_id: organizationId,
+  }).toString()
+  const invitationLink = `enso://auth/registration?${invitationParams}`
 
   return (
     <>
       {step === 'invite' && (
-        <inviteUsersForm.InviteUsersForm
-          onSubmitted={onInviteUsersFormInviteUsersFormSubmitted}
-          organizationId={organizationId}
-        />
+        <inviteUsersForm.InviteUsersForm onSubmitted={onInviteUsersFormInviteUsersFormSubmitted} />
       )}
 
       {step === 'success' && (

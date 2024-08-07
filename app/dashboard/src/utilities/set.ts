@@ -5,7 +5,7 @@
 // === Constants ===
 // =================
 
-export const EMPTY: ReadonlySet<never> = new Set<never>()
+export const EMPTY_SET: ReadonlySet<never> = new Set<never>()
 
 /** Adds the value if `presence` is `true`; deletes the value if `presence` is `false`.
  *

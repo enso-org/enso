@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -60,7 +61,6 @@ public class Main {
   private static final String JVM_OPTION = "jvm";
   private static final String RUN_OPTION = "run";
   private static final String INSPECT_OPTION = "inspect";
-  private static final String DUMP_GRAPHS_OPTION = "dump-graphs";
   private static final String HELP_OPTION = "help";
   private static final String NEW_OPTION = "new";
   private static final String PROJECT_NAME_OPTION = "new-project-name";
@@ -135,11 +135,6 @@ public class Main {
         cliOptionBuilder()
             .longOpt(INSPECT_OPTION)
             .desc("Start the Chrome inspector when --run is used.")
-            .build();
-    var dumpGraphs =
-        cliOptionBuilder()
-            .longOpt(DUMP_GRAPHS_OPTION)
-            .desc("Dumps IGV graphs when --run is used.")
             .build();
     var docs =
         cliOptionBuilder()
@@ -461,7 +456,6 @@ public class Main {
         .addOption(jvm)
         .addOption(run)
         .addOption(inspect)
-        .addOption(dumpGraphs)
         .addOption(docs)
         .addOption(preinstall)
         .addOption(newOpt)
@@ -506,11 +500,7 @@ public class Main {
     return options;
   }
 
-  /**
-   * Prints the help message to the standard output.
-   *
-   * @param options object representing the CLI syntax
-   */
+  /** Prints the help message to the standard output. */
   private static void printHelp() {
     new HelpFormatter().printHelp(LanguageInfo.ID, CLI_OPTIONS);
   }
@@ -660,13 +650,12 @@ public class Main {
    *     ignored.
    * @param enableStaticAnalysis whether or not static type checking should be enabled
    * @param inspect shall inspect option be enabled
-   * @param dump shall graphs be sent to the IGV
    * @param executionEnvironment name of the execution environment to use during execution or {@code
    *     null}
    */
   private void handleRun(
       String path,
-      java.util.List<String> additionalArgs,
+      List<String> additionalArgs,
       String projectPath,
       Level logLevel,
       boolean logMasking,
@@ -676,7 +665,6 @@ public class Main {
       boolean enableStaticAnalysis,
       boolean enableDebugServer,
       boolean inspect,
-      boolean dump,
       String executionEnvironment,
       int warningsLimit)
       throws IOException {
@@ -688,10 +676,6 @@ public class Main {
     var file = fileAndProject._2();
     var projectRoot = fileAndProject._3();
     var options = new HashMap<String, String>();
-    if (dump) {
-      options.put("engine.TraceCompilation", "true");
-      options.put("engine.MultiTier", "false");
-    }
 
     var factory =
         ContextFactory.create()
@@ -834,7 +818,8 @@ public class Main {
   }
 
   private void runSingleFile(
-      PolyglotContext context, File file, java.util.List<String> additionalArgs) {
+      PolyglotContext context, File file, java.util.List<String> additionalArgs)
+      throws IOException {
     var mainModule = context.evalModule(file);
     runMain(mainModule, file, additionalArgs, "main");
   }
@@ -909,15 +894,6 @@ public class Main {
       boolean enableIrCaches,
       boolean enableStaticAnalysis) {
     var mainMethodName = "internal_repl_entry_point___";
-    var dummySourceToTriggerRepl =
-        """
-         from Standard.Base import all
-         import Standard.Base.Runtime.Debug
-
-         $mainMethodName = Debug.breakpoint
-         """
-            .replace("$mainMethodName", mainMethodName);
-    var replModuleName = "Internal_Repl_Module___";
     var projectRoot = projectPath != null ? projectPath : "";
     var options = Collections.singletonMap(DebugServerInfo.ENABLE_OPTION, "true");
 
@@ -930,9 +906,11 @@ public class Main {
                 .logLevel(logLevel)
                 .logMasking(logMasking)
                 .enableIrCaches(enableIrCaches)
+                .disableLinting(true)
                 .enableStaticAnalysis(enableStaticAnalysis)
                 .build());
-    var mainModule = context.evalModule(dummySourceToTriggerRepl, replModuleName);
+
+    var mainModule = context.evalReplModule(mainMethodName);
     runMain(mainModule, null, Collections.emptyList(), mainMethodName);
     throw exitSuccess();
   }
@@ -1103,7 +1081,6 @@ public class Main {
           line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION),
           line.hasOption(REPL_OPTION),
           line.hasOption(INSPECT_OPTION),
-          line.hasOption(DUMP_GRAPHS_OPTION),
           line.getOptionValue(EXECUTION_ENVIRONMENT_OPTION),
           scala.Option.apply(line.getOptionValue(WARNINGS_LIMIT))
               .map(Integer::parseInt)
@@ -1385,7 +1362,10 @@ public class Main {
                 return BoxedUnit.UNIT;
               });
         } catch (IOException ex) {
-          System.err.println(ex.getMessage());
+          if (logger.isDebugEnabled()) {
+            logger.error("Error during execution", ex);
+          }
+          System.out.println("Command failed with an error: " + ex);
           throw exitFail();
         }
       } catch (WrongOption e) {

@@ -1157,8 +1157,9 @@ public class TypeInferenceTest extends CompilerTest {
 
     Module rawModule = parse(src.getCharacters());
 
-    var compilerConfig = new CompilerConfig(false, true, true, true, true, Option.empty());
-    var passes = new Passes(compilerConfig, Option.empty());
+    var compilerConfig =
+        new CompilerConfig(false, true, true, true, false, true, false, Option.empty());
+    var passes = new Passes(compilerConfig);
     @SuppressWarnings("unchecked")
     var passConfig =
         new PassConfiguration((Seq<PassConfiguration.ConfigPair<?>>) Seq$.MODULE$.empty());

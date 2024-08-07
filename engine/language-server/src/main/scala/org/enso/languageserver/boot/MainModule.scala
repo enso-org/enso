@@ -323,6 +323,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     .projectRoot(serverConfig.contentRootPath)
     .logLevel(logLevel)
     .strictErrors(false)
+    .disableLinting(false)
     .out(stdOut)
     .err(stdErr)
     .in(stdIn)

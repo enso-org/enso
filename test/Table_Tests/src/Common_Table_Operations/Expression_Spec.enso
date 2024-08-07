@@ -198,13 +198,13 @@ add_specs suite_builder detailed setup =
                 expression_test "#2020-12-23 12:34:56Z[UTC]#" (Date_Time.new 2020 12 23 12 34 56 zone=Time_Zone.utc)
                 expression_test "#2020-12-23 12:34:56+02:30[UTC]#" (Date_Time.new 2020 12 23 10 04 56 zone=Time_Zone.utc)
                 expression_test "#2020-12-23 12:34:56.157+01[UTC]#" (Date_Time.new 2020 12 23 11 34 56 157 zone=Time_Zone.utc)
-                expression_test "#2020-12-23T12:34[Europe/Warsaw]#" (Date_Time.new 2020 12 23 12 34 zone=Time_Zone.parse("Europe/Warsaw"))
+                expression_test "#2020-12-23T12:34[Europe/Warsaw]#" (Date_Time.new 2020 12 23 12 34 zone=(Time_Zone.parse "Europe/Warsaw"))
 
         group_builder.specify "should correctly handle timezones" pending=pending_datetime <|
             ## We cannot just test equality as the Database may change the timezone,
                so all we can do is check that the values are accepted and can be compared
                with other values in the database.
-            t = table_builder [["X", [Date_Time.new 2020 12 23 12 34 56 zone=Time_Zone.utc, Date_Time.new 2010 1 2 12 34 56 zone=Time_Zone.parse("Europe/Warsaw")]]]
+            t = table_builder [["X", [Date_Time.new 2020 12 23 12 34 56 zone=Time_Zone.utc, Date_Time.new 2010 1 2 12 34 56 zone=(Time_Zone.parse "Europe/Warsaw")]]]
             c1 = t.evaluate_expression "#2020-12-23 12:34:56Z[UTC]# == [X]"
             c1.to_vector . should_equal [True, False]
             c2 = t.evaluate_expression "#2010-01-02 12:34:56[Europe/Warsaw]# == [X]"
