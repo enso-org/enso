@@ -1,3 +1,4 @@
+import createDebug from 'debug'
 import * as json from 'lib0/json'
 import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
@@ -44,7 +45,7 @@ import { WSSharedDoc } from './ydoc'
 const SOURCE_DIR = 'src'
 const EXTENSION = '.enso'
 
-const DEBUG_LOG_SYNC = false
+const debugLog = createDebug('ydoc-server:session')
 
 export class LanguageServerSession {
   clientId: Uuid
@@ -58,6 +59,8 @@ export class LanguageServerSession {
   projectRootId: Uuid | null
   authoritativeModules: Map<string, ModulePersistence>
   clientScope: AbortScope
+
+  static DEBUG = false
 
   constructor(url: string) {
     this.clientScope = new AbortScope()
@@ -103,9 +106,7 @@ export class LanguageServerSession {
 
   private setupClient() {
     this.ls.on('file/event', async event => {
-      if (DEBUG_LOG_SYNC) {
-        console.log('file/event', event)
-      }
+      debugLog('file/event %O', event)
       const result = await this.handleFileEvent(event)
       if (!result.ok) this.restartClient()
     })
@@ -332,9 +333,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
 
   private setState(state: LsSyncState) {
     if (this.state !== LsSyncState.Disposed) {
-      if (DEBUG_LOG_SYNC) {
-        console.debug('State change:', LsSyncState[this.state], '->', LsSyncState[state])
-      }
+      debugLog('State change: %o -> %o', LsSyncState[this.state], LsSyncState[state])
       // This is SAFE. `this.state` is only `readonly` to ensure that this is the only place
       // where it is mutated.
       // @ts-expect-error
@@ -507,15 +506,14 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
 
     const newVersion = computeTextChecksum(newContent)
 
-    if (DEBUG_LOG_SYNC) {
-      console.debug(' === changes === ')
-      console.debug('number of edits:', edits.length)
+    if (debugLog.enabled) {
+      debugLog(' === changes === ')
+      debugLog('number of edits: %d', edits.length)
       if (edits.length > 0) {
-        console.debug('version:', this.syncedVersion, '->', newVersion)
-        console.debug('Content diff:')
-        console.debug(prettyPrintDiff(this.syncedContent, newContent))
+        debugLog('version: %s -> %s', this.syncedVersion, newVersion)
+        debugLog('Content diff:\n%s', prettyPrintDiff(this.syncedContent, newContent))
       }
-      console.debug(' =============== ')
+      debugLog(' =============== ')
     }
 
     this.setState(LsSyncState.WritingFile)

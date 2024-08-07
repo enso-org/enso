@@ -8,6 +8,7 @@
  * server. It is not yet deployed to any other environment.
  */
 
+import debug from 'debug'
 import type { Server } from 'http'
 import type { Http2SecureServer } from 'http2'
 import type { WebSocket } from 'isomorphic-ws'
@@ -17,6 +18,20 @@ import { deserializeIdMap } from './serialization'
 import { setupGatewayClient } from './ydoc'
 
 export { deserializeIdMap, docName, setupGatewayClient }
+
+/**
+ * @param customLogger Optional external logger to use for all debug logs.
+ */
+export function configureAllDebugLogs(
+  forceEnable: boolean,
+  customLogger?: (...args: any[]) => any,
+) {
+  for (const debugModule of ['ydoc-server:session', 'ydoc-shared:languageServer']) {
+    const instance = debug(debugModule)
+    if (forceEnable) instance.enabled = true
+    if (customLogger) instance.log = customLogger
+  }
+}
 
 export async function createGatewayServer(
   httpServer: Server | Http2SecureServer,

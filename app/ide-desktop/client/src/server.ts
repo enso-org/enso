@@ -21,6 +21,8 @@ import * as paths from '@/paths'
 
 const logger = contentConfig.logger
 
+ydocServer.configureAllDebugLogs(process.env.ENSO_YDOC_LS_DEBUG === 'true', logger.log)
+
 // =================
 // === Constants ===
 // =================

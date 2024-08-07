@@ -1,16 +1,13 @@
 use crate::prelude::*;
 
 use crate::syntax::consumer::Finish;
-use crate::syntax::consumer::ItemConsumer;
-use crate::syntax::consumer::TokenConsumer;
-use crate::syntax::consumer::TreeConsumer;
 use crate::syntax::item;
 use crate::syntax::operator;
 use crate::syntax::statement::BodyBlockParser;
 use crate::syntax::token::TokenOperatorProperties;
 use crate::syntax::tree::block;
-use crate::syntax::GroupHierarchyConsumer;
 use crate::syntax::Item;
+use crate::syntax::ItemConsumer;
 
 
 
@@ -24,7 +21,6 @@ use crate::syntax::Item;
 pub struct FlattenBlockTrees<'s, Inner> {
     /// Consumes child blocks. Stores no semantic state, but is reused for performance.
     child:         Option<Box<operator::Precedence<'s>>>,
-    block_context: BlockContext,
     block_builder: block::Builder<'s>,
     block_parser:  BodyBlockParser<'s>,
     inner:         Inner,
@@ -37,79 +33,36 @@ enum BlockContext {
     ArgumentOrOperator,
 }
 
-impl<'s, Inner> ItemConsumer<'s> for FlattenBlockTrees<'s, Inner>
-where Inner: TokenConsumer<'s> + TreeConsumer<'s> + GroupHierarchyConsumer<'s>
+impl<'s, Inner> FlattenBlockTrees<'s, Inner>
+where Inner: ItemConsumer<'s> + Finish
 {
-    fn push_item(&mut self, item: Item<'s>) {
-        self.block_context = match item {
-            Item::Block(lines) => {
-                let mut child = self.child.take().unwrap_or_default();
-                self.inner.push_tree(match self.block_context {
-                    BlockContext::Body =>
-                        self.block_parser.parse_body_block(lines.into_vec(), &mut child),
-                    BlockContext::ArgumentOrOperator => {
-                        for item::Line { newline, items } in lines.into_vec() {
-                            self.block_builder.push(newline, items, &mut child);
-                        }
-                        self.block_builder.build()
-                    }
-                });
-                self.child = Some(child);
-                BlockContext::ArgumentOrOperator
-            }
-            Item::Token(token) => {
-                let properties = token.operator_properties();
-                self.inner.push_token(token);
-                match properties {
+    pub fn run(&mut self, start: usize, items: &mut Vec<Item<'s>>) -> Inner::Result {
+        if let Some(Item::Block(_)) = items.last() {
+            let Some(Item::Block(lines)) = items.pop() else { unreachable!() };
+            let mut child = self.child.take().unwrap_or_default();
+            let block_context = match items.last() {
+                Some(Item::Token(token)) => match token.operator_properties() {
                     Some(properties) if properties.rhs_is_expression() => BlockContext::Body,
                     _ => BlockContext::ArgumentOrOperator,
+                },
+                None => BlockContext::Body,
+                _ => BlockContext::ArgumentOrOperator,
+            };
+            items.push(Item::Tree(match block_context {
+                BlockContext::Body =>
+                    self.block_parser.parse_body_block(lines.into_vec(), &mut child),
+                BlockContext::ArgumentOrOperator => {
+                    for item::Line { newline, items } in lines.into_vec() {
+                        self.block_builder.push(newline, items, &mut child);
+                    }
+                    self.block_builder.build()
                 }
-            }
-            Item::Tree(tree) => {
-                self.inner.push_tree(tree);
-                BlockContext::ArgumentOrOperator
-            }
-            Item::Group(item::Group { open, body, mut close }) => {
-                self.inner.start_group(open);
-                let mut stack = vec![];
-                let mut body = body.into_vec().into_iter();
-                loop {
-                    while let Some(item) = body.next() {
-                        match item {
-                            Item::Token(token) => self.inner.push_token(token),
-                            Item::Tree(tree) => self.inner.push_tree(tree),
-                            Item::Group(group) => {
-                                self.inner.start_group(group.open);
-                                let outer_body =
-                                    mem::replace(&mut body, group.body.into_vec().into_iter());
-                                let outer_close = mem::replace(&mut close, group.close);
-                                stack.push((outer_body, outer_close));
-                                continue;
-                            }
-                            Item::Block(_) => unreachable!(),
-                        }
-                    }
-                    if let Some(close) = close {
-                        self.inner.end_group(close);
-                    }
-                    if let Some((outer_body, outer_close)) = stack.pop() {
-                        body = outer_body;
-                        close = outer_close;
-                    } else {
-                        break;
-                    }
-                }
-                BlockContext::ArgumentOrOperator
-            }
-        };
-    }
-}
-
-impl<'s, Inner: Finish> Finish for FlattenBlockTrees<'s, Inner> {
-    type Result = Inner::Result;
-
-    fn finish(&mut self) -> Self::Result {
-        self.block_context = default();
+            }));
+            self.child = Some(child);
+        }
+        for item in items.drain(start..) {
+            self.inner.push_item(item);
+        }
         self.inner.finish()
     }
 }

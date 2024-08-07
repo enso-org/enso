@@ -16,7 +16,7 @@ const projectManagerUrl =
   process.env.E2E === 'true' ? 'ws://127.0.0.1:30536' : 'ws://127.0.0.1:30535'
 
 const IS_CLOUD_BUILD = process.env.CLOUD_BUILD === 'true'
-const YDOC_SERVER = process.env.POLYGLOT_YDOC_SERVER ?? 'ws://localhost:5976'
+const YDOC_SERVER_URL = process.env.ENSO_POLYGLOT_YDOC_SERVER ?? 'ws://localhost:5976'
 
 await readEnvironmentFromFile()
 
@@ -60,7 +60,7 @@ export default defineConfig({
     ...getDefines(),
     IS_CLOUD_BUILD: JSON.stringify(IS_CLOUD_BUILD),
     PROJECT_MANAGER_URL: JSON.stringify(projectManagerUrl),
-    YDOC_SERVER_URL: JSON.stringify(YDOC_SERVER),
+    YDOC_SERVER_URL: JSON.stringify(YDOC_SERVER_URL),
     'import.meta.vitest': false,
     // Single hardcoded usage of `global` in aws-amplify.
     'global.TYPED_ARRAY_SUPPORT': true,

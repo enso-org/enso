@@ -1,6 +1,7 @@
 import { sha3_224 as SHA3 } from '@noble/hashes/sha3'
 import { bytesToHex } from '@noble/hashes/utils'
 import { Client, RequestManager } from '@open-rpc/client-js'
+import debug from 'debug'
 import { ObservableV2 } from 'lib0/observable'
 import { uuidv4 } from 'lib0/random'
 import { z } from 'zod'
@@ -28,7 +29,8 @@ import { Err, Ok, type Result } from './util/data/result'
 import { AbortScope, exponentialBackoff, ReconnectingWebSocketTransport } from './util/net'
 import type { Uuid } from './yjsModel'
 
-const DEBUG_LOG_RPC = false
+const debugLog = debug('ydoc-shared:languageServer')
+
 const RPC_TIMEOUT_MS = 15000
 
 export enum ErrorCode {
@@ -136,6 +138,7 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
   private initializationScheduled = false
   private shouldReconnect = true
   private retainCount = 1
+  debug = false
 
   constructor(
     private clientID: Uuid,
@@ -164,7 +167,7 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
         return
       }
       this.emit('transport/closed', [])
-      console.log('Language Server: WebSocket closed')
+      debugLog('Language Server: WebSocket closed')
       this.scheduleInitializationAfterConnect()
     }
     transport.on('close', onTransportClosed)
@@ -228,10 +231,7 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
     const uuid = uuidv4()
     const now = performance.now()
     try {
-      if (DEBUG_LOG_RPC) {
-        console.log(`LS [${uuid}] ${method}:`)
-        console.dir(params)
-      }
+      debugLog('LS [%s] %s:\n%j', uuid, method, params)
       if (waitForInit) {
         const initResult = await this.initialized
         if (!initResult.ok) return initResult
@@ -245,9 +245,7 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
         return Err(new LsRpcError(error, method, params))
       } else throw error
     } finally {
-      if (DEBUG_LOG_RPC) {
-        console.log(`LS [${uuid}] ${method} took ${performance.now() - now}ms`)
-      }
+      debugLog('LS [%s] %s took %dms', uuid, method, performance.now() - now)
     }
   }
 

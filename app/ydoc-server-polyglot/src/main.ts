@@ -1,7 +1,10 @@
-import { docName, setupGatewayClient } from 'ydoc-server'
+import { configureAllDebugLogs, docName, setupGatewayClient } from 'ydoc-server'
 
 const host = YDOC_HOST ?? 'localhost'
 const port = YDOC_PORT ?? 1234
+const debug = YDOC_LS_DEBUG ?? false
+
+configureAllDebugLogs(debug)
 
 const wss = new WebSocketServer({ host, port })
 
