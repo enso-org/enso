@@ -63,6 +63,7 @@ fn tree_starts_new_no_space_group(tree: &Tree) -> bool {
             tree::Variant::BodyBlock(_)
                 | tree::Variant::OperatorBlockApplication(_)
                 | tree::Variant::ArgumentBlockApplication(_)
+                | tree::Variant::SuspendedDefaultArguments(_)
         )
 }
 

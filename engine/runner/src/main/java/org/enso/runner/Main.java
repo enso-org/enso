@@ -818,7 +818,8 @@ public class Main {
   }
 
   private void runSingleFile(
-      PolyglotContext context, File file, java.util.List<String> additionalArgs) {
+      PolyglotContext context, File file, java.util.List<String> additionalArgs)
+      throws IOException {
     var mainModule = context.evalModule(file);
     runMain(mainModule, file, additionalArgs, "main");
   }
@@ -893,15 +894,6 @@ public class Main {
       boolean enableIrCaches,
       boolean enableStaticAnalysis) {
     var mainMethodName = "internal_repl_entry_point___";
-    var dummySourceToTriggerRepl =
-        """
-         from Standard.Base import all
-         import Standard.Base.Runtime.Debug
-
-         $mainMethodName = Debug.breakpoint
-         """
-            .replace("$mainMethodName", mainMethodName);
-    var replModuleName = "Internal_Repl_Module___";
     var projectRoot = projectPath != null ? projectPath : "";
     var options = Collections.singletonMap(DebugServerInfo.ENABLE_OPTION, "true");
 
@@ -917,7 +909,8 @@ public class Main {
                 .disableLinting(true)
                 .enableStaticAnalysis(enableStaticAnalysis)
                 .build());
-    var mainModule = context.evalModule(dummySourceToTriggerRepl, replModuleName);
+
+    var mainModule = context.evalReplModule(mainMethodName);
     runMain(mainModule, null, Collections.emptyList(), mainMethodName);
     throw exitSuccess();
   }

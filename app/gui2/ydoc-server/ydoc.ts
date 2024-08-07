@@ -89,9 +89,10 @@ export class WSSharedDoc {
  * will be assigned its own `DistributedProject` instance with a unique namespace of Yjs documents.
  * @param docName The name of the document to synchronize. When the document name is `index`, the
  * document is considered to be the root document of the `DistributedProject` data model.
+ * @param debug Print debug logs if true.
  */
-export function setupGatewayClient(ws: WebSocket, lsUrl: string, docName: string) {
-  const lsSession = LanguageServerSession.get(lsUrl)
+export function setupGatewayClient(ws: WebSocket, lsUrl: string, docName: string, debug: boolean) {
+  const lsSession = LanguageServerSession.get(lsUrl, debug)
   const wsDoc = lsSession.getYDoc(docName)
   if (wsDoc == null) {
     console.error(`Document '${docName}' not found in language server session '${lsUrl}'.`)

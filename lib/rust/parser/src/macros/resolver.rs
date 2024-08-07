@@ -491,11 +491,11 @@ impl<'s> ResolverState<'s> {
                     }
                     Err(tokens) => tokens,
                 };
-                if let Some(excess) = self.precedence.resolve(excess) {
+                if let Some(excess) = self.precedence.resolve(&mut excess.into()) {
                     let excess = excess.with_error("Unexpected tokens in macro invocation.");
                     tokens.push(excess.into());
                 }
-                let body = self.precedence.resolve(tokens);
+                let body = self.precedence.resolve(&mut tokens);
                 syntax::tree::MultiSegmentAppSegment { header, body }
             });
             syntax::Tree::multi_segment_app(segments)
