@@ -2446,7 +2446,7 @@ export type Mutable<T extends Ast = Ast> =
 
 export function materializeMutable(module: MutableModule, fields: FixedMap<AstFields>): MutableAst {
   const type = fields.get('type')
-  const fieldsForType = fields as FixedMap<any>
+  const fieldsForType = (module.wrap ? module.wrap(fields) : fields) as FixedMap<any>
   switch (type) {
     case 'App':
       return new MutableApp(module, fieldsForType)
@@ -2492,7 +2492,10 @@ export function materializeMutable(module: MutableModule, fields: FixedMap<AstFi
 
 export function materialize(module: Module, fields: FixedMapView<AstFields>): Ast {
   const type = fields.get('type')
-  const fields_ = fields as FixedMapView<any>
+  const fields_ = (
+    module.wrap ?
+      module.wrap(fields as FixedMap<AstFields>)
+    : fields) as FixedMapView<any>
   switch (type) {
     case 'App':
       return new App(module, fields_)

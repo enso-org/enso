@@ -32,6 +32,7 @@ export interface Module {
   getAny(node: AstId | SyncTokenId): Ast | Token
   getConcrete(child: RawNodeChild): NodeChild<Ast> | NodeChild<Token>
   has(id: AstId): boolean
+  wrap?: Wrap
 }
 
 export interface ModuleUpdate {
@@ -48,6 +49,7 @@ type YNodes = Y.Map<YNode>
 
 export class MutableModule implements Module {
   private readonly nodes: YNodes
+  readonly wrap?: Wrap
 
   private get ydoc() {
     const ydoc = this.nodes.doc
@@ -288,8 +290,9 @@ export class MutableModule implements Module {
 
   /////////////////////////////////////////////
 
-  constructor(doc: Y.Doc) {
+  constructor(doc: Y.Doc, wrap?: Wrap) {
     this.nodes = doc.getMap<YNode>('nodes')
+    if (wrap) this.wrap = wrap
   }
 
   private rootPointer(): MutableRootPointer | undefined {
@@ -356,6 +359,8 @@ export class MutableModule implements Module {
 }
 
 type MutableRootPointer = MutableInvalid & { get expression(): MutableAst | undefined }
+
+type Wrap = <Fields>(value: FixedMap<Fields>) => FixedMap<Fields>
 
 function newAstId(type: string, sequenceNum = random.uint53()): AstId {
   const id = `ast:${type}#${sequenceNum}`

@@ -131,7 +131,6 @@ export class GraphDb {
   private readonly idToExternalMap = reactive(new Map<Ast.AstId, ExternalId>())
   private readonly idFromExternalMap = reactive(new Map<ExternalId, Ast.AstId>())
   private bindings = new BindingsDb()
-  private currentFunction: AstId | undefined = undefined
 
   constructor(
     private suggestionDb: SuggestionDb,
@@ -329,21 +328,7 @@ export class GraphDb {
     }
   }
 
-  /**
-   * Note that the `dirtyNodes` are visited and updated in the order that they appear in the module AST, irrespective of
-   * the iteration order of the `dirtyNodes` set.
-   **/
-  readFunctionAst(
-    functionAst_: Ast.Function,
-    rawFunction: RawAst.Tree.Function,
-    moduleCode: string,
-    getSpan: (id: AstId) => SourceRange | undefined,
-    dirtyNodes: Set<AstId>,
-  ) {
-    const functionChanged = functionAst_.id !== this.currentFunction
-    const knownDirtySubtrees = functionChanged ? null : subtrees(functionAst_.module, dirtyNodes)
-    const subtreeDirty = (id: AstId) => !knownDirtySubtrees || knownDirtySubtrees.has(id)
-    this.currentFunction = functionAst_.id
+  updateNodes(functionAst_: Ast.Function) {
     const currentNodeIds = new Set<NodeId>()
     const lines = [...functionAst_.bodyExpressions()]
     lines.forEach((nodeAst, lineIndex) => {
@@ -377,13 +362,11 @@ export class GraphDb {
           documentation,
           conditionalPorts,
         } = newNode
-        const differentOrDirty = (a: Ast.Ast | undefined, b: Ast.Ast | undefined) =>
-          a?.id !== b?.id || (a && subtreeDirty(a.id))
         if (node.type != type) node.type = type
-        if (differentOrDirty(node.outerExpr, outerExpr)) node.outerExpr = outerExpr
-        if (differentOrDirty(node.pattern, pattern)) node.pattern = pattern
-        if (differentOrDirty(node.rootExpr, rootExpr)) node.rootExpr = rootExpr
-        if (differentOrDirty(node.innerExpr, innerExpr)) node.innerExpr = innerExpr
+        if (node.outerExpr != outerExpr) node.outerExpr = outerExpr
+        if (node.pattern != pattern) node.pattern = pattern
+        if (node.rootExpr != rootExpr) node.rootExpr = rootExpr
+        if (node.innerExpr != innerExpr) node.innerExpr = innerExpr
         if (node.primarySubject !== primarySubject) node.primarySubject = primarySubject
         if (node.documentation !== documentation) node.documentation = documentation
         if (
@@ -412,9 +395,15 @@ export class GraphDb {
         this.nodeIdToNode.delete(nodeId)
       }
     }
-    this.updateExternalIds(functionAst_)
+  }
+
+  updateBindings(
+    functionAst_: Ast.Function,
+    rawFunction: RawAst.Tree.Function,
+    moduleCode: string,
+    getSpan: (id: AstId) => SourceRange | undefined,
+  ) {
     this.bindings.readFunctionAst(functionAst_, rawFunction, moduleCode, getSpan)
-    return currentNodeIds
   }
 
   updateExternalIds(topLevel: Ast.Ast) {

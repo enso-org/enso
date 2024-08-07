@@ -565,7 +565,7 @@ function collapseNodes() {
     if (currentMethodName == null) {
       bail(`Cannot get the method name for the current execution stack item. ${currentMethod}`)
     }
-    const topLevel = graphStore.topLevel
+    const topLevel = graphStore.moduleRoot
     if (!topLevel) {
       bail('BUG: no top level, collapsing not possible.')
     }

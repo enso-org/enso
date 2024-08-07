@@ -17,9 +17,10 @@ import { type ProjectStore } from '@/stores/project'
 import { type SuggestionDbStore } from '@/stores/suggestionDatabase'
 import { assert, bail } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import type { AstId } from '@/util/ast/abstract'
-import { MutableModule, isAstId, isIdentifier, type Identifier } from '@/util/ast/abstract'
+import type { AstId, Identifier, MutableModule } from '@/util/ast/abstract'
+import { isAstId, isIdentifier } from '@/util/ast/abstract'
 import { RawAst, visitRecursive } from '@/util/ast/raw'
+import { reactiveModule } from '@/util/ast/reactive'
 import { partition } from '@/util/data/array'
 import { Rect } from '@/util/data/rect'
 import { Err, Ok, mapOk, unwrap, type Result } from '@/util/data/result'
@@ -47,6 +48,7 @@ import {
   shallowReactive,
   toRef,
   watch,
+  watchEffect,
   type Ref,
   type ShallowRef,
 } from 'vue'
@@ -81,10 +83,6 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
   (proj: ProjectStore, suggestionDb: SuggestionDbStore) => {
     proj.setObservedFileName('Main.enso')
 
-    const syncModule = computed(
-      () => proj.module && markRaw(new MutableModule(proj.module.doc.ydoc)),
-    )
-
     const nodeRects = reactive(new Map<NodeId, Rect>())
     const nodeHoverAnimations = reactive(new Map<NodeId, number>())
     const vizRects = reactive(new Map<NodeId, Rect>())
@@ -105,91 +103,71 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     )
     const portInstances = shallowReactive(new Map<PortId, Set<PortViewInstance>>())
     const editedNodeInfo = ref<NodeEditInfo>()
-    const methodAst = ref<Result<Ast.Function>>(Err('AST not yet initialized'))
 
+    const syncModule = ref<Ast.MutableModule>()
     const moduleSource = reactive(SourceDocument.Empty())
-    const moduleRoot = ref<Ast.Ast>()
-    const topLevel = ref<Ast.BodyBlock>()
+    const moduleRoot = ref<Ast.BodyBlock>()
 
-    watch(syncModule, (syncModule, _, onCleanup) => {
-      if (!syncModule) return
-      let moduleChanged = true
-      const handle = syncModule.observe((update) => {
-        moduleSource.applyUpdate(syncModule, update)
-        handleModuleUpdate(syncModule, moduleChanged, update)
-        moduleChanged = false
-      })
-      onCleanup(() => {
-        syncModule.unobserve(handle)
-        moduleSource.clear()
-      })
+    watch(
+      () => proj.module,
+      (projModule, _, onCleanup) => {
+        if (!projModule) return
+        const { module, triggerAst } = reactiveModule(projModule.doc.ydoc)
+        const handle = module.observe((update) => {
+          const root = module.root()
+          if (root instanceof Ast.BodyBlock) {
+            update.nodesUpdated.forEach(triggerAst)
+            moduleRoot.value = root
+            syncModule.value = module
+            moduleSource.applyUpdate(module, update)
+            db.updateExternalIds(root)
+            // We can cast maps of unknown metadata fields to `NodeMetadata` because all `NodeMetadata` fields are optional.
+            const nodeMetadataUpdates = update.metadataUpdated as any as {
+              id: AstId
+              changes: Ast.NodeMetadata
+            }[]
+            for (const { id, changes } of nodeMetadataUpdates) db.updateMetadata(id, changes)
+          } else {
+            moduleRoot.value = undefined
+            syncModule.value = undefined
+          }
+        })
+        onCleanup(() => {
+          module.unobserve(handle)
+          moduleSource.clear()
+        })
+      },
+    )
+
+    const methodAst = computed<Result<Ast.Function>>(() =>
+      syncModule.value ? getExecutedMethodAst(syncModule.value) : Err('AST not yet initialized'),
+    )
+
+    watchEffect(() => {
+      if (!methodAst.value.ok) return
+      db.updateNodes(methodAst.value.value)
     })
 
-    let toRaw = new Map<SourceRangeKey, RawAst.Tree.Function>()
-    function handleModuleUpdate(
-      module: Ast.Module,
-      moduleChanged: boolean,
-      update: Ast.ModuleUpdate,
-    ) {
-      const root = module.root()
-      if (!root) return
-      if (moduleRoot.value != root) {
-        moduleRoot.value = root
-      }
-      if (root instanceof Ast.BodyBlock && topLevel.value != root) {
-        topLevel.value = root
-      }
-      // We can cast maps of unknown metadata fields to `NodeMetadata` because all `NodeMetadata` fields are optional.
-      const nodeMetadataUpdates = update.metadataUpdated as any as {
-        id: AstId
-        changes: Ast.NodeMetadata
-      }[]
-      const dirtyNodeSet = new Set(
-        (function* () {
-          yield* update.nodesUpdated
-          yield* update.nodesAdded
-        })(),
-      )
-      if (moduleChanged || dirtyNodeSet.size !== 0 || update.nodesDeleted.size !== 0) {
-        db.updateExternalIds(root)
-        toRaw = new Map()
-        visitRecursive(Ast.parseEnso(moduleSource.text), (node) => {
-          if (node.type === RawAst.Tree.Type.Function) {
-            const start = node.whitespaceStartInCodeParsed + node.whitespaceLengthInCodeParsed
-            const end = start + node.childrenLengthInCodeParsed
-            toRaw.set(sourceRangeKey([start, end]), node)
-            return false
-          }
-          return true
-        })
-        updateState(dirtyNodeSet)
-      }
-      if (nodeMetadataUpdates.length !== 0) {
-        for (const { id, changes } of nodeMetadataUpdates) db.updateMetadata(id, changes)
-      }
-    }
-
-    function updateState(dirtyNodes?: Set<AstId>) {
-      const module = proj.module
-      if (!module) return
-      const textContentLocal = moduleSource.text
-      if (!textContentLocal) return
-      if (!syncModule.value) return
-      methodAst.value = getExecutedMethodAst(syncModule.value)
-      if (methodAst.value.ok) {
-        const methodSpan = moduleSource.getSpan(methodAst.value.value.id)
-        assert(methodSpan != null)
-        const rawFunc = toRaw.get(sourceRangeKey(methodSpan))
-        assert(rawFunc != null)
-        db.readFunctionAst(
-          methodAst.value.value,
-          rawFunc,
-          textContentLocal,
-          (id) => moduleSource.getSpan(id),
-          dirtyNodes ?? new Set(),
-        )
-      }
-    }
+    watchEffect(() => {
+      if (!methodAst.value.ok || !moduleSource.text) return
+      const method = methodAst.value.value
+      const toRaw = new Map<SourceRangeKey, RawAst.Tree.Function>()
+      visitRecursive(Ast.parseEnso(moduleSource.text), (node) => {
+        if (node.type === RawAst.Tree.Type.Function) {
+          const start = node.whitespaceStartInCodeParsed + node.whitespaceLengthInCodeParsed
+          const end = start + node.childrenLengthInCodeParsed
+          toRaw.set(sourceRangeKey([start, end]), node)
+          return false
+        }
+        return true
+      })
+      const methodSpan = moduleSource.getSpan(method.id)
+      assert(methodSpan != null)
+      const rawFunc = toRaw.get(sourceRangeKey(methodSpan))
+      assert(rawFunc != null)
+      const getSpan = (id: AstId) => moduleSource.getSpan(id)
+      db.updateBindings(method, rawFunc, moduleSource.text, getSpan)
+    })
 
     function getExecutedMethodAst(module?: Ast.Module): Result<Ast.Function> {
       const executionStackTop = proj.executionContext.getStackTop()
@@ -275,11 +253,11 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       edit: MutableModule,
       newImports: RequiredImport[],
     ): DetectedConflict[] | undefined {
-      const topLevel = edit.getVersion(moduleRoot.value!)
-      if (!(topLevel instanceof Ast.MutableBodyBlock)) {
+      if (!moduleRoot.value) {
         console.error(`BUG: Cannot add required imports: No BodyBlock module root.`)
         return
       }
+      const topLevel = edit.getVersion(moduleRoot.value)
       const existingImports = readImports(topLevel)
 
       const conflicts = []
@@ -305,11 +283,11 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       existingImports?: Import[] | undefined,
     ) {
       if (!imports.length) return
-      const topLevel = edit.getVersion(moduleRoot.value!)
-      if (!(topLevel instanceof Ast.MutableBodyBlock)) {
+      if (!moduleRoot.value) {
         console.error(`BUG: Cannot add required imports: No BodyBlock module root.`)
         return
       }
+      const topLevel = edit.getVersion(moduleRoot.value)
       const existingImports_ = existingImports ?? readImports(topLevel)
 
       const importsToAdd = filterOutRedundantImports(existingImports_, imports)
@@ -745,7 +723,6 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       setNodePosition,
       setNodeVisualization,
       undoManager,
-      topLevel,
       updateNodeRect,
       updateNodeHoverAnim,
       updateVizRect,
@@ -756,7 +733,6 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       isPortEnabled,
       updatePortValue,
       setEditedNode,
-      updateState,
       startEdit,
       commitEdit,
       edit,

@@ -64,7 +64,9 @@ test('Reading graph from definition', () => {
   assert(func instanceof Ast.Function)
   const rawFunc = toRaw.get(func.id)
   assert(rawFunc?.type === RawAst.Tree.Type.Function)
-  db.readFunctionAst(func, rawFunc, code, getSpan, new Set())
+  db.updateExternalIds(ast)
+  db.updateNodes(func)
+  db.updateBindings(func, rawFunc, code, getSpan)
 
   expect(Array.from(db.nodeIdToNode.keys())).toEqual([
     eid('node1Content'),

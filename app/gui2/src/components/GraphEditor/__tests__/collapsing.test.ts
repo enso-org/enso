@@ -18,7 +18,9 @@ function setupGraphDb(code: string, graphDb: GraphDb) {
   assert(func instanceof Ast.Function)
   const rawFunc = toRaw.get(func.id)
   assert(rawFunc?.type === RawAst.Tree.Type.Function)
-  graphDb.readFunctionAst(func, rawFunc, code, getSpan, new Set())
+  graphDb.updateExternalIds(root)
+  graphDb.updateNodes(func)
+  graphDb.updateBindings(func, rawFunc, code, getSpan)
 }
 
 interface TestCase {
