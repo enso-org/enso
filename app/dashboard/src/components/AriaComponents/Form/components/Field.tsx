@@ -18,6 +18,7 @@ import * as formContext from './useFormContext'
  * Props for Field component
  */
 export interface FieldComponentProps extends VariantProps<typeof FIELD_STYLES>, types.FieldProps {
+  readonly 'data-testid'?: string | undefined
   readonly name: string
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly form?: types.FormInstance<any, any, any>
@@ -101,6 +102,7 @@ export const Field = React.forwardRef(function Field(
     <fieldset
       ref={ref}
       className={classes.base({ className })}
+      data-testid={props['data-testid']}
       aria-invalid={invalid}
       aria-label={props['aria-label']}
       aria-labelledby={labelId}

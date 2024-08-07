@@ -34,6 +34,7 @@ export interface InputProps<
     >,
     ariaComponents.FieldProps,
     Omit<twv.VariantProps<typeof INPUT_STYLES>, 'disabled' | 'invalid'> {
+  readonly 'data-testid'?: string | undefined
   readonly className?: string
   readonly style?: React.CSSProperties
   readonly inputRef?: React.Ref<HTMLInputElement>
@@ -127,6 +128,7 @@ export const Input = React.forwardRef(function Input<
 
   return (
     <ariaComponents.Form.Field
+      data-testid={props['data-testid']}
       form={formInstance}
       name={name}
       fullWidth

@@ -52,6 +52,7 @@ export default function ChangePasswordForm() {
     >
       <Input hidden name="username" autoComplete="username" value={user.email} readOnly />
       <SettingsAriaInput
+        data-testid="current-password-input"
         name="currentPassword"
         type="password"
         autoComplete="current-password"
@@ -59,6 +60,7 @@ export default function ChangePasswordForm() {
         placeholder={getText('currentPasswordPlaceholder')}
       />
       <SettingsAriaInput
+        data-testid="new-password-input"
         name="newPassword"
         type="password"
         label={getText('newPasswordLabel')}
@@ -67,6 +69,7 @@ export default function ChangePasswordForm() {
         description={getText('passwordValidationMessage')}
       />
       <SettingsAriaInput
+        data-testid="confirm-new-password-input"
         name="confirmNewPassword"
         type="password"
         label={getText('confirmNewPasswordLabel')}
