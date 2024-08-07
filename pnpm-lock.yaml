@@ -652,27 +652,15 @@ importers:
       esbuild:
         specifier: ^0.19.3
         version: 0.19.12
-      esbuild-plugin-yaml:
-        specifier: ^0.0.1
-        version: 0.0.1
+      esbuild-plugin-wasm:
+        specifier: ^1.1.0
+        version: 1.1.0
       fast-glob:
         specifier: ^3.2.12
         version: 3.3.2
-      lightningcss:
-        specifier: ^1.24.0
-        version: 1.25.1
       portfinder:
         specifier: ^1.0.32
         version: 1.0.32
-      rollup:
-        specifier: ^4.18.1
-        version: 4.18.1
-      sharp:
-        specifier: ^0.31.2
-        version: 0.31.3
-      to-ico:
-        specifier: ^1.1.5
-        version: 1.1.5
       tsx:
         specifier: ^4.7.1
         version: 4.16.0
@@ -4402,9 +4390,6 @@ packages:
   esbuild-plugin-wasm@1.1.0:
     resolution: {integrity: sha512-0bQ6+1tUbySSnxzn5jnXHMDvYnT0cN/Wd4Syk8g/sqAIJUg7buTIi22svS3Qz6ssx895NT+TgLPb33xi1OkZig==}
     engines: {node: '>=0.10.0'}
-
-  esbuild-plugin-yaml@0.0.1:
-    resolution: {integrity: sha512-s3jqOeeCd+dUuUsuBqLRgN2SeQjPF2ppIglvV3B//txgQpTDThGvxu6sqiOUOJ0NOzegitmpWCXoCONdRbUS7w==}
 
   esbuild@0.19.12:
     resolution: {integrity: sha512-aARqgq8roFBj054KvQr5f1sFu0D65G+miZRCuJyJ0G13Zwx7vRar5Zhn2tkQNzIXcBrNVsv/8stehpj+GAjgbg==}
@@ -11857,7 +11842,8 @@ snapshots:
 
   destroy@1.2.0: {}
 
-  detect-libc@1.0.3: {}
+  detect-libc@1.0.3:
+    optional: true
 
   detect-libc@2.0.3: {}
 
@@ -12187,11 +12173,6 @@ snapshots:
   es6-promise@3.3.1: {}
 
   esbuild-plugin-wasm@1.1.0: {}
-
-  esbuild-plugin-yaml@0.0.1:
-    dependencies:
-      fs-extra: 9.1.0
-      js-yaml: 4.1.0
 
   esbuild@0.19.12:
     optionalDependencies:
@@ -13549,6 +13530,7 @@ snapshots:
       lightningcss-linux-x64-gnu: 1.25.1
       lightningcss-linux-x64-musl: 1.25.1
       lightningcss-win32-x64-msvc: 1.25.1
+    optional: true
 
   lilconfig@2.1.0: {}
 

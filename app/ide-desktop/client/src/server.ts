@@ -18,6 +18,7 @@ import * as ydocServer from 'ydoc-server'
 
 import * as contentConfig from '@/contentConfig'
 import * as paths from '@/paths'
+import { pathToFileURL } from 'node:url'
 
 const logger = contentConfig.logger
 
@@ -145,20 +146,19 @@ export class Server {
             }
             logger.log(`Server started on port ${this.config.port}.`)
             logger.log(`Serving files from '${path.join(process.cwd(), this.config.dir)}'.`)
-            resolve()
             if (process.env.ELECTRON_DEV_MODE === 'true') {
-              // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports, @typescript-eslint/no-var-requires
-              const vite = require('vite') as typeof import('vite')
-              void vite
-                .createServer({
-                  server: {
-                    middlewareMode: true,
-                    hmr: server ? { server } : {},
-                  },
-                  configFile: process.env.GUI_CONFIG_PATH ?? false,
-                })
-                .then(devServer => (this.devServer = devServer))
+              const vite = (await import(
+                pathToFileURL(process.env.NODE_MODULES_PATH + '/vite/dist/node/index.js').href
+              )) as typeof import('vite')
+              this.devServer = await vite.createServer({
+                server: {
+                  middlewareMode: true,
+                  hmr: server ? { server } : {},
+                },
+                configFile: process.env.GUI_CONFIG_PATH ?? false,
+              })
             }
+            resolve()
           })()
         },
       )
@@ -305,11 +305,11 @@ export class Server {
 
       const resource = hasExtension ? requestUrl : '/index.html'
 
-      // `preload.cjs` must be specialcased here as it is loaded by electron from the root,
+      // `preload.mjs` must be specialcased here as it is loaded by electron from the root,
       // in contrast to all assets loaded by the window, which are loaded from `assets/` via
       // this server.
       const resourceFile =
-        resource === '/preload.cjs.map' ? paths.APP_PATH + resource : this.config.dir + resource
+        resource === '/preload.mjs.map' ? paths.APP_PATH + resource : this.config.dir + resource
       for (const [header, value] of common.COOP_COEP_CORP_HEADERS) {
         response.setHeader(header, value)
       }

@@ -15,7 +15,7 @@
   },
   "name": "enso",
   "description": "Enso Data Processing Environment.",
-  "main": "index.cjs",
+  "main": "index.mjs",
   "dependencies": {
     "chalk": "^5.2.0",
     "create-servers": "3.2.0",
@@ -45,19 +45,14 @@
     "enso-gui2": "workspace:*",
     "enso-runner": "workspace:*",
     "esbuild": "^0.19.3",
-    "esbuild-plugin-yaml": "^0.0.1",
+    "esbuild-plugin-wasm": "^1.1.0",
     "fast-glob": "^3.2.12",
-    "lightningcss": "^1.24.0",
     "portfinder": "^1.0.32",
-    "rollup": "^4.18.1",
-    "sharp": "^0.31.2",
-    "to-ico": "^1.1.5",
     "tsx": "^4.7.1",
     "vite": "^5.3.5"
   },
   "//": [
     "vite is required for the watch script",
-    "rollup is required for vite",
     "@babel/plugin-syntax-import-attributes is a dependency of the dashboard"
   ],
   "scripts": {
