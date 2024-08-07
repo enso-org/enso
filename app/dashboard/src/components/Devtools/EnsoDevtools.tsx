@@ -23,11 +23,24 @@ import {
 } from '#/providers/EnsoDevtoolsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
+import { Switch } from '#/components/aria'
+import {
+  Button,
+  ButtonGroup,
+  DialogTrigger,
+  Form,
+  Popover,
+  Radio,
+  RadioGroup,
+  Separator,
+  Text,
+} from '#/components/AriaComponents'
 import Portal from '#/components/Portal'
 
+import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import * as backend from '#/services/Backend'
+import LocalStorage from '#/utilities/LocalStorage'
+import { unsafeEntries } from 'enso-common/src/utilities/data/object'
 
 /**
  * Configuration for a paywall feature.
@@ -64,6 +77,7 @@ export function EnsoDevtools(props: EnsoDevtoolsProps) {
   const { authQueryKey, session } = authProvider.useAuth()
   const enableVersionChecker = useEnableVersionChecker()
   const setEnableVersionChecker = useSetEnableVersionChecker()
+  const { localStorage } = useLocalStorage()
 
   const [features, setFeatures] = React.useState<
     Record<billing.PaywallFeatureName, PaywallDevtoolsFeatureConfiguration>
@@ -92,8 +106,8 @@ export function EnsoDevtools(props: EnsoDevtoolsProps) {
       {children}
 
       <Portal>
-        <ariaComponents.DialogTrigger>
-          <ariaComponents.Button
+        <DialogTrigger>
+          <Button
             icon={DevtoolsLogo}
             aria-label={getText('paywallDevtoolsButtonLabel')}
             variant="icon"
@@ -103,27 +117,25 @@ export function EnsoDevtools(props: EnsoDevtoolsProps) {
             data-ignore-click-outside
           />
 
-          <ariaComponents.Popover>
-            <ariaComponents.Text.Heading disableLineHeightCompensation>
+          <Popover>
+            <Text.Heading disableLineHeightCompensation>
               {getText('paywallDevtoolsPopoverHeading')}
-            </ariaComponents.Text.Heading>
+            </Text.Heading>
 
-            <ariaComponents.Separator orientation="horizontal" className="my-3" />
+            <Separator orientation="horizontal" className="my-3" />
 
             {session?.type === UserSessionType.full && (
               <>
-                <ariaComponents.Text variant="subtitle">
-                  {getText('paywallDevtoolsPlanSelectSubtitle')}
-                </ariaComponents.Text>
+                <Text variant="subtitle">{getText('paywallDevtoolsPlanSelectSubtitle')}</Text>
 
-                <ariaComponents.Form
+                <Form
                   gap="small"
                   schema={(schema) => schema.object({ plan: schema.string() })}
                   defaultValues={{ plan: session.user.plan ?? 'free' }}
                 >
                   {({ form }) => (
                     <>
-                      <ariaComponents.RadioGroup
+                      <RadioGroup
                         form={form}
                         name="plan"
                         onChange={(value) => {
@@ -133,16 +145,13 @@ export function EnsoDevtools(props: EnsoDevtoolsProps) {
                           })
                         }}
                       >
-                        <ariaComponents.Radio label={getText('free')} value={'free'} />
-                        <ariaComponents.Radio label={getText('solo')} value={backend.Plan.solo} />
-                        <ariaComponents.Radio label={getText('team')} value={backend.Plan.team} />
-                        <ariaComponents.Radio
-                          label={getText('enterprise')}
-                          value={backend.Plan.enterprise}
-                        />
-                      </ariaComponents.RadioGroup>
+                        <Radio label={getText('free')} value={'free'} />
+                        <Radio label={getText('solo')} value={backend.Plan.solo} />
+                        <Radio label={getText('team')} value={backend.Plan.team} />
+                        <Radio label={getText('enterprise')} value={backend.Plan.enterprise} />
+                      </RadioGroup>
 
-                      <ariaComponents.Button
+                      <Button
                         size="small"
                         variant="outline"
                         onPress={() =>
@@ -152,27 +161,27 @@ export function EnsoDevtools(props: EnsoDevtoolsProps) {
                         }
                       >
                         {getText('reset')}
-                      </ariaComponents.Button>
+                      </Button>
                     </>
                   )}
-                </ariaComponents.Form>
+                </Form>
 
-                <ariaComponents.Separator orientation="horizontal" className="my-3" />
+                <Separator orientation="horizontal" className="my-3" />
 
                 {/* eslint-disable-next-line no-restricted-syntax */}
-                <ariaComponents.Button variant="link" href={SETUP_PATH + '?__qd-debg__=true'}>
+                <Button variant="link" href={SETUP_PATH + '?__qd-debg__=true'}>
                   Open setup page
-                </ariaComponents.Button>
+                </Button>
 
-                <ariaComponents.Separator orientation="horizontal" className="my-3" />
+                <Separator orientation="horizontal" className="my-3" />
               </>
             )}
 
-            <ariaComponents.Text variant="subtitle" className="mb-2">
+            <Text variant="subtitle" className="mb-2">
               {getText('productionOnlyFeatures')}
-            </ariaComponents.Text>
+            </Text>
             <div className="flex flex-col">
-              <aria.Switch
+              <Switch
                 className="group flex items-center gap-1"
                 isSelected={enableVersionChecker ?? !IS_DEV_MODE}
                 onChange={setEnableVersionChecker}
@@ -181,21 +190,45 @@ export function EnsoDevtools(props: EnsoDevtoolsProps) {
                   <span className="aspect-square h-full flex-none translate-x-0 transform rounded-full bg-white transition duration-200 ease-in-out group-selected:translate-x-[100%]" />
                 </div>
 
-                <ariaComponents.Text className="flex-1">
-                  {getText('enableVersionChecker')}
-                </ariaComponents.Text>
-              </aria.Switch>
+                <Text className="flex-1">{getText('enableVersionChecker')}</Text>
+              </Switch>
 
-              <ariaComponents.Text variant="body" color="disabled">
+              <Text variant="body" color="disabled">
                 {getText('enableVersionCheckerDescription')}
-              </ariaComponents.Text>
+              </Text>
             </div>
 
-            <ariaComponents.Separator orientation="horizontal" className="my-3" />
+            <Separator orientation="horizontal" className="my-3" />
 
-            <ariaComponents.Text variant="subtitle" className="mb-2">
+            <Text variant="subtitle" className="mb-2">
+              {getText('localStorage')}
+            </Text>
+            {unsafeEntries(LocalStorage.keyMetadata).map(([key]) => (
+              <div className="flex gap-1">
+                <ButtonGroup className="grow-0">
+                  <Button
+                    size="small"
+                    variant="outline"
+                    onPress={() => {
+                      localStorage.delete(key)
+                    }}
+                  >
+                    {getText('delete')}
+                  </Button>
+                </ButtonGroup>
+                <Text variant="body">
+                  {key
+                    .replace(/[A-Z]/g, (m) => ' ' + m.toLowerCase())
+                    .replace(/^./, (m) => m.toUpperCase())}
+                </Text>
+              </div>
+            ))}
+
+            <Separator orientation="horizontal" className="my-3" />
+
+            <Text variant="subtitle" className="mb-2">
               {getText('paywallDevtoolsPaywallFeaturesToggles')}
-            </ariaComponents.Text>
+            </Text>
 
             <div className="flex flex-col gap-1">
               {Object.entries(features).map(([feature, configuration]) => {
@@ -205,7 +238,7 @@ export function EnsoDevtools(props: EnsoDevtoolsProps) {
 
                 return (
                   <div key={feature} className="flex flex-col">
-                    <aria.Switch
+                    <Switch
                       className="group flex items-center gap-1"
                       isSelected={configuration.isForceEnabled ?? true}
                       onChange={(value) => {
@@ -218,18 +251,18 @@ export function EnsoDevtools(props: EnsoDevtoolsProps) {
                         <span className="aspect-square h-full flex-none translate-x-0 transform rounded-full bg-white transition duration-200 ease-in-out group-selected:translate-x-[100%]" />
                       </div>
 
-                      <ariaComponents.Text className="flex-1">{getText(label)}</ariaComponents.Text>
-                    </aria.Switch>
+                      <Text className="flex-1">{getText(label)}</Text>
+                    </Switch>
 
-                    <ariaComponents.Text variant="body" color="disabled">
+                    <Text variant="body" color="disabled">
                       {getText(descriptionTextId)}
-                    </ariaComponents.Text>
+                    </Text>
                   </div>
                 )
               })}
             </div>
-          </ariaComponents.Popover>
-        </ariaComponents.DialogTrigger>
+          </Popover>
+        </DialogTrigger>
       </Portal>
     </PaywallDevtoolsContext.Provider>
   )

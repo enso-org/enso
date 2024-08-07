@@ -422,6 +422,7 @@
   "enableVersionChecker": "Enable Version Checker",
   "enableVersionCheckerDescription": "Show a dialog if the current version of the desktop app does not match the latest version.",
   "changeLocalRootDirectoryInSettings": "Change your root folder in Settings.",
+  "localStorage": "Local Storage",
 
   "deleteLabelActionText": "delete the label '$0'",
   "deleteSelectedAssetActionText": "delete '$0'",
