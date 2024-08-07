@@ -94,7 +94,7 @@ final class EnsoHashMapBuilder {
     return new EntriesIterator(atGeneration);
   }
 
-  class EntriesIterator implements Iterator<Entry> {
+  final class EntriesIterator implements Iterator<Entry> {
     private final int atGeneration;
     private int nextVisibleEntryIdx = -1;
 
