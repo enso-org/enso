@@ -32,10 +32,11 @@ class EditorOpsSpec extends AnyFlatSpec with Matchers with EitherValues {
 
   it should "be able to apply diffs with unicode symbols" in {
     //given
+    val oldKeyEmoji       = "\uD83D\uDDDD"
     val signaturePosition = Range(Position(2, 12), Position(2, 13))
-    val signatureDiff     = TextEdit(signaturePosition, "\uD83D\uDDDD")
+    val signatureDiff     = TextEdit(signaturePosition, oldKeyEmoji)
     val bodyPosition      = Range(Position(2, 22), Position(2, 23))
-    val bodyDiff          = TextEdit(bodyPosition, "\uD83D\uDDDD")
+    val bodyDiff          = TextEdit(bodyPosition, oldKeyEmoji)
     val diffs             = List(signatureDiff, bodyDiff)
     //when
     val result = EditorOps.applyEdits(testSnippet, diffs)
