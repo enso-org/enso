@@ -56,6 +56,9 @@ public class IRDumper {
   /** Whether to include some pass data in the GraphViz file. */
   private static final boolean INCLUDE_PASS_DATA = true;
 
+  public static final String DEFAULT_DUMP_DIR = "ir-dumps";
+  public static final String SYSTEM_PROP = "enso.compiler.dumpIr";
+
   private final OutputStream out;
   private final Set<GraphVizNode> nodes = new HashSet<>();
   private final Set<GraphVizEdge> edges = new HashSet<>();
@@ -218,6 +221,16 @@ public class IRDumper {
             GraphVizNode.Builder.fromIr(builtinAnnotation)
                 .addLabelLine("name: " + builtinAnnotation.name());
         addNode(bldr.build());
+      }
+      case org.enso.compiler.core.ir.Type.Ascription ascription -> {
+        var ascriptionNode = GraphVizNode.Builder.fromIr(ascription).build();
+        addNode(ascriptionNode);
+        var typed = ascription.typed();
+        createIRGraph(typed);
+        createEdge(ascription, typed, "typed");
+        var signature = ascription.signature();
+        createIRGraph(signature);
+        createEdge(ascription, signature, "signature");
       }
       default -> throw unimpl(definitionIr);
     }
@@ -565,6 +578,10 @@ public class IRDumper {
                         "  - ModuleMethod(" + method.name() + ")");
                     case BindingsMap.PolyglotSymbol polySym -> bldr.addLabelLine(
                         "  - PolyglotSymbol(" + polySym.name() + ")");
+                    case BindingsMap.ExtensionMethod extensionMethod -> bldr.addLabelLine(
+                        "  - ExtensionMethod(" + extensionMethod.name() + ")");
+                    case BindingsMap.ConversionMethod conversionMethod -> bldr.addLabelLine(
+                        "  - ConversionMethod(" + conversionMethod.name() + ")");
                     default -> throw unimpl(entity);
                   }
                 }

@@ -43,11 +43,7 @@ impl IsTarget for Runtime {
         context: Context,
         job: WithDestination<Self::BuildInput>,
     ) -> BoxFuture<'static, Result<Self::Artifact>> {
-        let config = BuildConfigurationFlags {
-            build_engine_package: true,
-            generate_java_from_rust: true,
-            ..default()
-        };
+        let config = BuildConfigurationFlags { build_engine_package: true, ..default() };
         let this = *self;
         let WithDestination { inner, destination } = job;
         let triple = TargetTriple::new(inner.versions);

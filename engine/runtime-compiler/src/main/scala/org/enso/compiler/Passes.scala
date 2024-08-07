@@ -1,6 +1,7 @@
 package org.enso.compiler
 
 import org.enso.compiler.data.CompilerConfig
+import org.enso.compiler.dump.IRDumperPass
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.analyse.types.TypeInference
@@ -50,7 +51,11 @@ class Passes(config: CompilerConfig) {
               PrivateModuleAnalysis.INSTANCE,
               PrivateConstructorAnalysis.INSTANCE
             )
-          } else List())
+          } else List()) ++ (if (config.dumpIrs) {
+                               List(
+                                 IRDumperPass.INSTANCE
+                               )
+                             } else List())
     ++ List(
       ShadowedPatternFields,
       UnreachableMatchBranches,

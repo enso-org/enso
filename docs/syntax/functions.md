@@ -34,6 +34,26 @@ arguments.
 
 ## Lambdas
 
+A lambda is an anonymous function introduced by the `\` operator, followed by
+any arguments definitions, followed by the `->` operator and a body expression,
+e.g. `\a b -> a + b`.
+
+Argument definitions: Each argument may have any combination of:
+
+- a suspension operator `~`
+- a type declaration `: Type`
+- a default value `= value` (when used in conjunction with a type declaration,
+  the type declaration must come first)
+
+The full syntax is: `\((~a:Type) = value) -> a`. The parentheses can be omitted
+when they contain no spaces.
+
+Lambdas can close over variables in their surrounding scope.
+
+## Old Lambdas
+
+(The original lambda syntax, described below, will eventually be removed.)
+
 The most primitive non-atom construct in Enso is the lambda. This is an
 anonymous function in one argument. A lambda is defined using the `->` operator,
 where the left hand side is an argument, and the right hand side is the body of

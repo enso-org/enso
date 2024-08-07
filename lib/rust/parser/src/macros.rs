@@ -107,8 +107,7 @@ fn matched_segments_into_multi_segment_app<'s>(
 ) -> syntax::Tree<'s> {
     let segments = matched_segments.mapped(|segment| {
         let header = segment.header;
-        let tokens = segment.result.tokens();
-        let body = precedence.resolve(tokens);
+        let body = precedence.resolve(&mut segment.result.tokens());
         syntax::tree::MultiSegmentAppSegment { header, body }
     });
     syntax::Tree::multi_segment_app(segments)

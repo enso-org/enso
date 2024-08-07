@@ -32,7 +32,6 @@ import {
 } from './util/net'
 import type { Uuid } from './yjsModel'
 
-const DEBUG_LOG_RPC = false
 const RPC_TIMEOUT_MS = 15000
 
 export enum ErrorCode {
@@ -140,10 +139,12 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
   private initializationScheduled = false
   private shouldReconnect = true
   private retainCount = 1
+  debug = false
 
   constructor(
     private clientID: Uuid,
     private transport: ReconnectingTransportWithWebsocketEvents,
+    debug = false,
   ) {
     super()
     this.initialized = this.scheduleInitializationAfterConnect()
@@ -176,6 +177,7 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
       this.transport.off('close', onTransportClosed)
       this.transport.close()
     })
+    this.debug = debug
   }
 
   private scheduleInitializationAfterConnect() {
@@ -232,7 +234,7 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
     const uuid = uuidv4()
     const now = performance.now()
     try {
-      if (DEBUG_LOG_RPC) {
+      if (this.debug) {
         console.log(`LS [${uuid}] ${method}:`)
         console.dir(params)
       }
@@ -249,7 +251,7 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
         return Err(new LsRpcError(error, method, params))
       } else throw error
     } finally {
-      if (DEBUG_LOG_RPC) {
+      if (this.debug) {
         console.log(`LS [${uuid}] ${method} took ${performance.now() - now}ms`)
       }
     }

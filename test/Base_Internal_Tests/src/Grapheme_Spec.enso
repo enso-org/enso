@@ -1,13 +1,11 @@
 from Standard.Base import all
 
-polyglot java import org.enso.base.Text_Utils
-polyglot java import org.enso.base.text.CaseFoldedString
-polyglot java import com.ibm.icu.text.BreakIterator
+import Standard.Base.Internal.Extra_Imports.Text_Utils
+import Standard.Base.Internal.Extra_Imports.CaseFoldedString
+import Standard.Base.Internal.Extra_Imports.BreakIterator
+import Standard.Base.Internal.Extra_Imports.Exception as JException
 
 from Standard.Test import all
-
-
-polyglot java import java.lang.Exception as JException
 
 add_specs suite_builder =
     suite_builder.group "Text_Utils" group_builder->
