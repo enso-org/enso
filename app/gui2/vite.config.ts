@@ -9,7 +9,6 @@ import postcssNesting from 'postcss-nesting'
 import tailwindcss from 'tailwindcss'
 import tailwindcssNesting from 'tailwindcss/nesting'
 import { defineConfig, type Plugin } from 'vite'
-import topLevelAwait from 'vite-plugin-top-level-await'
 import VueDevTools from 'vite-plugin-vue-devtools'
 import wasm from 'vite-plugin-wasm'
 const projectManagerUrl =
@@ -29,7 +28,6 @@ export default defineConfig({
   publicDir: fileURLToPath(new URL('./public', import.meta.url)),
   envDir: fileURLToPath(new URL('.', import.meta.url)),
   plugins: [
-    topLevelAwait(),
     wasm(),
     VueDevTools(),
     vue(),
@@ -67,6 +65,9 @@ export default defineConfig({
   },
   esbuild: {
     dropLabels: process.env.NODE_ENV === 'development' ? [] : ['DEV'],
+    supported: {
+      'top-level-await': true,
+    },
   },
   assetsInclude: ['**/*.yaml', '**/*.svg'],
   css: {

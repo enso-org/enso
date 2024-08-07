@@ -82,7 +82,7 @@ function resolveLsUrl(config: GuiConfig): LsUrls {
 
 function createLsRpcConnection(clientId: Uuid, url: string, abort: AbortScope): LanguageServer {
   const transport = createRpcTransport(url)
-  const connection = new LanguageServer(clientId, transport, false)
+  const connection = new LanguageServer(clientId, transport)
   abort.onAbort(() => {
     connection.stopReconnecting()
     connection.release()
