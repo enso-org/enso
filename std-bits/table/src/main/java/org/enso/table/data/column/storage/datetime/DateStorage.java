@@ -1,6 +1,8 @@
 package org.enso.table.data.column.storage.datetime;
 
 import java.time.LocalDate;
+
+import org.enso.base.CompareException;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.bool.GenericBinaryOpReturningBoolean;
 import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
@@ -8,7 +10,6 @@ import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.error.UnexpectedTypeException;
 
 public final class DateStorage extends SpecializedStorage<LocalDate> {
   /**
@@ -36,28 +37,28 @@ public final class DateStorage extends SpecializedStorage<LocalDate> {
           }
         });
     t.add(
-        new DateBinaryOpReturningBoolean(Maps.LT) {
+        new DateComparisonOp(Maps.LT) {
           @Override
           protected boolean doOperation(LocalDate a, LocalDate b) {
             return a.compareTo(b) < 0;
           }
         });
     t.add(
-        new DateBinaryOpReturningBoolean(Maps.LTE) {
+        new DateComparisonOp(Maps.LTE) {
           @Override
           protected boolean doOperation(LocalDate a, LocalDate b) {
             return a.compareTo(b) <= 0;
           }
         });
     t.add(
-        new DateBinaryOpReturningBoolean(Maps.GT) {
+        new DateComparisonOp(Maps.GT) {
           @Override
           protected boolean doOperation(LocalDate a, LocalDate b) {
             return a.compareTo(b) > 0;
           }
         });
     t.add(
-        new DateBinaryOpReturningBoolean(Maps.GTE) {
+        new DateComparisonOp(Maps.GTE) {
           @Override
           protected boolean doOperation(LocalDate a, LocalDate b) {
             return a.compareTo(b) >= 0;
@@ -81,15 +82,15 @@ public final class DateStorage extends SpecializedStorage<LocalDate> {
     return DateType.INSTANCE;
   }
 
-  private abstract static class DateBinaryOpReturningBoolean
+  private abstract static class DateComparisonOp
       extends GenericBinaryOpReturningBoolean<LocalDate, SpecializedStorage<LocalDate>> {
-    public DateBinaryOpReturningBoolean(String name) {
+    public DateComparisonOp(String name) {
       super(name, LocalDate.class);
     }
 
     @Override
     protected boolean doOther(LocalDate a, Object b) {
-      throw new UnexpectedTypeException("a Date", b.toString());
+      throw new CompareException(a, b);
     }
   }
 }

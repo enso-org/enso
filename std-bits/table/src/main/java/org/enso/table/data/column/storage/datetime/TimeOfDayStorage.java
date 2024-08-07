@@ -2,6 +2,8 @@ package org.enso.table.data.column.storage.datetime;
 
 import java.time.Duration;
 import java.time.LocalTime;
+
+import org.enso.base.CompareException;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.ObjectBuilder;
 import org.enso.table.data.column.operation.map.GenericBinaryObjectMapOperation;
@@ -40,28 +42,28 @@ public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
           }
         });
     t.add(
-        new TimeBinaryOpReturningBoolean(Maps.LT) {
+        new TimeOfDayComparisonOp(Maps.LT) {
           @Override
           protected boolean doOperation(LocalTime a, LocalTime b) {
             return a.compareTo(b) < 0;
           }
         });
     t.add(
-        new TimeBinaryOpReturningBoolean(Maps.LTE) {
+        new TimeOfDayComparisonOp(Maps.LTE) {
           @Override
           protected boolean doOperation(LocalTime a, LocalTime b) {
             return a.compareTo(b) <= 0;
           }
         });
     t.add(
-        new TimeBinaryOpReturningBoolean(Maps.GT) {
+        new TimeOfDayComparisonOp(Maps.GT) {
           @Override
           protected boolean doOperation(LocalTime a, LocalTime b) {
             return a.compareTo(b) > 0;
           }
         });
     t.add(
-        new TimeBinaryOpReturningBoolean(Maps.GTE) {
+        new TimeOfDayComparisonOp(Maps.GTE) {
           @Override
           protected boolean doOperation(LocalTime a, LocalTime b) {
             return a.compareTo(b) >= 0;
@@ -98,15 +100,15 @@ public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
     return TimeOfDayType.INSTANCE;
   }
 
-  private abstract static class TimeBinaryOpReturningBoolean
+  private abstract static class TimeOfDayComparisonOp
       extends GenericBinaryOpReturningBoolean<LocalTime, SpecializedStorage<LocalTime>> {
-    public TimeBinaryOpReturningBoolean(String name) {
+    public TimeOfDayComparisonOp(String name) {
       super(name, LocalTime.class);
     }
 
     @Override
     protected boolean doOther(LocalTime a, Object b) {
-      throw new UnexpectedTypeException("a Time_Of_Day", b.toString());
+      throw new CompareException(a, b);
     }
   }
 }

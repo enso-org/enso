@@ -1,6 +1,8 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
+
+import org.enso.base.CompareException;
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
@@ -125,28 +127,28 @@ public final class StringStorage extends SpecializedStorage<String> {
           }
         });
     t.add(
-        new StringBooleanOp(Maps.LT) {
+        new StringComparisonOp(Maps.LT) {
           @Override
           protected boolean doString(String a, String b) {
             return Text_Utils.compare_normalized(a, b) < 0;
           }
         });
     t.add(
-        new StringBooleanOp(Maps.LTE) {
+        new StringComparisonOp(Maps.LTE) {
           @Override
           protected boolean doString(String a, String b) {
             return Text_Utils.compare_normalized(a, b) <= 0;
           }
         });
     t.add(
-        new StringBooleanOp(Maps.GT) {
+        new StringComparisonOp(Maps.GT) {
           @Override
           protected boolean doString(String a, String b) {
             return Text_Utils.compare_normalized(a, b) > 0;
           }
         });
     t.add(
-        new StringBooleanOp(Maps.GTE) {
+        new StringComparisonOp(Maps.GTE) {
           @Override
           protected boolean doString(String a, String b) {
             return Text_Utils.compare_normalized(a, b) >= 0;
@@ -205,6 +207,17 @@ public final class StringStorage extends SpecializedStorage<String> {
       // bound, or the
       // existing elements to do not fit into the 255 bound).
       return getType();
+    }
+  }
+
+  private static abstract class StringComparisonOp extends StringBooleanOp {
+    public StringComparisonOp(String name) {
+      super(name);
+    }
+
+    @Override
+    protected boolean doObject(String a, Object o) {
+      throw new CompareException(a, o);
     }
   }
 }

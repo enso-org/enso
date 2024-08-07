@@ -2,6 +2,8 @@ package org.enso.table.data.column.storage.datetime;
 
 import java.time.Duration;
 import java.time.ZonedDateTime;
+
+import org.enso.base.CompareException;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.ObjectBuilder;
 import org.enso.table.data.column.operation.map.GenericBinaryObjectMapOperation;
@@ -40,28 +42,28 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
           }
         });
     t.add(
-        new DateTimeBinaryOpReturningBoolean(Maps.LT) {
+        new DateTimeComparisonOp(Maps.LT) {
           @Override
           protected boolean doOperation(ZonedDateTime a, ZonedDateTime b) {
             return a.compareTo(b) < 0;
           }
         });
     t.add(
-        new DateTimeBinaryOpReturningBoolean(Maps.LTE) {
+        new DateTimeComparisonOp(Maps.LTE) {
           @Override
           protected boolean doOperation(ZonedDateTime a, ZonedDateTime b) {
             return a.compareTo(b) <= 0;
           }
         });
     t.add(
-        new DateTimeBinaryOpReturningBoolean(Maps.GT) {
+        new DateTimeComparisonOp(Maps.GT) {
           @Override
           protected boolean doOperation(ZonedDateTime a, ZonedDateTime b) {
             return a.compareTo(b) > 0;
           }
         });
     t.add(
-        new DateTimeBinaryOpReturningBoolean(Maps.GTE) {
+        new DateTimeComparisonOp(Maps.GTE) {
           @Override
           protected boolean doOperation(ZonedDateTime a, ZonedDateTime b) {
             return a.compareTo(b) >= 0;
@@ -99,15 +101,15 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
     return DateTimeType.INSTANCE;
   }
 
-  private abstract static class DateTimeBinaryOpReturningBoolean
+  private abstract static class DateTimeComparisonOp
       extends GenericBinaryOpReturningBoolean<ZonedDateTime, SpecializedStorage<ZonedDateTime>> {
-    public DateTimeBinaryOpReturningBoolean(String name) {
+    public DateTimeComparisonOp(String name) {
       super(name, ZonedDateTime.class);
     }
 
     @Override
     protected boolean doOther(ZonedDateTime a, Object b) {
-      throw new UnexpectedTypeException("a Date_Time", b.toString());
+      throw new CompareException(a, b);
     }
   }
 }
