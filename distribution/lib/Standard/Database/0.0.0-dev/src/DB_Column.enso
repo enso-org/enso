@@ -193,9 +193,13 @@ type DB_Column
     to_sql : SQL_Statement
     to_sql self = self.to_table.to_sql
 
+    #generate_random_column_name self = self.to_table.make_temp_column_name
+    generate_random_column_name self = self.connection.base_connection.table_naming_helper.generate_random_table_name prefix="with-"
+
     # private Value internal_name:Text connection:(Connection | Any) sql_type_reference:SQL_Type_Reference expression:SQL_Expression context:Context
-    with self binder callback =
-        #ref_column = Column.value name self.connection self.sql_type_reference (SQL_Expression.Column name name) 
+    with self callback =
+        binder = self.generate_random_column_name
+        #ref_column = Column.value name self.connection self.sql_type_reference (SQL_Expression.Column name name)
         ref_column = DB_Column.Value binder self.connection self.sql_type_reference (SQL_Expression.With_Ref binder) self.context
         inner_value = callback ref_column
         r = DB_Column.Value inner_value.internal_name inner_value.connection inner_value.sql_type_reference (SQL_Expression.With binder self.expression inner_value.expression) inner_value.context

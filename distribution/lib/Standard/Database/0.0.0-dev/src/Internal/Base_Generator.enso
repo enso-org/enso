@@ -318,11 +318,13 @@ generate_expression dialect expr = case expr of
             _ : Function -> result metadata
             _ -> result
     SQL_Expression.With binder bindee body ->
-        bindee_exp = SQL_Builder.code "SELECT " ++ (generate_expression dialect bindee).paren ++ " AS " ++ binder
-        body_exp = SQL_Builder.code "SELECT " ++ (generate_expression dialect body) ++ " FROM " ++ binder
-        (SQL_Builder.code "WITH " ++ binder ++ " AS " ++ bindee_exp.paren ++ " " ++ body_exp.paren).paren
+        wrapped_binder = dialect.wrap_identifier binder
+        bindee_exp = SQL_Builder.code "SELECT " ++ (generate_expression dialect bindee).paren ++ " AS " ++ wrapped_binder
+        body_exp = SQL_Builder.code "SELECT " ++ (generate_expression dialect body) ++ " FROM " ++ wrapped_binder
+        (SQL_Builder.code "WITH " ++ wrapped_binder  ++ " AS " ++ bindee_exp.paren ++ " " ++ body_exp.paren).paren
     SQL_Expression.With_Ref binder ->
-        SQL_Builder.code binder ++ "." ++ binder
+        wrapped_binder = dialect.wrap_identifier binder
+        wrapped_binder ++ "." ++ wrapped_binder
     query : Query -> generate_query dialect query
     descriptor : Order_Descriptor -> generate_order dialect descriptor
 
@@ -372,10 +374,11 @@ generate_from_part dialect from_spec = case from_spec of
         sub = generate_query dialect (Query.Select columns context)
         sub.paren ++ alias dialect as_name
 
-    From_Spec.With binding_from_spec inner_from_spec ->
-        binding_sql_builder = generate_from_part dialect binding_from_spec 
-        inner_sql_builder = generate_from_part dialect inner_from_spec
-        (SQL_Builder.code "WITH" ++ binding_from_spec.alias ++ "AS" ++ binding_sql_builder.paren ++ inner_sql_builder.paren).paren
+    ##
+        From_Spec.With binding_from_spec inner_from_spec ->
+            binding_sql_builder = generate_from_part dialect binding_from_spec
+            inner_sql_builder = generate_from_part dialect inner_from_spec
+            (SQL_Builder.code "WITH" ++ binding_from_spec.alias ++ "AS" ++ binding_sql_builder.paren ++ inner_sql_builder.paren).paren
     ##
         From_Spec.With_Query columns context as_name exp_columns exp_context exp_alias ->
             binding_sql_builder = generate_query dialect (Query.Select exp_columns exp_context)
