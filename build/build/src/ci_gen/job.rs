@@ -330,7 +330,7 @@ pub struct GuiCheck;
 
 impl JobArchetype for GuiCheck {
     fn job(&self, target: Target) -> Job {
-        plain_job(target, "GUI check", "gui check")
+        plain_job(target, "GUI tests", "gui check")
     }
 }
 
