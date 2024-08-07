@@ -8,9 +8,8 @@ import * as React from 'react'
 
 import * as aria from '#/components/aria'
 
-import * as twv from '#/utilities/tailwindVariants'
-
 import { useText } from '#/providers/TextProvider'
+import { type ExtractFunction, tv, type VariantProps } from '#/utilities/tailwindVariants'
 import * as text from '../../Text'
 import type * as types from './types'
 import * as formContext from './useFormContext'
@@ -18,9 +17,7 @@ import * as formContext from './useFormContext'
 /**
  * Props for Field component
  */
-export interface FieldComponentProps
-  extends twv.VariantProps<typeof FIELD_STYLES>,
-    types.FieldProps {
+export interface FieldComponentProps extends VariantProps<typeof FIELD_STYLES>, types.FieldProps {
   readonly name: string
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly form?: types.FormInstance<any, any, any>
@@ -28,6 +25,7 @@ export interface FieldComponentProps
   readonly className?: string | undefined
   readonly children?: React.ReactNode | ((props: FieldChildrenRenderProps) => React.ReactNode)
   readonly style?: React.CSSProperties | undefined
+  readonly variants?: ExtractFunction<typeof FIELD_STYLES> | undefined
 }
 
 /**
@@ -41,21 +39,12 @@ export interface FieldChildrenRenderProps {
   readonly error?: string | undefined
 }
 
-export const FIELD_STYLES = twv.tv({
+export const FIELD_STYLES = tv({
   base: 'flex flex-col gap-0.5 items-start',
   variants: {
     fullWidth: { true: 'w-full' },
     isInvalid: { true: { label: 'text-danger' } },
     isHidden: { true: { base: 'hidden' } },
-    variant: {
-      default: '',
-      settings: {
-        base: 'flex-row flex-wrap',
-        labelContainer: 'flex min-h-row items-center gap-5 w-full',
-        label: 'text mb-auto w-40 shrink-0',
-        error: 'ml-[180px]',
-      },
-    },
   },
   slots: {
     labelContainer: 'contents',
@@ -66,7 +55,6 @@ export const FIELD_STYLES = twv.tv({
   },
   defaultVariants: {
     fullWidth: true,
-    variant: 'default',
   },
 })
 
@@ -87,9 +75,9 @@ export const Field = React.forwardRef(function Field(
     fullWidth,
     error,
     name,
-    variant,
     isHidden,
     isRequired = false,
+    variants,
   } = props
   const { getText } = useText()
 
@@ -101,8 +89,7 @@ export const Field = React.forwardRef(function Field(
 
   const invalid = isInvalid === true || fieldState.invalid
 
-  const classes = FIELD_STYLES({
-    variant,
+  const classes = (variants ?? FIELD_STYLES)({
     fullWidth,
     isInvalid: invalid,
     isHidden,

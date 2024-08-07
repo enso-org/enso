@@ -24,6 +24,7 @@ export const INPUT_STYLES = tv({
     size: {
       medium: { base: 'px-[11px] pb-[6.5px] pt-[8.5px]', icon: 'size-4' },
       small: { base: 'px-[11px] pb-0.5 pt-1', icon: 'size-3' },
+      custom: {},
     },
     rounded: {
       none: 'rounded-none',
@@ -36,13 +37,10 @@ export const INPUT_STYLES = tv({
       full: 'rounded-full',
     },
     variant: {
+      custom: {},
       outline: {
         base: 'border-[0.5px] border-primary/20 outline-offset-2 focus-within:border-primary/50 focus-within:outline focus-within:outline-2 focus-within:outline-offset-[-1px] focus-within:outline-primary',
         textArea: 'border-transparent focus-within:border-transparent',
-      },
-      settings: {
-        base: 'p-0',
-        textArea: 'rounded-2xl border-0.5 border-primary/20 px-1',
       },
     },
   },

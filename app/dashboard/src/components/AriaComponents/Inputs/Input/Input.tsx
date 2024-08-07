@@ -13,8 +13,9 @@ import * as ariaComponents from '#/components/AriaComponents'
 import * as mergeRefs from '#/utilities/mergeRefs'
 
 import SvgMask from '#/components/SvgMask'
+import type { ExtractFunction } from '#/utilities/tailwindVariants'
 import { omit } from 'enso-common/src/utilities/data/object'
-import * as variants from '../variants'
+import { INPUT_STYLES } from '../variants'
 
 /**
  * Props for the Input component.
@@ -32,7 +33,7 @@ export interface InputProps<
       TTransformedValues
     >,
     ariaComponents.FieldProps,
-    Omit<twv.VariantProps<typeof variants.INPUT_STYLES>, 'disabled' | 'invalid'> {
+    Omit<twv.VariantProps<typeof INPUT_STYLES>, 'disabled' | 'invalid'> {
   readonly className?: string
   readonly style?: React.CSSProperties
   readonly inputRef?: React.Ref<HTMLInputElement>
@@ -41,6 +42,8 @@ export interface InputProps<
   readonly placeholder?: string
   /** The icon to display in the input. */
   readonly icon?: React.ReactElement | string | null
+  readonly variants?: ExtractFunction<typeof INPUT_STYLES> | undefined
+  readonly fieldVariants?: ariaComponents.FieldComponentProps['variants']
 }
 
 /**
@@ -74,6 +77,8 @@ export const Input = React.forwardRef(function Input<
     icon,
     type = 'text',
     variant,
+    variants,
+    fieldVariants,
     ...inputProps
   } = props
 
@@ -86,7 +91,7 @@ export const Input = React.forwardRef(function Input<
     defaultValue,
   })
 
-  const classes = variants.INPUT_STYLES({
+  const classes = (variants ?? INPUT_STYLES)({
     variant,
     size,
     rounded,
@@ -136,7 +141,7 @@ export const Input = React.forwardRef(function Input<
       ref={ref}
       style={props.style}
       className={props.className}
-      variant={variant === 'settings' ? 'settings' : 'default'}
+      variants={fieldVariants}
     >
       <div
         className={classes.base()}

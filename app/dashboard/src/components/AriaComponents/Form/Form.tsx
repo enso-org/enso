@@ -13,6 +13,7 @@ import * as aria from '#/components/aria'
 
 import * as errorUtils from '#/utilities/error'
 
+import type { Mutable } from 'enso-common/src/utilities/data/object'
 import * as dialog from '../Dialog'
 import * as components from './components'
 import * as styles from './styles'
@@ -220,26 +221,29 @@ export const Form = React.forwardRef(function Form<
       </aria.FormValidationContext.Provider>
     </form>
   )
-}) as unknown as (<
-  Schema extends components.TSchema,
-  TFieldValues extends components.FieldValues<Schema>,
-  TTransformedValues extends components.FieldValues<Schema> | undefined = undefined,
->(
-  props: React.RefAttributes<HTMLFormElement> &
-    types.FormProps<Schema, TFieldValues, TTransformedValues>,
-  // eslint-disable-next-line no-restricted-syntax
-) => React.JSX.Element) & {
-  /* eslint-disable @typescript-eslint/naming-convention */
-  schema: typeof components.schema
-  useForm: typeof components.useForm
-  useField: typeof components.useField
-  Submit: typeof components.Submit
-  Reset: typeof components.Reset
-  Field: typeof components.Field
-  FormError: typeof components.FormError
-  useFormSchema: typeof components.useFormSchema
-  /* eslint-enable @typescript-eslint/naming-convention */
-}
+}) as unknown as Mutable<
+  Pick<
+    typeof components,
+    | 'FIELD_STYLES'
+    | 'Field'
+    | 'FormError'
+    | 'Reset'
+    | 'schema'
+    | 'Submit'
+    | 'useField'
+    | 'useForm'
+    | 'useFormSchema'
+  >
+> &
+  (<
+    Schema extends components.TSchema,
+    TFieldValues extends components.FieldValues<Schema>,
+    TTransformedValues extends components.FieldValues<Schema> | undefined = undefined,
+  >(
+    props: React.RefAttributes<HTMLFormElement> &
+      types.FormProps<Schema, TFieldValues, TTransformedValues>,
+    // eslint-disable-next-line no-restricted-syntax
+  ) => React.JSX.Element)
 
 Form.schema = components.schema
 Form.useForm = components.useForm
@@ -249,3 +253,4 @@ Form.Submit = components.Submit
 Form.Reset = components.Reset
 Form.FormError = components.FormError
 Form.Field = components.Field
+Form.FIELD_STYLES = components.FIELD_STYLES

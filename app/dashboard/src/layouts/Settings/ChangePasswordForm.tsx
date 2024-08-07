@@ -7,6 +7,7 @@ import { ButtonGroup, Form, Input } from '#/components/AriaComponents'
 import { useAuth, useNonPartialUserSession } from '#/providers/AuthProvider'
 import { type GetText, useText } from '#/providers/TextProvider'
 
+import SettingsAriaInput from '#/layouts/Settings/SettingsAriaInput'
 import { passwordSchema, passwordWithPatternSchema } from '#/pages/authentication/schemas'
 import { PASSWORD_REGEX } from '#/utilities/validation'
 
@@ -50,30 +51,27 @@ export default function ChangePasswordForm() {
       onSubmit={({ currentPassword, newPassword }) => changePassword(currentPassword, newPassword)}
     >
       <Input hidden name="username" autoComplete="username" value={user.email} readOnly />
-      <Input
+      <SettingsAriaInput
         name="currentPassword"
         type="password"
         autoComplete="current-password"
         label={getText('currentPasswordLabel')}
         placeholder={getText('currentPasswordPlaceholder')}
-        variant="settings"
       />
-      <Input
+      <SettingsAriaInput
         name="newPassword"
         type="password"
         label={getText('newPasswordLabel')}
         placeholder={getText('newPasswordPlaceholder')}
         autoComplete="new-password"
-        variant="settings"
         description={getText('passwordValidationMessage')}
       />
-      <Input
+      <SettingsAriaInput
         name="confirmNewPassword"
         type="password"
         label={getText('confirmNewPasswordLabel')}
         placeholder={getText('confirmNewPasswordPlaceholder')}
         autoComplete="new-password"
-        variant="settings"
       />
 
       <Form.FormError />
