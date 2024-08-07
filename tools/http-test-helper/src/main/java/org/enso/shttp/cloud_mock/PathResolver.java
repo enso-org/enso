@@ -48,23 +48,7 @@ public class PathResolver implements CloudHandler {
     }
 
     String[] pathSegments = matcher.group(1).split("/");
-
-    AssetStore.Asset foundAsset = null;
-    if (pathSegments.length == 0) {
-      foundAsset = assetStore.rootDirectory;
-    } else if (Arrays.equals(pathSegments, new String[] { assetStore.usersDirectory.title() })) {
-      foundAsset = assetStore.usersDirectory;
-    } else if (Arrays.equals(pathSegments, new String[] { assetStore.usersDirectory.title(), assetStore.homeDirectory.title() })) {
-      foundAsset = assetStore.homeDirectory;
-    } else if (pathSegments.length == 3) {
-      if (pathSegments[0].equals(assetStore.usersDirectory.title()) && pathSegments[1].equals(assetStore.homeDirectory.title())) {
-        var foundSecret = assetStore.findAssetInRootByTitle(pathSegments[2]);
-        if (foundSecret != null) {
-          foundAsset = foundSecret.asAsset();
-        }
-      }
-    }
-
+    AssetStore.Asset foundAsset = assetStore.resolvePath(pathSegments);
     if (foundAsset == null) {
       exchange.sendResponse(404, "Asset not found: " + path);
       return;
