@@ -3,7 +3,6 @@ import * as test from '@playwright/test'
 
 import type * as inputBindings from '#/utilities/inputBindings'
 
-import { regexEscape } from '#/utilities/string'
 import { modModifier, TEXT } from '../actions'
 
 // ====================
@@ -159,23 +158,19 @@ export default class BaseActions implements Promise<void> {
 
   /** Expect an input to have an error (or no error if the expected value is `null`).
    * If the expected value is `undefined`, the assertion is skipped. */
-  expectInputError(label: string, description: string, expected: string | null | undefined) {
+  expectInputError(testId: string, description: string, expected: string | null | undefined) {
     if (expected === undefined) {
       return this
     } else if (expected != null) {
       return this.step(`Expect ${description} error to be '${expected}'`, async (page) => {
         await test
-          .expect(
-            page.getByLabel(new RegExp('^' + regexEscape(label))).getByLabel(TEXT.fieldErrorLabel),
-          )
+          .expect(page.getByTestId(testId).getByLabel(TEXT.fieldErrorLabel))
           .toHaveText(expected)
       })
     } else {
       return this.step(`Expect no ${description} error`, async (page) => {
         await test
-          .expect(
-            page.getByLabel(new RegExp('^' + regexEscape(label))).getByLabel(TEXT.fieldErrorLabel),
-          )
+          .expect(page.getByTestId(testId).getByLabel(TEXT.fieldErrorLabel))
           .not.toBeVisible()
       })
     }

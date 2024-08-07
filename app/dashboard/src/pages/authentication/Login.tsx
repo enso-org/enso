@@ -91,6 +91,7 @@ export default function Login() {
         <Input
           autoFocus
           required
+          data-testid="email-input"
           name="email"
           label={getText('email')}
           type="email"
@@ -106,6 +107,7 @@ export default function Login() {
         <div className="flex w-full flex-col">
           <Password
             required
+            data-testid="password-input"
             name="password"
             label={getText('password')}
             autoComplete="current-password"

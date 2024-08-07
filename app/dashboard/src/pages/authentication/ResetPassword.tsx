@@ -91,6 +91,7 @@ export default function ResetPassword() {
         required
         readOnly
         hidden
+        data-testid="email-input"
         name="email"
         type="email"
         autoComplete="email"
@@ -101,6 +102,7 @@ export default function ResetPassword() {
         required
         readOnly
         hidden
+        data-testid="verification-code-input"
         name="verificationCode"
         type="text"
         autoComplete="one-time-code"
@@ -110,6 +112,7 @@ export default function ResetPassword() {
       <Password
         autoFocus
         required
+        data-testid="new-password-input"
         name="newPassword"
         label={getText('newPasswordLabel')}
         autoComplete="new-password"
@@ -119,6 +122,7 @@ export default function ResetPassword() {
       />
       <Password
         required
+        data-testid="confirm-new-password-input"
         name="confirmNewPassword"
         label={getText('confirmNewPasswordLabel')}
         autoComplete="new-password"

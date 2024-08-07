@@ -56,8 +56,8 @@ export default class LoginPageActions extends BaseActions {
   ) {
     const { emailError, passwordError, formError } = assert
     const next = this.step('Login (should fail)', () => this.loginInternal(email, password))
-      .expectInputError(TEXT.emailLabel, 'email', emailError)
-      .expectInputError(TEXT.passwordLabel, 'password', passwordError)
+      .expectInputError('email-input', 'email', emailError)
+      .expectInputError('password-input', 'password', passwordError)
     if (formError === undefined) {
       return next
     } else if (formError != null) {

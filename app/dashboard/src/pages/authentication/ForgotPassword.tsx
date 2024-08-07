@@ -57,6 +57,7 @@ export default function ForgotPassword() {
       <Input
         autoFocus
         required
+        data-testid="email-input"
         name="email"
         label={getText('emailLabel')}
         type="email"

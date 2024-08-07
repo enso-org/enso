@@ -99,6 +99,7 @@ export default function Registration() {
       <Input
         autoFocus
         required
+        data-testid="email-input"
         name="email"
         label={getText('emailLabel')}
         type="email"
@@ -112,6 +113,7 @@ export default function Registration() {
       />
       <Password
         required
+        data-testid="password-input"
         name="password"
         label={getText('passwordLabel')}
         autoComplete="new-password"
@@ -121,6 +123,7 @@ export default function Registration() {
       />
       <Password
         required
+        data-testid="confirm-password-input"
         name="confirmPassword"
         label={getText('confirmPasswordLabel')}
         autoComplete="new-password"
