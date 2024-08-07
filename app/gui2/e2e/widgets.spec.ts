@@ -543,6 +543,7 @@ test('Table widget', async ({ page }) => {
   await page.keyboard.type('Table.new')
   await page.keyboard.press('Enter')
   const node = locate.graphNodeByBinding(page, 'table1')
+  await expect(node).toHaveCount(1)
   await expect(node).toBeVisible()
   await mockMethodCallInfo(
     page,
