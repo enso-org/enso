@@ -3,7 +3,8 @@ import * as test from '@playwright/test'
 
 import type * as inputBindings from '#/utilities/inputBindings'
 
-import * as actions from '../actions'
+import { regexEscape } from '#/utilities/string'
+import { modModifier, TEXT } from '../actions'
 
 // ====================
 // === PageCallback ===
@@ -149,29 +150,33 @@ export default class BaseActions implements Promise<void> {
   withModPressed<R extends BaseActions>(callback: (actions: this) => R) {
     return callback(
       this.step('Press "Mod"', async (page) => {
-        await page.keyboard.down(await actions.modModifier(page))
+        await page.keyboard.down(await modModifier(page))
       }),
     ).step('Release "Mod"', async (page) => {
-      await page.keyboard.up(await actions.modModifier(page))
+      await page.keyboard.up(await modModifier(page))
     })
   }
 
   /** Expect an input to have an error (or no error if the expected value is `null`).
    * If the expected value is `undefined`, the assertion is skipped. */
-  expectInputError(name: string, description: string, expected: string | null | undefined) {
+  expectInputError(label: string, description: string, expected: string | null | undefined) {
     if (expected === undefined) {
       return this
     } else if (expected != null) {
       return this.step(`Expect ${description} error to be '${expected}'`, async (page) => {
-        // eslint-disable-next-line no-restricted-properties
-        const element = page.locator(`fieldset:has(input[name=${name}]) > span.text-danger`)
-        await test.expect(element).toHaveText(expected)
+        await test
+          .expect(
+            page.getByLabel(new RegExp('^' + regexEscape(label))).getByLabel(TEXT.fieldErrorLabel),
+          )
+          .toHaveText(expected)
       })
     } else {
       return this.step(`Expect no ${description} error`, async (page) => {
-        // eslint-disable-next-line no-restricted-properties
-        const element = page.locator(`fieldset:has(input[name=${name}]) > span.text-danger`)
-        await test.expect(element).not.toBeVisible()
+        await test
+          .expect(
+            page.getByLabel(new RegExp('^' + regexEscape(label))).getByLabel(TEXT.fieldErrorLabel),
+          )
+          .not.toBeVisible()
       })
     }
   }

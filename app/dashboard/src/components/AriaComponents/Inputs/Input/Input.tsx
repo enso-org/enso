@@ -126,7 +126,7 @@ export const Input = React.forwardRef(function Input<
       name={name}
       fullWidth
       isHidden={inputProps.hidden}
-      label={<div className={classes.label()}>{label}</div>}
+      label={label}
       aria-label={props['aria-label']}
       aria-labelledby={props['aria-labelledby']}
       aria-describedby={props['aria-describedby']}

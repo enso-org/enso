@@ -48,9 +48,9 @@ export default class RegisterPageActions extends BaseActions {
     const next = this.step('Register (should fail)', () =>
       this.registerInternal(email, password, confirmPassword),
     )
-      .expectInputError('email', 'email', emailError)
-      .expectInputError('password', 'password', passwordError)
-      .expectInputError('confirmPassword', 'confirmPassword', confirmPasswordError)
+      .expectInputError(TEXT.emailLabel, 'email', emailError)
+      .expectInputError(TEXT.passwordLabel, 'password', passwordError)
+      .expectInputError(TEXT.confirmPasswordLabel, 'confirmPassword', confirmPasswordError)
     if (formError === undefined) {
       return next
     } else if (formError != null) {

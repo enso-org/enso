@@ -10,6 +10,7 @@ import * as aria from '#/components/aria'
 
 import * as twv from '#/utilities/tailwindVariants'
 
+import { useText } from '#/providers/TextProvider'
 import * as text from '../../Text'
 import type * as types from './types'
 import * as formContext from './useFormContext'
@@ -90,6 +91,7 @@ export const Field = React.forwardRef(function Field(
     isHidden,
     isRequired = false,
   } = props
+  const { getText } = useText()
 
   const fieldState = form.getFieldState(name)
 
@@ -154,7 +156,7 @@ export const Field = React.forwardRef(function Field(
       )}
 
       {hasError && (
-        <span id={errorId} className={classes.error()}>
+        <span aria-label={getText('fieldErrorLabel')} id={errorId} className={classes.error()}>
           {error ?? fieldState.error?.message}
         </span>
       )}

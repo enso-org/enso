@@ -48,7 +48,6 @@ export const INPUT_STYLES = tv({
     },
   },
   slots: {
-    label: '',
     icon: '',
     addonStart: 'flex items-center mt-[-1px]',
     addonEnd: 'flex items-center mt-[-1px]',
