@@ -4,21 +4,21 @@ import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore } from '@/stores/graph'
 import type { SuggestionId } from 'shared/languageServerTypes/suggestions'
 import { Err, Ok, type Result } from 'shared/util/data/result'
-import { computed, ref, watch } from 'vue'
+import { ref, watchEffect } from 'vue'
 
 const selection = injectGraphSelection()
 const graphStore = useGraphStore()
 
 const displayedDocs = ref<Result<SuggestionId>>()
 
-const docsForSelection = computed(() => {
+function docsForSelection() {
   const selected = selection.tryGetSoleSelection()
   if (!selected.ok) return Err('Select a single component to display help')
   const suggestionId = graphStore.db.nodeMainSuggestionId.lookup(selected.value)
   if (suggestionId == null) return Err('No documentation available for selected component')
   return Ok(suggestionId)
-})
-watch(docsForSelection, (result) => (displayedDocs.value = result), { immediate: true })
+}
+watchEffect(() => (displayedDocs.value = docsForSelection()))
 </script>
 
 <template>

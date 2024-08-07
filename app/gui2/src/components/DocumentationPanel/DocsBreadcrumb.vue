@@ -3,7 +3,6 @@ import SvgIcon from '@/components/SvgIcon.vue'
 import type { Icon } from '@/util/iconName'
 
 const props = defineProps<{ text: string; icon?: Icon | undefined }>()
-const emit = defineEmits<{ click: [] }>()
 </script>
 
 <template>

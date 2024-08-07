@@ -46,7 +46,7 @@ function shrinkFactor(index: number): number {
           :style="{ 'flex-shrink': shrinkFactor(index) }"
           :class="{ nonInteractive: index === props.breadcrumbs.length - 1 }"
           class="clickable"
-          @click="emit('click', index)"
+          @click.stop="emit('click', index)"
         />
       </template>
     </TransitionGroup>
