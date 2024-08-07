@@ -32,15 +32,11 @@ export function useLexicalSync<T>(
     state.value = editorState
   })
 
-  const getEditedContent = computed(() => {
-    return state.value.read($read)
-  })
-
   const getContent = () => editor.getEditorState().read($read)
 
   return {
     content: {
-      state: getEditedContent,
+      editedContent: computed(() => state.value.read($read)),
       set: (content: T) => {
         editor.update(() => $write(content, getContent), {
           discrete: true,
