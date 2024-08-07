@@ -66,4 +66,9 @@ type SQL_Expression
     Operation (kind : Text) (expressions : Vector SQL_Expression) (metadata : Any | Nothing = Nothing)
 
     With (binder : Text) (bindee : SQL_Expression) (body : SQL_Expression)
-    With_Ref (binder : Text)
+    With_Ref (binder : Text) (standalone_expression : SQL_Expression)
+
+    standalone : SQL_Expression
+    standalone self = case self of
+        SQL_Expression.With_Ref _ standalone_expression -> standalone_expression
+        _ -> self
