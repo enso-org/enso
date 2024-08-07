@@ -1,0 +1,15 @@
+from Standard.Base import all
+
+from Standard.Test import Test
+
+import project.Read_Spec
+import project.Structure_Spec
+
+add_specs suite_builder =
+    Structure_Spec.add_specs suite_builder
+    Read_Spec.add_specs suite_builder
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

@@ -552,7 +552,7 @@ js_date year month=1 day=1 =
 
 js_array_date year month=1 day=1 =
     arr = Panic.catch Any (js_array_dateCreate year month day) (err -> Error.throw (Time_Error.Error err.payload))
-    js_set_zone arr.at(0)
+    js_set_zone (arr.at 0)
 
 java_parse date_text pattern=Nothing =
     Panic.catch Any handler=(err -> Error.throw (Time_Error.Error err.payload.getMessage)) <|
