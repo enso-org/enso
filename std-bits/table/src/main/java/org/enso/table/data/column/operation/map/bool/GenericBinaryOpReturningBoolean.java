@@ -1,7 +1,6 @@
 package org.enso.table.data.column.operation.map.bool;
 
 import java.util.BitSet;
-import org.enso.table.data.column.builder.StorageTypeMismatchException;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.BoolStorage;
@@ -51,11 +50,8 @@ public abstract class GenericBinaryOpReturningBoolean<T, S extends SpecializedSt
   public Storage<?> runZip(
       S storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
     assert arg != null;
-    if (!storage.getType().equals(arg.getType())) {
-      throw new StorageTypeMismatchException(storage.getType(), arg.getType());
-    }
-
-    if (arg instanceof SpecializedStorage<?> argStorage) {
+    if (storage.getType().equals(arg.getType())
+        && arg instanceof SpecializedStorage<?> argStorage) {
       SpecializedStorage<T> argTStorage = storage.castIfSameType(argStorage);
       assert argTStorage != null : "We checked that types are equal so cast should not fail";
       return runHomogenousZip(storage, argTStorage);

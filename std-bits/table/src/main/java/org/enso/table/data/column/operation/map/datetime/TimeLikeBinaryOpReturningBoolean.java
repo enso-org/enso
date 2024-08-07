@@ -10,6 +10,7 @@ public abstract class TimeLikeBinaryOpReturningBoolean<T>
 
   public TimeLikeBinaryOpReturningBoolean(String name, Class<T> objectType) {
     super(name);
+    this.clazz = objectType;
   }
 
   @Override

@@ -1,7 +1,6 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
-
 import org.enso.base.CompareException;
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
@@ -210,7 +209,7 @@ public final class StringStorage extends SpecializedStorage<String> {
     }
   }
 
-  private static abstract class StringComparisonOp extends StringBooleanOp {
+  private abstract static class StringComparisonOp extends StringBooleanOp {
     public StringComparisonOp(String name) {
       super(name);
     }
