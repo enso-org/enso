@@ -4,8 +4,9 @@ import * as test from '@playwright/test'
 import { TEXT, VALID_EMAIL, VALID_PASSWORD } from '../actions'
 import BaseActions, { type LocatorCallback } from './BaseActions'
 import DrivePageActions from './DrivePageActions'
+import ForgotPasswordPageActions from './ForgotPasswordPageActions'
 import RegisterPageActions from './RegisterPageActions'
-import SetUsernamePageActions from './SetUsernamePageActions'
+import SetupPageActions from './SetupPageActions'
 
 // ========================
 // === LoginPageActions ===
@@ -20,6 +21,10 @@ export default class LoginPageActions extends BaseActions {
         this.step("Go to 'register' page", async (page) =>
           page.getByRole('link', { name: TEXT.dontHaveAnAccount, exact: true }).click(),
         ).into(RegisterPageActions),
+      forgotPassword: (): ForgotPasswordPageActions =>
+        this.step("Go to 'forgot password' page", async (page) =>
+          page.getByRole('link', { name: TEXT.forgotYourPassword, exact: true }).click(),
+        ).into(ForgotPasswordPageActions),
     }
   }
 
@@ -31,7 +36,7 @@ export default class LoginPageActions extends BaseActions {
   /** Perform a login as a new user (a user that does not yet have a username). */
   loginAsNewUser(email = VALID_EMAIL, password = VALID_PASSWORD) {
     return this.step('Login (as new user)', () => this.loginInternal(email, password)).into(
-      SetUsernamePageActions,
+      SetupPageActions,
     )
   }
 

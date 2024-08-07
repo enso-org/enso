@@ -314,8 +314,7 @@ export const Button = React.forwardRef(function Button(
   const Tag = isLink ? aria.Link : aria.Button
 
   const goodDefaults = {
-    ...(isLink ? { rel: 'noopener noreferrer', ref } : {}),
-    ...(isLink ? {} : { type: 'button' as const }),
+    ...(isLink ? { rel: 'noopener noreferrer' } : { type: 'button' as const }),
     'data-testid': testId ?? (isLink ? 'link' : 'button'),
   }
 
@@ -440,7 +439,8 @@ export const Button = React.forwardRef(function Button(
     <Tag
       // @ts-expect-error ts errors are expected here because we are merging props with different types
       {...aria.mergeProps<aria.ButtonProps>()(goodDefaults, ariaProps, focusChildProps, {
-        isDisabled: isDisabled,
+        ref,
+        isDisabled,
         // we use onPressEnd instead of onPress because for some reason react-aria doesn't trigger
         // onPress on EXTRA_CLICK_ZONE, but onPress{start,end} are triggered
         onPressEnd: handlePress,

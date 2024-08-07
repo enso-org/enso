@@ -98,7 +98,7 @@ export default function Login() {
           icon={AtIcon}
           defaultValue={initialEmail ?? undefined}
           placeholder={getText('emailPlaceholder')}
-          onBlur={(event) => {
+          onChange={(event) => {
             setEmailInput(event.currentTarget.value)
           }}
         />

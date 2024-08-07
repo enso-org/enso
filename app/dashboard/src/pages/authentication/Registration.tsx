@@ -106,7 +106,7 @@ export default function Registration() {
         icon={AtIcon}
         placeholder={getText('emailPlaceholder')}
         defaultValue={initialEmail ?? undefined}
-        onBlur={(event) => {
+        onChange={(event) => {
           setEmailInput(event.currentTarget.value)
         }}
       />
