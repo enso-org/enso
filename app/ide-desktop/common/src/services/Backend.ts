@@ -146,6 +146,12 @@ export enum BackendType {
   remote = 'remote',
 }
 
+/** An invite to a new organization for an existing user. */
+export interface OrganizationInvite {
+  readonly name: string
+  readonly status: 'open' | 'error'
+}
+
 /** Metadata uniquely identifying a user inside an organization. */
 export interface UserInfo {
   /** The ID of the parent organization. If this is a sole user, they are implicitly in an
@@ -162,6 +168,7 @@ export interface UserInfo {
   readonly userId: UserId
   readonly name: string
   readonly email: EmailAddress
+  readonly newOrganization?: OrganizationInvite
 }
 
 /** A user in the application. These are the primary owners of a project. */
