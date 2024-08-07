@@ -259,6 +259,18 @@ type Dialect
         _ = column
         Unimplemented.throw "This is an interface only."
 
+    ## PRIVATE
+       An optional method. It only needs to be implemented if
+       `DDL_Transaction.Support_Level` of this connection is different than `Allowed`.
+
+       It specifies if the table integrity should be checked at the beginning of
+       the transaction - to check if there were no unexpected modifications
+       between the table was created (outside of transaction) and the
+       transaction was entered. Some dialects may decide to opt-out of
+       this check for performance reasons.
+    should_check_table_integrity_at_beginning_of_transaction self -> Boolean =
+        Unimplemented.throw "This is an interface only."
+
 ## PRIVATE
 
    The dialect of SQLite databases.

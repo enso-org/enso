@@ -5,6 +5,9 @@ import org.enso.editions.{LibraryName, LibraryVersion}
 /** A helper class for resolving libraries. */
 trait ResolvingLibraryProvider {
 
+  /** Finds available library names */
+  def findAvailableLocalLibraries(): Seq[LibraryName]
+
   /** Resolves which library version should be used and finds its path within
     * local libraries or the cache.
     *

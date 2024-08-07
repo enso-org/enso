@@ -97,17 +97,18 @@ final class TreeToIr {
             case Tree.Import x -> null;
             case Tree.Invalid x -> null;
             case Tree.TypeSignature sig -> {
-              Expression methodReference;
-              try {
-                methodReference = translateMethodReference(sig.getVariable(), true);
-              } catch (SyntaxException ex) {
-                methodReference = translateExpression(sig.getVariable());
-              }
+             Expression methodReference;
+             try {
+               methodReference = translateMethodReference(sig.getVariable(), true);
+             } catch (SyntaxException ex) {
+               methodReference = ex.toError();
+             }
               var signature = translateType(sig.getType());
               var ascription = new Type.Ascription(methodReference, signature, Option.empty(),
                   getIdentifiedLocation(sig), meta(), diag());
               yield ascription;
             }
+            case Tree.TypeAnnotated anno -> translateTypeAnnotated(anno);
             default -> translateExpression(exprTree);
           };
           if (expr != null) {
@@ -856,6 +857,17 @@ final class TreeToIr {
       return callExpression;
     }
     return switch (tree) {
+      case Tree.Lambda lambda -> {
+        List<DefinitionArgument> args;
+        try {
+          args = translateArgumentsDefinition(lambda.getArguments());
+        } catch (SyntaxException ex) {
+          yield ex.toError();
+        }
+        var body = translateExpression(lambda.getBody(), false);
+        var at = getIdentifiedLocation(lambda);
+        yield new Function.Lambda(args, body, at, true, meta(), diag());
+      }
       case Tree.OprApp app -> {
         var op = app.getOpr().getRight();
         if (op == null) {
@@ -1361,12 +1373,24 @@ final class TreeToIr {
       case Tree.Group group -> translateType(group.getBody());
       case Tree.UnaryOprApp un -> translateType(un.getRhs());
       case Tree.Wildcard wild -> new Name.Blank(getIdentifiedLocation(wild), meta(), diag());
-      case Tree.TypeAnnotated anno -> translateTypeAnnotated(anno);
+      case Tree.TypeAnnotated anno -> translateTypeAnnotatedToOperator(anno);
       default -> translateSyntaxError(tree, new Syntax.UnsupportedSyntax("translateType"));
     };
   }
 
+  /**
+   * Translate a type-annotated expression.
+   */
   Expression translateTypeAnnotated(Tree.TypeAnnotated anno) {
+    var type = translateType(anno.getType());
+    var expr = translateExpression(anno.getExpression());
+    return new Type.Ascription(expr, type, Option.empty(), getIdentifiedLocation(anno), meta(), diag());
+  }
+
+  /**
+   * Translate a type-annotated expression in a context where the IR is a generic binary operator.
+   */
+  Expression translateTypeAnnotatedToOperator(Tree.TypeAnnotated anno) {
     var type = translateTypeCallArgument(anno.getType());
     var expr = translateCallArgument(anno.getExpression());
     var opName = new Name.Literal(anno.getOperator().codeRepr(), true, Option.empty(),
@@ -1835,12 +1859,6 @@ final class TreeToIr {
   @SuppressWarnings("unchecked")
   Export translateExport(Tree.Export exp) {
     try {
-      if (exp.getHiding() != null) {
-        return translateSyntaxError(exp, invalidExportReason("`hiding` not allowed in `export` statement"));
-      }
-      if (exp.getAll() != null) {
-        return translateSyntaxError(exp, invalidExportReason("`all` not allowed in `export` statement"));
-      }
       Option<Name.Literal> rename;
       if (exp.getAs() == null) {
         rename = Option.empty();
