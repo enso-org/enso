@@ -12,7 +12,7 @@ export function reactiveModule(doc: Y.Doc): {
   const triggers = new WeakMap<object, () => void>()
   const tracks = new WeakMap<object, () => void>()
   const wrap = <Fields>(wrapped: FixedMap<Fields>) => {
-    if (wrapped.hasOwnProperty(WrappedValue)) return wrapped
+    if (Object.hasOwnProperty.bind(wrapped)(WrappedValue)) return wrapped
     const track = () => {
       const track = tracks.get(wrapped)
       if (track) {

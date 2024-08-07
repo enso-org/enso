@@ -17,7 +17,7 @@ test('Module reactivity', async () => {
   expect(module.root()!.code()).toBe(beforeEdit.code())
 
   const app2 = module.root() as unknown as Ast.App
-  var app2Code: string | undefined = undefined
+  let app2Code: string | undefined = undefined
   watchEffect(() => (app2Code = app2.argument.code()))
   expect(app2Code).toBe('arg2')
 
@@ -46,7 +46,7 @@ test('Module reactivity: Tracking access to ancestors', async () => {
   const block = module.root() as any as Ast.BodyBlock
   const expression = ([...block.statements()][0] as Ast.Documented).expression as Ast.Function
   expect(expression.name.code()).toBe('main')
-  var mainDocs: string | undefined = undefined
+  let mainDocs: string | undefined = undefined
   watchEffect(() => (mainDocs = expression.documentingAncestor()?.documentation()))
   expect(mainDocs).toBe(docsBeforeEdit)
 
