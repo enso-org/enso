@@ -2,19 +2,17 @@ package org.enso.table.data.column.storage.datetime;
 
 import java.time.Duration;
 import java.time.LocalTime;
-
 import org.enso.base.CompareException;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.ObjectBuilder;
 import org.enso.table.data.column.operation.map.GenericBinaryObjectMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
-import org.enso.table.data.column.operation.map.bool.GenericBinaryOpReturningBoolean;
 import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
+import org.enso.table.data.column.operation.map.datetime.TimeLikeBinaryOpReturningBoolean;
 import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
-import org.enso.table.error.UnexpectedTypeException;
 
 public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
   /**
@@ -30,7 +28,7 @@ public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
         ObjectStorage.buildObjectOps();
     t.add(new DateTimeIsInOp<>(LocalTime.class));
     t.add(
-        new GenericBinaryOpReturningBoolean<>(Maps.EQ, LocalTime.class) {
+        new TimeLikeBinaryOpReturningBoolean<>(Maps.EQ, LocalTime.class) {
           @Override
           protected boolean doOperation(LocalTime a, LocalTime b) {
             return a.equals(b);
@@ -101,7 +99,7 @@ public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
   }
 
   private abstract static class TimeOfDayComparisonOp
-      extends GenericBinaryOpReturningBoolean<LocalTime, SpecializedStorage<LocalTime>> {
+      extends TimeLikeBinaryOpReturningBoolean<LocalTime> {
     public TimeOfDayComparisonOp(String name) {
       super(name, LocalTime.class);
     }

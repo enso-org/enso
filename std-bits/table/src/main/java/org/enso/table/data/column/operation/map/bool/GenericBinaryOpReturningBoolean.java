@@ -1,5 +1,6 @@
 package org.enso.table.data.column.operation.map.bool;
 
+import java.util.BitSet;
 import org.enso.table.data.column.builder.StorageTypeMismatchException;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
@@ -7,8 +8,6 @@ import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.graalvm.polyglot.Context;
-
-import java.util.BitSet;
 
 /**
  * A generic binary operation that takes two values of some type T and returns a boolean.
@@ -18,14 +17,14 @@ import java.util.BitSet;
 public abstract class GenericBinaryOpReturningBoolean<T, S extends SpecializedStorage<T>>
     extends BinaryMapOperation<T, S> {
 
-  public GenericBinaryOpReturningBoolean(String name, Class<T> objectType) {
+  public GenericBinaryOpReturningBoolean(String name) {
     super(name);
   }
 
   /**
    * Tries to cast an object to the type T.
-   * <p>
-   * Returns {@code null} if the types are not compatible.
+   *
+   * <p>Returns {@code null} if the types are not compatible.
    */
   protected abstract T tryCast(Object object);
 
@@ -64,7 +63,6 @@ public abstract class GenericBinaryOpReturningBoolean<T, S extends SpecializedSt
       return runMixedZip(storage, arg);
     }
   }
-
 
   private BoolStorage runHomogenousMap(S storage, T arg) {
     BitSet newVals = new BitSet();

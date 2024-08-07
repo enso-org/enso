@@ -1,11 +1,10 @@
 package org.enso.table.data.column.storage.datetime;
 
 import java.time.LocalDate;
-
 import org.enso.base.CompareException;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
-import org.enso.table.data.column.operation.map.bool.GenericBinaryOpReturningBoolean;
 import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
+import org.enso.table.data.column.operation.map.datetime.TimeLikeBinaryOpReturningBoolean;
 import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.DateType;
@@ -25,7 +24,7 @@ public final class DateStorage extends SpecializedStorage<LocalDate> {
         ObjectStorage.buildObjectOps();
     t.add(new DateTimeIsInOp<>(LocalDate.class));
     t.add(
-        new GenericBinaryOpReturningBoolean<>(Maps.EQ, LocalDate.class) {
+        new TimeLikeBinaryOpReturningBoolean<>(Maps.EQ, LocalDate.class) {
           @Override
           protected boolean doOperation(LocalDate a, LocalDate b) {
             return a.isEqual(b);
@@ -83,7 +82,7 @@ public final class DateStorage extends SpecializedStorage<LocalDate> {
   }
 
   private abstract static class DateComparisonOp
-      extends GenericBinaryOpReturningBoolean<LocalDate, SpecializedStorage<LocalDate>> {
+      extends TimeLikeBinaryOpReturningBoolean<LocalDate> {
     public DateComparisonOp(String name) {
       super(name, LocalDate.class);
     }

@@ -2,19 +2,17 @@ package org.enso.table.data.column.storage.datetime;
 
 import java.time.Duration;
 import java.time.ZonedDateTime;
-
 import org.enso.base.CompareException;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.ObjectBuilder;
 import org.enso.table.data.column.operation.map.GenericBinaryObjectMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
-import org.enso.table.data.column.operation.map.bool.GenericBinaryOpReturningBoolean;
 import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
+import org.enso.table.data.column.operation.map.datetime.TimeLikeBinaryOpReturningBoolean;
 import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.error.UnexpectedTypeException;
 
 public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
   /**
@@ -30,7 +28,7 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
         ObjectStorage.buildObjectOps();
     t.add(new DateTimeIsInOp<>(ZonedDateTime.class));
     t.add(
-        new GenericBinaryOpReturningBoolean<>(Maps.EQ, ZonedDateTime.class) {
+        new TimeLikeBinaryOpReturningBoolean<>(Maps.EQ, ZonedDateTime.class) {
           @Override
           protected boolean doOperation(ZonedDateTime a, ZonedDateTime b) {
             return a.isEqual(b);
@@ -102,7 +100,7 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
   }
 
   private abstract static class DateTimeComparisonOp
-      extends GenericBinaryOpReturningBoolean<ZonedDateTime, SpecializedStorage<ZonedDateTime>> {
+      extends TimeLikeBinaryOpReturningBoolean<ZonedDateTime> {
     public DateTimeComparisonOp(String name) {
       super(name, ZonedDateTime.class);
     }
