@@ -14,9 +14,7 @@ export function useSyncRef<T>(value: T): Readonly<React.MutableRefObject<T>> {
 
   // Update the ref value whenever the provided value changes
   // Refs shall never change during the render phase, so we use `useEffect` here.
-  React.useEffect(() => {
-    ref.current = value
-  })
+  ref.current = value
 
   return ref
 }

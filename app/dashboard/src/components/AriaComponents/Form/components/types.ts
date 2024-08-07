@@ -42,6 +42,34 @@ export interface UseFormProps<Schema extends TSchema, TFieldValues extends Field
 }
 
 /**
+ * Register function for a form field.
+ */
+export type UseFormRegister<Schema extends TSchema, TFieldValues extends FieldValues<Schema>> = <
+  TFieldName extends FieldPath<Schema, TFieldValues> = FieldPath<Schema, TFieldValues>,
+>(
+  name: TFieldName,
+  options?: reactHookForm.RegisterOptions<TFieldValues, TFieldName>,
+  // eslint-disable-next-line no-restricted-syntax
+) => UseFormRegisterReturn<Schema, TFieldValues, TFieldName>
+
+/**
+ * UseFormRegister return type.
+ */
+export interface UseFormRegisterReturn<
+  Schema extends TSchema,
+  TFieldValues extends FieldValues<Schema>,
+  TFieldName extends FieldPath<Schema, TFieldValues> = FieldPath<Schema, TFieldValues>,
+> extends Omit<reactHookForm.UseFormRegisterReturn<TFieldName>, 'onBlur' | 'onChange'> {
+  // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+  readonly onChange: <Value>(value: Value) => Promise<boolean | void>
+  // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+  readonly onBlur: <Value>(value: Value) => Promise<boolean | void>
+  readonly isDisabled?: boolean
+  readonly isRequired?: boolean
+  readonly isInvalid?: boolean
+}
+
+/**
  * Return type of the useForm hook.
  * @alias reactHookForm.UseFormReturn
  */
@@ -49,7 +77,9 @@ export interface UseFormReturn<
   Schema extends TSchema,
   TFieldValues extends FieldValues<Schema>,
   TTransformedValues extends Record<string, unknown> | undefined = undefined,
-> extends reactHookForm.UseFormReturn<TFieldValues, unknown, TTransformedValues> {}
+> extends reactHookForm.UseFormReturn<TFieldValues, unknown, TTransformedValues> {
+  readonly register: UseFormRegister<Schema, TFieldValues>
+}
 
 /**
  * Form state type.

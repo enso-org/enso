@@ -423,6 +423,14 @@
   "enableVersionCheckerDescription": "Show a dialog if the current version of the desktop app does not match the latest version.",
   "changeLocalRootDirectoryInSettings": "Change your root folder in Settings.",
 
+  "enableMultitabs": "Enable Multi-Tabs",
+  "enableMultitabsDescription": "Open multiple projects at the same time.",
+
+  "enableAssetsTableBackgroundRefresh": "Enable Assets Table Background Refresh",
+  "enableAssetsTableBackgroundRefreshDescription": "Automatically refresh the assets table in the background.",
+  "enableAssetsTableBackgroundRefreshInterval": "Refresh interval",
+  "enableAssetsTableBackgroundRefreshIntervalDescription": "Set the interval in ms for the assets table to refresh in the background.",
+
   "deleteLabelActionText": "delete the label '$0'",
   "deleteSelectedAssetActionText": "delete '$0'",
   "deleteSelectedAssetsActionText": "delete $0 selected items",
@@ -815,10 +823,11 @@
   "shareFullFeatureDescription": "Share unlimited assets with other users and manage shared assets. Assign shared assets to user groups to manage their permissions.",
   "shareFullPaywallMessage": "You can share assets only with single user group. Upgrade to share assets with multiple user groups and users.",
 
-  "paywallDevtoolsButtonLabel": "Open Enso Devtools",
-  "paywallDevtoolsPopoverHeading": "Enso Devtools",
-  "paywallDevtoolsPlanSelectSubtitle": "User Plan",
-  "paywallDevtoolsPaywallFeaturesToggles": "Paywall Features",
+  "ensoDevtoolsButtonLabel": "Open Enso Devtools",
+  "ensoDevtoolsPopoverHeading": "Enso Devtools",
+  "ensoDevtoolsPlanSelectSubtitle": "User Plan",
+  "ensoDevtoolsPaywallFeaturesToggles": "Paywall Features",
+  "ensoDevtoolsFeatureFlags": "Feature Flags",
 
   "setupEnso": "Set up Enso",
   "termsAndConditions": "Terms and Conditions",

@@ -21,7 +21,7 @@ export interface FieldComponentProps extends VariantProps<typeof FIELD_STYLES>, 
   readonly 'data-testid'?: string | undefined
   readonly name: string
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly form?: types.FormInstance<any, any, any>
+  readonly form?: types.FormInstance<any, any, any> | undefined
   readonly isInvalid?: boolean | undefined
   readonly className?: string | undefined
   readonly children?: React.ReactNode | ((props: FieldChildrenRenderProps) => React.ReactNode)
