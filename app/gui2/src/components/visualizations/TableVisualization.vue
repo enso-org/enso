@@ -597,7 +597,7 @@ onMounted(() => {
       </div>
       <AgGridTableView
         ref="tableNode"
-        class="scrollable"
+        class="scrollable grid"
         :columnDefs="columnDefs"
         :rowData="rowData"
         :defaultColDef="defaultColDef"
@@ -612,6 +612,10 @@ onMounted(() => {
   flex-flow: column;
   position: relative;
   height: 100%;
+}
+
+.grid {
+  flex-grow: 1;
 }
 
 .table-visualization-status-bar {
