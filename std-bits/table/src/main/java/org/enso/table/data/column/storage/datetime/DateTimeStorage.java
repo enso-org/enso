@@ -12,6 +12,7 @@ import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.error.UnexpectedTypeException;
 
 public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
   /**
@@ -32,30 +33,35 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
           protected boolean doOperation(ZonedDateTime a, ZonedDateTime b) {
             return a.isEqual(b);
           }
+
+          @Override
+          protected boolean doOther(ZonedDateTime a, Object b) {
+            return false;
+          }
         });
     t.add(
-        new GenericBinaryOpReturningBoolean<>(Maps.LT, ZonedDateTime.class) {
+        new DateTimeBinaryOpReturningBoolean(Maps.LT) {
           @Override
           protected boolean doOperation(ZonedDateTime a, ZonedDateTime b) {
             return a.compareTo(b) < 0;
           }
         });
     t.add(
-        new GenericBinaryOpReturningBoolean<>(Maps.LTE, ZonedDateTime.class) {
+        new DateTimeBinaryOpReturningBoolean(Maps.LTE) {
           @Override
           protected boolean doOperation(ZonedDateTime a, ZonedDateTime b) {
             return a.compareTo(b) <= 0;
           }
         });
     t.add(
-        new GenericBinaryOpReturningBoolean<>(Maps.GT, ZonedDateTime.class) {
+        new DateTimeBinaryOpReturningBoolean(Maps.GT) {
           @Override
           protected boolean doOperation(ZonedDateTime a, ZonedDateTime b) {
             return a.compareTo(b) > 0;
           }
         });
     t.add(
-        new GenericBinaryOpReturningBoolean<>(Maps.GTE, ZonedDateTime.class) {
+        new DateTimeBinaryOpReturningBoolean(Maps.GTE) {
           @Override
           protected boolean doOperation(ZonedDateTime a, ZonedDateTime b) {
             return a.compareTo(b) >= 0;
@@ -91,5 +97,17 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
   @Override
   public StorageType getType() {
     return DateTimeType.INSTANCE;
+  }
+
+  private abstract static class DateTimeBinaryOpReturningBoolean
+      extends GenericBinaryOpReturningBoolean<ZonedDateTime, SpecializedStorage<ZonedDateTime>> {
+    public DateTimeBinaryOpReturningBoolean(String name) {
+      super(name, ZonedDateTime.class);
+    }
+
+    @Override
+    protected boolean doOther(ZonedDateTime a, Object b) {
+      throw new UnexpectedTypeException("a Date_Time", b.toString());
+    }
   }
 }

@@ -12,6 +12,7 @@ import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
+import org.enso.table.error.UnexpectedTypeException;
 
 public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
   /**
@@ -32,30 +33,35 @@ public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
           protected boolean doOperation(LocalTime a, LocalTime b) {
             return a.equals(b);
           }
+
+          @Override
+          protected boolean doOther(LocalTime a, Object b) {
+            return false;
+          }
         });
     t.add(
-        new GenericBinaryOpReturningBoolean<>(Maps.LT, LocalTime.class) {
+        new TimeBinaryOpReturningBoolean(Maps.LT) {
           @Override
           protected boolean doOperation(LocalTime a, LocalTime b) {
             return a.compareTo(b) < 0;
           }
         });
     t.add(
-        new GenericBinaryOpReturningBoolean<>(Maps.LTE, LocalTime.class) {
+        new TimeBinaryOpReturningBoolean(Maps.LTE) {
           @Override
           protected boolean doOperation(LocalTime a, LocalTime b) {
             return a.compareTo(b) <= 0;
           }
         });
     t.add(
-        new GenericBinaryOpReturningBoolean<>(Maps.GT, LocalTime.class) {
+        new TimeBinaryOpReturningBoolean(Maps.GT) {
           @Override
           protected boolean doOperation(LocalTime a, LocalTime b) {
             return a.compareTo(b) > 0;
           }
         });
     t.add(
-        new GenericBinaryOpReturningBoolean<>(Maps.GTE, LocalTime.class) {
+        new TimeBinaryOpReturningBoolean(Maps.GTE) {
           @Override
           protected boolean doOperation(LocalTime a, LocalTime b) {
             return a.compareTo(b) >= 0;
@@ -90,5 +96,17 @@ public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
   @Override
   public StorageType getType() {
     return TimeOfDayType.INSTANCE;
+  }
+
+  private abstract static class TimeBinaryOpReturningBoolean
+      extends GenericBinaryOpReturningBoolean<LocalTime, SpecializedStorage<LocalTime>> {
+    public TimeBinaryOpReturningBoolean(String name) {
+      super(name, LocalTime.class);
+    }
+
+    @Override
+    protected boolean doOther(LocalTime a, Object b) {
+      throw new UnexpectedTypeException("a Time_Of_Day", b.toString());
+    }
   }
 }

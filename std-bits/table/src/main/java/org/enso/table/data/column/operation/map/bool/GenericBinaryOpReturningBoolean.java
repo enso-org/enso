@@ -7,7 +7,6 @@ import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.error.UnexpectedTypeException;
 import org.graalvm.polyglot.Context;
 
 /**
@@ -26,6 +25,8 @@ public abstract class GenericBinaryOpReturningBoolean<T, S extends SpecializedSt
   }
 
   protected abstract boolean doOperation(T a, T b);
+
+  protected abstract boolean doOther(T a, Object b);
 
   @Override
   public Storage<?> runBinaryMap(
@@ -52,7 +53,23 @@ public abstract class GenericBinaryOpReturningBoolean<T, S extends SpecializedSt
       }
       return new BoolStorage(newVals, newIsNothing, n, false);
     } else {
-      throw new UnexpectedTypeException(myObjectType.getName());
+      BitSet newVals = new BitSet();
+      BitSet newIsNothing = new BitSet();
+      Context context = Context.getCurrent();
+      int n = storage.size();
+      for (int i = 0; i < n; i++) {
+        if (storage.isNothing(i)) {
+          newIsNothing.set(i);
+        } else {
+          T storageItem = storage.getItemBoxed(i);
+          assert storageItem != null : "isNothing returned true but element was null";
+          boolean r = doOther(storageItem, arg);
+          newVals.set(i, r);
+        }
+
+        context.safepoint();
+      }
+      return new BoolStorage(newVals, newIsNothing, n, false);
     }
   }
 
@@ -89,7 +106,34 @@ public abstract class GenericBinaryOpReturningBoolean<T, S extends SpecializedSt
 
       return new BoolStorage(newVals, newIsNothing, n, false);
     } else {
-      throw new IllegalStateException("Unexpected storage type: " + arg.getClass().getName());
+      BitSet newVals = new BitSet();
+      BitSet newIsNothing = new BitSet();
+      Context context = Context.getCurrent();
+      int n = storage.size();
+      int m = arg.size();
+      for (int i = 0; i < n; i++) {
+        if (storage.isNothing(i) || !(i < m) || arg.isNothing(i)) {
+          newIsNothing.set(i);
+        } else {
+          T storageItem = storage.getItemBoxed(i);
+          Object argItem = arg.getItemBoxed(i);
+          assert storageItem != null : "isNothing returned true but element was null";
+          assert argItem != null : "isNothing returned true but element was null";
+
+          if (myObjectType.isInstance(argItem)) {
+            T argT = myObjectType.cast(argItem);
+            boolean r = doOperation(storageItem, argT);
+            newVals.set(i, r);
+          } else {
+            boolean r = doOther(storageItem, argItem);
+            newVals.set(i, r);
+          }
+        }
+
+        context.safepoint();
+      }
+
+      return new BoolStorage(newVals, newIsNothing, n, false);
     }
   }
 }
