@@ -33,6 +33,10 @@ import org.enso.compiler.data.BindingsMap.ResolvedModuleMethod;
 import org.enso.compiler.data.BindingsMap.ResolvedPolyglotField;
 import org.enso.compiler.data.BindingsMap.ResolvedPolyglotSymbol;
 import org.enso.compiler.data.BindingsMap.ResolvedType;
+import org.enso.compiler.pass.analyse.alias.Graph;
+import org.enso.compiler.pass.analyse.alias.Info;
+import org.enso.compiler.pass.analyse.alias.Info$Scope$Child;
+import org.enso.compiler.pass.analyse.alias.Info$Scope$Root;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames.FQNResolution;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames.ResolvedLibrary;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames.ResolvedModule;
@@ -607,11 +611,59 @@ public class IRDumper {
               addNode(bmNode);
               createEdge(ir, bindingsMap, "BindingsMap");
             }
-              // The rest is ignored
+            case Info.Occurrence occurence ->  {
+              bldr.addLabelLine("occurenceId: " + occurence.id());
+              addNode(bldr.build());
+              createEdge(ir, occurence, "Alias.Info.Occurence");
+            }
+            case Info$Scope$Root rootScope -> {
+              addAliasGraphScopeLabels(bldr, rootScope.graph().rootScope());
+              var aliasNode = bldr.build();
+              addNode(aliasNode);
+              createEdge(ir, rootScope, "Alias.Info.Scope.Root");
+            }
+            case Info$Scope$Child childScope -> {
+              addAliasGraphScopeLabels(bldr, childScope.scope());
+              var aliasNode = bldr.build();
+              addNode(aliasNode);
+              createEdge(ir, childScope, "Alias.Info.Scope.Child");
+            }
+            // The rest is ignored
             default -> {}
           }
           return null;
         });
+  }
+
+  private void addAliasGraphScopeLabels(GraphVizNode.Builder bldr, Graph.Scope scope) {
+    var parent = scope.parent();
+    if (parent.isDefined()) {
+      var parentId = Utils.id(parent.get());
+      bldr.addLabelLine("parent: " + parentId);
+    } else {
+      bldr.addLabelLine("parent: null");
+    }
+    var occurences = scope.occurrences();
+    if (occurences.isEmpty()) {
+      bldr.addLabelLine("occurrences: []");
+    } else {
+      bldr.addLabelLine("occurrences: ");
+      occurences.values().foreach(occ -> {
+        bldr.addLabelLine("  - " + occ);
+        return null;
+      });
+    }
+    var childScopes = scope.childScopes();
+    if (childScopes.isEmpty()) {
+      bldr.addLabelLine("childScopes: []");
+    } else {
+      bldr.addLabelLine("childScopes: ");
+      childScopes.foreach(childScope -> {
+        var id = Utils.id(childScope);
+        bldr.addLabelLine("  - " + id);
+        return null;
+      });
+    }
   }
 
   private void addNode(GraphVizNode node) {
