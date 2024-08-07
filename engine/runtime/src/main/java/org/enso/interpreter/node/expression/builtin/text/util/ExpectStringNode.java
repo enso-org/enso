@@ -13,7 +13,7 @@ import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.error.WarningsLibrary;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 public abstract class ExpectStringNode extends Node {
   private @Child InteropLibrary library = InteropLibrary.getFactory().createDispatched(10);

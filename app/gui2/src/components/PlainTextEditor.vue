@@ -20,7 +20,7 @@ const textSync: LexicalPlugin = {
   register: (editor) => {
     const { content } = useLexicalStringSync(editor)
     watch(text, (newContent) => content.set(newContent), { immediate: true })
-    watch(content.state, (newContent) => (text.value = newContent))
+    watch(content.editedContent, (newContent) => (text.value = newContent))
   },
 }
 

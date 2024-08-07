@@ -21,8 +21,8 @@ import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNod
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 @BuiltinMethod(
     type = "Default_Comparator",
