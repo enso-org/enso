@@ -36,12 +36,9 @@ test.test('labels', async ({ page }) => {
     page,
     setupAPI: (api) => {
       api.addLabel('aaaa', backend.COLORS[0])
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      api.addLabel('bbbb', backend.COLORS[1]!)
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      api.addLabel('cccc', backend.COLORS[2]!)
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      api.addLabel('dddd', backend.COLORS[3]!)
+      api.addLabel('bbbb', backend.COLORS[1])
+      api.addLabel('cccc', backend.COLORS[2])
+      api.addLabel('dddd', backend.COLORS[3])
     },
   })
   const searchBarInput = actions.locateSearchBarInput(page)

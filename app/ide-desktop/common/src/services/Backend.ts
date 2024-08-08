@@ -630,7 +630,7 @@ export interface LChColor {
 }
 
 /** A pre-selected list of colors to be used in color pickers. */
-export const COLORS: readonly [LChColor, ...LChColor[]] = [
+export const COLORS = [
   /* eslint-disable @typescript-eslint/no-magic-numbers */
   // Red
   { lightness: 50, chroma: 66, hue: 7 },
@@ -653,7 +653,7 @@ export const COLORS: readonly [LChColor, ...LChColor[]] = [
   // Dark blue
   { lightness: 22, chroma: 13, hue: 252 },
   /* eslint-enable @typescript-eslint/no-magic-numbers */
-]
+] as const satisfies LChColor[]
 
 /** Converts a {@link LChColor} to a CSS color string. */
 export function lChColorToCssColor(color: LChColor): string {
