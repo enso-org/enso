@@ -105,17 +105,22 @@ all_benchmarks =
 main filter=Nothing =
     benchmarks = if filter.is_nothing then all_benchmarks else
         no_nothing x = x.is_nothing.not
+        filter_regex = Regex.compile filter
+        is_matching name =
+            # We always check simple plain text filter, but also if the filter was a valid regex we check a regex match.
+            (name.contains filter) || (filter_regex.is_error.not && (filter_regex.match name . is_nothing . not))
 
         filter_benchmarks (b:Bench) = case b of
             Bench.All groups ->
                 vec = groups.map filter_benchmarks . filter no_nothing
                 if vec.is_empty then Nothing else
                     Bench.All vec
-            Bench.Group n opts specs -> if n.contains filter then b else
+            Bench.Group n opts specs -> if is_matching n then b else
                 vec = specs.map filter_benchmarks . filter no_nothing
                 if vec.is_empty then Nothing else
                     Bench.Group n opts vec
-            Bench.Spec n _ -> if n.contains filter then b else Nothing
+            Bench.Spec n _ ->
+                if is_matching n then b else Nothing
 
         all_benchmarks.map filter_benchmarks . filter no_nothing
 
