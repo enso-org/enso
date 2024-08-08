@@ -4,17 +4,18 @@ import { requiredImportsByFQN, type RequiredImport } from '@/stores/graph/import
 import type { SuggestionDb } from '@/stores/suggestionDatabase'
 import { Ast } from '@/util/ast'
 import { tryEnsoToNumber, tryNumberToEnso } from '@/util/ast/abstract'
-import { filterDefined } from '@/util/data/iterable'
-import { type QualifiedName } from '@/util/qualifiedName'
+import { qnLastSegment, type QualifiedName } from '@/util/qualifiedName'
 import type { ToValue } from '@/util/reactivity'
 import { type ColDef } from 'ag-grid-community'
-import { mapIterator } from 'lib0/iterator'
 import type { AstId, Identifier, MutableModule } from 'shared/ast'
 import { assert } from 'shared/util/assert'
+import { Err, Ok, transposeResult, unwrapOrWithLog, type Result } from 'shared/util/data/result'
 import { computed, toValue } from 'vue'
 
 const NEW_COLUMN_ID = 'NewColumn'
 const NEW_COLUMN_HEADER = 'New Column'
+const NOTHING_PATH = 'Standard.Base.Nothing.Nothing' as QualifiedName
+const NOTHING_NAME = qnLastSegment(NOTHING_PATH)
 
 export type RowData = {
   index: number
@@ -34,11 +35,13 @@ interface ColumnDef {
 
 namespace cellValueConversion {
   export function astToAgGrid(ast: Ast.Ast) {
-    if (ast instanceof Ast.TextLiteral) return ast.rawTextContent
+    if (ast instanceof Ast.TextLiteral) return Ok(ast.rawTextContent)
+    else if (ast instanceof Ast.Ident && ast.code() === NOTHING_NAME) return Ok(null)
+    else if (ast instanceof Ast.PropertyAccess && ast.rhs.code() === NOTHING_NAME) return Ok(null)
     else {
       const asNumber = tryEnsoToNumber(ast)
-      if (asNumber != null) return asNumber
-      else return undefined
+      if (asNumber != null) return Ok(asNumber)
+      else return Err('Ast is not convertible to AGGrid value')
     }
   }
 
@@ -64,6 +67,50 @@ namespace cellValueConversion {
   }
 }
 
+function retrieveColumnsAst(call: Ast.Ast) {
+  if (!(call instanceof Ast.App)) return Ok(undefined)
+  if (call.argument instanceof Ast.Vector) return Ok(call.argument)
+  if (call.argument instanceof Ast.Wildcard) return Ok(undefined)
+  return Err('Expected Table.new argument to be a vector of columns or placeholder')
+}
+
+function readColumn(ast: Ast.Ast): Result<{ name: Ast.TextLiteral; data: Ast.Vector }> {
+  const errormsg = () => `${ast.code} is not a vector of two elements`
+  if (!(ast instanceof Ast.Vector)) return Err(errormsg())
+  const elements = ast.values()
+  const first = elements.next()
+  if (first.done) return Err(errormsg())
+  const second = elements.next()
+  if (second.done) return Err(errormsg())
+  if (!elements.next().done) return Err(errormsg())
+
+  if (!(first.value instanceof Ast.TextLiteral))
+    return Err(
+      `First element in column definition is ${first.value.code()} instead of a text literal`,
+    )
+  if (!(second.value instanceof Ast.Vector))
+    return Err(`Second element in column definition is ${second.value.code()} instead of a vector`)
+  return Ok({ name: first.value, data: second.value })
+}
+
+function retrieveColumnsDefinitions(columnsAst: Ast.Vector) {
+  return transposeResult(Array.from(columnsAst.values(), readColumn))
+}
+
+export function tableNewCallMayBeHandled(call: Ast.Ast) {
+  const columnsAst = retrieveColumnsAst(call)
+  if (!columnsAst.ok) return false
+  if (!columnsAst.value) return true // We can handle lack of the argument
+  const columns = retrieveColumnsDefinitions(columnsAst.value)
+  if (!columns.ok) return false
+  for (const col of columns.value) {
+    for (const val of col.data.values()) {
+      if (!cellValueConversion.astToAgGrid(val).ok) return false
+    }
+  }
+  return true
+}
+
 /**
  * A composable responsible for interpreting `Table.new` expressions, creating AGGrid column
  * definitions allowing also editing AST through AGGrid editing.
@@ -81,31 +128,14 @@ export function useTableNewArgument(
   suggestions: SuggestionDb,
   onUpdate: (update: WidgetUpdate) => void,
 ) {
-  const nothingImport = computed(() =>
-    requiredImportsByFQN(suggestions, 'Standard.Base.Nothing.Nothing' as QualifiedName, true),
-  )
-
-  function convertWithImport(value: unknown, edit: MutableModule) {
-    const { ast, requireNothingImport } = cellValueConversion.agGridToAst(value, edit)
-    if (requireNothingImport) {
-      graph.addMissingImports(edit, nothingImport.value)
-    }
-    return ast
-  }
-
-  const columnsAst = computed(() => {
-    const inputAst = toValue(input).value
-    if (!(inputAst instanceof Ast.App)) return undefined
-    if (!(inputAst.argument instanceof Ast.Vector)) return undefined
-    return inputAst.argument
-  })
+  const errorMessagePreamble = 'Table Editor Widget should not have been matched'
+  const columnsAst = computed(() => retrieveColumnsAst(toValue(input).value))
 
   const columns = computed(() => {
-    const cols = columnsAst.value?.values()
-    if (cols == null) return []
-    const arr = Array.from(filterDefined(mapIterator(cols, readColumn)))
-    if (arr.some((x) => x == null)) return []
-    return arr
+    if (!columnsAst.value.ok) return []
+    if (columnsAst.value.value == null) return []
+    const cols = retrieveColumnsDefinitions(columnsAst.value.value)
+    return unwrapOrWithLog(cols, [], errorMessagePreamble)
   })
 
   const rowCount = computed(() =>
@@ -116,25 +146,11 @@ export function useTableNewArgument(
     columns.value.filter((col) => col.data.length < rowCount.value),
   )
 
-  function readColumn(ast: Ast.Ast): { name: Ast.TextLiteral; data: Ast.Vector } | undefined {
-    if (!(ast instanceof Ast.Vector)) return undefined
-    const elements = ast.values()
-    const first = elements.next()
-    if (first.done) return undefined
-    const second = elements.next()
-    if (second.done) return undefined
-    if (!elements.next().done) return undefined
-
-    if (!(first.value instanceof Ast.TextLiteral)) return undefined
-    if (!(second.value instanceof Ast.Vector)) return undefined
-    return { name: first.value, data: second.value }
-  }
-
   function fixColumns(edit: Ast.MutableModule) {
     for (const column of undersizedColumns.value) {
       const data = edit.getVersion(column.data)
       while (data.length < rowCount.value) {
-        data.push(convertWithImport(undefined, edit))
+        data.push(convertWithImport(null, edit))
       }
       while (data.length > rowCount.value) {
         data.pop()
@@ -148,7 +164,7 @@ export function useTableNewArgument(
       if (column.data.id === columnWithValue) {
         editedCol.push(convertWithImport(value, edit))
       } else {
-        editedCol.push(convertWithImport(undefined, edit))
+        editedCol.push(convertWithImport(null, edit))
       }
     }
   }
@@ -158,13 +174,14 @@ export function useTableNewArgument(
     function* cellsGenerator() {
       for (let i = 0; i < newColumnSize; ++i) {
         if (i === rowWithValue) yield convertWithImport(value, edit)
-        else yield convertWithImport(undefined, edit)
+        else yield convertWithImport(null, edit)
       }
     }
     const cells = Ast.Vector.new(edit, Array.from(cellsGenerator()))
     const newCol = Ast.Vector.new(edit, [Ast.TextLiteral.new(name), cells])
-    if (columnsAst.value) {
-      edit.getVersion(columnsAst.value).push(newCol)
+    const ast = unwrapOrWithLog(columnsAst.value, undefined, errorMessagePreamble)
+    if (ast) {
+      edit.getVersion(ast).push(newCol)
     } else {
       const inputAst = edit.getVersion(toValue(input).value)
       const newArg = Ast.Vector.new(edit, [newCol])
@@ -179,7 +196,7 @@ export function useTableNewArgument(
   const newColumnDef = computed<ColumnDef>(() => ({
     colId: NEW_COLUMN_ID,
     headerName: NEW_COLUMN_HEADER,
-    valueGetter: () => undefined,
+    valueGetter: () => null,
     valueSetter: ({ data, newValue }: { data: RowData; newValue: any }) => {
       const edit = graph.startEdit()
       if (data.index === rowCount.value) {
@@ -210,8 +227,15 @@ export function useTableNewArgument(
           valueGetter: ({ data }: { data: RowData | undefined }) => {
             if (data == null) return undefined
             const ast = toValue(input).value.module.tryGet(data.cells[col.data.id])
-            if (ast == null) return undefined
-            return cellValueConversion.astToAgGrid(ast)
+            if (ast == null) return null
+            const value = cellValueConversion.astToAgGrid(ast)
+            if (!value.ok) {
+              console.error(
+                `Cannot read \`${ast.code}\` as value in Table Widget; the Table widget should not be matched here!`,
+              )
+              return null
+            }
+            return value.value
           },
           valueSetter: ({ data, newValue }: { data: RowData; newValue: any }): boolean => {
             const astId = data?.cells[col.data.id]
@@ -258,6 +282,16 @@ export function useTableNewArgument(
     rows.push({ index: rows.length, cells: {} })
     return rows
   })
+
+  const nothingImport = computed(() => requiredImportsByFQN(suggestions, NOTHING_PATH, true))
+
+  function convertWithImport(value: unknown, edit: MutableModule) {
+    const { ast, requireNothingImport } = cellValueConversion.agGridToAst(value, edit)
+    if (requireNothingImport) {
+      graph.addMissingImports(edit, nothingImport.value)
+    }
+    return ast
+  }
 
   return { columnDefs, rowData }
 }

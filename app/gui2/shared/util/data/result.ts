@@ -32,9 +32,33 @@ export function unwrapOr<T, A>(result: Result<T, unknown>, alternative: A): T | 
   else return alternative
 }
 
+export function unwrapOrWithLog<T, A>(
+  result: Result<T, unknown>,
+  alternative: A,
+  preamble?: string,
+): T | A {
+  if (result.ok) return result.value
+  else {
+    result.error.log(preamble)
+    return alternative
+  }
+}
+
 export function mapOk<T, U, E>(result: Result<T, E>, f: (value: T) => U): Result<U, E> {
   if (result.ok) return Ok(f(result.value))
   else return result
+}
+
+export function transposeResult<T, E>(value: Opt<Result<T, E>>): Result<Opt<T>, E>
+export function transposeResult<T, E>(value: Result<T, E>[]): Result<T[], E>
+export function transposeResult<T, E>(value: Opt<Result<T, E>> | Result<T, E>[]) {
+  if (value == null) return Ok(null)
+  if (value instanceof Array) {
+    const error = value.find((x) => !x.ok)
+    if (error) return error
+    else return Ok(Array.from(value, (x) => (x as { ok: true; value: T }).value))
+  }
+  return value
 }
 
 export function isResult(v: unknown): v is Result {

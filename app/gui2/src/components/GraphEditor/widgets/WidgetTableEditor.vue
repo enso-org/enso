@@ -2,6 +2,7 @@
 import { WidgetInputIsSpecificMethodCall } from '@/components/GraphEditor/widgets/WidgetFunction.vue'
 import TableHeader from '@/components/GraphEditor/widgets/WidgetTableEditor/TableHeader.vue'
 import {
+  tableNewCallMayBeHandled,
   useTableNewArgument,
   type RowData,
 } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableNewArgument'
@@ -164,7 +165,10 @@ export const widgetDefinition = defineWidget(
   }),
   {
     priority: 999,
-    score: Score.Perfect,
+    score: (props) => {
+      if (!tableNewCallMayBeHandled(props.input.value)) return Score.Mismatch
+      return Score.Perfect
+    },
   },
   import.meta.hot,
 )

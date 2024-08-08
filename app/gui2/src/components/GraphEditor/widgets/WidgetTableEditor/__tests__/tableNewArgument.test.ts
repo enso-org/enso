@@ -1,7 +1,10 @@
-import { useTableNewArgument } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableNewArgument'
+import {
+  tableNewCallMayBeHandled,
+  useTableNewArgument,
+} from '@/components/GraphEditor/widgets/WidgetTableEditor/tableNewArgument'
 import { WidgetInput } from '@/providers/widgetRegistry'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
-import { makeConstructor, makeType } from '@/stores/suggestionDatabase/entry'
+import { makeType } from '@/stores/suggestionDatabase/entry'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { initializeFFI } from 'shared/ast/ffi'
@@ -17,29 +20,39 @@ function suggestionDbWithNothing() {
 
 test.each([
   {
-    code: 'Table.new [["a", [1, 2, 3]], ["b", [4, 5, "six"]]]',
-    expectedColumnDefs: [{ headerName: 'a' }, { headerName: 'b' }, { headerName: 'New Column' }],
+    code: 'Table.new [["a", [1, 2, 3]], ["b", [4, 5, "six"]], ["empty", [Nothing, Standard.Base.Nothing, Nothing]]]',
+    expectedColumnDefs: [
+      { headerName: 'a' },
+      { headerName: 'b' },
+      { headerName: 'empty' },
+      { headerName: 'New Column' },
+    ],
     expectedRows: [
-      { a: 1, b: 4, 'New Column': undefined },
-      { a: 2, b: 5, 'New Column': undefined },
-      { a: 3, b: 'six', 'New Column': undefined },
-      {},
+      { a: 1, b: 4, empty: null, 'New Column': null },
+      { a: 2, b: 5, empty: null, 'New Column': null },
+      { a: 3, b: 'six', empty: null, 'New Column': null },
+      { a: null, b: null, empty: null, 'New Column': null },
     ],
   },
   {
     code: 'Table.new []',
     expectedColumnDefs: [{ headerName: 'New Column' }],
-    expectedRows: [{}],
+    expectedRows: [{ 'New Column': null }],
   },
   {
     code: 'Table.new',
     expectedColumnDefs: [{ headerName: 'New Column' }],
-    expectedRows: [{}],
+    expectedRows: [{ 'New Column': null }],
+  },
+  {
+    code: 'Table.new _',
+    expectedColumnDefs: [{ headerName: 'New Column' }],
+    expectedRows: [{ 'New Column': null }],
   },
   {
     code: 'Table.new [["a", []]]',
     expectedColumnDefs: [{ headerName: 'a' }, { headerName: 'New Column' }],
-    expectedRows: [{}],
+    expectedRows: [{ a: null, 'New Column': null }],
   },
   {
     code: 'Table.new [["a", [1,,2]], ["b", [3, 4,]], ["c", [, 5, 6]], ["d", [,,]]]',
@@ -51,14 +64,15 @@ test.each([
       { headerName: 'New Column' },
     ],
     expectedRows: [
-      { a: 1, b: 3, c: undefined, d: undefined, 'New Column': undefined },
-      { a: undefined, b: 4, c: 5, d: undefined, 'New Column': undefined },
-      { a: 2, b: undefined, c: 6, d: undefined, 'New Column': undefined },
-      { a: undefined, b: undefined, c: undefined, d: undefined, 'New Column': undefined },
+      { a: 1, b: 3, c: null, d: null, 'New Column': null },
+      { a: null, b: 4, c: 5, d: null, 'New Column': null },
+      { a: 2, b: null, c: 6, d: null, 'New Column': null },
+      { a: null, b: null, c: null, d: null, 'New Column': null },
     ],
   },
 ])('Reading table from $code', ({ code, expectedColumnDefs, expectedRows }) => {
   const ast = Ast.parse(code)
+  expect(tableNewCallMayBeHandled(ast)).toBeTruthy()
   const input = WidgetInput.FromAst(ast)
   const startEdit = vi.fn()
   const addMissingImports = vi.fn()
@@ -88,6 +102,17 @@ test.each([
   expect(startEdit).not.toHaveBeenCalled()
   expect(onUpdate).not.toHaveBeenCalled()
   expect(addMissingImports).not.toHaveBeenCalled()
+})
+
+test.each([
+  'Table.new 14',
+  "Table.new ['a', [123]]",
+  "Table.new [['a', [123]], ['b', [124], []]]",
+  "Table.new [['a', [123]], ['a'.repeat 170, [123]]]",
+  "Table.new [['a', [1, 2, 3, 3 + 1]]]",
+])('"%s" is not valid input for Table Editor Widget', (code) => {
+  const ast = Ast.parse(code)
+  expect(tableNewCallMayBeHandled(ast)).toBeFalsy()
 })
 
 test.each([
