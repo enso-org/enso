@@ -548,7 +548,7 @@ case object DataflowAnalysis extends IRPass {
           "Name occurrence with missing aliasing information."
         )
       )
-      .asInstanceOf[alias.Info.Occurrence]
+      .asInstanceOf[alias.AliasMetadata.Occurrence]
 
     name match {
       case _: Name.Blank =>

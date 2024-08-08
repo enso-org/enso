@@ -16,7 +16,7 @@ import org.enso.compiler.core.ir.expression.{errors, warnings, Case, Foreign}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis
-import org.enso.compiler.pass.analyse.alias.{Info => AliasInfo}
+import org.enso.compiler.pass.analyse.alias.{AliasMetadata => AliasInfo}
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.resolve.{ExpressionAnnotations, IgnoredBindings}

@@ -18,7 +18,7 @@ import org.enso.compiler.core.ir.expression.Case;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.analyse.AliasAnalysis$;
 import org.enso.compiler.pass.analyse.alias.Graph;
-import org.enso.compiler.pass.analyse.alias.Info;
+import org.enso.compiler.pass.analyse.alias.AliasMetadata;
 import org.enso.compiler.pass.resolve.TypeSignatures;
 import org.enso.compiler.pass.resolve.TypeSignatures$;
 import org.slf4j.Logger;
@@ -340,7 +340,7 @@ abstract class TypePropagation {
     }
 
     @Override
-    protected Option<LinkInfo> findLocalLink(Info.Occurrence occurrenceMetadata) {
+    protected Option<LinkInfo> findLocalLink(AliasMetadata.Occurrence occurrenceMetadata) {
       return occurrenceMetadata
           .graph()
           .defLinkFor(occurrenceMetadata.id())
@@ -396,7 +396,7 @@ abstract class TypePropagation {
    */
   private void registerBinding(
       IR binding, TypeRepresentation type, LocalBindingsTyping localBindingsTyping) {
-    var metadata = getMetadata(binding, AliasAnalysis$.MODULE$, Info.Occurrence.class);
+    var metadata = getMetadata(binding, AliasAnalysis$.MODULE$, AliasMetadata.Occurrence.class);
     var occurrence = metadata.graph().getOccurrence(metadata.id());
     if (occurrence.isEmpty()) {
       logger.warn(

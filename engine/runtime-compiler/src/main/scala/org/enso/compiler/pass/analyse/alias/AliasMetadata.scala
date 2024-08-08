@@ -3,13 +3,13 @@ package org.enso.compiler.pass.analyse.alias
 import org.enso.compiler.pass.IRPass
 
 /** Information about the aliasing state for a given IR node. */
-sealed trait Info extends IRPass.IRMetadata {
+sealed trait AliasMetadata extends IRPass.IRMetadata {
 
   /** The aliasing graph. */
   val graph: Graph
 }
-object Info {
-  sealed trait Scope extends Info
+object AliasMetadata {
+  sealed trait Scope extends AliasMetadata
   object Scope {
 
     /** Aliasing information for a root scope.
@@ -70,7 +70,7 @@ object Info {
   sealed case class Occurrence(
     override val graph: Graph,
     id: Graph.Id
-  ) extends Info {
+  ) extends AliasMetadata {
     override val metadataName: String = "Info.Occurrence"
 
     /** @inheritdoc */

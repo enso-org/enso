@@ -24,7 +24,7 @@ import org.enso.compiler.pass.analyse.{
 }
 import org.enso.compiler.pass.analyse.alias.{
   Graph => AliasGraph,
-  Info => AliasInfo
+  AliasMetadata => AliasInfo
 }
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.resolve.IgnoredBindings

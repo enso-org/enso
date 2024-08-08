@@ -46,7 +46,7 @@ import org.enso.compiler.data.BindingsMap.{ResolvedConstructor, ResolvedModule}
 import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.exception.BadPatternMatch
 import org.enso.compiler.pass.analyse.alias.Graph.{Scope => AliasScope}
-import org.enso.compiler.pass.analyse.alias.Info.Scope
+import org.enso.compiler.pass.analyse.alias.AliasMetadata.Scope
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   BindingAnalysis,
@@ -55,7 +55,7 @@ import org.enso.compiler.pass.analyse.{
 }
 import org.enso.compiler.pass.analyse.alias.{
   Graph => AliasGraph,
-  Info => AliasInfo
+  AliasMetadata => AliasInfo
 }
 import org.enso.compiler.pass.resolve.{
   ExpressionAnnotations,
@@ -1949,7 +1949,7 @@ class IrToTruffle(
     private class RuntimeNameResolution
         extends NameResolutionAlgorithm[RuntimeExpression, FramePointer] {
       override protected def findLocalLink(
-        occurrenceMetadata: org.enso.compiler.pass.analyse.alias.Info.Occurrence
+        occurrenceMetadata: org.enso.compiler.pass.analyse.alias.AliasMetadata.Occurrence
       ): Option[FramePointer] =
         scope.getFramePointer(occurrenceMetadata.id)
 
