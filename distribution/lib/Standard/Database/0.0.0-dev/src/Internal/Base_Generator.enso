@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Runtime.State
 
 import project.Column_Constraint.Column_Constraint
 import project.Dialect.Dialect
@@ -320,12 +321,26 @@ generate_expression dialect expr = case expr of
     SQL_Expression.With binder bindee body ->
         wrapped_binder = dialect.wrap_identifier binder
         bindee_exp = SQL_Builder.code "SELECT " ++ (generate_expression dialect bindee).paren ++ " AS " ++ wrapped_binder
-        body_exp = SQL_Builder.code "SELECT " ++ (generate_expression dialect body) ++ " FROM " ++ wrapped_binder
+
+        IO.println "AAA scope push "+binder
+        old_with_scope = State.get SQL_Expression
+        State.put SQL_Expression (old_with_scope.insert binder)
+        body_sql_builder = generate_expression dialect body
+        State.put SQL_Expression old_with_scope
+        IO.println "AAA scope pop "+binder
+
+        body_exp = SQL_Builder.code "SELECT " ++ body_sql_builder ++ " FROM " ++ wrapped_binder
         (SQL_Builder.code "WITH " ++ wrapped_binder  ++ " AS " ++ bindee_exp.paren ++ " " ++ body_exp.paren).paren
-    SQL_Expression.With_Ref binder _ ->
-        wrapped_binder = dialect.wrap_identifier binder
-        #wrapped_binder ++ "." ++ wrapped_binder
-        wrapped_binder
+    SQL_Expression.With_Ref binder standalone_expression ->
+        with_scope = State.get SQL_Expression
+        IO.println "AAA scope check "+binder+": "+(with_scope.contains binder).to_text
+        case with_scope.contains binder of
+            True ->
+                wrapped_binder = dialect.wrap_identifier binder
+                wrapped_binder ++ "." ++ wrapped_binder
+                #wrapped_binder
+            False ->
+                generate_expression dialect standalone_expression
     query : Query -> generate_query dialect query
     descriptor : Order_Descriptor -> generate_order dialect descriptor
 
