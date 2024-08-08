@@ -322,7 +322,7 @@ generate_expression dialect expr = case expr of
         bindee_exp = SQL_Builder.code "SELECT " ++ (generate_expression dialect bindee).paren ++ " AS " ++ wrapped_binder
         body_exp = SQL_Builder.code "SELECT " ++ (generate_expression dialect body) ++ " FROM " ++ wrapped_binder
         (SQL_Builder.code "WITH " ++ wrapped_binder  ++ " AS " ++ bindee_exp.paren ++ " " ++ body_exp.paren).paren
-    SQL_Expression.With_Ref binder ->
+    SQL_Expression.With_Ref binder _ ->
         wrapped_binder = dialect.wrap_identifier binder
         #wrapped_binder ++ "." ++ wrapped_binder
         wrapped_binder
