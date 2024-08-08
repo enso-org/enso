@@ -24,21 +24,15 @@ from project.Internal.Upload.Helpers.SQL_Helpers import make_batched_insert_temp
 ## PRIVATE
    Assumes the output context is enabled for it to work.
    Creates a table in the Database and returns its name.
-   For temporry tables in dialects that use the # notation takes a table name without the # and returns it with the #.
+   For temporary tables in dialects that use the # notation takes a table name without the # and returns it with the #.
 internal_create_table_structure connection table_name structure primary_key temporary on_problems:Problem_Behavior -> Text =
     aligned_structure = align_structure connection structure
     resolved_primary_key = resolve_primary_key aligned_structure primary_key
     validate_structure connection.base_connection.column_naming_helper aligned_structure <|
-        resolved_table_name = case temporary of
-            False -> table_name
-            True -> case connection.dialect.temp_table_style of
-                Temp_Table_Style.Temporary_Table -> table_name
-                Temp_Table_Style.Hash_Prefix -> "#" + table_name
-            
-        create_table_statement = prepare_create_table_statement connection resolved_table_name aligned_structure resolved_primary_key temporary on_problems
+        create_table_statement = prepare_create_table_statement connection table_name aligned_structure resolved_primary_key temporary on_problems
         update_result = create_table_statement.if_not_error <|
-            connection.execute_update create_table_statement
-        final_result = update_result.if_not_error resolved_table_name
+            connection.execute create_table_statement
+        final_result = update_result.if_not_error table_name
         final_result.catch SQL_Error sql_error->
             if connection.dialect.get_error_mapper.is_table_already_exists_error sql_error then Error.throw (Table_Already_Exists.Error table_name) else final_result
 
@@ -70,11 +64,12 @@ type Table_Upload_Operation
    - row_limit: if set, only the first `row_limit` rows will be uploaded.
 internal_upload_table : DB_Table | Table -> Connection -> Text -> Nothing | Vector Text -> Boolean -> Boolean -> Nothing | Vector Column_Description ->  Problem_Behavior -> Integer | Nothing -> Table_Upload_Operation
 internal_upload_table source_table connection (table_name : Text) (primary_key : Nothing | Vector Text) (temporary : Boolean) (remove_after_transaction : Boolean = False) structure_hint=Nothing (on_problems:Problem_Behavior=..Report_Error) (row_limit : Integer | Nothing = Nothing) -> Table_Upload_Operation =
+    resolved_table_name = resolve_temp_table_name connection temporary table_name
     case source_table of
         _ : Table ->
-            internal_upload_in_memory_table source_table connection table_name primary_key temporary remove_after_transaction structure_hint on_problems row_limit
+            internal_upload_in_memory_table source_table connection resolved_table_name primary_key temporary remove_after_transaction structure_hint on_problems row_limit
         _ : DB_Table ->
-            internal_upload_database_table source_table connection table_name primary_key temporary remove_after_transaction structure_hint on_problems row_limit
+            internal_upload_database_table source_table connection resolved_table_name primary_key temporary remove_after_transaction structure_hint on_problems row_limit
         _ ->
             Panic.throw <| Illegal_Argument.Error ("Unsupported table type: " + Meta.get_qualified_type_name source_table)
 
@@ -136,3 +131,11 @@ internal_upload_database_table (source_table : DB_Table) connection table_name p
 check_outside_transaction =
     if In_Transaction.is_in_transaction then
         Panic.throw (Illegal_State.Error "Preparing Table_Upload_Operation should itself be called outside of transaction. This is a bug in the Database library.")
+
+## PRIVATE
+resolve_temp_table_name connection:Connection temporary:Boolean table_name:Text -> Text =
+    case temporary of
+        False -> table_name
+        True -> case connection.dialect.temp_table_style of
+            Temp_Table_Style.Temporary_Table -> table_name
+            Temp_Table_Style.Hash_Prefix -> "#" + table_name
