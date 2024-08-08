@@ -3,40 +3,41 @@ import * as React from 'react'
 
 import type * as twv from 'tailwind-variants'
 
-import { mergeProps, type RadioGroupProps } from '#/components/aria'
+import { ListBox, mergeProps, type ListBoxItemProps, type ListBoxProps } from '#/components/aria'
 import {
+  Form,
   type FieldPath,
   type FieldProps,
   type FieldStateProps,
   type FieldValues,
-  Form,
   type TSchema,
 } from '#/components/AriaComponents'
 
 import { mergeRefs } from '#/utilities/mergeRefs'
 
-import RadioGroup from '#/components/styled/RadioGroup'
 import { tv } from '#/utilities/tailwindVariants'
 import { Controller } from 'react-hook-form'
-import { SelectorOption } from './SelectorOption'
+import { MultiSelectorOption } from './MultiSelectorOption'
 
-/** * Props for the Selector component. */
-export interface SelectorProps<
+/** * Props for the MultiSelector component. */
+export interface MultiSelectorProps<
   Schema extends TSchema,
   TFieldValues extends FieldValues<Schema>,
   TFieldName extends FieldPath<Schema, TFieldValues>,
   TTransformedValues extends FieldValues<Schema> | undefined = undefined,
 > extends FieldStateProps<
-      Omit<RadioGroupProps, 'children' | 'value'> & { value: TFieldValues[TFieldName] },
+      Omit<ListBoxItemProps, 'children' | 'value'> & { value: TFieldValues[TFieldName] },
       Schema,
       TFieldValues,
       TFieldName,
       TTransformedValues
     >,
     FieldProps,
-    Omit<twv.VariantProps<typeof SELECTOR_STYLES>, 'disabled' | 'invalid'> {
-  readonly items: readonly TFieldValues[TFieldName][]
-  readonly itemToString?: (item: TFieldValues[TFieldName]) => string
+    Omit<twv.VariantProps<typeof MULTI_SELECTOR_STYLES>, 'disabled' | 'invalid'> {
+  readonly items: readonly Extract<TFieldValues[TFieldName], readonly unknown[]>[number][]
+  readonly itemToString?: (
+    item: Extract<TFieldValues[TFieldName], readonly unknown[]>[number],
+  ) => string
   readonly columns?: number
   readonly className?: string
   readonly style?: React.CSSProperties
@@ -44,7 +45,7 @@ export interface SelectorProps<
   readonly placeholder?: string
 }
 
-export const SELECTOR_STYLES = tv({
+export const MULTI_SELECTOR_STYLES = tv({
   base: 'block w-full bg-transparent transition-[border-color,outline] duration-200',
   variants: {
     disabled: {
@@ -77,21 +78,21 @@ export const SELECTOR_STYLES = tv({
     variant: 'outline',
   },
   slots: {
-    radioGroup: 'flex',
+    listBox: 'grid',
   },
 })
 
 /**
- * A horizontal selector.
+ * A horizontal multi-selector.
  */
 // eslint-disable-next-line no-restricted-syntax
-export const Selector = React.forwardRef(function Selector<
+export const MultiSelector = React.forwardRef(function MultiSelector<
   Schema extends TSchema,
   TFieldValues extends FieldValues<Schema>,
   TFieldName extends FieldPath<Schema, TFieldValues>,
   TTransformedValues extends FieldValues<Schema> | undefined = undefined,
 >(
-  props: SelectorProps<Schema, TFieldValues, TFieldName, TTransformedValues>,
+  props: MultiSelectorProps<Schema, TFieldValues, TFieldName, TTransformedValues>,
   ref: React.ForwardedRef<HTMLFieldSetElement>,
 ) {
   const {
@@ -119,7 +120,7 @@ export const Selector = React.forwardRef(function Selector<
     defaultValue,
   })
 
-  const classes = SELECTOR_STYLES({
+  const classes = MULTI_SELECTOR_STYLES({
     size,
     rounded,
     readOnly: inputProps.readOnly,
@@ -150,46 +151,45 @@ export const Selector = React.forwardRef(function Selector<
           control={formInstance.control}
           name={name}
           render={(renderProps) => {
-            const { ref: fieldRef, value, onChange, ...field } = renderProps.field
+            const { ref: fieldRef, onChange, ...field } = renderProps.field
             return (
-              <RadioGroup
+              <ListBox
                 ref={mergeRefs(inputRef, privateInputRef, fieldRef)}
-                {...mergeProps<RadioGroupProps>()(
+                orientation="horizontal"
+                selectionMode="multiple"
+                {...mergeProps<ListBoxProps<TFieldValues[TFieldName]>>()(
                   {
-                    className: classes.radioGroup(),
-                    name,
-                    isRequired,
-                    isDisabled,
-                    style:
-                      columns != null ? { gridTemplateColumns: `repeat(${columns}, 1fr)` } : {},
+                    className: classes.listBox(),
+                    style: { gridTemplateColumns: `repeat(${columns ?? items.length}, 1fr)` },
                   },
+                  // @ts-expect-error This is UNSAFE. This error is caused by type mismatches for
+                  // the `id` and `aria-*` properties.
                   inputProps,
                   field,
                 )}
                 // eslint-disable-next-line no-restricted-syntax
                 aria-label={props['aria-label'] ?? (typeof label === 'string' ? label : '')}
-                value={String(items.indexOf(value))}
-                onChange={(newValue) => {
+                onSelectionChange={(selection) => {
                   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-                  onChange(items[Number(newValue)])
+                  onChange([...selection].map((key) => items[Number(key)]))
                 }}
               >
                 {items.map((item, i) => (
-                  <SelectorOption value={String(i)} label={itemToString(item)} />
+                  <MultiSelectorOption key={i} id={i} value={{ item }} label={itemToString(item)} />
                 ))}
-              </RadioGroup>
+              </ListBox>
             )
           }}
         />
       </div>
     </Form.Field>
   )
-}) as <
+}) as unknown as <
   Schema extends TSchema,
   TFieldValues extends FieldValues<Schema>,
   TFieldName extends FieldPath<Schema, TFieldValues>,
   TTransformedValues extends FieldValues<Schema> | undefined = undefined,
 >(
-  props: React.RefAttributes<HTMLDivElement> &
-    SelectorProps<Schema, TFieldValues, TFieldName, TTransformedValues>,
+  props: MultiSelectorProps<Schema, TFieldValues, TFieldName, TTransformedValues> &
+    React.RefAttributes<HTMLDivElement>,
 ) => React.ReactElement

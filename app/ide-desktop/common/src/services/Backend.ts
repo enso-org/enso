@@ -324,10 +324,10 @@ export type ProjectRepeatInterval = (typeof PROJECT_REPEAT_INTERVALS)[number]
 
 /** The times during each interval to trigger executions. */
 export interface ProjectScheduleTimes {
-  readonly dates: readonly number[]
-  readonly days: readonly number[]
-  readonly hour: readonly number[]
-  readonly minute: readonly number[]
+  readonly dates?: readonly number[]
+  readonly days?: readonly number[]
+  readonly hours?: readonly number[]
+  readonly minute: number
 }
 
 /** Metadata for a {@link ProjectExecution}. */
@@ -340,7 +340,7 @@ export interface ProjectExecutionInfo {
 
 /** A specific execution schedule of a project. */
 export interface ProjectExecution extends ProjectExecutionInfo {
-  readonly executionId: ProjectExecutionId
+  readonly projectExecutionId: ProjectExecutionId
   readonly versionId: S3ObjectVersionId
 }
 
@@ -1412,7 +1412,6 @@ export default abstract class Backend {
   abstract listProjectSessions(projectId: ProjectId, title: string): Promise<ProjectSession[]>
   /** Create a project execution. */
   abstract createProjectExecution(
-    projectId: ProjectId,
     body: CreateProjectExecutionRequestBody,
     title: string,
   ): Promise<ProjectExecution>

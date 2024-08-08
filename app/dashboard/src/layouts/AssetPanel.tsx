@@ -1,23 +1,20 @@
 /** @file A panel containing the description and settings for an asset. */
-import * as React from 'react'
+import { type Dispatch, type SetStateAction, useEffect, useRef, useState } from 'react'
 
-import * as localStorageProvider from '#/providers/LocalStorageProvider'
-import * as textProvider from '#/providers/TextProvider'
-
-import AssetProjectSessions from '#/layouts/AssetProjectSessions'
-import AssetProperties from '#/layouts/AssetProperties'
+import { Button, ButtonGroup } from '#/components/AriaComponents'
+import AssetProperties from '#/layouts/AssetPanel/AssetProperties'
+import ProjectExecutions from '#/layouts/AssetPanel/ProjectExecutions'
+import ProjectSessions from '#/layouts/AssetPanel/ProjectSessions'
 import AssetVersions from '#/layouts/AssetVersions/AssetVersions'
 import type Category from '#/layouts/CategorySwitcher/Category'
-
-import * as ariaComponents from '#/components/AriaComponents'
-
+import { useLocalStorage } from '#/providers/LocalStorageProvider'
+import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import * as backendModule from '#/services/Backend'
-
-import * as array from '#/utilities/array'
-import type * as assetTreeNode from '#/utilities/AssetTreeNode'
+import { AssetType, BackendType } from '#/services/Backend'
+import { includes } from '#/utilities/array'
+import type { AnyAssetTreeNode } from '#/utilities/AssetTreeNode'
 import LocalStorage from '#/utilities/LocalStorage'
-import * as tailwindMerge from '#/utilities/tailwindMerge'
+import { twMerge } from '#/utilities/tailwindMerge'
 
 // =====================
 // === AssetPanelTab ===
@@ -44,7 +41,7 @@ declare module '#/utilities/LocalStorage' {
 
 const TABS = Object.values(AssetPanelTab)
 LocalStorage.registerKey('assetPanelTab', {
-  tryParse: (value) => (array.includes(TABS, value) ? value : null),
+  tryParse: (value) => (includes(TABS, value) ? value : null),
 })
 
 // ==================
@@ -54,8 +51,8 @@ LocalStorage.registerKey('assetPanelTab', {
 /** The subset of {@link AssetPanelProps} that are required to be supplied by the row. */
 export interface AssetPanelRequiredProps {
   readonly backend: Backend | null
-  readonly item: assetTreeNode.AnyAssetTreeNode | null
-  readonly setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AnyAssetTreeNode>> | null
+  readonly item: AnyAssetTreeNode | null
+  readonly setItem: Dispatch<SetStateAction<AnyAssetTreeNode>> | null
 }
 
 /** Props for an {@link AssetPanel}. */
@@ -68,36 +65,32 @@ export interface AssetPanelProps extends AssetPanelRequiredProps {
 /** A panel containing the description and settings for an asset. */
 export default function AssetPanel(props: AssetPanelProps) {
   const { isVisible, backend, isReadonly = false, item, setItem, category } = props
-  const isCloud = backend?.type === backendModule.BackendType.remote
+  const isCloud = backend?.type === BackendType.remote
 
-  const { getText } = textProvider.useText()
-  const { localStorage } = localStorageProvider.useLocalStorage()
-  const [initialized, setInitialized] = React.useState(false)
-  const initializedRef = React.useRef(initialized)
+  const { getText } = useText()
+  const { localStorage } = useLocalStorage()
+  const [initialized, setInitialized] = useState(false)
+  const initializedRef = useRef(initialized)
   initializedRef.current = initialized
-  const [tabRaw, setTab] = React.useState(
+  const [tabRaw, setTab] = useState(
     () => localStorage.get('assetPanelTab') ?? AssetPanelTab.properties,
   )
   const tab = (() => {
     if (!isCloud) {
       return AssetPanelTab.properties
     } else if (
-      (item?.item.type === backendModule.AssetType.secret ||
-        item?.item.type === backendModule.AssetType.directory) &&
+      (item?.item.type === AssetType.secret || item?.item.type === AssetType.directory) &&
       tabRaw === AssetPanelTab.versions
     ) {
       return AssetPanelTab.properties
-    } else if (
-      item?.item.type !== backendModule.AssetType.project &&
-      tabRaw === AssetPanelTab.projectSessions
-    ) {
+    } else if (item?.item.type !== AssetType.project && tabRaw === AssetPanelTab.projectSessions) {
       return AssetPanelTab.properties
     } else {
       return tabRaw
     }
   })()
 
-  React.useEffect(() => {
+  useEffect(() => {
     // This prevents secrets and directories always setting the tab to `properties`
     // (because they do not support the `versions` tab).
     if (initializedRef.current) {
@@ -105,14 +98,14 @@ export default function AssetPanel(props: AssetPanelProps) {
     }
   }, [tabRaw, localStorage])
 
-  React.useEffect(() => {
+  useEffect(() => {
     setInitialized(true)
   }, [])
 
   return (
     <div
       data-testid="asset-panel"
-      className={tailwindMerge.twMerge(
+      className={twMerge(
         'pointer-events-none absolute flex h-full w-asset-panel flex-col gap-asset-panel bg-white p-4 pl-asset-panel-l transition-[box-shadow] clip-path-left-shadow',
         isVisible ? 'shadow-softer' : '',
       )}
@@ -120,15 +113,15 @@ export default function AssetPanel(props: AssetPanelProps) {
         event.stopPropagation()
       }}
     >
-      <ariaComponents.ButtonGroup className="mt-0.5 grow-0 basis-8">
+      <ButtonGroup className="mt-0.5 grow-0 basis-8">
         {isCloud &&
           item != null &&
-          item.item.type !== backendModule.AssetType.secret &&
-          item.item.type !== backendModule.AssetType.directory && (
-            <ariaComponents.Button
+          item.item.type !== AssetType.secret &&
+          item.item.type !== AssetType.directory && (
+            <Button
               size="medium"
               variant="bar"
-              className={tailwindMerge.twMerge(
+              className={twMerge(
                 'pointer-events-auto disabled:opacity-100',
                 tab === AssetPanelTab.versions && 'bg-primary/[8%] opacity-100',
               )}
@@ -141,14 +134,14 @@ export default function AssetPanel(props: AssetPanelProps) {
               }}
             >
               {getText('versions')}
-            </ariaComponents.Button>
+            </Button>
           )}
-        {isCloud && item != null && item.item.type === backendModule.AssetType.project && (
-          <ariaComponents.Button
+        {isCloud && item != null && item.item.type === AssetType.project && (
+          <Button
             size="medium"
             variant="bar"
             isDisabled={tab === AssetPanelTab.projectSessions}
-            className={tailwindMerge.twMerge(
+            className={twMerge(
               'pointer-events-auto disabled:opacity-100',
               tab === AssetPanelTab.projectSessions && 'bg-primary/[8%] opacity-100',
             )}
@@ -161,14 +154,14 @@ export default function AssetPanel(props: AssetPanelProps) {
             }}
           >
             {getText('projectSessions')}
-          </ariaComponents.Button>
+          </Button>
         )}
-        {isCloud && item != null && item.item.type === backendModule.AssetType.project && (
-          <ariaComponents.Button
+        {isCloud && item != null && item.item.type === AssetType.project && (
+          <Button
             size="medium"
             variant="bar"
             isDisabled={tab === AssetPanelTab.executions}
-            className={tailwindMerge.twMerge(
+            className={twMerge(
               'pointer-events-auto disabled:opacity-100',
               tab === AssetPanelTab.executions && 'bg-primary/[8%] opacity-100',
             )}
@@ -181,11 +174,11 @@ export default function AssetPanel(props: AssetPanelProps) {
             }}
           >
             {getText('executions')}
-          </ariaComponents.Button>
+          </Button>
         )}
         {/* Spacing. The top right asset and user bars overlap this area. */}
         <div className="grow" />
-      </ariaComponents.ButtonGroup>
+      </ButtonGroup>
       {item == null || setItem == null || backend == null ?
         <div className="grid grow place-items-center text-lg">
           {getText('selectExactlyOneAssetToViewItsDetails')}
@@ -201,12 +194,11 @@ export default function AssetPanel(props: AssetPanelProps) {
             />
           )}
           {tab === AssetPanelTab.versions && <AssetVersions backend={backend} item={item} />}
-          {tab === AssetPanelTab.projectSessions &&
-            item.type === backendModule.AssetType.project && (
-              <AssetProjectSessions backend={backend} item={item} />
-            )}
-          {tab === AssetPanelTab.executions && item.type === backendModule.AssetType.project && (
-            <AssetExecutions backend={backend} item={item} />
+          {tab === AssetPanelTab.projectSessions && item.type === AssetType.project && (
+            <ProjectSessions backend={backend} item={item} />
+          )}
+          {tab === AssetPanelTab.executions && item.type === AssetType.project && (
+            <ProjectExecutions backend={backend} item={item} />
           )}
         </>
       }

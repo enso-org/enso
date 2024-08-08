@@ -15,6 +15,7 @@ import * as remoteBackendPaths from '#/services/remoteBackendPaths'
 import * as download from '#/utilities/download'
 import type HttpClient from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
+import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 
 // =================
 // === Constants ===
@@ -117,6 +118,8 @@ interface RemoteBackendPostOptions {
 export default class RemoteBackend extends Backend {
   readonly type = backend.BackendType.remote
   readonly rootPath = 'enso://'
+  // FIXME: For mock endpoint only, remove when backend is ready.
+  readonly projectExecutions: backend.ProjectExecution[] = []
   private defaultVersions: Partial<Record<backend.VersionType, DefaultVersionInfo>> = {}
   private user: object.Mutable<backend.User> | null = null
 
@@ -662,47 +665,67 @@ export default class RemoteBackend extends Backend {
   /** Create a project execution.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async createProjectExecution(
-    projectId: backend.ProjectId,
     body: backend.CreateProjectExecutionRequestBody,
-    title: string,
+    // title: string,
   ): Promise<backend.ProjectExecution> {
+    const projectExecution: backend.ProjectExecution = {
+      versionId: backend.S3ObjectVersionId(''),
+      projectExecutionId: backend.ProjectExecutionId(uniqueString()),
+      ...body,
+    }
+    this.projectExecutions.unshift(projectExecution)
+    return Promise.resolve(projectExecution)
+    // FIXME: Enable actual API call when ready.
+    /*const { projectId, ...rest } = body
     const path = remoteBackendPaths.createProjectExecutionPath(projectId)
-    const response = await this.post<backend.ProjectExecution>(path, body)
+    const response = await this.post<backend.ProjectExecution>(path, rest)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'createProjectExecutionBackendError', title)
     } else {
       return await response.json()
-    }
+    }*/
   }
 
   /** Delete a project execution.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async deleteProjectExecution(
     executionId: backend.ProjectExecutionId,
-    projectTitle: string,
+    // projectTitle: string,
   ): Promise<void> {
-    const path = remoteBackendPaths.deleteProjectExecutionPath(executionId)
+    const index = this.projectExecutions.findIndex(
+      (execution) => execution.projectExecutionId === executionId,
+    )
+    if (index !== -1) {
+      this.projectExecutions.splice(index - 1)
+    }
+    return Promise.resolve()
+    // FIXME: Enable actual API call when ready.
+    /*const path = remoteBackendPaths.deleteProjectExecutionPath(executionId)
     const response = await this.delete<backend.ProjectExecution>(path)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'createProjectExecutionBackendError', projectTitle)
     } else {
       return
-    }
+    }*/
   }
 
   /** Return a list of executions for a project.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async listProjectExecutions(
     projectId: backend.ProjectId,
-    title: string,
+    // title: string,
   ): Promise<readonly backend.ProjectExecution[]> {
-    const path = remoteBackendPaths.listProjectExecutionsPath(projectId)
+    return Promise.resolve(
+      this.projectExecutions.filter((execution) => execution.projectId === projectId),
+    )
+    // FIXME: Enable actual API call when ready.
+    /*const path = remoteBackendPaths.listProjectExecutionsPath(projectId)
     const response = await this.get<readonly backend.ProjectExecution[]>(path)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'listProjectExecutionsBackendError', title)
     } else {
       return await response.json()
-    }
+    }*/
   }
 
   /** Return details for a project.
