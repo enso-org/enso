@@ -17,9 +17,9 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
 import type { ToValue } from '@/util/reactivity'
-import { assert, assertNever } from 'shared/util/assert'
-import { mustExtend } from 'shared/util/types'
 import { toValue } from 'vue'
+import { assert, assertNever } from 'ydoc-shared/util/assert'
+import { mustExtend } from 'ydoc-shared/util/types'
 
 export type NodeCreation = ReturnType<typeof useNodeCreation>
 

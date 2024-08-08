@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test'
-import type { ExpressionUpdate, MethodCall } from 'shared/languageServerTypes'
+import type { ExpressionUpdate, MethodCall } from 'ydoc-shared/languageServerTypes'
 
 export type ExpressionLocator = string | { binding: string; expr: string }
 

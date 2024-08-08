@@ -1,9 +1,6 @@
 import { Ast } from '@/util/ast/abstract'
 import { Prefixes } from '@/util/ast/prefixes'
-import { initializeFFI } from 'shared/ast/ffi'
 import { expect, test } from 'vitest'
-
-await initializeFFI()
 
 test.each([
   {

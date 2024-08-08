@@ -20,10 +20,7 @@ import {
 import { Ast } from '@/util/ast'
 import { unwrap } from '@/util/data/result'
 import { tryIdentifier, tryQualifiedName } from '@/util/qualifiedName'
-import { initializeFFI } from 'shared/ast/ffi'
 import { expect, test } from 'vitest'
-
-await initializeFFI()
 
 test.each([
   {

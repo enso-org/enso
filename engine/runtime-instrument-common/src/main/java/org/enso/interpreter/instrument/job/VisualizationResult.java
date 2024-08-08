@@ -5,7 +5,7 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import java.nio.charset.StandardCharsets;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.WithWarnings;
+import org.enso.interpreter.runtime.warning.WithWarnings;
 
 public final class VisualizationResult {
   private VisualizationResult() {}
