@@ -238,7 +238,8 @@ type SQLServer_Connection
     execute_update self query =
         self.connection.execute_update query
 
-    ## ADVANCED
+    ## PRIVATE
+       ADVANCED
        GROUP Standard.Base.Output
        ICON data_output
 

@@ -134,7 +134,11 @@ check_outside_transaction =
 ## PRIVATE
 resolve_temp_table_name connection temporary:Boolean table_name:Text -> Text =
     case temporary of
-        False -> table_name
+        False -> case table_name.starts_with "#" of
+            True -> Error.throw <| Illegal_Argument.Error ("Table name cannot start with '#': " + table_name)
+            False -> table_name
         True -> case connection.dialect.temp_table_style of
             Temp_Table_Style.Temporary_Table -> table_name
-            Temp_Table_Style.Hash_Prefix -> "#" + table_name
+            Temp_Table_Style.Hash_Prefix -> case table_name.starts_with "#" of
+                True -> table_name
+                False -> "#" + table_name
