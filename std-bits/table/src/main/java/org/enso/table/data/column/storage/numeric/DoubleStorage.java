@@ -104,6 +104,11 @@ public final class DoubleStorage extends NumericStorage<Double>
   }
 
   @Override
+  public DoubleStorage intoStorage() {
+    return this;
+  }
+
+  @Override
   public boolean isBinaryOpVectorized(String op) {
     return ops.isSupportedBinary(op);
   }
