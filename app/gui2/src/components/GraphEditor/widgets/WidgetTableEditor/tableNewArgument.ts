@@ -103,7 +103,7 @@ export function useTableNewArgument(
   const columns = computed(() => {
     const cols = columnsAst.value?.values()
     if (cols == null) return []
-    const arr = Array.from(filterDefined(mapIterator(cols, (element) => readColumn(element))))
+    const arr = Array.from(filterDefined(mapIterator(cols, readColumn)))
     if (arr.some((x) => x == null)) return []
     return arr
   })
