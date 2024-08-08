@@ -29,7 +29,8 @@ import org.enso.compiler.core.ir.{
 import org.enso.compiler.core.{CompilerError, IR}
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.alias.graph.Graph
-import org.enso.compiler.pass.analyse.alias.graph.Graph.{Occurrence, Scope}
+import org.enso.compiler.pass.analyse.alias.graph.Occurrence
+import org.enso.compiler.pass.analyse.alias.graph.Graph.Scope
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.lint.UnusedBindings
 
@@ -546,7 +547,7 @@ case object AliasAnalysis extends IRPass {
         // Synthetic `self` must not be added to the scope, but it has to be added as a
         // definition for frame index metadata
         val occurrenceId = graph.nextId()
-        val definition = alias.graph.Graph.Occurrence.Def(
+        val definition = Occurrence.Def(
           occurrenceId,
           selfName.name,
           arg.getId(),
@@ -575,7 +576,7 @@ case object AliasAnalysis extends IRPass {
             _
           ) =>
         val nameOccursInScope =
-          scope.hasSymbolOccurrenceAs[Graph.Occurrence.Def](
+          scope.hasSymbolOccurrenceAs[Occurrence.Def](
             name.name
           )
         if (!nameOccursInScope) {
@@ -586,7 +587,7 @@ case object AliasAnalysis extends IRPass {
             )
 
           val occurrenceId = graph.nextId()
-          val definition = alias.graph.Graph.Occurrence.Def(
+          val definition = Occurrence.Def(
             occurrenceId,
             name.name,
             arg.getId(),

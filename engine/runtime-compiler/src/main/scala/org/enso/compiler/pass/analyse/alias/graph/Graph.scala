@@ -1,10 +1,9 @@
 package org.enso.compiler.pass.analyse.alias.graph
 
-import org.enso.compiler.core.{CompilerError, ExternalID, Identifier}
+import org.enso.compiler.core.CompilerError
 import org.enso.compiler.debug.Debug
-import org.enso.compiler.pass.analyse.alias.graph.Graph.{Occurrence, Scope}
+import org.enso.compiler.pass.analyse.alias.graph.Graph.Scope
 
-import java.util.UUID
 import scala.collection.immutable.HashMap
 import scala.collection.mutable
 import scala.reflect.ClassTag
@@ -97,7 +96,7 @@ sealed class Graph extends Serializable {
     * @return the link, if it exists
     */
   def resolveLocalUsage(
-    occurrence: Graph.Occurrence.Use
+    occurrence: Occurrence.Use
   ): Option[Graph.Link] = {
     scopeFor(occurrence.id).flatMap(_.resolveUsage(occurrence).map { link =>
       links += link
@@ -122,7 +121,7 @@ sealed class Graph extends Serializable {
     * @return the link, if it exists
     */
   def resolveGlobalUsage(
-    occurrence: Graph.Occurrence.Use
+    occurrence: Occurrence.Use
   ): Option[Graph.Link] = {
     scopeFor(occurrence.id) match {
       case Some(scope) =>
@@ -217,7 +216,7 @@ sealed class Graph extends Serializable {
     * @tparam T the role in which `symbol` occurs
     * @return all the scopes where `symbol` occurs with role `T`
     */
-  def scopesFor[T <: Graph.Occurrence: ClassTag](
+  def scopesFor[T <: Occurrence: ClassTag](
     symbol: Graph.Symbol
   ): List[Graph.Scope] = {
     rootScope.scopesForSymbol[T](symbol)
@@ -268,10 +267,10 @@ sealed class Graph extends Serializable {
     */
   def knownShadowedDefinitions(
     definition: Occurrence
-  ): Set[Graph.Occurrence] = {
+  ): Set[Occurrence] = {
     def getShadowedIds(
       scope: Graph.Scope
-    ): Set[Graph.Occurrence] = {
+    ): Set[Occurrence] = {
       scope.occurrences.values.collect {
         case d: Occurrence.Def if d.symbol == definition.symbol    => d
         case g: Occurrence.Global if g.symbol == definition.symbol => g
@@ -516,11 +515,11 @@ object Graph {
       *         exists
       */
     def resolveUsage(
-      occurrence: Graph.Occurrence.Use,
+      occurrence: Occurrence.Use,
       parentCounter: Int = 0
     ): Option[Graph.Link] = {
       val definition = occurrences.values.find {
-        case Graph.Occurrence.Def(_, name, _, _, _) =>
+        case Occurrence.Def(_, name, _, _, _) =>
           name == occurrence.symbol
         case _ => false
       }
@@ -703,59 +702,4 @@ object Graph {
     */
   sealed case class Link(source: Id, scopeCount: Int, target: Id)
       extends Serializable
-
-  /** An occurrence of a given symbol in the aliasing graph. */
-  sealed trait Occurrence extends Serializable {
-    val id: Id
-    val symbol: Graph.Symbol
-  }
-  object Occurrence {
-
-    /** The definition of a symbol in the aliasing graph.
-      *
-      * @param id the identifier of the name in the graph
-      * @param symbol the text of the name
-      * @param identifier the identifier of the symbol
-      * @param externalId the external identifier for the IR node defining
-      *                   the symbol
-      * @param isLazy whether or not the symbol is defined as lazy
-      */
-    sealed case class Def(
-      override val id: Id,
-      override val symbol: Graph.Symbol,
-      identifier: UUID @Identifier,
-      externalId: Option[UUID @ExternalID],
-      isLazy: Boolean = false
-    ) extends Occurrence
-
-    /** A usage of a symbol in the aliasing graph
-      *
-      * Name usages _need not_ correspond to name definitions, as dynamic
-      * symbol resolution means that a name used at runtime _may not_ be
-      * statically visible in the scope.
-      *
-      * @param id the identifier of the name in the graph
-      * @param symbol the text of the name
-      * @param identifier the identifier of the symbol
-      * @param externalId the external identifier for the IR node defining
-      *                   the symbol
-      */
-    sealed case class Use(
-      override val id: Id,
-      override val symbol: Graph.Symbol,
-      identifier: UUID @Identifier,
-      externalId: Option[UUID @ExternalID]
-    ) extends Occurrence
-
-    // TODO [AA] At some point the analysis should make use of these.
-    /** Represents a global symbol that has been _asked for_ in the program.
-      *
-      * @param id the identifier of the name in the graph
-      * @param symbol the text of the name
-      */
-    sealed case class Global(
-      override val id: Id,
-      override val symbol: Graph.Symbol
-    ) extends Occurrence
-  }
 }
