@@ -1,17 +1,18 @@
 load("@rules_rust//rust:defs.bzl", "rust_shared_library")
 # load("@rules_rust//wasm_bindgen/rules_nodejs:defs.bzl", "nodejs_rust_wasm_bindgen")
-load("@crates//:defs.bzl", "all_crate_deps")
+load("@crates//:defs.bzl", "aliases", "all_crate_deps")
 
 package(default_visibility = ["//visibility:public"])
 
-all_crate_deps()
-
-
 rust_shared_library(
     name = "rust-ffi",
-    srcs = ["src/lib.rs"],
+    srcs = glob(["src/**/*.rs"]),
+    aliases = aliases(),
     edition = "2021",
-    deps = [
-        "@rules_rust//wasm_bindgen/3rdparty:wasm_bindgen",
+    proc_macro_deps = all_crate_deps(proc_macro = True),
+    deps = all_crate_deps(normal = True) + [
+        "//lib/rust/parser:enso-parser",
+        "//lib/rust/parser/doc-parser:enso-doc-parser",
+        # "@rules_rust//wasm_bindgen/3rdparty:wasm_bindgen",
     ],
 )

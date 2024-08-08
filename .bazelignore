@@ -14,6 +14,7 @@ app/ide-desktop/lib/esbuild-plugin-copy-directories/node_modules
 app/ide-desktop/lib/icons/node_modules
 app/ide-desktop/lib/ts-plugin-namespace-auto-import/node_modules
 app/ide-desktop/node_modules
+app/rust-ffi/node_modules
 lib/js/runner/node_modules
 
 #

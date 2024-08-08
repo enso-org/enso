@@ -1437,17 +1437,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "enso-build-macros"
-version = "0.1.0"
-dependencies = [
- "enso-build-base",
- "enso-build-macros-lib",
- "itertools",
- "proc-macro2",
- "syn 1.0.107",
-]
-
-[[package]]
 name = "enso-build-macros-lib"
 version = "0.1.0"
 dependencies = [
@@ -1460,7 +1449,7 @@ dependencies = [
  "quote",
  "regex",
  "serde_yaml",
- "syn 1.0.107",
+ "syn 2.0.53",
 ]
 
 [[package]]
@@ -1570,7 +1559,7 @@ version = "0.2.0"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 1.0.107",
+ "syn 2.0.53",
 ]
 
 [[package]]
@@ -1581,7 +1570,7 @@ dependencies = [
  "enso-macro-utils",
  "proc-macro2",
  "quote",
- "syn 1.0.107",
+ "syn 2.0.53",
 ]
 
 [[package]]
@@ -1687,7 +1676,7 @@ dependencies = [
  "enso-macro-utils",
  "proc-macro2",
  "quote",
- "syn 1.0.107",
+ "syn 2.0.53",
 ]
 
 [[package]]
@@ -1717,7 +1706,7 @@ version = "0.1.0"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 1.0.107",
+ "syn 2.0.53",
 ]
 
 [[package]]

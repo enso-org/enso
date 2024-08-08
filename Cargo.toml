@@ -9,7 +9,7 @@ resolver = "2"
 members = [
     "app/rust-ffi",
     "build_tools/cli",
-    "build_tools/macros/proc-macro",
+    "build_tools/macros/lib",
     "build_tools/ci-gen",
     "build_tools/cli",
     "build_tools/install",
@@ -29,6 +29,7 @@ members = [
     "lib/rust/parser/schema",
     "lib/rust/parser/debug",
     "lib/rust/prelude",
+    "lib/rust/prelude/macros",
     "lib/rust/reflect",
     "lib/rust/zst",
     "lib/rust/parser/debug/fuzz",
@@ -162,14 +163,6 @@ reqwest = { version = "0.11.27", default-features = false, features = [
 ] }
 proc-macro2 = { version = "1.0.79" }
 syn = { version = "2.0", features = [
-    "full",
-    "extra-traits",
-    "printing",
-    "parsing",
-    "visit",
-    "visit-mut",
-] }
-syn_1 = { package = "syn", version = "1.0", features = [
     "full",
     "extra-traits",
     "printing",

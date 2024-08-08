@@ -27,10 +27,16 @@ use_repo(npm, "npm")
 ### RUST ###
 ############
 bazel_dep(name = "rules_rust", version = "0.48.0")
+single_version_override(module_name = "rules_rust", patches = ["patches/rules_rust_msvc_maxpath.patch"])
+
 rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
 rust.toolchain(edition = "2021")
 use_repo(rust, "rust_toolchains")
 
+# manifests = use_extension("//:bazel_scripts/manifests.bzl", "manifests")
+# manifests.manifests(manifest = "//:Cargo.toml")
+
+# print( manifests.MANIFESTS )
 crate = use_extension("@rules_rust//crate_universe:extension.bzl", "crate")
 crate.from_cargo(
     name = "crates",
@@ -43,7 +49,7 @@ crate.from_cargo(
         "//:build_tools/install/config/Cargo.toml",
         "//:build_tools/install/installer/Cargo.toml",
         "//:build_tools/install/uninstaller/Cargo.toml",
-        "//:build_tools/macros/proc-macro/Cargo.toml",
+        "//:build_tools/macros/lib/Cargo.toml",
         "//:Cargo.toml",
         "//:lib/rust/data-structures/Cargo.toml",
         "//:lib/rust/enso-font/Cargo.toml",
@@ -58,8 +64,10 @@ crate.from_cargo(
         "//:lib/rust/parser/schema/Cargo.toml",
         "//:lib/rust/parser/src/syntax/tree/visitor/Cargo.toml",
         "//:lib/rust/prelude/Cargo.toml",
+        "//:lib/rust/prelude/macros/Cargo.toml",
         "//:lib/rust/reflect/Cargo.toml",
         "//:lib/rust/zst/Cargo.toml",
+        "//:lib/rust/parser/debug/fuzz/Cargo.toml",
         "//:tools/language-server/logstat/Cargo.toml",
         "//:tools/language-server/wstest/Cargo.toml",
         "//app/rust-ffi:Cargo.toml",
