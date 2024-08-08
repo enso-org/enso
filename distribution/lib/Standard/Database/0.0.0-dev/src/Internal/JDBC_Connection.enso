@@ -119,6 +119,9 @@ type JDBC_Connection
 
     ## PRIVATE
        Executes the provided SQL.
+       Typically this shouldn't be used and with_prepared_statement should be preferred.
+       It is needed for SQLServer temp table creation where we need to execute a raw SQL statement
+       outside of a stored procedure.
     execute : Text | SQL_Statement -> Any
     execute self query:(Text | SQL_Statement) = self.synchronized <| profile_sql_if_enabled self query.to_text <|
         compiled_query = case query of
