@@ -1230,14 +1230,18 @@ public class Main {
     var logMasking = new boolean[1];
     var logLevel = setupLogging(line, logMasking);
 
-    if (line.hasOption(JVM_OPTION)) {
+    var loc = Main.class.getProtectionDomain().getCodeSource().getLocation();
+    var component = new File(loc.toURI().resolve("..")).getAbsoluteFile();
+    if (!component.getName().equals("component")) {
+      component = new File(component, "component");
+    }
+    if (line.hasOption(JVM_OPTION) || isLauncherOutdated(new File(loc.toURI()), component)) {
       var jvm = line.getOptionValue(JVM_OPTION);
       var current = System.getProperty("java.home");
       if (jvm == null) {
         jvm = current;
       }
       if (current == null || !current.equals(jvm)) {
-        var loc = Main.class.getProtectionDomain().getCodeSource().getLocation();
         var commandAndArgs = new ArrayList<String>();
         JVM_FOUND:
         if (jvm == null) {
@@ -1270,10 +1274,6 @@ public class Main {
 
         commandAndArgs.add("--add-opens=java.base/java.nio=ALL-UNNAMED");
         commandAndArgs.add("--module-path");
-        var component = new File(loc.toURI().resolve("..")).getAbsoluteFile();
-        if (!component.getName().equals("component")) {
-          component = new File(component, "component");
-        }
         if (!component.isDirectory()) {
           throw new IOException("Cannot find " + component + " directory");
         }
@@ -1377,5 +1377,22 @@ public class Main {
 
   protected String getLanguageId() {
     return LanguageInfo.ID;
+  }
+
+  private static boolean isLauncherOutdated(File base, File dir) {
+    var needsCheck = base.canExecute();
+    if (needsCheck) {
+      var files = dir.listFiles();
+      if (files != null) {
+        var baseTime = base.lastModified();
+        for (var f : files) {
+          if (baseTime < f.lastModified()) {
+            System.err.println("File " + base + " is older than " + f + " running in --jvm mode");
+            return true;
+          }
+        }
+      }
+    }
+    return false;
   }
 }
