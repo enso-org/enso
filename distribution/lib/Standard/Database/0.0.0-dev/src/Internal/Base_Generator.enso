@@ -323,16 +323,16 @@ generate_expression dialect expr = case expr of
         bindee_exp = SQL_Builder.code "SELECT " ++ (generate_expression dialect bindee).paren ++ " AS " ++ wrapped_binder
 
         IO.println "AAA scope push "+binder
-        old_with_scope = State.get SQL_Expression
-        State.put SQL_Expression (old_with_scope.insert binder)
+        old_with_scope = State.get Text
+        State.put Text (old_with_scope.insert binder)
         body_sql_builder = generate_expression dialect body
-        State.put SQL_Expression old_with_scope
+        State.put Text old_with_scope
         IO.println "AAA scope pop "+binder
 
         body_exp = SQL_Builder.code "SELECT " ++ body_sql_builder ++ " FROM " ++ wrapped_binder
         (SQL_Builder.code "WITH " ++ wrapped_binder  ++ " AS " ++ bindee_exp.paren ++ " " ++ body_exp.paren).paren
     SQL_Expression.With_Ref binder standalone_expression ->
-        with_scope = State.get SQL_Expression
+        with_scope = State.get Text
         IO.println "AAA scope check "+binder+": "+(with_scope.contains binder).to_text
         case with_scope.contains binder of
             True ->

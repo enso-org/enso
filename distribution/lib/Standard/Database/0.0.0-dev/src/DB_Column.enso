@@ -193,8 +193,8 @@ type DB_Column
     to_sql : SQL_Statement
     to_sql self = self.to_table.to_sql
 
-    generate_random_column_name self = self.to_table.make_temp_column_name
-    #generate_random_column_name self = self.connection.base_connection.table_naming_helper.generate_random_table_name prefix="with-"
+    #generate_random_column_name self = self.to_table.make_temp_column_name
+    generate_random_column_name self = self.connection.base_connection.table_naming_helper.generate_random_table_name prefix="with-"
 
     # private Value internal_name:Text connection:(Connection | Any) sql_type_reference:SQL_Type_Reference expression:SQL_Expression context:Context
     with self callback =
