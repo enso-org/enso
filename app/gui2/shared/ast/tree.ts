@@ -2437,7 +2437,13 @@ export class MutableVector extends Vector implements MutableAst {
     const elements = this.fields.get('elements')
     const last = elements[elements.length - 1]?.value?.node
     this.fields.set('elements', elements.slice(0, -1))
-    return last != null ? this.module.take(last) : undefined
+    const lastNode = this.module.get(last)
+    if (lastNode != null) {
+      lastNode.fields.set('parent', undefined)
+      return lastNode as Owned
+    } else {
+      return undefined
+    }
   }
 
   set<T extends MutableAst>(index: number, value: Owned<T>) {

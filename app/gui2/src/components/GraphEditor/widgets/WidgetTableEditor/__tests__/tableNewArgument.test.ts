@@ -106,6 +106,7 @@ test.each([
 
 test.each([
   'Table.new 14',
+  'Table.new array1',
   "Table.new ['a', [123]]",
   "Table.new [['a', [123]], ['b', [124], []]]",
   "Table.new [['a', [123]], ['a'.repeat 170, [123]]]",
