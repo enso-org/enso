@@ -39,7 +39,6 @@ app/ide-desktop/lib/dashboard/playwright/.cache/
 app/ide-desktop/lib/dashboard/dist/
 app/gui/view/documentation/assets/stylesheet.css
 app/rust-ffi/pkg
-app/rust-ffi/node-pkg
 app/gui2/src/assets/font-*.css
 Cargo.lock
 build.json

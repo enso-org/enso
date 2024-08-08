@@ -115,7 +115,6 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use quote::ToTokens;
-use syn;
 use syn::punctuated::Punctuated;
 use syn::Token;
 

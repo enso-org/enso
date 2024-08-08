@@ -90,6 +90,11 @@ add_specs suite_builder setup =
             expected_col = Column.from_vector "Test" ["Itwas", "thebest", "oftimes", "itwastheworstoftimes"]
             res = test_col.text_cleanse [..All_Whitespace]
             res.should_equal expected_col
+        test_col_with_newlines = Column.from_vector "Test" ['\nIt was', 'the best\r', '\rof  times\n', '\r\nit was \r\n the  worst  of  times\n\r']
+        group_builder.specify "should remove all whitespace" <|
+            expected_col = Column.from_vector "Test" ["It was", "the best", "of  times", "it was  the  worst  of  times"]
+            res = test_col_with_newlines.text_cleanse [..Newlines]
+            res.should_equal expected_col
         test_col_with_nums = Column.from_vector "Test" ["1It was", "the best2", "3of  times4", " 1984 it was  the  worst  of  times  72"]
         group_builder.specify "should remove leading numbers" <|
             expected_col = Column.from_vector "Test" ["It was", "the best2", "of  times4", " 1984 it was  the  worst  of  times  72"]

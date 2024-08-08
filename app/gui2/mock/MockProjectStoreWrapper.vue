@@ -5,8 +5,8 @@
 
 import { useProjectStore } from '@/stores/project'
 import { Ast } from '@/util/ast'
-import { SourceDocument } from 'shared/ast/sourceDocument'
 import { reactive, watch } from 'vue'
+import { SourceDocument } from 'ydoc-shared/ast/sourceDocument'
 
 const props = defineProps<{ modelValue: string }>()
 const emit = defineEmits<{ 'update:modelValue': [modelValue: string] }>()

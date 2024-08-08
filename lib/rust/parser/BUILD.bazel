@@ -14,6 +14,5 @@ rust_library(
     deps = all_crate_deps(normal = True) + [
         "//lib/rust/prelude:enso-prelude",
         "//lib/rust/reflect:enso-reflect",
-        "//lib/rust/data-structures:enso-data-structures"
     ],
 )

@@ -24,6 +24,7 @@
 
 use crate::prelude::*;
 
+use crate::im_list::List;
 use crate::macros;
 use crate::macros::pattern;
 use crate::source::Code;
@@ -37,7 +38,6 @@ use crate::syntax::Item;
 use crate::syntax::NewlineConsumer;
 use crate::syntax::TokenConsumer;
 
-use enso_data_structures::im_list::List;
 use std::collections::HashMap;
 use std::collections::VecDeque;
 
@@ -491,11 +491,11 @@ impl<'s> ResolverState<'s> {
                     }
                     Err(tokens) => tokens,
                 };
-                if let Some(excess) = self.precedence.resolve(excess) {
+                if let Some(excess) = self.precedence.resolve(&mut excess.into()) {
                     let excess = excess.with_error("Unexpected tokens in macro invocation.");
                     tokens.push(excess.into());
                 }
-                let body = self.precedence.resolve(tokens);
+                let body = self.precedence.resolve(&mut tokens);
                 syntax::tree::MultiSegmentAppSegment { header, body }
             });
             syntax::Tree::multi_segment_app(segments)

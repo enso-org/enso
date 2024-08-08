@@ -5,7 +5,6 @@
 #![warn(missing_docs)]
 
 use proc_macro2::TokenTree;
-use syn;
 use syn::WhereClause;
 use syn::WherePredicate;
 

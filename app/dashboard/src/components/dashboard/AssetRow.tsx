@@ -742,6 +742,7 @@ export default function AssetRow(props: AssetRowProps) {
           {!hidden && (
             <FocusRing>
               <tr
+                data-testid="asset-row"
                 tabIndex={0}
                 ref={(element) => {
                   rootRef.current = element

@@ -1,1 +1,1 @@
-export * from 'shared/util/assert'
+export * from 'ydoc-shared/util/assert'

@@ -1,11 +1,5 @@
 [workspace]
 resolver = "2"
-# Listing only the "root" crates of each app/library. All path dependencies are included in the workspace automatically.
-# If you want to add sub crate (like `app/gui/config` or `lib/rust/ensogl/examples`), just add it as a path dependency
-# where plausible.
-# Any GUI functionality that is not used by the main entry point should be defined somewhere with `examples` in the
-# path, e.g. `lib/rust/ensogl/examples`, or `app/gui/view/examples`; this is used to optimize the application for
-# loading the IDE.
 members = [
     "app/rust-ffi",
     "build_tools/cli",
@@ -16,7 +10,6 @@ members = [
     "build_tools/install/config",
     "build_tools/install/installer",
     "build_tools/install/uninstaller",
-    "lib/rust/data-structures",
     "lib/rust/enso-font",
     "lib/rust/font",
     "lib/rust/launcher-shims",
@@ -36,12 +29,6 @@ members = [
     "tools/language-server/logstat",
     "tools/language-server/wstest",
 ]
-
-# We are using a version with extended functionality. The changes have been PR'd upstream:
-# https://github.com/rustwasm/console_error_panic_hook/pull/24
-# Remove this patch when the issue is resolved.
-[patch.crates-io]
-console_error_panic_hook = { git = 'https://github.com/enso-org/console_error_panic_hook' }
 
 [profile.dev]
 opt-level = 0
@@ -141,7 +128,6 @@ wasm-bindgen-test = { version = "0.3.34" }
 windows = { version = "0.52.0", features = ["Win32", "Win32_UI", "Win32_UI_Shell", "Win32_System", "Win32_System_LibraryLoader", "Win32_Foundation", "Win32_System_Com"] }
 winreg = { version = "0.52.0" }
 anyhow = { version = "1.0.66" }
-failure = { version = "0.1.8" }
 derive_more = { version = "0.99" }
 boolinator = { version = "2.4.0" }
 derivative = { version = "2.2" }
