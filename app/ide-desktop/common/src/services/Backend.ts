@@ -303,6 +303,38 @@ export interface ProjectSession {
   readonly userEmail: EmailAddress
 }
 
+export const PROJECT_PARALLEL_MODES = ['ignore', 'restart', 'parallel'] as const
+
+/** The behavior when manually starting a new execution when the previous one is not yet complete.
+ * One of the following:
+ * - `ignore` - do not start the new execution.
+ * - `restart` - stop the old execution and start the new execution.
+ * - `parallel` - keep the old execution running but also run the new execution.
+ */
+export type ProjectParallelMode = (typeof PROJECT_PARALLEL_MODES)[number]
+
+export const PROJECT_REPEAT_INTERVALS = ['hourly', 'daily', 'weekly', 'monthly'] as const
+
+/** The interval at which a project schedule repeats. */
+export type ProjectRepeatInterval = (typeof PROJECT_REPEAT_INTERVALS)[number]
+
+/** The times during each interval to trigger executions. */
+export interface ProjectScheduleTimes {
+  readonly dates: readonly number[]
+  readonly days: readonly number[]
+  readonly hour: readonly number[]
+  readonly minute: readonly number[]
+}
+
+/** A specific execution schedule of a project. */
+export interface ProjectExecution {
+  readonly projectId: ProjectId
+  readonly versionId: S3ObjectVersionId
+  readonly repeatInterval: ProjectRepeatInterval
+  readonly times: ProjectScheduleTimes
+  readonly parallelMode: ProjectParallelMode
+}
+
 /** Metadata describing the location of an uploaded file. */
 export interface FileLocator {
   readonly fileId: FileId
@@ -1366,6 +1398,11 @@ export default abstract class Backend {
   abstract closeProject(projectId: ProjectId, title: string): Promise<void>
   /** Return a list of sessions for the current project. */
   abstract listProjectSessions(projectId: ProjectId, title: string): Promise<ProjectSession[]>
+  /** Return a list of executions for the current project. */
+  abstract listProjectExecutions(
+    projectId: ProjectId,
+    title: string,
+  ): Promise<readonly ProjectExecution[]>
   /** Restore a project from a different version. */
   abstract restoreProject(
     projectId: ProjectId,

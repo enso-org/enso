@@ -206,6 +206,7 @@
   "projectSessions": "Sessions",
   "logs": "Logs",
   "showLogs": "Show Logs",
+  "executions": "Executions",
   "accept": "Accept",
   "reject": "Reject",
   "clearTrash": "Clear Trash",

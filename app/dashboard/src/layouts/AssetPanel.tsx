@@ -28,6 +28,7 @@ enum AssetPanelTab {
   properties = 'properties',
   versions = 'versions',
   projectSessions = 'projectSessions',
+  executions = 'executions',
 }
 
 // ============================
@@ -162,6 +163,26 @@ export default function AssetPanel(props: AssetPanelProps) {
             {getText('projectSessions')}
           </ariaComponents.Button>
         )}
+        {isCloud && item != null && item.item.type === backendModule.AssetType.project && (
+          <ariaComponents.Button
+            size="medium"
+            variant="bar"
+            isDisabled={tab === AssetPanelTab.executions}
+            className={tailwindMerge.twMerge(
+              'pointer-events-auto disabled:opacity-100',
+              tab === AssetPanelTab.executions && 'bg-primary/[8%] opacity-100',
+            )}
+            onPress={() => {
+              setTab((oldTab) =>
+                oldTab === AssetPanelTab.executions ?
+                  AssetPanelTab.properties
+                : AssetPanelTab.executions,
+              )
+            }}
+          >
+            {getText('executions')}
+          </ariaComponents.Button>
+        )}
         {/* Spacing. The top right asset and user bars overlap this area. */}
         <div className="grow" />
       </ariaComponents.ButtonGroup>
@@ -184,6 +205,9 @@ export default function AssetPanel(props: AssetPanelProps) {
             item.type === backendModule.AssetType.project && (
               <AssetProjectSessions backend={backend} item={item} />
             )}
+          {tab === AssetPanelTab.executions && item.type === backendModule.AssetType.project && (
+            <AssetExecutions backend={backend} item={item} />
+          )}
         </>
       }
     </div>
