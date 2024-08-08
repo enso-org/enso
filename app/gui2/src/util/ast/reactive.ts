@@ -1,5 +1,5 @@
-import type { AstId } from 'shared/ast'
-import { type FixedMap, MutableModule } from 'shared/ast'
+import type { AstId } from 'ydoc-shared/ast'
+import { type FixedMap, MutableModule } from 'ydoc-shared/ast'
 import { customRef, markRaw } from 'vue'
 import * as Y from 'yjs'
 

@@ -18,7 +18,7 @@ export function tabClipPath(
   const orient =
     side === 'top' ? (x: number, y: number) => [x, y] : (x: number, y: number) => [y1 - y, x]
   const pt = (x: number, y: number) => orient(x, y).join(' ')
-  return path([
+  const result = path([
     `M ${pt(0, y1)}`,
     `A ${radiusPx} ${radiusPx} 0 0 ${sweep0} ${pt(radiusPx, y1 - radiusPx)}`,
     `L ${pt(radiusPx, radiusPx)}`,
@@ -29,6 +29,7 @@ export function tabClipPath(
     `A ${radiusPx} ${radiusPx} 0 0 ${sweep0} ${pt(x1, y1)}`,
     `M ${pt(0, 0)}`,
   ])
+  return result
 }
 
 // ===============

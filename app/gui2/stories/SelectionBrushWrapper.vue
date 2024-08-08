@@ -2,12 +2,14 @@
 import { computed, ref, shallowRef } from 'vue'
 
 import { usePointer } from '@/composables/events'
+import { useKeyboard } from '@/composables/keyboard'
 import { useNavigator } from '@/composables/navigator'
 import type { Vec2 } from '@/util/data/vec2'
 
 const viewportNode = ref<HTMLElement>()
 
-const navigator = useNavigator(viewportNode)
+const keyboard = useKeyboard()
+const navigator = useNavigator(viewportNode, keyboard)
 
 const selectionAnchor = shallowRef<Vec2>()
 

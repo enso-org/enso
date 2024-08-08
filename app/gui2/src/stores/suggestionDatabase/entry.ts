@@ -11,16 +11,16 @@ import {
   qnSegments,
   qnSplit,
 } from '@/util/qualifiedName'
-import type { MethodPointer } from 'shared/languageServerTypes'
+import type { MethodPointer } from 'ydoc-shared/languageServerTypes'
 import type {
   SuggestionEntryArgument,
   SuggestionEntryScope,
-} from 'shared/languageServerTypes/suggestions'
+} from 'ydoc-shared/languageServerTypes/suggestions'
 export type {
   SuggestionEntryArgument,
   SuggestionEntryScope,
   SuggestionId,
-} from 'shared/languageServerTypes/suggestions'
+} from 'ydoc-shared/languageServerTypes/suggestions'
 
 /** An alias type for typename (for entry fields like `returnType`).
  *
