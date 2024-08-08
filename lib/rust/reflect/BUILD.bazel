@@ -13,5 +13,5 @@ rust_library(
     ],
     deps = all_crate_deps(normal = True) + [
         "//lib/rust/metamodel:enso-metamodel"
-    ],
+    ]
 )

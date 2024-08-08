@@ -131,16 +131,13 @@ enum FieldAttr {
 }
 
 fn parse_field_attrs(attr: &syn::Attribute, out: &mut Vec<FieldAttr>) {
-    if attr.style != syn::AttrStyle::Outer {
-        return;
-    }
-    if !attr.path().is_ident(HELPER_ATTRIBUTE_PATH) {
+    if attr.style != syn::AttrStyle::Outer || !attr.path().is_ident(HELPER_ATTRIBUTE_PATH) {
         return;
     }
     match &attr.meta {
-        syn::Meta::List(metalist) => metalist
-            .parse_nested_meta(|meta| Ok(out.push(parse_field_annotation(&meta)?)))
-            .expect(INVALID_HELPER_SYNTAX),
+        syn::Meta::List(metalist) =>
+            { metalist.parse_nested_meta(|meta| Ok(out.push(parse_field_annotation(&meta)?))) }
+                .expect(INVALID_HELPER_SYNTAX),
         syn::Meta::Path(_) | syn::Meta::NameValue(_) =>
             panic!("{}: {}.", INVALID_HELPER_SYNTAX, attr.meta.to_token_stream()),
     }
@@ -168,10 +165,7 @@ enum VariantAttr {
 }
 
 fn parse_variant_attrs(attr: &syn::Attribute, out: &mut Vec<VariantAttr>) {
-    if attr.style != syn::AttrStyle::Outer {
-        return;
-    }
-    if !attr.path().is_ident(HELPER_ATTRIBUTE_PATH) {
+    if attr.style != syn::AttrStyle::Outer || !attr.path().is_ident(HELPER_ATTRIBUTE_PATH) {
         return;
     }
     match &attr.meta {

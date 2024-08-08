@@ -12,4 +12,5 @@ rust_library(
     deps = all_crate_deps(normal = True) + [
         "//lib/rust/zst:enso-zst"
     ],
+    crate_features = ["rust"]
 )

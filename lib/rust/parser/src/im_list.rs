@@ -198,9 +198,18 @@ impl<T> From<Vec<T>> for List<T> {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct EmptyVectorError;
+
+impl Display for EmptyVectorError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Cannot convert empty Vec to NonEmpty one.")
+    }
+}
+
 impl<T> TryFrom<Vec<T>> for NonEmpty<T> {
-    type Error = anyhow::Error;
+    type Error = EmptyVectorError;
     fn try_from(v: Vec<T>) -> Result<Self, Self::Error> {
-        List::<T>::from(v).into_non_empty().context("Cannot convert empty Vec to NonEmpty one.")
+        List::<T>::from(v).into_non_empty().ok_or(EmptyVectorError)
     }
 }

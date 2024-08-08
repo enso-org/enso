@@ -137,7 +137,7 @@ impl<T> VecAllocation<T> {
 #[reflect(transparent)]
 pub struct ColdVec<T> {
     #[allow(clippy::box_collection)]
-    #[reflect(as = "Vec<T>")]
+    #[reflect(as = Vec<T>)]
     elements: Option<Box<Vec<T>>>,
 }
 

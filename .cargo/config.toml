@@ -2,9 +2,6 @@
 target-dir = "target/rust/"
 rustflags = ["--cfg", "tokio_unstable"]
 
-[target.wasm32-unknown-unknown]
-rustflags = ["-C", "link-arg=-fuse-ld=lld"]
-
 [target.x86_64-pc-windows-msvc]
 linker = "rust-lld"
 # Static linking is required to avoid the need for the Visual C++ Redistributable. We care about this primarily for our
