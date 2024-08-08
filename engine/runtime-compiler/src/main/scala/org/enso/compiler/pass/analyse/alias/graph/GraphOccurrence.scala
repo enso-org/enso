@@ -5,13 +5,16 @@ import org.enso.compiler.pass.analyse.alias.graph.Graph.Id
 
 import java.util.UUID
 
-/** An occurrence of a given symbol in the aliasing graph. */
-sealed trait Occurrence extends Serializable {
+/** An occurrence of a given symbol in the aliasing graph.
+  * Note that this is not present in the metadata attached to the [[org.enso.compiler.core.IR]] elements,
+  * but only in the alias [[Graph]].
+  */
+sealed trait GraphOccurrence extends Serializable {
   val id: Id
   val symbol: Graph.Symbol
 }
 
-object Occurrence {
+object GraphOccurrence {
 
   /** The definition of a symbol in the aliasing graph.
     *
@@ -28,7 +31,7 @@ object Occurrence {
     identifier: UUID @Identifier,
     externalId: Option[UUID @ExternalID],
     isLazy: Boolean = false
-  ) extends Occurrence
+  ) extends GraphOccurrence
 
   /** A usage of a symbol in the aliasing graph
     *
@@ -47,7 +50,7 @@ object Occurrence {
     override val symbol: Graph.Symbol,
     identifier: UUID @Identifier,
     externalId: Option[UUID @ExternalID]
-  ) extends Occurrence
+  ) extends GraphOccurrence
 
   // TODO [AA] At some point the analysis should make use of these.
   /** Represents a global symbol that has been _asked for_ in the program.
@@ -58,5 +61,5 @@ object Occurrence {
   sealed case class Global(
     override val id: Id,
     override val symbol: Graph.Symbol
-  ) extends Occurrence
+  ) extends GraphOccurrence
 }

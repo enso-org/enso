@@ -16,7 +16,7 @@ sealed class Graph extends Serializable {
   private var targetLinks: Map[Graph.Id, Set[Graph.Link]] = new HashMap()
   var nextIdCounter                                       = 0
 
-  private var globalSymbols: Map[Graph.Symbol, Occurrence.Global] =
+  private var globalSymbols: Map[Graph.Symbol, GraphOccurrence.Global] =
     Map()
 
   /** @return a deep structural copy of `this` */
@@ -46,7 +46,7 @@ sealed class Graph extends Serializable {
     *
     * @param sym the symbol occurrence
     */
-  def addGlobalSymbol(sym: Occurrence.Global): Unit = {
+  def addGlobalSymbol(sym: GraphOccurrence.Global): Unit = {
     if (!globalSymbols.contains(sym.symbol)) {
       globalSymbols = globalSymbols + (sym.symbol -> sym)
     }
@@ -96,7 +96,7 @@ sealed class Graph extends Serializable {
     * @return the link, if it exists
     */
   def resolveLocalUsage(
-    occurrence: Occurrence.Use
+    occurrence: GraphOccurrence.Use
   ): Option[Graph.Link] = {
     scopeFor(occurrence.id).flatMap(_.resolveUsage(occurrence).map { link =>
       links += link
@@ -121,7 +121,7 @@ sealed class Graph extends Serializable {
     * @return the link, if it exists
     */
   def resolveGlobalUsage(
-    occurrence: Occurrence.Use
+    occurrence: GraphOccurrence.Use
   ): Option[Graph.Link] = {
     scopeFor(occurrence.id) match {
       case Some(scope) =>
@@ -167,7 +167,7 @@ sealed class Graph extends Serializable {
     * @tparam T the role in which `symbol` should occur
     * @return a set of all links in which `symbol` occurs with role `T`
     */
-  def linksFor[T <: Occurrence: ClassTag](
+  def linksFor[T <: GraphOccurrence: ClassTag](
     symbol: Graph.Symbol
   ): Set[Graph.Link] = {
     val idsForSym = rootScope.symbolToIds[T](symbol)
@@ -183,7 +183,7 @@ sealed class Graph extends Serializable {
     * @param id the occurrence identifier
     * @return the occurrence for `id`, if it exists
     */
-  def getOccurrence(id: Graph.Id): Option[Occurrence] =
+  def getOccurrence(id: Graph.Id): Option[GraphOccurrence] =
     scopeFor(id).flatMap(_.getOccurrence(id))
 
   /** Gets the link from an id to the definition of the symbol it represents.
@@ -195,8 +195,8 @@ sealed class Graph extends Serializable {
     linksFor(id).find { edge =>
       val occ = getOccurrence(edge.target)
       occ match {
-        case Some(Occurrence.Def(_, _, _, _, _)) => true
-        case _                                   => false
+        case Some(GraphOccurrence.Def(_, _, _, _, _)) => true
+        case _                                        => false
       }
     }
   }
@@ -216,7 +216,7 @@ sealed class Graph extends Serializable {
     * @tparam T the role in which `symbol` occurs
     * @return all the scopes where `symbol` occurs with role `T`
     */
-  def scopesFor[T <: Occurrence: ClassTag](
+  def scopesFor[T <: GraphOccurrence: ClassTag](
     symbol: Graph.Symbol
   ): List[Graph.Scope] = {
     rootScope.scopesForSymbol[T](symbol)
@@ -248,8 +248,8 @@ sealed class Graph extends Serializable {
     scopeFor(id)
       .flatMap(
         _.getOccurrence(id).flatMap {
-          case d: Occurrence.Def => Some(d)
-          case _                 => None
+          case d: GraphOccurrence.Def => Some(d)
+          case _                      => None
         }
       )
       .isDefined
@@ -266,25 +266,25 @@ sealed class Graph extends Serializable {
     * @return the bindings shadowed by `definition`
     */
   def knownShadowedDefinitions(
-    definition: Occurrence
-  ): Set[Occurrence] = {
+    definition: GraphOccurrence
+  ): Set[GraphOccurrence] = {
     def getShadowedIds(
       scope: Graph.Scope
-    ): Set[Occurrence] = {
+    ): Set[GraphOccurrence] = {
       scope.occurrences.values.collect {
-        case d: Occurrence.Def if d.symbol == definition.symbol    => d
-        case g: Occurrence.Global if g.symbol == definition.symbol => g
+        case d: GraphOccurrence.Def if d.symbol == definition.symbol    => d
+        case g: GraphOccurrence.Global if g.symbol == definition.symbol => g
       } ++ scope.parent.map(getShadowedIds).getOrElse(Set())
     }.toSet
 
     definition match {
-      case d: Occurrence.Def =>
+      case d: GraphOccurrence.Def =>
         scopeFor(d.id).flatMap(_.parent) match {
           case Some(scope) => getShadowedIds(scope) // + globals
           case None        => Set()
         }
-      case _: Occurrence.Global => Set()
-      case _: Occurrence.Use    => Set()
+      case _: GraphOccurrence.Global => Set()
+      case _: GraphOccurrence.Use    => Set()
     }
   }
 
@@ -314,7 +314,7 @@ sealed class Graph extends Serializable {
     * @tparam T the role in which `symbol` should occur
     * @return a list of identifiers for that symbol
     */
-  def symbolToIds[T <: Occurrence: ClassTag](
+  def symbolToIds[T <: GraphOccurrence: ClassTag](
     symbol: Graph.Symbol
   ): List[Graph.Id] = {
     rootScope.symbolToIds[T](symbol)
@@ -347,9 +347,9 @@ object Graph {
     *                       Note that there may not be a link for all these definitions.
     */
   sealed class Scope(
-    var childScopes: List[Scope]             = List(),
-    var occurrences: Map[Id, Occurrence]     = HashMap(),
-    var allDefinitions: List[Occurrence.Def] = List()
+    var childScopes: List[Scope]                  = List(),
+    var occurrences: Map[Id, GraphOccurrence]     = HashMap(),
+    var allDefinitions: List[GraphOccurrence.Def] = List()
   ) extends Serializable {
 
     var parent: Option[Scope] = None
@@ -435,7 +435,7 @@ object Graph {
       *
       * @param occurrence the occurrence to add
       */
-    def add(occurrence: Occurrence): Unit = {
+    def add(occurrence: GraphOccurrence): Unit = {
       if (occurrences.contains(occurrence.id)) {
         throw new CompilerError(
           s"Multiple occurrences found for ID ${occurrence.id}."
@@ -450,7 +450,7 @@ object Graph {
       *
       * @param definition The definition to add.
       */
-    def addDefinition(definition: Occurrence.Def): Unit = {
+    def addDefinition(definition: GraphOccurrence.Def): Unit = {
       allDefinitions = allDefinitions ++ List(definition)
     }
 
@@ -460,7 +460,7 @@ object Graph {
       * @param id the occurrence identifier
       * @return the occurrence for `id`, if it exists
       */
-    def getOccurrence(id: Graph.Id): Option[Occurrence] = {
+    def getOccurrence(id: Graph.Id): Option[GraphOccurrence] = {
       occurrences.get(id)
     }
 
@@ -471,9 +471,9 @@ object Graph {
       * @tparam T the role for the symbol
       * @return the occurrences for `name`, if they exist
       */
-    def getOccurrences[T <: Occurrence: ClassTag](
+    def getOccurrences[T <: GraphOccurrence: ClassTag](
       symbol: Graph.Symbol
-    ): Set[Occurrence] = {
+    ): Set[GraphOccurrence] = {
       occurrences.values.collect {
         case o: T if o.symbol == symbol => o
       }.toSet
@@ -487,7 +487,7 @@ object Graph {
       * @param id the occurrence identifier
       * @return the occurrence for `id`
       */
-    def unsafeGetOccurrence(id: Graph.Id): Occurrence = {
+    def unsafeGetOccurrence(id: Graph.Id): GraphOccurrence = {
       getOccurrence(id).get
     }
 
@@ -498,7 +498,7 @@ object Graph {
       * @return `true` if `symbol` occurs in role `T` in this scope, `false`
       *         otherwise
       */
-    def hasSymbolOccurrenceAs[T <: Occurrence: ClassTag](
+    def hasSymbolOccurrenceAs[T <: GraphOccurrence: ClassTag](
       symbol: Graph.Symbol
     ): Boolean = {
       occurrences.values.collectFirst {
@@ -515,11 +515,11 @@ object Graph {
       *         exists
       */
     def resolveUsage(
-      occurrence: Occurrence.Use,
+      occurrence: GraphOccurrence.Use,
       parentCounter: Int = 0
     ): Option[Graph.Link] = {
       val definition = occurrences.values.find {
-        case Occurrence.Def(_, name, _, _, _) =>
+        case GraphOccurrence.Def(_, name, _, _, _) =>
           name == occurrence.symbol
         case _ => false
       }
@@ -612,7 +612,7 @@ object Graph {
       * @tparam T the role in which `name` occurs
       * @return all the scopes where `name` occurs with role `T`
       */
-    def scopesForSymbol[T <: Occurrence: ClassTag](
+    def scopesForSymbol[T <: GraphOccurrence: ClassTag](
       symbol: Graph.Symbol
     ): List[Scope] = {
       val occursInThisScope = hasSymbolOccurrenceAs[T](symbol)
@@ -645,7 +645,7 @@ object Graph {
       * @tparam T the role in which `symbol` should occur
       * @return a list of identifiers for that symbol
       */
-    def symbolToIds[T <: Occurrence: ClassTag](
+    def symbolToIds[T <: GraphOccurrence: ClassTag](
       symbol: Graph.Symbol
     ): List[Graph.Id] = {
       val scopes =
@@ -693,8 +693,8 @@ object Graph {
 
   /** A link in the [[Graph]].
     *
-    * The source of the link should always be an [[Occurrence.Use]] while the
-    * target of the link should always be an [[Occurrence.Def]].
+    * The source of the link should always be an [[GraphOccurrence.Use]] while the
+    * target of the link should always be an [[GraphOccurrence.Def]].
     *
     * @param source the source ID of the link in the graph
     * @param scopeCount the number of scopes that the link traverses

@@ -2,7 +2,7 @@ package org.enso.compiler.context
 
 import org.enso.compiler.pass.analyse.DataflowAnalysis
 import org.enso.compiler.pass.analyse.alias.graph.{
-  Occurrence,
+  GraphOccurrence,
   Graph => AliasGraph
 }
 
@@ -143,7 +143,7 @@ class LocalScope(
       .getOrElse(Map())
 
     scope.occurrences.foreach {
-      case (id, x: Occurrence.Def) =>
+      case (id, x: GraphOccurrence.Def) =>
         parentResult += x.symbol -> new FramePointer(
           level,
           allFrameSlotIdxs(id)

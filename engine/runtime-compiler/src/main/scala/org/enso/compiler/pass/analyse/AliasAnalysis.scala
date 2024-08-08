@@ -29,7 +29,7 @@ import org.enso.compiler.core.ir.{
 import org.enso.compiler.core.{CompilerError, IR}
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.alias.graph.Graph
-import org.enso.compiler.pass.analyse.alias.graph.Occurrence
+import org.enso.compiler.pass.analyse.alias.graph.GraphOccurrence
 import org.enso.compiler.pass.analyse.alias.graph.Graph.Scope
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.lint.UnusedBindings
@@ -418,14 +418,16 @@ case object AliasAnalysis extends IRPass {
             )
           )
       case binding @ Expression.Binding(name, expression, _, _, _) =>
-        if (!parentScope.hasSymbolOccurrenceAs[Occurrence.Def](name.name)) {
+        if (
+          !parentScope.hasSymbolOccurrenceAs[GraphOccurrence.Def](name.name)
+        ) {
           val isSuspended = expression match {
             case Expression.Block(_, _, _, isSuspended, _, _) => isSuspended
             case _                                            => false
           }
           val occurrenceId = graph.nextId()
           val occurrence =
-            Occurrence.Def(
+            GraphOccurrence.Def(
               occurrenceId,
               name.name,
               binding.getId(),
@@ -493,7 +495,12 @@ case object AliasAnalysis extends IRPass {
 
         val labelId = graph.nextId()
         val definition =
-          Occurrence.Def(labelId, label.name, label.getId, label.getExternalId)
+          GraphOccurrence.Def(
+            labelId,
+            label.name,
+            label.getId,
+            label.getExternalId
+          )
         parentScope.add(definition)
         parentScope.addDefinition(definition)
 
@@ -547,7 +554,7 @@ case object AliasAnalysis extends IRPass {
         // Synthetic `self` must not be added to the scope, but it has to be added as a
         // definition for frame index metadata
         val occurrenceId = graph.nextId()
-        val definition = Occurrence.Def(
+        val definition = GraphOccurrence.Def(
           occurrenceId,
           selfName.name,
           arg.getId(),
@@ -576,7 +583,7 @@ case object AliasAnalysis extends IRPass {
             _
           ) =>
         val nameOccursInScope =
-          scope.hasSymbolOccurrenceAs[Occurrence.Def](
+          scope.hasSymbolOccurrenceAs[GraphOccurrence.Def](
             name.name
           )
         if (!nameOccursInScope) {
@@ -587,7 +594,7 @@ case object AliasAnalysis extends IRPass {
             )
 
           val occurrenceId = graph.nextId()
-          val definition = Occurrence.Def(
+          val definition = GraphOccurrence.Def(
             occurrenceId,
             name.name,
             arg.getId(),
@@ -762,12 +769,22 @@ case object AliasAnalysis extends IRPass {
 
     if (isInPatternContext && !isConstructorNameInPatternContext) {
       val definition =
-        Occurrence.Def(occurrenceId, name.name, name.getId, name.getExternalId)
+        GraphOccurrence.Def(
+          occurrenceId,
+          name.name,
+          name.getId,
+          name.getExternalId
+        )
       parentScope.add(definition)
       parentScope.addDefinition(definition)
     } else {
       val occurrence =
-        Occurrence.Use(occurrenceId, name.name, name.getId, name.getExternalId)
+        GraphOccurrence.Use(
+          occurrenceId,
+          name.name,
+          name.getId,
+          name.getExternalId
+        )
       parentScope.add(occurrence)
       if (!isConstructorNameInPatternContext && !name.isMethod) {
         graph.resolveLocalUsage(occurrence)
