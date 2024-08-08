@@ -11,6 +11,7 @@ import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { useGraphStore } from '@/stores/graph'
+import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import '@ag-grid-community/styles/ag-grid.css'
@@ -22,9 +23,15 @@ import type { ComponentExposed } from 'vue-component-type-helpers'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
+const suggestionDb = useSuggestionDbStore()
 const grid = ref<ComponentExposed<typeof AgGridTableView<RowData, any>>>()
 
-const { rowData, columnDefs } = useTableNewArgument(() => props.input, graph, props.onUpdate)
+const { rowData, columnDefs } = useTableNewArgument(
+  () => props.input,
+  graph,
+  suggestionDb.entries,
+  props.onUpdate,
+)
 
 // === Edit Handlers ===
 

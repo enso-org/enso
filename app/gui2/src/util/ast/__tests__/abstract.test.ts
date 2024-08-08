@@ -8,6 +8,8 @@ import {
   substituteIdentifier,
   substituteQualifiedName,
   subtrees,
+  tryEnsoToNumber,
+  tryNumberToEnso,
   unescapeTextLiteral,
   type Identifier,
 } from '@/util/ast/abstract'
@@ -1127,3 +1129,30 @@ test('Vector modifications', () => {
   vector.keep(() => false)
   expect(vector.code()).toBe('[]')
 })
+
+test.each`
+  ensoNumber               | jsNumber                                                  | expectedEnsoNumber
+  ${'0'}                   | ${0}                                                      | ${'0'}
+  ${'12345'}               | ${12345}                                                  | ${'12345'}
+  ${'123_456'}             | ${123456}                                                 | ${'123456'}
+  ${'-12345'}              | ${-12345}                                                 | ${'-12345'}
+  ${'-123_456'}            | ${-123456}                                                | ${'-123456'}
+  ${'0b101'}               | ${0b101}                                                  | ${'5'}
+  ${'0o444'}               | ${0o444}                                                  | ${'292'}
+  ${'0xabcdef'}            | ${0xabcdef}                                               | ${'11259375'}
+  ${`1${'0'.repeat(300)}`} | ${1e300}                                                  | ${undefined /*This is known limitation, to be fixed in the future (probably)*/}
+  ${`1${'0'.repeat(309)}`} | ${Infinity /*Limitation of IEEE 754-1985 double format*/} | ${undefined}
+  ${undefined}             | ${NaN}                                                    | ${undefined}
+`(
+  'Conversions between enso literals and js numbers: $ensoNumber',
+  ({ ensoNumber, jsNumber, expectedEnsoNumber }) => {
+    if (ensoNumber != null) {
+      const literal = Ast.parse(ensoNumber)
+      expect(tryEnsoToNumber(literal)).toBe(jsNumber)
+    }
+    if (jsNumber != null) {
+      const convertedToAst = tryNumberToEnso(jsNumber, MutableModule.Transient())
+      expect(convertedToAst?.code()).toBe(expectedEnsoNumber)
+    }
+  },
+)

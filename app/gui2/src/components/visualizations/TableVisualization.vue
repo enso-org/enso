@@ -4,21 +4,12 @@ import TextFormattingSelector from '@/components/TextFormattingSelector.vue'
 import AgGridTableView from '@/components/widgets/AgGridTableView.vue'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
-import { useAutoBlur } from '@/util/autoBlur'
 import { VisualizationContainer, useVisualizationConfig } from '@/util/visualizationBuiltins'
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
 import type { CellClassParams, CellClickedEvent, ICellRendererParams } from 'ag-grid-community'
 import type { ColDef } from 'ag-grid-enterprise'
-import {
-  computed,
-  onMounted,
-  ref,
-  shallowRef,
-  watchEffect,
-  type ComponentInstance,
-  type Ref,
-} from 'vue'
+import { computed, onMounted, ref, shallowRef, watchEffect, type Ref } from 'vue'
 
 export const name = 'Table'
 export const icon = 'table'
@@ -113,9 +104,7 @@ const pageLimit = ref(0)
 const rowCount = ref(0)
 const showRowCount = ref(true)
 const isTruncated = ref(false)
-const tableNode = ref<ComponentInstance<typeof AgGridTableView>>()
 const dataGroupingMap = shallowRef<Map<string, boolean>>()
-useAutoBlur(() => tableNode.value?.$el)
 const defaultColDef: Ref<ColDef> = ref({
   editable: false,
   sortable: true,
@@ -596,7 +585,6 @@ onMounted(() => {
         </template>
       </div>
       <AgGridTableView
-        ref="tableNode"
         class="scrollable grid"
         :columnDefs="columnDefs"
         :rowData="rowData"

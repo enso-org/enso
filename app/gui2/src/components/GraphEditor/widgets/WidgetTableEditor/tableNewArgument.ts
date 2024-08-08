@@ -1,11 +1,15 @@
 import type { HeaderParams } from '@/components/GraphEditor/widgets/WidgetTableEditor/TableHeader.vue'
 import type { WidgetInput, WidgetUpdate } from '@/providers/widgetRegistry'
+import { requiredImportsByFQN, type RequiredImport } from '@/stores/graph/imports'
+import type { SuggestionDb } from '@/stores/suggestionDatabase'
 import { Ast } from '@/util/ast'
+import { tryEnsoToNumber, tryNumberToEnso } from '@/util/ast/abstract'
 import { filterDefined } from '@/util/data/iterable'
+import { type QualifiedName } from '@/util/qualifiedName'
 import type { ToValue } from '@/util/reactivity'
 import { type ColDef } from 'ag-grid-community'
 import { mapIterator } from 'lib0/iterator'
-import type { AstId, MutableModule } from 'shared/ast'
+import type { AstId, Identifier, MutableModule } from 'shared/ast'
 import { assert } from 'shared/util/assert'
 import { computed, toValue } from 'vue'
 
@@ -31,17 +35,32 @@ interface ColumnDef {
 namespace cellValueConversion {
   export function astToAgGrid(ast: Ast.Ast) {
     if (ast instanceof Ast.TextLiteral) return ast.rawTextContent
-    else if (ast instanceof Ast.NumericLiteral) return parseFloat(ast.code())
-    else return undefined
+    else {
+      const asNumber = tryEnsoToNumber(ast)
+      if (asNumber != null) return asNumber
+      else return undefined
+    }
   }
 
-  export function agGridToAst(value: unknown, module: MutableModule): Ast.Owned {
-    if (value == null) {
-      return Ast.TextLiteral.new('', module)
+  export function agGridToAst(
+    value: unknown,
+    module: MutableModule,
+  ): { ast: Ast.Owned; requireNothingImport: boolean } {
+    if (value == null || value === '') {
+      return { ast: Ast.Ident.new(module, 'Nothing' as Identifier), requireNothingImport: true }
+    } else if (typeof value === 'number') {
+      return {
+        ast: tryNumberToEnso(value, module) ?? Ast.TextLiteral.new(`${value}`, module),
+        requireNothingImport: false,
+      }
+    } else {
+      return {
+        ast:
+          Ast.NumericLiteral.tryParseWithSign(`${value}`, module) ??
+          Ast.TextLiteral.new(`${value}`, module),
+        requireNothingImport: false,
+      }
     }
-    return (
-      Ast.NumericLiteral.tryParse(`${value}`, module) ?? Ast.TextLiteral.new(`${value}`, module)
-    )
   }
 }
 
@@ -55,9 +74,25 @@ namespace cellValueConversion {
  */
 export function useTableNewArgument(
   input: ToValue<WidgetInput & { value: Ast.Ast }>,
-  graph: { startEdit(): Ast.MutableModule },
+  graph: {
+    startEdit(): Ast.MutableModule
+    addMissingImports(edit: MutableModule, newImports: RequiredImport[]): void
+  },
+  suggestions: SuggestionDb,
   onUpdate: (update: WidgetUpdate) => void,
 ) {
+  const nothingImport = computed(() =>
+    requiredImportsByFQN(suggestions, 'Standard.Base.Nothing.Nothing' as QualifiedName, true),
+  )
+
+  function convertWithImport(value: unknown, edit: MutableModule) {
+    const { ast, requireNothingImport } = cellValueConversion.agGridToAst(value, edit)
+    if (requireNothingImport) {
+      graph.addMissingImports(edit, nothingImport.value)
+    }
+    return ast
+  }
+
   const columnsAst = computed(() => {
     const inputAst = toValue(input).value
     if (!(inputAst instanceof Ast.App)) return undefined
@@ -99,7 +134,7 @@ export function useTableNewArgument(
     for (const column of undersizedColumns.value) {
       const data = edit.getVersion(column.data)
       while (data.length < rowCount.value) {
-        data.push(Ast.TextLiteral.new('', edit))
+        data.push(convertWithImport(undefined, edit))
       }
       while (data.length > rowCount.value) {
         data.pop()
@@ -111,9 +146,9 @@ export function useTableNewArgument(
     for (const column of columns.value) {
       const editedCol = edit.getVersion(column.data)
       if (column.data.id === columnWithValue) {
-        editedCol.push(cellValueConversion.agGridToAst(value, edit))
+        editedCol.push(convertWithImport(value, edit))
       } else {
-        editedCol.push(Ast.TextLiteral.new('', edit))
+        editedCol.push(convertWithImport(undefined, edit))
       }
     }
   }
@@ -122,8 +157,8 @@ export function useTableNewArgument(
     const newColumnSize = Math.max(rowCount.value, rowWithValue != null ? rowWithValue + 1 : 0)
     function* cellsGenerator() {
       for (let i = 0; i < newColumnSize; ++i) {
-        if (i === rowWithValue) yield cellValueConversion.agGridToAst(value, edit)
-        else yield cellValueConversion.agGridToAst(undefined, edit)
+        if (i === rowWithValue) yield convertWithImport(value, edit)
+        else yield convertWithImport(undefined, edit)
       }
     }
     const cells = Ast.Vector.new(edit, Array.from(cellsGenerator()))
@@ -185,7 +220,7 @@ export function useTableNewArgument(
             if (data.index === rowCount.value) {
               addRow(edit, col.data.id, newValue)
             } else {
-              const newValueAst = cellValueConversion.agGridToAst(newValue, edit)
+              const newValueAst = convertWithImport(newValue, edit)
               if (astId != null) edit.replaceValue(astId, newValueAst)
               else edit.getVersion(col.data).set(data.index, newValueAst)
             }

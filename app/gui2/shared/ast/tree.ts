@@ -875,8 +875,9 @@ export class NegationApp extends Ast {
     return asOwned(new MutableNegationApp(module, fields))
   }
 
-  static new(module: MutableModule, operator: Token, argument: Owned) {
-    return this.concrete(module, unspaced(operator), autospaced(argument))
+  static new(module: MutableModule, argument: Owned) {
+    const minus = Token.new('-', RawAst.Token.Type.Operator)
+    return this.concrete(module, unspaced(minus), unspaced(argument))
   }
 
   get operator(): Token {
@@ -1799,6 +1800,18 @@ export class NumericLiteral extends Ast {
   ): Owned<MutableNumericLiteral> | undefined {
     const parsed = parse(source, module)
     if (parsed instanceof MutableNumericLiteral) return parsed
+  }
+
+  static tryParseWithSign(
+    source: string,
+    module?: MutableModule,
+  ): Owned<MutableNumericLiteral | MutableNegationApp> | undefined {
+    const parsed = parse(source, module)
+    if (
+      parsed instanceof MutableNumericLiteral ||
+      (parsed instanceof MutableNegationApp && parsed.argument instanceof MutableNumericLiteral)
+    )
+      return parsed
   }
 
   static concrete(module: MutableModule, tokens: NodeChild<Token>[]) {
