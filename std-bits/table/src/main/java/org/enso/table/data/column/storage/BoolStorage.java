@@ -46,6 +46,10 @@ public final class BoolStorage extends Storage<Boolean>
     return new BoolStorage(new BitSet(), new BitSet(), size, r);
   }
 
+  public BoolStorage makeNegated() {
+    return new BoolStorage(values, isNothing, size, !negated);
+  }
+
   @Override
   public int size() {
     return size;
@@ -311,7 +315,7 @@ public final class BoolStorage extends Storage<Boolean>
         if (v) {
           return storage;
         } else {
-          return new BoolStorage(storage.values, storage.isNothing, storage.size, !storage.negated);
+          return storage.makeNegated();
         }
       } else {
         return new BoolStorage(new BitSet(), storage.isNothing, storage.size, false);
