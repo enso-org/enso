@@ -121,6 +121,9 @@ type JDBC_Connection
        Executes the provided SQL.
     execute : Text | SQL_Statement -> Any
     execute self query:(Text | SQL_Statement) = self.synchronized <| profile_sql_if_enabled self query.to_text <|
+        compiled_query = case query of
+            _ : Text -> query
+            SQL_Statement.Value _ -> query.prepare.first
         self.with_connection java_connection->
             stmt = java_connection.createStatement
             handle_illegal_state caught_panic =
@@ -130,9 +133,9 @@ type JDBC_Connection
                 Panic.throw caught_panic
             result = Panic.catch Illegal_State handler=handle_illegal_state <|
                 Panic.catch Any handler=handle_any <|
-                    stmt.execute query.prepare.first
+                    stmt.execute compiled_query
             result.if_not_error <|
-                stmt
+                [result, stmt]
 
     ## PRIVATE
        Given a prepared statement, gets the column names and types for the

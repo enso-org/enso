@@ -24,7 +24,6 @@ from project.Internal.Upload.Helpers.SQL_Helpers import make_batched_insert_temp
 ## PRIVATE
    Assumes the output context is enabled for it to work.
    Creates a table in the Database and returns its name.
-   For temporary tables in dialects that use the # notation takes a table name without the # and returns it with the #.
 internal_create_table_structure connection table_name structure primary_key temporary on_problems:Problem_Behavior -> Text =
     aligned_structure = align_structure connection structure
     resolved_primary_key = resolve_primary_key aligned_structure primary_key
