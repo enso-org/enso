@@ -399,7 +399,9 @@ type Connection
     execute self query =
         Execution_Context.Output.if_enabled disabled_message="Executing update queries is forbidden as the Output context is disabled." panic=False <|
             result = self.jdbc_connection.execute query
-            result.second.getUpdateCount
+            stmt = result.second
+            check_statement_is_allowed self stmt
+            stmt.getUpdateCount
 
     ## PRIVATE
        Drops a table.

@@ -299,6 +299,7 @@ type Temp_Table_Style
       ## PRIVATE
          The temporary table is created using a create table statement.
       Temporary_Table
+      
       ## PRIVATE
          The temporary table is created using a # table name.
       Hash_Prefix
