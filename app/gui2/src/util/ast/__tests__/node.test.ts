@@ -1,11 +1,7 @@
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import { initializePrefixes, nodeFromAst, primaryApplicationSubject } from '@/util/ast/node'
-import { initializeFFI } from 'shared/ast/ffi'
+import { nodeFromAst, primaryApplicationSubject } from '@/util/ast/node'
 import { expect, test } from 'vitest'
-
-await initializeFFI()
-initializePrefixes()
 
 test.each`
   line                               | pattern      | rootExpr   | documentation

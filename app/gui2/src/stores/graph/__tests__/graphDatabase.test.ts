@@ -1,14 +1,9 @@
 import { asNodeId, GraphDb } from '@/stores/graph/graphDatabase'
 import { Ast, RawAst } from '@/util/ast'
-import { initializePrefixes } from '@/util/ast/node'
 import assert from 'assert'
-import type { AstId } from 'shared/ast'
-import { initializeFFI } from 'shared/ast/ffi'
-import { IdMap, type ExternalId, type SourceRange } from 'shared/yjsModel'
 import { expect, test } from 'vitest'
-
-await initializeFFI()
-initializePrefixes()
+import type { AstId } from 'ydoc-shared/ast'
+import { IdMap, type ExternalId, type SourceRange } from 'ydoc-shared/yjsModel'
 
 export function parseWithSpans<T extends Record<string, SourceRange>>(code: string, spans: T) {
   const nameToEid = new Map<keyof T, ExternalId>()

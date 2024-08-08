@@ -22,12 +22,7 @@ import org.enso.interpreter.runtime.`type`.{Types, TypesGen}
 import org.enso.interpreter.runtime.data.atom.AtomConstructor
 import org.enso.interpreter.runtime.callable.function.Function
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
-import org.enso.interpreter.runtime.error.{
-  DataflowError,
-  PanicSentinel,
-  WarningsLibrary,
-  WithWarnings
-}
+import org.enso.interpreter.runtime.error.{DataflowError, PanicSentinel}
 import org.enso.interpreter.service.ExecutionService.{
   ExpressionCall,
   ExpressionValue,
@@ -41,6 +36,11 @@ import org.enso.interpreter.service.error.{
   VisualizationException
 }
 import org.enso.common.LanguageInfo
+import org.enso.interpreter.runtime.warning.{
+  Warning,
+  WarningsLibrary,
+  WithWarnings
+}
 import org.enso.polyglot.debugger.ExecutedVisualization
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.{ContextId, ExecutionResult}
@@ -419,12 +419,9 @@ object ProgramExecutionSupport {
                 value.getValue
               )
             ) {
-              val warnings =
-                WarningsLibrary.getUncached.getWarnings(
-                  value.getValue,
-                  null,
-                  false
-                )
+              val warnsMap =
+                WarningsLibrary.getUncached.getWarnings(value.getValue, false)
+              val warnings      = Warning.fromMapToArray(warnsMap)
               val warningsCount = warnings.length
               val warning =
                 if (warningsCount > 0) {
