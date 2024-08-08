@@ -2,7 +2,7 @@ package org.enso.compiler.pass.analyse;
 
 import java.io.IOException;
 import org.enso.compiler.pass.analyse.alias.AliasMetadata;
-import org.enso.compiler.pass.analyse.alias.Graph;
+import org.enso.compiler.pass.analyse.alias.graph.Graph;
 import org.enso.compiler.pass.analyse.types.TypeInference;
 import org.enso.compiler.pass.resolve.DocumentationComments;
 import org.enso.compiler.pass.resolve.DocumentationComments$;
@@ -61,11 +61,11 @@ import scala.Tuple2$;
 @Persistable(clazz = AliasMetadata.RootScope.class, id = 1262, allowInlining = false)
 @Persistable(clazz = AliasMetadata.ChildScope.class, id = 1263, allowInlining = false)
 @Persistable(
-    clazz = org.enso.compiler.pass.analyse.alias.Graph$Occurrence$Use.class,
+    clazz = org.enso.compiler.pass.analyse.alias.graph.Graph$Occurrence$Use.class,
     id = 1264,
     allowInlining = false)
 @Persistable(
-    clazz = org.enso.compiler.pass.analyse.alias.Graph$Occurrence$Def.class,
+    clazz = org.enso.compiler.pass.analyse.alias.graph.Graph$Occurrence$Def.class,
     id = 1265,
     allowInlining = false)
 @Persistable(clazz = Graph.Link.class, id = 1266, allowInlining = false)

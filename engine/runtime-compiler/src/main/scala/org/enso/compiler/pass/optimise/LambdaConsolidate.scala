@@ -16,16 +16,14 @@ import org.enso.compiler.core.ir.{
 import org.enso.compiler.core.ir.expression.warnings
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.analyse.alias.graph.{Graph => AliasGraph}
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   DataflowAnalysis,
   DemandAnalysis,
   TailCall
 }
-import org.enso.compiler.pass.analyse.alias.{
-  Graph => AliasGraph,
-  AliasMetadata => AliasInfo
-}
+import org.enso.compiler.pass.analyse.alias.{AliasMetadata => AliasInfo}
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.resolve.IgnoredBindings
 

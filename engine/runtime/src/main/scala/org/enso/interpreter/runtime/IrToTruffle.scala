@@ -45,7 +45,7 @@ import org.enso.compiler.core.ir.module.scope.definition.Method
 import org.enso.compiler.data.BindingsMap.{ResolvedConstructor, ResolvedModule}
 import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.exception.BadPatternMatch
-import org.enso.compiler.pass.analyse.alias.Graph.{Scope => AliasScope}
+import org.enso.compiler.pass.analyse.alias.graph.Graph.{Scope => AliasScope}
 import org.enso.compiler.pass.analyse.{
   alias,
   AliasAnalysis,
@@ -53,7 +53,8 @@ import org.enso.compiler.pass.analyse.{
   DataflowAnalysis,
   TailCall
 }
-import org.enso.compiler.pass.analyse.alias.{AliasMetadata, Graph => AliasGraph}
+import org.enso.compiler.pass.analyse.alias.AliasMetadata
+import org.enso.compiler.pass.analyse.alias.graph.{Graph => AliasGraph}
 import org.enso.compiler.pass.resolve.{
   ExpressionAnnotations,
   GenericAnnotations,

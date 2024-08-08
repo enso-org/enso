@@ -1,8 +1,8 @@
-package org.enso.compiler.pass.analyse.alias
+package org.enso.compiler.pass.analyse.alias.graph
 
 import org.enso.compiler.core.{CompilerError, ExternalID, Identifier}
 import org.enso.compiler.debug.Debug
-import org.enso.compiler.pass.analyse.alias.Graph.{Occurrence, Scope}
+import org.enso.compiler.pass.analyse.alias.graph.Graph.{Occurrence, Scope}
 
 import java.util.UUID
 import scala.collection.immutable.HashMap

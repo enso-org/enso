@@ -1,6 +1,7 @@
 package org.enso.compiler.pass.analyse.alias
 
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.analyse.alias.graph.Graph
 
 /** Information about the aliasing state for a given IR node. */
 sealed trait AliasMetadata extends IRPass.IRMetadata {

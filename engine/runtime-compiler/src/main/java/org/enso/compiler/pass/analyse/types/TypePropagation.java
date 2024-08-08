@@ -18,7 +18,7 @@ import org.enso.compiler.core.ir.expression.Case;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.analyse.AliasAnalysis$;
 import org.enso.compiler.pass.analyse.alias.AliasMetadata;
-import org.enso.compiler.pass.analyse.alias.Graph;
+import org.enso.compiler.pass.analyse.alias.graph.Graph;
 import org.enso.compiler.pass.resolve.TypeSignatures;
 import org.enso.compiler.pass.resolve.TypeSignatures$;
 import org.slf4j.Logger;
@@ -404,7 +404,7 @@ abstract class TypePropagation {
       return;
     }
 
-    if (occurrence.get() instanceof org.enso.compiler.pass.analyse.alias.Graph$Occurrence$Def def) {
+    if (occurrence.get() instanceof org.enso.compiler.pass.analyse.alias.graph.Graph$Occurrence$Def def) {
       localBindingsTyping.registerBindingType(metadata.graph(), def.id(), type);
     } else {
       throw new CompilerError(

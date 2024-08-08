@@ -28,7 +28,8 @@ import org.enso.compiler.core.ir.{
 }
 import org.enso.compiler.core.{CompilerError, IR}
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.alias.Graph.{Occurrence, Scope}
+import org.enso.compiler.pass.analyse.alias.graph.Graph
+import org.enso.compiler.pass.analyse.alias.graph.Graph.{Occurrence, Scope}
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.lint.UnusedBindings
 
@@ -228,7 +229,7 @@ case object AliasAnalysis extends IRPass {
   def analyseModuleDefinition(
     ir: Definition
   ): Definition = {
-    val topLevelGraph = new alias.Graph
+    val topLevelGraph = new Graph
 
     ir match {
       case m: definition.Method.Conversion =>
@@ -285,7 +286,7 @@ case object AliasAnalysis extends IRPass {
             topLevelGraph.rootScope
           ),
           members = t.members.map(d => {
-            val graph = new alias.Graph
+            val graph = new Graph
             d.copy(
               arguments = analyseArgumentDefs(
                 d.arguments,
@@ -367,7 +368,7 @@ case object AliasAnalysis extends IRPass {
     */
   private def analyseExpression(
     expression: Expression,
-    graph: alias.Graph,
+    graph: Graph,
     parentScope: Scope,
     lambdaReuseScope: Boolean = false
   ): Expression = {
@@ -474,7 +475,7 @@ case object AliasAnalysis extends IRPass {
     */
   def analyseType(
     value: Type,
-    graph: alias.Graph,
+    graph: Graph,
     parentScope: Scope
   ): Type = {
     value match {
@@ -529,7 +530,7 @@ case object AliasAnalysis extends IRPass {
     */
   private def analyseArgumentDefs(
     args: List[DefinitionArgument],
-    graph: alias.Graph,
+    graph: Graph,
     scope: Scope
   ): List[DefinitionArgument] = {
     args.map {
@@ -545,7 +546,7 @@ case object AliasAnalysis extends IRPass {
         // Synthetic `self` must not be added to the scope, but it has to be added as a
         // definition for frame index metadata
         val occurrenceId = graph.nextId()
-        val definition = alias.Graph.Occurrence.Def(
+        val definition = alias.graph.Graph.Occurrence.Def(
           occurrenceId,
           selfName.name,
           arg.getId(),
@@ -574,7 +575,7 @@ case object AliasAnalysis extends IRPass {
             _
           ) =>
         val nameOccursInScope =
-          scope.hasSymbolOccurrenceAs[alias.Graph.Occurrence.Def](
+          scope.hasSymbolOccurrenceAs[Graph.Occurrence.Def](
             name.name
           )
         if (!nameOccursInScope) {
@@ -585,7 +586,7 @@ case object AliasAnalysis extends IRPass {
             )
 
           val occurrenceId = graph.nextId()
-          val definition = alias.Graph.Occurrence.Def(
+          val definition = alias.graph.Graph.Occurrence.Def(
             occurrenceId,
             name.name,
             arg.getId(),
@@ -634,8 +635,8 @@ case object AliasAnalysis extends IRPass {
     */
   def analyseApplication(
     application: Application,
-    graph: alias.Graph,
-    scope: alias.Graph.Scope
+    graph: Graph,
+    scope: Graph.Scope
   ): Application = {
     application match {
       case app @ Application.Prefix(fun, arguments, _, _, _, _) =>
@@ -677,8 +678,8 @@ case object AliasAnalysis extends IRPass {
     */
   private def analyseCallArguments(
     args: List[CallArgument],
-    graph: alias.Graph,
-    parentScope: alias.Graph.Scope
+    graph: Graph,
+    parentScope: Graph.Scope
   ): List[CallArgument] = {
     args.map { case arg @ CallArgument.Specified(_, expr, _, _, _) =>
       val currentScope = expr match {
@@ -707,7 +708,7 @@ case object AliasAnalysis extends IRPass {
     */
   def analyseFunction(
     function: Function,
-    graph: alias.Graph,
+    graph: Graph,
     parentScope: Scope,
     lambdaReuseScope: Boolean = false
   ): Function = {
@@ -753,7 +754,7 @@ case object AliasAnalysis extends IRPass {
     name: Name,
     isInPatternContext: Boolean,
     isConstructorNameInPatternContext: Boolean,
-    graph: alias.Graph,
+    graph: Graph,
     parentScope: Scope
   ): Name = {
     val occurrenceId = graph.nextId()
@@ -790,7 +791,7 @@ case object AliasAnalysis extends IRPass {
     */
   def analyseCase(
     ir: Case,
-    graph: alias.Graph,
+    graph: Graph,
     parentScope: Scope
   ): Case = {
     ir match {
@@ -814,7 +815,7 @@ case object AliasAnalysis extends IRPass {
     */
   def analyseCaseBranch(
     branch: Case.Branch,
-    graph: alias.Graph,
+    graph: Graph,
     parentScope: Scope
   ): Case.Branch = {
     val currentScope = parentScope.addChild()
@@ -845,7 +846,7 @@ case object AliasAnalysis extends IRPass {
     */
   def analysePattern(
     pattern: Pattern,
-    graph: alias.Graph,
+    graph: Graph,
     parentScope: Scope
   ): Pattern = {
     pattern match {

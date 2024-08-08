@@ -30,6 +30,7 @@ import org.enso.compiler.core.ir.{
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo.Type.asStatic
+import org.enso.compiler.pass.analyse.alias.graph.Graph
 
 import java.util.UUID
 import scala.collection.immutable.ListSet
@@ -560,7 +561,7 @@ case object DataflowAnalysis extends IRPass {
         val key: DependencyInfo.Type = defIdForName match {
           case Some(defLink) =>
             aliasInfo.graph.getOccurrence(defLink.target) match {
-              case Some(alias.Graph.Occurrence.Def(_, _, id, ext, _)) =>
+              case Some(Graph.Occurrence.Def(_, _, id, ext, _)) =>
                 DependencyInfo.Type.Static(id, ext)
               case _ =>
                 DependencyInfo.Type.Dynamic(name.name, None)

@@ -16,8 +16,9 @@ import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.AliasAnalysis
-import org.enso.compiler.pass.analyse.alias.Graph.{Link, Occurrence}
-import org.enso.compiler.pass.analyse.alias.{AliasMetadata, Graph}
+import org.enso.compiler.pass.analyse.alias.graph.Graph.{Link, Occurrence}
+import org.enso.compiler.pass.analyse.alias.AliasMetadata
+import org.enso.compiler.pass.analyse.alias.graph.Graph
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
 

@@ -1,7 +1,7 @@
 package org.enso.compiler.context
 
 import org.enso.compiler.pass.analyse.DataflowAnalysis
-import org.enso.compiler.pass.analyse.alias.{Graph => AliasGraph}
+import org.enso.compiler.pass.analyse.alias.graph.{Graph => AliasGraph}
 
 import scala.jdk.CollectionConverters._
 
