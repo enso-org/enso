@@ -27,7 +27,7 @@ const editing = ref(false)
 const inputElement = ref<HTMLInputElement>()
 
 watch(editing, (newVal, oldVal) => {
-  if (newVal && !oldVal) {
+  if (newVal) {
     props.params.onHeaderEditingStarted?.((cancel: boolean) => {
       if (cancel) editing.value = false
       else acceptNewName()
