@@ -992,8 +992,8 @@ type Column
              example_coalesce = Examples.decimal_column.coalesce Examples.integer_column
     coalesce : (Any | Vector Any) -> Column
     coalesce self values =
-        fallback a b = a.if_nothing b
-        run_vectorized_many_op self "coalesce" fallback values
+        if values.is_empty then self else
+            values.fold self acc-> v-> acc.fill_nothing v
 
     ## GROUP Standard.Base.Math
        ICON transform4
