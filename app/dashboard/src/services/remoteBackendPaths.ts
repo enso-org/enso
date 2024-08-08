@@ -142,6 +142,18 @@ export function openProjectPath(projectId: backend.ProjectId) {
 export function projectUpdatePath(projectId: backend.ProjectId) {
   return `projects/${projectId}`
 }
+/** Relative HTTP path to the "list project executions" endpoint of the Cloud backend API. */
+export function listProjectExecutionsPath(projectId: backend.ProjectId) {
+  return `projects/${projectId}/executions`
+}
+/** Relative HTTP path to the "create project execution" endpoint of the Cloud backend API. */
+export function createProjectExecutionPath(projectId: backend.ProjectId) {
+  return `projects/${projectId}/executions/new`
+}
+/** Relative HTTP path to the "delete project execution" endpoint of the Cloud backend API. */
+export function deleteProjectExecutionPath(executionId: backend.ProjectExecutionId) {
+  return `project-executions/${executionId}`
+}
 /** Relative HTTP path to the "get file details" endpoint of the Cloud backend API. */
 export function getFileDetailsPath(fileId: backend.FileId) {
   return `files/${fileId}`

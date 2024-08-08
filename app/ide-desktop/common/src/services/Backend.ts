@@ -54,6 +54,10 @@ export const SecretId = newtype.newtypeConstructor<SecretId>()
 export type ProjectSessionId = newtype.Newtype<string, 'ProjectSessionId'>
 export const ProjectSessionId = newtype.newtypeConstructor<ProjectSessionId>()
 
+/** Unique identifier for a project execution. */
+export type ProjectExecutionId = newtype.Newtype<string, 'ProjectExecutionId'>
+export const ProjectExecutionId = newtype.newtypeConstructor<ProjectExecutionId>()
+
 /** Unique identifier for a Datalink. */
 export type DatalinkId = newtype.Newtype<string, 'DatalinkId'>
 export const DatalinkId = newtype.newtypeConstructor<DatalinkId>()
@@ -326,13 +330,18 @@ export interface ProjectScheduleTimes {
   readonly minute: readonly number[]
 }
 
-/** A specific execution schedule of a project. */
-export interface ProjectExecution {
+/** Metadata for a {@link ProjectExecution}. */
+export interface ProjectExecutionInfo {
   readonly projectId: ProjectId
-  readonly versionId: S3ObjectVersionId
   readonly repeatInterval: ProjectRepeatInterval
   readonly times: ProjectScheduleTimes
   readonly parallelMode: ProjectParallelMode
+}
+
+/** A specific execution schedule of a project. */
+export interface ProjectExecution extends ProjectExecutionInfo {
+  readonly executionId: ProjectExecutionId
+  readonly versionId: S3ObjectVersionId
 }
 
 /** Metadata describing the location of an uploaded file. */
@@ -1125,6 +1134,9 @@ export interface OpenProjectRequestBody {
   readonly parentId: DirectoryId
 }
 
+/** HTTP request body for the "create project execution" endpoint. */
+export interface CreateProjectExecutionRequestBody extends ProjectExecutionInfo {}
+
 /** HTTP request body for the "create secret" endpoint. */
 export interface CreateSecretRequestBody {
   readonly name: string
@@ -1396,9 +1408,20 @@ export default abstract class Backend {
   abstract createProject(body: CreateProjectRequestBody): Promise<CreatedProject>
   /** Close a project. */
   abstract closeProject(projectId: ProjectId, title: string): Promise<void>
-  /** Return a list of sessions for the current project. */
+  /** Return a list of sessions for a project. */
   abstract listProjectSessions(projectId: ProjectId, title: string): Promise<ProjectSession[]>
-  /** Return a list of executions for the current project. */
+  /** Create a project execution. */
+  abstract createProjectExecution(
+    projectId: ProjectId,
+    body: CreateProjectExecutionRequestBody,
+    title: string,
+  ): Promise<ProjectExecution>
+  /** Delete a project execution. */
+  abstract deleteProjectExecution(
+    executionId: ProjectExecutionId,
+    projectTitle: string,
+  ): Promise<void>
+  /** Return a list of executions for a project. */
   abstract listProjectExecutions(
     projectId: ProjectId,
     title: string,

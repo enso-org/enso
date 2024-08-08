@@ -643,7 +643,7 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** List project sessions for a specific project.
+  /** List project sessions for a project.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async listProjectSessions(
     projectId: backend.ProjectId,
@@ -654,6 +654,52 @@ export default class RemoteBackend extends Backend {
     const response = await this.get<backend.ProjectSession[]>(path)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'listProjectSessionsBackendError', title)
+    } else {
+      return await response.json()
+    }
+  }
+
+  /** Create a project execution.
+   * @throws An error if a non-successful status code (not 200-299) was received. */
+  override async createProjectExecution(
+    projectId: backend.ProjectId,
+    body: backend.CreateProjectExecutionRequestBody,
+    title: string,
+  ): Promise<backend.ProjectExecution> {
+    const path = remoteBackendPaths.createProjectExecutionPath(projectId)
+    const response = await this.post<backend.ProjectExecution>(path, body)
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'createProjectExecutionBackendError', title)
+    } else {
+      return await response.json()
+    }
+  }
+
+  /** Delete a project execution.
+   * @throws An error if a non-successful status code (not 200-299) was received. */
+  override async deleteProjectExecution(
+    executionId: backend.ProjectExecutionId,
+    projectTitle: string,
+  ): Promise<void> {
+    const path = remoteBackendPaths.deleteProjectExecutionPath(executionId)
+    const response = await this.delete<backend.ProjectExecution>(path)
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'createProjectExecutionBackendError', projectTitle)
+    } else {
+      return
+    }
+  }
+
+  /** Return a list of executions for a project.
+   * @throws An error if a non-successful status code (not 200-299) was received. */
+  override async listProjectExecutions(
+    projectId: backend.ProjectId,
+    title: string,
+  ): Promise<readonly backend.ProjectExecution[]> {
+    const path = remoteBackendPaths.listProjectExecutionsPath(projectId)
+    const response = await this.get<readonly backend.ProjectExecution[]>(path)
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'listProjectExecutionsBackendError', title)
     } else {
       return await response.json()
     }
