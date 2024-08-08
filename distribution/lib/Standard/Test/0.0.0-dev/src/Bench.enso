@@ -161,8 +161,10 @@ type Bench
         case get_benchmark_report_path of
             Nothing -> Nothing
             path ->
-                line = 'Label,Phase,"Invocations count","Average time (ms)","Time Stdev"'
-                line.write path on_existing_file=Existing_File_Behavior.Backup
+                f = File.new path
+                if f.exists.not then
+                    line = 'Label,Phase,"Invocations count","Average time (ms)","Time Stdev"'
+                    line.write f on_existing_file=Existing_File_Behavior.Backup
 
         self.fold Nothing _-> g-> s->
             c = g.configuration
