@@ -4,7 +4,7 @@ from Standard.Table import Table, Value_Type
 
 from Standard.Test import Bench
 
-options = Bench.options . set_warmup (Bench.phase_conf 1 4) . set_measure (Bench.phase_conf 2 2)
+options = Bench.options . set_warmup (Bench.phase_conf 2 3) . set_measure (Bench.phase_conf 5 1)
 
 create_table : Table
 create_table num_rows =
@@ -25,7 +25,7 @@ type Data
     create num_rows = Data.Value (create_table num_rows)
 
 collect_benches = Bench.build builder->
-    num_rows = 1000000
+    num_rows = 500 * 1000
     data = Data.create num_rows
 
     builder.group ("Mixed_Column_Operations_" + num_rows.to_text) options group_builder->
