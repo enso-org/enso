@@ -1,33 +1,24 @@
 <script setup lang="ts">
-import { logEvent } from 'histoire/client'
 import { ref } from 'vue'
 
 import TopBar from '@/components/TopBar.vue'
 
-const title = ref('Mock Project')
-const recordMode = ref(true)
-const breadcrumbs = ref(['main', 'ad_analytics'])
+const showColorPicker = ref(false)
+const showCodeEditor = ref(false)
+const showDocumentationEditor = ref(false)
 </script>
 
 <template>
   <Story title="Top Bar" group="graph" :layout="{ type: 'grid', width: 500 }" autoPropsDisabled>
     <div style="height: 48px">
       <TopBar
-        :title="title"
-        :recordMode="recordMode"
-        :breadcrumbs="breadcrumbs"
-        @back="logEvent('back', [])"
-        @forward="logEvent('forward', [])"
-        @recordOnce="logEvent('recordOnce', [])"
-        @breadcrumbClick="logEvent('breadcrumbClick', [$event])"
-        @update:recordMode="logEvent('update:recordMode', [$event]), (recordMode = $event)"
+        v-model:showColorPicker="showColorPicker"
+        v-model:showCodeEditor="showCodeEditor"
+        v-model:showDocumentationEditor="showDocumentationEditor"
+        :zoomLevel="1"
+        :componentsSelected="1"
       />
     </div>
-
-    <template #controls>
-      <HstText v-model="title" title="title" />
-      <HstJson v-model="recordMode" title="recordMode" />
-      <HstJson v-model="breadcrumbs" title="breadcrumbs" />
-    </template>
+    <template #controls></template>
   </Story>
 </template>

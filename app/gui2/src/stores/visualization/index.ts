@@ -25,10 +25,10 @@ import type { VisualizationModule } from '@/stores/visualization/runtimeTypes'
 import type { Opt } from '@/util/data/opt'
 import { isUrlString } from '@/util/data/urlString'
 import { isIconName } from '@/util/iconName'
-import { ErrorCode, LsRpcError, RemoteRpcError } from 'shared/languageServer'
-import type { Event as LSEvent, VisualizationConfiguration } from 'shared/languageServerTypes'
-import type { ExternalId, VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, reactive } from 'vue'
+import { ErrorCode, LsRpcError, RemoteRpcError } from 'ydoc-shared/languageServer'
+import type { Event as LSEvent, VisualizationConfiguration } from 'ydoc-shared/languageServerTypes'
+import type { ExternalId, VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 /** The directory in the project under which custom visualizations can be found. */
 const customVisualizationsDirectory = 'visualizations'

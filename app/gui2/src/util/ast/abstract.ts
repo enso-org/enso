@@ -9,7 +9,7 @@ import type {
   QualifiedName,
   TokenId,
   TokenKey,
-} from 'shared/ast'
+} from 'ydoc-shared/ast'
 import {
   Ast,
   BodyBlock,
@@ -25,8 +25,8 @@ import {
   Token,
   isTokenId,
   print,
-} from 'shared/ast'
-export * from 'shared/ast'
+} from 'ydoc-shared/ast'
+export * from 'ydoc-shared/ast'
 
 export function deserialize(serialized: string): Owned {
   const parsed: SerializedPrintedSource = JSON.parse(serialized)
