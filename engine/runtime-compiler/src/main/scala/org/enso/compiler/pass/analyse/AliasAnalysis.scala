@@ -159,7 +159,7 @@ case object AliasAnalysis extends IRPass {
       sourceRootScopeGraphOpt.foreach { sourceRootScopeGraphScope =>
         val sourceRootScopeGraph =
           sourceRootScopeGraphScope
-            .asInstanceOf[alias.AliasMetadata.Scope.Root]
+            .asInstanceOf[alias.AliasMetadata.RootScope]
             .graph
 
         val scopeMapping = mutable.Map[Scope, Scope]()
@@ -175,9 +175,9 @@ case object AliasAnalysis extends IRPass {
           sourceNode.getMetadata(this) match {
             case Some(meta) =>
               val newMeta = meta match {
-                case root: alias.AliasMetadata.Scope.Root =>
+                case root: alias.AliasMetadata.RootScope =>
                   root.copy(graph = copyRootScopeGraph)
-                case child: alias.AliasMetadata.Scope.Child =>
+                case child: alias.AliasMetadata.ChildScope =>
                   child.copy(
                     graph = copyRootScopeGraph,
                     scope = child.scope.deepCopy(scopeMapping)
@@ -244,7 +244,7 @@ case object AliasAnalysis extends IRPass {
             ).updateMetadata(
               new MetadataPair(
                 this,
-                alias.AliasMetadata.Scope.Root(topLevelGraph)
+                alias.AliasMetadata.RootScope(topLevelGraph)
               )
             )
           case _ =>
@@ -265,7 +265,7 @@ case object AliasAnalysis extends IRPass {
             ).updateMetadata(
               new MetadataPair(
                 this,
-                alias.AliasMetadata.Scope.Root(topLevelGraph)
+                alias.AliasMetadata.RootScope(topLevelGraph)
               )
             )
           case _ =>
@@ -304,16 +304,16 @@ case object AliasAnalysis extends IRPass {
                   .updateMetadata(
                     new MetadataPair(
                       this,
-                      alias.AliasMetadata.Scope.Root(topLevelGraph)
+                      alias.AliasMetadata.RootScope(topLevelGraph)
                     )
                   )
               }
             ).updateMetadata(
-              new MetadataPair(this, alias.AliasMetadata.Scope.Root(graph))
+              new MetadataPair(this, alias.AliasMetadata.RootScope(graph))
             )
           })
         ).updateMetadata(
-          new MetadataPair(this, alias.AliasMetadata.Scope.Root(topLevelGraph))
+          new MetadataPair(this, alias.AliasMetadata.RootScope(topLevelGraph))
         )
       case _: Definition.SugaredType =>
         throw new CompilerError(
@@ -344,7 +344,7 @@ case object AliasAnalysis extends IRPass {
             )
           )
           .updateMetadata(
-            new MetadataPair(this, alias.AliasMetadata.Scope.Root(topLevelGraph))
+            new MetadataPair(this, alias.AliasMetadata.RootScope(topLevelGraph))
           )
       case err: Error => err
     }
@@ -412,7 +412,7 @@ case object AliasAnalysis extends IRPass {
           .updateMetadata(
             new MetadataPair(
               this,
-              alias.AliasMetadata.Scope.Child(graph, currentScope)
+              alias.AliasMetadata.ChildScope(graph, currentScope)
             )
           )
       case binding @ Expression.Binding(name, expression, _, _, _) =>
@@ -501,7 +501,10 @@ case object AliasAnalysis extends IRPass {
             value      = analyseExpression(value, graph, valueScope)
           )
           .updateMetadata(
-            new MetadataPair(this, alias.AliasMetadata.Occurrence(graph, labelId))
+            new MetadataPair(
+              this,
+              alias.AliasMetadata.Occurrence(graph, labelId)
+            )
           )
       case x =>
         x.mapExpressions(analyseExpression(_, graph, parentScope))
@@ -651,7 +654,7 @@ case object AliasAnalysis extends IRPass {
           .updateMetadata(
             new MetadataPair(
               this,
-              alias.AliasMetadata.Scope.Child(graph, newScope)
+              alias.AliasMetadata.ChildScope(graph, newScope)
             )
           )
       case _: Operator.Binary =>
@@ -687,7 +690,7 @@ case object AliasAnalysis extends IRPass {
         .updateMetadata(
           new MetadataPair(
             this,
-            alias.AliasMetadata.Scope.Child(graph, currentScope)
+            alias.AliasMetadata.ChildScope(graph, currentScope)
           )
         )
     }
@@ -725,7 +728,7 @@ case object AliasAnalysis extends IRPass {
           .updateMetadata(
             new MetadataPair(
               this,
-              alias.AliasMetadata.Scope.Child(graph, currentScope)
+              alias.AliasMetadata.ChildScope(graph, currentScope)
             )
           )
       case _: Function.Binding =>
@@ -771,7 +774,10 @@ case object AliasAnalysis extends IRPass {
       }
     }
     name.updateMetadata(
-      new MetadataPair(this, alias.AliasMetadata.Occurrence(graph, occurrenceId))
+      new MetadataPair(
+        this,
+        alias.AliasMetadata.Occurrence(graph, occurrenceId)
+      )
     )
   }
 
@@ -825,7 +831,7 @@ case object AliasAnalysis extends IRPass {
       .updateMetadata(
         new MetadataPair(
           this,
-          alias.AliasMetadata.Scope.Child(graph, currentScope)
+          alias.AliasMetadata.ChildScope(graph, currentScope)
         )
       )
   }

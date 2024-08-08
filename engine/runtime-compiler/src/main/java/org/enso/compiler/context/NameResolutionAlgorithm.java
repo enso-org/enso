@@ -31,7 +31,8 @@ import scala.Option;
 public abstract class NameResolutionAlgorithm<ResultType, LocalNameLinkType> {
   public final ResultType resolveName(Name.Literal name) {
     AliasMetadata.Occurrence occurrenceMetadata =
-        MetadataInteropHelpers.getMetadata(name, AliasAnalysis$.MODULE$, AliasMetadata.Occurrence.class);
+        MetadataInteropHelpers.getMetadata(
+            name, AliasAnalysis$.MODULE$, AliasMetadata.Occurrence.class);
     var maybeLocalLink = findLocalLink(occurrenceMetadata);
     if (maybeLocalLink.isDefined()) {
       return resolveLocalName(maybeLocalLink.get());
@@ -52,7 +53,8 @@ public abstract class NameResolutionAlgorithm<ResultType, LocalNameLinkType> {
     return resolveUnresolvedSymbol(name.name());
   }
 
-  protected abstract Option<LocalNameLinkType> findLocalLink(AliasMetadata.Occurrence occurrenceMetadata);
+  protected abstract Option<LocalNameLinkType> findLocalLink(
+      AliasMetadata.Occurrence occurrenceMetadata);
 
   protected abstract ResultType resolveLocalName(LocalNameLinkType localLink);
 
