@@ -132,7 +132,7 @@ check_outside_transaction =
         Panic.throw (Illegal_State.Error "Preparing Table_Upload_Operation should itself be called outside of transaction. This is a bug in the Database library.")
 
 ## PRIVATE
-resolve_temp_table_name connection:Connection temporary:Boolean table_name:Text -> Text =
+resolve_temp_table_name connection temporary:Boolean table_name:Text -> Text =
     case temporary of
         False -> table_name
         True -> case connection.dialect.temp_table_style of
