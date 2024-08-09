@@ -4167,9 +4167,11 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
       val attachVisualizationResponses =
         context.receiveNIgnoreExpressionUpdates(3)
-      attachVisualizationResponses should contain allOf (
-        Api.Response(requestId, Api.VisualizationAttached()),
-        context.executionComplete(contextId)
+      attachVisualizationResponses should contain(
+        Api.Response(requestId, Api.VisualizationAttached())
+      )
+      attachVisualizationResponses should not contain context.executionComplete(
+        contextId
       )
       val Some(data) = attachVisualizationResponses.collectFirst {
         case Api.Response(
