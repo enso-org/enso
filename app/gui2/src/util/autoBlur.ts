@@ -2,8 +2,8 @@ import { unrefElement, useEvent } from '@/composables/events'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import type { ToValue } from '@/util/reactivity'
 import type { VueInstance } from '@vueuse/core'
-import type { Opt } from 'shared/util/data/opt'
 import { toValue, watchEffect, type Ref } from 'vue'
+import type { Opt } from 'ydoc-shared/util/data/opt'
 
 /** Automatically `blur` the currently active element on any mouse click outside of `root`.
  * It is useful when other elements may capture pointer events, preventing default browser behavior for focus change. */

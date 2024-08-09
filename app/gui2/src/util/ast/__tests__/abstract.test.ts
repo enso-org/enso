@@ -14,11 +14,8 @@ import {
   type Identifier,
 } from '@/util/ast/abstract'
 import { fc, test } from '@fast-check/vitest'
-import { initializeFFI } from 'shared/ast/ffi'
 import { describe, expect } from 'vitest'
 import { findExpressions, testCase, tryFindExpressions } from './testCase'
-
-await initializeFFI()
 
 test('Raw block abstracts to Ast.BodyBlock', () => {
   const code = 'value = 2 + 2'

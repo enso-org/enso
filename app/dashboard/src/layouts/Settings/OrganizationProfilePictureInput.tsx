@@ -1,9 +1,11 @@
 /** @file The input for viewing and changing the organization's profile picture. */
 import * as React from 'react'
 
+import { useMutation } from '@tanstack/react-query'
+
 import DefaultUserIcon from '#/assets/default_user.svg'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import { backendMutationOptions, useGetOrganization } from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as textProvider from '#/providers/TextProvider'
@@ -29,23 +31,18 @@ export default function OrganizationProfilePictureInput(
   const { backend } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
-  const organization = backendHooks.useBackendGetOrganization(backend)
+  const organization = useGetOrganization(backend)
 
-  const uploadOrganizationPictureMutation = backendHooks.useBackendMutation(
-    backend,
-    'uploadOrganizationPicture',
-  )
+  const uploadOrganizationPicture = useMutation(
+    backendMutationOptions(backend, 'uploadOrganizationPicture'),
+  ).mutate
 
-  const doUploadOrganizationPicture = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const doUploadOrganizationPicture = (event: React.ChangeEvent<HTMLInputElement>) => {
     const image = event.target.files?.[0]
     if (image == null) {
       toastAndLog('noNewProfilePictureError')
     } else {
-      try {
-        await uploadOrganizationPictureMutation.mutateAsync([{ fileName: image.name }, image])
-      } catch (error) {
-        toastAndLog(null, error)
-      }
+      uploadOrganizationPicture([{ fileName: image.name }, image])
     }
     // Reset selected files, otherwise the file input will do nothing if the same file is
     // selected again. While technically not undesired behavior, it is unintuitive for the user.

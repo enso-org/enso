@@ -1,10 +1,10 @@
 /** @file A modal with inputs for user email and permission level. */
 import * as React from 'react'
 
-import * as reactQuery from '@tanstack/react-query'
+import { useMutation, useSuspenseQueries } from '@tanstack/react-query'
 import isEmail from 'validator/es/lib/isEmail'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import { backendMutationOptions } from '#/hooks/backendHooks'
 import * as billingHooks from '#/hooks/billing'
 import * as eventCallbackHooks from '#/hooks/eventCallbackHooks'
 
@@ -38,11 +38,13 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
   const { user } = authProvider.useFullUserSession()
   const { isFeatureUnderPaywall, getFeature } = billingHooks.usePaywall({ plan: user.plan })
 
-  const inviteUserMutation = backendHooks.useBackendMutation(backend, 'inviteUser', {
-    meta: { invalidates: [['listInvitations']], awaitInvalidates: true },
-  })
+  const inviteUserMutation = useMutation(
+    backendMutationOptions(backend, 'inviteUser', {
+      meta: { invalidates: [['listInvitations']], awaitInvalidates: true },
+    }),
+  )
 
-  const [{ data: usersCount }, { data: invitationsCount }] = reactQuery.useSuspenseQueries({
+  const [{ data: usersCount }, { data: invitationsCount }] = useSuspenseQueries({
     queries: [
       {
         queryKey: ['listInvitations'],

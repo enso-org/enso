@@ -1,7 +1,7 @@
 import type { VisualizationModule } from '@/stores/visualization/runtimeTypes'
 import type { Opt } from '@/util/data/opt'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
-import type { VisualizationIdentifier } from 'shared/yjsModel'
+import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 export interface VisualizationMetadata
   extends Pick<VisualizationModule, 'name' | 'inputType' | 'icon'> {}

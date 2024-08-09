@@ -12,8 +12,8 @@ import { useProjectStore } from '@/stores/project'
 import type { AstId } from '@/util/ast/abstract'
 import type { Vec2 } from '@/util/data/vec2'
 import { set } from 'lib0'
-import { stackItemsEqual } from 'shared/languageServerTypes'
 import { computed, shallowRef, toRaw } from 'vue'
+import { stackItemsEqual } from 'ydoc-shared/languageServerTypes'
 
 const emit = defineEmits<{
   nodeOutputPortDoubleClick: [portId: AstId]
