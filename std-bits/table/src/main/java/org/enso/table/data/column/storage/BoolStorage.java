@@ -428,13 +428,17 @@ public final class BoolStorage extends Storage<Boolean>
 
       BitSet isNothing = BitSets.makeDuplicate(storage.isNothing);
       isNothing.or(v.isNothing);
+      if (storage.size > v.size) {
+        isNothing.set(v.size, storage.size);
+      }
       int current = isNothing.nextSetBit(0);
       while (current != -1) {
-        var value = negated != out.get(current);
-        if (!value
-            && (storage.getItemBoxed(current) == Boolean.FALSE
-                || v.getItemBoxed(current) == Boolean.FALSE)) {
+        Boolean a = storage.getItemBoxed(current);
+        Boolean b = (current < v.size) ? v.getItemBoxed(current) : null;
+        if (a == Boolean.FALSE || b == Boolean.FALSE) {
           isNothing.clear(current);
+          boolean falseValue = negated;
+          out.set(current, falseValue);
         }
         current = isNothing.nextSetBit(current + 1);
       }
@@ -496,13 +500,17 @@ public final class BoolStorage extends Storage<Boolean>
 
       BitSet isNothing = BitSets.makeDuplicate(storage.isNothing);
       isNothing.or(v.isNothing);
+      if (storage.size > v.size) {
+        isNothing.set(v.size, storage.size);
+      }
       int current = isNothing.nextSetBit(0);
       while (current != -1) {
-        var value = negated != out.get(current);
-        if (value
-            && (storage.getItemBoxed(current) == Boolean.TRUE
-                || v.getItemBoxed(current) == Boolean.TRUE)) {
+        Boolean a = storage.getItemBoxed(current);
+        Boolean b = (current < v.size) ? v.getItemBoxed(current) : null;
+        if (a == Boolean.TRUE || b == Boolean.TRUE) {
           isNothing.clear(current);
+          boolean trueValue = !negated;
+          out.set(current, trueValue);
         }
         current = isNothing.nextSetBit(current + 1);
       }
