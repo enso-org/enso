@@ -1,5 +1,6 @@
 /** @file Type definitions common between all backends. */
 
+import type { TextId } from '../text'
 import * as array from '../utilities/data/array'
 import * as dateTime from '../utilities/data/dateTime'
 import * as newtype from '../utilities/data/newtype'
@@ -309,6 +310,14 @@ export interface ProjectSession {
 
 export const PROJECT_PARALLEL_MODES = ['ignore', 'restart', 'parallel'] as const
 
+export const PARALLEL_MODE_TO_TEXT_ID = {
+  ignore: 'ignoreParallelMode',
+  restart: 'restartParallelMode',
+  parallel: 'parallelParallelMode',
+} satisfies {
+  [K in ProjectParallelMode]: TextId & `${K}ParallelMode`
+}
+
 /** The behavior when manually starting a new execution when the previous one is not yet complete.
  * One of the following:
  * - `ignore` - do not start the new execution.
@@ -318,6 +327,15 @@ export const PROJECT_PARALLEL_MODES = ['ignore', 'restart', 'parallel'] as const
 export type ProjectParallelMode = (typeof PROJECT_PARALLEL_MODES)[number]
 
 export const PROJECT_REPEAT_INTERVALS = ['hourly', 'daily', 'weekly', 'monthly'] as const
+
+export const REPEAT_INTERVAL_TO_TEXT_ID = {
+  hourly: 'hourlyRepeatInterval',
+  daily: 'dailyRepeatInterval',
+  weekly: 'weeklyRepeatInterval',
+  monthly: 'monthlyRepeatInterval',
+} satisfies {
+  [K in ProjectRepeatInterval]: TextId & `${K}RepeatInterval`
+}
 
 /** The interval at which a project schedule repeats. */
 export type ProjectRepeatInterval = (typeof PROJECT_REPEAT_INTERVALS)[number]

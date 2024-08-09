@@ -1,21 +1,12 @@
 /** @file Displays information describing a specific version of an asset. */
-import { useMemo } from 'react'
+import { Fragment, useMemo } from 'react'
 
-import type { TextId } from 'enso-common/src/text'
-
-import { Text } from '#/components/AriaComponents'
+import ParallelIcon from '#/assets/parallel.svg'
+import RepeatIcon from '#/assets/repeat.svg'
+import { Button, ButtonGroup, Text } from '#/components/AriaComponents'
 import { useText } from '#/providers/TextProvider'
-import type * as backendModule from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
 import { DAY_TEXT_IDS } from 'enso-common/src/utilities/data/dateTime'
-
-const REPEAT_INTERVAL_TO_TEXT = {
-  hourly: 'hourlyRepeatInterval',
-  daily: 'dailyRepeatInterval',
-  weekly: 'weeklyRepeatInterval',
-  monthly: 'monthlyRepeatInterval',
-} satisfies {
-  [K in backendModule.ProjectRepeatInterval]: TextId & `${K}RepeatInterval`
-}
 
 // ========================
 // === ProjectExecution ===
@@ -31,41 +22,80 @@ export default function ProjectExecution(props: ProjectExecutionProps) {
   const { projectExecution } = props
   const { getText } = useText()
   const times = useMemo(() => {
-    const { dates, days, hours = dates || days ? [0] : undefined, minute } = projectExecution.times
-    let result: { date?: number; day?: number; hour?: number; minute: number }[] = [{ minute }]
+    const hours =
+      projectExecution.times.hours ??
+      (projectExecution.times.dates || projectExecution.times.days ? [0] : undefined)
+    let result: { hour?: number; minute: number }[] = [{ minute: projectExecution.times.minute }]
     if (hours) {
       result = hours.flatMap((hour) => result.map((time) => ({ ...time, hour })))
     }
-    if (days) {
-      result = days.flatMap((day) => result.map((time) => ({ ...time, day })))
-    } else if (dates) {
-      result = dates.flatMap((date) => result.map((time) => ({ ...time, date })))
-    }
-    return result
+    return result.map(({ hour, minute }) => {
+      const minuteString = minute === 0 ? '' : `:${String(minute).padStart(2, '0')}`
+      return (
+        hour != null ?
+          // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+          hour > 11 ?
+            // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+            `${hour % 12 || 12}${minuteString} pm`
+            // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+          : `${hour || 12}${minuteString} am`
+        : `xx${minuteString || ':00'}`
+      )
+    })
   }, [projectExecution.times])
 
   return (
-    <div className="w-full rounded-2xl border-0.5 border-primary/20 p-2">
-      <Text>{getText(REPEAT_INTERVAL_TO_TEXT[projectExecution.repeatInterval])}</Text>
-      {times.map(({ date, day, hour, minute }) => {
-        const minuteString = minute === 0 ? '' : `:${String(minute).padStart(2, '0')}`
-        const timeString =
-          (date != null ? date + ' ' : '') +
-          (day != null ? getText(DAY_TEXT_IDS[day] ?? 'monday3') + ' ' : '') +
-          (hour != null ?
-            // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-            hour > 11 ?
-              // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-              `${hour % 12 || 12}${minuteString} pm`
-              // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-            : `${hour || 12}${minuteString} am`
-          : `xx${minuteString || ':00'}`)
-        return (
-          <Text>
-            <time className="text-xs">{timeString}</time>
-          </Text>
-        )
-      })}
+    <div className="flex w-full items-center rounded-2xl border-0.5 border-primary/20 p-2">
+      <div className="grid grow justify-start gap-x-2 gap-y-1">
+        {projectExecution.times.dates?.flatMap((date) => (
+          <Fragment key={date}>
+            <Text className="col-start-1">
+              <time>{date}</time>
+            </Text>
+            <div className="col-start-2 mr-auto flex rounded-2xl border-0.5 border-primary/20">
+              {times.map((timeString) => (
+                <Text>
+                  <time>{timeString}</time>
+                </Text>
+              ))}
+            </div>
+          </Fragment>
+        ))}
+        {projectExecution.times.days?.flatMap((day) => (
+          <Fragment key={day}>
+            <Text>
+              <time>{getText(DAY_TEXT_IDS[day] ?? 'monday')}</time>
+            </Text>
+            <div className="col-start-2 mr-auto flex rounded-2xl border-0.5 border-primary/20">
+              {times.map((timeString) => (
+                <Text className="border-r-0.5 border-primary/20 px-2 py-0.5 last:border-r-0">
+                  <time>{timeString}</time>
+                </Text>
+              ))}
+            </div>
+          </Fragment>
+        ))}
+      </div>
+      <ButtonGroup direction="column" className="grow-0">
+        <Button
+          isDisabled
+          variant="outline"
+          icon={RepeatIcon}
+          aria-label={getText('repeatIntervalLabel')}
+          className="disabled:cursor-default disabled:opacity-100"
+        >
+          {getText(backendModule.REPEAT_INTERVAL_TO_TEXT_ID[projectExecution.repeatInterval])}
+        </Button>
+        <Button
+          isDisabled
+          variant="outline"
+          aria-label={getText('parallelModeLabel')}
+          icon={ParallelIcon}
+          className="disabled:cursor-default disabled:opacity-100"
+        >
+          {getText(backendModule.PARALLEL_MODE_TO_TEXT_ID[projectExecution.parallelMode])}
+        </Button>
+      </ButtonGroup>
     </div>
   )
 }

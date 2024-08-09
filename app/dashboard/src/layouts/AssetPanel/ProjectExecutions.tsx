@@ -55,7 +55,7 @@ function ProjectExecutionsInternal(props: ProjectExecutionsInternalProps) {
     <div className="pointer-events-auto flex flex-col items-center gap-2 overflow-y-auto overflow-x-hidden">
       <ButtonGroup>
         <DialogTrigger>
-          <Button variant="outline">{getText('new')}</Button>
+          <Button variant="outline">{getText('newProjectExecution')}</Button>
           <NewProjectExecutionModal backend={backend} item={item} />
         </DialogTrigger>
       </ButtonGroup>

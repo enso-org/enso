@@ -3,13 +3,12 @@ import * as z from 'zod'
 
 import type Backend from '#/services/Backend'
 import {
+  PARALLEL_MODE_TO_TEXT_ID,
   PROJECT_PARALLEL_MODES,
   PROJECT_REPEAT_INTERVALS,
+  REPEAT_INTERVAL_TO_TEXT_ID,
   type ProjectAsset,
-  type ProjectParallelMode,
-  type ProjectRepeatInterval,
 } from 'enso-common/src/services/Backend'
-import type { TextId } from 'enso-common/src/text'
 
 import {
   Button,
@@ -24,23 +23,6 @@ import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useText } from '#/providers/TextProvider'
 import { useMutation } from '@tanstack/react-query'
 import { DAY_3_LETTER_TEXT_IDS } from 'enso-common/src/utilities/data/dateTime'
-
-const REPEAT_INTERVAL_TO_TEXT = {
-  hourly: 'hourlyRepeatInterval',
-  daily: 'dailyRepeatInterval',
-  weekly: 'weeklyRepeatInterval',
-  monthly: 'monthlyRepeatInterval',
-} satisfies {
-  [K in ProjectRepeatInterval]: TextId & `${K}RepeatInterval`
-}
-
-const PARALLEL_MODE_TO_TEXT = {
-  ignore: 'ignoreParallelMode',
-  restart: 'restartParallelMode',
-  parallel: 'parallelParallelMode',
-} satisfies {
-  [K in ProjectParallelMode]: TextId & `${K}ParallelMode`
-}
 
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 const DATES = [...Array(31).keys()]
@@ -163,7 +145,7 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
             label={getText('repeatIntervalLabel')}
             defaultValue="weekly"
             items={PROJECT_REPEAT_INTERVALS}
-            itemToString={(interval) => getText(REPEAT_INTERVAL_TO_TEXT[interval])}
+            itemToString={(interval) => getText(REPEAT_INTERVAL_TO_TEXT_ID[interval])}
           />
           {repeatInterval === 'monthly' && (
             <MultiSelector
@@ -212,7 +194,7 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
             label={getText('parallelModeLabel')}
             defaultValue="restart"
             items={PROJECT_PARALLEL_MODES}
-            itemToString={(interval) => getText(PARALLEL_MODE_TO_TEXT[interval])}
+            itemToString={(interval) => getText(PARALLEL_MODE_TO_TEXT_ID[interval])}
           />
           <ButtonGroup>
             <Form.Submit />
