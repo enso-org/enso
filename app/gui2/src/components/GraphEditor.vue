@@ -403,6 +403,8 @@ const codeEditorHandler = codeEditorBindings.handler({
 
 // === Documentation Editor ===
 
+const displayedDocs = ref<SuggestionId | null>(null)
+
 const docEditor = shallowRef<ComponentInstance<typeof DocumentationEditor>>()
 const documentationEditorArea = computed(() => unrefElement(docEditor))
 const showRightDock = computedFallback(
@@ -692,6 +694,7 @@ const groupColors = computed(() => {
           :usage="componentBrowserUsage"
           @accepted="commitComponentBrowser"
           @canceled="hideComponentBrowser"
+          @selectedSuggestionId="(displayedDocs = $event)"
         />
         <TopBar
           v-model:recordMode="projectStore.recordMode"
@@ -733,7 +736,7 @@ const groupColors = computed(() => {
         />
       </template>
       <template #help>
-        <ComponentDocumentation />
+        <ComponentDocumentation :displayedSuggestionId="displayedDocs" />
       </template>
     </DockPanel>
   </div>

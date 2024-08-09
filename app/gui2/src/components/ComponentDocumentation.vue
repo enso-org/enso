@@ -6,10 +6,11 @@ import { ref, watchEffect } from 'vue'
 import type { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
 import { Err, Ok, type Result } from 'ydoc-shared/util/data/result'
 
+const props = defineProps<{ displayedSuggestionId: SuggestionId | null }>()
 const selection = injectGraphSelection()
 const graphStore = useGraphStore()
 
-const displayedDocs = ref<Result<SuggestionId>>()
+const displayedSuggestionId = ref<Result<SuggestionId>>()
 
 function docsForSelection() {
   const selected = selection.tryGetSoleSelection()
@@ -18,17 +19,17 @@ function docsForSelection() {
   if (suggestionId == null) return Err('No documentation available for selected component')
   return Ok(suggestionId)
 }
-watchEffect(() => (displayedDocs.value = docsForSelection()))
+watchEffect(() => (displayedSuggestionId.value = props.displayedSuggestionId != null ? Ok(props.displayedSuggestionId) : docsForSelection()))
 </script>
 
 <template>
   <DocumentationPanel
-    v-if="displayedDocs?.ok"
-    :selectedEntry="displayedDocs.value"
-    @update:selectedEntry="displayedDocs = Ok($event)"
+    v-if="displayedSuggestionId?.ok"
+    :selectedEntry="displayedSuggestionId.value"
+    @update:selectedEntry="displayedSuggestionId = Ok($event)"
   />
-  <div v-else-if="displayedDocs?.ok === false" class="help-placeholder">
-    {{ displayedDocs.error.payload }}.
+  <div v-else-if="displayedSuggestionId?.ok === false" class="help-placeholder">
+    {{ displayedSuggestionId.error.payload }}.
   </div>
 </template>
 

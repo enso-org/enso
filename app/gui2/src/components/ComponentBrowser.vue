@@ -73,7 +73,8 @@ const emit = defineEmits<{
     requiredImports: RequiredImport[],
     firstAppliedReturnType: Typename | undefined,
   ]
-  canceled: []
+  canceled: [],
+  selectedSuggestionId: [id: SuggestionId | null],
 }>()
 
 const cbRoot = ref<HTMLElement>()
@@ -393,7 +394,7 @@ const docsVisible = ref(true)
 const docEntry: Ref<Opt<SuggestionId>> = ref(null)
 
 watch(selectedSuggestionId, (id) => {
-  docEntry.value = id
+  emit('selectedSuggestionId', id)
 })
 
 // === Accepting Entry ===
