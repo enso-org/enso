@@ -1,5 +1,8 @@
 package org.enso.table.data.column.storage;
 
+import java.util.BitSet;
+import java.util.List;
+import java.util.function.IntFunction;
 import org.enso.base.CompareException;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
@@ -18,10 +21,6 @@ import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.BitSets;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
-
-import java.util.BitSet;
-import java.util.List;
-import java.util.function.IntFunction;
 
 /** A boolean column storage. */
 public final class BoolStorage extends Storage<Boolean>
@@ -260,8 +259,8 @@ public final class BoolStorage extends Storage<Boolean>
   }
 
   /**
-   * Returns a BitSet representation of the storage.
-   * It is the same as the values BitSet, but with an assumption that the negated flag is false.
+   * Returns a BitSet representation of the storage. It is the same as the values BitSet, but with
+   * an assumption that the negated flag is false.
    */
   private BitSet normalize() {
     BitSet set = new BitSet();
@@ -272,9 +271,7 @@ public final class BoolStorage extends Storage<Boolean>
     return set;
   }
 
-  /**
-   * Acts like {@link #normalize} but also negates the bits.
-   */
+  /** Acts like {@link #normalize} but also negates the bits. */
   private BitSet negateNormalize() {
     BitSet set = new BitSet();
     set.or(this.values);
@@ -519,7 +516,7 @@ public final class BoolStorage extends Storage<Boolean>
     }
   }
 
-  private static abstract class BoolCompareOp extends BinaryMapOperation<Boolean, BoolStorage> {
+  private abstract static class BoolCompareOp extends BinaryMapOperation<Boolean, BoolStorage> {
     public BoolCompareOp(String name) {
       super(name);
     }
@@ -527,7 +524,8 @@ public final class BoolStorage extends Storage<Boolean>
     protected abstract boolean doCompare(boolean a, boolean b);
 
     @Override
-    public Storage<?> runZip(BoolStorage storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
+    public Storage<?> runZip(
+        BoolStorage storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
       if (arg instanceof BoolStorage argBoolStorage) {
         BitSet out = new BitSet();
         BitSet isNothing = new BitSet();
@@ -589,7 +587,8 @@ public final class BoolStorage extends Storage<Boolean>
     }
 
     @Override
-    public Storage<?> runBinaryMap(BoolStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
+    public Storage<?> runBinaryMap(
+        BoolStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
       if (arg == null) {
         return BoolStorage.makeEmpty(storage.size);
       }
@@ -618,9 +617,9 @@ public final class BoolStorage extends Storage<Boolean>
       super(Maps.LTE);
     }
 
-
     @Override
-    public Storage<?> runBinaryMap(BoolStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
+    public Storage<?> runBinaryMap(
+        BoolStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
       if (arg == null) {
         return BoolStorage.makeEmpty(storage.size);
       }
@@ -650,7 +649,8 @@ public final class BoolStorage extends Storage<Boolean>
     }
 
     @Override
-    public Storage<?> runBinaryMap(BoolStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
+    public Storage<?> runBinaryMap(
+        BoolStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
       if (arg == null) {
         return BoolStorage.makeEmpty(storage.size);
       }
@@ -679,9 +679,9 @@ public final class BoolStorage extends Storage<Boolean>
       super(Maps.GTE);
     }
 
-
     @Override
-    public Storage<?> runBinaryMap(BoolStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
+    public Storage<?> runBinaryMap(
+        BoolStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
       if (arg == null) {
         return BoolStorage.makeEmpty(storage.size);
       }
@@ -705,7 +705,7 @@ public final class BoolStorage extends Storage<Boolean>
     }
   }
 
-  private static abstract class BoolCoalescingOp extends BinaryMapOperation<Boolean, BoolStorage> {
+  private abstract static class BoolCoalescingOp extends BinaryMapOperation<Boolean, BoolStorage> {
     public BoolCoalescingOp(String name) {
       super(name);
     }
@@ -713,7 +713,8 @@ public final class BoolStorage extends Storage<Boolean>
     protected abstract boolean doOperation(boolean a, boolean b);
 
     @Override
-    public Storage<?> runZip(BoolStorage storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
+    public Storage<?> runZip(
+        BoolStorage storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
       if (arg instanceof BoolStorage argBoolStorage) {
         int n = storage.size;
         int m = Math.min(n, argBoolStorage.size());
@@ -761,14 +762,16 @@ public final class BoolStorage extends Storage<Boolean>
     }
 
     @Override
-    public BoolStorage runBinaryMap(BoolStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
+    public BoolStorage runBinaryMap(
+        BoolStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
       if (arg == null) {
         return storage;
       }
 
       if (arg instanceof Boolean b) {
         if (b) {
-          // true is larger than false, so we want to keep values as is, and fill missing ones with true
+          // true is larger than false, so we want to keep values as is, and fill missing ones with
+          // true
           return storage.fillMissingBoolean(true);
         } else {
           // false is smaller than everything:
@@ -791,7 +794,8 @@ public final class BoolStorage extends Storage<Boolean>
     }
 
     @Override
-    public BoolStorage runBinaryMap(BoolStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
+    public BoolStorage runBinaryMap(
+        BoolStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
       if (arg == null) {
         return storage;
       }
