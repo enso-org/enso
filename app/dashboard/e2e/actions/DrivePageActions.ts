@@ -114,9 +114,11 @@ export default class DrivePageActions extends PageActions {
         )
       },
       /** Interact with the set of all rows in the Drive table. */
-      withRows(callback: baseActions.LocatorCallback) {
+      withRows(
+        callback: (assetRows: test.Locator, nonAssetRows: test.Locator) => Promise<void> | void,
+      ) {
         return self.step('Interact with drive table rows', async (page) => {
-          await callback(actions.locateAssetRows(page))
+          await callback(actions.locateAssetRows(page), actions.locateNonAssetRows(page))
         })
       },
       /** Drag a row onto another row. */
@@ -145,18 +147,20 @@ export default class DrivePageActions extends PageActions {
        * placeholder row displayed when there are no assets to show. */
       expectPlaceholderRow() {
         return self.step('Expect placeholder row', async (page) => {
-          const rows = actions.locateAssetRows(page)
-          await test.expect(rows).toHaveCount(1)
-          await test.expect(rows).toHaveText(/You have no files/)
+          await test.expect(actions.locateAssetRows(page)).toHaveCount(0)
+          const nonAssetRows = actions.locateNonAssetRows(page)
+          await test.expect(nonAssetRows).toHaveCount(1)
+          await test.expect(nonAssetRows).toHaveText(/You have no files/)
         })
       },
       /** A test assertion to confirm that there is only one row visible, and that row is the
        * placeholder row displayed when there are no assets in Trash. */
       expectTrashPlaceholderRow() {
         return self.step('Expect trash placeholder row', async (page) => {
-          const rows = actions.locateAssetRows(page)
-          await test.expect(rows).toHaveCount(1)
-          await test.expect(rows).toHaveText(/Your trash is empty/)
+          await test.expect(actions.locateAssetRows(page)).toHaveCount(0)
+          const nonAssetRows = actions.locateNonAssetRows(page)
+          await test.expect(nonAssetRows).toHaveCount(1)
+          await test.expect(nonAssetRows).toHaveText(/Your trash is empty/)
         })
       },
       /** Toggle a column's visibility. */
