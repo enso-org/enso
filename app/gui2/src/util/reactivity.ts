@@ -3,17 +3,25 @@
 import { defaultEquality } from '@/util/equals'
 import { debouncedWatch } from '@vueuse/core'
 import { nop } from 'lib0/function'
-import type { ComputedRef, MaybeRefOrGetter, Ref, WatchSource, WritableComputedRef } from 'vue'
 import {
   callWithErrorHandling,
   computed,
+  ComputedRef,
+  DeepReadonly,
   effect,
   effectScope,
   isRef,
+  MaybeRefOrGetter,
   queuePostFlushCb,
+  reactive,
+  Ref,
+  shallowReactive,
   shallowRef,
+  toRaw,
   toValue,
   watch,
+  WatchSource,
+  WritableComputedRef,
 } from 'vue'
 
 /** Cast watch source to an observable ref. */
@@ -154,7 +162,21 @@ export function debouncedGetter<T>(
 }
 
 /** Update `target` to have the same entries as `newState`. */
-export function syncSet<T>(target: Set<T>, newState: Set<T>) {
+export function syncSet<T>(target: Set<T>, newState: Readonly<Set<T>>) {
+  syncSetDiff(target, target, newState)
+}
+
+/**
+ * Apply differences from `oldState` to `newState` to target.
+ *
+ * This can be used to update a reactive `target` without incurring a reactive dependency on the object being mutated,
+ * by passing the underlying raw set as `oldState`.
+ */
+export function syncSetDiff<T>(
+  target: Set<T>,
+  oldState: DeepReadonly<Set<T>> | Readonly<Set<T>>,
+  newState: Readonly<Set<T>>,
+) {
   for (const oldKey of target) if (!newState.has(oldKey)) target.delete(oldKey)
   for (const newKey of newState) if (!target.has(newKey)) target.add(newKey)
 }
@@ -200,4 +222,37 @@ export function useBufferedWritable<T>(raw: {
     get: () => (pendingWrite.value ? pendingWrite.value.pending : toValue(raw.get)),
     set: (value: T) => (pendingWrite.value = { pending: value }),
   })
+}
+
+declare const brandNonReactiveView: unique symbol
+
+/** Marks a readonly non-reactive view of data that may elsewhere be used reactively. */
+export type NonReactiveView<T> = DeepReadonly<T> & { [brandNonReactiveView]: never }
+
+/** Returns a readonly non-reactive view of a potentially-reactive value. */
+export function nonReactiveView<T>(value: T): NonReactiveView<T> {
+  return toRaw(value) as NonReactiveView<T>
+}
+
+/**
+ * Given a non-reactive view of a value, return a reactive view.
+ *
+ * The type parameter can be specified to cast away the `DeepReadonly` added when converting to a `NonReactiveView`.
+ * Note that if the specified type is not exactly the type of the value that was cast to `NonReactiveView`, this could
+ * cast away `readonly` attributes that were present in the original type.
+ */
+export function resumeReactivity<T>(view: NonReactiveView<DeepReadonly<T>>): T {
+  return reactive(view) as T
+}
+
+/**
+ * Given a non-reactive view of a value, return a shallowly-reactive view.
+ *
+ *
+ * The type parameter can be specified to cast away the `DeepReadonly` added when converting to a `NonReactiveView`.
+ * Note that if the specified type is not exactly the type of the value that was cast to `NonReactiveView`, this could
+ * cast away `readonly` attributes that were present in the original type.
+ */
+export function resumeShallowReactivity<T>(view: NonReactiveView<DeepReadonly<T>>): T {
+  return shallowReactive(view) as T
 }

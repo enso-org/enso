@@ -5,21 +5,24 @@ import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { assert } from '@/util/assert'
 import { Ast, RawAst } from '@/util/ast'
 import type { AstId, NodeMetadata } from '@/util/ast/abstract'
-import { MutableModule, autospaced } from '@/util/ast/abstract'
+import { autospaced, MutableModule } from '@/util/ast/abstract'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
-import { nodeFromAst } from '@/util/ast/node'
+import { nodeFromAst, nodeRootExpr } from '@/util/ast/node'
 import { MappedKeyMap, MappedSet } from '@/util/containers'
 import { arrayEquals, tryGetIndex } from '@/util/data/array'
+import { recordEqual } from '@/util/data/object'
 import { Vec2 } from '@/util/data/vec2'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
-import { syncSet } from '@/util/reactivity'
-import * as set from 'lib0/set'
-import { reactive, ref, type Ref } from 'vue'
 import {
-  methodPointerEquals,
-  type MethodCall,
-  type StackItem,
-} from 'ydoc-shared/languageServerTypes'
+  nonReactiveView,
+  resumeReactivity,
+  resumeShallowReactivity,
+  syncSetDiff,
+} from '@/util/reactivity'
+import * as set from 'lib0/set'
+import { reactive, ref, shallowReactive, watchEffect, WatchStopHandle, type Ref } from 'vue'
+import type { MethodCall, StackItem } from 'ydoc-shared/languageServerTypes'
+import { methodPointerEquals } from 'ydoc-shared/languageServerTypes'
 import type { Opt } from 'ydoc-shared/util/data/opt'
 import type { ExternalId, SourceRange, VisualizationMetadata } from 'ydoc-shared/yjsModel'
 import { isUuid, sourceRangeKey, visMetadataEquals } from 'ydoc-shared/yjsModel'
@@ -131,6 +134,7 @@ export class BindingsDb {
 
 export class GraphDb {
   nodeIdToNode = new ReactiveDb<NodeId, Node>()
+  private readonly blockNodeLines = new Map<NodeId, { data: BlockLine; stop: WatchStopHandle }>()
   private highestZIndex = 0
   private readonly idToExternalMap = reactive(new Map<Ast.AstId, ExternalId>())
   private readonly idFromExternalMap = reactive(new Map<ExternalId, Ast.AstId>())
@@ -141,10 +145,6 @@ export class GraphDb {
     private groups: Ref<Group[]>,
     private valuesRegistry: ComputedValueRegistry,
   ) {}
-
-  private nodeIdToOuterExprIds = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
-    return [[id, entry.outerExpr.id]]
-  })
 
   private nodeIdToPatternExprIds = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
     const exprs: AstId[] = []
@@ -243,10 +243,6 @@ export class GraphDb {
     }
   }
 
-  getOuterExpressionNodeId(exprId: AstId | undefined): NodeId | undefined {
-    return exprId && set.first(this.nodeIdToOuterExprIds.reverseLookup(exprId))
-  }
-
   getExpressionNodeId(exprId: AstId | undefined): NodeId | undefined {
     return exprId && set.first(this.nodeIdToExprIds.reverseLookup(exprId))
   }
@@ -267,10 +263,6 @@ export class GraphDb {
 
   getOutputPortIdentifier(source: AstId | undefined): string | undefined {
     return source ? this.bindings.bindings.get(source)?.identifier : undefined
-  }
-
-  allIdentifiers(): string[] {
-    return [...this.bindings.identifierToBindingId.allForward()].map(([ident, _]) => ident)
   }
 
   identifierUsed(ident: string): boolean {
@@ -332,75 +324,98 @@ export class GraphDb {
     }
   }
 
+  /**
+   * Scan the block to identify nodes.
+   *
+   * Run when nodes are added or deleted, change external ID, or the chain of expressions outside any node's root
+   * expression changes.
+   */
   updateNodes(functionAst_: Ast.Function) {
     const currentNodeIds = new Set<NodeId>()
-    const lines = [...functionAst_.bodyExpressions()]
-    lines.forEach((nodeAst, lineIndex) => {
-      const newNode = nodeFromAst(nodeAst, lineIndex === lines.length - 1)
-      if (!newNode) return
-      const nodeId = asNodeId(newNode.rootExpr.externalId)
-      const node = this.nodeIdToNode.get(nodeId)
-      currentNodeIds.add(nodeId)
-      if (node == null) {
-        const nodeMeta = newNode.rootExpr.nodeMetadata
-        const pos = nodeMeta.get('position') ?? { x: 0, y: 0 }
-        const metadataFields = {
-          position: new Vec2(pos.x, pos.y),
-          vis: nodeMeta.get('visualization'),
-          colorOverride: nodeMeta.get('colorOverride'),
-        }
-        this.nodeIdToNode.set(nodeId, {
-          ...newNode,
-          ...metadataFields,
-          zIndex: this.highestZIndex,
-        })
+    const body = [...functionAst_.bodyExpressions()]
+    body.forEach((outerAst, index) => {
+      const nodeId = nodeIdFromOuterExpr(outerAst)
+      if (!nodeId) return
+      const isLastInBlock = index === body.length - 1
+      const oldNode = nonReactiveView(this.blockNodeLines.get(nodeId)?.data)
+      if (oldNode) {
+        const node = resumeShallowReactivity<BlockLine>(oldNode)
+        if (oldNode.isLastInBlock !== isLastInBlock) node.isLastInBlock = isLastInBlock
+        if (oldNode.outerAst.id !== outerAst.id) node.outerAst = outerAst
       } else {
-        const {
-          type,
-          outerExpr,
-          pattern,
-          rootExpr,
-          innerExpr,
-          primarySubject,
-          prefixes,
-          documentation,
-          conditionalPorts,
-        } = newNode
-        if (node.type != type) node.type = type
-        if (node.outerExpr != outerExpr) node.outerExpr = outerExpr
-        if (node.pattern != pattern) node.pattern = pattern
-        if (node.rootExpr != rootExpr) node.rootExpr = rootExpr
-        if (node.innerExpr != innerExpr) node.innerExpr = innerExpr
-        if (node.primarySubject !== primarySubject) node.primarySubject = primarySubject
-        if (node.documentation !== documentation) node.documentation = documentation
-        if (
-          Object.entries(node.prefixes).some(
-            ([k, v]) => prefixes[k as keyof typeof node.prefixes] !== v,
-          )
+        const data = shallowReactive({ isLastInBlock, outerAst })
+        const stop = watchEffect(() =>
+          this.updateNodeStructure(nodeId, data.outerAst, data.isLastInBlock),
         )
-          node.prefixes = prefixes
-        syncSet(node.conditionalPorts, conditionalPorts)
-        // Ensure new fields can't be added to `NodeAstData` without this code being updated.
-        const _allFieldsHandled = {
-          type,
-          outerExpr,
-          pattern,
-          rootExpr,
-          innerExpr,
-          primarySubject,
-          prefixes,
-          documentation,
-          conditionalPorts,
-        } satisfies NodeDataFromAst
+        this.blockNodeLines.set(nodeId, { data, stop })
       }
+      currentNodeIds.add(nodeId)
     })
-    for (const nodeId of this.nodeIdToNode.keys()) {
+    for (const [nodeId, info] of this.blockNodeLines.entries()) {
       if (!currentNodeIds.has(nodeId)) {
+        info.stop()
         this.nodeIdToNode.delete(nodeId)
+        this.blockNodeLines.delete(nodeId)
       }
     }
   }
 
+  /** Scan a node's content from its outer expression down to, but not including, its inner expression. */
+  private updateNodeStructure(nodeId: NodeId, nodeAst: Ast.Ast, isLastInBlock: boolean) {
+    const newNode = nodeFromAst(nodeAst, isLastInBlock)
+    if (!newNode) return
+    const oldNode = this.nodeIdToNode.getUntracked(nodeId)
+    if (oldNode == null) {
+      const nodeMeta = newNode.rootExpr.nodeMetadata
+      const pos = nodeMeta.get('position') ?? { x: 0, y: 0 }
+      const metadataFields = {
+        position: new Vec2(pos.x, pos.y),
+        vis: nodeMeta.get('visualization'),
+        colorOverride: nodeMeta.get('colorOverride'),
+      }
+      this.nodeIdToNode.set(nodeId, {
+        ...newNode,
+        ...metadataFields,
+        zIndex: this.highestZIndex,
+      })
+    } else {
+      const {
+        type,
+        outerExpr,
+        pattern,
+        rootExpr,
+        innerExpr,
+        primarySubject,
+        prefixes,
+        conditionalPorts,
+        docs,
+      } = newNode
+      const node = resumeReactivity(oldNode)
+      if (oldNode.type !== type) node.type = type
+      if (oldNode.outerExpr.id !== outerExpr.id) node.outerExpr = outerExpr
+      if (oldNode.pattern?.id !== pattern?.id) node.pattern = pattern
+      if (oldNode.rootExpr.id !== rootExpr.id) node.rootExpr = rootExpr
+      if (oldNode.innerExpr.id !== innerExpr.id) node.innerExpr = innerExpr
+      if (oldNode.docs?.id !== docs?.id) node.docs = docs
+      if (oldNode.primarySubject !== primarySubject) node.primarySubject = primarySubject
+      if (!recordEqual(oldNode.prefixes, prefixes)) node.prefixes = prefixes
+      syncSetDiff(node.conditionalPorts, oldNode.conditionalPorts, conditionalPorts)
+      // Ensure new fields can't be added to `NodeAstData` without this code being updated.
+      const _allFieldsHandled = {
+        type,
+        outerExpr,
+        pattern,
+        rootExpr,
+        innerExpr,
+        primarySubject,
+        prefixes,
+        conditionalPorts,
+        docs,
+      } satisfies NodeDataFromAst
+    }
+  }
+
+  /** Deeply scan the function to perform alias-analysis. */
   updateBindings(
     functionAst_: Ast.Function,
     rawFunction: RawAst.Tree.Function,
@@ -425,6 +440,7 @@ export class GraphDb {
     updateMap(this.idFromExternalMap, idFromExternalNew)
   }
 
+  /** Apply the provided metadata updates. */
   updateMetadata(astId: Ast.AstId, changes: NodeMetadata) {
     const node = this.nodeByRootAstId(astId)
     if (!node) return
@@ -489,12 +505,18 @@ export class GraphDb {
       rootExpr: Ast.parse(code ?? '0'),
       innerExpr: Ast.parse(code ?? '0'),
       zIndex: this.highestZIndex,
+      docs: undefined,
     }
     const bindingId = pattern.id
     this.nodeIdToNode.set(id, node)
     this.bindings.bindings.set(bindingId, { identifier: binding, usages: new Set() })
     return node
   }
+}
+
+interface BlockLine {
+  outerAst: Ast.Ast
+  isLastInBlock: boolean
 }
 
 declare const brandNodeId: unique symbol
@@ -508,11 +530,17 @@ export function asNodeId(id: ExternalId | undefined): NodeId | undefined {
   return id != null ? (id as NodeId) : undefined
 }
 
+/** Given an expression at the top level of a block, return the `NodeId` for the expression. */
+export function nodeIdFromOuterExpr(outerExpr: Ast.Ast) {
+  const { root } = nodeRootExpr(outerExpr)
+  return root && asNodeId(root.externalId)
+}
+
 export interface NodeDataFromAst {
   type: NodeType
   /** The outer expression, usually an assignment expression (`a = b`). */
   outerExpr: Ast.Ast
-  /** The left side of the assignment experssion, if `outerExpr` is an assignment expression. */
+  /** The left side of the assignment expression, if `outerExpr` is an assignment expression. */
   pattern: Ast.Ast | undefined
   /** The value of the node. The right side of the assignment, if `outerExpr` is an assignment
    * expression, else the entire `outerExpr`. */
@@ -525,9 +553,10 @@ export interface NodeDataFromAst {
   prefixes: Record<'enableRecording', Ast.AstId[] | undefined>
   /** A child AST in a syntactic position to be a self-argument input to the node. */
   primarySubject: Ast.AstId | undefined
-  documentation: string | undefined
   /** Ports that are not targetable by default; they can be targeted while holding the modifier key. */
   conditionalPorts: Set<Ast.AstId>
+  /** An AST node containing the node's documentation comment. */
+  docs: Ast.Documented | undefined
 }
 
 export interface NodeDataFromMetadata {
@@ -546,17 +575,6 @@ const baseMockNode = {
   vis: undefined,
   prefixes: { enableRecording: undefined },
   primarySubject: undefined,
-  documentation: undefined,
   colorOverride: undefined,
   conditionalPorts: new Set(),
 } satisfies Partial<Node>
-
-export function mathodCallEquals(a: MethodCall | undefined, b: MethodCall | undefined): boolean {
-  return (
-    a === b ||
-    (a != null &&
-      b != null &&
-      methodPointerEquals(a.methodPointer, b.methodPointer) &&
-      arrayEquals(a.notAppliedArguments, b.notAppliedArguments))
-  )
-}

@@ -82,7 +82,7 @@ test.each([...testNodes.map((node) => [node]), testNodes])(
     const clipboardItem = clipboardItemFromTypes(nodesToClipboardData(sourceNodes))
     const pastedNodes = await nodesFromClipboardContent([clipboardItem])
     sourceNodes.forEach((sourceNode, i) => {
-      expect(pastedNodes[i]?.documentation).toBe(sourceNode.documentation)
+      expect(pastedNodes[i]?.documentation).toBe(sourceNode.docs?.documentation())
       expect(pastedNodes[i]?.expression).toBe(sourceNode.innerExpr.code())
       expect(pastedNodes[i]?.metadata?.colorOverride).toBe(sourceNode.colorOverride)
       expect(pastedNodes[i]?.metadata?.visualization).toBe(sourceNode.vis)

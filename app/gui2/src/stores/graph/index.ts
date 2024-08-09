@@ -2,7 +2,7 @@ import { usePlacement } from '@/components/ComponentBrowser/placement'
 import { createContextStore } from '@/providers'
 import type { PortId } from '@/providers/portInfo'
 import type { WidgetUpdate } from '@/providers/widgetRegistry'
-import { GraphDb, type NodeId } from '@/stores/graph/graphDatabase'
+import { GraphDb, nodeIdFromOuterExpr, type NodeId } from '@/stores/graph/graphDatabase'
 import {
   addImports,
   detectImportConflicts,
@@ -92,11 +92,11 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     const vizRects = reactive(new Map<NodeId, Rect>())
     // The currently visible nodes' areas (including visualization).
     const visibleNodeAreas = computed(() => {
-      const existing = iteratorFilter(nodeRects.entries(), ([id]) => db.nodeIdToNode.has(id))
+      const existing = iteratorFilter(nodeRects.entries(), ([id]) => db.isNodeId(id))
       return Array.from(existing, ([id, rect]) => vizRects.get(id) ?? rect)
     })
     function visibleArea(nodeId: NodeId): Rect | undefined {
-      if (!db.nodeIdToNode.has(nodeId)) return
+      if (!db.isNodeId(nodeId)) return
       return vizRects.get(nodeId) ?? nodeRects.get(nodeId)
     }
 
@@ -108,21 +108,19 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     const portInstances = shallowReactive(new Map<PortId, Set<PortViewInstance>>())
     const editedNodeInfo = ref<NodeEditInfo>()
 
-    const syncModule = ref<Ast.MutableModule>()
     const moduleSource = reactive(SourceDocument.Empty())
     const moduleRoot = ref<Ast.BodyBlock>()
+    const syncModule = computed(() => moduleRoot.value?.module as Ast.MutableModule | undefined)
 
     watch(
       () => proj.module,
       (projModule, _, onCleanup) => {
         if (!projModule) return
-        const { module, triggerAst } = reactiveModule(projModule.doc.ydoc)
+        const module = reactiveModule(projModule.doc.ydoc, onCleanup)
         const handle = module.observe((update) => {
           const root = module.root()
           if (root instanceof Ast.BodyBlock) {
-            update.nodesUpdated.forEach(triggerAst)
             moduleRoot.value = root
-            syncModule.value = module
             moduleSource.applyUpdate(module, update)
             db.updateExternalIds(root)
             // We can cast maps of unknown metadata fields to `NodeMetadata` because all `NodeMetadata` fields are optional.
@@ -133,7 +131,6 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
             for (const { id, changes } of nodeMetadataUpdates) db.updateMetadata(id, changes)
           } else {
             moduleRoot.value = undefined
-            syncModule.value = undefined
           }
         })
         onCleanup(() => {
@@ -365,20 +362,16 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     function setNodePosition(nodeId: NodeId, position: Vec2) {
       const nodeAst = syncModule.value?.tryGet(db.idFromExternal(nodeId))
       if (!nodeAst) return
-      const oldPos = nodeAst.nodeMetadata.get('position')
-      if (oldPos?.x !== position.x || oldPos?.y !== position.y) {
-        editNodeMetadata(nodeAst, (metadata) =>
-          metadata.set('position', { x: position.x, y: position.y }),
-        )
-      }
+      const metadata = nodeAst.mutableNodeMetadata()
+      const oldPos = metadata.get('position')
+      if (oldPos?.x !== position.x || oldPos?.y !== position.y)
+        metadata.set('position', { x: position.x, y: position.y })
     }
 
     function overrideNodeColor(nodeId: NodeId, color: string | undefined) {
       const nodeAst = syncModule.value?.tryGet(db.idFromExternal(nodeId))
       if (!nodeAst) return
-      editNodeMetadata(nodeAst, (metadata) => {
-        metadata.set('colorOverride', color)
-      })
+      nodeAst.mutableNodeMetadata().set('colorOverride', color)
     }
 
     function getNodeColorOverride(node: NodeId) {
@@ -403,16 +396,15 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     function setNodeVisualization(nodeId: NodeId, vis: Partial<VisualizationMetadata>) {
       const nodeAst = syncModule.value?.tryGet(db.idFromExternal(nodeId))
       if (!nodeAst) return
-      editNodeMetadata(nodeAst, (metadata) => {
-        const data: Partial<VisualizationMetadata> = {
-          identifier: vis.identifier ?? metadata.get('visualization')?.identifier ?? null,
-          visible: vis.visible ?? metadata.get('visualization')?.visible ?? false,
-          fullscreen: vis.fullscreen ?? metadata.get('visualization')?.fullscreen ?? false,
-          width: vis.width ?? metadata.get('visualization')?.width ?? null,
-          height: vis.height ?? metadata.get('visualization')?.height ?? null,
-        }
-        metadata.set('visualization', normalizeVisMetadata(data))
-      })
+      const metadata = nodeAst.mutableNodeMetadata()
+      const data: Partial<VisualizationMetadata> = {
+        identifier: vis.identifier ?? metadata.get('visualization')?.identifier ?? null,
+        visible: vis.visible ?? metadata.get('visualization')?.visible ?? false,
+        fullscreen: vis.fullscreen ?? metadata.get('visualization')?.fullscreen ?? false,
+        width: vis.width ?? metadata.get('visualization')?.width ?? null,
+        height: vis.height ?? metadata.get('visualization')?.height ?? null,
+      }
+      metadata.set('visualization', normalizeVisMetadata(data))
     }
 
     function updateNodeRect(nodeId: NodeId, rect: Rect) {
@@ -435,13 +427,14 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       nodesToPlace.length = 0
       batchEdits(() => {
         for (const nodeId of nodesToProcess) {
-          const nodeAst = syncModule.value?.get(db.idFromExternal(nodeId))
           const rect = nodeRects.get(nodeId)
-          if (!rect || !nodeAst || nodeAst.nodeMetadata.get('position') != null) continue
+          if (!rect) continue
+          const nodeAst = syncModule.value?.get(db.idFromExternal(nodeId))
+          if (!nodeAst) continue
+          const metadata = nodeAst.mutableNodeMetadata()
+          if (metadata.get('position') != null) continue
           const position = placeNode([], rect.size)
-          editNodeMetadata(nodeAst, (metadata) =>
-            metadata.set('position', { x: position.x, y: position.y }),
-          )
+          metadata.set('position', { x: position.x, y: position.y })
           nodeRects.set(nodeId, new Rect(position, rect.size))
         }
       }, 'local:autoLayout')
@@ -572,10 +565,6 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       syncModule.value.transact(f, origin)
     }
 
-    function editNodeMetadata(ast: Ast.Ast, f: (metadata: Ast.MutableNodeMetadata) => void) {
-      edit((edit) => f(edit.getVersion(ast).mutableNodeMetadata()), true, true)
-    }
-
     const viewModule = computed(() => syncModule.value!)
 
     // expose testing hook
@@ -625,8 +614,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       const body = func.bodyExpressions()
       const result: NodeId[] = []
       for (const expr of body) {
-        const id = expr?.id
-        const nodeId = db.getOuterExpressionNodeId(id)
+        const nodeId = nodeIdFromOuterExpr(expr)
         if (nodeId && ids.has(nodeId)) result.push(nodeId)
       }
       return result

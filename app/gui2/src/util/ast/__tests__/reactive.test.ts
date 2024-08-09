@@ -1,19 +1,15 @@
 import { Ast } from '@/util/ast'
 import { reactiveModule } from '@/util/ast/reactive'
-import { initializeFFI } from 'shared/ast/ffi'
 import { expect, test } from 'vitest'
 import { nextTick, watchEffect } from 'vue'
 import * as Y from 'yjs'
 
-await initializeFFI()
-
-test('Module reactivity', async () => {
+test('Module reactivity: applyEdit', async () => {
   const beforeEdit = Ast.parse('func arg1 arg2')
   beforeEdit.module.replaceRoot(beforeEdit)
 
-  const { module, triggerAst } = reactiveModule(new Y.Doc())
+  const module = reactiveModule(new Y.Doc(), () => {})
   module.applyEdit(beforeEdit.module)
-  module.observe((update) => update.nodesUpdated.forEach(triggerAst))
   expect(module.root()!.code()).toBe(beforeEdit.code())
 
   const app2 = module.root() as unknown as Ast.App
@@ -33,14 +29,35 @@ test('Module reactivity', async () => {
   expect(app2Code).toBe('newArg')
 })
 
+test('Module reactivity: Direct Edit', async () => {
+  const beforeEdit = Ast.parse('func arg1 arg2')
+  beforeEdit.module.replaceRoot(beforeEdit)
+
+  const module = reactiveModule(new Y.Doc(), () => {})
+  module.applyEdit(beforeEdit.module)
+  expect(module.root()!.code()).toBe(beforeEdit.code())
+
+  const app2 = module.root() as unknown as Ast.MutableApp
+  let app2Code: string | undefined = undefined
+  watchEffect(() => (app2Code = app2.argument.code()))
+  expect(app2Code).toBe('arg2')
+
+  app2.setArgument(Ast.Ident.tryParse('newArg', module)!)
+  const codeAfterEdit = 'func arg1 newArg'
+  expect(module.root()!.code()).toBe(codeAfterEdit)
+
+  expect(app2Code).toBe('arg2')
+  await nextTick()
+  expect(app2Code).toBe('newArg')
+})
+
 test('Module reactivity: Tracking access to ancestors', async () => {
   const docsBeforeEdit = 'The main method'
   const beforeEdit = Ast.parseBlock(`## ${docsBeforeEdit}\nmain =\n    23`)
   beforeEdit.module.replaceRoot(beforeEdit)
 
-  const { module, triggerAst } = reactiveModule(new Y.Doc())
+  const module = reactiveModule(new Y.Doc(), () => {})
   module.applyEdit(beforeEdit.module)
-  module.observe((update) => update.nodesUpdated.forEach(triggerAst))
   expect(module.root()!.code()).toBe(beforeEdit.code())
 
   const block = module.root() as any as Ast.BodyBlock

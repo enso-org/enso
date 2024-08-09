@@ -16,7 +16,7 @@ test.each`
   expect(node?.pattern?.code()).toBe(pattern)
   expect(node?.rootExpr.code()).toBe(rootExpr)
   expect(node?.innerExpr.code()).toBe(rootExpr)
-  expect(node?.documentation).toBe(documentation)
+  expect(node?.docs?.documentation()).toBe(documentation)
 })
 
 test.each(['## Documentation only'])("'%s' should not be a node", (line) => {

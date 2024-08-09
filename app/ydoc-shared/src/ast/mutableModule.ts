@@ -32,7 +32,6 @@ export interface Module {
   getAny(node: AstId | SyncTokenId): Ast | Token
   getConcrete(child: RawNodeChild): NodeChild<Ast> | NodeChild<Token>
   has(id: AstId): boolean
-  wrap?: Wrap
 }
 
 export interface ModuleUpdate {
@@ -47,9 +46,13 @@ export interface ModuleUpdate {
 type YNode = FixedMap<AstFields>
 type YNodes = Y.Map<YNode>
 
+type UpdateObserver = (update: ModuleUpdate) => void
+type YjsObserver = (events: Y.YEvent<any>[], transaction: Y.Transaction) => void
+
 export class MutableModule implements Module {
   private readonly nodes: YNodes
-  readonly wrap?: Wrap
+  private updateObservers: UpdateObserver[] | undefined
+  private yjsObserver: YjsObserver | undefined
 
   private get ydoc() {
     const ydoc = this.nodes.doc
@@ -169,18 +172,36 @@ export class MutableModule implements Module {
   }
 
   observe(observer: (update: ModuleUpdate) => void) {
-    const handle = (events: Y.YEvent<any>[], transaction: Y.Transaction) => {
-      observer(this.observeEvents(events, tryAsOrigin(transaction.origin)))
-    }
+    this.updateObservers ??= []
+    this.updateObservers.push(observer)
+    this.attachObserver()
     // Attach the observer first, so that if an update hook causes changes in reaction to the initial state update, we
     // won't miss them.
-    this.nodes.observeDeep(handle)
     observer(this.getStateAsUpdate())
-    return handle
+    return observer
   }
 
-  unobserve(handle: ReturnType<typeof this.observe>) {
-    this.nodes.unobserveDeep(handle)
+  private attachObserver() {
+    if (this.yjsObserver) return
+    this.yjsObserver = (events: Y.YEvent<any>[], transaction: Y.Transaction) => {
+      const update = this.observeEvents(events, tryAsOrigin(transaction.origin))
+      for (const observer of this.updateObservers ?? []) observer(update)
+    }
+    this.nodes.observeDeep(this.yjsObserver)
+  }
+
+  unobserve(handle: UpdateObserver) {
+    const i = this.updateObservers?.indexOf(handle)
+    if (i == null || i < 0) return
+    this.updateObservers!.splice(i, 1)
+    if (!this.haveObservers()) {
+      this.nodes.unobserveDeep(this.yjsObserver!)
+      this.yjsObserver = undefined
+    }
+  }
+
+  private haveObservers() {
+    return !!this.updateObservers?.length
   }
 
   getStateAsUpdate(): ModuleUpdate {
@@ -290,9 +311,8 @@ export class MutableModule implements Module {
 
   /////////////////////////////////////////////
 
-  constructor(doc: Y.Doc, wrap?: Wrap) {
+  constructor(doc: Y.Doc) {
     this.nodes = doc.getMap<YNode>('nodes')
-    if (wrap) this.wrap = wrap
   }
 
   private rootPointer(): MutableRootPointer | undefined {
@@ -302,10 +322,10 @@ export class MutableModule implements Module {
 
   /** @internal */
   baseObject(type: string, externalId?: ExternalId, overrideId?: AstId): FixedMap<AstFields> {
-    const map = new Y.Map<unknown>()
+    const map = new Y.Map()
     const map_ = map as unknown as FixedMap<{}>
     const id = overrideId ?? newAstId(type)
-    const metadata = new Y.Map<unknown>() as unknown as FixedMap<{}>
+    const metadata = new Y.Map() as unknown as FixedMap<{}>
     const metadataFields = setAll(metadata, {
       externalId: externalId ?? newExternalId(),
     })
@@ -359,8 +379,6 @@ export class MutableModule implements Module {
 }
 
 type MutableRootPointer = MutableInvalid & { get expression(): MutableAst | undefined }
-
-type Wrap = <Fields>(value: FixedMap<Fields>) => FixedMap<Fields>
 
 function newAstId(type: string, sequenceNum = random.uint53()): AstId {
   const id = `ast:${type}#${sequenceNum}`

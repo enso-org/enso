@@ -1,8 +1,8 @@
-import { asNodeId, GraphDb, type NodeId } from '@/stores/graph/graphDatabase'
+import { asNodeId, GraphDb, nodeIdFromOuterExpr, type NodeId } from '@/stores/graph/graphDatabase'
 import { assert, assertDefined } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { autospaced, isIdentifier, moduleMethodNames, type Identifier } from '@/util/ast/abstract'
-import { nodeFromAst } from '@/util/ast/node'
+import { filterDefined } from '@/util/data/iterable'
 import { Err, Ok, unwrap, type Result } from '@/util/data/result'
 import {
   isIdentifierOrOperatorIdentifier,
@@ -203,9 +203,7 @@ export function performCollapse(
   })
 
   // Insert a new function.
-  const collapsedNodeIds = collapsed
-    .map((ast) => asNodeId(nodeFromAst(ast, false)?.rootExpr.externalId ?? ast.externalId))
-    .reverse()
+  const collapsedNodeIds = [...filterDefined(collapsed.map(nodeIdFromOuterExpr))].reverse()
   let outputNodeId: NodeId | undefined
   const outputIdentifier = info.extracted.output?.identifier
   if (outputIdentifier != null) {

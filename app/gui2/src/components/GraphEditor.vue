@@ -180,7 +180,7 @@ function nodesBounds(nodeIds: Iterable<NodeId>) {
 
 function selectionBounds() {
   const selected = nodeSelection.selected
-  const nodesToCenter = selected.size === 0 ? graphStore.db.nodeIdToNode.keys() : selected
+  const nodesToCenter = selected.size === 0 ? graphStore.db.nodeIds() : selected
   return nodesBounds(nodesToCenter)
 }
 
@@ -191,7 +191,7 @@ function zoomToSelected(skipAnimation: boolean = false) {
 }
 
 function zoomToAll(skipAnimation: boolean = false) {
-  const bounds = nodesBounds(graphStore.db.nodeIdToNode.keys())
+  const bounds = nodesBounds(graphStore.db.nodeIds())
   if (bounds)
     graphNavigator.panAndZoomTo(bounds, 0.1, Math.max(1, graphNavigator.targetScale), skipAnimation)
 }
@@ -217,7 +217,7 @@ const nodeSelection = provideGraphSelection(
   graphStore.nodeRects,
   graphStore.isPortEnabled,
   {
-    isValid: (id) => graphStore.db.nodeIdToNode.has(id),
+    isValid: (id) => graphStore.db.isNodeId(id),
     onSelected: (id) => graphStore.db.moveNodeToTop(id),
   },
 )
