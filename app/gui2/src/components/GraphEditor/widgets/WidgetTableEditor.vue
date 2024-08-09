@@ -18,7 +18,7 @@ import { Vec2 } from '@/util/data/vec2'
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
 import type { CellEditingStartedEvent, CellEditingStoppedEvent } from 'ag-grid-community'
-import { Column } from 'ag-grid-enterprise'
+import type { Column } from 'ag-grid-enterprise'
 import { computed, ref } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 
@@ -176,23 +176,25 @@ export const widgetDefinition = defineWidget(
 
 <template>
   <div class="WidgetTableEditor" :style="widgetStyle">
-    <AgGridTableView
-      ref="grid"
-      class="grid"
-      :defaultColDef="defaultColDef"
-      :columnDefs="columnDefs"
-      :rowData="rowData"
-      :getRowId="(row) => `${row.data.index}`"
-      :components="{ agColumnHeader: TableHeader }"
-      :singleClickEdit="true"
-      :stopEditingWhenCellsLoseFocus="true"
-      @keydown.enter.stop
-      @cellEditingStarted="cellEditHandler.cellEditedInGrid($event)"
-      @cellEditingStopped="cellEditHandler.cellEditingStoppedInGrid($event)"
-      @rowDataUpdated="cellEditHandler.rowDataChanged()"
-      @pointerdown.stop
-      @click.stop
-    />
+    <Suspense>
+      <AgGridTableView
+        ref="grid"
+        class="grid"
+        :defaultColDef="defaultColDef"
+        :columnDefs="columnDefs"
+        :rowData="rowData"
+        :getRowId="(row) => `${row.data.index}`"
+        :components="{ agColumnHeader: TableHeader }"
+        :singleClickEdit="true"
+        :stopEditingWhenCellsLoseFocus="true"
+        @keydown.enter.stop
+        @cellEditingStarted="cellEditHandler.cellEditedInGrid($event)"
+        @cellEditingStopped="cellEditHandler.cellEditingStoppedInGrid($event)"
+        @rowDataUpdated="cellEditHandler.rowDataChanged()"
+        @pointerdown.stop
+        @click.stop
+      />
+    </Suspense>
     <ResizeHandles v-model="clientBounds" bottom right />
   </div>
 </template>

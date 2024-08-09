@@ -4,7 +4,7 @@
  * and using common style for tables in our application.
  */
 
-import { LicenseManager } from 'ag-grid-enterprise'
+const { LicenseManager } = await import('ag-grid-enterprise')
 
 if (typeof import.meta.env.VITE_ENSO_AG_GRID_LICENSE_KEY !== 'string') {
   console.warn('The AG_GRID_LICENSE_KEY is not defined.')
@@ -57,7 +57,6 @@ import type {
   GridApi,
   RowHeightParams,
 } from 'ag-grid-enterprise'
-import { AgGridVue } from 'ag-grid-vue3'
 import { type ComponentInstance, reactive, ref, shallowRef } from 'vue'
 
 const DEFAULT_ROW_HEIGHT = 22
@@ -159,10 +158,13 @@ function sendToClipboard({ data }: { data: string }) {
 }
 
 defineExpose({ gridApi })
+
+const { AgGridVue } = await import('ag-grid-vue3')
 </script>
 
 <template>
   <AgGridVue
+    v-bind="$attrs"
     ref="grid"
     class="grid ag-theme-alpine"
     :headerHeight="26"

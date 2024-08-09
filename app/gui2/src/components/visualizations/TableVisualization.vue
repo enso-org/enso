@@ -21,6 +21,8 @@ export const defaultPreprocessor = [
   '1000',
 ] as const
 
+console.log('Setting up TableVisualization')
+
 type Data = number | string | Error | Matrix | ObjectMatrix | UnknownTable | Excel_Workbook
 
 interface Error {
@@ -584,12 +586,16 @@ onMounted(() => {
           <span v-else v-text="`${rowCount} rows.`"></span>
         </template>
       </div>
-      <AgGridTableView
-        class="scrollable grid"
-        :columnDefs="columnDefs"
-        :rowData="rowData"
-        :defaultColDef="defaultColDef"
-      />
+      <!-- TODO[ao]: Suspence in theory is not needed here (the entire visualization is inside
+       suspense), but for some reason it causes reactivity loop - see https://github.com/enso-org/enso/issues/10782 -->
+      <Suspense>
+        <AgGridTableView
+          class="scrollable grid"
+          :columnDefs="columnDefs"
+          :rowData="rowData"
+          :defaultColDef="defaultColDef"
+        />
+      </Suspense>
     </div>
   </VisualizationContainer>
 </template>
