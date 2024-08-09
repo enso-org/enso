@@ -2,14 +2,13 @@ import type { HeaderParams } from '@/components/GraphEditor/widgets/WidgetTableE
 import type { WidgetInput, WidgetUpdate } from '@/providers/widgetRegistry'
 import { requiredImportsByFQN, type RequiredImport } from '@/stores/graph/imports'
 import type { SuggestionDb } from '@/stores/suggestionDatabase'
+import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { tryEnsoToNumber, tryNumberToEnso } from '@/util/ast/abstract'
+import { Err, Ok, transposeResult, unwrapOrWithLog, type Result } from '@/util/data/result'
 import { qnLastSegment, type QualifiedName } from '@/util/qualifiedName'
 import type { ToValue } from '@/util/reactivity'
 import type { ColDef } from 'ag-grid-community'
-import type { AstId, Identifier, MutableModule } from 'shared/ast'
-import { assert } from 'shared/util/assert'
-import { Err, Ok, transposeResult, unwrapOrWithLog, type Result } from 'shared/util/data/result'
 import { computed, toValue } from 'vue'
 
 const NEW_COLUMN_ID = 'NewColumn'
@@ -20,7 +19,7 @@ const NOTHING_NAME = qnLastSegment(NOTHING_PATH)
 export type RowData = {
   index: number
   /* Column id to given row's cell id. */
-  cells: Record<AstId, AstId>
+  cells: Record<Ast.AstId, Ast.AstId>
 }
 
 /** A more specialized version of AGGrid's `ColDef` to simplify testing (the tests need to provide
@@ -47,10 +46,10 @@ namespace cellValueConversion {
 
   export function agGridToAst(
     value: unknown,
-    module: MutableModule,
+    module: Ast.MutableModule,
   ): { ast: Ast.Owned; requireNothingImport: boolean } {
     if (value == null || value === '') {
-      return { ast: Ast.Ident.new(module, 'Nothing' as Identifier), requireNothingImport: true }
+      return { ast: Ast.Ident.new(module, 'Nothing' as Ast.Identifier), requireNothingImport: true }
     } else if (typeof value === 'number') {
       return {
         ast: tryNumberToEnso(value, module) ?? Ast.TextLiteral.new(`${value}`, module),
@@ -123,7 +122,7 @@ export function useTableNewArgument(
   input: ToValue<WidgetInput & { value: Ast.Ast }>,
   graph: {
     startEdit(): Ast.MutableModule
-    addMissingImports(edit: MutableModule, newImports: RequiredImport[]): void
+    addMissingImports(edit: Ast.MutableModule, newImports: RequiredImport[]): void
   },
   suggestions: SuggestionDb,
   onUpdate: (update: WidgetUpdate) => void,
@@ -158,7 +157,7 @@ export function useTableNewArgument(
     }
   }
 
-  function addRow(edit: MutableModule, columnWithValue?: Ast.AstId, value?: unknown) {
+  function addRow(edit: Ast.MutableModule, columnWithValue?: Ast.AstId, value?: unknown) {
     for (const column of columns.value) {
       const editedCol = edit.getVersion(column.data)
       if (column.data.id === columnWithValue) {
@@ -169,7 +168,12 @@ export function useTableNewArgument(
     }
   }
 
-  function addColumn(edit: MutableModule, name: string, rowWithValue?: number, value?: unknown) {
+  function addColumn(
+    edit: Ast.MutableModule,
+    name: string,
+    rowWithValue?: number,
+    value?: unknown,
+  ) {
     const newColumnSize = Math.max(rowCount.value, rowWithValue != null ? rowWithValue + 1 : 0)
     function* cellsGenerator() {
       for (let i = 0; i < newColumnSize; ++i) {
@@ -285,7 +289,7 @@ export function useTableNewArgument(
 
   const nothingImport = computed(() => requiredImportsByFQN(suggestions, NOTHING_PATH, true))
 
-  function convertWithImport(value: unknown, edit: MutableModule) {
+  function convertWithImport(value: unknown, edit: Ast.MutableModule) {
     const { ast, requireNothingImport } = cellValueConversion.agGridToAst(value, edit)
     if (requireNothingImport) {
       graph.addMissingImports(edit, nothingImport.value)
