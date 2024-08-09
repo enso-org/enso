@@ -1,37 +1,8 @@
-<script lang="ts">
+<script setup lang="ts" generic="TData, TValue">
 /**
  * Component adding some useful logic to AGGrid table component (like keeping track of colum sizes),
  * and using common style for tables in our application.
  */
-
-const { LicenseManager } = await import('ag-grid-enterprise')
-
-if (typeof import.meta.env.VITE_ENSO_AG_GRID_LICENSE_KEY !== 'string') {
-  console.warn('The AG_GRID_LICENSE_KEY is not defined.')
-  if (import.meta.env.DEV) {
-    // Hide annoying license validation errors in dev mode when the license is not defined. The
-    // missing define warning is still displayed to not forget about it, but it isn't as obnoxious.
-    const origValidateLicense = LicenseManager.prototype.validateLicense
-    LicenseManager.prototype.validateLicense = function (this) {
-      if (!('licenseManager' in this))
-        Object.defineProperty(this, 'licenseManager', {
-          configurable: true,
-          set(value: any) {
-            Object.getPrototypeOf(value).validateLicense = () => {}
-            delete this.licenseManager
-            this.licenseManager = value
-          },
-        })
-      origValidateLicense.call(this)
-    }
-  }
-} else {
-  const agGridLicenseKey = import.meta.env.VITE_ENSO_AG_GRID_LICENSE_KEY
-  LicenseManager.setLicenseKey(agGridLicenseKey)
-}
-</script>
-
-<script setup lang="ts" generic="TData, TValue">
 import {
   clipboardNodeData,
   tsvTableToEnsoExpression,
@@ -158,6 +129,34 @@ function sendToClipboard({ data }: { data: string }) {
 }
 
 defineExpose({ gridApi })
+
+// === Loading AGGrid and its license ===
+
+const { LicenseManager } = await import('ag-grid-enterprise')
+
+if (typeof import.meta.env.VITE_ENSO_AG_GRID_LICENSE_KEY !== 'string') {
+  console.warn('The AG_GRID_LICENSE_KEY is not defined.')
+  if (import.meta.env.DEV) {
+    // Hide annoying license validation errors in dev mode when the license is not defined. The
+    // missing define warning is still displayed to not forget about it, but it isn't as obnoxious.
+    const origValidateLicense = LicenseManager.prototype.validateLicense
+    LicenseManager.prototype.validateLicense = function (this) {
+      if (!('licenseManager' in this))
+        Object.defineProperty(this, 'licenseManager', {
+          configurable: true,
+          set(value: any) {
+            Object.getPrototypeOf(value).validateLicense = () => {}
+            delete this.licenseManager
+            this.licenseManager = value
+          },
+        })
+      origValidateLicense.call(this)
+    }
+  }
+} else {
+  const agGridLicenseKey = import.meta.env.VITE_ENSO_AG_GRID_LICENSE_KEY
+  LicenseManager.setLicenseKey(agGridLicenseKey)
+}
 
 const { AgGridVue } = await import('ag-grid-vue3')
 </script>
