@@ -20,6 +20,7 @@ import {
   MultiSelector,
   Selector,
 } from '#/components/AriaComponents'
+import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useText } from '#/providers/TextProvider'
 import { useMutation } from '@tanstack/react-query'
 import { DAY_3_LETTER_TEXT_IDS } from 'enso-common/src/utilities/data/dateTime'
@@ -132,13 +133,9 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
 
   const repeatInterval = form.watch('repeatInterval', 'weekly')
 
-  const createProjectExecution = useMutation({
-    mutationKey: [backend.type, 'createProjectExecution'],
-    mutationFn: async (parameters: Parameters<(typeof backend)['createProjectExecution']>) => {
-      await backend.createProjectExecution(...parameters)
-    },
-    meta: { invalidates: [[backend.type, 'listProjectExecutions']], awaitInvalidates: true },
-  }).mutateAsync
+  const createProjectExecution = useMutation(
+    backendMutationOptions(backend, 'createProjectExecution'),
+  ).mutateAsync
 
   return (
     <Dialog title={getText('newProjectExecution')}>

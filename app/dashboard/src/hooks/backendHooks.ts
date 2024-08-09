@@ -99,6 +99,7 @@ export type MutationMethod = DefineBackendMethods<
   | 'createDirectory'
   | 'createPermission'
   | 'createProject'
+  | 'createProjectExecution'
   | 'createSecret'
   | 'createTag'
   | 'createUser'
@@ -192,6 +193,7 @@ const INVALIDATION_MAP: Partial<Record<MutationMethod, readonly backendQuery.Bac
   changeUserGroup: ['listUsers'],
   createTag: ['listTags'],
   deleteTag: ['listTags'],
+  createProjectExecution: ['listProjectExecutions'],
 }
 
 export function backendMutationOptions<Method extends MutationMethod>(
