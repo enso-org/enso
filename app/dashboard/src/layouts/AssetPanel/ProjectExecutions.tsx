@@ -44,7 +44,7 @@ function ProjectExecutionsInternal(props: ProjectExecutionsInternalProps) {
   const { getText } = useText()
 
   const projectExecutionsQuery = useSuspenseQuery({
-    queryKey: ['listProjectExecutions', item.id, item.title],
+    queryKey: [backend.type, 'listProjectExecutions', item.id, item.title],
     queryFn: async () => {
       const executions = await backend.listProjectExecutions(item.id, item.title)
       return [...executions].reverse()
@@ -52,7 +52,7 @@ function ProjectExecutionsInternal(props: ProjectExecutionsInternalProps) {
   })
 
   return (
-    <div className="pointer-events-auto flex flex-col items-center overflow-y-auto overflow-x-hidden">
+    <div className="pointer-events-auto flex flex-col items-center gap-2 overflow-y-auto overflow-x-hidden">
       <ButtonGroup>
         <DialogTrigger>
           <Button variant="outline">{getText('new')}</Button>

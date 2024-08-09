@@ -6,6 +6,7 @@ import {
   PROJECT_PARALLEL_MODES,
   PROJECT_REPEAT_INTERVALS,
   type ProjectAsset,
+  type ProjectParallelMode,
   type ProjectRepeatInterval,
 } from 'enso-common/src/services/Backend'
 import type { TextId } from 'enso-common/src/text'
@@ -20,6 +21,8 @@ import {
   Selector,
 } from '#/components/AriaComponents'
 import { useText } from '#/providers/TextProvider'
+import { useMutation } from '@tanstack/react-query'
+import { DAY_3_LETTER_TEXT_IDS } from 'enso-common/src/utilities/data/dateTime'
 
 const REPEAT_INTERVAL_TO_TEXT = {
   hourly: 'hourlyRepeatInterval',
@@ -30,15 +33,13 @@ const REPEAT_INTERVAL_TO_TEXT = {
   [K in ProjectRepeatInterval]: TextId & `${K}RepeatInterval`
 }
 
-const DAY_TEXT_ID = [
-  'monday3',
-  'tuesday3',
-  'wednesday3',
-  'thursday3',
-  'friday3',
-  'saturday3',
-  'sunday3',
-] satisfies TextId[]
+const PARALLEL_MODE_TO_TEXT = {
+  ignore: 'ignoreParallelMode',
+  restart: 'restartParallelMode',
+  parallel: 'parallelParallelMode',
+} satisfies {
+  [K in ProjectParallelMode]: TextId & `${K}ParallelMode`
+}
 
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 const DATES = [...Array(31).keys()]
@@ -47,14 +48,68 @@ const HOURS = [...Array(24).keys()]
 
 /** Create the form schema for this page. */
 function createUpsertExecutionSchema() {
-  return z.object({
-    repeatInterval: z.enum(PROJECT_REPEAT_INTERVALS),
-    dates: z.number().int().min(0).max(30).array().readonly(),
-    days: z.number().int().min(0).max(6).array().readonly(),
-    hours: z.number().int().min(0).max(23).array().readonly(),
-    minute: z.number().int().min(0).max(59),
-    parallelMode: z.enum(PROJECT_PARALLEL_MODES),
-  })
+  return z
+    .object({
+      repeatInterval: z.enum(PROJECT_REPEAT_INTERVALS),
+      dates: z
+        .number()
+        .int()
+        .min(0)
+        .max(30)
+        .array()
+        .transform((arr) => arr.sort((a, b) => a - b))
+        .readonly()
+        .optional(),
+      days: z
+        .number()
+        .int()
+        .min(0)
+        .max(6)
+        .array()
+        .transform((arr) => arr.sort((a, b) => a - b))
+        .readonly()
+        .optional(),
+      hours: z
+        .number()
+        .int()
+        .min(0)
+        .max(23)
+        .array()
+        .transform((arr) => arr.sort((a, b) => a - b))
+        .readonly()
+        .optional(),
+      minute: z.number().int().min(0).max(59),
+      parallelMode: z.enum(PROJECT_PARALLEL_MODES),
+    })
+    .superRefine((object, context) => {
+      const unrecognizedKeys: string[] = []
+      switch (object.repeatInterval) {
+        case 'hourly':
+          if ('hours' in object) {
+            unrecognizedKeys.push('hours')
+          }
+        // fallthrough
+        case 'daily':
+          if ('days' in object) {
+            unrecognizedKeys.push('days')
+          }
+        // fallthrough
+        case 'weekly':
+          if ('dates' in object) {
+            unrecognizedKeys.push('dates')
+          }
+          break
+        case 'monthly': {
+          if ('days' in object) {
+            unrecognizedKeys.push('days')
+          }
+          break
+        }
+      }
+      if (unrecognizedKeys.length > 0) {
+        context.addIssue({ code: 'unrecognized_keys', keys: unrecognizedKeys })
+      }
+    })
 }
 /* eslint-enable @typescript-eslint/no-magic-numbers */
 
@@ -75,44 +130,48 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
 
   const form = Form.useForm({ schema: createUpsertExecutionSchema() })
 
-  const repeatInterval = form.watch('repeatInterval')
+  const repeatInterval = form.watch('repeatInterval', 'weekly')
+
+  const createProjectExecution = useMutation({
+    mutationKey: [backend.type, 'createProjectExecution'],
+    mutationFn: async (parameters: Parameters<(typeof backend)['createProjectExecution']>) => {
+      await backend.createProjectExecution(...parameters)
+    },
+    meta: { invalidates: [[backend.type, 'listProjectExecutions']], awaitInvalidates: true },
+  }).mutateAsync
 
   return (
     <Dialog title={getText('newProjectExecution')}>
       {({ close }) => (
         <Form
           form={form}
+          method="dialog"
           className="w-full"
-          onSubmit={async ({
-            repeatInterval: newRepeatInterval,
-            dates,
-            days,
-            hours,
-            minute,
-            parallelMode,
-          }) => {
-            await backend.createProjectExecution(
+          onSubmit={async (values) => {
+            const { repeatInterval: newRepeatInterval, parallelMode, ...times } = values
+            await createProjectExecution([
               {
                 projectId: item.id,
                 repeatInterval: newRepeatInterval,
-                times: { dates, days, hours, minute },
+                times,
                 parallelMode,
               },
               item.title,
-            )
+            ])
           }}
         >
           <Selector
             form={form}
             name="repeatInterval"
             label={getText('repeatIntervalLabel')}
-            defaultValue={'weekly'}
+            defaultValue="weekly"
             items={PROJECT_REPEAT_INTERVALS}
             itemToString={(interval) => getText(REPEAT_INTERVAL_TO_TEXT[interval])}
           />
           {repeatInterval === 'monthly' && (
             <MultiSelector
               form={form}
+              isRequired
               name="dates"
               label={getText('datesLabel')}
               items={DATES}
@@ -123,15 +182,17 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
           {repeatInterval === 'weekly' && (
             <MultiSelector
               form={form}
+              isRequired
               name="days"
               label={getText('daysLabel')}
               items={DAYS}
-              itemToString={(n) => getText(DAY_TEXT_ID[n] ?? 'monday3')}
+              itemToString={(n) => getText(DAY_3_LETTER_TEXT_IDS[n] ?? 'monday3')}
             />
           )}
           {repeatInterval !== 'hourly' && (
             <MultiSelector
               form={form}
+              isRequired
               name="hours"
               label={getText('hoursLabel')}
               items={HOURS}
@@ -140,11 +201,22 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
           )}
           <Input
             readOnly
+            isRequired
             name="minute"
             label={getText('minuteLabel')}
             type="number"
             min={0}
             max={59}
+            defaultValue={0}
+          />
+          <Selector
+            form={form}
+            isRequired
+            name="parallelMode"
+            label={getText('parallelModeLabel')}
+            defaultValue="restart"
+            items={PROJECT_PARALLEL_MODES}
+            itemToString={(interval) => getText(PARALLEL_MODE_TO_TEXT[interval])}
           />
           <ButtonGroup>
             <Form.Submit />

@@ -3,7 +3,13 @@ import * as React from 'react'
 
 import type * as twv from 'tailwind-variants'
 
-import { ListBox, mergeProps, type ListBoxItemProps, type ListBoxProps } from '#/components/aria'
+import {
+  FieldError,
+  ListBox,
+  mergeProps,
+  type ListBoxItemProps,
+  type ListBoxProps,
+} from '#/components/aria'
 import {
   Form,
   type FieldPath,
@@ -182,6 +188,7 @@ export const MultiSelector = React.forwardRef(function MultiSelector<
           }}
         />
       </div>
+      <FieldError />
     </Form.Field>
   )
 }) as unknown as <
