@@ -43,9 +43,9 @@ pnpm build
 
 ```sh
 # Run once
-npm test:unit
+pnpm test:unit
 # Run in watch mode
-npm test-dev:unit
+pnpm test-dev:unit
 ```
 
 ### Run End-to-End Tests with [Playwright](https://playwright.dev)
