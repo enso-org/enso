@@ -3,8 +3,10 @@ package org.enso.ydoc.polyfill.web;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import org.enso.ydoc.Polyfill;
 import org.enso.ydoc.polyfill.Arguments;
-import org.enso.ydoc.polyfill.PolyfillBase;
+import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.io.ByteSequence;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
@@ -12,7 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** Implements the <a href="https://nodejs.org/api/util.html">Util</a> Node.js API. */
-final class Util extends PolyfillBase implements ProxyExecutable {
+final class Util implements Polyfill, ProxyExecutable {
 
   private static final Logger log = LoggerFactory.getLogger(Util.class);
 
@@ -21,8 +23,11 @@ final class Util extends PolyfillBase implements ProxyExecutable {
 
   private static final String UTIL_JS = "util.js";
 
-  Util() {
-    super(UTIL_JS);
+  @Override
+  public void initialize(Context ctx) {
+    Source jsSource = Source.newBuilder("js", getClass().getResource(UTIL_JS)).buildLiteral();
+
+    ctx.eval(jsSource).execute(this);
   }
 
   @Override

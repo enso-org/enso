@@ -16,8 +16,6 @@ public class Main {
         "helidon.serialFilter.pattern",
         "javax.management.**;java.lang.**;java.rmi.**;javax.security.auth.Subject;!*");
 
-    //System.load("/tmp/libenso_parser.so");
-
     var ydocHost = System.getenv(ENSO_YDOC_HOST);
     var ydocPort = System.getenv(ENSO_YDOC_PORT);
 
