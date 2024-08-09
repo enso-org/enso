@@ -33,7 +33,7 @@ declare module '#/utilities/LocalStorage' {
 
 LocalStorage.registerKey('loginRedirect', {
   isUserSpecific: true,
-  tryParse: (value) => (typeof value === 'string' ? value : null),
+  schema: z.string(),
 })
 
 /** Create the schema for this form. */

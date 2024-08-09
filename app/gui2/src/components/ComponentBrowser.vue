@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { componentBrowserBindings } from '@/bindings'
-import ComponentEditor from '@/components/ComponentBrowser/ComponentEditor.vue'
-import { default as DocumentationPanel } from '@/components/ComponentBrowser/DocumentationPanel.vue'
 import { makeComponentList, type Component } from '@/components/ComponentBrowser/component'
+import ComponentEditor from '@/components/ComponentBrowser/ComponentEditor.vue'
 import { Filtering } from '@/components/ComponentBrowser/filtering'
 import { useComponentBrowserInput, type Usage } from '@/components/ComponentBrowser/input'
 import { useScrolling } from '@/components/ComponentBrowser/scrolling'
+import DocumentationPanel from '@/components/DocumentationPanel.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
@@ -29,10 +29,10 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { DEFAULT_ICON, suggestionEntryToIcon } from '@/util/getIconName'
 import { debouncedGetter } from '@/util/reactivity'
-import type { SuggestionId } from 'shared/languageServerTypes/suggestions'
-import type { VisualizationIdentifier } from 'shared/yjsModel'
 import type { ComponentInstance, Ref } from 'vue'
 import { computed, onMounted, onUnmounted, reactive, ref, watch, watchEffect } from 'vue'
+import type { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
+import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 import LoadingSpinner from './LoadingSpinner.vue'
 
 const ITEM_SIZE = 32
@@ -390,15 +390,7 @@ function updateScroll() {
 
 const docsVisible = ref(true)
 
-const displayedDocs: Ref<Opt<SuggestionId>> = ref(null)
-const docEntry = computed({
-  get() {
-    return displayedDocs.value
-  },
-  set(value) {
-    displayedDocs.value = value
-  },
-})
+const docEntry: Ref<Opt<SuggestionId>> = ref(null)
 
 watch(selectedSuggestionId, (id) => {
   docEntry.value = id
@@ -603,6 +595,7 @@ const handler = componentBrowserBindings.handler({
   --list-height: 0px;
   --radius-default: 20px;
   --background-color: #eaeaea;
+  --doc-panel-bottom-clip: 4px;
   width: fit-content;
   color: rgba(0, 0, 0, 0.6);
   font-size: 11.5px;

@@ -3,7 +3,7 @@ import { ref } from 'vue'
 
 import VisualizationSelector from '@/components/VisualizationSelector.vue'
 import { logEvent } from 'histoire/client'
-import type { VisualizationIdentifier } from 'shared/yjsModel'
+import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 const type = ref<VisualizationIdentifier>({
   module: { kind: 'Builtin' },

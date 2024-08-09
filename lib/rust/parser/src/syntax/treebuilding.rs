@@ -6,6 +6,7 @@ use crate::syntax::Tree;
 
 mod block;
 mod compound_token;
+mod group;
 mod numbers;
 mod whitespace;
 
@@ -16,6 +17,7 @@ mod whitespace;
 
 pub use block::FlattenBlockTrees;
 pub use compound_token::CompoundTokens;
+pub use group::FlattenGroups;
 pub use numbers::ParseNumbers;
 pub use whitespace::PeekSpacing;
 pub use whitespace::Spacing;

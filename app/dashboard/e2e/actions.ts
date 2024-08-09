@@ -328,7 +328,7 @@ export function locateAssetsTable(page: test.Page) {
 
 /** Find assets table rows (if any) on the current page. */
 export function locateAssetRows(page: test.Page) {
-  return locateAssetsTable(page).locator('tbody').getByRole('row')
+  return locateAssetsTable(page).getByTestId('asset-row')
 }
 
 /** Find the name column of the given asset row. */

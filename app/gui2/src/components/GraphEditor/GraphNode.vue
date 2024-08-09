@@ -34,8 +34,8 @@ import { prefixes } from '@/util/ast/node'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import type { ExternalId, VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, onUnmounted, ref, shallowRef, watch, watchEffect } from 'vue'
+import type { ExternalId, VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 const MAXIMUM_CLICK_DISTANCE_SQ = 50
@@ -291,7 +291,7 @@ const isRecordingOverridden = computed({
 
 const expressionInfo = computed(() => graph.db.getExpressionInfo(props.node.innerExpr.externalId))
 const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unknown')
-const suggestionEntry = computed(() => graph.db.nodeMainSuggestion.lookup(nodeId.value))
+const suggestionEntry = computed(() => graph.db.getNodeMainSuggestion(nodeId.value))
 const color = computed(() => graph.db.getNodeColorStyle(nodeId.value))
 const documentationUrl = computed(
   () => suggestionEntry.value && suggestionDocumentationUrl(suggestionEntry.value),

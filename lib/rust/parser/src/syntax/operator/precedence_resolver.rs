@@ -1,18 +1,18 @@
 use crate::prelude::*;
 
-use crate::syntax;
 use crate::syntax::operator::annotations::ParseAnnotations;
 use crate::syntax::operator::application::InsertApps;
 use crate::syntax::operator::arity::ClassifyArity;
 use crate::syntax::operator::group::BuildGroups;
 use crate::syntax::operator::named_app::ParseAppNames;
 use crate::syntax::operator::reducer::Reduce;
+use crate::syntax::operator::section::MaybeSection;
 use crate::syntax::treebuilding::CompoundTokens;
 use crate::syntax::treebuilding::FlattenBlockTrees;
+use crate::syntax::treebuilding::FlattenGroups;
 use crate::syntax::treebuilding::ParseNumbers;
 use crate::syntax::treebuilding::PeekSpacing;
-use crate::syntax::Finish;
-use crate::syntax::ItemConsumer;
+use crate::syntax::Item;
 use crate::syntax::Tree;
 
 
@@ -33,21 +33,24 @@ macro_rules! compose_types {
     };
 }
 
+type Resolver<'s> = compose_types![
+    FlattenBlockTrees<'s, _>, // Items -> Tokens/Trees/GroupItems
+    FlattenGroups<'s, _>,     // Tokens/Trees/GroupItems -> Tokens/Trees/Groups
+    CompoundTokens<'s, _>,
+    ParseNumbers<'s, _>,
+    PeekSpacing<'s, _>, // Tokens/Trees/Groups -> Tokens/Trees/Groups + Spacing-lookahead
+    ParseAnnotations<'s, _>, // Tokens/Trees/Groups + S -> T/T/Operators/Groups + S
+    ParseAppNames<'s, _>,
+    ClassifyArity<'s, _>, // Tokens/Trees/Groups + Spacing-lookahead -> Oper*s/Groups
+    InsertApps<_>,        // Operators/Operands/Groups -> Oper*s/Groups/Applications
+    BuildGroups<'s, _>,   // Operators/Operands/Groups/Applications -> Oper*s/Applications
+    Reduce<'s>            // Operators/Operands/Applications -> Tree
+];
+
 /// Operator precedence resolver.
 #[derive(Debug, Default)]
 pub struct Precedence<'s> {
-    resolver: compose_types![
-        FlattenBlockTrees<'s, _>, // Items -> Tokens/Trees/Groups
-        CompoundTokens<'s, _>,
-        ParseNumbers<'s, _>,
-        PeekSpacing<'s, _>, // Tokens/Trees/Groups -> Tokens/Trees/Groups + Spacing-lookahead
-        ParseAnnotations<'s, _>, // Tokens/Trees/Groups + S -> T/T/Operators/Groups + S
-        ParseAppNames<'s, _>,
-        ClassifyArity<'s, _>, // Tokens/Trees/Groups + Spacing-lookahead -> Oper*s/Groups
-        InsertApps<_>,        // Operators/Operands/Groups -> Oper*s/Groups/Applications
-        BuildGroups<'s, _>,   // Operators/Operands/Groups/Applications -> Oper*s/Applications
-        Reduce<'s>            // Operators/Operands/Applications -> Tree
-    ],
+    resolver: Resolver<'s>,
 }
 
 impl<'s> Precedence<'s> {
@@ -58,38 +61,35 @@ impl<'s> Precedence<'s> {
 
     /// Resolve precedence in a context where the result cannot be an operator section or template
     /// function.
-    pub fn resolve_non_section(
-        &mut self,
-        items: impl IntoIterator<Item = syntax::Item<'s>>,
-    ) -> Option<Tree<'s>> {
-        items.into_iter().for_each(|i| self.push(i));
-        self.resolver.finish().map(|op| op.value)
+    pub fn resolve_non_section(&mut self, items: &mut Vec<Item<'s>>) -> Option<Tree<'s>> {
+        self.resolve_non_section_offset(0, items)
     }
 
     /// Resolve precedence.
-    pub fn resolve(
+    pub fn resolve(&mut self, items: &mut Vec<Item<'s>>) -> Option<Tree<'s>> {
+        self.resolve_offset(0, items)
+    }
+
+    /// Resolve precedence in a context where the result cannot be an operator section or template
+    /// function.
+    pub fn resolve_non_section_offset(
         &mut self,
-        items: impl IntoIterator<Item = syntax::Item<'s>>,
+        start: usize,
+        items: &mut Vec<Item<'s>>,
     ) -> Option<Tree<'s>> {
-        self.extend(items);
-        self.finish()
+        self.parse_item_tree(start, items).map(|op| op.value)
     }
 
-    /// Extend the expression with a token.
-    pub fn push(&mut self, item: syntax::Item<'s>) {
-        self.resolver.push_item(item);
+    /// Resolve precedence.
+    pub fn resolve_offset(&mut self, start: usize, items: &mut Vec<Item<'s>>) -> Option<Tree<'s>> {
+        self.parse_item_tree(start, items).map(Tree::from)
     }
 
-    /// Return the result.
-    pub fn finish(&mut self) -> Option<Tree<'s>> {
-        self.resolver.finish().map(Tree::from)
-    }
-}
-
-impl<'s> Extend<syntax::Item<'s>> for Precedence<'s> {
-    fn extend<T: IntoIterator<Item = syntax::Item<'s>>>(&mut self, iter: T) {
-        for token in iter {
-            self.push(token);
-        }
+    fn parse_item_tree(
+        &mut self,
+        start: usize,
+        items: &mut Vec<Item<'s>>,
+    ) -> Option<MaybeSection<Tree<'s>>> {
+        self.resolver.run(start, items)
     }
 }

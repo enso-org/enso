@@ -14,7 +14,7 @@ public class JoinResult {
     this.rightIndices = rightIndices;
   }
 
-  // ** Represents a pair of indices of matched rows. -1 means an unmatched row.*/
+  /** Represents a pair of indices of matched rows. -1 means an unmatched row. */
   public record RowPair(int leftIndex, int rightIndex) {}
 
   public OrderMask getLeftOrderMask() {

@@ -64,6 +64,6 @@ const markdownSyncPlugin = (model: Ref<string>, transformers: Transformer[]): Le
       },
     )
     watch(model, (newContent) => content.set(newContent), { immediate: true })
-    watch(content.state, (newContent) => (model.value = newContent))
+    watch(content.editedContent, (newContent) => (model.value = newContent))
   },
 })

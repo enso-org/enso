@@ -2,9 +2,9 @@ import type { GraphNavigator } from '@/providers/graphNavigator'
 import { InteractionHandler } from '@/providers/interactionHandler'
 import type { PortId } from '@/providers/portInfo'
 import { useCurrentEdit, type CurrentEdit } from '@/providers/widgetTree'
-import { assert } from 'shared/util/assert'
 import { expect, test, vi, type Mock } from 'vitest'
 import { proxyRefs } from 'vue'
+import { assert } from 'ydoc-shared/util/assert'
 import { WidgetEditHandler, type WidgetEditHooks } from '../editHandler'
 
 // If widget's name is a prefix of another widget's name, then it is its ancestor.

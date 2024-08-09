@@ -138,6 +138,10 @@ private class DefaultPackageRepository(
     go(component.name.split(LibraryName.separator))
   }
 
+  override def findAvailableLocalLibraries(): Seq[LibraryName] = {
+    libraryProvider.findAvailableLocalLibraries()
+  }
+
   /** @inheritdoc */
   override def getModuleMap: PackageRepository.ModuleMap = loadedModules
 
