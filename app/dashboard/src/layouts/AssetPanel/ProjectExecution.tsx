@@ -90,7 +90,7 @@ export default function ProjectExecution(props: ProjectExecutionProps) {
         {projectExecution.times.dates?.flatMap((date) => (
           <Fragment key={date}>
             <Text elementType="time" className={styles.dayOrDate()}>
-              {date}
+              {date + 1}
             </Text>
             <div className={styles.timeGrid()}>
               {times.map((timeString) => (
