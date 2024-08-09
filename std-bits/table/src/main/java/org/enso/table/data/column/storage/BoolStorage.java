@@ -755,7 +755,7 @@ public final class BoolStorage extends Storage<Boolean>
     @Override
     public BoolStorage runBinaryMap(BoolStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
       if (arg == null) {
-        return BoolStorage.makeEmpty(storage.size);
+        return storage;
       }
 
       if (arg instanceof Boolean b) {
@@ -785,7 +785,7 @@ public final class BoolStorage extends Storage<Boolean>
     @Override
     public BoolStorage runBinaryMap(BoolStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
       if (arg == null) {
-        return BoolStorage.makeEmpty(storage.size);
+        return storage;
       }
 
       if (arg instanceof Boolean b) {
