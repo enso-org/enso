@@ -1,11 +1,11 @@
 /** @file Settings screen. */
 import * as React from 'react'
 
-import * as reactQuery from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import BurgerMenuIcon from '#/assets/burger_menu.svg'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import { backendMutationOptions, useGetOrganization } from '#/hooks/backendHooks'
 import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -41,6 +41,7 @@ export interface SettingsProps {
 
 /** Settings screen. */
 export default function Settings() {
+  const queryClient = useQueryClient()
   const backend = backendProvider.useRemoteBackendStrict()
   const localBackend = backendProvider.useLocalBackend()
   const [tab, setTab] = searchParamsState.useSearchParamsState(
@@ -49,24 +50,20 @@ export default function Settings() {
     array.includesPredicate(Object.values(SettingsTabType)),
   )
   const { user, accessToken } = authProvider.useNonPartialUserSession()
-  const { authQueryKey } = authProvider.useAuth()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [query, setQuery] = React.useState('')
   const root = portal.useStrictPortalContext()
   const [isSidebarPopoverOpen, setIsSidebarPopoverOpen] = React.useState(false)
-  const organization = backendHooks.useBackendGetOrganization(backend)
+  const organization = useGetOrganization(backend)
   const isQueryBlank = !/\S/.test(query)
 
-  const client = reactQuery.useQueryClient()
-  const updateUserMutation = backendHooks.useBackendMutation(backend, 'updateUser', {
-    meta: { invalidates: [authQueryKey], awaitInvalidates: true },
-  })
-  const updateOrganizationMutation = backendHooks.useBackendMutation(backend, 'updateOrganization')
-  const updateUser = updateUserMutation.mutateAsync
-  const updateOrganization = updateOrganizationMutation.mutateAsync
+  const updateUser = useMutation(backendMutationOptions(backend, 'updateUser')).mutateAsync
+  const updateOrganization = useMutation(
+    backendMutationOptions(backend, 'updateOrganization'),
+  ).mutateAsync
 
-  const updateLocalRootPathMutation = reactQuery.useMutation({
+  const updateLocalRootPath = useMutation({
     mutationKey: [localBackend?.type, 'updateRootPath'],
     mutationFn: (value: string) => {
       if (localBackend) {
@@ -75,9 +72,7 @@ export default function Settings() {
       return Promise.resolve()
     },
     meta: { invalidates: [[localBackend?.type, 'listDirectory']], awaitInvalidates: true },
-  })
-
-  const updateLocalRootPath = updateLocalRootPathMutation.mutateAsync
+  }).mutateAsync
 
   const context = React.useMemo<settingsData.SettingsContext>(
     () => ({
@@ -91,7 +86,7 @@ export default function Settings() {
       updateLocalRootPath,
       toastAndLog,
       getText,
-      queryClient: client,
+      queryClient,
     }),
     [
       accessToken,
@@ -104,7 +99,7 @@ export default function Settings() {
       updateOrganization,
       updateUser,
       user,
-      client,
+      queryClient,
     ],
   )
 

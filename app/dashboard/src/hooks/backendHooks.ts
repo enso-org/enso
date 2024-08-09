@@ -16,16 +16,17 @@ import * as uniqueString from '#/utilities/uniqueString'
 // === revokeUserPictureUrl ===
 // ============================
 
-const USER_PICTURE_URL_REVOKERS = new WeakMap<Backend, () => void>()
+const USER_PICTURE_URLS = new Map<backendModule.BackendType, string>()
 
 /** Create the corresponding "user picture" URL for the given backend. */
-function createUserPictureUrl(backend: Backend | null, picture: Blob) {
-  if (backend != null) {
-    USER_PICTURE_URL_REVOKERS.get(backend)?.()
+function createUserPictureUrl(
+  backendType: backendModule.BackendType | null | undefined,
+  picture: Blob,
+) {
+  if (backendType != null) {
+    revokeUserPictureUrl(backendType)
     const url = URL.createObjectURL(picture)
-    USER_PICTURE_URL_REVOKERS.set(backend, () => {
-      URL.revokeObjectURL(url)
-    })
+    USER_PICTURE_URLS.set(backendType, url)
     return url
   } else {
     // This should never happen, so use an arbitrary URL.
@@ -34,9 +35,12 @@ function createUserPictureUrl(backend: Backend | null, picture: Blob) {
 }
 
 /** Revoke the corresponding "user picture" URL for the given backend. */
-function revokeUserPictureUrl(backend: Backend | null) {
-  if (backend != null) {
-    USER_PICTURE_URL_REVOKERS.get(backend)?.()
+function revokeUserPictureUrl(backendType: backendModule.BackendType | null | undefined) {
+  if (backendType != null) {
+    const url = USER_PICTURE_URLS.get(backendType)
+    if (url != null) {
+      URL.revokeObjectURL(url)
+    }
   }
 }
 
@@ -44,16 +48,17 @@ function revokeUserPictureUrl(backend: Backend | null) {
 // === revokeOrganizationPictureUrl ===
 // ====================================
 
-const ORGANIZATION_PICTURE_URL_REVOKERS = new WeakMap<Backend, () => void>()
+const ORGANIZATION_PICTURE_URLS = new Map<backendModule.BackendType, string>()
 
 /** Create the corresponding "organization picture" URL for the given backend. */
-function createOrganizationPictureUrl(backend: Backend | null, picture: Blob) {
-  if (backend != null) {
-    ORGANIZATION_PICTURE_URL_REVOKERS.get(backend)?.()
+function createOrganizationPictureUrl(
+  backendType: backendModule.BackendType | null | undefined,
+  picture: Blob,
+) {
+  if (backendType != null) {
+    revokeOrganizationPictureUrl(backendType)
     const url = URL.createObjectURL(picture)
-    ORGANIZATION_PICTURE_URL_REVOKERS.set(backend, () => {
-      URL.revokeObjectURL(url)
-    })
+    ORGANIZATION_PICTURE_URLS.set(backendType, url)
     return url
   } else {
     // This should never happen, so use an arbitrary URL.
@@ -62,102 +67,70 @@ function createOrganizationPictureUrl(backend: Backend | null, picture: Blob) {
 }
 
 /** Revoke the corresponding "organization picture" URL for the given backend. */
-function revokeOrganizationPictureUrl(backend: Backend | null) {
-  if (backend != null) {
-    ORGANIZATION_PICTURE_URL_REVOKERS.get(backend)?.()
+function revokeOrganizationPictureUrl(backendType: backendModule.BackendType | null | undefined) {
+  if (backendType != null) {
+    const url = ORGANIZATION_PICTURE_URLS.get(backendType)
+    if (url != null) {
+      URL.revokeObjectURL(url)
+    }
   }
 }
 
-// =========================
-// === useObserveBackend ===
-// =========================
+// ============================
+// === DefineBackendMethods ===
+// ============================
 
-/** Listen to all mutations and update state as appropriate when they succeed.
- * MUST be unconditionally called exactly once for each backend type. */
-export function useObserveBackend(backend: Backend | null) {
-  const queryClient = reactQuery.useQueryClient()
-  const [seen] = React.useState(new WeakSet())
-  const useObserveMutations = <Method extends backendQuery.BackendMethods>(
-    method: Method,
-    onSuccess: (
-      state: reactQuery.MutationState<
-        Awaited<ReturnType<Backend[Method]>>,
-        Error,
-        Parameters<Backend[Method]>
-      >,
-    ) => void,
-  ) => {
-    const states = reactQuery.useMutationState<Parameters<Backend[Method]>>({
-      // Errored mutations can be safely ignored as they should not change the state.
-      filters: { mutationKey: [backend?.type, method], status: 'success' },
-      // eslint-disable-next-line no-restricted-syntax
-      select: (mutation) => mutation.state as never,
-    })
-    for (const state of states) {
-      if (!seen.has(state)) {
-        seen.add(state)
-        // This is SAFE - it is just too highly dynamic for TypeScript to typecheck.
-        // eslint-disable-next-line no-restricted-syntax
-        onSuccess(state as never)
-      }
-    }
-  }
-  const setQueryData = <Method extends backendQuery.BackendMethods>(
-    method: Method,
-    updater: (
-      variable: Awaited<ReturnType<Backend[Method]>>,
-    ) => Awaited<ReturnType<Backend[Method]>>,
-  ) => {
-    queryClient.setQueryData<Awaited<ReturnType<Backend[Method]>>>(
-      [backend?.type, method],
-      (data) => (data == null ? data : updater(data)),
-    )
-  }
-  useObserveMutations('uploadUserPicture', (state) => {
-    revokeUserPictureUrl(backend)
-    setQueryData('usersMe', (user) => state.data ?? user)
-  })
-  useObserveMutations('updateOrganization', (state) => {
-    setQueryData('getOrganization', (organization) => state.data ?? organization)
-  })
-  useObserveMutations('uploadOrganizationPicture', (state) => {
-    revokeOrganizationPictureUrl(backend)
-    setQueryData('getOrganization', (organization) => state.data ?? organization)
-  })
-  useObserveMutations('createUserGroup', (state) => {
-    if (state.data != null) {
-      const data = state.data
-      setQueryData('listUserGroups', (userGroups) => [data, ...userGroups])
-    }
-  })
-  useObserveMutations('deleteUserGroup', (state) => {
-    setQueryData('listUserGroups', (userGroups) =>
-      userGroups.filter((userGroup) => userGroup.id !== state.variables?.[0]),
-    )
-  })
-  useObserveMutations('changeUserGroup', (state) => {
-    if (state.variables != null) {
-      const [userId, body] = state.variables
-      setQueryData('listUsers', (users) =>
-        users.map((user) =>
-          user.userId !== userId ? user : { ...user, userGroups: body.userGroups },
-        ),
-      )
-    }
-  })
-  useObserveMutations('createTag', (state) => {
-    if (state.data != null) {
-      const data = state.data
-      setQueryData('listTags', (tags) => [...tags, data])
-    }
-  })
-  useObserveMutations('deleteTag', (state) => {
-    if (state.variables != null) {
-      const [tagId] = state.variables
-      setQueryData('listTags', (tags) => tags.filter((tag) => tag.id !== tagId))
-    }
-  })
-}
+/** Ensure that the given type contains only names of backend methods. */
+// eslint-disable-next-line no-restricted-syntax
+type DefineBackendMethods<T extends keyof Backend> = T
+
+// ======================
+// === MutationMethod ===
+// ======================
+
+/** Names of methods corresponding to mutations. */
+export type MutationMethod = DefineBackendMethods<
+  | 'associateTag'
+  | 'changeUserGroup'
+  | 'closeProject'
+  | 'copyAsset'
+  | 'createCheckoutSession'
+  | 'createDatalink'
+  | 'createDirectory'
+  | 'createPermission'
+  | 'createProject'
+  | 'createSecret'
+  | 'createTag'
+  | 'createUser'
+  | 'createUserGroup'
+  | 'deleteAsset'
+  | 'deleteDatalink'
+  | 'deleteInvitation'
+  | 'deleteTag'
+  | 'deleteUser'
+  | 'deleteUserGroup'
+  | 'duplicateProject'
+  // TODO: `get*` are not mutations, but are currently used in some places.
+  | 'getDatalink'
+  | 'getFileDetails'
+  | 'getProjectDetails'
+  | 'inviteUser'
+  | 'logEvent'
+  | 'openProject'
+  | 'removeUser'
+  | 'resendInvitation'
+  | 'undoDeleteAsset'
+  | 'updateAsset'
+  | 'updateDirectory'
+  | 'updateFile'
+  | 'updateOrganization'
+  | 'updateProject'
+  | 'updateSecret'
+  | 'updateUser'
+  | 'uploadFile'
+  | 'uploadOrganizationPicture'
+  | 'uploadUserPicture'
+>
 
 // =======================
 // === useBackendQuery ===
@@ -209,7 +182,19 @@ export function useBackendQuery<Method extends backendQuery.BackendMethods>(
 // === useBackendMutation ===
 // ==========================
 
-export function useBackendMutation<Method extends backendQuery.BackendMethods>(
+const INVALIDATION_MAP: Partial<Record<MutationMethod, readonly backendQuery.BackendMethods[]>> = {
+  updateUser: ['usersMe'],
+  uploadUserPicture: ['usersMe'],
+  updateOrganization: ['getOrganization'],
+  uploadOrganizationPicture: ['getOrganization'],
+  createUserGroup: ['listUserGroups'],
+  deleteUserGroup: ['listUserGroups'],
+  changeUserGroup: ['listUsers'],
+  createTag: ['listTags'],
+  deleteTag: ['listTags'],
+}
+
+export function backendMutationOptions<Method extends MutationMethod>(
   backend: Backend,
   method: Method,
   options?: Omit<
@@ -220,12 +205,12 @@ export function useBackendMutation<Method extends backendQuery.BackendMethods>(
     >,
     'mutationFn'
   >,
-): reactQuery.UseMutationResult<
+): reactQuery.UseMutationOptions<
   Awaited<ReturnType<Backend[Method]>>,
   Error,
   Parameters<Backend[Method]>
 >
-export function useBackendMutation<Method extends backendQuery.BackendMethods>(
+export function backendMutationOptions<Method extends MutationMethod>(
   backend: Backend | null,
   method: Method,
   options?: Omit<
@@ -236,14 +221,13 @@ export function useBackendMutation<Method extends backendQuery.BackendMethods>(
     >,
     'mutationFn'
   >,
-): reactQuery.UseMutationResult<
-  // eslint-disable-next-line no-restricted-syntax
+): reactQuery.UseMutationOptions<
   Awaited<ReturnType<Backend[Method]>> | undefined,
   Error,
   Parameters<Backend[Method]>
 >
 /** Wrap a backend method call in a React Query Mutation. */
-export function useBackendMutation<Method extends backendQuery.BackendMethods>(
+export function backendMutationOptions<Method extends MutationMethod>(
   backend: Backend | null,
   method: Method,
   options?: Omit<
@@ -254,18 +238,25 @@ export function useBackendMutation<Method extends backendQuery.BackendMethods>(
     >,
     'mutationFn'
   >,
-) {
-  return reactQuery.useMutation<
-    Awaited<ReturnType<Backend[Method]>>,
-    Error,
-    Parameters<Backend[Method]>
-  >({
+): reactQuery.UseMutationOptions<
+  Awaited<ReturnType<Backend[Method]>>,
+  Error,
+  Parameters<Backend[Method]>
+> {
+  return {
     ...options,
     mutationKey: [backend?.type, method, ...(options?.mutationKey ?? [])],
     // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
     mutationFn: (args) => (backend?.[method] as any)?.(...args),
     networkMode: backend?.type === backendModule.BackendType.local ? 'always' : 'online',
-  })
+    meta: {
+      invalidates: [
+        ...(options?.meta?.invalidates ?? []),
+        ...(INVALIDATION_MAP[method]?.map((queryMethod) => [backend?.type, queryMethod]) ?? []),
+      ],
+      awaitInvalidates: options?.meta?.awaitInvalidates ?? true,
+    },
+  }
 }
 
 // ===================================
@@ -286,32 +277,6 @@ export function useBackendMutationVariables<Method extends backendQuery.BackendM
     // eslint-disable-next-line no-restricted-syntax
     select: (mutation) => mutation.state.variables as never,
   })
-}
-
-// =======================================
-// === useBackendMutationWithVariables ===
-// =======================================
-
-/** Wrap a backend method call in a React Query Mutation, and access its variables. */
-export function useBackendMutationWithVariables<Method extends backendQuery.BackendMethods>(
-  backend: Backend,
-  method: Method,
-  options?: Omit<
-    reactQuery.UseMutationOptions<
-      Awaited<ReturnType<Backend[Method]>>,
-      Error,
-      Parameters<Backend[Method]>
-    >,
-    'mutationFn'
-  >,
-) {
-  const mutation = useBackendMutation(backend, method, options)
-  return {
-    mutation,
-    mutate: mutation.mutate,
-    mutateAsync: mutation.mutateAsync,
-    variables: useBackendMutationVariables(backend, method, options?.mutationKey),
-  }
 }
 
 // ===================
@@ -339,12 +304,12 @@ function toNonPlaceholder<T extends object>(object: T) {
   return { ...object, isPlaceholder: false }
 }
 
-// ===========================
-// === useBackendListUsers ===
-// ===========================
+// ====================
+// === useListUsers ===
+// ====================
 
 /** A list of users, taking into account optimistic state. */
-export function useBackendListUsers(
+export function useListUsers(
   backend: Backend,
 ): readonly WithPlaceholder<backendModule.User>[] | null {
   const listUsersQuery = useBackendQuery(backend, 'listUsers', [])
@@ -367,12 +332,12 @@ export function useBackendListUsers(
   }, [changeUserGroupVariables, listUsersQuery.data])
 }
 
-// ================================
-// === useBackendListUserGroups ===
-// ================================
+// =========================
+// === useListUserGroups ===
+// =========================
 
 /** A list of user groups, taking into account optimistic state. */
-export function useBackendListUserGroups(
+export function useListUserGroups(
   backend: Backend,
 ): readonly WithPlaceholder<backendModule.UserGroupInfo>[] | null {
   const { user } = authProvider.useNonPartialUserSession()
@@ -405,9 +370,9 @@ export function useBackendListUserGroups(
   ])
 }
 
-// =========================================
-// === useBackendListUserGroupsWithUsers ===
-// =========================================
+// ==================================
+// === useListUserGroupsWithUsers ===
+// ==================================
 
 /** A user group, as well as the users that are a part of the user group. */
 export interface UserGroupInfoWithUsers extends backendModule.UserGroupInfo {
@@ -415,14 +380,14 @@ export interface UserGroupInfoWithUsers extends backendModule.UserGroupInfo {
 }
 
 /** A list of user groups, taking into account optimistic state. */
-export function useBackendListUserGroupsWithUsers(
+export function useListUserGroupsWithUsers(
   backend: Backend,
 ): readonly WithPlaceholder<UserGroupInfoWithUsers>[] | null {
-  const userGroupsRaw = useBackendListUserGroups(backend)
+  const userGroupsRaw = useListUserGroups(backend)
   // Old user list
   const listUsersQuery = useBackendQuery(backend, 'listUsers', [])
   // Current user list, including optimistic updates
-  const users = useBackendListUsers(backend)
+  const users = useListUsers(backend)
   return React.useMemo(() => {
     if (userGroupsRaw == null || listUsersQuery.data == null || users == null) {
       return null
@@ -447,12 +412,12 @@ export function useBackendListUserGroupsWithUsers(
   }, [listUsersQuery.data, userGroupsRaw, users])
 }
 
-// ==========================
-// === useBackendListTags ===
-// ==========================
+// ===================
+// === useListTags ===
+// ===================
 
 /** A list of asset tags, taking into account optimistic state. */
-export function useBackendListTags(
+export function useListTags(
   backend: Backend | null,
 ): readonly WithPlaceholder<backendModule.Label>[] | null {
   const listTagsQuery = useBackendQuery(backend, 'listTags', [])
@@ -479,12 +444,12 @@ export function useBackendListTags(
   }, [createTagVariables, deleteTagVariables, listTagsQuery.data])
 }
 
-// =========================
-// === useBackendUsersMe ===
-// =========================
+// ==================
+// === useUsersMe ===
+// ==================
 
 /** The current user, taking into account optimistic state. */
-export function useBackendUsersMe(backend: Backend | null) {
+export function useUsersMe(backend: Backend | null) {
   const usersMeQuery = useBackendQuery(backend, 'usersMe', [])
   const updateUserVariables = useBackendMutationVariables(backend, 'updateUser')
   const uploadUserPictureVariables = useBackendMutationVariables(backend, 'uploadUserPicture')
@@ -501,7 +466,7 @@ export function useBackendUsersMe(backend: Backend | null) {
       for (const [, file] of uploadUserPictureVariables) {
         result = {
           ...result,
-          profilePicture: backendModule.HttpsUrl(createUserPictureUrl(backend, file)),
+          profilePicture: backendModule.HttpsUrl(createUserPictureUrl(backend?.type, file)),
         }
       }
       return result
@@ -509,12 +474,12 @@ export function useBackendUsersMe(backend: Backend | null) {
   }, [backend, usersMeQuery.data, updateUserVariables, uploadUserPictureVariables])
 }
 
-// =================================
-// === useBackendGetOrganization ===
-// =================================
+// ==========================
+// === useGetOrganization ===
+// ==========================
 
 /** The current user's organization, taking into account optimistic state. */
-export function useBackendGetOrganization(backend: Backend | null) {
+export function useGetOrganization(backend: Backend | null) {
   const getOrganizationQuery = useBackendQuery(backend, 'getOrganization', [])
   const updateOrganizationVariables = useBackendMutationVariables(backend, 'updateOrganization')
   const uploadOrganizationPictureVariables = useBackendMutationVariables(
@@ -532,7 +497,7 @@ export function useBackendGetOrganization(backend: Backend | null) {
       for (const [, file] of uploadOrganizationPictureVariables) {
         result = {
           ...result,
-          picture: backendModule.HttpsUrl(createOrganizationPictureUrl(backend, file)),
+          picture: backendModule.HttpsUrl(createOrganizationPictureUrl(backend?.type, file)),
         }
       }
       return result
