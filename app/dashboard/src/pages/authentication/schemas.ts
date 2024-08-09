@@ -15,9 +15,9 @@ export function passwordSchema(getText: GetText) {
     z
       .string()
       // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-      .min(6, { message: getText('passwordValidationError') })
+      .min(6, { message: getText('passwordLengthError') })
       // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-      .max(256, { message: getText('passwordValidationError') })
+      .max(256, { message: getText('passwordLengthError') })
   )
 }
 
