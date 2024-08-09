@@ -107,6 +107,7 @@ export type MutationMethod = DefineBackendMethods<
   | 'deleteAsset'
   | 'deleteDatalink'
   | 'deleteInvitation'
+  | 'deleteProjectExecution'
   | 'deleteTag'
   | 'deleteUser'
   | 'deleteUserGroup'
@@ -194,6 +195,7 @@ const INVALIDATION_MAP: Partial<Record<MutationMethod, readonly backendQuery.Bac
   createTag: ['listTags'],
   deleteTag: ['listTags'],
   createProjectExecution: ['listProjectExecutions'],
+  deleteProjectExecution: ['listProjectExecutions'],
 }
 
 export function backendMutationOptions<Method extends MutationMethod>(

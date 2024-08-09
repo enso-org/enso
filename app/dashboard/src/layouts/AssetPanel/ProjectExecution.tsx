@@ -3,9 +3,14 @@ import { Fragment, useMemo } from 'react'
 
 import ParallelIcon from '#/assets/parallel.svg'
 import RepeatIcon from '#/assets/repeat.svg'
-import { Button, ButtonGroup, Text } from '#/components/AriaComponents'
+import { DialogTrigger } from '#/components/aria'
+import { Button, ButtonGroup, CloseButton, Text } from '#/components/AriaComponents'
+import { backendMutationOptions } from '#/hooks/backendHooks'
+import ConfirmDeleteModalNew from '#/modals/ConfirmDeleteModalNew'
 import { useText } from '#/providers/TextProvider'
+import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
+import { useMutation } from '@tanstack/react-query'
 import { DAY_TEXT_IDS } from 'enso-common/src/utilities/data/dateTime'
 
 // ========================
@@ -14,12 +19,14 @@ import { DAY_TEXT_IDS } from 'enso-common/src/utilities/data/dateTime'
 
 /** Props for a {@link ProjectExecution}. */
 export interface ProjectExecutionProps {
+  readonly backend: Backend
+  readonly item: backendModule.ProjectAsset
   readonly projectExecution: backendModule.ProjectExecution
 }
 
 /** Displays information describing a specific version of an asset. */
 export default function ProjectExecution(props: ProjectExecutionProps) {
-  const { projectExecution } = props
+  const { backend, item, projectExecution } = props
   const { getText } = useText()
   const times = useMemo(() => {
     const hours =
@@ -44,8 +51,25 @@ export default function ProjectExecution(props: ProjectExecutionProps) {
     })
   }, [projectExecution.times])
 
+  const deleteProjectExecution = useMutation(
+    backendMutationOptions(backend, 'deleteProjectExecution'),
+  ).mutateAsync
+
   return (
-    <div className="flex w-full items-center rounded-2xl border-0.5 border-primary/20 p-2">
+    <div className="relative flex w-full items-center rounded-2xl border-0.5 border-primary/20 p-2 pt-6">
+      <DialogTrigger>
+        <CloseButton
+          className="absolute left-2 top-2"
+          tooltip={getText('delete')}
+          tooltipPlacement="right"
+        />
+        <ConfirmDeleteModalNew
+          actionText={getText('deleteThisProjectExecution')}
+          doDelete={async () => {
+            await deleteProjectExecution([projectExecution.projectExecutionId, item.title])
+          }}
+        />
+      </DialogTrigger>
       <div className="grid grow items-center justify-start gap-x-2 gap-y-1">
         {projectExecution.times.dates?.flatMap((date) => (
           <Fragment key={date}>

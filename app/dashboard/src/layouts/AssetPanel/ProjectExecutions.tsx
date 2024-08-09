@@ -60,7 +60,12 @@ function ProjectExecutionsInternal(props: ProjectExecutionsInternalProps) {
         </DialogTrigger>
       </ButtonGroup>
       {projectExecutionsQuery.data.map((execution) => (
-        <ProjectExecution key={execution.projectExecutionId} projectExecution={execution} />
+        <ProjectExecution
+          key={execution.projectExecutionId}
+          item={item}
+          backend={backend}
+          projectExecution={execution}
+        />
       ))}
     </div>
   )
