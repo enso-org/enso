@@ -14,7 +14,10 @@ import type * as schemaModule from './schema'
  */
 // eslint-disable-next-line no-restricted-syntax
 export type FieldValues<Schema extends TSchema | undefined> =
-  Schema extends z.AnyZodObject | z.ZodEffects<z.AnyZodObject> ? z.infer<Schema>
+  Schema extends (
+    z.AnyZodObject | z.ZodEffects<z.AnyZodObject> | z.ZodEffects<z.ZodEffects<z.AnyZodObject>>
+  ) ?
+    z.infer<Schema>
   : reactHookForm.FieldValues
 
 /**
@@ -29,7 +32,10 @@ export type FieldPath<
 /**
  * Schema type
  */
-export type TSchema = z.AnyZodObject | z.ZodEffects<z.AnyZodObject>
+export type TSchema =
+  | z.AnyZodObject
+  | z.ZodEffects<z.AnyZodObject>
+  | z.ZodEffects<z.ZodEffects<z.AnyZodObject>>
 
 /**
  * Props for the useForm hook.

@@ -23,6 +23,7 @@ import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useText, type GetText } from '#/providers/TextProvider'
 import { useMutation } from '@tanstack/react-query'
 import { DAY_3_LETTER_TEXT_IDS } from 'enso-common/src/utilities/data/dateTime'
+import { omit } from 'enso-common/src/utilities/data/object'
 
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 const DATES: readonly number[] = [...Array(31).keys()]
@@ -31,67 +32,42 @@ const HOURS: readonly number[] = [...Array(24).keys()]
 
 /** Create the form schema for this page. */
 function createUpsertExecutionSchema(getText: GetText) {
-  return z
-    .object({
-      repeatInterval: z.enum(PROJECT_REPEAT_INTERVALS),
-      dates: z
-        .number()
-        .int()
-        .min(0)
-        .max(30)
-        .array()
-        .transform((arr) => arr.sort((a, b) => a - b))
-        .readonly()
-        .optional(),
-      days: z
-        .number()
-        .int()
-        .min(0)
-        .max(6)
-        .array()
-        .transform((arr) => arr.sort((a, b) => a - b))
-        .readonly()
-        .optional(),
-      hours: z
-        .number()
-        .int()
-        .min(0)
-        .max(23)
-        .array()
-        .transform((arr) => arr.sort((a, b) => a - b))
-        .readonly()
-        .optional(),
-      minute: z.number().int().min(0).max(59),
-      parallelMode: z.enum(PROJECT_PARALLEL_MODES),
-    })
+  const schema = z.object({
+    repeatInterval: z.enum(PROJECT_REPEAT_INTERVALS),
+    dates: z
+      .number()
+      .int()
+      .min(0)
+      .max(30)
+      .array()
+      .transform((arr) => arr.sort((a, b) => a - b))
+      .readonly()
+      .optional(),
+    days: z
+      .number()
+      .int()
+      .min(0)
+      .max(6)
+      .array()
+      .transform((arr) => arr.sort((a, b) => a - b))
+      .readonly()
+      .optional(),
+    hours: z
+      .number()
+      .int()
+      .min(0)
+      .max(23)
+      .array()
+      .transform((arr) => arr.sort((a, b) => a - b))
+      .readonly()
+      .optional(),
+    minute: z.number().int().min(0).max(59),
+    parallelMode: z.enum(PROJECT_PARALLEL_MODES),
+  })
+  /** The base schema for this object. */
+  type Schema = z.infer<typeof schema>
+  return schema
     .superRefine((object, context) => {
-      const unrecognizedKeys: string[] = []
-      switch (object.repeatInterval) {
-        case 'hourly':
-          if ('hours' in object) {
-            unrecognizedKeys.push('hours')
-          }
-        // fallthrough
-        case 'daily':
-          if ('days' in object) {
-            unrecognizedKeys.push('days')
-          }
-        // fallthrough
-        case 'weekly':
-          if ('dates' in object) {
-            unrecognizedKeys.push('dates')
-          }
-          break
-        case 'monthly': {
-          if ('days' in object) {
-            unrecognizedKeys.push('days')
-          }
-          break
-        }
-      }
-      if (unrecognizedKeys.length > 0) {
-        context.addIssue({ code: 'unrecognized_keys', keys: unrecognizedKeys })
-      }
       switch (object.repeatInterval) {
         case 'hourly': {
           // No action needed.
@@ -126,6 +102,22 @@ function createUpsertExecutionSchema(getText: GetText) {
             })
           }
           break
+        }
+      }
+    })
+    .transform<Schema>((object) => {
+      switch (object.repeatInterval) {
+        case 'hourly': {
+          return omit(object, 'hours', 'dates', 'days')
+        }
+        case 'daily': {
+          return omit(object, 'dates', 'days')
+        }
+        case 'weekly': {
+          return omit(object, 'dates')
+        }
+        case 'monthly': {
+          return omit(object, 'days')
         }
       }
     })
@@ -233,6 +225,8 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
             items={PROJECT_PARALLEL_MODES}
             itemToString={(interval) => getText(PARALLEL_MODE_TO_TEXT_ID[interval])}
           />
+
+          <Form.FormError />
           <ButtonGroup>
             <Form.Submit />
             <Button variant="cancel" onPress={close}>
