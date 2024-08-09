@@ -7,8 +7,8 @@ import { FORGOT_PASSWORD_PATH, REGISTRATION_PATH } from '#/appUtils'
 import ArrowRightIcon from '#/assets/arrow_right.svg'
 import AtIcon from '#/assets/at.svg'
 import CreateAccountIcon from '#/assets/create_account.svg'
-import GithubIcon from '#/assets/github.svg'
-import GoogleIcon from '#/assets/google.svg'
+import GithubIcon from '#/assets/github_color.svg'
+import GoogleIcon from '#/assets/google_color.svg'
 import LockIcon from '#/assets/lock.svg'
 import { Button, Form, Input, Password } from '#/components/AriaComponents'
 import Link from '#/components/Link'
@@ -56,7 +56,7 @@ export default function Login() {
         <Button
           size="large"
           variant="outline"
-          icon={GoogleIcon}
+          icon={<img src={GoogleIcon} />}
           onPress={async () => {
             await signInWithGoogle()
           }}
@@ -66,7 +66,7 @@ export default function Login() {
         <Button
           size="large"
           variant="outline"
-          icon={GithubIcon}
+          icon={<img src={GithubIcon} />}
           onPress={async () => {
             await signInWithGitHub()
           }}
