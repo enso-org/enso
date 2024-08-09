@@ -6,6 +6,7 @@ import org.enso.base.Text_Utils;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
+import org.enso.table.data.column.operation.map.text.CoalescingStringStringOp;
 import org.enso.table.data.column.operation.map.text.LikeOp;
 import org.enso.table.data.column.operation.map.text.StringBooleanOp;
 import org.enso.table.data.column.operation.map.text.StringIsInOp;
@@ -165,6 +166,38 @@ public final class StringStorage extends SpecializedStorage<String> {
           @Override
           protected TextType computeResultType(TextType a, TextType b) {
             return TextType.concatTypes(a, b);
+          }
+        });
+    t.add(
+        new CoalescingStringStringOp(Maps.MIN) {
+          @Override
+          protected String doString(String a, String b) {
+            if (Text_Utils.compare_normalized(a, b) < 0) {
+              return a;
+            } else {
+              return b;
+            }
+          }
+
+          @Override
+          protected TextType computeResultType(TextType a, TextType b) {
+            return TextType.maxType(a, b);
+          }
+        });
+    t.add(
+        new CoalescingStringStringOp(Maps.MAX) {
+          @Override
+          protected String doString(String a, String b) {
+            if (Text_Utils.compare_normalized(a, b) > 0) {
+              return a;
+            } else {
+              return b;
+            }
+          }
+
+          @Override
+          protected TextType computeResultType(TextType a, TextType b) {
+            return TextType.maxType(a, b);
           }
         });
     return t;
