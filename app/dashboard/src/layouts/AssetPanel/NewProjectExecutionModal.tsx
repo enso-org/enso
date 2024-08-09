@@ -91,6 +91,13 @@ function createUpsertExecutionSchema(getText: GetText) {
               message: getText('pleaseSelectAtLeastOneItem'),
             })
           }
+          if (!object.hours || object.hours.length === 0) {
+            context.addIssue({
+              code: 'custom',
+              path: ['hours'],
+              message: getText('pleaseSelectAtLeastOneItem'),
+            })
+          }
           break
         }
         case 'monthly': {
@@ -98,6 +105,13 @@ function createUpsertExecutionSchema(getText: GetText) {
             context.addIssue({
               code: 'custom',
               path: ['dates'],
+              message: getText('pleaseSelectAtLeastOneItem'),
+            })
+          }
+          if (!object.hours || object.hours.length === 0) {
+            context.addIssue({
+              code: 'custom',
+              path: ['hours'],
               message: getText('pleaseSelectAtLeastOneItem'),
             })
           }
@@ -153,6 +167,7 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
         <Form
           form={form}
           method="dialog"
+          defaultValues={{ repeatInterval: 'weekly', parallelMode: 'restart', minute: 0 }}
           className="w-full"
           onSubmit={async (values) => {
             const { repeatInterval: newRepeatInterval, parallelMode, ...times } = values
@@ -171,7 +186,6 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
             form={form}
             name="repeatInterval"
             label={getText('repeatIntervalLabel')}
-            defaultValue="weekly"
             items={PROJECT_REPEAT_INTERVALS}
             itemToString={(interval) => getText(REPEAT_INTERVAL_TO_TEXT_ID[interval])}
           />
@@ -203,7 +217,6 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
               name="hours"
               label={getText('hoursLabel')}
               items={HOURS}
-              defaultValue={[0]}
               columns={12}
             />
           )}
@@ -214,14 +227,12 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
             type="number"
             min={0}
             max={59}
-            defaultValue={0}
           />
           <Selector
             form={form}
             isRequired
             name="parallelMode"
             label={getText('parallelModeLabel')}
-            defaultValue="restart"
             items={PROJECT_PARALLEL_MODES}
             itemToString={(interval) => getText(PARALLEL_MODE_TO_TEXT_ID[interval])}
           />

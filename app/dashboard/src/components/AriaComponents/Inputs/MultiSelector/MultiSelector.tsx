@@ -157,7 +157,7 @@ export const MultiSelector = React.forwardRef(function MultiSelector<
           control={formInstance.control}
           name={name}
           render={(renderProps) => {
-            const { ref: fieldRef, onChange, ...field } = renderProps.field
+            const { ref: fieldRef, value, onChange, ...field } = renderProps.field
             return (
               <ListBox
                 ref={mergeRefs(inputRef, privateInputRef, fieldRef)}
@@ -178,7 +178,7 @@ export const MultiSelector = React.forwardRef(function MultiSelector<
                 // This is SAFE, as there is a constraint on `items` that prevents using keys
                 // that do not correspond to array values.
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
-                defaultSelectedKeys={defaultValue?.map((item: TFieldValues[TFieldName]) =>
+                defaultSelectedKeys={value?.map((item: TFieldValues[TFieldName]) =>
                   items.indexOf(item),
                 )}
                 onSelectionChange={(selection) => {

@@ -68,6 +68,17 @@ export const Form = React.forwardRef(function Form<
     },
   )
 
+  // Expose default values to controlled inputs like `Selector` and `MultiSelector`
+  const initialDefaultValues = React.useRef(defaultValues)
+  React.useEffect(() => {
+    const defaults = initialDefaultValues.current
+    if (defaults) {
+      if (typeof defaults !== 'function') {
+        innerForm.reset(defaults)
+      }
+    }
+  }, [innerForm])
+
   const dialogContext = dialog.useDialogContext()
 
   React.useImperativeHandle(formRef, () => innerForm, [innerForm])

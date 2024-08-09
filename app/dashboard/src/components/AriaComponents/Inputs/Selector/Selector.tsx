@@ -116,7 +116,7 @@ export const Selector = React.forwardRef(function Selector<
     name,
     isDisabled,
     form,
-    defaultValue,
+    ...(defaultValue != null ? { defaultValue } : {}),
   })
 
   const classes = SELECTOR_STYLES({
