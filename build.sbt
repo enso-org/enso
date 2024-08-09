@@ -1343,7 +1343,7 @@ lazy val `ydoc-server` = project
     rebuildNativeImage := NativeImage
       .buildNativeImage(
         "ydoc",
-        staticOnLinux  = true,
+        staticOnLinux  = false,
         includeRuntime = false,
         mainClass      = Some("org.enso.ydoc.Main")
       )
