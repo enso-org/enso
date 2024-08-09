@@ -5,14 +5,16 @@ import { Button, ButtonGroup } from '#/components/AriaComponents'
 import AssetProperties from '#/layouts/AssetPanel/AssetProperties'
 import ProjectExecutions from '#/layouts/AssetPanel/ProjectExecutions'
 import ProjectSessions from '#/layouts/AssetPanel/ProjectSessions'
+import * as z from 'zod'
+
 import AssetVersions from '#/layouts/AssetVersions/AssetVersions'
 import type Category from '#/layouts/CategorySwitcher/Category'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { AssetType, BackendType } from '#/services/Backend'
-import { includes } from '#/utilities/array'
 import type { AnyAssetTreeNode } from '#/utilities/AssetTreeNode'
+
 import LocalStorage from '#/utilities/LocalStorage'
 import { twMerge } from '#/utilities/tailwindMerge'
 
@@ -39,9 +41,8 @@ declare module '#/utilities/LocalStorage' {
   }
 }
 
-const TABS = Object.values(AssetPanelTab)
 LocalStorage.registerKey('assetPanelTab', {
-  tryParse: (value) => (includes(TABS, value) ? value : null),
+  schema: z.nativeEnum(AssetPanelTab),
 })
 
 // ==================
@@ -198,7 +199,7 @@ export default function AssetPanel(props: AssetPanelProps) {
             <ProjectSessions backend={backend} item={item} />
           )}
           {tab === AssetPanelTab.executions && item.type === AssetType.project && (
-            <ProjectExecutions backend={backend} item={item} />
+            <ProjectExecutions backend={backend} item={item.item} />
           )}
         </>
       }

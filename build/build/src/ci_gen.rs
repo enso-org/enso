@@ -644,19 +644,19 @@ pub fn gui() -> Result<Workflow> {
         workflow.add_customized(target, job::PackageIde, |job| {
             job.needs.insert(project_manager_job.clone());
         });
-        workflow.add(target, job::NewGuiBuild);
+        workflow.add(target, job::GuiBuild);
     }
     Ok(workflow)
 }
 
 pub fn gui_tests() -> Result<Workflow> {
     let on = typical_check_triggers();
-    let mut workflow = Workflow { name: "GUI Tests".into(), on, ..default() };
+    let mut workflow = Workflow { name: "GUI Check".into(), on, ..default() };
     workflow.add(PRIMARY_TARGET, job::CancelWorkflow);
     workflow.add(PRIMARY_TARGET, job::Lint);
     workflow.add(PRIMARY_TARGET, job::WasmTest);
     workflow.add(PRIMARY_TARGET, job::NativeTest);
-    workflow.add(PRIMARY_TARGET, job::GuiTest);
+    workflow.add(PRIMARY_TARGET, job::GuiCheck);
     Ok(workflow)
 }
 

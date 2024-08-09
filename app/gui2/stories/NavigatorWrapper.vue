@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
+import { useKeyboard } from '@/composables/keyboard'
 import { useNavigator } from '@/composables/navigator'
 
 const viewportNode = ref<HTMLElement>()
 
-const navigator = useNavigator(viewportNode)
+const keyboard = useKeyboard()
+const navigator = useNavigator(viewportNode, keyboard)
 </script>
 
 <template>
