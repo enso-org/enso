@@ -673,7 +673,7 @@ export default class RemoteBackend extends Backend {
       projectExecutionId: backend.ProjectExecutionId(uniqueString()),
       ...body,
     }
-    this.projectExecutions.unshift(projectExecution)
+    this.projectExecutions.push(projectExecution)
     return Promise.resolve(projectExecution)
     // FIXME: Enable actual API call when ready.
     /*const { projectId, ...rest } = body
@@ -696,7 +696,7 @@ export default class RemoteBackend extends Backend {
       (execution) => execution.projectExecutionId === executionId,
     )
     if (index !== -1) {
-      this.projectExecutions.splice(index - 1)
+      this.projectExecutions.splice(index, 1)
     }
     return Promise.resolve()
     // FIXME: Enable actual API call when ready.

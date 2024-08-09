@@ -10,8 +10,22 @@ import ConfirmDeleteModalNew from '#/modals/ConfirmDeleteModalNew'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
+import { tv } from '#/utilities/tailwindVariants'
 import { useMutation } from '@tanstack/react-query'
 import { DAY_TEXT_IDS } from 'enso-common/src/utilities/data/dateTime'
+
+const PROJECT_EXECUTION_STYLES = tv({
+  base: 'relative flex gap-2 w-full items-center rounded-2xl border-0.5 border-primary/20 p-2 pt-6',
+  slots: {
+    timeTable: 'grid grow items-center justify-start grid-cols-[auto_1fr] gap-x-2 gap-y-1',
+    dayOrDate: 'col-start-1',
+    timeGrid:
+      'col-start-2 mr-auto grid w-full grid-cols-3 rounded-2xl border-0.5 border-primary/20 border-collapse',
+    time: 'px-2 py-0.5 text-center',
+    optionContainer: 'grow-0',
+    optionDisplay: 'cursor-default hover:border-primary/40 hover:bg-transparent',
+  },
+})
 
 // ========================
 // === ProjectExecution ===
@@ -51,12 +65,14 @@ export default function ProjectExecution(props: ProjectExecutionProps) {
     })
   }, [projectExecution.times])
 
+  const styles = PROJECT_EXECUTION_STYLES({})
+
   const deleteProjectExecution = useMutation(
     backendMutationOptions(backend, 'deleteProjectExecution'),
   ).mutateAsync
 
   return (
-    <div className="relative flex w-full items-center rounded-2xl border-0.5 border-primary/20 p-2 pt-6">
+    <div className={styles.base()}>
       <DialogTrigger>
         <CloseButton
           className="absolute left-2 top-2"
@@ -70,16 +86,16 @@ export default function ProjectExecution(props: ProjectExecutionProps) {
           }}
         />
       </DialogTrigger>
-      <div className="grid grow items-center justify-start gap-x-2 gap-y-1">
+      <div className={styles.timeTable()}>
         {projectExecution.times.dates?.flatMap((date) => (
           <Fragment key={date}>
-            <Text className="col-start-1">
-              <time>{date}</time>
+            <Text elementType="time" className={styles.dayOrDate()}>
+              {date}
             </Text>
-            <div className="col-start-2 mr-auto flex rounded-2xl border-0.5 border-primary/20">
+            <div className={styles.timeGrid()}>
               {times.map((timeString) => (
-                <Text>
-                  <time>{timeString}</time>
+                <Text elementType="time" className={styles.time()}>
+                  {timeString}
                 </Text>
               ))}
             </div>
@@ -87,26 +103,26 @@ export default function ProjectExecution(props: ProjectExecutionProps) {
         ))}
         {projectExecution.times.days?.flatMap((day) => (
           <Fragment key={day}>
-            <Text>
-              <time>{getText(DAY_TEXT_IDS[day] ?? 'monday')}</time>
+            <Text elementType="time" className={styles.dayOrDate()}>
+              {getText(DAY_TEXT_IDS[day] ?? 'monday')}
             </Text>
-            <div className="col-start-2 mr-auto flex rounded-2xl border-0.5 border-primary/20">
+            <div className={styles.timeGrid()}>
               {times.map((timeString) => (
-                <Text className="border-r-0.5 border-primary/20 px-2 py-0.5 last:border-r-0">
-                  <time>{timeString}</time>
+                <Text elementType="time" className={styles.time()}>
+                  {timeString}
                 </Text>
               ))}
             </div>
           </Fragment>
         ))}
       </div>
-      <ButtonGroup direction="column" className="grow-0">
+      <ButtonGroup direction="column" className={styles.optionContainer()}>
         <Button
           variant="outline"
           icon={RepeatIcon}
           tooltip={getText('repeatIntervalLabel')}
           tooltipPlacement="left"
-          className="cursor-default hover:border-primary/40 hover:bg-transparent"
+          className={styles.optionDisplay()}
         >
           {getText(backendModule.REPEAT_INTERVAL_TO_TEXT_ID[projectExecution.repeatInterval])}
         </Button>
@@ -115,7 +131,7 @@ export default function ProjectExecution(props: ProjectExecutionProps) {
           tooltip={getText('parallelModeLabel')}
           tooltipPlacement="left"
           icon={ParallelIcon}
-          className="cursor-default hover:border-primary/40 hover:bg-transparent"
+          className={styles.optionDisplay()}
         >
           {getText(backendModule.PARALLEL_MODE_TO_TEXT_ID[projectExecution.parallelMode])}
         </Button>

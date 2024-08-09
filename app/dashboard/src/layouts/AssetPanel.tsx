@@ -107,7 +107,7 @@ export default function AssetPanel(props: AssetPanelProps) {
     <div
       data-testid="asset-panel"
       className={twMerge(
-        'pointer-events-none absolute flex h-full w-asset-panel flex-col gap-asset-panel bg-white p-4 pl-asset-panel-l transition-[box-shadow] clip-path-left-shadow',
+        'pointer-events-none absolute flex h-full w-asset-panel flex-col gap-[22px] bg-white p-4 pl-asset-panel-l transition-[box-shadow] clip-path-left-shadow',
         isVisible ? 'shadow-softer' : '',
       )}
       onClick={(event) => {
@@ -141,7 +141,6 @@ export default function AssetPanel(props: AssetPanelProps) {
           <Button
             size="medium"
             variant="bar"
-            isDisabled={tab === AssetPanelTab.projectSessions}
             className={twMerge(
               'pointer-events-auto disabled:opacity-100',
               tab === AssetPanelTab.projectSessions && 'bg-primary/[8%] opacity-100',
@@ -161,7 +160,6 @@ export default function AssetPanel(props: AssetPanelProps) {
           <Button
             size="medium"
             variant="bar"
-            isDisabled={tab === AssetPanelTab.executions}
             className={twMerge(
               'pointer-events-auto disabled:opacity-100',
               tab === AssetPanelTab.executions && 'bg-primary/[8%] opacity-100',

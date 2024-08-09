@@ -28,7 +28,12 @@ export default function ConfirmDeleteModalNew(props: ConfirmDeleteModalNewProps)
   return (
     <Dialog>
       {({ close }) => (
-        <Form schema={z.object({})} data-testid="confirm-delete-modal" onSubmit={doDelete}>
+        <Form
+          action="dialog"
+          schema={z.object({})}
+          data-testid="confirm-delete-modal"
+          onSubmit={doDelete}
+        >
           <Text className="relative">{getText('confirmPrompt', actionText)}</Text>
           <ButtonGroup className="relative">
             <Form.Submit size="medium" variant="delete">
