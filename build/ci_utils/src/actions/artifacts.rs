@@ -188,7 +188,9 @@ pub fn single_dir_provider(path: &Path) -> Result<impl Stream<Item = FileToUploa
         .filter(|res| match res {
             Ok(entry) => !entry.file_type().is_dir(),
             // ignore "not found" errors, just don't include the file in the final stream.
-            Err(e) => e.io_error().map_or(true, |e| e.kind() != std::io::ErrorKind::NotFound),
+            Err(e) =>
+                e.depth() != 0
+                    || e.io_error().map_or(true, |e| e.kind() != std::io::ErrorKind::NotFound),
         })
         .map(|entry| FileToUpload::new_relative(parent_path, entry?.path()))
         .try_collect()?;
