@@ -197,8 +197,7 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
             />
           )}
           <Input
-            readOnly
-            isRequired
+            required
             name="minute"
             label={getText('minuteLabel')}
             type="number"

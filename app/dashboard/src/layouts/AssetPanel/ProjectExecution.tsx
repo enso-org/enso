@@ -59,7 +59,7 @@ export default function ProjectExecution(props: ProjectExecutionProps) {
               `${hour % 12 || 12}${minuteString} pm`
               // eslint-disable-next-line @typescript-eslint/no-magic-numbers
             : `${hour || 12}${minuteString} am`
-          : `xx${minuteString}`)
+          : `xx${minuteString || ':00'}`)
         return (
           <Text>
             <time className="text-xs">{timeString}</time>
