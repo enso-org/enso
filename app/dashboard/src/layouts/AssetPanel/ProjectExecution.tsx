@@ -46,7 +46,7 @@ export default function ProjectExecution(props: ProjectExecutionProps) {
 
   return (
     <div className="flex w-full items-center rounded-2xl border-0.5 border-primary/20 p-2">
-      <div className="grid grow justify-start gap-x-2 gap-y-1">
+      <div className="grid grow items-center justify-start gap-x-2 gap-y-1">
         {projectExecution.times.dates?.flatMap((date) => (
           <Fragment key={date}>
             <Text className="col-start-1">
@@ -78,20 +78,20 @@ export default function ProjectExecution(props: ProjectExecutionProps) {
       </div>
       <ButtonGroup direction="column" className="grow-0">
         <Button
-          isDisabled
           variant="outline"
           icon={RepeatIcon}
-          aria-label={getText('repeatIntervalLabel')}
-          className="disabled:cursor-default disabled:opacity-100"
+          tooltip={getText('repeatIntervalLabel')}
+          tooltipPlacement="left"
+          className="cursor-default hover:border-primary/40 hover:bg-transparent"
         >
           {getText(backendModule.REPEAT_INTERVAL_TO_TEXT_ID[projectExecution.repeatInterval])}
         </Button>
         <Button
-          isDisabled
           variant="outline"
-          aria-label={getText('parallelModeLabel')}
+          tooltip={getText('parallelModeLabel')}
+          tooltipPlacement="left"
           icon={ParallelIcon}
-          className="disabled:cursor-default disabled:opacity-100"
+          className="cursor-default hover:border-primary/40 hover:bg-transparent"
         >
           {getText(backendModule.PARALLEL_MODE_TO_TEXT_ID[projectExecution.parallelMode])}
         </Button>

@@ -20,17 +20,17 @@ import {
   Selector,
 } from '#/components/AriaComponents'
 import { backendMutationOptions } from '#/hooks/backendHooks'
-import { useText } from '#/providers/TextProvider'
+import { useText, type GetText } from '#/providers/TextProvider'
 import { useMutation } from '@tanstack/react-query'
 import { DAY_3_LETTER_TEXT_IDS } from 'enso-common/src/utilities/data/dateTime'
 
 /* eslint-disable @typescript-eslint/no-magic-numbers */
-const DATES = [...Array(31).keys()]
-const DAYS = [...Array(7).keys()]
-const HOURS = [...Array(24).keys()]
+const DATES: readonly number[] = [...Array(31).keys()]
+const DAYS: readonly number[] = [...Array(7).keys()]
+const HOURS: readonly number[] = [...Array(24).keys()]
 
 /** Create the form schema for this page. */
-function createUpsertExecutionSchema() {
+function createUpsertExecutionSchema(getText: GetText) {
   return z
     .object({
       repeatInterval: z.enum(PROJECT_REPEAT_INTERVALS),
@@ -92,6 +92,42 @@ function createUpsertExecutionSchema() {
       if (unrecognizedKeys.length > 0) {
         context.addIssue({ code: 'unrecognized_keys', keys: unrecognizedKeys })
       }
+      switch (object.repeatInterval) {
+        case 'hourly': {
+          // No action needed.
+          break
+        }
+        case 'daily': {
+          if (!object.hours || object.hours.length === 0) {
+            context.addIssue({
+              code: 'custom',
+              path: ['hours'],
+              message: getText('pleaseSelectAtLeastOneItem'),
+            })
+          }
+          break
+        }
+        case 'weekly': {
+          if (!object.days || object.days.length === 0) {
+            context.addIssue({
+              code: 'custom',
+              path: ['days'],
+              message: getText('pleaseSelectAtLeastOneItem'),
+            })
+          }
+          break
+        }
+        case 'monthly': {
+          if (!object.dates || object.dates.length === 0) {
+            context.addIssue({
+              code: 'custom',
+              path: ['dates'],
+              message: getText('pleaseSelectAtLeastOneItem'),
+            })
+          }
+          break
+        }
+      }
     })
 }
 /* eslint-enable @typescript-eslint/no-magic-numbers */
@@ -111,7 +147,7 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
   const { backend, item } = props
   const { getText } = useText()
 
-  const form = Form.useForm({ schema: createUpsertExecutionSchema() })
+  const form = Form.useForm({ schema: createUpsertExecutionSchema(getText) })
 
   const repeatInterval = form.watch('repeatInterval', 'weekly')
 
@@ -175,6 +211,7 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
               name="hours"
               label={getText('hoursLabel')}
               items={HOURS}
+              defaultValue={[0]}
               columns={12}
             />
           )}

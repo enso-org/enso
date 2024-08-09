@@ -175,6 +175,12 @@ export const MultiSelector = React.forwardRef(function MultiSelector<
                 )}
                 // eslint-disable-next-line no-restricted-syntax
                 aria-label={props['aria-label'] ?? (typeof label === 'string' ? label : '')}
+                // This is SAFE, as there is a constraint on `items` that prevents using keys
+                // that do not correspond to array values.
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+                defaultSelectedKeys={defaultValue?.map((item: TFieldValues[TFieldName]) =>
+                  items.indexOf(item),
+                )}
                 onSelectionChange={(selection) => {
                   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
                   onChange([...selection].map((key) => items[Number(key)]))
