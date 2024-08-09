@@ -85,7 +85,7 @@
   }, {
     "pattern":"org.enso.ydoc:\\Qorg/enso/ydoc/polyfill/web/websocket.js\\E"
   }, {
-    "pattern":"org.enso.ydoc:\\Qorg/enso/ydoc/ydocServer.js\\E"
+    "pattern":"org.enso.ydoc:\\Qorg/enso/ydoc/ydoc.cjs\\E"
   }, {
     "pattern":"org.graalvm.polyglot:\\QMETA-INF/graalvm/org.graalvm.polyglot/version\\E"
   }, {
