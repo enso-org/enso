@@ -2,12 +2,11 @@ package org.enso.compiler;
 
 import static org.junit.Assert.assertTrue;
 
-import java.io.OutputStream;
 import java.util.List;
 import java.util.logging.Level;
-
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
+import org.enso.common.RuntimeOptions;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.compiler.core.ir.Expression;
@@ -17,19 +16,18 @@ import org.enso.editions.LibraryName;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.test.InterpreterContext;
 import org.enso.pkg.QualifiedName;
-import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Source;
 import scala.jdk.javaapi.CollectionConverters;
 
 public abstract class StaticAnalysisTest {
 
   /**
-   * The interpreter context is needed here as it ensures initialization of everything needed to perform imports
-   * resolution, including PackageRepository.
+   * The interpreter context is needed here as it ensures initialization of everything needed to
+   * perform imports resolution, including PackageRepository.
    *
    * <p>Ideally, the tests for the static analysis capabilities of the compiler should _not_ depend
-   * on the Graal runtime context, as they should be runnable in other contexts - i.e. in a Visual Studio Code language
-   * server.
+   * on the Graal runtime context, as they should be runnable in other contexts - i.e. in a Visual
+   * Studio Code language server.
    */
   private final InterpreterContext interpreterContext =
       new InterpreterContext(
@@ -37,10 +35,10 @@ public abstract class StaticAnalysisTest {
               builder
                   .option(RuntimeOptions.ENABLE_STATIC_ANALYSIS, "true")
                   .option(RuntimeOptions.LOG_LEVEL, Level.INFO.getName())
-//                  .option(RuntimeOptions.LOG_LEVEL, Level.SEVERE.getName())
-//                  .out(OutputStream.nullOutputStream())
-//                  .err(OutputStream.nullOutputStream())
-      );
+          //                  .option(RuntimeOptions.LOG_LEVEL, Level.SEVERE.getName())
+          //                  .out(OutputStream.nullOutputStream())
+          //                  .err(OutputStream.nullOutputStream())
+          );
 
   private final EnsoContext langCtx =
       interpreterContext
@@ -58,11 +56,15 @@ public abstract class StaticAnalysisTest {
     QualifiedName qualifiedName =
         QualifiedName.fromString(name.substring(0, name.length() - suffix.length()));
 
-    // If the module name is supposed to be put in a project, we register a synthetic project entry for it
+    // If the module name is supposed to be put in a project, we register a synthetic project entry
+    // for it
     if (qualifiedName.path().length() >= 2) {
-      LibraryName libraryName = new LibraryName(qualifiedName.path().apply(0), qualifiedName.path().apply(1));
+      LibraryName libraryName =
+          new LibraryName(qualifiedName.path().apply(0), qualifiedName.path().apply(1));
       if (!langCtx.getPackageRepository().isPackageLoaded(libraryName)) {
-        langCtx.getPackageRepository().registerSyntheticPackage(libraryName.namespace(), libraryName.name());
+        langCtx
+            .getPackageRepository()
+            .registerSyntheticPackage(libraryName.namespace(), libraryName.name());
         assert langCtx.getPackageRepository().isPackageLoaded(libraryName);
       }
     }
