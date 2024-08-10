@@ -4,11 +4,13 @@ import java.time.Duration;
 import java.time.ZonedDateTime;
 import org.enso.base.CompareException;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.DateTimeBuilder;
 import org.enso.table.data.column.builder.ObjectBuilder;
 import org.enso.table.data.column.operation.map.GenericBinaryObjectMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
 import org.enso.table.data.column.operation.map.datetime.TimeLikeBinaryOpReturningBoolean;
+import org.enso.table.data.column.operation.map.datetime.TimeLikeCoalescingOperation;
 import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.DateTimeType;
@@ -79,6 +81,30 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
           @Override
           protected Duration run(ZonedDateTime value, ZonedDateTime other) {
             return Duration.between(other, value);
+          }
+        });
+    t.add(
+        new TimeLikeCoalescingOperation<>(Maps.MIN, ZonedDateTime.class) {
+          @Override
+          protected Builder createOutputBuilder(int size) {
+            return new DateTimeBuilder(size);
+          }
+
+          @Override
+          protected ZonedDateTime doOperation(ZonedDateTime a, ZonedDateTime b) {
+            return a.compareTo(b) < 0 ? a : b;
+          }
+        });
+    t.add(
+        new TimeLikeCoalescingOperation<>(Maps.MAX, ZonedDateTime.class) {
+          @Override
+          protected Builder createOutputBuilder(int size) {
+            return new DateTimeBuilder(size);
+          }
+
+          @Override
+          protected ZonedDateTime doOperation(ZonedDateTime a, ZonedDateTime b) {
+            return a.compareTo(b) > 0 ? a : b;
           }
         });
     return t;
