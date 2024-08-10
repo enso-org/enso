@@ -25,7 +25,8 @@ import scala.collection.immutable.Seq$;
 import scala.jdk.javaapi.CollectionConverters;
 import scala.jdk.javaapi.CollectionConverters$;
 
-// TODO it may make sense to merge this pass into StaticModuleScopeAnalysis, there is little benefit to keeping it separate
+// TODO it may make sense to merge this pass into StaticModuleScopeAnalysis, there is little benefit
+// to keeping it separate
 
 /**
  * A precursor pass that prepares the IR for type inference, run before the main propagation logic

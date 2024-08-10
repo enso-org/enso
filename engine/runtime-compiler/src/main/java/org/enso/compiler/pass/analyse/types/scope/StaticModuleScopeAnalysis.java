@@ -22,7 +22,6 @@ import org.enso.compiler.pass.resolve.FullyQualifiedNames$;
 import org.enso.compiler.pass.resolve.GlobalNames$;
 import org.enso.compiler.pass.resolve.MethodDefinitions$;
 import org.enso.compiler.pass.resolve.TypeNames$;
-import org.enso.pkg.QualifiedName;
 import scala.collection.immutable.Seq;
 import scala.jdk.javaapi.CollectionConverters;
 import scala.jdk.javaapi.CollectionConverters$;
@@ -122,15 +121,20 @@ public class StaticModuleScopeAnalysis implements IRPass {
 
   /**
    * Registers getters for fields of the given type.
-   * <p>
-   * This should be consistent with logic with AtomConstructor.collectFieldAccessors.
+   *
+   * <p>This should be consistent with logic with AtomConstructor.collectFieldAccessors.
    */
-  private void registerFieldGetters(StaticModuleScope scope, TypeScopeReference typeScope, Definition.Type typeDefinition) {
+  private void registerFieldGetters(
+      StaticModuleScope scope, TypeScopeReference typeScope, Definition.Type typeDefinition) {
     HashMap<String, List<TypeRepresentation>> fieldTypes = new HashMap<>();
     for (var constructorDef : CollectionConverters$.MODULE$.asJava(typeDefinition.members())) {
       for (var argumentDef : CollectionConverters$.MODULE$.asJava(constructorDef.arguments())) {
         String fieldName = argumentDef.name().name();
-        TypeRepresentation fieldType = argumentDef.ascribedType().map(typeResolver::resolveTypeExpression).getOrElse(() -> TypeRepresentation.UNKNOWN);
+        TypeRepresentation fieldType =
+            argumentDef
+                .ascribedType()
+                .map(typeResolver::resolveTypeExpression)
+                .getOrElse(() -> TypeRepresentation.UNKNOWN);
         fieldTypes.computeIfAbsent(fieldName, k -> new ArrayList<>()).add(fieldType);
       }
     }
@@ -145,7 +149,10 @@ public class StaticModuleScopeAnalysis implements IRPass {
   private void processMethod(StaticModuleScope scope, Method.Explicit method) {
     var typeScope = getTypeAssociatedWithMethod(scope, method);
     if (typeScope == null) {
-      System.out.println("Failed to process method " + method.methodReference().showCode() + ", because its type scope could not be resolved.");
+      System.out.println(
+          "Failed to process method "
+              + method.methodReference().showCode()
+              + ", because its type scope could not be resolved.");
       return;
     }
     var typeFromSignature =
@@ -172,7 +179,9 @@ public class StaticModuleScopeAnalysis implements IRPass {
               typePointerOpt.get(), MethodDefinitions$.MODULE$, BindingsMap.Resolution.class);
       if (metadata == null) {
         System.out.println(
-            "Method type pointer of " + method.methodReference().showCode() + " does not have MethodDefinition metadata. Should this be compiler"
+            "Method type pointer of "
+                + method.methodReference().showCode()
+                + " does not have MethodDefinition metadata. Should this be compiler"
                 + " error?");
         return null;
       }

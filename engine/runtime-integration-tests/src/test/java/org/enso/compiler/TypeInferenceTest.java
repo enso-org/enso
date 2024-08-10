@@ -1086,7 +1086,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     final Source src =
         Source.newBuilder(
                 "enso",
-            """
+                """
             type My_Type
                 Value v
 
@@ -1202,16 +1202,21 @@ public class TypeInferenceTest extends StaticAnalysisTest {
 
     // this method is not found
     assertEquals(
-        List.of(new Warning.NoSuchMethod(x2.expression().location(), "member method `method_two` on type My_Type")),
+        List.of(
+            new Warning.NoSuchMethod(
+                x2.expression().location(), "member method `method_two` on type My_Type")),
         getImmediateDiagnostics(x2.expression()));
 
     // delegating to Any
     assertEquals(List.of(), getDescendantsDiagnostics(x3.expression()));
     assertEquals(List.of(), getDescendantsDiagnostics(x4.expression()));
 
-    // calling a static method on an instance _does not work_, so we get a warning telling there's no such _member_ method
+    // calling a static method on an instance _does not work_, so we get a warning telling there's
+    // no such _member_ method
     assertEquals(
-        List.of(new Warning.NoSuchMethod(x5.expression().location(), "member method `static_method` on type My_Type")),
+        List.of(
+            new Warning.NoSuchMethod(
+                x5.expression().location(), "member method `static_method` on type My_Type")),
         getImmediateDiagnostics(x5.expression()));
   }
 
@@ -1224,7 +1229,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
                 """
                     type My_Type
                         Value v
-                    
+
                     foo x =
                         txt1 = x.to_text
                         txt2 = 42.to_text
@@ -1268,7 +1273,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
                 "enso",
                 """
                     import local.Project1.modA.My_Type
-                    
+
                     type Typ_X
                         Value a
                     type Typ_Y

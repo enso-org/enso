@@ -346,7 +346,8 @@ abstract class TypePropagation {
           var staticScope = TypeScopeReference.atomEigenType(typeObject.name());
           var resolvedStaticMethod = methodTypeResolver.resolveMethod(staticScope, function.name());
           if (resolvedStaticMethod == null) {
-            encounteredNoSuchMethod(relatedWholeApplicationIR, argumentType, function.name(), MethodCallKind.STATIC);
+            encounteredNoSuchMethod(
+                relatedWholeApplicationIR, argumentType, function.name(), MethodCallKind.STATIC);
           }
           return resolvedStaticMethod;
         }
@@ -356,7 +357,8 @@ abstract class TypePropagation {
         var typeScope = TypeScopeReference.moduleAssociatedType(moduleReference.name());
         var resolvedModuleMethod = methodTypeResolver.resolveMethod(typeScope, function.name());
         if (resolvedModuleMethod == null) {
-          encounteredNoSuchMethod(relatedWholeApplicationIR, argumentType, function.name(), MethodCallKind.MODULE);
+          encounteredNoSuchMethod(
+              relatedWholeApplicationIR, argumentType, function.name(), MethodCallKind.MODULE);
         }
         return resolvedModuleMethod;
       }
@@ -365,7 +367,8 @@ abstract class TypePropagation {
         var typeScope = TypeScopeReference.atomType(atomInstanceType.fqn());
         var resolvedMemberMethod = methodTypeResolver.resolveMethod(typeScope, function.name());
         if (resolvedMemberMethod == null) {
-          encounteredNoSuchMethod(relatedWholeApplicationIR, argumentType, function.name(), MethodCallKind.MEMBER);
+          encounteredNoSuchMethod(
+              relatedWholeApplicationIR, argumentType, function.name(), MethodCallKind.MEMBER);
         }
         return resolvedMemberMethod;
       }

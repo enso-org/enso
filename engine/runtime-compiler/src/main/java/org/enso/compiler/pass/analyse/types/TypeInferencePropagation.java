@@ -99,11 +99,12 @@ public final class TypeInferencePropagation implements IRPass {
       @Override
       protected void encounteredNoSuchMethod(
           IR relatedIr, TypeRepresentation type, String methodName, MethodCallKind kind) {
-        String methodDescription = switch (kind) {
-          case MEMBER -> "member method `" + methodName + "` on type " + type;
-          case STATIC -> "static method `" + methodName + "` on " + type;
-          case MODULE -> "method `" + methodName + "` on module " + type;
-        };
+        String methodDescription =
+            switch (kind) {
+              case MEMBER -> "member method `" + methodName + "` on type " + type;
+              case STATIC -> "static method `" + methodName + "` on " + type;
+              case MODULE -> "method `" + methodName + "` on module " + type;
+            };
         relatedIr
             .diagnostics()
             .add(new Warning.NoSuchMethod(relatedIr.location(), methodDescription));
