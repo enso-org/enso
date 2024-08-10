@@ -2,9 +2,7 @@ package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.function.BiFunction;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
@@ -233,15 +231,9 @@ public abstract class Storage<T> implements ColumnStorage {
       return runVectorizedBinaryMap(name, argument, problemAggregator);
     } else {
       checkFallback(fallback, expectedResultType, name);
-      String f = this.getClass().getName() + " . " + name;
-      if (reportedFallbacks.add(f)) {
-        System.err.println("NO VECTORIZED IMPLEMENTATION FOR " + f);
-      }
       return binaryMap(fallback, argument, skipNulls, expectedResultType, problemAggregator);
     }
   }
-
-  public static final Set<String> reportedFallbacks = new HashSet<>();
 
   /**
    * Runs a ternary operation with two scalar arguments.
@@ -297,10 +289,6 @@ public abstract class Storage<T> implements ColumnStorage {
       return runVectorizedZip(name, other, problemAggregator);
     } else {
       checkFallback(fallback, expectedResultType, name);
-      String f = this.getClass().getName() + " . " + name;
-      if (reportedFallbacks.add(f)) {
-        System.err.println("NO VECTORIZED IMPLEMENTATION FOR " + f);
-      }
       return zip(fallback, other, skipNulls, expectedResultType, problemAggregator);
     }
   }
