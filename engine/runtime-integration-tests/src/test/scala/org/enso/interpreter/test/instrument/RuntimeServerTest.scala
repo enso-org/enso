@@ -36,7 +36,7 @@ class RuntimeServerTest
 
     val out: ByteArrayOutputStream    = new ByteArrayOutputStream()
     val logOut: ByteArrayOutputStream = new ByteArrayOutputStream()
-    val context =
+    protected val context =
       Context
         .newBuilder(LanguageInfo.ID)
         .allowExperimentalOptions(true)

@@ -53,6 +53,7 @@ public class VectorSortTest {
   public static void disposeCtx() {
     values.clear();
     context.close();
+    context = null;
   }
 
   @DataPoints public static List<Value> values;

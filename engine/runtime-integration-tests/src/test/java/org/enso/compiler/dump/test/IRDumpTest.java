@@ -39,6 +39,7 @@ public class IRDumpTest {
       } catch (IOException e) {
         // Ignore. The ir-dumps directory should be deleted eventually.
       }
+      out.reset();
     }
   }
 }

@@ -61,6 +61,8 @@ public class EqualsTest {
   @AfterClass
   public static void disposeContext() {
     context.close();
+    context = null;
+    unwrappedValues = null;
   }
 
   @DataPoints public static Object[] unwrappedValues;
