@@ -21,6 +21,14 @@ public final class EnsoErrorProvider implements ErrorProvider {
 
     private static final Logger LOG = Logger.getLogger(EnsoErrorProvider.class.getName());
 
+    /** @Override */
+    public String hintsLayerNameFor(Kind kind) {
+        return switch (kind) {
+            case ERRORS -> "lsp:errors";
+            case HINTS -> "lsp:hints";
+        };
+    }
+
     @Override
     public List<? extends Diagnostic> computeErrors(Context ctx) {
         var arr = new ArrayList<Diagnostic>();
