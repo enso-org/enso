@@ -329,6 +329,31 @@ class FramePointerAnalysisTest extends CompilerTest {
       expectFramePointer(tDefArg, new FramePointer(0, 1))
       expectFramePointer(tUseArg.value, new FramePointer(1, 1))
     }
+
+    "attach frame pointers to argument default values" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+      val ir =
+        """
+          |method fn=(\x -> x + 1) =
+          |    fn 42
+          |""".stripMargin.preprocessModule.analyse
+      val xDefArg = findIRElement[DefinitionArgument.Specified](
+        ir,
+        arg => arg.name.name == "x"
+      )
+      val xUseArg = findIRElement[CallArgument.Specified](
+        ir,
+        arg => {
+          arg.value match {
+            case lit: Name.Literal =>
+              lit.name == "x"
+            case _ => false
+          }
+        }
+      )
+      expectFramePointer(xDefArg, new FramePointer(0, 1))
+      expectFramePointer(xUseArg.value, new FramePointer(1, 1))
+    }
   }
 
   /** Find the first IR element of the given `T` type by the given `filterCondition`.
