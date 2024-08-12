@@ -1,11 +1,11 @@
 /** @file The icon and name of a {@link backendModule.ProjectAsset}. */
 import * as React from 'react'
 
-import * as reactQuery from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import NetworkIcon from '#/assets/network.svg'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import { backendMutationOptions } from '#/hooks/backendHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -61,7 +61,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     isOpened,
   } = props
   const { backend, nodeMap } = state
-  const client = reactQuery.useQueryClient()
+  const client = useQueryClient()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
@@ -96,16 +96,20 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const isOtherUserUsingProject =
     isCloud && projectState.openedBy != null && projectState.openedBy !== user.email
 
-  const createProjectMutation = backendHooks.useBackendMutation(backend, 'createProject')
-  const updateProjectMutation = backendHooks.useBackendMutation(backend, 'updateProject')
-  const duplicateProjectMutation = backendHooks.useBackendMutation(backend, 'duplicateProject')
-  const getProjectDetailsMutation = backendHooks.useBackendMutation(backend, 'getProjectDetails')
-  const uploadFileMutation = backendHooks.useBackendMutation(backend, 'uploadFile', {
-    meta: {
-      invalidates: [['assetVersions', item.item.id, item.item.title]],
-      awaitInvalidates: true,
-    },
-  })
+  const createProjectMutation = useMutation(backendMutationOptions(backend, 'createProject'))
+  const updateProjectMutation = useMutation(backendMutationOptions(backend, 'updateProject'))
+  const duplicateProjectMutation = useMutation(backendMutationOptions(backend, 'duplicateProject'))
+  const getProjectDetailsMutation = useMutation(
+    backendMutationOptions(backend, 'getProjectDetails'),
+  )
+  const uploadFileMutation = useMutation(
+    backendMutationOptions(backend, 'uploadFile', {
+      meta: {
+        invalidates: [['assetVersions', item.item.id, item.item.title]],
+        awaitInvalidates: true,
+      },
+    }),
+  )
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {

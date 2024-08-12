@@ -141,7 +141,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
   const querySource = React.useRef(QuerySource.external)
   const rootRef = React.useRef<HTMLLabelElement | null>(null)
   const searchRef = React.useRef<HTMLInputElement | null>(null)
-  const labels = backendHooks.useBackendListTags(backend) ?? []
+  const labels = backendHooks.useListTags(backend) ?? []
   areSuggestionsVisibleRef.current = areSuggestionsVisible
 
   React.useEffect(() => {
