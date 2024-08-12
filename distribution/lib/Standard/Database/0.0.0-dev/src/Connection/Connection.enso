@@ -216,10 +216,8 @@ type Connection
     query : SQL_Query -> Text -> DB_Table ! Table_Not_Found | SQL_Error
     query self query:SQL_Query alias="" = case query of
         SQL_Query.Table_Name name ->
-            case self.table_naming_helper.is_table_name_valid name of
-                True -> make_table_for_name self name alias
-                False ->
-                    Error.throw (Table_Not_Found.Error name related_query_error=Nothing)
+            table_naming_helper.verify_table_name table_name <|
+                make_table_for_name self name alias
         SQL_Query.Raw_SQL raw_sql -> handle_sql_errors <| alias.if_not_error <|
             self.jdbc_connection.ensure_query_has_no_holes raw_sql . if_not_error <|
                 columns = self.fetch_columns raw_sql Statement_Setter.null
