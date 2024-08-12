@@ -472,7 +472,7 @@ type Decimal
              # => Decimal.new 30.5
     # TODO: restore checked return type (here and elsewhere) after https://github.com/enso-org/enso/issues/10736
     add : Decimal -> Math_Context | Nothing -> Decimal ! Arithmetic_Error
-    add self (that : Decimal) (math_context : Math_Context | Nothing = Nothing) =
+    add self (that : Decimal) (math_context : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error =
         error_if_from_float self that <| handle_java_exception <|
             case math_context of
                 Nothing -> Decimal.Value (self.big_decimal.add that.big_decimal)
@@ -497,7 +497,7 @@ type Decimal
              c = a + b
              # => Decimal.new 30.55
     + : Decimal -> Decimal ! Arithmetic_Error
-    + self (that : Decimal) = self.add that
+    + self (that : Decimal) -> Decimal ! Arithmetic_Error = self.add that
 
     ## ALIAS minus
        GROUP Operators
@@ -530,7 +530,7 @@ type Decimal
              c = a.subtract b (Math_Context.new 3)
              # => Decimal.new 10.1
     subtract : Decimal -> Math_Context | Nothing -> Decimal ! Arithmetic_Error
-    subtract self (that : Decimal) (math_context : Math_Context | Nothing = Nothing) =
+    subtract self (that : Decimal) (math_context : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error =
         error_if_from_float self that <| handle_java_exception <|
             case math_context of
                 Nothing -> Decimal.Value (self.big_decimal.subtract that.big_decimal)
@@ -556,7 +556,7 @@ type Decimal
              c = a - b
              # => Decimal.new 10.11
     - : Decimal -> Decimal ! Arithmetic_Error
-    - self (that : Decimal) = self.subtract that
+    - self (that : Decimal) -> Decimal ! Arithmetic_Error = self.subtract that
 
     ## ALIAS times
        GROUP Operators
@@ -589,7 +589,7 @@ type Decimal
              c = a.multiply b (Math_Context.new 4)
              # => Decimal.new 207.8
     multiply : Decimal -> Math_Context | Nothing -> Decimal ! Arithmetic_Error
-    multiply self (that : Decimal) (math_context : Math_Context | Nothing = Nothing) =
+    multiply self (that : Decimal) (math_context : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error =
         error_if_from_float self that <| handle_java_exception <|
             case math_context of
                 Nothing -> Decimal.Value (self.big_decimal.multiply that.big_decimal)
@@ -614,7 +614,7 @@ type Decimal
              c = a * b
              # => Decimal.new 207.7726
     * : Decimal -> Decimal ! Arithmetic_Error
-    * self (that : Decimal) = self.multiply that
+    * self (that : Decimal) -> Decimal ! Arithmetic_Error = self.multiply that
 
     ## GROUP Operators
        ICON math
@@ -652,7 +652,7 @@ type Decimal
              c = a.divide b (Math_Context.new 3)
              # => Decimal.new 45.7
     divide : Decimal -> Math_Context | Nothing -> Decimal ! Arithmetic_Error
-    divide self (that : Decimal) (math_context : Math_Context | Nothing = Nothing) =
+    divide self (that : Decimal) (math_context : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error =
         extra_message = " Please use `.divide` with an explicit `Math_Context` to limit the numeric precision."
         error_if_from_float self that <| handle_java_exception extra_message=extra_message <|
             case math_context of
@@ -678,7 +678,7 @@ type Decimal
              c = a / b
              # => Decimal.new 45.67
     / : Decimal -> Decimal ! Arithmetic_Error
-    / self (that : Decimal) = self.divide that
+    / self (that : Decimal) -> Decimal ! Arithmetic_Error = self.divide that
 
     ## ALIAS modulo, modulus
        GROUP Operators
@@ -708,7 +708,7 @@ type Decimal
              remainder = Decimal.new -5 . remainder 3
              # => -2
     remainder : Decimal -> Decimal
-    remainder self (that : Decimal) =
+    remainder self (that : Decimal) -> Decimal =
         error_if_from_float self that <| handle_java_exception <|
             Decimal.Value (self.big_decimal.remainder that.big_decimal)
 
@@ -740,7 +740,7 @@ type Decimal
              remainder = Decimal.new -5 % 3
              # => -2
     % : Decimal -> Decimal
-    % self (that : Decimal) = self.remainder that
+    % self (that : Decimal) -> Decimal = self.remainder that
 
     ## GROUP Math
        ICON math
@@ -770,7 +770,7 @@ type Decimal
              Decimal.new "10.28" . div (Decimal.new "3.01")
              # => 3
     div : Decimal -> Decimal
-    div self that:Decimal =
+    div self that:Decimal -> Decimal =
         error_if_from_float self that <| handle_java_exception <|
             Decimal.Value (self.big_decimal.divideToIntegralValue that.big_decimal)
 
@@ -875,7 +875,7 @@ type Decimal
              Decimal.new "12" . min (Decimal.new "13")
              # => Decimal.new "12"
     min : Decimal -> Decimal
-    min self (that : Decimal) =
+    min self (that : Decimal) -> Decimal =
         handle_java_exception <|
             if self < that then self else that
 
@@ -892,7 +892,7 @@ type Decimal
              Decimal.new "12" . max (Decimal.new "13")
              # => Decimal.new "13"
     max : Decimal -> Decimal
-    max self (that : Decimal) =
+    max self (that : Decimal) -> Decimal =
         handle_java_exception <|
             if self > that then self else that
 
