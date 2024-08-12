@@ -100,6 +100,8 @@ directories = { version = "5.0.1" }
 dirs = { version = "5.0.1" }
 flate2 = { version = "1.0.28" }
 indicatif = { version = "0.17.7", features = ["tokio"] }
+mime = "0.3.16"
+new_mime_guess = "4.0.1"
 multimap = { version = "0.9.1" }
 native-windows-gui = { version = "1.0.13" }
 nix = { version = "0.27.1" }

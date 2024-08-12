@@ -1,11 +1,7 @@
-// === Non-Standard Linter Configuration ===
-#![allow(clippy::disallowed_names)]
-
-use enso_build_base::prelude::*;
-
 use itertools::Itertools;
+use std::ffi::OsStr;
+use std::ffi::OsString;
 use std::str::FromStr;
-
 
 
 #[derive(Clone, Copy, Debug, enso_build_macros::Arg)]
@@ -28,11 +24,10 @@ fn hello() {
 }
 
 #[test]
-fn experiment_with_parsing() -> Result {
+fn experiment_with_parsing() {
     let code = "foo = ToString::to_string";
     let token_stream = proc_macro2::TokenStream::from_str(code).unwrap();
     dbg!(&token_stream);
     let foo = syn::parse2::<syn::ExprAssign>(token_stream).unwrap();
     dbg!(&foo);
-    Ok(())
 }

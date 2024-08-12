@@ -4,47 +4,15 @@ edition = "2021"
 version = "0.1.0"
 default-run = "enso-build-cli"
 
-[dependencies.anyhow]
-features = []
-workspace = true
-
-[dependencies.clap]
-features = []
-workspace = true
-
-[dependencies.derive-where]
-features = []
-workspace = true
-
-[dependencies.enso-build]
-path = "../build"
-features = []
-
-[dependencies.enso-build-base]
-path = "../base"
-features = []
-
-[dependencies.enso-formatter]
-path = "../enso-formatter"
-features = []
-
-[dependencies.futures-util]
-version = "0.3.17"
-features = []
-default-features = false
-
-[dependencies.ide-ci]
-path = "../ci_utils"
-features = []
-
-[dependencies.octocrab]
-features = []
-workspace = true
-
-[dependencies.tokio]
-features = []
-workspace = true
-
-[dependencies.tracing]
-features = []
-workspace = true
+[dependencies]
+anyhow = { workspace = true }
+clap = { workspace = true }
+derive-where = { workspace = true }
+enso-build-base = { path = "../base" }
+enso-build = { path = "../build" }
+enso-formatter = { path = "../enso-formatter" }
+futures-util = { workspace = true }
+ide-ci = { path = "../ci_utils" }
+octocrab = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }

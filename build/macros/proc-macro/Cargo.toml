@@ -8,7 +8,6 @@ proc-macro = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
-enso-build-base = { path = "../../base" }
 enso-build-macros-lib = { path = "../lib" }
 syn = { workspace = true }
 

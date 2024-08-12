@@ -31,9 +31,9 @@ http-serde = "1.1.0"
 indicatif = { workspace = true }
 itertools = { workspace = true }
 lazy_static = { workspace = true }
-mime = "0.3.16"
+mime = { workspace = true }
 multimap = { workspace = true }
-new_mime_guess = "4.0.0"
+new_mime_guess = { workspace = true }
 octocrab = { workspace = true }
 path-absolutize = { workspace = true }
 pathdiff = "0.2.1"

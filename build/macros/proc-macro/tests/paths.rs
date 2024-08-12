@@ -1,5 +1,4 @@
-use enso_build_base::prelude::*;
-
+use std::path::PathBuf;
 
 
 mod paths {
@@ -14,11 +13,9 @@ mod paths {
 }
 
 #[test]
-fn test_path_generation() -> Result {
+fn test_path_generation() {
     let paths = paths::Root::new("name");
     assert_eq!(paths.path, PathBuf::from("name"));
     assert_eq!(paths.item.path, PathBuf::from_iter(["name", "item"]));
     assert_eq!(paths.item_root_bar.path, PathBuf::from_iter(["name", "item-name.bar"]));
-
-    Ok(())
 }

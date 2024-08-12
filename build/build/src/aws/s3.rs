@@ -226,8 +226,8 @@ mod tests {
             assert_eq!(headers.content_type.to_string().as_str(), expected_type);
         }
 
-        case("wasm_imports.js.gz", Some("gzip"), "application/javascript");
-        case("index.js", None, "application/javascript");
+        case("wasm_imports.js.gz", Some("gzip"), "text/javascript");
+        case("index.js", None, "text/javascript");
         case("style.css", None, "text/css");
         case("ide.wasm", None, "application/wasm");
         case("ide.wasm.gz", Some("gzip"), "application/wasm");
