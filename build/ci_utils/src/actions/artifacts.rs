@@ -96,16 +96,14 @@ pub fn upload_single_file(
         .boxed()
 }
 
-pub fn upload_directory(
+pub async fn upload_directory_if_exists(
     dir: impl Into<PathBuf>,
     artifact_name: impl Into<String>,
-) -> BoxFuture<'static, Result> {
+) -> Result {
     let dir = dir.into();
     let artifact_name = artifact_name.into();
     info!("Uploading directory {} as artifact {artifact_name}.", dir.display());
-    single_dir_provider(&dir)
-        .and_then_async(move |stream| upload(stream, artifact_name, default()))
-        .boxed()
+    upload(single_dir_provider(&dir)?, artifact_name, default()).await
 }
 
 #[tracing::instrument(skip_all , fields(artifact_name = %artifact_name.as_ref(), target = %target.as_ref().display()), err)]
@@ -185,14 +183,17 @@ pub fn single_file_provider(
 pub fn single_dir_provider(path: &Path) -> Result<impl Stream<Item = FileToUpload> + 'static> {
     // TODO not optimal, could discover files at the same time as handling them.
     let parent_path = path.try_parent()?;
-    let files = walkdir::WalkDir::new(path)
+    let files: Vec<FileToUpload> = walkdir::WalkDir::new(path)
         .into_iter()
-        .try_collect_vec()?
-        .into_iter()
-        .filter(|entry| !entry.file_type().is_dir())
-        .map(|entry| FileToUpload::new_relative(parent_path, entry.path()))
-        .try_collect_vec()?;
-
+        .filter(|res| match res {
+            Ok(entry) => !entry.file_type().is_dir(),
+            // ignore "not found" errors, just don't include the file in the final stream.
+            Err(e) =>
+                e.depth() != 0
+                    || e.io_error().map_or(true, |e| e.kind() != std::io::ErrorKind::NotFound),
+        })
+        .map(|entry| FileToUpload::new_relative(parent_path, entry?.path()))
+        .try_collect()?;
     info!("Discovered {} files under the {}.", files.len(), path.display());
     Ok(futures::stream::iter(files))
 }
