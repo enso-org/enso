@@ -15,9 +15,9 @@ import scala.Option;
  * <p>The same logic is needed in two places:
  *
  * <ol>
- *   <li>in the runtime ({@link org.enso.interpreter.runtime.IrToTruffle.processName}),
+ *   <li>in the runtime ({@link org.enso.interpreter.runtime.IrToTruffle.ExpressionProcessor#processName}),
  *   <li>in the type checker ({@link
- *       org.enso.compiler.pass.analyse.types.TypeInference.processName}).
+ *       org.enso.compiler.pass.analyse.types.TypePropagation#processName}).
  * </ol>
  *
  * <p>To ensure that all usages stay consistent, they should all rely on the logic implemented in
