@@ -9,4 +9,4 @@ type SQL_Query
     Raw_SQL (sql : Text = Missing_Argument.throw "sql")
 
 ## PRIVATE
-SQL_Query.from (name:Text) = SQL_Query.Table_Name name
+SQL_Query.from (that:Text) = SQL_Query.Table_Name that
