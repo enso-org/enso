@@ -160,24 +160,16 @@ impl<'a> Generator<'a> {
 
         let parameter_vars = last_node.all_parameters_vars(self)?;
         let own_parameter_vars = last_node.own_parameter_vars();
-        let parent_parameter_vars: BTreeSet<_> =
-            full_path.iter().flat_map(|n| n.own_parameter_vars()).collect();
 
-
-        let child_parameter_vars: BTreeSet<_> = last_node
-            .children()
+        let mut child_parameter_vars = BTreeSet::new();
+        for node in last_node.children() {
+            child_parameter_vars.extend(node.all_parameters_vars(self)?.into_iter().cloned())
+        }
+        let all_parameters: BTreeSet<_> = full_path
             .iter()
-            .map(|node| node.all_parameters_vars(self))
-            .try_collect_vec()?
-            .into_iter()
-            .flatten()
-            .cloned()
+            .flat_map(|n| n.own_parameter_vars())
+            .chain(child_parameter_vars.iter().cloned())
             .collect();
-        let all_parameters = {
-            let mut v = parent_parameter_vars;
-            v.extend(child_parameter_vars.clone());
-            v
-        };
 
         let mut segment_names = vec![];
         for i in 0..full_path.len() {
@@ -190,7 +182,7 @@ impl<'a> Generator<'a> {
             });
         }
 
-        let children_init = zip(last_node.children(), &children_struct)
+        let children_init: Vec<_> = zip(last_node.children(), &children_struct)
             .map(|(child, children_struct)| {
                 Result::Ok(if let Some(r#_type) = child.r#type.as_ref() {
                     let resolved_type = self.resolve(r#_type)?;
@@ -208,7 +200,7 @@ impl<'a> Generator<'a> {
                     }
                 })
             })
-            .try_collect_vec()?;
+            .try_collect()?;
 
         let opt_conversions = if parameter_vars.is_empty() {
             quote! {
@@ -372,10 +364,6 @@ impl Node {
             ret.extend(self.type_dependent_parameters_vars(g)?.clone());
             Ok(ret)
         })
-        // let mut ret = BTreeSet::new();
-        // ret.extend(self.parameters.iter().sorted().map(to_ident));
-        // ret.extend(self.type_dependent_parameters_vars(g)?);
-        // Ok(ret)
     }
 
     pub fn own_parameters(&self) -> impl IntoIterator<Item = &str> {

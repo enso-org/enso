@@ -5,7 +5,6 @@
 
 // === Features ===
 #![feature(result_flattening)]
-#![feature(associated_type_bounds)]
 #![feature(extend_one)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
@@ -59,8 +58,6 @@ pub mod prelude {
     pub use crate::extensions::from_string::FromString;
     pub use crate::extensions::future::FutureExt as _;
     pub use crate::extensions::future::TryFutureExt as _;
-    pub use crate::extensions::iterator::IteratorExt as _;
-    pub use crate::extensions::iterator::TryIteratorExt as _;
     pub use crate::extensions::option::OptionExt as _;
     pub use crate::extensions::os_str::OsStrExt as _;
     pub use crate::extensions::path::PathExt as _;

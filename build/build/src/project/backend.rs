@@ -1,7 +1,6 @@
 use crate::prelude::*;
 
 use crate::engine::BuildConfigurationFlags;
-use crate::paths::pretty_print_arch;
 use crate::paths::TargetTriple;
 use crate::project::Context;
 use crate::project::IsArtifact;
@@ -11,7 +10,6 @@ use crate::version::Versions;
 
 use derivative::Derivative;
 use ide_ci::archive::is_archive_name;
-use ide_ci::extensions::os::OsExt;
 use octocrab::models::repos::Asset;
 
 
@@ -104,7 +102,7 @@ impl Backend {
     pub fn matches_platform(&self, name: &str) -> bool {
         // Sample name: "project-manager-bundle-2022.1.1-nightly.2022-04-16-linux-amd64.tar.gz"
         let os_matches = name.contains(self.target_os.as_str());
-        let arch_matches = name.contains(pretty_print_arch(TARGET_ARCH));
+        let arch_matches = name.contains(TARGET_ARCH.as_str());
         os_matches && arch_matches
     }
 }

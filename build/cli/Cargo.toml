@@ -1,22 +1,50 @@
 [package]
 name = "enso-build-cli"
-version = "0.1.0"
 edition = "2021"
+version = "0.1.0"
 default-run = "enso-build-cli"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-[dependencies]
-anyhow = { workspace = true }
-clap = { workspace = true }
-derivative = { workspace = true }
-enso-build-base = { path = "../base" }
-enso-build = { path = "../build" }
-enso-formatter = { path = "../enso-formatter" }
-futures-util = "0.3.17"
-ide-ci = { path = "../ci_utils" }
-octocrab = { workspace = true }
-tokio = { workspace = true }
-tracing = { workspace = true }
+[dependencies.anyhow]
+features = []
+workspace = true
 
-[lints]
+[dependencies.clap]
+features = []
+workspace = true
+
+[dependencies.derivative]
+features = []
+workspace = true
+
+[dependencies.enso-build]
+path = "../build"
+features = []
+
+[dependencies.enso-build-base]
+path = "../base"
+features = []
+
+[dependencies.enso-formatter]
+path = "../enso-formatter"
+features = []
+
+[dependencies.futures-util]
+version = "0.3.17"
+features = ["futures-macro", "async-await-macro"]
+default-features = false
+
+[dependencies.ide-ci]
+path = "../ci_utils"
+features = []
+
+[dependencies.octocrab]
+features = []
+workspace = true
+
+[dependencies.tokio]
+features = []
+workspace = true
+
+[dependencies.tracing]
+features = []
 workspace = true

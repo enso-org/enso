@@ -108,7 +108,7 @@ pub async fn copy_if_different(source: impl AsRef<Path>, target: impl AsRef<Path
     }
 
     let walkdir = walkdir::WalkDir::new(&source);
-    let entries = walkdir.into_iter().try_collect_vec()?;
+    let entries: Vec<_> = walkdir.into_iter().try_collect()?;
     for entry in entries.into_iter().filter(|e| e.file_type().is_file()) {
         let entry_path = entry.path();
         let relative_path = pathdiff::diff_paths(entry_path, &source)

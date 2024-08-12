@@ -339,7 +339,6 @@ pub fn runs_on(os: OS, runner_type: RunnerType) -> Vec<RunnerLabel> {
         (OS::Linux, RunnerType::GitHubHosted) => vec![RunnerLabel::LinuxLatest],
         (OS::MacOS, RunnerType::SelfHosted) => vec![RunnerLabel::SelfHosted, RunnerLabel::MacOS],
         (OS::MacOS, RunnerType::GitHubHosted) => vec![RunnerLabel::MacOSLatest],
-        _ => panic!("Unsupported OS and runner type combination: {os} {runner_type}."),
     }
 }
 

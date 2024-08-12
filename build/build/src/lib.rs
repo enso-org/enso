@@ -6,7 +6,6 @@
 #![feature(let_chains)]
 #![feature(exit_status_error)]
 #![feature(async_closure)]
-#![feature(associated_type_bounds)]
 #![feature(result_flattening)]
 #![feature(associated_type_defaults)]
 #![feature(duration_constants)]

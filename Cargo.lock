@@ -2412,7 +2412,6 @@ dependencies = [
  "path-absolutize",
  "path-slash",
  "pathdiff",
- "platforms",
  "portpicker",
  "regex",
  "reqwest",
@@ -3269,15 +3268,6 @@ name = "plain"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
-
-[[package]]
-name = "platforms"
-version = "3.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "14e6ab3f592e6fb464fc9712d8d6e6912de6473954635fd76a589d832cffcbb0"
-dependencies = [
- "serde",
-]
 
 [[package]]
 name = "plotters"

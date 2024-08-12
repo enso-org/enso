@@ -308,8 +308,5 @@ pub struct WatchJob<Target: IsWatchableSource> {
 
 /// Clap parser supporting a given set of [`OS`] values.
 pub fn possible_os_parser(possible_os: &[OS]) -> impl TypedValueParser<Value = OS> {
-    PossibleValuesParser::new(possible_os.iter().map(|os| os.as_str()))
-        // Unwrap below is safe, because it is symmetric to the `as_str` conversion above, and
-        // we'll get only the values that were generated from the `possible_os` array.
-        .map(|s| s.parse::<OS>().unwrap())
+    PossibleValuesParser::new(possible_os.iter().map(|os| os.as_str())).map(|s| OS::from_str(&s))
 }

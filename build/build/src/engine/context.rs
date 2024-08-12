@@ -354,16 +354,14 @@ impl RunContext {
             for package in ret.packages() {
                 let package_dir = package.dir();
                 let binary_extensions = [EXE_EXTENSION, DLL_EXTENSION];
-                let binaries = binary_extensions
+                let binaries: Vec<PathBuf> = binary_extensions
                     .into_iter()
-                    .map(|extension| {
+                    .flat_map(|extension| {
                         let pattern = package_dir.join_iter(["**", "*"]).with_extension(extension);
-                        glob::glob(pattern.as_str())?.try_collect_vec()
+                        glob::glob(pattern.as_str()).expect("Incorrect glob pattern")
                     })
-                    .try_collect_vec()?
-                    .into_iter()
-                    .flatten()
-                    .collect_vec();
+                    .map(|p| p.map(|p| p.to_owned()))
+                    .try_collect()?;
 
                 debug!(?binaries, "Found executables in the package.");
                 for binary in binaries {

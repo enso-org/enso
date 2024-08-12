@@ -8,7 +8,6 @@
 #![feature(min_specialization)]
 #![feature(exit_status_error)]
 #![feature(associated_type_defaults)]
-#![feature(associated_type_bounds)]
 #![feature(exact_size_is_empty)]
 #![feature(async_closure)]
 #![feature(type_alias_impl_trait)]
@@ -17,7 +16,6 @@
 #![feature(duration_constants)]
 #![feature(const_trait_impl)]
 #![feature(extend_one)]
-#![feature(lazy_cell)]
 // === Non-Standard Linter Configuration ===
 #![warn(unused_qualifications)]
 
@@ -66,8 +64,6 @@ pub mod prelude {
     pub use lazy_static::lazy_static;
     pub use octocrab::Octocrab;
     pub use path_absolutize::*;
-    pub use platforms::target::Arch;
-    pub use platforms::target::OS;
     pub use semver::Version;
     pub use tokio::io::AsyncWriteExt as _;
     pub use url::Url;
@@ -79,6 +75,8 @@ pub mod prelude {
     pub use crate::github::release::IsRelease;
     pub use crate::github::repo::IsRepo;
     pub use crate::log::setup_logging;
+    pub use crate::os::target::Arch;
+    pub use crate::os::target::OS;
     pub use crate::os::target::TARGET_ARCH;
     pub use crate::os::target::TARGET_OS;
     pub use crate::program::command::provider::CommandProvider;

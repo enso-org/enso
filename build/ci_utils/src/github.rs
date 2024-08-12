@@ -162,12 +162,10 @@ pub async fn latest_runner_url(octocrab: &Octocrab, os: OS) -> Result<Url> {
         OS::Linux => "linux",
         OS::Windows => "win",
         OS::MacOS => "osx",
-        other_os => unimplemented!("System `{}` is not yet supported!", other_os),
     };
 
     let arch_name = match TARGET_ARCH {
         Arch::X86_64 => "x64",
-        Arch::Arm => "arm",
         Arch::AArch64 => "arm64",
         other_arch => unimplemented!("Architecture `{}` is not yet supported!", other_arch),
     };

@@ -176,7 +176,6 @@ pub fn target_os_flag(os: OS) -> Result<&'static str> {
         OS::Windows => Ok("--win"),
         OS::Linux => Ok("--linux"),
         OS::MacOS => Ok("--mac"),
-        _ => bail!("Not supported target for Electron client: {os}."),
     }
 }
 

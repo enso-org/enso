@@ -34,7 +34,6 @@ impl Artifact {
             OS::Linux => "enso",
             OS::MacOS => "Enso.app",
             OS::Windows => "Enso.exe",
-            _ => todo!("{target_os}-{target_arch} combination is not supported"),
         }
         .into();
 
@@ -141,6 +140,5 @@ pub fn electron_image_filename(target_os: OS, target_arch: Arch, version: &Versi
         OS::Linux => format!("enso-linux-{arch_string}-{version}.AppImage"),
         OS::MacOS => format!("enso-mac-{arch_string}-{version}.dmg"),
         OS::Windows => format!("enso-win-{arch_string}-{version}.exe"),
-        _ => todo!("{target_os}-{target_arch} combination is not supported"),
     }
 }

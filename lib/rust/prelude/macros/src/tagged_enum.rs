@@ -65,7 +65,7 @@ pub fn run(
         split_attr_sections(std::mem::take(&mut decl.attrs));
     let (impl_generics, ty_generics, inherent_where_clause_opt) = &decl.generics.split_for_impl();
     let mut where_clause = enso_macro_utils::new_where_clause(vec![]);
-    for inherent_where_clause in inherent_where_clause_opt {
+    if let Some(inherent_where_clause) = inherent_where_clause_opt {
         where_clause.predicates.extend(inherent_where_clause.predicates.iter().cloned())
     }
 

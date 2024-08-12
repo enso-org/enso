@@ -39,7 +39,6 @@ octocrab = { workspace = true }
 path-absolutize = { workspace = true }
 pathdiff = "0.2.1"
 path-slash = "0.2.1"
-platforms = { workspace = true }
 portpicker = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true }

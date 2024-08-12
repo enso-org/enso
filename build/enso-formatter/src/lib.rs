@@ -14,7 +14,6 @@
 #![deny(keyword_idents)]
 #![deny(macro_use_extern_crate)]
 #![deny(missing_abi)]
-#![deny(pointer_structural_match)]
 #![deny(unsafe_op_in_unsafe_fn)]
 #![deny(unconditional_recursion)]
 #![warn(absolute_paths_not_starting_with_crate)]
