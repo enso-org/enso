@@ -288,6 +288,8 @@ export function useNavigator(
     keyboard,
     WHEEL_CAPTURE_DURATION_MS,
     (e, inputType) => {
+      const clientPos = eventScreenPos(e)
+      const scenePos = clientToScenePos(clientPos)
       if (inputType === 'trackpad') {
         // OS X trackpad events provide usable rate-of-change information.
         updateScale((oldValue: number) => oldValue * Math.exp(-e.deltaY / 100))
@@ -295,6 +297,9 @@ export function useNavigator(
         // Mouse wheel rate information is unreliable. We just step in the direction of the sign.
         stepZoom(-Math.sign(e.deltaY))
       }
+      const scenePos1 = clientToScenePos(clientPos)
+      targetCenter.value = center.value.add(scenePos.sub(scenePos1))
+      center.skip()
     },
     (e) => {
       const delta = new Vec2(e.deltaX, e.deltaY)
