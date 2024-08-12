@@ -8,7 +8,7 @@
     "email": "contact@enso.org"
   },
   "scripts": {
-    "dev": "echo DEPRECATED! Use `pnpm dev:gui` in workspace root directory.",
+    "dev": "echo DEPRECATED! Use `pnpm -w dev:gui` instead.",
     "dev:vite": "vite",
     "build": "corepack pnpm -r --filter enso-dashboard run compile && corepack pnpm run build:vite",
     "build-cloud": "cross-env CLOUD_BUILD=true corepack pnpm run build",
