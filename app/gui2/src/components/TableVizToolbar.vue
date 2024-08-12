@@ -174,7 +174,7 @@ const changeFormat = (option: TextFormatOptions) => {
       <template #entries>
         <MenuButton
           class="full"
-          :title="`Text displayed in monospace font and all whitespace characters displayed as symbols`"
+          title="Text displayed in monospace font and all whitespace characters displayed as symbols"
           @click="() => changeFormat(TextFormatOptions.On)"
         >
           <SvgIcon name="paragraph" />
@@ -183,7 +183,7 @@ const changeFormat = (option: TextFormatOptions) => {
 
         <MenuButton
           class="partial"
-          :title="`Text displayed in monospace font, only multiple spaces displayed with &#183;`"
+          title="Text displayed in monospace font, only multiple spaces displayed with &#183;"
           @click="() => changeFormat(TextFormatOptions.Partial)"
         >
           <SvgIcon name="paragraph" />
@@ -192,7 +192,7 @@ const changeFormat = (option: TextFormatOptions) => {
 
         <MenuButton
           class="off"
-          title="`No formatting applied to text`"
+          title="No formatting applied to text"
           @click="() => changeFormat(TextFormatOptions.Off)"
         >
           <div class="strikethrough">
@@ -206,7 +206,7 @@ const changeFormat = (option: TextFormatOptions) => {
 
   <SvgButton
     name="add"
-    :title="`Create new component(s) with the current grid's sort and filters applied to the workflow`"
+    title="Create new component(s) with the current grid's sort and filters applied to the workflow"
     :disabled="props.isDisabled"
     @click="createNewNodes()"
   />
