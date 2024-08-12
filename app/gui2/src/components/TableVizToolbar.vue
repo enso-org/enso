@@ -107,7 +107,7 @@ function getAstPatternFilterAndSort(columnName: string, items: string[]) {
       ),
       '.',
       Ast.App.positional(
-        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('sort')!),
+        Ast.Ident.new(ast.module, Ast.identifier('sort')!),
         makeSortPattern(ast.module),
       ),
     ),
@@ -115,25 +115,22 @@ function getAstPatternFilterAndSort(columnName: string, items: string[]) {
 }
 
 const createNewNodes = () => {
-  let filterAndSortPatterns = new Array<any>()
   let patterns = new Array<any>()
   if (Object.keys(props.filterModel).length && props.sortModel.length) {
     for (const index in Object.keys(props.filterModel)) {
       const columnName = Object.keys(props.filterModel)[index]!
       const items = props.filterModel[columnName || '']?.values.map((item) => `${item}`)!
       const filterPatterns = getAstPatternFilterAndSort(columnName, items)
-      filterAndSortPatterns.push(filterPatterns)
+      patterns.push(filterPatterns)
     }
-  }
-  if (Object.keys(props.filterModel).length) {
+  } else if (Object.keys(props.filterModel).length) {
     for (const index in Object.keys(props.filterModel)) {
       const columnName = Object.keys(props.filterModel)[index]!
       const items = props.filterModel[columnName || '']?.values.map((item) => `${item}`)!
       const filterPatterns = getAstPatternFilter(columnName, items)
       patterns.push(filterPatterns)
     }
-  }
-  if (props.sortModel.length) {
+  } else if (props.sortModel.length) {
     const patSort = getAstPatternSort()
     patterns.push(patSort)
   }
