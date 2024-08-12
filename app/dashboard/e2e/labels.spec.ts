@@ -60,6 +60,7 @@ test.test('drag labels onto multiple rows', async ({ page }) => {
   const labelEl = actions.locateLabelsPanelLabels(page, label)
 
   await page.keyboard.down(await actions.modModifier(page))
+  await test.expect(assetRows).toHaveCount(4)
   await clickAssetRow(assetRows.nth(0))
   await clickAssetRow(assetRows.nth(2))
   await test.expect(labelEl).toBeVisible()
