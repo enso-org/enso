@@ -1,9 +1,11 @@
 /** @file The icon and name of a {@link backendModule.SecretAsset}. */
 import * as React from 'react'
 
+import { useMutation } from '@tanstack/react-query'
+
 import KeyIcon from '#/assets/key.svg'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import { backendMutationOptions } from '#/hooks/backendHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -52,8 +54,8 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
   }
   const asset = item.item
 
-  const createSecretMutation = backendHooks.useBackendMutation(backend, 'createSecret')
-  const updateSecretMutation = backendHooks.useBackendMutation(backend, 'updateSecret')
+  const createSecretMutation = useMutation(backendMutationOptions(backend, 'createSecret'))
+  const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {

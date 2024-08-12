@@ -40,11 +40,6 @@ class DefaultLibraryProvider(
   private val logger   = Logger[DefaultLibraryProvider]
   private val resolver = LibraryResolver(localLibraryProvider)
 
-  override def findAvailableLocalLibraries(): Seq[LibraryName] = {
-    val libs = edition.getAllDefinedLibraries
-    libs.keys.toSeq
-  }
-
   /** Resolves the library version that should be used based on the
     * configuration and returns its location on the filesystem.
     *

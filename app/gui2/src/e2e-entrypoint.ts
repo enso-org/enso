@@ -5,14 +5,14 @@
  */
 
 import { MockYdocProvider } from '@/util/crdt'
-import { MockTransport, MockWebSocket } from '@/util/net'
+import { MockWebSocket, MockWebSocketTransport } from '@/util/net'
 import { mockDataHandler, mockLSHandler, mockYdocProvider } from '../mock/engine'
 
 import 'enso-dashboard/src/tailwind.css'
 import { createApp } from 'vue'
 import { AsyncApp } from './asyncApp'
 
-MockTransport.addMock('engine', mockLSHandler)
+MockWebSocketTransport.addMock('engine', mockLSHandler)
 MockWebSocket.addMock('data', mockDataHandler)
 MockYdocProvider.addMock('engine', mockYdocProvider)
 

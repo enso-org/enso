@@ -2,8 +2,8 @@
 import { useProjectStore } from '@/stores/project'
 import { mockFsDirectoryHandle } from '@/util/convert/fsAccess'
 import { MockWebSocket, type WebSocketHandler } from '@/util/net'
-import { type Path as LSPath } from 'shared/languageServerTypes'
 import { watchEffect } from 'vue'
+import { type Path as LSPath } from 'ydoc-shared/languageServerTypes'
 import { mockDataWSHandler } from './dataServer'
 
 const projectStore = useProjectStore()
