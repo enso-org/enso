@@ -16,9 +16,9 @@ import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.AliasAnalysis
-import org.enso.compiler.pass.analyse.alias.graph.Graph.{Link, Occurrence}
+import org.enso.compiler.pass.analyse.alias.graph.Graph.Link
 import org.enso.compiler.pass.analyse.alias.AliasMetadata
-import org.enso.compiler.pass.analyse.alias.graph.Graph
+import org.enso.compiler.pass.analyse.alias.graph.{Graph, GraphOccurrence}
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
 
@@ -95,19 +95,19 @@ class AliasAnalysisTest extends CompilerTest {
     val childOfChildOfChild = childOfChild.addChild()
 
     val aDefId = graph.nextId()
-    val aDef   = Occurrence.Def(aDefId, "a", genId, None)
+    val aDef   = GraphOccurrence.Def(aDefId, "a", genId, None)
 
     val bDefId = graph.nextId()
-    val bDef   = Occurrence.Def(bDefId, "b", genId, None)
+    val bDef   = GraphOccurrence.Def(bDefId, "b", genId, None)
 
     val aUseId = graph.nextId()
-    val aUse   = Occurrence.Use(aUseId, "a", genId, None)
+    val aUse   = GraphOccurrence.Use(aUseId, "a", genId, None)
 
     val bUseId = graph.nextId()
-    val bUse   = Occurrence.Use(bUseId, "b", genId, None)
+    val bUse   = GraphOccurrence.Use(bUseId, "b", genId, None)
 
     val cUseId = graph.nextId()
-    val cUse   = Occurrence.Use(cUseId, "c", genId, None)
+    val cUse   = GraphOccurrence.Use(cUseId, "c", genId, None)
 
     // Add occurrences to the scopes
     complexScope.add(aDef)
@@ -145,7 +145,9 @@ class AliasAnalysisTest extends CompilerTest {
     }
 
     "find the occurrence for an name in the current scope if it exists" in {
-      complexScope.getOccurrences[Occurrence](aDef.symbol) shouldEqual Set(aDef)
+      complexScope.getOccurrences[GraphOccurrence](aDef.symbol) shouldEqual Set(
+        aDef
+      )
     }
 
     "find no occurrences if they do not exist" in {
@@ -164,12 +166,16 @@ class AliasAnalysisTest extends CompilerTest {
     }
 
     "correctly find the scopes in which a given symbol occurs" in {
-      complexScope.scopesForSymbol[Occurrence.Def]("a").length shouldEqual 1
-      complexScope.scopesForSymbol[Occurrence.Use]("a").length shouldEqual 1
+      complexScope
+        .scopesForSymbol[GraphOccurrence.Def]("a")
+        .length shouldEqual 1
+      complexScope
+        .scopesForSymbol[GraphOccurrence.Use]("a")
+        .length shouldEqual 1
 
-      complexScope.scopesForSymbol[Occurrence]("a").length shouldEqual 2
+      complexScope.scopesForSymbol[GraphOccurrence]("a").length shouldEqual 2
 
-      complexScope.scopesForSymbol[Occurrence]("a") shouldEqual List(
+      complexScope.scopesForSymbol[GraphOccurrence]("a") shouldEqual List(
         complexScope,
         childOfChildOfChild
       )
@@ -180,12 +186,17 @@ class AliasAnalysisTest extends CompilerTest {
     }
 
     "check correctly for specified occurrences of a symbol" in {
-      complexScope.hasSymbolOccurrenceAs[Occurrence.Def]("a") shouldEqual true
-      complexScope.hasSymbolOccurrenceAs[Occurrence]("b") shouldEqual false
+      complexScope.hasSymbolOccurrenceAs[GraphOccurrence.Def](
+        "a"
+      ) shouldEqual true
+      complexScope.hasSymbolOccurrenceAs[GraphOccurrence]("b") shouldEqual false
     }
 
     "be able to convert from a symbol to identifiers that use it" in {
-      complexScope.symbolToIds[Occurrence]("a") shouldEqual List(aDefId, aUseId)
+      complexScope.symbolToIds[GraphOccurrence]("a") shouldEqual List(
+        aDefId,
+        aUseId
+      )
     }
 
     "be able to convert from an identifier to the associated symbol" in {
@@ -222,19 +233,19 @@ class AliasAnalysisTest extends CompilerTest {
     val childScope = rootScope.addChild()
 
     val aDefId = graph.nextId()
-    val aDef   = Occurrence.Def(aDefId, "a", genId, None)
+    val aDef   = GraphOccurrence.Def(aDefId, "a", genId, None)
 
     val bDefId = graph.nextId()
-    val bDef   = Occurrence.Def(bDefId, "b", genId, None)
+    val bDef   = GraphOccurrence.Def(bDefId, "b", genId, None)
 
     val aUse1Id = graph.nextId()
-    val aUse1   = Occurrence.Use(aUse1Id, "a", genId, None)
+    val aUse1   = GraphOccurrence.Use(aUse1Id, "a", genId, None)
 
     val aUse2Id = graph.nextId()
-    val aUse2   = Occurrence.Use(aUse2Id, "a", genId, None)
+    val aUse2   = GraphOccurrence.Use(aUse2Id, "a", genId, None)
 
     val cUseId = graph.nextId()
-    val cUse   = Occurrence.Use(cUseId, "c", genId, None)
+    val cUse   = GraphOccurrence.Use(cUseId, "c", genId, None)
 
     rootScope.add(aDef)
     rootScope.add(aUse1)
@@ -307,10 +318,10 @@ class AliasAnalysisTest extends CompilerTest {
     }
 
     "find all scopes where a given symbol occurs" in {
-      val aDefs = graph.scopesFor[Occurrence.Def]("a")
-      val aUses = graph.scopesFor[Occurrence.Use]("a")
-      val aOccs = graph.scopesFor[Occurrence]("a")
-      val dOccs = graph.scopesFor[Occurrence]("d")
+      val aDefs = graph.scopesFor[GraphOccurrence.Def]("a")
+      val aUses = graph.scopesFor[GraphOccurrence.Use]("a")
+      val aOccs = graph.scopesFor[GraphOccurrence]("a")
+      val dOccs = graph.scopesFor[GraphOccurrence]("d")
 
       aDefs.length shouldEqual 1
       aUses.length shouldEqual 2
@@ -344,28 +355,28 @@ class AliasAnalysisTest extends CompilerTest {
       val grandChild = child1.addChild()
 
       val aDefInRootId = graph.nextId()
-      val aDefInRoot   = Occurrence.Def(aDefInRootId, "a", genId, None)
+      val aDefInRoot   = GraphOccurrence.Def(aDefInRootId, "a", genId, None)
       rootScope.add(aDefInRoot)
 
       val aDefInChild1Id = graph.nextId()
-      val aDefInChild1   = Occurrence.Def(aDefInChild1Id, "a", genId, None)
+      val aDefInChild1   = GraphOccurrence.Def(aDefInChild1Id, "a", genId, None)
       child1.add(aDefInChild1)
 
       val aDefInChild2Id = graph.nextId()
-      val aDefInChild2   = Occurrence.Def(aDefInChild2Id, "a", genId, None)
+      val aDefInChild2   = GraphOccurrence.Def(aDefInChild2Id, "a", genId, None)
       child2.add(aDefInChild2)
 
       val aDefInGrandChildId = graph.nextId()
       val aDefInGrandChild =
-        Occurrence.Def(aDefInGrandChildId, "a", genId, None)
+        GraphOccurrence.Def(aDefInGrandChildId, "a", genId, None)
       grandChild.add(aDefInGrandChild)
 
       val bDefInRootId = graph.nextId()
-      val bDefInRoot   = Occurrence.Def(bDefInRootId, "b", genId, None)
+      val bDefInRoot   = GraphOccurrence.Def(bDefInRootId, "b", genId, None)
       rootScope.add(bDefInRoot)
 
       val bDefInChild2Id = graph.nextId()
-      val bDefInChild2   = Occurrence.Def(bDefInChild2Id, "b", genId, None)
+      val bDefInChild2   = GraphOccurrence.Def(bDefInChild2Id, "b", genId, None)
       child2.add(bDefInChild2)
 
       graph.knownShadowedDefinitions(aDefInGrandChild) shouldEqual Set(
@@ -384,7 +395,7 @@ class AliasAnalysisTest extends CompilerTest {
     }
 
     "correctly return all links for a given symbol" in {
-      graph.linksFor[Occurrence]("a") shouldEqual Set(
+      graph.linksFor[GraphOccurrence]("a") shouldEqual Set(
         use1Link.get,
         use2Link.get
       )
@@ -433,14 +444,14 @@ class AliasAnalysisTest extends CompilerTest {
     }
 
     "create definition occurrences in the atom's scope" in {
-      goodGraph.rootScope.hasSymbolOccurrenceAs[Occurrence.Def]("a")
-      goodGraph.rootScope.hasSymbolOccurrenceAs[Occurrence.Def]("b")
-      goodGraph.rootScope.hasSymbolOccurrenceAs[Occurrence.Def]("c")
+      goodGraph.rootScope.hasSymbolOccurrenceAs[GraphOccurrence.Def]("a")
+      goodGraph.rootScope.hasSymbolOccurrenceAs[GraphOccurrence.Def]("b")
+      goodGraph.rootScope.hasSymbolOccurrenceAs[GraphOccurrence.Def]("c")
     }
 
     "create defaults in the same scope as the argument" in {
       goodGraph.nesting shouldEqual 1
-      goodGraph.rootScope.hasSymbolOccurrenceAs[Occurrence.Use]("a")
+      goodGraph.rootScope.hasSymbolOccurrenceAs[GraphOccurrence.Use]("a")
     }
 
     "create usage links where valid" in {
@@ -657,7 +668,7 @@ class AliasAnalysisTest extends CompilerTest {
       mainBlockScope.childScopes should contain(cUseScope)
     }
 
-    "assign Info.Occurrence to definitions and usages of symbols" in {
+    "assign Info.GraphOccurrence to definitions and usages of symbols" in {
       topLambda.arguments.foreach(arg =>
         arg
           .getMetadata(AliasAnalysis)
@@ -786,7 +797,7 @@ class AliasAnalysisTest extends CompilerTest {
       methodWithLambdaGraph.linksFor(unknownPlusId) shouldBe empty
       methodWithLambdaGraph
         .getOccurrence(unknownPlusId)
-        .get shouldBe an[Occurrence.Use]
+        .get shouldBe an[GraphOccurrence.Use]
     }
   }
 
@@ -1001,7 +1012,7 @@ class AliasAnalysisTest extends CompilerTest {
       topScope.childScopes should contain(arg2Scope)
     }
 
-    "assign Info.Occurrence to definitions and usages of symbols" in {
+    "assign Info.GraphOccurrence to definitions and usages of symbols" in {
       lambda.arguments.foreach(arg =>
         arg
           .getMetadata(AliasAnalysis)
@@ -1047,7 +1058,7 @@ class AliasAnalysisTest extends CompilerTest {
         .id
 
       graph.linksFor(unknownHereId) shouldBe empty
-      graph.getOccurrence(unknownHereId).get shouldBe an[Occurrence.Use]
+      graph.getOccurrence(unknownHereId).get shouldBe an[GraphOccurrence.Use]
     }
   }
 
