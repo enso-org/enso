@@ -133,7 +133,7 @@ type Table_Not_Found
     to_display_text self =
       case self.related_query_error of
          SQL_Error -> "Table " + self.name + " was not found in the database. The query failed with the following error: " + self.related_query_error.to_display_text + "."
-         Nothing -> "Table " + self.name + " was not found in the database."
+         _ -> "Table " + self.name + " was not found in the database."
 
 type Table_Already_Exists
     ## PRIVATE
