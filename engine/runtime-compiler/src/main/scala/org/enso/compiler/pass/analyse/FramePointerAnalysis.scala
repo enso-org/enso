@@ -7,6 +7,7 @@ import org.enso.compiler.context.{
   LocalScope,
   ModuleContext
 }
+import org.enso.compiler.core.ir.Name.GenericAnnotation
 import org.enso.compiler.core.{CompilerError, IR}
 import org.enso.compiler.core.ir.expression.{Application, Case}
 import org.enso.compiler.core.ir.{
@@ -78,6 +79,15 @@ case object FramePointerAnalysis extends IRPass {
               }
             }
           case _ => ()
+        }
+      case annot: GenericAnnotation =>
+        getAliasAnalysisGraph(annot) match {
+          case Some(annotGraph) =>
+            processExpression(annot.expression, annotGraph)
+          case None =>
+            throw new CompilerError(
+              s"No alias analysis graph found for annotation $annot"
+            )
         }
       case _ => ()
     }

@@ -3,7 +3,13 @@ package org.enso.compiler.test.pass.analyse
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FramePointer, FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{DefinitionArgument, Expression, Module, Name}
+import org.enso.compiler.core.ir.{
+  CallArgument,
+  DefinitionArgument,
+  Expression,
+  Module,
+  Name
+}
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.pass.analyse.alias.{Graph, Info}
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
@@ -296,6 +302,33 @@ class FramePointerAnalysisTest extends CompilerTest {
       }
       allOcc shouldNot be(null)
     }
+
+    "attach frame pointers to arguments in annotation" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+      val ir =
+        """
+          |type List
+          |    @index (t-> t + 1)
+          |    at self index =
+          |        42
+          |""".stripMargin.preprocessModule.analyse
+      val tDefArg = findIRElement[DefinitionArgument.Specified](
+        ir,
+        arg => arg.name.name == "t"
+      )
+      val tUseArg = findIRElement[CallArgument.Specified](
+        ir,
+        arg => {
+          arg.value match {
+            case lit: Name.Literal =>
+              lit.name == "t"
+            case _ => false
+          }
+        }
+      )
+      expectFramePointer(tDefArg, new FramePointer(0, 1))
+      expectFramePointer(tUseArg.value, new FramePointer(1, 1))
+    }
   }
 
   /** Find the first IR element of the given `T` type by the given `filterCondition`.
@@ -324,7 +357,9 @@ class FramePointerAnalysisTest extends CompilerTest {
     ir: IR,
     framePointer: FramePointer
   ): Unit = {
-    withClue("FramePointerAnalysis metadata should be attached to the IR") {
+    withClue(
+      "FramePointerAnalysis metadata should be attached to the IR " + ir
+    ) {
       ir.passData().get(FramePointerAnalysis) shouldBe defined
     }
     ir
