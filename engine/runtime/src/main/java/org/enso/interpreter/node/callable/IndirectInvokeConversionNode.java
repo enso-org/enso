@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.callable;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.GenerateUncached;
@@ -19,15 +20,16 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
-import org.enso.interpreter.runtime.error.Warning;
-import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
+import org.enso.interpreter.runtime.warning.AppendWarningNode;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
+import org.enso.interpreter.runtime.warning.WithWarnings;
 
 @GenerateUncached
 @ReportPolymorphism
@@ -157,9 +159,16 @@ abstract class IndirectInvokeConversionNode extends Node {
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
       int thatArgumentPosition,
-      @Cached IndirectInvokeConversionNode childDispatch) {
+      @Cached IndirectInvokeConversionNode childDispatch,
+      @Cached AppendWarningNode appendWarningNode,
+      @CachedLibrary(limit = "3") WarningsLibrary warnsLib) {
     arguments[thatArgumentPosition] = that.getValue();
-    ArrayRope<Warning> warnings = that.getReassignedWarningsAsRope(this, false);
+    EnsoHashMap warnings;
+    try {
+      warnings = warnsLib.getWarnings(that, false);
+    } catch (UnsupportedMessageException e) {
+      throw CompilerDirectives.shouldNotReachHere(e);
+    }
     Object result =
         childDispatch.execute(
             frame,
@@ -173,7 +182,7 @@ abstract class IndirectInvokeConversionNode extends Node {
             argumentsExecutionMode,
             isTail,
             thatArgumentPosition);
-    return WithWarnings.appendTo(EnsoContext.get(this), result, warnings);
+    return appendWarningNode.executeAppend(null, result, warnings);
   }
 
   @Specialization(guards = "interop.isString(that)")

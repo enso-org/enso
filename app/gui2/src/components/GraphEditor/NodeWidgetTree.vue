@@ -101,7 +101,7 @@ const widgetTree = provideWidgetTree(
 )
 
 const expressionInfo = computed(() => graph.db.getExpressionInfo(props.ast.externalId))
-const suggestionEntry = computed(() => graph.db.nodeMainSuggestion.lookup(props.nodeId))
+const suggestionEntry = computed(() => graph.db.getNodeMainSuggestion(props.nodeId))
 const topLevelIcon = computed(() => {
   switch (props.nodeType) {
     default:

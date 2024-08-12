@@ -8,8 +8,8 @@ import {
   readTokenSpan,
 } from '@/util/ast/raw'
 import { MappedKeyMap, MappedSet, NonEmptyStack } from '@/util/containers'
-import type { LazyObject } from 'shared/ast/parserSupport'
-import { rangeIsBefore, sourceRangeKey, type SourceRange } from 'shared/yjsModel'
+import type { LazyObject } from 'ydoc-shared/ast/parserSupport'
+import { rangeIsBefore, sourceRangeKey, type SourceRange } from 'ydoc-shared/yjsModel'
 
 const ACCESSOR_OPERATOR = '.'
 

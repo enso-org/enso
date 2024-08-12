@@ -4,9 +4,11 @@ import { ref } from 'vue'
 
 import CircularMenu from '@/components/CircularMenu.vue'
 
-const isAutoEvaluationDisabled = ref(false)
+const isRecordingOverridden = ref(false)
 const isDocsVisible = ref(false)
 const isVisualizationVisible = ref(false)
+
+const emptySet = new Set<string>()
 </script>
 
 <template>
@@ -19,10 +21,15 @@ const isVisualizationVisible = ref(false)
     <div style="height: 76px">
       <div style="position: absolute; left: 32px">
         <CircularMenu
-          v-model:is-auto-evaluation-disabled="isAutoEvaluationDisabled"
-          v-model:is-docs-visible="isDocsVisible"
-          v-model:is-visualization-enabled="isVisualizationVisible"
-          @update:isAutoEvaluationDisabled="logEvent('update:isAutoEvaluationDisabled', [$event])"
+          v-model:isRecordingOverridden="isRecordingOverridden"
+          v-model:isDocsVisible="isDocsVisible"
+          v-model:isVisualizationEnabled="isVisualizationVisible"
+          :isRecordingEnabledGlobally="true"
+          :isFullMenuVisible="true"
+          :isRemovable="true"
+          :matchableNodeColors="emptySet"
+          :documentationUrl="undefined"
+          @update:isRecordingOverridden="logEvent('update:isRecordingOverridden', [$event])"
           @update:isDocsVisible="logEvent('update:isDocsVisible', [$event])"
           @update:isVisualizationVisible="logEvent('update:isVisualizationVisible', [$event])"
         />
@@ -30,7 +37,7 @@ const isVisualizationVisible = ref(false)
     </div>
 
     <template #controls>
-      <HstCheckbox v-model="isAutoEvaluationDisabled" title="isAutoEvaluationDisabled" />
+      <HstCheckbox v-model="isRecordingOverridden" title="isRecordingOverridden" />
       <HstCheckbox v-model="isDocsVisible" title="isDocsVisible" />
       <HstCheckbox v-model="isVisualizationVisible" title="isVisualizationVisible" />
     </template>
