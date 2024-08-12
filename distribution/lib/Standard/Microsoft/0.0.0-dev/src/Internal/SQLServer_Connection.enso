@@ -239,6 +239,22 @@ type SQLServer_Connection
         self.connection.execute_update query
 
     ## PRIVATE
+       ADVANCED
+       GROUP Standard.Base.Output
+       ICON data_output
+
+       Executes a raw query. If the query was inserting, updating or
+       deleting rows, the number of affected rows is returned; otherwise it
+       returns 0 for other types of queries (like creating or altering tables).
+
+       Arguments:
+       - query: either raw SQL code as Text or an instance of SQL_Statement
+         representing the query to execute.
+    execute : Text | SQL_Statement -> Integer
+    execute self query =
+        self.connection.execute query
+
+    ## PRIVATE
        Access the dialect.
     dialect self = self.connection.dialect
 

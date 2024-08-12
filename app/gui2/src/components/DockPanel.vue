@@ -59,17 +59,17 @@ const tabStyle = {
         <div class="tab" :style="tabStyle">
           <ToggleIcon
             :modelValue="tab == 'docs'"
-            @update:modelValue="tab = 'docs'"
             title="Documentation Editor"
             icon="text"
+            @update:modelValue="tab = 'docs'"
           />
         </div>
         <div class="tab" :style="tabStyle">
           <ToggleIcon
             :modelValue="tab == 'help'"
-            @update:modelValue="tab = 'help'"
             title="Component Help"
             icon="help"
+            @update:modelValue="tab = 'help'"
           />
         </div>
       </div>
