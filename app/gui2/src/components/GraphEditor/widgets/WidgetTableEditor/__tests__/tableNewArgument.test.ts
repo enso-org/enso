@@ -7,10 +7,7 @@ import { SuggestionDb } from '@/stores/suggestionDatabase'
 import { makeType } from '@/stores/suggestionDatabase/entry'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import { initializeFFI } from 'shared/ast/ffi'
 import { expect, test, vi } from 'vitest'
-
-await initializeFFI()
 
 function suggestionDbWithNothing() {
   const db = new SuggestionDb()
