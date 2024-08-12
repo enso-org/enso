@@ -21,7 +21,7 @@ import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { SuggestionKind, type Typename } from '@/stores/suggestionDatabase/entry'
 import type { VisualizationDataSource } from '@/stores/visualization'
-import { endOnClickOutside, isNodeOutside } from '@/util/autoBlur'
+import { cancelOnClickOutside, isNodeOutside } from '@/util/autoBlur'
 import { tryGetIndex } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { allRanges } from '@/util/data/range'
@@ -78,7 +78,11 @@ const emit = defineEmits<{
 
 const cbRoot = ref<HTMLElement>()
 
-const cbOpen: Interaction = endOnClickOutside(cbRoot, {
+const mode = ref<'componentBrowser' | 'codeEditor'>(
+  props.usage.type === 'newNode' ? 'componentBrowser' : 'codeEditor',
+)
+
+const cbOpen: Interaction = cancelOnClickOutside(cbRoot, {
   cancel: () => emit('canceled'),
   end: () => {
     // In AI prompt mode likely the input is not a valid mode.
@@ -149,28 +153,21 @@ const transform = computed(() => {
   const x = Math.round(screenPosition.x)
   const y = Math.round(screenPosition.y)
 
-  return `translate(${x}px, ${y}px) translateY(-100%)`
+  return `translate(${x}px, ${y}px)`
 })
 
 // === Input and Filtering ===
 
 const input = useComponentBrowserInput()
-const filterFlags = ref({ showUnstable: false, showLocal: false })
 
 const currentFiltering = computed(() => {
   const currentModule = projectStore.modulePath
-  return new Filtering(
-    {
-      ...input.filter.value,
-      ...filterFlags.value,
-    },
-    currentModule?.ok ? currentModule.value : undefined,
-  )
+  return new Filtering(input.filter.value, currentModule?.ok ? currentModule.value : undefined)
 })
 
 watch(currentFiltering, () => {
   selected.value = input.autoSelectFirstComponent.value ? 0 : null
-  scrolling.targetScroll.value = { type: 'bottom' }
+  scrolling.targetScroll.value = { type: 'top' }
 
   // Update `highlightPosition` synchronously, so the subsequent animation `skip` have an effect.
   if (selectedPosition.value != null) {
@@ -227,17 +224,17 @@ const visibleComponents = computed(() => {
   const scrollPos = scrolling.scrollPosition.value
   const topmostVisible = componentAtY(scrollPos)
   const bottommostVisible = Math.max(0, componentAtY(scrollPos + scrollerSize.value.y))
-  return components.value.slice(bottommostVisible, topmostVisible + 1).map((component, i) => {
-    return { component, index: i + bottommostVisible }
+  return components.value.slice(topmostVisible, bottommostVisible + 1).map((component, i) => {
+    return { component, index: i + topmostVisible }
   })
 })
 
 function componentPos(index: number) {
-  return listContentHeight.value - (index + 1) * ITEM_SIZE
+  return index * ITEM_SIZE
 }
 
 function componentAtY(pos: number) {
-  return Math.floor((listContentHeight.value - pos) / ITEM_SIZE)
+  return Math.floor(pos / ITEM_SIZE)
 }
 
 function componentStyle(index: number) {
@@ -370,12 +367,7 @@ const listContentHeight = computed(() =>
   // by top bar.
   Math.max(components.value.length * ITEM_SIZE + TOP_BAR_HEIGHT / 2, scrollerSize.value.y),
 )
-const scrolling = useScrolling(
-  animatedHighlightPosition,
-  computed(() => scrollerSize.value.y),
-  listContentHeight,
-  ITEM_SIZE,
-)
+const scrolling = useScrolling(() => animatedHighlightPosition.value)
 
 const listContentHeightPx = computed(() => `${listContentHeight.value}px`)
 
@@ -387,8 +379,6 @@ function updateScroll() {
 }
 
 // === Documentation Panel ===
-
-const docsVisible = ref(true)
 
 const docEntry: Ref<Opt<SuggestionId>> = ref(null)
 
@@ -402,6 +392,11 @@ function applySuggestion(component: Opt<Component> = null) {
   const suggestionId = component?.suggestionId ?? selectedSuggestionId.value
   if (suggestionId == null) return
   input.applySuggestion(suggestionId)
+}
+
+function applySuggestionAndSwitchToEditMode() {
+  applySuggestion()
+  mode.value = 'codeEditor'
 }
 
 function acceptSuggestion(component: Opt<Component> = null) {
@@ -427,13 +422,17 @@ function acceptInput() {
 // === Key Events Handler ===
 
 const handler = componentBrowserBindings.handler({
-  applySuggestion() {
-    if (input.isAiPrompt.value) return false
-    applySuggestion()
+  applySuggestionAndSwitchToEditMode() {
+    if (mode.value != 'componentBrowser' || input.isAiPrompt.value) return false
+    applySuggestionAndSwitchToEditMode()
   },
   acceptSuggestion() {
-    if (input.isAiPrompt.value) return false
+    if (mode.value != 'componentBrowser' || input.isAiPrompt.value) return false
     acceptSuggestion()
+  },
+  acceptCode() {
+    if (mode.value != 'codeEditor' || input.isAiPrompt.value) return false
+    acceptInput()
   },
   acceptInput() {
     if (input.isAiPrompt.value) return false
@@ -443,16 +442,16 @@ const handler = componentBrowserBindings.handler({
     if (input.isAiPrompt.value) input.applyAIPrompt()
   },
   moveUp() {
-    if (selected.value != null && selected.value < components.value.length - 1) {
-      selected.value += 1
+    if (selected.value != null && selected.value > 0) {
+      selected.value -= 1
     }
     scrolling.scrollWithTransition({ type: 'selected' })
   },
   moveDown() {
     if (selected.value == null) {
-      selected.value = components.value.length - 1
-    } else if (selected.value > 0) {
-      selected.value -= 1
+      selected.value = 0
+    } else if (selected.value < components.value.length - 1) {
+      selected.value += 1
     }
     scrolling.scrollWithTransition({ type: 'selected' })
   },
@@ -477,115 +476,101 @@ const handler = componentBrowserBindings.handler({
     @keydown.arrow-left.stop
     @keydown.arrow-right.stop
   >
-    <div class="panels">
-      <div class="panel components">
-        <div class="top-bar">
-          <div class="top-bar-inner">
-            <ToggleIcon v-model="filterFlags.showLocal" icon="local_scope2" />
-            <ToggleIcon icon="command3" />
-            <ToggleIcon v-model="filterFlags.showUnstable" icon="unstable2" />
-            <ToggleIcon icon="marketplace" />
-            <ToggleIcon v-model="docsVisible" icon="right_side_panel" class="first-on-right" />
-          </div>
-        </div>
-        <div v-if="!input.isAiPrompt.value" class="components-content">
+    <GraphVisualization
+      v-if="mode === 'codeEditor' && !input.isAiPrompt.value"
+      class="visualization-preview"
+      :nodeSize="inputSize"
+      :nodePosition="nodePosition"
+      :scale="1"
+      :isCircularMenuVisible="false"
+      :isFullscreen="false"
+      :isFocused="true"
+      :width="null"
+      :height="null"
+      :dataSource="previewDataSource"
+      :typename="previewedSuggestionReturnType"
+      :currentType="previewedVisualizationId"
+      @update:id="setVisualization($event)"
+    />
+    <ComponentEditor
+      ref="inputElement"
+      v-model="input.content.value"
+      class="component-editor"
+      :navigator="props.navigator"
+      :icon="selectedSuggestionIcon"
+      :nodeColor="nodeColor"
+      :mode="mode"
+      :style="{ '--component-editor-padding': cssComponentEditorPadding }"
+      @accept="mode === 'componentBrowser' ? acceptSuggestion() : acceptInput()"
+      @switchToEditMode="applySuggestionAndSwitchToEditMode()"
+    />
+    <div v-if="mode === 'componentBrowser' && !input.isAiPrompt.value" class="components">
+      <div
+        ref="scroller"
+        class="list"
+        :scrollTop.prop="scrolling.scrollPosition.value"
+        @wheel.stop.passive
+        @scroll="updateScroll"
+      >
+        <div class="list-variant">
           <div
-            ref="scroller"
-            class="list"
-            :scrollTop.prop="scrolling.scrollPosition.value"
-            @wheel.stop.passive
-            @scroll="updateScroll"
+            v-for="item in visibleComponents"
+            :key="item.component.suggestionId"
+            class="component"
+            :style="componentStyle(item.index)"
+            @mousemove="selectWithoutScrolling(item.index)"
+            @click="acceptSuggestion(item.component)"
           >
-            <div class="list-variant">
-              <div
-                v-for="item in visibleComponents"
-                :key="item.component.suggestionId"
-                class="component"
-                :style="componentStyle(item.index)"
-                @mousemove="selectWithoutScrolling(item.index)"
-                @click="acceptSuggestion(item.component)"
-              >
-                <SvgIcon
-                  :name="item.component.icon"
-                  :style="{ color: componentColor(item.component) }"
-                />
-                <span>
-                  <span v-if="!item.component.matchedRanges" v-text="item.component.label"></span>
-                  <span
-                    v-for="range in allRanges(
-                      item.component.matchedRanges,
-                      item.component.label.length,
-                    )"
-                    v-else
-                    :key="`${range.start},${range.end}`"
-                    class="component-label-segment"
-                    :class="{ match: range.isMatch }"
-                    v-text="item.component.label.slice(range.start, range.end)"
-                  ></span>
-                </span>
-              </div>
-            </div>
-            <div class="list-variant selected" :style="{ clipPath: highlightClipPath }">
-              <div
-                v-for="item in visibleComponents"
-                :key="item.component.suggestionId"
-                class="component"
-                :style="{
-                  backgroundColor: componentColor(item.component),
-                  ...componentStyle(item.index),
-                }"
-                @click="acceptSuggestion(item.component)"
-              >
-                <SvgIcon :name="item.component.icon" />
-                <span>
-                  <span v-if="!item.component.matchedRanges" v-text="item.component.label"></span>
-                  <span
-                    v-for="range in allRanges(
-                      item.component.matchedRanges,
-                      item.component.label.length,
-                    )"
-                    v-else
-                    :key="`${range.start},${range.end}`"
-                    class="component-label-segment"
-                    :class="{ match: range.isMatch }"
-                    v-text="item.component.label.slice(range.start, range.end)"
-                  ></span>
-                </span>
-              </div>
-            </div>
+            <SvgIcon
+              :name="item.component.icon"
+              :style="{ color: componentColor(item.component) }"
+            />
+            <span>
+              <span v-if="!item.component.matchedRanges" v-text="item.component.label"></span>
+              <span
+                v-for="range in allRanges(
+                  item.component.matchedRanges,
+                  item.component.label.length,
+                )"
+                v-else
+                :key="`${range.start},${range.end}`"
+                class="component-label-segment"
+                :class="{ match: range.isMatch }"
+                v-text="item.component.label.slice(range.start, range.end)"
+              ></span>
+            </span>
           </div>
         </div>
-        <LoadingSpinner v-if="input.isAiPrompt.value && input.processingAIPrompt" />
+        <div class="list-variant selected" :style="{ clipPath: highlightClipPath }">
+          <div
+            v-for="item in visibleComponents"
+            :key="item.component.suggestionId"
+            class="component"
+            :style="{
+              backgroundColor: componentColor(item.component),
+              ...componentStyle(item.index),
+            }"
+            @click="acceptSuggestion(item.component)"
+          >
+            <SvgIcon :name="item.component.icon" />
+            <span>
+              <span v-if="!item.component.matchedRanges" v-text="item.component.label"></span>
+              <span
+                v-for="range in allRanges(
+                  item.component.matchedRanges,
+                  item.component.label.length,
+                )"
+                v-else
+                :key="`${range.start},${range.end}`"
+                class="component-label-segment"
+                :class="{ match: range.isMatch }"
+                v-text="item.component.label.slice(range.start, range.end)"
+              ></span>
+            </span>
+          </div>
+        </div>
       </div>
-      <div class="panel docs" :class="{ hidden: !docsVisible }">
-        <DocumentationPanel v-model:selectedEntry="docEntry" :aiMode="input.isAiPrompt.value" />
-      </div>
-    </div>
-    <div class="bottom-panel">
-      <GraphVisualization
-        class="visualization-preview"
-        :nodeSize="inputSize"
-        :nodePosition="nodePosition"
-        :scale="1"
-        :isCircularMenuVisible="false"
-        :isFullscreen="false"
-        :isFocused="true"
-        :width="null"
-        :height="null"
-        :dataSource="previewDataSource"
-        :typename="previewedSuggestionReturnType"
-        :currentType="previewedVisualizationId"
-        @update:id="setVisualization($event)"
-      />
-      <ComponentEditor
-        ref="inputElement"
-        v-model="input.content.value"
-        :navigator="props.navigator"
-        :icon="selectedSuggestionIcon"
-        :nodeColor="nodeColor"
-        class="component-editor"
-        :style="{ '--component-editor-padding': cssComponentEditorPadding }"
-      />
+      <LoadingSpinner v-if="input.isAiPrompt.value && input.processingAIPrompt" />
     </div>
   </div>
 </template>
@@ -596,7 +581,7 @@ const handler = componentBrowserBindings.handler({
   --radius-default: 20px;
   --background-color: #eaeaea;
   --doc-panel-bottom-clip: 4px;
-  width: fit-content;
+  width: 295px;
   color: rgba(0, 0, 0, 0.6);
   font-size: 11.5px;
   display: flex;
@@ -604,45 +589,18 @@ const handler = componentBrowserBindings.handler({
   gap: 4px;
 }
 
-.panels {
-  display: flex;
-  flex-direction: row;
-  gap: 4px;
-}
-
-.panel {
+.components {
+  width: 100%;
   height: 380px;
+  /* position: absolute; */
   border: none;
   border-radius: var(--radius-default);
   background-color: var(--background-color);
 }
 
-.components {
-  width: 190px;
-  position: relative;
-}
-
-.components-content {
-  position: absolute;
-  top: 0px;
-  padding: 4px;
+.list {
   width: 100%;
   height: 100%;
-}
-
-.docs {
-  width: 406px;
-  clip-path: inset(0 0 0 0 round var(--radius-default));
-  transition: clip-path 0.2s;
-}
-.docs.hidden {
-  clip-path: inset(0 100% 0 0 round var(--radius-default));
-}
-
-.list {
-  top: var(--radius-default);
-  width: 100%;
-  height: calc(100% - var(--radius-default));
   overflow-x: hidden;
   overflow-y: auto;
   position: relative;
@@ -712,12 +670,8 @@ const handler = componentBrowserBindings.handler({
   }
 }
 
-.bottom-panel {
-  position: relative;
-}
-
 .component-editor {
-  position: absolute;
+  position: relative;
 }
 
 .visualization-preview {
