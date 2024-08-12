@@ -78,7 +78,7 @@ closest_storage_type value_type = case value_type of
    This step is unnecessary for primitive and builtin values, but necessary for
    values such as `Decimal`/`BigDecimal`.
 enso_to_java x = case x of
-    Decimal.Value big_decimal -> big_decimal
+    #Decimal.Value big_decimal -> big_decimal
     _ -> x
 
 ## PRIVATE
