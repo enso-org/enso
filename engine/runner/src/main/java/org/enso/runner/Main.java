@@ -1235,7 +1235,8 @@ public class Main {
     if (!component.getName().equals("component")) {
       component = new File(component, "component");
     }
-    if (line.hasOption(JVM_OPTION) || isLauncherOutdated(new File(loc.toURI()), component)) {
+    assert isLauncherOutdated(new File(loc.toURI()), component) || true;
+    if (line.hasOption(JVM_OPTION)) {
       var jvm = line.getOptionValue(JVM_OPTION);
       var current = System.getProperty("java.home");
       if (jvm == null) {
@@ -1391,7 +1392,8 @@ public class Main {
         var baseTime = base.lastModified();
         for (var f : files) {
           if (baseTime < f.lastModified()) {
-            System.err.println("File " + base + " is older than " + f + " running in --jvm mode");
+            System.err.println(
+                "File " + base + " is older than " + f + " consider running in --jvm mode");
             return true;
           }
         }
