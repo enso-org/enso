@@ -202,6 +202,7 @@ type Connection
 
        Arguments:
        - query: name of the table or sql statement to query.
+         If supplied as `Text` it is treated as a table name.
        - alias: optionally specify a friendly alias for the query.
 
        ! Error Conditions
@@ -242,6 +243,7 @@ type Connection
 
        Arguments:
        - query: name of the table or sql statement to query.
+         If supplied as `Text` it is treated as a table name.
        - limit: the maximum number of rows to read.
 
        ? Side Effects
@@ -499,7 +501,7 @@ make_schema_selector connection include_any:Boolean=False =
 make_table_name_selector : Connection -> Widget
 make_table_name_selector connection =
     tables_to_display = connection.tables.at "Name" . to_vector
-    table_name_values = tables_to_display.map t-> Option t ('..Table_Name ' + t.pretty)
+    table_name_values = tables_to_display.map t-> Option t t.pretty
     values = table_name_values + [Option '<Table_Name>' '..Table_Name ""', Option '<Raw_SQL>' '..Raw_SQL ""']
     Single_Choice display=Display.Always values=values
 

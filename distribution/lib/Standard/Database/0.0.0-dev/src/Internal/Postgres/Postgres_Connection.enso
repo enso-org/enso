@@ -145,6 +145,7 @@ type Postgres_Connection
 
        Arguments:
        - query: name of the table or sql statement to query.
+         If supplied as `Text` it is treated as a table name.
        - alias: optionally specify a friendly alias for the query.
 
        ! Error Conditions
@@ -164,6 +165,7 @@ type Postgres_Connection
 
        Arguments:
        - query: name of the table or sql statement to query.
+         If supplied as `Text` it is treated as a table name.
        - limit: the maximum number of rows to read.
 
        ? Side Effects
