@@ -386,6 +386,24 @@ type Connection
                     result
 
     ## PRIVATE
+       ADVANCED
+
+       Executes a raw query. If the query was inserting, updating or
+       deleting rows, the number of affected rows is returned; otherwise it
+       returns 0 for other types of queries (like creating or altering tables).
+
+       Arguments:
+       - query: either raw SQL code as Text or an instance of SQL_Statement
+         representing the query to execute.
+    execute : Text | SQL_Statement -> Integer
+    execute self query =
+        Execution_Context.Output.if_enabled disabled_message="Executing update queries is forbidden as the Output context is disabled." panic=False <|
+            result = self.jdbc_connection.execute query
+            stmt = result.second
+            check_statement_is_allowed self stmt
+            stmt.getUpdateCount
+
+    ## PRIVATE
        Drops a table.
 
        Arguments:
