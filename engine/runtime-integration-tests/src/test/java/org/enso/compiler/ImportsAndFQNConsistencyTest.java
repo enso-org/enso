@@ -103,6 +103,7 @@ main = 42
   @AfterClass
   public static void disposeCtx() {
     ctx.close();
+    ctx = null;
   }
 
   private final Symbol symbol;

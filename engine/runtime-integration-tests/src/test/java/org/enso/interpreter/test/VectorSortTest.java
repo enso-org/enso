@@ -47,6 +47,7 @@ public class VectorSortTest {
     values.addAll(valuesGenerator.booleans());
     values.addAll(valuesGenerator.durations());
     values.addAll(valuesGenerator.maps());
+    valuesGenerator.dispose();
   }
 
   @AfterClass

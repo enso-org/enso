@@ -92,6 +92,8 @@ public class EqualsTest {
           .toArray(new Object[] {});
     } catch (Exception e) {
       throw new AssertionError(e);
+    } finally {
+      valGenerator.dispose();
     }
   }
 
