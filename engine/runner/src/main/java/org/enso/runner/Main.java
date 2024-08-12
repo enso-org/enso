@@ -1271,7 +1271,11 @@ public class Main {
             commandAndArgs.add(op);
           }
         }
-
+        var assertsOn = false;
+        assert assertsOn = true;
+        if (assertsOn) {
+          commandAndArgs.add("-ea");
+        }
         commandAndArgs.add("--add-opens=java.base/java.nio=ALL-UNNAMED");
         commandAndArgs.add("--module-path");
         if (!component.isDirectory()) {
