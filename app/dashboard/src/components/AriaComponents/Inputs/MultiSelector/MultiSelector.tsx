@@ -1,7 +1,7 @@
-/** @file A horizontal selector. */
+/** @file A horizontal selector supporting multiple input. */
 import * as React from 'react'
 
-import type * as twv from 'tailwind-variants'
+import type { VariantProps } from 'tailwind-variants'
 
 import {
   FieldError,
@@ -39,7 +39,7 @@ export interface MultiSelectorProps<
       TTransformedValues
     >,
     FieldProps,
-    Omit<twv.VariantProps<typeof MULTI_SELECTOR_STYLES>, 'disabled' | 'invalid'> {
+    Omit<VariantProps<typeof MULTI_SELECTOR_STYLES>, 'disabled' | 'invalid'> {
   readonly items: readonly Extract<TFieldValues[TFieldName], readonly unknown[]>[number][]
   readonly itemToString?: (
     item: Extract<TFieldValues[TFieldName], readonly unknown[]>[number],

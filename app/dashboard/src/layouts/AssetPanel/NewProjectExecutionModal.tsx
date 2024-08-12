@@ -18,8 +18,11 @@ import {
   Input,
   MultiSelector,
   Selector,
+  ZONED_DATE_TIME_SCHEMA,
 } from '#/components/AriaComponents'
+import DatePicker from '#/components/AriaComponents/Inputs/DatePicker/DatePicker'
 import { backendMutationOptions } from '#/hooks/backendHooks'
+import { useScheduleMultiSelect } from '#/providers/EnsoDevtoolsProvider'
 import { useText, type GetText } from '#/providers/TextProvider'
 import { useMutation } from '@tanstack/react-query'
 import { DAY_3_LETTER_TEXT_IDS } from 'enso-common/src/utilities/data/dateTime'
@@ -34,6 +37,7 @@ const HOURS: readonly number[] = [...Array(24).keys()]
 function createUpsertExecutionSchema(getText: GetText) {
   const schema = z.object({
     repeatInterval: z.enum(PROJECT_REPEAT_INTERVALS),
+    date: ZONED_DATE_TIME_SCHEMA,
     dates: z
       .number()
       .int()
@@ -152,6 +156,7 @@ export interface NewProjectExecutionModalProps {
 export default function NewProjectExecutionModal(props: NewProjectExecutionModalProps) {
   const { backend, item } = props
   const { getText } = useText()
+  const multiSelect = useScheduleMultiSelect() ?? false
 
   const form = Form.useForm({ schema: createUpsertExecutionSchema(getText) })
 
@@ -189,45 +194,50 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
             items={PROJECT_REPEAT_INTERVALS}
             itemToString={(interval) => getText(REPEAT_INTERVAL_TO_TEXT_ID[interval])}
           />
-          {repeatInterval === 'monthly' && (
-            <MultiSelector
-              form={form}
-              isRequired
-              name="dates"
-              label={getText('datesLabel')}
-              items={DATES}
-              itemToString={(n) => String(n + 1)}
-              columns={10}
-            />
-          )}
-          {repeatInterval === 'weekly' && (
-            <MultiSelector
-              form={form}
-              isRequired
-              name="days"
-              label={getText('daysLabel')}
-              items={DAYS}
-              itemToString={(n) => getText(DAY_3_LETTER_TEXT_IDS[n] ?? 'monday3')}
-            />
-          )}
-          {repeatInterval !== 'hourly' && (
-            <MultiSelector
-              form={form}
-              isRequired
-              name="hours"
-              label={getText('hoursLabel')}
-              items={HOURS}
-              columns={12}
-            />
-          )}
-          <Input
-            required
-            name="minute"
-            label={getText('minuteLabel')}
-            type="number"
-            min={0}
-            max={59}
-          />
+          {!multiSelect ?
+            <DatePicker form={form} isRequired name="date" />
+          : <>
+              {repeatInterval === 'monthly' && (
+                <MultiSelector
+                  form={form}
+                  isRequired
+                  name="dates"
+                  label={getText('datesLabel')}
+                  items={DATES}
+                  itemToString={(n) => String(n + 1)}
+                  columns={10}
+                />
+              )}
+              {repeatInterval === 'weekly' && (
+                <MultiSelector
+                  form={form}
+                  isRequired
+                  name="days"
+                  label={getText('daysLabel')}
+                  items={DAYS}
+                  itemToString={(n) => getText(DAY_3_LETTER_TEXT_IDS[n] ?? 'monday3')}
+                />
+              )}
+              {repeatInterval !== 'hourly' && (
+                <MultiSelector
+                  form={form}
+                  isRequired
+                  name="hours"
+                  label={getText('hoursLabel')}
+                  items={HOURS}
+                  columns={12}
+                />
+              )}
+              <Input
+                required
+                name="minute"
+                label={getText('minuteLabel')}
+                type="number"
+                min={0}
+                max={59}
+              />
+            </>
+          }
           <Selector
             form={form}
             isRequired

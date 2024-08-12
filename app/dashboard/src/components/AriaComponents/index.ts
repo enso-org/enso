@@ -5,7 +5,6 @@
 export * from './Alert'
 export * from './Button'
 export * from './CopyBlock'
-export * from './Dialog'
 export * from './Form'
 export * from './Inputs'
 export * from './Radio'
