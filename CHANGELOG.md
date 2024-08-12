@@ -29,14 +29,12 @@
 - [Space-precedence does not apply to value-level operators][10597]
 - [Must specify `--repl` to enable debug server][10709]
 - [Improved parser error reporting and performance][10734]
-- [Import all available libraries in `--repl` mode][10746]
 
 [10468]: https://github.com/enso-org/enso/pull/10468
 [10535]: https://github.com/enso-org/enso/pull/10535
 [10597]: https://github.com/enso-org/enso/pull/10597
 [10709]: https://github.com/enso-org/enso/pull/10709
 [10734]: https://github.com/enso-org/enso/pull/10734
-[10746]: https://github.com/enso-org/enso/pull/10746
 
 #### Enso IDE
 
