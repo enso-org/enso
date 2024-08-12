@@ -1267,12 +1267,14 @@ lazy val `helidon-test` = project
     modulePath := {
       JPMSUtils.filterModulesFromUpdate(
         update.value,
-        helidon,
+        GraalVM.modules ++ GraalVM.jsPkgs ++ helidon,
         streams.value.log,
         shouldContainAll = true
       )
     },
     libraryDependencies ++= Seq(
+      "org.graalvm.truffle"  % "truffle-api"                 % graalMavenPackagesVersion % "provided",
+      "org.graalvm.polyglot" % "js-community"                % graalMavenPackagesVersion % "runtime",
       "io.helidon.webclient" % "helidon-webclient-websocket" % helidonVersion,
       "io.helidon.webserver" % "helidon-webserver-websocket" % helidonVersion
     )
@@ -1310,9 +1312,10 @@ lazy val `helidon-test` = project
     rebuildNativeImage := NativeImage
       .buildNativeImage(
         "ht",
-        staticOnLinux  = false,
-        includeRuntime = false,
-        mainClass      = Some("org.enso.ht.Main")
+        staticOnLinux     = false,
+        includeRuntime    = false,
+        mainClass         = Some("org.enso.ht.Main"),
+        additionalOptions = Seq("--enable-preview")
       )
       .value,
     buildNativeImage := NativeImage
