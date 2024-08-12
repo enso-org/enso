@@ -45,17 +45,6 @@ public class ErrorCompilerTest extends CompilerTest {
   }
 
   @Test
-  public void unaryMinus() throws Exception {
-    var ir = parse("""
-    from Standard.Base import all
-
-    main = Date.new day=-
-    """);
-
-    assertSingleSyntaxError(ir, Syntax.UnrecognizedToken$.MODULE$, "Unrecognized token", 51, 52);
-  }
-
-  @Test
   public void dotUnderscore2() throws Exception {
     var ir = parse("""
     run op =
@@ -404,21 +393,21 @@ public class ErrorCompilerTest extends CompilerTest {
   public void malformedExport9() throws Exception {
     var ir = parse("from export all");
     assertSingleSyntaxError(
-        ir, invalidExport("`all` not allowed in `export` statement"), null, 0, 15);
+        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 15);
   }
 
   @Test
   public void malformedExport10() throws Exception {
     var ir = parse("from Foo export all hiding");
     assertSingleSyntaxError(
-        ir, invalidExport("`hiding` not allowed in `export` statement"), null, 0, 26);
+        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 26);
   }
 
   @Test
   public void malformedExport11() throws Exception {
     var ir = parse("from Foo export all hiding X.Y");
     assertSingleSyntaxError(
-        ir, invalidExport("`hiding` not allowed in `export` statement"), null, 0, 30);
+        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 30);
   }
 
   @Test
@@ -596,8 +585,8 @@ public class ErrorCompilerTest extends CompilerTest {
     var ir = parse("""
         from project.Module export all
         """);
-    var expectedReason = new Syntax.InvalidExport("`all` not allowed in `export` statement");
-    assertSingleSyntaxError(ir, expectedReason, null, 0, 30);
+    assertSingleSyntaxError(
+        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 30);
   }
 
   @Test
@@ -605,8 +594,8 @@ public class ErrorCompilerTest extends CompilerTest {
     var ir = parse("""
         from project.Module export all hiding Foo
         """);
-    var expectedReason = new Syntax.InvalidExport("`hiding` not allowed in `export` statement");
-    assertSingleSyntaxError(ir, expectedReason, null, 0, 41);
+    assertSingleSyntaxError(
+        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 41);
   }
 
   private void assertSingleSyntaxError(

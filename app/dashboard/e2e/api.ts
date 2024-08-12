@@ -79,6 +79,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     rootDirectoryId: defaultDirectoryId,
     userGroups: null,
     plan: backend.Plan.enterprise,
+    isOrganizationAdmin: true,
   }
   const defaultOrganization: backend.OrganizationInfo = {
     id: defaultOrganizationId,
@@ -259,6 +260,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       isEnabled: true,
       userGroups: null,
       plan: backend.Plan.enterprise,
+      isOrganizationAdmin: true,
       ...rest,
     }
     users.push(user)
@@ -733,6 +735,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         rootDirectoryId,
         userGroups: null,
         plan: backend.Plan.enterprise,
+        isOrganizationAdmin: true,
       }
       await route.fulfill({ json: currentUser })
     })
@@ -773,12 +776,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     await post(remoteBackendPaths.CREATE_TAG_PATH + '*', (route) => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const body: backend.CreateTagRequestBody = route.request().postDataJSON()
-      const json: backend.Label = {
-        id: backend.TagId(`tag-${uniqueString.uniqueString()}`),
-        value: backend.LabelName(body.value),
-        color: body.color,
-      }
-      return json
+      return addLabel(body.value, body.color)
     })
     await post(remoteBackendPaths.CREATE_PROJECT_PATH + '*', (_route, request) => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment

@@ -1,20 +1,22 @@
 /** @file Permissions for a specific user or user group on a specific asset. */
 import * as React from 'react'
 
+import { useMutation } from '@tanstack/react-query'
+
 import type * as text from 'enso-common/src/text'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import { backendMutationOptions } from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as textProvider from '#/providers/TextProvider'
 
-import * as aria from '#/components/aria'
 import PermissionSelector from '#/components/dashboard/PermissionSelector'
 import FocusArea from '#/components/styled/FocusArea'
 
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 
+import { Text } from '#/components/AriaComponents'
 import * as object from '#/utilities/object'
 
 // =================
@@ -58,7 +60,9 @@ export default function Permission(props: PermissionProps) {
   const isDisabled = isOnlyOwner && permissionId === self.user.userId
   const assetTypeName = getText(ASSET_TYPE_TO_TEXT_ID[asset.type])
 
-  const createPermissionMutation = backendHooks.useBackendMutation(backend, 'createPermission')
+  const createPermission = useMutation(
+    backendMutationOptions(backend, 'createPermission'),
+  ).mutateAsync
 
   React.useEffect(() => {
     setPermission(initialPermission)
@@ -68,7 +72,7 @@ export default function Permission(props: PermissionProps) {
     try {
       setPermission(newPermission)
       outerSetPermission(newPermission)
-      await createPermissionMutation.mutateAsync([
+      await createPermission([
         {
           actorsIds: [backendModule.getAssetPermissionId(newPermission)],
           resourceId: asset.id,
@@ -85,7 +89,7 @@ export default function Permission(props: PermissionProps) {
   return (
     <FocusArea active={!isDisabled} direction="horizontal">
       {(innerProps) => (
-        <div className="flex items-center gap-user-permission" {...innerProps}>
+        <div className="flex w-full items-center gap-user-permission" {...innerProps}>
           <PermissionSelector
             showDelete
             isDisabled={isDisabled}
@@ -100,7 +104,7 @@ export default function Permission(props: PermissionProps) {
               doDelete(backendModule.getAssetPermissionId(permission))
             }}
           />
-          <aria.Text className="text">{backendModule.getAssetPermissionName(permission)}</aria.Text>
+          <Text truncate="1">{backendModule.getAssetPermissionName(permission)}</Text>
         </div>
       )}
     </FocusArea>

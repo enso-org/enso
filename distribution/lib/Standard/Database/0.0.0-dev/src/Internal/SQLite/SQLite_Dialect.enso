@@ -32,6 +32,7 @@ import project.SQL.SQL_Builder
 import project.SQL_Statement.SQL_Statement
 import project.SQL_Type.SQL_Type
 from project.Errors import SQL_Error, Unsupported_Database_Operation
+from project.Dialect import Temp_Table_Style
 
 ## PRIVATE
 
@@ -193,9 +194,9 @@ type SQLite_Dialect
     supports_float_round_decimal_places self = True
 
     ## PRIVATE
-       Specifies whether the Database supports CREATE TEMPORARY TABLE syntax.
-    suppports_temporary_table_syntax : Boolean
-    suppports_temporary_table_syntax self = True
+       Specifies how the database creates temp tables.
+    temp_table_style : Temp_Table_Style
+    temp_table_style self = Temp_Table_Style.Temporary_Table
 
     ## PRIVATE
        SQLite allows mixed type columns, but we want our columns to be uniform.

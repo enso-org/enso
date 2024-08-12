@@ -1,14 +1,17 @@
 /** @file Provides an {@link AuthService} which consists of an underyling `Cognito` API
  * wrapper, along with some convenience callbacks to make URL redirects for the authentication flows
  * work with Electron. */
+import * as React from 'react'
+
 import * as amplify from '@aws-amplify/auth'
+import { useNavigate } from 'react-router'
 
 import * as common from 'enso-common'
 import * as detect from 'enso-common/src/detect'
 
 import * as appUtils from '#/appUtils'
 
-import type * as loggerProvider from '#/providers/LoggerProvider'
+import { useLogger, type Logger } from '#/providers/LoggerProvider'
 
 import type * as saveAccessTokenModule from '#/utilities/accessToken'
 
@@ -90,16 +93,9 @@ export function toNestedAmplifyConfig(config: AmplifyConfig): NestedAmplifyConfi
 
 /** Configuration for the authentication service. */
 export interface AuthConfig {
-  /** Logger for the authentication service. */
-  readonly logger: loggerProvider.Logger
   /** Whether the application supports deep links. This is only true when using
    * the installed app on macOS and Windows. */
   readonly supportsDeepLinks: boolean
-  /** Function to navigate to a given (relative) URL.
-   *
-   * Used to redirect to pages like the password reset page with the query parameters set in the
-   * URL (e.g., `?verification_code=...`). */
-  readonly navigate: (url: string) => void
 }
 
 // ===================
@@ -118,24 +114,28 @@ export interface AuthService {
  *
  * # Warning
  *
- * This function should only be called once, and the returned service should be used throughout the
- * application. This is because it performs global configuration of the Amplify library. */
-export function initAuthService(authConfig: AuthConfig): AuthService | null {
-  const { logger, supportsDeepLinks, navigate } = authConfig
-  const amplifyConfig = loadAmplifyConfig(logger, supportsDeepLinks, navigate)
-  const cognito =
-    amplifyConfig == null ? null : (
-      new cognitoModule.Cognito(logger, supportsDeepLinks, amplifyConfig)
-    )
+ * This hook should only be called in a single place, as it performs global configuration of the
+ * Amplify library. */
+export function useInitAuthService(authConfig: AuthConfig): AuthService | null {
+  const { supportsDeepLinks } = authConfig
+  const logger = useLogger()
+  const navigate = useNavigate()
+  return React.useMemo(() => {
+    const amplifyConfig = loadAmplifyConfig(logger, supportsDeepLinks, navigate)
+    const cognito =
+      amplifyConfig == null ? null : (
+        new cognitoModule.Cognito(logger, supportsDeepLinks, amplifyConfig)
+      )
 
-  return cognito == null ? null : (
-      { cognito, registerAuthEventListener: listen.registerAuthEventListener }
-    )
+    return cognito == null ? null : (
+        { cognito, registerAuthEventListener: listen.registerAuthEventListener }
+      )
+  }, [logger, navigate, supportsDeepLinks])
 }
 
 /** Return the appropriate Amplify configuration for the current platform. */
 function loadAmplifyConfig(
-  logger: loggerProvider.Logger,
+  logger: Logger,
   supportsDeepLinks: boolean,
   navigate: (url: string) => void,
 ): AmplifyConfig | null {
@@ -213,7 +213,7 @@ function loadAmplifyConfig(
  *
  * All URLs that don't have a pathname that starts with `AUTHENTICATION_PATHNAME_BASE` will be
  * ignored by this handler. */
-function setDeepLinkHandler(logger: loggerProvider.Logger, navigate: (url: string) => void) {
+function setDeepLinkHandler(logger: Logger, navigate: (url: string) => void) {
   window.authenticationApi.setDeepLinkHandler((urlString: string) => {
     const url = new URL(urlString)
     logger.log(`Parsed pathname: ${url.pathname}`)

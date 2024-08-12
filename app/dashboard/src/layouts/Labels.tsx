@@ -1,10 +1,12 @@
 /** @file A list of selectable labels. */
 import * as React from 'react'
 
+import { useMutation } from '@tanstack/react-query'
+
 import PlusIcon from '#/assets/plus.svg'
 import Trash2Icon from '#/assets/trash2.svg'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import { backendMutationOptions, useListTags } from '#/hooks/backendHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -21,6 +23,8 @@ import NewLabelModal from '#/modals/NewLabelModal'
 
 import type Backend from '#/services/Backend'
 
+import AssetEventType from '#/events/AssetEventType'
+import { useDispatchAssetEvent } from '#/layouts/AssetsTable/EventListProvider'
 import * as array from '#/utilities/array'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as drag from '#/utilities/drag'
@@ -44,9 +48,15 @@ export default function Labels(props: LabelsProps) {
   const currentNegativeLabels = query.negativeLabels
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const labels = backendHooks.useBackendListTags(backend) ?? []
-
-  const deleteTagMutation = backendHooks.useBackendMutation(backend, 'deleteTag')
+  const dispatchAssetEvent = useDispatchAssetEvent()
+  const labels = useListTags(backend) ?? []
+  const deleteTag = useMutation(
+    backendMutationOptions(backend, 'deleteTag', {
+      onSuccess: (_data, [, labelName]) => {
+        dispatchAssetEvent({ type: AssetEventType.deleteLabel, labelName })
+      },
+    }),
+  ).mutate
 
   return (
     <FocusArea direction="vertical">
@@ -120,7 +130,7 @@ export default function Labels(props: LabelsProps) {
                             <ConfirmDeleteModal
                               actionText={getText('deleteLabelActionText', label.value)}
                               doDelete={() => {
-                                deleteTagMutation.mutate([label.id, label.value])
+                                deleteTag([label.id, label.value])
                               }}
                             />,
                           )

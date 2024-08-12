@@ -4,12 +4,12 @@ import type { DataServer } from '@/util/net/dataServer'
 import { Keccak, sha3_224 as SHA3 } from '@noble/hashes/sha3'
 import type { Hash } from '@noble/hashes/utils'
 import { bytesToHex } from '@noble/hashes/utils'
-import { escapeTextLiteral } from 'shared/ast'
-import type { LanguageServer } from 'shared/languageServer'
-import { ErrorCode, RemoteRpcError } from 'shared/languageServer'
-import type { Path, StackItem, Uuid } from 'shared/languageServerTypes'
-import { Err, Ok, withContext, type Result } from 'shared/util/data/result'
 import { markRaw, toRaw } from 'vue'
+import { escapeTextLiteral } from 'ydoc-shared/ast/text'
+import type { LanguageServer } from 'ydoc-shared/languageServer'
+import { ErrorCode, RemoteRpcError } from 'ydoc-shared/languageServer'
+import type { Path, StackItem, Uuid } from 'ydoc-shared/languageServerTypes'
+import { Err, Ok, withContext, type Result } from 'ydoc-shared/util/data/result'
 
 // === Constants ===
 

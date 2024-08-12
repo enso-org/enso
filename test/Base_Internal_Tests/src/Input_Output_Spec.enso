@@ -1,0 +1,86 @@
+from Standard.Base import all
+
+from Standard.Test import all
+import Standard.Test.Test_Environment
+
+import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Runtime.Managed_Resource.Managed_Resource
+import Standard.Base.System.Input_Stream.Input_Stream
+
+polyglot java import org.enso.base_test_helpers.RangeStream
+import Standard.Base.Internal.Extra_Imports.Stream_Utils
+import Standard.Base.Internal.Extra_Imports.File_Utils
+
+
+add_specs suite_builder =
+    suite_builder.group "I/O Checks" group_builder->
+        group_builder.specify "read without available" <|
+            stream_like = is_like [20, 5, 1, 10] False
+            is = Stream_Utils.asInputStream stream_like
+            is.available . should_equal 0
+
+            is.read . should_equal 20
+            is.read . should_equal 5
+
+            is.available . should_equal 0
+
+            is.read . should_equal 1
+            is.read . should_equal 10
+
+            is.available . should_equal 0
+
+        group_builder.specify "read with available" <|
+            stream_like = is_like [20, 6, 8, 23] True
+            is = Stream_Utils.asInputStream stream_like
+            is.available . should_equal 4
+
+            is.read . should_equal 20
+            is.read . should_equal 6
+
+            is.available . should_equal 2
+
+            is.read . should_equal 8
+            is.read . should_equal 23
+
+            is.available . should_equal 0
+
+    suite_builder.group "Host File values behaviour in Enso" group_builder->
+        group_builder.specify "File in Dictionary supports host objects as keys" <|
+            # java.nio.path.Path has proper implementation of hashCode
+            dict = Dictionary.singleton (File_Utils.toPath "/home/user/file.txt") 42
+            dict.get "X" . should_equal Nothing
+            dict.get "A" . should_equal Nothing
+            dict.get (File_Utils.toPath "/home/user/file.txt") . should_equal 42
+
+        group_builder.specify "File equals on host values" <|
+            path1 = File_Utils.toPath "home" . resolve "user" . resolve "file.txt"
+            path2 = File_Utils.toPath "home" . resolve "user" . resolve "file.txt"
+            (path1 == path2).should_be_true
+            path3 = path1.resolve "subfile.txt"
+            (path3 == path2).should_be_false
+
+
+
+foreign js is_like data available = """
+    let at = 0
+    let is = {
+        read : function(arr, off, len) {
+          let cnt = 0;
+          while (len-- > 0) {
+            arr[off++] = data[at++];
+            cnt++;
+          }
+          return cnt;
+        }
+    }
+    if (available) {
+      is.available = function() {
+        return data.length - at;
+      };
+    }
+    return is;
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

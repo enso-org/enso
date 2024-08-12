@@ -14,11 +14,15 @@ import { Vec2 } from '@/util/data/vec2'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
 import { syncSet } from '@/util/reactivity'
 import * as set from 'lib0/set'
-import { methodPointerEquals, type MethodCall, type StackItem } from 'shared/languageServerTypes'
-import type { Opt } from 'shared/util/data/opt'
-import type { ExternalId, SourceRange, VisualizationMetadata } from 'shared/yjsModel'
-import { isUuid, sourceRangeKey, visMetadataEquals } from 'shared/yjsModel'
 import { reactive, ref, type Ref } from 'vue'
+import {
+  methodPointerEquals,
+  type MethodCall,
+  type StackItem,
+} from 'ydoc-shared/languageServerTypes'
+import type { Opt } from 'ydoc-shared/util/data/opt'
+import type { ExternalId, SourceRange, VisualizationMetadata } from 'ydoc-shared/yjsModel'
+import { isUuid, sourceRangeKey, visMetadataEquals } from 'ydoc-shared/yjsModel'
 
 export interface MethodCallInfo {
   methodCall: MethodCall
@@ -207,20 +211,24 @@ export class GraphDb {
     return Array.from(ports, (port) => [id, port])
   })
 
-  nodeMainSuggestion = new ReactiveMapping(this.nodeIdToNode, (_id, entry) => {
+  nodeMainSuggestionId = new ReactiveMapping(this.nodeIdToNode, (_id, entry) => {
     const expressionInfo = this.getExpressionInfo(entry.innerExpr.id)
     const method = expressionInfo?.methodCall?.methodPointer
     if (method == null) return
-    const suggestionId = this.suggestionDb.findByMethodPointer(method)
+    return this.suggestionDb.findByMethodPointer(method)
+  })
+
+  getNodeMainSuggestion(id: NodeId) {
+    const suggestionId = this.nodeMainSuggestionId.lookup(id)
     if (suggestionId == null) return
     return this.suggestionDb.get(suggestionId)
-  })
+  }
 
   nodeColor = new ReactiveMapping(this.nodeIdToNode, (id, entry) => {
     if (entry.colorOverride != null) return entry.colorOverride
     return computeNodeColor(
       () => entry.type,
-      () => tryGetIndex(this.groups.value, this.nodeMainSuggestion.lookup(id)?.groupIndex),
+      () => tryGetIndex(this.groups.value, this.getNodeMainSuggestion(id)?.groupIndex),
       () => this.getExpressionInfo(id)?.typename,
     )
   })
@@ -291,11 +299,7 @@ export class GraphDb {
   }
 
   getMethodCallInfo(id: AstId): MethodCallInfo | undefined {
-    const info = this.getExpressionInfo(id)
-    if (info == null) return
-    const payloadFuncSchema =
-      info.payload.type === 'Value' ? info.payload.functionSchema : undefined
-    const methodCall = info.methodCall ?? payloadFuncSchema
+    const methodCall = this.getMethodCall(id)
     if (methodCall == null) return
     const suggestionId = this.suggestionDb.findByMethodPointer(methodCall.methodPointer)
     if (suggestionId == null) return

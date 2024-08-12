@@ -1,10 +1,10 @@
 /** @file A modal with inputs for user email and permission level. */
 import * as React from 'react'
 
-import * as reactQuery from '@tanstack/react-query'
+import { useMutation, useSuspenseQueries } from '@tanstack/react-query'
 import isEmail from 'validator/es/lib/isEmail'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import { backendMutationOptions } from '#/hooks/backendHooks'
 import * as billingHooks from '#/hooks/billing'
 import * as eventCallbackHooks from '#/hooks/eventCallbackHooks'
 
@@ -26,12 +26,11 @@ import * as parserUserEmails from '#/utilities/parseUserEmails'
 /** Props for an {@link InviteUsersForm}. */
 export interface InviteUsersFormProps {
   readonly onSubmitted: (emails: backendModule.EmailAddress[]) => void
-  readonly organizationId: backendModule.OrganizationId
 }
 
 /** A modal with inputs for user email and permission level. */
 export function InviteUsersForm(props: InviteUsersFormProps) {
-  const { onSubmitted, organizationId } = props
+  const { onSubmitted } = props
   const { getText } = textProvider.useText()
   const backend = backendProvider.useRemoteBackendStrict()
   const inputRef = React.useRef<HTMLDivElement>(null)
@@ -39,11 +38,13 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
   const { user } = authProvider.useFullUserSession()
   const { isFeatureUnderPaywall, getFeature } = billingHooks.usePaywall({ plan: user.plan })
 
-  const inviteUserMutation = backendHooks.useBackendMutation(backend, 'inviteUser', {
-    meta: { invalidates: [['listInvitations']], awaitInvalidates: true },
-  })
+  const inviteUserMutation = useMutation(
+    backendMutationOptions(backend, 'inviteUser', {
+      meta: { invalidates: [['listInvitations']], awaitInvalidates: true },
+    }),
+  )
 
-  const [{ data: usersCount }, { data: invitationsCount }] = reactQuery.useSuspenseQueries({
+  const [{ data: usersCount }, { data: invitationsCount }] = useSuspenseQueries({
     queries: [
       {
         queryKey: ['listInvitations'],
@@ -146,9 +147,7 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
           .filter((value): value is backendModule.EmailAddress => isEmail(value))
 
         await Promise.all(
-          emailsToSubmit.map((userEmail) =>
-            inviteUserMutation.mutateAsync([{ userEmail, organizationId }]),
-          ),
+          emailsToSubmit.map((userEmail) => inviteUserMutation.mutateAsync([{ userEmail }])),
         ).then(() => {
           onSubmitted(emailsToSubmit)
         })

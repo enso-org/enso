@@ -14,6 +14,9 @@ type Named_Pattern
     ## Matches one or more whitespace characters anywhere in a string.
     All_Whitespace
 
+    ## Matches one or more newline characters.
+    Newlines
+
     ## Matches one or more digits at the beginning of a string.
     Leading_Numbers
 
@@ -44,6 +47,7 @@ type Named_Pattern
         Named_Pattern.Trailing_Whitespace -> "\s+$"
         Named_Pattern.Duplicate_Whitespace -> "(?<=\s)\s+"
         Named_Pattern.All_Whitespace -> "\s+"
+        Named_Pattern.Newlines -> "(?:\r\n?|\n)"
         Named_Pattern.Leading_Numbers -> "^\d+"
         Named_Pattern.Trailing_Numbers -> "\d+$"
         Named_Pattern.Non_ASCII -> "[^\x00-\x7F]"

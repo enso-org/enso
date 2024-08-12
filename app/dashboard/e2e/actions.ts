@@ -225,7 +225,7 @@ export function locateNotEnabledStub(page: test.Locator | test.Page) {
 
 /** Find a "new folder" icon (if any) on the current page. */
 export function locateNewFolderIcon(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'New Folder' })
+  return page.getByRole('button', { name: 'New Folder', exact: true })
 }
 
 /** Find a "new secret" icon (if any) on the current page. */
@@ -325,7 +325,7 @@ export function locateAssetsTable(page: test.Page) {
 
 /** Find assets table rows (if any) on the current page. */
 export function locateAssetRows(page: test.Page) {
-  return locateAssetsTable(page).locator('tbody').getByRole('row')
+  return locateAssetsTable(page).getByTestId('asset-row')
 }
 
 /** Find the name column of the given asset row. */

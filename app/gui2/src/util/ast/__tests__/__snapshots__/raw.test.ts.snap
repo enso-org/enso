@@ -1373,7 +1373,7 @@ exports[`Parsing 'foo bar=baz' 1`] = `
           "leftOffsetCodeStartUtf8": 7,
           "lengthInCodeBuffer": 1,
           "startInCodeBuffer": 7,
-          "type": "Operator",
+          "type": "AssignmentOperator",
           "whitespaceLengthInCodeBuffer": 0,
           "whitespaceStartInCodeBuffer": 7,
         },
