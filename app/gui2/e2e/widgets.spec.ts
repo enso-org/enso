@@ -541,6 +541,9 @@ test('Table widget', async ({ page }) => {
   await locate.addNewNodeButton(page).click()
   await expect(locate.componentBrowser(page)).toBeVisible()
   await page.keyboard.type('Table.new')
+  // Wait for CB entry to appear; this way we're sure about node name (binding).
+  await expect(locate.componentBrowserSelectedEntry(page)).toHaveCount(1)
+  await expect(locate.componentBrowserSelectedEntry(page)).toHaveText('Table.new')
   await page.keyboard.press('Enter')
   const node = locate.selectedNodes(page)
   await expect(node).toHaveCount(1)
