@@ -35,6 +35,7 @@ class MethodTypeResolver {
 
   // This should be aligned with
   // TODO extract common logic with ModuleScope::lookupMethodDefinition
+  // I wanted to keep this decoupled from StaticModuleScope to keep it as a pure-data class
   private TypeRepresentation lookupMethodDefinition(TypeScopeReference type, String methodName) {
     var definitionModule = moduleResolver.findContainingModule(type);
     if (definitionModule != null) {
@@ -53,7 +54,8 @@ class MethodTypeResolver {
       return definedHere;
     }
 
-    // TODO check for imports
-    return null;
+    for (var importScope : currentModuleScope.getImports()) {
+
+    }
   }
 }

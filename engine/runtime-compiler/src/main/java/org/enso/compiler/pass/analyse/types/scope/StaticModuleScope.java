@@ -96,4 +96,8 @@ public final class StaticModuleScope implements ProcessingPass.Metadata {
   public void registerModuleImport(StaticImportExportScope importScope) {
     imports.add(importScope);
   }
+
+  public List<StaticImportExportScope> getImports() {
+    return imports;
+  }
 }
