@@ -1255,6 +1255,74 @@ lazy val searcher = project
   .dependsOn(testkit % Test)
   .dependsOn(`polyglot-api`)
 
+lazy val `helidon-test` = project
+  .in(file("lib/java/helidon-test"))
+  .enablePlugins(JPMSPlugin)
+  .settings(
+    javaModuleName := "org.enso.ht",
+    Compile / exportJars := true,
+    crossPaths := false,
+    autoScalaLibrary := false,
+    // GraalVM and helidon modules (3rd party modules)
+    modulePath := {
+      JPMSUtils.filterModulesFromUpdate(
+        update.value,
+        helidon,
+        streams.value.log,
+        shouldContainAll = true
+      )
+    },
+    libraryDependencies ++= Seq(
+      "io.helidon.webclient" % "helidon-webclient-websocket" % helidonVersion,
+      "io.helidon.webserver" % "helidon-webserver-websocket" % helidonVersion
+    )
+  )
+  // `Compile/run` settings are necessary for the `run` task to work.
+  .settings(
+    Compile / run / fork := true,
+    Compile / run / connectInput := true,
+    Compile / run / javaOptions := Seq(
+      "-ea"
+      //"-agentlib:native-image-agent=config-merge-dir=/home/dbushev/projects/luna/enso/lib/java/ydoc-server/src/main/resources/META-INF/native-image/org/enso/ydoc"
+    ),
+    // We need to assembly the cmd line options here manually, because we need
+    // to add path to this module, and adding that directly to the `modulePath` setting
+    // would result in an sbt caught in an infinite recursion.
+    //
+    Compile / run / javaOptions ++= {
+      val mp        = modulePath.value
+      val jar       = (Compile / exportedProductJars).value.head
+      val modName   = javaModuleName.value
+      val allMp     = mp ++ Seq(jar.data.absolutePath)
+      val mainKlazz = (Compile / mainClass).value.get
+      val args = Seq(
+        "--module-path",
+        allMp.mkString(File.pathSeparator),
+        "--module",
+        modName + "/" + mainKlazz
+      )
+      args
+    }
+  )
+  .settings(
+    NativeImage.smallJdk := None,
+    NativeImage.additionalCp := Seq.empty,
+    rebuildNativeImage := NativeImage
+      .buildNativeImage(
+        "ht",
+        staticOnLinux  = false,
+        includeRuntime = false,
+        mainClass      = Some("org.enso.ht.Main")
+      )
+      .value,
+    buildNativeImage := NativeImage
+      .incrementalNativeImageBuild(
+        rebuildNativeImage,
+        "ht"
+      )
+      .value
+  )
+
 lazy val `ydoc-server` = project
   .in(file("lib/java/ydoc-server"))
   .enablePlugins(JPMSPlugin)
