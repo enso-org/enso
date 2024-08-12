@@ -575,4 +575,3 @@ export interface NodeDataFromMetadata {
 export interface Node extends NodeDataFromAst, NodeDataFromMetadata {
   zIndex: number
 }
-
