@@ -26,9 +26,9 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.atom.StructsLibrary;
-import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.state.State;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 @GenerateUncached
 public abstract class EqualsAtomNode extends Node {
