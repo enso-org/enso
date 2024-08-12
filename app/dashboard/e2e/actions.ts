@@ -328,6 +328,11 @@ export function locateAssetRows(page: test.Page) {
   return locateAssetsTable(page).getByTestId('asset-row')
 }
 
+/** Find assets table placeholder rows (if any) on the current page. */
+export function locateNonAssetRows(page: test.Page) {
+  return locateAssetsTable(page).locator('tbody tr:not([data-testid="asset-row"])')
+}
+
 /** Find the name column of the given asset row. */
 export function locateAssetName(locator: test.Locator) {
   return locator.locator('> :nth-child(1)')

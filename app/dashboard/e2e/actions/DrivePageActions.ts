@@ -17,15 +17,6 @@ import StartModalActions from './StartModalActions'
 // eslint-disable-next-line @typescript-eslint/no-magic-numbers
 const ASSET_ROW_SAFE_POSITION = { x: 300, y: 16 }
 
-// =======================
-// === locateAssetRows ===
-// =======================
-
-/** Find all assets table rows (if any). */
-function locateAssetRows(page: test.Page) {
-  return actions.locateAssetsTable(page).locator('tbody').getByRole('row')
-}
-
 // ========================
 // === DrivePageActions ===
 // ========================
@@ -97,14 +88,18 @@ export default class DrivePageActions extends PageActions {
       /** Click to select a specific row. */
       clickRow(index: number) {
         return self.step(`Click drive table row #${index}`, (page) =>
-          locateAssetRows(page).nth(index).click({ position: actions.ASSET_ROW_SAFE_POSITION }),
+          actions
+            .locateAssetRows(page)
+            .nth(index)
+            .click({ position: actions.ASSET_ROW_SAFE_POSITION }),
         )
       },
       /** Right click a specific row to bring up its context menu, or the context menu for multiple
        * assets when right clicking on a selected asset when multiple assets are selected. */
       rightClickRow(index: number) {
         return self.step(`Right click drive table row #${index}`, (page) =>
-          locateAssetRows(page)
+          actions
+            .locateAssetRows(page)
             .nth(index)
             .click({ button: 'right', position: actions.ASSET_ROW_SAFE_POSITION }),
         )
@@ -112,19 +107,24 @@ export default class DrivePageActions extends PageActions {
       /** Double click a row. */
       doubleClickRow(index: number) {
         return self.step(`Double dlick drive table row #${index}`, (page) =>
-          locateAssetRows(page).nth(index).dblclick({ position: actions.ASSET_ROW_SAFE_POSITION }),
+          actions
+            .locateAssetRows(page)
+            .nth(index)
+            .dblclick({ position: actions.ASSET_ROW_SAFE_POSITION }),
         )
       },
       /** Interact with the set of all rows in the Drive table. */
-      withRows(callback: baseActions.LocatorCallback) {
+      withRows(
+        callback: (assetRows: test.Locator, nonAssetRows: test.Locator) => Promise<void> | void,
+      ) {
         return self.step('Interact with drive table rows', async (page) => {
-          await callback(locateAssetRows(page))
+          await callback(actions.locateAssetRows(page), actions.locateNonAssetRows(page))
         })
       },
       /** Drag a row onto another row. */
       dragRowToRow(from: number, to: number) {
         return self.step(`Drag drive table row #${from} to row #${to}`, async (page) => {
-          const rows = locateAssetRows(page)
+          const rows = actions.locateAssetRows(page)
           await rows.nth(from).dragTo(rows.nth(to), {
             sourcePosition: ASSET_ROW_SAFE_POSITION,
             targetPosition: ASSET_ROW_SAFE_POSITION,
@@ -134,7 +134,8 @@ export default class DrivePageActions extends PageActions {
       /** Drag a row onto another row. */
       dragRow(from: number, to: test.Locator, force?: boolean) {
         return self.step(`Drag drive table row #${from} to custom locator`, (page) =>
-          locateAssetRows(page)
+          actions
+            .locateAssetRows(page)
             .nth(from)
             .dragTo(to, {
               sourcePosition: ASSET_ROW_SAFE_POSITION,
@@ -146,18 +147,20 @@ export default class DrivePageActions extends PageActions {
        * placeholder row displayed when there are no assets to show. */
       expectPlaceholderRow() {
         return self.step('Expect placeholder row', async (page) => {
-          const rows = locateAssetRows(page)
-          await test.expect(rows).toHaveCount(1)
-          await test.expect(rows).toHaveText(/You have no files/)
+          await test.expect(actions.locateAssetRows(page)).toHaveCount(0)
+          const nonAssetRows = actions.locateNonAssetRows(page)
+          await test.expect(nonAssetRows).toHaveCount(1)
+          await test.expect(nonAssetRows).toHaveText(/You have no files/)
         })
       },
       /** A test assertion to confirm that there is only one row visible, and that row is the
        * placeholder row displayed when there are no assets in Trash. */
       expectTrashPlaceholderRow() {
         return self.step('Expect trash placeholder row', async (page) => {
-          const rows = locateAssetRows(page)
-          await test.expect(rows).toHaveCount(1)
-          await test.expect(rows).toHaveText(/Your trash is empty/)
+          await test.expect(actions.locateAssetRows(page)).toHaveCount(0)
+          const nonAssetRows = actions.locateNonAssetRows(page)
+          await test.expect(nonAssetRows).toHaveCount(1)
+          await test.expect(nonAssetRows).toHaveText(/Your trash is empty/)
         })
       },
       /** Toggle a column's visibility. */
