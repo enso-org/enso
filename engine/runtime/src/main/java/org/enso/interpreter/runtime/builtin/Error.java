@@ -159,7 +159,7 @@ public final class Error {
    */
   @CompilerDirectives.TruffleBoundary
   public Atom makeNoSuchMethod(Object target, UnresolvedSymbol symbol) {
-    new RuntimeException("#10750 " + symbol.getName()).printStackTrace();
+    new RuntimeException("#10750 " + symbol.getName() + " at " + target.toString()).printStackTrace();
     return noSuchMethod.newInstance(target, symbol);
   }
 
