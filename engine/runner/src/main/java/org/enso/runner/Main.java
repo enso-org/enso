@@ -95,6 +95,7 @@ public class Main {
   private static final String AUTO_PARALLELISM_OPTION = "with-auto-parallelism";
   private static final String EXECUTION_ENVIRONMENT_OPTION = "execution-environment";
   private static final String WARNINGS_LIMIT = "warnings-limit";
+  private static final String SYSTEM_PROPERTY = "vm.D";
 
   private static final org.slf4j.Logger logger = LoggerFactory.getLogger(Main.class);
 
@@ -449,6 +450,17 @@ public class Main {
             .desc("Enable static analysis (Experimental type inference).")
             .build();
 
+    var systemPropOption =
+        cliOptionBuilder()
+            .longOpt(SYSTEM_PROPERTY)
+            .argName("<property>=<value>")
+            .desc(
+                "Sets a system property. May be specified multiple times. If `value` is not"
+                    + " specified, 'true' is inserted.")
+            .hasArg(true)
+            .numberOfArgs(1)
+            .build();
+
     var options = new Options();
     options
         .addOption(help)
@@ -495,6 +507,7 @@ public class Main {
         .addOption(executionEnvironmentOption)
         .addOption(warningsLimitOption)
         .addOption(disablePrivateCheckOption)
+        .addOption(systemPropOption)
         .addOption(enableStaticAnalysisOption);
 
     return options;
@@ -1002,6 +1015,21 @@ public class Main {
     if (line.hasOption(VERSION_OPTION)) {
       displayVersion(line.hasOption(JSON_OPTION));
       throw exitSuccess();
+    }
+    if (line.hasOption(SYSTEM_PROPERTY)) {
+      var optionValues = line.getOptionValues(SYSTEM_PROPERTY);
+      for (var optionValue : optionValues) {
+        var items = optionValue.split("=");
+        if (items.length == 2) {
+          System.setProperty(items[0], items[1]);
+        } else if (items.length == 1) {
+          System.setProperty(items[0], "true");
+        } else {
+          System.err.println(
+              "Argument to " + SYSTEM_PROPERTY + " must be in the form <property>=<value>");
+          throw exitFail();
+        }
+      }
     }
 
     if (line.hasOption(NEW_OPTION)) {
