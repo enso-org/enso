@@ -123,17 +123,12 @@ type Table_Not_Found
 
        Arguments:
        - table_name: The name of the table that was not found.
-       - related_query_error: The error that was thrown when the query looking
-         for the table was executed.
-    Error (name:Text) (related_query_error:SQL_Error|Nothing)
+    Error (name:Text)
 
     ## PRIVATE
        Pretty print the table not found error.
     to_display_text : Text
-    to_display_text self =
-      case self.related_query_error of
-         _ : SQL_Error -> "Table " + self.name + " was not found in the database. The query failed with the following error: " + self.related_query_error.to_display_text + "."
-         _ -> "Table " + self.name + " was not found in the database."
+    to_display_text self = "Table " + self.name + " was not found in the database."
 
 type Table_Already_Exists
     ## PRIVATE
