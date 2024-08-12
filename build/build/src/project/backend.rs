@@ -8,17 +8,16 @@ use crate::project::IsTarget;
 use crate::source::WithDestination;
 use crate::version::Versions;
 
-use derivative::Derivative;
 use ide_ci::archive::is_archive_name;
 use octocrab::models::repos::Asset;
 
 
 
-#[derive(Clone, Derivative)]
-#[derivative(Debug)]
+#[derive(Clone)]
+#[derive_where(Debug)]
 pub struct BuildInput {
     pub versions:         Versions,
-    #[derivative(Debug = "ignore")]
+    #[derive_where(skip)]
     pub external_runtime: Option<Arc<crate::engine::context::EnginePackageProvider>>,
 }
 
@@ -38,11 +37,9 @@ impl BuildInput {
     }
 }
 
-#[derive(Clone, Derivative)]
-#[derivative(Debug)]
+#[derive(Clone, Debug)]
 pub struct Artifact {
     /// Location of the Project Manager distribution.
-    #[derivative(Debug(format_with = "std::fmt::Display::fmt"))]
     pub path:            crate::paths::generated::ProjectManagerBundle,
     /// Versions of Engine that are bundled in this Project Manager distribution.
     ///
@@ -52,7 +49,6 @@ pub struct Artifact {
     ///
     /// Artifacts built with [`ProjectManager::build`] will have exactly one engine
     /// bundled.
-    #[derivative(Debug(format_with = "ide_ci::fmt::display_list"))]
     pub engine_versions: Vec<Version>,
 }
 

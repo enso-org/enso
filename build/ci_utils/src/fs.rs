@@ -3,8 +3,6 @@
 
 use crate::prelude::*;
 
-use async_compression::tokio::bufread::GzipEncoder;
-use async_compression::Level;
 use fs_extra::dir::CopyOptions;
 use fs_extra::error::ErrorKind;
 
@@ -80,19 +78,6 @@ pub async fn mirror_directory(source: impl AsRef<Path>, destination: impl AsRef<
     } else {
         crate::programs::rsync::mirror_directory(source, destination).await
     }
-}
-
-
-/// Get the size of a file after gzip compression.
-pub async fn compressed_size(path: impl AsRef<Path>) -> Result<byte_unit::Byte> {
-    // Read the file in chunks of 4MB. Our wasm files are usually way bigger than that, so this
-    // buffer gives very significant speedup over the default 8KB chunks.
-    const READER_CAPACITY: usize = 4096 * 1024;
-
-    let file = tokio::open(&path).await?;
-    let buf_file = ::tokio::io::BufReader::with_capacity(READER_CAPACITY, file);
-    let encoded_stream = GzipEncoder::with_quality(buf_file, Level::Best);
-    crate::io::read_length(encoded_stream).await.map(into)
 }
 
 /// Copy the file to the destination path, unless the file already exists and has the same content.

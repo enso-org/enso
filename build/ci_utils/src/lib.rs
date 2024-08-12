@@ -58,8 +58,8 @@ pub mod prelude {
 
     pub use async_trait::async_trait;
     pub use bytes::Bytes;
-    pub use derivative::Derivative;
     pub use derive_more::Display;
+    pub use derive_where::derive_where;
     pub use itertools::Itertools;
     pub use lazy_static::lazy_static;
     pub use octocrab::Octocrab;

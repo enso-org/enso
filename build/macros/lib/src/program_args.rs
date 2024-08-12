@@ -96,23 +96,10 @@ impl<'a> EnumGenerator<'a> {
 
     /// Generate arm that matches a variant with zero or one field and outputs `Vec<OsString>`.
     pub fn generate_arm_with_field(&mut self, variant: &syn::Variant) -> TokenStream {
-        let relevant_attrs = variant
-            .attrs
-            .iter()
-            .filter_map(|attr| attr.path.is_ident("arg").then_some(&attr.tokens))
-            .collect_vec();
-        // dbg!(&relevant_attrs.iter().map(|t| t.to_string()).collect_vec());
-        let _relevant_attrs_as_expr = relevant_attrs
-            .iter()
-            .filter_map(|tokens| syn::parse2::<syn::ExprAssign>((*tokens).clone()).ok())
-            .collect_vec();
-        // dbg!(relevant_attrs_as_expr);
-
         let name = &self.generator.input.ident;
         let variant_name = &variant.ident;
         let flag = self.format_flag(variant_name);
         if let Some(_field) = variant.fields.iter().next() {
-            // let field_type = &field.ty;
             quote! {
                 #name::#variant_name(field) => {
                     let mut result = Vec::new();

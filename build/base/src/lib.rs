@@ -74,7 +74,6 @@ pub mod prelude {
     pub use futures_util::select;
     pub use futures_util::stream::BoxStream;
     pub use futures_util::try_join;
-    pub use futures_util::AsyncWrite;
     pub use futures_util::FutureExt as _;
     pub use futures_util::Stream;
     pub use futures_util::StreamExt as _;

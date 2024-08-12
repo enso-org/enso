@@ -17,7 +17,6 @@ use sha2::Digest;
 use std::process::Stdio;
 use tempfile::TempDir;
 
-
 // ==============
 // === Export ===
 // ==============
@@ -209,12 +208,12 @@ impl FallibleManipulator for ProjectManagerInfo {
     }
 }
 
-#[derive(Clone, Derivative)]
-#[derivative(Debug)]
+#[derive(Clone)]
+#[derive_where(Debug)]
 pub struct IdeDesktop {
     pub build_sbt: generated::RepoRootBuildSbt,
     pub repo_root: generated::RepoRoot,
-    #[derivative(Debug = "ignore")]
+    #[derive_where(skip)]
     pub octocrab:  Octocrab,
     pub cache:     ide_ci::cache::Cache,
 }

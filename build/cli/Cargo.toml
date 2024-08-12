@@ -12,7 +12,7 @@ workspace = true
 features = []
 workspace = true
 
-[dependencies.derivative]
+[dependencies.derive-where]
 features = []
 workspace = true
 
@@ -30,7 +30,7 @@ features = []
 
 [dependencies.futures-util]
 version = "0.3.17"
-features = ["futures-macro", "async-await-macro"]
+features = []
 default-features = false
 
 [dependencies.ide-ci]

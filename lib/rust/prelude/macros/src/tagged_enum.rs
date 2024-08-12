@@ -360,18 +360,16 @@ enum ApplyAttributesTo {
 }
 
 fn parse_attr(attr: &Attribute) -> Option<Attr> {
-    if attr.style != AttrStyle::Outer {
+    if attr.style != AttrStyle::Outer || !attr.path().is_ident(HELPER_ATTRIBUTE_PATH) {
         return None;
     }
-    if attr.path.get_ident()? != HELPER_ATTRIBUTE_PATH {
-        return None;
-    }
+
     let name_value = "Parsing name-value argument";
-    let syn::MetaNameValue { lit, path, .. } = attr.parse_args().expect(name_value);
+    let syn::MetaNameValue { path, value, .. } = attr.parse_args().expect(name_value);
     match path.get_ident().expect("Unsupported helper-attribute name").to_string().as_str() {
         "apply_attributes_to" => Some(Attr::ApplyAttributesTo({
-            let value = match lit {
-                syn::Lit::Str(lit_str) => lit_str.value(),
+            let value = match value {
+                syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(lit_str), .. }) => lit_str.value(),
                 _ => panic!("Expected a LitStr in argument to helper-attribute."),
             };
             match value.as_str() {

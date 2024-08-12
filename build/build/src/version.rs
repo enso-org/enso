@@ -8,7 +8,6 @@ use crate::prelude::*;
 
 use anyhow::Context;
 use chrono::Datelike;
-use derivative::Derivative;
 use ide_ci::define_env_var;
 use ide_ci::env::accessor::TypedVariable;
 use ide_ci::github;
@@ -76,14 +75,12 @@ pub async fn latest_nightly_release(repo: &github::repo::Handle<impl IsRepo>) ->
 /// Keeps the version of Enso, edition name and whether this version should be treated as a release.
 ///
 /// Basically this is everything that is needed to define the version of the build.
-#[derive(Clone, Derivative, Serialize, Deserialize, Deref, PartialEq, Eq)]
-#[derivative(Debug)]
+#[derive(Clone, Serialize, Deserialize, Deref, PartialEq, Eq, Debug)]
 pub struct Versions {
     /// The version of Enso.
     ///
     /// Currently it also doubles as the edition name. In future we might want to separate them.
     #[deref]
-    #[derivative(Debug(format_with = "std::fmt::Display::fmt"))]
     pub version: Version,
 
     /// Whether this version should be treated as a release.

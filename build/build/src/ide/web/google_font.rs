@@ -63,12 +63,12 @@ impl Family {
 // ====================
 
 /// Description of the job to download the fonts.
-#[derive(Derivative, Clone)]
-#[derivative(Debug)]
+#[derive(Clone)]
+#[derive_where(Debug)]
 pub struct DownloadFont {
     pub family:   Family,
     /// Possible authentication to GitHub (to get bigger rate limit).
-    #[derivative(Debug = "ignore")]
+    #[derive_where(skip)]
     pub octocrab: Octocrab,
 }
 

@@ -78,14 +78,12 @@ impl Artifact {
     }
 }
 
-#[derive(derivative::Derivative)]
-#[derivative(Debug)]
+#[derive_where(Debug)]
 pub struct BuildInput {
-    #[derivative(Debug(format_with = "std::fmt::Display::fmt"))]
     pub version:         Version,
-    #[derivative(Debug = "ignore")]
+    #[derive_where(skip)]
     pub project_manager: BoxFuture<'static, Result<crate::project::backend::Artifact>>,
-    #[derivative(Debug = "ignore")]
+    #[derive_where(skip)]
     pub gui:             BoxFuture<'static, Result<crate::project::gui::Artifact>>,
     pub electron_target: Option<String>,
     /// The name base used to generate CI run artifact names.

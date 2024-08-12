@@ -251,13 +251,12 @@ pub trait IsReleaseExt: IsRelease + Sync {
 impl<T> IsReleaseExt for T where T: IsRelease + Sync {}
 
 /// A release on GitHub.
-#[derive(Clone, Derivative)]
-#[derivative(Debug)]
+#[derive(Clone)]
+#[derive_where(Debug)]
 pub struct Handle {
-    #[derivative(Debug(format_with = "std::fmt::Display::fmt"))]
     pub repo:     Repo,
     pub id:       ReleaseId,
-    #[derivative(Debug = "ignore")]
+    #[derive_where(skip)]
     pub octocrab: Octocrab,
 }
 

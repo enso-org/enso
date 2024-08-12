@@ -49,8 +49,8 @@ pub fn format_option_variant<T>(value: &Option<T>, f: &mut Formatter) -> std::fm
     }
 }
 
-#[derive(derive_more::Deref, derive_more::DerefMut, derivative::Derivative)]
-#[derivative(Debug)]
+#[derive(derive_more::Deref, derive_more::DerefMut)]
+#[derive_where(Debug)]
 pub struct RunContext {
     #[deref]
     #[deref_mut]
@@ -59,7 +59,7 @@ pub struct RunContext {
     pub paths:            Paths,
     /// If set, the engine package (used for creating bundles) will be obtained through this
     /// provider rather than built from source along the other Engine components.
-    #[derivative(Debug(format_with = "format_option_variant"))]
+    #[derive_where(skip)]
     pub external_runtime: Option<Arc<EnginePackageProvider>>,
 }
 

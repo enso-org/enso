@@ -25,10 +25,10 @@ pub async fn client_from_env() -> aws_sdk_s3::Client {
 }
 
 /// Everything we need to get/put files to S3.
-#[derive(Clone, Derivative)]
-#[derivative(Debug)]
+#[derive(Clone)]
+#[derive_where(Debug)]
 pub struct BucketContext {
-    #[derivative(Debug = "ignore")]
+    #[derive_where(skip)]
     pub client:     aws_sdk_s3::Client,
     pub bucket:     String,
     pub upload_acl: ObjectCannedAcl,

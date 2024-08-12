@@ -31,7 +31,6 @@ use crate::arg::WatchJob;
 use anyhow::Context;
 use arg::BuildDescription;
 use clap::Parser;
-use derivative::Derivative;
 use enso_build::config::Config;
 use enso_build::context::BuildContext;
 use enso_build::engine::context::EnginePackageProvider;
@@ -91,8 +90,7 @@ define_env_var! {
 }
 
 /// The basic, common information available in this application.
-#[derive(Clone, Derivative)]
-#[derivative(Debug)]
+#[derive(Clone, Debug)]
 pub struct Processor {
     pub context: BuildContext,
 }

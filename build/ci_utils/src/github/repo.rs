@@ -161,11 +161,11 @@ pub trait IsRepo: Display {
 /// A handle to a specific GitHub repository.
 ///
 /// It includes a client (so also an authentication token) and a repository.
-#[derive(Derivative, Clone)]
-#[derivative(Debug)]
+#[derive(Clone)]
+#[derive_where(Debug; Repo)]
 pub struct Handle<Repo> {
     /// Octocrab client (includes authentication token).
-    #[derivative(Debug = "ignore")]
+    #[derive_where(skip)]
     pub octocrab: Octocrab,
     /// Repository designation.
     pub repo:     Repo,

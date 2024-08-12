@@ -1,7 +1,3 @@
-use syn_1 as syn;
-
-
-
 #[proc_macro_derive(Arg, attributes(arg))]
 pub fn derive_arg_fn(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = syn::parse_macro_input!(item as syn::DeriveInput);

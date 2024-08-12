@@ -29,15 +29,14 @@ pub fn store_static_text(text: impl AsRef<str>) -> &'static str {
 
 const REFRESHES_PER_SECOND: u32 = 100;
 
-#[derive(derivative::Derivative)]
-#[derivative(Debug)]
+#[derive_where(Debug)]
 struct GlobalState {
     /// A globally-shared reference to the multi-progress bar.
     ///
     /// All progress bars must be added to this multi-progress bar. This ensures that the progress
     /// bars are displayed in a way that does not interfere with tracing log output.
     mp:            MultiProgress,
-    #[derivative(Debug = "ignore")]
+    #[derive_where(skip)]
     bars:          Vec<WeakProgressBar>,
     _tick_thread:  std::thread::JoinHandle<()>,
     ongoing_tasks: Vec<JoinHandle<Result>>,
