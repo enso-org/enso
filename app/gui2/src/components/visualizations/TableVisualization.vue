@@ -21,8 +21,6 @@ export const defaultPreprocessor = [
   '1000',
 ] as const
 
-console.log('Setting up TableVisualization')
-
 type Data = number | string | Error | Matrix | ObjectMatrix | UnknownTable | Excel_Workbook
 
 interface Error {
