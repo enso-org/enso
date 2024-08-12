@@ -9,7 +9,7 @@ import { autospaced, MutableModule } from '@/util/ast/abstract'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { nodeFromAst, nodeRootExpr } from '@/util/ast/node'
 import { MappedKeyMap, MappedSet } from '@/util/containers'
-import { arrayEquals, tryGetIndex } from '@/util/data/array'
+import { tryGetIndex } from '@/util/data/array'
 import { recordEqual } from '@/util/data/object'
 import { Vec2 } from '@/util/data/vec2'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
@@ -19,10 +19,10 @@ import {
   resumeShallowReactivity,
   syncSetDiff,
 } from '@/util/reactivity'
+import * as objects from 'enso-common/src/utilities/data/object'
 import * as set from 'lib0/set'
 import { reactive, ref, shallowReactive, watchEffect, WatchStopHandle, type Ref } from 'vue'
 import type { MethodCall, StackItem } from 'ydoc-shared/languageServerTypes'
-import { methodPointerEquals } from 'ydoc-shared/languageServerTypes'
 import type { Opt } from 'ydoc-shared/util/data/opt'
 import type { ExternalId, SourceRange, VisualizationMetadata } from 'ydoc-shared/yjsModel'
 import { isUuid, sourceRangeKey, visMetadataEquals } from 'ydoc-shared/yjsModel'
@@ -392,11 +392,12 @@ export class GraphDb {
       } = newNode
       const node = resumeReactivity(oldNode)
       if (oldNode.type !== type) node.type = type
-      if (oldNode.outerExpr.id !== outerExpr.id) node.outerExpr = outerExpr
-      if (oldNode.pattern?.id !== pattern?.id) node.pattern = pattern
-      if (oldNode.rootExpr.id !== rootExpr.id) node.rootExpr = rootExpr
-      if (oldNode.innerExpr.id !== innerExpr.id) node.innerExpr = innerExpr
-      if (oldNode.docs?.id !== docs?.id) node.docs = docs
+      type NodeAstField = objects.ExtractKeys<Node, Ast.Ast | undefined>
+      const updateAst = (field: NodeAstField) => {
+        if (oldNode[field]?.id !== newNode[field]?.id) node[field] = newNode[field] as any
+      }
+      const astFields: NodeAstField[] = ['outerExpr', 'pattern', 'rootExpr', 'innerExpr', 'docs']
+      astFields.forEach(updateAst)
       if (oldNode.primarySubject !== primarySubject) node.primarySubject = primarySubject
       if (!recordEqual(oldNode.prefixes, prefixes)) node.prefixes = prefixes
       syncSetDiff(node.conditionalPorts, oldNode.conditionalPorts, conditionalPorts)
@@ -499,13 +500,19 @@ export class GraphDb {
     )
 
     const node: Node = {
-      ...baseMockNode,
+      type: 'component',
+      position: Vec2.Zero,
+      vis: undefined,
+      prefixes: { enableRecording: undefined },
+      primarySubject: undefined,
+      colorOverride: undefined,
+      conditionalPorts: new Set(),
+      docs: undefined,
       outerExpr,
       pattern,
       rootExpr: Ast.parse(code ?? '0'),
       innerExpr: Ast.parse(code ?? '0'),
       zIndex: this.highestZIndex,
-      docs: undefined,
     }
     const bindingId = pattern.id
     this.nodeIdToNode.set(id, node)
@@ -569,12 +576,3 @@ export interface Node extends NodeDataFromAst, NodeDataFromMetadata {
   zIndex: number
 }
 
-const baseMockNode = {
-  type: 'component',
-  position: Vec2.Zero,
-  vis: undefined,
-  prefixes: { enableRecording: undefined },
-  primarySubject: undefined,
-  colorOverride: undefined,
-  conditionalPorts: new Set(),
-} satisfies Partial<Node>

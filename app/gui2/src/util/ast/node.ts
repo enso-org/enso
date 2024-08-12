@@ -26,6 +26,7 @@ export function nodeRootExpr(ast: Ast.Ast): {
   }
 }
 
+/** Given a node's outer expression, return all the `Node` fields that depend on its AST structure. */
 export function nodeFromAst(ast: Ast.Ast, isLastLine: boolean): NodeDataFromAst | undefined {
   const { root, docs, assignment } = nodeRootExpr(ast)
   if (!root) return
