@@ -1,6 +1,8 @@
 package org.enso.compiler.pass.analyse.types.scope;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.enso.compiler.MetadataInteropHelpers;
 import org.enso.compiler.core.CompilerStub;
@@ -27,6 +29,7 @@ import scala.Option;
 public final class StaticModuleScope implements ProcessingPass.Metadata {
   private final QualifiedName moduleName;
   private final TypeScopeReference associatedType;
+  private final List<StaticImportExportScope> imports = new ArrayList<>();
 
   StaticModuleScope(QualifiedName moduleName) {
     this.moduleName = moduleName;
@@ -88,5 +91,9 @@ public final class StaticModuleScope implements ProcessingPass.Metadata {
 
   public QualifiedName getModuleName() {
     return moduleName;
+  }
+
+  public void registerModuleImport(StaticImportExportScope importScope) {
+    imports.add(importScope);
   }
 }

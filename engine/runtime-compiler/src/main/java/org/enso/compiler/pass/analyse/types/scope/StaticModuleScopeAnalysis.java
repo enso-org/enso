@@ -11,6 +11,7 @@ import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.module.scope.Definition;
+import org.enso.compiler.core.ir.module.scope.Import;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.IRPass;
@@ -73,7 +74,44 @@ public class StaticModuleScopeAnalysis implements IRPass {
     // This has a lot in common with IrToTruffle::processModule - we may want to extract some common
     // parts if it will make sense.
     StaticModuleScope scope = new StaticModuleScope(moduleContext.getName());
-    ir.bindings()
+    processModuleExports(scope, ir);
+    processModuleImports(scope, ir);
+    processPolyglotImports(scope, ir);
+    processBindings(scope, ir);
+    ir.passData().update(INSTANCE, scope);
+    return ir;
+  }
+
+  @Override
+  public Expression runExpression(Expression ir, InlineContext inlineContext) {
+    // Nothing to do - this pass only works on module-level.
+    return ir;
+  }
+
+  private void processModuleImports(StaticModuleScope scope, Module module) {
+    module
+        .imports()
+        .foreach(
+            imp -> {
+              if (imp instanceof Import.Module moduleImport) {
+                var importScope = StaticImportExportScope.buildFrom(moduleImport);
+                scope.registerModuleImport(importScope);
+              }
+              return null;
+            });
+  }
+
+  private void processModuleExports(StaticModuleScope scope, Module module) {
+    // TODO
+  }
+
+  private void processPolyglotImports(StaticModuleScope scope, Module module) {
+    // TODO
+  }
+
+  private void processBindings(StaticModuleScope scope, Module module) {
+    module
+        .bindings()
         .foreach(
             binding -> {
               switch (binding) {
@@ -85,17 +123,6 @@ public class StaticModuleScopeAnalysis implements IRPass {
               }
               return null;
             });
-
-    // TODO process imports/exports
-
-    ir.passData().update(INSTANCE, scope);
-    return ir;
-  }
-
-  @Override
-  public Expression runExpression(Expression ir, InlineContext inlineContext) {
-    // Nothing to do - this pass only works on module-level.
-    return ir;
   }
 
   @Override
