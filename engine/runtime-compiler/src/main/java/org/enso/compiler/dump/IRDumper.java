@@ -390,11 +390,13 @@ public class IRDumper {
         }
       }
       case Pattern.Type tp -> {
+        addNode(bldr.build());
         var name = tp.name();
         var tpe = tp.tpe();
-        bldr.addLabelLine("name: " + name.name());
-        bldr.addLabelLine("tpe: " + tpe.name());
-        addNode(bldr.build());
+        createIRGraph(name);
+        createIRGraph(tpe);
+        createEdge(tp, name, "name");
+        createEdge(tp, tpe, "tpe");
       }
       case Pattern.Literal litPat -> {
         addNode(bldr.build());
@@ -611,7 +613,7 @@ public class IRDumper {
               addNode(bmNode);
               createEdge(ir, bindingsMap, "BindingsMap");
             }
-            case Info.Occurrence occurence ->  {
+            case Info.Occurrence occurence -> {
               bldr.addLabelLine("occurenceId: " + occurence.id());
               addNode(bldr.build());
               createEdge(ir, occurence, "Alias.Info.Occurence");
@@ -628,7 +630,7 @@ public class IRDumper {
               addNode(aliasNode);
               createEdge(ir, childScope, "Alias.Info.Scope.Child");
             }
-            // The rest is ignored
+              // The rest is ignored
             default -> {}
           }
           return null;
@@ -648,21 +650,25 @@ public class IRDumper {
       bldr.addLabelLine("occurrences: []");
     } else {
       bldr.addLabelLine("occurrences: ");
-      occurences.values().foreach(occ -> {
-        bldr.addLabelLine("  - " + occ);
-        return null;
-      });
+      occurences
+          .values()
+          .foreach(
+              occ -> {
+                bldr.addLabelLine("  - " + occ);
+                return null;
+              });
     }
     var childScopes = scope.childScopes();
     if (childScopes.isEmpty()) {
       bldr.addLabelLine("childScopes: []");
     } else {
       bldr.addLabelLine("childScopes: ");
-      childScopes.foreach(childScope -> {
-        var id = Utils.id(childScope);
-        bldr.addLabelLine("  - " + id);
-        return null;
-      });
+      childScopes.foreach(
+          childScope -> {
+            var id = Utils.id(childScope);
+            bldr.addLabelLine("  - " + id);
+            return null;
+          });
     }
   }
 
