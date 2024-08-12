@@ -4,7 +4,7 @@ import {
   type Typename,
 } from '@/stores/suggestionDatabase/entry'
 import type { Icon } from '@/util/iconName'
-import type { MethodPointer } from 'shared/languageServerTypes'
+import type { MethodPointer } from 'ydoc-shared/languageServerTypes'
 
 const typeNameToIconLookup: Record<string, Icon> = {
   'Standard.Base.Data.Text.Text': 'text_input',

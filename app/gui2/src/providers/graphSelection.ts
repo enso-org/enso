@@ -3,8 +3,8 @@ import { useGraphHover, useSelection, type SelectionOptions } from '@/composable
 import { createContextStore } from '@/providers'
 import { type NodeId } from '@/stores/graph'
 import type { Rect } from '@/util/data/rect'
-import type { ExternalId } from 'shared/yjsModel'
 import { proxyRefs } from 'vue'
+import type { ExternalId } from 'ydoc-shared/yjsModel'
 
 const SELECTION_BRUSH_MARGIN_PX = 6
 

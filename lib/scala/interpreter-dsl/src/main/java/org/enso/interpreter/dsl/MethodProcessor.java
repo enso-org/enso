@@ -130,6 +130,8 @@ public class MethodProcessor
           "com.oracle.truffle.api.CompilerDirectives",
           "com.oracle.truffle.api.dsl.UnsupportedSpecializationException",
           "com.oracle.truffle.api.frame.VirtualFrame",
+          "com.oracle.truffle.api.interop.InteropLibrary",
+          "com.oracle.truffle.api.interop.UnsupportedMessageException",
           "com.oracle.truffle.api.nodes.ControlFlowException",
           "com.oracle.truffle.api.nodes.Node",
           "com.oracle.truffle.api.nodes.NodeInfo",
@@ -146,14 +148,18 @@ public class MethodProcessor
           "org.enso.interpreter.runtime.callable.function.FunctionSchema",
           "org.enso.interpreter.runtime.EnsoContext",
           "org.enso.interpreter.runtime.builtin.Builtins",
-          "org.enso.interpreter.runtime.data.ArrayRope",
+          "org.enso.interpreter.runtime.data.hash.EnsoHashMap",
+          "org.enso.interpreter.runtime.data.hash.HashMapInsertNode",
+          "org.enso.interpreter.runtime.data.hash.HashMapInsertAllNode",
           "org.enso.interpreter.runtime.data.text.Text",
           "org.enso.interpreter.runtime.error.DataflowError",
           "org.enso.interpreter.runtime.error.PanicException",
-          "org.enso.interpreter.runtime.error.Warning",
-          "org.enso.interpreter.runtime.error.WithWarnings",
           "org.enso.interpreter.runtime.state.State",
-          "org.enso.interpreter.runtime.type.TypesGen");
+          "org.enso.interpreter.runtime.type.TypesGen",
+          "org.enso.interpreter.runtime.warning.Warning",
+          "org.enso.interpreter.runtime.warning.WarningsLibrary",
+          "org.enso.interpreter.runtime.warning.WithWarnings",
+          "org.enso.interpreter.runtime.warning.AppendWarningNode");
 
   /** List of exception types that should be caught from the builtin's execute method. */
   private static final List<String> handleExceptionTypes =
@@ -190,6 +196,13 @@ public class MethodProcessor
                 + " extends BuiltinRootNode implements InlineableNode.Root {");
       }
       out.println("  private @Child " + methodDefinition.getOriginalClassName() + " bodyNode;");
+      out.println(
+          "  private @Child AppendWarningNode appendWarningNode = AppendWarningNode.build();");
+      out.println(
+          "  private @Child WarningsLibrary warnLib ="
+              + " WarningsLibrary.getFactory().createDispatched(5);");
+      out.println(
+          "  private @Child HashMapInsertAllNode mapInsertAllNode = HashMapInsertAllNode.build();");
       out.println();
       out.println("  private static final class Internals {");
       out.println("    Internals(boolean s) {");
@@ -282,14 +295,29 @@ public class MethodProcessor
                 + " body = "
                 + methodDefinition.getConstructorExpression()
                 + ";");
+        out.println(
+            "      private @Child AppendWarningNode appendWarningNode ="
+                + " AppendWarningNode.build();");
+        out.println(
+            "      private @Child WarningsLibrary warnLib ="
+                + " WarningsLibrary.getFactory().createDispatched(5);");
+        out.println(
+            "      private @Child HashMapInsertAllNode mapInsertAllNode ="
+                + " HashMapInsertAllNode.build();");
+        out.println();
         out.println("      @Override");
         out.println("      public Object call(VirtualFrame frame, Object[] args) {");
-        out.println("        return handleExecute(frame, extra, body, args);");
+        out.println(
+            "        return handleExecute(frame, extra, body, appendWarningNode, warnLib,"
+                + " mapInsertAllNode, args);");
         out.println("      }");
         out.println("    }");
+        out.println();
         out.println("    return new Inlineable();");
         out.println("  }");
       }
+
+      out.println();
 
       out.println("  @Override");
       out.println("  public Object execute(VirtualFrame frame) {");
@@ -297,12 +325,14 @@ public class MethodProcessor
         out.println("    var args = frame.getArguments();");
       } else {
         out.println(
-            "    return handleExecute(frame, this.internals, bodyNode, frame.getArguments());");
+            "    return handleExecute(frame, this.internals, bodyNode, this.appendWarningNode,"
+                + " this.warnLib, this.mapInsertAllNode, frame.getArguments());");
         out.println("  }");
         out.println(
             "  private static Object handleExecute(VirtualFrame frame, Internals internals, "
                 + methodDefinition.getOriginalClassName()
-                + " bodyNode, Object[] args) {");
+                + " bodyNode, AppendWarningNode appendWarningNode, WarningsLibrary warnLib,"
+                + " HashMapInsertAllNode mapInsertAllNode, Object[] args) {");
       }
       out.println("    var prefix = internals.staticOfInstanceMethod ? 1 : 0;");
       out.println("    State state = Function.ArgumentsHelper.getState(args);");
@@ -346,8 +376,8 @@ public class MethodProcessor
         out.println("      internals.anyWarningsProfile.enter();");
         out.println("      Object result;");
         out.println(wrapInTryCatch("result = " + executeCall + ";", 6));
-        out.println("      EnsoContext ctx = EnsoContext.get(bodyNode);");
-        out.println("      return WithWarnings.appendTo(ctx, result, gatheredWarnings);");
+        out.println(
+            "      return appendWarningNode.executeAppend(frame, result, gatheredWarnings);");
         out.println("    } else {");
         out.println(wrapInTryCatch("return " + executeCall + ";", 6));
         out.println("    }");
@@ -598,28 +628,27 @@ public class MethodProcessor
       return false;
     } else {
       out.println("    boolean anyWarnings = false;");
-      out.println("    ArrayRope<Warning> gatheredWarnings = new ArrayRope<>();");
+      out.println("    int maxWarnings = EnsoContext.get(bodyNode).getWarningsLimit();");
+      out.println("    EnsoHashMap gatheredWarnings = EnsoHashMap.empty();");
       for (var arg : argsToCheck) {
+        String argCode = arrayRead(argumentsArray, arg.getPosition());
         out.println(
             "    if ("
                 + arrayRead(argumentsArray, arg.getPosition())
-                + " instanceof WithWarnings) {");
+                + " instanceof WithWarnings withWarnings) {");
         out.println(
             "      internals." + mkArgumentInternalVarName(arg) + WARNING_PROFILE + ".enter();");
         out.println("      anyWarnings = true;");
+        out.println("      try {"); // begin try
+        out.println("        var warns = warnLib.getWarnings(withWarnings, false);");
+        out.println("        " + argCode + " = withWarnings.getValue();");
         out.println(
-            "      WithWarnings withWarnings = (WithWarnings) "
-                + arrayRead(argumentsArray, arg.getPosition())
-                + ";");
-        out.println(
-            "      "
-                + arrayRead(argumentsArray, arg.getPosition())
-                + " = withWarnings.getValue();");
-        out.print(
-            """
-            gatheredWarnings = gatheredWarnings.prepend(withWarnings.getReassignedWarningsAsRope(bodyNode, false));
-      """);
-        out.println("    }");
+            "        gatheredWarnings = mapInsertAllNode.executeInsertAll(frame, gatheredWarnings,"
+                + " warns, maxWarnings);");
+        out.println("      } catch (UnsupportedMessageException e) {"); // end try
+        out.println("        throw CompilerDirectives.shouldNotReachHere(e);");
+        out.println("      }"); // end catch
+        out.println("    }"); // end hasWarnings
       }
       return true;
     }

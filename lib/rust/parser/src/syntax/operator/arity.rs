@@ -2,15 +2,16 @@ use crate::syntax::operator::apply::*;
 use crate::syntax::operator::types::*;
 use enso_prelude::*;
 
-use crate::syntax::operator::operand::Operand;
 use crate::syntax::token;
+use crate::syntax::token::OperatorProperties;
+use crate::syntax::token::TokenOperatorProperties;
 use crate::syntax::tree;
-use crate::syntax::treebuilding::Finish;
 use crate::syntax::treebuilding::Spacing;
 use crate::syntax::treebuilding::SpacingLookaheadTokenConsumer;
-use crate::syntax::treebuilding::TreeConsumer;
+use crate::syntax::Finish;
+use crate::syntax::GroupHierarchyConsumer;
+use crate::syntax::ScopeHierarchyConsumer;
 use crate::syntax::Token;
-use crate::syntax::Tree;
 
 
 
@@ -23,65 +24,64 @@ use crate::syntax::Tree;
 pub struct ClassifyArity<'s, Inner> {
     /// Next item that will be emitted. If it is an operator, it may still be extended with
     /// additional operators to become a multiple-operator error.
-    lhs_item: Option<OperatorOrOperand<'s>>,
+    lhs_item: Option<MaybeOperator<'s>>,
     inner:    Inner,
 }
 
-impl<'s, Inner: OperandConsumer<'s> + OperatorConsumer<'s>> SpacingLookaheadTokenConsumer<'s>
-    for ClassifyArity<'s, Inner>
+impl<'s, Inner> SpacingLookaheadTokenConsumer<'s> for ClassifyArity<'s, Inner>
+where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>
 {
-    fn push_token(&mut self, tt: Token<'s>, rhs: Option<Spacing>) {
-        match tt {
-            Token { variant: token::Variant::Operator(opr), left_offset, code } =>
-                self.operator(Token(left_offset, code, opr), rhs),
-            token => self.push_tree(tree::to_ast(token)),
+    fn push_token(&mut self, token: Token<'s>, rhs: Option<Spacing>) {
+        let properties = token.operator_properties();
+        match properties {
+            Some(properties) => self.operator(token, properties, rhs),
+            None => self.push_operand(tree::to_ast(token).into()),
         }
     }
 }
 
-impl<'s, Inner: OperandConsumer<'s> + OperatorConsumer<'s>> TreeConsumer<'s>
-    for ClassifyArity<'s, Inner>
+impl<'s, Inner> NamedOperandConsumer<'s> for ClassifyArity<'s, Inner>
+where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>
 {
-    fn push_tree(&mut self, tree: Tree<'s>) {
-        self.emit(Operand::from(tree))
+    fn push_maybe_named_operand(&mut self, operand: OperandMaybeNamed<'s>) {
+        self.emit(MaybeOperator::Operand);
+        self.inner.push_maybe_named_operand(operand);
     }
 }
 
-impl<'s, Inner: OperandConsumer<'s> + OperatorConsumer<'s> + Finish> Finish
-    for ClassifyArity<'s, Inner>
+impl<'s, Inner> Finish for ClassifyArity<'s, Inner>
+where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s> + Finish
 {
     type Result = Inner::Result;
 
     fn finish(&mut self) -> Self::Result {
-        self.step(None);
+        self.flush();
         self.inner.finish()
     }
 }
 
-impl<'s, Inner: OperandConsumer<'s> + OperatorConsumer<'s>> ClassifyArity<'s, Inner> {
-    fn emit<T: Into<OperatorOrOperand<'s>>>(&mut self, item: T) {
+impl<'s, Inner> ClassifyArity<'s, Inner>
+where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>
+{
+    fn emit<T: Into<MaybeOperator<'s>>>(&mut self, item: T) {
         self.step(Some(item.into()));
     }
 
-    fn step(&mut self, item: Option<OperatorOrOperand<'s>>) {
-        match mem::replace(&mut self.lhs_item, item) {
-            Some(OperatorOrOperand::Operand(item)) => self.inner.push_operand(item),
-            Some(OperatorOrOperand::Operator(item)) => self.inner.push_operator(item),
-            None => (),
+    fn flush(&mut self) {
+        self.step(None);
+    }
+
+    fn step(&mut self, item: Option<MaybeOperator<'s>>) {
+        if let Some(MaybeOperator::Operator(item)) = mem::replace(&mut self.lhs_item, item) {
+            self.inner.push_operator(item)
         }
     }
 
-    fn operator(&mut self, token: token::Operator<'s>, rhs: Option<Spacing>) {
-        let properties = &token.variant.properties;
-        let lhs = match self.lhs_item {
-            Some(
-                OperatorOrOperand::Operand(_)
-                | OperatorOrOperand::Operator(Operator {
-                    arity: Arity::Binary { missing: Some(BinaryOperand::Right), .. },
-                    ..
-                }),
-            ) => Some(Spacing::of_token(&token)),
-            _ => None,
+    fn operator(&mut self, token: Token<'s>, properties: OperatorProperties, rhs: Option<Spacing>) {
+        let lhs = if self.lhs_item.as_ref().is_some_and(|item| !item.expects_rhs()) {
+            Some(Spacing::of_token(&token))
+        } else {
+            None
         };
         // Asymmetric whitespace creates operator sections.
         // Exception: If an operator cannot form sections, and its LHS is unspaced, a spaced RHS is
@@ -99,7 +99,7 @@ impl<'s, Inner: OperandConsumer<'s> + OperatorConsumer<'s>> ClassifyArity<'s, In
             (_, Some(unary), None, Some(Spacing::Unspaced)) =>
                 self.unary_operator_applied(unary, assoc, token),
             (Some(binary), _, _, _) => self.binary_operator(binary, assoc, token, lhs, rhs),
-            (_, Some(_), _, _) => self.unary_operator_section(token, rhs),
+            (_, Some(_), _, _) => self.unary_operator_section(token),
             (None, None, _, _) => unreachable!(),
         }
     }
@@ -108,87 +108,74 @@ impl<'s, Inner: OperandConsumer<'s> + OperatorConsumer<'s>> ClassifyArity<'s, In
         &mut self,
         precedence: token::Precedence,
         associativity: token::Associativity,
-        token: token::Operator<'s>,
+        token: Token<'s>,
     ) {
-        let error = match self.lhs_item {
-            Some(OperatorOrOperand::Operand(_))
-                if token.left_offset.visible.width_in_spaces == 0 =>
-                Some("Space required between term and unary-operator expression.".into()),
-            _ => None,
-        };
-        let is_value_operation = token.properties.is_value_operation();
+        let is_value_operation = token.operator_properties().unwrap().is_value_operation();
         self.emit(Operator {
             left_precedence: None,
-            right_precedence: ModifiedPrecedence {
-                spacing: Spacing::Unspaced,
+            right_precedence: ModifiedPrecedence::new(
+                Spacing::Unspaced,
                 precedence,
                 is_value_operation,
-            },
+            ),
             associativity,
-            arity: Arity::Unary { token, error },
+            arity: Arity::Unary(token.with_variant(token::variant::UnaryOperator())),
         });
     }
 
-    fn unary_operator_section(&mut self, token: token::Operator<'s>, rhs: Option<Spacing>) {
-        match &mut self.lhs_item {
-            Some(OperatorOrOperand::Operator(Operator {
-                arity: Arity::Binary { tokens, .. },
-                ..
-            })) if !(tokens.first().unwrap().left_offset.visible.width_in_spaces == 0
-                && token.left_offset.visible.width_in_spaces == 0) =>
-                self.multiple_operator_error(token, rhs),
-            _ => self.emit(ApplyUnaryOperator::token(token).finish()),
-        }
+    fn unary_operator_section(&mut self, token: Token<'s>) {
+        self.emit(MaybeOperator::Operand);
+        self.inner.push_maybe_named_operand(OperandMaybeNamed::Unnamed(
+            ApplyUnaryOperator::token(token.with_variant(token::variant::UnaryOperator())).finish(),
+        ));
     }
 
     fn binary_operator(
         &mut self,
         precedence: token::Precedence,
         associativity: token::Associativity,
-        token: token::Operator<'s>,
+        token: Token<'s>,
         lhs: Option<Spacing>,
         rhs: Option<Spacing>,
     ) {
-        if let Some(OperatorOrOperand::Operator(Operator {
-            arity: Arity::Binary { missing: None | Some(BinaryOperand::Left), .. },
-            ..
-        })) = &self.lhs_item
-            && !matches!(rhs, Some(Spacing::Unspaced))
+        if self.lhs_item.as_ref().is_some_and(|item| item.expects_rhs())
+            && rhs != Some(Spacing::Unspaced)
         {
             self.multiple_operator_error(token, rhs);
             return;
         }
         let missing = match (lhs, rhs) {
             (None, None) => {
-                self.emit(ApplyOperator::token(token).finish());
+                self.inner.push_maybe_named_operand(OperandMaybeNamed::Unnamed(
+                    ApplyOperator::token(token).finish(),
+                ));
+                self.emit(MaybeOperator::Operand);
                 return;
             }
             (Some(_), None) => Some(BinaryOperand::Right),
             (None, Some(_)) => Some(BinaryOperand::Left),
             (Some(_), Some(_)) => None,
         };
-        let reify_rhs_section = token.properties.can_form_section()
+        let properties = token.operator_properties().unwrap();
+        let reify_rhs_section = properties.can_form_section()
             && (lhs == Some(Spacing::Spaced) || rhs == Some(Spacing::Spaced));
-        let is_value_operation = missing.is_none() && token.properties.is_value_operation();
+        let is_value_operation = missing.is_none() && properties.is_value_operation();
         self.emit(Operator {
-            left_precedence: lhs.map(|spacing| ModifiedPrecedence {
-                spacing,
+            left_precedence: lhs
+                .map(|spacing| ModifiedPrecedence::new(spacing, precedence, is_value_operation)),
+            right_precedence: ModifiedPrecedence::new(
+                rhs.or(lhs).unwrap(),
                 precedence,
                 is_value_operation,
-            }),
-            right_precedence: ModifiedPrecedence {
-                spacing: rhs.or(lhs).unwrap(),
-                precedence,
-                is_value_operation,
-            },
+            ),
             associativity,
             arity: Arity::Binary { tokens: vec![token], missing, reify_rhs_section },
         });
     }
 
-    fn multiple_operator_error(&mut self, token: token::Operator<'s>, rhs: Option<Spacing>) {
+    fn multiple_operator_error(&mut self, token: Token<'s>, rhs: Option<Spacing>) {
         match &mut self.lhs_item {
-            Some(OperatorOrOperand::Operator(Operator {
+            Some(MaybeOperator::Operator(Operator {
                 arity: Arity::Binary { tokens, missing, .. },
                 ..
             })) => {
@@ -196,15 +183,80 @@ impl<'s, Inner: OperandConsumer<'s> + OperatorConsumer<'s>> ClassifyArity<'s, In
                 if rhs.is_none() {
                     match missing {
                         None => *missing = Some(BinaryOperand::Right),
-                        Some(BinaryOperand::Left) =>
-                            self.lhs_item = Some(OperatorOrOperand::Operand(
+                        Some(BinaryOperand::Left) => {
+                            let operand = OperandMaybeNamed::Unnamed(
                                 ApplyOperator::tokens(mem::take(tokens)).finish(),
-                            )),
+                            );
+                            self.inner.push_maybe_named_operand(operand);
+                            self.lhs_item = Some(MaybeOperator::Operand);
+                        }
                         Some(BinaryOperand::Right) => unreachable!(),
                     }
                 }
             }
             _ => unreachable!(),
+        }
+    }
+}
+
+impl<'s, Inner> ScopeHierarchyConsumer for ClassifyArity<'s, Inner>
+where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s> + ScopeHierarchyConsumer
+{
+    type Result = Inner::Result;
+
+    fn start_scope(&mut self) {
+        self.flush();
+        self.inner.start_scope()
+    }
+
+    fn end_scope(&mut self) -> Self::Result {
+        self.flush();
+        self.inner.end_scope()
+    }
+}
+
+impl<'s, Inner> GroupHierarchyConsumer<'s> for ClassifyArity<'s, Inner>
+where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s> + GroupHierarchyConsumer<'s>
+{
+    fn start_group(&mut self, open: token::OpenSymbol<'s>) {
+        self.flush();
+        self.inner.start_group(open);
+    }
+
+    fn end_group(&mut self, close: token::CloseSymbol<'s>) {
+        self.emit(MaybeOperator::Operand);
+        self.inner.end_group(close);
+    }
+}
+
+impl<'s, Inner> OperatorConsumer<'s> for ClassifyArity<'s, Inner>
+where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>
+{
+    fn push_operator(&mut self, operator: Operator<'s>) {
+        self.emit(operator);
+    }
+}
+
+
+// === Operator or Operand
+
+#[derive(Debug)]
+enum MaybeOperator<'s> {
+    Operand,
+    Operator(Operator<'s>),
+}
+
+impl<'s> From<Operator<'s>> for MaybeOperator<'s> {
+    fn from(operator: Operator<'s>) -> Self {
+        MaybeOperator::Operator(operator)
+    }
+}
+
+impl<'s> MaybeOperator<'s> {
+    fn expects_rhs(&self) -> bool {
+        match self {
+            MaybeOperator::Operand => false,
+            MaybeOperator::Operator(op) => op.arity.expects_rhs(),
         }
     }
 }

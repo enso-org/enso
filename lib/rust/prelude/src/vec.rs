@@ -143,10 +143,13 @@ pub struct ColdVec<T> {
 
 impl<T> ColdVec<T> {
     pub fn push(&mut self, element: T) {
-        if self.elements.is_none() {
-            self.elements = Some(Default::default());
+        self.elements_mut().push(element);
+    }
+
+    pub fn append(&mut self, other: &mut Self) {
+        if let Some(other_elements) = other.elements.as_mut() {
+            self.elements_mut().append(other_elements)
         }
-        self.elements.as_mut().unwrap().push(element);
     }
 
     pub fn iter(&self) -> std::slice::Iter<T> {
@@ -154,6 +157,13 @@ impl<T> ColdVec<T> {
             Some(elements) => elements.iter(),
             None => [].iter(),
         }
+    }
+
+    fn elements_mut(&mut self) -> &mut Vec<T> {
+        if self.elements.is_none() {
+            self.elements = Some(Default::default());
+        }
+        self.elements.as_mut().unwrap()
     }
 }
 
