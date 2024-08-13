@@ -208,19 +208,19 @@ impl SQLServer {
 mod tests {
     use super::*;
 
-    // #[tokio::test]
-    // async fn start_sqlserver() -> Result {
-    //     let config = Configuration {
-    //         sqlserver_container: ContainerId("something".into()),
-    //         endpoint:            EndpointConfiguration::deduce()?,
-    //         version:             "latest".into(),
-    //         user:                "test".into(),
-    //         password:            "<YourStrong@Passw0rd>".into(),
-    //         database_name:       "test".into(),
-    //     };
-    //     let child = SQLServer::start(config).await?;
-    //     // drop(child);
-    //     std::mem::forget(child);
-    //     Ok(())
-    // }
+    #[tokio::test]
+    async fn start_sqlserver() -> Result {
+        let config = Configuration {
+            sqlserver_container: ContainerId("something".into()),
+            endpoint:            EndpointConfiguration::deduce()?,
+            version:             "latest".into(),
+            user:                "test".into(),
+            password:            "<YourStrong@Passw0rd>".into(),
+            database_name:       "test".into(),
+        };
+        let child = SQLServer::start(config).await?;
+        // drop(child);
+        std::mem::forget(child);
+        Ok(())
+    }
 }
