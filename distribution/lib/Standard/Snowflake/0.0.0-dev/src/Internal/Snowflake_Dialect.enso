@@ -142,12 +142,6 @@ type Snowflake_Dialect
         table.updated_context_and_columns new_context new_columns subquery=True
 
     ## PRIVATE
-       A heuristic used by `Connection.query` to determine if a given text looks
-       like a SQL query for the given dialect or is rather a table name.
-    is_probably_a_query : Text -> Boolean
-    is_probably_a_query self text = Base_Generator.is_probably_a_query text
-
-    ## PRIVATE
        Returns the mapping between SQL types of this dialect and Enso
        `Value_Type`.
     get_type_mapping : SQL_Type_Mapping

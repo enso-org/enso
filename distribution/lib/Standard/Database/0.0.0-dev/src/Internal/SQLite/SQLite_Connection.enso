@@ -131,8 +131,7 @@ type SQLite_Connection
 
        Arguments:
        - query: name of the table or sql statement to query.
-         If supplied as `Text`, the name is checked against the `tables` list to
-         determine if it is a table or a query.
+         If supplied as `Text` it is treated as a table name.
        - alias: optionally specify a friendly alias for the query.
 
        ! Error Conditions
@@ -143,8 +142,8 @@ type SQLite_Connection
          - If provided with a `Table_Name` or a text short-hand and the table is
            not found, a `Table_Not_Found` error is raised.
     @query make_table_name_selector
-    query : Text | SQL_Query -> Text -> DB_Table ! Table_Not_Found
-    query self query alias="" = self.connection.query query alias
+    query : SQL_Query -> Text -> DB_Table ! Table_Not_Found
+    query self query:SQL_Query alias="" = self.connection.query query alias
 
     ## GROUP Standard.Base.Input
        ICON data_input
@@ -152,8 +151,7 @@ type SQLite_Connection
 
        Arguments:
        - query: name of the table or sql statement to query.
-         If supplied as `Text`, the name is checked against the `tables` list to
-         determine if it is a table or a query.
+         If supplied as `Text` it is treated as a table name.
        - limit: the maximum number of rows to read.
 
        ? Side Effects
@@ -165,8 +163,8 @@ type SQLite_Connection
          results, the `read` should be wrapped in an execution context check.
     @query make_table_name_selector
     @limit Rows_To_Read.default_widget
-    read : Text | SQL_Query -> Rows_To_Read -> Table ! Table_Not_Found
-    read self query (limit : Rows_To_Read = ..First_With_Warning 1000) =
+    read : SQL_Query -> Rows_To_Read -> Table ! Table_Not_Found
+    read self query:SQL_Query (limit : Rows_To_Read = ..First_With_Warning 1000) =
         self.connection.read query limit
 
     ## GROUP Standard.Base.Output
