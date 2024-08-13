@@ -8,6 +8,8 @@ import {
   substituteIdentifier,
   substituteQualifiedName,
   subtrees,
+  tryEnsoToNumber,
+  tryNumberToEnso,
   unescapeTextLiteral,
   type Identifier,
 } from '@/util/ast/abstract'
@@ -1105,22 +1107,92 @@ test.each([
   }).toEqual(expected)
 })
 
-test('Vector modifications', () => {
-  const vector = Ast.Vector.tryParse('[1, 2]')
-  expect(vector).toBeDefined()
+test.each`
+  initial     | pushed     | expected
+  ${'[1, 2]'} | ${'"Foo"'} | ${'[1, 2, "Foo"]'}
+  ${'[]'}     | ${'3'}     | ${'[3]'}
+  ${'[,]'}    | ${'1'}     | ${'[,, 1]'}
+`('Pushing $pushed to vector $initial', ({ initial, pushed, expected }) => {
+  const vector = Ast.Vector.tryParse(initial)
   assertDefined(vector)
-  vector.push(Ast.parse('"Foo"', vector.module))
-  expect(vector.code()).toBe('[1, 2, "Foo"]')
-  vector.keep((ast) => ast instanceof Ast.NumericLiteral)
-  expect(vector.code()).toBe('[1, 2]')
-  vector.push(Ast.parse('3', vector.module))
-  expect(vector.code()).toBe('[1, 2, 3]')
-  vector.keep((ast) => ast.code() !== '4')
-  expect(vector.code()).toBe('[1, 2, 3]')
-  vector.keep((ast) => ast.code() !== '2')
-  expect(vector.code()).toBe('[1, 3]')
-  vector.keep((ast) => ast.code() !== '1')
-  expect(vector.code()).toBe('[3]')
-  vector.keep(() => false)
-  expect(vector.code()).toBe('[]')
+  vector.push(Ast.parse(pushed, vector.module))
+  expect(vector.code()).toBe(expected)
 })
+
+// TODO[ao]: Fix cases where expected spacing feels odd.
+test.each`
+  initial            | predicate                                                 | expected
+  ${'[1, 2, "Foo"]'} | ${(ast: Ast.Ast) => ast instanceof Ast.NumericLiteral}    | ${'[1, 2]'}
+  ${'[1, "Foo", 3]'} | ${(ast: Ast.Ast) => ast instanceof Ast.NumericLiteral}    | ${'[1, 3]'}
+  ${'["Foo", 2, 3]'} | ${(ast: Ast.Ast) => ast instanceof Ast.NumericLiteral}    | ${'[ 2, 3]'}
+  ${'[1, 2, "Foo"]'} | ${(ast: Ast.Ast) => !(ast instanceof Ast.NumericLiteral)} | ${'[ "Foo"]'}
+  ${'[1, "Foo", 3]'} | ${(ast: Ast.Ast) => !(ast instanceof Ast.NumericLiteral)} | ${'[ "Foo"]'}
+  ${'["Foo", 2, 3]'} | ${(ast: Ast.Ast) => !(ast instanceof Ast.NumericLiteral)} | ${'["Foo"]'}
+  ${'[]'}            | ${(ast: Ast.Ast) => ast instanceof Ast.NumericLiteral}    | ${'[]'}
+  ${'[1, 2, 3]'}     | ${(ast: Ast.Ast) => ast.code() != '4'}                    | ${'[1, 2, 3]'}
+  ${'[1, 2, 3]'}     | ${() => false}                                            | ${'[]'}
+`('Keeping elements in vector ($initial -> $expected)', ({ initial, predicate, expected }) => {
+  const vector = Ast.Vector.tryParse(initial)
+  assertDefined(vector)
+  vector.keep(predicate)
+  expect(vector.code()).toBe(expected)
+})
+
+// TODO[ao]: Fix cases where expected spacing feels odd.
+test.each`
+  initial        | expectedVector | expectedValue
+  ${'[1, 2, 3]'} | ${'[1, 2]'}    | ${'3'}
+  ${'[1, 2, ]'}  | ${'[1, 2 ]'}   | ${undefined}
+  ${'[]'}        | ${'[]'}        | ${undefined}
+`('Popping elements from vector $initial', ({ initial, expectedVector, expectedValue }) => {
+  const vector = Ast.Vector.tryParse(initial)
+  assertDefined(vector)
+  const value = vector.pop()
+  expect(value?.code()).toBe(expectedValue)
+  expect(vector.code()).toBe(expectedVector)
+})
+
+test.each`
+  initial        | index | value  | expected
+  ${'[1, 2, 3]'} | ${0}  | ${'4'} | ${'[4, 2, 3]'}
+  ${'[1, 2, 3]'} | ${1}  | ${'4'} | ${'[1, 4, 3]'}
+  ${'[1, 2, 3]'} | ${2}  | ${'4'} | ${'[1, 2, 4]'}
+  ${'[,,]'}      | ${0}  | ${'4'} | ${'[4,,]'}
+  ${'[,,]'}      | ${1}  | ${'4'} | ${'[, 4,]'}
+  ${'[,,]'}      | ${2}  | ${'4'} | ${'[,, 4]'}
+`(
+  'Setting vector elements: in $initial on index $index to $value',
+  ({ initial, index, value, expected }) => {
+    const vector = Ast.Vector.tryParse(initial)
+    assertDefined(vector)
+    vector.set(index, Ast.parse(value, vector.module))
+    expect(vector.code()).toBe(expected)
+  },
+)
+
+test.each`
+  ensoNumber               | jsNumber                                                  | expectedEnsoNumber
+  ${'0'}                   | ${0}                                                      | ${'0'}
+  ${'12345'}               | ${12345}                                                  | ${'12345'}
+  ${'123_456'}             | ${123456}                                                 | ${'123456'}
+  ${'-12345'}              | ${-12345}                                                 | ${'-12345'}
+  ${'-123_456'}            | ${-123456}                                                | ${'-123456'}
+  ${'0b101'}               | ${0b101}                                                  | ${'5'}
+  ${'0o444'}               | ${0o444}                                                  | ${'292'}
+  ${'0xabcdef'}            | ${0xabcdef}                                               | ${'11259375'}
+  ${`1${'0'.repeat(300)}`} | ${1e300}                                                  | ${undefined /*Not yet implemented*/}
+  ${`1${'0'.repeat(309)}`} | ${Infinity /*Limitation of IEEE 754-1985 double format*/} | ${undefined}
+  ${undefined}             | ${NaN}                                                    | ${undefined}
+`(
+  'Conversions between enso literals and js numbers: $ensoNumber',
+  ({ ensoNumber, jsNumber, expectedEnsoNumber }) => {
+    if (ensoNumber != null) {
+      const literal = Ast.parse(ensoNumber)
+      expect(tryEnsoToNumber(literal)).toBe(jsNumber)
+    }
+    if (jsNumber != null) {
+      const convertedToAst = tryNumberToEnso(jsNumber, MutableModule.Transient())
+      expect(convertedToAst?.code()).toBe(expectedEnsoNumber)
+    }
+  },
+)

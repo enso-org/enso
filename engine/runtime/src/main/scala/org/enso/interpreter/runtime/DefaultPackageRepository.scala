@@ -610,6 +610,13 @@ private class DefaultPackageRepository(
       }
     else Failure(PackageManager.PackageNotFound())
   }
+
+  override def shutdown(): Unit = {
+    loadedPackages.clear()
+    loadedModules.clear()
+    loadedComponents.clear()
+    loadedLibraryBindings.clear()
+  }
 }
 
 private object DefaultPackageRepository {

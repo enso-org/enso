@@ -1,14 +1,15 @@
 import { unrefElement, useEvent } from '@/composables/events'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
+import type { ToValue } from '@/util/reactivity'
 import type { VueInstance } from '@vueuse/core'
-import { watchEffect, type Ref } from 'vue'
+import { toValue, watchEffect, type Ref } from 'vue'
 import type { Opt } from 'ydoc-shared/util/data/opt'
 
 /** Automatically `blur` the currently active element on any mouse click outside of `root`.
  * It is useful when other elements may capture pointer events, preventing default browser behavior for focus change. */
-export function useAutoBlur(root: Ref<HTMLElement | SVGElement | undefined>) {
+export function useAutoBlur(root: ToValue<HTMLElement | SVGElement | undefined>) {
   watchEffect((onCleanup) => {
-    const element = root.value
+    const element = toValue(root)
     if (element) {
       autoBlurRoots.add(element)
       onCleanup(() => autoBlurRoots.delete(element))

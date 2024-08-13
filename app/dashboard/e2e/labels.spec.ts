@@ -5,6 +5,15 @@ import * as backend from '#/services/Backend'
 
 import * as actions from './actions'
 
+// eslint-disable-next-line @typescript-eslint/no-magic-numbers
+export const ASSET_ROW_SAFE_POSITION = { x: 300, y: 16 }
+
+/** Click an asset row. The center must not be clicked as that is the button for adding a label. */
+export async function clickAssetRow(assetRow: test.Locator) {
+  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+  await assetRow.click({ position: ASSET_ROW_SAFE_POSITION })
+}
+
 test.test('drag labels onto single row', async ({ page }) => {
   const label = 'aaaa'
   await actions.mockAllAndLogin({
@@ -52,8 +61,8 @@ test.test('drag labels onto multiple rows', async ({ page }) => {
 
   await page.keyboard.down(await actions.modModifier(page))
   await test.expect(assetRows).toHaveCount(4)
-  await actions.clickAssetRow(assetRows.nth(0))
-  await actions.clickAssetRow(assetRows.nth(2))
+  await clickAssetRow(assetRows.nth(0))
+  await clickAssetRow(assetRows.nth(2))
   await test.expect(labelEl).toBeVisible()
   await labelEl.dragTo(assetRows.nth(2))
   await page.keyboard.up(await actions.modModifier(page))

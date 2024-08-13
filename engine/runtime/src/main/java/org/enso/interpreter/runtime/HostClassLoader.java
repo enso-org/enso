@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
  * the classes that are loaded via this class loader are first searched inside those archives. If
  * not found, delegates to parent class loaders.
  */
-final class HostClassLoader extends URLClassLoader {
+final class HostClassLoader extends URLClassLoader implements AutoCloseable {
 
   private final Map<String, Class<?>> loadedClasses = new ConcurrentHashMap<>();
   private static final Logger logger = LoggerFactory.getLogger(HostClassLoader.class);
@@ -83,5 +83,10 @@ final class HostClassLoader extends URLClassLoader {
     } else {
       return super.findResources(name);
     }
+  }
+
+  @Override
+  public void close() {
+    loadedClasses.clear();
   }
 }

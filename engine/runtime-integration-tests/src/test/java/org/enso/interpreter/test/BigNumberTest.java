@@ -28,6 +28,7 @@ public class BigNumberTest {
   @AfterClass
   public static void disposeCtx() {
     ctx.close();
+    ctx = null;
   }
 
   @Test

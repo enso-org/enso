@@ -47,13 +47,14 @@ public class ExportedSymbolsTest {
         type A_Type
         """);
     ProjectUtils.createProject("Proj", Set.of(mainSrcMod), projDir);
-    var ctx = createCtx(projDir);
-    compile(ctx);
-    var mainExportedSymbols = getExportedSymbolsFromModule(ctx, "local.Proj.Main");
-    assertThat(mainExportedSymbols.size(), is(1));
-    assertThat(mainExportedSymbols.containsKey("A_Type"), is(true));
-    assertThat(
-        mainExportedSymbols.get("A_Type").get(0), instanceOf(BindingsMap.ResolvedType.class));
+    try (var ctx = createCtx(projDir)) {
+      compile(ctx);
+      var mainExportedSymbols = getExportedSymbolsFromModule(ctx, "local.Proj.Main");
+      assertThat(mainExportedSymbols.size(), is(1));
+      assertThat(mainExportedSymbols.containsKey("A_Type"), is(true));
+      assertThat(
+          mainExportedSymbols.get("A_Type").get(0), instanceOf(BindingsMap.ResolvedType.class));
+    }
   }
 
   @Test
@@ -70,11 +71,12 @@ public class ExportedSymbolsTest {
         type B_Type
         """);
     ProjectUtils.createProject("Proj", Set.of(aMod, mainSrcMod), projDir);
-    var ctx = createCtx(projDir);
-    compile(ctx);
-    var mainExportedSymbols = getExportedSymbolsFromModule(ctx, "local.Proj.Main");
-    assertThat(mainExportedSymbols.size(), is(2));
-    assertThat(mainExportedSymbols.keySet(), containsInAnyOrder("A_Type", "B_Type"));
+    try (var ctx = createCtx(projDir)) {
+      compile(ctx);
+      var mainExportedSymbols = getExportedSymbolsFromModule(ctx, "local.Proj.Main");
+      assertThat(mainExportedSymbols.size(), is(2));
+      assertThat(mainExportedSymbols.keySet(), containsInAnyOrder("A_Type", "B_Type"));
+    }
   }
 
   @Test
@@ -91,11 +93,12 @@ public class ExportedSymbolsTest {
         type B_Type
         """);
     ProjectUtils.createProject("Proj", Set.of(mainMod, bMod), projDir);
-    var ctx = createCtx(projDir);
-    compile(ctx);
-    var mainExportedSymbols = getExportedSymbolsFromModule(ctx, "local.Proj.Main");
-    assertThat(mainExportedSymbols.size(), is(2));
-    assertThat(mainExportedSymbols.keySet(), containsInAnyOrder("A_Type", "B_Type"));
+    try (var ctx = createCtx(projDir)) {
+      compile(ctx);
+      var mainExportedSymbols = getExportedSymbolsFromModule(ctx, "local.Proj.Main");
+      assertThat(mainExportedSymbols.size(), is(2));
+      assertThat(mainExportedSymbols.keySet(), containsInAnyOrder("A_Type", "B_Type"));
+    }
   }
 
   @Test
@@ -111,11 +114,12 @@ public class ExportedSymbolsTest {
         export project.A_Module.A_Type as Foo
         """);
     ProjectUtils.createProject("Proj", Set.of(aMod, mainSrcMod), projDir);
-    var ctx = createCtx(projDir);
-    compile(ctx);
-    var mainExportedSymbols = getExportedSymbolsFromModule(ctx, "local.Proj.Main");
-    assertThat(mainExportedSymbols.size(), is(1));
-    assertThat(mainExportedSymbols.keySet(), containsInAnyOrder("Foo"));
+    try (var ctx = createCtx(projDir)) {
+      compile(ctx);
+      var mainExportedSymbols = getExportedSymbolsFromModule(ctx, "local.Proj.Main");
+      assertThat(mainExportedSymbols.size(), is(1));
+      assertThat(mainExportedSymbols.keySet(), containsInAnyOrder("Foo"));
+    }
   }
 
   @Test
@@ -133,13 +137,16 @@ public class ExportedSymbolsTest {
         import project.Synthetic_Module
         """);
     ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
-    var ctx = createCtx(projDir);
-    compile(ctx);
-    var syntheticModExpSymbols = getExportedSymbolsFromModule(ctx, "local.Proj.Synthetic_Module");
-    assertThat(
-        "Just a A_Module submodule should be exported", syntheticModExpSymbols.size(), is(1));
-    assertThat(
-        "Just a A_Module submodule should be exported", syntheticModExpSymbols, hasKey("A_Module"));
+    try (var ctx = createCtx(projDir)) {
+      compile(ctx);
+      var syntheticModExpSymbols = getExportedSymbolsFromModule(ctx, "local.Proj.Synthetic_Module");
+      assertThat(
+          "Just a A_Module submodule should be exported", syntheticModExpSymbols.size(), is(1));
+      assertThat(
+          "Just a A_Module submodule should be exported",
+          syntheticModExpSymbols,
+          hasKey("A_Module"));
+    }
   }
 
   @Test
@@ -156,14 +163,16 @@ public class ExportedSymbolsTest {
         export project.A_Module.A_Module
         """);
     ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
-    var ctx = createCtx(projDir);
-    compile(ctx);
-    var mainExportedSymbols = getExportedSymbolsFromModule(ctx, "local.Proj.Main");
-    assertThat(mainExportedSymbols.size(), is(1));
-    assertThat(mainExportedSymbols.keySet(), containsInAnyOrder("A_Module"));
-    assertThat(mainExportedSymbols.get("A_Module").size(), is(1));
-    assertThat(
-        mainExportedSymbols.get("A_Module").get(0), is(instanceOf(BindingsMap.ResolvedType.class)));
+    try (var ctx = createCtx(projDir)) {
+      compile(ctx);
+      var mainExportedSymbols = getExportedSymbolsFromModule(ctx, "local.Proj.Main");
+      assertThat(mainExportedSymbols.size(), is(1));
+      assertThat(mainExportedSymbols.keySet(), containsInAnyOrder("A_Module"));
+      assertThat(mainExportedSymbols.get("A_Module").size(), is(1));
+      assertThat(
+          mainExportedSymbols.get("A_Module").get(0),
+          is(instanceOf(BindingsMap.ResolvedType.class)));
+    }
   }
 
   @Test
@@ -179,15 +188,16 @@ public class ExportedSymbolsTest {
         export project.A_Module
         """);
     ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
-    var ctx = createCtx(projDir);
-    compile(ctx);
-    var mainExportedSymbols = getExportedSymbolsFromModule(ctx, "local.Proj.Main");
-    assertThat(mainExportedSymbols.size(), is(1));
-    assertThat(mainExportedSymbols.keySet(), containsInAnyOrder("A_Module"));
-    assertThat(mainExportedSymbols.get("A_Module").size(), is(1));
-    assertThat(
-        mainExportedSymbols.get("A_Module").get(0),
-        is(instanceOf(BindingsMap.ResolvedModule.class)));
+    try (var ctx = createCtx(projDir)) {
+      compile(ctx);
+      var mainExportedSymbols = getExportedSymbolsFromModule(ctx, "local.Proj.Main");
+      assertThat(mainExportedSymbols.size(), is(1));
+      assertThat(mainExportedSymbols.keySet(), containsInAnyOrder("A_Module"));
+      assertThat(mainExportedSymbols.get("A_Module").size(), is(1));
+      assertThat(
+          mainExportedSymbols.get("A_Module").get(0),
+          is(instanceOf(BindingsMap.ResolvedModule.class)));
+    }
   }
 
   @Test
@@ -205,15 +215,16 @@ public class ExportedSymbolsTest {
         export project.Synthetic_Module
         """);
     ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
-    var ctx = createCtx(projDir);
-    compile(ctx);
-    var mainExportedSymbols = getExportedSymbolsFromModule(ctx, "local.Proj.Main");
-    assertThat(mainExportedSymbols.size(), is(1));
-    assertThat(mainExportedSymbols.keySet(), containsInAnyOrder("Synthetic_Module"));
-    assertThat(mainExportedSymbols.get("Synthetic_Module").size(), is(1));
-    assertThat(
-        mainExportedSymbols.get("Synthetic_Module").get(0),
-        is(instanceOf(BindingsMap.ResolvedModule.class)));
+    try (var ctx = createCtx(projDir)) {
+      compile(ctx);
+      var mainExportedSymbols = getExportedSymbolsFromModule(ctx, "local.Proj.Main");
+      assertThat(mainExportedSymbols.size(), is(1));
+      assertThat(mainExportedSymbols.keySet(), containsInAnyOrder("Synthetic_Module"));
+      assertThat(mainExportedSymbols.get("Synthetic_Module").size(), is(1));
+      assertThat(
+          mainExportedSymbols.get("Synthetic_Module").get(0),
+          is(instanceOf(BindingsMap.ResolvedModule.class)));
+    }
   }
 
   private static Context createCtx(Path projDir) {

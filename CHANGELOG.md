@@ -1,5 +1,11 @@
 # Next Release
 
+#### Enso IDE
+
+- [Table Editor Widget][10774] displayed in `Table.new` component.
+
+[10774]: https://github.com/enso-org/enso/pull/10774
+
 #### Enso Standard Library
 
 - [Implemented in-memory and database mixed `Decimal` column
