@@ -21,6 +21,7 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.io.IOAccess;
+import org.hamcrest.core.AllOf;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
