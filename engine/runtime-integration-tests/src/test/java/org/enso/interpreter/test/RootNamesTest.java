@@ -55,6 +55,8 @@ public class RootNamesTest {
   public void disposeContext() throws Exception {
     this.insightHandle.close();
     this.ctx.close();
+    this.ctx = null;
+    this.out.reset();
   }
 
   @Test

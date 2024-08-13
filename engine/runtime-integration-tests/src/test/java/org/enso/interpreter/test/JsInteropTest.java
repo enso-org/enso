@@ -18,12 +18,13 @@ public class JsInteropTest {
   @Before
   public void initContext() {
     ctx = ContextUtils.createDefaultContext(out);
-    out.reset();
   }
 
   @After
   public void disposeCtx() {
     ctx.close();
+    ctx = null;
+    out.reset();
   }
 
   @Test
