@@ -1,15 +1,11 @@
 <script lang="ts">
 import icons from '@/assets/icons.svg'
-import CreateNewNode, { type SortModel } from '@/components/CreateNewNode.vue'
 import {
   clipboardNodeData,
   tsvTableToEnsoExpression,
   writeClipboard,
 } from '@/components/GraphEditor/clipboard'
-import {
-  default as TableVizToolbar,
-  default as TextFormattingSelector,
-} from '@/components/TableVizToolbar.vue'
+import { default as TableVizToolbar, type SortModel } from '@/components/TableVizToolbar.vue'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import { useAutoBlur } from '@/util/autoBlur'
