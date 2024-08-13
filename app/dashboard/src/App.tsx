@@ -259,6 +259,9 @@ function AppRouter(props: AppRouterProps) {
   const { onAuthenticated, projectManagerInstance } = props
   const httpClient = useHttpClient()
   const logger = useLogger()
+  // This is the only place where `router.useNavigate` should be used, to provide the `useNavigate`
+  // that `routerHooks.useNavigate` wraps around.
+  // eslint-disable-next-line no-restricted-properties
   const navigate = router.useNavigate()
   const { getText } = textProvider.useText()
   const { localStorage } = localStorageProvider.useLocalStorage()

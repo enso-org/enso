@@ -7,8 +7,8 @@ import { ButtonGroup, Form, Input } from '#/components/AriaComponents'
 import { useAuth, useNonPartialUserSession } from '#/providers/AuthProvider'
 import { type GetText, useText } from '#/providers/TextProvider'
 
-import SettingsAriaInput from '#/layouts/Settings/SettingsAriaInput'
 import { passwordSchema, passwordWithPatternSchema } from '#/pages/authentication/schemas'
+import SettingsAriaInput from '#/pages/dashboard/Settings/SettingsAriaInput'
 import { PASSWORD_REGEX } from '#/utilities/validation'
 
 /** Create the schema for this form. */
