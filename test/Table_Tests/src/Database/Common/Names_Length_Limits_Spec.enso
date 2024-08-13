@@ -62,7 +62,7 @@ add_specs suite_builder prefix create_connection_func =
                     r2 = data.connection.create_table name [Column_Description.Value "X" Value_Type.Integer] temporary=True
                     r2.should_fail_with Name_Too_Long
 
-                data.connection.query (SQL_Query.Table_Name name) . should_fail_with Table_Not_Found
+                data.connection.query (SQL_Query.Table_Name name) . should_fail_with Name_Too_Long
 
             group_builder.specify "should ensure length is measured in small units, even if grapheme length is lower" <|
                 big_grapheme = '\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'
@@ -115,8 +115,8 @@ add_specs suite_builder prefix create_connection_func =
                 data.connection.query long_name . at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
 
                 longer_name_with_same_prefix = long_name + ("z" * 10)
-                data.connection.query longer_name_with_same_prefix . should_fail_with Table_Not_Found
-                data.connection.query (SQL_Query.Table_Name longer_name_with_same_prefix) . should_fail_with Table_Not_Found
+                data.connection.query longer_name_with_same_prefix . should_fail_with Name_Too_Long
+                data.connection.query (SQL_Query.Table_Name longer_name_with_same_prefix) . should_fail_with Name_Too_Long
 
         group_builder.specify "should be fine joining tables with long names" <|
             ## If we know the maximum length, we choose a length that will be

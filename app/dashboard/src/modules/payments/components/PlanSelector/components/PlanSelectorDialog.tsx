@@ -212,88 +212,81 @@ function Summary(props: SummaryProps) {
 
   const billingPeriodText = billingPeriodToString(getText, period)
 
-  if (isError) {
-    // eslint-disable-next-line no-restricted-syntax
-    return (
+  return isError ?
       <ErrorDisplay
         error={error}
         title={getText('asyncHookError')}
         resetErrorBoundary={() => refetch()}
       />
-    )
-  }
+    : <div className="flex flex-col">
+        <Text variant="subtitle">{getText('summary')}</Text>
 
-  return (
-    <div className="flex flex-col">
-      <Text variant="subtitle">{getText('summary')}</Text>
-
-      <div
-        className={twMerge(
-          '-ml-4 table table-auto border-spacing-x-4 transition-[filter] duration-200',
-          (isLoading || isInvalid) && 'pointer-events-none blur-[4px]',
-          isLoading && 'animate-pulse duration-1000',
-        )}
-      >
-        <div className="table-row">
-          <Text className="table-cell w-[0%]" variant="body" nowrap>
-            {getText('priceMonthly')}
-          </Text>
-          {data && (
-            <Text className="table-cell " variant="body">
-              {formatter.format(data.monthlyPrice)}
-            </Text>
+        <div
+          className={twMerge(
+            '-ml-4 table table-auto border-spacing-x-4 transition-[filter] duration-200',
+            (isLoading || isInvalid) && 'pointer-events-none blur-[4px]',
+            isLoading && 'animate-pulse duration-1000',
           )}
-        </div>
-
-        <div className="table-row">
-          <Text className="table-cell w-[0%]" variant="body" nowrap>
-            {getText('billingPeriod')}
-          </Text>
-
-          {data && (
-            <Text className="table-cell" variant="body">
-              {billingPeriodText}
+        >
+          <div className="table-row">
+            <Text className="table-cell w-[0%]" variant="body" nowrap>
+              {getText('priceMonthly')}
             </Text>
-          )}
-        </div>
+            {data && (
+              <Text className="table-cell " variant="body">
+                {formatter.format(data.monthlyPrice)}
+              </Text>
+            )}
+          </div>
 
-        <div className="table-row">
-          <Text className="table-cell w-[0%]" variant="body" nowrap>
-            {getText('originalPrice')}
-          </Text>
-          {data && (
-            <Text className="table-cell" variant="body">
-              {formatter.format(data.fullPrice)}
+          <div className="table-row">
+            <Text className="table-cell w-[0%]" variant="body" nowrap>
+              {getText('billingPeriod')}
             </Text>
-          )}
-        </div>
 
-        <div className="table-row">
-          <Text className="table-cell w-[0%]" variant="body" nowrap>
-            {getText('youSave')}
-          </Text>
-          {data && (
-            <Text
-              className="table-cell"
-              color={data.discount > 0 ? 'success' : 'primary'}
-              variant="body"
-            >
-              {formatter.format(data.discount)}
-            </Text>
-          )}
-        </div>
+            {data && (
+              <Text className="table-cell" variant="body">
+                {billingPeriodText}
+              </Text>
+            )}
+          </div>
 
-        <div className="table-row">
-          <Text className="table-cell w-[0%]" variant="body" nowrap>
-            {getText('subtotalPrice')}
-          </Text>
-          {data && (
-            <Text className="table-cell" variant="body">
-              {formatter.format(data.totalPrice)}
+          <div className="table-row">
+            <Text className="table-cell w-[0%]" variant="body" nowrap>
+              {getText('originalPrice')}
             </Text>
-          )}
+            {data && (
+              <Text className="table-cell" variant="body">
+                {formatter.format(data.fullPrice)}
+              </Text>
+            )}
+          </div>
+
+          <div className="table-row">
+            <Text className="table-cell w-[0%]" variant="body" nowrap>
+              {getText('youSave')}
+            </Text>
+            {data && (
+              <Text
+                className="table-cell"
+                color={data.discount > 0 ? 'success' : 'primary'}
+                variant="body"
+              >
+                {formatter.format(data.discount)}
+              </Text>
+            )}
+          </div>
+
+          <div className="table-row">
+            <Text className="table-cell w-[0%]" variant="body" nowrap>
+              {getText('subtotalPrice')}
+            </Text>
+            {data && (
+              <Text className="table-cell" variant="body">
+                {formatter.format(data.totalPrice)}
+              </Text>
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  )
 }

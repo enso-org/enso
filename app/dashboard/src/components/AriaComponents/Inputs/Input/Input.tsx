@@ -12,8 +12,10 @@ import * as ariaComponents from '#/components/AriaComponents'
 
 import * as mergeRefs from '#/utilities/mergeRefs'
 
+import SvgMask from '#/components/SvgMask'
+import type { ExtractFunction } from '#/utilities/tailwindVariants'
 import { omit } from 'enso-common/src/utilities/data/object'
-import * as variants from '../variants'
+import { INPUT_STYLES } from '../variants'
 
 /**
  * Props for the Input component.
@@ -31,13 +33,18 @@ export interface InputProps<
       TTransformedValues
     >,
     ariaComponents.FieldProps,
-    Omit<twv.VariantProps<typeof variants.INPUT_STYLES>, 'disabled' | 'invalid'> {
+    Omit<twv.VariantProps<typeof INPUT_STYLES>, 'disabled' | 'invalid'> {
+  readonly 'data-testid'?: string | undefined
   readonly className?: string
   readonly style?: React.CSSProperties
   readonly inputRef?: React.Ref<HTMLInputElement>
   readonly addonStart?: React.ReactNode
   readonly addonEnd?: React.ReactNode
   readonly placeholder?: string
+  /** The icon to display in the input. */
+  readonly icon?: React.ReactElement | string | null
+  readonly variants?: ExtractFunction<typeof INPUT_STYLES> | undefined
+  readonly fieldVariants?: ariaComponents.FieldComponentProps['variants']
 }
 
 /**
@@ -68,7 +75,11 @@ export const Input = React.forwardRef(function Input<
     isRequired = false,
     min,
     max,
+    icon,
     type = 'text',
+    variant,
+    variants,
+    fieldVariants,
     ...inputProps
   } = props
 
@@ -81,7 +92,8 @@ export const Input = React.forwardRef(function Input<
     defaultValue,
   })
 
-  const classes = variants.INPUT_STYLES({
+  const classes = (variants ?? INPUT_STYLES)({
+    variant,
     size,
     rounded,
     invalid: fieldState.invalid,
@@ -116,9 +128,11 @@ export const Input = React.forwardRef(function Input<
 
   return (
     <ariaComponents.Form.Field
+      data-testid={props['data-testid']}
       form={formInstance}
       name={name}
       fullWidth
+      isHidden={inputProps.hidden}
       label={label}
       aria-label={props['aria-label']}
       aria-labelledby={props['aria-labelledby']}
@@ -129,22 +143,27 @@ export const Input = React.forwardRef(function Input<
       ref={ref}
       style={props.style}
       className={props.className}
+      variants={fieldVariants}
     >
       <div
         className={classes.base()}
         onClick={() => privateInputRef.current?.focus({ preventScroll: true })}
       >
-        <div className={classes.inputContainer()}>
+        <div className={classes.content()}>
           {addonStart != null && <div className={classes.addonStart()}>{addonStart}</div>}
+          {icon != null &&
+            (typeof icon === 'string' ? <SvgMask src={icon} className={classes.icon()} /> : icon)}
 
-          <aria.Input
-            ref={mergeRefs.mergeRefs(inputRef, privateInputRef, fieldRef)}
-            {...aria.mergeProps<aria.InputProps>()(
-              { className: classes.textArea(), type, name, min, max, isRequired, isDisabled },
-              inputProps,
-              omit(field, 'required', 'disabled'),
-            )}
-          />
+          <div className={classes.inputContainer()}>
+            <aria.Input
+              ref={mergeRefs.mergeRefs(inputRef, privateInputRef, fieldRef)}
+              {...aria.mergeProps<aria.InputProps>()(
+                { className: classes.textArea(), type, name, min, max, isRequired, isDisabled },
+                inputProps,
+                omit(field, 'required', 'disabled'),
+              )}
+            />
+          </div>
 
           {addonEnd != null && <div className={classes.addonEnd()}>{addonEnd}</div>}
         </div>

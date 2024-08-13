@@ -5,6 +5,7 @@
  */
 
 export * from './Input'
+export * from './Password'
 export * from './ResizableInput'
 export * from './Selector'
 export * from './variants'
