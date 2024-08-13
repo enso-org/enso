@@ -1,0 +1,110 @@
+from Standard.Base import all
+
+from Standard.Table import Table, Value_Type
+
+from Standard.Test import Bench
+
+options = Bench.options . set_warmup (Bench.phase_conf 2 3) . set_measure (Bench.phase_conf 5 1)
+
+create_ints num_rows:Integer -> Table =
+    ints1 = Vector.new num_rows i-> i
+    ints2 = Vector.new num_rows i->
+        case i % 3 of
+            0 -> -i
+            1 -> i + 1
+            2 -> i % 100
+
+    t = Table.new [["ints1", ints1], ["ints2", ints2]]
+    Runtime.assert ((t.at "ints1" . value_type) == Value_Type.Integer)
+    Runtime.assert ((t.at "ints2" . value_type) == Value_Type.Integer)
+    t
+
+create_dates num_rows:Integer -> Table =
+    base_date = Date.new 2020 01 01
+    dates1 = Vector.new num_rows i-> base_date.date_add i ..Day
+    dates2 = Vector.new num_rows i->
+        x = case i % 3 of
+            0 -> -i
+            1 -> i + 1
+            2 -> i % 100
+        base_date.date_add x ..Day
+    t = Table.new [["dates1", dates1], ["dates2", dates2]]
+    Runtime.assert ((t.at "dates1" . value_type) == Value_Type.Date)
+    Runtime.assert ((t.at "dates2" . value_type) == Value_Type.Date)
+    t
+
+create_texts num_rows:Integer -> Table =
+    texts1 = Vector.new num_rows i->
+        case i % 4 of
+            0 -> "abc"
+            1 -> ""
+            2 -> "ąęłśćżź"
+            3 -> "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+    texts2 = Vector.new num_rows i->
+        case i % 4 of
+            0 -> "def"
+            1 -> "......"
+            2 -> "żżż🚂🚂"
+            3 -> "a"
+    t = Table.new [["texts1", texts1], ["texts2", texts2]]
+    Runtime.assert ((t.at "texts1" . value_type) == Value_Type.Char)
+    Runtime.assert ((t.at "texts2" . value_type) == Value_Type.Char)
+    t
+
+create_bools num_rows:Integer -> Table =
+    bools1 = Vector.new num_rows i-> i % 2 == 0
+    bools2 = Vector.new num_rows i-> i % 3 == 0
+    t = Table.new [["bools1", bools1], ["bools2", bools2]]
+    Runtime.assert ((t.at "bools1" . value_type) == Value_Type.Boolean)
+    Runtime.assert ((t.at "bools2" . value_type) == Value_Type.Boolean)
+    t
+
+
+type Data
+    private Value ~ints ~dates ~texts ~bools
+
+    create num_rows = Data.Value (create_ints num_rows) (create_dates num_rows) (create_texts num_rows) (create_bools num_rows)
+
+collect_benches = Bench.build builder->
+    num_rows = 500 * 1000
+    data = Data.create num_rows
+
+    builder.group ("Column_Comparisons_" + num_rows.to_text) options group_builder->
+        group_builder.specify "integer_constant" <|
+            (data.ints.at "ints1") <= 5
+        group_builder.specify "integer_column" <|
+            (data.ints.at "ints1") <= (data.ints.at "ints2")
+
+        group_builder.specify "date_constant" <|
+            (data.dates.at "dates1") <= (Date.new 2021 01 01)
+        group_builder.specify "date_column" <|
+            (data.dates.at "dates1") <= (data.dates.at "dates2")
+
+        group_builder.specify "text_constant" <|
+            (data.texts.at "texts1") <= "def"
+        group_builder.specify "text_column" <|
+            (data.texts.at "texts1") <= (data.texts.at "texts2")
+
+        group_builder.specify "bool_column" <|
+            (data.bools.at "bools1") <= (data.bools.at "bools2")
+
+    builder.group ("Column_Minmax_" + num_rows.to_text) options group_builder->
+        group_builder.specify "integer_constant" <|
+            (data.ints.at "ints1") . min 5
+        group_builder.specify "integer_column" <|
+            (data.ints.at "ints1") . min (data.ints.at "ints2")
+
+        group_builder.specify "date_constant" <|
+            (data.dates.at "dates1") . min (Date.new 2021 01 01)
+        group_builder.specify "date_column" <|
+            (data.dates.at "dates1") . min (data.dates.at "dates2")
+
+        group_builder.specify "text_constant" <|
+            (data.texts.at "texts1") . min "def"
+        group_builder.specify "text_column" <|
+            (data.texts.at "texts1") . min (data.texts.at "texts2")
+
+        group_builder.specify "bool_column" <|
+            (data.bools.at "bools1") . min (data.bools.at "bools2")
+
+main = collect_benches . run_main

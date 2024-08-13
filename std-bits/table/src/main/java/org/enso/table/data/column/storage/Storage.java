@@ -101,6 +101,8 @@ public abstract class Storage<T> implements ColumnStorage {
     public static final String CONTAINS = "contains";
     public static final String LIKE = "like";
     public static final String IS_IN = "is_in";
+    public static final String MIN = "min";
+    public static final String MAX = "max";
   }
 
   /* Specifies if the given binary operation has a vectorized implementation available for this storage.*/

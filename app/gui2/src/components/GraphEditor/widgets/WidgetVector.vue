@@ -6,8 +6,8 @@ import type { PortId } from '@/providers/portInfo'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { Ast } from '@/util/ast'
-import { isAstId } from 'shared/ast'
 import { computed, shallowRef, toRef, toValue, watchEffect, type WatchSource } from 'vue'
+import { isAstId } from 'ydoc-shared/ast'
 
 const props = defineProps(widgetProps(widgetDefinition))
 

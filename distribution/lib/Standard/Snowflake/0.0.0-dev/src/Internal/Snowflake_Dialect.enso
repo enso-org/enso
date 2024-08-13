@@ -40,6 +40,7 @@ import Standard.Database.SQL.SQL_Fragment
 import Standard.Database.SQL_Statement.SQL_Statement
 import Standard.Database.SQL_Type.SQL_Type
 from Standard.Database.Errors import SQL_Error, Unsupported_Database_Operation
+from Standard.Database.Dialect import Temp_Table_Style
 from Standard.Database.Internal.IR.Operation_Metadata import Date_Period_Metadata
 from Standard.Database.Internal.Statement_Setter import fill_hole_default
 
@@ -141,12 +142,6 @@ type Snowflake_Dialect
         table.updated_context_and_columns new_context new_columns subquery=True
 
     ## PRIVATE
-       A heuristic used by `Connection.query` to determine if a given text looks
-       like a SQL query for the given dialect or is rather a table name.
-    is_probably_a_query : Text -> Boolean
-    is_probably_a_query self text = Base_Generator.is_probably_a_query text
-
-    ## PRIVATE
        Returns the mapping between SQL types of this dialect and Enso
        `Value_Type`.
     get_type_mapping : SQL_Type_Mapping
@@ -206,9 +201,9 @@ type Snowflake_Dialect
     supports_float_round_decimal_places self = True
 
     ## PRIVATE
-       Specifies whether the Database supports CREATE TEMPORARY TABLE syntax.
-    suppports_temporary_table_syntax : Boolean
-    suppports_temporary_table_syntax self = True
+       Specifies how the database creates temp tables.
+    temp_table_style : Temp_Table_Style
+    temp_table_style self = Temp_Table_Style.Temporary_Table
 
     ## PRIVATE
     adapt_unified_column : Internal_Column -> Value_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column

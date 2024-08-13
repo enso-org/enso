@@ -7,3 +7,6 @@ type SQL_Query
 
     ## Raw SQL query statement.
     Raw_SQL (sql : Text = Missing_Argument.throw "sql")
+
+## PRIVATE
+SQL_Query.from (that:Text) = SQL_Query.Table_Name that

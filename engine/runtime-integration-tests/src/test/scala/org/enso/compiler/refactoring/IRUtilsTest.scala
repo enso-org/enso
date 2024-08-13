@@ -16,7 +16,8 @@ import java.util.UUID
 
 class IRUtilsTest extends AnyWordSpecLike with Matchers with OptionValues {
   private val ctx = new InterpreterContext()
-  private val langCtx = ctx.ctx
+  private val langCtx = ctx
+    .ctx()
     .getBindings(LanguageInfo.ID)
     .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
     .asHostObject[EnsoContext]()

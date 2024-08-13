@@ -1,16 +1,23 @@
 /** @file Table displaying a list of projects. */
 import * as React from 'react'
 
-import { useSuspenseQuery } from '@tanstack/react-query'
+import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
 import * as toast from 'react-toastify'
 import invariant from 'tiny-invariant'
+import * as z from 'zod'
 
 import DropFilesImage from '#/assets/drop_files.svg'
 
 import * as mimeTypes from '#/data/mimeTypes'
 
 import * as autoScrollHooks from '#/hooks/autoScrollHooks'
-import * as backendHooks from '#/hooks/backendHooks'
+import {
+  backendMutationOptions,
+  useBackendQuery,
+  useListTags,
+  useListUserGroups,
+  useListUsers,
+} from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as intersectionHooks from '#/hooks/intersectionHooks'
 import * as projectHooks from '#/hooks/projectHooks'
@@ -98,16 +105,12 @@ import Visibility from '#/utilities/Visibility'
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
-    readonly enabledColumns: columnUtils.Column[]
+    readonly enabledColumns: readonly columnUtils.Column[]
   }
 }
 
 LocalStorage.registerKey('enabledColumns', {
-  tryParse: (value) => {
-    const possibleColumns = Array.isArray(value) ? value : []
-    const values = possibleColumns.filter(array.includesPredicate(columnUtils.CLOUD_COLUMNS))
-    return values.length === 0 ? null : values
-  },
+  schema: z.enum(columnUtils.CLOUD_COLUMNS).array().readonly(),
 })
 
 // =================
@@ -402,7 +405,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const { user } = authProvider.useFullUserSession()
   const backend = backendProvider.useBackend(category)
-  const labels = backendHooks.useBackendListTags(backend)
+  const labels = useListTags(backend)
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
@@ -427,8 +430,8 @@ export default function AssetsTable(props: AssetsTableProps) {
   > | null>(null)
   const [, setQueuedAssetEvents] = React.useState<assetEvent.AssetEvent[]>([])
   const nameOfProjectToImmediatelyOpenRef = React.useRef(initialProjectName)
-  const users = backendHooks.useBackendListUsers(backend)
-  const userGroups = backendHooks.useBackendListUserGroups(backend)
+  const users = useListUsers(backend)
+  const userGroups = useListUserGroups(backend)
   const organizationQuery = useSuspenseQuery({
     queryKey: [backend.type, 'getOrganization'],
     queryFn: () => backend.getOrganization(),
@@ -662,7 +665,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     true,
   )
 
-  const updateSecretMutation = backendHooks.useBackendMutation(backend, 'updateSecret')
+  const updateSecret = useMutation(backendMutationOptions(backend, 'updateSecret')).mutateAsync
   React.useEffect(() => {
     previousCategoryRef.current = category
   })
@@ -1022,7 +1025,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     overwriteNodesRef.current([])
   }, [backend, category])
 
-  const rootDirectoryQuery = backendHooks.useBackendQuery(
+  const rootDirectoryQuery = useBackendQuery(
     backend,
     'listDirectory',
     [
@@ -1295,7 +1298,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     name={item.item.title}
                     doCreate={async (_name, value) => {
                       try {
-                        await updateSecretMutation.mutateAsync([id, { value }, item.item.title])
+                        await updateSecret([id, { value }, item.item.title])
                       } catch (error) {
                         toastAndLog(null, error)
                       }

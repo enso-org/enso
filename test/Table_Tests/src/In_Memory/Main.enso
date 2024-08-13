@@ -3,6 +3,7 @@ from Standard.Base import all
 from Standard.Test import all
 
 import project.In_Memory.Aggregate_Column_Spec
+import project.In_Memory.Bool_Spec
 import project.In_Memory.Builders_Spec
 import project.In_Memory.Column_Spec
 import project.In_Memory.Column_Format_Spec
@@ -23,6 +24,7 @@ import project.In_Memory.Table_Running_Spec
 
 add_specs suite_builder =
     Aggregate_Column_Spec.add_specs suite_builder
+    Bool_Spec.add_specs suite_builder
     Builders_Spec.add_specs suite_builder
     Column_Format_Spec.add_specs suite_builder
     Column_Spec.add_specs suite_builder

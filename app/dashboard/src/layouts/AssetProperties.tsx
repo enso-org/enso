@@ -1,11 +1,13 @@
 /** @file Display and modify the properties of an asset. */
 import * as React from 'react'
 
+import { useMutation } from '@tanstack/react-query'
+
 import PenIcon from '#/assets/pen.svg'
 
 import * as datalinkValidator from '#/data/datalinkValidator'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import { backendMutationOptions, useListTags } from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -71,7 +73,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     },
     [setItemRaw],
   )
-  const labels = backendHooks.useBackendListTags(backend) ?? []
+  const labels = useListTags(backend) ?? []
   const self = item.item.permissions?.find(
     backendModule.isUserPermissionAnd((permission) => permission.user.userId === user.userId),
   )
@@ -89,10 +91,10 @@ export default function AssetProperties(props: AssetPropertiesProps) {
       localBackend?.getProjectPath(item.item.id) ?? null
     : localBackendModule.extractTypeAndId(item.item.id).id
 
-  const createDatalinkMutation = backendHooks.useBackendMutation(backend, 'createDatalink')
-  const getDatalinkMutation = backendHooks.useBackendMutation(backend, 'getDatalink')
-  const updateAssetMutation = backendHooks.useBackendMutation(backend, 'updateAsset')
-  const getDatalinkMutate = getDatalinkMutation.mutateAsync
+  const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
+  const getDatalinkMutation = useMutation(backendMutationOptions(backend, 'getDatalink'))
+  const updateAssetMutation = useMutation(backendMutationOptions(backend, 'updateAsset'))
+  const getDatalink = getDatalinkMutation.mutateAsync
 
   React.useEffect(() => {
     setDescription(item.item.description ?? '')
@@ -101,13 +103,13 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   React.useEffect(() => {
     void (async () => {
       if (item.item.type === backendModule.AssetType.datalink) {
-        const value = await getDatalinkMutate([item.item.id, item.item.title])
+        const value = await getDatalink([item.item.id, item.item.title])
         setDatalinkValue(value)
         setEditedDatalinkValue(value)
         setIsDatalinkFetched(true)
       }
     })()
-  }, [backend, item.item, getDatalinkMutate])
+  }, [backend, item.item, getDatalink])
 
   const doEditDescription = async () => {
     setIsEditingDescription(false)

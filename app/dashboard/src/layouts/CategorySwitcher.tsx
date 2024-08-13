@@ -10,32 +10,29 @@ import PersonIcon from '#/assets/person.svg'
 import RecentIcon from '#/assets/recent.svg'
 import SettingsIcon from '#/assets/settings.svg'
 import Trash2Icon from '#/assets/trash2.svg'
-
+import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
+import FocusArea from '#/components/styled/FocusArea'
+import SvgMask from '#/components/SvgMask'
 import * as mimeTypes from '#/data/mimeTypes'
-
-import * as backendHooks from '#/hooks/backendHooks'
+import AssetEventType from '#/events/AssetEventType'
+import {
+  useBackendQuery,
+  useListUserGroups,
+  useListUsers,
+  type WithPlaceholder,
+} from '#/hooks/backendHooks'
 import * as offlineHooks from '#/hooks/offlineHooks'
-
+import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
+import type Category from '#/layouts/CategorySwitcher/Category'
+import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import { TabType, useSetPage } from '#/providers/ProjectsProvider'
 import * as textProvider from '#/providers/TextProvider'
-
-import AssetEventType from '#/events/AssetEventType'
-
-import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-import type Category from '#/layouts/CategorySwitcher/Category'
-import * as categoryModule from '#/layouts/CategorySwitcher/Category'
-
-import * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
-import FocusArea from '#/components/styled/FocusArea'
-import SvgMask from '#/components/SvgMask'
-
 import * as backend from '#/services/Backend'
 import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
-
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ========================
@@ -229,11 +226,9 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   const itemProps = { currentCategory: category, setCategory, dispatchAssetEvent }
   const selfDirectoryId = backend.DirectoryId(`directory-${user.userId.replace(/^user-/, '')}`)
 
-  const users = backendHooks.useBackendListUsers(remoteBackend)
-  const teams = backendHooks.useBackendListUserGroups(remoteBackend)
-  const usersById = React.useMemo<
-    ReadonlyMap<backend.DirectoryId, backendHooks.WithPlaceholder<backend.User>>
-  >(
+  const users = useListUsers(remoteBackend)
+  const teams = useListUserGroups(remoteBackend)
+  const usersById = React.useMemo<ReadonlyMap<backend.DirectoryId, WithPlaceholder<backend.User>>>(
     () =>
       new Map(
         (users ?? []).map((otherUser) => [
@@ -244,7 +239,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
     [users],
   )
   const teamsById = React.useMemo<
-    ReadonlyMap<backend.DirectoryId, backendHooks.WithPlaceholder<backend.UserGroupInfo>>
+    ReadonlyMap<backend.DirectoryId, WithPlaceholder<backend.UserGroupInfo>>
   >(
     () =>
       new Map(
@@ -255,7 +250,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
       ),
     [teams],
   )
-  const usersDirectoryQuery = backendHooks.useBackendQuery(remoteBackend, 'listDirectory', [
+  const usersDirectoryQuery = useBackendQuery(remoteBackend, 'listDirectory', [
     {
       parentId: backend.DirectoryId(USERS_DIRECTORY_ID),
       filterBy: backend.FilterBy.active,
@@ -264,7 +259,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
     },
     'Users',
   ])
-  const teamsDirectoryQuery = backendHooks.useBackendQuery(remoteBackend, 'listDirectory', [
+  const teamsDirectoryQuery = useBackendQuery(remoteBackend, 'listDirectory', [
     {
       parentId: backend.DirectoryId(TEAMS_DIRECTORY_ID),
       filterBy: backend.FilterBy.active,

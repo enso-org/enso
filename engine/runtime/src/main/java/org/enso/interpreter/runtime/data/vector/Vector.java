@@ -15,10 +15,10 @@ import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEn
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.error.Warning;
-import org.enso.interpreter.runtime.error.WarningsLibrary;
-import org.enso.interpreter.runtime.error.WithWarnings;
+import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.warning.AppendWarningNode;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
@@ -178,8 +178,8 @@ abstract class Vector implements EnsoObject {
     }
 
     @ExportMessage
-    Warning[] getWarnings(Node location, boolean shouldWrap) throws UnsupportedMessageException {
-      return new Warning[0];
+    EnsoHashMap getWarnings(boolean shouldWrap) {
+      return EnsoHashMap.empty();
     }
 
     @ExportMessage
@@ -249,15 +249,16 @@ abstract class Vector implements EnsoObject {
         long index,
         @Cached.Shared(value = "interop") @CachedLibrary(limit = "3") InteropLibrary interop,
         @CachedLibrary(limit = "3") WarningsLibrary warnings,
-        @Cached HostValueToEnsoNode toEnso)
+        @Cached HostValueToEnsoNode toEnso,
+        @Cached AppendWarningNode appendWarningNode)
         throws InvalidArrayIndexException, UnsupportedMessageException {
       var v = interop.readArrayElement(this.storage, index);
       if (warnings.hasWarnings(this.storage)) {
-        Warning[] extracted = warnings.getWarnings(this.storage, null, false);
+        var extracted = warnings.getWarnings(this.storage, false);
         if (warnings.hasWarnings(v)) {
           v = warnings.removeWarnings(v);
         }
-        return WithWarnings.wrap(EnsoContext.get(interop), toEnso.execute(v), extracted);
+        return appendWarningNode.executeAppend(null, toEnso.execute(v), extracted);
       }
       return toEnso.execute(v);
     }
@@ -287,12 +288,11 @@ abstract class Vector implements EnsoObject {
     }
 
     @ExportMessage
-    Warning[] getWarnings(
-        Node location,
+    EnsoHashMap getWarnings(
         boolean shouldWrap,
         @Cached.Shared(value = "warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings)
         throws UnsupportedMessageException {
-      return warnings.getWarnings(this.storage, location, shouldWrap);
+      return warnings.getWarnings(this.storage, shouldWrap);
     }
 
     @ExportMessage
@@ -357,8 +357,8 @@ abstract class Vector implements EnsoObject {
     }
 
     @ExportMessage
-    Warning[] getWarnings(Node location, boolean shouldWrap) throws UnsupportedMessageException {
-      return new Warning[0];
+    EnsoHashMap getWarnings(boolean shouldWrap) {
+      return EnsoHashMap.empty();
     }
 
     @ExportMessage
@@ -407,8 +407,8 @@ abstract class Vector implements EnsoObject {
     }
 
     @ExportMessage
-    Warning[] getWarnings(Node location, boolean shouldWrap) throws UnsupportedMessageException {
-      return new Warning[0];
+    EnsoHashMap getWarnings(boolean shouldWrap) {
+      return EnsoHashMap.empty();
     }
 
     @ExportMessage

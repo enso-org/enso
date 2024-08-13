@@ -992,8 +992,11 @@ type Column
              example_coalesce = Examples.decimal_column.coalesce Examples.integer_column
     coalesce : (Any | Vector Any) -> Column
     coalesce self values =
-        fallback a b = a.if_nothing b
-        run_vectorized_many_op self "coalesce" fallback values
+        vec = Vector.unify_vector_or_element values
+        new_name = self.naming_helper.function_name "coalesce" [self]+vec
+        result = if values.is_empty then self else
+            values.fold self acc-> v-> acc.fill_nothing v
+        result.rename new_name
 
     ## GROUP Standard.Base.Math
        ICON transform4
@@ -1483,6 +1486,7 @@ type Column
             - ..Trailing_Whitespace: Removes all whitspace from the end of the string.
             - ..Duplicate_Whitespace: Removes all duplicate whitspace from the string replacing it with the first whitespace character of the duplicated block.
             - ..All_Whitespace: Removes all whitspace from the string.
+            - ..Newlines: Removes all newline characters from the string. Line Feed and Carriage Return characters are considered newlines.
             - ..Leading_Numbers: Removes all numbers from the start of the string.
             - ..Trailing_Numbers: Removes all numbers from the end of the string.
             - ..Non_ASCII: Removes all non-ascii characters from the string.

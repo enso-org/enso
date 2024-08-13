@@ -47,12 +47,14 @@ public class VectorSortTest {
     values.addAll(valuesGenerator.booleans());
     values.addAll(valuesGenerator.durations());
     values.addAll(valuesGenerator.maps());
+    valuesGenerator.dispose();
   }
 
   @AfterClass
   public static void disposeCtx() {
     values.clear();
     context.close();
+    context = null;
   }
 
   @DataPoints public static List<Value> values;

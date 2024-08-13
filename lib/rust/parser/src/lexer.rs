@@ -631,7 +631,7 @@ impl<'s, Inner: TokenConsumer<'s>> Lexer<'s, Inner> {
                 match current {
                     '.' => this.take_while_1_('.'),
                     '=' => this.take_while_1_('='),
-                    ':' | ',' => {
+                    ':' | ',' | '\\' => {
                         this.take_next();
                     }
                     _ => this.take_while_1_(is_operator_body_char),
