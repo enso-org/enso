@@ -92,7 +92,7 @@ blocks_in_conditions = "allow" # Until the issue is fixed: https://github.com/ru
 # We are tryingto maintain minimum set of dependencies. Before adding a new dependency, consult it
 # with the core development team. Thank you!
 chrono = { version = "0.4.31", features = ["serde"] }
-clap = { version = "4.5.4", features = ["derive", "env", "wrap_help", "string"] }
+clap = { version = "4.5.15", features = ["derive", "env", "wrap_help", "string"] }
 derive-where = "1.2.7"
 directories = { version = "5.0.1" }
 dirs = { version = "5.0.1" }

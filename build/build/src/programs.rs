@@ -18,6 +18,9 @@ pub mod project_manager {
     pub struct ProjectManager;
 
     impl Program for ProjectManager {
+        type Command = Command;
+        type Version = Version;
+
         fn executable_name(&self) -> &'static str {
             "project-manager"
         }

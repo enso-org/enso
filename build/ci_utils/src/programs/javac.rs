@@ -29,6 +29,9 @@ impl Manipulator for Options {
 pub struct Javac;
 
 impl Program for Javac {
+    type Command = Command;
+    type Version = Version;
+
     fn executable_name(&self) -> &str {
         "javac"
     }

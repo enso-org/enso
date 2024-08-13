@@ -11,6 +11,9 @@ use crate::prelude::*;
 pub struct VsWhere;
 
 impl Program for VsWhere {
+    type Command = Command;
+    type Version = Version;
+
     fn executable_name(&self) -> &'static str {
         "vswhere"
     }

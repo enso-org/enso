@@ -606,12 +606,11 @@ impl<'s, Inner: TokenConsumer<'s>> Lexer<'s, Inner> {
     /// If the current char could start an identifier, consume it and return true; otherwise, return
     /// false.
     fn ident_start_char(&mut self) -> bool {
-        if let Some(char) = self.current_char
-            && is_ident_char(char)
-            && char != '\''
-        {
-            self.take_next();
-            return true;
+        if let Some(char) = self.current_char {
+            if is_ident_char(char) && char != '\'' {
+                self.take_next();
+                return true;
+            }
         }
         false
     }
@@ -859,16 +858,12 @@ where Inner: TokenConsumer<'s> + BlockHierarchyConsumer + NewlineConsumer<'s>
         self.last_spaces_visible_offset = VisibleOffset(0);
         self.last_spaces_offset = self.current_offset;
         // At least two quote characters.
-        if let Some(char) = self.current_char
-            && char == quote_char
-        {
+        if self.current_char == Some(quote_char) {
             let close_quote_start = self.mark_without_whitespace();
             self.take_next();
             let mut multiline = false;
             // If more than two quote characters: Start a multiline quote.
-            while let Some(char) = self.current_char
-                && char == quote_char
-            {
+            while self.current_char == Some(quote_char) {
                 multiline = true;
                 self.take_next();
             }
@@ -909,12 +904,12 @@ where Inner: TokenConsumer<'s> + BlockHierarchyConsumer + NewlineConsumer<'s>
         let token = self.make_token(open_quote_start, open_quote_end, token::Variant::text_start());
         self.inner.push_token(token);
         let mut initial_indent = None;
-        if text_type.expects_initial_newline()
-            && let Some(newline) = self.line_break()
-        {
-            self.inner.push_token(newline.with_variant(token::Variant::text_initial_newline()));
-            if self.last_spaces_visible_offset > block_indent {
-                initial_indent = self.last_spaces_visible_offset.into();
+        if text_type.expects_initial_newline() {
+            if let Some(newline) = self.line_break() {
+                self.inner.push_token(newline.with_variant(token::Variant::text_initial_newline()));
+                if self.last_spaces_visible_offset > block_indent {
+                    initial_indent = self.last_spaces_visible_offset.into();
+                }
             }
         }
         self.text_content(None, text_type.is_interpolated(), State::MultilineText {
@@ -1114,9 +1109,7 @@ where Inner: TokenConsumer<'s> + BlockHierarchyConsumer + NewlineConsumer<'s>
             }
             let mut value: Option<u32> = None;
             for _ in 0..expect_len {
-                if let Some(c) = self.current_char
-                    && let Some(x) = decode_hexadecimal_digit(c)
-                {
+                if let Some(x) = self.current_char.and_then(decode_hexadecimal_digit) {
                     value = Some(16 * value.unwrap_or_default() + x as u32);
                     self.take_next();
                 } else {

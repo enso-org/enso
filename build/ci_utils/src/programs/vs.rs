@@ -70,6 +70,9 @@ define_env_var! {
 pub struct Cl;
 
 impl Program for Cl {
+    type Command = Command;
+    type Version = crate::prelude::Version;
+
     fn executable_name(&self) -> &'static str {
         "cl"
     }

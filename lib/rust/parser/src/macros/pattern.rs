@@ -229,10 +229,8 @@ impl<'s> Match<'s> {
                 fst.get_tokens(out);
                 snd.get_tokens(out);
             }
-            Self::Expected(_, box item)
-            | Self::Named(_, box item)
-            | Self::Or(box OrMatch::First(item) | box OrMatch::Second(item)) =>
-                item.get_tokens(out),
+            Self::Expected(_, item) | Self::Named(_, item) => item.get_tokens(out),
+            Self::Or(item) => item.get_tokens(out),
             Self::Many(matches) => matches.into_iter().for_each(|match_| match_.get_tokens(out)),
         }
     }
@@ -245,6 +243,14 @@ impl<'s> Match<'s> {
     }
 }
 
+impl<'s> OrMatch<'s> {
+    /// Get all tokens of the match; append them to an existing sequence.
+    pub fn get_tokens(self, out: &mut Vec<syntax::Item<'s>>) {
+        match self {
+            Self::First(item) | Self::Second(item) => item.get_tokens(out),
+        }
+    }
+}
 
 
 // ===================

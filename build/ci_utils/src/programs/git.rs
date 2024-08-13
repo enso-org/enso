@@ -38,6 +38,8 @@ pub struct Git;
 
 impl Program for Git {
     type Command = GitCommand;
+    type Version = Version;
+
     fn executable_name(&self) -> &'static str {
         "git"
     }

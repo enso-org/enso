@@ -11,6 +11,7 @@ license-file = "../../LICENSE"
 
 [features]
 debug = ["dep:enso-parser-syntax-tree-visitor"]
+nightly = [] # necessary to run benchmarks
 
 [dependencies]
 enso-prelude = { path = "../prelude" }

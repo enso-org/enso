@@ -7,6 +7,9 @@ use crate::prelude::*;
 pub struct Strip;
 
 impl Program for Strip {
+    type Command = Command;
+    type Version = Version;
+
     fn executable_name(&self) -> &str {
         "strip"
     }

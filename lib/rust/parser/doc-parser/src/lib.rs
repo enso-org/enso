@@ -1,10 +1,5 @@
 //! Enso documentation parser.
 
-#![recursion_limit = "256"]
-// === Features ===
-#![feature(assert_matches)]
-#![feature(let_chains)]
-#![feature(if_let_guard)]
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]
@@ -385,14 +380,14 @@ impl Lexer {
     pub fn line<L: Location>(&mut self, raw: Span<'_, L>, docs: &mut impl TokenConsumer<L>) {
         let line = raw.trim_start();
         match (self.state, line) {
-            (State::Tags, Some(line)) if let Some(tag) = TagWithDescription::new(line.content) => {
-                // TODO: WARN IF: indent != min.
-                docs.tag(tag.name, tag.description);
-            }
-            (State::Tags, Some(line)) => {
-                self.state = State::Normal;
-                self.normal_line(line, docs)
-            }
+            (State::Tags, Some(line)) =>
+                if let Some(tag) = TagWithDescription::new(line.content) {
+                    // TODO: WARN IF: indent != min.
+                    docs.tag(tag.name, tag.description);
+                } else {
+                    self.state = State::Normal;
+                    self.normal_line(line, docs)
+                },
             (State::Tags, None) => raw.warn("Unneeded empty line before content or between tags."),
             (State::ExampleDescription, None) => {
                 self.scopes.end_all().for_each(|scope| docs.end(scope));
@@ -415,7 +410,7 @@ impl Lexer {
                 docs.start_raw();
                 docs.raw_line(line.content);
             }
-            (State::ExampleCode, None) if let Some(_) = self.scopes.raw() => {
+            (State::ExampleCode, None) if self.scopes.raw().is_some() => {
                 docs.raw_line(raw.after());
             }
             (State::ExampleCode, None) => (),
@@ -452,37 +447,32 @@ impl Lexer {
 impl Lexer {
     fn normal_line<L: Location>(&mut self, line: Line<'_, L>, docs: &mut impl TokenConsumer<L>) {
         let Line { indent, content } = line;
-        match content {
-            _ if let Some(marked) = Marked::new(content) => {
-                self.scopes.end_all().for_each(|scope| docs.end(scope));
-                docs.enter_marked_section(marked.mark, marked.header);
-                if marked.mark == Mark::Example {
-                    self.state = State::ExampleDescription;
-                }
+        if let Some(marked) = Marked::new(content) {
+            self.scopes.end_all().for_each(|scope| docs.end(scope));
+            docs.enter_marked_section(marked.mark, marked.header);
+            if marked.mark == Mark::Example {
+                self.state = State::ExampleDescription;
             }
-            t if let Some(t) = t.strip_suffix(':') => {
-                self.scopes.end_all().for_each(|scope| docs.end(scope));
-                docs.enter_keyed_section(t);
+        } else if let Some(t) = content.strip_suffix(':') {
+            self.scopes.end_all().for_each(|scope| docs.end(scope));
+            docs.enter_keyed_section(t);
+        } else if let Some(content) = content.strip_prefix("- ") {
+            self.scopes.end_below(indent).for_each(|scope| docs.end(scope));
+            if self.scopes.start_list_if_not_started(indent) {
+                docs.start_list();
             }
-            t if let Some(content) = t.strip_prefix("- ") => {
-                self.scopes.end_below(indent).for_each(|scope| docs.end(scope));
-                if self.scopes.start_list_if_not_started(indent) {
-                    docs.start_list();
-                }
-                self.scopes.start_list_item(indent);
-                docs.start_list_item();
-                self.text(content, docs);
+            self.scopes.start_list_item(indent);
+            docs.start_list_item();
+            self.text(content, docs);
+        } else {
+            self.scopes.end_below(indent).for_each(|scope| docs.end(scope));
+            if self.scopes.is_in_text() {
+                docs.whitespace();
+            } else {
+                self.scopes.start_paragraph(indent);
+                docs.start_paragraph();
             }
-            _ => {
-                self.scopes.end_below(indent).for_each(|scope| docs.end(scope));
-                if self.scopes.is_in_text() {
-                    docs.whitespace();
-                } else {
-                    self.scopes.start_paragraph(indent);
-                    docs.start_paragraph();
-                }
-                self.text(content, docs);
-            }
+            self.text(content, docs);
         }
     }
 

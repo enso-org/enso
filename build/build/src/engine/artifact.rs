@@ -39,11 +39,16 @@ pub trait IsArtifact: AsRef<Path> + Send + Sync {
         let name = self.asset_file_stem();
         async move { release.upload_compressed_dir_as(path, name?).await }.boxed()
     }
+
+    fn as_dyn_artifact(&self) -> &dyn IsArtifact;
 }
 
 impl IsArtifact for crate::paths::generated::EnginePackage {
     fn kind(&self) -> ArtifactKind {
         ArtifactKind::EnginePackage
+    }
+    fn as_dyn_artifact(&self) -> &dyn IsArtifact {
+        self
     }
 }
 
@@ -51,11 +56,17 @@ impl IsArtifact for crate::paths::generated::ProjectManagerPackage {
     fn kind(&self) -> ArtifactKind {
         ArtifactKind::ProjectManagerPackage
     }
+    fn as_dyn_artifact(&self) -> &dyn IsArtifact {
+        self
+    }
 }
 
 impl IsArtifact for crate::paths::generated::ProjectManagerBundle {
     fn kind(&self) -> ArtifactKind {
         ArtifactKind::ProjectManagerBundle
+    }
+    fn as_dyn_artifact(&self) -> &dyn IsArtifact {
+        self
     }
 }
 
@@ -63,10 +74,16 @@ impl IsArtifact for crate::paths::generated::LauncherPackage {
     fn kind(&self) -> ArtifactKind {
         ArtifactKind::LauncherPackage
     }
+    fn as_dyn_artifact(&self) -> &dyn IsArtifact {
+        self
+    }
 }
 
 impl IsArtifact for crate::paths::generated::LauncherBundle {
     fn kind(&self) -> ArtifactKind {
         ArtifactKind::LauncherBundle
+    }
+    fn as_dyn_artifact(&self) -> &dyn IsArtifact {
+        self
     }
 }

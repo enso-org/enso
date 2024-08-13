@@ -52,7 +52,7 @@ pub trait TypedVariable: RawVariable {
     type Value;
 
     /// The borrowed type of this variable.
-    type Borrowed: ?Sized = Self::Value;
+    type Borrowed: ?Sized;
 
     /// Construct a value of this variable by parsing the raw text value.
     fn parse(&self, value: &str) -> Result<Self::Value>;
@@ -210,11 +210,12 @@ impl RawVariable for PathLike {
 
 impl TypedVariable for PathLike {
     type Value = Vec<PathBuf>;
+    type Borrowed = [PathBuf];
     fn parse(&self, value: &str) -> Result<Self::Value> {
         Ok(std::env::split_paths(value).collect())
     }
 
-    fn generate(&self, value: &Self::Value) -> Result<String> {
+    fn generate(&self, value: &Self::Borrowed) -> Result<String> {
         std::env::join_paths(value)?
             .into_string()
             .map_err(|e| anyhow!("Not a valid UTF-8 string: '{}'.", e.to_string_lossy()))
@@ -247,6 +248,7 @@ impl RawVariable for Separated {
 
 impl TypedVariable for Separated {
     type Value = Vec<String>;
+    type Borrowed = [String];
 
     fn parse(&self, value: &str) -> Result<Self::Value> {
         Ok(value.split(self.separator).map(ToString::to_string).collect())

@@ -142,11 +142,11 @@ mod tests {
         mirror_directory(foo.parent().unwrap(), foo.parent().unwrap().with_file_name("dest2"))
             .await?;
 
-        tokio::process::Command::new(r"C:\msys64\usr\bin\ls.exe")
+        assert!(tokio::process::Command::new(r"C:\msys64\usr\bin\ls.exe")
             .arg("-laR")
             .status()
             .await?
-            .exit_ok()?;
+            .success());
 
         Ok(())
     }

@@ -61,19 +61,20 @@ impl<'s, Inner: TreeConsumer<'s>> TreeConsumer<'s> for CompoundTokens<'s, Inner>
         match (&mut self.compounding, &mut tree.variant) {
             (
                 Some(CompoundToken::TextLiteral(TextLiteralBuilder { elements, .. })),
-                syntax::tree::Variant::TextLiteral(box syntax::tree::TextLiteral {
-                    open: None,
-                    newline: None,
-                    elements: rhs_elements,
-                    close: None,
-                }),
-            ) => {
-                match rhs_elements.first_mut() {
+                syntax::tree::Variant::TextLiteral(literal),
+            ) if matches!(**literal, syntax::tree::TextLiteral {
+                open: None,
+                newline: None,
+                close: None,
+                ..
+            }) =>
+            {
+                match literal.elements.first_mut() {
                     Some(syntax::tree::TextElement::Splice { open, .. }) =>
                         open.left_offset += tree.span.left_offset,
                     _ => unreachable!(),
                 }
-                elements.append(rhs_elements);
+                elements.append(&mut literal.elements);
             }
             _ => {
                 self.flush();

@@ -35,13 +35,10 @@ impl<T> From<Option<MaybeSection<T>>> for MaybeSection<Option<T>> {
 impl<'s> From<Tree<'s>> for MaybeSection<Tree<'s>> {
     fn from(mut value: Tree<'s>) -> Self {
         let elided = 0;
-        let wildcards = if let Tree {
-            variant: tree::Variant::Wildcard(box tree::Wildcard { de_bruijn_index, .. }),
-            ..
-        } = &mut value
+        let wildcards = if let Tree { variant: tree::Variant::Wildcard(wildcard), .. } = &mut value
         {
-            debug_assert_eq!(*de_bruijn_index, None);
-            *de_bruijn_index = Some(0);
+            debug_assert_eq!(wildcard.de_bruijn_index, None);
+            wildcard.de_bruijn_index = Some(0);
             1
         } else {
             0

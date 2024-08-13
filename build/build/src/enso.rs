@@ -234,6 +234,9 @@ impl BuiltEnso {
 
 #[async_trait]
 impl Program for BuiltEnso {
+    type Command = Command;
+    type Version = Version;
+
     fn executable_name(&self) -> &str {
         ide_ci::platform::DEFAULT_SHELL.executable_name()
     }

@@ -6,6 +6,9 @@ use crate::prelude::*;
 pub struct Go;
 
 impl Program for Go {
+    type Command = Command;
+    type Version = Version;
+
     fn executable_name(&self) -> &'static str {
         "go"
     }

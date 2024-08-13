@@ -1,7 +1,5 @@
 //! Parse expressions and compare their results to expected values.
 
-// === Features ===
-#![feature(cell_update)]
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]
@@ -1877,10 +1875,10 @@ impl Errors {
         let errors = core::cell::Cell::new(Errors::default());
         ast.visit_trees(|tree| match &tree.variant {
             enso_parser::syntax::tree::Variant::Invalid(_) => {
-                errors.update(|e| Self { invalid_node: true, ..e });
+                errors.set(Self { invalid_node: true, ..errors.get() });
             }
             enso_parser::syntax::tree::Variant::OprApp(opr_app) if opr_app.opr.is_err() => {
-                errors.update(|e| Self { multiple_operator: true, ..e });
+                errors.set(Self { multiple_operator: true, ..errors.get() });
             }
             _ => (),
         });

@@ -8,6 +8,9 @@ use crate::new_command_type;
 pub struct Node;
 
 impl Program for Node {
+    type Command = Command;
+    type Version = Version;
+
     fn executable_name(&self) -> &'static str {
         "node"
     }
@@ -41,6 +44,7 @@ pub struct Npm;
 
 impl Program for Npm {
     type Command = NpmCommand;
+    type Version = Version;
 
     fn executable_name(&self) -> &'static str {
         "npm"
@@ -66,6 +70,7 @@ pub struct Pnpm;
 
 impl Program for Pnpm {
     type Command = PnpmCommand;
+    type Version = Version;
 
     fn executable_name(&self) -> &'static str {
         "corepack"

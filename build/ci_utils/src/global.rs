@@ -10,20 +10,6 @@ use tokio::task::JoinHandle;
 
 
 
-/// Turns given text into a static string.
-///
-/// This can be useful for passing runtime-generated strings to APIs that expect static lifetime
-/// texts, like the `clap` library.
-///
-/// This effectively leaks memory, though if the function is called multiple times with the same
-/// argument, it will allocate only once.
-pub fn store_static_text(text: impl AsRef<str>) -> &'static str {
-    lazy_static! {
-        pub static ref STRING_STORAGE: Mutex<HashSet<&'static str>> = default();
-    }
-    STRING_STORAGE.lock().unwrap().get_or_insert_with(text.as_ref(), |text| Box::leak(text.into()))
-}
-
 const REFRESHES_PER_SECOND: u32 = 100;
 
 #[derive_where(Debug)]
@@ -63,7 +49,7 @@ impl Default for GlobalState {
             bars:          default(),
             _tick_thread:  std::thread::spawn(|| {
                 GLOBAL.lock().unwrap().tick();
-                std::thread::sleep(Duration::SECOND / REFRESHES_PER_SECOND);
+                std::thread::sleep(Duration::from_secs(1) / REFRESHES_PER_SECOND);
             }),
             ongoing_tasks: default(),
         }

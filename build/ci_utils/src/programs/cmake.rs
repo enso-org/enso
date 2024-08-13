@@ -149,6 +149,9 @@ impl Manipulator for SetVariable {
 pub struct CMake;
 
 impl Program for CMake {
+    type Command = Command;
+    type Version = Version;
+
     fn executable_name(&self) -> &str {
         "cmake"
     }

@@ -10,6 +10,9 @@ use crate::prelude::*;
 pub struct Explorer;
 
 impl Program for Explorer {
+    type Command = Command;
+    type Version = Version;
+
     fn executable_name(&self) -> &str {
         "explorer"
     }

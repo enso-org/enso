@@ -75,17 +75,6 @@ impl Format {
                 let mut archive = ::tar::Archive::new(tar_stream);
                 archive.unpack(output_dir)?;
             }
-            // Format::SevenZip => {
-            //     let mut cmd = SevenZip.unpack_from_stdin_cmd(output_dir)?;
-            //     cmd.stdin(Stdio::piped());
-            //     let mut child = cmd.as_std().clone().spawn()?;
-            //     //let child = cmd.spawn_nicer()?;
-            //     let mut stdin =
-            //         child.stdin.ok_or_else(|| anyhow!("Failed to get 7z stdin handle"))?;
-            //     std::io::copy(&mut compressed_data, &mut stdin)?;
-            //     drop(stdin);
-            //     child.wait()?.exit_ok()?;
-            // }
             _ => todo!("Not supported!"),
         }
         Ok(())

@@ -18,6 +18,9 @@ pub mod env {
 pub struct Rustup;
 
 impl Program for Rustup {
+    type Command = Command;
+    type Version = Version;
+
     fn executable_name(&self) -> &'static str {
         "rustup"
     }

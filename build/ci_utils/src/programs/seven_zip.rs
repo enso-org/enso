@@ -6,6 +6,9 @@ use crate::prelude::*;
 pub struct SevenZip;
 
 impl Program for SevenZip {
+    type Command = Command;
+    type Version = Version;
+
     fn executable_name(&self) -> &'static str {
         "7z"
     }

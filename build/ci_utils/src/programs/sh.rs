@@ -9,6 +9,9 @@ use crate::env::Modification;
 pub struct Sh;
 
 impl Program for Sh {
+    type Command = Command;
+    type Version = Version;
+
     fn executable_name(&self) -> &'static str {
         "sh"
     }
@@ -18,6 +21,9 @@ impl Program for Sh {
 pub struct Bash;
 
 impl Program for Bash {
+    type Command = Command;
+    type Version = Version;
+
     fn executable_name(&self) -> &'static str {
         "bash"
     }

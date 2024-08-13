@@ -51,6 +51,9 @@ impl AsRef<OsStr> for Option {
 pub struct Java;
 
 impl Program for Java {
+    type Command = Command;
+    type Version = Version;
+
     fn executable_name(&self) -> &'static str {
         "java"
     }
