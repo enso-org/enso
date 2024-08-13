@@ -121,7 +121,7 @@ impl Storable for DownloadFont {
     ) -> BoxFuture<'static, Result<Self::Output>> {
         async move {
             for font in &mut metadata {
-                *font = cache.join(&font);
+                *font = cache.join(&*font);
             }
             Ok(metadata)
         }

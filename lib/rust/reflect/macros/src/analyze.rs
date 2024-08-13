@@ -136,7 +136,10 @@ fn parse_field_attrs(attr: &syn::Attribute, out: &mut Vec<FieldAttr>) {
     }
     match &attr.meta {
         syn::Meta::List(metalist) =>
-            { metalist.parse_nested_meta(|meta| Ok(out.push(parse_field_annotation(&meta)?))) }
+            { metalist.parse_nested_meta(|meta| {
+                out.push(parse_field_annotation(&meta)?);
+                Ok(())
+            }) }
                 .expect(INVALID_HELPER_SYNTAX),
         syn::Meta::Path(_) | syn::Meta::NameValue(_) =>
             panic!("{}: {}.", INVALID_HELPER_SYNTAX, attr.meta.to_token_stream()),

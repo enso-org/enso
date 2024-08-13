@@ -12,7 +12,7 @@ fn normalize_ident(ident: impl AsRef<str>, case: Case) -> Ident {
     let normalized_text = if base == "." {
         String::from("Paths")
     } else {
-        let mut ret = base.replace(|c| matches!(c, '-' | '.' | ' '), "_");
+        let mut ret = base.replace(['-', '.', ' '], "_");
         ret.remove_matches(|c| matches!(c, '<' | '>'));
         ret
     };
@@ -163,7 +163,7 @@ impl<'a> Generator<'a> {
 
         let mut child_parameter_vars = BTreeSet::new();
         for node in last_node.children() {
-            child_parameter_vars.extend(node.all_parameters_vars(self)?.into_iter().cloned())
+            child_parameter_vars.extend(node.all_parameters_vars(self)?.iter().cloned())
         }
         let all_parameters: BTreeSet<_> = full_path
             .iter()
