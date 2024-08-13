@@ -4,6 +4,7 @@ from Standard.Test import all
 
 import project.Input_Output_Spec
 import project.Comparator_Spec
+import project.Decimal_Constructor_Spec
 import project.Grapheme_Spec
 
 main filter=Nothing =
