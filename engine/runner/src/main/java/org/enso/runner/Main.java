@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -1016,21 +1017,6 @@ public class Main {
       displayVersion(line.hasOption(JSON_OPTION));
       throw exitSuccess();
     }
-    if (line.hasOption(SYSTEM_PROPERTY)) {
-      var optionValues = line.getOptionValues(SYSTEM_PROPERTY);
-      for (var optionValue : optionValues) {
-        var items = optionValue.split("=");
-        if (items.length == 2) {
-          System.setProperty(items[0], items[1]);
-        } else if (items.length == 1) {
-          System.setProperty(items[0], "true");
-        } else {
-          System.err.println(
-              "Argument to " + SYSTEM_PROPERTY + " must be in the form <property>=<value>");
-          throw exitFail();
-        }
-      }
-    }
 
     if (line.hasOption(NEW_OPTION)) {
       createNew(
@@ -1204,6 +1190,32 @@ public class Main {
     }
   }
 
+  /**
+   * Parses all system properties from the given command line.
+   *
+   * @return null if no cmdline argument was specified.
+   */
+  protected Map<String, String> parseSystemProperties(CommandLine cmdLine) {
+    if (cmdLine.hasOption(SYSTEM_PROPERTY)) {
+      Map<String, String> props = new HashMap<>();
+      var optionValues = cmdLine.getOptionValues(SYSTEM_PROPERTY);
+      for (var optionValue : optionValues) {
+        var items = optionValue.split("=");
+        if (items.length == 2) {
+          props.put(items[0], items[1]);
+        } else if (items.length == 1) {
+          props.put(items[0], "true");
+        } else {
+          println("Argument to " + SYSTEM_PROPERTY + " must be in the form <property>=<value>");
+          throw exitFail();
+        }
+      }
+      return props;
+    } else {
+      return null;
+    }
+  }
+
   private static ProfilingConfig parseProfilingConfig(CommandLine line) throws WrongOption {
     Path profilingPath = null;
     try {
@@ -1264,6 +1276,7 @@ public class Main {
 
     var logMasking = new boolean[1];
     var logLevel = setupLogging(line, logMasking);
+    var props = parseSystemProperties(line);
 
     if (line.hasOption(JVM_OPTION)) {
       var jvm = line.getOptionValue(JVM_OPTION);
@@ -1300,6 +1313,11 @@ public class Main {
               continue;
             }
             commandAndArgs.add(op);
+          }
+        }
+        if (props != null) {
+          for (var e : props.entrySet()) {
+            commandAndArgs.add("-D" + e.getKey() + "=" + e.getValue());
           }
         }
 
@@ -1343,6 +1361,12 @@ public class Main {
         } else {
           throw doExit(exitCode);
         }
+      }
+    }
+
+    if (props != null) {
+      for (var e : props.entrySet()) {
+        System.setProperty(e.getKey(), e.getValue());
       }
     }
 
