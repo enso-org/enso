@@ -47,6 +47,7 @@ const emit = defineEmits<{
   rowEditingStarted: [event: RowEditingStartedEvent]
   rowEditingStopped: [event: RowEditingStoppedEvent]
   rowDataUpdated: [event: RowDataUpdatedEvent]
+  sortUpdated: [event: any]
 }>()
 
 const widths = reactive(new Map<string, number>())
@@ -158,6 +159,10 @@ if (typeof import.meta.env.VITE_ENSO_AG_GRID_LICENSE_KEY !== 'string') {
   LicenseManager.setLicenseKey(agGridLicenseKey)
 }
 
+const sortChanged = () => {
+  console.log('sortchanged')
+}
+
 const { AgGridVue } = await import('ag-grid-vue3')
 </script>
 
@@ -186,6 +191,8 @@ const { AgGridVue } = await import('ag-grid-vue3')
     @cellEditingStopped="emit('cellEditingStopped', $event)"
     @rowEditingStarted="emit('rowEditingStarted', $event)"
     @rowEditingStopped="emit('rowEditingStopped', $event)"
+    @sortChanged="emit('sortUpdated', $event)"
+    @filterChanged="emit('sortUpdated', $event)"
   />
 </template>
 

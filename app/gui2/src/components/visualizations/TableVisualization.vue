@@ -1,10 +1,5 @@
 <script lang="ts">
 import icons from '@/assets/icons.svg'
-import {
-  clipboardNodeData,
-  tsvTableToEnsoExpression,
-  writeClipboard,
-} from '@/components/GraphEditor/clipboard'
 import { default as TableVizToolbar, type SortModel } from '@/components/TableVizToolbar.vue'
 import AgGridTableView from '@/components/widgets/AgGridTableView.vue'
 import { Ast } from '@/util/ast'
@@ -527,9 +522,9 @@ watchEffect(() => {
   defaultColDef.value.sortable = !isTruncated.value
 })
 
-function checkSortAndFilter() {
-  const gridApi = agGridOptions.value.api
-  const columnApi = agGridOptions.value.columnApi
+function checkSortAndFilter(e: any) {
+  const gridApi = e.api
+  const columnApi = e.columnApi
   if (gridApi == null || columnApi == null) {
     console.warn('AG Grid column API does not exist.')
     isCreateNodeEnabled.value = false
@@ -558,6 +553,7 @@ function checkSortAndFilter() {
     filterModel.value = {}
   }
 }
+
 // ===============
 // === Updates ===
 // ===============
@@ -608,6 +604,7 @@ onMounted(() => {
           :columnDefs="columnDefs"
           :rowData="rowData"
           :defaultColDef="defaultColDef"
+          @sortUpdated="(e) => checkSortAndFilter(e)"
         />
       </Suspense>
     </div>
