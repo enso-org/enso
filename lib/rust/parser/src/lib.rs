@@ -218,10 +218,10 @@ fn expression_to_pattern(mut input: syntax::Tree<'_>) -> syntax::Tree<'_> {
     let mut error = None;
     match input.variant {
         // === Recursions ===
-        Variant::Group(ref mut group) => match &mut **group {
-            Group { body: Some(ref mut body), .. } => transform_tree(body, expression_to_pattern),
-            _ => {}
-        },
+        Variant::Group(ref mut group) =>
+            if let Group { body: Some(ref mut body), .. } = &mut **group {
+                transform_tree(body, expression_to_pattern)
+            },
         Variant::App(ref mut app) => match &mut **app {
             // === Special-case error ===
             App { func: Tree { variant: Variant::Ident(ref ident), .. }, .. }
