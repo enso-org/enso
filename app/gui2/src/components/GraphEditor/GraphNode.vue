@@ -216,13 +216,13 @@ function setSelected() {
   nodeSelection?.setSelection(new Set([nodeId.value]))
 }
 
-function onAnyClick(e: PointerEvent) {
+function onAnyClick(e: MouseEvent) {
   if (isUnmodifiedPrimaryButtonClick(e)) {
     setSelected()
   }
 }
 
-function isUnmodifiedPrimaryButtonClick(e: PointerEvent) {
+function isUnmodifiedPrimaryButtonClick(e: MouseEvent) {
   const isModified = e.ctrlKey || e.altKey || e.shiftKey || e.metaKey
   const isPrimaryButton = e.button === 0
   return isPrimaryButton && !isModified
