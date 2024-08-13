@@ -171,11 +171,10 @@ export default class DrivePageActions extends PageActions {
        * placeholder row displayed when there are no assets to show. */
       expectPlaceholderRow() {
         return self.step('Expect placeholder row', async (page) => {
-          const rows = locateAssetRows(page)
+          await test.expect(locateAssetRows(page)).toHaveCount(0)
           const nonAssetRows = locateNonAssetRows(page)
-          await test.expect(rows).toHaveCount(0)
           await test.expect(nonAssetRows).toHaveCount(1)
-          await test.expect(rows).toHaveText(/This folder is empty/)
+          await test.expect(nonAssetRows).toHaveText(/This folder is empty/)
         })
       },
       /** A test assertion to confirm that there is only one row visible, and that row is the
