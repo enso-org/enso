@@ -112,9 +112,7 @@ case object FramePointerAnalysis extends IRPass {
             case Some(defaultValueGraph) =>
               processExpression(defaultValue, defaultValueGraph)
             case None =>
-              // If there is no alias analysis graph for the default value, it means that the
-              // default value is some primitive IR, like Text.Literal. In that case, we don't do anything.
-              ()
+              processExpression(defaultValue, graph)
           }
         case None => ()
       }

@@ -330,7 +330,7 @@ class FramePointerAnalysisTest extends CompilerTest {
       expectFramePointer(tUseArg.value, new FramePointer(1, 1))
     }
 
-    "attach frame pointers to argument default value expression" in {
+    "attach frame pointers to argument default value expression (1)" in {
       implicit val ctx: ModuleContext = mkModuleContext
       val ir =
         """
@@ -353,6 +353,49 @@ class FramePointerAnalysisTest extends CompilerTest {
       )
       expectFramePointer(xDefArg, new FramePointer(0, 1))
       expectFramePointer(xUseArg.value, new FramePointer(1, 1))
+    }
+
+    "attach frame pointer to argument default value expression using previous argument" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+      val ir =
+        """
+          |method x y=(x + 1) =
+          |    42
+          |""".stripMargin.preprocessModule.analyse
+      val allOcc = collectAllOccurences(ir)
+      val fps    = collectAllFramePointers(ir)
+      // `xLit` is the literal used in the `(x + 1)` expression
+      val xLit = findIRElement[Name.Literal](
+        ir,
+        lit => {
+          lit.name == "x" &&
+          lit.location.isDefined &&
+          lit.location.get.location().start() == 13 &&
+          lit.location.get.location().end() == 14
+        }
+      )
+      expectFramePointer(xLit, new FramePointer(1, 2))
+      allOcc shouldNot be(null)
+      fps shouldNot be(null)
+    }
+
+    "attach frame pointer to argument default value expression (2)" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+      val ir =
+        """
+          |find data_link_instance (if_not_supported = (Error.throw (Illegal_Argument.Error "The "+(data_link_name data_link_instance)+" cannot be opened as a stream."))) =
+          |    42
+          |""".stripMargin.preprocessModule.analyse
+      val dataLinkInstanceLit = findIRElement[Name.Literal](
+        ir,
+        lit => {
+          lit.name == "data_link_instance" &&
+          lit.location.isDefined &&
+          lit.location.get.location().start() == 105 &&
+          lit.location.get.location().end() == 123
+        }
+      )
+      expectFramePointer(dataLinkInstanceLit, new FramePointer(5, 2))
     }
 
     "does not attach frame pointer to argument default value literal" in {
