@@ -334,12 +334,17 @@ abstract class TypePropagation {
 
     switch (argumentType) {
       case TypeRepresentation.TypeObject typeObject -> {
-        var ctorCandidate =
-            typeObject.typeInterface().constructors().stream()
-                .filter(ctor -> ctor.name().equals(function.name()))
-                .findFirst();
-        if (ctorCandidate.isPresent()) {
-          return typeResolver.buildAtomConstructorType(typeObject, ctorCandidate.get());
+        if (isConstructorOrType(function.name())) {
+          var ctorCandidate =
+              typeObject.typeInterface().constructors().stream()
+                  .filter(ctor -> ctor.name().equals(function.name()))
+                  .findFirst();
+          if (ctorCandidate.isPresent()) {
+            return typeResolver.buildAtomConstructorType(typeObject, ctorCandidate.get());
+          } else {
+            // TODO we could report that no valid constructor was found
+            return null;
+          }
         } else {
           // We resolve static calls on the eigen type. It should also contain registrations of the
           // static variants of member methods, so we don't need to inspect member scope.
@@ -355,12 +360,19 @@ abstract class TypePropagation {
 
       case TypeRepresentation.ModuleReference moduleReference -> {
         var typeScope = TypeScopeReference.moduleAssociatedType(moduleReference.name());
-        var resolvedModuleMethod = methodTypeResolver.resolveMethod(typeScope, function.name());
-        if (resolvedModuleMethod == null) {
-          encounteredNoSuchMethod(
-              relatedWholeApplicationIR, argumentType, function.name(), MethodCallKind.MODULE);
+
+        if (isConstructorOrType(function.name())) {
+          // This is a special case when we are accessing a type inside a module, e.g. Mod.Type 'call' should resolve to the type
+          // TODO
+          return null;
+        } else {
+          var resolvedModuleMethod = methodTypeResolver.resolveMethod(typeScope, function.name());
+          if (resolvedModuleMethod == null) {
+            encounteredNoSuchMethod(
+                relatedWholeApplicationIR, argumentType, function.name(), MethodCallKind.MODULE);
+          }
+          return resolvedModuleMethod;
         }
-        return resolvedModuleMethod;
       }
 
       case TypeRepresentation.AtomType atomInstanceType -> {
@@ -395,6 +407,12 @@ abstract class TypePropagation {
         return null;
       }
     }
+  }
+
+  private boolean isConstructorOrType(String name) {
+    assert !name.isEmpty();
+    char firstCharacter = name.charAt(0);
+    return Character.isUpperCase(firstCharacter);
   }
 
   private class CompilerNameResolution
