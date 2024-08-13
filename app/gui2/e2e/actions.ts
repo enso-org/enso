@@ -57,7 +57,7 @@ export async function dragNodeByBinding(page: Page, nodeBinding: string, x: numb
 }
 
 /// Move mouse away to avoid random hover events and wait for any circular menus to disappear.
-export async function ensureNoCircularMenusHovered(page: Page) {
+export async function ensureNoCircularMenusVisibleDueToHovering(page: Page) {
   await page.mouse.move(-1000, 0)
   await expect(locate.circularMenu(page)).toBeHidden()
 }
