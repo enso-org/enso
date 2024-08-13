@@ -106,14 +106,11 @@ impl IsTarget for Gui {
 // =================
 // === BuildInfo ===
 // =================
-#[derive(Clone, Derivative, Serialize, Deserialize)]
-#[derivative(Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BuildInfo {
     pub commit:         String,
-    #[derivative(Debug(format_with = "std::fmt::Display::fmt"))]
     pub version:        Version,
-    #[derivative(Debug(format_with = "std::fmt::Display::fmt"))]
     pub engine_version: Version,
     pub name:           String,
 }

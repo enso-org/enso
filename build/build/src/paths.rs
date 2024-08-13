@@ -49,7 +49,7 @@ pub fn discover_standard_library_tests(repo_root: &generated::RepoRoot) -> Resul
     glob::glob(glob_pattern.as_str())?
         // Package manifest path -> Parent directory.
         .map(|package_path_result| Result::Ok(package_path_result?.try_parent()?.to_path_buf()))
-        .try_collect_vec()
+        .try_collect()
 }
 
 pub fn new_repo_root(repo_root: impl Into<PathBuf>, triple: &TargetTriple) -> generated::RepoRoot {
@@ -62,15 +62,7 @@ pub fn new_repo_root(repo_root: impl Into<PathBuf>, triple: &TargetTriple) -> ge
     )
 }
 
-pub fn pretty_print_arch(arch: Arch) -> &'static str {
-    match arch {
-        Arch::X86_64 => "amd64",
-        Arch::AArch64 => "aarch64",
-        _ => panic!("Unrecognized architecture {arch}"),
-    }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
 pub struct TargetTriple {
     pub os:       OS,
     pub arch:     Arch,
@@ -90,16 +82,11 @@ impl TargetTriple {
     pub fn engine(&self) -> Self {
         self.clone()
     }
-
-    /// Pretty prints architecture for our packages. Conform to GraalVM scheme as well.
-    pub fn arch(&self) -> &'static str {
-        pretty_print_arch(self.arch)
-    }
 }
 
 impl Display for TargetTriple {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}-{}-{}", self.versions.version, self.os, self.arch())
+        write!(f, "{}-{}-{}", self.versions.version, self.os, self.arch)
     }
 }
 

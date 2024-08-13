@@ -72,7 +72,7 @@ pub enum CscLink {
     Data(Vec<u8>),
 }
 
-impl std::str::FromStr for CscLink {
+impl FromStr for CscLink {
     type Err = anyhow::Error;
 
     #[context("Failed to parse CSC link from '{csc_link}'.")]

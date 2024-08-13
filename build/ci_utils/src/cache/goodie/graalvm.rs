@@ -33,7 +33,7 @@ pub enum Edition {
     Enterprise,
 }
 
-impl std::str::FromStr for Edition {
+impl FromStr for Edition {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self> {
@@ -177,7 +177,6 @@ impl GraalVM {
             OS::Linux => "linux",
             OS::Windows => "windows",
             OS::MacOS => "macos",
-            other_os => unimplemented!("System `{}` is not supported!", other_os),
         };
         let arch_name = match self.arch {
             Arch::X86_64 => "x64",

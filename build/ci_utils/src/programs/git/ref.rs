@@ -12,8 +12,8 @@ use crate::prelude::*;
 ///
 /// # Examples
 /// ```
-/// use enso_build_base::prelude::FromString;
 /// use ide_ci::programs::git::Ref;
+/// use std::str::FromStr;
 /// let reference = Ref::from_str("refs/heads/master").unwrap();
 /// assert_eq!(reference, Ref::Branch { name: "master".into() });
 /// ```
@@ -51,7 +51,7 @@ pub enum Ref {
     },
 }
 
-impl std::str::FromStr for Ref {
+impl FromStr for Ref {
     type Err = anyhow::Error;
 
     /// Parse the reference from the full decorated name, like `refs/heads/main`.

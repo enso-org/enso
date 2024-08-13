@@ -34,7 +34,6 @@ impl Artifact {
             OS::Linux => "enso",
             OS::MacOS => "Enso.app",
             OS::Windows => "Enso.exe",
-            _ => todo!("{target_os}-{target_arch} combination is not supported"),
         }
         .into();
 
@@ -79,14 +78,12 @@ impl Artifact {
     }
 }
 
-#[derive(derivative::Derivative)]
-#[derivative(Debug)]
+#[derive_where(Debug)]
 pub struct BuildInput {
-    #[derivative(Debug(format_with = "std::fmt::Display::fmt"))]
     pub version:         Version,
-    #[derivative(Debug = "ignore")]
+    #[derive_where(skip)]
     pub project_manager: BoxFuture<'static, Result<crate::project::backend::Artifact>>,
-    #[derivative(Debug = "ignore")]
+    #[derive_where(skip)]
     pub gui:             BoxFuture<'static, Result<crate::project::gui::Artifact>>,
     pub electron_target: Option<String>,
     /// The name base used to generate CI run artifact names.
@@ -141,6 +138,5 @@ pub fn electron_image_filename(target_os: OS, target_arch: Arch, version: &Versi
         OS::Linux => format!("enso-linux-{arch_string}-{version}.AppImage"),
         OS::MacOS => format!("enso-mac-{arch_string}-{version}.dmg"),
         OS::Windows => format!("enso-win-{arch_string}-{version}.exe"),
-        _ => todo!("{target_os}-{target_arch} combination is not supported"),
     }
 }

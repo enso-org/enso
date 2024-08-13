@@ -11,7 +11,7 @@ license-file = "../../LICENSE"
 
 [dependencies]
 enso-parser = { path = "../", features = ["debug"] }
-enso-metamodel = { path = "../../metamodel", features = ["rust"] }
+enso-metamodel = { path = "../../metamodel" }
 enso-metamodel-lexpr = { path = "../../metamodel/lexpr" }
 enso-reflect = { path = "../../reflect" }
 lexpr = "0.2.6"

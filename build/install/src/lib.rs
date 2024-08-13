@@ -1,10 +1,5 @@
 //! This crate is linked in both by the installer and the uninstaller.
 
-// === Features ===
-#![feature(lazy_cell)]
-
-
-
 pub mod prelude {
     pub use ide_ci::prelude::*;
 

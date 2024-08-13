@@ -21,7 +21,7 @@ pub mod web;
 /// Inputs content is discarded.
 pub async fn read_length(mut read: impl AsyncRead + Unpin) -> Result<u64> {
     let mut sink = tokio::io::sink();
-    tokio::io::copy(&mut read, &mut sink).anyhow_err().await
+    Ok(tokio::io::copy(&mut read, &mut sink).await?)
 }
 
 /// Get the the response body as a byte stream.

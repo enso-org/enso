@@ -120,7 +120,7 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub token: token::Wildcard<'s>,
             #[serde(serialize_with = "crate::serialization::serialize_optional_int")]
             #[serde(deserialize_with = "crate::serialization::deserialize_optional_int")]
-            #[reflect(as = "i32")]
+            #[reflect(as = i32)]
             pub de_bruijn_index: Option<u32>,
         },
         /// The suspended-default-arguments marker, `...`.

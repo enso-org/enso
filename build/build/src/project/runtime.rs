@@ -16,8 +16,7 @@ use crate::version::Versions;
 
 const ARTIFACT_NAME: &str = "runtime";
 
-#[derive(Clone, Derivative)]
-#[derivative(Debug)]
+#[derive(Clone, Debug)]
 pub struct BuildInput {
     pub versions: Versions,
 }

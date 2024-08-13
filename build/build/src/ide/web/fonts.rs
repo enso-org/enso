@@ -28,17 +28,17 @@ pub async fn install_html_fonts(
 /// [`font-style`]: https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-style
 #[derive(Debug, Display, Copy, Clone)]
 pub enum FontStyle {
-    #[display(fmt = "normal")]
+    #[display("normal")]
     Normal,
-    #[display(fmt = "italic")]
+    #[display("italic")]
     Italic,
-    #[display(fmt = "oblique")]
+    #[display("oblique")]
     Oblique,
     /// Angle is in degrees, between -90 and 90.
-    #[display(fmt = "oblique {_0}deg")]
+    #[display("oblique {_0}deg")]
     ObliqueWithAngle(f64),
     /// Angles are in degrees, between -90 and 90.
-    #[display(fmt = "oblique {_0}deg {_1}deg")]
+    #[display("oblique {_0}deg {_1}deg")]
     ObliqueWithAngleRange(f64, f64),
 }
 
