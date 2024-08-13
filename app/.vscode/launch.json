@@ -1,0 +1,93 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Dashboard",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "--workspace=enso-dashboard", "dev"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "GUI",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "--workspace=enso-gui2", "dev"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "GUI (Storybook)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "--workspace=enso-gui2", "story:dev"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Dashboard (Build)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "--workspace=enso-gui2", "build:cloud"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Dashboard (E2E UI)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "--workspace=enso-dashboard", "test:e2e:debug"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "GUI (E2E UI)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "--workspace=enso-gui2", "test:e2e", "--", "--ui"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Dashboard (All tests)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "--workspace=enso-dashboard", "test"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Dashboard (E2E tests)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "--workspace=enso-dashboard", "test:e2e"],
+      "outputCapture": "std"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Dashboard (Unit tests)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "--workspace=enso-dashboard", "test:unit"],
+      "outputCapture": "std"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "GUI (All tests)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "--workspace=enso-gui2", "test"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "GUI (E2E tests)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "--workspace=enso-gui2", "test:e2e"],
+      "outputCapture": "std"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "GUI (Unit tests)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "--workspace=enso-gui2", "test:unit", "--", "run"],
+      "outputCapture": "std"
+    }
+  ]
+}

@@ -86,20 +86,16 @@ export type UserSession = FullUserSession | PartialUserSession
  *
  * See `Cognito` for details on each of the authentication functions. */
 interface AuthContextType {
-  readonly signUp: (
-    email: string,
-    password: string,
-    organizationId: string | null,
-  ) => Promise<boolean>
+  readonly signUp: (email: string, password: string, organizationId: string | null) => Promise<void>
   readonly authQueryKey: reactQuery.QueryKey
   readonly confirmSignUp: (email: string, code: string) => Promise<boolean>
   readonly setUsername: (username: string) => Promise<boolean>
   readonly signInWithGoogle: () => Promise<boolean>
   readonly signInWithGitHub: () => Promise<boolean>
-  readonly signInWithPassword: (email: string, password: string) => Promise<boolean>
-  readonly forgotPassword: (email: string) => Promise<boolean>
+  readonly signInWithPassword: (email: string, password: string) => Promise<void>
+  readonly forgotPassword: (email: string) => Promise<void>
   readonly changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>
-  readonly resetPassword: (email: string, code: string, password: string) => Promise<boolean>
+  readonly resetPassword: (email: string, code: string, password: string) => Promise<void>
   readonly signOut: () => Promise<void>
   /**
    * @deprecated Never use this function. Prefer particular functions like `setUsername` or `deleteUser`.
@@ -293,18 +289,15 @@ export default function AuthProvider(props: AuthProviderProps) {
 
   const signUp = useEventCallback(
     async (username: string, password: string, organizationId: string | null) => {
-      if (cognito == null) {
-        return false
-      } else {
+      if (cognito != null) {
         gtagEvent('cloud_sign_up')
         const result = await cognito.signUp(username, password, organizationId)
         if (result.ok) {
-          toastSuccess(getText('signUpSuccess'))
           navigate(appUtils.LOGIN_PATH)
         } else {
-          toastError(result.val.message)
+          // eslint-disable-next-line no-restricted-syntax
+          throw new Error(result.val.message)
         }
-        return result.ok
       }
     },
   )
@@ -337,23 +330,16 @@ export default function AuthProvider(props: AuthProviderProps) {
   })
 
   const signInWithPassword = useEventCallback(async (email: string, password: string) => {
-    if (cognito == null) {
-      return false
-    } else {
+    if (cognito != null) {
       gtagEvent('cloud_sign_in', { provider: 'Email' })
       const result = await cognito.signInWithPassword(email, password)
       if (result.ok) {
-        toastSuccess(getText('signInWithPasswordSuccess'))
         void queryClient.invalidateQueries({ queryKey: sessionQueryKey })
         navigate(appUtils.DASHBOARD_PATH)
+        return
       } else {
-        if (result.val.type === cognitoModule.CognitoErrorType.userNotFound) {
-          // It may not be safe to pass the user's password in the URL.
-          navigate(`${appUtils.REGISTRATION_PATH}?${new URLSearchParams({ email }).toString()}`)
-        }
-        toastError(result.val.message)
+        throw new Error(result.val.message)
       }
-      return result.ok
     }
   })
 
@@ -422,32 +408,26 @@ export default function AuthProvider(props: AuthProviderProps) {
   })
 
   const forgotPassword = useEventCallback(async (email: string) => {
-    if (cognito == null) {
-      return false
-    } else {
+    if (cognito != null) {
       const result = await cognito.forgotPassword(email)
       if (result.ok) {
-        toastSuccess(getText('forgotPasswordSuccess'))
         navigate(appUtils.LOGIN_PATH)
+        return
       } else {
-        toastError(result.val.message)
+        throw new Error(result.val.message)
       }
-      return result.ok
     }
   })
 
   const resetPassword = useEventCallback(async (email: string, code: string, password: string) => {
-    if (cognito == null) {
-      return false
-    } else {
+    if (cognito != null) {
       const result = await cognito.forgotPasswordSubmit(email, code, password)
       if (result.ok) {
-        toastSuccess(getText('resetPasswordSuccess'))
         navigate(appUtils.LOGIN_PATH)
+        return
       } else {
-        toastError(result.val.message)
+        throw new Error(result.val.message)
       }
-      return result.ok
     }
   })
 
@@ -521,7 +501,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   }, [userData, onAuthenticated])
 
   const value: AuthContextType = {
-    signUp: withLoadingToast(signUp),
+    signUp,
     confirmSignUp: withLoadingToast(confirmSignUp),
     setUsername,
     isUserMarkedForDeletion,
@@ -557,9 +537,9 @@ export default function AuthProvider(props: AuthProviderProps) {
           )
       }
     }),
-    signInWithPassword: signInWithPassword,
-    forgotPassword: withLoadingToast(forgotPassword),
-    resetPassword: withLoadingToast(resetPassword),
+    signInWithPassword,
+    forgotPassword,
+    resetPassword,
     changePassword: withLoadingToast(changePassword),
     refetchSession: usersMeQuery.refetch,
     session: userData,

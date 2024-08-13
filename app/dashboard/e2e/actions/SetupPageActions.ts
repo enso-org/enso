@@ -1,4 +1,4 @@
-/** @file Actions for the "set username" page. */
+/** @file Actions for the "setup" page. */
 import * as actions from '../actions'
 import BaseActions from './BaseActions'
 import DrivePageActions from './DrivePageActions'
@@ -8,7 +8,7 @@ import DrivePageActions from './DrivePageActions'
 // ==============================
 
 /** Actions for the "set username" page. */
-export default class SetUsernamePageActions extends BaseActions {
+export default class SetupPageActions extends BaseActions {
   /** Set the userame for a new user that does not yet have a username. */
   setUsername(username: string) {
     return this.step(`Set username to '${username}'`, async (page) => {
