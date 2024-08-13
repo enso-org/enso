@@ -106,6 +106,8 @@ const SQLITE_CONNECTIONS_NODE_TYPE =
   'Standard.Database.Internal.SQLite.SQLite_Connection.SQLite_Connection'
 const POSTGRES_CONNECTIONS_NODE_TYPE =
   'Standard.Database.Internal.Postgres.Postgres_Connection.Postgres_Connection'
+const SNOWFLAKE_CONNECTIONS_NODE_TYPE =
+  'Standard.Snowflake.Snowflake_Connection.Snowflake_Connection'
 
 const rowLimit = ref(0)
 const page = ref(0)
@@ -165,6 +167,7 @@ const newNodeSelectorValues = computed(() => {
       break
     case SQLITE_CONNECTIONS_NODE_TYPE:
     case POSTGRES_CONNECTIONS_NODE_TYPE:
+    case SNOWFLAKE_CONNECTIONS_NODE_TYPE:
       tooltipValue = 'table'
       headerName = 'Tables'
       break
