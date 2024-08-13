@@ -569,7 +569,7 @@ impl Scopes {
             .iter()
             .rposition(move |scope| scope.indent < indent)
             .map_or(0, |pos| pos + 1);
-        self.scopes.drain(new_size..).map(|s| s.r#type)
+        self.scopes.drain(new_size..).map(|s| s.r#type).rev()
     }
 
     fn start_list_if_not_started(&mut self, indent: impl Into<VisibleOffset>) -> bool {
