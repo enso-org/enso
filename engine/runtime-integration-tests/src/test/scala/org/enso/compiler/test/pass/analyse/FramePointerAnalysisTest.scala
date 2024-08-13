@@ -330,7 +330,7 @@ class FramePointerAnalysisTest extends CompilerTest {
       expectFramePointer(tUseArg.value, new FramePointer(1, 1))
     }
 
-    "attach frame pointers to argument default values" in {
+    "attach frame pointers to argument default value expression" in {
       implicit val ctx: ModuleContext = mkModuleContext
       val ir =
         """
@@ -353,6 +353,22 @@ class FramePointerAnalysisTest extends CompilerTest {
       )
       expectFramePointer(xDefArg, new FramePointer(0, 1))
       expectFramePointer(xUseArg.value, new FramePointer(1, 1))
+    }
+
+    "does not attach frame pointer to argument default value literal" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+      val ir =
+        """
+          |method lit="Some Text" =
+          |    lit
+          |""".stripMargin.preprocessModule.analyse
+      val litDefArg = findIRElement[DefinitionArgument.Specified](
+        ir,
+        arg => arg.name.name == "lit"
+      )
+      litDefArg.defaultValue.get
+        .passData()
+        .get(FramePointerAnalysis) shouldNot be(defined)
     }
   }
 
