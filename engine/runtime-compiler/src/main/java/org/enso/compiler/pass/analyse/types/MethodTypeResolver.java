@@ -63,15 +63,36 @@ class MethodTypeResolver {
             .flatMap(
                 staticImportExportScope -> {
                   var materialized = staticImportExportScope.materialize(moduleResolver);
-                  return Stream.of(materialized.getMethodForType(type, methodName));
+                  var found = materialized.getMethodForType(type, methodName);
+                  return Stream.ofNullable(found);
                 })
             .toList();
 
     if (foundInImports.size() == 1) {
       return foundInImports.get(0);
     } else if (foundInImports.size() > 1) {
-      // TODO we'd like to report this as a diagnostic
-      logger.error("Method {} is defined in multiple imports: {}", methodName, foundInImports);
+      // TODO in some cases it seems like this may be normal?
+      var foundImports = currentModuleScope.getImports().stream()
+          .flatMap(
+              staticImportExportScope -> {
+                var materialized = staticImportExportScope.materialize(moduleResolver);
+                var found = materialized.getMethodForType(type, methodName);
+                if (found != null) {
+                  return Stream.of(staticImportExportScope.getReferredModuleName());
+                } else {
+                  return Stream.of();
+                }
+              })
+          .toList();
+      logger.warn("Method {} is defined in multiple imports: {}", methodName, foundImports);
+      var foundTypes = foundInImports.stream().distinct();
+      if (foundTypes.count() > 1) {
+        logger.error("Method {} is defined in multiple imports with different types: {}", methodName, foundTypes);
+        return null;
+      } else {
+        // If all types are the same, just return the first one
+        return foundInImports.get(0);
+      }
     }
 
     return null;

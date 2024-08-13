@@ -41,4 +41,8 @@ public class StaticImportExportScope {
       return referredModuleScope.getMethodForType(type, name);
     }
   }
+
+  public QualifiedName getReferredModuleName() {
+    return referredModuleName;
+  }
 }

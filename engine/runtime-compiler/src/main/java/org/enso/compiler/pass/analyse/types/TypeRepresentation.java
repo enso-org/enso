@@ -90,6 +90,10 @@ public sealed interface TypeRepresentation
 
       return arg + " -> " + res;
     }
+
+    public QualifiedName getAssociatedType() {
+      return QualifiedName.fromString(BuiltinTypes.functionQualifiedName);
+    }
   }
 
   record SumType(List<TypeRepresentation> types) implements TypeRepresentation {

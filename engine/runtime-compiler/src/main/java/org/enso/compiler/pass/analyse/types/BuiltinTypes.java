@@ -29,12 +29,13 @@ public class BuiltinTypes {
 
   public static boolean isFunction(QualifiedName qualifiedName) {
     var str = qualifiedName.toString();
-    return str.equals("Standard.Base.Function.Function");
+    return str.equals(functionQualifiedName);
   }
 
   public final TypeRepresentation INTEGER = fromQualifiedName(integerQualifiedName);
 
   static final String anyQualifiedName = "Standard.Base.Any.Any";
+  static final String functionQualifiedName = "Standard.Base.Function.Function";
   public final TypeRepresentation FLOAT = fromQualifiedName(floatQualifiedName);
   public final TypeRepresentation NUMBER = fromQualifiedName(numberQualifiedName);
 

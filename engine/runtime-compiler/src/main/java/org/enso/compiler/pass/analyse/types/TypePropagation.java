@@ -379,8 +379,19 @@ abstract class TypePropagation {
         return methodTypeResolver.resolveMethod(TypeScopeReference.ANY, function.name());
       }
 
+      // This is not calling this function, instead it is calling the _method_ represented by the UnresolvedSymbol on this Function object.
+      case TypeRepresentation.ArrowType functionAsObject -> {
+        var typeScope = TypeScopeReference.atomType(functionAsObject.getAssociatedType());
+        var resolvedMethod = methodTypeResolver.resolveMethod(typeScope, function.name());
+        if (resolvedMethod == null) {
+          encounteredNoSuchMethod(
+              relatedWholeApplicationIR, functionAsObject, function.name(), MethodCallKind.MEMBER);
+        }
+        return resolvedMethod;
+      }
+
       default -> {
-        System.out.println("TODO: " + argumentType);
+        // TODO calling on sum types, intersection types, etc.
         return null;
       }
     }
