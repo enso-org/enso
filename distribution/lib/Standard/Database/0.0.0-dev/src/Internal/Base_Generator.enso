@@ -16,6 +16,8 @@ from project.Errors import Unsupported_Database_Operation
 from project.Dialect import Temp_Table_Style
 from project.Internal.IR.Operation_Metadata import Row_Number_Metadata
 
+type With_Binding_State
+
 type Dialect_Operations
 
     ## PRIVATE
@@ -323,18 +325,18 @@ generate_expression dialect expr = case expr of
         wrapped_binder = dialect.wrap_identifier binder
         bindee_exp = SQL_Builder.code "SELECT " ++ (generate_expression dialect bindee).paren ++ " AS " ++ wrapped_binder
 
-        IO.println "AAA scope push "+binder
-        old_with_scope = State.get Text
-        State.put Text (old_with_scope.insert binder)
+        #IO.println "AAA scope push "+binder
+        old_with_scope = State.get With_Binding_State
+        State.put With_Binding_State (old_with_scope.insert binder)
         body_sql_builder = generate_expression dialect body
-        State.put Text old_with_scope
-        IO.println "AAA scope pop "+binder
+        State.put With_Binding_State old_with_scope
+        #IO.println "AAA scope pop "+binder
 
         body_exp = SQL_Builder.code "SELECT " ++ body_sql_builder ++ " FROM " ++ wrapped_binder
         (SQL_Builder.code "WITH " ++ wrapped_binder  ++ " AS " ++ bindee_exp.paren ++ " " ++ body_exp.paren).paren
     SQL_Expression.With_Ref binder standalone_expression ->
-        with_scope = State.get Text
-        IO.println "AAA scope check "+binder+": "+(with_scope.contains binder).to_text
+        with_scope = State.get With_Binding_State
+        #IO.println "AAA scope check "+binder+": "+(with_scope.contains binder).to_text
         case with_scope.contains binder of
             True ->
                 wrapped_binder = dialect.wrap_identifier binder
@@ -342,7 +344,7 @@ generate_expression dialect expr = case expr of
                 #wrapped_binder
             False ->
                 generate_expression dialect standalone_expression
-    query : Query -> generate_query dialect query
+    query : Query -> generate_sub_query dialect query
     descriptor : Order_Descriptor -> generate_order dialect descriptor
 
 ## PRIVATE
@@ -384,11 +386,11 @@ generate_from_part dialect from_spec = case from_spec of
             case query of
                 Query.Select _ _ -> Nothing
                 _ -> Panic.throw <| Illegal_State.Error "Only SELECT queries can be used in a UNION. This is a bug in the Database library."
-            generate_query dialect query
+            generate_sub_query dialect query
         joined = SQL_Builder.join " UNION ALL " built_queries
         joined.paren ++ alias dialect as_name
     From_Spec.Sub_Query columns context as_name ->
-        sub = generate_query dialect (Query.Select columns context)
+        sub = generate_sub_query dialect (Query.Select columns context)
         sub.paren ++ alias dialect as_name
 
     ##
@@ -398,8 +400,8 @@ generate_from_part dialect from_spec = case from_spec of
             (SQL_Builder.code "WITH" ++ binding_from_spec.alias ++ "AS" ++ binding_sql_builder.paren ++ inner_sql_builder.paren).paren
     ##
         From_Spec.With_Query columns context as_name exp_columns exp_context exp_alias ->
-            binding_sql_builder = generate_query dialect (Query.Select exp_columns exp_context)
-            main_sql_builder = generate_query dialect (Query.Select columns context)
+            binding_sql_builder = generate_sub_query dialect (Query.Select exp_columns exp_context)
+            main_sql_builder = generate_sub_query dialect (Query.Select columns context)
             (SQL_Builder.code "WITH" ++ exp_alias ++ "AS" ++ binding_sql_builder.paren ++ main_sql_builder.paren).paren
 
 
@@ -519,6 +521,10 @@ generate_insert_query dialect table_name pairs =
 
     SQL_Builder.code "INSERT INTO " ++ into ++ " (" ++ names ++ ") VALUES (" ++ values ++ ")"
 
+generate_query : Dialect -> Query -> SQL_Builder
+generate_query dialect query =
+    State.run With_Binding_State Hashset.empty (generate_sub_query dialect query)
+
 ## PRIVATE
 
    Builds code for a whole query.
@@ -526,14 +532,14 @@ generate_insert_query dialect table_name pairs =
    Arguments:
    - dialect: The SQL dialect for which the code is being generated.
    - query: An IR describing the query.
-generate_query : Dialect -> Query -> SQL_Builder
-generate_query dialect query = case query of
+generate_sub_query : Dialect -> Query -> SQL_Builder
+generate_sub_query dialect query = case query of
     Query.Select columns ctx ->
         generate_select_query_sql dialect columns ctx
     ##
         Query.With binding_alias binding_query inner_query ->
-            binding_sql_builder = generate_query binding_query
-            innert_sql_builder = generate_query inner_query
+            binding_sql_builder = generate_sub_query binding_query
+            innert_sql_builder = generate_sub_query inner_query
             (SQL_Builder.code "WITH" ++ binding_lias ++ "AS" ++ binding_sql_builder.paren ++ main_sql_builder.paren).paren
     #Query.With columns ctx exp_name exp_columns exp_context ->
     #    generate_with_query_sql diaklect columns ctx exp_name exp_columns exp_context ->
@@ -548,7 +554,7 @@ generate_query dialect query = case query of
         dialect.generate_truncate_table_sql name
     Query.Insert_From_Select table_name column_names select_query -> case select_query of
         Query.Select _ _ ->
-            inner_query = generate_query dialect select_query
+            inner_query = generate_sub_query dialect select_query
             columns_part = SQL_Builder.join ", " (column_names.map dialect.wrap_identifier) . paren
             SQL_Builder.code "INSERT INTO " ++ dialect.wrap_identifier table_name ++ " " ++ columns_part ++ " " ++ inner_query
         _ -> Panic.throw (Illegal_State.Error "The inner query of `Query.Insert_From_Select` must be `Query.Select`, but it was "+select_query.to_display_text+". This is a bug in the Database library.")
