@@ -51,7 +51,7 @@ pub enum Ref {
     },
 }
 
-impl std::str::FromStr for Ref {
+impl FromStr for Ref {
     type Err = anyhow::Error;
 
     /// Parse the reference from the full decorated name, like `refs/heads/main`.

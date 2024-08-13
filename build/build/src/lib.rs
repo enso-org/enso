@@ -90,17 +90,19 @@ pub fn get_string_assignment_value(
 
 /// Get version of Enso from the `build.sbt` file contents.
 pub fn get_graal_version(build_sbt_contents: &str) -> Result<Version> {
-    get_string_assignment_value(build_sbt_contents, "graalVersion")?.parse2()
+    get_string_assignment_value(build_sbt_contents, "graalVersion")?.parse().anyhow_err()
 }
 
 /// Get version of GraalVM packages from the `build.sbt` file contents.
 pub fn get_graal_packages_version(build_sbt_contents: &str) -> Result<Version> {
-    get_string_assignment_value(build_sbt_contents, "graalMavenPackagesVersion")?.parse2()
+    get_string_assignment_value(build_sbt_contents, "graalMavenPackagesVersion")?
+        .parse()
+        .anyhow_err()
 }
 
 /// Get version of GraalVM packages from the `build.sbt` file contents.
 pub fn get_flatbuffers_version(build_sbt_contents: &str) -> Result<Version> {
-    get_string_assignment_value(build_sbt_contents, "flatbuffersVersion")?.parse2()
+    get_string_assignment_value(build_sbt_contents, "flatbuffersVersion")?.parse().anyhow_err()
 }
 
 #[cfg(test)]

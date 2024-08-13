@@ -53,9 +53,10 @@ pub mod prelude {
     pub use std::path::PathBuf;
     pub use std::pin::pin;
     pub use std::pin::Pin;
+    pub use std::str::FromStr;
     pub use std::sync::Arc;
 
-    pub use crate::extensions::from_string::FromString;
+    // pub use crate::extensions::from_string::FromString;
     pub use crate::extensions::future::FutureExt as _;
     pub use crate::extensions::future::TryFutureExt as _;
     pub use crate::extensions::option::OptionExt as _;
@@ -63,7 +64,6 @@ pub mod prelude {
     pub use crate::extensions::path::PathExt as _;
     pub use crate::extensions::pathbuf::PathBufExt as _;
     pub use crate::extensions::result::ResultExt as _;
-    pub use crate::extensions::str::StrLikeExt as _;
 
     pub use anyhow::anyhow;
     pub use anyhow::bail;

@@ -82,8 +82,8 @@ impl TryFrom<ConfigRaw> for Config {
         let mut required_versions = HashMap::new();
         for (program, version_req) in value.required_versions {
             required_versions.insert(
-                <RecognizedProgram as FromString>::from_str(&program)?,
-                <VersionReq as FromString>::from_str(&version_req)?,
+                RecognizedProgram::from_str(&program)?,
+                VersionReq::from_str(&version_req)?,
             );
         }
 

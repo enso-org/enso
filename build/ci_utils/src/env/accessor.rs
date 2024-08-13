@@ -120,7 +120,7 @@ impl TypedVariable for PathBufVariable {
     type Value = PathBuf;
     type Borrowed = Path;
     fn parse(&self, value: &str) -> Result<Self::Value> {
-        PathBuf::from_str(value)
+        PathBuf::from_str(value).anyhow_err()
     }
     fn generate(&self, value: &Self::Borrowed) -> Result<String> {
         value
@@ -180,13 +180,13 @@ impl<Value, Borrowed: ?Sized> RawVariable for SimpleVariable<Value, Borrowed> {
     }
 }
 
-impl<Value: FromString, Borrowed: ToString + ?Sized> TypedVariable
-    for SimpleVariable<Value, Borrowed>
+impl<Value: FromStr, Borrowed: ToString + ?Sized> TypedVariable for SimpleVariable<Value, Borrowed>
+where Value::Err: Into<anyhow::Error>
 {
     type Value = Value;
     type Borrowed = Borrowed;
     fn parse(&self, value: &str) -> Result<Self::Value> {
-        Value::from_str(value)
+        Value::from_str(value).anyhow_err()
     }
     fn generate(&self, value: &Self::Borrowed) -> Result<String> {
         Ok(Borrowed::to_string(value))

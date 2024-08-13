@@ -3,16 +3,6 @@
 version = 3
 
 [[package]]
-name = "Inflector"
-version = "0.11.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe438c63458706e03479442743baae6c88256498e6431708f6dfc520a26515d3"
-dependencies = [
- "lazy_static",
- "regex",
-]
-
-[[package]]
 name = "addr2line"
 version = "0.22.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -811,12 +801,6 @@ dependencies = [
 
 [[package]]
 name = "convert_case"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6245d59a3e82a7fc217c5828a6692dbc6dfb63a0c8c90495621f7b9d79704a0e"
-
-[[package]]
-name = "convert_case"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec182b0ca2f35d8fc196cf3404988fd8b8c739a4d270ff118a398feb0cbec1ca"
@@ -1091,15 +1075,23 @@ dependencies = [
 
 [[package]]
 name = "derive_more"
-version = "0.99.18"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f33878137e4dafd7fa914ad4e259e18a4e8e532b9617a2d0150262bf53abfce"
+checksum = "4a9b99b9cbbe49445b21764dc0625032a89b145a2642e67603e1c936f5458d05"
 dependencies = [
- "convert_case 0.4.0",
+ "derive_more-impl",
+]
+
+[[package]]
+name = "derive_more-impl"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cb7330aeadfbe296029522e6c40f315320aba36fc43a5b3632f3795348f3bd22"
+dependencies = [
  "proc-macro2",
  "quote",
- "rustc_version",
  "syn 2.0.74",
+ "unicode-xid",
 ]
 
 [[package]]
@@ -1293,20 +1285,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "enso-build-macros"
-version = "0.1.0"
-dependencies = [
- "enso-build-macros-lib",
- "itertools",
- "proc-macro2",
- "syn 2.0.74",
-]
-
-[[package]]
 name = "enso-build-macros-lib"
 version = "0.1.0"
 dependencies = [
- "convert_case 0.6.0",
+ "convert_case",
  "derive_more",
  "enso-build-base",
  "itertools",
@@ -1362,6 +1344,7 @@ name = "enso-install"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "derive_more",
  "dirs",
  "embed-resource",
  "enso-install-config",
@@ -1422,7 +1405,7 @@ dependencies = [
 name = "enso-macros"
 version = "0.2.7"
 dependencies = [
- "Inflector",
+ "convert_case",
  "enso-macro-utils",
  "proc-macro2",
  "quote",
@@ -1457,6 +1440,7 @@ version = "0.1.0"
 dependencies = [
  "bincode",
  "derive-where",
+ "derive_more",
  "enso-metamodel",
  "enso-parser-syntax-tree-visitor",
  "enso-prelude",
@@ -4438,6 +4422,12 @@ name = "unicode-width"
 version = "0.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0336d538f7abc86d282a4189614dfaa90810dfc2c6f6427eaf88e16311dd225d"
+
+[[package]]
+name = "unicode-xid"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f962df74c8c05a667b5ee8bcf162993134c104e96440b663c8daa176dc772d8c"
 
 [[package]]
 name = "unsafe-libyaml"

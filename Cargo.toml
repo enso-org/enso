@@ -9,7 +9,6 @@ resolver = "2"
 members = [
     "app/rust-ffi",
     "build/cli",
-    "build/macros/proc-macro",
     "build/ci-gen",
     "build/cli",
     "build/install",
@@ -126,7 +125,7 @@ wasm-bindgen-test = { version = "0.3.34" }
 windows = { version = "0.52.0", features = ["Win32_UI", "Win32_UI_Shell", "Win32_System_LibraryLoader", "Win32_System_Com"] }
 winreg = { version = "0.52.0" }
 anyhow = { version = "1.0.66" }
-derive_more = { version = "0.99" }
+derive_more = { version = "1.0", features = ["index", "index_mut", "deref", "deref_mut", "display", "from", "into", "as_ref", "add", "add_assign"] }
 boolinator = { version = "2.4.0" }
 futures = { version = "0.3", default-features = false, features = ["std", "executor"]}
 futures-util = { version = "0.3", default-features = false }

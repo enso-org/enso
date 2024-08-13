@@ -17,6 +17,7 @@ sysinfo = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 windows = { workspace = true }
+derive_more = { workspace = true }
 
 [target.'cfg(windows)'.dependencies]
 mslnk = "0.1.8"

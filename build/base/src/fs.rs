@@ -49,12 +49,6 @@ pub fn create(path: impl AsRef<Path>) -> Result<std::fs::File> {
     wrappers::create(&path)
 }
 
-/// Read the file content and parse it using [`FromString`].
-#[context("Failed to read the file: {}", path.as_ref().display())]
-pub fn read_string_into<T: FromString>(path: impl AsRef<Path>) -> Result<T> {
-    read_to_string(&path)?.parse2()
-}
-
 /// Create a directory (and all missing parent directories),
 ///
 /// Does not fail when a directory already exists.

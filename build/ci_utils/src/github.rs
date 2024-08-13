@@ -126,7 +126,7 @@ pub trait IsOrganization {
     /// The organization's URL.
     fn url(&self) -> Result<Url> {
         let url_text = format!("https://github.com/{}", self.name());
-        Url::from_str(&url_text)
+        Ok(Url::from_str(&url_text)?)
     }
 }
 

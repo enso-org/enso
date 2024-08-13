@@ -49,7 +49,7 @@ impl BuildContext {
         let repository = self.remote_repo_handle();
         let designator_cp = designator.clone();
         async move {
-            let release = if let Ok(id) = designator.parse2::<ReleaseId>() {
+            let release = if let Ok(id) = designator.parse::<ReleaseId>() {
                 repository.find_release_by_id(id).await?
             } else {
                 match designator.as_str() {

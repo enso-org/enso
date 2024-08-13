@@ -33,7 +33,7 @@ pub enum Edition {
     Enterprise,
 }
 
-impl std::str::FromStr for Edition {
+impl FromStr for Edition {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self> {

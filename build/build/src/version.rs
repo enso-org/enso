@@ -50,7 +50,7 @@ pub const RC_BUILD_PREFIX: &str = "rc";
 
 /// Check if the given GitHub release matches the provided kind.
 pub fn is_release_of_kind(release: &Release, kind: Kind) -> bool {
-    matches!(release.tag_name.parse2(), Ok(version) if kind.matches(&version))
+    matches!(release.tag_name.parse(), Ok(version) if kind.matches(&version))
 }
 
 /// List all releases in the GitHub repository that are of a given kind.
@@ -199,7 +199,7 @@ pub fn increment_rc_version(version: &Version) -> Result<Version> {
     ensure!(Kind::Rc.matches(version), "Version is not an RC version: {}.", version);
     match version.pre.split('.').collect_vec().as_slice() {
         [RC_BUILD_PREFIX, index] => {
-            let index = index.parse2::<u32>().context("Parsing RC index.")?;
+            let index = index.parse::<u32>().context("Parsing RC index.")?;
             let pre = generate_rc_prerelease(index + 1)?;
             Ok(Version { pre, ..version.clone() })
         }
@@ -230,7 +230,7 @@ pub fn same_core_version(a: &Version, b: &Version) -> bool {
 }
 
 pub fn generate_rc_prerelease(index: u32) -> Result<Prerelease> {
-    Prerelease::from_str(&format!("{RC_BUILD_PREFIX}.{index}"))
+    Prerelease::from_str(&format!("{RC_BUILD_PREFIX}.{index}")).anyhow_err()
 }
 
 #[instrument(ret)]
