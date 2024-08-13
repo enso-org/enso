@@ -1,7 +1,5 @@
 package org.enso.compiler.pass.analyse.types.scope;
 
-import org.enso.compiler.core.ir.Name;
-import org.enso.compiler.core.ir.module.scope.Import;
 import org.enso.compiler.pass.analyse.types.TypeRepresentation;
 import org.enso.pkg.QualifiedName;
 

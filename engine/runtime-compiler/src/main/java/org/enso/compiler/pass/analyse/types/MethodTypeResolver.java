@@ -1,13 +1,12 @@
 package org.enso.compiler.pass.analyse.types;
 
+import java.util.stream.Stream;
 import org.enso.compiler.pass.analyse.types.scope.ModuleResolver;
 import org.enso.compiler.pass.analyse.types.scope.StaticModuleScope;
 import org.enso.compiler.pass.analyse.types.scope.TypeHierarchy;
 import org.enso.compiler.pass.analyse.types.scope.TypeScopeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.stream.Stream;
 
 class MethodTypeResolver {
   private static final Logger logger = LoggerFactory.getLogger(MethodTypeResolver.class);
@@ -56,10 +55,14 @@ class MethodTypeResolver {
       return definedHere;
     }
 
-    var foundInImports = currentModuleScope.getImports().stream().flatMap(staticImportExportScope -> {
-      var materialized = staticImportExportScope.materialize(moduleResolver);
-      return Stream.of(materialized.getMethodForType(type, methodName));
-    }).toList();
+    var foundInImports =
+        currentModuleScope.getImports().stream()
+            .flatMap(
+                staticImportExportScope -> {
+                  var materialized = staticImportExportScope.materialize(moduleResolver);
+                  return Stream.of(materialized.getMethodForType(type, methodName));
+                })
+            .toList();
 
     if (foundInImports.size() == 1) {
       return foundInImports.get(0);

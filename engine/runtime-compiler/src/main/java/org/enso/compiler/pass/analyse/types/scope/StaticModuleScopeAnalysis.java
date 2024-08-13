@@ -1,5 +1,11 @@
 package org.enso.compiler.pass.analyse.types.scope;
 
+import static org.enso.compiler.MetadataInteropHelpers.getMetadata;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.UUID;
 import org.enso.compiler.MetadataInteropHelpers;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
@@ -22,13 +28,6 @@ import org.enso.compiler.pass.resolve.TypeNames$;
 import scala.collection.immutable.Seq;
 import scala.jdk.javaapi.CollectionConverters;
 import scala.jdk.javaapi.CollectionConverters$;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.UUID;
-
-import static org.enso.compiler.MetadataInteropHelpers.getMetadata;
 
 public class StaticModuleScopeAnalysis implements IRPass {
   public static final StaticModuleScopeAnalysis INSTANCE = new StaticModuleScopeAnalysis();
@@ -93,22 +92,28 @@ public class StaticModuleScopeAnalysis implements IRPass {
     return ir;
   }
 
-  /**
-   * Analogous to {@link org.enso.interpreter.runtime.IrToTruffle#registerModuleImports}
-   */
-  private void processModuleImports(StaticModuleScope scope, Module module, BindingsMap bindingsMap) {
-    bindingsMap.resolvedImports().foreach(imp -> {
-      imp.targets().foreach(target -> {
-        // System.out.println("Processing import "+imp.importDef().showCode()+" - target: " + target);
-        if (target instanceof BindingsMap.ResolvedModule resolvedModule) {
-          var importScope = new StaticImportExportScope(resolvedModule.qualifiedName());
-          scope.registerModuleImport(importScope);
-        }
-        // TODO do other kinds of targets need handling? e.g. ResolvedType?
-        return null;
-      });
-      return null;
-    });
+  /** Analogous to {@link org.enso.interpreter.runtime.IrToTruffle#registerModuleImports} */
+  private void processModuleImports(
+      StaticModuleScope scope, Module module, BindingsMap bindingsMap) {
+    bindingsMap
+        .resolvedImports()
+        .foreach(
+            imp -> {
+              imp.targets()
+                  .foreach(
+                      target -> {
+                        // System.out.println("Processing import "+imp.importDef().showCode()+" -
+                        // target: " + target);
+                        if (target instanceof BindingsMap.ResolvedModule resolvedModule) {
+                          var importScope =
+                              new StaticImportExportScope(resolvedModule.qualifiedName());
+                          scope.registerModuleImport(importScope);
+                        }
+                        // TODO do other kinds of targets need handling? e.g. ResolvedType?
+                        return null;
+                      });
+              return null;
+            });
   }
 
   private void processModuleExports(StaticModuleScope scope, Module module) {
