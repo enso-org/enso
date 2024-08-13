@@ -21,7 +21,6 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.io.IOAccess;
-import org.hamcrest.core.AllOf;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -112,12 +111,7 @@ public class ExecCompilerTest {
       var run = module.invokeMember("eval_expression", "main");
       fail("Unexpected result: " + run);
     } catch (PolyglotException ex) {
-      assertThat(
-          ex.getMessage(),
-          AllOf.allOf(
-              containsString("Method `+` of"),
-              containsString("Unnamed.main.Unnamed.main"),
-              containsString("could not be found.")));
+      assertEquals("Method `+` of type Function could not be found.", ex.getMessage());
     }
   }
 

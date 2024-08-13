@@ -336,7 +336,7 @@ get_polyglot_language value = @Builtin_Method "Meta.get_polyglot_language"
 
 ## PRIVATE
 
-   Creates an unresolved symbol for the name in the scope.
+   Creates an unresolved symbol for the name name in the scope.
 
    Arguments:
    - name: The name of the unresolved symbol.

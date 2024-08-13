@@ -197,13 +197,8 @@ type No_Such_Method
        Convert the No_Such_Method error to a human-readable format.
     to_display_text : Text
     to_display_text self =
-        target_name =
-          is_poly = Meta.is_polyglot self.target
-          is_fn = Meta.type_of self.target == Function
-          if is_poly then "type " + self.target.to_display_text else
-             if is_fn then self.target.to_text else
-                "type " + (Meta.type_of self.target).to_display_text
-        "Method `"+self.method_name+"` of "+target_name+" could not be found."
+        target_type_name = if Meta.is_polyglot self.target then self.target.to_display_text else (Meta.type_of self.target).to_display_text
+        "Method `"+self.method_name+"` of type "+target_type_name+" could not be found."
 
 @Builtin_Type
 type No_Such_Field
