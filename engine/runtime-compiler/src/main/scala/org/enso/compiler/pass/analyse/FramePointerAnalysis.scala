@@ -350,13 +350,22 @@ case object FramePointerAnalysis extends IRPass {
     getAliasAnalysisMeta(ir).map(_.graph)
   }
 
-  /** Not implemented for this pass.
+  /** @inheritdoc
     */
   override def runExpression(
-    ir: Expression,
+    exprIr: Expression,
     inlineContext: InlineContext
   ): Expression = {
-    ir
+    inlineContext.localScope match {
+      case None =>
+        throw new CompilerError(
+          "Local scope must be provided for frame pointer analysis"
+        )
+      case Some(localScope) =>
+        val graph = localScope.aliasingGraph
+        processExpression(exprIr, graph)
+        exprIr
+    }
   }
 
   // === Pass Configuration ===================================================
