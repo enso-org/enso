@@ -7,7 +7,12 @@ import { Pattern } from '@/util/ast/match'
 import { VisualizationContainer, useVisualizationConfig } from '@/util/visualizationBuiltins'
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
-import type { CellClassParams, CellClickedEvent, ICellRendererParams } from 'ag-grid-community'
+import type {
+  CellClassParams,
+  CellClickedEvent,
+  ICellRendererParams,
+  SortChangedEvent,
+} from 'ag-grid-community'
 import type { ColDef } from 'ag-grid-enterprise'
 import { computed, onMounted, ref, shallowRef, watchEffect, type Ref } from 'vue'
 
@@ -522,7 +527,7 @@ watchEffect(() => {
   defaultColDef.value.sortable = !isTruncated.value
 })
 
-function checkSortAndFilter(e: any) {
+function checkSortAndFilter(e: SortChangedEvent) {
   const gridApi = e.api
   const columnApi = e.columnApi
   if (gridApi == null || columnApi == null) {
@@ -604,7 +609,7 @@ onMounted(() => {
           :columnDefs="columnDefs"
           :rowData="rowData"
           :defaultColDef="defaultColDef"
-          @sortUpdated="(e) => checkSortAndFilter(e)"
+          @sortOrFilterUpdated="(e) => checkSortAndFilter(e)"
         />
       </Suspense>
     </div>
