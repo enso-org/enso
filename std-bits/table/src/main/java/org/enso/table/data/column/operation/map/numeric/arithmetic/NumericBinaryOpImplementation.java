@@ -11,6 +11,7 @@ import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.numeric.helpers.BigDecimalArrayAdapter;
 import org.enso.table.data.column.operation.map.numeric.helpers.BigIntegerArrayAdapter;
 import org.enso.table.data.column.operation.map.numeric.helpers.DoubleArrayAdapter;
+import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
@@ -247,7 +248,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     return new LongStorage(out, n, isNothing, INTEGER_RESULT_TYPE);
   }
 
-  protected LongStorage runLongMap(
+  protected Storage<Long> runLongMap(
       AbstractLongStorage a, Long b, MapOperationProblemAggregator problemAggregator) {
     if (b == null) {
       return LongStorage.makeEmpty(a.size(), INTEGER_RESULT_TYPE);
@@ -338,7 +339,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     return new BigDecimalStorage(out, n);
   }
 
-  protected BigDecimalStorage runBigDecimalMap(
+  protected SpecializedStorage<BigDecimal> runBigDecimalMap(
       BigDecimalArrayAdapter a, BigDecimal b, MapOperationProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     int n = a.size();

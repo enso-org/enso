@@ -65,7 +65,12 @@ export function FormError(props: FormErrorProps) {
   const submitErrorAlert =
     errorMessage != null ?
       <reactAriaComponents.Alert size={size} variant={variant} rounded={rounded} {...alertProps}>
-        <reactAriaComponents.Text variant="body" truncate="3" color="primary">
+        <reactAriaComponents.Text
+          data-testid="form-submit-error"
+          variant="body"
+          truncate="3"
+          color="primary"
+        >
           {errorMessage}
         </reactAriaComponents.Text>
       </reactAriaComponents.Alert>

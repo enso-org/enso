@@ -42,6 +42,7 @@ public class AssertionsTest {
   @AfterClass
   public static void disposeCtx() {
     ctx.close(true);
+    ctx = null;
   }
 
   @After

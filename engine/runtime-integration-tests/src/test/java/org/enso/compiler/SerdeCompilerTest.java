@@ -74,7 +74,7 @@ public class SerdeCompilerTest {
         var persisted = f.get(10, TimeUnit.SECONDS);
         assertEquals("Fib_Test library has been fully persisted", true, persisted);
       }
-      old = module.getIr();
+      old = module.getIr().duplicate(true, true, true, false);
       ctx.leave();
     }
 
@@ -103,7 +103,7 @@ public class SerdeCompilerTest {
       var mainValue = ctx.asValue(main);
       assertEquals(42, mainValue.execute().asInt());
 
-      now = module.getIr();
+      now = module.getIr().duplicate(true, true, true, false);
 
       ctx.leave();
     }
