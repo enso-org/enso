@@ -45,6 +45,9 @@ public abstract class HashMapInsertAllNode extends Node {
       @Cached EqualsNode equalsNode) {
     assert maxItems > 0;
     var selfSize = self.getHashSize();
+    if (selfSize >= maxItems) {
+      return self;
+    }
     var otherSize = other.getHashSize();
     if (otherSize == 0) {
       return self;
@@ -53,13 +56,17 @@ public abstract class HashMapInsertAllNode extends Node {
 
     var selfMapBuilder = self.getMapBuilder(frame, true, hashCodeNode, equalsNode);
     var selfEntriesIt = selfMapBuilder.getEntriesIterator(selfMapBuilder.generation());
+    var itemsInserted = 0;
     while (selfEntriesIt.hasNext()) {
+      if (itemsInserted >= maxItems) {
+        break;
+      }
       var selfEntry = selfEntriesIt.next();
       mapBuilder.put(frame, selfEntry.key(), selfEntry.value(), hashCodeNode, equalsNode);
+      itemsInserted++;
     }
     var otherMapBuilder = other.getMapBuilder(frame, true, hashCodeNode, equalsNode);
     var otherEntriesIt = otherMapBuilder.getEntriesIterator(otherMapBuilder.generation());
-    var itemsInserted = 0;
     while (otherEntriesIt.hasNext()) {
       if (itemsInserted >= maxItems) {
         break;
