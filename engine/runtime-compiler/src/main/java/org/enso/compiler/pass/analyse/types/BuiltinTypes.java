@@ -13,6 +13,7 @@ public class BuiltinTypes {
   private static final String integerQualifiedName = "Standard.Base.Data.Numbers.Integer";
   private static final String floatQualifiedName = "Standard.Base.Data.Numbers.Float";
   public final TypeRepresentation TEXT = fromQualifiedName("Standard.Base.Data.Text.Text");
+  public final TypeRepresentation BOOLEAN = fromQualifiedName("Standard.Base.Data.Boolean.Boolean");
   public final TypeRepresentation VECTOR = fromQualifiedName("Standard.Base.Data.Vector.Vector");
   public final TypeRepresentation NOTHING = fromQualifiedName("Standard.Base.Nothing.Nothing");
 

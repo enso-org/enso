@@ -1235,7 +1235,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
                         txt2 = 42.to_text
                         txt3 = (My_Type.Value 1).to_text
 
-                        bool = x.is_error
+                        bool = (x == x)
                         [txt1, txt2, txt3, bool]
                     """,
                 uri.getAuthority())

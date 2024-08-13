@@ -54,7 +54,7 @@ abstract class TypePropagation {
     this.builtinTypes = builtinTypes;
 
     var currentModuleScope = StaticModuleScope.forIR(currentModule);
-    this.methodTypeResolver = new MethodTypeResolver(moduleResolver, currentModuleScope);
+    this.methodTypeResolver = new MethodTypeResolver(moduleResolver, currentModuleScope, builtinTypes);
   }
 
   /**

@@ -1,22 +1,27 @@
 package org.enso.compiler.pass.analyse.types;
 
-import java.util.stream.Stream;
+import org.enso.compiler.pass.analyse.types.scope.BuiltinsFallbackScope;
 import org.enso.compiler.pass.analyse.types.scope.ModuleResolver;
 import org.enso.compiler.pass.analyse.types.scope.StaticModuleScope;
 import org.enso.compiler.pass.analyse.types.scope.TypeHierarchy;
 import org.enso.compiler.pass.analyse.types.scope.TypeScopeReference;
+import org.enso.pkg.QualifiedName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.stream.Stream;
 
 class MethodTypeResolver {
   private static final Logger logger = LoggerFactory.getLogger(MethodTypeResolver.class);
   private final ModuleResolver moduleResolver;
   private final TypeHierarchy typeHierarchy = new TypeHierarchy();
   private final StaticModuleScope currentModuleScope;
+  private final BuiltinsFallbackScope builtinsFallbackScope;
 
-  MethodTypeResolver(ModuleResolver moduleResolver, StaticModuleScope currentModuleScope) {
+  MethodTypeResolver(ModuleResolver moduleResolver, StaticModuleScope currentModuleScope, BuiltinTypes builtinTypes) {
     this.moduleResolver = moduleResolver;
     this.currentModuleScope = currentModuleScope;
+    this.builtinsFallbackScope = new BuiltinsFallbackScope(builtinTypes);
   }
 
   TypeRepresentation resolveMethod(TypeScopeReference type, String methodName) {
@@ -34,20 +39,18 @@ class MethodTypeResolver {
     return resolveMethod(parent, methodName);
   }
 
+  private transient StaticModuleScope cachedAnyScope = null;
+
   // This should be aligned with
   // TODO extract common logic with ModuleScope::lookupMethodDefinition
   // I wanted to keep this decoupled from StaticModuleScope to keep it as a pure-data class
   private TypeRepresentation lookupMethodDefinition(TypeScopeReference type, String methodName) {
-    var definitionModule = moduleResolver.findContainingModule(type);
-    if (definitionModule != null) {
-      var definitionScope = StaticModuleScope.forIR(definitionModule);
+    var definitionScope = findDefinitionScope(type);
+    if (definitionScope != null) {
       var definedWithAtom = definitionScope.getMethodForType(type, methodName);
       if (definedWithAtom != null) {
         return definedWithAtom;
       }
-    } else {
-      // TODO need a way to find builtin Any
-      logger.error("Could not find declaration module of type: {}", type);
     }
 
     var definedHere = currentModuleScope.getMethodForType(type, methodName);
@@ -72,5 +75,22 @@ class MethodTypeResolver {
     }
 
     return null;
+  }
+
+  private StaticModuleScope findDefinitionScope(TypeScopeReference type) {
+    var definitionModule = moduleResolver.findContainingModule(type);
+    if (definitionModule != null) {
+      return StaticModuleScope.forIR(definitionModule);
+    } else {
+      if (type.equals(TypeScopeReference.ANY)) {
+        // We have special handling for ANY: it points to Standard.Base.Any.Any, but that may not always be imported.
+        // The runtime falls back to Standard.Builtins.Main, but that modules does not contain any type information, so it is not useful for us.
+        // Instead we fall back to the hardcoded definitions of the 5 builtins of Any.
+        return builtinsFallbackScope.fallbackAnyScope();
+      } else {
+        logger.error("Could not find declaration module of type: {}", type);
+        return null;
+      }
+    }
   }
 }

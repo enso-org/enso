@@ -34,25 +34,6 @@ public class ModuleResolver {
   }
 
   public Module findContainingModule(TypeScopeReference typeScopeReference) {
-    // We need special handling for Any, as if the Standard.Base.Any.Any is not imported, we need to 'redirect' into Standard.Builtins.Main. This is the only exception - other builtins will only show up if they were imported, only Any is special because it is the top type that can show up implicitly.
-    if (typeScopeReference.equals(TypeScopeReference.ANY)) {
-      return findModuleForAny();
-    }
-
     return findModule(typeScopeReference.relatedModuleName());
-  }
-
-  private Module findModuleForAny() {
-    var importedModuleWithShadowDefinitions = findModule(TypeScopeReference.ANY.relatedModuleName());
-    if (importedModuleWithShadowDefinitions != null) {
-      return importedModuleWithShadowDefinitions;
-    }
-
-    // Until Standard.Base.Any.Any is imported, we are relying on Standard.Builtins.Main, however, in the IR it has no methods defined.
-    // We could rely on Builtins reading metadata - but currently that metadata does not contain type info _anyway_ so it is of little use to us.
-    // Given that we need this only for Any, we currently hardcode the types of the 5 Any builtins. In the future we maybe want to make this part of the metadata.
-    var fallbackBuiltinModule = findModule(QualifiedName.fromString("Standard.Builtins.Main"));
-    assert fallbackBuiltinModule != null : "The fallback builtin module should always be present.";
-    return fallbackBuiltinModule;
   }
 }
