@@ -27,6 +27,7 @@ public class ForeignMethodInvokeTest {
   @AfterClass
   public static void disposeCtx() {
     ctx.close();
+    ctx = null;
   }
 
   @Test

@@ -1,9 +1,11 @@
 /** @file The icon and name of a {@link backendModule.SecretAsset}. */
 import * as React from 'react'
 
+import { useMutation } from '@tanstack/react-query'
+
 import DatalinkIcon from '#/assets/datalink.svg'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import { backendMutationOptions } from '#/hooks/backendHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -48,7 +50,7 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
   const asset = item.item
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
-  const createDatalinkMutation = backendHooks.useBackendMutation(backend, 'createDatalink')
+  const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {

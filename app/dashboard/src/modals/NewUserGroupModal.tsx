@@ -1,7 +1,9 @@
 /** @file A modal to create a user group. */
 import * as React from 'react'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import { useMutation } from '@tanstack/react-query'
+
+import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
@@ -34,7 +36,7 @@ export default function NewUserGroupModal(props: NewUserGroupModalProps) {
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [name, setName] = React.useState('')
-  const listUserGroupsQuery = backendHooks.useBackendQuery(backend, 'listUserGroups', [])
+  const listUserGroupsQuery = useBackendQuery(backend, 'listUserGroups', [])
   const userGroups = listUserGroupsQuery.data ?? null
   const userGroupNames = React.useMemo(
     () =>
@@ -47,14 +49,16 @@ export default function NewUserGroupModal(props: NewUserGroupModalProps) {
     userGroupNames != null && userGroupNames.has(string.normalizeName(name)) ?
       getText('duplicateUserGroupError')
     : null
-  const createUserGroupMutation = backendHooks.useBackendMutation(backend, 'createUserGroup')
+  const createUserGroup = useMutation(
+    backendMutationOptions(backend, 'createUserGroup'),
+  ).mutateAsync
   const canSubmit = nameError == null && name !== '' && userGroupNames != null
 
   const onSubmit = async () => {
     if (canSubmit) {
       unsetModal()
       try {
-        await createUserGroupMutation.mutateAsync([{ name }])
+        await createUserGroup([{ name }])
       } catch (error) {
         toastAndLog(null, error)
       }

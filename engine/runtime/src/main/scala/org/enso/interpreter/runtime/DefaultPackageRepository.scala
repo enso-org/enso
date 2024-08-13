@@ -138,10 +138,6 @@ private class DefaultPackageRepository(
     go(component.name.split(LibraryName.separator))
   }
 
-  override def findAvailableLocalLibraries(): Seq[LibraryName] = {
-    libraryProvider.findAvailableLocalLibraries()
-  }
-
   /** @inheritdoc */
   override def getModuleMap: PackageRepository.ModuleMap = loadedModules
 
@@ -613,6 +609,13 @@ private class DefaultPackageRepository(
         StringUtils.join(reader.lines().iterator(), "\n")
       }
     else Failure(PackageManager.PackageNotFound())
+  }
+
+  override def shutdown(): Unit = {
+    loadedPackages.clear()
+    loadedModules.clear()
+    loadedComponents.clear()
+    loadedLibraryBindings.clear()
   }
 }
 

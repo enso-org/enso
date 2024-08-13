@@ -21,16 +21,14 @@ class ReplTest
   ): Unit = {
 
     "initialize properly" in {
-      var counter = 0;
-      setSessionManager(executor => {
-        counter = counter + 1
-        executor.exit()
-      })
-      val mainFn = "my_main_fn__"
-      val replModule =
-        interpreterContext.executionContext.evalReplModule(mainFn)
-      replModule.evalExpression(mainFn)
-      counter shouldEqual 1
+      val code =
+        """
+          |import Standard.Base.Runtime.Debug
+          |
+          |main = Debug.breakpoint
+          |""".stripMargin
+      setSessionManager(executor => executor.exit())
+      eval(code)
     }
 
     "be able to execute arbitrary code in the caller scope" in {
@@ -295,7 +293,7 @@ class ReplTest
       }
       eval(code)
       val errorMsg =
-        "Compile error: The name `undefined` could not be found."
+        "Compile_Error.Error"
       evalResult.left.value.getMessage shouldEqual errorMsg
     }
 

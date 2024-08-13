@@ -11,12 +11,9 @@ test.test('drag labels onto single row', async ({ page }) => {
     page,
     setupAPI: (api) => {
       api.addLabel(label, backend.COLORS[0])
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      api.addLabel('bbbb', backend.COLORS[1]!)
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      api.addLabel('cccc', backend.COLORS[2]!)
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      api.addLabel('dddd', backend.COLORS[3]!)
+      api.addLabel('bbbb', backend.COLORS[1])
+      api.addLabel('cccc', backend.COLORS[2])
+      api.addLabel('dddd', backend.COLORS[3])
       api.addDirectory('foo')
       api.addSecret('bar')
       api.addFile('baz')
@@ -41,12 +38,9 @@ test.test('drag labels onto multiple rows', async ({ page }) => {
     page,
     setupAPI: (api) => {
       api.addLabel(label, backend.COLORS[0])
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      api.addLabel('bbbb', backend.COLORS[1]!)
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      api.addLabel('cccc', backend.COLORS[2]!)
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      api.addLabel('dddd', backend.COLORS[3]!)
+      api.addLabel('bbbb', backend.COLORS[1])
+      api.addLabel('cccc', backend.COLORS[2])
+      api.addLabel('dddd', backend.COLORS[3])
       api.addDirectory('foo')
       api.addSecret('bar')
       api.addFile('baz')
@@ -57,6 +51,7 @@ test.test('drag labels onto multiple rows', async ({ page }) => {
   const labelEl = actions.locateLabelsPanelLabels(page, label)
 
   await page.keyboard.down(await actions.modModifier(page))
+  await test.expect(assetRows).toHaveCount(4)
   await actions.clickAssetRow(assetRows.nth(0))
   await actions.clickAssetRow(assetRows.nth(2))
   await test.expect(labelEl).toBeVisible()

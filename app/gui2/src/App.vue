@@ -19,7 +19,6 @@ import { computed, markRaw, toRaw, toRef, watch } from 'vue'
 import TooltipDisplayer from './components/TooltipDisplayer.vue'
 import { provideTooltipRegistry } from './providers/tooltipState'
 import { provideVisibility } from './providers/visibility'
-import { initializePrefixes } from './util/ast/node'
 import { urlParams } from './util/urlParams'
 
 const props = defineProps<{
@@ -36,8 +35,6 @@ provideBackend(() => markRaw(toRaw(props.backend)))
 
 const classSet = provideAppClassSet()
 const appTooltips = provideTooltipRegistry()
-
-initializePrefixes()
 
 const logger = provideEventLogger(toRef(props, 'logEvent'), toRef(props, 'projectId'))
 watch(
