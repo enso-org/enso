@@ -2806,7 +2806,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           data
       }
       val stringified = new String(data)
-      stringified shouldEqual "\"Function\""
+      stringified should include("""{"value":"Function"""")
   }
 
   it should "attach text visualization with arguments" in withContext() {
