@@ -114,8 +114,8 @@ export default defineConfig({
     },
     command:
       process.env.CI || process.env.PROD ?
-        `npx vite build && npx vite preview --port ${PORT} --strictPort`
-      : `npx vite dev --port ${PORT}`,
+        `corepack pnpm build && corepack pnpm exec vite preview --port ${PORT} --strictPort`
+      : `corepack pnpm exec vite dev --port ${PORT}`,
     // Build from scratch apparently can take a while on CI machines.
     timeout: 120 * 1000,
     port: PORT,

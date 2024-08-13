@@ -12,9 +12,6 @@ const config = mergeConfig(
       root: fileURLToPath(new URL('./', import.meta.url)),
       restoreMocks: true,
     },
-    define: {
-      RUNNING_VITEST: true,
-    },
   }),
 )
 config.esbuild.dropLabels = config.esbuild.dropLabels.filter((label: string) => label != 'DEV')

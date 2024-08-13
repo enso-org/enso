@@ -125,18 +125,6 @@ export const Selector = React.forwardRef(function Selector<
     disabled: isDisabled || formInstance.formState.isSubmitting,
   })
 
-  // const { ref: fieldRef, ...field } = formInstance.register(name, {
-  //   disabled: isDisabled,
-  //   required: isRequired,
-  //   ...(inputProps.onBlur && { onBlur: inputProps.onBlur }),
-  //   ...(inputProps.onChange && { onChange: inputProps.onChange }),
-  //   setValueAs: (value) => {
-  //     console.log('WHAT', value)
-  //     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  //     return items[Number(value)]
-  //   },
-  // })
-
   return (
     <Form.Field
       form={formInstance}

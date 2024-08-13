@@ -12,11 +12,11 @@ import type { Opt } from '@/util/data/opt'
 import * as encoding from 'lib0/encoding'
 import * as sha256 from 'lib0/hash/sha256'
 import * as map from 'lib0/map'
-import * as Ast from 'shared/ast/generated/ast'
-import { Token, Tree } from 'shared/ast/generated/ast'
-import { tryGetSoleValue } from 'shared/util/data/iterable'
-import type { ExternalId, IdMap, SourceRange } from 'shared/yjsModel'
 import { markRaw } from 'vue'
+import * as Ast from 'ydoc-shared/ast/generated/ast'
+import { Token, Tree } from 'ydoc-shared/ast/generated/ast'
+import { tryGetSoleValue } from 'ydoc-shared/util/data/iterable'
+import type { ExternalId, IdMap, SourceRange } from 'ydoc-shared/yjsModel'
 
 export { AstExtended as RawAstExtended }
 

@@ -10,8 +10,8 @@ import type { RequiredImport } from '@/stores/graph/imports'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import { ArgumentInfoKey } from '@/util/callTree'
-import { TextLiteral } from 'shared/ast'
 import { computed } from 'vue'
+import { TextLiteral } from 'ydoc-shared/ast'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()

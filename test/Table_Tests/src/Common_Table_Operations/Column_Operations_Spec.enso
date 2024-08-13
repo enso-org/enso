@@ -19,7 +19,7 @@ from Standard.Test import all
 import enso_dev.Base_Tests.Data.Round_Spec
 
 import project.Common_Table_Operations.Main.Char_Max_Size_After_Substring_Behavior
-from project.Common_Table_Operations.Util import run_default_backend, within_table, is_float_or_decimal
+from project.Common_Table_Operations.Util import all
 
 main filter=Nothing = run_default_backend add_specs filter
 
@@ -51,6 +51,18 @@ type Min_Max_Data
         b = t.at "b"
         c = t.at "c"
         [a, b, c, t]
+
+type Min_Max_Datetime_Data
+    Value ~table
+
+    setup table_builder = Min_Max_Datetime_Data.Value <|
+        dates1 = [Date.new 2021 1 1, Date.new 2021 1 2, Date.new 2021 1 3]
+        dates2 = [Date.new 2021 1 1, Date.new 2021 1 3, Date.new 2000 12 1]
+        times1 = [Time_Of_Day.new 1 2 3 4, Time_Of_Day.new 3 4 5 6, Time_Of_Day.new 5 6 7 8]
+        times2 = [Time_Of_Day.new 1 2 3 4, Time_Of_Day.new 1 1 1 1, Time_Of_Day.new 10 10 10 10]
+        date_times1 = [Date_Time.new 2021 1 1 1 2 3 4, Date_Time.new 2021 1 2 3 4 5 6, Date_Time.new 2021 1 3 5 6 7 8]
+        date_times2 = [Date_Time.new 2021 1 1 1 2 3 4, Date_Time.new 2021 1 3 1 2 3 4, Date_Time.new 2000 12 1 10 10 10 10]
+        table_builder [["ix", [1, 2, 3]], ["dates1", dates1], ["dates2", dates2], ["times1", times1], ["times2", times2], ["date_times1", date_times1], ["date_times2", date_times2]] . sort "ix"
 
 type Literal_Data
     Value ~data
@@ -1373,6 +1385,46 @@ add_specs suite_builder setup =
             c10 = (data.t.at "d").max False
             c10.to_vector . should_equal [True, False, True]
             c10.value_type.should_equal Value_Type.Boolean
+
+        group_builder.specify "should allow Date/Time columns" pending=pending_datetime <|
+            dt_data = Min_Max_Datetime_Data.setup setup.table_builder
+            c1 = dt_data.table.at "dates1" . min (Date.new 2021 1 2)
+            c1.to_vector . should_equal [Date.new 2021 1 1, Date.new 2021 1 2, Date.new 2021 1 2]
+            c1.value_type.should_equal Value_Type.Date
+
+            c2 = dt_data.table.at "dates1" . min (dt_data.table.at "dates2")
+            c2.to_vector . should_equal [Date.new 2021 1 1, Date.new 2021 1 2, Date.new 2000 12 1]
+
+            c3 = dt_data.table.at "dates1" . max (Date.new 2021 1 2)
+            c3.to_vector . should_equal [Date.new 2021 1 2, Date.new 2021 1 2, Date.new 2021 1 3]
+
+            c4 = dt_data.table.at "dates1" . max (dt_data.table.at "dates2")
+            c4.to_vector . should_equal [Date.new 2021 1 1, Date.new 2021 1 3, Date.new 2021 1 3]
+
+            c5 = dt_data.table.at "times1" . min (Time_Of_Day.new 2 2 2)
+            c5.to_vector . should_equal [Time_Of_Day.new 1 2 3 4, Time_Of_Day.new 2 2 2, Time_Of_Day.new 2 2 2]
+            c5.value_type.should_equal Value_Type.Time
+
+            c6 = dt_data.table.at "times1" . min (dt_data.table.at "times2")
+            c6.to_vector . should_equal [Time_Of_Day.new 1 2 3 4, Time_Of_Day.new 1 1 1 1, Time_Of_Day.new 5 6 7 8]
+
+            c7 = dt_data.table.at "times1" . max (Time_Of_Day.new 2 2 2)
+            c7.to_vector . should_equal [Time_Of_Day.new 2 2 2, Time_Of_Day.new 3 4 5 6, Time_Of_Day.new 5 6 7 8]
+
+            c8 = dt_data.table.at "times1" . max (dt_data.table.at "times2")
+            c8.to_vector . should_equal [Time_Of_Day.new 1 2 3 4, Time_Of_Day.new 3 4 5 6, Time_Of_Day.new 10 10 10 10]
+
+            c9 = dt_data.table.at "date_times1" . min (Date_Time.new 2021 1 2 2 2 2)
+            c9.to_vector . should_equal_tz_agnostic [Date_Time.new 2021 1 1 1 2 3 4, Date_Time.new 2021 1 2 2 2 2, Date_Time.new 2021 1 2 2 2 2]
+
+            c10 = dt_data.table.at "date_times1" . min (dt_data.table.at "date_times2")
+            c10.to_vector . should_equal_tz_agnostic [Date_Time.new 2021 1 1 1 2 3 4, Date_Time.new 2021 1 2 3 4 5 6, Date_Time.new 2000 12 1 10 10 10 10]
+
+            c11 = dt_data.table.at "date_times1" . max (Date_Time.new 2021 1 2 2 2 2)
+            c11.to_vector . should_equal_tz_agnostic [Date_Time.new 2021 1 2 2 2 2, Date_Time.new 2021 1 2 3 4 5 6, Date_Time.new 2021 1 3 5 6 7 8]
+
+            c12 = dt_data.table.at "date_times1" . max (dt_data.table.at "date_times2")
+            c12.to_vector . should_equal_tz_agnostic [Date_Time.new 2021 1 1 1 2 3 4, Date_Time.new 2021 1 3 1 2 3 4, Date_Time.new 2021 1 3 5 6 7 8]
 
         group_builder.specify "should check types" <|
             [(.min), (.max)].each op->

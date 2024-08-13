@@ -60,7 +60,7 @@ add_specs suite_builder prefix ~datalink_to_connection database_pending =
         group_builder.specify "should see Database operations performed manually" <| cloud_setup.with_prepared_environment <|
             audited_connection = datalink_to_connection.read
             query = "SELECT 1 AS A, 2 AS B, "+(Random.integer 0 1000000).to_text+" AS C"
-            t = audited_connection.read query
+            t = audited_connection.read (SQL_Query.Raw_SQL query)
             # Force the connector to perform the query:
             t.at 0 . to_vector . should_equal [1]
 
@@ -80,7 +80,7 @@ add_specs suite_builder prefix ~datalink_to_connection database_pending =
                 locally_audited_connection = datalink_to_connection.read
 
                 # We just check that we can read queries through this connection:
-                locally_audited_connection.read "SELECT 1" . at 0 . to_vector . should_equal [1]
+                locally_audited_connection.read (SQL_Query.Raw_SQL "SELECT 1") . at 0 . to_vector . should_equal [1]
 
         group_builder.specify "should know the asset id of the data link used for the connection" pending="TODO: https://github.com/enso-org/enso/issues/9869" <|
             ## TODO:

@@ -5,7 +5,7 @@ import org.enso.compiler.core.ConstantsNames;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.analyse.AliasAnalysis$;
-import org.enso.compiler.pass.analyse.alias.Info;
+import org.enso.compiler.pass.analyse.alias.AliasMetadata;
 import org.enso.compiler.pass.resolve.GlobalNames$;
 import scala.Option;
 
@@ -30,8 +30,9 @@ import scala.Option;
  */
 public abstract class NameResolutionAlgorithm<ResultType, LocalNameLinkType> {
   public final ResultType resolveName(Name.Literal name) {
-    Info.Occurrence occurrenceMetadata =
-        MetadataInteropHelpers.getMetadata(name, AliasAnalysis$.MODULE$, Info.Occurrence.class);
+    AliasMetadata.Occurrence occurrenceMetadata =
+        MetadataInteropHelpers.getMetadata(
+            name, AliasAnalysis$.MODULE$, AliasMetadata.Occurrence.class);
     var maybeLocalLink = findLocalLink(occurrenceMetadata);
     if (maybeLocalLink.isDefined()) {
       return resolveLocalName(maybeLocalLink.get());
@@ -52,7 +53,8 @@ public abstract class NameResolutionAlgorithm<ResultType, LocalNameLinkType> {
     return resolveUnresolvedSymbol(name.name());
   }
 
-  protected abstract Option<LocalNameLinkType> findLocalLink(Info.Occurrence occurrenceMetadata);
+  protected abstract Option<LocalNameLinkType> findLocalLink(
+      AliasMetadata.Occurrence occurrenceMetadata);
 
   protected abstract ResultType resolveLocalName(LocalNameLinkType localLink);
 

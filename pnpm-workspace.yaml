@@ -2,4 +2,9 @@ packages:
   - app/dashboard
   - app/ide-desktop/*
   - app/gui2
+  - app/rust-ffi
+  - app/ydoc-server
+  - app/ydoc-shared
+  - app/ydoc-server-nodejs
+  - app/ydoc-server-polyglot
   - lib/js/runner

@@ -15,16 +15,17 @@
   },
   "scripts": {
     "compile": "tsc",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc",
     "build": "vite build",
+    "lint": "eslint .",
     "dev": "vite",
     "dev:e2e": "vite -c vite.test.config.ts",
     "dev:e2e:ci": "vite -c vite.test.config.ts build && vite preview --port 8080 --strictPort",
-    "test": "npm run test:unit && npm run test:e2e",
+    "test": "corepack pnpm run /^^^^test:.*/",
     "test:unit": "vitest run",
-    "test:unit:debug": "vitest",
+    "test-dev:unit": "vitest",
     "test:e2e": "cross-env NODE_ENV=production playwright test",
-    "test:e2e:debug": "cross-env NODE_ENV=production playwright test --ui"
+    "test-dev:e2e": "cross-env NODE_ENV=production playwright test --ui"
   },
   "dependencies": {
     "@aws-amplify/auth": "5.6.5",

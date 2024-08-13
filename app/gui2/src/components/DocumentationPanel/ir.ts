@@ -3,7 +3,7 @@ import type { SuggestionEntry, SuggestionId } from '@/stores/suggestionDatabase/
 import { SuggestionKind, entryQn } from '@/stores/suggestionDatabase/entry'
 import type { Doc } from '@/util/docParser'
 import type { QualifiedName } from '@/util/qualifiedName'
-import type { SuggestionEntryArgument } from 'shared/languageServerTypes/suggestions'
+import type { SuggestionEntryArgument } from 'ydoc-shared/languageServerTypes/suggestions'
 
 // === Types ===
 

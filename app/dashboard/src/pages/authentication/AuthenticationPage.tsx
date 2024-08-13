@@ -1,47 +1,64 @@
 /** @file A styled authentication page.
  * This is a component, NOT a page, but it is here because it is related to the authentication pages
  * and nothing else. */
-import * as React from 'react'
+import type { ReactNode } from 'react'
 
-import * as offlineHooks from '#/hooks/offlineHooks'
-
-import * as textProvider from '#/providers/TextProvider'
-
-import * as ariaComponents from '#/components/AriaComponents'
+import {
+  DIALOG_BACKGROUND,
+  type FieldValues,
+  Form,
+  type FormProps,
+  type TSchema,
+  Text,
+} from '#/components/AriaComponents'
 import Page from '#/components/Page'
+import { useOffline } from '#/hooks/offlineHooks'
+import { useText } from '#/providers/TextProvider'
+import invariant from 'tiny-invariant'
 
 // ==========================
 // === AuthenticationPage ===
 // ==========================
 
 /** Props for an {@link AuthenticationPage}. */
-export interface AuthenticationPageProps extends Readonly<React.PropsWithChildren> {
+interface AuthenticationPagePropsBase {
   readonly supportsOffline?: boolean
   readonly 'data-testid'?: string
-  readonly isNotForm?: boolean
   readonly title: string
-  readonly footer?: React.ReactNode
-  readonly onSubmit?: (event: React.FormEvent<HTMLFormElement>) => void
+  readonly footer?: ReactNode
 }
 
-/** A styled authentication page. */
-export default function AuthenticationPage(props: AuthenticationPageProps) {
-  const { isNotForm = false, title, onSubmit, children, footer, supportsOffline = false } = props
+/** Props for an {@link AuthenticationPage}. */
+export type AuthenticationPageProps<
+  Schema extends TSchema,
+  TFieldValues extends FieldValues<Schema>,
+  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
+> = AuthenticationPagePropsBase & Partial<FormProps<Schema, TFieldValues, TTransformedValues>>
 
-  const { getText } = textProvider.useText()
-  const { isOffline } = offlineHooks.useOffline()
+/** A styled authentication page. */
+export default function AuthenticationPage<
+  Schema extends TSchema,
+  TFieldValues extends FieldValues<Schema>,
+  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
+>(props: AuthenticationPageProps<Schema, TFieldValues, TTransformedValues>) {
+  const { title, children, footer, supportsOffline = false, ...formProps } = props
+  const { form, schema, onSubmit } = formProps
+  const isForm = onSubmit != null && (form != null || schema != null)
+
+  const { getText } = useText()
+  const { isOffline } = useOffline()
 
   const heading = (
-    <ariaComponents.Text.Heading level={1} className="self-center" weight="medium">
+    <Text.Heading level={1} className="self-center" weight="medium">
       {title}
-    </ariaComponents.Text.Heading>
+    </Text.Heading>
   )
 
-  const containerClasses = ariaComponents.DIALOG_BACKGROUND({
-    className: 'flex w-full flex-col gap-auth rounded-4xl p-12',
+  const containerClasses = DIALOG_BACKGROUND({
+    className: 'flex w-full flex-col gap-4 rounded-4xl p-12',
   })
 
-  const offlineAlertClasses = ariaComponents.DIALOG_BACKGROUND({
+  const offlineAlertClasses = DIALOG_BACKGROUND({
     className: 'flex mt-auto rounded-sm items-center justify-center p-4 px-12 rounded-4xl',
   })
 
@@ -54,29 +71,38 @@ export default function AuthenticationPage(props: AuthenticationPageProps) {
         >
           {isOffline && (
             <div className={offlineAlertClasses}>
-              <ariaComponents.Text className="text-center" balance elementType="p">
+              <Text className="text-center" balance elementType="p">
                 {getText('loginUnavailableOffline')}{' '}
                 {supportsOffline && getText('loginUnavailableOfflineLocal')}
-              </ariaComponents.Text>
+              </Text>
             </div>
           )}
 
           <div className="row-start-2 row-end-3 flex w-full flex-col items-center gap-auth">
-            {isNotForm ?
+            {!isForm ?
               <div className={containerClasses}>
                 {heading}
-                {children}
+                {(() => {
+                  invariant(
+                    typeof children !== 'function',
+                    'Non-forms should not have a function as a child.',
+                  )
+                  return children
+                })()}
               </div>
-            : <form
+            : <Form
+                // This is SAFE, as the props type of this type extends `FormProps`.
+                // eslint-disable-next-line no-restricted-syntax
+                {...(formProps as FormProps<Schema, TFieldValues, TTransformedValues>)}
                 className={containerClasses}
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  onSubmit?.(event)
-                }}
               >
-                {heading}
-                {children}
-              </form>
+                {(innerProps) => (
+                  <>
+                    {heading}
+                    {typeof children === 'function' ? children(innerProps) : children}
+                  </>
+                )}
+              </Form>
             }
             {footer}
           </div>

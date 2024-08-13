@@ -27,6 +27,7 @@ public class AtomInteropTest {
   @After
   public void disposeCtx() {
     ctx.close();
+    ctx = null;
   }
 
   @Test

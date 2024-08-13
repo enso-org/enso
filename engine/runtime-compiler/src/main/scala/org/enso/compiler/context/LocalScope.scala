@@ -1,7 +1,10 @@
 package org.enso.compiler.context
 
 import org.enso.compiler.pass.analyse.DataflowAnalysis
-import org.enso.compiler.pass.analyse.alias.{Graph => AliasGraph}
+import org.enso.compiler.pass.analyse.alias.graph.{
+  GraphOccurrence,
+  Graph => AliasGraph
+}
 
 import scala.jdk.CollectionConverters._
 
@@ -140,7 +143,7 @@ class LocalScope(
       .getOrElse(Map())
 
     scope.occurrences.foreach {
-      case (id, x: AliasGraph.Occurrence.Def) =>
+      case (id, x: GraphOccurrence.Def) =>
         parentResult += x.symbol -> new FramePointer(
           level,
           allFrameSlotIdxs(id)
