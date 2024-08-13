@@ -114,7 +114,7 @@ impl Versions {
     }
 
     pub fn local_prerelease() -> Result<Prerelease> {
-        Prerelease::new(LOCAL_BUILD_PREFIX).anyhow_err()
+        Ok(Prerelease::new(LOCAL_BUILD_PREFIX)?)
     }
 
     /// Get a git tag that should be applied to a commit released as this version.
@@ -230,7 +230,7 @@ pub fn same_core_version(a: &Version, b: &Version) -> bool {
 }
 
 pub fn generate_rc_prerelease(index: u32) -> Result<Prerelease> {
-    Prerelease::from_str(&format!("{RC_BUILD_PREFIX}.{index}")).anyhow_err()
+    Ok(Prerelease::from_str(&format!("{RC_BUILD_PREFIX}.{index}"))?)
 }
 
 #[instrument(ret)]

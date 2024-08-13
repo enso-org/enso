@@ -1,8 +1,5 @@
 use crate::prelude::*;
 
-use crate::future::try_join_all;
-use crate::future::AsyncPolicy;
-
 use indicatif::MultiProgress;
 use indicatif::ProgressBar;
 use indicatif::WeakProgressBar;
@@ -138,7 +135,7 @@ pub async fn complete_tasks() -> Result {
             break;
         }
         info!("Found {} tasks to wait upon.", tasks.len());
-        try_join_all(tasks, AsyncPolicy::FutureParallelism).await?;
+        futures::future::try_join_all(tasks).await?;
     }
     debug!("All pending tasks have been completed.");
     Ok(())

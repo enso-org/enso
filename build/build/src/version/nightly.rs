@@ -88,7 +88,7 @@ impl TryInto<Prerelease> for NightlyPrerelease {
 
     fn try_into(self) -> std::result::Result<Prerelease, Self::Error> {
         let as_string = self.to_string();
-        Prerelease::from_str(&as_string).anyhow_err()
+        Ok(Prerelease::from_str(&as_string)?)
     }
 }
 

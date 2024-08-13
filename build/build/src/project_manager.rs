@@ -13,5 +13,5 @@ pub fn url(target: &TargetTriple) -> Result<Url> {
         asset = format!("project-manager-bundle-{target}"),
         ext = ide_ci::github::release::archive_extension(),
     );
-    Url::parse(&url_text).anyhow_err()
+    Ok(Url::parse(&url_text)?)
 }

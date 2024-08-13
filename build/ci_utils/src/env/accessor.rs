@@ -120,7 +120,7 @@ impl TypedVariable for PathBufVariable {
     type Value = PathBuf;
     type Borrowed = Path;
     fn parse(&self, value: &str) -> Result<Self::Value> {
-        PathBuf::from_str(value).anyhow_err()
+        Ok(PathBuf::from_str(value)?)
     }
     fn generate(&self, value: &Self::Borrowed) -> Result<String> {
         value
@@ -186,7 +186,7 @@ where Value::Err: Into<anyhow::Error>
     type Value = Value;
     type Borrowed = Borrowed;
     fn parse(&self, value: &str) -> Result<Self::Value> {
-        Value::from_str(value).anyhow_err()
+        Value::from_str(value).map_err(Into::into)
     }
     fn generate(&self, value: &Self::Borrowed) -> Result<String> {
         Ok(Borrowed::to_string(value))

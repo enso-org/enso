@@ -314,7 +314,8 @@ pub trait ProcessWrapper {
         ide_ci::extensions::child::ChildExt::wait_ok(self.inner()).boxed()
     }
     fn kill(&mut self) -> BoxFuture<Result> {
-        self.inner().kill().anyhow_err().boxed()
+        let f = self.inner().kill();
+        async { Ok(f.await?) }.boxed()
     }
 }
 

@@ -127,7 +127,7 @@ impl BucketContext {
 
     pub async fn get_yaml<T: DeserializeOwned>(&self, path: &str) -> Result<T> {
         let text = self.get(path).await?.collect().await?;
-        serde_yaml::from_reader(text.reader()).anyhow_err()
+        Ok(serde_yaml::from_reader(text.reader())?)
     }
 
     pub async fn put_yaml(&self, path: &str, data: &impl Serialize) -> Result<PutObjectOutput> {

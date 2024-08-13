@@ -62,7 +62,7 @@ pub trait PathExt: AsRef<Path> {
     fn write_as_json<T: Serialize>(&self, value: &T) -> Result {
         trace!("Writing JSON to {}.", self.as_ref().display());
         let file = crate::fs::create(self)?;
-        serde_json::to_writer(file, value).anyhow_err()
+        Ok(serde_json::to_writer(file, value)?)
     }
 
     /// Get the path as `str`.

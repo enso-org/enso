@@ -1,7 +1,5 @@
 // === Features ===
 #![allow(incomplete_features)]
-#![feature(try_blocks)]
-#![feature(result_flattening)]
 #![feature(const_fmt_arguments_new)]
 #![feature(hash_set_entry)]
 #![feature(let_chains)]
@@ -15,7 +13,6 @@
 #![feature(string_remove_matches)]
 #![feature(duration_constants)]
 #![feature(const_trait_impl)]
-#![feature(extend_one)]
 // === Non-Standard Linter Configuration ===
 #![warn(unused_qualifications)]
 

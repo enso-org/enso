@@ -8,7 +8,7 @@ use tokio_util::io::ReaderStream;
 
 pub fn metadata<P: AsRef<Path>>(path: P) -> BoxFuture<'static, Result<std::fs::Metadata>> {
     let path = path.as_ref().to_owned();
-    tokio::fs::metadata(path).anyhow_err().boxed()
+    async { Ok(tokio::fs::metadata(path).await?) }.boxed()
 }
 
 
@@ -36,7 +36,7 @@ pub fn symlink_metadata<P: AsRef<Path>>(path: P) -> BoxFuture<'static, Result<st
 
 #[context("Failed to open path for reading: {}", path.as_ref().display())]
 pub async fn open(path: impl AsRef<Path>) -> Result<File> {
-    File::open(&path).await.anyhow_err()
+    Ok(File::open(&path).await?)
 }
 
 pub fn open_stream(path: impl AsRef<Path>) -> BoxFuture<'static, Result<ReaderStream<File>>> {
@@ -53,12 +53,12 @@ pub fn open_stream(path: impl AsRef<Path>) -> BoxFuture<'static, Result<ReaderSt
 
 #[context("Failed to open path for writing: {}", path.as_ref().display())]
 pub async fn create(path: impl AsRef<Path>) -> Result<File> {
-    File::create(&path).await.anyhow_err()
+    Ok(File::create(&path).await?)
 }
 
 #[context("Failed to create missing directories no path: {}", path.as_ref().display())]
 pub async fn create_dir_all(path: impl AsRef<Path>) -> Result {
-    tokio::fs::create_dir_all(&path).await.anyhow_err()
+    Ok(tokio::fs::create_dir_all(&path).await?)
 }
 
 pub async fn read_dir(
@@ -79,12 +79,12 @@ pub async fn read_dir(
 
 #[context("Failed to remove directory with the subtree: {}", path.as_ref().display())]
 pub async fn remove_dir_all(path: impl AsRef<Path>) -> Result {
-    tokio::fs::remove_dir_all(&path).await.anyhow_err()
+    Ok(tokio::fs::remove_dir_all(&path).await?)
 }
 
 #[context("Failed to write file: {}", path.as_ref().display())]
 pub async fn write(path: impl AsRef<Path>, contents: impl AsRef<[u8]>) -> Result {
-    tokio::fs::write(&path, &contents).await.anyhow_err()
+    Ok(tokio::fs::write(&path, &contents).await?)
 }
 
 #[context("Failed to read file: {}", path.as_ref().display())]
@@ -97,11 +97,11 @@ pub async fn read<P: AsRef<Path>>(path: P) -> Result<Vec<u8>> {
 
 #[context("Failed to read the file: {}", path.as_ref().display())]
 pub async fn read_to_string(path: impl AsRef<Path>) -> Result<String> {
-    tokio::fs::read_to_string(&path).await.anyhow_err()
+    Ok(tokio::fs::read_to_string(&path).await?)
 }
 
 /// See [`tokio::fs::set_permissions`].
 #[context("Failed to set permissions {:?} for file: {}", permissions, path.as_ref().display())]
 pub async fn set_permissions(path: impl AsRef<Path>, permissions: std::fs::Permissions) -> Result {
-    tokio::fs::set_permissions(&path, permissions.clone()).await.anyhow_err()
+    Ok(tokio::fs::set_permissions(&path, permissions.clone()).await?)
 }

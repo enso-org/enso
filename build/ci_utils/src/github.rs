@@ -186,9 +186,5 @@ pub async fn fetch_runner(octocrab: &Octocrab, os: OS, output_dir: impl AsRef<Pa
 pub fn create_client(pat: impl AsRef<str>) -> Result<reqwest::Client> {
     let mut header_map = reqwest::header::HeaderMap::new();
     header_map.append(reqwest::header::AUTHORIZATION, format!("Bearer {}", pat.as_ref()).parse()?);
-    reqwest::Client::builder()
-        .user_agent("enso-build")
-        .default_headers(header_map)
-        .build()
-        .anyhow_err()
+    Ok(reqwest::Client::builder().user_agent("enso-build").default_headers(header_map).build()?)
 }

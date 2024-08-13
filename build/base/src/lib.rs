@@ -3,9 +3,6 @@
 //!
 //! Currently it is employed by the native build scripts code.
 
-// === Features ===
-#![feature(result_flattening)]
-#![feature(extend_one)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 

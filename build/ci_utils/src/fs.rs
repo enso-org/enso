@@ -110,7 +110,7 @@ pub async fn copy_if_different(source: impl AsRef<Path>, target: impl AsRef<Path
 pub fn symlink_auto(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> Result {
     create_parent_dir_if_missing(&dst)?;
     debug!("Creating symlink {} <= {}", src.as_ref().display(), dst.as_ref().display());
-    symlink::symlink_auto(&src, &dst).anyhow_err()
+    Ok(symlink::symlink_auto(&src, &dst)?)
 }
 
 /// Remove a symlink to a directory if it exists.
@@ -119,7 +119,7 @@ pub fn remove_symlink_dir_if_exists(path: impl AsRef<Path>) -> Result {
     let result = symlink::remove_symlink_dir(&path);
     match result {
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(()),
-        ret => ret.anyhow_err(),
+        ret => Ok(ret?),
     }
 }
 

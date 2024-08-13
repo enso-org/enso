@@ -57,7 +57,7 @@ pub fn create_dir_if_missing(path: impl AsRef<Path>) -> Result {
     let result = std::fs::create_dir_all(&path);
     match result {
         Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => Ok(()),
-        result => result.anyhow_err(),
+        result => Ok(result?),
     }
 }
 
@@ -83,7 +83,7 @@ pub fn remove_dir_if_exists(path: impl AsRef<Path>) -> Result {
     let result = std::fs::remove_dir_all(&path);
     match result {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
-        result => result.anyhow_err(),
+        result => Ok(result?),
     }
 }
 
@@ -96,7 +96,7 @@ pub fn remove_file_if_exists(path: impl AsRef<Path>) -> Result<()> {
     let result = std::fs::remove_file(&path);
     match result {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
-        result => result.anyhow_err(),
+        result => Ok(result?),
     }
 }
 
