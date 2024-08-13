@@ -1284,7 +1284,10 @@ public class Main {
       if (jvm == null) {
         jvm = current;
       }
-      if (current == null || !current.equals(jvm)) {
+      var shouldLaunchJvm = current == null || !current.equals(jvm);
+      if (!shouldLaunchJvm) {
+        println(JVM_OPTION + " option has no effect - already running in JVM " + current);
+      } else {
         var loc = Main.class.getProtectionDomain().getCodeSource().getLocation();
         var commandAndArgs = new ArrayList<String>();
         JVM_FOUND:
