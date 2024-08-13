@@ -3,61 +3,54 @@ import * as test from '@playwright/test'
 
 import { TEXT, VALID_EMAIL, VALID_PASSWORD } from '../actions'
 import BaseActions, { type LocatorCallback } from './BaseActions'
-import DrivePageActions from './DrivePageActions'
-import ForgotPasswordPageActions from './ForgotPasswordPageActions'
-import RegisterPageActions from './RegisterPageActions'
-import SetupPageActions from './SetupPageActions'
+import LoginPageActions from './LoginPageActions'
 
 // ========================
 // === LoginPageActions ===
 // ========================
 
 /** Available actions for the login page. */
-export default class LoginPageActions extends BaseActions {
+export default class RegisterPageActions extends BaseActions {
   /** Actions for navigating to another page. */
   get goToPage() {
     return {
-      register: (): RegisterPageActions =>
-        this.step("Go to 'register' page", async (page) =>
-          page.getByRole('link', { name: TEXT.dontHaveAnAccount, exact: true }).click(),
-        ).into(RegisterPageActions),
-      forgotPassword: (): ForgotPasswordPageActions =>
-        this.step("Go to 'forgot password' page", async (page) =>
-          page.getByRole('link', { name: TEXT.forgotYourPassword, exact: true }).click(),
-        ).into(ForgotPasswordPageActions),
+      login: (): LoginPageActions =>
+        this.step("Go to 'login' page", async (page) =>
+          page.getByRole('link', { name: TEXT.alreadyHaveAnAccount, exact: true }).click(),
+        ).into(LoginPageActions),
     }
   }
 
   /** Perform a successful login. */
-  login(email = VALID_EMAIL, password = VALID_PASSWORD) {
-    return this.step('Login', () => this.loginInternal(email, password)).into(DrivePageActions)
-  }
-
-  /** Perform a login as a new user (a user that does not yet have a username). */
-  loginAsNewUser(email = VALID_EMAIL, password = VALID_PASSWORD) {
-    return this.step('Login (as new user)', () => this.loginInternal(email, password)).into(
-      SetupPageActions,
-    )
+  register(email = VALID_EMAIL, password = VALID_PASSWORD, confirmPassword = password) {
+    return this.step('Reegister', () =>
+      this.registerInternal(email, password, confirmPassword),
+    ).into(LoginPageActions)
   }
 
   /** Perform a failing login. */
-  loginThatShouldFail(
+  registerThatShouldFail(
     email = VALID_EMAIL,
     password = VALID_PASSWORD,
+    confirmPassword = password,
     {
       assert = {},
     }: {
       assert?: {
         emailError?: string | null
         passwordError?: string | null
+        confirmPasswordError?: string | null
         formError?: string | null
       }
     } = {},
   ) {
-    const { emailError, passwordError, formError } = assert
-    const next = this.step('Login (should fail)', () => this.loginInternal(email, password))
+    const { emailError, passwordError, confirmPasswordError, formError } = assert
+    const next = this.step('Register (should fail)', () =>
+      this.registerInternal(email, password, confirmPassword),
+    )
       .expectInputError('email-input', 'email', emailError)
       .expectInputError('password-input', 'password', passwordError)
+      .expectInputError('confirm-password-input', 'confirmPassword', confirmPasswordError)
     if (formError === undefined) {
       return next
     } else if (formError != null) {
@@ -86,12 +79,13 @@ export default class LoginPageActions extends BaseActions {
   }
 
   /** Internal login logic shared between all public methods. */
-  private async loginInternal(email: string, password: string) {
+  private async registerInternal(email: string, password: string, confirmPassword: string) {
     await this.page.getByPlaceholder(TEXT.emailPlaceholder).fill(email)
     await this.page.getByPlaceholder(TEXT.passwordPlaceholder).fill(password)
+    await this.page.getByPlaceholder(TEXT.confirmPasswordPlaceholder).fill(confirmPassword)
     await this.page
-      .getByRole('button', { name: TEXT.login, exact: true })
-      .getByText(TEXT.login)
+      .getByRole('button', { name: TEXT.register, exact: true })
+      .getByText(TEXT.register)
       .click()
     await test.expect(this.page.getByText(TEXT.loadingAppMessage)).not.toBeVisible()
   }
