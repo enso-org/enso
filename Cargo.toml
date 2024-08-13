@@ -7,7 +7,7 @@ resolver = "2"
 # path, e.g. `lib/rust/ensogl/examples`, or `app/gui/view/examples`; this is used to optimize the application for
 # loading the IDE.
 members = [
-    "app/gui2/rust-ffi",
+    "app/rust-ffi",
     "build/cli",
     "build/macros/proc-macro",
     "build/ci-gen",
@@ -23,6 +23,7 @@ members = [
     "lib/rust/parser/generate-java",
     "lib/rust/parser/schema",
     "lib/rust/parser/debug",
+    "lib/rust/parser/debug/fuzz",
     "tools/language-server/logstat",
     "tools/language-server/wstest",
 ]
@@ -46,6 +47,11 @@ codegen-units = 16
 incremental = true
 debug = false
 debug-assertions = false
+
+[profile.fuzz]
+inherits = "release"
+debug-assertions = true
+overflow-checks = true
 
 [profile.bench]
 opt-level = 3

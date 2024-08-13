@@ -9,12 +9,9 @@ import {
   readTokenSpan,
   walkRecursive,
 } from '@/util/ast/raw'
-import { initializeFFI } from 'shared/ast/ffi'
-import { Token, Tree } from 'shared/ast/generated/ast'
-import type { LazyObject } from 'shared/ast/parserSupport'
 import { assert, expect, test } from 'vitest'
-
-await initializeFFI()
+import { Token, Tree } from 'ydoc-shared/ast/generated/ast'
+import type { LazyObject } from 'ydoc-shared/ast/parserSupport'
 
 function validateSpans(obj: LazyObject, initialPos?: number): number {
   const state = { pos: initialPos ?? 0 }
@@ -122,14 +119,9 @@ test.each([
       { type: Tree.Type.Ident, repr: 'foo' },
     ],
   ],
-  ['(', [{ type: Tree.Type.Invalid, repr: '(' }]],
-  [
-    '(foo',
-    [
-      { type: Tree.Type.Invalid, repr: '(' },
-      { type: Tree.Type.Ident, repr: 'foo' },
-    ],
-  ],
+  // These are Invalid nodes, so the child is a subtree containing the whole expression.
+  ['(', [{ type: Tree.Type.Group, repr: '(' }]],
+  ['(foo', [{ type: Tree.Type.Group, repr: '(foo' }]],
 ])("Reading children of '%s'", (code, expected) => {
   const ast = parseEnsoLine(code)
   const children = Array.from(childrenAstNodes(ast))

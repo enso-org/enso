@@ -1,0 +1,17 @@
+[package]
+name = "enso-parser-fuzz"
+version = "0.1.0"
+authors = ["Enso Team <enso-dev@enso.org>"]
+edition = "2021"
+description = "Binary for fuzzing Enso parser with AFL"
+readme = "README.md"
+homepage = "https://github.com/enso-org/enso"
+repository = "https://github.com/enso-org/enso"
+license-file = "../../../LICENSE"
+
+[dependencies]
+afl = "0.15"
+enso-parser = { path = "../../", features = ["debug"] }
+
+[lints]
+workspace = true

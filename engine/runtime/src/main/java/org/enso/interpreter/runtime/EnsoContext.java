@@ -42,6 +42,7 @@ import org.enso.common.LanguageInfo;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.data.CompilerConfig;
+import org.enso.compiler.dump.IRDumper;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.locking.LockManager;
 import org.enso.editions.LibraryName;
@@ -144,12 +145,14 @@ public final class EnsoContext {
     this.assertionsEnabled = shouldAssertionsBeEnabled();
     this.shouldWaitForPendingSerializationJobs =
         getOption(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY);
+    var dumpIrs = Boolean.parseBoolean(System.getProperty(IRDumper.SYSTEM_PROP));
     this.compilerConfig =
         new CompilerConfig(
             isParallelismEnabled,
             true,
             !isPrivateCheckDisabled,
             isStaticTypeAnalysisEnabled,
+            dumpIrs,
             getOption(RuntimeOptions.STRICT_ERRORS_KEY),
             getOption(RuntimeOptions.DISABLE_LINTING_KEY),
             scala.Option.empty());
@@ -287,6 +290,10 @@ public final class EnsoContext {
     threadManager.shutdown();
     resourceManager.shutdown();
     compiler.shutdown(shouldWaitForPendingSerializationJobs);
+    packageRepository.shutdown();
+    guestJava = null;
+    topScope = null;
+    hostClassLoader.close();
   }
 
   private boolean shouldAssertionsBeEnabled() {

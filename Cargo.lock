@@ -28,6 +28,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f26201604c87b1e01bd3d98f8d5d9a8fcbb815e8cedb41ffccbeb4bf593a35fe"
 
 [[package]]
+name = "afl"
+version = "0.15.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c21e10b6947189c5ff61343b5354e9ad1c1722bd47b69cd0a6b49e5fa7f7ecf6"
+dependencies = [
+ "home",
+ "libc",
+ "rustc_version",
+ "xdg",
+]
+
+[[package]]
 name = "ahash"
 version = "0.7.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1619,6 +1631,7 @@ dependencies = [
 name = "enso-parser-debug"
 version = "0.1.0"
 dependencies = [
+ "clap 4.5.4",
  "enso-metamodel",
  "enso-metamodel-lexpr",
  "enso-parser",
@@ -1626,6 +1639,14 @@ dependencies = [
  "lexpr",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "enso-parser-fuzz"
+version = "0.1.0"
+dependencies = [
+ "afl",
+ "enso-parser",
 ]
 
 [[package]]
@@ -5479,6 +5500,12 @@ dependencies = [
  "linux-raw-sys",
  "rustix",
 ]
+
+[[package]]
+name = "xdg"
+version = "2.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "213b7324336b53d2414b2db8537e56544d981803139155afa84f76eeebb7a546"
 
 [[package]]
 name = "xmlparser"

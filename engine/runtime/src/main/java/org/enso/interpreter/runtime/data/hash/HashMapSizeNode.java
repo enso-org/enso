@@ -23,6 +23,10 @@ public abstract class HashMapSizeNode extends Node {
     return HashMapSizeNodeGen.create();
   }
 
+  public static HashMapSizeNode getUncached() {
+    return HashMapSizeNodeGen.getUncached();
+  }
+
   public abstract long execute(Object self);
 
   @Specialization(guards = "interop.hasHashEntries(hashMap)", limit = "3")

@@ -1,11 +1,12 @@
 /** @file A table row for an arbitrary asset. */
 import * as React from 'react'
 
+import { useMutation } from '@tanstack/react-query'
 import { useStore } from 'zustand'
 
 import BlankIcon from '#/assets/blank.svg'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import { backendMutationOptions, useListUserGroups, useListUsers } from '#/hooks/backendHooks'
 import * as dragAndDropHooks from '#/hooks/dragAndDropHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
@@ -120,6 +121,8 @@ export default function AssetRow(props: AssetRowProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
+  const users = useListUsers(backend)
+  const userGroups = useListUserGroups(backend)
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
   const rootRef = React.useRef<HTMLElement | null>(null)
   const dragOverTimeoutHandle = React.useRef<number | null>(null)
@@ -142,23 +145,25 @@ export default function AssetRow(props: AssetRowProps) {
     : outerVisibility
   const hidden = hiddenRaw || visibility === Visibility.hidden
 
-  const copyAssetMutation = backendHooks.useBackendMutation(backend, 'copyAsset')
-  const updateAssetMutation = backendHooks.useBackendMutation(backend, 'updateAsset')
-  const deleteAssetMutation = backendHooks.useBackendMutation(backend, 'deleteAsset')
-  const undoDeleteAssetMutation = backendHooks.useBackendMutation(backend, 'undoDeleteAsset')
-  const openProjectMutation = backendHooks.useBackendMutation(backend, 'openProject')
-  const closeProjectMutation = backendHooks.useBackendMutation(backend, 'closeProject')
-  const getProjectDetailsMutation = backendHooks.useBackendMutation(backend, 'getProjectDetails')
-  const getFileDetailsMutation = backendHooks.useBackendMutation(backend, 'getFileDetails')
-  const getDatalinkMutation = backendHooks.useBackendMutation(backend, 'getDatalink')
-  const createPermissionMutation = backendHooks.useBackendMutation(backend, 'createPermission')
-  const associateTagMutation = backendHooks.useBackendMutation(backend, 'associateTag')
-  const copyAssetMutate = copyAssetMutation.mutateAsync
-  const updateAssetMutate = updateAssetMutation.mutateAsync
-  const deleteAssetMutate = deleteAssetMutation.mutateAsync
-  const undoDeleteAssetMutate = undoDeleteAssetMutation.mutateAsync
-  const openProjectMutate = openProjectMutation.mutateAsync
-  const closeProjectMutate = closeProjectMutation.mutateAsync
+  const copyAssetMutation = useMutation(backendMutationOptions(backend, 'copyAsset'))
+  const updateAssetMutation = useMutation(backendMutationOptions(backend, 'updateAsset'))
+  const deleteAssetMutation = useMutation(backendMutationOptions(backend, 'deleteAsset'))
+  const undoDeleteAssetMutation = useMutation(backendMutationOptions(backend, 'undoDeleteAsset'))
+  const openProjectMutation = useMutation(backendMutationOptions(backend, 'openProject'))
+  const closeProjectMutation = useMutation(backendMutationOptions(backend, 'closeProject'))
+  const getProjectDetailsMutation = useMutation(
+    backendMutationOptions(backend, 'getProjectDetails'),
+  )
+  const getFileDetailsMutation = useMutation(backendMutationOptions(backend, 'getFileDetails'))
+  const getDatalinkMutation = useMutation(backendMutationOptions(backend, 'getDatalink'))
+  const createPermissionMutation = useMutation(backendMutationOptions(backend, 'createPermission'))
+  const associateTagMutation = useMutation(backendMutationOptions(backend, 'associateTag'))
+  const copyAsset = copyAssetMutation.mutateAsync
+  const updateAsset = updateAssetMutation.mutateAsync
+  const deleteAsset = deleteAssetMutation.mutateAsync
+  const undoDeleteAsset = undoDeleteAssetMutation.mutateAsync
+  const openProject = openProjectMutation.mutateAsync
+  const closeProject = closeProjectMutation.mutateAsync
 
   const { data: projectState } = useQuery({
     // This is SAFE, as `isOpened` is only true for projects.
@@ -206,12 +211,17 @@ export default function AssetRow(props: AssetRowProps) {
           object.merge(oldAsset, {
             title: oldAsset.title + ' (copy)',
             labels: [],
-            permissions: permissions.tryGetSingletonOwnerPermission(user, category),
+            permissions: permissions.tryCreateOwnerPermission(
+              `${item.path} (copy)`,
+              category,
+              users ?? [],
+              userGroups ?? [],
+            ),
             modifiedAt: dateTime.toRfc3339(new Date()),
           }),
         )
         newParentId ??= rootDirectoryId
-        const copiedAsset = await copyAssetMutate([
+        const copiedAsset = await copyAsset([
           asset.id,
           newParentId,
           asset.title,
@@ -233,15 +243,17 @@ export default function AssetRow(props: AssetRowProps) {
       }
     },
     [
-      user,
       rootDirectoryId,
       asset,
-      category,
       item.key,
       toastAndLog,
-      copyAssetMutate,
+      copyAsset,
       nodeMap,
       setAsset,
+      item.path,
+      category,
+      users,
+      userGroups,
       dispatchAssetListEvent,
     ],
   )
@@ -295,7 +307,7 @@ export default function AssetRow(props: AssetRowProps) {
           item: newAsset,
         })
         setAsset(newAsset)
-        await updateAssetMutate([
+        await updateAsset([
           asset.id,
           { parentDirectoryId: newParentId ?? rootDirectoryId, description: null },
           asset.title,
@@ -332,7 +344,7 @@ export default function AssetRow(props: AssetRowProps) {
       item.directoryKey,
       item.key,
       toastAndLog,
-      updateAssetMutate,
+      updateAsset,
       setAsset,
       dispatchAssetListEvent,
     ],
@@ -367,15 +379,15 @@ export default function AssetRow(props: AssetRowProps) {
             asset.projectState.type !== backendModule.ProjectState.placeholder &&
             asset.projectState.type !== backendModule.ProjectState.closed
           ) {
-            await openProjectMutate([asset.id, null, asset.title])
+            await openProject([asset.id, null, asset.title])
           }
           try {
-            await closeProjectMutate([asset.id, asset.title])
+            await closeProject([asset.id, asset.title])
           } catch {
             // Ignored. The project was already closed.
           }
         }
-        await deleteAssetMutate([asset.id, { force: forever }, asset.title])
+        await deleteAsset([asset.id, { force: forever }, asset.title])
         dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
       } catch (error) {
         setInsertionVisibility(Visibility.visible)
@@ -386,9 +398,9 @@ export default function AssetRow(props: AssetRowProps) {
       backend,
       dispatchAssetListEvent,
       asset,
-      openProjectMutate,
-      closeProjectMutate,
-      deleteAssetMutate,
+      openProject,
+      closeProject,
+      deleteAsset,
       item.key,
       toastAndLog,
     ],
@@ -398,13 +410,13 @@ export default function AssetRow(props: AssetRowProps) {
     // Visually, the asset is deleted from the Trash view.
     setInsertionVisibility(Visibility.hidden)
     try {
-      await undoDeleteAssetMutate([asset.id, asset.title])
+      await undoDeleteAsset([asset.id, asset.title])
       dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
     } catch (error) {
       setInsertionVisibility(Visibility.visible)
       toastAndLog('restoreAssetError', error, asset.title)
     }
-  }, [dispatchAssetListEvent, asset, toastAndLog, undoDeleteAssetMutate, item.key])
+  }, [dispatchAssetListEvent, asset, toastAndLog, undoDeleteAsset, item.key])
 
   const doTriggerDescriptionEdit = React.useCallback(() => {
     setModal(
@@ -765,6 +777,7 @@ export default function AssetRow(props: AssetRowProps) {
           {!hidden && (
             <FocusRing>
               <tr
+                data-testid="asset-row"
                 tabIndex={0}
                 ref={(element) => {
                   rootRef.current = element

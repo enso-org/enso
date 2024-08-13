@@ -12,6 +12,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -60,7 +62,6 @@ public class Main {
   private static final String JVM_OPTION = "jvm";
   private static final String RUN_OPTION = "run";
   private static final String INSPECT_OPTION = "inspect";
-  private static final String DUMP_GRAPHS_OPTION = "dump-graphs";
   private static final String HELP_OPTION = "help";
   private static final String NEW_OPTION = "new";
   private static final String PROJECT_NAME_OPTION = "new-project-name";
@@ -95,6 +96,7 @@ public class Main {
   private static final String AUTO_PARALLELISM_OPTION = "with-auto-parallelism";
   private static final String EXECUTION_ENVIRONMENT_OPTION = "execution-environment";
   private static final String WARNINGS_LIMIT = "warnings-limit";
+  private static final String SYSTEM_PROPERTY = "vm.D";
 
   private static final org.slf4j.Logger logger = LoggerFactory.getLogger(Main.class);
 
@@ -135,11 +137,6 @@ public class Main {
         cliOptionBuilder()
             .longOpt(INSPECT_OPTION)
             .desc("Start the Chrome inspector when --run is used.")
-            .build();
-    var dumpGraphs =
-        cliOptionBuilder()
-            .longOpt(DUMP_GRAPHS_OPTION)
-            .desc("Dumps IGV graphs when --run is used.")
             .build();
     var docs =
         cliOptionBuilder()
@@ -454,6 +451,17 @@ public class Main {
             .desc("Enable static analysis (Experimental type inference).")
             .build();
 
+    var systemPropOption =
+        cliOptionBuilder()
+            .longOpt(SYSTEM_PROPERTY)
+            .argName("<property>=<value>")
+            .desc(
+                "Sets a system property. May be specified multiple times. If `value` is not"
+                    + " specified, 'true' is inserted.")
+            .hasArg(true)
+            .numberOfArgs(1)
+            .build();
+
     var options = new Options();
     options
         .addOption(help)
@@ -461,7 +469,6 @@ public class Main {
         .addOption(jvm)
         .addOption(run)
         .addOption(inspect)
-        .addOption(dumpGraphs)
         .addOption(docs)
         .addOption(preinstall)
         .addOption(newOpt)
@@ -501,16 +508,13 @@ public class Main {
         .addOption(executionEnvironmentOption)
         .addOption(warningsLimitOption)
         .addOption(disablePrivateCheckOption)
+        .addOption(systemPropOption)
         .addOption(enableStaticAnalysisOption);
 
     return options;
   }
 
-  /**
-   * Prints the help message to the standard output.
-   *
-   * @param options object representing the CLI syntax
-   */
+  /** Prints the help message to the standard output. */
   private static void printHelp() {
     new HelpFormatter().printHelp(LanguageInfo.ID, CLI_OPTIONS);
   }
@@ -660,13 +664,12 @@ public class Main {
    *     ignored.
    * @param enableStaticAnalysis whether or not static type checking should be enabled
    * @param inspect shall inspect option be enabled
-   * @param dump shall graphs be sent to the IGV
    * @param executionEnvironment name of the execution environment to use during execution or {@code
    *     null}
    */
   private void handleRun(
       String path,
-      java.util.List<String> additionalArgs,
+      List<String> additionalArgs,
       String projectPath,
       Level logLevel,
       boolean logMasking,
@@ -676,7 +679,6 @@ public class Main {
       boolean enableStaticAnalysis,
       boolean enableDebugServer,
       boolean inspect,
-      boolean dump,
       String executionEnvironment,
       int warningsLimit)
       throws IOException {
@@ -688,10 +690,6 @@ public class Main {
     var file = fileAndProject._2();
     var projectRoot = fileAndProject._3();
     var options = new HashMap<String, String>();
-    if (dump) {
-      options.put("engine.TraceCompilation", "true");
-      options.put("engine.MultiTier", "false");
-    }
 
     var factory =
         ContextFactory.create()
@@ -1104,7 +1102,6 @@ public class Main {
           line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION),
           line.hasOption(REPL_OPTION),
           line.hasOption(INSPECT_OPTION),
-          line.hasOption(DUMP_GRAPHS_OPTION),
           line.getOptionValue(EXECUTION_ENVIRONMENT_OPTION),
           scala.Option.apply(line.getOptionValue(WARNINGS_LIMIT))
               .map(Integer::parseInt)
@@ -1193,6 +1190,32 @@ public class Main {
     }
   }
 
+  /**
+   * Parses all system properties from the given command line.
+   *
+   * @return null if no cmdline argument was specified.
+   */
+  protected Map<String, String> parseSystemProperties(CommandLine cmdLine) {
+    if (cmdLine.hasOption(SYSTEM_PROPERTY)) {
+      Map<String, String> props = new HashMap<>();
+      var optionValues = cmdLine.getOptionValues(SYSTEM_PROPERTY);
+      for (var optionValue : optionValues) {
+        var items = optionValue.split("=");
+        if (items.length == 2) {
+          props.put(items[0], items[1]);
+        } else if (items.length == 1) {
+          props.put(items[0], "true");
+        } else {
+          println("Argument to " + SYSTEM_PROPERTY + " must be in the form <property>=<value>");
+          throw exitFail();
+        }
+      }
+      return props;
+    } else {
+      return null;
+    }
+  }
+
   private static ProfilingConfig parseProfilingConfig(CommandLine line) throws WrongOption {
     Path profilingPath = null;
     try {
@@ -1253,6 +1276,7 @@ public class Main {
 
     var logMasking = new boolean[1];
     var logLevel = setupLogging(line, logMasking);
+    var props = parseSystemProperties(line);
 
     if (line.hasOption(JVM_OPTION)) {
       var jvm = line.getOptionValue(JVM_OPTION);
@@ -1260,7 +1284,10 @@ public class Main {
       if (jvm == null) {
         jvm = current;
       }
-      if (current == null || !current.equals(jvm)) {
+      var shouldLaunchJvm = current == null || !current.equals(jvm);
+      if (!shouldLaunchJvm) {
+        println(JVM_OPTION + " option has no effect - already running in JVM " + current);
+      } else {
         var loc = Main.class.getProtectionDomain().getCodeSource().getLocation();
         var commandAndArgs = new ArrayList<String>();
         JVM_FOUND:
@@ -1291,6 +1318,11 @@ public class Main {
             commandAndArgs.add(op);
           }
         }
+        if (props != null) {
+          for (var e : props.entrySet()) {
+            commandAndArgs.add("-D" + e.getKey() + "=" + e.getValue());
+          }
+        }
 
         commandAndArgs.add("--add-opens=java.base/java.nio=ALL-UNNAMED");
         commandAndArgs.add("--module-path");
@@ -1308,6 +1340,9 @@ public class Main {
         while (it.hasNext()) {
           var op = it.next();
           if (JVM_OPTION.equals(op.getLongOpt())) {
+            continue;
+          }
+          if (SYSTEM_PROPERTY.equals(op.getLongOpt())) {
             continue;
           }
           var longName = op.getLongOpt();
@@ -1332,6 +1367,12 @@ public class Main {
         } else {
           throw doExit(exitCode);
         }
+      }
+    }
+
+    if (props != null) {
+      for (var e : props.entrySet()) {
+        System.setProperty(e.getKey(), e.getValue());
       }
     }
 
@@ -1386,7 +1427,10 @@ public class Main {
                 return BoxedUnit.UNIT;
               });
         } catch (IOException ex) {
-          System.err.println(ex.getMessage());
+          if (logger.isDebugEnabled()) {
+            logger.error("Error during execution", ex);
+          }
+          System.out.println("Command failed with an error: " + ex);
           throw exitFail();
         }
       } catch (WrongOption e) {

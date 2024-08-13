@@ -93,7 +93,9 @@ public class PolyglotErrorTest {
 
   @After
   public void disposeCtx() {
+    this.panic = null;
     this.ctx.close();
+    ctx = null;
   }
 
   @Test

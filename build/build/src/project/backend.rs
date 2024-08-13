@@ -155,11 +155,8 @@ impl IsTarget for Backend {
                 target_os == TARGET_OS,
                 "Enso Project Manager cannot be built on '{target_os}' for target '{TARGET_OS}'.",
             );
-            let config = BuildConfigurationFlags {
-                build_project_manager_bundle: true,
-                generate_java_from_rust: true,
-                ..default()
-            };
+            let config =
+                BuildConfigurationFlags { build_project_manager_bundle: true, ..default() };
             let context = inner.prepare_context(context, config)?;
             let artifacts = context.build().await?;
             let project_manager =

@@ -25,31 +25,31 @@ export const DOCS_CLASS_NAME = 'text-tag-text bg-permission-docs'
 /** CSS classes for the execute permission. */
 export const EXEC_CLASS_NAME = 'text-tag-text bg-permission-exec'
 
-// ======================================
-// === tryGetSingletonOwnerPermission ===
-// ======================================
+// ================================
+// === tryCreateOwnerPermission ===
+// ================================
 
 /** Return an array containing the owner permission if `owner` is not `null`,
  * else return an empty array (`[]`). */
-export function tryGetSingletonOwnerPermission(
-  owner: backend.User | null,
+export function tryCreateOwnerPermission(
+  path: string,
   category: Category,
+  users: readonly backend.User[],
+  userGroups: readonly backend.UserGroupInfo[],
 ): readonly backend.AssetPermission[] {
   switch (category.type) {
     case 'team': {
       return [{ userGroup: category.team, permission: PermissionAction.own }]
     }
     default: {
-      if (owner != null) {
-        const { organizationId, userId, name, email } = owner
-        return [
-          {
-            user: { organizationId, userId, name, email },
-            permission: PermissionAction.own,
-          },
-        ]
-      } else {
+      const owner = newOwnerFromPath(path, users, userGroups)
+      if (owner == null) {
         return []
+      } else if ('userId' in owner) {
+        const { organizationId, userId, name, email } = owner
+        return [{ user: { organizationId, userId, name, email }, permission: PermissionAction.own }]
+      } else {
+        return [{ userGroup: owner, permission: PermissionAction.own }]
       }
     }
   }
@@ -59,7 +59,6 @@ export function tryGetSingletonOwnerPermission(
 // === findSelfPermission ===
 // ==========================
 
-/** Try to find a permission belonging to the user. */
 /** Try to find a permission belonging to the user. */
 export function tryFindSelfPermission(
   self: User,

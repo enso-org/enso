@@ -16,7 +16,8 @@ import java.util.UUID
 
 class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
   private val ctx = new InterpreterContext()
-  private val langCtx = ctx.ctx
+  private val langCtx = ctx
+    .ctx()
     .getBindings(LanguageInfo.ID)
     .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
     .asHostObject[EnsoContext]()

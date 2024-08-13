@@ -20,7 +20,8 @@ object Editions {
     "Standard.Searcher",
     "Standard.Google_Api",
     "Standard.Snowflake",
-    "Standard.Microsoft"
+    "Standard.Microsoft",
+    "Standard.Tableau"
   )
 
   case class ContribLibrary(name: String, version: String)

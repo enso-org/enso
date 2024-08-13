@@ -165,8 +165,7 @@ type Snowflake_Connection
 
        Arguments:
        - query: name of the table or sql statement to query.
-         If supplied as `Text`, the name is checked against the `tables` list to
-         determine if it is a table or a query.
+         If supplied as `Text` it is treated as a table name.
        - alias: optionally specify a friendly alias for the query.
 
        ! Error Conditions
@@ -177,8 +176,8 @@ type Snowflake_Connection
          - If provided with a `Table_Name` or a text short-hand and the table is
            not found, a `Table_Not_Found` error is raised.
     @query make_table_name_selector
-    query : Text | SQL_Query -> Text -> DB_Table ! Table_Not_Found
-    query self query alias="" = self.connection.query query alias
+    query : SQL_Query -> Text -> DB_Table ! Table_Not_Found
+    query self query:SQL_Query alias="" = self.connection.query query alias
 
     ## GROUP Standard.Base.Input
        ICON data_input
@@ -186,8 +185,7 @@ type Snowflake_Connection
 
        Arguments:
        - query: name of the table or sql statement to query.
-         If supplied as `Text`, the name is checked against the `tables` list to
-         determine if it is a table or a query.
+         If supplied as `Text` it is treated as a table name.
        - limit: the maximum number of rows to read.
 
        ? Side Effects
@@ -199,8 +197,8 @@ type Snowflake_Connection
          results, the `read` should be wrapped in an execution context check.
     @query make_table_name_selector
     @limit Rows_To_Read.default_widget
-    read : Text | SQL_Query -> Rows_To_Read -> Table ! Table_Not_Found
-    read self query (limit : Rows_To_Read = ..First_With_Warning 1000) =
+    read : SQL_Query -> Rows_To_Read -> Table ! Table_Not_Found
+    read self query:SQL_Query (limit : Rows_To_Read = ..First_With_Warning 1000) =
         self.connection.read query limit
 
     ## GROUP Standard.Base.Output
@@ -264,6 +262,22 @@ type Snowflake_Connection
     execute_update : Text | SQL_Statement -> Integer
     execute_update self query =
         self.connection.execute_update query
+
+    ## PRIVATE
+       ADVANCED
+       GROUP Standard.Base.Output
+       ICON data_output
+
+       Executes a raw query. If the query was inserting, updating or
+       deleting rows, the number of affected rows is returned; otherwise it
+       returns 0 for other types of queries (like creating or altering tables).
+
+       Arguments:
+       - query: either raw SQL code as Text or an instance of SQL_Statement
+         representing the query to execute.
+    execute : Text | SQL_Statement -> Integer
+    execute self query =
+        self.connection.execute query
 
     ## PRIVATE
        Access the dialect.

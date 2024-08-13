@@ -1,16 +1,23 @@
 /** @file Table displaying a list of projects. */
 import * as React from 'react'
 
-import { useSuspenseQuery } from '@tanstack/react-query'
+import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
 import * as toast from 'react-toastify'
 import invariant from 'tiny-invariant'
+import * as z from 'zod'
 
 import DropFilesImage from '#/assets/drop_files.svg'
 
 import * as mimeTypes from '#/data/mimeTypes'
 
 import * as autoScrollHooks from '#/hooks/autoScrollHooks'
-import * as backendHooks from '#/hooks/backendHooks'
+import {
+  backendMutationOptions,
+  useBackendQuery,
+  useListTags,
+  useListUserGroups,
+  useListUsers,
+} from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as intersectionHooks from '#/hooks/intersectionHooks'
 import * as projectHooks from '#/hooks/projectHooks'
@@ -97,16 +104,12 @@ import Visibility from '#/utilities/Visibility'
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
-    readonly enabledColumns: columnUtils.Column[]
+    readonly enabledColumns: readonly columnUtils.Column[]
   }
 }
 
 LocalStorage.registerKey('enabledColumns', {
-  tryParse: (value) => {
-    const possibleColumns = Array.isArray(value) ? value : []
-    const values = possibleColumns.filter(array.includesPredicate(columnUtils.CLOUD_COLUMNS))
-    return values.length === 0 ? null : values
-  },
+  schema: z.enum(columnUtils.CLOUD_COLUMNS).array().readonly(),
 })
 
 // =================
@@ -401,7 +404,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const { user } = authProvider.useFullUserSession()
   const backend = backendProvider.useBackend(category)
-  const labels = backendHooks.useBackendListTags(backend)
+  const labels = useListTags(backend)
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
@@ -426,8 +429,8 @@ export default function AssetsTable(props: AssetsTableProps) {
   > | null>(null)
   const [, setQueuedAssetEvents] = React.useState<assetEvent.AssetEvent[]>([])
   const nameOfProjectToImmediatelyOpenRef = React.useRef(initialProjectName)
-  const users = backendHooks.useBackendListUsers(backend)
-  const userGroups = backendHooks.useBackendListUserGroups(backend)
+  const users = useListUsers(backend)
+  const userGroups = useListUserGroups(backend)
   const organizationQuery = useSuspenseQuery({
     queryKey: [backend.type, 'getOrganization'],
     queryFn: () => backend.getOrganization(),
@@ -661,7 +664,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     true,
   )
 
-  const updateSecretMutation = backendHooks.useBackendMutation(backend, 'updateSecret')
+  const updateSecret = useMutation(backendMutationOptions(backend, 'updateSecret')).mutateAsync
   React.useEffect(() => {
     previousCategoryRef.current = category
   })
@@ -673,48 +676,57 @@ export default function AssetsTable(props: AssetsTableProps) {
     },
   )
 
-  React.useEffect(() => {
-    const { selectedKeys } = driveStore.getState()
-    if (selectedKeys.size === 0) {
-      setTargetDirectory(null)
-    } else if (selectedKeys.size === 1) {
-      const [soleKey] = selectedKeys
-      const node = soleKey == null ? null : nodeMapRef.current.get(soleKey)
-      if (node != null && node.isType(backendModule.AssetType.directory)) {
-        setTargetDirectory(node)
-      }
-    } else {
-      let commonDirectoryKey: backendModule.AssetId | null = null
-      let otherCandidateDirectoryKey: backendModule.AssetId | null = null
-      for (const key of selectedKeys) {
-        const node = nodeMapRef.current.get(key)
-        if (node != null) {
-          if (commonDirectoryKey == null) {
-            commonDirectoryKey = node.directoryKey
-            otherCandidateDirectoryKey =
-              node.item.type === backendModule.AssetType.directory ? node.key : null
-          } else if (node.key === commonDirectoryKey || node.directoryKey === commonDirectoryKey) {
-            otherCandidateDirectoryKey = null
-          } else if (
-            otherCandidateDirectoryKey != null &&
-            (node.key === otherCandidateDirectoryKey ||
-              node.directoryKey === otherCandidateDirectoryKey)
-          ) {
-            commonDirectoryKey = otherCandidateDirectoryKey
-            otherCandidateDirectoryKey = null
+  React.useEffect(
+    () =>
+      driveStore.subscribe(({ selectedKeys }, { selectedKeys: oldSelectedKeys }) => {
+        if (selectedKeys !== oldSelectedKeys) {
+          if (selectedKeys.size === 0) {
+            setTargetDirectory(null)
+          } else if (selectedKeys.size === 1) {
+            const [soleKey] = selectedKeys
+            const node = soleKey == null ? null : nodeMapRef.current.get(soleKey)
+            if (node != null && node.isType(backendModule.AssetType.directory)) {
+              setTargetDirectory(node)
+            }
           } else {
-            // No match; there is no common parent directory for the entire selection.
-            commonDirectoryKey = null
-            break
+            let commonDirectoryKey: backendModule.AssetId | null = null
+            let otherCandidateDirectoryKey: backendModule.AssetId | null = null
+            for (const key of selectedKeys) {
+              const node = nodeMapRef.current.get(key)
+              if (node != null) {
+                if (commonDirectoryKey == null) {
+                  commonDirectoryKey = node.directoryKey
+                  otherCandidateDirectoryKey =
+                    node.item.type === backendModule.AssetType.directory ? node.key : null
+                } else if (
+                  node.key === commonDirectoryKey ||
+                  node.directoryKey === commonDirectoryKey
+                ) {
+                  otherCandidateDirectoryKey = null
+                } else if (
+                  otherCandidateDirectoryKey != null &&
+                  (node.key === otherCandidateDirectoryKey ||
+                    node.directoryKey === otherCandidateDirectoryKey)
+                ) {
+                  commonDirectoryKey = otherCandidateDirectoryKey
+                  otherCandidateDirectoryKey = null
+                } else {
+                  // No match; there is no common parent directory for the entire selection.
+                  commonDirectoryKey = null
+                  break
+                }
+              }
+            }
+            const node =
+              commonDirectoryKey == null ? null : nodeMapRef.current.get(commonDirectoryKey)
+            if (node != null && node.isType(backendModule.AssetType.directory)) {
+              setTargetDirectory(node)
+            }
           }
         }
-      }
-      const node = commonDirectoryKey == null ? null : nodeMapRef.current.get(commonDirectoryKey)
-      if (node != null && node.isType(backendModule.AssetType.directory)) {
-        setTargetDirectory(node)
-      }
-    }
-  }, [driveStore, setTargetDirectory])
+      }),
+    [driveStore, setTargetDirectory],
+  )
 
   React.useEffect(() => {
     const nodeToSuggestion = (
@@ -1012,7 +1024,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     overwriteNodesRef.current([])
   }, [backend, category])
 
-  const rootDirectoryQuery = backendHooks.useBackendQuery(
+  const rootDirectoryQuery = useBackendQuery(
     backend,
     'listDirectory',
     [
@@ -1285,7 +1297,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     name={item.item.title}
                     doCreate={async (_name, value) => {
                       try {
-                        await updateSecretMutation.mutateAsync([id, { value }, item.item.title])
+                        await updateSecret([id, { value }, item.item.title])
                       } catch (error) {
                         toastAndLog(null, error)
                       }
@@ -1510,7 +1522,8 @@ export default function AssetsTable(props: AssetsTableProps) {
   const onAssetListEvent = (event: assetListEvent.AssetListEvent) => {
     switch (event.type) {
       case AssetListEventType.newFolder: {
-        const siblings = nodeMapRef.current.get(event.parentKey)?.children ?? []
+        const parent = nodeMapRef.current.get(event.parentKey)
+        const siblings = parent?.children ?? []
         const directoryIndices = siblings
           .map((node) => node.item)
           .filter(backendModule.assetIsDirectory)
@@ -1524,7 +1537,12 @@ export default function AssetsTable(props: AssetsTableProps) {
           title,
           modifiedAt: dateTime.toRfc3339(new Date()),
           parentId: event.parentId,
-          permissions: permissions.tryGetSingletonOwnerPermission(user, category),
+          permissions: permissions.tryCreateOwnerPermission(
+            `${parent?.path ?? ''}/${title}`,
+            category,
+            users ?? [],
+            userGroups ?? [],
+          ),
           projectState: null,
           labels: [],
           description: null,
@@ -1536,6 +1554,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         break
       }
       case AssetListEventType.newProject: {
+        const parent = nodeMapRef.current.get(event.parentKey)
         const projectName = getNewProjectName(event.preferredName, event.parentId)
         const dummyId = backendModule.ProjectId(uniqueString.uniqueString())
         const path =
@@ -1546,7 +1565,12 @@ export default function AssetsTable(props: AssetsTableProps) {
           title: projectName,
           modifiedAt: dateTime.toRfc3339(new Date()),
           parentId: event.parentId,
-          permissions: permissions.tryGetSingletonOwnerPermission(user, category),
+          permissions: permissions.tryCreateOwnerPermission(
+            `${parent?.path ?? ''}/${projectName}`,
+            category,
+            users ?? [],
+            userGroups ?? [],
+          ),
           projectState: {
             type: backendModule.ProjectState.placeholder,
             volumeId: '',
@@ -1574,7 +1598,8 @@ export default function AssetsTable(props: AssetsTableProps) {
       case AssetListEventType.uploadFiles: {
         const localBackend = backend instanceof LocalBackend ? backend : null
         const reversedFiles = Array.from(event.files).reverse()
-        const siblingNodes = nodeMapRef.current.get(event.parentKey)?.children ?? []
+        const parent = nodeMapRef.current.get(event.parentKey)
+        const siblingNodes = parent?.children ?? []
         const siblings = siblingNodes.map((node) => node.item)
         const siblingFiles = siblings.filter(backendModule.assetIsFile)
         const siblingProjects = siblings.filter(backendModule.assetIsProject)
@@ -1586,7 +1611,12 @@ export default function AssetsTable(props: AssetsTableProps) {
         const duplicateProjects = projects.filter((project) =>
           siblingProjectTitles.has(backendModule.stripProjectExtension(project.name)),
         )
-        const ownerPermission = permissions.tryGetSingletonOwnerPermission(user, category)
+        const ownerPermission = permissions.tryCreateOwnerPermission(
+          parent?.path ?? '',
+          category,
+          users ?? [],
+          userGroups ?? [],
+        )
         const fileMap = new Map<backendModule.AssetId, File>()
         const getInitialAssetEvents = (
           id: backendModule.AssetId,
@@ -1704,13 +1734,19 @@ export default function AssetsTable(props: AssetsTableProps) {
         break
       }
       case AssetListEventType.newDatalink: {
+        const parent = nodeMapRef.current.get(event.parentKey)
         const placeholderItem: backendModule.DatalinkAsset = {
           type: backendModule.AssetType.datalink,
           id: backendModule.DatalinkId(uniqueString.uniqueString()),
           title: event.name,
           modifiedAt: dateTime.toRfc3339(new Date()),
           parentId: event.parentId,
-          permissions: permissions.tryGetSingletonOwnerPermission(user, category),
+          permissions: permissions.tryCreateOwnerPermission(
+            `${parent?.path ?? ''}/${event.name}`,
+            category,
+            users ?? [],
+            userGroups ?? [],
+          ),
           projectState: null,
           labels: [],
           description: null,
@@ -1726,13 +1762,19 @@ export default function AssetsTable(props: AssetsTableProps) {
         break
       }
       case AssetListEventType.newSecret: {
+        const parent = nodeMapRef.current.get(event.parentKey)
         const placeholderItem: backendModule.SecretAsset = {
           type: backendModule.AssetType.secret,
           id: backendModule.SecretId(uniqueString.uniqueString()),
           title: event.name,
           modifiedAt: dateTime.toRfc3339(new Date()),
           parentId: event.parentId,
-          permissions: permissions.tryGetSingletonOwnerPermission(user, category),
+          permissions: permissions.tryCreateOwnerPermission(
+            `${parent?.path ?? ''}/${event.name}`,
+            category,
+            users ?? [],
+            userGroups ?? [],
+          ),
           projectState: null,
           labels: [],
           description: null,
@@ -1748,7 +1790,8 @@ export default function AssetsTable(props: AssetsTableProps) {
         break
       }
       case AssetListEventType.duplicateProject: {
-        const siblings = nodeMapRef.current.get(event.parentKey)?.children ?? []
+        const parent = nodeMapRef.current.get(event.parentKey)
+        const siblings = parent?.children ?? []
         const siblingTitles = new Set(siblings.map((sibling) => sibling.item.title))
         let index = 1
         let title = `${event.original.title} (${index})`
@@ -1762,7 +1805,12 @@ export default function AssetsTable(props: AssetsTableProps) {
           title,
           modifiedAt: dateTime.toRfc3339(new Date()),
           parentId: event.parentId,
-          permissions: permissions.tryGetSingletonOwnerPermission(user, category),
+          permissions: permissions.tryCreateOwnerPermission(
+            `${parent?.path ?? ''}/${title}`,
+            category,
+            users ?? [],
+            userGroups ?? [],
+          ),
           projectState: {
             type: backendModule.ProjectState.placeholder,
             volumeId: '',

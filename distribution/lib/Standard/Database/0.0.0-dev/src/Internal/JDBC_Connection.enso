@@ -38,20 +38,10 @@ type JDBC_Connection
        Runs the provided action ensuring that no other thread is working with
        this Connection concurrently.
     synchronized self ~action =
-        # We save and restore context information. This is a workaround for bug #7117.
-        restore_context context =
-            saved_setting = context.is_enabled
-            ~action ->
-                case saved_setting of
-                    True -> context.with_enabled action
-                    False -> context.with_disabled action
-        restore_output = restore_context Context.Output
-        restore_input = restore_context Context.Input
-        callback _ =
-            restore_input <|
-                restore_output <|
-                    action
-        self.operation_synchronizer.runSynchronizedAction callback
+        ## Workaround for https://github.com/enso-org/enso/issues/7117
+           Once the bug is fixed, we should prefer `runSynchronizedAction`.
+        self.operation_synchronizer.enterSynchronizedAction
+        Panic.with_finalizer self.operation_synchronizer.exitSynchronizedAction action
 
     ## PRIVATE
        Closes the connection releasing the underlying database resources
@@ -126,6 +116,29 @@ type JDBC_Connection
             SQL_Statement.Value _ ->
                 compiled = query.prepare
                 go compiled.first compiled.second
+
+    ## PRIVATE
+       Executes the provided SQL.
+       Typically this shouldn't be used and with_prepared_statement should be preferred.
+       It is needed for SQLServer temp table creation where we need to execute a raw SQL statement
+       outside of a stored procedure.
+    execute : Text | SQL_Statement -> Any
+    execute self query:(Text | SQL_Statement) = self.synchronized <| profile_sql_if_enabled self query.to_text <|
+        compiled_query = case query of
+            _ : Text -> query
+            SQL_Statement.Value _ -> query.prepare.first
+        self.with_connection java_connection->
+            stmt = java_connection.createStatement
+            handle_illegal_state caught_panic =
+                Error.throw (Illegal_Argument.Error caught_panic.payload.message)
+            handle_any caught_panic =
+                stmt.close
+                Panic.throw caught_panic
+            result = Panic.catch Illegal_State handler=handle_illegal_state <|
+                Panic.catch Any handler=handle_any <|
+                    stmt.execute compiled_query
+            result.if_not_error <|
+                [result, stmt]
 
     ## PRIVATE
        Given a prepared statement, gets the column names and types for the
