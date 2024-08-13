@@ -48,18 +48,18 @@ ocker build -t <docker-image-name> -f tools/ci/docker/ydoc-server/Dockerfile --b
 One should always start Ydoc with the right configuration:
 
 - PORT - the port number under which Ydoc will be available
-- HOST - the host name under which Ydoc will be available
+- HOSTNAME - the hostname under which Ydoc will be available
 - LANGUAGE_SERVER_URL - the full url (with port number) of the language server
   to connect to
 
 ```bash
-docker run -t <docker-image-name> -e PORT=1234 -e HOST=localhost -e LANGUAGE_SERVER_URL=ws://localhost:59876 ydoc-server-nodejs:latest
+docker run -t <docker-image-name> -e PORT=1234 -e HOSTNAME='0.0.0.0' -e LANGUAGE_SERVER_URL=ws://localhost:59876 ydoc-server-nodejs:latest
 ```
 
-When correctly setup the network layer (e.g. `--net=host`) one can also hit
-Ydoc's healthcheck endpoint:
+When correctly setup the network layer one can also hit Ydoc's healthcheck
+endpoint:
 
 ```bash
-> curl http://${HOST}:${PORT}/_health
+> curl http://${HOSTNAME}:${PORT}/_health
 OK
 ```
