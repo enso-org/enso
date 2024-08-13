@@ -12,8 +12,8 @@ use crate::prelude::*;
 ///
 /// # Examples
 /// ```
-/// use enso_build_base::prelude::FromString;
 /// use ide_ci::programs::git::Ref;
+/// use std::str::FromStr;
 /// let reference = Ref::from_str("refs/heads/master").unwrap();
 /// assert_eq!(reference, Ref::Branch { name: "master".into() });
 /// ```
