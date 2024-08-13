@@ -1307,8 +1307,8 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     var modC = compile(srcC);
     var foo = findStaticMethod(modC, "foo");
 
-    assertAtomType("modB.Typ_X", findAssignment(foo, "x1"));
-    assertAtomType("modB.Typ_Y", findAssignment(foo, "x2"));
+    assertAtomType("local.Project1.modB.Typ_X", findAssignment(foo, "x1"));
+    assertAtomType("local.Project1.modB.Typ_Y", findAssignment(foo, "x2"));
   }
 
   private TypeRepresentation getInferredType(IR ir) {

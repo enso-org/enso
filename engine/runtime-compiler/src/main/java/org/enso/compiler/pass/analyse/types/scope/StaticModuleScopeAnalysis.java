@@ -1,9 +1,5 @@
 package org.enso.compiler.pass.analyse.types.scope;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.UUID;
 import org.enso.compiler.MetadataInteropHelpers;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
@@ -11,10 +7,10 @@ import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.module.scope.Definition;
-import org.enso.compiler.core.ir.module.scope.Import;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.IRPass;
+import org.enso.compiler.pass.analyse.BindingAnalysis$;
 import org.enso.compiler.pass.analyse.types.InferredType;
 import org.enso.compiler.pass.analyse.types.TypeInferenceSignatures;
 import org.enso.compiler.pass.analyse.types.TypeRepresentation;
@@ -26,6 +22,13 @@ import org.enso.compiler.pass.resolve.TypeNames$;
 import scala.collection.immutable.Seq;
 import scala.jdk.javaapi.CollectionConverters;
 import scala.jdk.javaapi.CollectionConverters$;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.UUID;
+
+import static org.enso.compiler.MetadataInteropHelpers.getMetadata;
 
 public class StaticModuleScopeAnalysis implements IRPass {
   public static final StaticModuleScopeAnalysis INSTANCE = new StaticModuleScopeAnalysis();
@@ -56,6 +59,7 @@ public class StaticModuleScopeAnalysis implements IRPass {
     List<IRPass> passes =
         List.of(
             GlobalNames$.MODULE$,
+            BindingAnalysis$.MODULE$,
             FullyQualifiedNames$.MODULE$,
             TypeNames$.MODULE$,
             TypeInferenceSignatures.INSTANCE);
@@ -74,8 +78,9 @@ public class StaticModuleScopeAnalysis implements IRPass {
     // This has a lot in common with IrToTruffle::processModule - we may want to extract some common
     // parts if it will make sense.
     StaticModuleScope scope = new StaticModuleScope(moduleContext.getName());
+    BindingsMap bindingsMap = getMetadata(ir, BindingAnalysis$.MODULE$, BindingsMap.class);
     processModuleExports(scope, ir);
-    processModuleImports(scope, ir);
+    processModuleImports(scope, ir, bindingsMap);
     processPolyglotImports(scope, ir);
     processBindings(scope, ir);
     ir.passData().update(INSTANCE, scope);
@@ -88,17 +93,22 @@ public class StaticModuleScopeAnalysis implements IRPass {
     return ir;
   }
 
-  private void processModuleImports(StaticModuleScope scope, Module module) {
-    module
-        .imports()
-        .foreach(
-            imp -> {
-              if (imp instanceof Import.Module moduleImport) {
-                var importScope = StaticImportExportScope.buildFrom(moduleImport);
-                scope.registerModuleImport(importScope);
-              }
-              return null;
-            });
+  /**
+   * Analogous to {@link org.enso.interpreter.runtime.IrToTruffle#registerModuleImports}
+   */
+  private void processModuleImports(StaticModuleScope scope, Module module, BindingsMap bindingsMap) {
+    bindingsMap.resolvedImports().foreach(imp -> {
+      imp.targets().foreach(target -> {
+        // System.out.println("Processing import "+imp.importDef().showCode()+" - target: " + target);
+        if (target instanceof BindingsMap.ResolvedModule resolvedModule) {
+          var importScope = new StaticImportExportScope(resolvedModule.qualifiedName());
+          scope.registerModuleImport(importScope);
+        }
+        // TODO do other kinds of targets need handling? e.g. ResolvedType?
+        return null;
+      });
+      return null;
+    });
   }
 
   private void processModuleExports(StaticModuleScope scope, Module module) {
