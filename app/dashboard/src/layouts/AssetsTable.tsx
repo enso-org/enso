@@ -1541,6 +1541,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           permissions: permissions.tryCreateOwnerPermission(
             `${parent?.path ?? ''}/${title}`,
             category,
+            user,
             users ?? [],
             userGroups ?? [],
           ),
@@ -1569,6 +1570,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           permissions: permissions.tryCreateOwnerPermission(
             `${parent?.path ?? ''}/${projectName}`,
             category,
+            user,
             users ?? [],
             userGroups ?? [],
           ),
@@ -1615,6 +1617,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         const ownerPermission = permissions.tryCreateOwnerPermission(
           parent?.path ?? '',
           category,
+          user,
           users ?? [],
           userGroups ?? [],
         )
@@ -1745,6 +1748,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           permissions: permissions.tryCreateOwnerPermission(
             `${parent?.path ?? ''}/${event.name}`,
             category,
+            user,
             users ?? [],
             userGroups ?? [],
           ),
@@ -1773,6 +1777,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           permissions: permissions.tryCreateOwnerPermission(
             `${parent?.path ?? ''}/${event.name}`,
             category,
+            user,
             users ?? [],
             userGroups ?? [],
           ),
@@ -1809,6 +1814,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           permissions: permissions.tryCreateOwnerPermission(
             `${parent?.path ?? ''}/${title}`,
             category,
+            user,
             users ?? [],
             userGroups ?? [],
           ),

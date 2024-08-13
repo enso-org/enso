@@ -214,6 +214,7 @@ export default function AssetRow(props: AssetRowProps) {
             permissions: permissions.tryCreateOwnerPermission(
               `${item.path} (copy)`,
               category,
+              user,
               users ?? [],
               userGroups ?? [],
             ),
@@ -243,17 +244,19 @@ export default function AssetRow(props: AssetRowProps) {
       }
     },
     [
-      rootDirectoryId,
-      asset,
-      item.key,
-      toastAndLog,
-      copyAsset,
-      nodeMap,
       setAsset,
+      rootDirectoryId,
+      copyAsset,
+      asset.id,
+      asset.title,
+      nodeMap,
       item.path,
+      item.key,
       category,
+      user,
       users,
       userGroups,
+      toastAndLog,
       dispatchAssetListEvent,
     ],
   )

@@ -1,7 +1,7 @@
 /** @file Utilities for working with permissions. */
 import type Category from '#/layouts/CategorySwitcher/Category'
 import { CategoryType } from '#/layouts/CategorySwitcher/Category'
-import type * as backend from '#/services/Backend'
+import * as backend from '#/services/Backend'
 import {
   type AssetPermission,
   compareAssetPermissions,
@@ -35,6 +35,7 @@ export const EXEC_CLASS_NAME = 'text-tag-text bg-permission-exec'
 export function tryCreateOwnerPermission(
   path: string,
   category: Category,
+  user: backend.User,
   users: readonly backend.User[],
   userGroups: readonly backend.UserGroupInfo[],
 ): readonly backend.AssetPermission[] {
@@ -43,10 +44,10 @@ export function tryCreateOwnerPermission(
       return [{ userGroup: category.team, permission: PermissionAction.own }]
     }
     default: {
-      const owner = newOwnerFromPath(path, users, userGroups)
-      if (owner == null) {
-        return []
-      } else if ('userId' in owner) {
+      const isFreeOrSolo =
+        user.plan == null || user.plan === backend.Plan.free || user.plan === backend.Plan.solo
+      const owner = isFreeOrSolo ? user : newOwnerFromPath(path, users, userGroups) ?? user
+      if ('userId' in owner) {
         const { organizationId, userId, name, email } = owner
         return [{ user: { organizationId, userId, name, email }, permission: PermissionAction.own }]
       } else {
