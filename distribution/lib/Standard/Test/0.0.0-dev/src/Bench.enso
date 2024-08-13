@@ -162,6 +162,7 @@ type Bench
             Nothing -> Nothing
             path ->
                 f = File.new path
+                # Only write the header line if this is the first time writing to this report file.
                 if f.exists.not then
                     line = 'Label,Phase,"Invocations count","Average time (ms)","Time Stdev"'
                     line.write f on_existing_file=Existing_File_Behavior.Backup
