@@ -7,6 +7,8 @@ import org.enso.compiler.pass.analyse.types.scope.TypeScopeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.stream.Stream;
+
 class MethodTypeResolver {
   private static final Logger logger = LoggerFactory.getLogger(MethodTypeResolver.class);
   private final ModuleResolver moduleResolver;
@@ -54,8 +56,18 @@ class MethodTypeResolver {
       return definedHere;
     }
 
-    for (var importScope : currentModuleScope.getImports()) {
+    var foundInImports = currentModuleScope.getImports().stream().flatMap(staticImportExportScope -> {
+      var materialized = staticImportExportScope.materialize(moduleResolver);
+      return Stream.of(materialized.getMethodForType(type, methodName));
+    }).toList();
 
+    if (foundInImports.size() == 1) {
+      return foundInImports.get(0);
+    } else if (foundInImports.size() > 1) {
+      // TODO we'd like to report this as a diagnostic
+      logger.error("Method {} is defined in multiple imports: {}", methodName, foundInImports);
     }
+
+    return null;
   }
 }
