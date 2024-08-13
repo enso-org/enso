@@ -833,10 +833,10 @@ type File
     to_display_text self = self.to_text
 
     ## PRIVATE
-    copy_builtin = @Builtin_Method "File.copy_builtin"
+    copy_builtin self target options = @Builtin_Method "File.copy_builtin"
 
     ## PRIVATE
-    move_builtin = @Builtin_Method "File.move_builtin"
+    move_builtin self target options = @Builtin_Method "File.move_builtin"
 
 ## PRIVATE
 
