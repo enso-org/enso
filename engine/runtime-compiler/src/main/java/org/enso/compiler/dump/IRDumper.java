@@ -33,10 +33,8 @@ import org.enso.compiler.data.BindingsMap.ResolvedModuleMethod;
 import org.enso.compiler.data.BindingsMap.ResolvedPolyglotField;
 import org.enso.compiler.data.BindingsMap.ResolvedPolyglotSymbol;
 import org.enso.compiler.data.BindingsMap.ResolvedType;
-import org.enso.compiler.pass.analyse.alias.Graph;
-import org.enso.compiler.pass.analyse.alias.Info;
-import org.enso.compiler.pass.analyse.alias.Info$Scope$Child;
-import org.enso.compiler.pass.analyse.alias.Info$Scope$Root;
+import org.enso.compiler.pass.analyse.alias.AliasMetadata;
+import org.enso.compiler.pass.analyse.alias.graph.Graph;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames.FQNResolution;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames.ResolvedLibrary;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames.ResolvedModule;
@@ -613,18 +611,18 @@ public class IRDumper {
               addNode(bmNode);
               createEdge(ir, bindingsMap, "BindingsMap");
             }
-            case Info.Occurrence occurence -> {
+            case AliasMetadata.Occurrence occurence -> {
               bldr.addLabelLine("occurenceId: " + occurence.id());
               addNode(bldr.build());
               createEdge(ir, occurence, "Alias.Info.Occurence");
             }
-            case Info$Scope$Root rootScope -> {
+            case AliasMetadata.RootScope rootScope -> {
               addAliasGraphScopeLabels(bldr, rootScope.graph().rootScope());
               var aliasNode = bldr.build();
               addNode(aliasNode);
               createEdge(ir, rootScope, "Alias.Info.Scope.Root");
             }
-            case Info$Scope$Child childScope -> {
+            case AliasMetadata.ChildScope childScope -> {
               addAliasGraphScopeLabels(bldr, childScope.scope());
               var aliasNode = bldr.build();
               addNode(aliasNode);

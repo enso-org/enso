@@ -11,9 +11,14 @@ import org.enso.compiler.core.ir.{
   Name
 }
 import org.enso.compiler.core.Implicits.AsMetadata
-import org.enso.compiler.pass.analyse.alias.{Graph, Info}
+import org.enso.compiler.pass.analyse.alias.graph.{Graph, GraphOccurrence}
+import org.enso.compiler.pass.analyse.alias.AliasMetadata
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
-import org.enso.compiler.pass.analyse.{AliasAnalysis, FramePointerAnalysis}
+import org.enso.compiler.pass.analyse.{
+  alias,
+  AliasAnalysis,
+  FramePointerAnalysis
+}
 import org.enso.compiler.test.CompilerTest
 
 import scala.reflect.ClassTag
@@ -96,16 +101,16 @@ class FramePointerAnalysisTest extends CompilerTest {
           |""".stripMargin.preprocessModule.analyse
       val aliasGraph = ir.bindings.head
         .unsafeGetMetadata(AliasAnalysis, "should exist")
-        .asInstanceOf[Info.Scope.Root]
+        .asInstanceOf[AliasMetadata.RootScope]
         .graph
       val xDefIr = findAssociatedIr(
-        aliasGraph.symbolToIds[Graph.Occurrence.Def]("x").head,
+        aliasGraph.symbolToIds[GraphOccurrence.Def]("x").head,
         ir
       )
       expectFramePointer(xDefIr, new FramePointer(0, 1))
 
       val xUseIr = findAssociatedIr(
-        aliasGraph.symbolToIds[Graph.Occurrence.Use]("x").head,
+        aliasGraph.symbolToIds[GraphOccurrence.Use]("x").head,
         ir
       )
       withClue(
@@ -116,7 +121,7 @@ class FramePointerAnalysisTest extends CompilerTest {
       }
 
       val plusUseIr = findAssociatedIr(
-        aliasGraph.symbolToIds[Graph.Occurrence.Use]("+").head,
+        aliasGraph.symbolToIds[GraphOccurrence.Use]("+").head,
         ir
       )
       withClue(
@@ -141,29 +146,29 @@ class FramePointerAnalysisTest extends CompilerTest {
           |""".stripMargin.preprocessModule.analyse
       val mainScope = ir.bindings.head
         .unsafeGetMetadata(AliasAnalysis, "should exist")
-        .asInstanceOf[Info.Scope.Root]
+        .asInstanceOf[AliasMetadata.RootScope]
       val allFps = collectAllFramePointers(ir)
       allFps.size shouldBe 4
       val xDefIr = findAssociatedIr(
-        mainScope.graph.symbolToIds[Graph.Occurrence.Def]("x").head,
+        mainScope.graph.symbolToIds[GraphOccurrence.Def]("x").head,
         ir
       )
       expectFramePointer(xDefIr, new FramePointer(0, 1))
 
       val nestedDefIr = findAssociatedIr(
-        mainScope.graph.symbolToIds[Graph.Occurrence.Def]("nested").head,
+        mainScope.graph.symbolToIds[GraphOccurrence.Def]("nested").head,
         ir
       )
       expectFramePointer(nestedDefIr, new FramePointer(0, 2))
 
       val xUseIr = findAssociatedIr(
-        mainScope.graph.symbolToIds[Graph.Occurrence.Use]("x").head,
+        mainScope.graph.symbolToIds[GraphOccurrence.Use]("x").head,
         ir
       )
       expectFramePointer(xUseIr, new FramePointer(2, 1))
 
       val nestedUseIr = findAssociatedIr(
-        mainScope.graph.symbolToIds[Graph.Occurrence.Use]("nested").head,
+        mainScope.graph.symbolToIds[GraphOccurrence.Use]("nested").head,
         ir
       )
       expectFramePointer(nestedUseIr, new FramePointer(0, 2))
@@ -457,7 +462,7 @@ class FramePointerAnalysisTest extends CompilerTest {
   ): IR = {
     val irs = moduleIr.preorder().collect { childIr =>
       childIr.getMetadata(AliasAnalysis) match {
-        case Some(Info.Occurrence(_, occId)) if occId == id =>
+        case Some(AliasMetadata.Occurrence(_, occId)) if occId == id =>
           childIr
       }
     }
@@ -471,10 +476,10 @@ class FramePointerAnalysisTest extends CompilerTest {
 
   private def collectAllOccurences(
     ir: IR
-  ): List[(IR, Info.Occurrence)] = {
+  ): List[(IR, AliasMetadata.Occurrence)] = {
     ir.preorder().flatMap { childIr =>
       childIr.getMetadata(AliasAnalysis) match {
-        case Some(occMeta: Info.Occurrence) =>
+        case Some(occMeta: alias.AliasMetadata.Occurrence) =>
           Some((childIr, occMeta))
         case _ => None
       }

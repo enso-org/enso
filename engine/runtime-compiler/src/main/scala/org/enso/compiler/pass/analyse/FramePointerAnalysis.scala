@@ -24,7 +24,8 @@ import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition.Method
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.IRPass.IRMetadata
-import org.enso.compiler.pass.analyse.alias.{Graph, Info}
+import org.enso.compiler.pass.analyse.alias.AliasMetadata
+import org.enso.compiler.pass.analyse.alias.graph.{Graph, GraphOccurrence}
 
 /** This pass attaches [[FramePointer]] as metadata to all the IR elements that already
   * have [[org.enso.compiler.pass.analyse.alias.Info.Occurrence]] attached.
@@ -233,11 +234,11 @@ case object FramePointerAnalysis extends IRPass {
     graph: Graph
   ): Unit = {
     getAliasAnalysisMeta(ir) match {
-      case Some(Info.Occurrence(_, id)) =>
+      case Some(AliasMetadata.Occurrence(_, id)) =>
         graph.scopeFor(id) match {
           case Some(scope) =>
             graph.getOccurrence(id) match {
-              case Some(use: Graph.Occurrence.Use) =>
+              case Some(use: GraphOccurrence.Use) =>
                 // Use is allowed to read a variable from some parent scope
                 graph.defLinkFor(use.id) match {
                   case Some(defLink) =>
@@ -245,7 +246,7 @@ case object FramePointerAnalysis extends IRPass {
                     val defOcc = graph
                       .getOccurrence(defId)
                       .get
-                      .asInstanceOf[Graph.Occurrence.Def]
+                      .asInstanceOf[GraphOccurrence.Def]
                     val defScope    = graph.scopeFor(defId).get
                     val parentLevel = getScopeDistance(defScope, scope)
                     val frameSlotIdx =
@@ -258,7 +259,7 @@ case object FramePointerAnalysis extends IRPass {
                     // We will not attach any metadata in this case.
                     ()
                 }
-              case Some(defn: Graph.Occurrence.Def) =>
+              case Some(defn: GraphOccurrence.Def) =>
                 // The definition cannot write to parent's frame slots.
                 val parentLevel  = 0
                 val frameSlotIdx = getFrameSlotIdxInScope(graph, scope, defn)
@@ -285,7 +286,7 @@ case object FramePointerAnalysis extends IRPass {
   private def getFrameSlotIdxInScope(
     graph: Graph,
     scope: Graph.Scope,
-    defOcc: Graph.Occurrence.Def
+    defOcc: GraphOccurrence.Def
   ): Int = {
     assert(
       graph.scopeFor(defOcc.id).contains(scope),
@@ -329,7 +330,7 @@ case object FramePointerAnalysis extends IRPass {
     ir: IR
   ): Option[AliasAnalysis.Metadata] = {
     ir.passData.get(AliasAnalysis) match {
-      case Some(aliasInfo: Info) =>
+      case Some(aliasInfo: AliasMetadata) =>
         Some(aliasInfo)
       case _ => None
     }
@@ -337,10 +338,10 @@ case object FramePointerAnalysis extends IRPass {
 
   private def getAliasRootScope(
     ir: IR
-  ): Option[Info.Scope.Root] = {
+  ): Option[AliasMetadata.RootScope] = {
     ir.passData().get(AliasAnalysis) match {
-      case Some(root: Info.Scope.Root) => Some(root)
-      case _                           => None
+      case Some(root: AliasMetadata.RootScope) => Some(root)
+      case _                                   => None
     }
   }
 
