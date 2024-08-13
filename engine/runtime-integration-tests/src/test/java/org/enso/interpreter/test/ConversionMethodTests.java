@@ -10,8 +10,8 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -28,9 +28,10 @@ public class ConversionMethodTests {
   @AfterClass
   public static void disposeCtx() {
     ctx.close();
+    ctx = null;
   }
 
-  @Before
+  @After
   public void resetOutput() {
     out.reset();
   }
