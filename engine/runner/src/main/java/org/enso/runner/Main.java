@@ -1342,6 +1342,9 @@ public class Main {
           if (JVM_OPTION.equals(op.getLongOpt())) {
             continue;
           }
+          if (SYSTEM_PROPERTY.equals(op.getLongOpt())) {
+            continue;
+          }
           var longName = op.getLongOpt();
           if (longName != null) {
             commandAndArgs.add("--" + longName);
