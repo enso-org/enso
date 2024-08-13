@@ -159,10 +159,6 @@ if (typeof import.meta.env.VITE_ENSO_AG_GRID_LICENSE_KEY !== 'string') {
   LicenseManager.setLicenseKey(agGridLicenseKey)
 }
 
-const sortChanged = () => {
-  console.log('sortchanged')
-}
-
 const { AgGridVue } = await import('ag-grid-vue3')
 </script>
 
