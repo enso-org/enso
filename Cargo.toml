@@ -67,7 +67,6 @@ opt-level = 2
 inherits = "dev"
 opt-level = 1
 lto = false
-# debug = "line-tables-only"
 debug-assertions = true
 
 [workspace.lints.rust]

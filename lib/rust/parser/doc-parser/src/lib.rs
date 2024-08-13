@@ -564,7 +564,12 @@ impl Scopes {
         indent: impl Into<VisibleOffset>,
     ) -> impl Iterator<Item = ScopeType> + '_ {
         let indent = indent.into();
-        self.scopes.iter().take_while(move |scope| scope.indent >= indent).map(|scope| scope.r#type)
+        let new_size = self
+            .scopes
+            .iter()
+            .rposition(move |scope| scope.indent < indent)
+            .map_or(0, |pos| pos + 1);
+        self.scopes.drain(new_size..).map(|s| s.r#type)
     }
 
     fn start_list_if_not_started(&mut self, indent: impl Into<VisibleOffset>) -> bool {
