@@ -3,6 +3,8 @@ package org.enso.compiler.pass.analyse.types;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+
+import org.enso.compiler.PackageRepository;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.IR;
@@ -22,6 +24,7 @@ import org.enso.compiler.pass.resolve.TypeNames$;
 import org.enso.compiler.pass.resolve.TypeSignatures$;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import scala.Option;
 import scala.collection.immutable.Seq;
 import scala.collection.immutable.Seq$;
 import scala.jdk.javaapi.CollectionConverters;
@@ -75,8 +78,8 @@ public final class TypeInferencePropagation implements IRPass {
   private final TypeResolver typeResolver = new TypeResolver();
   private final TypeCompatibility checker = new TypeCompatibility(builtinTypes);
 
-  private TypePropagation propagationResolverInModule(Module module, ModuleContext moduleContext) {
-    var packageRepo = moduleContext.pkgRepo().isDefined() ? moduleContext.pkgRepo().get() : null;
+  private TypePropagation propagationResolverInModule(Module module, Option<PackageRepository> packageRepository) {
+    var packageRepo = packageRepository.isDefined() ? packageRepository.get() : null;
     ModuleResolver moduleResolver = new ModuleResolver(packageRepo);
     return new TypePropagation(typeResolver, checker, builtinTypes, module, moduleResolver) {
       @Override
@@ -152,7 +155,7 @@ public final class TypeInferencePropagation implements IRPass {
 
   @Override
   public Module runModule(Module ir, ModuleContext moduleContext) {
-    TypePropagation typePropagation = propagationResolverInModule(ir, moduleContext);
+    TypePropagation typePropagation = propagationResolverInModule(ir, moduleContext.pkgRepo());
     ir.bindings()
         .foreach(
             (def) ->
@@ -180,7 +183,7 @@ public final class TypeInferencePropagation implements IRPass {
   public Expression runExpression(Expression ir, InlineContext inlineContext) {
     var typePropagation =
         propagationResolverInModule(
-            inlineContext.getModule().getIr(), inlineContext.moduleContext());
+            inlineContext.getModule().getIr(), inlineContext.pkgRepo());
     TypeRepresentation inferredType =
         typePropagation.tryInferringType(ir, LocalBindingsTyping.create());
     if (inferredType != null) {

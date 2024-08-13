@@ -35,6 +35,7 @@ public abstract class StaticAnalysisTest {
               builder
                   .option(RuntimeOptions.ENABLE_STATIC_ANALYSIS, "true")
                   .option(RuntimeOptions.LOG_LEVEL, Level.INFO.getName())
+          // TODO we want to disable stdout of the tests - but for now it's useful for debugging
           //                  .option(RuntimeOptions.LOG_LEVEL, Level.SEVERE.getName())
           //                  .out(OutputStream.nullOutputStream())
           //                  .err(OutputStream.nullOutputStream())
