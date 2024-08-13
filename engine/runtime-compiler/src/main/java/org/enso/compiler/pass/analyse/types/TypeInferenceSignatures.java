@@ -101,11 +101,6 @@ public class TypeInferenceSignatures implements IRPass {
                     TypeRepresentation resolvedType =
                         resolveTopLevelTypeSignature(b.body(), keepSelfArgument);
                     if (resolvedType != null) {
-                      System.out.println(
-                          "Resolved "
-                              + b.methodReference().showCode()
-                              + " to type "
-                              + resolvedType);
                       b.passData().update(INSTANCE, new InferredType(resolvedType));
                     }
                     yield b;
