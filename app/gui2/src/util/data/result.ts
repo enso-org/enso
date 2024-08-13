@@ -1,1 +1,1 @@
-export * from 'shared/util/data/result'
+export * from 'ydoc-shared/util/data/result'

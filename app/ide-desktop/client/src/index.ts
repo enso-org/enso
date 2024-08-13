@@ -5,6 +5,8 @@
  * Inter-Process Communication channel, which enables seamless communication between the served web
  * application and the Electron process. */
 
+import './cjs-shim' // must be imported first
+
 import * as fsSync from 'node:fs'
 import * as fs from 'node:fs/promises'
 import * as os from 'node:os'
@@ -36,10 +38,6 @@ import * as server from '@/server'
 import * as urlAssociations from '@/urlAssociations'
 
 const logger = contentConfig.logger
-
-if (process.env.ELECTRON_DEV_MODE === 'true' && process.env.NODE_MODULES_PATH != null) {
-  module.paths.unshift(process.env.NODE_MODULES_PATH)
-}
 
 // ===========
 // === App ===
@@ -342,7 +340,7 @@ class App {
         this.args.groups.window.options.vibrancy.value &&= detect.supportsVibrancy()
         const useVibrancy = this.args.groups.window.options.vibrancy.value
         const webPreferences: electron.WebPreferences = {
-          preload: pathModule.join(paths.APP_PATH, 'preload.cjs'),
+          preload: pathModule.join(paths.APP_PATH, 'preload.mjs'),
           sandbox: true,
           backgroundThrottling: argGroups.performance.options.backgroundThrottling.value,
           enableBlinkFeatures: argGroups.chrome.options.enableBlinkFeatures.value,

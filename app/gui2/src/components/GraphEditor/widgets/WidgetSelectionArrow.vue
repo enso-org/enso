@@ -3,8 +3,8 @@ import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { injectSelectionArrow } from '@/providers/selectionArrow'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
-import { assert } from 'shared/util/assert'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { assert } from 'ydoc-shared/util/assert'
 import { ArgumentNameShownKey } from './WidgetArgumentName.vue'
 
 const props = defineProps(widgetProps(widgetDefinition))

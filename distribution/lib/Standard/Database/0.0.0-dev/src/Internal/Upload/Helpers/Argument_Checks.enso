@@ -77,24 +77,3 @@ check_update_arguments_structure_match source_table target_table key_columns upd
                         problems = source_table.columns.flat_map on_problems=No_Wrap check_source_column
                         problems.if_not_error <|
                             on_problems.attach_problems_before problems action
-
-## PRIVATE
-   Verifies that the used driver supports transactional DDL statements.
-
-   Currently, all our drivers should support them. This check is added, so that
-   when we are adding a new drivers, we don't forget to check if it supports
-   transactional DDL statements - if it does not - we will need to add some
-   additional logic to our code.
-
-   It is a panic, because it is never expected to happen in user code - if it
-   happens, it is a bug in our code.
-check_transaction_ddl_support connection =
-    connection.jdbc_connection.with_metadata metadata->
-        supports_ddl = metadata.supportsDataDefinitionAndDataManipulationTransactions && metadata.dataDefinitionIgnoredInTransactions.not
-        if supports_ddl.not then
-            Panic.throw (Illegal_State.Error "The connection "+connection.to_text+" does not support transactional DDL statements. Our current implementation of table updates relies on transactional DDL. To support this driver, the logic needs to be amended.")
-        ddl_causes_commit = metadata.dataDefinitionCausesTransactionCommit
-        if ddl_causes_commit then
-            # TODO fix for Snowflake support
-            #Panic.throw (Illegal_State.Error "The connection "+connection.to_text+" does not fully support DDL statements as part of complex transactions - DDL causes a commit, so we cannot compose it. To support this driver, the logic needs to be amended.")
-            Nothing

@@ -30,7 +30,7 @@ export const TEXT_STYLE = twv.tv({
       custom: '',
       primary: 'text-primary',
       danger: 'text-danger',
-      success: 'text-share',
+      success: 'text-accent-dark',
       disabled: 'text-primary/30',
       invert: 'text-white',
       inherit: 'text-inherit',

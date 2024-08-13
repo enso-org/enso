@@ -17,9 +17,13 @@ Please set the following environment variables:
 
 The easiest way to test locally is to use a docker image
 
-```docker run -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=<YourStrong@Passw0rd>" -p 1433:1433 --name sql1 --hostname sql1 -d mcr.microsoft.com/mssql/server:2022-latest
+```shell
+docker run -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=<YourStrong@Passw0rd>" -p 1433:1433 --name sql1 --hostname sql1 -d mcr.microsoft.com/mssql/server:2022-latest
+```
 
-Set ENSO_SQLSERVER_DATABASE to tempdb and the defaults will work for everything else. (The user is sa with the above password)
+Set ENSO_SQLSERVER_DATABASE to tempdb and the defaults will work for everything
+else. (The user is sa with the above password)
 
-
+```powershell
+$env:ENSO_SQLSERVER_DATABASE='tempdb'
 ```

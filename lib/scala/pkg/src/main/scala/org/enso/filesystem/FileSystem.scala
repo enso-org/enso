@@ -192,7 +192,9 @@ object FileSystem {
 
     override def exists(file: File): Boolean = file.exists()
 
-    override def createDirectories(file: File): Unit = file.mkdirs()
+    override def createDirectories(file: File): Unit = {
+      Files.createDirectories(file.toPath)
+    }
 
     override def relativize(parent: File, child: File): File =
       parent.toPath.relativize(child.toPath).toFile

@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.AddOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.BigDecimalDivideOp;
+import org.enso.table.data.column.operation.map.numeric.arithmetic.MaxOp;
+import org.enso.table.data.column.operation.map.numeric.arithmetic.MinOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.ModOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.MulOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.PowerOp;
@@ -40,6 +42,8 @@ public final class BigDecimalStorage extends SpecializedStorage<BigDecimal> {
         .add(new BigDecimalDivideOp<>())
         .add(new PowerOp<>())
         .add(new ModOp<>())
+        .add(new MinOp<>())
+        .add(new MaxOp<>())
         .add(new LessComparison<>())
         .add(new LessOrEqualComparison<>())
         .add(new EqualsComparison<>())

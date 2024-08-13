@@ -129,7 +129,16 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
             <div>
               <Text variant="subtitle">{getText('adjustYourPlan')}</Text>
 
-              <Form form={form} className="flex flex-row">
+              <Form form={form} className="mt-1">
+                <Selector
+                  form={form}
+                  name="period"
+                  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+                  items={[1, 12, 36]}
+                  itemToString={(item) => billingPeriodToString(getText, item)}
+                  label={getText('billingPeriod')}
+                />
+
                 <Input
                   isRequired
                   readOnly={maxSeats === 1}
@@ -141,14 +150,6 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
                   min="1"
                   label={getText('seats')}
                   description={getText(`${plan}PlanSeatsDescription`, maxSeats)}
-                />
-                <Selector
-                  form={form}
-                  name="period"
-                  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-                  items={[1, 12, 36]}
-                  itemToString={(item) => billingPeriodToString(getText, item)}
-                  label={getText('billingPeriod')}
                 />
               </Form>
             </div>
@@ -205,97 +206,87 @@ function Summary(props: SummaryProps) {
   const { getText } = useText()
 
   const { data, isLoading, isError, refetch, error } = useQuery({
-    ...createSubscriptionPriceQuery({
-      plan,
-      seats,
-      period,
-    }),
+    ...createSubscriptionPriceQuery({ plan, seats, period }),
     enabled: !isInvalid,
   })
 
   const billingPeriodText = billingPeriodToString(getText, period)
 
-  if (isError) {
-    // eslint-disable-next-line no-restricted-syntax
-    return (
+  return isError ?
       <ErrorDisplay
         error={error}
         title={getText('asyncHookError')}
         resetErrorBoundary={() => refetch()}
       />
-    )
-  }
+    : <div className="flex flex-col">
+        <Text variant="subtitle">{getText('summary')}</Text>
 
-  return (
-    <div className="flex flex-col">
-      <Text variant="subtitle">{getText('summary')}</Text>
-
-      <div
-        className={twMerge(
-          '-ml-4 table table-auto border-spacing-x-4 transition-[filter] duration-200',
-          (isLoading || isInvalid) && 'pointer-events-none blur-[4px]',
-          isLoading && 'animate-pulse duration-1000',
-        )}
-      >
-        <div className="table-row">
-          <Text className="table-cell w-[0%]" variant="body" nowrap>
-            {getText('priceMonthly')}
-          </Text>
-          {data && (
-            <Text className="table-cell " variant="body">
-              {formatter.format(data.monthlyPrice)}
-            </Text>
+        <div
+          className={twMerge(
+            '-ml-4 table table-auto border-spacing-x-4 transition-[filter] duration-200',
+            (isLoading || isInvalid) && 'pointer-events-none blur-[4px]',
+            isLoading && 'animate-pulse duration-1000',
           )}
-        </div>
-
-        <div className="table-row">
-          <Text className="table-cell w-[0%]" variant="body" nowrap>
-            {getText('billingPeriod')}
-          </Text>
-
-          {data && (
-            <Text className="table-cell" variant="body">
-              {billingPeriodText}
+        >
+          <div className="table-row">
+            <Text className="table-cell w-[0%]" variant="body" nowrap>
+              {getText('priceMonthly')}
             </Text>
-          )}
-        </div>
+            {data && (
+              <Text className="table-cell " variant="body">
+                {formatter.format(data.monthlyPrice)}
+              </Text>
+            )}
+          </div>
 
-        {data && data.discount !== 0 && (
+          <div className="table-row">
+            <Text className="table-cell w-[0%]" variant="body" nowrap>
+              {getText('billingPeriod')}
+            </Text>
+
+            {data && (
+              <Text className="table-cell" variant="body">
+                {billingPeriodText}
+              </Text>
+            )}
+          </div>
+
           <div className="table-row">
             <Text className="table-cell w-[0%]" variant="body" nowrap>
               {getText('originalPrice')}
             </Text>
-            <Text className="table-cell text-danger" variant="body">
-              {formatter.format(data.fullPrice)}
-            </Text>
+            {data && (
+              <Text className="table-cell" variant="body">
+                {formatter.format(data.fullPrice)}
+              </Text>
+            )}
           </div>
-        )}
 
-        {data && data.discount !== 0 && (
           <div className="table-row">
             <Text className="table-cell w-[0%]" variant="body" nowrap>
               {getText('youSave')}
             </Text>
-            <Text className="table-cell" variant="body">
-              {formatter.format(data.discount)}
-            </Text>
+            {data && (
+              <Text
+                className="table-cell"
+                color={data.discount > 0 ? 'success' : 'primary'}
+                variant="body"
+              >
+                {formatter.format(data.discount)}
+              </Text>
+            )}
           </div>
-        )}
 
-        <div className="table-row">
-          <Text className="table-cell w-[0%]" variant="body" nowrap>
-            {getText('totalPrice')}
-          </Text>
-          {data && (
-            <Text
-              className={twMerge('table-cell', data.discount !== 0 && 'text-accent-dark')}
-              variant="body"
-            >
-              {formatter.format(data.totalPrice)}
+          <div className="table-row">
+            <Text className="table-cell w-[0%]" variant="body" nowrap>
+              {getText('subtotalPrice')}
             </Text>
-          )}
+            {data && (
+              <Text className="table-cell" variant="body">
+                {formatter.format(data.totalPrice)}
+              </Text>
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  )
 }

@@ -13,10 +13,22 @@ import * as aria from '#/components/aria'
 
 import * as errorUtils from '#/utilities/error'
 
+import type { Mutable } from 'enso-common/src/utilities/data/object'
 import * as dialog from '../Dialog'
 import * as components from './components'
 import * as styles from './styles'
 import type * as types from './types'
+
+/**
+ * Maps the value to the event object.
+ */
+function mapValueOnEvent(value: unknown) {
+  if (typeof value === 'object' && value != null && 'target' in value && 'type' in value) {
+    return value
+  } else {
+    return { target: { value } }
+  }
+}
 
 /** Form component. It wraps a `form` and provides form context.
  * It also handles form submission.
@@ -147,30 +159,13 @@ export const Form = React.forwardRef(function Form<
       register: (name, options) => {
         const registered = register(name, options)
 
-        /**
-         * Maps the value to the event object.
-         */
-        function mapValueOnEvent(value: unknown) {
-          if (typeof value === 'object' && value != null && 'target' in value && 'type' in value) {
-            return value
-          } else {
-            return { target: { value } }
-          }
-        }
-
-        const onChange: types.UseFormRegisterReturn<Schema, TFieldValues>['onChange'] = (value) =>
-          registered.onChange(mapValueOnEvent(value))
-
-        const onBlur: types.UseFormRegisterReturn<Schema, TFieldValues>['onBlur'] = (value) =>
-          registered.onBlur(mapValueOnEvent(value))
-
         const result: types.UseFormRegisterReturn<Schema, TFieldValues, typeof name> = {
           ...registered,
-          ...(registered.disabled != null ? { isDisabled: registered.disabled } : {}),
-          ...(registered.required != null ? { isRequired: registered.required } : {}),
-          isInvalid: !!formState.errors[name],
-          onChange,
-          onBlur,
+          isDisabled: registered.disabled ?? false,
+          isRequired: registered.required ?? false,
+          isInvalid: Boolean(formState.errors[name]),
+          onChange: (value) => registered.onChange(mapValueOnEvent(value)),
+          onBlur: (value) => registered.onBlur(mapValueOnEvent(value)),
         }
 
         return result
@@ -226,26 +221,29 @@ export const Form = React.forwardRef(function Form<
       </aria.FormValidationContext.Provider>
     </form>
   )
-}) as unknown as (<
-  Schema extends components.TSchema,
-  TFieldValues extends components.FieldValues<Schema>,
-  TTransformedValues extends components.FieldValues<Schema> | undefined = undefined,
->(
-  props: React.RefAttributes<HTMLFormElement> &
-    types.FormProps<Schema, TFieldValues, TTransformedValues>,
-  // eslint-disable-next-line no-restricted-syntax
-) => React.JSX.Element) & {
-  /* eslint-disable @typescript-eslint/naming-convention */
-  schema: typeof components.schema
-  useForm: typeof components.useForm
-  useField: typeof components.useField
-  Submit: typeof components.Submit
-  Reset: typeof components.Reset
-  Field: typeof components.Field
-  FormError: typeof components.FormError
-  useFormSchema: typeof components.useFormSchema
-  /* eslint-enable @typescript-eslint/naming-convention */
-}
+}) as unknown as Mutable<
+  Pick<
+    typeof components,
+    | 'FIELD_STYLES'
+    | 'Field'
+    | 'FormError'
+    | 'Reset'
+    | 'schema'
+    | 'Submit'
+    | 'useField'
+    | 'useForm'
+    | 'useFormSchema'
+  >
+> &
+  (<
+    Schema extends components.TSchema,
+    TFieldValues extends components.FieldValues<Schema>,
+    TTransformedValues extends components.FieldValues<Schema> | undefined = undefined,
+  >(
+    props: React.RefAttributes<HTMLFormElement> &
+      types.FormProps<Schema, TFieldValues, TTransformedValues>,
+    // eslint-disable-next-line no-restricted-syntax
+  ) => React.JSX.Element)
 
 Form.schema = components.schema
 Form.useForm = components.useForm
@@ -255,3 +253,4 @@ Form.Submit = components.Submit
 Form.Reset = components.Reset
 Form.FormError = components.FormError
 Form.Field = components.Field
+Form.FIELD_STYLES = components.FIELD_STYLES

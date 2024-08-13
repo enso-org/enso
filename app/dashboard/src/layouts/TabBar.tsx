@@ -6,23 +6,19 @@ import { useLocation } from 'react-router'
 import invariant from 'tiny-invariant'
 
 import type { TextId } from 'enso-common/src/text'
+import * as tabBar from 'enso-common/src/utilities/style/tabBar'
 
 import type { AppPath } from '#/appUtils'
-
-import * as projectHooks from '#/hooks/projectHooks'
-
-import type { LaunchedProject } from '#/providers/ProjectsProvider'
-import { useText } from '#/providers/TextProvider'
-
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import StatelessSpinner, * as spinnerModule from '#/components/StatelessSpinner'
 import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
-
-import * as backend from '#/services/Backend'
-
+import * as projectHooks from '#/hooks/projectHooks'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
+import type { LaunchedProject } from '#/providers/ProjectsProvider'
+import { useText } from '#/providers/TextProvider'
+import * as backend from '#/services/Backend'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
@@ -85,39 +81,10 @@ export default function TabBar(props: TabBarProps) {
           selectedTabRef.current = element
           const bounds = element.getBoundingClientRect()
           const rootBounds = backgroundElement.getBoundingClientRect()
-          const tabLeft = bounds.left - rootBounds.left + TAB_RADIUS_PX
-          const tabRight = bounds.right - rootBounds.left - TAB_RADIUS_PX
-          const rightSegments = [
-            'M 0 0',
-            `L ${rootBounds.width + window.outerWidth} 0`,
-            `L ${rootBounds.width + window.outerWidth} ${rootBounds.height}`,
-            `L ${tabRight + TAB_RADIUS_PX} ${rootBounds.height}`,
-            `A ${TAB_RADIUS_PX} ${TAB_RADIUS_PX} 0 0 1 ${tabRight} ${rootBounds.height - TAB_RADIUS_PX}`,
-          ]
-          const leftSegments = [
-            `A ${TAB_RADIUS_PX} ${TAB_RADIUS_PX} 0 0 1 ${tabLeft - TAB_RADIUS_PX} ${rootBounds.height}`,
-            `L 0 ${rootBounds.height}`,
-            'Z',
-          ]
-          const segments = [
-            ...rightSegments,
-            `L ${tabRight} ${TAB_RADIUS_PX}`,
-            `A ${TAB_RADIUS_PX} ${TAB_RADIUS_PX} 0 0 0 ${tabRight - TAB_RADIUS_PX} 0`,
-            `L ${tabLeft + TAB_RADIUS_PX} 0`,
-            `A ${TAB_RADIUS_PX} ${TAB_RADIUS_PX} 0 0 0 ${tabLeft} ${TAB_RADIUS_PX}`,
-            `L ${tabLeft} ${rootBounds.height - TAB_RADIUS_PX}`,
-            ...leftSegments,
-          ]
-          backgroundElement.style.clipPath = `path("${segments.join(' ')}")`
-          const rootSegments = [
-            ...rightSegments,
-            `A ${TAB_RADIUS_PX} ${TAB_RADIUS_PX} 0 0 1 ${tabRight - TAB_RADIUS_PX} ${rootBounds.height}`,
-            `L ${tabLeft + TAB_RADIUS_PX} ${rootBounds.height}`,
-            `A ${TAB_RADIUS_PX} ${TAB_RADIUS_PX} 0 0 1 ${tabLeft} ${rootBounds.height - TAB_RADIUS_PX}`,
-            ...leftSegments,
-          ]
+          const { clipPath, rootClipPath } = tabBar.barClipPath(bounds, rootBounds, TAB_RADIUS_PX)
+          backgroundElement.style.clipPath = clipPath
           if (rootElement) {
-            rootElement.style.clipPath = `path("${rootSegments.join(' ')}")`
+            rootElement.style.clipPath = rootClipPath
           }
         }
       }
@@ -218,18 +185,7 @@ export function Tab(props: InternalTabProps) {
       const element = ref.current
       if (element) {
         const bounds = element.getBoundingClientRect()
-        const segments = [
-          `M 0 ${bounds.height}`,
-          `A ${TAB_RADIUS_PX} ${TAB_RADIUS_PX} 0 0 0 ${TAB_RADIUS_PX} ${bounds.height - TAB_RADIUS_PX}`,
-          `L ${TAB_RADIUS_PX} ${TAB_RADIUS_PX}`,
-          `A ${TAB_RADIUS_PX} ${TAB_RADIUS_PX} 0 0 1 ${TAB_RADIUS_PX * 2} 0`,
-          `L ${bounds.width - TAB_RADIUS_PX * 2} 0`,
-          `A ${TAB_RADIUS_PX} ${TAB_RADIUS_PX} 0 0 1 ${bounds.width - TAB_RADIUS_PX} ${TAB_RADIUS_PX}`,
-          `L ${bounds.width - TAB_RADIUS_PX} ${bounds.height - TAB_RADIUS_PX}`,
-          `A ${TAB_RADIUS_PX} ${TAB_RADIUS_PX} 0 0 0 ${bounds.width} ${bounds.height}`,
-          'Z',
-        ]
-        element.style.clipPath = `path("${segments.join(' ')}")`
+        element.style.clipPath = tabBar.tabClipPath(bounds, TAB_RADIUS_PX)
       }
     }
   })

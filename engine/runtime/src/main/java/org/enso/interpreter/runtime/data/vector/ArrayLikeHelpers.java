@@ -11,8 +11,8 @@ import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.state.State;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 /** Publicly available operations on array-like classes. */
 @Builtin(pkg = "immutable", stdlibName = "Standard.Base.Internal.Array_Like_Helpers")
@@ -97,7 +97,7 @@ public final class ArrayLikeHelpers {
       }
       target.add(value, warnings);
     }
-    return target.asVector();
+    return target.asVector(true);
   }
 
   @Builtin.Method(

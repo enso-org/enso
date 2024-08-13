@@ -1,5 +1,5 @@
 import { ensoColor, formatCssColor, normalizeHue } from '@/util/colors'
-import { Resumable } from 'shared/util/data/iterable'
+import { Resumable } from 'ydoc-shared/util/data/iterable'
 
 export interface FixedRange {
   start: number
