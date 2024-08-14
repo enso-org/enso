@@ -2207,7 +2207,7 @@ class IrToTruffle(
                 FramePointerAnalysis,
                 "No frame pointer on an argument definition."
               )
-            val slotIdx    = fp.frameSlotIdx()
+            val slotIdx = fp.frameSlotIdx()
             val readArg =
               ReadArgumentNode.build(
                 idx,

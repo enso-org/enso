@@ -73,7 +73,6 @@ class LocalScope(
     )
   }
 
-
   /** Collects all the bindings in the current stack of scopes, accounting for
     * shadowing.
     *
