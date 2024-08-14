@@ -79,6 +79,8 @@ interface UnknownTable {
   has_index_col: boolean | undefined
   links: string[] | undefined
   get_child_node: string
+  link_name: string
+  link_type_value: string
 }
 
 export enum TextFormatOptions {
@@ -362,23 +364,29 @@ function toRowField(name: string, valueType?: ValueType | null | undefined) {
   }
 }
 
-function getAstPattern(selector: string | number, action?: string) {
+function getAstPattern(selector: string | number, action?: string, valueType?: string) {
+  const castSelector = valueType === 'number' && Number(selector) ? Number(selector) : selector
   const identifierAction =
     config.nodeType === (COLUMN_NODE_TYPE || VECTOR_NODE_TYPE) ? 'at' : action
   if (identifierAction) {
     return Pattern.new((ast) =>
       Ast.App.positional(
         Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(identifierAction)!),
-        typeof selector === 'number' ?
-          Ast.tryNumberToEnso(selector, ast.module)!
-        : Ast.TextLiteral.new(selector, ast.module),
+        typeof castSelector === 'number' ?
+          Ast.tryNumberToEnso(castSelector, ast.module)!
+        : Ast.TextLiteral.new(castSelector, ast.module),
       ),
     )
   }
 }
 
-function createNode(params: CellClickedEvent, selector: string, action?: string) {
-  const pattern = getAstPattern(params.data[selector], action)
+function createNode(
+  params: CellClickedEvent,
+  selector: string,
+  action?: string,
+  valueType?: string,
+) {
+  const pattern = getAstPattern(params.data[selector], action, valueType)
   if (pattern) {
     config.createNodes({
       content: pattern,
@@ -387,12 +395,12 @@ function createNode(params: CellClickedEvent, selector: string, action?: string)
   }
 }
 
-function toLinkField(fieldName: string, getChildAction?: string): ColDef {
+function toLinkField(fieldName: string, getChildAction?: string, valueType?: string): ColDef {
   return {
     headerName:
       newNodeSelectorValues.value.headerName ? newNodeSelectorValues.value.headerName : fieldName,
     field: fieldName,
-    onCellDoubleClicked: (params) => createNode(params, fieldName, getChildAction),
+    onCellDoubleClicked: (params) => createNode(params, fieldName, getChildAction, valueType),
     tooltipValueGetter: () => {
       return `Double click to view this ${newNodeSelectorValues.value.tooltipValue} in a separate component`
     },
@@ -423,8 +431,11 @@ watchEffect(() => {
         links: undefined,
         // eslint-disable-next-line camelcase
         get_child_node: undefined,
+        // eslint-disable-next-line camelcase
+        link_name: undefined,
+        // eslint-disable-next-line camelcase
+        link_type_value: undefined,
       }
-
   if ('error' in data_) {
     columnDefs.value = [
       {
@@ -475,8 +486,8 @@ watchEffect(() => {
     const dataHeader =
       ('header' in data_ ? data_.header : [])?.map((v, i) => {
         const valueType = data_.value_type ? data_.value_type[i] : null
-        if (config.nodeType === ROW_NODE_TYPE) {
-          return v === 'column' ? toLinkField(v, data_.get_child_node) : toRowField(v, valueType)
+        if (data_.link_name === v) {
+          return toLinkField(data_.link_name, data_.get_child_node, data_.link_type_value)
         }
         return toField(v, valueType)
       }) ?? []
