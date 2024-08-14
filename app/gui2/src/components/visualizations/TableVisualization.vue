@@ -365,7 +365,8 @@ function toRowField(name: string, valueType?: ValueType | null | undefined) {
 }
 
 function getAstPattern(selector: string | number, action?: string, valueType?: string) {
-  const castSelector = valueType === 'number' && Number(selector) ? Number(selector) : selector
+  const castSelector =
+    valueType === 'number' && !isNaN(Number(selector)) ? Number(selector) : selector
   const identifierAction =
     config.nodeType === (COLUMN_NODE_TYPE || VECTOR_NODE_TYPE) ? 'at' : action
   if (identifierAction) {
