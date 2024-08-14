@@ -19,25 +19,25 @@ main filter=Nothing =
 
 add_specs suite_builder = suite_builder.group "parsing Table formats in DataLinks" pending=pending_has_url group_builder->
     data_link_root = enso_project.data / "datalinks"
-    group_builder.specify "parsing Delimited without quotes" <|
+    group_builder.specify "parsing Delimited without quotes" <| Test.with_retries <|
         data_link_file = replace_url_in_data_link (data_link_root / "example-http-format-delimited-ignore-quote.datalink")
         t = data_link_file.read
         t.should_equal (Table.from_rows ["Column 1", "Column 2"] [['{"hello":', '"world"}']])
 
-    group_builder.specify "parsing Delimited with custom delimiter quotes" <|
+    group_builder.specify "parsing Delimited with custom delimiter quotes" <| Test.with_retries <|
         data_link_file = replace_url_in_data_link (data_link_root / "example-http-format-delimited-custom-quote.datalink")
         t = data_link_file.read
         weird_txt = "x'z" + '""w'
         # The A column remains a text column because of being quoted
         t.should_equal (Table.new [["A", ["1", "3"]], ["B", [weird_txt, "y"]]])
 
-    group_builder.specify "overriding the custom format in Delimited datalink" <|
+    group_builder.specify "overriding the custom format in Delimited datalink" <| Test.with_retries <|
         data_link_file = replace_url_in_data_link (data_link_root / "example-http-format-delimited-ignore-quote.datalink")
         r = data_link_file.read ..Plain_Text
         r.should_be_a Text
         r.trim.should_equal '{"hello": "world"}'
 
-    group_builder.specify "parsing Excel_Format.Workbook" <|
+    group_builder.specify "parsing Excel_Format.Workbook" <| Test.with_retries <|
         data_link_file = replace_url_in_data_link (data_link_root / "example-http-format-excel-workbook.datalink")
 
         workbook = data_link_file.read
@@ -45,19 +45,19 @@ add_specs suite_builder = suite_builder.group "parsing Table formats in DataLink
             workbook.should_be_a Excel_Workbook
             workbook.sheet_names . should_equal ["MyTestSheet"]
 
-    group_builder.specify "parsing Excel_Format.Sheet" <|
+    group_builder.specify "parsing Excel_Format.Sheet" <| Test.with_retries <|
         data_link_file = replace_url_in_data_link (data_link_root / "example-http-format-excel-sheet.datalink")
 
         table = data_link_file.read
         table . should_equal (Table.from_rows ["A", "B"] [[1, 'x'], [3, 'y']])
 
-    group_builder.specify "parsing Excel_Format.Range" <|
+    group_builder.specify "parsing Excel_Format.Range" <| Test.with_retries <|
         data_link_file = replace_url_in_data_link (data_link_root / "example-http-format-excel-range.datalink")
 
         table = data_link_file.read
         table . should_equal (Table.from_rows ["A", "B"] [[3, 'y']])
 
-    group_builder.specify "overriding Excel format" <|
+    group_builder.specify "overriding Excel format" <| Test.with_retries <|
         data_link_file = replace_url_in_data_link (data_link_root / "example-http-format-excel-workbook.datalink")
 
         table = data_link_file.read (..Range "MyTestSheet!A1:B1")
@@ -66,7 +66,7 @@ add_specs suite_builder = suite_builder.group "parsing Table formats in DataLink
         bytes = data_link_file.read_bytes
         bytes.should_be_a Vector
 
-    group_builder.specify "reading a datalink as a stream" <|
+    group_builder.specify "reading a datalink as a stream" <| Test.with_retries <|
         data_link_file = replace_url_in_data_link (data_link_root / "example-http-format-excel-range.datalink")
 
         r1 = data_link_file.with_input_stream [File_Access.Read] input_stream->
