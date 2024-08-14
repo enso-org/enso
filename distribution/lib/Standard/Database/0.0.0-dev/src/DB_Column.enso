@@ -1117,6 +1117,16 @@ type DB_Column
         new_name = self.naming_helper.function_name "is_infinite" [self]
         self.make_unary_op "IS_INF" new_name
 
+    ## GROUP Standard.Base.Math
+       ICON math
+       Returns a column of booleans, with `True` items at the positions where
+       this column contains a non-infinite, non-NaN floating point value. This
+       is only applicable to double columns.
+    is_finite : DB_Column
+    is_finite self = Value_Type.expect_numeric self <|
+        new_name = self.naming_helper.function_name "is_finite" [self]
+        self.make_unary_op "IS_FINITE" new_name
+
     ## PRIVATE
        Returns a column of booleans, with `True` items at the positions where
        this column contains an empty string or `Nothing`.
@@ -1998,9 +2008,8 @@ type DB_Column
        name. If the column is not floating point, just return the expression.
     short_circuit_special_floating_point : DB_Column -> DB_Column
     short_circuit_special_floating_point self exp =
-        self_is_nan = if self.connection.dialect.supports_separate_nan then self.is_nan else self.is_nothing
         if self.value_type.is_floating_point.not then exp else
-            ((self_is_nan || self.is_infinite).iif self exp).rename exp.name
+            (self.is_finite.not.iif self exp).rename exp.name
 ## PRIVATE
    Helper for case case_sensitivity based text operations
 make_text_case_op left op other case_sensitivity new_name =
