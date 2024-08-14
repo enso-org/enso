@@ -2533,7 +2533,7 @@ lazy val `engine-runner` = project
         if (!isJar) {
           log.error(
             internalPkg.data.absolutePath + " is not a JAR archive." +
-            " It might not be excluded from runtime.jar fat jar."
+            " It might not be excluded from runner.jar fat jar."
           )
         }
       }
