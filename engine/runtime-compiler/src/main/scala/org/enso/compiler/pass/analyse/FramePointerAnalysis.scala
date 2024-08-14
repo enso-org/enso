@@ -388,6 +388,10 @@ case object FramePointerAnalysis extends IRPass {
   ) extends IRMetadata {
     override val metadataName: String = "FramePointer"
 
+    def parentLevel(): Int = framePointer.parentLevel
+
+    def frameSlotIdx(): Int = framePointer.frameSlotIdx
+
     /** @inheritdoc
       */
     override def duplicate(): Option[Metadata] = {
