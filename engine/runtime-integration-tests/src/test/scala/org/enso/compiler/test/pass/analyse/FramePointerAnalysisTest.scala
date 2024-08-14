@@ -19,6 +19,7 @@ import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   FramePointerAnalysis
 }
+import org.enso.compiler.pass.resolve.GlobalNames
 import org.enso.compiler.test.CompilerTest
 
 import scala.reflect.ClassTag
@@ -417,6 +418,67 @@ class FramePointerAnalysisTest extends CompilerTest {
       litDefArg.defaultValue.get
         .passData()
         .get(FramePointerAnalysis) shouldNot be(defined)
+    }
+
+    "does not attach frame pointer to name literal that is resolved to global type in the same module" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+      val ir =
+        """
+          |type My_Type
+          |method =
+          |    My_Type
+          |""".stripMargin.preprocessModule.analyse
+      val myTypeLit = findIRElement[Name.Literal](
+        ir,
+        lit => lit.name == "My_Type" && hasLocation(lit, 27, 34)
+      )
+      withClue("No frame pointer attached to a symbol with global occurence") {
+        myTypeLit.passData.get(FramePointerAnalysis) shouldNot be(defined)
+      }
+      withClue("There is a Use occurence") {
+        myTypeLit.passData.get(AliasAnalysis) shouldBe defined
+      }
+      withClue("There is Resolution attached") {
+        myTypeLit.passData.get(GlobalNames) shouldBe defined
+      }
+    }
+
+    "does not attach frame pointer to name literal in annotation that is resolved to global type in the same module" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+      val ir =
+        """
+          |type My_Type
+          |
+          |@x My_Type
+          |method x =
+          |    My_Type
+          |""".stripMargin.preprocessModule.analyse
+      // literal used in the annotation
+      val myTypeLit = findIRElement[Name.Literal](
+        ir,
+        lit => lit.name == "My_Type" && hasLocation(lit, 18, 25)
+      )
+      withClue("No frame pointer attached to a symbol with global occurence") {
+        myTypeLit.passData.get(FramePointerAnalysis) shouldNot be(defined)
+      }
+      withClue("There is a Use occurence") {
+        myTypeLit.passData.get(AliasAnalysis) shouldBe defined
+      }
+      withClue("There is Resolution attached") {
+        myTypeLit.passData.get(GlobalNames) shouldBe defined
+      }
+    }
+  }
+
+  private def hasLocation(
+    ir: IR,
+    start: Int,
+    end: Int
+  ): Boolean = {
+    ir.location() match {
+      case Some(loc) =>
+        loc.start() == start && loc.end() == end
+      case None => false
     }
   }
 
