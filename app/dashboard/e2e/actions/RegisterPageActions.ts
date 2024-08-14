@@ -84,6 +84,14 @@ export default class RegisterPageActions extends BaseActions {
     await this.page.getByPlaceholder(TEXT.passwordPlaceholder).fill(password)
     await this.page.getByPlaceholder(TEXT.confirmPasswordPlaceholder).fill(confirmPassword)
     await this.page
+      .getByRole('checkbox')
+      .and(this.page.getByTestId('terms-of-service-checkbox'))
+      .click()
+    await this.page
+      .getByRole('checkbox')
+      .and(this.page.getByTestId('privacy-policy-checkbox'))
+      .click()
+    await this.page
       .getByRole('button', { name: TEXT.register, exact: true })
       .getByText(TEXT.register)
       .click()

@@ -129,8 +129,8 @@ export function AgreementsModal() {
         isDismissable={false}
         hideCloseButton
         modalProps={{ defaultOpen: true }}
-        testId="terms-of-service-modal"
-        id="terms-of-service-modal"
+        testId="agreements-modal"
+        id="agreements-modal"
       >
         <Form
           schema={formSchema}
@@ -138,7 +138,7 @@ export function AgreementsModal() {
             agreedToTos: tosHash === cachedTosHash,
             agreedToPrivacyPolicy: privacyPolicyHash === cachedPrivacyPolicyHash,
           }}
-          testId="terms-of-service-form"
+          testId="agreements-form"
           method="dialog"
           onSubmit={() => {
             // Only the last one in the sequence should trigger a re-render.
@@ -191,7 +191,7 @@ export function AgreementsModal() {
                           'flex size-4 cursor-pointer overflow-clip rounded-lg border border-primary outline-primary focus-visible:outline focus-visible:outline-2',
                           isInvalid && 'border-red-700 text-red-500 outline-red-500',
                         )}
-                        data-testid="terms-of-service-checkbox"
+                        data-testid="privacy-policy-checkbox"
                         {...omit(register('agreedToPrivacyPolicy'), 'isInvalid')}
                       />
 

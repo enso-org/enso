@@ -210,7 +210,7 @@ export default function Registration() {
                       'flex size-4 cursor-pointer overflow-clip rounded-lg border border-primary outline-primary focus-visible:outline focus-visible:outline-2',
                       isInvalid && 'border-red-700 text-red-500 outline-red-500',
                     )}
-                    data-testid="terms-of-service-checkbox"
+                    data-testid="privacy-policy-checkbox"
                     {...omit(register('agreedToPrivacyPolicy'), 'isInvalid')}
                   />
 
