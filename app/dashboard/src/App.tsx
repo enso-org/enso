@@ -80,8 +80,8 @@ import * as errorBoundary from '#/components/ErrorBoundary'
 import * as suspense from '#/components/Suspense'
 
 import AboutModal from '#/modals/AboutModal'
+import { AgreementsModal } from '#/modals/AgreementsModal'
 import * as setOrganizationNameModal from '#/modals/SetOrganizationNameModal'
-import * as termsOfServiceModal from '#/modals/TermsOfServiceModal'
 
 import LocalBackend from '#/services/LocalBackend'
 import ProjectManager, * as projectManager from '#/services/ProjectManager'
@@ -420,7 +420,7 @@ function AppRouter(props: AppRouterProps) {
       {/* Protected pages are visible to authenticated users. */}
       <router.Route element={<authProvider.NotDeletedUserLayout />}>
         <router.Route element={<authProvider.ProtectedLayout />}>
-          <router.Route element={<termsOfServiceModal.TermsOfServiceModal />}>
+          <router.Route element={<AgreementsModal />}>
             <router.Route element={<setOrganizationNameModal.SetOrganizationNameModal />}>
               <router.Route element={<openAppWatcher.OpenAppWatcher />}>
                 <router.Route
@@ -455,7 +455,7 @@ function AppRouter(props: AppRouterProps) {
         </router.Route>
       </router.Route>
 
-      <router.Route element={<termsOfServiceModal.TermsOfServiceModal />}>
+      <router.Route element={<AgreementsModal />}>
         <router.Route element={<authProvider.NotDeletedUserLayout />}>
           <router.Route path={appUtils.SETUP_PATH} element={<setup.Setup />} />
         </router.Route>

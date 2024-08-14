@@ -69,12 +69,12 @@ declare module '#/utilities/LocalStorage' {
 LocalStorage.registerKey('termsOfService', { schema: TOS_SCHEMA })
 LocalStorage.registerKey('privacyPolicy', { schema: PRIVACY_POLICY_SCHEMA })
 
-// ===========================
-// === TermsOfServiceModal ===
-// ===========================
+// =======================
+// === AgreementsModal ===
+// =======================
 
 /** Modal for accepting the terms of service. */
-export function TermsOfServiceModal() {
+export function AgreementsModal() {
   const { getText } = useText()
   const { localStorage } = useLocalStorage()
   const checkboxId = useId()

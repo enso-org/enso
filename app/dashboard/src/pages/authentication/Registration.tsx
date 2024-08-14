@@ -15,7 +15,7 @@ import Link from '#/components/Link'
 import {
   latestPrivacyPolicyQueryOptions,
   latestTermsOfServiceQueryOptions,
-} from '#/modals/TermsOfServiceModal'
+} from '#/modals/AgreementsModal'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
 import { useAuth } from '#/providers/AuthProvider'
