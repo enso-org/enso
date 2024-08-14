@@ -16,12 +16,14 @@
 - [Support for reading from Tableau Hyper files.][10733]
 - [Mixed Decimal/Float arithmetic now throws an error; mixed comparisons now
   attach warnings.][10725]
+- [Support for creating Atoms in expressions.][10820]
 
 [10614]: https://github.com/enso-org/enso/pull/10614
 [10660]: https://github.com/enso-org/enso/pull/10660
 [10761]: https://github.com/enso-org/enso/pull/10761
 [10733]: https://github.com/enso-org/enso/pull/10733
 [10725]: https://github.com/enso-org/enso/pull/10725
+[10820]: https://github.com/enso-org/enso/pull/10820
 
 # Enso 2023.3
 
