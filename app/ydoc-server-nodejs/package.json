@@ -11,9 +11,7 @@
   "scripts": {
     "compile": "node ./build.mjs build",
     "start": "node ./dist/main.mjs",
-    "dev": "corepack pnpm run /^^^^dev:/",
-    "dev:esbuild": "node ./build.mjs watch",
-    "dev:start": "nodemon --watch dist ./dist/main.mjs",
+    "dev:watch": "node ./build.mjs watch",
     "lint": "eslint .",
     "format": "prettier --version && prettier --write src/ && eslint . --fix"
   },
@@ -24,7 +22,6 @@
     "@types/node": "^20.11.21",
     "esbuild": "^0.23.0",
     "esbuild-plugin-wasm": "^1.1.0",
-    "nodemon": "^3.1.4",
     "typescript": "^5.5.3"
   }
 }
