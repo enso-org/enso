@@ -90,6 +90,7 @@ type DefineBackendMethods<T extends keyof Backend> = T
 
 /** Names of methods corresponding to mutations. */
 export type MutationMethod = DefineBackendMethods<
+  | 'acceptInvitation'
   | 'associateTag'
   | 'changeUserGroup'
   | 'closeProject'
@@ -103,6 +104,7 @@ export type MutationMethod = DefineBackendMethods<
   | 'createTag'
   | 'createUser'
   | 'createUserGroup'
+  | 'declineInvitation'
   | 'deleteAsset'
   | 'deleteDatalink'
   | 'deleteInvitation'

@@ -210,7 +210,7 @@
   "logs": "Logs",
   "showLogs": "Show Logs",
   "accept": "Accept",
-  "reject": "Reject",
+  "decline": "Decline",
   "clearTrash": "Clear Trash",
   "sharedWith": "Shared with",
   "editSecret": "Edit Secret",
