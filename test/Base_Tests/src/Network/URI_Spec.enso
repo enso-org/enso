@@ -128,7 +128,7 @@ add_specs suite_builder =
             uri.fragment.should_equal Nothing
 
         # We rely on the http-test-helper for these tests, to ensure that the encoding is indeed correctly interpreted by a real-life server:
-        group_builder.specify "should correctly handle various characters within the key and value of arguments" pending=pending_has_url <|
+        group_builder.specify "should correctly handle various characters within the key and value of arguments" pending=pending_has_url <| Test.with_retries <|
             base_uri = URI.parse base_url+"get"
 
             uri1 = base_uri . add_query_argument "a" "b"
@@ -166,7 +166,7 @@ add_specs suite_builder =
             r4 = uri4.fetch
             decode_query_params r4 . should_equal [["p+r", "b c"], ["p r", "b c"], ["🚀", "🚧"], ["śnieżnobiałą", "łąkę"], [s2, "zzz"]]
 
-        group_builder.specify "may allow duplicate keys in query parameters" pending=pending_has_url <|
+        group_builder.specify "may allow duplicate keys in query parameters" pending=pending_has_url <| Test.with_retries <|
             uri = URI.parse base_url+"get"
                 . add_query_argument "a" "b"
                 . add_query_argument "a" "c"
@@ -220,7 +220,7 @@ add_specs suite_builder =
             uri5 = uri4 / "b"
             uri5.path . should_equal "/get/a//b"
 
-        group_builder.specify "should allow various characters in the path" pending=pending_has_url <|
+        group_builder.specify "should allow various characters in the path" pending=pending_has_url <| Test.with_retries <|
             uri0 = URI.parse base_url+"get"
             uri1 = uri0 / "a b c" / "d+e" / "f%20g" / "ś🚧:@"
 
@@ -291,7 +291,7 @@ add_specs suite_builder =
 
         cloud_setup = Cloud_Tests_Setup.prepare
 
-        group_builder.specify "will not convert back to URI if secrets are present in the query arguments" pending=cloud_setup.pending <|
+        group_builder.specify "will not convert back to URI if secrets are present in the query arguments" pending=cloud_setup.pending <| Test.with_retries <|
             cloud_setup.with_prepared_environment <|
                 secret1 = Enso_Secret.create "my_test_secret-uri-1" "My Value"
                 secret1.should_succeed
