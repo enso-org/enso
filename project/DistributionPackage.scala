@@ -271,6 +271,19 @@ object DistributionPackage {
     log.info(s"Executing $enso ${args.mkString(" ")}")
     val pb  = new java.lang.ProcessBuilder()
     val all = new java.util.ArrayList[String]()
+    val disablePrivateCheck = {
+      val findRun = args.indexOf("--run")
+      if (findRun >= 0 && findRun + 1 < args.size) {
+        val whatToRun = args(findRun + 1)
+        if (whatToRun.startsWith("test/") && whatToRun.endsWith("_Tests")) {
+          whatToRun.contains("_Internal_")
+        } else {
+          false
+        }
+      } else {
+        false
+      }
+    }
     all.add(enso.getAbsolutePath())
     all.addAll(args.asJava)
     pb.command(all)
@@ -279,6 +292,9 @@ object DistributionPackage {
       pb.environment().put("JAVA_OPTS", "-ea " + WithDebugCommand.DEBUG_OPTION)
     } else {
       pb.environment().put("JAVA_OPTS", "-ea")
+    }
+    if (disablePrivateCheck) {
+      all.add("--disable-private-check")
     }
     pb.inheritIO()
     val p        = pb.start()

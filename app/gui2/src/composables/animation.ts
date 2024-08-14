@@ -63,6 +63,7 @@ export function useRaf(
     },
     { immediate: true },
   )
+  console.log('onScopeDispose(unmountRaf)?')
   onScopeDispose(unmountRaf)
 }
 

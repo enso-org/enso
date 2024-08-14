@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Dry_Run_Operation
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
 import Standard.Base.Runtime.Context as Execution_Context
@@ -18,7 +19,9 @@ import project.DB_Table as DB_Table_Module
 import project.DB_Table.DB_Table
 import project.Dialect.Dialect
 import project.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
+import project.Internal.DDL_Transaction
 import project.Internal.Hidden_Table_Registry
+import project.Internal.In_Transaction.In_Transaction
 import project.Internal.IR.Context.Context
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Query.Query
@@ -373,6 +376,7 @@ type Connection
         Execution_Context.Output.if_enabled disabled_message="Executing update queries is forbidden as the Output context is disabled." panic=False <|
             statement_setter = self.dialect.get_statement_setter
             self.jdbc_connection.with_prepared_statement query statement_setter stmt->
+                check_statement_is_allowed self stmt
                 result = case self.supports_large_update.get of
                     True -> Panic.catch UnsupportedOperationException stmt.executeLargeUpdate _->
                         self.supports_large_update.put False
@@ -380,6 +384,24 @@ type Connection
                     False -> stmt.executeUpdate
                 SQL_Warning_Helper.process_warnings stmt <|
                     result
+
+    ## PRIVATE
+       ADVANCED
+
+       Executes a raw query. If the query was inserting, updating or
+       deleting rows, the number of affected rows is returned; otherwise it
+       returns 0 for other types of queries (like creating or altering tables).
+
+       Arguments:
+       - query: either raw SQL code as Text or an instance of SQL_Statement
+         representing the query to execute.
+    execute : Text | SQL_Statement -> Integer
+    execute self query =
+        Execution_Context.Output.if_enabled disabled_message="Executing update queries is forbidden as the Output context is disabled." panic=False <|
+            result = self.jdbc_connection.execute query
+            stmt = result.second
+            check_statement_is_allowed self stmt
+            stmt.getUpdateCount
 
     ## PRIVATE
        Drops a table.
@@ -515,3 +537,17 @@ make_table_for_name connection name alias internal_temporary_keep_alive_referenc
         DB_Table_Module.make_table connection name columns ctx on_problems=Problem_Behavior.Report_Warning
     result.catch SQL_Error sql_error->
         Error.throw (Table_Not_Found.Error name sql_error treated_as_query=False extra_message="")
+
+## PRIVATE
+private check_statement_is_allowed connection stmt =
+    trimmed = stmt.to_text.trim.to_case ..Lower
+    is_ddl_regex = "\s*(?:create|alter|drop).*".to_regex case_insensitive=True
+    is_ddl = is_ddl_regex.matches trimmed
+    if is_ddl && In_Transaction.is_in_transaction then
+        support_level = DDL_Transaction.Support_Level.get_from connection
+        if support_level != DDL_Transaction.Support_Level.Allowed then
+            message = case support_level of
+                DDL_Transaction.Support_Level.Unsupported -> "This Database does not allow DDL statements inside of transactions."
+                DDL_Transaction.Support_Level.Ignored -> "This Database ignores DDL statements inside of transactions, please execute such statements outside of a transaction."
+                DDL_Transaction.Support_Level.Causes_Commit -> "This Database commits open transactions when DDL statements are executed. To prevent from accidentally committing an unfinished transaction, the execution was blocked."
+            Panic.throw (Illegal_State.Error message)

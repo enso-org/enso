@@ -93,7 +93,7 @@ class DataflowErrorsTest extends InterpreterTest {
           |
           |main =
           |    myErr = Error.throw (My_Error.Mk_My_Error 20)
-          |    IO.println(myErr.catch_primitive .recover)
+          |    IO.println (myErr.catch_primitive .recover)
           |""".stripMargin
       eval(code)
       consumeOut shouldEqual List("(Mk_My_Recovered 20)")

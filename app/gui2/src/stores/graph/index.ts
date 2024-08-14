@@ -28,16 +28,6 @@ import { normalizeQualifiedName, tryQualifiedName } from '@/util/qualifiedName'
 import { computedAsync } from '@vueuse/core'
 import { map, set } from 'lib0'
 import { iteratorFilter } from 'lib0/iterator'
-import { SourceDocument } from 'shared/ast/sourceDocument'
-import type { ExpressionUpdate, Path as LsPath, MethodPointer } from 'shared/languageServerTypes'
-import { reachable } from 'shared/util/data/graph'
-import type {
-  LocalUserActionOrigin,
-  Origin,
-  SourceRangeKey,
-  VisualizationMetadata,
-} from 'shared/yjsModel'
-import { defaultLocalOrigin, sourceRangeKey, visMetadataEquals } from 'shared/yjsModel'
 import {
   computed,
   markRaw,
@@ -50,6 +40,20 @@ import {
   type Ref,
   type ShallowRef,
 } from 'vue'
+import { SourceDocument } from 'ydoc-shared/ast/sourceDocument'
+import type {
+  ExpressionUpdate,
+  Path as LsPath,
+  MethodPointer,
+} from 'ydoc-shared/languageServerTypes'
+import { reachable } from 'ydoc-shared/util/data/graph'
+import type {
+  LocalUserActionOrigin,
+  Origin,
+  SourceRangeKey,
+  VisualizationMetadata,
+} from 'ydoc-shared/yjsModel'
+import { defaultLocalOrigin, sourceRangeKey, visMetadataEquals } from 'ydoc-shared/yjsModel'
 
 const FALLBACK_BINDING_PREFIX = 'node'
 

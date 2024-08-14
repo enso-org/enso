@@ -26,7 +26,7 @@ export interface UseFieldOptions<
     TTransformedValues
   > {
   readonly name: TFieldName
-  readonly isDisabled?: boolean
+  readonly isDisabled?: boolean | undefined
   // eslint-disable-next-line no-restricted-syntax
   readonly defaultValue?: TFieldValues[TFieldName] | undefined
 }

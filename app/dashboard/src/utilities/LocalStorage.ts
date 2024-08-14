@@ -5,33 +5,12 @@ import * as common from 'enso-common'
 
 import * as object from '#/utilities/object'
 
-// ====================
-// === LocalStorage ===
-// ====================
+// ===============================
+// === LocalStorageKeyMetadata ===
+// ===============================
 
 /** Metadata describing runtime behavior associated with a {@link LocalStorageKey}. */
-export type LocalStorageKeyMetadata<K extends LocalStorageKey> =
-  | LocalStorageKeyMetadataWithParseFunction<K>
-  | LocalStorageKeyMetadataWithSchema<K>
-
-/**
- * A {@link LocalStorageKeyMetadata} with a `tryParse` function.
- */
-interface LocalStorageKeyMetadataWithParseFunction<K extends LocalStorageKey> {
-  readonly isUserSpecific?: boolean
-  /**
-   * A function to parse a value from the stored data.
-   * If this is provided, the value will be parsed using this function.
-   * If this is not provided, the value will be parsed using the `schema`.
-   */
-  readonly tryParse: (value: unknown) => LocalStorageData[K] | null
-  readonly schema?: never
-}
-
-/**
- * A {@link LocalStorageKeyMetadata} with a `schema`.
- */
-interface LocalStorageKeyMetadataWithSchema<K extends LocalStorageKey> {
+export interface LocalStorageKeyMetadata<K extends LocalStorageKey> {
   readonly isUserSpecific?: boolean
   /**
    * The Zod schema to validate the value.
@@ -39,15 +18,35 @@ interface LocalStorageKeyMetadataWithSchema<K extends LocalStorageKey> {
    * If this is not provided, the value will be parsed using the `tryParse` function.
    */
   readonly schema: z.ZodType<LocalStorageData[K]>
-  readonly tryParse?: never
 }
+
+// ========================
+// === LocalStorageData ===
+// ========================
 
 /** The data that can be stored in a {@link LocalStorage}.
  * Declaration merge into this interface to add a new key. */
 export interface LocalStorageData {}
 
+// =======================
+// === LocalStorageKey ===
+// =======================
+
 /** All possible keys of a {@link LocalStorage}. */
 type LocalStorageKey = keyof LocalStorageData
+
+// =================================
+// === LocalStorageMutateOptions ===
+// =================================
+
+/** Options for methods that mutate `localStorage` state (set, delete, and save). */
+export interface LocalStorageMutateOptions {
+  readonly triggerRerender?: boolean
+}
+
+// ====================
+// === LocalStorage ===
+// ====================
 
 /** A LocalStorage data manager. */
 export default class LocalStorage {
@@ -68,10 +67,7 @@ export default class LocalStorage {
           // This is SAFE, as it is guarded by the `key in savedValues` check.
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, no-restricted-syntax, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
           const savedValue = (savedValues as any)[key]
-          const value =
-            metadata.schema ?
-              metadata.schema.safeParse(savedValue).data
-            : metadata.tryParse(savedValue)
+          const value = metadata.schema.safeParse(savedValue).data
           if (value != null) {
             newValues[key] = value
           }
@@ -95,18 +91,22 @@ export default class LocalStorage {
   }
 
   /** Write an entry to the stored data, and save. */
-  set<K extends LocalStorageKey>(key: K, value: LocalStorageData[K]) {
+  set<K extends LocalStorageKey>(
+    key: K,
+    value: LocalStorageData[K],
+    options?: LocalStorageMutateOptions,
+  ) {
     this.values[key] = value
-    this.save()
+    this.save(options)
   }
 
   /** Delete an entry from the stored data, and save. */
-  delete<K extends LocalStorageKey>(key: K) {
+  delete<K extends LocalStorageKey>(key: K, options?: LocalStorageMutateOptions) {
     const oldValue = this.values[key]
     // The key being deleted is one of a statically known set of keys.
     // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete this.values[key]
-    this.save()
+    this.save(options)
     return oldValue
   }
 
@@ -120,8 +120,11 @@ export default class LocalStorage {
   }
 
   /** Save the current value of the stored data.. */
-  protected save() {
+  protected save(options: LocalStorageMutateOptions = {}) {
+    const { triggerRerender = false } = options
     localStorage.setItem(this.localStorageKey, JSON.stringify(this.values))
-    this.triggerRerender()
+    if (triggerRerender) {
+      this.triggerRerender()
+    }
   }
 }

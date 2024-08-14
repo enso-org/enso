@@ -2,6 +2,7 @@
 import * as React from 'react'
 
 import * as router from 'react-router-dom'
+import * as z from 'zod'
 
 import AtIcon from '#/assets/at.svg'
 import CreateAccountIcon from '#/assets/create_account.svg'
@@ -21,7 +22,6 @@ import Input from '#/components/Input'
 import Link from '#/components/Link'
 import SubmitButton from '#/components/SubmitButton'
 
-import * as eventModule from '#/utilities/event'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as string from '#/utilities/string'
 import * as validation from '#/utilities/validation'
@@ -39,7 +39,7 @@ declare module '#/utilities/LocalStorage' {
 
 LocalStorage.registerKey('loginRedirect', {
   isUserSpecific: true,
-  tryParse: (value) => (typeof value === 'string' ? value : null),
+  schema: z.string(),
 })
 
 // ====================
@@ -124,12 +124,7 @@ export default function Registration() {
         value={confirmPassword}
         setValue={setConfirmPassword}
       />
-      <SubmitButton
-        isDisabled={isSubmitting}
-        text={getText('register')}
-        icon={CreateAccountIcon}
-        onPress={eventModule.submitForm}
-      />
+      <SubmitButton isDisabled={isSubmitting} text={getText('register')} icon={CreateAccountIcon} />
     </AuthenticationPage>
   )
 }

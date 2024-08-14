@@ -162,7 +162,7 @@ type JS_Object
         JS_Object.Value object_node (make_field_names object_node)
 
     ## PRIVATE
-       Creates a Jackon_Object from a list of key-value pairs.
+       Creates a Jackson_Object from a list of key-value pairs.
        Keys must be `Text` values.
        Values will be recursively converted to JSON serializable as needed.
     from_pairs : Vector -> JS_Object

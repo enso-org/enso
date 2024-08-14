@@ -1,11 +1,11 @@
 /** @file A modal with inputs for user email and permission level. */
 import * as React from 'react'
 
-import * as reactQuery from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import * as toast from 'react-toastify'
 import isEmail from 'validator/es/lib/isEmail'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import { backendMutationOptions } from '#/hooks/backendHooks'
 import * as billingHooks from '#/hooks/billing'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -70,14 +70,14 @@ export default function ManagePermissionsModal<
   const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
   const isUnderPaywall = isFeatureUnderPaywall('shareFull')
 
-  const listedUsers = reactQuery.useQuery({
+  const listedUsers = useQuery({
     queryKey: ['listUsers'],
     queryFn: () => remoteBackend.listUsers(),
     enabled: !isUnderPaywall,
     select: (data) => (isUnderPaywall ? [] : data),
   })
 
-  const listedUserGroups = reactQuery.useQuery({
+  const listedUserGroups = useQuery({
     queryKey: ['listUserGroups'],
     queryFn: () => remoteBackend.listUserGroups(),
   })
@@ -122,10 +122,9 @@ export default function ManagePermissionsModal<
     [user.userId, permissions, self.permission],
   )
 
-  const inviteUserMutation = backendHooks.useBackendMutation(remoteBackend, 'inviteUser')
-  const createPermissionMutation = backendHooks.useBackendMutation(
-    remoteBackend,
-    'createPermission',
+  const inviteUserMutation = useMutation(backendMutationOptions(remoteBackend, 'inviteUser'))
+  const createPermissionMutation = useMutation(
+    backendMutationOptions(remoteBackend, 'createPermission'),
   )
 
   React.useEffect(() => {
@@ -178,12 +177,7 @@ export default function ManagePermissionsModal<
         setUserAndUserGroups([])
         setEmail('')
         if (email != null) {
-          await inviteUserMutation.mutateAsync([
-            {
-              organizationId: user.organizationId,
-              userEmail: backendModule.EmailAddress(email),
-            },
-          ])
+          await inviteUserMutation.mutateAsync([{ userEmail: backendModule.EmailAddress(email) }])
           toast.toast.success(getText('inviteSuccess', email))
         }
       } catch (error) {
@@ -322,7 +316,7 @@ export default function ManagePermissionsModal<
                     assetType={item.type}
                     onChange={setAction}
                   />
-                  <div className="-mx-button-px grow">
+                  <div className="grow">
                     <Autocomplete
                       multiple
                       autoFocus

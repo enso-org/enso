@@ -22,7 +22,7 @@ import {
   COMMAND_PRIORITY_LOW,
   TextNode,
 } from 'lexical'
-import { assert } from 'shared/util/assert'
+import { assert } from 'ydoc-shared/util/assert'
 
 type ChangeHandler = (url: string | null, prevUrl: string | null) => void
 

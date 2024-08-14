@@ -18,6 +18,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         /** The default color of all text. */
         // This should be named "regular".
         primary: 'rgb(0 0 0 / 60%)',
+        invert: 'rgb(255 255 255 / 80%)',
         accent: '#499f4b',
         'accent-dark': '#3e9152',
         'hover-bg': 'rgb(0 0 0 / 10%)',
@@ -180,7 +181,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'chat-thread-list': 'var(--chat-thread-list-height)',
         'payment-form': 'var(--payment-form-height)',
         'paragraph-input': 'var(--paragraph-input-height)',
-        'autocomplete-suggestions': 'var(--autocomplete-suggestions-height)',
         'dropdown-items': 'var(--dropdown-items-height)',
         'manage-permissions-modal-permissions-list':
           'var(--manage-permissions-modal-permissions-list-height)',

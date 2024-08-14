@@ -1,9 +1,9 @@
 /** @file Settings tab for viewing and editing organization members. */
 import * as React from 'react'
 
-import * as reactQuery from '@tanstack/react-query'
+import { useMutation, useSuspenseQueries } from '@tanstack/react-query'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import { backendMutationOptions } from '#/hooks/backendHooks'
 import * as billingHooks from '#/hooks/billing'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -36,7 +36,7 @@ export default function MembersSettingsSection() {
 
   const { isFeatureUnderPaywall, getFeature } = billingHooks.usePaywall({ plan: user.plan })
 
-  const [{ data: members }, { data: invitations }] = reactQuery.useSuspenseQueries({
+  const [{ data: members }, { data: invitations }] = useSuspenseQueries({
     queries: [
       {
         queryKey: ['listUsers'],
@@ -57,30 +57,37 @@ export default function MembersSettingsSection() {
   const seatsLeft =
     isUnderPaywall ? feature.meta.maxSeats - (members.length + invitations.length) : null
   const seatsTotal = feature.meta.maxSeats
+  const isAdmin = user.isOrganizationAdmin
 
   return (
     <>
-      <ariaComponents.ButtonGroup>
-        <ariaComponents.DialogTrigger>
-          <ariaComponents.Button variant="bar" rounded="full" size="medium">
-            {getText('inviteMembers')}
-          </ariaComponents.Button>
+      {isAdmin && (
+        <ariaComponents.ButtonGroup>
+          <ariaComponents.DialogTrigger>
+            <ariaComponents.Button variant="bar" rounded="full" size="medium">
+              {getText('inviteMembers')}
+            </ariaComponents.Button>
 
-          <InviteUsersModal />
-        </ariaComponents.DialogTrigger>
+            <InviteUsersModal />
+          </ariaComponents.DialogTrigger>
 
-        {seatsLeft != null && (
-          <div className="flex items-center gap-1">
-            <ariaComponents.Text>
-              {seatsLeft <= 0 ?
-                getText('noSeatsLeft')
-              : getText('seatsLeft', seatsLeft, seatsTotal)}
-            </ariaComponents.Text>
+          {seatsLeft != null && (
+            <div className="flex items-center gap-1">
+              <ariaComponents.Text>
+                {seatsLeft <= 0 ?
+                  getText('noSeatsLeft')
+                : getText('seatsLeft', seatsLeft, seatsTotal)}
+              </ariaComponents.Text>
 
-            <paywall.PaywallDialogButton feature="inviteUserFull" variant="link" showIcon={false} />
-          </div>
-        )}
-      </ariaComponents.ButtonGroup>
+              <paywall.PaywallDialogButton
+                feature="inviteUserFull"
+                variant="link"
+                showIcon={false}
+              />
+            </div>
+          )}
+        </ariaComponents.ButtonGroup>
+      )}
 
       <table className="table-fixed self-start rounded-rows">
         <thead>
@@ -103,9 +110,11 @@ export default function MembersSettingsSection() {
               <td className="border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
                 <div className="flex flex-col">
                   {getText('active')}
-                  <ariaComponents.ButtonGroup gap="small" className="mt-0.5">
-                    <RemoveMemberButton backend={backend} userId={member.userId} />
-                  </ariaComponents.ButtonGroup>
+                  {member.email !== user.email && isAdmin && (
+                    <ariaComponents.ButtonGroup gap="small" className="mt-0.5">
+                      <RemoveMemberButton backend={backend} userId={member.userId} />
+                    </ariaComponents.ButtonGroup>
+                  )}
                 </div>
               </td>
             </tr>
@@ -118,20 +127,23 @@ export default function MembersSettingsSection() {
               <td className="border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
                 <div className="flex flex-col">
                   {getText('pendingInvitation')}
-                  <ariaComponents.ButtonGroup gap="small" className="mt-0.5">
-                    <ariaComponents.CopyButton
-                      size="custom"
-                      copyText={`enso://auth/registration?organization_id=${invitation.organizationId}`}
-                      aria-label={getText('copyInviteLink')}
-                      copyIcon={false}
-                    >
-                      {getText('copyInviteLink')}
-                    </ariaComponents.CopyButton>
+                  {isAdmin && (
+                    <ariaComponents.ButtonGroup gap="small" className="mt-0.5">
+                      <ariaComponents.CopyButton
+                        size="custom"
+                        // eslint-disable-next-line @typescript-eslint/naming-convention
+                        copyText={`enso://auth/registration?=${new URLSearchParams({ organization_id: invitation.organizationId }).toString()}`}
+                        aria-label={getText('copyInviteLink')}
+                        copyIcon={false}
+                      >
+                        {getText('copyInviteLink')}
+                      </ariaComponents.CopyButton>
 
-                    <ResendInvitationButton invitation={invitation} backend={backend} />
+                      <ResendInvitationButton invitation={invitation} backend={backend} />
 
-                    <RemoveInvitationButton backend={backend} email={invitation.userEmail} />
-                  </ariaComponents.ButtonGroup>
+                      <RemoveInvitationButton backend={backend} email={invitation.userEmail} />
+                    </ariaComponents.ButtonGroup>
+                  )}
                 </div>
               </td>
             </tr>
@@ -157,10 +169,11 @@ function ResendInvitationButton(props: ResendInvitationButtonProps) {
   const { invitation, backend } = props
 
   const { getText } = textProvider.useText()
-  const resendMutation = reactQuery.useMutation({
-    mutationKey: ['resendInvitation', invitation.userEmail],
-    mutationFn: (email: backendModule.EmailAddress) => backend.resendInvitation(email),
-  })
+  const resendMutation = useMutation(
+    backendMutationOptions(backend, 'resendInvitation', {
+      mutationKey: [invitation.userEmail],
+    }),
+  )
 
   return (
     <ariaComponents.Button
@@ -168,7 +181,7 @@ function ResendInvitationButton(props: ResendInvitationButtonProps) {
       size="custom"
       loading={resendMutation.isPending}
       onPress={() => {
-        resendMutation.mutate(invitation.userEmail)
+        resendMutation.mutate([invitation.userEmail])
       }}
     >
       {getText('resend')}
@@ -191,10 +204,12 @@ function RemoveMemberButton(props: RemoveMemberButtonProps) {
   const { backend, userId } = props
   const { getText } = textProvider.useText()
 
-  const removeMutation = backendHooks.useBackendMutation(backend, 'removeUser', {
-    mutationKey: [userId],
-    meta: { invalidates: [['listUsers']], awaitInvalidates: true },
-  })
+  const removeMutation = useMutation(
+    backendMutationOptions(backend, 'removeUser', {
+      mutationKey: [userId],
+      meta: { invalidates: [['listUsers']], awaitInvalidates: true },
+    }),
+  )
 
   return (
     <ariaComponents.Button
@@ -223,10 +238,12 @@ function RemoveInvitationButton(props: RemoveInvitationButtonProps) {
 
   const { getText } = textProvider.useText()
 
-  const removeMutation = backendHooks.useBackendMutation(backend, 'resendInvitation', {
-    mutationKey: [email],
-    meta: { invalidates: [['listInvitations']], awaitInvalidates: true },
-  })
+  const removeMutation = useMutation(
+    backendMutationOptions(backend, 'deleteInvitation', {
+      mutationKey: [email],
+      meta: { invalidates: [['listInvitations']], awaitInvalidates: true },
+    }),
+  )
 
   return (
     <ariaComponents.Button

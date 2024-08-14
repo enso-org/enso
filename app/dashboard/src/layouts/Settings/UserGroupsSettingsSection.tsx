@@ -1,9 +1,15 @@
 /** @file Settings tab for viewing and editing roles for all users in the organization. */
 import * as React from 'react'
 
+import { useMutation } from '@tanstack/react-query'
+
 import * as mimeTypes from '#/data/mimeTypes'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import {
+  backendMutationOptions,
+  useListUserGroupsWithUsers,
+  useListUsers,
+} from '#/hooks/backendHooks'
 import * as billingHooks from '#/hooks/billing'
 import * as scrollHooks from '#/hooks/scrollHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -43,17 +49,22 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
   const { getText } = textProvider.useText()
   const { user } = authProvider.useFullUserSession()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const users = backendHooks.useBackendListUsers(backend)
-  const userGroups = backendHooks.useBackendListUserGroupsWithUsers(backend)
+  const users = useListUsers(backend)
+  const userGroups = useListUserGroupsWithUsers(backend)
   const rootRef = React.useRef<HTMLDivElement>(null)
   const bodyRef = React.useRef<HTMLTableSectionElement>(null)
-  const changeUserGroup = backendHooks.useBackendMutation(backend, 'changeUserGroup')
-  const deleteUserGroup = backendHooks.useBackendMutation(backend, 'deleteUserGroup')
+  const changeUserGroup = useMutation(
+    backendMutationOptions(backend, 'changeUserGroup'),
+  ).mutateAsync
+  const deleteUserGroup = useMutation(
+    backendMutationOptions(backend, 'deleteUserGroup'),
+  ).mutateAsync
   const usersMap = React.useMemo(
     () => new Map((users ?? []).map((otherUser) => [otherUser.userId, otherUser])),
     [users],
   )
   const isLoading = userGroups == null || users == null
+  const isAdmin = user.isOrganizationAdmin
 
   const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
 
@@ -65,6 +76,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
     scrollHooks.useStickyTableHeaderOnScroll(rootRef, bodyRef, { trackShadowClass: true })
 
   const { dragAndDropHooks } = aria.useDragAndDrop({
+    isDisabled: !isAdmin,
     getDropOperation: (target, types, allowedOperations) =>
       (
         allowedOperations.includes('copy') &&
@@ -88,7 +100,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
               if (!groups.includes(userGroupId)) {
                 try {
                   const newUserGroups = [...groups, userGroupId]
-                  await changeUserGroup.mutateAsync([
+                  await changeUserGroup([
                     newUser.userId,
                     { userGroups: newUserGroups },
                     newUser.name,
@@ -106,7 +118,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
 
   const doDeleteUserGroup = async (userGroup: backendModule.UserGroupInfo) => {
     try {
-      await deleteUserGroup.mutateAsync([userGroup.id, userGroup.groupName])
+      await deleteUserGroup([userGroup.id, userGroup.groupName])
     } catch (error) {
       toastAndLog('deleteUserGroupError', error, userGroup.groupName)
     }
@@ -120,11 +132,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
       const intermediateUserGroups =
         otherUser.userGroups?.filter((userGroupId) => userGroupId !== userGroup.id) ?? null
       const newUserGroups = intermediateUserGroups?.length === 0 ? null : intermediateUserGroups
-      await changeUserGroup.mutateAsync([
-        otherUser.userId,
-        { userGroups: newUserGroups ?? [] },
-        otherUser.name,
-      ])
+      await changeUserGroup([otherUser.userId, { userGroups: newUserGroups ?? [] }, otherUser.name])
     } catch (error) {
       toastAndLog('removeUserFromUserGroupError', error, otherUser.name, userGroup.groupName)
     }
@@ -132,41 +140,43 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
 
   return (
     <>
-      <ariaComponents.ButtonGroup verticalAlign="center">
-        {shouldDisplayPaywall && (
-          <paywallComponents.PaywallDialogButton
-            feature="userGroupsFull"
-            variant="bar"
-            size="medium"
-            rounded="full"
-            iconPosition="end"
-            tooltip={getText('userGroupsPaywallMessage')}
-          >
-            {getText('newUserGroup')}
-          </paywallComponents.PaywallDialogButton>
-        )}
-        {!shouldDisplayPaywall && (
-          <ariaComponents.Button
-            size="medium"
-            variant="bar"
-            onPress={(event) => {
-              const rect = event.target.getBoundingClientRect()
-              const position = { pageX: rect.left, pageY: rect.top }
-              setModal(<NewUserGroupModal backend={backend} event={position} />)
-            }}
-          >
-            {getText('newUserGroup')}
-          </ariaComponents.Button>
-        )}
+      {isAdmin && (
+        <ariaComponents.ButtonGroup verticalAlign="center">
+          {shouldDisplayPaywall && (
+            <paywallComponents.PaywallDialogButton
+              feature="userGroupsFull"
+              variant="bar"
+              size="medium"
+              rounded="full"
+              iconPosition="end"
+              tooltip={getText('userGroupsPaywallMessage')}
+            >
+              {getText('newUserGroup')}
+            </paywallComponents.PaywallDialogButton>
+          )}
+          {!shouldDisplayPaywall && (
+            <ariaComponents.Button
+              size="medium"
+              variant="bar"
+              onPress={(event) => {
+                const rect = event.target.getBoundingClientRect()
+                const position = { pageX: rect.left, pageY: rect.top }
+                setModal(<NewUserGroupModal backend={backend} event={position} />)
+              }}
+            >
+              {getText('newUserGroup')}
+            </ariaComponents.Button>
+          )}
 
-        {isUnderPaywall && (
-          <span className="text-xs">
-            {userGroupsLeft <= 0 ?
-              getText('userGroupsPaywallMessage')
-            : getText('userGroupsLimitMessage', userGroupsLeft)}
-          </span>
-        )}
-      </ariaComponents.ButtonGroup>
+          {isUnderPaywall && (
+            <span className="text-xs">
+              {userGroupsLeft <= 0 ?
+                getText('userGroupsPaywallMessage')
+              : getText('userGroupsLimitMessage', userGroupsLeft)}
+            </span>
+          )}
+        </ariaComponents.ButtonGroup>
+      )}
       <div
         ref={rootRef}
         className={tailwindMerge.twMerge(
