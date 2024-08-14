@@ -16,7 +16,9 @@ export function InvitedToOrganizationModal() {
   const { user } = useFullUserSession()
   const shouldDisplay = user.newOrganizationName != null && user.newOrganizationInvite != null
 
-  if (shouldDisplay) {
+  if (!shouldDisplay) {
+    return <router.Outlet context={session} />
+  } else {
     const status = user.newOrganizationInvite
     const statusMessage = (() => {
       switch (status) {
@@ -40,7 +42,5 @@ export function InvitedToOrganizationModal() {
         <span>{statusMessage}</span>
       </Dialog>
     )
-  } else {
-    return <router.Outlet context={session} />
   }
 }
