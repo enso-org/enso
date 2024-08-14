@@ -5,7 +5,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Database.Connection.Connection_Options.Connection_Options
 import Standard.Database.Connection.Credentials.Credentials
 
-import project.Internal.Snowflake_Connection.Snowflake_Connection
+import project.Snowflake_Connection.Snowflake_Connection
 
 polyglot java import net.snowflake.client.jdbc.SnowflakeDriver
 

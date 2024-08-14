@@ -63,7 +63,7 @@ pub trait Program: Sized + 'static {
     ///
     /// The lookup locations are program-defined, they typically include Path environment variable
     /// and program-specific default locations.
-    fn lookup(&self) -> anyhow::Result<Location<Self>> {
+    fn lookup(&self) -> Result<Location<Self>> {
         Resolver::<Self>::new(self.executable_names(), self.default_locations())?
             .lookup()
             .map(Location::new)
@@ -112,7 +112,7 @@ pub trait Program: Sized + 'static {
     }
 
     fn handle_exit_status(status: std::process::ExitStatus) -> Result {
-        status.exit_ok().anyhow_err()
+        Ok(status.exit_ok()?)
     }
 
     /// Command that prints to stdout the version of given program.

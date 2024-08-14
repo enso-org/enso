@@ -11,7 +11,6 @@ use crate::source::Source;
 use crate::source::WatchTargetJob;
 use crate::source::WithDestination;
 
-use derivative::Derivative;
 use ide_ci::actions::artifacts;
 use ide_ci::cache;
 use ide_ci::cache::Cache;
@@ -46,13 +45,13 @@ pub fn path_to_extract() -> Option<PathBuf> {
 pub trait IsArtifact: Clone + AsRef<Path> + Debug + Sized + Send + Sync + 'static {}
 
 /// Plain artifact is just a folder with... things.
-#[derive(Clone, Derivative)]
-#[derivative(Debug)]
+#[derive(Clone)]
+#[derive_where(Debug)]
 pub struct PlainArtifact<T> {
     /// Directory path.
     pub path:    PathBuf,
     /// Phantom, so we can tell artifacts of different projects apart.
-    #[derivative(Debug = "ignore")]
+    #[derive_where(skip)]
     pub phantom: PhantomData<T>,
 }
 
@@ -71,24 +70,25 @@ impl<T> PlainArtifact<T> {
 }
 
 /// State available to all project-related operations.
-#[derive(Clone, Derivative)]
-#[derivative(Debug)]
+#[derive(Clone)]
+#[derive_where(Debug)]
 pub struct Context {
     /// GitHub API client.
     ///
     /// If authenticated, it will count API rate limits against our identity and allow operations
     /// like managing releases or downloading CI run artifacts.
-    #[derivative(Debug = "ignore")]
+    #[derive_where(skip)]
     pub octocrab: Octocrab,
 
     /// Stores things like downloaded release assets to save time.
+    #[derive_where(skip)]
     pub cache: Cache,
 
     /// Directory being an `enso` repository's working copy.
     ///
     /// The directory is not required to be a git repository. It is allowed to use source tarballs
     /// as well.
-    #[derivative(Debug(format_with = "std::fmt::Display::fmt"))]
+    #[derive_where(skip)]
     pub repo_root: crate::paths::generated::RepoRoot,
 }
 
@@ -314,7 +314,8 @@ pub trait ProcessWrapper {
         ide_ci::extensions::child::ChildExt::wait_ok(self.inner()).boxed()
     }
     fn kill(&mut self) -> BoxFuture<Result> {
-        self.inner().kill().anyhow_err().boxed()
+        let f = self.inner().kill();
+        async { Ok(f.await?) }.boxed()
     }
 }
 

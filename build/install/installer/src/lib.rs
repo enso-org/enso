@@ -1,8 +1,5 @@
 //! This crate implements the Windows installer for the Enso IDE.
 
-// === Features ===
-#![feature(lazy_cell)]
-
 use enso_install::prelude::*;
 
 use enso_install::access_built_time_env;

@@ -25,8 +25,8 @@ import {
 } from '@/util/callTree'
 import { partitionPoint } from '@/util/data/array'
 import { isIdentifier } from '@/util/qualifiedName.ts'
-import { methodPointerEquals, type MethodPointer } from 'shared/languageServerTypes'
 import { computed, proxyRefs } from 'vue'
+import { methodPointerEquals, type MethodPointer } from 'ydoc-shared/languageServerTypes'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()

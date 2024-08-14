@@ -6,36 +6,16 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import org.enso.common.MethodNames;
-import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class SignatureTest {
-  private static Context ctx;
-
-  @BeforeClass
-  public static void prepareCtx() {
-    ctx =
-        ContextUtils.defaultContextBuilder()
-            .out(OutputStream.nullOutputStream())
-            .err(OutputStream.nullOutputStream())
-            .build();
-  }
-
-  @AfterClass
-  public static void disposeCtx() {
-    ctx.close();
-  }
+public class SignatureTest extends ContextTest {
 
   @Test
   public void wrongFunctionSignature() throws Exception {

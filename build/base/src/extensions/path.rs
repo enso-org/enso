@@ -62,20 +62,7 @@ pub trait PathExt: AsRef<Path> {
     fn write_as_json<T: Serialize>(&self, value: &T) -> Result {
         trace!("Writing JSON to {}.", self.as_ref().display());
         let file = crate::fs::create(self)?;
-        serde_json::to_writer(file, value).anyhow_err()
-    }
-
-    /// Parse this file's contents as a YAML-serialized value.
-    fn read_to_yaml<T: DeserializeOwned>(&self) -> Result<T> {
-        let content = crate::fs::read_to_string(self)?;
-        serde_yaml::from_str(&content).anyhow_err()
-    }
-
-    /// Write this file with a YAML-serialized value.
-    fn write_as_yaml<T: Serialize>(&self, value: &T) -> Result {
-        trace!("Writing YAML to {}.", self.as_ref().display());
-        let file = crate::fs::create(self)?;
-        serde_yaml::to_writer(file, value).anyhow_err()
+        Ok(serde_json::to_writer(file, value)?)
     }
 
     /// Get the path as `str`.
@@ -162,25 +149,6 @@ pub trait PathExt: AsRef<Path> {
 }
 
 impl<T: AsRef<Path>> PathExt for T {}
-
-/// A method that outputs a path to a formatter using [`Path::display`].
-///
-/// This is useful in combination with macros like `Derivative`, as demonstrated in the example
-/// below.
-///
-/// # Example
-/// ```ignore
-/// #[derive(Derivative)]
-/// #[derivative(Debug)]
-/// pub struct Foo {
-///    #[derivative(Debug(format_with = "display_fmt"))]
-///    path: PathBuf,
-/// }
-/// ```
-pub fn display_fmt(path: &Path, f: &mut Formatter) -> std::fmt::Result {
-    Display::fmt(&path.display(), f)
-}
-
 
 /// A result of splitting a path into its filename components.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

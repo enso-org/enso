@@ -19,8 +19,7 @@ public class IRDumpTest {
     System.setProperty(IRDumper.SYSTEM_PROP, "true");
     try (var ctx = ContextUtils.defaultContextBuilder().out(out).build()) {
       // Dumping is done in the compiler, so it is enough just to compile the module
-      var moduleIr =
-          ContextUtils.compileModule(ctx, """
+      ContextUtils.compileModule(ctx, """
           main = 42
           """, "MyMainModule");
       assertThat(
@@ -39,6 +38,7 @@ public class IRDumpTest {
       } catch (IOException e) {
         // Ignore. The ir-dumps directory should be deleted eventually.
       }
+      out.reset();
     }
   }
 }

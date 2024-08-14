@@ -9,43 +9,6 @@ use serde::Serializer;
 
 
 
-// ==============
-// === VecOps ===
-// ==============
-
-pub trait VecOps<T>: AsMut<Vec<T>> + Sized {
-    /// Pop and return the last element, if the vector is non-empty and the given predicate returns
-    /// true when applied to the last element.
-    fn pop_if<F>(&mut self, f: F) -> Option<T>
-    where F: FnOnce(&T) -> bool {
-        let vec = self.as_mut();
-        if let Some(last) = vec.last() {
-            if f(last) {
-                return vec.pop();
-            }
-        }
-        None
-    }
-
-    /// Pop and return the last element, if the vector is non-empty and the given predicate returns
-    /// true when applied to the last element. The predicate may mutate the element, whether or not
-    /// it is popped.
-    fn pop_if_mut<F>(&mut self, f: F) -> Option<T>
-    where F: FnOnce(&mut T) -> bool {
-        let vec = self.as_mut();
-        if let Some(last) = vec.last_mut() {
-            if f(last) {
-                return vec.pop();
-            }
-        }
-        None
-    }
-}
-
-impl<T> VecOps<T> for Vec<T> {}
-
-
-
 // =====================
 // === VecAllocation ===
 // =====================
@@ -137,7 +100,7 @@ impl<T> VecAllocation<T> {
 #[reflect(transparent)]
 pub struct ColdVec<T> {
     #[allow(clippy::box_collection)]
-    #[reflect(as = "Vec<T>")]
+    #[reflect(as = Vec<T>)]
     elements: Option<Box<Vec<T>>>,
 }
 

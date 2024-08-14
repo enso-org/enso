@@ -42,6 +42,7 @@ public class ModuleSourcesTest {
   public void cleanup() {
     f.delete();
     this.ctx.close();
+    this.ctx = null;
   }
 
   @Test

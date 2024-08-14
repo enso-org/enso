@@ -1,0 +1,320 @@
+from Standard.Base import all
+import Standard.Base.Metadata.Display
+from Standard.Base.Metadata.Choice import Option
+from Standard.Base.Metadata.Widget import Single_Choice
+
+import Standard.Table.Rows_To_Read.Rows_To_Read
+from Standard.Table import Table
+
+import Standard.Database.Column_Description.Column_Description
+import Standard.Database.Connection.Connection.Connection
+import Standard.Database.DB_Table.DB_Table
+import Standard.Database.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
+import Standard.Database.Internal.JDBC_Connection
+import Standard.Database.SQL_Query.SQL_Query
+import Standard.Database.SQL_Statement.SQL_Statement
+from Standard.Database.Connection.Connection import make_database_selector, make_schema_selector, make_structure_creator, make_table_name_selector, make_table_types_selector
+from Standard.Database.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
+from Standard.Database.Internal.Upload.Helpers.Default_Arguments import first_column_name_in_structure
+
+import project.Internal.Snowflake_Dialect
+
+type Snowflake_Connection
+    ## PRIVATE
+
+       Creates a Snowflake connection based on a URL and properties.
+
+       Arguments:
+       - url: The URL to connect to.
+       - properties: A vector of properties for the connection.
+       - make_new: A function that returns a new connection.
+    create : Text -> Vector -> (Text -> Text -> Snowflake_Connection) -> Snowflake_Connection
+    create url properties make_new =
+        jdbc_connection = JDBC_Connection.create url properties
+        ## As long as names are quoted, the Snowflake SQL dialect is case sensitive.
+           Our generator always quotes identifiers, so we can rely on the case sensitivity.
+           This is the same as in Postgres.
+        entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection is_case_sensitive=True
+        Snowflake_Connection.Value (Connection.new jdbc_connection Snowflake_Dialect.snowflake entity_naming_properties) make_new
+
+    ## PRIVATE
+
+       A Snowflake database connection.
+
+       Arguments:
+       - connection: the underlying connection.
+       - make_new: a function that returns a new connection.
+    Value connection make_new
+
+    ## ICON data_input
+       Closes the connection releasing the underlying database resources
+       immediately instead of waiting for them to be automatically released.
+
+       The connection is not usable afterwards.
+    close : Nothing
+    close self = self.connection.close
+
+    ## ICON metadata
+       Returns the list of warehouses for the connection.
+    warehouses : Vector Text
+    warehouses self =
+        self.connection.read_single_column "show warehouses" "name"
+
+    ## ICON metadata
+       Returns the name of the current warehouse.
+    warehouse : Text
+    warehouse self =
+        vector = self.connection.read_single_column "SELECT current_warehouse() as name" "name"
+        vector.first
+
+    ## ICON data_input
+       Returns a new Connection with the specified database set as default.
+
+       Arguments:
+        - database: The name of the database to connect to.
+    @warehouse (self-> Single_Choice display=Display.Always values=(self.warehouses . map d-> Option d d.pretty))
+    set_warehouse : Text -> Connection ! SQL_Error
+    set_warehouse self warehouse =
+        if warehouse == self.warehouse then self else
+            self.make_new Nothing Nothing warehouse
+
+    ## ICON metadata
+       Returns the list of databases (or catalogs) for the connection.
+    databases : Vector Text
+    databases self = self.connection.databases
+
+    ## ICON metadata
+       Returns the name of the current database (or catalog).
+    database : Text
+    database self = self.connection.database
+
+    ## ICON data_input
+       Returns a new Connection with the specified database set as default.
+
+       Arguments:
+        - database: The name of the database to connect to.
+    @database (self-> Single_Choice display=Display.Always values=(self.databases . map d-> Option d d.pretty))
+    set_database : Text -> Connection ! SQL_Error
+    set_database self database =
+        if database . equals_ignore_case self.database then self else
+            self.make_new database Nothing Nothing
+
+    ## ICON metadata
+       Returns the list of schemas for the connection within the current database (or catalog).
+    schemas : Vector Text
+    schemas self =
+        self.connection.read_single_column "show schemas in database" "name"
+
+    ## ICON metadata
+       Returns the name of the current schema.
+    schema : Text
+    schema self = self.connection.schema
+
+    ## ICON data_input
+       Returns a new Connection with the specified schema set as default.
+
+       Arguments:
+        - schema: The name of the schema to connect to.
+    @schema make_schema_selector
+    set_schema : Text -> Connection ! SQL_Error
+    set_schema self schema =
+        if schema . equals_ignore_case self.schema then self else
+            self.make_new Nothing schema Nothing
+
+    ## GROUP Standard.Base.Metadata
+       ICON metadata
+       Gets a list of the table types.
+    table_types : Vector Text
+    table_types self = self.connection.table_types
+
+    ## GROUP Standard.Base.Metadata
+       ICON metadata
+       Returns a materialized Table of all the matching views and tables.
+
+       ? Temporary Tables
+
+         Note that the temporary tables may be created in a different schema
+         than the current one, so take this into account when filtering by schema.
+
+       Arguments:
+       - name_like: The table name pattern to search for. Supports SQL
+         wildcards (`%`, `_`). Defaults to `""` which means all tables are
+         selected.
+       - database: The database name to search in (default is current).
+       - schema: The schema name to search in (defaults to current).
+         If "*" is provided, all schemas are searched.
+       - types: The table types to search for. The list of possible values can
+         be obtained using the `table_types` method. Defaults to a set of most
+         commonly used table types, ignoring internal system tables or indices.
+       - all_fields: Return all the fields in the metadata table.
+    @types make_table_types_selector
+    @database (make_database_selector include_any=True)
+    @schema (make_schema_selector include_any=True)
+    tables : Text -> Text -> Text -> Vector -> Boolean -> Table
+    tables self name_like:Text="" database:Text=self.database schema:Text=self.schema types=["TABLE", "VIEW"] all_fields=False =
+        parsed_database = if database == "*" then Nothing else (if database == "" then self.database else database)
+        parsed_schema = if schema == "*" then Nothing else (if schema == "" then self.schema else schema)
+        self.connection.tables (if name_like == "" then Nothing else name_like) parsed_database parsed_schema types all_fields
+
+    ## GROUP Standard.Base.Input
+       ICON data_input
+       Set up a query returning a Table object, which can be used to work with
+       data within the database or load it into memory.
+
+       Arguments:
+       - query: name of the table or sql statement to query.
+         If supplied as `Text` it is treated as a table name.
+       - alias: optionally specify a friendly alias for the query.
+
+       ! Error Conditions
+
+         - If provided with a `Raw_SQL` query or `Text` that looks like a query, if
+           any SQL error occurs when executing the query, a `SQL_Error` error is
+           raised.
+         - If provided with a `Table_Name` or a text short-hand and the table is
+           not found, a `Table_Not_Found` error is raised.
+    @query make_table_name_selector
+    query : SQL_Query -> Text -> DB_Table ! Table_Not_Found
+    query self query:SQL_Query alias="" = self.connection.query query alias
+
+    ## GROUP Standard.Base.Input
+       ICON data_input
+       Execute the query and load the results into memory as a Table.
+
+       Arguments:
+       - query: name of the table or sql statement to query.
+         If supplied as `Text` it is treated as a table name.
+       - limit: the maximum number of rows to read.
+
+       ? Side Effects
+
+         Note that the `read` method is running without restrictions when the
+         output context is disabled, but it can technically cause side effects,
+         if it is provided with a DML query. Usually it is preferred to use
+         `execute_update` for DML queries, or if they are supposed to return
+         results, the `read` should be wrapped in an execution context check.
+    @query make_table_name_selector
+    @limit Rows_To_Read.default_widget
+    read : SQL_Query -> Rows_To_Read -> Table ! Table_Not_Found
+    read self query:SQL_Query (limit : Rows_To_Read = ..First_With_Warning 1000) =
+        self.connection.read query limit
+
+    ## GROUP Standard.Base.Output
+       ICON data_output
+       Creates a new empty table in the database and returns a query referencing
+       the new table.
+
+       Arguments:
+       - table_name: the name of the table to create.
+       - structure: the structure of the table, provided as either an existing
+         `Table` (no data will be copied) or a `Vector` of `Column_Description`.
+       - primary_key: the names of the columns to use as the primary key. The
+         first column from the table is used by default. If it is set to
+         `Nothing` or an empty vector, no primary key will be created.
+       - temporary: if set to `True`, the table will be temporary, meaning that
+         it will be dropped once the `connection` is closed. Defaults to
+         `False`.
+       - allow_existing: Defaults to `False`, meaning that if the table with the
+         provided name already exists, an error will be raised. If set to `True`,
+         the existing table will be returned instead. Note that the existing
+         table is not guaranteed to have the same structure as the one provided.
+       - on_problems: the behavior to use when encountering non-fatal problems.
+         Defaults to reporting them as warning.
+
+       ! Error Conditions
+
+         - If a table with the given name already exists, then a
+           `Table_Already_Exists` error is raised.
+         - If a column type is not supported and is coerced to a similar
+           supported type, an `Inexact_Type_Coercion` problem is reported
+           according to the `on_problems` setting.
+         - If a column type is not supported and there is no replacement (e.g.
+           native Enso types), an `Unsupported_Type` error is raised.
+         - If the provided primary key columns are not present in table
+           structure provided, `Missing_Input_Columns` error is raised.
+         - An `SQL_Error` may be reported if there is a failure on the database
+           side.
+
+       ? Dry Run if Output disabled
+
+         If performing output actions is disabled, only a dry run is performed
+         and no permanent changes occur. The operation will test for errors
+         (like missing columns) and if successful, return a temporary table with
+         a `Dry_Run_Operation` warning attached.
+    @structure make_structure_creator
+    create_table : Text  -> Vector Column_Description | DB_Table | Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> DB_Table ! Table_Already_Exists
+    create_table self (table_name : Text) (structure : Vector Column_Description | DB_Table | Table) (primary_key : (Vector Text | Nothing) = [first_column_name_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = ..Report_Warning) =
+        self.connection.create_table table_name structure primary_key temporary allow_existing on_problems
+
+    ## ADVANCED
+       GROUP Standard.Base.Output
+       ICON data_output
+
+       Executes a raw update query. If the query was inserting, updating or
+       deleting rows, the number of affected rows is returned; otherwise it
+       returns 0 for other types of queries (like creating or altering tables).
+
+       Arguments:
+       - query: either raw SQL code as Text or an instance of SQL_Statement
+         representing the query to execute.
+    execute_update : Text | SQL_Statement -> Integer
+    execute_update self query =
+        self.connection.execute_update query
+
+    ## PRIVATE
+       ADVANCED
+       GROUP Standard.Base.Output
+       ICON data_output
+
+       Executes a raw query. If the query was inserting, updating or
+       deleting rows, the number of affected rows is returned; otherwise it
+       returns 0 for other types of queries (like creating or altering tables).
+
+       Arguments:
+       - query: either raw SQL code as Text or an instance of SQL_Statement
+         representing the query to execute.
+    execute : Text | SQL_Statement -> Integer
+    execute self query =
+        self.connection.execute query
+
+    ## PRIVATE
+       Access the dialect.
+    dialect self = self.connection.dialect
+
+    ## PRIVATE
+       Access the underlying JDBC connection.
+    jdbc_connection self = self.connection.jdbc_connection
+
+    ## PRIVATE
+       Drops a table.
+
+       Arguments:
+       - table_name: the name of the table to drop.
+       - if_exists: if set to `True`, the operation will not fail if the table
+         does not exist. Defaults to `False`.
+    drop_table : Text -> Boolean -> Nothing
+    drop_table self table_name if_exists=False =
+        self.connection.drop_table table_name if_exists
+
+    ## PRIVATE
+       Removes all rows from a table.
+
+       Arguments:
+       - table_name: the name of the table to truncate.
+    truncate_table : Text -> Nothing ! Table_Not_Found
+    truncate_table self table_name =
+        self.connection.truncate_table table_name
+
+    ## PRIVATE
+       Returns the base `Connection` instance.
+
+       Used, so that all internal helper functions do not need to be replicated
+       on the 'subclasses'.
+    base_connection : Connection
+    base_connection self = self.connection
+
+    ## PRIVATE
+       Converts this value to a JSON serializable object.
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "Snowflake_Connection"], ["links", self.tables.at "Name" . to_vector]]

@@ -3,10 +3,6 @@
 //!
 //! Currently it is employed by the native build scripts code.
 
-// === Features ===
-#![feature(result_flattening)]
-#![feature(associated_type_bounds)]
-#![feature(extend_one)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 
@@ -54,19 +50,17 @@ pub mod prelude {
     pub use std::path::PathBuf;
     pub use std::pin::pin;
     pub use std::pin::Pin;
+    pub use std::str::FromStr;
     pub use std::sync::Arc;
 
-    pub use crate::extensions::from_string::FromString;
+    // pub use crate::extensions::from_string::FromString;
     pub use crate::extensions::future::FutureExt as _;
     pub use crate::extensions::future::TryFutureExt as _;
-    pub use crate::extensions::iterator::IteratorExt as _;
-    pub use crate::extensions::iterator::TryIteratorExt as _;
     pub use crate::extensions::option::OptionExt as _;
     pub use crate::extensions::os_str::OsStrExt as _;
     pub use crate::extensions::path::PathExt as _;
     pub use crate::extensions::pathbuf::PathBufExt as _;
     pub use crate::extensions::result::ResultExt as _;
-    pub use crate::extensions::str::StrLikeExt as _;
 
     pub use anyhow::anyhow;
     pub use anyhow::bail;
@@ -77,7 +71,6 @@ pub mod prelude {
     pub use futures_util::select;
     pub use futures_util::stream::BoxStream;
     pub use futures_util::try_join;
-    pub use futures_util::AsyncWrite;
     pub use futures_util::FutureExt as _;
     pub use futures_util::Stream;
     pub use futures_util::StreamExt as _;

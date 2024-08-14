@@ -86,7 +86,7 @@ test('Collapsing nodes', async ({ page }) => {
   await mockCollapsedFunctionInfo(page, 'prod', 'collapsed')
 
   await locate.graphNodeIcon(collapsedNode).dblclick()
-  await actions.ensureNoCircularMenusVisible(page)
+  await actions.ensureNoCircularMenusVisibleDueToHovering(page)
   await expect(locate.graphNode(page)).toHaveCount(4)
   await expect(locate.graphNodeByBinding(page, 'ten')).toExist()
   await expect(locate.graphNodeByBinding(page, 'sum')).toExist()

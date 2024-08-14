@@ -58,9 +58,6 @@ import { Vec2 } from '@/util/data/vec2'
 import { computedFallback } from '@/util/reactivity'
 import { until } from '@vueuse/core'
 import { encoding, set } from 'lib0'
-import { encodeMethodPointer } from 'shared/languageServerTypes'
-import * as iterable from 'shared/util/data/iterable'
-import { isDevMode } from 'shared/util/detect'
 import {
   computed,
   onMounted,
@@ -72,6 +69,9 @@ import {
   watch,
   type ComponentInstance,
 } from 'vue'
+import { encodeMethodPointer } from 'ydoc-shared/languageServerTypes'
+import * as iterable from 'ydoc-shared/util/data/iterable'
+import { isDevMode } from 'ydoc-shared/util/detect'
 
 const keyboard = provideKeyboard()
 const projectStore = useProjectStore()
@@ -644,12 +644,6 @@ provideNodeColors(graphStore, (variable) =>
 
 const showColorPicker = ref(false)
 
-function setSelectedNodesColor(color: string | undefined) {
-  graphStore.transact(() =>
-    nodeSelection.selected.forEach((id) => graphStore.overrideNodeColor(id, color)),
-  )
-}
-
 const groupColors = computed(() => {
   const styles: { [key: string]: string } = {}
   for (let group of suggestionDb.groups) {
@@ -681,7 +675,6 @@ const groupColors = computed(() => {
           @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
           @nodeDoubleClick="(id) => stackNavigator.enterNode(id)"
           @createNodes="createNodesFromSource"
-          @setNodeColor="setSelectedNodesColor"
         />
         <GraphEdges :navigator="graphNavigator" @createNodeFromEdge="handleEdgeDrop" />
         <ComponentBrowser

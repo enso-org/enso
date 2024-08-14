@@ -14,7 +14,6 @@
 #![deny(keyword_idents)]
 #![deny(macro_use_extern_crate)]
 #![deny(missing_abi)]
-#![deny(pointer_structural_match)]
 #![deny(unsafe_op_in_unsafe_fn)]
 #![deny(unconditional_recursion)]
 #![warn(absolute_paths_not_starting_with_crate)]
@@ -420,7 +419,7 @@ pub fn discover_paths_internal(
         let is_main_dir = dir_name.contains(&"bin"); // || dir_name == Some(OsStr::new("tests"));
         let sub_paths = fs::read_dir(path)?;
         for sub_path in sub_paths {
-            discover_paths_internal(vec, &sub_path?.path(), is_main_dir)?;
+            discover_paths_internal(vec, sub_path?.path(), is_main_dir)?;
         }
     } else if md.is_file() && path.extension().contains(&"rs") {
         let is_main_file = path

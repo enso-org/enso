@@ -2,6 +2,7 @@ package org.enso.table.data.column.operation.map.numeric.helpers;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.BitSet;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
@@ -14,6 +15,20 @@ public interface DoubleArrayAdapter {
   boolean isNothing(long i);
 
   int size();
+
+  default DoubleStorage intoStorage() {
+    int n = size();
+    long[] values = new long[n];
+    BitSet isNothing = new BitSet();
+    for (int i = 0; i < n; i++) {
+      if (isNothing(i)) {
+        isNothing.set(i);
+      } else {
+        values[i] = Double.doubleToRawLongBits(getItemAsDouble(i));
+      }
+    }
+    return new DoubleStorage(values, n, isNothing);
+  }
 
   static DoubleArrayAdapter fromStorage(BigIntegerStorage storage) {
     return new BigIntegerStorageAsDouble(storage);

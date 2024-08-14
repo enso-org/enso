@@ -30,6 +30,9 @@ const color = ref('#357ab9')
 const backgroundColor = ref('#4778b4')
 const selectedValue = ref('location')
 const values = ref(['address', 'age', 'id', 'language', 'location', 'workplace'])
+const entries = computed(() =>
+  values.value.map((v) => ({ value: v, selected: selectedValue.value === v })),
+)
 </script>
 
 <template>
@@ -61,8 +64,7 @@ const values = ref(['address', 'age', 'id', 'language', 'location', 'workplace']
         <div style="position: relative">
           <DropdownWidget
             :color="color"
-            :values="values"
-            :selectedValue="selectedValue"
+            :entries="entries"
             @click="(selectedValue = values[$event]!), logEvent('click', [$event])"
           />
         </div>

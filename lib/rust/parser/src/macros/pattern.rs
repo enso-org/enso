@@ -143,7 +143,7 @@ impl std::ops::Shr for Pattern {
 }
 
 /// The syntax `pattern1 | pattern2` is a shortcut for `or(pattern1, pattern2)`.
-impl std::ops::BitOr for Pattern {
+impl BitOr for Pattern {
     type Output = Pattern;
     fn bitor(self, rhs: Pattern) -> Self::Output {
         or(self, rhs)

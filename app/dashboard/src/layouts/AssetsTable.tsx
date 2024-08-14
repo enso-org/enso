@@ -1,14 +1,16 @@
 /** @file Table displaying a list of projects. */
 import * as React from 'react'
 
+import { useMutation } from '@tanstack/react-query'
 import * as toast from 'react-toastify'
+import * as z from 'zod'
 
 import DropFilesImage from '#/assets/drop_files.svg'
 
 import * as mimeTypes from '#/data/mimeTypes'
 
 import * as autoScrollHooks from '#/hooks/autoScrollHooks'
-import * as backendHooks from '#/hooks/backendHooks'
+import { backendMutationOptions, useBackendQuery, useListTags } from '#/hooks/backendHooks'
 import * as intersectionHooks from '#/hooks/intersectionHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -92,16 +94,12 @@ import Visibility from '#/utilities/Visibility'
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
-    readonly enabledColumns: columnUtils.Column[]
+    readonly enabledColumns: readonly columnUtils.Column[]
   }
 }
 
 LocalStorage.registerKey('enabledColumns', {
-  tryParse: (value) => {
-    const possibleColumns = Array.isArray(value) ? value : []
-    const values = possibleColumns.filter(array.includesPredicate(columnUtils.CLOUD_COLUMNS))
-    return values.length === 0 ? null : values
-  },
+  schema: z.enum(columnUtils.CLOUD_COLUMNS).array().readonly(),
 })
 
 // =================
@@ -389,7 +387,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const { user } = authProvider.useNonPartialUserSession()
   const backend = backendProvider.useBackend(category)
-  const labels = backendHooks.useBackendListTags(backend)
+  const labels = useListTags(backend)
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
@@ -635,7 +633,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     true,
   )
 
-  const updateSecretMutation = backendHooks.useBackendMutation(backend, 'updateSecret')
+  const updateSecret = useMutation(backendMutationOptions(backend, 'updateSecret')).mutateAsync
   React.useEffect(() => {
     previousCategoryRef.current = category
   })
@@ -988,7 +986,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     }
   }, [backend, category])
 
-  const rootDirectoryQuery = backendHooks.useBackendQuery(
+  const rootDirectoryQuery = useBackendQuery(
     backend,
     'listDirectory',
     [
@@ -1263,7 +1261,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     name={item.item.title}
                     doCreate={async (_name, value) => {
                       try {
-                        await updateSecretMutation.mutateAsync([id, { value }, item.item.title])
+                        await updateSecret([id, { value }, item.item.title])
                       } catch (error) {
                         toastAndLog(null, error)
                       }

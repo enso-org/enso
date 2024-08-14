@@ -1,7 +1,8 @@
 import type { ExecutionContext } from '@/stores/project/executionContext'
 import { Err, Ok, type Result } from '@/util/data/result'
 import type { DataServer } from '@/util/net/dataServer'
-import { OutboundPayload, VisualizationUpdate } from 'shared/binaryProtocol'
+import { reactive } from 'vue'
+import { OutboundPayload, VisualizationUpdate } from 'ydoc-shared/binaryProtocol'
 import type {
   Diagnostic,
   ExpressionId,
@@ -9,8 +10,7 @@ import type {
   MethodCall,
   ProfilingInfo,
   Uuid,
-} from 'shared/languageServerTypes'
-import { reactive } from 'vue'
+} from 'ydoc-shared/languageServerTypes'
 
 export interface ExpressionInfo {
   typename: string | undefined

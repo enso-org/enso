@@ -131,48 +131,33 @@ enum FieldAttr {
 }
 
 fn parse_field_attrs(attr: &syn::Attribute, out: &mut Vec<FieldAttr>) {
-    if attr.style != syn::AttrStyle::Outer {
+    if attr.style != syn::AttrStyle::Outer || !attr.path().is_ident(HELPER_ATTRIBUTE_PATH) {
         return;
     }
-    match attr.path.get_ident() {
-        Some(ident) if ident == HELPER_ATTRIBUTE_PATH => (),
-        _ => return,
-    }
-    let meta = attr.parse_meta().expect(INVALID_HELPER_SYNTAX);
-    match meta {
-        syn::Meta::List(metalist) =>
-            out.extend(metalist.nested.iter().map(|meta| parse_field_annotation(meta, attr))),
+    match &attr.meta {
+        syn::Meta::List(metalist) => {
+            metalist.parse_nested_meta(|meta| {
+                out.push(parse_field_annotation(&meta)?);
+                Ok(())
+            })
+        }
+        .expect(INVALID_HELPER_SYNTAX),
         syn::Meta::Path(_) | syn::Meta::NameValue(_) =>
-            panic!("{}: {}.", INVALID_HELPER_SYNTAX, meta.to_token_stream()),
+            panic!("{}: {}.", INVALID_HELPER_SYNTAX, attr.meta.to_token_stream()),
     }
 }
 
-fn parse_field_annotation(meta: &syn::NestedMeta, attr: &syn::Attribute) -> FieldAttr {
-    let meta = match meta {
-        syn::NestedMeta::Meta(meta) => meta,
-        _ => panic!("{}: {}.", INVALID_HELPER_SYNTAX, meta.into_token_stream()),
-    };
-    match meta {
-        syn::Meta::Path(path) => {
-            let ident = path.get_ident().expect(INVALID_HELPER_SYNTAX);
-            match ident.to_string().as_str() {
-                "flatten" => FieldAttr::Flatten,
-                "hide" => FieldAttr::Hide,
-                "skip" => FieldAttr::Skip,
-                "subtype" => FieldAttr::Subtype,
-                _ => panic!("{}: {}.", UNKNOWN_HELPER, ident.into_token_stream()),
-            }
-        }
-        syn::Meta::NameValue(syn::MetaNameValue { path, lit: syn::Lit::Str(lit), .. }) => {
-            let ident = path.get_ident().expect(INVALID_HELPER_SYNTAX);
-            match ident.to_string().as_str() {
-                "as" => FieldAttr::As(Box::new(lit.parse().expect(INVALID_HELPER_SYNTAX))),
-                "rename" => FieldAttr::Rename(lit.clone()),
-                _ => panic!("{}: {}.", UNKNOWN_HELPER, ident.into_token_stream()),
-            }
-        }
-        _ => panic!("{}: {}.", INVALID_HELPER_SYNTAX, attr.into_token_stream()),
-    }
+fn parse_field_annotation(meta: &syn::meta::ParseNestedMeta) -> syn::Result<FieldAttr> {
+    let ident = meta.path.get_ident().expect(INVALID_HELPER_SYNTAX);
+    Ok(match ident.to_string().as_str() {
+        "flatten" => FieldAttr::Flatten,
+        "hide" => FieldAttr::Hide,
+        "skip" => FieldAttr::Skip,
+        "subtype" => FieldAttr::Subtype,
+        "as" => FieldAttr::As(Box::new(meta.value()?.parse()?)),
+        "rename" => FieldAttr::Rename(meta.value()?.parse()?),
+        _ => panic!("{}: {}.", UNKNOWN_HELPER, meta.path.clone().into_token_stream()),
+    })
 }
 
 
@@ -184,24 +169,24 @@ enum VariantAttr {
 }
 
 fn parse_variant_attrs(attr: &syn::Attribute, out: &mut Vec<VariantAttr>) {
-    if attr.style != syn::AttrStyle::Outer {
+    if attr.style != syn::AttrStyle::Outer || !attr.path().is_ident(HELPER_ATTRIBUTE_PATH) {
         return;
     }
-    match attr.path.get_ident() {
-        Some(ident) if ident == HELPER_ATTRIBUTE_PATH => (),
-        _ => return,
-    }
-    let meta = attr.parse_meta().expect(INVALID_HELPER_SYNTAX);
-    match meta {
+    match &attr.meta {
         syn::Meta::List(metalist) => {
-            let parse = |meta| match parse_meta_ident(meta).to_string().as_str() {
-                "inline" => VariantAttr::Inline,
-                _ => panic!("{}: {}.", UNKNOWN_HELPER, meta.into_token_stream()),
-            };
-            out.extend(metalist.nested.iter().map(parse));
+            metalist
+                .parse_nested_meta(|meta| {
+                    if meta.path.is_ident("inline") {
+                        out.push(VariantAttr::Inline);
+                        Ok(())
+                    } else {
+                        panic!("{}: {}.", UNKNOWN_HELPER, attr.meta.clone().into_token_stream());
+                    }
+                })
+                .expect(INVALID_HELPER_SYNTAX);
         }
         syn::Meta::Path(_) | syn::Meta::NameValue(_) =>
-            panic!("{}: {}.", INVALID_HELPER_SYNTAX, meta.into_token_stream()),
+            panic!("{}: {}.", INVALID_HELPER_SYNTAX, attr.meta.clone().into_token_stream()),
     }
 }
 
@@ -217,18 +202,21 @@ fn parse_container_attrs(attr: &syn::Attribute, out: &mut Vec<ContainerAttr>) {
     if attr.style != syn::AttrStyle::Outer {
         return;
     }
-    match attr.path.get_ident() {
-        Some(ident) if ident == HELPER_ATTRIBUTE_PATH => (),
-        _ => return,
+    if !attr.path().is_ident(HELPER_ATTRIBUTE_PATH) {
+        return;
     }
-    let meta = attr.parse_meta().expect(INVALID_HELPER_SYNTAX);
-    match meta {
+    match &attr.meta {
         syn::Meta::List(metalist) => {
-            let parse = |meta| match parse_meta_ident(meta).to_string().as_str() {
-                "transparent" => ContainerAttr::Transparent,
-                _ => panic!("{}: {}.", UNKNOWN_HELPER, attr.into_token_stream()),
-            };
-            out.extend(metalist.nested.iter().map(parse));
+            metalist
+                .parse_nested_meta(|meta| {
+                    if meta.path.is_ident("transparent") {
+                        out.push(ContainerAttr::Transparent);
+                        Ok(())
+                    } else {
+                        panic!("{}: {}.", UNKNOWN_HELPER, attr.into_token_stream());
+                    }
+                })
+                .expect(INVALID_HELPER_SYNTAX);
         }
         syn::Meta::Path(_) | syn::Meta::NameValue(_) =>
             panic!("{}: {}.", INVALID_HELPER_SYNTAX, attr.into_token_stream()),
@@ -249,17 +237,6 @@ impl<'a> FromIterator<&'a syn::Attribute> for ContainerAttrs {
         }
         ContainerAttrs { transparent }
     }
-}
-
-
-// === Helpers ===
-
-fn parse_meta_ident(meta: &syn::NestedMeta) -> &syn::Ident {
-    let path = match meta {
-        syn::NestedMeta::Meta(syn::Meta::Path(path)) => path,
-        _ => panic!("{}: {}.", INVALID_HELPER_SYNTAX, meta.into_token_stream()),
-    };
-    path.get_ident().expect(INVALID_HELPER_SYNTAX)
 }
 
 

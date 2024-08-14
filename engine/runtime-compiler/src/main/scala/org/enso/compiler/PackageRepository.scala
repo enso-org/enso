@@ -29,10 +29,6 @@ trait PackageRepository {
     libraryName: LibraryName
   ): Either[PackageRepository.Error, Unit]
 
-  /** Iterates over all installed libraries.
-    */
-  def findAvailableLocalLibraries(): Seq[LibraryName]
-
   /** Checks if the library has already been loaded */
   def isPackageLoaded(libraryName: LibraryName): Boolean
 
@@ -109,6 +105,7 @@ trait PackageRepository {
     context: CompilerContext
   ): Option[IRModule]
 
+  def shutdown(): Unit
 }
 
 object PackageRepository {

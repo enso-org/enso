@@ -35,7 +35,7 @@ impl Context {
         let url_text = format!(
             "{runtime_url}_apis/pipelines/workflows/{run_id}/artifacts?api-version={api_version}"
         );
-        Url::parse(&url_text).anyhow_err()
+        Ok(Url::parse(&url_text)?)
     }
 
     pub fn prepare_client(&self, accept_mime: Mime) -> Result<ClientBuilder> {
@@ -53,10 +53,10 @@ impl Context {
     }
 
     pub fn json_client(&self) -> Result<Client> {
-        self.prepare_client(mime::APPLICATION_JSON)?
+        Ok(self
+            .prepare_client(mime::APPLICATION_JSON)?
             .default_content_type(mime::APPLICATION_JSON)
-            .build()
-            .anyhow_err()
+            .build()?)
     }
 
     pub fn upload_client(&self) -> Result<Client> {
@@ -65,19 +65,19 @@ impl Context {
         let mut headers = HeaderMap::new();
         headers.insert(reqwest::header::CONNECTION, HeaderValue::from_static("Keep-Alive"));
         headers.insert("Keep-Alive", keep_alive_seconds.into());
-        self.prepare_client(mime::APPLICATION_OCTET_STREAM)?
+        Ok(self
+            .prepare_client(mime::APPLICATION_OCTET_STREAM)?
             .default_content_type(mime::APPLICATION_JSON)
             .default_headers(headers)
-            .build()
-            .anyhow_err()
+            .build()?)
     }
 
     pub fn download_client(&self) -> Result<Client> {
-        self.prepare_client(mime::APPLICATION_OCTET_STREAM)?
+        Ok(self
+            .prepare_client(mime::APPLICATION_OCTET_STREAM)?
             .default_content_type(mime::APPLICATION_JSON)
             .keep_alive(10)
             .default_header(ACCEPT_ENCODING, HeaderValue::try_from("gzip").unwrap())
-            .build()
-            .anyhow_err()
+            .build()?)
     }
 }
