@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useEvent } from '@/composables/events'
 import type { useNavigator } from '@/composables/navigator'
@@ -15,12 +14,6 @@ const props = defineProps<{
   navigator: ReturnType<typeof useNavigator>
   icon: Icon | undefined
   nodeColor: string
-  mode: 'componentBrowser' | 'codeEditor'
-  suggestionSelected: boolean
-}>()
-const emit = defineEmits<{
-  switchToEditMode: []
-  accept: []
 }>()
 
 const inputField = ref<HTMLInputElement>()
@@ -98,18 +91,7 @@ const rootStyle = computed(() => {
       @click.stop
     />
     <div class="buttonPanel">
-      <SvgButton
-        name="add"
-        :title="mode === 'componentBrowser' ? 'Accept Suggested Component' : 'Accept'"
-        @click.stop="emit('accept')"
-      />
-      <SvgButton
-        name="edit"
-        :disabled="mode === 'codeEditor'"
-        :title="suggestionSelected ? 'Edit Suggested Component' : 'Code Edit Mode'"
-        data-testid="switchToEditMode"
-        @click.stop="emit('switchToEditMode')"
-      />
+      <slot></slot>
     </div>
   </div>
 </template>

@@ -1,3 +1,15 @@
+<script lang="ts">
+/** One of the modes of the component browser:
+ * * "component browsing" when user wants to add new component
+ * * "code editing" for editing existing, or just added nodes
+ * See https://github.com/enso-org/enso/issues/10598 for design details.
+ */
+export enum ComponentBrowserMode {
+  COMPONENT_BROWSING,
+  CODE_EDITING,
+}
+</script>
+
 <script setup lang="ts">
 import { componentBrowserBindings } from '@/bindings'
 import { type Component } from '@/components/ComponentBrowser/component'
@@ -6,6 +18,7 @@ import ComponentList from '@/components/ComponentBrowser/ComponentList.vue'
 import { Filtering } from '@/components/ComponentBrowser/filtering'
 import { useComponentBrowserInput, type Usage } from '@/components/ComponentBrowser/input'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
+import SvgButton from '@/components/SvgButton.vue'
 import { useResizeObserver } from '@/composables/events'
 import type { useNavigator } from '@/composables/navigator'
 import { groupColorStyle } from '@/composables/nodeColors'
@@ -15,7 +28,7 @@ import { useGraphStore } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import { SuggestionEntry, SuggestionKind, type Typename } from '@/stores/suggestionDatabase/entry'
+import { SuggestionKind, type Typename } from '@/stores/suggestionDatabase/entry'
 import type { VisualizationDataSource } from '@/stores/visualization'
 import { cancelOnClickOutside, isNodeOutside } from '@/util/autoBlur'
 import { tryGetIndex } from '@/util/data/array'
@@ -66,12 +79,10 @@ const emit = defineEmits<{
 const cbRoot = ref<HTMLElement>()
 const componentList = ref<ComponentInstance<typeof ComponentList>>()
 
-export type ComponentBrowserMode =
-  | { mode: 'componentBrowser' }
-  | { mode: 'codeEditor'; selectedSuggestion?: SuggestionEntry }
-
-const mode = ref<'componentBrowser' | 'codeEditor'>(
-  props.usage.type === 'newNode' ? 'componentBrowser' : 'codeEditor',
+const mode = ref<ComponentBrowserMode>(
+  props.usage.type === 'newNode' ?
+    ComponentBrowserMode.COMPONENT_BROWSING
+  : ComponentBrowserMode.CODE_EDITING,
 )
 
 const cbOpen: Interaction = cancelOnClickOutside(cbRoot, {
@@ -273,7 +284,7 @@ function applySuggestion(component: Opt<Component> = null) {
 
 function applySuggestionAndSwitchToEditMode() {
   applySuggestion()
-  mode.value = 'codeEditor'
+  mode.value = ComponentBrowserMode.CODE_EDITING
 }
 
 function acceptSuggestion(component: Opt<Component> = null) {
@@ -300,15 +311,17 @@ function acceptInput() {
 
 const handler = componentBrowserBindings.handler({
   applySuggestionAndSwitchToEditMode() {
-    if (mode.value != 'componentBrowser' || input.isAiPrompt.value) return false
+    if (mode.value != ComponentBrowserMode.COMPONENT_BROWSING || input.isAiPrompt.value)
+      return false
     applySuggestionAndSwitchToEditMode()
   },
   acceptSuggestion() {
-    if (mode.value != 'componentBrowser' || input.isAiPrompt.value) return false
+    if (mode.value != ComponentBrowserMode.COMPONENT_BROWSING || input.isAiPrompt.value)
+      return false
     acceptSuggestion()
   },
   acceptCode() {
-    if (mode.value != 'codeEditor' || input.isAiPrompt.value) return false
+    if (mode.value != ComponentBrowserMode.CODE_EDITING || input.isAiPrompt.value) return false
     acceptInput()
   },
   acceptInput() {
@@ -346,7 +359,7 @@ const handler = componentBrowserBindings.handler({
     @keydown.arrow-right.stop
   >
     <GraphVisualization
-      v-if="mode === 'codeEditor' && !input.isAiPrompt.value"
+      v-if="mode === ComponentBrowserMode.CODE_EDITING && !input.isAiPrompt.value"
       class="visualization-preview"
       :nodeSize="inputSize"
       :nodePosition="nodePosition"
@@ -368,14 +381,29 @@ const handler = componentBrowserBindings.handler({
       :navigator="props.navigator"
       :icon="selectedSuggestionIcon"
       :nodeColor="nodeColor"
-      :mode="mode"
-      :suggestionSelected="selected != null"
       :style="{ '--component-editor-padding': cssComponentEditorPadding }"
-      @accept="mode === 'componentBrowser' ? acceptSuggestion() : acceptInput()"
-      @switchToEditMode="applySuggestionAndSwitchToEditMode()"
-    />
+    >
+      <SvgButton
+        name="add"
+        :title="
+          mode === ComponentBrowserMode.COMPONENT_BROWSING && selected != null ?
+            'Accept Suggested Component'
+          : 'Accept'
+        "
+        @click.stop="
+          mode === ComponentBrowserMode.COMPONENT_BROWSING ? acceptSuggestion() : acceptInput()
+        "
+      />
+      <SvgButton
+        name="edit"
+        :disabled="mode === ComponentBrowserMode.CODE_EDITING"
+        :title="selected != null ? 'Edit Suggested Component' : 'Code Edit Mode'"
+        data-testid="switchToEditMode"
+        @click.stop="applySuggestionAndSwitchToEditMode()"
+      />
+    </ComponentEditor>
     <ComponentList
-      v-if="mode === 'componentBrowser' && !input.isAiPrompt.value"
+      v-if="mode === ComponentBrowserMode.COMPONENT_BROWSING && !input.isAiPrompt.value"
       ref="componentList"
       :filtering="currentFiltering"
       :autoSelectFirstComponent="input.autoSelectFirstComponent.value"
