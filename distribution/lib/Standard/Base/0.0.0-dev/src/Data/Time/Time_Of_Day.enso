@@ -349,7 +349,7 @@ type Time_Of_Day
        - amount: An integer specifying by how many periods to shift the time.
        - period: The period by which to shift.
     date_add : Integer -> Time_Period -> Time_Of_Day
-    date_add self (amount : Integer) (period : Time_Period) = case period of
+    date_add self (amount : Integer) (period : Time_Period) =
         Time_Utils.unit_time_add period.to_java_unit self amount
 
     ## ALIAS add duration
