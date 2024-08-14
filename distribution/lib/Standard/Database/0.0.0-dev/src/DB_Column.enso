@@ -2009,7 +2009,9 @@ type DB_Column
     short_circuit_special_floating_point : DB_Column -> DB_Column
     short_circuit_special_floating_point self exp =
         if self.value_type.is_floating_point.not then exp else
-            (self.is_finite.not.iif self exp).rename exp.name
+            self.with name="special" zelf->
+                (zelf.is_finite.not.iif zelf exp).rename exp.name
+
 ## PRIVATE
    Helper for case case_sensitivity based text operations
 make_text_case_op left op other case_sensitivity new_name =
