@@ -1,15 +1,11 @@
 <script setup lang="ts">
 import { componentBrowserBindings } from '@/bindings'
-import { makeComponentList, type Component } from '@/components/ComponentBrowser/component'
+import { type Component } from '@/components/ComponentBrowser/component'
 import ComponentEditor from '@/components/ComponentBrowser/ComponentEditor.vue'
+import ComponentList from '@/components/ComponentBrowser/ComponentList.vue'
 import { Filtering } from '@/components/ComponentBrowser/filtering'
 import { useComponentBrowserInput, type Usage } from '@/components/ComponentBrowser/input'
-import { useScrolling } from '@/components/ComponentBrowser/scrolling'
-import DocumentationPanel from '@/components/DocumentationPanel.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
-import SvgIcon from '@/components/SvgIcon.vue'
-import ToggleIcon from '@/components/ToggleIcon.vue'
-import { useApproach } from '@/composables/animation'
 import { useResizeObserver } from '@/composables/events'
 import type { useNavigator } from '@/composables/navigator'
 import { groupColorStyle } from '@/composables/nodeColors'
@@ -19,32 +15,23 @@ import { useGraphStore } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import { SuggestionKind, type Typename } from '@/stores/suggestionDatabase/entry'
+import { SuggestionEntry, SuggestionKind, type Typename } from '@/stores/suggestionDatabase/entry'
 import type { VisualizationDataSource } from '@/stores/visualization'
 import { cancelOnClickOutside, isNodeOutside } from '@/util/autoBlur'
 import { tryGetIndex } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
-import { allRanges } from '@/util/data/range'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { DEFAULT_ICON, suggestionEntryToIcon } from '@/util/getIconName'
 import { debouncedGetter } from '@/util/reactivity'
 import type { ComponentInstance, Ref } from 'vue'
-import { computed, onMounted, onUnmounted, reactive, ref, watch, watchEffect } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue'
 import type { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
-import LoadingSpinner from './LoadingSpinner.vue'
 
-const ITEM_SIZE = 32
-const TOP_BAR_HEIGHT = 32
 // Difference in position between the component browser and a node for the input of the component browser to
 // be placed at the same position as the node.
 const COMPONENT_BROWSER_TO_NODE_OFFSET = new Vec2(-4, -4)
-const WIDTH = 600
-const INPUT_AREA_HEIGHT = 40
-const PANELS_HEIGHT = 384
-// Height of the visualization area, starting from the bottom of the input area.
-const VISUALIZATION_HEIGHT = 190
 const PAN_MARGINS = {
   top: 48,
   bottom: 40,
@@ -77,6 +64,11 @@ const emit = defineEmits<{
 }>()
 
 const cbRoot = ref<HTMLElement>()
+const componentList = ref<ComponentInstance<typeof ComponentList>>()
+
+export type ComponentBrowserMode =
+  | { mode: 'componentBrowser' }
+  | { mode: 'codeEditor'; selectedSuggestion?: SuggestionEntry }
 
 const mode = ref<'componentBrowser' | 'codeEditor'>(
   props.usage.type === 'newNode' ? 'componentBrowser' : 'codeEditor',
@@ -111,26 +103,23 @@ const originScenePos = computed(() => {
 
 function panIntoView() {
   const origin = originScenePos.value
-  const inputArea = new Rect(
+  const screenRect = cbRoot.value?.getBoundingClientRect()
+  if (!screenRect) return
+  const area = new Rect(
     origin,
-    new Vec2(WIDTH, INPUT_AREA_HEIGHT).scale(clientToSceneFactor.value),
+    new Vec2(screenRect.width, screenRect.height).scale(clientToSceneFactor.value),
   )
-  const panelsAreaDimensions = new Vec2(WIDTH, PANELS_HEIGHT).scale(clientToSceneFactor.value)
-  const panelsArea = new Rect(origin.sub(new Vec2(0, panelsAreaDimensions.y)), panelsAreaDimensions)
-  const vizHeight = VISUALIZATION_HEIGHT * clientToSceneFactor.value
   const margins = scaleValues(PAN_MARGINS, clientToSceneFactor.value)
   props.navigator.panTo([
-    // Always include the bottom-left of the input area.
-    { x: inputArea.left, y: inputArea.bottom },
-    // Try to reach the top-right corner of the panels.
-    { x: inputArea.right, y: panelsArea.top },
-    // Extend down to include the visualization.
-    { y: inputArea.bottom + vizHeight },
+    // Always include the top-left of the input area.
+    { x: area.left, y: area.top },
+    // Try to reach the bottom-right corner of the panels.
+    { x: area.right, y: area.bottom },
     // Top (and left) margins are more important than bottom (and right) margins because the screen has controls across
     // the top and on the left.
-    { x: inputArea.left - margins.left, y: panelsArea.top - margins.top },
+    { x: area.left - margins.left, y: area.top - margins.top },
     // If the screen is very spacious, even the bottom right gets some breathing room.
-    { x: inputArea.right + margins.right, y: inputArea.bottom + vizHeight + margins.bottom },
+    { x: area.right + margins.right, y: area.bottom + margins.bottom },
   ])
 }
 
@@ -156,6 +145,17 @@ const transform = computed(() => {
   return `translate(${x}px, ${y}px)`
 })
 
+// === Selection ===
+
+const selected = ref<Component | null>(null)
+
+const selectedSuggestionId = computed(() => selected.value?.suggestionId)
+const selectedSuggestion = computed(() => {
+  const id = selectedSuggestionId.value
+  if (id == null) return null
+  return suggestionDbStore.entries.get(id) ?? null
+})
+
 // === Input and Filtering ===
 
 const input = useComponentBrowserInput()
@@ -163,18 +163,6 @@ const input = useComponentBrowserInput()
 const currentFiltering = computed(() => {
   const currentModule = projectStore.modulePath
   return new Filtering(input.filter.value, currentModule?.ok ? currentModule.value : undefined)
-})
-
-watch(currentFiltering, () => {
-  selected.value = input.autoSelectFirstComponent.value ? 0 : null
-  scrolling.targetScroll.value = { type: 'top' }
-
-  // Update `highlightPosition` synchronously, so the subsequent animation `skip` have an effect.
-  if (selectedPosition.value != null) {
-    highlightPosition.value = selectedPosition.value
-  }
-  animatedHighlightPosition.skip()
-  animatedHighlightHeight.skip()
 })
 
 onUnmounted(() => {
@@ -213,63 +201,6 @@ function handleDefocus(e: FocusEvent) {
 const inputElement = ref<ComponentInstance<typeof ComponentEditor>>()
 const inputSize = useResizeObserver(inputElement, false)
 
-// === Components List and Positions ===
-
-const components = computed(() =>
-  makeComponentList(suggestionDbStore.entries, currentFiltering.value),
-)
-
-const visibleComponents = computed(() => {
-  if (scroller.value == null) return []
-  const scrollPos = scrolling.scrollPosition.value
-  const topmostVisible = componentAtY(scrollPos)
-  const bottommostVisible = Math.max(0, componentAtY(scrollPos + scrollerSize.value.y))
-  return components.value.slice(topmostVisible, bottommostVisible + 1).map((component, i) => {
-    return { component, index: i + topmostVisible }
-  })
-})
-
-function componentPos(index: number) {
-  return index * ITEM_SIZE
-}
-
-function componentAtY(pos: number) {
-  return Math.floor(pos / ITEM_SIZE)
-}
-
-function componentStyle(index: number) {
-  return { transform: `translateY(${componentPos(index)}px)` }
-}
-
-/**
- * Group colors are populated in `GraphEditor`, and for each group in suggestion database a CSS variable is created.
- */
-function componentColor(component: Component): string {
-  return groupColorStyle(tryGetIndex(suggestionDbStore.groups, component.group))
-}
-
-// === Highlight ===
-
-const selected = ref<number | null>(null)
-const highlightPosition = ref(0)
-const selectedPosition = computed(() =>
-  selected.value != null ? componentPos(selected.value) : null,
-)
-const highlightHeight = computed(() => (selected.value != null ? ITEM_SIZE : 0))
-const animatedHighlightPosition = useApproach(highlightPosition)
-const animatedHighlightHeight = useApproach(highlightHeight)
-
-const selectedSuggestionId = computed(() => {
-  if (selected.value === null) return null
-  return components.value[selected.value]?.suggestionId ?? null
-})
-
-const selectedSuggestion = computed(() => {
-  const id = selectedSuggestionId.value
-  if (id == null) return null
-  return suggestionDbStore.entries.get(id) ?? null
-})
-
 const { getNodeColor } = injectNodeColors()
 const nodeColor = computed(() => {
   if (props.usage.type === 'editNode') {
@@ -296,87 +227,30 @@ const selectedSuggestionIcon = computed(() => {
   return selectedSuggestion.value ? suggestionEntryToIcon(selectedSuggestion.value) : DEFAULT_ICON
 })
 
-watch(selectedPosition, (newPos) => {
-  if (newPos == null) return
-  highlightPosition.value = newPos
-})
-
-const highlightClipPath = computed(() => {
-  let height = animatedHighlightHeight.value
-  let position = animatedHighlightPosition.value
-  let top = position + ITEM_SIZE - height
-  let bottom = listContentHeight.value - position - ITEM_SIZE
-  return `inset(${top}px 0px ${bottom}px 0px round 16px)`
-})
-
-function selectWithoutScrolling(index: number) {
-  const scrollPos = scrolling.scrollPosition.value
-  scrolling.targetScroll.value = { type: 'offset', offset: scrollPos }
-  selected.value = index
-}
-
 // === Preview ===
 
-type PreviewState = { expression: string; suggestionId?: SuggestionId }
-const previewed = debouncedGetter<PreviewState>(() => {
-  if (selectedSuggestionId.value == null || selectedSuggestion.value == null) {
-    return { expression: input.code.value }
-  } else {
-    return {
-      expression: input.inputAfterApplyingSuggestion(selectedSuggestion.value).newCode,
-      suggestionId: selectedSuggestionId.value,
-    }
-  }
-}, 200)
+const previewed = debouncedGetter<string>(() => input.code.value, 200)
 
 const previewedSuggestionReturnType = computed(() => {
-  const id = previewed.value.suggestionId
+  const id = appliedSuggestion.value
   if (id == null) return
   return suggestionDbStore.entries.get(id)?.returnType
 })
 
 const previewDataSource = computed<VisualizationDataSource | undefined>(() => {
   if (input.isAiPrompt.value) return
-  if (!previewed.value.expression.trim()) return
+  if (!previewed.value.trim()) return
   if (!graphStore.methodAst.ok) return
   const body = graphStore.methodAst.value.body
   if (!body) return
-
   return {
     type: 'expression',
-    expression: previewed.value.expression,
+    expression: previewed.value,
     contextId: body.externalId,
   }
 })
 
-const visualizationSelections = reactive(new Map<SuggestionId | null, VisualizationIdentifier>())
-const previewedVisualizationId = computed(() => {
-  return visualizationSelections.get(previewed.value.suggestionId ?? null)
-})
-
-function setVisualization(visualization: VisualizationIdentifier) {
-  visualizationSelections.set(previewed.value.suggestionId ?? null, visualization)
-}
-
-// === Scrolling ===
-
-const scroller = ref<HTMLElement>()
-const scrollerSize = useResizeObserver(scroller)
-const listContentHeight = computed(() =>
-  // We add a top padding of TOP_BAR_HEIGHT / 2 - otherwise the topmost entry would be covered
-  // by top bar.
-  Math.max(components.value.length * ITEM_SIZE + TOP_BAR_HEIGHT / 2, scrollerSize.value.y),
-)
-const scrolling = useScrolling(() => animatedHighlightPosition.value)
-
-const listContentHeightPx = computed(() => `${listContentHeight.value}px`)
-
-function updateScroll() {
-  // If the scrollTop value changed significantly, that means the user is scrolling.
-  if (scroller.value && Math.abs(scroller.value.scrollTop - scrolling.scrollPosition.value) > 1.0) {
-    scrolling.targetScroll.value = { type: 'offset', offset: scroller.value.scrollTop }
-  }
-}
+const visualizationSelection = ref<VisualizationIdentifier>()
 
 // === Documentation Panel ===
 
@@ -388,10 +262,13 @@ watch(selectedSuggestionId, (id) => {
 
 // === Accepting Entry ===
 
+const appliedSuggestion = ref<SuggestionId>()
+
 function applySuggestion(component: Opt<Component> = null) {
   const suggestionId = component?.suggestionId ?? selectedSuggestionId.value
   if (suggestionId == null) return
   input.applySuggestion(suggestionId)
+  appliedSuggestion.value = suggestionId
 }
 
 function applySuggestionAndSwitchToEditMode() {
@@ -442,18 +319,10 @@ const handler = componentBrowserBindings.handler({
     if (input.isAiPrompt.value) input.applyAIPrompt()
   },
   moveUp() {
-    if (selected.value != null && selected.value > 0) {
-      selected.value -= 1
-    }
-    scrolling.scrollWithTransition({ type: 'selected' })
+    componentList.value?.moveUp()
   },
   moveDown() {
-    if (selected.value == null) {
-      selected.value = 0
-    } else if (selected.value < components.value.length - 1) {
-      selected.value += 1
-    }
-    scrolling.scrollWithTransition({ type: 'selected' })
+    componentList.value?.moveDown()
   },
 })
 </script>
@@ -462,7 +331,7 @@ const handler = componentBrowserBindings.handler({
   <div
     ref="cbRoot"
     class="ComponentBrowser"
-    :style="{ transform, '--list-height': listContentHeightPx }"
+    :style="{ transform }"
     :data-self-argument="input.selfArgument.value"
     tabindex="-1"
     @focusout="handleDefocus"
@@ -489,8 +358,8 @@ const handler = componentBrowserBindings.handler({
       :height="null"
       :dataSource="previewDataSource"
       :typename="previewedSuggestionReturnType"
-      :currentType="previewedVisualizationId"
-      @update:id="setVisualization($event)"
+      :currentType="visualizationSelection"
+      @update:id="visualizationSelection = $event"
     />
     <ComponentEditor
       ref="inputElement"
@@ -500,84 +369,24 @@ const handler = componentBrowserBindings.handler({
       :icon="selectedSuggestionIcon"
       :nodeColor="nodeColor"
       :mode="mode"
+      :suggestionSelected="selected != null"
       :style="{ '--component-editor-padding': cssComponentEditorPadding }"
       @accept="mode === 'componentBrowser' ? acceptSuggestion() : acceptInput()"
       @switchToEditMode="applySuggestionAndSwitchToEditMode()"
     />
-    <div v-if="mode === 'componentBrowser' && !input.isAiPrompt.value" class="components">
-      <div
-        ref="scroller"
-        class="list"
-        :scrollTop.prop="scrolling.scrollPosition.value"
-        @wheel.stop.passive
-        @scroll="updateScroll"
-      >
-        <div class="list-variant">
-          <div
-            v-for="item in visibleComponents"
-            :key="item.component.suggestionId"
-            class="component"
-            :style="componentStyle(item.index)"
-            @mousemove="selectWithoutScrolling(item.index)"
-            @click="acceptSuggestion(item.component)"
-          >
-            <SvgIcon
-              :name="item.component.icon"
-              :style="{ color: componentColor(item.component) }"
-            />
-            <span>
-              <span v-if="!item.component.matchedRanges" v-text="item.component.label"></span>
-              <span
-                v-for="range in allRanges(
-                  item.component.matchedRanges,
-                  item.component.label.length,
-                )"
-                v-else
-                :key="`${range.start},${range.end}`"
-                class="component-label-segment"
-                :class="{ match: range.isMatch }"
-                v-text="item.component.label.slice(range.start, range.end)"
-              ></span>
-            </span>
-          </div>
-        </div>
-        <div class="list-variant selected" :style="{ clipPath: highlightClipPath }">
-          <div
-            v-for="item in visibleComponents"
-            :key="item.component.suggestionId"
-            class="component"
-            :style="{
-              backgroundColor: componentColor(item.component),
-              ...componentStyle(item.index),
-            }"
-            @click="acceptSuggestion(item.component)"
-          >
-            <SvgIcon :name="item.component.icon" />
-            <span>
-              <span v-if="!item.component.matchedRanges" v-text="item.component.label"></span>
-              <span
-                v-for="range in allRanges(
-                  item.component.matchedRanges,
-                  item.component.label.length,
-                )"
-                v-else
-                :key="`${range.start},${range.end}`"
-                class="component-label-segment"
-                :class="{ match: range.isMatch }"
-                v-text="item.component.label.slice(range.start, range.end)"
-              ></span>
-            </span>
-          </div>
-        </div>
-      </div>
-      <LoadingSpinner v-if="input.isAiPrompt.value && input.processingAIPrompt" />
-    </div>
+    <ComponentList
+      v-if="mode === 'componentBrowser' && !input.isAiPrompt.value"
+      ref="componentList"
+      :filtering="currentFiltering"
+      :autoSelectFirstComponent="input.autoSelectFirstComponent.value"
+      @acceptSuggestion="acceptSuggestion($event)"
+      @update:selectedComponent="selected = $event"
+    />
   </div>
 </template>
 
 <style scoped>
 .ComponentBrowser {
-  --list-height: 0px;
   --radius-default: 20px;
   --background-color: #eaeaea;
   --doc-panel-bottom-clip: 4px;
@@ -587,87 +396,6 @@ const handler = componentBrowserBindings.handler({
   display: flex;
   flex-direction: column;
   gap: 4px;
-}
-
-.components {
-  width: 100%;
-  height: 380px;
-  /* position: absolute; */
-  border: none;
-  border-radius: var(--radius-default);
-  background-color: var(--background-color);
-}
-
-.list {
-  width: 100%;
-  height: 100%;
-  overflow-x: hidden;
-  overflow-y: auto;
-  position: relative;
-}
-
-.list-variant {
-  top: 0px;
-  width: 100%;
-  height: var(--list-height);
-  position: absolute;
-}
-
-.component {
-  width: 100%;
-  height: 32px;
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-  padding: 9px;
-  display: flex;
-  position: absolute;
-  line-height: 1;
-  font-family: var(--font-code);
-}
-
-.selected {
-  color: white;
-  & svg {
-    color: white;
-  }
-}
-
-.component-label-segment.match {
-  font-weight: bold;
-}
-
-.top-bar {
-  width: 100%;
-  height: 40px;
-  padding: 4px;
-  background-color: var(--background-color);
-  border-radius: var(--radius-default);
-  position: absolute;
-  top: 0px;
-  z-index: 1;
-}
-
-.top-bar-inner {
-  width: 100%;
-  height: 100%;
-  border-radius: 16px;
-  border: 0.5px solid rgba(0, 0, 0, 0.12);
-  display: flex;
-  flex-direction: row;
-  gap: 12px;
-  padding: 7px;
-
-  & * {
-    color: rgba(0, 0, 0, 0.18);
-    transition: color 0.2s;
-  }
-  & .first-on-right {
-    margin-left: auto;
-  }
-  & > .toggledOn {
-    color: rgba(0, 0, 0, 0.6);
-  }
 }
 
 .component-editor {

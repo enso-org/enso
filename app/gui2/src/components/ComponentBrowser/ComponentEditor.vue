@@ -16,6 +16,7 @@ const props = defineProps<{
   icon: Icon | undefined
   nodeColor: string
   mode: 'componentBrowser' | 'codeEditor'
+  suggestionSelected: boolean
 }>()
 const emit = defineEmits<{
   switchToEditMode: []
@@ -99,13 +100,14 @@ const rootStyle = computed(() => {
     <div class="buttonPanel">
       <SvgButton
         name="add"
-        :title="mode === 'componentBrowser' ? 'Accept Component' : 'Accept'"
+        :title="mode === 'componentBrowser' ? 'Accept Suggested Component' : 'Accept'"
         @click.stop="emit('accept')"
       />
       <SvgButton
         name="edit"
         :disabled="mode === 'codeEditor'"
-        title="Switch to Code Editing"
+        :title="suggestionSelected ? 'Edit Suggested Component' : 'Code Edit Mode'"
+        data-testid="switchToEditMode"
         @click.stop="emit('switchToEditMode')"
       />
     </div>
