@@ -34,7 +34,7 @@ pub async fn create_dir_if_missing(path: impl AsRef<Path>) -> Result {
         }
         result => {
             trace!("Created directory: {}", path.as_ref().display());
-            result.anyhow_err()
+            Ok(result?)
         }
     }
 }
@@ -55,7 +55,7 @@ pub async fn create_parent_dir_if_missing(path: impl AsRef<Path>) -> Result<Path
 #[context("Failed to write file: {}", path.as_ref().display())]
 pub async fn write(path: impl AsRef<Path>, contents: impl AsRef<[u8]>) -> Result {
     create_parent_dir_if_missing(&path).await?;
-    crate::fs::wrappers::tokio::write(&path, &contents).await.anyhow_err()
+    crate::fs::wrappers::tokio::write(&path, &contents).await
 }
 
 pub async fn copy_to_file(
@@ -63,7 +63,7 @@ pub async fn copy_to_file(
     output_path: impl AsRef<Path>,
 ) -> Result<u64> {
     let mut output = create(output_path).await?;
-    tokio::io::copy(&mut content, &mut output).await.anyhow_err()
+    Ok(tokio::io::copy(&mut content, &mut output).await?)
 }
 
 /// Remove a directory with all its subtree.
@@ -184,7 +184,7 @@ pub async fn remove_file_if_exists(path: impl AsRef<Path>) -> Result<()> {
     let result = tokio::fs::remove_file(&path).await;
     match result {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
-        result => result.anyhow_err(),
+        result => Ok(result?),
     }
 }
 

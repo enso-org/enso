@@ -547,11 +547,14 @@ struct Scopes {
 }
 
 impl Scopes {
-    fn end_all(&mut self) -> impl Iterator<Item = ScopeType> {
+    fn end_all(&mut self) -> impl Iterator<Item = ScopeType> + '_ {
         self.end_including(VisibleOffset(0))
     }
 
-    fn end_below(&mut self, indent: impl Into<VisibleOffset>) -> impl Iterator<Item = ScopeType> {
+    fn end_below(
+        &mut self,
+        indent: impl Into<VisibleOffset>,
+    ) -> impl Iterator<Item = ScopeType> + '_ {
         let indent = indent.into();
         self.end_including(indent + VisibleOffset(1))
     }
@@ -559,14 +562,14 @@ impl Scopes {
     fn end_including(
         &mut self,
         indent: impl Into<VisibleOffset>,
-    ) -> impl Iterator<Item = ScopeType> {
+    ) -> impl Iterator<Item = ScopeType> + '_ {
         let indent = indent.into();
-        // FIXME: Don't allocate.
-        let mut scopes = vec![];
-        while let Some(scope) = self.scopes.pop_if(|scope| scope.indent >= indent) {
-            scopes.push(scope.r#type);
-        }
-        scopes.into_iter()
+        let new_size = self
+            .scopes
+            .iter()
+            .rposition(move |scope| scope.indent < indent)
+            .map_or(0, |pos| pos + 1);
+        self.scopes.drain(new_size..).map(|s| s.r#type).rev()
     }
 
     fn start_list_if_not_started(&mut self, indent: impl Into<VisibleOffset>) -> bool {
@@ -676,7 +679,6 @@ pub trait TokenConsumer<L> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pretty_assertions::assert_eq;
 
     #[test]
     fn test_doc_parsing() {

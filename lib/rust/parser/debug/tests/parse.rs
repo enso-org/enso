@@ -1821,7 +1821,7 @@ fn nonsense_inputs_broken() {
 
 /// Check that the given [`Tree`] is a valid representation of the given source code:
 /// - Assert that the given [`Tree`] is composed of tokens that concatenate back to the given source
-/// code.
+///   code.
 /// - Assert that the given [`Tree`] can be serialized and deserialized without error.
 fn expect_tree_representing_code(code: &str, ast: &enso_parser::syntax::Tree) {
     assert_eq!(ast.code(), code, "{:?}", &ast);

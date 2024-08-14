@@ -10,9 +10,9 @@ repository = "https://github.com/enso-org/enso"
 license-file = "../../LICENSE"
 
 [dependencies]
-enso-metamodel = { path = "../../metamodel", features = ["rust"] }
+enso-metamodel = { path = "../../metamodel" }
 enso-parser = { path = ".." }
-enso-reflect = { path = "../../reflect", features = ["graphviz"] }
+enso-reflect = { path = "../../reflect" }
 serde = { workspace = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

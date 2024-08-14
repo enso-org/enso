@@ -1,5 +1,3 @@
-private
-
 from Standard.Base import all
 import Standard.Base.Metadata.Display
 from Standard.Base.Metadata.Choice import Option
@@ -314,3 +312,9 @@ type Snowflake_Connection
        on the 'subclasses'.
     base_connection : Connection
     base_connection self = self.connection
+
+    ## PRIVATE
+       Converts this value to a JSON serializable object.
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "Snowflake_Connection"], ["links", self.tables.at "Name" . to_vector]]

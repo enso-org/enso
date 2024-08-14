@@ -5,7 +5,6 @@ import { ref } from 'vue'
 import CircularMenu from '@/components/CircularMenu.vue'
 
 const isRecordingOverridden = ref(false)
-const isDocsVisible = ref(false)
 const isVisualizationVisible = ref(false)
 
 const emptySet = new Set<string>()
@@ -22,7 +21,6 @@ const emptySet = new Set<string>()
       <div style="position: absolute; left: 32px">
         <CircularMenu
           v-model:isRecordingOverridden="isRecordingOverridden"
-          v-model:isDocsVisible="isDocsVisible"
           v-model:isVisualizationEnabled="isVisualizationVisible"
           :isRecordingEnabledGlobally="true"
           :isFullMenuVisible="true"
@@ -30,7 +28,6 @@ const emptySet = new Set<string>()
           :matchableNodeColors="emptySet"
           :documentationUrl="undefined"
           @update:isRecordingOverridden="logEvent('update:isRecordingOverridden', [$event])"
-          @update:isDocsVisible="logEvent('update:isDocsVisible', [$event])"
           @update:isVisualizationVisible="logEvent('update:isVisualizationVisible', [$event])"
         />
       </div>
@@ -38,7 +35,6 @@ const emptySet = new Set<string>()
 
     <template #controls>
       <HstCheckbox v-model="isRecordingOverridden" title="isRecordingOverridden" />
-      <HstCheckbox v-model="isDocsVisible" title="isDocsVisible" />
       <HstCheckbox v-model="isVisualizationVisible" title="isVisualizationVisible" />
     </template>
   </Story>

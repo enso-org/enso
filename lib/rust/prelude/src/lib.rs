@@ -17,8 +17,8 @@ pub use std_reexports::*;
 pub use vec::*;
 
 pub use boolinator::Boolinator;
-pub use derivative::Derivative;
 pub use derive_more::*;
+pub use derive_where::derive_where;
 pub use enso_reflect::prelude::*;
 pub use serde::Deserialize;
 pub use serde::Serialize;

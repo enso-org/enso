@@ -1,22 +1,18 @@
 [package]
 name = "enso-build-cli"
-version = "0.1.0"
 edition = "2021"
+version = "0.1.0"
 default-run = "enso-build-cli"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 anyhow = { workspace = true }
 clap = { workspace = true }
-derivative = { workspace = true }
+derive-where = { workspace = true }
 enso-build-base = { path = "../base" }
 enso-build = { path = "../build" }
 enso-formatter = { path = "../enso-formatter" }
-futures-util = "0.3.17"
+futures-util = { workspace = true }
 ide-ci = { path = "../ci_utils" }
 octocrab = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
-
-[lints]
-workspace = true
