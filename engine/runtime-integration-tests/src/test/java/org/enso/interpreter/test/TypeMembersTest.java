@@ -28,6 +28,7 @@ public class TypeMembersTest {
   @After
   public void disposeCtx() {
     ctx.close();
+    ctx = null;
   }
 
   @Test

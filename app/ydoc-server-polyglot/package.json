@@ -1,0 +1,25 @@
+{
+  "version": "0.1.0",
+  "name": "ydoc-server-polyglot",
+  "private": true,
+  "type": "commonjs",
+  "author": {
+    "name": "Enso Team",
+    "email": "contact@enso.org"
+  },
+  "main": "./dist/main.js",
+  "scripts": {
+    "compile": "node ./build.mjs build",
+    "start": "node ./dist/main.cjs",
+    "dev:watch": "node ./build.mjs watch"
+  },
+  "dependencies": {
+    "ydoc-shared": "workspace:*",
+    "ydoc-server": "workspace:*"
+  },
+  "devDependencies": {
+    "esbuild-plugin-wasm": "^1.1.0",
+    "esbuild": "^0.23.0",
+    "typescript": "^5.5.3"
+  }
+}

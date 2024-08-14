@@ -60,7 +60,9 @@ public class InsightForEnsoTest {
   @After
   public void disposeContext() throws Exception {
     this.insightHandle.close();
+    this.out.reset();
     this.ctx.close();
+    ctx = null;
   }
 
   @Test

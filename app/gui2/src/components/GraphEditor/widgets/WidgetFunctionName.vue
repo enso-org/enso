@@ -5,9 +5,9 @@ import { useProjectStore } from '@/stores/project'
 import { Ast } from '@/util/ast'
 import { Err, Ok, type Result } from '@/util/data/result'
 import { useToast } from '@/util/toast'
-import { PropertyAccess } from 'shared/ast'
-import type { ExpressionId } from 'shared/languageServerTypes'
 import { computed, ref, watchEffect } from 'vue'
+import { PropertyAccess } from 'ydoc-shared/ast'
+import type { ExpressionId } from 'ydoc-shared/languageServerTypes'
 import NodeWidget from '../NodeWidget.vue'
 
 const props = defineProps(widgetProps(widgetDefinition))

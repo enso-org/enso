@@ -382,7 +382,7 @@ pub enum Base {
 ///   serialization for optional codepoints.
 #[derive(Clone, Copy, PartialEq, Eq, Serialize, Reflect, Deserialize, Debug)]
 #[reflect(transparent)]
-pub struct Codepoint(#[reflect(as = "char")] u32);
+pub struct Codepoint(#[reflect(as = char)] u32);
 
 impl Default for Codepoint {
     fn default() -> Self {

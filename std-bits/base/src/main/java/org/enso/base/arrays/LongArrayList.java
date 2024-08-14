@@ -11,12 +11,12 @@ public class LongArrayList {
     backingStorage = new long[32];
   }
 
-  // ** Gets the number of elements in the list. */
+  /** Gets the number of elements in the list. */
   public int getSize() {
     return lastIndex + 1;
   }
 
-  // ** Gets an element from the list. */
+  /** Gets an element from the list. */
   public long get(int index) {
     if (index > lastIndex) {
       throw new IndexOutOfBoundsException(index);
@@ -24,12 +24,12 @@ public class LongArrayList {
     return backingStorage[index];
   }
 
-  // ** Gets an element from the list. */
+  /** Gets an element from the list. */
   public long getOrLast(int index) {
     return backingStorage[Math.min(index, lastIndex)];
   }
 
-  // ** Adds an element to the list. */
+  /** Adds an element to the list. */
   public void add(long x) {
     int index;
 

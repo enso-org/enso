@@ -27,9 +27,9 @@ import {
   type AnyOutboundPayload,
   type Offset,
   type Table,
-} from 'shared/binaryProtocol'
-import { LanguageServerErrorCode } from 'shared/languageServerTypes'
-import { uuidToBits } from 'shared/uuid'
+} from 'ydoc-shared/binaryProtocol'
+import { LanguageServerErrorCode } from 'ydoc-shared/languageServerTypes'
+import { uuidToBits } from 'ydoc-shared/uuid'
 
 const sha3 = createSHA3(224)
 

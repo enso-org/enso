@@ -13,7 +13,7 @@ base64 = "0.13.0"
 bytes = { workspace = true }
 chrono = { workspace = true }
 clap = { workspace = true }
-derivative = { workspace = true }
+derive-where = { workspace = true }
 derive_more = { workspace = true }
 dirs = { workspace = true }
 futures = { workspace = true }
@@ -25,8 +25,8 @@ enso-enso-font = { path = "../../lib/rust/enso-font" }
 enso-font = { path = "../../lib/rust/font" }
 enso-install-config = { path = "../install/config" }
 ide-ci = { path = "../ci_utils" }
-mime = "0.3.16"
-new_mime_guess = "4.0.1"
+mime = { workspace = true }
+new_mime_guess = { workspace = true }
 octocrab = { workspace = true }
 path-slash = "0.2.1"
 port_check = "0.1.5"

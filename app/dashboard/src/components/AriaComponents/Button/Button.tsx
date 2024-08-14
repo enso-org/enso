@@ -100,7 +100,6 @@ export const BUTTON_STYLES = twv.tv({
     },
     loading: { true: { base: 'cursor-wait' } },
     fullWidth: { true: 'w-full' },
-    fullWidthText: { true: { text: 'w-full' } },
     size: {
       custom: { base: '', extraClickZone: '', icon: 'h-full' },
       hero: { base: 'px-8 py-4 text-lg font-bold', content: 'gap-[0.75em]' },
@@ -112,7 +111,7 @@ export const BUTTON_STYLES = twv.tv({
           className: 'flex px-[11px] py-[5.5px]',
         }),
         content: 'gap-2',
-        icon: 'mb-[-0.1cap] h-4.5 w-4.5',
+        icon: 'mb-[-0.1cap] h-4 w-4',
         extraClickZone: 'after:inset-[-6px]',
       },
       medium: {
@@ -218,7 +217,7 @@ export const BUTTON_STYLES = twv.tv({
         extraClickZone: 'flex relative after:absolute after:cursor-pointer',
       },
       false: {
-        extraClickZone: '',
+        extraClickZone: 'after:inset-0',
       },
       xxsmall: {
         extraClickZone: 'after:inset-[-2px]',
@@ -295,7 +294,6 @@ export const Button = React.forwardRef(function Button(
     iconPosition,
     size,
     fullWidth,
-    fullWidthText,
     rounded,
     tooltip,
     tooltipPlacement,
@@ -316,8 +314,7 @@ export const Button = React.forwardRef(function Button(
   const Tag = isLink ? aria.Link : aria.Button
 
   const goodDefaults = {
-    ...(isLink ? { rel: 'noopener noreferrer', ref } : {}),
-    ...(isLink ? {} : { type: 'button' as const }),
+    ...(isLink ? { rel: 'noopener noreferrer' } : { type: 'button' as const }),
     'data-testid': testId ?? (isLink ? 'link' : 'button'),
   }
 
@@ -389,7 +386,6 @@ export const Button = React.forwardRef(function Button(
     isActive,
     loading: isLoading,
     fullWidth,
-    fullWidthText,
     size,
     rounded,
     variant,
@@ -443,7 +439,8 @@ export const Button = React.forwardRef(function Button(
     <Tag
       // @ts-expect-error ts errors are expected here because we are merging props with different types
       {...aria.mergeProps<aria.ButtonProps>()(goodDefaults, ariaProps, focusChildProps, {
-        isDisabled: isDisabled,
+        ref,
+        isDisabled,
         // we use onPressEnd instead of onPress because for some reason react-aria doesn't trigger
         // onPress on EXTRA_CLICK_ZONE, but onPress{start,end} are triggered
         onPressEnd: handlePress,

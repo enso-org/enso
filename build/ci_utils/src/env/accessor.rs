@@ -98,7 +98,7 @@ impl<Variable: TypedVariable, Value: AsRef<Variable::Borrowed>> FallibleManipula
 #[derive(Clone, Copy, Debug, Display, Ord, PartialOrd, Eq, PartialEq)]
 pub struct PathBufVariable(pub &'static str);
 
-impl const From<&'static str> for PathBufVariable {
+impl From<&'static str> for PathBufVariable {
     fn from(value: &'static str) -> Self {
         PathBufVariable(value)
     }
@@ -120,7 +120,7 @@ impl TypedVariable for PathBufVariable {
     type Value = PathBuf;
     type Borrowed = Path;
     fn parse(&self, value: &str) -> Result<Self::Value> {
-        PathBuf::from_str(value)
+        Ok(PathBuf::from_str(value)?)
     }
     fn generate(&self, value: &Self::Borrowed) -> Result<String> {
         value
@@ -144,7 +144,7 @@ impl<Value, Borrowed: ?Sized> From<&'static str> for SimpleVariable<Value, Borro
     }
 }
 
-impl<Value, Borrowed: ?Sized> const AsRef<str> for SimpleVariable<Value, Borrowed> {
+impl<Value, Borrowed: ?Sized> AsRef<str> for SimpleVariable<Value, Borrowed> {
     fn as_ref(&self) -> &str {
         self.name
     }
@@ -180,13 +180,13 @@ impl<Value, Borrowed: ?Sized> RawVariable for SimpleVariable<Value, Borrowed> {
     }
 }
 
-impl<Value: FromString, Borrowed: ToString + ?Sized> TypedVariable
-    for SimpleVariable<Value, Borrowed>
+impl<Value: FromStr, Borrowed: ToString + ?Sized> TypedVariable for SimpleVariable<Value, Borrowed>
+where Value::Err: Into<anyhow::Error>
 {
     type Value = Value;
     type Borrowed = Borrowed;
     fn parse(&self, value: &str) -> Result<Self::Value> {
-        Value::from_str(value)
+        Value::from_str(value).map_err(Into::into)
     }
     fn generate(&self, value: &Self::Borrowed) -> Result<String> {
         Ok(Borrowed::to_string(value))

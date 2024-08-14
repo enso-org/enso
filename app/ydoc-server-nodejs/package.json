@@ -1,0 +1,27 @@
+{
+  "version": "0.1.0",
+  "name": "ydoc-server-nodejs",
+  "private": true,
+  "type": "module",
+  "author": {
+    "name": "Enso Team",
+    "email": "contact@enso.org"
+  },
+  "module": "./dist/main.mjs",
+  "scripts": {
+    "compile": "node ./build.mjs build",
+    "start": "node ./dist/main.mjs",
+    "dev:watch": "node ./build.mjs watch",
+    "lint": "eslint .",
+    "format": "prettier --version && prettier --write src/ && eslint . --fix"
+  },
+  "dependencies": {
+    "ydoc-server": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.21",
+    "esbuild": "^0.23.0",
+    "esbuild-plugin-wasm": "^1.1.0",
+    "typescript": "^5.5.3"
+  }
+}

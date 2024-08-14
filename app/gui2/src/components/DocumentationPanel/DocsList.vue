@@ -2,8 +2,11 @@
 import type { FunctionDocs, TypeDocs } from '@/components/DocumentationPanel/ir'
 import type { Doc } from '@/util/docParser'
 import { qnSplit } from '@/util/qualifiedName'
-import type { SuggestionEntryArgument, SuggestionId } from 'shared/languageServerTypes/suggestions'
 import { computed } from 'vue'
+import type {
+  SuggestionEntryArgument,
+  SuggestionId,
+} from 'ydoc-shared/languageServerTypes/suggestions'
 
 const props = defineProps<{ items: ListItems }>()
 const emit = defineEmits<{ linkClicked: [id: SuggestionId] }>()

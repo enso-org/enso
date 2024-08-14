@@ -11,6 +11,7 @@ import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import { type Usage } from '@/components/ComponentBrowser/input'
 import { usePlacement } from '@/components/ComponentBrowser/placement'
+import ComponentDocumentation from '@/components/ComponentDocumentation.vue'
 import DockPanel from '@/components/DockPanel.vue'
 import DocumentationEditor from '@/components/DocumentationEditor.vue'
 import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
@@ -24,6 +25,7 @@ import GraphMouse from '@/components/GraphMouse.vue'
 import PlusButton from '@/components/PlusButton.vue'
 import SceneScroller from '@/components/SceneScroller.vue'
 import TopBar from '@/components/TopBar.vue'
+import { builtinWidgets } from '@/components/widgets'
 import { useAstDocumentation } from '@/composables/astDocumentation'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { keyboardBusy, keyboardBusyExceptIn, unrefElement, useEvent } from '@/composables/events'
@@ -37,6 +39,7 @@ import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideStackNavigator } from '@/providers/graphStackNavigator'
 import { provideInteractionHandler } from '@/providers/interactionHandler'
 import { provideKeyboard } from '@/providers/keyboard'
+import { injectVisibility } from '@/providers/visibility'
 import { provideWidgetRegistry } from '@/providers/widgetRegistry'
 import { provideGraphStore, type NodeId } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
@@ -50,14 +53,11 @@ import { colorFromString } from '@/util/colors'
 import { partition } from '@/util/data/array'
 import { every, filterDefined } from '@/util/data/iterable'
 import { Rect } from '@/util/data/rect'
-import { unwrapOr } from '@/util/data/result'
+import { Err, Ok, unwrapOr, type Result } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import { computedFallback } from '@/util/reactivity'
 import { until } from '@vueuse/core'
 import { encoding, set } from 'lib0'
-import { encodeMethodPointer } from 'shared/languageServerTypes'
-import * as iterable from 'shared/util/data/iterable'
-import { isDevMode } from 'shared/util/detect'
 import {
   computed,
   onMounted,
@@ -69,9 +69,9 @@ import {
   watch,
   type ComponentInstance,
 } from 'vue'
-
-import { builtinWidgets } from '@/components/widgets'
-import { injectVisibility } from '@/providers/visibility'
+import { encodeMethodPointer } from 'ydoc-shared/languageServerTypes'
+import * as iterable from 'ydoc-shared/util/data/iterable'
+import { isDevMode } from 'ydoc-shared/util/detect'
 
 const keyboard = provideKeyboard()
 const projectStore = useProjectStore()
@@ -101,7 +101,8 @@ const graphNavigator: GraphNavigator = provideGraphNavigator(viewportNode, keybo
 
 // === Client saved state ===
 
-const storedShowDocumentationEditor = ref()
+const storedShowRightDock = ref()
+const storedRightDockTab = ref()
 const rightDockWidth = ref<number>()
 
 /**
@@ -119,6 +120,8 @@ interface GraphStoredState {
   s: number
   /** Whether or not the documentation panel is open. */
   doc: boolean
+  /** The selected tab in the right-side panel. */
+  rtab: string
   /** Width of the right dock. */
   rwidth: number | null
 }
@@ -145,7 +148,8 @@ useSyncLocalStorage<GraphStoredState>({
       x: graphNavigator.targetCenter.x,
       y: graphNavigator.targetCenter.y,
       s: graphNavigator.targetScale,
-      doc: storedShowDocumentationEditor.value,
+      doc: storedShowRightDock.value,
+      rtab: storedRightDockTab.value,
       rwidth: rightDockWidth.value ?? null,
     }
   },
@@ -154,7 +158,8 @@ useSyncLocalStorage<GraphStoredState>({
       const pos = new Vec2(restored.x ?? 0, restored.y ?? 0)
       const scale = restored.s ?? 1
       graphNavigator.setCenterAndScale(pos, scale)
-      storedShowDocumentationEditor.value = restored.doc ?? undefined
+      storedShowRightDock.value = restored.doc ?? undefined
+      storedRightDockTab.value = restored.rtab ?? undefined
       rightDockWidth.value = restored.rwidth ?? undefined
     } else {
       await until(visibleAreasReady).toBe(true)
@@ -352,27 +357,22 @@ const graphBindingsHandler = graphBindings.handler({
     showColorPicker.value = true
   },
   openDocumentation() {
-    const failure = 'Unable to show node documentation'
-    const selected = getSoleSelectionOrToast(failure)
-    if (selected == null) return
-    const suggestion = graphStore.db.nodeMainSuggestion.lookup(selected)
-    const documentation = suggestion && suggestionDocumentationUrl(suggestion)
-    if (documentation) {
-      window.open(documentation, '_blank')
-    } else {
-      toasts.userActionFailed.show(`${failure}: no documentation available for selected node.`)
+    const result = tryGetSelectionDocUrl()
+    if (!result.ok) {
+      toasts.userActionFailed.show(result.error.message('Unable to show node documentation'))
+      return
     }
+    window.open(result.value, '_blank')
   },
 })
 
-function getSoleSelectionOrToast(context: string) {
-  if (nodeSelection.selected.size === 0) {
-    toasts.userActionFailed.show(`${context}: no node selected.`)
-  } else if (nodeSelection.selected.size > 1) {
-    toasts.userActionFailed.show(`${context}: multiple nodes selected.`)
-  } else {
-    return set.first(nodeSelection.selected)
-  }
+function tryGetSelectionDocUrl() {
+  const selected = nodeSelection.tryGetSoleSelection()
+  if (!selected.ok) return selected
+  const suggestion = graphStore.db.getNodeMainSuggestion(selected.value)
+  const documentation = suggestion && suggestionDocumentationUrl(suggestion)
+  if (!documentation) return Err('No external documentation available for selected component')
+  return Ok(documentation)
 }
 
 const { handleClick } = useDoubleClick(
@@ -405,15 +405,16 @@ const codeEditorHandler = codeEditorBindings.handler({
 
 const docEditor = shallowRef<ComponentInstance<typeof DocumentationEditor>>()
 const documentationEditorArea = computed(() => unrefElement(docEditor))
-const showDocumentationEditor = computedFallback(
-  storedShowDocumentationEditor,
+const showRightDock = computedFallback(
+  storedShowRightDock,
   // Show documentation editor when documentation exists on first graph visit.
   () => !!documentation.state.value,
 )
+const rightDockTab = computedFallback(storedRightDockTab, () => 'docs')
 
 const documentationEditorHandler = documentationEditorBindings.handler({
   toggle() {
-    showDocumentationEditor.value = !showDocumentationEditor.value
+    showRightDock.value = !showRightDock.value
   },
 })
 
@@ -643,12 +644,6 @@ provideNodeColors(graphStore, (variable) =>
 
 const showColorPicker = ref(false)
 
-function setSelectedNodesColor(color: string | undefined) {
-  graphStore.transact(() =>
-    nodeSelection.selected.forEach((id) => graphStore.overrideNodeColor(id, color)),
-  )
-}
-
 const groupColors = computed(() => {
   const styles: { [key: string]: string } = {}
   for (let group of suggestionDb.groups) {
@@ -662,6 +657,7 @@ const groupColors = computed(() => {
   <div
     class="GraphEditor"
     :class="{ draggingEdge: graphStore.mouseEditedEdge != null }"
+    :style="groupColors"
     @dragover.prevent
     @drop.prevent="handleFileDrop($event)"
   >
@@ -669,7 +665,6 @@ const groupColors = computed(() => {
       <div
         ref="viewportNode"
         class="viewport"
-        :style="groupColors"
         v-on.="graphNavigator.pointerEvents"
         v-on..="nodeSelection.events"
         @click="handleClick"
@@ -680,7 +675,6 @@ const groupColors = computed(() => {
           @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
           @nodeDoubleClick="(id) => stackNavigator.enterNode(id)"
           @createNodes="createNodesFromSource"
-          @setNodeColor="setSelectedNodesColor"
         />
         <GraphEdges :navigator="graphNavigator" @createNodeFromEdge="handleEdgeDrop" />
         <ComponentBrowser
@@ -696,10 +690,10 @@ const groupColors = computed(() => {
           v-model:recordMode="projectStore.recordMode"
           v-model:showColorPicker="showColorPicker"
           v-model:showCodeEditor="showCodeEditor"
-          v-model:showDocumentationEditor="showDocumentationEditor"
+          v-model:showDocumentationEditor="showRightDock"
           :zoomLevel="100.0 * graphNavigator.targetScale"
           :componentsSelected="nodeSelection.selected.size"
-          :class="{ extraRightSpace: !showDocumentationEditor }"
+          :class="{ extraRightSpace: !showRightDock }"
           @fitToAllClicked="zoomToSelected"
           @zoomIn="graphNavigator.stepZoom(+1)"
           @zoomOut="graphNavigator.stepZoom(-1)"
@@ -719,14 +713,20 @@ const groupColors = computed(() => {
         </Suspense>
       </BottomPanel>
     </div>
-    <DockPanel v-model:show="showDocumentationEditor" v-model:size="rightDockWidth">
-      <template #default="{ toolbar }">
+    <DockPanel
+      v-model:show="showRightDock"
+      v-model:size="rightDockWidth"
+      v-model:tab="rightDockTab"
+    >
+      <template #docs>
         <DocumentationEditor
           ref="docEditor"
           :modelValue="documentation.state.value"
-          :toolbarContainer="toolbar"
           @update:modelValue="documentation.set"
         />
+      </template>
+      <template #help>
+        <ComponentDocumentation />
       </template>
     </DockPanel>
   </div>

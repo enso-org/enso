@@ -99,8 +99,8 @@ pub async fn compare_env(
     f(&mut cmd);
     add_next_command(&mut cmd, ["set"]);
     let output = cmd.output_ok().await?;
-    let outputs =
-        split_command_outputs(&output.stdout).map(std::str::from_utf8).try_collect_vec()?;
+    let outputs: Vec<_> =
+        split_command_outputs(&output.stdout).map(std::str::from_utf8).try_collect()?;
 
     ensure!(outputs.len() == 3, "Expected outputs from all 3 commands!");
 

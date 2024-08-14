@@ -18,6 +18,8 @@ async function assertTypeLabelOnNode(
   const targetLabel = node.locator('.node-type').first()
   await expect(targetLabel).toHaveText(type.short)
   await expect(targetLabel).toHaveAttribute('title', type.full)
+  await locate.toggleVisualizationButton(node).click()
+  await actions.deselectNodes(page)
 }
 
 async function assertTypeLabelOnNodeByBinding(

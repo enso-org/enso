@@ -1,7 +1,7 @@
 import { type GraphStore } from '@/stores/graph'
 import { type ToValue } from '@/util/reactivity'
-import type { Ast } from 'shared/ast'
 import { computed, toValue } from 'vue'
+import type { Ast } from 'ydoc-shared/ast'
 
 export function useAstDocumentation(graphStore: GraphStore, ast: ToValue<Ast | undefined>) {
   return {

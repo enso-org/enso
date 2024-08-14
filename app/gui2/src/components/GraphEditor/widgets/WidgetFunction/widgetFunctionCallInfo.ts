@@ -17,9 +17,9 @@ import {
 } from '@/util/callTree'
 import type { Result } from '@/util/data/result'
 import type { ToValue } from '@/util/reactivity'
-import type { Opt } from 'shared/util/data/opt'
-import type { ExternalId } from 'shared/yjsModel'
 import { computed, toValue, type Ref } from 'vue'
+import type { Opt } from 'ydoc-shared/util/data/opt'
+import type { ExternalId } from 'ydoc-shared/yjsModel'
 
 export const WIDGETS_ENSO_MODULE = 'Standard.Visualization.Widgets'
 export const GET_WIDGETS_METHOD = 'get_widget_json'

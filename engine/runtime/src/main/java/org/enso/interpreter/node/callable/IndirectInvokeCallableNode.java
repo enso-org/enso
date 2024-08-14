@@ -22,10 +22,9 @@ import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
-import org.enso.interpreter.runtime.error.Warning;
-import org.enso.interpreter.runtime.error.WarningsLibrary;
-import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.state.State;
+import org.enso.interpreter.runtime.warning.AppendWarningNode;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 /**
  * Invokes any callable with given arguments.
@@ -74,7 +73,8 @@ public abstract class IndirectInvokeCallableNode extends Node {
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
       @Cached IndirectInvokeCallableNode invokeCallableNode,
-      @CachedLibrary(limit = "3") WarningsLibrary warnings) {
+      @CachedLibrary(limit = "3") WarningsLibrary warnings,
+      @Cached AppendWarningNode appendWarningNode) {
     try {
       var result =
           invokeCallableNode.execute(
@@ -87,8 +87,8 @@ public abstract class IndirectInvokeCallableNode extends Node {
               argumentsExecutionMode,
               isTail);
 
-      Warning[] extracted = warnings.getWarnings(warning, null, false);
-      return WithWarnings.wrap(EnsoContext.get(this), result, extracted);
+      var extracted = warnings.getWarnings(warning, false);
+      return appendWarningNode.executeAppend(null, result, extracted);
     } catch (UnsupportedMessageException e) {
       var ctx = EnsoContext.get(this);
       throw ctx.raiseAssertionPanic(this, null, e);

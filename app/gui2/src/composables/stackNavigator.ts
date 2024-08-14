@@ -2,8 +2,8 @@ import type { BreadcrumbItem } from '@/components/NavBreadcrumbs.vue'
 import { type GraphStore, type NodeId } from '@/stores/graph'
 import { type ProjectStore } from '@/stores/project'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
-import { methodPointerEquals, type StackItem } from 'shared/languageServerTypes'
 import { computed, onMounted, ref } from 'vue'
+import { methodPointerEquals, type StackItem } from 'ydoc-shared/languageServerTypes'
 
 export function useStackNavigator(projectStore: ProjectStore, graphStore: GraphStore) {
   const breadcrumbs = ref<StackItem[]>([])
@@ -13,7 +13,8 @@ export function useStackNavigator(projectStore: ProjectStore, graphStore: GraphS
     return breadcrumbs.value.map((item, index) => {
       const label = stackItemToLabel(item, index === 0)
       const isActive = index < activeStackLength
-      return { label, active: isActive } satisfies BreadcrumbItem
+      const isCurrentTop = index == activeStackLength - 1
+      return { label, active: isActive, isCurrentTop } satisfies BreadcrumbItem
     })
   })
 

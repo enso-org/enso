@@ -7,9 +7,8 @@ resolver = "2"
 # path, e.g. `lib/rust/ensogl/examples`, or `app/gui/view/examples`; this is used to optimize the application for
 # loading the IDE.
 members = [
-    "app/gui2/rust-ffi",
+    "app/rust-ffi",
     "build/cli",
-    "build/macros/proc-macro",
     "build/ci-gen",
     "build/cli",
     "build/install",
@@ -27,12 +26,6 @@ members = [
     "tools/language-server/logstat",
     "tools/language-server/wstest",
 ]
-
-# We are using a version with extended functionality. The changes have been PR'd upstream:
-# https://github.com/rustwasm/console_error_panic_hook/pull/24
-# Remove this patch when the issue is resolved.
-[patch.crates-io]
-console_error_panic_hook = { git = 'https://github.com/enso-org/console_error_panic_hook' }
 
 [profile.dev]
 opt-level = 0
@@ -73,7 +66,6 @@ opt-level = 2
 inherits = "dev"
 opt-level = 1
 lto = false
-debug = "line-tables-only"
 debug-assertions = true
 
 [workspace.lints.rust]
@@ -106,6 +98,8 @@ directories = { version = "5.0.1" }
 dirs = { version = "5.0.1" }
 flate2 = { version = "1.0.28" }
 indicatif = { version = "0.17.7", features = ["tokio"] }
+mime = "0.3.16"
+new_mime_guess = "4.0.1"
 multimap = { version = "0.9.1" }
 native-windows-gui = { version = "1.0.13" }
 nix = { version = "0.27.1" }
@@ -113,10 +107,9 @@ octocrab = { git = "https://github.com/enso-org/octocrab", default-features = fa
     "rustls",
 ] }
 path-absolutize = "3.1.1"
-platforms = { version = "3.2.0", features = ["serde"] }
 portpicker = { version = "0.1.1" }
 regex = { version = "1.6.0" }
-serde = { version = "1.0.130", features = ["derive", "rc"] }
+serde = { version = "1", features = ["derive", "rc"] }
 serde_yaml = { version = "0.9.16" }
 sha2 = { version = "0.10.8" }
 sysinfo = { version = "0.30.7" }
@@ -127,26 +120,22 @@ tokio-util = { version = "0.7.10", features = ["full"] }
 tracing = { version = "0.1.40" }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 walkdir = { version = "2.5.0" }
-wasm-bindgen = { version = "0.2.92", features = [] }
+wasm-bindgen = { version = "0.2.92", default-features = false }
 wasm-bindgen-test = { version = "0.3.34" }
-windows = { version = "0.52.0", features = ["Win32", "Win32_UI", "Win32_UI_Shell", "Win32_System", "Win32_System_LibraryLoader", "Win32_Foundation", "Win32_System_Com"] }
+windows = { version = "0.52.0", features = ["Win32_UI", "Win32_UI_Shell", "Win32_System_LibraryLoader", "Win32_System_Com"] }
 winreg = { version = "0.52.0" }
 anyhow = { version = "1.0.66" }
-failure = { version = "0.1.8" }
-derive_more = { version = "0.99" }
+derive_more = { version = "1.0", features = ["index", "index_mut", "deref", "deref_mut", "display", "from", "into", "as_ref", "add", "add_assign"] }
 boolinator = { version = "2.4.0" }
-derivative = { version = "2.2" }
-futures = { version = "0.3" }
+futures = { version = "0.3", default-features = false, features = ["std", "executor"]}
+futures-util = { version = "0.3", default-features = false }
 itertools = { version = "0.12.1" }
 lazy_static = { version = "1.4" }
 serde_json = { version = "1.0", features = ["raw_value"] }
 owned_ttf_parser = { version = "0.15.1" }
 convert_case = { version = "0.6.0" }
-rustybuzz = { version = "0.5.1" }
 bincode = { version = "2.0.0-rc.1" }
-byte-unit = { version = "5.1.4", features = ["serde"] }
 bytes = { version = "1.1.0" }
-matches = { version = "0.1" }
 console_error_panic_hook = { version = "0.1.6" }
 reqwest = { version = "0.11.27", default-features = false, features = [
     "rustls-tls",
@@ -154,14 +143,6 @@ reqwest = { version = "0.11.27", default-features = false, features = [
 ] }
 proc-macro2 = { version = "1.0.79" }
 syn = { version = "2.0", features = [
-    "full",
-    "extra-traits",
-    "printing",
-    "parsing",
-    "visit",
-    "visit-mut",
-] }
-syn_1 = { package = "syn", version = "1.0", features = [
     "full",
     "extra-traits",
     "printing",

@@ -16,6 +16,7 @@ import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedModuleMethod}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ir.expression.{Application, Operator}
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.analyse.alias.graph.Graph
 import org.enso.compiler.pass.desugar.ComplexType
 import org.enso.compiler.pass.resolve.{
   IgnoredBindings,
@@ -78,7 +79,7 @@ object AutomaticParallelism extends IRPass {
     ir: Expression,
     parallelismStatus: ParallelismStatus,
     id: Int,
-    assignment: Option[alias.Graph.Id],
+    assignment: Option[Graph.Id],
     dependencies: Set[Int],
     blockAssignment: Option[BlockAssignment]
   )
@@ -215,7 +216,7 @@ object AutomaticParallelism extends IRPass {
               AliasAnalysis,
               "Alias analysis left a binding behind"
             )
-            .asInstanceOf[alias.Info.Occurrence]
+            .asInstanceOf[alias.AliasMetadata.Occurrence]
           line.copy(assignment = Some(aaInfo.id))
         case _ => line
       }
@@ -233,7 +234,7 @@ object AutomaticParallelism extends IRPass {
           n
         }
         .flatMap(_.getMetadata(AliasAnalysis))
-        .collect { case occ: alias.Info.Occurrence =>
+        .collect { case occ: alias.AliasMetadata.Occurrence =>
           occ
         }
         .flatMap(occ => occ.graph.defLinkFor(occ.id))
