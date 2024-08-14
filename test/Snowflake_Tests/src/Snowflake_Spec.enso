@@ -419,7 +419,7 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
             table_name = Name_Generator.random_name "Timestamp"
             table = default_connection.get.create_table table_name [Column_Description.Value "A" (Value_Type.Date_Time with_timezone=False)] primary_key=[]
             Problems.assume_no_problems table
-            Panic.with_finalizer default_connection.get.drop_table table.name <|
+            Panic.with_finalizer (default_connection.get.drop_table table.name) <|
                 dt1 = Date_Time.new 2022 05 04 15 30
                 dt2 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.utc)
                 dt3 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.parse "US/Hawaii")
