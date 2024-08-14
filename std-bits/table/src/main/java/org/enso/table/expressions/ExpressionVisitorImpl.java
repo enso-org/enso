@@ -137,7 +137,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       if (result.canExecute()) {
         throw new IllegalArgumentException("Insufficient arguments for method " + name + ".");
       }
-      return result;
+      return makeConstantColumn.apply(result);
     } catch (PolyglotException e) {
       if (e.getMessage().startsWith("Type error: expected a function")) {
         throw new IllegalArgumentException("Too many arguments for method " + name + ".");
