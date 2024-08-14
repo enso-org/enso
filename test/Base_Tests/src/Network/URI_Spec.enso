@@ -304,7 +304,7 @@ add_specs suite_builder =
                     uri.to_java_uri . should_fail_with Enso_Secret_Error
                     uri.raw_query . should_fail_with Enso_Secret_Error
 
-        group_builder.specify "should allow to use secrets in query arguments, containing all kinds of various characters" pending=cloud_setup.httpbin_pending <|
+        group_builder.specify "should allow to use secrets in query arguments, containing all kinds of various characters" pending=cloud_setup.httpbin_pending <| Test.with_retries <|
             cloud_setup.with_prepared_environment <|
                 secret1 = Enso_Secret.create "my_test_secret-uri-4" "My Very Secret Value"
                 secret1.should_succeed
@@ -321,11 +321,10 @@ add_specs suite_builder =
                         uri.to_text . should_equal (cloud_setup.httpbin_secure_uri.to_text + "get?arg1=__SECRET__&arg2=plain+value&arg3=__SECRET__")
                         uri.raw_query . should_fail_with Enso_Secret_Error
 
-                        Test.with_retries <|
-                            response = cloud_setup.httpbin_secure_client.request (Request.get uri)
-                            decode_query_params response.decode_as_json . should_equal [["arg1", "My Very Secret Value"], ["arg2", "plain value"], ["arg3", s2]]
+                        response = cloud_setup.httpbin_secure_client.request (Request.get uri)
+                        decode_query_params response.decode_as_json . should_equal [["arg1", "My Very Secret Value"], ["arg2", "plain value"], ["arg3", s2]]
 
-        group_builder.specify "does not allow secrets in non-https requests" pending=cloud_setup.pending <|
+        group_builder.specify "does not allow secrets in non-https requests" pending=cloud_setup.pending <| Test.with_retries <|
             cloud_setup.with_prepared_environment <|
                 secret1 = Enso_Secret.create "my_test_secret-uri-8" "My Value"
                 secret1.should_succeed
