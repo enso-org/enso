@@ -413,6 +413,7 @@ fn try_parse_doc_comment<'s>(
         else {
             unreachable!()
         };
+        debug_assert_eq!(documented.expression, None);
         documented.documentation.open.left_offset += span.left_offset;
         Some(documented.documentation)
     } else {

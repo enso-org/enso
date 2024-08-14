@@ -210,7 +210,7 @@ fn to_operator_block_expression<'s>(
     match &items[..] {
         [Item::Token(a), b, ..]
             if b.left_visible_offset().width_in_spaces != 0
-                && a.operator_properties().map_or(false, |p| p.can_form_section()) =>
+                && a.operator_properties().is_some_and(|p| p.can_form_section()) =>
         {
             let expression = precedence.resolve_offset(1, &mut items).unwrap();
             let Some(Item::Token(operator)) = items.pop() else { unreachable!() };
