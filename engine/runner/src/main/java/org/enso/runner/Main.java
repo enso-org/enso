@@ -1235,7 +1235,7 @@ public class Main {
     if (!component.getName().equals("component")) {
       component = new File(component, "component");
     }
-    assert isLauncherOutdated(new File(loc.toURI()), component) || true;
+    assert checkOutdatedLauncher(new File(loc.toURI()), component) || true;
     if (line.hasOption(JVM_OPTION)) {
       var jvm = line.getOptionValue(JVM_OPTION);
       var current = System.getProperty("java.home");
@@ -1384,7 +1384,14 @@ public class Main {
     return LanguageInfo.ID;
   }
 
-  private static boolean isLauncherOutdated(File base, File dir) {
+  /**
+   * Check if native image based launcher is up-to-date. Prints a warning when it is outdated.
+   *
+   * @param base the base file to check
+   * @param dir directory with other files that should be older than base
+   * @return
+   */
+  private static boolean checkOutdatedLauncher(File base, File dir) {
     var needsCheck = base.canExecute();
     if (needsCheck) {
       var files = dir.listFiles();
@@ -1394,11 +1401,11 @@ public class Main {
           if (baseTime < f.lastModified()) {
             System.err.println(
                 "File " + base + " is older than " + f + " consider running in --jvm mode");
-            return true;
+            return false;
           }
         }
       }
     }
-    return false;
+    return true;
   }
 }
