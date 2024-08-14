@@ -1169,28 +1169,6 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
   .dependsOn(`runtime-version-manager-test` % Test)
   .dependsOn(`logging-service-logback` % "test->test")
 
-/* Note [Classpath Separation]
- * ~~~~~~~~~~~~~~~~~~~~~~~~~~
- * Projects using the language runtime do not depend on it directly, but instead
- * the language runtime is put on the Truffle classpath, rather than the
- * standard classpath. This is the recommended way of handling this and we
- * strive to use such structure everywhere.
- * See
- * https://www.graalvm.org/docs/graalvm-as-a-platform/implement-language#graalvm
- *
- * Currently the only exception to this are the tests of the runtime project
- * which have classpath separation disabled, because they need direct access to
- * the runtime's instruments.
- *
- * To ensure correct handling of dependencies by sbt, the classpath appended to
- * Java options, should be based on `(runtime / Compile / fullClasspath).value`
- * wherever possible. Using a key from the runtime project enables sbt to see
- * the dependency.
- *
- * Assembly tasks that build JAR files which need `runtime.jar` to run should
- * also add a dependency on `runtime / assembly`.
- */
-
 lazy val `json-rpc-server` = project
   .in(file("lib/scala/json-rpc-server"))
   .settings(
@@ -2525,14 +2503,6 @@ lazy val `engine-runner` = project
   .settings(
     frgaalJavaCompilerSetting,
     truffleDslSuppressWarnsSetting,
-    javaOptions ++= {
-      // Note [Classpath Separation]
-      val runtimeClasspath =
-        (runtime / Compile / fullClasspath).value
-          .map(_.data)
-          .mkString(File.pathSeparator)
-      Seq(s"-Dtruffle.class.path.append=$runtimeClasspath")
-    },
     packageOptions := Seq(
       // The `Multi-Release: true` comes from the `org.xerial/sqlite-jdbc` dependency.
       // But the current version of sbt-assembly does not allow to merge MANIFEST.MF
