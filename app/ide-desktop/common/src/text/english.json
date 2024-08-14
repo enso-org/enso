@@ -557,6 +557,7 @@
 
   "downgradeInfo": "Looking for downgrade options?",
 
+  "someAgreementsHaveBeenUpdated": "Some agreements have been updated. Please re-read and agree to continue.",
   "licenseAgreementTitle": "Enso Terms of Service",
   "licenseAgreementCheckbox": "I agree to the Enso Terms of Service",
   "licenseAgreementCheckboxError": "Please agree to the Enso Terms of Service",

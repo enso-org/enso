@@ -101,7 +101,7 @@ export function AgreementsModal() {
     select: (data) => data.hash,
   })
 
-  const isLatest = tosHash === cachedTosHash
+  const isLatest = tosHash === cachedTosHash && privacyPolicyHash === cachedPrivacyPolicyHash
   const isAccepted = cachedTosHash != null
   const shouldDisplay = !(isAccepted && isLatest)
 
@@ -134,7 +134,10 @@ export function AgreementsModal() {
       >
         <Form
           schema={formSchema}
-          defaultValues={{ agreedToTos: false, agreedToPrivacyPolicy: false }}
+          defaultValues={{
+            agreedToTos: tosHash === cachedTosHash,
+            agreedToPrivacyPolicy: privacyPolicyHash === cachedPrivacyPolicyHash,
+          }}
           testId="terms-of-service-form"
           method="dialog"
           onSubmit={() => {
@@ -149,6 +152,8 @@ export function AgreementsModal() {
         >
           {({ register }) => (
             <>
+              <Text>{getText('someAgreementsHaveBeenUpdated')}</Text>
+
               <Form.Field name="agreedToTos">
                 {({ isInvalid }) => (
                   <>
