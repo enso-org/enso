@@ -197,30 +197,32 @@ type DB_Column
     generate_random_column_name self = self.connection.base_connection.table_naming_helper.generate_random_table_name prefix="with-"
 
     # private Value internal_name:Text connection:(Connection | Any) sql_type_reference:SQL_Type_Reference expression:SQL_Expression context:Context
+    use_ctes self = False
     with self callback =
-        binder = self.generate_random_column_name
-        #ref_column = Column.value name self.connection self.sql_type_reference (SQL_Expression.Column name name)
+        if self.use_ctes.not then callback self else
+            binder = self.generate_random_column_name
+            #ref_column = Column.value name self.connection self.sql_type_reference (SQL_Expression.Column name name)
 
-        ref_expression = SQL_Expression.With_Ref binder self.expression
+            ref_expression = SQL_Expression.With_Ref binder self.expression
 
-        ref_column = DB_Column.Value binder self.connection self.sql_type_reference ref_expression self.context
-        inner_value = callback ref_column
-
-        with_expression = SQL_Expression.With binder self.expression inner_value.expression
-
-        r = DB_Column.Value inner_value.internal_name inner_value.connection inner_value.sql_type_reference with_expression inner_value.context
-        r
-
-        ##
-            with_expression = SQL_Expression.With_Ref binder
-            standalone_expression = SQL_Expression.With binder self.expression with_expression
-            with_type_reference = SQL_Type_Reference.new self.connection self.context standalone_expression
-            ref_column = DB_Column.Value binder self.connection with_type_reference with_expression self.context
+            ref_column = DB_Column.Value binder self.connection self.sql_type_reference ref_expression self.context
             inner_value = callback ref_column
-            inner_expression = SQL_Expression.With binder self.expression inner_value.expression
-            inner_type_reference = SQL_Type_Reference.new inner_value.connection inner_value.context inner_expression
-            r = DB_Column.Value inner_value.internal_name inner_value.connection inner_value.sql_type_reference inner_expression inner_value.context
+
+            with_expression = SQL_Expression.With binder self.expression inner_value.expression
+
+            r = DB_Column.Value inner_value.internal_name inner_value.connection inner_value.sql_type_reference with_expression inner_value.context
             r
+
+            ##
+                with_expression = SQL_Expression.With_Ref binder
+                standalone_expression = SQL_Expression.With binder self.expression with_expression
+                with_type_reference = SQL_Type_Reference.new self.connection self.context standalone_expression
+                ref_column = DB_Column.Value binder self.connection with_type_reference with_expression self.context
+                inner_value = callback ref_column
+                inner_expression = SQL_Expression.With binder self.expression inner_value.expression
+                inner_type_reference = SQL_Type_Reference.new inner_value.connection inner_value.context inner_expression
+                r = DB_Column.Value inner_value.internal_name inner_value.connection inner_value.sql_type_reference inner_expression inner_value.context
+                r
 
     ## PRIVATE
        Sets up an operation of arbitrary arity.
@@ -856,23 +858,24 @@ type DB_Column
             False ->
                 self.make_binary_op "ROUND" (SQL_Expression.Literal decimal_places.to_text) new_name
 
-    ## PRIVATE
-       Round a float-like column.
+    ##
+        ## PRIVATE
+        Round a float-like column.
+        round_float : Integer -> Boolean -> DB_Column
+        round_float self decimal_places use_bankers =
+            new_name = self.naming_helper.function_name "round" [self]
+            scale = 10 ^ decimal_places
+            scaled = self * scale
+            round_base = scaled.floor . rename "rb"
+            round_midpoint = (round_base + 0.5) / scale
+            even_is_up = (self >= 0).iif ((scaled.truncate % 2) != 0) ((scaled.truncate % 2) == 0)
+            half_goes_up = if use_bankers then even_is_up else self >= 0
+            do_round_up = half_goes_up.iif (self >= round_midpoint) (self > round_midpoint)
+            result = do_round_up.iif ((round_base + 1.0) / scale) (round_base / scale)
+            result.rename new_name
+
     round_float : Integer -> Boolean -> DB_Column
     round_float self decimal_places use_bankers =
-        new_name = self.naming_helper.function_name "round" [self]
-        scale = 10 ^ decimal_places
-        scaled = self * scale
-        round_base = scaled.floor . rename "rb"
-        round_midpoint = (round_base + 0.5) / scale
-        even_is_up = (self >= 0).iif ((scaled.truncate % 2) != 0) ((scaled.truncate % 2) == 0)
-        half_goes_up = if use_bankers then even_is_up else self >= 0
-        do_round_up = half_goes_up.iif (self >= round_midpoint) (self > round_midpoint)
-        result = do_round_up.iif ((round_base + 1.0) / scale) (round_base / scale)
-        result.rename new_name
-
-    round_float_2 : Integer -> Boolean -> DB_Column
-    round_float_2 self decimal_places use_bankers =
         new_name = self.naming_helper.function_name "round" [self]
         scale = 10 ^ decimal_places
         scaled = self * scale

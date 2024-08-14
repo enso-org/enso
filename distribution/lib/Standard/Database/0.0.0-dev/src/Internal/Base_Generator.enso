@@ -323,7 +323,7 @@ generate_expression dialect expr = case expr of
             _ -> result
     SQL_Expression.With binder bindee body ->
         wrapped_binder = dialect.wrap_identifier binder
-        bindee_exp = SQL_Builder.code "SELECT " ++ (generate_expression dialect bindee).paren ++ " AS " ++ wrapped_binder
+        bindee_exp = SQL_Builder.code "SELECT " ++ (generate_expression dialect bindee).paren ++ " AS " ++ "x"
 
         #IO.println "AAA scope push "+binder
         old_with_scope = State.get With_Binding_State
@@ -340,7 +340,7 @@ generate_expression dialect expr = case expr of
         case with_scope.contains binder of
             True ->
                 wrapped_binder = dialect.wrap_identifier binder
-                wrapped_binder ++ "." ++ wrapped_binder
+                wrapped_binder ++ "." ++ "x"
                 #wrapped_binder
             False ->
                 generate_expression dialect standalone_expression
