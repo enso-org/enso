@@ -14,13 +14,13 @@ export function InvitedToOrganizationModal() {
   const { getText } = useText()
   const { session } = useAuth()
   const { user } = useFullUserSession()
-  const shouldDisplay = user.newOrganization != null
+  const shouldDisplay = user.newOrganizationName != null && user.newOrganizationInvite != null
 
   if (shouldDisplay) {
-    const status = user.newOrganization.status
+    const status = user.newOrganizationInvite
     const statusMessage = (() => {
       switch (status) {
-        case 'open': {
+        case 'pending': {
           return getText('organizationInviteOpenMessage')
         }
         case 'error': {

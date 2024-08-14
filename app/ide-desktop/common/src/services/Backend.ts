@@ -146,12 +146,6 @@ export enum BackendType {
   remote = 'remote',
 }
 
-/** An invite to a new organization for an existing user. */
-export interface OrganizationInvite {
-  readonly name: string
-  readonly status: 'open' | 'error'
-}
-
 /** Metadata uniquely identifying a user inside an organization. */
 export interface UserInfo {
   /** The ID of the parent organization. If this is a sole user, they are implicitly in an
@@ -168,7 +162,8 @@ export interface UserInfo {
   readonly userId: UserId
   readonly name: string
   readonly email: EmailAddress
-  readonly newOrganization?: OrganizationInvite
+  readonly newOrganizationName?: string
+  readonly newOrganizationInvite?: 'error' | 'pending'
 }
 
 /** A user in the application. These are the primary owners of a project. */
@@ -1323,10 +1318,14 @@ export default abstract class Backend {
   abstract inviteUser(body: InviteUserRequestBody): Promise<void>
   /** Return a list of invitations to the organization. */
   abstract listInvitations(): Promise<readonly Invitation[]>
-  /** Delete an invitation. */
+  /** Delete an outgoing invitation. */
   abstract deleteInvitation(userEmail: EmailAddress): Promise<void>
-  /** Resend an invitation. */
+  /** Resend an outgoing invitation. */
   abstract resendInvitation(userEmail: EmailAddress): Promise<void>
+  /** Accept an incoming invitation to a new organization. */
+  abstract acceptInvitation(): Promise<void>
+  /** Decline an incoming invitation to a new organization. */
+  abstract declineInvitation(userEmail: string): Promise<void>
   /** Get the details of the current organization. */
   abstract getOrganization(): Promise<OrganizationInfo | null>
   /** Change the details of the current organization. */
