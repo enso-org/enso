@@ -138,6 +138,7 @@ impl BuiltEnso {
         async_policy: AsyncPolicy,
         test_selection: StandardLibraryTestsSelection,
     ) -> Result {
+        println!("::group::Running standard library tests");
         let paths = &self.paths;
         // Environment for meta-tests. See:
         // https://github.com/enso-org/enso/tree/develop/test/Meta_Test_Suite_Tests
@@ -263,7 +264,7 @@ impl BuiltEnso {
         // Only drop the credentials file after all tests have finished.
         drop(cloud_credentials_file);
         let errors = results.into_iter().filter_map(Result::err).collect::<Vec<_>>();
-        if errors.is_empty() {
+        let final_result = if errors.is_empty() {
             Ok(())
         } else {
             error!("{} test suit(s) failed.", errors.len());
@@ -271,7 +272,9 @@ impl BuiltEnso {
                 error!("{}", error);
             }
             bail!("Standard library tests failed. Details: {:?}.", errors);
-        }
+        };
+        println!("::endgroup::");
+        final_result
     }
 }
 
