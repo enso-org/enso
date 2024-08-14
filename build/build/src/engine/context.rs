@@ -346,7 +346,7 @@ impl RunContext {
         }
 
         if !tasks.is_empty() {
-            println!("::group::Building distributions and native images")
+            println!("::group::Building distributions and native images");
             debug!("Building distributions and native images.");
             if crate::ci::big_memory_machine() {
                 sbt.call_arg(Sbt::concurrent_tasks(tasks)).await?;
