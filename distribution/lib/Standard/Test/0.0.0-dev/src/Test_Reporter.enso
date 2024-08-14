@@ -93,6 +93,7 @@ print_single_result (test_result : Test_Result) (config : Suite_Config) =
    only if running in the GitHub Actions environment.
 report_github_error_message (title : Text) (message : Text) =
     is_enabled = Environment.get "GITHUB_ACTIONS" == "true"
+    # TODO message contains e.g. (at X:\NBO\enso\test\Base_Tests\src\Data\Text_Spec.enso:74:13-53) we can extract location from this
     sanitize text =
         lines = text.lines
         suffix = if lines.length > 1 then " (... and " + (lines.length - 1).to_text + " more lines)" else ""
