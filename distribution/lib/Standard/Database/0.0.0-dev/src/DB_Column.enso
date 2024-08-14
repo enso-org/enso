@@ -197,9 +197,10 @@ type DB_Column
     generate_random_column_name self = self.connection.base_connection.table_naming_helper.generate_random_table_name prefix="with-"
 
     # private Value internal_name:Text connection:(Connection | Any) sql_type_reference:SQL_Type_Reference expression:SQL_Expression context:Context
-    use_ctes self = False
     with self callback =
-        if self.use_ctes.not then callback self else
+        use_ctes = self.connection.dialect.supports_nested_with_clause  
+
+        if use_ctes.not then callback self else
             binder = self.generate_random_column_name
             #ref_column = Column.value name self.connection self.sql_type_reference (SQL_Expression.Column name name)
 

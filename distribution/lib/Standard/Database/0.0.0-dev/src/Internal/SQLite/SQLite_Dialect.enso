@@ -176,6 +176,11 @@ type SQLite_Dialect
         True
 
     ## PRIVATE
+       Specifies if the Database backend supports WITH clauses in nested queries.
+    supports_nested_with_clause : Boolean
+    supports_nested_with_clause  self = True
+
+    ## PRIVATE
     supports_separate_nan : Boolean
     supports_separate_nan self = False
 
