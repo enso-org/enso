@@ -98,7 +98,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     final Value module = context.invokeMember("get_module", moduleName);
     final Value type = module.invokeMember("get_type", typeName);
     getMethod = name -> module.invokeMember("get_method", type, name);
-    makeConstructor = name -> module.invokeMember("eval_expression", ".."+name);
+    makeConstructor = name -> module.invokeMember("eval_expression", ".." + name);
 
     this.variableArgumentFunctions = new HashSet<>(Arrays.asList(variableArgumentFunctions));
   }
