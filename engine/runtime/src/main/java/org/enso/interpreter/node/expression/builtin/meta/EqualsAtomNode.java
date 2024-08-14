@@ -9,6 +9,7 @@ import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
@@ -27,6 +28,7 @@ import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.atom.StructsLibrary;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.state.State;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 @GenerateUncached
 public abstract class EqualsAtomNode extends Node {
@@ -91,16 +93,24 @@ public abstract class EqualsAtomNode extends Node {
       @Cached(value = "customComparatorNode.execute(self)") Type cachedComparator,
       @Cached(value = "findCompareMethod(cachedComparator)", allowUncached = true)
           Function compareFn,
-      @Cached(value = "invokeCompareNode(compareFn)") InvokeFunctionNode invokeNode) {
-    var otherComparator = customComparatorNode.execute(other);
-    if (cachedComparator != otherComparator) {
-      return false;
+      @Cached(value = "invokeCompareNode(compareFn)") InvokeFunctionNode invokeNode,
+      @Shared @CachedLibrary(limit = "10") WarningsLibrary warnings) {
+    try {
+      var otherComparator = customComparatorNode.execute(other);
+      if (cachedComparator != otherComparator) {
+        return false;
+      }
+      var ctx = EnsoContext.get(this);
+      var args = new Object[] {cachedComparator, self, other};
+      var result = invokeNode.execute(compareFn, null, State.create(ctx), args);
+      assert orderingOrNullOrError(this, ctx, result, compareFn);
+      if (warnings.hasWarnings(result)) {
+        result = warnings.removeWarnings(result);
+      }
+      return ctx.getBuiltins().ordering().newEqual() == result;
+    } catch (UnsupportedMessageException e) {
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
-    var ctx = EnsoContext.get(this);
-    var args = new Object[] {cachedComparator, self, other};
-    var result = invokeNode.execute(compareFn, null, State.create(ctx), args);
-    assert orderingOrNullOrError(this, ctx, result, compareFn);
-    return ctx.getBuiltins().ordering().newEqual() == result;
   }
 
   @TruffleBoundary
@@ -123,16 +133,21 @@ public abstract class EqualsAtomNode extends Node {
 
   @Specialization(
       replaces = {"equalsAtomsWithDefaultComparator", "equalsAtomsWithCustomComparator"})
-  boolean equalsAtomsUncached(VirtualFrame frame, Atom self, Atom other) {
+  boolean equalsAtomsUncached(
+      VirtualFrame frame,
+      Atom self,
+      Atom other,
+      @Shared @CachedLibrary(limit = "10") WarningsLibrary warnings) {
     if (self.getConstructor() != other.getConstructor()) {
       return false;
     } else {
-      return equalsAtomsUncached(frame == null ? null : frame.materialize(), self, other);
+      return equalsAtomsUncached(frame == null ? null : frame.materialize(), self, other, warnings);
     }
   }
 
   @CompilerDirectives.TruffleBoundary
-  private boolean equalsAtomsUncached(MaterializedFrame frame, Atom self, Atom other) {
+  private boolean equalsAtomsUncached(
+      MaterializedFrame frame, Atom self, Atom other, WarningsLibrary warnings) {
     Type customComparator = CustomComparatorNode.getUncached().execute(self);
     if (customComparator != null) {
       Function compareFunc = findCompareMethod(customComparator);
@@ -144,7 +159,8 @@ public abstract class EqualsAtomNode extends Node {
           CustomComparatorNode.getUncached(),
           customComparator,
           compareFunc,
-          invokeFuncNode);
+          invokeFuncNode,
+          warnings);
     }
     for (int i = 0; i < self.getConstructor().getArity(); i++) {
       var selfField = StructsLibrary.getUncached().getField(self, i);
