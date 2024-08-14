@@ -1,7 +1,7 @@
 /** @file The icon and name of a {@link backendModule.ProjectAsset}. */
 import * as React from 'react'
 
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
 
 import NetworkIcon from '#/assets/network.svg'
 

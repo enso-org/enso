@@ -13,22 +13,10 @@ import * as aria from '#/components/aria'
 
 import * as errorUtils from '#/utilities/error'
 
-import type { Mutable } from 'enso-common/src/utilities/data/object'
 import * as dialog from '../Dialog'
 import * as components from './components'
 import * as styles from './styles'
 import type * as types from './types'
-
-/**
- * Maps the value to the event object.
- */
-function mapValueOnEvent(value: unknown) {
-  if (typeof value === 'object' && value != null && 'target' in value && 'type' in value) {
-    return value
-  } else {
-    return { target: { value } }
-  }
-}
 
 /** Form component. It wraps a `form` and provides form context.
  * It also handles form submission.
