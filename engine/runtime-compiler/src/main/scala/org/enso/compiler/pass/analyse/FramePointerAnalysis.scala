@@ -76,7 +76,7 @@ case object FramePointerAnalysis extends IRPass {
               }
               processArgumentDefs(member.arguments, memberGraph)
               member.annotations.foreach { annotation =>
-                processExpression(annotation.expression, memberGraph)
+                processAnnotation(annotation, memberGraph)
               }
             }
           case _ => ()
@@ -84,7 +84,7 @@ case object FramePointerAnalysis extends IRPass {
       case annot: GenericAnnotation =>
         getAliasAnalysisGraph(annot) match {
           case Some(annotGraph) =>
-            processExpression(annot.expression, annotGraph)
+            processAnnotation(annot, annotGraph)
           case None =>
             throw new CompilerError(
               s"No alias analysis graph found for annotation $annot"
@@ -92,6 +92,18 @@ case object FramePointerAnalysis extends IRPass {
         }
       case _ => ()
     }
+  }
+
+  private def processAnnotation(
+    annot: GenericAnnotation,
+    graph: Graph
+  ): Unit = {
+    val annotGraph = getAliasRootScope(annot) match {
+      case Some(rootScope) =>
+        rootScope.graph
+      case None => graph
+    }
+    processExpression(annot.expression, annotGraph)
   }
 
   private def processArgumentDefs(
