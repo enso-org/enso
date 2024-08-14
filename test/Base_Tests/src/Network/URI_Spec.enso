@@ -128,7 +128,7 @@ add_specs suite_builder =
             uri.fragment.should_equal Nothing
 
         # We rely on the http-test-helper for these tests, to ensure that the encoding is indeed correctly interpreted by a real-life server:
-        group_builder.specify "should correctly handle various characters within the key and value of arguments" pending=pending_has_url <|
+        group_builder.specify "should correctly handle various characters within the key and value of arguments" pending=pending_has_url <| Test.with_retries <|
             base_uri = URI.parse base_url+"get"
 
             uri1 = base_uri . add_query_argument "a" "b"
@@ -166,7 +166,7 @@ add_specs suite_builder =
             r4 = uri4.fetch
             decode_query_params r4 . should_equal [["p+r", "b c"], ["p r", "b c"], ["🚀", "🚧"], ["śnieżnobiałą", "łąkę"], [s2, "zzz"]]
 
-        group_builder.specify "may allow duplicate keys in query parameters" pending=pending_has_url <|
+        group_builder.specify "may allow duplicate keys in query parameters" pending=pending_has_url <| Test.with_retries <|
             uri = URI.parse base_url+"get"
                 . add_query_argument "a" "b"
                 . add_query_argument "a" "c"
@@ -220,7 +220,7 @@ add_specs suite_builder =
             uri5 = uri4 / "b"
             uri5.path . should_equal "/get/a//b"
 
-        group_builder.specify "should allow various characters in the path" pending=pending_has_url <|
+        group_builder.specify "should allow various characters in the path" pending=pending_has_url <| Test.with_retries <|
             uri0 = URI.parse base_url+"get"
             uri1 = uri0 / "a b c" / "d+e" / "f%20g" / "ś🚧:@"
 
@@ -291,9 +291,9 @@ add_specs suite_builder =
 
         cloud_setup = Cloud_Tests_Setup.prepare
 
-        group_builder.specify "will not convert back to URI if secrets are present in the query arguments" pending=cloud_setup.pending <|
+        group_builder.specify "will not convert back to URI if secrets are present in the query arguments" pending=cloud_setup.pending <| Test.with_retries <|
             cloud_setup.with_prepared_environment <|
-                secret1 = Enso_Secret.create "my_test_secret-uri-1" "My Value"
+                secret1 = Enso_Secret.create "my_test_secret-uri-1-"+Random.uuid "My Value"
                 secret1.should_succeed
                 Panic.with_finalizer secret1.delete <|
                     uri = URI.from "https://example.com/"
@@ -304,13 +304,13 @@ add_specs suite_builder =
                     uri.to_java_uri . should_fail_with Enso_Secret_Error
                     uri.raw_query . should_fail_with Enso_Secret_Error
 
-        group_builder.specify "should allow to use secrets in query arguments, containing all kinds of various characters" pending=cloud_setup.httpbin_pending <|
+        group_builder.specify "should allow to use secrets in query arguments, containing all kinds of various characters" pending=cloud_setup.httpbin_pending <| Test.with_retries <|
             cloud_setup.with_prepared_environment <|
-                secret1 = Enso_Secret.create "my_test_secret-uri-4" "My Very Secret Value"
+                secret1 = Enso_Secret.create "my_test_secret-uri-4-"+Random.uuid "My Very Secret Value"
                 secret1.should_succeed
                 Panic.with_finalizer secret1.delete <|
                     s2 = "Another Secret Value containing Emoji 😊❤️ and ąęś AND [a=b]:[b=c][d=e]++++!?&->#...__(){}@///\\\|%%%100*^, ]]] ==> <br>a"
-                    secret2 = Enso_Secret.create "my_test_secret-uri-5" s2
+                    secret2 = Enso_Secret.create "my_test_secret-uri-5"+Random.uuid s2
                     secret2.should_succeed
                     Panic.with_finalizer secret2.delete <|
                         uri = (cloud_setup.httpbin_secure_uri / "get")
@@ -321,13 +321,12 @@ add_specs suite_builder =
                         uri.to_text . should_equal (cloud_setup.httpbin_secure_uri.to_text + "get?arg1=__SECRET__&arg2=plain+value&arg3=__SECRET__")
                         uri.raw_query . should_fail_with Enso_Secret_Error
 
-                        Test.with_retries <|
-                            response = cloud_setup.httpbin_secure_client.request (Request.get uri)
-                            decode_query_params response.decode_as_json . should_equal [["arg1", "My Very Secret Value"], ["arg2", "plain value"], ["arg3", s2]]
+                        response = cloud_setup.httpbin_secure_client.request (Request.get uri)
+                        decode_query_params response.decode_as_json . should_equal [["arg1", "My Very Secret Value"], ["arg2", "plain value"], ["arg3", s2]]
 
-        group_builder.specify "does not allow secrets in non-https requests" pending=cloud_setup.pending <|
+        group_builder.specify "does not allow secrets in non-https requests" pending=cloud_setup.pending <| Test.with_retries <|
             cloud_setup.with_prepared_environment <|
-                secret1 = Enso_Secret.create "my_test_secret-uri-8" "My Value"
+                secret1 = Enso_Secret.create "my_test_secret-uri-8-"+Random.uuid "My Value"
                 secret1.should_succeed
                 Panic.with_finalizer secret1.delete <|
                     uri1 = URI.from "http://example.com/"
