@@ -561,6 +561,9 @@
   "licenseAgreementCheckbox": "I agree to the Enso Terms of Service",
   "licenseAgreementCheckboxError": "Please agree to the Enso Terms of Service",
   "viewLicenseAgreement": "View Terms of Service",
+  "privacyPolicyCheckbox": "I agree to the Privacy Policy",
+  "privacyPolicyCheckboxError": "Please agree to the Privacy Policy",
+  "viewPrivacyPolicy": "View Privacy Policy",
 
   "metaModifier": "Meta",
   "shiftModifier": "Shift",

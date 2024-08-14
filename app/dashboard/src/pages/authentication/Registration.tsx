@@ -9,8 +9,10 @@ import AtIcon from '#/assets/at.svg'
 import CreateAccountIcon from '#/assets/create_account.svg'
 import GoBackIcon from '#/assets/go_back.svg'
 import LockIcon from '#/assets/lock.svg'
-import { Form, Input, Password } from '#/components/AriaComponents'
+import { Input as AriaInput } from '#/components/aria'
+import { Button, Form, Input, Password, Text } from '#/components/AriaComponents'
 import Link from '#/components/Link'
+import { latestTermsOfServiceQueryOptions } from '#/modals/TermsOfServiceModal'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
 import { useAuth } from '#/providers/AuthProvider'
@@ -18,16 +20,44 @@ import { useLocalBackend } from '#/providers/BackendProvider'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import { type GetText, useText } from '#/providers/TextProvider'
 import LocalStorage from '#/utilities/LocalStorage'
+import { twMerge } from '#/utilities/tailwindMerge'
 import { PASSWORD_REGEX } from '#/utilities/validation'
+import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
+import { omit } from 'enso-common/src/utilities/data/object'
+
+// =================
+// === Constants ===
+// =================
+
+const TEN_MINUTES_MS = 600_000
+const PRIVACY_POLICY_ENDPOINT_SCHEMA = z.object({ hash: z.string() })
+
+const latestPrivacyPolicyQueryOptions = queryOptions({
+  queryKey: ['privacyPolicy', 'currentVersion'],
+  queryFn: async () => {
+    const response = await fetch(new URL('/privacy.json', process.env.ENSO_CLOUD_ENSO_HOST))
+    if (!response.ok) {
+      throw new Error('Failed to fetch Privacy Policy')
+    } else {
+      return PRIVACY_POLICY_ENDPOINT_SCHEMA.parse(await response.json())
+    }
+  },
+  refetchOnWindowFocus: true,
+  refetchIntervalInBackground: true,
+  refetchInterval: TEN_MINUTES_MS,
+})
 
 // ============================
 // === Global configuration ===
 // ============================
 
+const PRIVACY_POLICY_SCHEMA = z.object({ versionHash: z.string() })
+
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
     readonly loginRedirect: string
+    readonly privacyPolicy: z.infer<typeof PRIVACY_POLICY_SCHEMA>
   }
 }
 
@@ -36,6 +66,8 @@ LocalStorage.registerKey('loginRedirect', {
   schema: z.string(),
 })
 
+LocalStorage.registerKey('privacyPolicy', { schema: PRIVACY_POLICY_SCHEMA })
+
 /** Create the schema for this form. */
 function createRegistrationFormSchema(getText: GetText) {
   return z
@@ -43,6 +75,10 @@ function createRegistrationFormSchema(getText: GetText) {
       email: z.string().email(getText('invalidEmailValidationError')),
       password: passwordWithPatternSchema(getText),
       confirmPassword: z.string(),
+      agreedToTos: z.boolean().refine((value) => value, getText('licenseAgreementCheckboxError')),
+      agreedToPrivacyPolicy: z
+        .boolean()
+        .refine((value) => value, getText('privacyPolicyCheckboxError')),
     })
     .superRefine((object, context) => {
       if (PASSWORD_REGEX.test(object.password) && object.password !== object.confirmPassword) {
@@ -74,6 +110,28 @@ export default function Registration() {
   const redirectTo = query.get('redirect_to')
   const [emailInput, setEmailInput] = useState(initialEmail ?? '')
 
+  const cachedTosHash = localStorage.get('termsOfService')?.versionHash
+  const { data: tosHash } = useSuspenseQuery({
+    ...latestTermsOfServiceQueryOptions,
+    // If the user has already accepted the EULA, we don't need to
+    // block user interaction with the app while we fetch the latest version.
+    // We can use the local version hash as the initial data.
+    // and refetch in the background to check for updates.
+    ...(cachedTosHash != null && {
+      initialData: { hash: cachedTosHash },
+    }),
+    select: (data) => data.hash,
+  })
+  const cachedPrivacyPolicyHash = localStorage.get('privacyPolicy')?.versionHash
+  const { data: privacyPolicyHash } = useSuspenseQuery({
+    ...latestPrivacyPolicyQueryOptions,
+    ...(cachedPrivacyPolicyHash != null && {
+      initialData: { hash: cachedPrivacyPolicyHash },
+    }),
+    select: (data) => data.hash,
+  })
+  // latestPrivacyPolicyQueryOptions
+
   useEffect(() => {
     if (redirectTo != null) {
       localStorage.set('loginRedirect', redirectTo)
@@ -94,48 +152,109 @@ export default function Registration() {
           text={getText('alreadyHaveAnAccount')}
         />
       }
-      onSubmit={({ email, password }) => signUp(email, password, organizationId)}
+      onSubmit={async ({ email, password }) => {
+        await signUp(email, password, organizationId)
+        // Only the last one in the sequence should trigger a re-render.
+        localStorage.set('termsOfService', { versionHash: tosHash }, { triggerRerender: false })
+        localStorage.set(
+          'privacyPolicy',
+          { versionHash: privacyPolicyHash },
+          { triggerRerender: true },
+        )
+      }}
     >
-      <Input
-        autoFocus
-        required
-        data-testid="email-input"
-        name="email"
-        label={getText('emailLabel')}
-        type="email"
-        autoComplete="email"
-        icon={AtIcon}
-        placeholder={getText('emailPlaceholder')}
-        defaultValue={initialEmail ?? undefined}
-        onChange={(event) => {
-          setEmailInput(event.currentTarget.value)
-        }}
-      />
-      <Password
-        required
-        data-testid="password-input"
-        name="password"
-        label={getText('passwordLabel')}
-        autoComplete="new-password"
-        icon={LockIcon}
-        placeholder={getText('passwordPlaceholder')}
-        description={getText('passwordValidationMessage')}
-      />
-      <Password
-        required
-        data-testid="confirm-password-input"
-        name="confirmPassword"
-        label={getText('confirmPasswordLabel')}
-        autoComplete="new-password"
-        icon={LockIcon}
-        placeholder={getText('confirmPasswordPlaceholder')}
-      />
+      {({ register }) => (
+        <>
+          <Input
+            autoFocus
+            required
+            data-testid="email-input"
+            name="email"
+            label={getText('emailLabel')}
+            type="email"
+            autoComplete="email"
+            icon={AtIcon}
+            placeholder={getText('emailPlaceholder')}
+            defaultValue={initialEmail ?? undefined}
+            onChange={(event) => {
+              setEmailInput(event.currentTarget.value)
+            }}
+          />
+          <Password
+            required
+            data-testid="password-input"
+            name="password"
+            label={getText('passwordLabel')}
+            autoComplete="new-password"
+            icon={LockIcon}
+            placeholder={getText('passwordPlaceholder')}
+            description={getText('passwordValidationMessage')}
+          />
+          <Password
+            required
+            data-testid="confirm-password-input"
+            name="confirmPassword"
+            label={getText('confirmPasswordLabel')}
+            autoComplete="new-password"
+            icon={LockIcon}
+            placeholder={getText('confirmPasswordPlaceholder')}
+          />
 
-      <Form.Submit size="large" icon={CreateAccountIcon} className="w-full">
-        {getText('register')}
-      </Form.Submit>
+          <Form.Field name="agreedToTos">
+            {({ isInvalid }) => (
+              <>
+                <label className="flex w-full items-center gap-1">
+                  <AriaInput
+                    type="checkbox"
+                    className={twMerge(
+                      'flex size-4 cursor-pointer overflow-clip rounded-lg border border-primary outline-primary focus-visible:outline focus-visible:outline-2',
+                      isInvalid && 'border-red-700 text-red-500 outline-red-500',
+                    )}
+                    data-testid="terms-of-service-checkbox"
+                    {...omit(register('agreedToTos'), 'isInvalid')}
+                  />
 
-      <Form.FormError />
+                  <Text>{getText('licenseAgreementCheckbox')}</Text>
+                </label>
+
+                <Button variant="link" target="_blank" href="https://ensoanalytics.com/eula">
+                  {getText('viewLicenseAgreement')}
+                </Button>
+              </>
+            )}
+          </Form.Field>
+
+          <Form.Field name="agreedToPrivacyPolicy">
+            {({ isInvalid }) => (
+              <>
+                <label className="flex w-full items-center gap-1">
+                  <AriaInput
+                    type="checkbox"
+                    className={twMerge(
+                      'flex size-4 cursor-pointer overflow-clip rounded-lg border border-primary outline-primary focus-visible:outline focus-visible:outline-2',
+                      isInvalid && 'border-red-700 text-red-500 outline-red-500',
+                    )}
+                    data-testid="terms-of-service-checkbox"
+                    {...omit(register('agreedToPrivacyPolicy'), 'isInvalid')}
+                  />
+
+                  <Text>{getText('privacyPolicyCheckbox')}</Text>
+                </label>
+
+                <Button variant="link" target="_blank" href="https://ensoanalytics.com/privacy">
+                  {getText('viewPrivacyPolicy')}
+                </Button>
+              </>
+            )}
+          </Form.Field>
+
+          <Form.Submit size="large" icon={CreateAccountIcon} className="w-full">
+            {getText('register')}
+          </Form.Submit>
+
+          <Form.FormError />
+        </>
+      )}
     </AuthenticationPage>
   )
 }
