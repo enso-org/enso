@@ -5,13 +5,11 @@ from Standard.Test import Test
 import project.Database.Codegen_Spec
 import project.Database.SQLite_Spec
 import project.Database.Postgres_Spec
-import project.Database.Table_Naming_Helper_Spec
 
 add_specs suite_builder =
     Codegen_Spec.add_specs suite_builder
     SQLite_Spec.add_specs suite_builder
     Postgres_Spec.add_specs suite_builder
-    Table_Naming_Helper_Spec.add_specs suite_builder
 
 main filter=Nothing =
     suite = Test.build suite_builder->

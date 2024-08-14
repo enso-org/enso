@@ -441,7 +441,7 @@ type Connection
     ## PRIVATE
        Returns a helper for checking and generating table names.
     table_naming_helper : Table_Naming_Helper
-    table_naming_helper self = Table_Naming_Helper.new self
+    table_naming_helper self = Table_Naming_Helper.Value self
 
     ## PRIVATE
        Returns a helper for checking and generating column names.

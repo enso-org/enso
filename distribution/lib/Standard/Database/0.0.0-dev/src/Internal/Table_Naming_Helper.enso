@@ -1,12 +1,9 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
-import Standard.Base.Runtime.Ref.Ref
 
 import Standard.Table.Internal.Naming_Properties.Naming_Properties
 import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 from Standard.Table.Errors import Name_Too_Long
-
-import project.Connection.Connection.Connection
 
 polyglot java import org.enso.base.Text_Utils
 
@@ -14,15 +11,7 @@ polyglot java import org.enso.base.Text_Utils
    A helper for checking and generating table names.
 type Table_Naming_Helper
     ## PRIVATE
-    private Value connection (serial_table_name_generator : Serial_Table_Name_Generator)
-
-    new : Connection -> Table_Naming_Helper
-    new (connection : Connection) -> Table_Naming_Helper = Table_Naming_Helper.new_unchecked connection
-
-    ## PRIVATE
-       For testing.
-    new_unchecked : Any -> Table_Naming_Helper
-    new_unchecked connection -> Table_Naming_Helper = Table_Naming_Helper.Value connection Serial_Table_Name_Generator.new
+    Value connection
 
     ## PRIVATE
     naming_properties : Naming_Properties
@@ -104,24 +93,12 @@ type Table_Naming_Helper
         maximum_retries = 20^minimum_randomness
         if max_size.is_nothing.not && (naming_properties.encoded_size (prefix + minimum_randomness_template) > max_size) then Error.throw (Illegal_State.Error "The prefix has size "+(naming_properties.encoded_size prefix).to_text+" while max table name size is "+max_size.to_text+" - there is not enough space to safely generate random names.") else
             go ix =
-                if ix > maximum_retries then Error.throw (Illegal_State.Error "Could not generate a non-assigned random table name after "+maximum_retries.to_text+" tries. Giving up.") else
+                if ix > maximum_retries then Error.throw (Illegal_State.Error "Could not generate a non-assigned random table name after "+maximum_retries+". Giving up.") else
                     base_name = prefix + Random.uuid
                     name = self.truncate_if_needed base_name
                     if self.connection.table_exists name . not then name else
                         @Tail_Call go (ix + 1)
             go 0
-
-    ## PRIVATE
-       Generate a short, unique table name. Since this does not use UUIDs, the very small change of a collision is a little bit larger than for generate_random_table_name.
-    generate_unique_short_table_name : Text -> Text
-    generate_unique_short_table_name self (prefix : Text = "enso-table-") -> Text =
-        maximum_retries = 20
-        go ix =
-            if ix > maximum_retries then Error.throw (Illegal_State.Error "Could not generate a non-assigned short serial table name after "+maximum_retries.to_text+" tries. Giving up.") else
-                name = self.serial_table_name_generator.next prefix
-                if self.connection.table_exists name . not then name else
-                    @Tail_Call go (ix + 1)
-        go 0
 
     ## PRIVATE
        Truncates the name to fit in the limit, if it is too long.
@@ -131,14 +108,3 @@ type Table_Naming_Helper
         case naming_properties.size_limit of
             Nothing  -> name
             max_size -> naming_properties.truncate name max_size
-
-type Serial_Table_Name_Generator
-    Value (serial_number : Ref Integer)
-
-    new : Serial_Table_Name_Generator
-    new = Serial_Table_Name_Generator.Value (Ref.new 0)
-
-    next : Text -> Text
-    next self (prefix : Text) -> Text =
-        next_serial = self.serial_number.modify (x-> x+1)
-        prefix + next_serial.to_text

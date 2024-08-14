@@ -194,20 +194,33 @@ type DB_Column
     to_sql self = self.to_table.to_sql
 
     #generate_random_column_name self = self.to_table.make_temp_column_name
-    generate_random_column_name self = self.connection.base_connection.table_naming_helper.generate_unique_short_table_name prefix="with-"
+    generate_random_column_name self = self.connection.base_connection.table_naming_helper.generate_random_table_name prefix="with-"
 
     # private Value internal_name:Text connection:(Connection | Any) sql_type_reference:SQL_Type_Reference expression:SQL_Expression context:Context
     with self callback =
         binder = self.generate_random_column_name
-        binder.if_not_error <|
-            ref_expression = SQL_Expression.With_Ref binder self.expression
+        #ref_column = Column.value name self.connection self.sql_type_reference (SQL_Expression.Column name name)
 
-            ref_column = DB_Column.Value binder self.connection self.sql_type_reference ref_expression self.context
+        ref_expression = SQL_Expression.With_Ref binder self.expression
+
+        ref_column = DB_Column.Value binder self.connection self.sql_type_reference ref_expression self.context
+        inner_value = callback ref_column
+
+        with_expression = SQL_Expression.With binder self.expression inner_value.expression
+
+        r = DB_Column.Value inner_value.internal_name inner_value.connection inner_value.sql_type_reference with_expression inner_value.context
+        r
+
+        ##
+            with_expression = SQL_Expression.With_Ref binder
+            standalone_expression = SQL_Expression.With binder self.expression with_expression
+            with_type_reference = SQL_Type_Reference.new self.connection self.context standalone_expression
+            ref_column = DB_Column.Value binder self.connection with_type_reference with_expression self.context
             inner_value = callback ref_column
-
-            with_expression = SQL_Expression.With binder self.expression inner_value.expression
-
-            DB_Column.Value inner_value.internal_name inner_value.connection inner_value.sql_type_reference with_expression inner_value.context
+            inner_expression = SQL_Expression.With binder self.expression inner_value.expression
+            inner_type_reference = SQL_Type_Reference.new inner_value.connection inner_value.context inner_expression
+            r = DB_Column.Value inner_value.internal_name inner_value.connection inner_value.sql_type_reference inner_expression inner_value.context
+            r
 
     ## PRIVATE
        Sets up an operation of arbitrary arity.
