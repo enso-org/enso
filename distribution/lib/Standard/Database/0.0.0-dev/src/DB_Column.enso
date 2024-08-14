@@ -193,15 +193,12 @@ type DB_Column
     to_sql : SQL_Statement
     to_sql self = self.to_table.to_sql
 
-    #generate_random_column_name self = self.to_table.make_temp_column_name
-    generate_random_column_name self = self.connection.base_connection.table_naming_helper.generate_random_table_name prefix="with-"
-
-    # private Value internal_name:Text connection:(Connection | Any) sql_type_reference:SQL_Type_Reference expression:SQL_Expression context:Context
-    with self callback =
+    with : (DB_Column -> DB_Column) -> Text -> DB_Column
+    with self callback name="with" -> DB_Column =
         use_ctes = self.connection.dialect.supports_nested_with_clause  
 
         if use_ctes.not then callback self else
-            binder = self.generate_random_column_name
+            binder = self.connection.base_connection.table_naming_helper.generate_random_table_name prefix=name+"-"
             #ref_column = Column.value name self.connection self.sql_type_reference (SQL_Expression.Column name name)
 
             ref_expression = SQL_Expression.With_Ref binder self.expression
@@ -756,7 +753,7 @@ type DB_Column
             common_type.if_not_error <|
                 new_name = self.naming_helper.concat <|
                     ["if", self.naming_helper.to_expression_text self, "then", self.naming_helper.to_expression_text when_true, "else", self.naming_helper.to_expression_text when_false]
-                op_result = self.with zelf->
+                op_result = self.with name="iif" zelf->
                     zelf.make_op "IIF" [when_true, when_false] new_name
                 adapt_unified_column op_result common_type
 
@@ -881,14 +878,14 @@ type DB_Column
         scale = 10 ^ decimal_places
         scaled = self * scale
 
-        scaled.with scaled->
+        scaled.with name="scaled" scaled->
             round_base = scaled.floor . rename "rb"
-            round_base.with round_base->
+            round_base.with name="round_base" round_base->
                 round_midpoint = (round_base + 0.5) / scale
-                round_midpoint.with round_midpoint->
-                    scaled.truncate.with scaled_truncate->
-                        (scaled_truncate % 2).with scaled_truncate_mod_2->
-                            (scaled_truncate_mod_2 == 0).with scaled_truncate_mod_2_equals_0->
+                round_midpoint.with name="round_midpoint" round_midpoint->
+                    scaled.truncate.with name="scaled_truncate" scaled_truncate->
+                        (scaled_truncate % 2).with name="scaled_truncate_mod_2" scaled_truncate_mod_2->
+                            (scaled_truncate_mod_2 == 0).with name="scaled_truncate_mod_2_equals_0" scaled_truncate_mod_2_equals_0->
                                 even_is_up = (self >= 0).iif scaled_truncate_mod_2_equals_0.not scaled_truncate_mod_2_equals_0
                                 half_goes_up = if use_bankers then even_is_up else self >= 0
                                 do_round_up = half_goes_up.iif (self >= round_midpoint) (self > round_midpoint)
