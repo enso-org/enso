@@ -12,7 +12,10 @@ import LockIcon from '#/assets/lock.svg'
 import { Input as AriaInput } from '#/components/aria'
 import { Button, Form, Input, Password, Text } from '#/components/AriaComponents'
 import Link from '#/components/Link'
-import { latestTermsOfServiceQueryOptions } from '#/modals/TermsOfServiceModal'
+import {
+  latestPrivacyPolicyQueryOptions,
+  latestTermsOfServiceQueryOptions,
+} from '#/modals/TermsOfServiceModal'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
 import { useAuth } from '#/providers/AuthProvider'
@@ -22,42 +25,17 @@ import { type GetText, useText } from '#/providers/TextProvider'
 import LocalStorage from '#/utilities/LocalStorage'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { PASSWORD_REGEX } from '#/utilities/validation'
-import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { omit } from 'enso-common/src/utilities/data/object'
-
-// =================
-// === Constants ===
-// =================
-
-const TEN_MINUTES_MS = 600_000
-const PRIVACY_POLICY_ENDPOINT_SCHEMA = z.object({ hash: z.string() })
-
-const latestPrivacyPolicyQueryOptions = queryOptions({
-  queryKey: ['privacyPolicy', 'currentVersion'],
-  queryFn: async () => {
-    const response = await fetch(new URL('/privacy.json', process.env.ENSO_CLOUD_ENSO_HOST))
-    if (!response.ok) {
-      throw new Error('Failed to fetch Privacy Policy')
-    } else {
-      return PRIVACY_POLICY_ENDPOINT_SCHEMA.parse(await response.json())
-    }
-  },
-  refetchOnWindowFocus: true,
-  refetchIntervalInBackground: true,
-  refetchInterval: TEN_MINUTES_MS,
-})
 
 // ============================
 // === Global configuration ===
 // ============================
 
-const PRIVACY_POLICY_SCHEMA = z.object({ versionHash: z.string() })
-
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
     readonly loginRedirect: string
-    readonly privacyPolicy: z.infer<typeof PRIVACY_POLICY_SCHEMA>
   }
 }
 
@@ -65,8 +43,6 @@ LocalStorage.registerKey('loginRedirect', {
   isUserSpecific: true,
   schema: z.string(),
 })
-
-LocalStorage.registerKey('privacyPolicy', { schema: PRIVACY_POLICY_SCHEMA })
 
 /** Create the schema for this form. */
 function createRegistrationFormSchema(getText: GetText) {
@@ -130,7 +106,6 @@ export default function Registration() {
     }),
     select: (data) => data.hash,
   })
-  // latestPrivacyPolicyQueryOptions
 
   useEffect(() => {
     if (redirectTo != null) {
@@ -143,6 +118,7 @@ export default function Registration() {
   return (
     <AuthenticationPage
       schema={createRegistrationFormSchema(getText)}
+      defaultValues={{ agreedToTos: false, agreedToPrivacyPolicy: false }}
       title={getText('createANewAccount')}
       supportsOffline={supportsOffline}
       footer={
