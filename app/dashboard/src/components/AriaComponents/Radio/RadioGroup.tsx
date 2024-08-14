@@ -113,7 +113,6 @@ export const RadioGroup = React.forwardRef(function RadioGroup<
   Schema extends formComponent.TSchema,
   TFieldName extends formComponent.FieldPath<Schema, TFieldValues>,
   TFieldValues extends formComponent.FieldValues<Schema> = formComponent.FieldValues<Schema>,
-  // eslint-disable-next-line no-restricted-syntax
   TTransformedValues extends formComponent.FieldValues<Schema> | undefined = undefined,
 >(
   props: RadioGroupProps<Schema, TFieldValues, TFieldName, TTransformedValues> &

@@ -1,4 +1,5 @@
 /** @file An option in a selector. */
+import { AnimatedBackground } from '#/components/AnimatedBackground'
 import { Radio, type RadioProps } from '#/components/aria'
 import { tv } from '#/utilities/tailwindVariants'
 import * as React from 'react'
@@ -13,31 +14,79 @@ export interface SelectorOptionProps
 }
 
 export const SELECTOR_OPTION_STYLES = tv({
-  base: TEXT_STYLE({
-    className:
-      'flex flex-1 items-center justify-center min-h-8 relative overflow-clip cursor-pointer transition-[background-color,color,outline-offset] duration-200',
-    variant: 'body',
-  }),
+  base: 'flex flex-1 w-full min-h-8 cursor-pointer',
   variants: {
     rounded: {
-      none: 'rounded-none',
-      small: 'rounded-sm',
-      medium: 'rounded-md',
-      large: 'rounded-lg',
-      xlarge: 'rounded-xl',
-      xxlarge: 'rounded-2xl',
-      xxxlarge: 'rounded-3xl',
-      full: 'rounded-full',
+      // specified in compoundSlots
+      none: '',
+      small: '',
+      medium: '',
+      large: '',
+      xlarge: '',
+      xxlarge: '',
+      xxxlarge: '',
+      full: '',
     },
     size: {
-      medium: { base: 'px-[11px] pb-1.5 pt-2' },
-      small: { base: 'px-[11px] pb-0.5 pt-1' },
+      medium: { radio: 'px-[11px] pb-1.5 pt-2' },
+      small: { radio: 'px-[11px] pb-0.5 pt-1' },
     },
     variant: {
-      primary:
-        'selected:bg-primary selected:text-white hover:bg-primary/5 pressed:bg-primary/10 outline outline-2 outline-transparent outline-offset-[-2px] focus-visible:outline-primary focus-visible:outline-offset-0',
+      primary: {
+        radio:
+          'overflow-clip outline outline-2 outline-transparent outline-offset-[-2px] [&:not(:selected)]:bg-primary/5 selected:text-white pressed:bg-primary/10 focus-visible:outline-primary focus-visible:outline-offset-0',
+      },
     },
   },
+  slots: {
+    animation: 'bg-primary',
+    radio: TEXT_STYLE({
+      className: 'flex flex-1 w-full items-center justify-center transition-colors duration-200',
+      variant: 'body',
+    }),
+  },
+  compoundSlots: [
+    {
+      slots: ['radio', 'animation', 'base'],
+      rounded: 'none',
+      class: 'rounded-none',
+    },
+    {
+      slots: ['radio', 'animation', 'base'],
+      rounded: 'small',
+      class: 'rounded-sm',
+    },
+    {
+      slots: ['radio', 'animation', 'base'],
+      rounded: 'medium',
+      class: 'rounded-md',
+    },
+    {
+      slots: ['radio', 'animation', 'base'],
+      rounded: 'large',
+      class: 'rounded-lg',
+    },
+    {
+      slots: ['radio', 'animation', 'base'],
+      rounded: 'xlarge',
+      class: 'rounded-xl',
+    },
+    {
+      slots: ['radio', 'animation', 'base'],
+      rounded: 'xxlarge',
+      class: 'rounded-2xl',
+    },
+    {
+      slots: ['radio', 'animation', 'base'],
+      rounded: 'xxxlarge',
+      class: 'rounded-3xl',
+    },
+    {
+      slots: ['radio', 'animation', 'base'],
+      rounded: 'full',
+      class: 'rounded-full',
+    },
+  ],
   defaultVariants: {
     size: 'medium',
     rounded: 'xxxlarge',
@@ -49,20 +98,28 @@ export const SelectorOption = React.forwardRef(function SelectorOption(
   props: SelectorOptionProps,
   ref: React.ForwardedRef<HTMLLabelElement>,
 ) {
-  const { label, ...radioProps } = props
-  const { className } = props
+  const { label, value, size, rounded, variant, className, ...radioProps } = props
+
+  const styles = SELECTOR_OPTION_STYLES({ size, rounded, variant })
 
   return (
-    <Radio
-      ref={ref}
-      {...radioProps}
-      className={(renderProps) =>
-        SELECTOR_OPTION_STYLES({
-          className: typeof className === 'function' ? className(renderProps) : className,
-        })
-      }
+    <AnimatedBackground.Item
+      value={value}
+      className={styles.base()}
+      animationClassName={styles.animation()}
     >
-      {label}
-    </Radio>
+      <Radio
+        ref={ref}
+        {...radioProps}
+        value={value}
+        className={(renderProps) =>
+          styles.radio({
+            className: typeof className === 'function' ? className(renderProps) : className,
+          })
+        }
+      >
+        {label}
+      </Radio>
+    </AnimatedBackground.Item>
   )
 })

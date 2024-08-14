@@ -476,22 +476,46 @@
 }
 
 ::-webkit-scrollbar:vertical {
-  width: 11px;
+  width: 12px;
 }
 
 ::-webkit-scrollbar:horizontal {
-  height: 11px;
+  height: 12px;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply rounded-3xl bg-primary/15;
+  @apply w-2 rounded-full border-2 border-solid border-transparent text-primary/15 transition-all;
+
+  background-color: currentColor;
+  background-clip: content-box;
 
   &:hover {
-    @apply bg-primary/25;
+    @apply text-primary/25;
   }
 
   &:active {
-    @apply bg-primary/20;
+    @apply text-primary/20;
+  }
+
+  /* Custom scrollbar for Dialogs */
+  :where([role='dialog'][class*='rounded-2xl'])& {
+    @apply bg-transparent;
+
+    border-width: 12px;
+    border-right-width: 4px;
+    border-left-width: 0;
+
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    background-image: url('data:image/svg+xml;utf8,<svg style="color:rgb(0 0 0 / 0.15)" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 10 10000" preserveAspectRatio="none"><rect fill="currentColor" x="0" y="0" width="10" height="10000" ry="0.5%" rx="8" /></svg>');
+
+    &:hover {
+      background-image: url('data:image/svg+xml;utf8,<svg style="color:rgb(0 0 0 / 0.25)" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 10 10000" preserveAspectRatio="none"><rect fill="currentColor" x="0" y="0" width="10" height="10000" ry="0.5%" rx="8" /></svg>');
+    }
+
+    &:active {
+      background-image: url('data:image/svg+xml;utf8,<svg style="color:rgb(0 0 0 / 0.2)" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 10 10000" preserveAspectRatio="none"><rect fill="currentColor" x="0" y="0" width="10" height="10000" ry="0.5%" rx="8" /></svg>');
+    }
   }
 }
 

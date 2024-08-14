@@ -45,7 +45,7 @@ const MODAL_STYLES = twv.tv({
 
 const DIALOG_STYLES = twv.tv({
   extend: variants.DIALOG_STYLES,
-  base: 'w-full',
+  base: 'w-full overflow-y-auto',
   variants: {
     type: {
       modal: {
@@ -87,7 +87,7 @@ const DIALOG_STYLES = twv.tv({
       'sticky grid grid-cols-[1fr_auto_1fr] items-center border-b border-primary/10 transition-[border-color] duration-150',
     closeButton: 'col-start-1 col-end-1 mr-auto',
     heading: 'col-start-2 col-end-2 my-0 text-center',
-    content: 'relative flex-auto overflow-y-auto p-3.5',
+    content: 'relative flex-auto p-3.5',
   },
   compoundVariants: [
     { type: 'modal', size: 'small', class: 'max-w-sm' },

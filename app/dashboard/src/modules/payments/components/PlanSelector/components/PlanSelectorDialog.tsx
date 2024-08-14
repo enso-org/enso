@@ -19,6 +19,7 @@ import type { Plan } from '#/services/Backend'
 
 import { twMerge } from '#/utilities/tailwindMerge'
 
+import { Checkbox } from '#/components/aria'
 import {
   MAX_SEATS_BY_PLAN,
   PRICE_BY_PLAN,
@@ -53,10 +54,8 @@ export interface PlanSelectorDialogProps {
 /** Get the string representation of a billing period. */
 function billingPeriodToString(getText: GetText, item: number) {
   return (
-    item === 1 ? getText('billingPeriodOneMonth')
-      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    : item === 12 ? getText('billingPeriodOneYear')
-    : getText('billingPeriodThreeYears')
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    item === 12 ? getText('billingPeriodOneYear') : getText('billingPeriodThreeYears')
   )
 }
 
@@ -80,6 +79,7 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
           .min(1)
           .max(maxSeats, { message: getText('wantMoreSeats') }),
         period: z.number(),
+        agree: z.boolean().refine((value) => value, { message: getText('arbitraryFieldRequired') }),
       }),
     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     defaultValues: { seats: 1, period: 12 },
@@ -134,7 +134,7 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
                   form={form}
                   name="period"
                   // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-                  items={[1, 12, 36]}
+                  items={[12, 36]}
                   itemToString={(item) => billingPeriodToString(getText, item)}
                   label={getText('billingPeriod')}
                 />
@@ -151,6 +151,13 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
                   label={getText('seats')}
                   description={getText(`${plan}PlanSeatsDescription`, maxSeats)}
                 />
+
+                <Form.Field
+                  name="agree"
+                  description="This Order is governed by the Software License and Service Agreement found at https://www.ensoanalytics.com/SLSA, (the “Agreement”). All capitalized terms used in this Customer Order but not otherwise defined herein shall have the meanings set forth in the Agreement. Except as expressly provided in the Agreement, Products and Services purchased under this Customer Order are non-cancelable and non-refundable."
+                >
+                  <Checkbox>{getText('licenseAgreementCheckbox')}</Checkbox>
+                </Form.Field>
               </Form>
             </div>
           </div>
