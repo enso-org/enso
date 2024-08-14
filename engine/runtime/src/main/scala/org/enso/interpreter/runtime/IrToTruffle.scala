@@ -47,7 +47,6 @@ import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.exception.BadPatternMatch
 import org.enso.compiler.pass.analyse.alias.graph.Graph.{Scope => AliasScope}
 import org.enso.compiler.pass.analyse.{
-  alias,
   AliasAnalysis,
   BindingAnalysis,
   DataflowAnalysis,
