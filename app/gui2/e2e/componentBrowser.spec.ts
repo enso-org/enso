@@ -285,6 +285,8 @@ test('Component browser handling of overridden record-mode', async ({ page }) =>
   await locate.graphNodeIcon(node).hover()
   await expect(recordModeToggle).toHaveClass(/toggledOff/)
   await recordModeToggle.click()
+  await expect(recordModeToggle).toHaveClass(/toggledOn/)
+  await page.keyboard.press('Escape')
   // TODO[ao]: The simple move near top-left corner not always works i.e. not always
   //  `pointerleave` event is emitted. Investigated in https://github.com/enso-org/enso/issues/9478
   //  once fixed, remember to change the second `await page.mouse.move(700, 1200, { steps: 20 })`

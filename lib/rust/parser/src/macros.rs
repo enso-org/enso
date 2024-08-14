@@ -34,12 +34,11 @@ pub use pattern::Pattern;
 ///
 /// If you want to create macro definition in Rust, use the [`macro_definition`] macro instead,
 /// which for a nice and concise definitions.
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive_where(Debug)]
 #[allow(missing_docs)]
 pub struct Definition<'a> {
     pub segments: im_list::NonEmpty<SegmentDefinition<'a>>,
-    #[derivative(Debug = "ignore")]
+    #[derive_where(skip)]
     pub body:     Rc<DefinitionBody>,
 }
 

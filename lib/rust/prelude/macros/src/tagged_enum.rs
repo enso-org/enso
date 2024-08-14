@@ -1,4 +1,5 @@
-use inflector::cases::snakecase::to_snake_case;
+use convert_case::Case;
+use convert_case::Casing;
 use quote::quote;
 use syn::AttrStyle;
 use syn::Attribute;
@@ -224,7 +225,7 @@ pub fn run(
         //         Self::App(Box::new(App{func, args}))
         //     }
         // }
-        let variant_snake_name = to_snake_case(&variant_name.to_string());
+        let variant_snake_name = variant_name.to_string().to_case(Case::Snake);
         let variant_snake_ident = quote::format_ident!("{}", variant_snake_name);
         let (names, types) = match &variant.fields {
             Fields::Unit => (vec![], vec![]),

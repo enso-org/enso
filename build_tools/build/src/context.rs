@@ -2,7 +2,6 @@ use crate::prelude::*;
 
 use crate::paths::TargetTriple;
 
-use derivative::Derivative;
 use ide_ci::github;
 use octocrab::models::repos::Release;
 use octocrab::models::ReleaseId;
@@ -10,8 +9,7 @@ use octocrab::models::ReleaseId;
 
 
 /// The basic, common information available in this application.
-#[derive(Clone, Derivative, derive_more::Deref)]
-#[derivative(Debug)]
+#[derive(Clone, Debug, derive_more::Deref)]
 pub struct BuildContext {
     #[deref]
     pub inner: crate::project::Context,
@@ -51,7 +49,7 @@ impl BuildContext {
         let repository = self.remote_repo_handle();
         let designator_cp = designator.clone();
         async move {
-            let release = if let Ok(id) = designator.parse2::<ReleaseId>() {
+            let release = if let Ok(id) = designator.parse::<ReleaseId>() {
                 repository.find_release_by_id(id).await?
             } else {
                 match designator.as_str() {

@@ -323,6 +323,9 @@ importers:
       ag-grid-enterprise:
         specifier: ^30.2.1
         version: 30.2.1
+      ag-grid-vue3:
+        specifier: ^30.2.1
+        version: 30.2.1(ag-grid-community@30.2.1)(vue@3.4.31(typescript@5.5.3))
       codemirror:
         specifier: ^6.0.1
         version: 6.0.1(@lezer/common@1.2.1)
@@ -377,6 +380,9 @@ importers:
       vue:
         specifier: ^3.4.19
         version: 3.4.31(typescript@5.5.3)
+      vue-component-type-helpers:
+        specifier: ^2.0.29
+        version: 2.0.29      
       y-codemirror.next:
         specifier: ^0.3.2
         version: 0.3.5(@codemirror/state@6.4.1)(@codemirror/view@6.30.0)(yjs@13.6.18)
@@ -3366,6 +3372,12 @@ packages:
 
   ag-grid-enterprise@30.2.1:
     resolution: {integrity: sha512-sGeyAfZ416dBlJaxIHB6hGTJG6QzuajXnDAtVuQlOLUuV4/TXVQoh5SJkiKBpWXukZQJPE4VD/5IkQ1tXh96/w==}
+
+  ag-grid-vue3@30.2.1:
+    resolution: {integrity: sha512-uIsBv5H7Nu6ao1V7cuReVj27gFdlK4kfvo/4M6AWmYswghMpc1GwzczZNV8HUypGcwxONW9YSfr8zabYQNGcAg==}
+    peerDependencies:
+      ag-grid-community: ~30.2.1
+      vue: ^3.0.0
 
   agent-base@6.0.2:
     resolution: {integrity: sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==}
@@ -7377,8 +7389,8 @@ packages:
   vscode-uri@3.0.8:
     resolution: {integrity: sha512-AyFQ0EVmsOZOlAnxoFOGOq1SQDWAB7C6aqMGS23svWAllfOaxbuFvcT8D1i8z3Gyn8fraVeZNNmN6e9bxxXkKw==}
 
-  vue-component-type-helpers@2.0.24:
-    resolution: {integrity: sha512-Jr5N8QVYEcbQuMN1LRgvg61758G8HTnzUlQsAFOxx6Y6X8kmhJ7C+jOvWsQruYxi3uHhhS6BghyRlyiwO99DBg==}
+  vue-component-type-helpers@2.0.29:
+    resolution: {integrity: sha512-58i+ZhUAUpwQ+9h5Hck0D+jr1qbYl4voRt5KffBx8qzELViQ4XdT/Tuo+mzq8u63teAG8K0lLaOiL5ofqW38rg==}
 
   vue-demi@0.14.8:
     resolution: {integrity: sha512-Uuqnk9YE9SsWeReYqK2alDI5YzciATE0r2SkA6iMAtuXvNTMNACJLJEXNXaEy94ECuBe4Sk6RzRU80kjdbIo1Q==}
@@ -10838,7 +10850,7 @@ snapshots:
   '@vue/test-utils@2.4.6':
     dependencies:
       js-beautify: 1.15.1
-      vue-component-type-helpers: 2.0.24
+      vue-component-type-helpers: 2.0.29
 
   '@vue/tsconfig@0.5.1': {}
 
@@ -10898,6 +10910,11 @@ snapshots:
   ag-grid-enterprise@30.2.1:
     dependencies:
       ag-grid-community: 30.2.1
+
+  ag-grid-vue3@30.2.1(ag-grid-community@30.2.1)(vue@3.4.31(typescript@5.5.3)):
+    dependencies:
+      ag-grid-community: 30.2.1
+      vue: 3.4.31(typescript@5.5.3)
 
   agent-base@6.0.2:
     dependencies:
@@ -15512,7 +15529,7 @@ snapshots:
 
   vscode-uri@3.0.8: {}
 
-  vue-component-type-helpers@2.0.24: {}
+  vue-component-type-helpers@2.0.29: {}
 
   vue-demi@0.14.8(vue@3.4.31(typescript@5.5.3)):
     dependencies:

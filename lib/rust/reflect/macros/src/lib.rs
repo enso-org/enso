@@ -9,7 +9,7 @@
 //! The field will be excluded from reflection data.
 //! When this attribute is present, the field's type does not need to implement `Reflect`.
 //!
-//! ### `#[reflect(as = "OtherType")]` (field attribute)
+//! ### `#[reflect(as = OtherType)]` (field attribute)
 //! The field's type in the reflection data will be `OtherType` rather than the field's real type.
 //! When this attribute is present, the field's real type does not need to implement `Reflect`. The
 //! alternative type specified must implement `Reflect`.

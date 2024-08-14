@@ -10,17 +10,16 @@ use crate::prelude::*;
 
 /// Immutable linked list containing values of type [`T`]. As every node of the list is kept in
 /// [`Rc`], cloning of any subsection of this list is very fast.
-#[derive(Derivative, Deref)]
-#[derivative(Clone(bound = ""))]
-#[derivative(Default(bound = ""))]
+#[derive(Deref)]
+#[derive_where(Clone, Default)]
 pub struct List<T> {
     #[allow(missing_docs)]
     pub data: Option<NonEmpty<T>>,
 }
 
 /// Non-empty list. It is guaranteed to have at least one element. See [`List`] to learn more.
-#[derive(Derivative, Deref, Debug)]
-#[derivative(Clone(bound = ""))]
+#[derive(Deref, Debug)]
+#[derive_where(Clone)]
 pub struct NonEmpty<T> {
     #[allow(missing_docs)]
     pub node: Rc<Node<T>>,

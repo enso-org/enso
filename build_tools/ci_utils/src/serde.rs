@@ -112,11 +112,12 @@ pub mod via_string {
         ser.collect_str(value)
     }
 
-    /// Deserializer, that uses [`FromString`] trait.
+    /// Deserializer, that uses [`FromStr`] trait.
     pub fn deserialize<'de, D, T>(de: D) -> std::result::Result<T, D::Error>
     where
         D: Deserializer<'de>,
-        T: FromString, {
+        T: FromStr,
+        T::Err: Display, {
         let text = String::deserialize(de)?;
         T::from_str(&text).map_err(D::Error::custom)
     }
@@ -138,11 +139,12 @@ pub mod via_string_opt {
         }
     }
 
-    /// Deserializer, that uses [`FromString`] trait.
+    /// Deserializer, that uses [`FromStr`] trait.
     pub fn deserialize<'de, D, T>(de: D) -> std::result::Result<Option<T>, D::Error>
     where
         D: Deserializer<'de>,
-        T: FromString, {
+        T: FromStr,
+        T::Err: Display, {
         let text = Option::<String>::deserialize(de)?;
         if let Some(text) = text {
             T::from_str(&text).map(Some).map_err(D::Error::custom)

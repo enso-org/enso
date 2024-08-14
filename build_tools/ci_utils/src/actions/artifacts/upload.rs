@@ -169,12 +169,10 @@ pub async fn upload_worker(
     debug!("Upload worker finished.");
 }
 
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive_where(Debug)]
 pub struct FileUploader {
-    #[derivative(Debug(format_with = "std::fmt::Display::fmt"))]
     pub url:           Url,
-    #[derivative(Debug = "ignore")]
+    #[derive_where(skip)]
     pub client:        Client,
     pub artifact_name: PathBuf,
     pub chunk_size:    usize,
@@ -274,41 +272,4 @@ pub struct UploadResult {
     pub result:                 Result,
     pub successful_upload_size: usize,
     pub total_size:             usize,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::actions::artifacts;
-    use crate::actions::artifacts::models::CreateArtifactResponse;
-
-    #[tokio::test]
-    #[ignore]
-    async fn test_upload() -> Result {
-        use warp::Filter;
-        setup_logging().ok();
-
-        let response1 = CreateArtifactResponse {
-            name: "test-artifact".to_string(),
-            url: "http://localhost:8080/artifacts/test-artifact".try_into()?,
-            container_id: 1,
-            size: 0,
-            file_container_resource_url: "http://localhost:8080/artifacts/test-artifact/files"
-                .try_into()?,
-            r#type: "file".to_string(),
-            expires_on: default(),
-            signed_content: None,
-        };
-
-        let routes = warp::any().map(move || serde_json::to_string(&response1).unwrap());
-        tokio::spawn(warp::serve(routes).run(([127, 0, 0, 1], 8080)));
-
-        debug!("Hello!");
-        crate::env::set_var("ACTIONS_RUNTIME_URL", "http://localhost:8080");
-        crate::env::set_var("ACTIONS_RUNTIME_TOKEN", "test-token");
-        crate::env::set_var("GITHUB_RUN_ID", "123");
-        let result = artifacts::upload_single_file("file", "name").await;
-        dbg!(result)?;
-        Ok(())
-    }
 }

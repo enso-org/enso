@@ -1,7 +1,14 @@
-use crate::prelude::*;
+use convert_case::Case;
+use convert_case::Casing;
+use derive_more::*;
+use enso_build_base::prelude::*;
+use itertools::Itertools;
+use proc_macro2::Span;
+use proc_macro2::TokenStream;
+use quote::quote;
+use syn::Ident;
 
 use regex::Regex;
-use std::cell::OnceCell;
 use std::iter::zip;
 
 
@@ -12,9 +19,7 @@ fn normalize_ident(ident: impl AsRef<str>, case: Case) -> Ident {
     let normalized_text = if base == "." {
         String::from("Paths")
     } else {
-        let mut ret = base.replace(|c| matches!(c, '-' | '.' | ' '), "_");
-        ret.remove_matches(|c| matches!(c, '<' | '>'));
-        ret
+        base.replace(['-', '.', ' '], "_").replace(['<', '>'], "")
     };
 
     Ident::new(&normalized_text.to_case(case), Span::call_site())
@@ -103,12 +108,11 @@ pub fn get_string(
 pub struct Generator<'a> {
     all_nodes: &'a [&'a Node],
     stack:     Vec<&'a Node>,
-    empty_set: BTreeSet<Ident>,
 }
 
 impl<'a> Generator<'a> {
     pub fn new(all_nodes: &'a [&'a Node]) -> Self {
-        Self { all_nodes, stack: default(), empty_set: default() }
+        Self { all_nodes, stack: default() }
     }
 
     pub fn resolve(&self, r#type: &str) -> Result<&Node> {
@@ -160,24 +164,16 @@ impl<'a> Generator<'a> {
 
         let parameter_vars = last_node.all_parameters_vars(self)?;
         let own_parameter_vars = last_node.own_parameter_vars();
-        let parent_parameter_vars: BTreeSet<_> =
-            full_path.iter().flat_map(|n| n.own_parameter_vars()).collect();
 
-
-        let child_parameter_vars: BTreeSet<_> = last_node
-            .children()
+        let mut child_parameter_vars = BTreeSet::new();
+        for node in last_node.children() {
+            child_parameter_vars.extend(node.all_parameters_vars(self)?.iter().cloned())
+        }
+        let all_parameters: BTreeSet<_> = full_path
             .iter()
-            .map(|node| node.all_parameters_vars(self))
-            .try_collect_vec()?
-            .into_iter()
-            .flatten()
-            .cloned()
+            .flat_map(|n| n.own_parameter_vars())
+            .chain(child_parameter_vars.iter().cloned())
             .collect();
-        let all_parameters = {
-            let mut v = parent_parameter_vars;
-            v.extend(child_parameter_vars.clone());
-            v
-        };
 
         let mut segment_names = vec![];
         for i in 0..full_path.len() {
@@ -190,7 +186,7 @@ impl<'a> Generator<'a> {
             });
         }
 
-        let children_init = zip(last_node.children(), &children_struct)
+        let children_init: Vec<_> = zip(last_node.children(), &children_struct)
             .map(|(child, children_struct)| {
                 Result::Ok(if let Some(r#_type) = child.r#type.as_ref() {
                     let resolved_type = self.resolve(r#_type)?;
@@ -208,7 +204,7 @@ impl<'a> Generator<'a> {
                     }
                 })
             })
-            .try_collect_vec()?;
+            .try_collect()?;
 
         let opt_conversions = if parameter_vars.is_empty() {
             quote! {
@@ -303,24 +299,21 @@ impl<'a> Generator<'a> {
 #[derive(Clone, Debug, PartialEq, Deref)]
 pub struct Node {
     #[deref]
-    value:      String,
-    /// All parameters needed for this node (directly and for the children).
-    parameters: OnceCell<BTreeSet<Ident>>, // Wasteful but paths won't be that huge.
+    value:    String,
     /// The name that replaces value in variable-like contexts.
     /// Basically, we might not want use filepath name as name in the code.
-    var_name:   Option<String>,
-    shape:      Shape,
-    r#type:     Option<String>,
+    var_name: Option<String>,
+    shape:    Shape,
+    r#type:   Option<String>,
 }
 
 impl Node {
     pub fn new(value: impl AsRef<str>) -> Self {
         let shape = Shape::new(value.as_ref());
         let value = value.as_ref().trim_end_matches('/').to_string();
-        let parameters = default();
         let r#type = default();
         let var_name = default();
-        Self { var_name, parameters, shape, value, r#type }
+        Self { var_name, shape, value, r#type }
     }
 
     #[context("Failed to process node from key: {}", serde_yaml::to_string(value).unwrap())]
@@ -353,29 +346,23 @@ impl Node {
     pub fn type_dependent_parameters_vars<'a>(
         &'a self,
         g: &'a Generator,
-    ) -> Result<&'a BTreeSet<Ident>> {
+    ) -> Result<BTreeSet<Ident>> {
         if let Some(r#type) = &self.r#type {
             let resolved_type = g.resolve(r#type)?;
             resolved_type.all_parameters_vars(g)
         } else {
-            Ok(&g.empty_set)
+            Ok(default())
         }
     }
 
-    pub fn all_parameters_vars(&self, g: &Generator) -> Result<&BTreeSet<Ident>> {
-        self.parameters.get_or_try_init(|| {
-            let mut ret = BTreeSet::new();
-            for child in self.children() {
-                ret.extend(child.all_parameters_vars(g)?.clone());
-            }
-            ret.extend(self.own_parameter_vars());
-            ret.extend(self.type_dependent_parameters_vars(g)?.clone());
-            Ok(ret)
-        })
-        // let mut ret = BTreeSet::new();
-        // ret.extend(self.parameters.iter().sorted().map(to_ident));
-        // ret.extend(self.type_dependent_parameters_vars(g)?);
-        // Ok(ret)
+    pub fn all_parameters_vars(&self, g: &Generator) -> Result<BTreeSet<Ident>> {
+        let mut ret = BTreeSet::new();
+        for child in self.children() {
+            ret.extend(child.all_parameters_vars(g)?);
+        }
+        ret.extend(self.own_parameter_vars());
+        ret.extend(self.type_dependent_parameters_vars(g)?);
+        Ok(ret)
     }
 
     pub fn own_parameters(&self) -> impl IntoIterator<Item = &str> {
@@ -389,22 +376,9 @@ impl Node {
     pub fn children_parameters(&self, g: &Generator) -> Result<BTreeSet<Ident>> {
         let mut ret = BTreeSet::new();
         for child in self.children() {
-            ret.extend(child.all_parameters_vars(g)?.clone());
+            ret.extend(child.all_parameters_vars(g)?);
         }
         Ok(ret)
-        // let resolved_type_params = if let Some(r#type) = &self.r#type {
-        //     if let Ok(r#type) = g.resolve(r#type) {
-        //         // TODO: This might not work for parameters that are type-introduced in the
-        // subtree         //       of the resolved type.
-        //         r#type.all_parameters_vars(g).iter().map(to_ident).collect_vec()
-        //     } else {
-        //         warn!(%r#type, "Failed to resolve type.");
-        //         default()
-        //     }
-        // } else {
-        //     default()
-        // };
-        // direct_child_params.chain(resolved_type_params).collect()
     }
 
     pub fn children(&self) -> &[Node] {

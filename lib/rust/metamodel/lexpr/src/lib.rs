@@ -47,7 +47,7 @@
 
 use enso_metamodel::meta::*;
 
-use derivative::Derivative;
+use derive_where::derive_where;
 use lexpr::Value;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
@@ -59,11 +59,10 @@ use std::collections::BTreeSet;
 // =============================
 
 /// Render data to an S-expression representation based on its `meta` model.
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive_where(Debug)]
 pub struct ToSExpr<'g> {
     graph:   &'g TypeGraph,
-    #[derivative(Debug = "ignore")]
+    #[derive_where(skip)]
     mappers: BTreeMap<TypeId, Box<dyn Fn(Value) -> Value>>,
     skip:    BTreeSet<TypeId>,
 }

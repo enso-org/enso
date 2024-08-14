@@ -38,6 +38,7 @@ public class NonStrictModeTests {
   @AfterClass
   public static void disposeCtx() {
     nonStrictCtx.close();
+    nonStrictCtx = null;
   }
 
   @Before

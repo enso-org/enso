@@ -18,8 +18,8 @@ default = []
 enso-macro-utils = { path = "../../macro-utils" }
 proc-macro2 = { workspace = true }
 quote = { workspace = true }
-Inflector = "0.11.4"
 syn = { workspace = true }
+convert_case = { workspace = true }
 
 [lints]
 workspace = true

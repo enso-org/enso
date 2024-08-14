@@ -48,6 +48,7 @@ public class FunctionPointerTest {
   @After
   public void disposeContext() {
     context.close();
+    context = null;
   }
 
   @Test

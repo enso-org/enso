@@ -1,16 +1,13 @@
 /** @file A styled colored link with an icon. */
 import * as React from 'react'
-
-import * as router from 'react-router-dom'
 import * as toastify from 'react-toastify'
-
-import * as focusHooks from '#/hooks/focusHooks'
-
-import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
+import { useFocusChild } from '#/hooks/focusHooks'
+import { useText } from '#/providers/TextProvider'
+import { twMerge } from 'tailwind-merge'
 
 // ============
 // === Link ===
@@ -24,46 +21,34 @@ export interface LinkProps {
   readonly text: string
 }
 
-/** A styled colored link with an icon. */
-export default function Link(props: LinkProps) {
-  const { openInBrowser = false, to, icon, text } = props
-  const { getText } = textProvider.useText()
-  const focusChildProps = focusHooks.useFocusChild()
-  const className =
-    'flex items-center gap-auth-link rounded-full px-auth-link-x py-auth-link-y text-center text-xs font-bold text-blue-500 transition-all duration-auth hover:text-blue-700 focus:text-blue-700'
+export default React.forwardRef(Link)
 
-  const contents = (
-    <>
-      <SvgMask src={icon} />
-      {text}
-    </>
-  )
+/** A styled colored link with an icon. */
+function Link(props: LinkProps, ref: React.ForwardedRef<HTMLAnchorElement>) {
+  const { openInBrowser = false, to, icon, text } = props
+  const { getText } = useText()
+  const { className: focusChildClassName, ...focusChildProps } = useFocusChild()
 
   return (
     <FocusRing>
-      {openInBrowser ?
-        <aria.Link
-          {...aria.mergeProps<aria.LinkProps>()(focusChildProps, {
-            href: to,
-            className,
-            target: '_blank',
-            onPress: () => {
-              toastify.toast.success(getText('openedLinkInBrowser'))
-            },
-          })}
-        >
-          {contents}
-        </aria.Link>
-      : <router.Link
-          {...aria.mergeProps<router.LinkProps>()(focusChildProps, {
-            to,
-            className,
-            target: '',
-          })}
-        >
-          {contents}
-        </router.Link>
-      }
+      <aria.Link
+        ref={ref}
+        href={to}
+        rel="noopener noreferrer"
+        className={twMerge(
+          'flex items-center gap-auth-link rounded-full px-auth-link-x py-auth-link-y text-center text-xs font-bold text-blue-500 transition-all duration-auth hover:text-blue-700 focus:text-blue-700',
+          focusChildClassName,
+        )}
+        onPress={() => {
+          if (openInBrowser) {
+            toastify.toast.success(getText('openedLinkInBrowser'))
+          }
+        }}
+        {...focusChildProps}
+      >
+        <SvgMask src={icon} />
+        {text}
+      </aria.Link>
     </FocusRing>
   )
 }

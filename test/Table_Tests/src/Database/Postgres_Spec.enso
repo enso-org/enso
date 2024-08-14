@@ -377,11 +377,11 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             m2.at "ś"   . to_vector . should_equal ["A"]
             m2.at "ś 1" . to_vector . should_equal [2]
 
-            r3 = data.connection.query 'SELECT 1 AS "A", 2 AS "A"'
+            r3 = data.connection.query (..Raw_SQL 'SELECT 1 AS "A", 2 AS "A"')
             r3.should_fail_with Illegal_Argument
             r3.catch.cause . should_be_a Duplicate_Output_Column_Names
 
-            r4 = data.connection.query 'SELECT 1 AS ""'
+            r4 = data.connection.query (..Raw_SQL 'SELECT 1 AS ""')
             r4.should_fail_with SQL_Error
 
     suite_builder.group "[PostgreSQL] Edge Cases" group_builder->
@@ -777,7 +777,7 @@ add_table_specs suite_builder =
                                 connection.should_succeed
                                 Panic.with_finalizer connection.close <|
                                     connection.tables . should_be_a Table
-                                    table = connection.read "SELECT application_name FROM pg_stat_activity"
+                                    table = connection.read (..Raw_SQL "SELECT application_name FROM pg_stat_activity")
                                     application_names = table.at 0 . to_vector
                                     application_names.should_contain my_secret_name
 
@@ -956,7 +956,7 @@ add_data_link_specs suite_builder =
                 data_link_connection.tables.column_names . should_contain "Name"
 
                 # Test that this is really a DB connection:
-                q = data_link_connection.query 'SELECT 1 AS "A"'
+                q = data_link_connection.query (..Raw_SQL 'SELECT 1 AS "A"')
                 q.column_names . should_equal ["A"]
                 q.at "A" . to_vector . should_equal [1]
 
@@ -994,7 +994,7 @@ add_data_link_specs suite_builder =
             r.should_fail_with Illegal_Argument
             r.catch.to_display_text . should_contain "The Postgres Data Link does not support writing"
 
-        group_builder.specify "will fail with a clear message if trying to download a Database data link" pending=Http_Test_Setup.pending_has_url <|
+        group_builder.specify "will fail with a clear message if trying to download a Database data link" pending=Http_Test_Setup.pending_has_url <| Test.with_retries <|
             url = Http_Test_Setup.base_url_with_slash+"testfiles/some-postgres.datalink"
             target_file = enso_project.data / "transient" / "some-postgres-target"
             target_file.delete_if_exists
@@ -1023,7 +1023,7 @@ add_data_link_specs suite_builder =
                 written_data_link_connection = cloud_location.read
                 Panic.with_finalizer written_data_link_connection.close <|
                     written_data_link_connection.tables.column_names . should_contain "Name"
-                    q = written_data_link_connection.query 'SELECT 1 AS "A"'
+                    q = written_data_link_connection.query (..Raw_SQL 'SELECT 1 AS "A"')
                     q.column_names . should_equal ["A"]
                     q.at "A" . to_vector . should_equal [1]
 
