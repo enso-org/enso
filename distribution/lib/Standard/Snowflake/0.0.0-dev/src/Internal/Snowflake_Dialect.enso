@@ -616,7 +616,6 @@ date_period_to_part_with_multiplier period =
         Date_Period.Month   -> ["month", 1]
         Date_Period.Week _  -> ["week", 1]
         Date_Period.Day     -> ["day", 1]
-        Time_Period.Day     -> ["hour", 24]
         Time_Period.Hour    -> ["hour", 1]
         Time_Period.Minute  -> ["minute", 1]
         Time_Period.Second  -> ["second", 1]

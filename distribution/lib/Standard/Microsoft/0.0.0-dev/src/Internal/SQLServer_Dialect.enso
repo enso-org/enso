@@ -565,8 +565,6 @@ make_date_add arguments (metadata : Date_Period_Metadata) =
                 "weeks=>1"
             Date_Period.Day ->
                 "days=>1"
-            Time_Period.Day ->
-                "hours=>24"
             Time_Period.Hour ->
                 "hours=>1"
             Time_Period.Minute ->
@@ -630,10 +628,6 @@ make_date_diff arguments (metadata : Date_Period_Metadata) =
             Time_Period.Hour    -> (extract_seconds ++ " / 3600").paren
             Time_Period.Minute  -> (extract_seconds ++ " / 60").paren
             Time_Period.Second  -> extract_seconds
-            Time_Period.Day     -> case metadata.input_value_type of
-                Value_Type.Date -> extract_days
-                # Time_Period.Day is treated as 24 hours, so for types that support time we use the same algorithm like for hours, but divide by 24.
-                _ -> (extract_seconds ++ " / (3600 * 24)").paren
             ## The EPOCH gives back just the integer amount of seconds, without
                the fractional part. So we get the fractional part using
                MILLISECONDS - but that does not give the _total_ just the

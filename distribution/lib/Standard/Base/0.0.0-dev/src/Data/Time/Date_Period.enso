@@ -46,12 +46,6 @@ type Date_Period
     Week (first_day:Day_Of_Week = Day_Of_Week.Monday)
 
     ## Represents a time period of a single calendar day.
-
-       ? Daylight Saving Time
-
-         Note that due to DST changes, some days may be slightly longer or
-         shorter. This date period will reflect that and still count such days
-         as one day. For a measure of exactly 24 hours, use `Time_Period.Day`.
     Day
 
     ## PRIVATE
