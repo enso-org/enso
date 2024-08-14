@@ -361,6 +361,51 @@ impl Command {
         .boxed()
     }
 
+    // FIXME DRY!
+    pub fn spawn_intercepting_stderr(&mut self) -> Result<Child> {
+        self.stdout(Stdio::inherit());
+        self.stderr(Stdio::piped());
+
+        let program = self.pretty_name.clone().unwrap_or_else(|| {
+            let program = self.inner.as_std().get_program();
+            let program = Path::new(program).file_stem().unwrap_or_default().to_os_string();
+            program.to_string_lossy().to_string()
+        });
+
+        let mut child = self.spawn()?;
+
+        // FIXME unwraps
+        //spawn_log_processor("".into(), child.stdout.take().unwrap());
+        spawn_log_processor(format!("{program} ⚠️"), child.stderr.take().unwrap());
+        Ok(child)
+    }
+
+    // FIXME DRY!
+    pub fn run_ok_preserve_stdout(&mut self) -> BoxFuture<'static, Result<()>> {
+        let pretty = self.describe();
+        let span = info_span!(
+            "Running process.",
+            status = field::Empty,
+            pid = field::Empty,
+            command = field::Empty,
+        )
+        .entered();
+        let child = self.spawn_intercepting_stderr();
+        let status_checker = self.status_checker.clone();
+        async move {
+            let mut child = child?;
+            let status = child
+                .wait()
+                .inspect_ok(|exit_status| {
+                    tracing::Span::current().record("status", exit_status.code());
+                })
+                .await?;
+            status_checker(status).context(format!("Command failed: {pretty}"))
+        }
+        .instrument(span.exit())
+        .boxed()
+    }
+
     pub fn output_ok(&mut self) -> BoxFuture<'static, Result<Output>> {
         let pretty = self.describe();
         let span = info_span!(
