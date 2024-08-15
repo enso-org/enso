@@ -48,7 +48,7 @@ prepare_visualization y max_rows=1000 =
             JS_Object.from_pairs [["json", make_json_for_value x]]
         _ : Excel_Workbook ->
             js_value = x.to_js_object
-            JS_Object.from_pairs [["json", js_value], ["sheet_names", x . sheet_names], ["get_child_node", "read"], ["type", "Excel_Workbook"]]
+            JS_Object.from_pairs [["json", js_value], ["sheet_names", x . sheet_names], ["get_child_node_action", "read"], ["type", "Excel_Workbook"]]
         _ : XML_Document -> make_json_for_xml_element x.root_element max_rows "XML_Document"
         _ : XML_Element -> make_json_for_xml_element x max_rows
         _ -> make_json_for_other x
@@ -64,15 +64,15 @@ max_columns = 250
 make_json_for_vector : Vector -> Integer -> JS_Object
 make_json_for_vector vector max_rows =
     all_rows = ["all_rows_count", vector.length]
-    get_child_node = ["get_child_node", "at"]
+    get_child_node_action = ["get_child_node_action", "at"]
     truncated = vector.take max_rows
     some_values = truncated.any (v->v.is_nothing.not)
-    if some_values.not then JS_Object.from_pairs [["type", "Vector"], all_rows, ["json", truncated.map make_json_for_value], get_child_node] else
+    if some_values.not then JS_Object.from_pairs [["type", "Vector"], all_rows, ["json", truncated.map make_json_for_value], get_child_node_action] else
         matrix = make_json_for_matrix (Builder.new truncated.length) truncated
-        if matrix.is_nothing.not then JS_Object.from_pairs [["type", "Matrix"], all_rows, ["json", matrix], ["column_count", matrix.fold 0 c->v-> if v.is_nothing then c else c.max v.length], get_child_node] else
+        if matrix.is_nothing.not then JS_Object.from_pairs [["type", "Matrix"], all_rows, ["json", matrix], ["column_count", matrix.fold 0 c->v-> if v.is_nothing then c else c.max v.length], get_child_node_action] else
             object_matrix = make_json_for_object_matrix (Builder.new truncated.length) truncated
-            if object_matrix.is_nothing.not then JS_Object.from_pairs [["type", "Object_Matrix"], all_rows, ["json", object_matrix], get_child_node] else
-                JS_Object.from_pairs [["type", "Vector"], all_rows, ["json", truncated.map make_json_for_value], get_child_node]
+            if object_matrix.is_nothing.not then JS_Object.from_pairs [["type", "Object_Matrix"], all_rows, ["json", object_matrix], get_child_node_action] else
+                JS_Object.from_pairs [["type", "Vector"], all_rows, ["json", truncated.map make_json_for_value], get_child_node_action]
 
 ## PRIVATE
    Render Vector of Vector / Array to JSON
@@ -125,9 +125,9 @@ make_json_for_dictionary dict max_items key_name="key" =
     as_vector = Warning.clear (dict.to_vector.take max_items)
     mapped = as_vector . map p-> [p.first.to_text, make_json_for_value p.second]
     data = ["data", [mapped.map .first, mapped.map .second]]
-    links = ["get_child_node", "at"]
-    link_name = ["link_name", key_name]
-    JS_Object.from_pairs [header, data, all_rows, links, link_name, ["type", "Map"]]
+    links = ["get_child_node_action", "at"]
+    get_child_node_action_link_name = ["get_child_node_action_link_name", key_name]
+    JS_Object.from_pairs [header, data, all_rows, links, get_child_node_action_link_name, ["type", "Map"]]
 
 ## PRIVATE
    Render JS_Object to JSON
@@ -161,7 +161,8 @@ make_json_for_xml_element xml_element max_items type:Text="XML_Element" =
     map_vector = Warning.clear (attribs + children)
 
     data = ["data", [map_vector.map .first, map_vector.map .second, map_vector.map i-> i.at 2]]
-    JS_Object.from_pairs [header, data, all_rows, ["type", type], ["get_child_node", "get"], ["link_name", "key"], ["link_type_value", "number"]]
+    get_child_node_fields = if type == "XML_Element" then JS_Object.from_pairs [["get_child_node_action", "get"], ["get_child_node_action_link_name", "key"], ["link_value_type", "number"]] else []
+    JS_Object.from_pairs [header, data, all_rows, ["type", type]] + get_child_node_fields
 
 ## PRIVATE
    Creates a JSON representation for the visualizations.
@@ -180,7 +181,7 @@ make_json_for_table dataframe all_rows_count include_index_col =
     data        = ["data",   columns.map get_vector]
     all_rows    = ["all_rows_count", all_rows_count]
     has_index_col = ["has_index_col", include_index_col]
-    links       = ["get_child_node", "get_row"]
+    links       = ["get_child_node_action", "get_row"]
     pairs       = [header, value_type, data, all_rows, has_index_col, links, ["type", "Table"]]
     JS_Object.from_pairs pairs
 
@@ -198,7 +199,7 @@ make_json_for_other x =
             link_fields = if js_value.is_a JS_Object . not then [] else
                 if js_value.contains_key 'links' then [["links", js_value.get 'links']] else []
             additional_fields = if js_value.is_a JS_Object . not then [] else
-                if js_value.contains_key 'get_child_node' then [["get_child_node", js_value.get 'get_child_node']] else []
+                if js_value.contains_key 'get_child_node_action' then [["get_child_node_action", js_value.get 'get_child_node_action']] else []
             JS_Object.from_pairs <| [["json", value]] + additional_fields + link_fields
 
         # Fallback for objects that fail to be serialized through `to_js_object`.

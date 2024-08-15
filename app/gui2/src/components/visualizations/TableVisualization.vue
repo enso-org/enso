@@ -45,7 +45,7 @@ interface Matrix {
   all_rows_count: number
   json: unknown[][]
   value_type: ValueType[]
-  get_child_node: string
+  get_child_node_action: string
 }
 
 interface Excel_Workbook {
@@ -54,7 +54,7 @@ interface Excel_Workbook {
   all_rows_count: number
   sheet_names: string[]
   json: unknown[][]
-  get_child_node: string
+  get_child_node_action: string
 }
 
 interface ObjectMatrix {
@@ -63,7 +63,7 @@ interface ObjectMatrix {
   all_rows_count: number
   json: object[]
   value_type: ValueType[]
-  get_child_node: string
+  get_child_node_action: string
 }
 
 interface UnknownTable {
@@ -78,9 +78,9 @@ interface UnknownTable {
   value_type: ValueType[]
   has_index_col: boolean | undefined
   links: string[] | undefined
-  get_child_node: string
-  link_name: string
-  link_type_value: string
+  get_child_node_action: string
+  get_child_node_link_name: string
+  link_value_type: string
 }
 
 export enum TextFormatOptions {
@@ -431,11 +431,11 @@ watchEffect(() => {
         has_index_col: false,
         links: undefined,
         // eslint-disable-next-line camelcase
-        get_child_node: undefined,
+        get_child_node_action: undefined,
         // eslint-disable-next-line camelcase
-        link_name: undefined,
+        get_child_node_link_name: undefined,
         // eslint-disable-next-line camelcase
-        link_type_value: undefined,
+        link_value_type: undefined,
       }
   if ('error' in data_) {
     columnDefs.value = [
@@ -446,14 +446,14 @@ watchEffect(() => {
     ]
     rowData.value = [{ Error: data_.error }]
   } else if (data_.type === 'Matrix') {
-    columnDefs.value = [toLinkField(INDEX_FIELD_NAME, data_.get_child_node)]
+    columnDefs.value = [toLinkField(INDEX_FIELD_NAME, data_.get_child_node_action)]
     for (let i = 0; i < data_.column_count; i++) {
       columnDefs.value.push(toField(i.toString()))
     }
     rowData.value = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
   } else if (data_.type === 'Object_Matrix') {
-    columnDefs.value = [toLinkField(INDEX_FIELD_NAME, data_.get_child_node)]
+    columnDefs.value = [toLinkField(INDEX_FIELD_NAME, data_.get_child_node_action)]
     let keys = new Set<string>()
     for (const val of data_.json) {
       if (val != null) {
@@ -468,15 +468,18 @@ watchEffect(() => {
     rowData.value = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
   } else if (data_.type === 'Excel_Workbook') {
-    columnDefs.value = [toLinkField('Value', data_.get_child_node)]
+    columnDefs.value = [toLinkField('Value', data_.get_child_node_action)]
     rowData.value = data_.sheet_names.map((name) => ({ Value: name }))
   } else if (Array.isArray(data_.json)) {
-    columnDefs.value = [toLinkField(INDEX_FIELD_NAME, data_.get_child_node), toField('Value')]
+    columnDefs.value = [
+      toLinkField(INDEX_FIELD_NAME, data_.get_child_node_action),
+      toField('Value'),
+    ]
     rowData.value = data_.json.map((row, i) => ({ [INDEX_FIELD_NAME]: i, Value: toRender(row) }))
     isTruncated.value = data_.all_rows_count ? data_.all_rows_count !== data_.json.length : false
   } else if (data_.json !== undefined) {
     columnDefs.value =
-      data_.links ? [toLinkField('Value', data_.get_child_node)] : [toField('Value')]
+      data_.links ? [toLinkField('Value', data_.get_child_node_action)] : [toField('Value')]
     rowData.value =
       data_.links ?
         data_.links.map((link) => ({
@@ -487,15 +490,19 @@ watchEffect(() => {
     const dataHeader =
       ('header' in data_ ? data_.header : [])?.map((v, i) => {
         const valueType = data_.value_type ? data_.value_type[i] : null
-        if (data_.link_name === v) {
-          return toLinkField(data_.link_name, data_.get_child_node, data_.link_type_value)
+        if (data_.get_child_node_link_name === v) {
+          return toLinkField(
+            data_.get_child_node_link_name,
+            data_.get_child_node_action,
+            data_.link_value_type,
+          )
         }
         return toField(v, valueType)
       }) ?? []
 
     columnDefs.value =
       data_.has_index_col ?
-        [toLinkField(INDEX_FIELD_NAME, data_.get_child_node), ...dataHeader]
+        [toLinkField(INDEX_FIELD_NAME, data_.get_child_node_action), ...dataHeader]
       : dataHeader
     const rows = data_.data && data_.data.length > 0 ? data_.data[0]?.length ?? 0 : 0
     rowData.value = Array.from({ length: rows }, (_, i) => {
