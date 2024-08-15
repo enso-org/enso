@@ -4,7 +4,7 @@ import java.net.URI;
 import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import org.enso.logger.LoggerSetup;
+import org.enso.logger.config.LoggerSetup;
 import org.enso.logger.config.MissingConfigurationField;
 import org.enso.logger.masking.Masking;
 import org.slf4j.event.Level;

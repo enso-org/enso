@@ -1,9 +1,7 @@
-package org.enso.logger;
+package org.enso.logger.config;
 
 import java.nio.file.Path;
 import java.util.ServiceLoader;
-import org.enso.logger.config.LoggingServiceConfig;
-import org.enso.logger.config.MissingConfigurationField;
 import org.slf4j.event.Level;
 
 /** Base class to be implemented by the underlying logging implementation. */

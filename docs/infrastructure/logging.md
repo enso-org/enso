@@ -281,9 +281,9 @@ The `org.slf4j.Logger` instances have to know where to send log events. This
 setting is typically performed once, when the service starts, and applies
 globally during its execution. Currently, it is not possible to dynamically
 change where log events are being stored. The main (abstract) class used for
-setting up logging is `org.enso.logger.LoggerSetup`. An instance of that class
-can be retrieved with the thread-safe `org.enso.logger.LoggerSetup.get` factory
-method. `org.enso.logger.LoggerSetup` provides a number of `setupXYZAppender`
+setting up logging is `org.enso.logger.config.LoggerSetup`. An instance of that class
+can be retrieved with the thread-safe `org.enso.logger.config.LoggerSetup.get` factory
+method. `org.enso.logger.config.LoggerSetup` provides a number of `setupXYZAppender`
 methods that will direct loggers to send log events to an `XYZ` appender.
 Setting a specific hard-coded appender programmatically should however be
 avoided by the users. Instead, one should invoke one of the overloaded `setup`
@@ -292,7 +292,7 @@ configuration.
 
 ```java
 package foo;
-import org.enso.logger.LoggerSetup;
+import org.enso.logger.config.LoggerSetup;
 import org.slf4j.event.Level;
 
 public class MyService {
