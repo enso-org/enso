@@ -4,6 +4,7 @@ module org.enso.runner {
   requires org.enso.distribution;
   requires org.enso.editions;
   requires org.enso.editions.updater;
+  requires org.enso.engine.common;
   requires org.enso.librarymanager;
   requires org.enso.runtime.parser;
   requires org.enso.runner.common;

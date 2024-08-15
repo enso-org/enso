@@ -1460,6 +1460,7 @@ val testLogProviderOptions = Seq(
   */
 lazy val `engine-common` = project
   .in(file("engine/common"))
+  .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
     Test / fork := true,
@@ -1467,7 +1468,18 @@ lazy val `engine-common` = project
     Test / envVars ++= distributionEnvironmentOverrides,
     libraryDependencies ++= Seq(
       "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided"
-    )
+    ),
+    modulePath := {
+      JPMSUtils.filterModulesFromUpdate(
+        (Compile / update).value,
+        Seq(
+          "org.graalvm.polyglot" % "polyglot"  % graalMavenPackagesVersion,
+          "org.slf4j"            % "slf4j-api" % slf4jVersion
+        ),
+        streams.value.log,
+        shouldContainAll = true
+      )
+    }
   )
   .dependsOn(`logging-config`)
   .dependsOn(`logging-utils`)
@@ -2662,6 +2674,8 @@ lazy val `engine-runner` = project
       }
       val versionMod =
         (`version-output` / Compile / classDirectory).value
+      val engineCommonMod =
+        (`engine-common` / Compile / classDirectory).value
 
       requiredExternalMods ++ Seq(
         profilingMod,
@@ -2674,7 +2688,8 @@ lazy val `engine-runner` = project
         pkgMod,
         runnerCommonMod,
         parserMod,
-        versionMod
+        versionMod,
+        engineCommonMod
       )
     },
     run / connectInput := true
