@@ -1516,6 +1516,7 @@ lazy val `engine-common` = project
 
 lazy val `polyglot-api` = project
   .in(file("engine/polyglot-api"))
+  .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
     Test / fork := true,
@@ -1540,6 +1541,11 @@ lazy val `polyglot-api` = project
       "org.scalatest"                         %% "scalatest"             % scalatestVersion          % Test,
       "org.scalacheck"                        %% "scalacheck"            % scalacheckVersion         % Test
     ),
+    compileOrder := CompileOrder.ScalaThenJava, // Note [JPMS Compile order]
+    modulePath := {
+      "com.google.flatbuffers"                 % "flatbuffers-java"      % flatbuffersVersion,
+      "org.graalvm.truffle"                    % "truffle-api"           % graalMavenPackagesVersion % "provided",
+    },
     GenerateFlatbuffers.flatcVersion := flatbuffersVersion,
     Compile / sourceGenerators += GenerateFlatbuffers.task
   )
