@@ -54,6 +54,7 @@ import org.enso.polyglot.RuntimeServerInfo
 import org.enso.profiling.events.NoopEventsMonitor
 import org.enso.searcher.memory.InMemorySuggestionsRepo
 import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
+import org.enso.version.BuildVersion
 import org.graalvm.polyglot.io.MessageEndpoint
 import org.slf4j.event.Level
 import org.slf4j.LoggerFactory
@@ -75,7 +76,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   private val log = LoggerFactory.getLogger(this.getClass)
   log.debug(
     "Initializing main module of the Language Server from [{}, {}, {}]",
-    Info.currentEdition,
+    BuildVersion.currentEdition,
     serverConfig,
     logLevel
   )
@@ -312,7 +313,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     RuntimeOptions.LOG_MASKING,
     Masking.isMaskingEnabled.toString
   )
-  extraOptions.put(RuntimeOptions.EDITION_OVERRIDE, Info.currentEdition)
+  extraOptions.put(RuntimeOptions.EDITION_OVERRIDE, BuildVersion.currentEdition)
   extraOptions.put(
     RuntimeOptions.JOB_PARALLELISM,
     Runtime.getRuntime.availableProcessors().toString
