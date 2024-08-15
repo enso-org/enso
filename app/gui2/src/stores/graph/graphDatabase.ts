@@ -330,7 +330,10 @@ export class GraphDb {
    * Run when nodes are added or deleted, change external ID, or the chain of expressions outside any node's root
    * expression changes.
    */
-  updateNodes(functionAst_: Ast.Function) {
+  updateNodes(
+    functionAst_: Ast.Function,
+    { watchEffect }: { watchEffect: (f: () => void) => WatchStopHandle },
+  ) {
     const currentNodeIds = new Set<NodeId>()
     const body = [...functionAst_.bodyExpressions()]
     body.forEach((outerAst, index) => {

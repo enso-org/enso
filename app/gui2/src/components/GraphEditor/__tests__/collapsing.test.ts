@@ -5,6 +5,7 @@ import { Ast, RawAst } from '@/util/ast'
 import { unwrap } from '@/util/data/result'
 import { tryIdentifier } from '@/util/qualifiedName'
 import { expect, test } from 'vitest'
+import { watchEffect } from 'vue'
 
 function setupGraphDb(code: string, graphDb: GraphDb) {
   const { root, toRaw, getSpan } = Ast.parseExtended(code)
@@ -14,7 +15,7 @@ function setupGraphDb(code: string, graphDb: GraphDb) {
   const rawFunc = toRaw.get(func.id)
   assert(rawFunc?.type === RawAst.Tree.Type.Function)
   graphDb.updateExternalIds(root)
-  graphDb.updateNodes(func)
+  graphDb.updateNodes(func, { watchEffect })
   graphDb.updateBindings(func, rawFunc, code, getSpan)
 }
 

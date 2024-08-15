@@ -2,6 +2,7 @@ import { asNodeId, GraphDb } from '@/stores/graph/graphDatabase'
 import { Ast, RawAst } from '@/util/ast'
 import assert from 'assert'
 import { expect, test } from 'vitest'
+import { watchEffect } from 'vue'
 import type { AstId } from 'ydoc-shared/ast'
 import { IdMap, type ExternalId, type SourceRange } from 'ydoc-shared/yjsModel'
 
@@ -60,7 +61,7 @@ test('Reading graph from definition', () => {
   const rawFunc = toRaw.get(func.id)
   assert(rawFunc?.type === RawAst.Tree.Type.Function)
   db.updateExternalIds(ast)
-  db.updateNodes(func)
+  db.updateNodes(func, { watchEffect })
   db.updateBindings(func, rawFunc, code, getSpan)
 
   expect(Array.from(db.nodeIdToNode.keys())).toEqual([

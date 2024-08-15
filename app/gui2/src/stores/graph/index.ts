@@ -26,6 +26,7 @@ import { Rect } from '@/util/data/rect'
 import { Err, Ok, mapOk, unwrap, type Result } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import { normalizeQualifiedName, tryQualifiedName } from '@/util/qualifiedName'
+import { useWatchContext } from '@/util/reactivity'
 import { computedAsync } from '@vueuse/core'
 import { map, set } from 'lib0'
 import { iteratorFilter } from 'lib0/iterator'
@@ -144,9 +145,11 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       syncModule.value ? getExecutedMethodAst(syncModule.value) : Err('AST not yet initialized'),
     )
 
+    const watchContext = useWatchContext()
+
     watchEffect(() => {
       if (!methodAst.value.ok) return
-      db.updateNodes(methodAst.value.value)
+      db.updateNodes(methodAst.value.value, watchContext)
     })
 
     watchEffect(() => {
