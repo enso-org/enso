@@ -40,7 +40,7 @@ the resulting artifacts are located in `app/ydoc-server-nodejs/dist` directory.
 Having the right NodeJS sources in place, one can now build the docker image:
 
 ```bash
-ocker build -t <docker-image-name> -f tools/ci/docker/ydoc-server/Dockerfile --build-context docker-tools=tools/ci/docker/ydoc-server app/ydoc-server-nodejs
+ocker build -t ydoc-server-nodejs:latest -f tools/ci/docker/ydoc-server/Dockerfile --build-context docker-tools=tools/ci/docker/ydoc-server app/ydoc-server-nodejs
 ```
 
 ## Running
@@ -53,7 +53,7 @@ One should always start Ydoc with the right configuration:
   to connect to
 
 ```bash
-docker run -t <docker-image-name> -e PORT=1234 -e HOSTNAME='0.0.0.0' -e LANGUAGE_SERVER_URL=ws://localhost:59876 ydoc-server-nodejs:latest
+docker run -it -e PORT=1234 -e HOSTNAME='0.0.0.0' -e LANGUAGE_SERVER_URL=ws://localhost:59876 ydoc-server-nodejs:latest
 ```
 
 When correctly setup the network layer one can also hit Ydoc's healthcheck
