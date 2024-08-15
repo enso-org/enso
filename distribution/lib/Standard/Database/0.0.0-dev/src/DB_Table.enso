@@ -1124,16 +1124,6 @@ type DB_Table
         modified_table = f new_column_name with_new_column
         modified_table.remove_columns new_column_name
 
-    ##
-        #make_table : Connection -> Text -> Vector -> Context -> Problem_Behavior -> DB_Table
-        #make_table connection table_name columns ctx on_problems =
-        # - columns: List of columns to fetch. Each column is represented by a pair of
-        # column name and its expected SQL Type.
-        with (name : Text) (value : DB_Table) (callback : DB_Table -> DB_Table) =
-            columns = value.columns.map c-> [c.name, c.value_type]
-            bound_table = make_table self.connection name columns self.context
-            inner_value = callback bound_table
-
     ## PRIVATE
        Filter a table on a boolean column. The column does not have to be part
        of the table, but it must be derived from it and share a context.
@@ -2649,8 +2639,6 @@ type DB_Table
             result = max_rows.attach_warning materialized_table
             Problem_Behavior.Report_Warning.attach_problems_before warnings_builder.to_vector result
 
-    #with_query : Text -> DB_Table -> Query
-
     ## PRIVATE
        Creates a query corresponding to this table.
     to_select_query : Query
@@ -2760,22 +2748,6 @@ type DB_Table
        causes its columns to be referenced as names rather than expressions.
     as_subquery : DB_Table
     as_subquery self = self.updated_context_and_columns self.context self.internal_columns subquery=True
-
-    #with self (binding_name : Text) (binding_value : DB_Table) (callback : DB_Table -> DB_Table) =
-    #with self (binding_name : Text) (callback : DB_Table -> DB_Table) =
-    ##
-        with self (callback : DB_Table -> DB_Table) =
-            binding_subquery_table = self.as_subquery
-
-            #columns = binding_subquery_table.internal_columns.map (c-> [c.name, c.expression])
-            #ref_table = make_table self.connection binding_name columns binding_subquery_table.context Problem_Behavior.Report_Error
-
-            inner_value = callback binding_subquery_table # ref_table
-
-            with_from_spec = From_Spec.With binding_subquery_table.context.from_spec inner_value.as_subquery.context.from_spec
-
-            new_inner_context = inner_value.context.update_from_spec with_from_spec
-            inner_value.updated_context new_inner_context
 
     ## PRIVATE
        Checks if this table is a 'trivial query'.

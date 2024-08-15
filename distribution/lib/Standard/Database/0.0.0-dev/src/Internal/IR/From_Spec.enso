@@ -91,11 +91,6 @@ type From_Spec
          referred to in other parts of the query.
     Sub_Query (columns : Vector (Pair Text SQL_Expression)) (context : Context) (alias : Text)
 
-    # Both arguments will be From_Spec.Sub_Query values.
-    #With (binding_from_spec : From_Spec) (inner_from_spec : From_Spec)
-    #With (binding_columns : Vector (Pair Text SQL_Expression)) (binding_context : Context) (binding_name : Text) (inner_sub_query : From_Spec)
-    #With_Query (columns : Vector (Pair Text SQL_Expression)) (context : Context) (alias : Text) (exp_columns : Vector (Pair Text SQL_Expression)) (exp_context : Context) (exp_alias : Text)
-
 ## PRIVATE
 type From_Spec_Comparator
     ## PRIVATE

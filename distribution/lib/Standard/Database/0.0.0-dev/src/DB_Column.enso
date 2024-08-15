@@ -230,6 +230,10 @@ type DB_Column
          table name, also takes up space, so if the `self` argument to `with`
          isn't very large, `with` can actually make the query longer.
 
+         For this reason, it is generally better to apply `with` to values
+         before passing them into a library method, rather than to apply it to
+         the value inside the library method itself.
+
        > Example
          Remove duplicates of a large column expression from a query.
 
@@ -917,22 +921,8 @@ type DB_Column
             False ->
                 self.make_binary_op "ROUND" (SQL_Expression.Literal decimal_places.to_text) new_name
 
-    ##
-        ## PRIVATE
-        Round a float-like column.
-        round_float : Integer -> Boolean -> DB_Column
-        round_float self decimal_places use_bankers =
-            new_name = self.naming_helper.function_name "round" [self]
-            scale = 10 ^ decimal_places
-            scaled = self * scale
-            round_base = scaled.floor . rename "rb"
-            round_midpoint = (round_base + 0.5) / scale
-            even_is_up = (self >= 0).iif ((scaled.truncate % 2) != 0) ((scaled.truncate % 2) == 0)
-            half_goes_up = if use_bankers then even_is_up else self >= 0
-            do_round_up = half_goes_up.iif (self >= round_midpoint) (self > round_midpoint)
-            result = do_round_up.iif ((round_base + 1.0) / scale) (round_base / scale)
-            result.rename new_name
-
+    ## PRIVATE
+       Round a float-like column.   
     round_float : Integer -> Boolean -> DB_Column
     round_float self decimal_places use_bankers =
         new_name = self.naming_helper.function_name "round" [self]

@@ -69,10 +69,6 @@ type Context
          return.
     Value (from_spec : From_Spec) (where_filters : Vector SQL_Expression) (orders : Vector Order_Descriptor) (groups : Vector SQL_Expression) (limit : Nothing | Integer) (extensions : Vector Context_Extension)
 
-    ##
-        update_from_spec self new_from_spec =
-            Context.Value new_from_spec self.where_filters self.orders self.groups self.limit self.extensions
-
     ## PRIVATE
 
        Returns a copy of the context with changed `where_filters`.

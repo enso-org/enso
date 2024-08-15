@@ -21,8 +21,6 @@ type Query
        - context: The query context, see `Context` for more detail.
     Select (expressions : Nothing | Vector (Pair Text SQL_Expression)) (context : Context)
 
-    #With (binding_alias : Text) (binding_query : Query) (inner_query : Query)
-
     ## PRIVATE
 
        An Insert SQL query that inserts a single row to the table.
