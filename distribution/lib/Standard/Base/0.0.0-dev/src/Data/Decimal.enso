@@ -120,7 +120,7 @@ type Decimal
          `Float`, or `Text` value to a `Decimal`. `dec` does not attach a
          warning.
 
-       ! Error and Warning Conditions in creating and using `Decimal`s
+       ! Error Conditions
 
          - If a `Text` argument is incorrectly formatted, a `Number_Parse_Error`
            is thrown.
@@ -198,7 +198,7 @@ type Decimal
          `Float`, or `Text` value to a `Decimal`. `dec` does not attach a
          warning.
 
-       ! Error and Warning Conditions in creating and using `Decimal`s
+       ! Error Conditions
 
          - If a `Text` argument is incorrectly formatted, a `Number_Parse_Error`
            is thrown.
@@ -260,7 +260,7 @@ type Decimal
          `Float`, or `Text` value to a `Decimal`. `dec` does not attach a
          warning.
 
-       ! Error and Warning Conditions in creating and using `Decimal`s
+       ! Error Conditions
 
          - If a `Text` argument is incorrectly formatted, a `Number_Parse_Error`
            is thrown.
@@ -330,7 +330,7 @@ type Decimal
          `Float`, or `Text` value to a `Decimal`. `dec` does not attach a
          warning.
 
-       ! Error and Warning Conditions in creating and using `Decimal`s
+       ! Error Conditions
 
          - If a `Text` argument is incorrectly formatted, a `Number_Parse_Error`
            is thrown.

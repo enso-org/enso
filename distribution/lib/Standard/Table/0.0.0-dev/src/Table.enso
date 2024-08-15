@@ -2955,6 +2955,15 @@ type Table
        This method follows the exact replacement semantics of the
        `Text.replace` method.
 
+       If regex is used the replacement string can contain references to groups
+       matched. The following syntaxes are supported:
+           $0: the entire match string
+           $&: the entire match string
+           $n: the nth group
+           $&lt;foo&gt;: Named group `foo`
+
+       For details on Enso's Regex syntax, see the [Help Documentation](https://help.enso.org/docs/using-enso/regular-expressions).
+
        Arguments:
        - columns: The column(s) to replace values on.
        - term: The term to find. Can be `Text`, `Regex`, or a `Column` of
