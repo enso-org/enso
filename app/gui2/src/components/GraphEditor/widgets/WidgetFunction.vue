@@ -232,7 +232,7 @@ export const WidgetInputIsSpecificMethodCall =
 export const widgetDefinition = defineWidget(
   WidgetInput.isFunctionCall,
   {
-    priority: 200,
+    priority: -2,
     score: (props, db) => {
       // If ArgumentApplicationKey is stored, we already are handled by some WidgetFunction.
       if (props.input[ArgumentApplicationKey]) return Score.Mismatch
