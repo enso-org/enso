@@ -1,6 +1,6 @@
 package org.enso.editions
 
-import buildinfo.Info
+import org.enso.version.BuildVersion
 
 /** Allows to get the default edition associated with the current Enso version.
   *
@@ -13,5 +13,5 @@ object DefaultEdition {
 
   /** Returns the default edition associated with the current Enso version. */
   def getDefaultEdition: Editions.RawEdition =
-    Editions.Raw.Edition(parent = Some(Info.currentEdition))
+    Editions.Raw.Edition(parent = Some(BuildVersion.currentEdition))
 }

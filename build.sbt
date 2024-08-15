@@ -996,7 +996,7 @@ lazy val `version-output` = (project in file("lib/scala/version-output"))
   .settings(
     frgaalJavaCompilerSetting,
     Compile / sourceGenerators += Def.task {
-      val file = (Compile / sourceManaged).value / "buildinfo" / "Info.scala"
+      val file = (Compile / sourceManaged).value / "org" / "enso" / "version" / "GeneratedVersion.java"
       BuildInfo
         .writeBuildInfoFile(
           file                  = file,

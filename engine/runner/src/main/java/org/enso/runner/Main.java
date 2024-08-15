@@ -1,6 +1,5 @@
 package org.enso.runner;
 
-import buildinfo.Info;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -44,6 +43,7 @@ import org.enso.profiling.sampler.OutputStreamSampler;
 import org.enso.runner.common.LanguageServerApi;
 import org.enso.runner.common.ProfilingConfig;
 import org.enso.runner.common.WrongOption;
+import org.enso.version.BuildVersion;
 import org.enso.version.VersionDescription;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.PolyglotException.StackFrame;
@@ -103,7 +103,7 @@ public class Main {
   Main() {}
 
   private static boolean isDevBuild() {
-    return Info.ensoVersion().matches(".+-SNAPSHOT$");
+    return BuildVersion.ensoVersion().matches(".+-SNAPSHOT$");
   }
 
   private static Option.Builder cliOptionBuilder() {
@@ -957,9 +957,9 @@ public class Main {
         VersionDescription.make(
             "Enso Compiler and Runtime",
             true,
-            VersionDescription.make$default$3(),
-            VersionDescription.make$default$4(),
-            scala.Option.apply(customVersion));
+            false,
+            List.of(),
+            customVersion);
     println(versionDescription.asString(useJson));
   }
 
