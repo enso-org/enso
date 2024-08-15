@@ -223,6 +223,11 @@ type DB_Column
        expressions. For backends that only support a single `WITH` claus at the
        top level, `with` returns `self` unchanged.
 
+       Semantically, the following expressions will always have the same value:
+
+           1. f column
+           2. column.with f
+
        ? When to use `with`
 
          `with` can make queries shorter and/or simpler by eliminating

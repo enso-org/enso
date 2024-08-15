@@ -65,5 +65,36 @@ type SQL_Expression
          information to the code generator.
     Operation (kind : Text) (expressions : Vector SQL_Expression) (metadata : Any | Nothing = Nothing)
 
+    ## PRIVATE
+       The internal representation of a `WITH ... AS` CTE expression. A `With`
+       value contains the "binding" of the CTE expression to a lexically scoped
+       table name, as well as the body expression that refers to the binding.
+
+       A `With` value's body always contains at least one `With_Ref` value with
+       the same `binder` identifier, unless the callback passed to the `with`
+       method ignored its argument.
+
+       Arguments:
+       - binder: the lexically-scoped name of the CTE expression.
+       - bindee: the CTE expression.
+       - body: the larger expression that contains references to the CTE.
     With (binder : Text) (bindee : SQL_Expression) (body : SQL_Expression)
+
+    ## PRIVATE
+       The internal representation of a "reference" to a CTE expression.
+
+       A `With_Ref` value always occurs within the `body` expression of an
+       enclosing `With` value.
+
+       Database backends often evaluate sub-expressions of `DB_Table` and
+       `DB_Column` values, for example when querying the datanbase for an
+       expression type. `With_Ref` values are sometimes evaluated in the
+       database without their enclosing `With` values, in which case the
+       `binder` field refers to an unbound identifier. In these cases, the
+       original CTE expression in `standalone_expression` is used instead.
+
+       Arguments:
+       - binder: the lexically-scoped name of the CTE expression.
+       - standalone_expression: the full, original expression bound in the
+         enclosing `With` value.
     With_Ref (binder : Text) (standalone_expression : SQL_Expression)
