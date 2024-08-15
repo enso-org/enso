@@ -180,7 +180,7 @@ type SQLSever_Dialect
     ## PRIVATE
        Specifies if the Database backend supports WITH clauses in nested queries.
     supports_nested_with_clause : Boolean
-    supports_nested_with_clause  self = False
+    supports_nested_with_clause self = False
 
     ## PRIVATE
     supports_separate_nan : Boolean

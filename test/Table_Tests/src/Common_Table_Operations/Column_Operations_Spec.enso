@@ -924,6 +924,13 @@ add_specs suite_builder setup =
                     t.at "X" . is_infinite . to_vector . should_equal [False, False, True, True, False, Nothing]
                     t.at "Y" . is_infinite . to_vector . should_equal [False, False, False, False, False, Nothing]
                     t.at "Z" . is_infinite . to_vector . should_fail_with Invalid_Value_Type
+
+                group_builder.specify "should support is_finite" <|
+                    t = table.get
+                    t.at "X" . is_finite . to_vector . should_equal [True, True, False, False, False, Nothing]
+                    t.at "Y" . is_finite . to_vector . should_equal [True, True, True, True, True, Nothing]
+                    t.at "Z" . is_finite . to_vector . should_fail_with Invalid_Value_Type
+
             False ->
                 group_builder.specify "should report that is_nan is not supported" <|
                     t = table_builder [["X", [1.5]]]
@@ -934,6 +941,12 @@ add_specs suite_builder setup =
                     t.at "X" . is_infinite . to_vector . should_equal [False, False, True, True, Nothing]
                     t.at "Y" . is_infinite . to_vector . should_equal [False, False, False, False, Nothing]
                     t.at "Z" . is_infinite . to_vector . should_fail_with Invalid_Value_Type
+
+                group_builder.specify "should support is_finite" <|
+                    t = build_sorted_table [["X", [1.5, 3.0, Number.positive_infinity, Number.negative_infinity, Nothing]], ["Y", [1, 2, 3, 4, Nothing]], ["Z", ["1", "2", "3", "4", Nothing]]]
+                    t.at "X" . is_finite . to_vector . should_equal [True, True, False, False, Nothing]
+                    t.at "Y" . is_finite . to_vector . should_equal [True, True, True, True, Nothing]
+                    t.at "Z" . is_finite . to_vector . should_fail_with Invalid_Value_Type
 
         group_builder.specify "should support is_blank" <|
             t = build_sorted_table [["X", [1.5, 2, Number.nan, Nothing]], ["Y", [1, Nothing, 3, 4]]]
