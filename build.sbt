@@ -781,9 +781,11 @@ lazy val `scala-yaml` = (project in file("lib/scala/yaml"))
   )
 
 lazy val pkg = (project in file("lib/scala/pkg"))
+  .enablePlugins(JPMSPlugin)
   .settings(
     Compile / run / mainClass := Some("org.enso.pkg.Main"),
     frgaalJavaCompilerSetting,
+    compileOrder := CompileOrder.ScalaThenJava,
     version := "0.1",
     libraryDependencies ++= Seq(
       "org.graalvm.truffle" % "truffle-api"      % graalMavenPackagesVersion % "provided",
@@ -2659,7 +2661,16 @@ lazy val `engine-runner` = project
       }
 
       requiredExternalMods ++ Seq(
-        profilingMod
+        profilingMod,
+        semverMod,
+        cliMod,
+        distributionMod,
+        editionsMod,
+        editionsUpdaterMod,
+        libraryManagerMod,
+        pkgMod,
+        runnerCommonMod,
+        parserMod
       )
     },
     run / connectInput := true
