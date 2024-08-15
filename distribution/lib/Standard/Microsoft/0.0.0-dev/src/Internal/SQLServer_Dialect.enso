@@ -38,8 +38,8 @@ import Standard.Database.SQL.SQL_Builder
 import Standard.Database.SQL.SQL_Fragment
 import Standard.Database.SQL_Statement.SQL_Statement
 import Standard.Database.SQL_Type.SQL_Type
-from Standard.Database.Errors import SQL_Error, Unsupported_Database_Operation
 from Standard.Database.Dialect import Temp_Table_Style
+from Standard.Database.Errors import SQL_Error, Unsupported_Database_Operation
 from Standard.Database.Internal.IR.Operation_Metadata import Date_Period_Metadata
 from Standard.Database.Internal.Statement_Setter import fill_hole_default
 
@@ -193,7 +193,7 @@ type SQLSever_Dialect
        Specifies how the database creates temp tables.
     temp_table_style : Temp_Table_Style
     temp_table_style self = Temp_Table_Style.Hash_Prefix
-    
+
     ## PRIVATE
     adapt_unified_column : Internal_Column -> Value_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
     adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback =

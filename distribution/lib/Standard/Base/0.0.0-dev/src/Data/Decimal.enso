@@ -470,7 +470,7 @@ type Decimal
              b = Decimal.new "20.33"
              a.add b (Math_Context.new 3)
              # => Decimal.new 30.5
-    # TODO: restore checked return type (here and elsewhere) after https://github.com/enso-org/enso/issues/10736
+       TODO: restore checked return type (here and elsewhere) after https://github.com/enso-org/enso/issues/10736
     add : Decimal -> Math_Context | Nothing -> Decimal ! Arithmetic_Error
     add self (that : Decimal) (math_context : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error =
         error_if_from_float self that <| handle_java_exception <|

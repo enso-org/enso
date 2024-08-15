@@ -4,11 +4,11 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
 
-from Standard.Table import Table
 import Standard.Table.Rows_To_Read.Rows_To_Read
+from Standard.Table import Table
 
-import project.Hyper_Table.Hyper_Table
 import project.Hyper_Errors.Table_Not_Found
+import project.Hyper_Table.Hyper_Table
 
 polyglot java import org.enso.tableau.HyperReader
 
@@ -66,7 +66,7 @@ type Hyper_File
                 _ -> HyperReader.listTables self.file.path schema
             array.map t-> Hyper_Table.Value self t.schema t.name
 
-    ## ALIAS sheet, get
+    ## ALIAS get, sheet
        GROUP Standard.Base.Input
        ICON data_input
        Read a table from the Hyper_File into a Table.
