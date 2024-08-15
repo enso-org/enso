@@ -284,6 +284,7 @@ type DB_Column
         use_ctes = self.connection.dialect.supports_nested_with_clause
 
         if use_ctes.not then callback self else
+            # TODO: use shorter unique names for binders.
             binder = self.connection.base_connection.table_naming_helper.generate_random_table_name prefix=name+"-"
 
             ref_expression = SQL_Expression.With_Ref binder self.expression
