@@ -902,6 +902,7 @@ lazy val `logging-service` = project
 
 lazy val `logging-config` = project
   .in(file("lib/scala/logging-config"))
+  .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
@@ -909,7 +910,18 @@ lazy val `logging-config` = project
     libraryDependencies ++= Seq(
       "com.typesafe" % "config"    % typesafeConfigVersion,
       "org.slf4j"    % "slf4j-api" % slf4jVersion
-    )
+    ),
+    modulePath := {
+      JPMSUtils.filterModulesFromUpdate(
+        update.value,
+        Seq(
+          "com.typesafe" % "config"    % typesafeConfigVersion,
+          "org.slf4j"    % "slf4j-api" % slf4jVersion
+        ),
+        streams.value.log,
+        shouldContainAll = true
+      )
+    }
   )
 
 lazy val `logging-service-logback` = project
@@ -1492,7 +1504,8 @@ lazy val `engine-common` = project
         shouldContainAll = true
       )
       val ourMods = Seq(
-        (`logging-utils` / Compile / classDirectory).value
+        (`logging-utils` / Compile / classDirectory).value,
+        (`logging-config` / Compile / classDirectory).value,
       )
       externalMods ++ ourMods
     }
