@@ -19,7 +19,7 @@ function addNode() {
 .SmallPlusButton {
   width: var(--node-base-height);
   height: var(--node-base-height);
-  margin: 0px;
+  margin: 0;
 
   backdrop-filter: var(--blur-app-bg);
   background: var(--color-app-bg);
@@ -31,13 +31,5 @@ function addNode() {
   &:active {
     background: rgb(158, 158, 255);
   }
-}
-
-.icon {
-  display: inline-flex;
-  background: none;
-  margin: 8px;
-  padding: 0;
-  border: none;
 }
 </style>

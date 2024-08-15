@@ -234,8 +234,7 @@ pub fn cleaning_step(
 }
 
 /// Data needed to generate a typical sequence of CI steps invoking `./run` script.
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive_where(Debug)]
 pub struct RunStepsBuilder {
     /// The command passed to `./run` script.
     pub run_command: String,
@@ -244,7 +243,7 @@ pub struct RunStepsBuilder {
     /// Customize the step that runs the command.
     ///
     /// Allows replacing the run step with one or more custom steps.
-    #[derivative(Debug = "ignore")]
+    #[derive_where(skip)]
     pub customize:   Option<Box<dyn FnOnce(Step) -> Vec<Step>>>,
 }
 
@@ -339,7 +338,6 @@ pub fn runs_on(os: OS, runner_type: RunnerType) -> Vec<RunnerLabel> {
         (OS::Linux, RunnerType::GitHubHosted) => vec![RunnerLabel::LinuxLatest],
         (OS::MacOS, RunnerType::SelfHosted) => vec![RunnerLabel::SelfHosted, RunnerLabel::MacOS],
         (OS::MacOS, RunnerType::GitHubHosted) => vec![RunnerLabel::MacOSLatest],
-        _ => panic!("Unsupported OS and runner type combination: {os} {runner_type}."),
     }
 }
 

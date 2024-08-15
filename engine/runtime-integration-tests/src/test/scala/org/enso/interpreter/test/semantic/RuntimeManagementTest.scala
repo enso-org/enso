@@ -15,7 +15,8 @@ class RuntimeManagementTest extends InterpreterTest {
   ): Unit = {
 
     "Interrupt threads through Thread#interrupt()" in {
-      val langCtx = interpreterContext.ctx
+      val langCtx = interpreterContext
+        .ctx()
         .getBindings(LanguageInfo.ID)
         .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
         .asHostObject[EnsoContext]()

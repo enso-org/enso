@@ -79,7 +79,9 @@ public class DebuggingEnsoTest {
   @After
   public void disposeContext() {
     context.close();
+    context = null;
     engine.close();
+    engine = null;
   }
 
   private static void expectStackFrame(

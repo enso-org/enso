@@ -644,12 +644,6 @@ provideNodeColors(graphStore, (variable) =>
 
 const showColorPicker = ref(false)
 
-function setSelectedNodesColor(color: string | undefined) {
-  graphStore.transact(() =>
-    nodeSelection.selected.forEach((id) => graphStore.overrideNodeColor(id, color)),
-  )
-}
-
 const groupColors = computed(() => {
   const styles: { [key: string]: string } = {}
   for (let group of suggestionDb.groups) {
@@ -681,7 +675,6 @@ const groupColors = computed(() => {
           @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
           @nodeDoubleClick="(id) => stackNavigator.enterNode(id)"
           @createNodes="createNodesFromSource"
-          @setNodeColor="setSelectedNodesColor"
         />
         <GraphEdges :navigator="graphNavigator" @createNodeFromEdge="handleEdgeDrop" />
         <ComponentBrowser

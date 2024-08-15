@@ -290,7 +290,7 @@
   /* The gap between the header and contents of a section in a settings page. */
   --settings-section-header-gap: 0.625rem;
   /* The gap between the label and value of a settings entry. */
-  --settings-entry-gap: 1.1875rem;
+  --settings-entry-gap: 1.25rem;
   --settings-sidebar-width: 12.875rem;
   /* The gap between each section in the settings sidebar. */
   --settings-sidebar-gap: 1rem;

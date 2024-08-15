@@ -40,6 +40,7 @@ public class IntegerTest {
   @AfterClass
   public static void teardown() {
     ctx.close();
+    ctx = null;
   }
 
   private static final EnsoBigInteger bigInt =

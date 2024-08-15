@@ -15,7 +15,9 @@ const projectManagerUrl =
   process.env.E2E === 'true' ? 'ws://127.0.0.1:30536' : 'ws://127.0.0.1:30535'
 
 const IS_CLOUD_BUILD = process.env.CLOUD_BUILD === 'true'
-const YDOC_SERVER_URL = process.env.ENSO_POLYGLOT_YDOC_SERVER ?? 'ws://localhost:5976'
+const YDOC_SERVER_URL =
+  process.env.ENSO_POLYGLOT_YDOC_SERVER ??
+  (process.env.NODE_ENV === 'development' ? 'ws://localhost:5976' : undefined)
 
 await readEnvironmentFromFile()
 

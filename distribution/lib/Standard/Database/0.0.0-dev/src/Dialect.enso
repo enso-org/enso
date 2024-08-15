@@ -86,14 +86,6 @@ type Dialect
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
-       A heuristic used by `Connection.query` to determine if a given text looks
-       like a SQL query for the given dialect or is rather a table name.
-    is_probably_a_query : Text -> Boolean
-    is_probably_a_query self text =
-        _ = [text]
-        Unimplemented.throw "This is an interface only."
-
-    ## PRIVATE
        Returns the mapping between SQL types of this dialect and Enso
        `Value_Type`.
     get_type_mapping : SQL_Type_Mapping
@@ -164,9 +156,9 @@ type Dialect
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
-       Specifies whether the Database supports CREATE TEMPORARY TABLE syntax.
-    suppports_temporary_table_syntax : Boolean
-    suppports_temporary_table_syntax self =
+       Specifies how the database creates temp tables.
+    temp_table_style : Temp_Table_Style
+    temp_table_style self =
          Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
@@ -293,3 +285,13 @@ default_fetch_primary_key connection table_name =
         selected = keys_table.select_columns ["COLUMN_NAME", "KEY_SEQ"] case_sensitivity=Case_Sensitivity.Insensitive reorder=True
         key_column_names = selected.sort 1 . at 0 . to_vector
         if key_column_names.is_empty then Nothing else key_column_names
+
+## PRIVATE
+type Temp_Table_Style
+      ## PRIVATE
+         The temporary table is created using a create table statement.
+      Temporary_Table
+      
+      ## PRIVATE
+         The temporary table is created using a # table name.
+      Hash_Prefix

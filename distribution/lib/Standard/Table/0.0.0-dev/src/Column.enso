@@ -992,8 +992,11 @@ type Column
              example_coalesce = Examples.decimal_column.coalesce Examples.integer_column
     coalesce : (Any | Vector Any) -> Column
     coalesce self values =
-        fallback a b = a.if_nothing b
-        run_vectorized_many_op self "coalesce" fallback values
+        vec = Vector.unify_vector_or_element values
+        new_name = self.naming_helper.function_name "coalesce" [self]+vec
+        result = if values.is_empty then self else
+            values.fold self acc-> v-> acc.fill_nothing v
+        result.rename new_name
 
     ## GROUP Standard.Base.Math
        ICON transform4

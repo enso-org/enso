@@ -48,8 +48,11 @@ public class WarningsTest {
 
   @AfterClass
   public static void disposeContext() {
-    ensoContext = null;
+    generator.dispose();
     ctx.close();
+    ctx = null;
+    ensoContext.shutdown();
+    ensoContext = null;
   }
 
   @Test

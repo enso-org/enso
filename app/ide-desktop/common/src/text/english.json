@@ -51,7 +51,7 @@
   "otherUserIsUsingProjectError": "Someone else is using this project",
   "localBackendNotDetectedError": "Could not detect the local backend",
 
-  "invalidEmailValidationError": "Invalid email",
+  "invalidEmailValidationError": "Please enter a valid email address",
 
   "projectHasNoSourceFilesPhrase": "project has no source files",
   "fileNotFoundPhrase": "file not found",
@@ -61,8 +61,10 @@
   "registrationError": "Something went wrong! Please try again or contact the administrators.",
   "missingEmailError": "Missing email address",
   "missingVerificationCodeError": "Missing verification code",
-  "passwordMismatchError": "Passwords do not match",
-  "passwordValidationError": "Your password must include numbers, letters (both lowercase and uppercase) and symbols, and must be between 6 and 256 characters long.",
+  "passwordMismatchError": "Passwords do not match.",
+  "passwordLengthError": "Your password must be between 6 and 256 characters long.",
+  "passwordValidationMessage": "Your password must include numbers, letters (both lowercase and uppercase) and symbols.",
+  "passwordValidationError": "Your password does not meet the security requirements.",
 
   "confirmSignUpError": "Incorrect email or confirmation code.",
   "setUsernameError": "Could not set your username.",
@@ -291,6 +293,7 @@
   "stopExecution": "Stop execution",
   "openInEditor": "Open in editor",
 
+  "fieldErrorLabel": "Error",
   "unknownPlaceholder": "unknown",
   "expand": "Expand",
   "collapse": "Collapse",
@@ -479,6 +482,8 @@
   "emailPlaceholder": "Enter your email",
   "confirmationCodePlaceholder": "Enter the confirmation code",
 
+  "emailLabel": "Email",
+  "passwordLabel": "Password",
   "changePassword": "Change Password",
   "currentPasswordLabel": "Current password",
   "currentPasswordPlaceholder": "Enter your current password",

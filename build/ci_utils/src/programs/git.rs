@@ -207,7 +207,7 @@ impl Context {
                 let hash = fields.next().context("Missing hash.")?;
                 let refs = fields.next().context("Missing refs.")?;
                 let refs = refs_from_decoration(&refs);
-                let refs = refs.into_iter().map(|s| s.parse2()).try_collect()?;
+                let refs = refs.into_iter().map(|s| s.parse()).try_collect()?;
                 Ok(LogEntry { hash, refs })
             })
             .try_collect()
@@ -333,14 +333,14 @@ pub struct RemoteLsEntry {
 }
 
 /// Construct from a line of output of `git ls-remote`.
-impl std::str::FromStr for RemoteLsEntry {
+impl FromStr for RemoteLsEntry {
     type Err = anyhow::Error;
 
     #[context("Failed to parse remote ls entry from string: {}", line)]
     fn from_str(line: &str) -> std::result::Result<Self, Self::Err> {
         let mut parts = line.split_whitespace();
         let hash = parts.next().context("Missing hash")?.to_string();
-        let r#ref = parts.next().context("Missing reference")?.parse2()?;
+        let r#ref = parts.next().context("Missing reference")?.parse()?;
         ensure!(parts.next().is_none(), "Unexpected trailing extra parts.");
         Ok(Self { hash, r#ref })
     }

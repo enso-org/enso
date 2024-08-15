@@ -14,11 +14,7 @@ import type * as schemaModule from './schema'
  */
 // eslint-disable-next-line no-restricted-syntax
 export type FieldValues<Schema extends TSchema | undefined> =
-  Schema extends (
-    z.AnyZodObject | z.ZodEffects<z.AnyZodObject> | z.ZodEffects<z.ZodEffects<z.AnyZodObject>>
-  ) ?
-    z.infer<Schema>
-  : reactHookForm.FieldValues
+  Schema extends TSchema ? z.infer<Schema> : reactHookForm.FieldValues
 
 /**
  * Field path type.

@@ -39,6 +39,7 @@ test('Existence of edges between nodes', async ({ page }) => {
 async function initGraph(page: Page) {
   await actions.goToGraph(page)
   await actions.dragNodeByBinding(page, 'ten', 400, 0)
+  await actions.deselectNodes(page)
 }
 
 /**

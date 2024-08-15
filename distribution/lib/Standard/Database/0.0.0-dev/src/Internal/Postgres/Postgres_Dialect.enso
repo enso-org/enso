@@ -38,6 +38,7 @@ import project.SQL.SQL_Fragment
 import project.SQL_Statement.SQL_Statement
 import project.SQL_Type.SQL_Type
 from project.Errors import SQL_Error, Unsupported_Database_Operation
+from project.Dialect import Temp_Table_Style
 from project.Internal.IR.Operation_Metadata import Date_Period_Metadata
 
 polyglot java import java.sql.Types
@@ -133,12 +134,6 @@ type Postgres_Dialect
         table.updated_context_and_columns new_context new_columns subquery=True
 
     ## PRIVATE
-       A heuristic used by `Connection.query` to determine if a given text looks
-       like a SQL query for the given dialect or is rather a table name.
-    is_probably_a_query : Text -> Boolean
-    is_probably_a_query self text = Base_Generator.is_probably_a_query text
-
-    ## PRIVATE
        Returns the mapping between SQL types of this dialect and Enso
        `Value_Type`.
     get_type_mapping : SQL_Type_Mapping
@@ -183,9 +178,9 @@ type Postgres_Dialect
     supports_float_round_decimal_places self = False
 
     ## PRIVATE
-       Specifies whether the Database supports CREATE TEMPORARY TABLE syntax.
-    suppports_temporary_table_syntax : Boolean
-    suppports_temporary_table_syntax self = True
+       Specifies how the database creates temp tables.
+    temp_table_style : Temp_Table_Style
+    temp_table_style self = Temp_Table_Style.Temporary_Table
 
     ## PRIVATE
        There is a bug in Postgres type inference, where if we unify two

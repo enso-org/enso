@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { graphBindings } from '@/bindings'
 import ColorRing from '@/components/ColorRing.vue'
-import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
-import SmallPlusButton from '@/components/SmallPlusButton.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 import { ref } from 'vue'
@@ -11,7 +9,6 @@ const nodeColor = defineModel<string | undefined>('nodeColor')
 const props = defineProps<{
   isRecordingEnabledGlobally: boolean
   isRecordingOverridden: boolean
-  isDocsVisible: boolean
   isVisualizationEnabled: boolean
   isFullMenuVisible: boolean
   isRemovable: boolean
@@ -20,13 +17,11 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{
   'update:isRecordingOverridden': [isRecordingOverridden: boolean]
-  'update:isDocsVisible': [isDocsVisible: boolean]
   'update:isVisualizationEnabled': [isVisualizationEnabled: boolean]
   startEditing: []
   startEditingComment: []
   openFullMenu: []
   delete: []
-  createNodes: [options: NodeCreationOptions[]]
 }>()
 
 const showColorPicker = ref(false)
@@ -108,11 +103,6 @@ function readableBinding(binding: keyof (typeof graphBindings)['bindings']) {
         @close="showColorPicker = false"
       />
     </div>
-    <SmallPlusButton
-      v-if="!isVisualizationEnabled"
-      class="below-slot5"
-      @createNodes="emit('createNodes', $event)"
-    />
   </div>
 </template>
 
@@ -247,12 +237,6 @@ function readableBinding(binding: keyof (typeof graphBindings)['bindings']) {
   position: absolute;
   left: 44px;
   top: 80px;
-}
-
-.below-slot5 {
-  position: absolute;
-  top: calc(var(--outer-diameter) - 64px);
-  pointer-events: all;
 }
 
 .slot6 {

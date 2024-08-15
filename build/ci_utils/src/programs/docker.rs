@@ -578,7 +578,7 @@ impl RunOptions {
 #[derive(Clone, Display, Debug, PartialEq, Eq, Hash)]
 pub struct ImageId(pub String);
 
-impl std::str::FromStr for ImageId {
+impl FromStr for ImageId {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
@@ -589,7 +589,7 @@ impl std::str::FromStr for ImageId {
 #[derive(Clone, Debug, Display, Deref, AsRef)]
 pub struct ContainerId(pub String);
 
-impl std::str::FromStr for ContainerId {
+impl FromStr for ContainerId {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
@@ -646,7 +646,7 @@ mod tests {
     fn get_kernel_version() -> Result<u32> {
         let ret = sysinfo::System::kernel_version()
             .with_context(|| "Failed to get OS kernel version.")?
-            .parse2()?;
+            .parse()?;
         debug!("OS kernel version: {ret}.");
         Ok(ret)
     }

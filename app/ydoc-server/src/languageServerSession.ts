@@ -396,7 +396,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
             return Ok()
           }
           case LsSyncState.Closed: {
-            await this.withState(LsSyncState.Opening, async () => {
+            return await this.withState(LsSyncState.Opening, async () => {
               const promise = this.ls.openTextFile(this.path)
               this.setLastAction(promise.then(res => !res.ok && this.setState(LsSyncState.Closed)))
               const result = await promise
@@ -409,7 +409,6 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
               this.syncFileContents(result.value.content, result.value.currentVersion)
               return Ok()
             })
-            return Ok()
           }
           default: {
             assertNever(this.state)

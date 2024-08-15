@@ -1,30 +1,24 @@
 /** @file Registration container responsible for rendering and interactions in sign up flow. */
-import * as React from 'react'
+import { useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 
-import * as router from 'react-router-dom'
 import * as z from 'zod'
 
+import { LOGIN_PATH } from '#/appUtils'
 import AtIcon from '#/assets/at.svg'
 import CreateAccountIcon from '#/assets/create_account.svg'
 import GoBackIcon from '#/assets/go_back.svg'
 import LockIcon from '#/assets/lock.svg'
-
-import * as appUtils from '#/appUtils'
-
-import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
-import * as localStorageProvider from '#/providers/LocalStorageProvider'
-import * as textProvider from '#/providers/TextProvider'
-
-import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
-
-import Input from '#/components/Input'
+import { Form, Input, Password } from '#/components/AriaComponents'
 import Link from '#/components/Link'
-import SubmitButton from '#/components/SubmitButton'
-
+import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
+import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
+import { useAuth } from '#/providers/AuthProvider'
+import { useLocalBackend } from '#/providers/BackendProvider'
+import { useLocalStorage } from '#/providers/LocalStorageProvider'
+import { type GetText, useText } from '#/providers/TextProvider'
 import LocalStorage from '#/utilities/LocalStorage'
-import * as string from '#/utilities/string'
-import * as validation from '#/utilities/validation'
+import { PASSWORD_REGEX } from '#/utilities/validation'
 
 // ============================
 // === Global configuration ===
@@ -42,30 +36,45 @@ LocalStorage.registerKey('loginRedirect', {
   schema: z.string(),
 })
 
+/** Create the schema for this form. */
+function createRegistrationFormSchema(getText: GetText) {
+  return z
+    .object({
+      email: z.string().email(getText('invalidEmailValidationError')),
+      password: passwordWithPatternSchema(getText),
+      confirmPassword: z.string(),
+    })
+    .superRefine((object, context) => {
+      if (PASSWORD_REGEX.test(object.password) && object.password !== object.confirmPassword) {
+        context.addIssue({
+          path: ['confirmPassword'],
+          code: 'custom',
+          message: getText('passwordMismatchError'),
+        })
+      }
+    })
+}
+
 // ====================
 // === Registration ===
 // ====================
 
 /** A form for users to register an account. */
 export default function Registration() {
-  const auth = authProvider.useAuth()
-  const location = router.useLocation()
-  const { localStorage } = localStorageProvider.useLocalStorage()
-  const { getText } = textProvider.useText()
-  const localBackend = backendProvider.useLocalBackend()
+  const { signUp } = useAuth()
+  const location = useLocation()
+  const { localStorage } = useLocalStorage()
+  const { getText } = useText()
+  const localBackend = useLocalBackend()
   const supportsOffline = localBackend != null
 
   const query = new URLSearchParams(location.search)
   const initialEmail = query.get('email')
   const organizationId = query.get('organization_id')
   const redirectTo = query.get('redirect_to')
+  const [emailInput, setEmailInput] = useState(initialEmail ?? '')
 
-  const [email, setEmail] = React.useState(initialEmail ?? '')
-  const [password, setPassword] = React.useState('')
-  const [confirmPassword, setConfirmPassword] = React.useState('')
-  const [isSubmitting, setIsSubmitting] = React.useState(false)
-
-  React.useEffect(() => {
+  useEffect(() => {
     if (redirectTo != null) {
       localStorage.set('loginRedirect', redirectTo)
     } else {
@@ -75,56 +84,58 @@ export default function Registration() {
 
   return (
     <AuthenticationPage
+      schema={createRegistrationFormSchema(getText)}
       title={getText('createANewAccount')}
       supportsOffline={supportsOffline}
       footer={
-        <Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text={getText('alreadyHaveAnAccount')} />
+        <Link
+          to={`${LOGIN_PATH}?${new URLSearchParams({ email: emailInput }).toString()}`}
+          icon={GoBackIcon}
+          text={getText('alreadyHaveAnAccount')}
+        />
       }
-      onSubmit={async (event) => {
-        event.preventDefault()
-        setIsSubmitting(true)
-        await auth.signUp(email, password, organizationId)
-        setIsSubmitting(false)
-      }}
+      onSubmit={({ email, password }) => signUp(email, password, organizationId)}
     >
       <Input
         autoFocus
         required
-        validate
+        data-testid="email-input"
+        name="email"
+        label={getText('emailLabel')}
         type="email"
         autoComplete="email"
         icon={AtIcon}
         placeholder={getText('emailPlaceholder')}
-        value={email}
-        setValue={setEmail}
+        defaultValue={initialEmail ?? undefined}
+        onChange={(event) => {
+          setEmailInput(event.currentTarget.value)
+        }}
       />
-      <Input
+      <Password
         required
-        validate
-        allowShowingPassword
-        type="password"
+        data-testid="password-input"
+        name="password"
+        label={getText('passwordLabel')}
         autoComplete="new-password"
         icon={LockIcon}
         placeholder={getText('passwordPlaceholder')}
-        pattern={validation.PASSWORD_PATTERN}
-        error={getText('passwordValidationError')}
-        value={password}
-        setValue={setPassword}
+        description={getText('passwordValidationMessage')}
       />
-      <Input
+      <Password
         required
-        validate
-        allowShowingPassword
-        type="password"
+        data-testid="confirm-password-input"
+        name="confirmPassword"
+        label={getText('confirmPasswordLabel')}
         autoComplete="new-password"
         icon={LockIcon}
         placeholder={getText('confirmPasswordPlaceholder')}
-        pattern={string.regexEscape(password)}
-        error={getText('passwordMismatchError')}
-        value={confirmPassword}
-        setValue={setConfirmPassword}
       />
-      <SubmitButton isDisabled={isSubmitting} text={getText('register')} icon={CreateAccountIcon} />
+
+      <Form.Submit size="large" icon={CreateAccountIcon} className="w-full">
+        {getText('register')}
+      </Form.Submit>
+
+      <Form.FormError />
     </AuthenticationPage>
   )
 }

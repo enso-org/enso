@@ -533,3 +533,65 @@ test('Autoscoped constructors', async ({ page }) => {
   await expect(groupBy).toBeVisible()
   await expect(groupBy.locator('.WidgetArgumentName')).toContainText(['column', 'new_name'])
 })
+
+test('Table widget', async ({ page }) => {
+  await actions.goToGraph(page)
+
+  // Adding `Table.new` component will display the widget
+  await locate.addNewNodeButton(page).click()
+  await expect(locate.componentBrowser(page)).toBeVisible()
+  await page.keyboard.type('Table.new')
+  // Wait for CB entry to appear; this way we're sure about node name (binding).
+  await expect(locate.componentBrowserSelectedEntry(page)).toHaveCount(1)
+  await expect(locate.componentBrowserSelectedEntry(page)).toHaveText('Table.new')
+  await page.keyboard.press('Enter')
+  const node = locate.selectedNodes(page)
+  await expect(node).toHaveCount(1)
+  await expect(node).toBeVisible()
+  await mockMethodCallInfo(
+    page,
+    { binding: 'table1', expr: 'Table.new' },
+    {
+      methodPointer: {
+        module: 'Standard.Table.Table',
+        definedOnType: 'Standard.Table.Table.Table',
+        name: 'new',
+      },
+      notAppliedArguments: [0],
+    },
+  )
+  const widget = node.locator('.WidgetTableEditor')
+  await expect(widget).toBeVisible()
+  await expect(widget.locator('.ag-header-cell-text')).toHaveText('New Column')
+  await expect(widget.locator('.ag-header-cell-text')).toHaveClass(/(?<=^| )virtualColumn(?=$| )/)
+  // There's one empty cell, allowing creating first row and column
+  await expect(widget.locator('.ag-cell')).toHaveCount(1)
+
+  // Putting first value
+  await widget.locator('.ag-cell').dblclick()
+  await page.keyboard.type('Value')
+  await page.keyboard.press('Enter')
+  // There will be new blank column and new blank row allowing adding new columns and rows
+  // (so 4 cells in total)
+  await expect(widget.locator('.ag-header-cell-text')).toHaveText(['New Column', 'New Column'])
+  await expect(widget.locator('.ag-cell')).toHaveText(['Value', '', '', ''])
+
+  // Renaming column
+  await widget.locator('.ag-header-cell-text').first().dblclick()
+  await page.keyboard.type('Header')
+  await page.keyboard.press('Enter')
+  await expect(widget.locator('.ag-header-cell-text')).toHaveText(['Header', 'New Column'])
+
+  // Switching edit between cells and headers - check we will never edit two things at once.
+  await expect(widget.locator('.ag-text-field-input')).toHaveCount(0)
+  await widget.locator('.ag-header-cell-text').first().dblclick()
+  await expect(widget.locator('.ag-text-field-input')).toHaveCount(1)
+  await widget.locator('.ag-cell').first().dblclick()
+  await expect(widget.locator('.ag-text-field-input')).toHaveCount(1)
+  await widget.locator('.ag-header-cell-text').first().dblclick()
+  await expect(widget.locator('.ag-text-field-input')).toHaveCount(1)
+  await widget.locator('.ag-header-cell-text').last().dblclick()
+  await expect(widget.locator('.ag-text-field-input')).toHaveCount(1)
+  await page.keyboard.press('Escape')
+  await expect(widget.locator('.ag-text-field-input')).toHaveCount(0)
+})
