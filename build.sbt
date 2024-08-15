@@ -1416,7 +1416,13 @@ lazy val `ydoc-server` = project
         "ydoc",
         staticOnLinux  = false,
         includeRuntime = false,
-        mainClass      = Some("org.enso.ydoc.Main")
+        mainClass      = Some("org.enso.ydoc.Main"),
+        additionalOptions = Seq(
+          // useful perf & debug switches:
+          // "-g",
+          // "-H:+SourceLevelDebug",
+          // "-H:-DeleteLocalSymbols",
+        )
       )
       .value,
     buildNativeImage := NativeImage
