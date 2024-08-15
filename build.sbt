@@ -3122,6 +3122,7 @@ lazy val editions = project
     cleanFiles += baseDirectory.value / ".." / ".." / "distribution" / "editions"
   )
   .dependsOn(semver)
+  .dependsOn(`version-output`) // Note [Default Editions]
   .dependsOn(testkit % Test)
 
 lazy val semver = project
