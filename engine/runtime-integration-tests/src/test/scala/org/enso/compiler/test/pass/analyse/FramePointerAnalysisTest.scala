@@ -371,15 +371,12 @@ class FramePointerAnalysisTest extends CompilerTest {
       val allOcc = collectAllOccurences(ir)
       val fps    = collectAllFramePointers(ir)
       // `xLit` is the literal used in the `(x + 1)` expression
-      val xLit = findIRElement[Name.Literal](
+      val xLit = findIRElements[Name.Literal](
         ir,
         lit => {
-          lit.name == "x" &&
-          lit.location.isDefined &&
-          lit.location.get.location().start() == 13 &&
-          lit.location.get.location().end() == 14
+          lit.name == "x"
         }
-      )
+      ).last
       expectFramePointer(xLit, new FramePointer(1, 2))
       allOcc shouldNot be(null)
       fps shouldNot be(null)
@@ -392,15 +389,13 @@ class FramePointerAnalysisTest extends CompilerTest {
           |find data_link_instance (if_not_supported = (Error.throw (Illegal_Argument.Error "The "+(data_link_name data_link_instance)+" cannot be opened as a stream."))) =
           |    42
           |""".stripMargin.preprocessModule.analyse
-      val dataLinkInstanceLit = findIRElement[Name.Literal](
+      // The literal used at the end of the line
+      val dataLinkInstanceLit = findIRElements[Name.Literal](
         ir,
         lit => {
-          lit.name == "data_link_instance" &&
-          lit.location.isDefined &&
-          lit.location.get.location().start() == 105 &&
-          lit.location.get.location().end() == 123
+          lit.name == "data_link_instance"
         }
-      )
+      ).last
       expectFramePointer(dataLinkInstanceLit, new FramePointer(5, 2))
     }
 
@@ -428,10 +423,11 @@ class FramePointerAnalysisTest extends CompilerTest {
           |method =
           |    My_Type
           |""".stripMargin.preprocessModule.analyse
-      val myTypeLit = findIRElement[Name.Literal](
+      // `My_TYpe` literal used in the method body
+      val myTypeLit = findIRElements[Name.Literal](
         ir,
-        lit => lit.name == "My_Type" && hasLocation(lit, 27, 34)
-      )
+        lit => lit.name == "My_Type"
+      ).last
       withClue("No frame pointer attached to a symbol with global occurence") {
         myTypeLit.passData.get(FramePointerAnalysis) shouldNot be(defined)
       }
@@ -454,10 +450,10 @@ class FramePointerAnalysisTest extends CompilerTest {
           |    My_Type
           |""".stripMargin.preprocessModule.analyse
       // literal used in the annotation
-      val myTypeLit = findIRElement[Name.Literal](
+      val myTypeLit = findIRElements[Name.Literal](
         ir,
-        lit => lit.name == "My_Type" && hasLocation(lit, 18, 25)
-      )
+        lit => lit.name == "My_Type"
+      ).apply(1)
       withClue("No frame pointer attached to a symbol with global occurence") {
         myTypeLit.passData.get(FramePointerAnalysis) shouldNot be(defined)
       }
@@ -467,18 +463,6 @@ class FramePointerAnalysisTest extends CompilerTest {
       withClue("There is Resolution attached") {
         myTypeLit.passData.get(GlobalNames) shouldBe defined
       }
-    }
-  }
-
-  private def hasLocation(
-    ir: IR,
-    start: Int,
-    end: Int
-  ): Boolean = {
-    ir.location() match {
-      case Some(loc) =>
-        loc.start() == start && loc.end() == end
-      case None => false
     }
   }
 
@@ -500,6 +484,20 @@ class FramePointerAnalysisTest extends CompilerTest {
         case _ => None
       }
       .head
+  }
+
+  private def findIRElements[T <: IR: ClassTag](
+    rootIr: IR,
+    filterCondition: T => Boolean
+  ): List[T] = {
+    rootIr
+      .preorder()
+      .flatMap {
+        case childIr: T =>
+          Some(childIr).filter(filterCondition)
+        case _ => None
+      }
+      .toList
   }
 
   /** Asserts that the given `ir` has the given `framePointer` attached as metadata.
