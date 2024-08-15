@@ -2906,6 +2906,16 @@ type DB_Table
 
        This method follows the exact replacement semantics of `Text.replace`.
 
+       If regex is used the replacement string can contain references to groups
+       matched. The following syntaxes are supported:
+           $0: the entire match string
+           $&: the entire match string
+           $n: the nth group
+           $&lt;foo&gt;: Named group `foo`
+
+       The exact syntax of the regular expression is dependent on the database
+       engine.
+
        Arguments:
        - columns: Specifies columns by a name, index or regular expression to
          match names, or a Vector of these.

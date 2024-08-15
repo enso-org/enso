@@ -94,8 +94,8 @@ polyglot java import org.enso.table.parsing.problems.ParseProblemAggregator
 
 ## Represents a column-oriented table data structure.
 type Table
-    ## GROUP Standard.Base.Constants
-       ICON data_output
+    ## GROUP Standard.Base.Input
+       ICON data_input
        Creates a new table from a vector of `[name, items]` pairs.
 
        Arguments:
@@ -1451,6 +1451,8 @@ type Table
        The new columns will be named with the name of the input column with a
        incrementing number after.
 
+       For details on Enso's Regex syntax, see the [Help Documentation](https://help.enso.org/docs/using-enso/regular-expressions).
+
        Arguments:
        - column: The name or index of the column to tokenize the text of.
        - pattern: The pattern used to find within the text.
@@ -1475,6 +1477,8 @@ type Table
        If the pattern contains marked groups, the values are concatenated
        together; otherwise the whole match is returned.
        The values of other columns are repeated for the new rows.
+
+       For details on Enso's Regex syntax, see the [Help Documentation](https://help.enso.org/docs/using-enso/regular-expressions).
 
        Arguments:
        - column: The name or index of the column to tokenize the text of.
@@ -2957,6 +2961,15 @@ type Table
 
        This method follows the exact replacement semantics of the
        `Text.replace` method.
+
+       If regex is used the replacement string can contain references to groups
+       matched. The following syntaxes are supported:
+           $0: the entire match string
+           $&: the entire match string
+           $n: the nth group
+           $&lt;foo&gt;: Named group `foo`
+
+       For details on Enso's Regex syntax, see the [Help Documentation](https://help.enso.org/docs/using-enso/regular-expressions).
 
        Arguments:
        - columns: The column(s) to replace values on.
