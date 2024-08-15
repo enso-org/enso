@@ -11,7 +11,6 @@ from Standard.Database.Errors import SQL_Error
 
 from Standard.Test import all
 
-
 from project.Util import all
 from project.Common_Table_Operations.Util import run_default_backend, build_sorted_table
 
@@ -218,10 +217,6 @@ add_specs suite_builder detailed setup =
             expression_test "1_000.456/2" 500.228
             expression_test "2^4" 16
             expression_test "11%3" 2
-            expression_test "truncate(3.3)" 3
-            expression_test "ceil(5.3)" 6
-            expression_test "floor(5.3)" 5
-            expression_test "round(5.5)" 6
 
         specify_test "should be able to do basic arithmetic with order" group_builder expression_test->
             expression_test "1+1*2+2" 5
@@ -374,6 +369,20 @@ add_specs suite_builder detailed setup =
         specify_test "should be able to call a variable args function" group_builder expression_test->
             expression_test "min(10, 3, 8)" 3
             expression_test "max([A], [B], 3)" [3, 3, 3, 4, 6]
+
+        specify_test "should be able to use functions with constants" group_builder expression_test->
+            expression_test "truncate(3.3)" 3
+            expression_test "CEIL(5.3)" 6
+            expression_test "floor(5.3)" 5
+            expression_test "rOuNd(5.5)" 6
+
+        specify_test "should be able to use scalar functions" group_builder expression_test->
+            expression_test "first([C])" "Hello"
+            expression_test "at([C], 2)" "Hello World!"
+
+        specify_test "should be able to pass Atom constructors to functions" group_builder expression_test->
+            expression_test "sort([A], ..Descending)" [5, 4, 3, 2, 1]
+            expression_test "cast([A], ..Char)" ["1", "2", "3", "4", "5"]
 
     suite_builder.group prefix+"Expression Errors should be handled" group_builder->
         expect_error ctor expr =
