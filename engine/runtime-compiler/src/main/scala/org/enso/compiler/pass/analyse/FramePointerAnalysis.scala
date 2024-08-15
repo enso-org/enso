@@ -195,6 +195,7 @@ case object FramePointerAnalysis extends IRPass {
           processCasePattern(field, graph)
         }
       case _: Pattern.Documentation => ()
+      case _                        => ()
     }
   }
 
