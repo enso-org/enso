@@ -240,7 +240,7 @@ type Column
        `other`.
     @locale Locale.default_widget
     equals_ignore_case : Column | Any -> Locale -> Column
-    equals_ignore_case self other locale=Locale.default =
+    equals_ignore_case self other locale:Locale=Locale.default =
         ## TODO currently this always runs the fallback which is slow due to the
            cost of Java-to-Enso calls. We want to have a vectorized
            implementation, but we need to extend the architecture to allow
@@ -1244,7 +1244,7 @@ type Column
 
              example_starts_with = Examples.text_column_1.starts_with "hell" Case_Sensitivity.Insensitive
     starts_with : Column | Text -> Case_Sensitivity -> Column
-    starts_with self other case_sensitivity=Case_Sensitivity.Default =
+    starts_with self other case_sensitivity:Case_Sensitivity=..Default =
         new_name = naming_helper.function_name "starts_with" [self, other]
         run_vectorized_binary_case_text_op self Java_Storage.Maps.STARTS_WITH other case_sensitivity (a -> b -> a.starts_with b case_sensitivity) new_name
 
@@ -1275,7 +1275,7 @@ type Column
 
              example_ends_with = Examples.text_column_1.ends_with "hell"
     ends_with : Column | Text -> Case_Sensitivity -> Column
-    ends_with self other case_sensitivity=Case_Sensitivity.Default =
+    ends_with self other case_sensitivity:Case_Sensitivity=..Default =
         new_name = naming_helper.function_name "ends_with" [self, other]
         run_vectorized_binary_case_text_op self Java_Storage.Maps.ENDS_WITH other case_sensitivity (a -> b -> a.ends_with b case_sensitivity) new_name
 
@@ -1367,7 +1367,7 @@ type Column
 
              example_contains = Examples.text_column_1.contains "hell"
     contains : Column | Text -> Case_Sensitivity -> Column
-    contains self other case_sensitivity=Case_Sensitivity.Default =
+    contains self other case_sensitivity:Case_Sensitivity=..Default =
         new_name = naming_helper.function_name "contains" [self, other]
         run_vectorized_binary_case_text_op self Java_Storage.Maps.CONTAINS other case_sensitivity (a -> b -> a.contains b case_sensitivity) new_name
 
@@ -1450,7 +1450,7 @@ type Column
              column.text_replace '"(.*?)"'.to_regex '($1)'
     @term make_regex_text_widget
     text_replace : Text | Regex | Column -> Text | Column -> Case_Sensitivity -> Boolean -> Column
-    text_replace self (term : Text | Regex | Column = "") new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
+    text_replace self (term : Text | Regex | Column = "") new_text="" case_sensitivity:Case_Sensitivity=..Sensitive only_first=False =
         Value_Type.expect_text self <|
             term_fn = wrap_text_or_regex_argument_as_value_provider term
             new_text_fn = wrap_text_argument_as_value_provider new_text
@@ -1596,7 +1596,7 @@ type Column
        Returns a column of `Integer` type.
     @period Date_Time_Helpers.make_period_selector_for_column
     date_part : Date_Period | Time_Period -> Column ! Invalid_Value_Type | Illegal_Argument
-    date_part self period =
+    date_part self period:(Date_Period | Time_Period)=..Day =
         date_part_operation col name =
             operation = case name of
                 DatePartOperation.YEAR -> DatePartOperation.YEAR_INSTANCE
@@ -1639,7 +1639,7 @@ type Column
          unusual events like DST.
     @period Date_Time_Helpers.make_period_selector_for_column
     date_diff : (Column | Date | Date_Time | Time_Of_Day) -> Date_Period | Time_Period -> Column ! Invalid_Value_Type | Illegal_Argument
-    date_diff self end (period : Date_Period | Time_Period = Date_Period.Day) =
+    date_diff self end (period : Date_Period | Time_Period = ..Day) =
         Value_Type.expect_type self .is_date_or_time "date/time" <|
             my_type = self.inferred_precise_value_type
             Value_Type.expect_type end (== my_type) my_type.to_display_text <|
@@ -1900,7 +1900,7 @@ type Column
     @locale Locale.default_widget
     @format (self-> Widget_Helpers.make_format_chooser_for_type self.value_type)
     format : Text | Date_Time_Formatter | Column -> Locale -> Column ! Illegal_Argument
-    format self format:(Text | Date_Time_Formatter | Column)="" locale=Locale.default = case format of
+    format self format:(Text | Date_Time_Formatter | Column)="" locale:Locale=Locale.default = case format of
         format_column : Column -> Value_Type.expect_text format_column <|
             formatter = make_value_formatter_for_value_type self.value_type locale
             formatter.if_not_error <|
@@ -1959,7 +1959,7 @@ type Column
          types. Due to this, a Mixed column containing values `[2, "3"]` will
          actually be converted into `[2, Nothing]` when casting to Integer type.
     cast : Value_Type -> Problem_Behavior -> Column ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure
-    cast self value_type on_problems:Problem_Behavior=..Report_Warning =
+    cast self value_type:Value_Type on_problems:Problem_Behavior=..Report_Warning =
         Cast_Helpers.check_cast_compatibility self.value_type value_type <|
             target_storage_type = Storage.from_value_type value_type on_problems
             Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
@@ -2377,7 +2377,7 @@ type Column
                  my_compare a b = Ordering.compare a.abs b.abs
                  Examples.decimal_column.sort by=my_compare
     sort : Sort_Direction -> Boolean -> (Any -> Any -> Ordering) | Nothing -> Column
-    sort self order=Sort_Direction.Ascending missing_last=True by=Nothing = case by of
+    sort self order:Sort_Direction=..Ascending missing_last:Boolean=True by=Nothing = case by of
         Nothing ->
             order_bool = case order of
                 Sort_Direction.Ascending -> True

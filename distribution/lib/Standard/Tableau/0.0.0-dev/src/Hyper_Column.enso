@@ -4,6 +4,7 @@ from Standard.Table import Value_Type
 
 ## An Enso representation of a Column in a Tableau Hyper Table.
 type Hyper_Column
+    ## PRIVATE
     Value name:Text value_type:Value_Type nullable:Boolean
 
     ## PRIVATE
