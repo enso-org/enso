@@ -753,8 +753,7 @@ type DB_Column
             common_type.if_not_error <|
                 new_name = self.naming_helper.concat <|
                     ["if", self.naming_helper.to_expression_text self, "then", self.naming_helper.to_expression_text when_true, "else", self.naming_helper.to_expression_text when_false]
-                op_result = self.with name="iif" zelf->
-                    zelf.make_op "IIF" [when_true, when_false] new_name
+                op_result = self.make_op "IIF" [when_true, when_false] new_name
                 adapt_unified_column op_result common_type
 
     ## PRIVATE
@@ -888,8 +887,8 @@ type DB_Column
                             (scaled_truncate_mod_2 == 0).with name="scaled_truncate_mod_2_equals_0" scaled_truncate_mod_2_equals_0->
                                 even_is_up = (self >= 0).iif scaled_truncate_mod_2_equals_0.not scaled_truncate_mod_2_equals_0
                                 half_goes_up = if use_bankers then even_is_up else self >= 0
-                                do_round_up = half_goes_up.iif (self >= round_midpoint) (self > round_midpoint)
-                                result = do_round_up.iif ((round_base + 1.0) / scale) (round_base / scale)
+                                do_round_up = half_goes_up.with x-> x.iif (self >= round_midpoint) (self > round_midpoint)
+                                result = do_round_up.with x-> x.iif ((round_base + 1.0) / scale) (round_base / scale)
                                 result.rename new_name
 
     ## PRIVATE
@@ -2009,8 +2008,7 @@ type DB_Column
     short_circuit_special_floating_point : DB_Column -> DB_Column
     short_circuit_special_floating_point self exp =
         if self.value_type.is_floating_point.not then exp else
-            self.with name="special" zelf->
-                (zelf.is_finite.not.iif zelf exp).rename exp.name
+            (self.is_finite.not.iif self exp).rename exp.name
 
 ## PRIVATE
    Helper for case case_sensitivity based text operations
