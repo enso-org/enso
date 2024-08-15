@@ -381,8 +381,8 @@ add_specs suite_builder detailed setup =
             expression_test "at([C], 2)" "Hello World!"
 
         specify_test "should be able to pass Atom constructors to functions" group_builder expression_test->
-            expression_test "sort([A], ..Descending)" [5, 4, 3, 2, 1]
             expression_test "cast([A], ..Char)" ["1", "2", "3", "4", "5"]
+            expression_test "starts_WITH([C], 'HELLO', ..INSENSITIVE)" [True, False, True, False, Nothing]
 
     suite_builder.group prefix+"Expression Errors should be handled" group_builder->
         expect_error ctor expr =

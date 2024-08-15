@@ -159,6 +159,22 @@ type DB_Column
         if index < 0 then Error.throw (Unsupported_Database_Operation.Error "Reading backwards from end is not supported in-database. Use `read` to materialize the column.") else
             self.read (..First index+1) . get index default
 
+    ## GROUP Standard.Base.Selections
+       ICON parse3
+       Returns the first element in the column, if it exists.
+
+       If the column is empty, this method will return a dataflow error
+       containing an `Index_Out_Of_Bounds`.
+
+       > Example
+         Get the first element of a column.
+
+             import Standard.Examples
+
+             example_first = Examples.integer_column.first
+    first : Any ! Index_Out_Of_Bounds
+    first self = self.at 0
+
     ## GROUP Standard.Base.Metadata
        ICON metadata
        Returns the `Value_Type` associated with that column.
