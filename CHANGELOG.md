@@ -3,8 +3,10 @@
 #### Enso IDE
 
 - [Table Editor Widget][10774] displayed in `Table.new` component.
+- [Drilldown for XML][10824]
 
 [10774]: https://github.com/enso-org/enso/pull/10774
+[10824]: https://github.com/enso-org/enso/pull/10824
 
 #### Enso Standard Library
 
