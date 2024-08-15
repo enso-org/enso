@@ -388,8 +388,6 @@ function createNode(
     castValueTypes === 'number' && !isNaN(Number(selectorKey)) ? Number(selectorKey) : selectorKey
   const identifierAction =
     config.nodeType === (COLUMN_NODE_TYPE || VECTOR_NODE_TYPE) ? 'at' : action
-  console.log(castSelector)
-  console.log(identifierAction)
   const pattern = getAstPattern(castSelector, identifierAction)
   if (pattern) {
     config.createNodes({
