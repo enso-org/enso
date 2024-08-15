@@ -238,7 +238,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     for (var c : name.toCharArray()) {
       if (convertNext) {
         builder.append(Character.toUpperCase(c));
-        convertNext = false;
+        convertNext = c == '_';
       } else if (c == '_') {
         convertNext = true;
         builder.append(c);
