@@ -61,7 +61,7 @@ type Date_Period
 
     ## PRIVATE
     adjust_end : (Date | Date_Time) -> (Date | Date_Time)
-    adjust_end self date = if self == Date_Period.Day then date else
+    adjust_end self date =
         adjuster = case self of
             Date_Period.Year -> TemporalAdjusters.lastDayOfYear
             Date_Period.Quarter -> Date_Period_Utils.quarter_end
