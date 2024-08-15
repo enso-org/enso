@@ -3050,16 +3050,30 @@ lazy val editions = project
 
 lazy val semver = project
   .in(file("lib/scala/semver"))
+  .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    // Compile order needed for JPMSPlugin to work correctly. More specifically,
+    // to force compilation of `module-info.java`
+    compileOrder := CompileOrder.JavaThenScala,
     libraryDependencies ++= Seq(
       "io.circe"      %% "circe-core"      % circeVersion     % "provided",
       "org.yaml"       % "snakeyaml"       % snakeyamlVersion % "provided",
       "org.scalatest" %% "scalatest"       % scalatestVersion % Test,
       "junit"          % "junit"           % junitVersion     % Test,
       "com.github.sbt" % "junit-interface" % junitIfVersion   % Test
-    )
+    ),
+    modulePath := {
+      JPMSUtils.filterModulesFromUpdate(
+        (Compile / update).value,
+        Seq(
+          "org.scala-lang" % "scala-library" % scalacVersion
+        ),
+        streams.value.log,
+        shouldContainAll = true
+      )
+    }
   )
   .settings(
     (Compile / compile) := (Compile / compile)
