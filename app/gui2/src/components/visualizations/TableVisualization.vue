@@ -492,8 +492,8 @@ watchEffect(() => {
         const valueType = data_.value_type ? data_.value_type[i] : null
         if (data_.get_child_node_link_name === v) {
           return toLinkField(
-            data_.get_child_node_link_name,
             data_.get_child_node_action,
+            data_.get_child_node_link_name,
             data_.link_value_type,
           )
         }

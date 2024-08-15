@@ -126,7 +126,7 @@ make_json_for_dictionary dict max_items key_name="key" =
     mapped = as_vector . map p-> [p.first.to_text, make_json_for_value p.second]
     data = ["data", [mapped.map .first, mapped.map .second]]
     links = ["get_child_node_action", "at"]
-    get_child_node_action_link_name = ["get_child_node_action_link_name", key_name]
+    get_child_node_action_link_name = ["get_child_node_link_name", key_name]
     JS_Object.from_pairs [header, data, all_rows, links, get_child_node_action_link_name, ["type", "Map"]]
 
 ## PRIVATE
@@ -161,8 +161,8 @@ make_json_for_xml_element xml_element max_items type:Text="XML_Element" =
     map_vector = Warning.clear (attribs + children)
 
     data = ["data", [map_vector.map .first, map_vector.map .second, map_vector.map i-> i.at 2]]
-    get_child_node_fields = if type == "XML_Element" then JS_Object.from_pairs [["get_child_node_action", "get"], ["get_child_node_action_link_name", "key"], ["link_value_type", "number"]] else []
-    JS_Object.from_pairs [header, data, all_rows, ["type", type]] + get_child_node_fields
+    get_child_node_fields = if type == "XML_Element" then [["get_child_node_action", "get"], ["get_child_node_link_name", "key"], ["link_value_type", "number"]] else []
+    JS_Object.from_pairs <| [header, data, all_rows, ["type", type]] + get_child_node_fields
 
 ## PRIVATE
    Creates a JSON representation for the visualizations.
