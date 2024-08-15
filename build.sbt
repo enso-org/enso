@@ -2510,6 +2510,7 @@ lazy val `engine-runner` = project
       Package.ManifestAttributes(("Multi-Release", "true"))
     ),
     Compile / run / mainClass := Some("org.enso.runner.Main"),
+    compileOrder := CompileOrder.JavaThenScala,
     assembly / mainClass := (Compile / run / mainClass).value,
     assembly / assemblyJarName := "runner.jar",
     assembly / test := {},
