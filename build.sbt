@@ -2660,6 +2660,8 @@ lazy val `engine-runner` = project
           "task depends on runtime-parser/Compile/compileModuleInfo"
         )
       }
+      val versionMod =
+        (`version-output` / Compile / classDirectory).value
 
       requiredExternalMods ++ Seq(
         profilingMod,
@@ -2671,7 +2673,8 @@ lazy val `engine-runner` = project
         libraryManagerMod,
         pkgMod,
         runnerCommonMod,
-        parserMod
+        parserMod,
+        versionMod
       )
     },
     run / connectInput := true

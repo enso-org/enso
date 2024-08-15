@@ -10,6 +10,7 @@ module org.enso.runner {
   requires org.enso.pkg;
   requires org.enso.profiling;
   requires org.enso.semver;
+  requires org.enso.version.output;
   requires org.graalvm.nativeimage;
   requires org.graalvm.polyglot;
   requires org.jline;
