@@ -364,18 +364,14 @@ function toRowField(name: string, valueType?: ValueType | null | undefined) {
   }
 }
 
-function getAstPattern(selector: string | number, action?: string, castValueTypes?: string) {
-  const castSelector =
-    castValueTypes === 'number' && !isNaN(Number(selector)) ? Number(selector) : selector
-  const identifierAction =
-    config.nodeType === (COLUMN_NODE_TYPE || VECTOR_NODE_TYPE) ? 'at' : action
-  if (identifierAction) {
+function getAstPattern(selector?: string | number, action?: string) {
+  if (action && selector != null) {
     return Pattern.new((ast) =>
       Ast.App.positional(
-        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(identifierAction)!),
-        typeof castSelector === 'number' ?
-          Ast.tryNumberToEnso(castSelector, ast.module)!
-        : Ast.TextLiteral.new(castSelector, ast.module),
+        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(action)!),
+        typeof selector === 'number' ?
+          Ast.tryNumberToEnso(selector, ast.module)!
+        : Ast.TextLiteral.new(selector, ast.module),
       ),
     )
   }
@@ -387,7 +383,14 @@ function createNode(
   action?: string,
   castValueTypes?: string,
 ) {
-  const pattern = getAstPattern(params.data[selector], action, castValueTypes)
+  const selectorKey = params.data[selector]
+  const castSelector =
+    castValueTypes === 'number' && !isNaN(Number(selectorKey)) ? Number(selectorKey) : selectorKey
+  const identifierAction =
+    config.nodeType === (COLUMN_NODE_TYPE || VECTOR_NODE_TYPE) ? 'at' : action
+  console.log(castSelector)
+  console.log(identifierAction)
+  const pattern = getAstPattern(castSelector, identifierAction)
   if (pattern) {
     config.createNodes({
       content: pattern,
