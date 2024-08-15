@@ -791,7 +791,17 @@ lazy val pkg = (project in file("lib/scala/pkg"))
       "org.yaml"            % "snakeyaml"        % snakeyamlVersion          % "provided",
       "org.scalatest"      %% "scalatest"        % scalatestVersion          % Test,
       "org.apache.commons"  % "commons-compress" % commonsCompressVersion
-    )
+    ),
+    modulePath := {
+      JPMSUtils.filterModulesFromUpdate(
+        (Compile / update).value,
+        Seq(
+          "org.apache.commons" % "commons-compress" % commonsCompressVersion
+        ),
+        streams.value.log,
+        shouldContainAll = true
+      )
+    }
   )
   .dependsOn(editions)
 
@@ -953,6 +963,7 @@ lazy val cli = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    compileOrder := CompileOrder.ScalaThenJava,
     version := "0.1",
     libraryDependencies ++= circe ++ Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
@@ -2206,6 +2217,7 @@ lazy val `runtime-benchmarks` =
 
 lazy val `runtime-parser` =
   (project in file("engine/runtime-parser"))
+    .enablePlugins(JPMSPlugin)
     .settings(
       version := mavenUploadVersion,
       javadocSettings,
@@ -2220,7 +2232,31 @@ lazy val `runtime-parser` =
         "com.github.sbt"   % "junit-interface"         % junitIfVersion     % Test,
         "org.scalatest"   %% "scalatest"               % scalatestVersion   % Test,
         "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
-      )
+      ),
+      javaModuleName := "org.enso.runtime.parser",
+      modulePath := {
+        val requiredExternalMods = JPMSUtils.filterModulesFromUpdate(
+          (Compile / update).value,
+          Seq(
+            "org.scala-lang"   % "scala-library"           % scalacVersion,
+            "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion
+          ),
+          streams.value.log,
+          shouldContainAll = true
+        )
+        val syntaxMod =
+          (`syntax-rust-definition` / Compile / exportedProducts).value.head.data
+
+        requiredExternalMods ++ Seq(
+          syntaxMod
+        )
+      },
+      // Note [Compile module-info]
+      excludeFilter := excludeFilter.value || "module-info.java",
+      Compile / compileModuleInfo := JPMSUtils
+        .compileModuleInfo()
+        .dependsOn(Compile / compile)
+        .value
     )
     .dependsOn(`syntax-rust-definition`)
     .dependsOn(`persistance`)
@@ -2359,7 +2395,7 @@ lazy val `runtime-fat-jar` =
       }
         .dependsOn(Compile / compile)
         .value,
-      // Filter module-info.java from the compilation
+      // Note [Compile module-info]
       excludeFilter := excludeFilter.value || "module-info.java",
       javaModuleName := "org.enso.runtime",
       compileOrder := CompileOrder.JavaThenScala
@@ -2574,6 +2610,9 @@ lazy val `engine-runner` = project
       "org.hamcrest"            % "hamcrest-all"            % hamcrestVersion           % Test,
       "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionCompatVersion
     ),
+    Compile / compile := (Compile / compile)
+      .dependsOn(`runtime-parser` / Compile / compileModuleInfo)
+      .value,
     modulePath := {
       val requiredModIds = Seq(
         "org.scala-lang"       % "scala-library" % scalacVersion,
@@ -2584,14 +2623,40 @@ lazy val `engine-runner` = project
         "org.jline"            % "jline"         % jlineVersion,
         "org.slf4j"            % "slf4j-api"     % slf4jVersion
       )
+      val logger = streams.value.log
       val requiredExternalMods = JPMSUtils.filterModulesFromUpdate(
         (Compile / update).value,
         requiredModIds,
-        streams.value.log,
+        logger,
         shouldContainAll = true
       )
       val profilingMod =
         (`profiling-utils` / Compile / exportedProducts).value.head.data
+      val semverMod =
+        (`semver` / Compile / exportedProducts).value.head.data
+      val cliMod =
+        (`cli` / Compile / exportedProducts).value.head.data
+      val distributionMod =
+        (`distribution-manager` / Compile / exportedProducts).value.head.data
+      val editionsMod =
+        (`editions` / Compile / exportedProducts).value.head.data
+      val editionsUpdaterMod =
+        (`edition-updater` / Compile / exportedProducts).value.head.data
+      val libraryManagerMod =
+        (`library-manager` / Compile / exportedProducts).value.head.data
+      val pkgMod =
+        (`pkg` / Compile / exportedProducts).value.head.data
+      val runnerCommonMod =
+        (`engine-runner-common` / Compile / exportedProducts).value.head.data
+      val parserMod =
+        (`runtime-parser` / Compile / classDirectory).value
+      if (!parserMod.toPath.resolve("module-info.class").toFile.exists()) {
+        logger.error(
+          "module-info.class not in runtime-parser/target" +
+          "Dependencies are probably not set correctly. Make sure that the current " +
+          "task depends on runtime-parser/Compile/compileModuleInfo"
+        )
+      }
 
       requiredExternalMods ++ Seq(
         profilingMod

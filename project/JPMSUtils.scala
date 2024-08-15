@@ -1,4 +1,4 @@
-import JPMSPlugin.autoImport.javaModuleName
+import JPMSPlugin.autoImport.{javaModuleName, modulePath}
 import sbt._
 import sbt.Keys._
 import sbt.internal.inc.{CompileOutput, PlainVirtualFile}
@@ -252,6 +252,49 @@ object JPMSUtils {
           }
         }
       }
+
+  /** Compiles `module-info.java` in the current project. The module path is
+    * gathered from [[JPMSPlugin.autoImport.modulePath]] settings.
+    * @see [[compileModuleInfo]].
+    */
+  def compileModuleInfo(): Def.Initialize[Task[Unit]] = Def.task {
+    val moduleInfo       = (Compile / javaSource).value / "module-info.java"
+    val log              = streams.value.log
+    val incToolOpts      = IncToolOptionsUtil.defaultIncToolOptions()
+    val reporter         = (Compile / compile / bspReporter).value
+    val output           = CompileOutput((Compile / classDirectory).value.toPath)
+    val outputPath: Path = output.getSingleOutputAsPath.get()
+    val moduleName       = javaModuleName.value
+    val mp               = (Compile / modulePath).value
+    val baseJavacOpts    = (Compile / javacOptions).value
+    val cp               = (Compile / fullClasspath).value
+    val javaCompiler =
+      (Compile / compile / compilers).value.javaTools.javac()
+    log.info(s"Compiling $moduleInfo with javac")
+    val allOpts = baseJavacOpts ++ Seq(
+      "--class-path",
+      cp.map(_.data.getAbsolutePath).mkString(File.pathSeparator),
+      "--module-path",
+      mp.map(_.getAbsolutePath).mkString(File.pathSeparator),
+      "-d",
+      outputPath.toAbsolutePath.toString
+    )
+    log.debug(s"javac options: $allOpts")
+    val succ = javaCompiler.run(
+      Array(PlainVirtualFile(moduleInfo.toPath)),
+      allOpts.toArray,
+      output,
+      incToolOpts,
+      reporter,
+      log
+    )
+    if (!succ) {
+      val msg = s"Compilation of ${moduleInfo} failed"
+      log.error(s"javac options: $allOpts")
+      log.error(msg)
+      throw new IllegalStateException(msg)
+    }
+  }
 
   /** Copies all classes from all the dependencies `classes` directories into the target directory.
     * @param sourceClassesDir Directory from where the classes will be copied.
