@@ -1185,7 +1185,7 @@ type DB_Column
 
              example_rename = Examples.integer_column.rename "My Numbers"
     rename : Text -> DB_Column ! Illegal_Argument
-    rename self name:Text = self.naming_helper.ensure_name_is_valid name <|
+    rename self name = self.naming_helper.ensure_name_is_valid name <|
         DB_Column.Value name self.connection self.sql_type_reference self.expression self.context
 
     ## ALIAS order_by
