@@ -1,8 +1,8 @@
 package org.enso.version;
 
 /**
- * Class containing only static methods for getting various version information
- * gathered at build time.
+ * Class containing only static methods for getting various version information gathered at build
+ * time.
  */
 public class BuildVersion {
   private BuildVersion() {}
@@ -27,16 +27,12 @@ public class BuildVersion {
     return GeneratedVersion.currentEdition();
   }
 
-  /**
-   * Current commit ID.
-   */
+  /** Current commit ID. */
   public static String commit() {
     return GeneratedVersion.commit();
   }
 
-  /**
-   * Current git ref
-   */
+  /** Current git ref */
   public static String ref() {
     return GeneratedVersion.ref();
   }
@@ -50,8 +46,8 @@ public class BuildVersion {
   }
 
   /**
-   * Release mode, set to true if the environment variable
-   * {@code ENSO_RELEASE_MODE} is set to {@code true} at build time.
+   * Release mode, set to true if the environment variable {@code ENSO_RELEASE_MODE} is set to
+   * {@code true} at build time.
    */
   public static boolean isRelease() {
     return GeneratedVersion.isRelease();

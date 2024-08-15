@@ -954,12 +954,7 @@ public class Main {
   private void displayVersion(boolean useJson) {
     var customVersion = CurrentVersion.getVersion().toString();
     var versionDescription =
-        VersionDescription.make(
-            "Enso Compiler and Runtime",
-            true,
-            false,
-            List.of(),
-            customVersion);
+        VersionDescription.make("Enso Compiler and Runtime", true, false, List.of(), customVersion);
     println(versionDescription.asString(useJson));
   }
 
