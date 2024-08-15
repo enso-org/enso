@@ -882,14 +882,12 @@ type DB_Column
             round_base.with name="round_base" round_base->
                 round_midpoint = (round_base + 0.5) / scale
                 round_midpoint.with name="round_midpoint" round_midpoint->
-                    scaled.truncate.with name="scaled_truncate" scaled_truncate->
-                        (scaled_truncate % 2).with name="scaled_truncate_mod_2" scaled_truncate_mod_2->
-                            (scaled_truncate_mod_2 == 0).with name="scaled_truncate_mod_2_equals_0" scaled_truncate_mod_2_equals_0->
-                                even_is_up = (self >= 0).iif scaled_truncate_mod_2_equals_0.not scaled_truncate_mod_2_equals_0
-                                half_goes_up = if use_bankers then even_is_up else self >= 0
-                                do_round_up = half_goes_up.with x-> x.iif (self >= round_midpoint) (self > round_midpoint)
-                                result = do_round_up.with x-> x.iif ((round_base + 1.0) / scale) (round_base / scale)
-                                result.rename new_name
+                    ((scaled.truncate % 2) == 0).with name="scaled_truncate_mod_2_equals_0" scaled_truncate_mod_2_equals_0->
+                        even_is_up = (self >= 0).iif scaled_truncate_mod_2_equals_0.not scaled_truncate_mod_2_equals_0
+                        half_goes_up = if use_bankers then even_is_up else self >= 0
+                        do_round_up = half_goes_up.with x-> x.iif (self >= round_midpoint) (self > round_midpoint)
+                        result = do_round_up.with x-> x.iif ((round_base + 1.0) / scale) (round_base / scale)
+                        result.rename new_name
 
     ## PRIVATE
        Round a float-like column.
