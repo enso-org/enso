@@ -364,9 +364,9 @@ function toRowField(name: string, valueType?: ValueType | null | undefined) {
   }
 }
 
-function getAstPattern(selector: string | number, action?: string, valueType?: string) {
+function getAstPattern(selector: string | number, action?: string, castValueTypes?: string) {
   const castSelector =
-    valueType === 'number' && !isNaN(Number(selector)) ? Number(selector) : selector
+    castValueTypes === 'number' && !isNaN(Number(selector)) ? Number(selector) : selector
   const identifierAction =
     config.nodeType === (COLUMN_NODE_TYPE || VECTOR_NODE_TYPE) ? 'at' : action
   if (identifierAction) {
@@ -385,9 +385,9 @@ function createNode(
   params: CellClickedEvent,
   selector: string,
   action?: string,
-  valueType?: string,
+  castValueTypes?: string,
 ) {
-  const pattern = getAstPattern(params.data[selector], action, valueType)
+  const pattern = getAstPattern(params.data[selector], action, castValueTypes)
   if (pattern) {
     config.createNodes({
       content: pattern,
@@ -396,12 +396,12 @@ function createNode(
   }
 }
 
-function toLinkField(fieldName: string, getChildAction?: string, valueType?: string): ColDef {
+function toLinkField(fieldName: string, getChildAction?: string, castValueTypes?: string): ColDef {
   return {
     headerName:
       newNodeSelectorValues.value.headerName ? newNodeSelectorValues.value.headerName : fieldName,
     field: fieldName,
-    onCellDoubleClicked: (params) => createNode(params, fieldName, getChildAction, valueType),
+    onCellDoubleClicked: (params) => createNode(params, fieldName, getChildAction, castValueTypes),
     tooltipValueGetter: () => {
       return `Double click to view this ${newNodeSelectorValues.value.tooltipValue} in a separate component`
     },
@@ -491,11 +491,10 @@ watchEffect(() => {
       ('header' in data_ ? data_.header : [])?.map((v, i) => {
         const valueType = data_.value_type ? data_.value_type[i] : null
         if (data_.get_child_node_link_name === v) {
-          return toLinkField(
-            data_.get_child_node_action,
-            data_.get_child_node_link_name,
-            data_.link_value_type,
-          )
+          return toLinkField(v, data_.get_child_node_action, data_.link_value_type)
+        }
+        if (config.nodeType === ROW_NODE_TYPE) {
+          return toRowField(v, valueType)
         }
         return toField(v, valueType)
       }) ?? []
