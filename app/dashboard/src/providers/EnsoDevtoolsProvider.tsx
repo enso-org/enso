@@ -8,8 +8,6 @@ import { createStore, useStore, type StoreApi } from 'zustand'
 interface EnsoDevtoolsStore {
   readonly enableVersionChecker: boolean | null
   readonly setEnableVersionChecker: (enableVersionChecker: boolean | null) => void
-  readonly scheduleMultiSelect: boolean | null
-  readonly setScheduleMultiSelect: (useScheduleMultiSelect: boolean | null) => void
 }
 
 /** State contained in a `EnsoDevtools`. */
@@ -29,10 +27,6 @@ export default function EnsoDevtoolsProvider(props: ProjectsProviderProps) {
       enableVersionChecker: null,
       setEnableVersionChecker: (enableVersionChecker) => {
         set({ enableVersionChecker })
-      },
-      scheduleMultiSelect: null,
-      setScheduleMultiSelect: (scheduleMultiSelect) => {
-        set({ scheduleMultiSelect })
       },
     }))
   })
@@ -59,16 +53,4 @@ export function useEnableVersionChecker() {
 export function useSetEnableVersionChecker() {
   const store = useEnsoDevtoolsStore()
   return useStore(store, (state) => state.setEnableVersionChecker)
-}
-
-/** Whether to use the multi-select UI for schedules. */
-export function useScheduleMultiSelect() {
-  const store = useEnsoDevtoolsStore()
-  return useStore(store, (state) => state.scheduleMultiSelect)
-}
-
-/** A function to set whether to use the multi-select UI for schedules. */
-export function useSetScheduleMultiSelect() {
-  const store = useEnsoDevtoolsStore()
-  return useStore(store, (state) => state.setScheduleMultiSelect)
 }

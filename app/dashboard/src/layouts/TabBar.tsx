@@ -227,8 +227,10 @@ export function Tab(props: InternalTabProps) {
     <aria.Tab
       data-testid={props['data-testid']}
       ref={(element) => {
-        ref.current = element
-        if (element) {
+        if (element == null) {
+          ref.current = element
+        } else if (element instanceof HTMLDivElement) {
+          ref.current = element
           if (actuallyActive) {
             setSelectedTab(element)
           }

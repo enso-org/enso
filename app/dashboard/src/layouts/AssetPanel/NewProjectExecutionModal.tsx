@@ -1,6 +1,15 @@
 /** @file Modal for confirming delete of any type of asset. */
 import * as z from 'zod'
 
+import {
+  ZonedDateTime,
+  getDayOfWeek,
+  getLocalTimeZone,
+  now,
+  toTimeZone,
+} from '@internationalized/date'
+import { useMutation } from '@tanstack/react-query'
+
 import type Backend from '#/services/Backend'
 import {
   PARALLEL_MODE_TO_TEXT_ID,
@@ -13,130 +22,32 @@ import {
 import {
   Button,
   ButtonGroup,
+  DatePicker,
   Dialog,
   Form,
-  Input,
-  MultiSelector,
   Selector,
-  ZONED_DATE_TIME_SCHEMA,
 } from '#/components/AriaComponents'
-import DatePicker from '#/components/AriaComponents/Inputs/DatePicker/DatePicker'
 import { backendMutationOptions } from '#/hooks/backendHooks'
-import { useScheduleMultiSelect } from '#/providers/EnsoDevtoolsProvider'
 import { useText, type GetText } from '#/providers/TextProvider'
-import { useMutation } from '@tanstack/react-query'
-import { DAY_3_LETTER_TEXT_IDS } from 'enso-common/src/utilities/data/dateTime'
-import { omit } from 'enso-common/src/utilities/data/object'
 
 /* eslint-disable @typescript-eslint/no-magic-numbers */
-const DATES: readonly number[] = [...Array(31).keys()]
-const DAYS: readonly number[] = [...Array(7).keys()]
-const HOURS: readonly number[] = [...Array(24).keys()]
-
 /** Create the form schema for this page. */
 function createUpsertExecutionSchema(getText: GetText) {
-  const schema = z.object({
-    repeatInterval: z.enum(PROJECT_REPEAT_INTERVALS),
-    date: ZONED_DATE_TIME_SCHEMA,
-    dates: z
-      .number()
-      .int()
-      .min(0)
-      .max(30)
-      .array()
-      .transform((arr) => arr.sort((a, b) => a - b))
-      .readonly()
-      .optional(),
-    days: z
-      .number()
-      .int()
-      .min(0)
-      .max(6)
-      .array()
-      .transform((arr) => arr.sort((a, b) => a - b))
-      .readonly()
-      .optional(),
-    hours: z
-      .number()
-      .int()
-      .min(0)
-      .max(23)
-      .array()
-      .transform((arr) => arr.sort((a, b) => a - b))
-      .readonly()
-      .optional(),
-    minute: z.number().int().min(0).max(59),
-    parallelMode: z.enum(PROJECT_PARALLEL_MODES),
-  })
-  /** The base schema for this object. */
-  type Schema = z.infer<typeof schema>
-  return schema
-    .superRefine((object, context) => {
-      switch (object.repeatInterval) {
-        case 'hourly': {
-          // No action needed.
-          break
-        }
-        case 'daily': {
-          if (!object.hours || object.hours.length === 0) {
-            context.addIssue({
-              code: 'custom',
-              path: ['hours'],
-              message: getText('pleaseSelectAtLeastOneItem'),
-            })
-          }
-          break
-        }
-        case 'weekly': {
-          if (!object.days || object.days.length === 0) {
-            context.addIssue({
-              code: 'custom',
-              path: ['days'],
-              message: getText('pleaseSelectAtLeastOneItem'),
-            })
-          }
-          if (!object.hours || object.hours.length === 0) {
-            context.addIssue({
-              code: 'custom',
-              path: ['hours'],
-              message: getText('pleaseSelectAtLeastOneItem'),
-            })
-          }
-          break
-        }
-        case 'monthly': {
-          if (!object.dates || object.dates.length === 0) {
-            context.addIssue({
-              code: 'custom',
-              path: ['dates'],
-              message: getText('pleaseSelectAtLeastOneItem'),
-            })
-          }
-          if (!object.hours || object.hours.length === 0) {
-            context.addIssue({
-              code: 'custom',
-              path: ['hours'],
-              message: getText('pleaseSelectAtLeastOneItem'),
-            })
-          }
-          break
-        }
-      }
+  return z
+    .object({
+      repeatInterval: z.enum(PROJECT_REPEAT_INTERVALS),
+      date: z.instanceof(ZonedDateTime, { message: getText('pleaseSelectATime') }),
+      parallelMode: z.enum(PROJECT_PARALLEL_MODES),
     })
-    .transform<Schema>((object) => {
-      switch (object.repeatInterval) {
-        case 'hourly': {
-          return omit(object, 'hours', 'dates', 'days')
-        }
-        case 'daily': {
-          return omit(object, 'dates', 'days')
-        }
-        case 'weekly': {
-          return omit(object, 'dates')
-        }
-        case 'monthly': {
-          return omit(object, 'days')
-        }
+    .transform(({ repeatInterval, date, parallelMode }) => {
+      const utcDate = toTimeZone(date, 'UTC')
+      return {
+        repeatInterval,
+        ...(repeatInterval === 'monthly' && { date: utcDate.day }),
+        ...(repeatInterval === 'weekly' && { day: getDayOfWeek(utcDate, 'en-US') }),
+        ...(repeatInterval !== 'hourly' && { hour: utcDate.hour }),
+        minute: utcDate.minute,
+        parallelMode,
       }
     })
 }
@@ -150,24 +61,41 @@ function createUpsertExecutionSchema(getText: GetText) {
 export interface NewProjectExecutionModalProps {
   readonly backend: Backend
   readonly item: ProjectAsset
+  readonly defaultOpen?: boolean
 }
 
 /** A modal for confirming the deletion of an asset. */
 export default function NewProjectExecutionModal(props: NewProjectExecutionModalProps) {
-  const { backend, item } = props
+  const { backend, item, defaultOpen } = props
   const { getText } = useText()
-  const multiSelect = useScheduleMultiSelect() ?? false
 
   const form = Form.useForm({ schema: createUpsertExecutionSchema(getText) })
-
-  const repeatInterval = form.watch('repeatInterval', 'weekly')
 
   const createProjectExecution = useMutation(
     backendMutationOptions(backend, 'createProjectExecution'),
   ).mutateAsync
 
+  const repeatInterval = form.watch('repeatInterval')
+  const minFirstOccurrence = now(getLocalTimeZone())
+  const maxFirstOccurrence = (() => {
+    switch (repeatInterval) {
+      case 'hourly': {
+        return minFirstOccurrence.add({ hours: 1 })
+      }
+      case 'daily': {
+        return minFirstOccurrence.add({ days: 1 })
+      }
+      case 'weekly': {
+        return minFirstOccurrence.add({ weeks: 1 })
+      }
+      case 'monthly': {
+        return minFirstOccurrence.add({ months: 1 })
+      }
+    }
+  })()
+
   return (
-    <Dialog title={getText('newProjectExecution')}>
+    <Dialog title={getText('newProjectExecution')} {...(defaultOpen != null && { defaultOpen })}>
       {({ close }) => (
         <Form
           form={form}
@@ -175,69 +103,21 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
           defaultValues={{ repeatInterval: 'weekly', parallelMode: 'restart', minute: 0 }}
           className="w-full"
           onSubmit={async (values) => {
-            const { repeatInterval: newRepeatInterval, parallelMode, ...times } = values
+            const { repeatInterval: newRepeatInterval, parallelMode, ...time } = values
             await createProjectExecution([
-              {
-                projectId: item.id,
-                repeatInterval: newRepeatInterval,
-                times,
-                parallelMode,
-              },
+              { projectId: item.id, repeatInterval: newRepeatInterval, time, parallelMode },
               item.title,
             ])
           }}
         >
           <Selector
             form={form}
+            isRequired
             name="repeatInterval"
             label={getText('repeatIntervalLabel')}
             items={PROJECT_REPEAT_INTERVALS}
             itemToString={(interval) => getText(REPEAT_INTERVAL_TO_TEXT_ID[interval])}
           />
-          {!multiSelect ?
-            <DatePicker form={form} isRequired name="date" />
-          : <>
-              {repeatInterval === 'monthly' && (
-                <MultiSelector
-                  form={form}
-                  isRequired
-                  name="dates"
-                  label={getText('datesLabel')}
-                  items={DATES}
-                  itemToString={(n) => String(n + 1)}
-                  columns={10}
-                />
-              )}
-              {repeatInterval === 'weekly' && (
-                <MultiSelector
-                  form={form}
-                  isRequired
-                  name="days"
-                  label={getText('daysLabel')}
-                  items={DAYS}
-                  itemToString={(n) => getText(DAY_3_LETTER_TEXT_IDS[n] ?? 'monday3')}
-                />
-              )}
-              {repeatInterval !== 'hourly' && (
-                <MultiSelector
-                  form={form}
-                  isRequired
-                  name="hours"
-                  label={getText('hoursLabel')}
-                  items={HOURS}
-                  columns={12}
-                />
-              )}
-              <Input
-                required
-                name="minute"
-                label={getText('minuteLabel')}
-                type="number"
-                min={0}
-                max={59}
-              />
-            </>
-          }
           <Selector
             form={form}
             isRequired
@@ -246,6 +126,16 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
             items={PROJECT_PARALLEL_MODES}
             itemToString={(interval) => getText(PARALLEL_MODE_TO_TEXT_ID[interval])}
           />
+          <DatePicker
+            form={form}
+            isRequired
+            name="date"
+            label={getText('firstOccurrenceLabel')}
+            noCalendarHeader
+            minValue={minFirstOccurrence}
+            maxValue={maxFirstOccurrence}
+          />
+          {/* FIXME: Show next 5 repeats vertically with opacity-50, and show tooltips on "parallel mode" options */}
 
           <Form.FormError />
           <ButtonGroup>

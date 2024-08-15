@@ -562,10 +562,7 @@
   "new": "New",
   "newProjectExecution": "New Schedule",
   "repeatIntervalLabel": "Repeat",
-  "datesLabel": "Dates",
-  "daysLabel": "Days",
-  "hoursLabel": "Hours",
-  "minuteLabel": "Minute",
+  "firstOccurrenceLabel": "First occurrence",
   "parallelModeLabel": "Parallel mode",
   "hourlyRepeatInterval": "Hourly",
   "dailyRepeatInterval": "Daily",
@@ -588,6 +585,7 @@
   "friday3": "Fri",
   "saturday3": "Sat",
   "sunday3": "Sun",
+  "pleaseSelectATime": "Please select a time.",
 
   "downgradeInfo": "Looking for downgrade options?",
 

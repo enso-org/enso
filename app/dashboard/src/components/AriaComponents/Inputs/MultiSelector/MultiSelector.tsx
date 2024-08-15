@@ -1,5 +1,5 @@
 /** @file A horizontal selector supporting multiple input. */
-import * as React from 'react'
+import { useRef, type CSSProperties, type ForwardedRef, type Ref } from 'react'
 
 import type { VariantProps } from 'tailwind-variants'
 
@@ -18,9 +18,8 @@ import {
   type FieldValues,
   type TSchema,
 } from '#/components/AriaComponents'
-
 import { mergeRefs } from '#/utilities/mergeRefs'
-
+import { forwardRef } from '#/utilities/react'
 import { tv } from '#/utilities/tailwindVariants'
 import { Controller } from 'react-hook-form'
 import { MultiSelectorOption } from './MultiSelectorOption'
@@ -46,8 +45,8 @@ export interface MultiSelectorProps<
   ) => string
   readonly columns?: number
   readonly className?: string
-  readonly style?: React.CSSProperties
-  readonly inputRef?: React.Ref<HTMLDivElement>
+  readonly style?: CSSProperties
+  readonly inputRef?: Ref<HTMLDivElement>
   readonly placeholder?: string
 }
 
@@ -91,15 +90,14 @@ export const MULTI_SELECTOR_STYLES = tv({
 /**
  * A horizontal multi-selector.
  */
-// eslint-disable-next-line no-restricted-syntax
-export const MultiSelector = React.forwardRef(function MultiSelector<
+export const MultiSelector = forwardRef(function MultiSelector<
   Schema extends TSchema,
   TFieldValues extends FieldValues<Schema>,
   TFieldName extends FieldPath<Schema, TFieldValues>,
   TTransformedValues extends FieldValues<Schema> | undefined = undefined,
 >(
   props: MultiSelectorProps<Schema, TFieldValues, TFieldName, TTransformedValues>,
-  ref: React.ForwardedRef<HTMLFieldSetElement>,
+  ref: ForwardedRef<HTMLFieldSetElement>,
 ) {
   const {
     name,
@@ -117,7 +115,7 @@ export const MultiSelector = React.forwardRef(function MultiSelector<
     ...inputProps
   } = props
 
-  const privateInputRef = React.useRef<HTMLDivElement>(null)
+  const privateInputRef = useRef<HTMLDivElement>(null)
 
   const { fieldState, formInstance } = Form.useField({
     name,
@@ -197,12 +195,4 @@ export const MultiSelector = React.forwardRef(function MultiSelector<
       <FieldError />
     </Form.Field>
   )
-}) as unknown as <
-  Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TFieldName extends FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
->(
-  props: MultiSelectorProps<Schema, TFieldValues, TFieldName, TTransformedValues> &
-    React.RefAttributes<HTMLDivElement>,
-) => React.ReactElement
+})

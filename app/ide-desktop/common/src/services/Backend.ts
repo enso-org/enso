@@ -341,10 +341,10 @@ export const REPEAT_INTERVAL_TO_TEXT_ID = {
 export type ProjectRepeatInterval = (typeof PROJECT_REPEAT_INTERVALS)[number]
 
 /** The times during each interval to trigger executions. */
-export interface ProjectScheduleTimes {
-  readonly dates?: readonly number[] | undefined
-  readonly days?: readonly number[] | undefined
-  readonly hours?: readonly number[] | undefined
+export interface ProjectScheduleTime {
+  readonly date?: number
+  readonly day?: number
+  readonly hour?: number
   readonly minute: number
 }
 
@@ -352,7 +352,7 @@ export interface ProjectScheduleTimes {
 export interface ProjectExecutionInfo {
   readonly projectId: ProjectId
   readonly repeatInterval: ProjectRepeatInterval
-  readonly times: ProjectScheduleTimes
+  readonly time: ProjectScheduleTime
   readonly parallelMode: ProjectParallelMode
 }
 
