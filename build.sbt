@@ -863,6 +863,7 @@ lazy val `profiling-utils` = project
 
 lazy val `logging-utils` = project
   .in(file("lib/scala/logging-utils"))
+  .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
@@ -870,7 +871,18 @@ lazy val `logging-utils` = project
     libraryDependencies ++= Seq(
       "org.scalatest" %% "scalatest" % scalatestVersion % Test,
       "org.slf4j"      % "slf4j-api" % slf4jVersion
-    ) ++ logbackTest
+    ) ++ logbackTest,
+    compileOrder := CompileOrder.ScalaThenJava, // Note [JPMS Compile order]
+    modulePath := {
+      JPMSUtils.filterModulesFromUpdate(
+        (Compile / update).value,
+        Seq(
+          "org.slf4j" % "slf4j-api" % slf4jVersion
+        ),
+        streams.value.log,
+        shouldContainAll = true
+      )
+    }
   )
 
 lazy val `logging-service` = project
@@ -1470,7 +1482,7 @@ lazy val `engine-common` = project
       "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided"
     ),
     modulePath := {
-      JPMSUtils.filterModulesFromUpdate(
+      val externalMods = JPMSUtils.filterModulesFromUpdate(
         (Compile / update).value,
         Seq(
           "org.graalvm.polyglot" % "polyglot"  % graalMavenPackagesVersion,
@@ -1479,6 +1491,10 @@ lazy val `engine-common` = project
         streams.value.log,
         shouldContainAll = true
       )
+      val ourMods = Seq(
+        (`logging-utils` / Compile / classDirectory).value
+      )
+      externalMods ++ ourMods
     }
   )
   .dependsOn(`logging-config`)

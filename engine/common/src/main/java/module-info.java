@@ -1,6 +1,6 @@
 module org.enso.engine.common {
   requires org.graalvm.polyglot;
-  requires org.slf4j;
+  requires org.enso.logging.utils;
 
   exports org.enso.common;
 }
