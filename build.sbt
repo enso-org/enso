@@ -2500,6 +2500,7 @@ lazy val `engine-runner-common` = project
 
 lazy val `engine-runner` = project
   .in(file("engine/runner"))
+  .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
     truffleDslSuppressWarnsSetting,
@@ -2573,6 +2574,29 @@ lazy val `engine-runner` = project
       "org.hamcrest"            % "hamcrest-all"            % hamcrestVersion           % Test,
       "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionCompatVersion
     ),
+    modulePath := {
+      val requiredModIds = Seq(
+        "org.scala-lang"       % "scala-library" % scalacVersion,
+        "org.graalvm.polyglot" % "polyglot"      % graalMavenPackagesVersion,
+        "org.graalvm.sdk"      % "nativeimage"   % graalMavenPackagesVersion,
+        "org.graalvm.sdk"      % "word"          % graalMavenPackagesVersion,
+        "commons-cli"          % "commons-cli"   % commonsCliVersion,
+        "org.jline"            % "jline"         % jlineVersion,
+        "org.slf4j"            % "slf4j-api"     % slf4jVersion
+      )
+      val requiredExternalMods = JPMSUtils.filterModulesFromUpdate(
+        (Compile / update).value,
+        requiredModIds,
+        streams.value.log,
+        shouldContainAll = true
+      )
+      val profilingMod =
+        (`profiling-utils` / Compile / exportedProducts).value.head.data
+
+      requiredExternalMods ++ Seq(
+        profilingMod
+      )
+    },
     run / connectInput := true
   )
   .settings(
