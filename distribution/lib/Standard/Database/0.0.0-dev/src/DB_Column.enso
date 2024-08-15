@@ -195,7 +195,7 @@ type DB_Column
 
     with : (DB_Column -> DB_Column) -> Text -> DB_Column
     with self callback name="with" -> DB_Column =
-        use_ctes = self.connection.dialect.supports_nested_with_clause  
+        use_ctes = self.connection.dialect.supports_nested_with_clause
 
         if use_ctes.not then callback self else
             binder = self.connection.base_connection.table_naming_helper.generate_random_table_name prefix=name+"-"
