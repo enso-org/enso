@@ -229,7 +229,24 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   @Override
   public Value visitAtom(ExpressionParser.AtomContext ctx) {
     var atomName = ctx.IDENTIFIER().getText();
-    return makeConstructor.apply(atomName);
+    return makeConstructor.apply(toCamelCase(atomName));
+  }
+
+  private static String toCamelCase(String name) {
+    var builder = new StringBuilder(name.length());
+    boolean convertNext = true;
+    for (var c : name.toCharArray()) {
+      if (convertNext) {
+        builder.append(Character.toUpperCase(c));
+        convertNext = false;
+      } else if (c == '_') {
+        convertNext = true;
+        builder.append(c);
+      } else {
+        builder.append(Character.toLowerCase(c));
+      }
+    }
+    return builder.toString();
   }
 
   @Override
