@@ -1,6 +1,7 @@
 /** @file Modal for accepting or rejecting an invite to an organization. */
 import * as router from 'react-router'
 
+import { SUPPORT_EMAIL, SUPPORT_EMAIL_URL } from '#/appUtils'
 import { Button, ButtonGroup, Dialog, Text } from '#/components/AriaComponents'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useAuth, useFullUserSession } from '#/providers/AuthProvider'
@@ -30,55 +31,77 @@ export function InvitedToOrganizationModal() {
   if (!shouldDisplay) {
     return <router.Outlet context={session} />
   } else {
-    const status = user.newOrganizationInvite
-    const statusMessage = (() => {
-      switch (status) {
-        case 'pending': {
-          return getText('organizationInviteOpenMessage')
-        }
-        case 'error': {
-          return getText('organizationInviteErrorMessage')
-        }
+    switch (user.newOrganizationInvite) {
+      case 'pending': {
+        return (
+          <>
+            <router.Outlet context={session} />
+            <Dialog
+              title={getText('organizationInviteTitle')}
+              isKeyboardDismissDisabled
+              isDismissable={false}
+              hideCloseButton
+              modalProps={{ defaultOpen: true }}
+            >
+              {({ close }) => (
+                <div className="flex flex-col items-center gap-4">
+                  <div className="text-center">
+                    <Text>{getText('organizationInviteMessage')}</Text>
+                    <Text className="text-sm font-bold">{user.newOrganizationName}</Text>
+                    <Text>{getText('organizationInviteOpenMessage')}</Text>
+                  </div>
+                  <ButtonGroup className="w-min">
+                    <Button
+                      variant="tertiary"
+                      onPress={async () => {
+                        await acceptInvitation([])
+                        close()
+                      }}
+                    >
+                      {getText('accept')}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onPress={async () => {
+                        await declineInvitation([user.email])
+                        close()
+                      }}
+                    >
+                      {getText('decline')}
+                    </Button>
+                  </ButtonGroup>
+                </div>
+              )}
+            </Dialog>
+          </>
+        )
       }
-    })()
-    return (
-      <Dialog
-        title={getText('organizationInviteTitle')}
-        isKeyboardDismissDisabled
-        isDismissable={false}
-        hideCloseButton
-        modalProps={{ defaultOpen: true }}
-      >
-        {({ close }) => (
-          <div className="flex flex-col items-center gap-4">
-            <div className="text-center">
-              <Text>{getText('organizationInviteMessage')}</Text>
-              <Text className="text-sm font-bold">{user.newOrganizationName}</Text>
-              <Text>{statusMessage}</Text>
-            </div>
-            <ButtonGroup className="w-min">
-              <Button
-                variant="tertiary"
-                onPress={async () => {
-                  await acceptInvitation([])
-                  close()
-                }}
-              >
-                {getText('accept')}
-              </Button>
-              <Button
-                variant="outline"
-                onPress={async () => {
-                  await declineInvitation([user.email])
-                  close()
-                }}
-              >
-                {getText('decline')}
-              </Button>
-            </ButtonGroup>
-          </div>
-        )}
-      </Dialog>
-    )
+      case 'error': {
+        return (
+          <>
+            <router.Outlet context={session} />
+            <Dialog
+              title={getText('organizationInviteTitle')}
+              // For now, allow dismissing the modal as the user account is still usable.
+              hideCloseButton
+              modalProps={{ defaultOpen: true }}
+            >
+              <div className="text-center">
+                <Text>{getText('organizationInviteMessage')}</Text>
+                <Text className="text-sm font-bold">{user.newOrganizationName}</Text>
+                <Text className="text-danger">
+                  {getText('organizationInviteErrorMessage')}{' '}
+                  {
+                    <Button variant="link" href={SUPPORT_EMAIL_URL}>
+                      {SUPPORT_EMAIL}
+                    </Button>
+                  }
+                </Text>
+              </div>
+            </Dialog>
+          </>
+        )
+      }
+    }
   }
 }

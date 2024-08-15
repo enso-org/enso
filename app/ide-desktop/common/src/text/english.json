@@ -426,7 +426,7 @@
   "organizationInviteTitle": "You are being invited!",
   "organizationInviteMessage": "An organization is inviting you:",
   "organizationInviteOpenMessage": "Would you like to accept? All your assets will be moved with you to your personal space.",
-  "organizationInviteErrorMessage": "Something went wrong. Please contact the administrators: cloud@enso.org",
+  "organizationInviteErrorMessage": "Something went wrong. Please contact the administrators at",
 
   "deleteLabelActionText": "delete the label '$0'",
   "deleteSelectedAssetActionText": "delete '$0'",
