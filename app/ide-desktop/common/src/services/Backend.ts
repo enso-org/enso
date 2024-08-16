@@ -318,6 +318,14 @@ export const PARALLEL_MODE_TO_TEXT_ID = {
   [K in ProjectParallelMode]: TextId & `${K}ParallelMode`
 }
 
+export const PARALLEL_MODE_TO_DESCRIPTION_ID = {
+  ignore: 'ignoreParallelModeDescription',
+  restart: 'restartParallelModeDescription',
+  parallel: 'parallelParallelModeDescription',
+} satisfies {
+  [K in ProjectParallelMode]: TextId & `${K}ParallelModeDescription`
+}
+
 /** The behavior when manually starting a new execution when the previous one is not yet complete.
  * One of the following:
  * - `ignore` - do not start the new execution.

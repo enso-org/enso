@@ -18,15 +18,11 @@ import * as radioGroupContext from './RadioGroupContext'
  */
 export interface RadioGroupProps<
   Schema extends formComponent.TSchema,
-  TFieldValues extends formComponent.FieldValues<Schema>,
-  TFieldName extends formComponent.FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends formComponent.FieldValues<Schema> | undefined = undefined,
+  TFieldName extends formComponent.FieldPath<Schema>,
 > extends formComponent.FieldStateProps<
       Omit<aria.AriaRadioGroupProps, 'description' | 'label'>,
       Schema,
-      TFieldValues,
-      TFieldName,
-      TTransformedValues
+      TFieldName
     >,
     twv.VariantProps<typeof RADIO_GROUP_STYLES>,
     formComponent.FieldProps {
@@ -45,13 +41,8 @@ export const RADIO_GROUP_STYLES = twv.tv({
 // eslint-disable-next-line no-restricted-syntax
 export const RadioGroup = React.forwardRef(function RadioGroup<
   Schema extends formComponent.TSchema,
-  TFieldName extends formComponent.FieldPath<Schema, TFieldValues>,
-  TFieldValues extends formComponent.FieldValues<Schema> = formComponent.FieldValues<Schema>,
-  TTransformedValues extends formComponent.FieldValues<Schema> | undefined = undefined,
->(
-  props: RadioGroupProps<Schema, TFieldValues, TFieldName, TTransformedValues>,
-  ref: React.ForwardedRef<HTMLDivElement>,
-) {
+  TFieldName extends formComponent.FieldPath<Schema>,
+>(props: RadioGroupProps<Schema, TFieldName>, ref: React.ForwardedRef<HTMLDivElement>) {
   const {
     children,
     isRequired = false,
@@ -109,13 +100,6 @@ export const RadioGroup = React.forwardRef(function RadioGroup<
       </radioGroupContext.RadioGroupProvider>
     </aria.RadioGroup>
   )
-}) as <
-  Schema extends formComponent.TSchema,
-  TFieldName extends formComponent.FieldPath<Schema, TFieldValues>,
-  TFieldValues extends formComponent.FieldValues<Schema> = formComponent.FieldValues<Schema>,
-  // eslint-disable-next-line no-restricted-syntax
-  TTransformedValues extends formComponent.FieldValues<Schema> | undefined = undefined,
->(
-  props: RadioGroupProps<Schema, TFieldValues, TFieldName, TTransformedValues> &
-    React.RefAttributes<HTMLFormElement>,
+}) as <Schema extends formComponent.TSchema, TFieldName extends formComponent.FieldPath<Schema>>(
+  props: RadioGroupProps<Schema, TFieldName> & React.RefAttributes<HTMLFormElement>,
 ) => React.JSX.Element

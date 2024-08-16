@@ -84,6 +84,8 @@ export function AddPaymentMethodForm<
   // but for some reason ts fails to infer the `card` field from the schema (it should always be there)
   // eslint-disable-next-line no-restricted-syntax
   const formInstance = ariaComponents.Form.useForm(
+    // @ts-expect-error The form is guaranteed to be compatible with `ADD_PAYMENT_METHOD_FORM_SCHEMA`
+    // due to the props type of this component.
     form ?? { schema: ADD_PAYMENT_METHOD_FORM_SCHEMA },
   ) as unknown as ariaComponents.FormInstance<typeof ADD_PAYMENT_METHOD_FORM_SCHEMA>
 

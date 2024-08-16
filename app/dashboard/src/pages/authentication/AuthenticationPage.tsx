@@ -5,7 +5,6 @@ import type { ReactNode } from 'react'
 
 import {
   DIALOG_BACKGROUND,
-  type FieldValues,
   Form,
   type FormProps,
   type TSchema,
@@ -29,18 +28,13 @@ interface AuthenticationPagePropsBase {
 }
 
 /** Props for an {@link AuthenticationPage}. */
-export type AuthenticationPageProps<
-  Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
-> = AuthenticationPagePropsBase & Partial<FormProps<Schema, TFieldValues, TTransformedValues>>
+export type AuthenticationPageProps<Schema extends TSchema> = AuthenticationPagePropsBase &
+  Partial<FormProps<Schema>>
 
 /** A styled authentication page. */
-export default function AuthenticationPage<
-  Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
->(props: AuthenticationPageProps<Schema, TFieldValues, TTransformedValues>) {
+export default function AuthenticationPage<Schema extends TSchema>(
+  props: AuthenticationPageProps<Schema>,
+) {
   const { title, children, footer, supportsOffline = false, ...formProps } = props
   const { form, schema, onSubmit } = formProps
   const isForm = onSubmit != null && (form != null || schema != null)
@@ -93,7 +87,7 @@ export default function AuthenticationPage<
             : <Form
                 // This is SAFE, as the props type of this type extends `FormProps`.
                 // eslint-disable-next-line no-restricted-syntax
-                {...(formProps as FormProps<Schema, TFieldValues, TTransformedValues>)}
+                {...(formProps as FormProps<Schema>)}
                 className={containerClasses}
               >
                 {(innerProps) => (

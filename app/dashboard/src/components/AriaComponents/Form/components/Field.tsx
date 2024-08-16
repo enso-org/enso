@@ -20,8 +20,11 @@ import * as formContext from './useFormContext'
 export interface FieldComponentProps extends VariantProps<typeof FIELD_STYLES>, types.FieldProps {
   readonly 'data-testid'?: string | undefined
   readonly name: string
+  // We do not need to know the form fields.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly form?: types.FormInstance<any, any, any>
+  readonly form?: Omit<types.FormInstance<any>, 'handleSubmit'> & {
+    readonly handleSubmit?: (...args: never) => unknown
+  }
   readonly isInvalid?: boolean | undefined
   readonly className?: string | undefined
   readonly children?: React.ReactNode | ((props: FieldChildrenRenderProps) => React.ReactNode)

@@ -12,6 +12,7 @@ import { useMutation } from '@tanstack/react-query'
 
 import type Backend from '#/services/Backend'
 import {
+  PARALLEL_MODE_TO_DESCRIPTION_ID,
   PARALLEL_MODE_TO_TEXT_ID,
   PROJECT_PARALLEL_MODES,
   PROJECT_REPEAT_INTERVALS,
@@ -26,6 +27,7 @@ import {
   Dialog,
   Form,
   Selector,
+  Text,
 } from '#/components/AriaComponents'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useText, type GetText } from '#/providers/TextProvider'
@@ -70,12 +72,13 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
   const { getText } = useText()
 
   const form = Form.useForm({ schema: createUpsertExecutionSchema(getText) })
+  const repeatInterval = form.watch('repeatInterval')
+  const parallelMode = form.watch('parallelMode', 'restart')
 
   const createProjectExecution = useMutation(
     backendMutationOptions(backend, 'createProjectExecution'),
   ).mutateAsync
 
-  const repeatInterval = form.watch('repeatInterval')
   const minFirstOccurrence = now(getLocalTimeZone())
   const maxFirstOccurrence = (() => {
     switch (repeatInterval) {
@@ -100,12 +103,21 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
         <Form
           form={form}
           method="dialog"
-          defaultValues={{ repeatInterval: 'weekly', parallelMode: 'restart', minute: 0 }}
+          defaultValues={{ repeatInterval: 'weekly', parallelMode: 'restart' }}
           className="w-full"
           onSubmit={async (values) => {
-            const { repeatInterval: newRepeatInterval, parallelMode, ...time } = values
+            const {
+              repeatInterval: newRepeatInterval,
+              parallelMode: newParallelMode,
+              ...time
+            } = values
             await createProjectExecution([
-              { projectId: item.id, repeatInterval: newRepeatInterval, time, parallelMode },
+              {
+                projectId: item.id,
+                repeatInterval: newRepeatInterval,
+                time,
+                parallelMode: newParallelMode,
+              },
               item.title,
             ])
           }}
@@ -118,20 +130,24 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
             items={PROJECT_REPEAT_INTERVALS}
             itemToString={(interval) => getText(REPEAT_INTERVAL_TO_TEXT_ID[interval])}
           />
-          <Selector
-            form={form}
-            isRequired
-            name="parallelMode"
-            label={getText('parallelModeLabel')}
-            items={PROJECT_PARALLEL_MODES}
-            itemToString={(interval) => getText(PARALLEL_MODE_TO_TEXT_ID[interval])}
-          />
+          <div className="flex w-full flex-col">
+            <Selector
+              form={form}
+              isRequired
+              name="parallelMode"
+              label={getText('parallelModeLabel')}
+              items={PROJECT_PARALLEL_MODES}
+              itemToString={(interval) => getText(PARALLEL_MODE_TO_TEXT_ID[interval])}
+            />
+            <Text>{getText(PARALLEL_MODE_TO_DESCRIPTION_ID[parallelMode])}</Text>
+          </div>
           <DatePicker
             form={form}
             isRequired
             name="date"
             label={getText('firstOccurrenceLabel')}
             noCalendarHeader
+            defaultValue={minFirstOccurrence}
             minValue={minFirstOccurrence}
             maxValue={maxFirstOccurrence}
           />

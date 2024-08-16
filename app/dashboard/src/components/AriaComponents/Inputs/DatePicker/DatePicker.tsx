@@ -19,6 +19,7 @@ import {
   Heading,
   Label,
   type DatePickerProps as AriaDatePickerProps,
+  type DateValue,
 } from '#/components/aria'
 import {
   Button,
@@ -57,17 +58,14 @@ const DATE_PICKER_STYLES = tv({
 })
 
 /** Props for a {@link DatePicker}. */
-export interface DatePickerProps<
-  Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TFieldName extends FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
-> extends FieldStateProps<
-      Omit<AriaDatePickerProps<TFieldValues[TFieldName]>, 'children' | 'className' | 'style'>,
+export interface DatePickerProps<Schema extends TSchema, TFieldName extends FieldPath<Schema>>
+  extends FieldStateProps<
+      Omit<
+        AriaDatePickerProps<Extract<FieldValues<Schema>[TFieldName], DateValue>>,
+        'children' | 'className' | 'style'
+      >,
       Schema,
-      TFieldValues,
-      TFieldName,
-      TTransformedValues
+      TFieldName
     >,
     FieldProps,
     Pick<FieldComponentProps, 'className' | 'style'> {
@@ -78,13 +76,8 @@ export interface DatePickerProps<
 /** A date picker. */
 export const DatePicker = forwardRef(function DatePicker<
   Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TFieldName extends FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
->(
-  props: DatePickerProps<Schema, TFieldValues, TFieldName, TTransformedValues>,
-  ref: ForwardedRef<HTMLFieldSetElement>,
-) {
+  TFieldName extends FieldPath<Schema>,
+>(props: DatePickerProps<Schema, TFieldName>, ref: ForwardedRef<HTMLFieldSetElement>) {
   const {
     noCalendarHeader = false,
     segments = {},

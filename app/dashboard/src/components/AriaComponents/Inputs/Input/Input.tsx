@@ -22,15 +22,11 @@ import { INPUT_STYLES } from '../variants'
  */
 export interface InputProps<
   Schema extends ariaComponents.TSchema,
-  TFieldValues extends ariaComponents.FieldValues<Schema>,
-  TFieldName extends ariaComponents.FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends ariaComponents.FieldValues<Schema> | undefined = undefined,
+  TFieldName extends ariaComponents.FieldPath<Schema>,
 > extends ariaComponents.FieldStateProps<
       Omit<aria.InputProps, 'children' | 'size'>,
       Schema,
-      TFieldValues,
-      TFieldName,
-      TTransformedValues
+      TFieldName
     >,
     ariaComponents.FieldProps,
     Omit<twv.VariantProps<typeof INPUT_STYLES>, 'disabled' | 'invalid'> {
@@ -53,13 +49,8 @@ export interface InputProps<
 // eslint-disable-next-line no-restricted-syntax
 export const Input = React.forwardRef(function Input<
   Schema extends ariaComponents.TSchema,
-  TFieldValues extends ariaComponents.FieldValues<Schema>,
-  TFieldName extends ariaComponents.FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends ariaComponents.FieldValues<Schema> | undefined = undefined,
->(
-  props: InputProps<Schema, TFieldValues, TFieldName, TTransformedValues>,
-  ref: React.ForwardedRef<HTMLFieldSetElement>,
-) {
+  TFieldName extends ariaComponents.FieldPath<Schema>,
+>(props: InputProps<Schema, TFieldName>, ref: React.ForwardedRef<HTMLFieldSetElement>) {
   const {
     name,
     isDisabled = false,
@@ -176,12 +167,6 @@ export const Input = React.forwardRef(function Input<
       </div>
     </ariaComponents.Form.Field>
   )
-}) as <
-  Schema extends ariaComponents.TSchema,
-  TFieldValues extends ariaComponents.FieldValues<Schema>,
-  TFieldName extends ariaComponents.FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends ariaComponents.FieldValues<Schema> | undefined = undefined,
->(
-  props: InputProps<Schema, TFieldValues, TFieldName, TTransformedValues> &
-    React.RefAttributes<HTMLInputElement>,
+}) as <Schema extends ariaComponents.TSchema, TFieldName extends ariaComponents.FieldPath<Schema>>(
+  props: InputProps<Schema, TFieldName> & React.RefAttributes<HTMLInputElement>,
 ) => React.ReactElement

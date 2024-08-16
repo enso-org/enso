@@ -23,15 +23,11 @@ const CONTENT_EDITABLE_STYLES = twv.tv({
  */
 export interface ResizableContentEditableInputProps<
   Schema extends ariaComponents.TSchema,
-  TFieldValues extends ariaComponents.FieldValues<Schema>,
-  TFieldName extends ariaComponents.FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends ariaComponents.FieldValues<Schema> | undefined = undefined,
+  TFieldName extends ariaComponents.FieldPath<Schema>,
 > extends ariaComponents.FieldStateProps<
       React.HTMLAttributes<HTMLDivElement> & { value: string },
       Schema,
-      TFieldValues,
-      TFieldName,
-      TTransformedValues
+      TFieldName
     >,
     Omit<ariaComponents.FieldProps, 'variant'>,
     Omit<twv.VariantProps<typeof variants.INPUT_STYLES>, 'disabled' | 'invalid'> {
@@ -53,12 +49,9 @@ export interface ResizableContentEditableInputProps<
 export const ResizableContentEditableInput = React.forwardRef(
   function ResizableContentEditableInput<
     Schema extends ariaComponents.TSchema,
-    TFieldName extends ariaComponents.FieldPath<Schema, TFieldValues>,
-    TFieldValues extends ariaComponents.FieldValues<Schema> = ariaComponents.FieldValues<Schema>,
-    // eslint-disable-next-line no-restricted-syntax
-    TTransformedValues extends ariaComponents.FieldValues<Schema> | undefined = undefined,
+    TFieldName extends ariaComponents.FieldPath<Schema>,
   >(
-    props: ResizableContentEditableInputProps<Schema, TFieldValues, TFieldName, TTransformedValues>,
+    props: ResizableContentEditableInputProps<Schema, TFieldName>,
     ref: React.ForwardedRef<HTMLDivElement>,
   ) {
     const {
@@ -153,13 +146,7 @@ export const ResizableContentEditableInput = React.forwardRef(
       </ariaComponents.Form.Field>
     )
   },
-) as <
-  Schema extends ariaComponents.TSchema,
-  TFieldName extends ariaComponents.FieldPath<Schema, TFieldValues>,
-  TFieldValues extends ariaComponents.FieldValues<Schema> = ariaComponents.FieldValues<Schema>,
-  // eslint-disable-next-line no-restricted-syntax
-  TTransformedValues extends ariaComponents.FieldValues<Schema> | undefined = undefined,
->(
+) as <Schema extends ariaComponents.TSchema, TFieldName extends ariaComponents.FieldPath<Schema>>(
   props: React.RefAttributes<HTMLDivElement> &
-    ResizableContentEditableInputProps<Schema, TFieldValues, TFieldName, TTransformedValues>,
+    ResizableContentEditableInputProps<Schema, TFieldName>,
 ) => React.JSX.Element

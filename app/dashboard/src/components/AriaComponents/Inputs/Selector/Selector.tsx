@@ -21,22 +21,16 @@ import { Controller } from 'react-hook-form'
 import { SelectorOption } from './SelectorOption'
 
 /** * Props for the Selector component. */
-export interface SelectorProps<
-  Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TFieldName extends FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
-> extends FieldStateProps<
-      Omit<RadioGroupProps, 'children' | 'value'> & { value: TFieldValues[TFieldName] },
+export interface SelectorProps<Schema extends TSchema, TFieldName extends FieldPath<Schema>>
+  extends FieldStateProps<
+      Omit<RadioGroupProps, 'children' | 'value'> & { value: FieldValues<Schema>[TFieldName] },
       Schema,
-      TFieldValues,
-      TFieldName,
-      TTransformedValues
+      TFieldName
     >,
     FieldProps,
     Omit<twv.VariantProps<typeof SELECTOR_STYLES>, 'disabled' | 'invalid'> {
-  readonly items: readonly TFieldValues[TFieldName][]
-  readonly itemToString?: (item: TFieldValues[TFieldName]) => string
+  readonly items: readonly FieldValues<Schema>[TFieldName][]
+  readonly itemToString?: (item: FieldValues<Schema>[TFieldName]) => string
   readonly columns?: number
   readonly className?: string
   readonly style?: React.CSSProperties
@@ -87,13 +81,8 @@ export const SELECTOR_STYLES = tv({
 // eslint-disable-next-line no-restricted-syntax
 export const Selector = React.forwardRef(function Selector<
   Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TFieldName extends FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
->(
-  props: SelectorProps<Schema, TFieldValues, TFieldName, TTransformedValues>,
-  ref: React.ForwardedRef<HTMLFieldSetElement>,
-) {
+  TFieldName extends FieldPath<Schema>,
+>(props: SelectorProps<Schema, TFieldName>, ref: React.ForwardedRef<HTMLFieldSetElement>) {
   const {
     name,
     items,
@@ -184,12 +173,6 @@ export const Selector = React.forwardRef(function Selector<
       </div>
     </Form.Field>
   )
-}) as <
-  Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TFieldName extends FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
->(
-  props: React.RefAttributes<HTMLDivElement> &
-    SelectorProps<Schema, TFieldValues, TFieldName, TTransformedValues>,
+}) as <Schema extends TSchema, TFieldName extends FieldPath<Schema>>(
+  props: React.RefAttributes<HTMLDivElement> & SelectorProps<Schema, TFieldName>,
 ) => React.ReactElement

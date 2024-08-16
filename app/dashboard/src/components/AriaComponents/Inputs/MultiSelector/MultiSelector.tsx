@@ -25,23 +25,17 @@ import { Controller } from 'react-hook-form'
 import { MultiSelectorOption } from './MultiSelectorOption'
 
 /** * Props for the MultiSelector component. */
-export interface MultiSelectorProps<
-  Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TFieldName extends FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
-> extends FieldStateProps<
-      Omit<ListBoxItemProps, 'children' | 'value'> & { value: TFieldValues[TFieldName] },
+export interface MultiSelectorProps<Schema extends TSchema, TFieldName extends FieldPath<Schema>>
+  extends FieldStateProps<
+      Omit<ListBoxItemProps, 'children' | 'value'> & { value: FieldValues<Schema>[TFieldName] },
       Schema,
-      TFieldValues,
-      TFieldName,
-      TTransformedValues
+      TFieldName
     >,
     FieldProps,
     Omit<VariantProps<typeof MULTI_SELECTOR_STYLES>, 'disabled' | 'invalid'> {
-  readonly items: readonly Extract<TFieldValues[TFieldName], readonly unknown[]>[number][]
+  readonly items: readonly Extract<FieldValues<Schema>[TFieldName], readonly unknown[]>[number][]
   readonly itemToString?: (
-    item: Extract<TFieldValues[TFieldName], readonly unknown[]>[number],
+    item: Extract<FieldValues<Schema>[TFieldName], readonly unknown[]>[number],
   ) => string
   readonly columns?: number
   readonly className?: string
@@ -92,13 +86,8 @@ export const MULTI_SELECTOR_STYLES = tv({
  */
 export const MultiSelector = forwardRef(function MultiSelector<
   Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TFieldName extends FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
->(
-  props: MultiSelectorProps<Schema, TFieldValues, TFieldName, TTransformedValues>,
-  ref: ForwardedRef<HTMLFieldSetElement>,
-) {
+  TFieldName extends FieldPath<Schema>,
+>(props: MultiSelectorProps<Schema, TFieldName>, ref: ForwardedRef<HTMLFieldSetElement>) {
   const {
     name,
     items,
@@ -161,7 +150,7 @@ export const MultiSelector = forwardRef(function MultiSelector<
                 ref={mergeRefs(inputRef, privateInputRef, fieldRef)}
                 orientation="horizontal"
                 selectionMode="multiple"
-                {...mergeProps<ListBoxProps<TFieldValues[TFieldName]>>()(
+                {...mergeProps<ListBoxProps<FieldValues<Schema>[TFieldName]>>()(
                   {
                     className: classes.listBox(),
                     style: { gridTemplateColumns: `repeat(${columns ?? items.length}, 1fr)` },
@@ -176,7 +165,7 @@ export const MultiSelector = forwardRef(function MultiSelector<
                 // This is SAFE, as there is a constraint on `items` that prevents using keys
                 // that do not correspond to array values.
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
-                defaultSelectedKeys={value?.map((item: TFieldValues[TFieldName]) =>
+                defaultSelectedKeys={value?.map((item: FieldValues<Schema>[TFieldName]) =>
                   items.indexOf(item),
                 )}
                 onSelectionChange={(selection) => {
