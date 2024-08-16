@@ -189,8 +189,7 @@ export const BUTTON_STYLES = twv.tv({
         icon: 'h-[1.25cap] w-[1.25cap] mt-[0.25cap]',
       },
       primary: 'bg-primary text-white hover:bg-primary/70',
-      tertiary: 'bg-accent text-white hover:bg-accent-dark',
-      cancel: 'bg-white/50 hover:bg-white',
+      accent: 'bg-accent text-white hover:bg-accent-dark',
       delete:
         'bg-danger/80 hover:bg-danger text-white focus-visible:outline-danger focus-visible:bg-danger',
       icon: {
@@ -202,8 +201,7 @@ export const BUTTON_STYLES = twv.tv({
       ghost:
         'text-primary hover:text-primary/80 hover:bg-white focus-visible:text-primary/80 focus-visible:bg-white',
       submit: 'bg-invite text-white opacity-80 hover:opacity-100',
-      outline: 'border-primary/40 text-primary hover:border-primary hover:bg-primary/5',
-      bar: 'border-primary/20 hover:bg-primary/5',
+      outline: 'border-primary/20 text-primary hover:border-primary hover:bg-primary/5',
     },
     iconPosition: {
       start: { content: '' },

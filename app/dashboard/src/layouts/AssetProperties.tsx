@@ -188,7 +188,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                 }}
               />
               <ariaComponents.ButtonGroup>
-                <ariaComponents.Button size="medium" variant="bar" onPress={doEditDescription}>
+                <ariaComponents.Button size="medium" variant="outline" onPress={doEditDescription}>
                   {getText('update')}
                 </ariaComponents.Button>
               </ariaComponents.ButtonGroup>
@@ -318,7 +318,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                   </ariaComponents.Button>
                   <ariaComponents.Button
                     size="medium"
-                    variant="bar"
+                    variant="outline"
                     isDisabled={isDatalinkDisabled}
                     onPress={() => {
                       setEditedDatalinkValue(datalinkValue)

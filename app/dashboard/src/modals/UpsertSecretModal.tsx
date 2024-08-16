@@ -126,7 +126,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
           <ariaComponents.Button variant="submit" isDisabled={!canSubmit} onPress={doSubmit}>
             {isCreatingSecret ? getText('create') : getText('update')}
           </ariaComponents.Button>
-          <ariaComponents.Button variant="cancel" onPress={unsetModal}>
+          <ariaComponents.Button variant="outline" onPress={unsetModal}>
             {getText('cancel')}
           </ariaComponents.Button>
         </ariaComponents.ButtonGroup>

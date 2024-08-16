@@ -179,7 +179,7 @@ export default function DriveBar(props: DriveBarProps) {
         <ariaComponents.ButtonGroup className="my-0.5 grow-0">
           <ariaComponents.Button
             size="medium"
-            variant="bar"
+            variant="outline"
             isDisabled={shouldBeDisabled}
             onPress={() => {
               setModal(
@@ -204,7 +204,7 @@ export default function DriveBar(props: DriveBarProps) {
           <aria.DialogTrigger>
             <ariaComponents.Button
               size="medium"
-              variant="tertiary"
+              variant="accent"
               isDisabled={shouldBeDisabled || isCreatingProject || isCreatingProjectFromTemplate}
               icon={Plus2Icon}
               loading={isCreatingProjectFromTemplate}
@@ -231,7 +231,7 @@ export default function DriveBar(props: DriveBarProps) {
           </aria.DialogTrigger>
           <ariaComponents.Button
             size="medium"
-            variant="bar"
+            variant="outline"
             isDisabled={shouldBeDisabled || isCreatingProject || isCreatingProjectFromTemplate}
             icon={Plus2Icon}
             loading={isCreatingProject}
