@@ -54,7 +54,6 @@ object JPMSPlugin extends AutoPlugin {
 
   import autoImport._
 
-
   override lazy val projectSettings: Seq[Setting[_]] = Seq(
     addModules := Seq.empty,
     moduleDependencies := Seq.empty,

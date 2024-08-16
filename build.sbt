@@ -583,6 +583,25 @@ val jnaVersion              = "5.14.0"
 // === Utility methods =====================================================
 // ============================================================================
 
+lazy val componentModulesIds =
+  taskKey[Seq[ModuleID]](
+    "Gather all sbt module IDs that will be put on the module-path for the engine runner"
+  )
+(ThisBuild / componentModulesIds) := {
+  GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.toolsPkgs ++ helidon ++ Seq(
+    "org.slf4j"        % "slf4j-api"                    % slf4jVersion,
+    "ch.qos.logback"   % "logback-classic"              % logbackClassicVersion,
+    "ch.qos.logback"   % "logback-core"                 % logbackClassicVersion,
+    "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion,
+    (`runtime-language-arrow` / projectID).value,
+    (`syntax-rust-definition` / projectID).value,
+    (`ydoc-server` / projectID).value,
+    (`profiling-utils` / projectID).value,
+    (`runtime-fat-jar` / projectID).value
+  )
+}
+
+// TODO[pm]: this is now deprecated and should be removed
 lazy val componentModulesPaths =
   taskKey[Seq[File]](
     "Gathers all component modules (Jar archives that should be put on module-path" +
@@ -838,8 +857,8 @@ lazy val `profiling-utils` = project
     ),
     moduleDependencies := {
       Seq(
-        "org.slf4j"      % "slf4j-api"       % slf4jVersion,
-        "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion,
+        "org.slf4j"        % "slf4j-api"                    % slf4jVersion,
+        "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion
       )
     }
   )
@@ -1089,33 +1108,14 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       (`profiling-utils` / javaModuleName).value,
       (`ydoc-server` / javaModuleName).value
     ),
-    Test / modulePath := {
-      val updateReport = (Test / update).value
-      val requiredModIds =
-        GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ helidon ++ Seq(
-          "org.slf4j"        % "slf4j-api"                    % slf4jVersion,
-          "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion
-        )
-      val requiredMods = JPMSUtils.filterModulesFromUpdate(
-        updateReport,
-        requiredModIds,
-        streams.value.log,
-        shouldContainAll = true
-      )
-      val runtimeMod =
-        (`runtime-fat-jar` / Compile / productDirectories).value.head
-      val ydocMod =
-        (`ydoc-server` / Compile / exportedProducts).value.head.data
-      val syntaxMod =
-        (`syntax-rust-definition` / Compile / exportedProducts).value.head.data
-      val profilingMod =
-        (`profiling-utils` / Compile / exportedProducts).value.head.data
-
-      requiredMods ++ Seq(
-        runtimeMod,
-        ydocMod,
-        syntaxMod,
-        profilingMod
+    Test / moduleDependencies := {
+      GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ helidon ++ Seq(
+        "org.slf4j"        % "slf4j-api"                    % slf4jVersion,
+        "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion,
+        (`runtime-fat-jar` / projectID).value,
+        (`ydoc-server` / projectID).value,
+        (`syntax-rust-definition` / projectID).value,
+        (`profiling-utils` / projectID).value
       )
     },
     Test / javaOptions ++= testLogProviderOptions
@@ -1263,24 +1263,15 @@ lazy val `ydoc-server` = project
     autoScalaLibrary := false,
     Test / fork := true,
     commands += WithDebugCommand.withDebug,
-    // GraalVM and helidon modules (3rd party modules)
-    modulePath := {
-      JPMSUtils.filterModulesFromUpdate(
-        update.value,
-        GraalVM.modules ++ GraalVM.jsPkgs ++ GraalVM.chromeInspectorPkgs ++ helidon ++ Seq(
-          "org.slf4j"      % "slf4j-api"       % slf4jVersion,
-          "ch.qos.logback" % "logback-classic" % logbackClassicVersion,
-          "ch.qos.logback" % "logback-core"    % logbackClassicVersion
-        ),
-        streams.value.log,
-        shouldContainAll = true
-      )
+    moduleDependencies := {
+      GraalVM.modules ++ GraalVM.jsPkgs ++ GraalVM.chromeInspectorPkgs ++ helidon ++ Seq(
+        "org.slf4j"      % "slf4j-api"       % slf4jVersion,
+        "ch.qos.logback" % "logback-classic" % logbackClassicVersion,
+        "ch.qos.logback" % "logback-core"    % logbackClassicVersion,
+        (`syntax-rust-definition` / projectID).value,
+        (`profiling-utils` / projectID).value
+      ),
     },
-    // Internal project modules
-    modulePath ++= Seq(
-      (`syntax-rust-definition` / Compile / productDirectories).value.head,
-      (`profiling-utils` / Compile / productDirectories).value.head
-    ),
     libraryDependencies ++= Seq(
       "org.graalvm.truffle"        % "truffle-api"                 % graalMavenPackagesVersion % "provided",
       "org.graalvm.polyglot"       % "inspect"                     % graalMavenPackagesVersion % "runtime",
@@ -1587,7 +1578,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
         (`runtime-fat-jar` / projectID).value,
         (`syntax-rust-definition` / projectID).value,
         (`ydoc-server` / projectID).value,
-        (`profiling-utils` / projectID).value,
+        (`profiling-utils` / projectID).value
       )
     },
     Test / javaOptions ++= testLogProviderOptions,
@@ -1849,21 +1840,6 @@ lazy val `runtime-test-instruments` =
       inConfig(Compile)(truffleRunOptionsSettings),
       truffleDslSuppressWarnsSetting,
       instrumentationSettings,
-      javaModuleName := "org.enso.runtime.test",
-      modulePath := {
-        JPMSUtils.filterModulesFromUpdate(
-          update.value,
-          GraalVM.modules ++ Seq(
-            "org.graalvm.sdk"     % "polyglot-tck"            % graalMavenPackagesVersion,
-            "org.graalvm.truffle" % "truffle-tck"             % graalMavenPackagesVersion,
-            "org.graalvm.truffle" % "truffle-tck-common"      % graalMavenPackagesVersion,
-            "org.graalvm.truffle" % "truffle-tck-tests"       % graalMavenPackagesVersion,
-            "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion
-          ),
-          streams.value.log,
-          shouldContainAll = true
-        )
-      },
       libraryDependencies ++= GraalVM.modules,
       libraryDependencies ++= Seq(
         "org.graalvm.sdk"     % "polyglot-tck"            % graalMavenPackagesVersion,
@@ -1871,7 +1847,17 @@ lazy val `runtime-test-instruments` =
         "org.graalvm.truffle" % "truffle-tck-common"      % graalMavenPackagesVersion,
         "org.graalvm.truffle" % "truffle-tck-tests"       % graalMavenPackagesVersion,
         "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided"
-      )
+      ),
+      javaModuleName := "org.enso.runtime.test",
+      moduleDependencies := {
+        GraalVM.modules ++ Seq(
+          "org.graalvm.sdk"     % "polyglot-tck"            % graalMavenPackagesVersion,
+          "org.graalvm.truffle" % "truffle-tck"             % graalMavenPackagesVersion,
+          "org.graalvm.truffle" % "truffle-tck-common"      % graalMavenPackagesVersion,
+          "org.graalvm.truffle" % "truffle-tck-tests"       % graalMavenPackagesVersion,
+          "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided"
+        )
+      }
     )
 
 lazy val runtime = (project in file("engine/runtime"))
@@ -1993,40 +1979,20 @@ lazy val `runtime-integration-tests` =
         (`profiling-utils` / javaModuleName).value,
         (`ydoc-server` / javaModuleName).value
       ),
-      Test / modulePath := {
-        val updateReport = (Test / update).value
-        val requiredModIds =
-          GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ helidon ++ Seq(
-            "org.slf4j"           % "slf4j-api"                    % slf4jVersion,
-            "org.netbeans.api"    % "org-openide-util-lookup"      % netbeansApiVersion,
-            "org.netbeans.api"    % "org-netbeans-modules-sampler" % netbeansApiVersion,
-            "org.graalvm.sdk"     % "polyglot-tck"                 % graalMavenPackagesVersion,
-            "org.graalvm.truffle" % "truffle-tck"                  % graalMavenPackagesVersion,
-            "org.graalvm.truffle" % "truffle-tck-common"           % graalMavenPackagesVersion,
-            "org.graalvm.truffle" % "truffle-tck-tests"            % graalMavenPackagesVersion
-          )
-        val requiredMods = JPMSUtils.filterModulesFromUpdate(
-          updateReport,
-          requiredModIds,
-          streams.value.log,
-          shouldContainAll = true
-        )
-        val runtimeTestInstrumentsMod =
-          (`runtime-test-instruments` / Compile / exportedProducts).value.head.data
-        val runtimeMod =
-          (`runtime-fat-jar` / Compile / exportedProducts).value.head.data
-        val ydocMod =
-          (`ydoc-server` / Compile / exportedProducts).value.head.data
-        val syntaxMod =
-          (`syntax-rust-definition` / Compile / exportedProducts).value.head.data
-        val profilingMod =
-          (`profiling-utils` / Compile / exportedProducts).value.head.data
-        requiredMods ++ Seq(
-          runtimeTestInstrumentsMod,
-          runtimeMod,
-          ydocMod,
-          syntaxMod,
-          profilingMod
+      Test / moduleDependencies := {
+        GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ helidon ++ Seq(
+          "org.slf4j"           % "slf4j-api"                    % slf4jVersion,
+          "org.netbeans.api"    % "org-openide-util-lookup"      % netbeansApiVersion,
+          "org.netbeans.api"    % "org-netbeans-modules-sampler" % netbeansApiVersion,
+          "org.graalvm.sdk"     % "polyglot-tck"                 % graalMavenPackagesVersion,
+          "org.graalvm.truffle" % "truffle-tck"                  % graalMavenPackagesVersion,
+          "org.graalvm.truffle" % "truffle-tck-common"           % graalMavenPackagesVersion,
+          "org.graalvm.truffle" % "truffle-tck-tests"            % graalMavenPackagesVersion,
+          (`runtime-test-instruments` / projectID).value,
+          (`runtime-fat-jar` / projectID).value,
+          (`ydoc-server` / projectID).value,
+          (`syntax-rust-definition` / projectID).value,
+          (`profiling-utils` / projectID).value
         )
       },
       Test / patchModules := {
@@ -2126,32 +2092,15 @@ lazy val `runtime-benchmarks` =
         .dependsOn(`runtime-fat-jar` / assembly)
         .value,
       parallelExecution := false,
-      modulePath := {
-        val requiredModIds =
-          GraalVM.modules ++ GraalVM.langsPkgs ++ helidon ++ Seq(
-            "org.slf4j"        % "slf4j-api"                    % slf4jVersion,
-            "org.slf4j"        % "slf4j-nop"                    % slf4jVersion,
-            "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion
-          )
-        val requiredMods = JPMSUtils.filterModulesFromUpdate(
-          (Compile / update).value,
-          requiredModIds,
-          streams.value.log,
-          shouldContainAll = true
-        )
-        val runtimeMod =
-          (`runtime-fat-jar` / assembly / assemblyOutputPath).value
-        val ydocMod =
-          (`ydoc-server` / Compile / exportedProducts).value.head.data
-        val syntaxMod =
-          (`syntax-rust-definition` / Compile / exportedProducts).value.head.data
-        val profilingMod =
-          (`profiling-utils` / Compile / exportedProducts).value.head.data
-        requiredMods ++ Seq(
-          runtimeMod,
-          ydocMod,
-          syntaxMod,
-          profilingMod
+      moduleDependencies := {
+        GraalVM.modules ++ GraalVM.langsPkgs ++ helidon ++ Seq(
+          "org.slf4j"        % "slf4j-api"                    % slf4jVersion,
+          "org.slf4j"        % "slf4j-nop"                    % slf4jVersion,
+          "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion,
+          (`runtime-fat-jar` / projectID).value,
+          (`ydoc-server` / projectID).value,
+          (`syntax-rust-definition` / projectID).value,
+          (`profiling-utils` / projectID).value
         )
       },
       addModules := {
@@ -2937,18 +2886,10 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
       "-J-Dpolyglotimpl.DisableClassPathIsolation=true",
       "-J-Dpolyglot.engine.WarnInterpreterOnly=false"
     ),
-    modulePath := {
-      val allRuntimeMods = componentModulesPaths.value
-      val otherModIds = Seq(
+    moduleDependencies := {
+      componentModulesIds.value ++ Seq(
         "org.slf4j" % "slf4j-nop" % slf4jVersion
       )
-      val requiredMods = JPMSUtils.filterModulesFromUpdate(
-        (Compile / update).value,
-        otherModIds,
-        streams.value.log,
-        shouldContainAll = true
-      )
-      allRuntimeMods ++ requiredMods
     },
     addModules := {
       val runtimeModuleName = (`runtime-fat-jar` / javaModuleName).value
