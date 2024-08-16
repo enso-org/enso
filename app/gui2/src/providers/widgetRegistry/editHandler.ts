@@ -108,7 +108,9 @@ export abstract class WidgetEditHandlerParent {
     const widgetInstance: WidgetInstanceId = `${argumentId}||${widgetId}`
     const ancestor = this.activeAncestor() ?? this.root().tryResumeRoot(widgetInstance)
     if (!ancestor?.resumableDescendants?.has(widgetInstance)) return
-    console.info('Resuming widget interaction. This is not expected unless multiple users are editing concurrently.')
+    console.info(
+      'Resuming widget interaction. This is not expected unless multiple users are editing concurrently.',
+    )
     const resumeHook = ancestor.resumableDescendants.get(widgetInstance)
     ancestor.resumableDescendants.delete(widgetInstance)
     this.resumableDescendants = ancestor.resumableDescendants
@@ -117,7 +119,10 @@ export abstract class WidgetEditHandlerParent {
     resumeHook?.()
   }
 
-  protected tryTakeResumableDescendants(other: WidgetEditHandlerParent, widgetInstance: WidgetInstanceId) {
+  protected tryTakeResumableDescendants(
+    other: WidgetEditHandlerParent,
+    widgetInstance: WidgetInstanceId,
+  ) {
     if (!other.activeChild.value && other.resumableDescendants?.has(widgetInstance)) {
       const resumable = other.resumableDescendants
       other.resumableDescendants = undefined
