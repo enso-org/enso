@@ -1163,6 +1163,9 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
   .dependsOn(testkit % Test)
   .dependsOn(`runtime-version-manager-test` % Test)
   .dependsOn(`logging-service-logback` % "test->test")
+  .dependsOn(`runtime-fat-jar` % Test)
+  .dependsOn(`ydoc-server` % Test)
+  .dependsOn(`profiling-utils` % Test)
 
 /* Note [Classpath Separation]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~
