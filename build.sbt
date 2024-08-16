@@ -2812,9 +2812,12 @@ lazy val launcher = project
 
 lazy val `distribution-manager` = project
   .in(file("lib/scala/distribution-manager"))
+  .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    // Note [JPMS Compile order]
+    compileOrder := CompileOrder.ScalaThenJava,
     resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
