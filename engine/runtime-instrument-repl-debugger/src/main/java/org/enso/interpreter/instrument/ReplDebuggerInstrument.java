@@ -14,7 +14,7 @@ import com.oracle.truffle.api.instrumentation.TruffleInstrument;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import java.io.IOException;
 import java.net.URI;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import org.enso.compiler.context.FramePointer;
@@ -39,7 +39,10 @@ import scala.util.Right;
 
 /** The Instrument implementation for the interactive debugger REPL. */
 @TruffleInstrument.Registration(id = DebugServerInfo.INSTRUMENT_NAME)
-public class ReplDebuggerInstrument extends TruffleInstrument {
+public final class ReplDebuggerInstrument extends TruffleInstrument {
+  private static final OptionKey<Boolean> ENABLE_OPTION = new OptionKey<Boolean>(false);
+  private static final OptionKey<String> FN_OPTION = new OptionKey<String>("");
+
   /**
    * Called by Truffle when this instrument is installed.
    *
@@ -47,41 +50,44 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
    */
   @Override
   protected void onCreate(Env env) {
-    SourceSectionFilter filter =
-        SourceSectionFilter.newBuilder().tagIs(DebuggerTags.AlwaysHalt.class).build();
+    if (env.getOptions().get(ENABLE_OPTION)) {
+      SourceSectionFilter filter =
+          SourceSectionFilter.newBuilder().tagIs(DebuggerTags.AlwaysHalt.class).build();
 
-    DebuggerMessageHandler handler = new DebuggerMessageHandler();
-    try {
-      MessageEndpoint client = env.startServer(URI.create(DebugServerInfo.URI), handler);
-      if (client != null) {
-        handler.setClient(client);
-        Instrumenter instrumenter = env.getInstrumenter();
-        instrumenter.attachExecutionEventFactory(
-            filter,
-            ctx ->
-                ctx.getInstrumentedNode() instanceof DebugBreakpointNode
-                    ? new ReplExecutionEventNodeImpl(
-                        ctx, handler, env.getLogger(ReplExecutionEventNodeImpl.class))
-                    : null);
-      } else {
+      DebuggerMessageHandler handler = new DebuggerMessageHandler();
+      try {
+        MessageEndpoint client = env.startServer(URI.create(DebugServerInfo.URI), handler);
+        if (client != null) {
+          handler.setClient(client);
+          Instrumenter instrumenter = env.getInstrumenter();
+          instrumenter.attachExecutionEventFactory(
+              filter,
+              ctx ->
+                  ctx.getInstrumentedNode() instanceof DebugBreakpointNode
+                      ? new ReplExecutionEventNodeImpl(
+                          ctx, handler, env.getLogger(ReplExecutionEventNodeImpl.class))
+                      : null);
+        } else {
+          env.getLogger(ReplDebuggerInstrument.class)
+              .warning("ReplDebuggerInstrument was initialized, " + "but no client connected");
+        }
+      } catch (MessageTransport.VetoException e) {
         env.getLogger(ReplDebuggerInstrument.class)
-            .warning("ReplDebuggerInstrument was initialized, " + "but no client connected");
+            .warning(
+                "ReplDebuggerInstrument was initialized, "
+                    + "but client connection has been vetoed");
+      } catch (IOException e) {
+        throw new RuntimeException(e);
       }
-    } catch (MessageTransport.VetoException e) {
-      env.getLogger(ReplDebuggerInstrument.class)
-          .warning(
-              "ReplDebuggerInstrument was initialized, " + "but client connection has been vetoed");
-    } catch (IOException e) {
-      throw new RuntimeException(e);
     }
   }
 
   @Override
   protected OptionDescriptors getOptionDescriptors() {
-    return OptionDescriptors.create(
-        Collections.singletonList(
-            OptionDescriptor.newBuilder(new OptionKey<>(""), DebugServerInfo.ENABLE_OPTION)
-                .build()));
+    var options = new ArrayList<OptionDescriptor>();
+    options.add(OptionDescriptor.newBuilder(ENABLE_OPTION, DebugServerInfo.ENABLE_OPTION).build());
+    options.add(OptionDescriptor.newBuilder(FN_OPTION, DebugServerInfo.FN_OPTION).build());
+    return OptionDescriptors.create(options);
   }
 
   /** The actual node that's installed as a probe on any node the instrument was launched for. */
