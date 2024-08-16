@@ -266,7 +266,7 @@ const overFlowStyle = computed(() => {
   margin-left: auto;
   margin-right: 8px;
   overflow: hidden;
-  width: calc(var(--node-size-x) - 200px);
+  width: calc(var(--node-size-x) - var(--permanent-toolbar-width));
 }
 
 .node-type {
