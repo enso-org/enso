@@ -39,6 +39,8 @@ type Regex
        Compile the provided `expression` into a `Regex` that can be used for
        matching.
 
+       For details on Enso's Regex syntax, see the [Help Documentation](https://help.enso.org/docs/using-enso/regular-expressions).
+
        Arguments:
        - expression: The text representing the regular expression that you want to
          compile. Must be non-empty.
@@ -46,16 +48,21 @@ type Regex
          insensitive matching behaves as if it normalises the case of all input
          text before matching on it.
 
-       If an empty regex is used, `compile` throws an Illegal_Argument error.
+       ! Error Conditions
+
+       - If an empty regex is used, `find` throws an `Illegal_Argument` error.
     compile : Text -> Boolean -> Regex ! Regex_Syntax_Error | Illegal_Argument
-    compile expression:Text case_insensitive:Boolean=False =
-        if expression == '' then Error.throw (Illegal_Argument.Error "Regex cannot be the empty string") else
-            options_string = if case_insensitive == True then "usgi" else "usg"
+    compile expression:(Regex|Text) case_insensitive:Boolean=False = case expression of
+        _ : Regex -> if case_insensitive == expression.case_insensitive then expression else
+            expression.recompile (if case_insensitive then Case_Sensitivity.In_Sensitive else Case_Sensitivity.Sensitive)
+        _ : Text ->
+            if expression == '' then Error.throw (Illegal_Argument.Error "Regex cannot be the empty string") else
+                options_string = if case_insensitive == True then "usgi" else "usg"
 
-            internal_regex_object = Panic.catch Syntax_Error (Prim_Text_Helper.compile_regex expression options_string) caught_panic->
-                Error.throw (Regex_Syntax_Error.Error (caught_panic.payload.message))
+                internal_regex_object = Panic.catch Syntax_Error (Prim_Text_Helper.compile_regex expression options_string) caught_panic->
+                    Error.throw (Regex_Syntax_Error.Error (caught_panic.payload.message))
 
-            Regex.Value case_insensitive internal_regex_object
+                Regex.Value case_insensitive internal_regex_object
 
     ## PRIVATE
 
@@ -162,12 +169,12 @@ type Regex
        ICON split
        Splits the `input` text based on the pattern described by `self`.
 
+       This method will _always_ return a vector. If no splits take place, the
+       vector will contain a single element (equal to the original string).
+
        Arguments:
        - input: The text to split based on the pattern described by `self`.
        - only_first: If true, only split at the first occurrence.
-
-       This method will _always_ return a vector. If no splits take place, the
-       vector will contain a single element (equal to the original string).
 
        > Example
          Split on the first instance of the pattern.
@@ -236,11 +243,6 @@ type Regex
        Replace all occurrences of the pattern described by `self` in the `input`
        with the specified `replacement`.
 
-       Arguments:
-       - input: The text in which to perform the replacement(s).
-       - replacement: The literal text with which to replace any matches.
-       - only_first: If True, only replace the first match.
-
        If this method performs no replacements it will return the `input` text
        unchanged.
 
@@ -250,6 +252,11 @@ type Regex
            $&: the entire match string
            $n: the nth group
            $&lt;foo&gt;: Named group `foo`
+
+       Arguments:
+       - input: The text in which to perform the replacement(s).
+       - replacement: The literal text with which to replace any matches.
+       - only_first: If True, only replace the first match.
 
        > Example
          Replace letters in the text "aa".

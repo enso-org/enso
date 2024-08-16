@@ -38,7 +38,9 @@ type Support_Level
                     if metadata.dataDefinitionCausesTransactionCommit then Support_Level.Causes_Commit else
                         Support_Level.Allowed
 
+## PRIVATE
 type Transactional_Table_Description
+    ## PRIVATE
     Value name:Text temporary:Boolean (structure : Vector Column_Description) (primary_key : Vector Text | Nothing) (remove_after_transaction:Boolean) (on_problems:Problem_Behavior)
 
     ## PRIVATE
@@ -107,9 +109,11 @@ private create_tables_outside_transaction connection (tables : Vector Transactio
             cleanup_transaction_scoped_tables connection tables
         cleanup_errors.if_not_error result
 
+## PRIVATE
 private cleanup_tables_silently connection table_names = Context.Output.with_enabled <|
     table_names.each (name-> connection.drop_table name if_exists=True . catch)
 
+## PRIVATE
 private cleanup_transaction_scoped_tables connection tables = Context.Output.with_enabled <|
     tables.each (t-> if t.remove_after_transaction then connection.drop_table t.name if_exists=True)
 

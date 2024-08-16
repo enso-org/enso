@@ -294,10 +294,10 @@ default_fetch_primary_key connection table_name =
 
 ## PRIVATE
 type Temp_Table_Style
-      ## PRIVATE
-         The temporary table is created using a create table statement.
-      Temporary_Table
-      
-      ## PRIVATE
-         The temporary table is created using a # table name.
-      Hash_Prefix
+    ## PRIVATE
+       The temporary table is created using a create table statement.
+    Temporary_Table
+
+    ## PRIVATE
+       The temporary table is created using a # table name.
+    Hash_Prefix

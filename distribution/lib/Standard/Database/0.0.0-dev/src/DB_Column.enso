@@ -159,6 +159,22 @@ type DB_Column
         if index < 0 then Error.throw (Unsupported_Database_Operation.Error "Reading backwards from end is not supported in-database. Use `read` to materialize the column.") else
             self.read (..First index+1) . get index default
 
+    ## GROUP Standard.Base.Selections
+       ICON parse3
+       Returns the first element in the column, if it exists.
+
+       If the column is empty, this method will return a dataflow error
+       containing an `Index_Out_Of_Bounds`.
+
+       > Example
+         Get the first element of a column.
+
+             import Standard.Examples
+
+             example_first = Examples.integer_column.first
+    first : Any ! Index_Out_Of_Bounds
+    first self = self.at 0
+
     ## GROUP Standard.Base.Metadata
        ICON metadata
        Returns the `Value_Type` associated with that column.
@@ -424,7 +440,7 @@ type DB_Column
        `other`.
     @locale Locale.default_widget
     equals_ignore_case : DB_Column | Any -> Locale -> DB_Column
-    equals_ignore_case self other locale=Locale.default =
+    equals_ignore_case self other locale:Locale=Locale.default =
         Value_Type.expect_text self <|
             Value_Type.expect_text other <|
                 Helpers.assume_default_locale locale <|
@@ -1324,7 +1340,7 @@ type DB_Column
          Sorting `column` in descending order.
              column.sort Sort_Direction.Descending
     sort : Sort_Direction -> DB_Column
-    sort self order=Sort_Direction.Ascending =
+    sort self order:Sort_Direction=..Ascending =
         self.to_table.sort [..Index 0 order] . at 0
 
     ## ALIAS first, head, keep, last, limit, sample, slice, tail, top
@@ -1365,7 +1381,7 @@ type DB_Column
        missing value (a Nothing or a column with missing values), the behaviour
        on these missing values is vendor specific.
     starts_with : DB_Column | Text -> Case_Sensitivity -> DB_Column
-    starts_with self other case_sensitivity=Case_Sensitivity.Default =
+    starts_with self other case_sensitivity:Case_Sensitivity=..Default =
         new_name = self.naming_helper.function_name "starts_with" [self, other]
         make_text_case_op self "STARTS_WITH" other case_sensitivity new_name
 
@@ -1383,7 +1399,7 @@ type DB_Column
        missing value (a Nothing or a column with missing values), the behaviour
        on these missing values is vendor specific.
     ends_with : DB_Column | Text -> Case_Sensitivity -> DB_Column
-    ends_with self other case_sensitivity=Case_Sensitivity.Default =
+    ends_with self other case_sensitivity:Case_Sensitivity=..Default =
         new_name = self.naming_helper.function_name "ends_with" [self, other]
         make_text_case_op self "ENDS_WITH" other case_sensitivity new_name
 
@@ -1463,7 +1479,7 @@ type DB_Column
        missing value (a Nothing or a column with missing values), the behaviour
        on these missing values is vendor specific.
     contains : DB_Column | Text -> Case_Sensitivity -> DB_Column
-    contains self other case_sensitivity=Case_Sensitivity.Default =
+    contains self other case_sensitivity:Case_Sensitivity=..Default =
         new_name = self.naming_helper.function_name "contains" [self, other]
         make_text_case_op self "CONTAINS" other case_sensitivity new_name
 
@@ -1519,6 +1535,16 @@ type DB_Column
 
        This method follows the exact replacement semantics of the
        `Text.replace` method.
+
+       If regex is used the replacement string can contain references to groups
+       matched. The following syntaxes are supported:
+           $0: the entire match string
+           $&: the entire match string
+           $n: the nth group
+           $&lt;foo&gt;: Named group `foo`
+
+       The exact syntax of the regular expression is dependent on the database
+       engine.
 
        Arguments:
        - term: The term to find.
@@ -1577,7 +1603,7 @@ type DB_Column
              column.text_replace '"(.*?)"'.to_regex '($1)'
     @term make_regex_text_widget
     text_replace : Text | Regex | DB_Column -> Text | DB_Column -> Case_Sensitivity -> Boolean -> DB_Column ! Unsupported_Database_Operation
-    text_replace self (term : Text | Regex | DB_Column = "") new_text="" case_sensitivity=Case_Sensitivity.Default only_first=False =
+    text_replace self (term : Text | Regex | DB_Column = "") new_text="" case_sensitivity:Case_Sensitivity=..Default only_first=False =
         Value_Type.expect_text self <| case_sensitivity.disallow_non_default_locale <|
             input_type = Meta.type_of term
             params = Replace_Params.Value input_type case_sensitivity only_first
@@ -1710,7 +1736,7 @@ type DB_Column
        Returns a column of `Integer` type.
     @period Date_Time_Helpers.make_period_selector_for_column
     date_part : Date_Period | Time_Period -> DB_Column ! Invalid_Value_Type | Illegal_Argument
-    date_part self period =
+    date_part self period:(Date_Period | Time_Period) =
         Date_Time_Helpers.make_date_part_function self period (column->op_name-> column.make_unary_op op_name) self.naming_helper
 
     ## GROUP Standard.Base.DateTime
@@ -1879,7 +1905,7 @@ type DB_Column
     @locale Locale.default_widget
     @format (self-> Widget_Helpers.make_format_chooser_for_type self.value_type)
     format : Text | Date_Time_Formatter | DB_Column -> Locale -> DB_Column ! Illegal_Argument
-    format self format:(Text | Date_Time_Formatter | DB_Column)="" locale=Locale.default =
+    format self format:(Text | Date_Time_Formatter | DB_Column)="" locale:Locale=Locale.default =
         _ = [format, locale]
         Error.throw <| Unsupported_Database_Operation.Error "`DB_Column.format` is not implemented yet for the Database backends."
 
@@ -1932,7 +1958,7 @@ type DB_Column
          types. Due to this, a Mixed column containing values `[2, "3"]` will
          actually be converted into `[2, Nothing]` when casting to Integer type.
     cast : Value_Type -> Problem_Behavior -> DB_Column ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure
-    cast self value_type on_problems:Problem_Behavior=..Report_Warning =
+    cast self value_type:Value_Type on_problems:Problem_Behavior=..Report_Warning =
         check_cast_compatibility self.value_type value_type <|
             self.internal_do_cast value_type on_problems
 

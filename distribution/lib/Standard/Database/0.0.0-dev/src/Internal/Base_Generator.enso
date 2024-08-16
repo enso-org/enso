@@ -12,8 +12,8 @@ import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.SQL.SQL_Builder
-from project.Errors import Unsupported_Database_Operation
 from project.Dialect import Temp_Table_Style
+from project.Errors import Unsupported_Database_Operation
 from project.Internal.IR.Operation_Metadata import Row_Number_Metadata
 
 type With_Binding_State
