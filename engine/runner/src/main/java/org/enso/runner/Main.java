@@ -1278,6 +1278,12 @@ public class Main {
     var logLevel = setupLogging(line, logMasking);
     var props = parseSystemProperties(line);
 
+    var loc = Main.class.getProtectionDomain().getCodeSource().getLocation();
+    var component = new File(loc.toURI().resolve("..")).getAbsoluteFile();
+    if (!component.getName().equals("component")) {
+      component = new File(component, "component");
+    }
+    assert checkOutdatedLauncher(new File(loc.toURI()), component) || true;
     if (line.hasOption(JVM_OPTION)) {
       var jvm = line.getOptionValue(JVM_OPTION);
       var current = System.getProperty("java.home");
@@ -1288,7 +1294,6 @@ public class Main {
       if (!shouldLaunchJvm) {
         println(JVM_OPTION + " option has no effect - already running in JVM " + current);
       } else {
-        var loc = Main.class.getProtectionDomain().getCodeSource().getLocation();
         var commandAndArgs = new ArrayList<String>();
         JVM_FOUND:
         if (jvm == null) {
@@ -1318,18 +1323,18 @@ public class Main {
             commandAndArgs.add(op);
           }
         }
+        var assertsOn = false;
+        assert assertsOn = true;
+        if (assertsOn) {
+          commandAndArgs.add("-ea");
+        }
         if (props != null) {
           for (var e : props.entrySet()) {
             commandAndArgs.add("-D" + e.getKey() + "=" + e.getValue());
           }
         }
-
         commandAndArgs.add("--add-opens=java.base/java.nio=ALL-UNNAMED");
         commandAndArgs.add("--module-path");
-        var component = new File(loc.toURI().resolve("..")).getAbsoluteFile();
-        if (!component.getName().equals("component")) {
-          component = new File(component, "component");
-        }
         if (!component.isDirectory()) {
           throw new IOException("Cannot find " + component + " directory");
         }
@@ -1442,5 +1447,30 @@ public class Main {
 
   protected String getLanguageId() {
     return LanguageInfo.ID;
+  }
+
+  /**
+   * Check if native image based launcher is up-to-date. Prints a warning when it is outdated.
+   *
+   * @param base the base file to check
+   * @param dir directory with other files that should be older than base
+   * @return
+   */
+  private static boolean checkOutdatedLauncher(File base, File dir) {
+    var needsCheck = base.canExecute();
+    if (needsCheck) {
+      var files = dir.listFiles();
+      if (files != null) {
+        var baseTime = base.lastModified();
+        for (var f : files) {
+          if (baseTime < f.lastModified()) {
+            System.err.println(
+                "File " + base + " is older than " + f + " consider running in --jvm mode");
+            return false;
+          }
+        }
+      }
+    }
+    return true;
   }
 }

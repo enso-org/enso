@@ -82,6 +82,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   private final Function<String, Value> getColumn;
   private final Function<Object, Value> makeConstantColumn;
   private final Function<String, Value> getMethod;
+  private final Function<String, Value> makeConstructor;
   private final Set<String> variableArgumentFunctions;
 
   private ExpressionVisitorImpl(
@@ -93,10 +94,11 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     this.getColumn = getColumn;
     this.makeConstantColumn = makeConstantColumn;
 
-    final Value module =
-        Context.getCurrent().getBindings("enso").invokeMember("get_module", moduleName);
+    var context = Context.getCurrent().getBindings("enso");
+    final Value module = context.invokeMember("get_module", moduleName);
     final Value type = module.invokeMember("get_type", typeName);
-    this.getMethod = name -> module.invokeMember("get_method", type, name);
+    getMethod = name -> module.invokeMember("get_method", type, name);
+    makeConstructor = name -> module.invokeMember("eval_expression", ".." + name);
 
     this.variableArgumentFunctions = new HashSet<>(Arrays.asList(variableArgumentFunctions));
   }
@@ -135,7 +137,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       if (result.canExecute()) {
         throw new IllegalArgumentException("Insufficient arguments for method " + name + ".");
       }
-      return result;
+      return makeConstantColumn.apply(result);
     } catch (PolyglotException e) {
       if (e.getMessage().startsWith("Type error: expected a function")) {
         throw new IllegalArgumentException("Too many arguments for method " + name + ".");
@@ -222,6 +224,29 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   @Override
   public Value visitUnaryMinus(ExpressionParser.UnaryMinusContext ctx) {
     return executeMethod("*", visit(ctx.expr()), Value.asValue(-1));
+  }
+
+  @Override
+  public Value visitAtom(ExpressionParser.AtomContext ctx) {
+    var atomName = ctx.IDENTIFIER().getText();
+    return makeConstructor.apply(toCamelCase(atomName));
+  }
+
+  private static String toCamelCase(String name) {
+    var builder = new StringBuilder(name.length());
+    boolean convertNext = true;
+    for (var c : name.toCharArray()) {
+      if (convertNext) {
+        builder.append(Character.toUpperCase(c));
+        convertNext = c == '_';
+      } else if (c == '_') {
+        convertNext = true;
+        builder.append(c);
+      } else {
+        builder.append(Character.toLowerCase(c));
+      }
+    }
+    return builder.toString();
   }
 
   @Override
