@@ -1821,19 +1821,9 @@ lazy val `runtime-language-arrow` =
         "org.apache.arrow" % "arrow-memory-netty" % apacheArrowVersion % Test
       ),
       javaModuleName := "org.enso.interpreter.arrow",
-      modulePath := {
-        val updateReport = (Test / update).value
-        JPMSUtils.filterModulesFromUpdate(
-          updateReport,
-          GraalVM.modules,
-          streams.value.log,
-          shouldContainAll = true
-        ) ++ Seq(
-          (LocalProject(
-            "runtime-language-arrow"
-          ) / Compile / productDirectories).value.head
-        )
-      },
+      moduleDependencies := GraalVM.modules,
+      Test / moduleDependencies +=
+        (LocalProject("runtime-language-arrow") / projectID).value,
       Test / patchModules := {
         val testClassesDir = (Test / productDirectories).value.head
         Map(javaModuleName.value -> Seq(testClassesDir))
