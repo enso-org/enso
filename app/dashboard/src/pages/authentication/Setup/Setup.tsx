@@ -4,7 +4,7 @@
  */
 import * as React from 'react'
 
-import { useSuspenseQuery } from '@tanstack/react-query'
+import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
 import { Navigate, useSearchParams } from 'react-router-dom'
 import invariant from 'tiny-invariant'
 
@@ -26,6 +26,7 @@ import * as stepper from '#/components/Stepper'
 
 import { ORGANIZATION_NAME_MAX_LENGTH } from '#/modals/SetOrganizationNameModal'
 
+import { backendMutationOptions } from '#/hooks/backendHooks'
 import { PlanSelector } from '#/modules/payments'
 import { Plan } from '#/services/Backend'
 
@@ -102,15 +103,21 @@ const BASE_STEPS: Step[] = [
   {
     title: 'choosePlan',
     text: 'choosePlanDescription',
+    ignore: ({ session }) =>
+      session && 'user' in session ? !session.user.isOrganizationAdmin : true,
     canSkip: ({ plan }) => plan === Plan.free,
     hideNext: ({ plan }) => plan === Plan.free,
     /**
      * Step component
      */
-    component: function ChoosePlanStep({ goToNextStep, plan }) {
+    component: function ChoosePlanStep({ goToNextStep, plan, session }) {
+      const isOrganizationAdmin =
+        session && 'user' in session ? session.user.isOrganizationAdmin : false
+
       return (
         <PlanSelector
           userPlan={plan}
+          isOrganizationAdmin={isOrganizationAdmin}
           hasTrial={plan === Plan.free}
           onSubscribeSuccess={goToNextStep}
         />
@@ -159,6 +166,52 @@ const BASE_STEPS: Step[] = [
               'organizationNameSettingsInputDescription',
               ORGANIZATION_NAME_MAX_LENGTH,
             )}
+          />
+
+          <ariaComponents.ButtonGroup align="start">
+            <ariaComponents.Button variant="outline" onPress={goToPreviousStep}>
+              {getText('back')}
+            </ariaComponents.Button>
+
+            <ariaComponents.Form.Submit variant="primary">
+              {getText('next')}
+            </ariaComponents.Form.Submit>
+          </ariaComponents.ButtonGroup>
+
+          <ariaComponents.Form.FormError />
+        </ariaComponents.Form>
+      )
+    },
+  },
+  {
+    title: 'setDefaultUserGroup',
+    text: 'setDefaultUserGroupDescription',
+    ignore: (context) => context.plan === Plan.free || context.plan === Plan.solo,
+    hideNext: true,
+    hidePrevious: true,
+    /**
+     * Step component
+     */
+    component: function CreateUserGroupStep({ goToNextStep, goToPreviousStep }) {
+      const { getText } = textProvider.useText()
+      const remoteBackend = useRemoteBackendStrict()
+
+      const createUserGroupMutation = useMutation(
+        backendMutationOptions(remoteBackend, 'createUserGroup'),
+      )
+
+      return (
+        <ariaComponents.Form
+          schema={(z) => z.object({ groupName: z.string().min(1).max(64) })}
+          className="max-w-96"
+          onSubmit={({ groupName }) => createUserGroupMutation.mutateAsync([{ name: groupName }])}
+          onSubmitSuccess={goToNextStep}
+        >
+          <ariaComponents.Input
+            name="groupName"
+            autoComplete="off"
+            label={getText('groupNameSettingsInput')}
+            description={getText('groupNameSettingsInputDescription', 64)}
           />
 
           <ariaComponents.ButtonGroup align="start">

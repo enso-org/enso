@@ -28,8 +28,8 @@ export const SELECTOR_OPTION_STYLES = tv({
       full: '',
     },
     size: {
-      medium: { radio: 'px-[11px] pb-1.5 pt-2' },
-      small: { radio: 'px-[11px] pb-0.5 pt-1' },
+      medium: { radio: 'px-[9px] py-[3.5px]' },
+      small: { radio: 'px-[7px] py-[1.5px]' },
     },
     variant: {
       primary: {

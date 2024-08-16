@@ -1,4 +1,5 @@
 /** @file `tailwind-variants` with a custom configuration. */
+import type { VariantProps as tvVariantProps } from 'tailwind-variants'
 import { createTV } from 'tailwind-variants'
 
 import { TAILWIND_MERGE_CONFIG } from '#/utilities/tailwindMerge'
@@ -17,5 +18,13 @@ export const tv = createTV({ twMergeConfig: TAILWIND_MERGE_CONFIG })
 export type ExtractFunction<T> =
   T extends (...args: infer Args) => infer Ret ? (...args: Args) => Ret : never
 
-/** A `tailwind-variants` type, without restrictions onn the `extends` key. */
+/** A `tailwind-variants` type, without restrictions on the `extends` key. */
 export type TVWithoutExtends<T> = ExtractFunction<T> & Omit<T, 'extend'>
+
+/**
+ * Props for a component that uses `tailwind-variants`.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type VariantProps<T extends (...args: any) => any> = tvVariantProps<T> & {
+  variants?: ExtractFunction<T> | undefined
+}

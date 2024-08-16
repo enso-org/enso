@@ -72,13 +72,7 @@ export const Form = React.forwardRef(function Form<
     formOptions.defaultValues = defaultValues
   }
 
-  const innerForm = components.useForm(
-    form ?? {
-      shouldFocusError: true,
-      schema,
-      ...formOptions,
-    },
-  )
+  const innerForm = components.useForm(form ?? { shouldFocusError: true, schema, ...formOptions })
 
   const dialogContext = dialog.useDialogContext()
 
@@ -232,7 +226,9 @@ export const Form = React.forwardRef(function Form<
     | 'Submit'
     | 'useField'
     | 'useForm'
+    | 'useFormContext'
     | 'useFormSchema'
+    | 'useOptionalFormContext'
   >
 > &
   (<
@@ -252,5 +248,7 @@ Form.useFormSchema = components.useFormSchema
 Form.Submit = components.Submit
 Form.Reset = components.Reset
 Form.FormError = components.FormError
+Form.useFormContext = components.useFormContext
+Form.useOptionalFormContext = components.useOptionalFormContext
 Form.Field = components.Field
 Form.FIELD_STYLES = components.FIELD_STYLES

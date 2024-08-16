@@ -10,16 +10,23 @@ import { useQuery } from '@tanstack/react-query'
 
 import { type GetText, useText } from '#/providers/TextProvider'
 
-import { Dialog, Form, Input, Selector, Separator, Text } from '#/components/AriaComponents'
+import {
+  Checkbox,
+  Dialog,
+  Form,
+  Input,
+  Selector,
+  Separator,
+  Text,
+} from '#/components/AriaComponents'
 import { ErrorDisplay } from '#/components/ErrorBoundary'
 import { Suspense } from '#/components/Suspense'
 
-import { createSubscriptionPriceQuery } from '#/modules/payments'
 import type { Plan } from '#/services/Backend'
 
 import { twMerge } from '#/utilities/tailwindMerge'
 
-import { Checkbox } from '#/components/aria'
+import { createSubscriptionPriceQuery } from '../../../api'
 import {
   MAX_SEATS_BY_PLAN,
   PRICE_BY_PLAN,
@@ -79,10 +86,13 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
           .min(1)
           .max(maxSeats, { message: getText('wantMoreSeats') }),
         period: z.number(),
-        agree: z.boolean().refine((value) => value, { message: getText('arbitraryFieldRequired') }),
+        agree: z
+          .array(z.string())
+          .min(1, { message: getText('licenseAgreementCheckboxError') })
+          .max(1, { message: getText('licenseAgreementCheckboxError') }),
       }),
     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    defaultValues: { seats: 1, period: 12 },
+    defaultValues: { seats: 1, period: 12, agree: [] },
     mode: 'onChange',
   })
 
@@ -152,12 +162,13 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
                   description={getText(`${plan}PlanSeatsDescription`, maxSeats)}
                 />
 
-                <Form.Field
+                <Checkbox.Group
+                  form={form}
                   name="agree"
                   description="This Order is governed by the Software License and Service Agreement found at https://www.ensoanalytics.com/SLSA, (the “Agreement”). All capitalized terms used in this Customer Order but not otherwise defined herein shall have the meanings set forth in the Agreement. Except as expressly provided in the Agreement, Products and Services purchased under this Customer Order are non-cancelable and non-refundable."
                 >
-                  <Checkbox>{getText('licenseAgreementCheckbox')}</Checkbox>
-                </Form.Field>
+                  <Checkbox value="agree">{getText('licenseAgreementCheckbox')}</Checkbox>
+                </Checkbox.Group>
               </Form>
             </div>
           </div>

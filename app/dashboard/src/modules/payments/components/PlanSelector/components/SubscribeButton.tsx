@@ -16,6 +16,7 @@ import { PlanSelectorDialog, type PlanSelectorDialogProps } from './PlanSelector
  */
 export interface SubscribeButtonProps
   extends Omit<PlanSelectorDialogProps, 'isTrialing' | 'title'> {
+  readonly isOrganizationAdmin?: boolean
   readonly userHasSubscription: boolean
   readonly isCurrent?: boolean
   readonly isDowngrade?: boolean
@@ -39,6 +40,7 @@ export function SubscribeButton(props: SubscribeButtonProps) {
     onSubmit,
     planName,
     features,
+    isOrganizationAdmin = false,
   } = props
 
   const { getText } = useText()
@@ -93,7 +95,7 @@ export function SubscribeButton(props: SubscribeButtonProps) {
     return 'submit'
   })()
 
-  const disabled = isCurrent || isDowngrade || isDisabled
+  const disabled = isCurrent || isDowngrade || isDisabled || !isOrganizationAdmin
 
   return (
     <div className="w-full text-center">
