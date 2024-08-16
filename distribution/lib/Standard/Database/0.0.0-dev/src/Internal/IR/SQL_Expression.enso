@@ -108,7 +108,6 @@ type SQL_Expression
             SQL_Expression.Literal _ -> self
             SQL_Expression.Text_Literal _ -> self
             SQL_Expression.Operation kind expressions metadata ->
-                IO.println "MMM "+metadata.to_text
                 SQL_Expression.Operation kind (expressions.map rec) metadata
             SQL_Expression.With binder bindee body ->
                 SQL_Expression.With binder (rec bindee) (rec body)
