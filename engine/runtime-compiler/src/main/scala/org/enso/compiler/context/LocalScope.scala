@@ -31,9 +31,9 @@ import scala.jdk.CollectionConverters._
   */
 class LocalScope(
   final val parentScope: Option[LocalScope],
-  final val aliasingGraph: AliasGraph,
-  final val scope: AliasGraph.Scope,
-  final val dataflowInfo: DataflowAnalysis.Metadata,
+  final val aliasingGraph: () => AliasGraph,
+  final val scope: () => AliasGraph.Scope,
+  final val dataflowInfo: () => DataflowAnalysis.Metadata,
   final val flattenToParent: Boolean                       = false,
   private val parentFrameSlotIdxs: Map[AliasGraph.Id, Int] = Map()
 ) {
@@ -50,7 +50,7 @@ class LocalScope(
     *
     * @return a child of this scope
     */
-  def createChild(): LocalScope = createChild(scope.addChild())
+  def createChild(): LocalScope = createChild(() => scope().addChild())
 
   /** Creates a child using a known aliasing scope.
     *
@@ -60,7 +60,7 @@ class LocalScope(
     * @return a child of this scope
     */
   def createChild(
-    childScope: AliasGraph.Scope,
+    childScope: () => AliasGraph.Scope,
     flattenToParent: Boolean = false
   ): LocalScope = {
     new LocalScope(
@@ -88,7 +88,7 @@ class LocalScope(
     *         internal slots, that are prepended to every frame.
     */
   private def gatherLocalFrameSlotIdxs(): Map[AliasGraph.Id, Int] = {
-    scope.allDefinitions.zipWithIndex.map { case (definition, i) =>
+    scope().allDefinitions.zipWithIndex.map { case (definition, i) =>
       definition.id -> (i + LocalScope.internalSlotsSize)
     }.toMap
   }
@@ -105,7 +105,7 @@ class LocalScope(
       .flatMap(scope => Some(scope.flattenBindingsWithLevel(level + 1)))
       .getOrElse(Map())
 
-    scope.occurrences.foreach {
+    scope().occurrences.foreach {
       case (id, x: GraphOccurrence.Def) =>
         parentResult += x.symbol -> new FramePointer(
           level,
@@ -126,13 +126,14 @@ object LocalScope {
     *
     * @return a defaulted local scope
     */
-  def root: LocalScope = {
+  val root: LocalScope = {
     val graph = new AliasGraph
+    val info  = DataflowAnalysis.DependencyInfo()
     new LocalScope(
       None,
-      graph,
-      graph.rootScope,
-      DataflowAnalysis.DependencyInfo()
+      () => graph,
+      () => graph.rootScope,
+      () => info
     )
   }
 

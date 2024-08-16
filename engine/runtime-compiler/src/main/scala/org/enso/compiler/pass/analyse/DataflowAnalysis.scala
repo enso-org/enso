@@ -95,7 +95,7 @@ case object DataflowAnalysis extends IRPass {
         "A valid local scope is required for the inline flow."
       )
     )
-    analyseExpression(ir, localScope.dataflowInfo)
+    analyseExpression(ir, localScope.dataflowInfo())
   }
 
   /** @inheritdoc */
