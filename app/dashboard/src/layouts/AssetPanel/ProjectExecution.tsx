@@ -100,6 +100,14 @@ export default function ProjectExecution(props: ProjectExecutionProps) {
       <ButtonGroup className={styles.optionContainer()}>
         <Button
           size="xsmall"
+          variant="outline"
+          icon={RepeatIcon}
+          tooltip={getText('maxDurationMinutesLabel')}
+        >
+          {getText('xMinutes', projectExecution.maxDurationMinutes)}
+        </Button>
+        <Button
+          size="xsmall"
           variant="custom"
           icon={RepeatIcon}
           tooltip={getText('repeatIntervalLabel')}

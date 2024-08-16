@@ -27,12 +27,16 @@ import {
   DatePicker,
   Dialog,
   Form,
+  Input,
   Selector,
   Text,
 } from '#/components/AriaComponents'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useText, type GetText } from '#/providers/TextProvider'
 
+const MAX_DURATION_DEFAULT_MINUTES = 60
+const MAX_DURATION_MINIMUM_MINUTES = 1
+const MAX_DURATION_MAXIMUM_MINUTES = 60
 const REPEAT_TIMES_COUNT = 5
 
 /* eslint-disable @typescript-eslint/no-magic-numbers */
@@ -42,9 +46,14 @@ function createUpsertExecutionSchema(getText: GetText) {
     .object({
       repeatInterval: z.enum(PROJECT_REPEAT_INTERVALS),
       date: z.instanceof(ZonedDateTime, { message: getText('pleaseSelectATime') }),
+      maxDurationMinutes: z
+        .number()
+        .int()
+        .min(MAX_DURATION_MINIMUM_MINUTES)
+        .max(MAX_DURATION_MAXIMUM_MINUTES),
       parallelMode: z.enum(PROJECT_PARALLEL_MODES),
     })
-    .transform(({ repeatInterval, date, parallelMode }) => {
+    .transform(({ date, repeatInterval, ...rest }) => {
       const utcDate = toTimeZone(date, 'UTC')
       return {
         repeatInterval,
@@ -52,7 +61,7 @@ function createUpsertExecutionSchema(getText: GetText) {
         ...(repeatInterval === 'weekly' && { day: getDayOfWeek(utcDate, 'en-US') }),
         ...(repeatInterval !== 'hourly' && { hour: utcDate.hour }),
         minute: utcDate.minute,
-        parallelMode,
+        ...rest,
       }
     })
 }
@@ -125,23 +134,17 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
         <Form
           form={form}
           method="dialog"
-          defaultValues={{ repeatInterval: 'weekly', parallelMode: 'restart' }}
+          defaultValues={{
+            repeatInterval: 'weekly',
+            parallelMode: 'restart',
+            date: minFirstOccurrence,
+            maxDurationMinutes: MAX_DURATION_DEFAULT_MINUTES,
+          }}
           className="w-full"
           onSubmit={async (values) => {
-            const {
-              repeatInterval: newRepeatInterval,
-              parallelMode: newParallelMode,
-              ...time
-            } = values
-            await createProjectExecution([
-              {
-                projectId: item.id,
-                repeatInterval: newRepeatInterval,
-                time,
-                parallelMode: newParallelMode,
-              },
-              item.title,
-            ])
+            const { minute, hour, day, date: newDate, ...rest } = values
+            const time = { minute, hour, day, date: newDate }
+            await createProjectExecution([{ projectId: item.id, time, ...rest }, item.title])
           }}
         >
           <Selector
@@ -169,7 +172,6 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
             name="date"
             label={getText('firstOccurrenceLabel')}
             noCalendarHeader
-            defaultValue={minFirstOccurrence}
             minValue={minFirstOccurrence}
             maxValue={maxFirstOccurrence}
           />
@@ -181,6 +183,12 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
               )}
             </Text>
           )}
+          <Input
+            form={form}
+            name="maxDurationMinutes"
+            type="number"
+            label={getText('maxDurationMinutesLabel')}
+          />
 
           <Form.FormError />
           <ButtonGroup>

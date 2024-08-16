@@ -132,6 +132,7 @@ interface PlaceholderOverrides {
   readonly trialDescription: [days: number]
 
   readonly repeatsAtX: [dates: string]
+  readonly xMinutes: [minutes: number]
 }
 
 /** An tuple of `string` for placeholders for each {@link TextId}. */

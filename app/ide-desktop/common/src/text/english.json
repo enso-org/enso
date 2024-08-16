@@ -590,6 +590,8 @@
   "sunday3": "Sun",
   "pleaseSelectATime": "Please select a time.",
   "repeatsAtX": "Repeats at $0",
+  "maxDurationMinutesLabel": "Maximum duration (minutes)",
+  "xMinutes": "$0 minute(s)",
 
   "downgradeInfo": "Looking for downgrade options?",
 
