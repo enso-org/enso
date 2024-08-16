@@ -5,7 +5,7 @@ import org.enso.polyglot.debugger.{DebugServerInfo, ObjectRepresentation}
 import org.graalvm.polyglot.Context
 import org.scalatest.{BeforeAndAfter, EitherValues, Inside}
 
-class ReplTest
+class DebugServerTest
     extends InterpreterTest
     with BeforeAndAfter
     with EitherValues
@@ -15,7 +15,7 @@ class ReplTest
 
   override def contextModifiers: Option[Context#Builder => Context#Builder] =
     Some(b => {
-      b.option(DebugServerInfo.ENABLE_OPTION, "true")
+      b.option(DebugServerInfo.FN_OPTION, "main")
     })
 
   override def specify(implicit
