@@ -107,7 +107,6 @@ impl RunContext {
     /// environment variables for the build to follow.
     #[instrument(skip(self))]
     pub async fn prepare_build_env(&self) -> Result {
-        println!("::group::Preparing Build Environment");
         // Building native images with Graal on Windows requires Microsoft Visual C++ Build Tools
         // available in the environment. If it is not visible, we need to add it.
         if TARGET_OS == OS::Windows && ide_ci::programs::vs::Cl.lookup().is_err() {
@@ -203,7 +202,6 @@ impl RunContext {
 
         prepare_simple_library_server.await??;
 
-        println!("::endgroup::");
         Ok(())
     }
 
@@ -346,14 +344,12 @@ impl RunContext {
         }
 
         if !tasks.is_empty() {
-            println!("::group::Building distributions and native images");
             debug!("Building distributions and native images.");
             if crate::ci::big_memory_machine() {
                 sbt.call_arg(Sbt::concurrent_tasks(tasks)).await?;
             } else {
                 sbt.call_arg(Sbt::sequential_tasks(tasks)).await?;
             }
-            println!("::endgroup::")
         }
 
         // === End of Build project-manager distribution and native image ===
@@ -391,18 +387,15 @@ impl RunContext {
         // We store Scala test result but not immediately fail on it, as we want to run all the
         // tests (including standard library ones) even if Scala tests fail.
         let scala_test_result = if self.config.test_jvm {
-            println!("::group::Running Scala Tests");
             // Make sure that `sbt buildEngineDistributionNoIndex` is run before
             // `project-manager/test`. Note that we do not have to run
             // `buildEngineDistribution` (with indexing), because it is unnecessary.
             sbt.call_arg("buildEngineDistributionNoIndex").await?;
 
             // Run unit tests
-            let result = sbt.call_arg("set Global / parallelExecution := false; test").await.inspect_err(|e| {
+            sbt.call_arg("set Global / parallelExecution := false; test").await.inspect_err(|e| {
                 ide_ci::actions::workflow::error(format!("Scala Tests failed: {e:?}"))
-            });
-            println!("::endgroup::");
-            result
+            })
         } else {
             // No tests - no fail.
             Ok(())

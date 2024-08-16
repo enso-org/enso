@@ -43,16 +43,12 @@ pub async fn generate_java_to(repo_root: &Path, output_path: &Path) -> Result {
 }
 
 pub async fn generate_java(repo_root: &RepoRoot) -> Result {
-    println!("::group::Generating Java code for the parser bindings");
     let output_path = repo_root.target.generated_java.join_iter(GENERATED_CODE_NAMESPACE);
-    let result = generate_java_to(repo_root, &output_path).await;
-    println!("::endgroup::");
-    result
+    generate_java_to(repo_root, &output_path).await
 }
 
 #[context("Running self-tests for the generated Java sources failed.")]
 pub async fn run_self_tests(repo_root: &RepoRoot) -> Result {
-    println!("::group::Self-tests for the generated Java parser sources");
     let base = &repo_root.target.generated_java;
     let lib = &repo_root.lib.rust.parser.generate_java.java;
     let external_dependencies_file = lib
@@ -94,6 +90,5 @@ pub async fn run_self_tests(repo_root: &RepoRoot) -> Result {
 
     Java.cmd()?.apply(&java::Classpath::new([&base])).arg(&test_class).run_ok().await?;
 
-    println!("::endgroup::");
     Ok(())
 }
