@@ -6,18 +6,23 @@ import com.oracle.truffle.api.TruffleStackTrace;
 import com.oracle.truffle.api.debug.DebuggerTags;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.EventContext;
 import com.oracle.truffle.api.instrumentation.ExecutionEventNode;
+import com.oracle.truffle.api.instrumentation.ExecutionEventNodeFactory;
 import com.oracle.truffle.api.instrumentation.Instrumenter;
 import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
+import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.nodes.RootNode;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import org.enso.compiler.context.FramePointer;
+import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.node.expression.debug.CaptureResultScopeNode;
@@ -65,7 +70,7 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
               ctx ->
                   ctx.getInstrumentedNode() instanceof DebugBreakpointNode
                       ? new ReplExecutionEventNodeImpl(
-                          ctx, handler, env.getLogger(ReplExecutionEventNodeImpl.class))
+                          false, ctx, handler, env.getLogger(ReplExecutionEventNodeImpl.class))
                       : null);
         } else {
           env.getLogger(ReplDebuggerInstrument.class)
@@ -80,23 +85,16 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
         throw new RuntimeException(e);
       }
     }
-    if (!"".equals(env.getOptions().get(FN_OPTION))) {
-      SourceSectionFilter filter =
-          SourceSectionFilter.newBuilder().tagIs(DebuggerTags.AlwaysHalt.class).build();
-
+    var replAtMethodName = env.getOptions().get(FN_OPTION);
+    if (!"".equals(replAtMethodName)) {
       DebuggerMessageHandler handler = new DebuggerMessageHandler();
       try {
         MessageEndpoint client = env.startServer(URI.create(DebugServerInfo.URI), handler);
         if (client != null) {
           handler.setClient(client);
           Instrumenter instrumenter = env.getInstrumenter();
-          instrumenter.attachExecutionEventFactory(
-              filter,
-              ctx ->
-                  ctx.getInstrumentedNode() instanceof DebugBreakpointNode
-                      ? new ReplExecutionEventNodeImpl(
-                          ctx, handler, env.getLogger(ReplExecutionEventNodeImpl.class))
-                      : null);
+          var replAtMethod = new AtTheEndOfFirstMethod(handler, env, instrumenter);
+          replAtMethod.activate(replAtMethodName);
         } else {
           env.getLogger(ReplDebuggerInstrument.class)
               .warning("ReplDebuggerInstrument was initialized, " + "but no client connected");
@@ -132,12 +130,17 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
     private EventContext eventContext;
     private DebuggerMessageHandler handler;
     private TruffleLogger logger;
+    private final boolean atExit;
 
     private ReplExecutionEventNodeImpl(
-        EventContext eventContext, DebuggerMessageHandler handler, TruffleLogger logger) {
+        boolean atExit,
+        EventContext eventContext,
+        DebuggerMessageHandler handler,
+        TruffleLogger logger) {
       this.eventContext = eventContext;
       this.handler = handler;
       this.logger = logger;
+      this.atExit = atExit;
     }
 
     private Object getValue(MaterializedFrame frame, FramePointer ptr) {
@@ -216,7 +219,14 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
       // Note [Safe Access to State in the Debugger Instrument]
       monadicState = Function.ArgumentsHelper.getState(frame.getArguments());
       nodeState = new ReplExecutionEventNodeState(lastReturn, lastScope);
-      startSession();
+      startSessionImpl();
+    }
+
+    @Override
+    public void onReturnValue(VirtualFrame frame, Object result) {
+      if (atExit) {
+        startSession(getRootNode(), frame);
+      }
     }
 
     /* Note [Safe Access to State in the Debugger Instrument]
@@ -240,8 +250,23 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
       return nodeState.getLastReturn();
     }
 
+    private void startSession(RootNode root, VirtualFrame frame) {
+      CallerInfo lastScope = Function.ArgumentsHelper.getCallerInfo(frame.getArguments());
+      if (lastScope == null && root instanceof EnsoRootNode enso) {
+        lastScope =
+            new CallerInfo(frame.materialize(), enso.getLocalScope(), enso.getModuleScope());
+      }
+      if (lastScope != null) {
+        var lastReturn = EnsoContext.get(this).getNothing();
+        // Note [Safe Access to State in the Debugger Instrument]
+        monadicState = Function.ArgumentsHelper.getState(frame.getArguments());
+        nodeState = new ReplExecutionEventNodeState(lastReturn, lastScope);
+        startSessionImpl();
+      }
+    }
+
     @CompilerDirectives.TruffleBoundary
-    private void startSession() {
+    private void startSessionImpl() {
       if (handler.hasClient()) {
         handler.startSession(this);
       } else {
@@ -275,6 +300,37 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
       CallerInfo getLastScope() {
         return lastScope;
       }
+    }
+  }
+
+  private final class AtTheEndOfFirstMethod implements ExecutionEventNodeFactory {
+    private final Instrumenter instr;
+    private final DebuggerMessageHandler handler;
+    private final TruffleInstrument.Env env;
+    private EventBinding<?> firstMethod;
+
+    AtTheEndOfFirstMethod(DebuggerMessageHandler h, TruffleInstrument.Env env, Instrumenter instr) {
+      this.instr = instr;
+      this.handler = h;
+      this.env = env;
+    }
+
+    final void activate(String methodName) {
+      var b = SourceSectionFilter.newBuilder();
+      b.tagIs(StandardTags.RootBodyTag.class);
+      b.rootNameIs(
+          (n) -> {
+            return methodName.equals(n);
+          });
+      var anyMethod = b.build();
+      this.firstMethod = instr.attachExecutionEventFactory(anyMethod, this);
+    }
+
+    @Override
+    public ExecutionEventNode create(EventContext ctx) {
+      firstMethod.dispose();
+      var log = env.getLogger(ReplExecutionEventNodeImpl.class);
+      return new ReplExecutionEventNodeImpl(true, ctx, handler, log);
     }
   }
 }

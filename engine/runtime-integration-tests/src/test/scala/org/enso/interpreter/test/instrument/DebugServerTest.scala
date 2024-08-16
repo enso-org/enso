@@ -15,7 +15,7 @@ class DebugServerTest
 
   override def contextModifiers: Option[Context#Builder => Context#Builder] =
     Some(b => {
-      b.option(DebugServerInfo.FN_OPTION, "main")
+      b.option(DebugServerInfo.FN_OPTION, "Test.main")
     })
 
   override def specify(implicit
@@ -27,7 +27,7 @@ class DebugServerTest
         """
           |import Standard.Base.Runtime.Debug
           |
-          |main = Debug.breakpoint
+          |main = "hi"
           |""".stripMargin
       setSessionManager(executor => executor.exit())
       eval(code)
@@ -36,13 +36,11 @@ class DebugServerTest
     "be able to execute arbitrary code in the caller scope" in {
       val code =
         """
-          |import Standard.Base.Runtime.Debug
           |import Standard.Base.Data.Numbers
           |
           |main =
           |    x = 1
           |    y = 2
-          |    Debug.breakpoint
           |""".stripMargin
       var evalResult: Either[Exception, ObjectRepresentation] =
         null
@@ -57,11 +55,10 @@ class DebugServerTest
     "be able to define its local variables" in {
       val code =
         """
-          |import Standard.Base.Runtime.Debug
+          |import Standard.Base.Data.Numbers
           |
           |main =
           |    x = 10
-          |    Debug.breakpoint
           |""".stripMargin
       setSessionManager { executor =>
         executor.evaluate("y = x + 1")
@@ -75,14 +72,12 @@ class DebugServerTest
     "be able to list local variables in its scope" in {
       val code =
         """
-          |import Standard.Base.Runtime.Debug
+          |import Standard.Base.Data.Numbers
           |
           |main =
           |    x = 10
           |    y = 20
           |    z = x + y
-          |
-          |    Debug.breakpoint
           |""".stripMargin
       var scopeResult: Map[String, ObjectRepresentation] = Map()
       setSessionManager { executor =>
@@ -100,14 +95,12 @@ class DebugServerTest
     "be able to list bindings it has created" in {
       val code =
         """
-          |import Standard.Base.Runtime.Debug
+          |import Standard.Base.Data.Numbers
           |
           |main =
           |    x = 10
           |    y = 20
           |    z = x + y
-          |
-          |    Debug.breakpoint
           |""".stripMargin
       var scopeResult: Map[String, ObjectRepresentation] = Map()
       setSessionManager { executor =>
@@ -126,10 +119,10 @@ class DebugServerTest
     "handle errors gracefully" in {
       val code =
         """
-          |import Standard.Base.Runtime.Debug
+          |import Standard.Base.Data.Numbers
           |
           |main =
-          |    Debug.breakpoint
+          |    "hi"
           |""".stripMargin
       var evalResult: Either[Exception, ObjectRepresentation] =
         null
@@ -167,11 +160,10 @@ class DebugServerTest
     "attach language stack traces to the exception" in {
       val code =
         """
-          |import Standard.Base.Runtime.Debug
           |import Standard.Base.Panic.Panic
           |
           |main =
-          |    Debug.breakpoint
+          |    "hi"
           |""".stripMargin
       var evalResult: Either[Exception, ObjectRepresentation] =
         null
@@ -188,7 +180,7 @@ class DebugServerTest
 
       val traceMethodNames = lastException.getStackTrace.map(_.getMethodName)
       traceMethodNames should contain("Panic.throw")
-      traceMethodNames should contain("Debug.breakpoint")
+      traceMethodNames should contain("Test::Test::main")
     }
   }
 }
