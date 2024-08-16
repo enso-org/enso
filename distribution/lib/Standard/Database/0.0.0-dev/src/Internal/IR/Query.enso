@@ -28,7 +28,7 @@ type Query
        Arguments:
        - table_name: The name of the table to insert to.
        - pairs: A list of pairs consisting of a column name and and expression.
-    Insert table_name pairs
+    Insert (table_name : Text) (pairs : Vector (Pair Text SQL_Expression))
 
     ## PRIVATE
 
@@ -104,3 +104,23 @@ type Query
        This will usually be a query of the form
        `DELETE FROM target WHERE (key_columns...) EXISTS (SELECT 1 FROM source WHERE source.key_columns = target.key_columns)`.
     Delete_Matching_Rows (target_table_name:Text) (source_table_name:Text) (key_columns : Vector Text)
+
+    traverse : (Any -> Any) -> Query
+    traverse self f -> Query =
+        rec e = e.traverse f
+        do_name_exps pairs = pairs.if_not_nothing (pairs.map pair-> [pair.first, rec pair.second])
+
+        new_query = case self of
+            Query.Select expressions context ->
+                Query.Select (do_name_exps expressions) (rec context)
+            Query.Insert table_name pairs ->
+                Query.Insert table_name (do_name_exps pairs)
+            Query.Create_Table _ _ _ _ -> self
+            Query.Drop_Table _ _ -> self
+            Query.Insert_From_Select table_name column_names select ->
+                Query.Insert_From_Select table_name column_names (rec select) 
+            Query.Update_From_Table _ _ _ _ -> self
+            Query.Delete_Unmatched_Rows _ _ _ -> self
+            Query.Delete_Matching_Rows _ _ _ -> self
+            _ -> Panic.throw "not handled"
+        f new_query

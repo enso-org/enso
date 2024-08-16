@@ -98,3 +98,21 @@ type SQL_Expression
        - standalone_expression: the full, original expression bound in the
          enclosing `With` value.
     With_Ref (binder : Text) (standalone_expression : SQL_Expression)
+
+    traverse : (Any -> Any) -> SQL_Expression
+    traverse self f -> SQL_Expression =
+        rec e = e.traverse f
+        new_sql_expression = case self of
+            SQL_Expression.Column _ _ -> self
+            SQL_Expression.Constant _ -> self
+            SQL_Expression.Literal _ -> self
+            SQL_Expression.Text_Literal _ -> self
+            SQL_Expression.Operation kind expressions metadata ->
+                IO.println "MMM "+metadata.to_text
+                SQL_Expression.Operation kind (expressions.map rec) metadata
+            SQL_Expression.With binder bindee body ->
+                SQL_Expression.With binder (rec bindee) (rec body)
+            SQL_Expression.With_Ref binder standalone_expression ->
+                SQL_Expression.With_Ref binder (rec standalone_expression)
+            _ -> Panic.throw "not handled"
+        f new_sql_expression

@@ -7,3 +7,13 @@ import project.Internal.IR.SQL_Expression.SQL_Expression
 type Order_Descriptor
     ## PRIVATE
     Value (expression : SQL_Expression) (direction : Sort_Direction) (nulls_order : Nothing | Nulls_Order = Nothing) (collation : Nothing | Text = Nothing)
+
+    traverse : (Any -> Any) -> Order_Descriptor
+    traverse self f -> Order_Descriptor =
+        rec e = e.traverse f
+
+        new_order_descriptor = case self of
+            Order_Descriptor.Value expression direction nulls_order collation ->
+                Order_Descriptor.Value (rec expression) direction nulls_order collation
+            _ -> Panic.throw "not handled"
+        f new_order_descriptor  
