@@ -178,7 +178,6 @@ type Context
         new_context = case self of
             Context.Value from_spec where_filters orders groups limit extensions ->
                 Context.Value (from_spec.traverse f) (where_filters.map rec) (orders.map rec) (groups.map rec) limit (extensions.map rec)
-            _ -> Panic.throw "not handled"
         f new_context
 
 ## PRIVATE
@@ -216,5 +215,4 @@ type Context_Extension
         new_context_extension = case self of
             Context_Extension.Value position expressions run_generator ->
                 Context_Extension.Value position (expressions.map rec) run_generator
-            _ -> Panic.throw "not handled"
         f new_context_extension

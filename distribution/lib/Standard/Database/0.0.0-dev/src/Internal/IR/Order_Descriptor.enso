@@ -15,5 +15,4 @@ type Order_Descriptor
         new_order_descriptor = case self of
             Order_Descriptor.Value expression direction nulls_order collation ->
                 Order_Descriptor.Value (rec expression) direction nulls_order collation
-            _ -> Panic.throw "not handled"
         f new_order_descriptor  

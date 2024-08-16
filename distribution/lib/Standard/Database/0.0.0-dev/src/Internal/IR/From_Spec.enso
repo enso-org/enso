@@ -106,7 +106,6 @@ type From_Spec
                 From_Spec.Union (queries.map rec) alias
             From_Spec.Sub_Query columns context alias ->
                 From_Spec.Sub_Query (do_name_exps columns) (rec context) alias
-            _ -> Panic.throw "not handled"
         f new_from_spec 
 
 ## PRIVATE

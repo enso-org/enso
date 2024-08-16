@@ -122,5 +122,4 @@ type Query
             Query.Update_From_Table _ _ _ _ -> self
             Query.Delete_Unmatched_Rows _ _ _ -> self
             Query.Delete_Matching_Rows _ _ _ -> self
-            _ -> Panic.throw "not handled"
         f new_query

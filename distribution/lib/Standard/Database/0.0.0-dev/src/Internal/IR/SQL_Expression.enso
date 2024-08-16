@@ -113,5 +113,4 @@ type SQL_Expression
                 SQL_Expression.With binder (rec bindee) (rec body)
             SQL_Expression.With_Ref binder standalone_expression ->
                 SQL_Expression.With_Ref binder (rec standalone_expression)
-            _ -> Panic.throw "not handled"
         f new_sql_expression
