@@ -705,19 +705,19 @@ export const COLORS = [
   { lightness: 50, chroma: 66, hue: 34 },
   // Yellow
   { lightness: 50, chroma: 66, hue: 80 },
-  // Turquoise
+  // Green
   { lightness: 50, chroma: 66, hue: 139 },
   // Teal
   { lightness: 50, chroma: 66, hue: 172 },
   // Blue
   { lightness: 50, chroma: 66, hue: 271 },
-  // Lavender
+  // Purple
   { lightness: 50, chroma: 66, hue: 295 },
   // Pink
   { lightness: 50, chroma: 66, hue: 332 },
-  // Light blue
+  // Light blueish grey
   { lightness: 50, chroma: 22, hue: 252 },
-  // Dark blue
+  // Dark blueish grey
   { lightness: 22, chroma: 13, hue: 252 },
   /* eslint-enable @typescript-eslint/no-magic-numbers */
 ] as const satisfies LChColor[]

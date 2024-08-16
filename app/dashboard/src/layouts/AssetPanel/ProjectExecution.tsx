@@ -16,12 +16,26 @@ import { tv } from '#/utilities/tailwindVariants'
 
 const PROJECT_EXECUTION_STYLES = tv({
   base: 'flex flex-row w-full items-center',
+  variants: {
+    repeatInterval: {
+      hourly: { repeatInterval: 'bg-[oklch(65%_0.2_100)] text-white' },
+      daily: { repeatInterval: 'bg-[oklch(65%_0.2_139)] text-white' },
+      weekly: { repeatInterval: 'bg-[oklch(65%_0.2_250)] text-white' },
+      monthly: { repeatInterval: 'bg-[oklch(65%_0.2_295)] text-white' },
+    },
+    parallelMode: {
+      ignore: { parallelMode: 'bg-[oklch(65%_0.2_100)] text-white' },
+      restart: { parallelMode: 'bg-[oklch(65%_0.2_60)] text-white' },
+      parallel: { parallelMode: 'bg-[oklch(65%_0.2_250)] text-white' },
+    },
+  },
   slots: {
     timeContainer: 'group flex flex-row items-center gap-2 grow px-2 py-0.5',
     time: '',
     timeButtons: 'opacity-0 group-hover:opacity-100 transition-[opacity]',
     optionContainer: 'grow-0',
-    optionDisplay: 'cursor-default hover:border-primary/40 hover:bg-transparent',
+    repeatInterval: 'cursor-default',
+    parallelMode: 'cursor-default',
   },
 })
 
@@ -52,7 +66,10 @@ export default function ProjectExecution(props: ProjectExecutionProps) {
       : `${time.hour || 12}${minuteString} am`
     : `xx${minuteString || ':00'}`
 
-  const styles = PROJECT_EXECUTION_STYLES({})
+  const styles = PROJECT_EXECUTION_STYLES({
+    repeatInterval: projectExecution.repeatInterval,
+    parallelMode: projectExecution.parallelMode,
+  })
 
   const deleteProjectExecution = useMutation(
     backendMutationOptions(backend, 'deleteProjectExecution'),
@@ -83,19 +100,19 @@ export default function ProjectExecution(props: ProjectExecutionProps) {
       <ButtonGroup className={styles.optionContainer()}>
         <Button
           size="xsmall"
-          variant="outline"
+          variant="custom"
           icon={RepeatIcon}
           tooltip={getText('repeatIntervalLabel')}
-          className={styles.optionDisplay()}
+          className={styles.repeatInterval()}
         >
           {getText(backendModule.REPEAT_INTERVAL_TO_TEXT_ID[projectExecution.repeatInterval])}
         </Button>
         <Button
           size="xsmall"
-          variant="outline"
+          variant="custom"
           tooltip={getText('parallelModeLabel')}
           icon={ParallelIcon}
-          className={styles.optionDisplay()}
+          className={styles.parallelMode()}
         >
           {getText(backendModule.PARALLEL_MODE_TO_TEXT_ID[projectExecution.parallelMode])}
         </Button>
