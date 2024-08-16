@@ -93,14 +93,20 @@ print_single_result (test_result : Test_Result) (config : Suite_Config) =
    only if running in the GitHub Actions environment.
 report_github_error_message (title : Text) (message : Text) =
     is_enabled = Environment.get "GITHUB_ACTIONS" == "true"
-    # TODO message contains e.g. (at X:\NBO\enso\test\Base_Tests\src\Data\Text_Spec.enso:74:13-53) we can extract location from this
-    sanitize text =
-        lines = text.lines
-        suffix = if lines.length > 1 then " (... and " + (lines.length - 1).to_text + " more lines)" else ""
-        lines.first + suffix
+    sanitize_message txt = txt.replace '\n' '%0A'
+    sanitize_parameter txt = txt . replace '\n' '%0A' . replace ',' '%2C'
     if is_enabled then
-        safe_title = (sanitize title).replace "," ";"
-        IO.println "::error title="+safe_title+"::"+(sanitize message)
+        location_match = Regex.compile "at ((?:[A-Za-z]:)?[^:]+):([0-9]+):" . match message
+        location_part = if location_match.is_nothing then "" else
+            repo_root = enso_project.root.parent.parent.absolute.normalize
+            IO.println repo_root
+            path = File.new (location_match.get 1)
+            IO.println path
+            relative_path = repo_root.relativize path
+            IO.println relative_path
+            line = location_match.get 2
+            ",file="+(sanitize_parameter relative_path.to_text)+",line="+(sanitize_parameter line)+""
+        IO.println "::error title="+(sanitize_parameter title)+location_part+"::"+(sanitize_message message)
 
 ## Prints all the results, optionally writing them to a jUnit XML output.
 
