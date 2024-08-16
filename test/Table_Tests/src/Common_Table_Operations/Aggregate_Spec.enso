@@ -1294,8 +1294,8 @@ add_specs suite_builder setup =
             m1.column_count . should_equal 1
             m1.columns.first.at 0 . should_equal 2
 
-    suite_builder.group prefix+"Table.aggregate First and Last" group_builder->
-        group_builder.specify "should not return the same value for groups with different values but equal ordering keys" (pending = resolve_pending test_selection.first_last) <|
+    suite_builder.group prefix+"Table.aggregate First and Last" (pending = resolve_pending test_selection.first_last) group_builder->
+        group_builder.specify "should not return the same value for groups with different values but equal ordering keys" <|
             t1 = table_builder [["G", ["a", "a"]], ["X", [1, 2]]]
             order = [Sort_Column.Name "G"]
             r1 = t1.aggregate columns=[First "X" (order_by=order), Last "X" (order_by=order)]
@@ -1305,6 +1305,17 @@ add_specs suite_builder setup =
             first = m1.columns.first.at 0
             last = m1.columns.second.at 0
             (first != last).should_be_true
+
+        group_builder.specify "should respect the `ignore_nothing` setting" <|
+            t1 = table_builder [["ix", [1, 2, 3, 4, 5]], ["A", [Nothing, "a", "b", "c", Nothing]]]
+            r1 = t1.aggregate columns=[First "A" order_by="ix" ignore_nothing=False, Last "A" order_by="ix" ignore_nothing=False, First "A" order_by="ix" ignore_nothing=True, Last "A" order_by="ix" ignore_nothing=True]
+            r1.column_names . should_equal ["First A", "Last A", "First A 1", "Last A 1"]
+            m1 = materialize r1
+            m1.row_count . should_equal 1
+            m1.at "First A" . to_vector . should_equal [Nothing]
+            m1.at "Last A" . to_vector . should_equal [Nothing]
+            m1.at "First A 1" . to_vector . should_equal ["a"]
+            m1.at "Last A 1" . to_vector . should_equal ["c"]
 
     suite_builder.group prefix+"Table.aggregate" group_builder->
         group_builder.specify "should work even if no aggregations apart from groupings are specified" <|
