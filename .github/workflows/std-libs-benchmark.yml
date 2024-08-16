@@ -58,51 +58,6 @@ jobs:
     env:
       GRAAL_EDITION: GraalVM CE
     timeout-minutes: 240
-  benchmark-standard-libraries-oracle-graal-vm:
-    name: Benchmark Standard Libraries (Oracle GraalVM)
-    runs-on:
-      - benchmark
-    steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: v0.10.2
-      - name: Expose Artifact API and context information.
-        uses: actions/github-script@v7
-        with:
-          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - name: Checking out the repository
-        uses: actions/checkout@v4
-        with:
-          clean: false
-          submodules: recursive
-      - name: Build Script Setup
-        run: ./run --help || (git clean -ffdx && ./run --help)
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: (always())
-        name: Clean before
-        run: ./run git-clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run backend benchmark enso-jmh
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
-      - if: (always())
-        name: Clean after
-        run: ./run git-clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    env:
-      GRAAL_EDITION: Oracle GraalVM
-    timeout-minutes: 240
 env:
   ENSO_BUILD_MINIMAL_RUN: ${{ true == inputs.just-check }}
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"
