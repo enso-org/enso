@@ -46,7 +46,7 @@ const DATE_PICKER_STYLES = tv({
     calendarPopover: 'w-0',
     calendarDialog: 'text-primary text-xs',
     calendarContainer: '',
-    calendarHeader: 'flex h-8 items-center',
+    calendarHeader: 'flex items-center mb-2',
     calendarHeading: 'grow text-center',
     calendarGrid: '',
     calendarGridHeader: 'flex',
@@ -132,7 +132,7 @@ export const DatePicker = forwardRef(function DatePicker<
                 <Button variant="icon" icon={ArrowIcon} className="rotate-90" />
               </Group>
               <Text slot="description" />
-              <Popover className={classes.calendarPopover()}>
+              <Popover size="auto" className={classes.calendarPopover()}>
                 <Dialog className={classes.calendarDialog()}>
                   <Calendar className={classes.calendarContainer()}>
                     <header className={classes.calendarHeader()}>
