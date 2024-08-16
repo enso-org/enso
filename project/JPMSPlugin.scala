@@ -20,6 +20,11 @@ object JPMSPlugin extends AutoPlugin {
     val addModules = settingKey[Seq[String]](
       "Module names that will be added to --add-modules option"
     )
+    val moduleDependencies = taskKey[Seq[ModuleID]](
+      "Modules dependencies that will be added to --module-path option. List all the sbt modules " +
+      "that should be added on module-path, including internal dependencies. To get ModuleID for a " +
+      "local dependency, use the `projectID` setting."
+    )
     val modulePath = taskKey[Seq[File]](
       "Directories (Jar archives or expanded Jar archives) that will be put into " +
       "--module-path option"
@@ -51,7 +56,19 @@ object JPMSPlugin extends AutoPlugin {
 
   override lazy val projectSettings: Seq[Setting[_]] = Seq(
     addModules := Seq.empty,
-    modulePath := Seq.empty,
+    moduleDependencies := Seq.empty,
+    // modulePath is set based on moduleDependencies
+    modulePath := {
+      val cp = JPMSUtils.filterModulesFromClasspath(
+        // Do not use fullClasspath here - it will result in an infinite recursion
+        // and sbt will not be able to detect the cycle.
+        (Compile / dependencyClasspath).value,
+        (Compile / moduleDependencies).value,
+        streams.value.log,
+        shouldContainAll = true
+      )
+      cp.map(_.data)
+    },
     patchModules := Map.empty,
     addExports := Map.empty,
     addReads := Map.empty,
@@ -74,6 +91,15 @@ object JPMSPlugin extends AutoPlugin {
         (Compile / addExports).value,
         (Compile / addReads).value
       )
+    },
+    Test / modulePath := {
+      val cp = JPMSUtils.filterModulesFromClasspath(
+        (Test / dependencyClasspath).value,
+        (Test / moduleDependencies).value,
+        streams.value.log,
+        shouldContainAll = true
+      )
+      cp.map(_.data)
     },
     Test / javacOptions ++= {
       constructOptions(

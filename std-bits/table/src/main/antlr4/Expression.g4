@@ -17,6 +17,7 @@ expr:   expr op=POWER expr                                # Power
     |   '(' expr ')'                                      # Paren
     |   COLUMN_NAME                                       # Column
     |   MINUS expr                                        # UnaryMinus
+    |   '..' IDENTIFIER                                   # Atom
     |   value                                             # Literal
     ;
 

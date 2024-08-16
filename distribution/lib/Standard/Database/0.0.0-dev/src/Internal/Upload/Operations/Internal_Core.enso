@@ -13,8 +13,8 @@ import project.Internal.DDL_Transaction.Transactional_Table_Description
 import project.Internal.In_Transaction.In_Transaction
 import project.Internal.IR.Query.Query
 import project.SQL_Query.SQL_Query
-from project.Errors import SQL_Error, Table_Already_Exists, Unsupported_Database_Operation
 from project.Dialect import Temp_Table_Style
+from project.Errors import SQL_Error, Table_Already_Exists, Unsupported_Database_Operation
 from project.Internal.Upload.Helpers.Argument_Checks import resolve_primary_key
 from project.Internal.Upload.Helpers.Constants import default_batch_size
 from project.Internal.Upload.Helpers.Error_Helpers import handle_upload_errors, internal_translate_known_upload_errors

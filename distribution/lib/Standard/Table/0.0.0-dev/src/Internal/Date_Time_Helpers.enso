@@ -12,18 +12,10 @@ import project.Value_Type.Value_Type
 align_period_with_value_type value_type (period : Date_Period | Time_Period) = case value_type of
     Value_Type.Date ->
         if period.is_a Date_Period then period else
-            ## We don't 'officially' allow `Time_Period` for Date, but since
-               `Time_Period.Day` and `Date_Period.Day` in this context can be interchangeable,
-               we allow it as an exception - we just swap it to be the right type.
-            if period == Time_Period.Day then Date_Period.Day else
-                Error.throw (Illegal_Argument.Error "`Time_Period` is not allowed for Date columns. Use `Date_Period`.")
+            Error.throw (Illegal_Argument.Error "`Time_Period` is not allowed for Date columns. Use `Date_Period`.")
     Value_Type.Time ->
-        case period of
-            _ : Date_Period ->
-                Error.throw (Illegal_Argument.Error "`Date_Period` is not allowed for Time columns. Use `Time_Period`.")
-            Time_Period.Day ->
-                Error.throw (Illegal_Argument.Error "`Time_Period.Day` does not make sense for Time columns.")
-            _ -> period
+        if period.is_a Time_Period then period else
+            Error.throw (Illegal_Argument.Error "`Date_Period` is not allowed for Time columns. Use `Time_Period`.")
     Value_Type.Date_Time _ ->
         ## Both kinds are allowed for `Date_Time` columns, return them as-is.
         period
@@ -41,7 +33,6 @@ make_date_part_function column period make_unary_op naming_helper =
                 Date_Period.Month -> make_unary_op column "month"
                 Date_Period.Week _ -> make_unary_op column "week"
                 Date_Period.Day -> make_unary_op column "day"
-                Time_Period.Day -> make_unary_op column "day"
                 Time_Period.Hour -> make_unary_op column "hour"
                 Time_Period.Minute -> make_unary_op column "minute"
                 Time_Period.Second -> make_unary_op column "second"

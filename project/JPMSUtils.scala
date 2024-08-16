@@ -70,9 +70,14 @@ object JPMSUtils {
     })
     if (shouldContainAll) {
       if (ret.size < distinctModules.size) {
-        log.error("Not all modules from classpath were found")
-        log.error(s"Returned (${ret.size}): $ret")
-        log.error(s"Expected: (${distinctModules.size}): $distinctModules")
+        log.error("[JPMSUtils] Not all modules from classpath were found")
+        log.error(
+          "[JPMSUtils] Ensure libraryDependencies and moduleDependencies are correct"
+        )
+        log.error(s"[JPMSUtils] Returned (${ret.size}): $ret")
+        log.error(
+          s"[JPMSUtils] Expected: (${distinctModules.size}): $distinctModules"
+        )
       }
     }
     ret
@@ -107,9 +112,14 @@ object JPMSUtils {
     )
     if (shouldContainAll) {
       if (foundFiles.size < distinctModules.size) {
-        log.error("Not all modules from update were found")
-        log.error(s"Returned (${foundFiles.size}): $foundFiles")
-        log.error(s"Expected: (${distinctModules.size}): $distinctModules")
+        log.error("[JPMSUtils] Not all modules from update were found")
+        log.error(
+          "[JPMSUtils] Ensure libraryDependencies and moduleDependencies are correct"
+        )
+        log.error(s"[JPMSUtils] Returned (${foundFiles.size}): $foundFiles")
+        log.error(
+          s"[JPMSUtils] Expected: (${distinctModules.size}): $distinctModules"
+        )
       }
     }
     foundFiles
