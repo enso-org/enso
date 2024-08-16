@@ -99,13 +99,10 @@ report_github_error_message (title : Text) (message : Text) =
         location_match = Regex.compile "at ((?:[A-Za-z]:)?[^:]+):([0-9]+):" . match message
         location_part = if location_match.is_nothing then "" else
             repo_root = enso_project.root.parent.parent.absolute.normalize
-            IO.println repo_root
             path = File.new (location_match.get 1)
-            IO.println path
             relative_path = repo_root.relativize path
-            IO.println relative_path
             line = location_match.get 2
-            ",file="+(sanitize_parameter relative_path.to_text)+",line="+(sanitize_parameter line)+""
+            ",file="+(sanitize_parameter relative_path.path)+",line="+(sanitize_parameter line)+""
         IO.println "::error title="+(sanitize_parameter title)+location_part+"::"+(sanitize_message message)
 
 ## Prints all the results, optionally writing them to a jUnit XML output.
