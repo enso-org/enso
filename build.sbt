@@ -836,15 +836,10 @@ lazy val `profiling-utils` = project
       "junit"          % "junit"           % junitVersion   % Test,
       "com.github.sbt" % "junit-interface" % junitIfVersion % Test
     ),
-    modulePath := {
-      JPMSUtils.filterModulesFromUpdate(
-        update.value,
-        Seq(
-          "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion,
-          "org.slf4j"        % "slf4j-api"                    % slf4jVersion
-        ),
-        streams.value.log,
-        shouldContainAll = true
+    moduleDependencies := {
+      Seq(
+        "org.slf4j"      % "slf4j-api"       % slf4jVersion,
+        "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion,
       )
     }
   )
@@ -1585,32 +1580,14 @@ lazy val `language-server` = (project in file("engine/language-server"))
       (`profiling-utils` / javaModuleName).value,
       (`ydoc-server` / javaModuleName).value
     ),
-    Test / modulePath := {
-      val updateReport = (Test / update).value
-      val requiredModIds =
-        GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ helidon ++ Seq(
-          "org.slf4j"        % "slf4j-api"                    % slf4jVersion,
-          "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion
-        )
-      val requiredMods = JPMSUtils.filterModulesFromUpdate(
-        updateReport,
-        requiredModIds,
-        streams.value.log,
-        shouldContainAll = true
-      )
-      val runtimeMod =
-        (`runtime-fat-jar` / Compile / productDirectories).value.head
-      val syntaxMod =
-        (`syntax-rust-definition` / Compile / productDirectories).value.head
-      val ydocMod =
-        (`ydoc-server` / Compile / productDirectories).value.head
-      val profilingMod =
-        (`profiling-utils` / Compile / productDirectories).value.head
-      requiredMods ++ Seq(
-        runtimeMod,
-        syntaxMod,
-        ydocMod,
-        profilingMod
+    Test / moduleDependencies := {
+      GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ helidon ++ Seq(
+        "org.slf4j"        % "slf4j-api"                    % slf4jVersion,
+        "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion,
+        (`runtime-fat-jar` / projectID).value,
+        (`syntax-rust-definition` / projectID).value,
+        (`ydoc-server` / projectID).value,
+        (`profiling-utils` / projectID).value,
       )
     },
     Test / javaOptions ++= testLogProviderOptions,
@@ -1698,6 +1675,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(filewatcher)
   .dependsOn(testkit % Test)
   .dependsOn(`logging-service-logback` % "test->test")
+  .dependsOn(`runtime-fat-jar` % Test)
   .dependsOn(`library-manager-test` % Test)
   .dependsOn(`runtime-version-manager-test` % Test)
   .dependsOn(`ydoc-server`)
