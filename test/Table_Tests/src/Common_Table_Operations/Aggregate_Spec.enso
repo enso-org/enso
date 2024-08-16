@@ -32,6 +32,9 @@ type Data
         empty_table = empty_table_fn Nothing
         [table, empty_table]
 
+type Lazy_Ref
+    Value ~get
+
 ## Runs the common aggregate tests.
 add_specs suite_builder setup =
     prefix = setup.prefix
@@ -1061,9 +1064,10 @@ add_specs suite_builder setup =
             m1.columns.first.name . should_equal "Count Distinct A B"
             m1.columns.first.to_vector . should_equal [3]
 
-        group_builder.specify "should work correctly with Boolean columns" pending=(if prefix.contains "Snowflake" then "TODO: fix https://github.com/enso-org/enso/issues/10611") <|
-            table = table_builder [["A", [True, True, True]], ["B", [False, False, False]], ["C", [True, False, True]], ["D", [Nothing, False, True]]]
-
+        table_for_boolean_tests = Lazy_Ref.Value <|
+            table_builder [["A", [True, True, True]], ["B", [False, False, False]], ["C", [True, False, True]], ["D", [Nothing, False, True]], ["E", [1, 1, 2]]]
+        group_builder.specify "should work correctly with Boolean columns" <|
+            table = table_for_boolean_tests.get
             t_with_nulls = table.aggregate columns=[..Count_Distinct "A", ..Count_Distinct "B", ..Count_Distinct "C", ..Count_Distinct "D"]
             m1 = materialize t_with_nulls
             m1.column_count . should_equal 4
@@ -1080,6 +1084,15 @@ add_specs suite_builder setup =
             m2.at "Count Distinct C" . to_vector . should_equal [2]
             # The NULL is ignored, and not counted towards the total
             m2.at "Count Distinct D" . to_vector . should_equal [2]
+
+        group_builder.specify "should work correctly with Boolean columns (multi-column mode)" (pending = resolve_pending test_selection.multi_distinct) <|
+            table = table_for_boolean_tests.get
+            # It should also work if multiple columns are used for the criteria and if the columns are mixed boolean-and-non-boolean
+            t_many_and_mixed = table.aggregate columns=[..Count_Distinct ["A", "B"], ..Count_Distinct ["C", "E"]]
+            m3 = materialize t_many_and_mixed
+            m3.column_count . should_equal 2
+            m3.at "Count Distinct A B" . to_vector . should_equal [1]
+            m3.at "Count Distinct C E" . to_vector . should_equal [3]
 
     suite_builder.group prefix+"Table.aggregate Standard_Deviation" pending=(resolve_pending test_selection.std_dev) group_builder->
         group_builder.specify "should correctly handle single elements" <|

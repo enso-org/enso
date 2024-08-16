@@ -47,10 +47,10 @@ import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.exception.BadPatternMatch
 import org.enso.compiler.pass.analyse.alias.graph.Graph.{Scope => AliasScope}
 import org.enso.compiler.pass.analyse.{
-  alias,
   AliasAnalysis,
   BindingAnalysis,
   DataflowAnalysis,
+  FramePointerAnalysis,
   TailCall
 }
 import org.enso.compiler.pass.analyse.alias.AliasMetadata
@@ -302,13 +302,12 @@ class IrToTruffle(
       val unprocessedArg = atomDefn.arguments(idx)
       val checkNode      = checkAsTypes(unprocessedArg)
       val arg            = argFactory.run(unprocessedArg, idx, checkNode)
-      val occInfo = unprocessedArg
+      val fp = unprocessedArg
         .unsafeGetMetadata(
-          AliasAnalysis,
-          "No occurrence on an argument definition."
+          FramePointerAnalysis,
+          "No frame pointer on an argument definition."
         )
-        .unsafeAs[alias.AliasMetadata.Occurrence]
-      val slotIdx = localScope.getVarSlotIdx(occInfo.id)
+      val slotIdx = fp.frameSlotIdx()
       argDefs(idx) = arg
       val readArg =
         ReadArgumentNode.build(
@@ -1823,17 +1822,14 @@ class IrToTruffle(
     private def processBinding(
       binding: Expression.Binding
     ): RuntimeExpression = {
-      val occInfo = binding
+      val fp = binding
         .unsafeGetMetadata(
-          AliasAnalysis,
-          "Binding with missing occurrence information."
+          FramePointerAnalysis,
+          "Binding with missing frame pointer."
         )
-        .unsafeAs[AliasMetadata.Occurrence]
 
       currentVarName = binding.name.name
-
-      val slotIdx = scope.getVarSlotIdx(occInfo.id)
-
+      val slotIdx = fp.frameSlotIdx()
       setLocation(
         AssignmentNode.build(this.run(binding.expression, true, true), slotIdx),
         binding.location
@@ -1889,7 +1885,11 @@ class IrToTruffle(
       val nameExpr = name match {
         case literalName: Name.Literal =>
           val resolver = new RuntimeNameResolution()
-          resolver.resolveName(literalName)
+          val fpMeta = literalName.passData.get(FramePointerAnalysis) match {
+            case Some(meta: FramePointerAnalysis.FramePointerMeta) => meta
+            case _                                                 => null
+          }
+          resolver.resolveName(literalName, fpMeta)
         case Name.MethodReference(
               None,
               Name.Literal(nameStr, _, _, _, _, _),
@@ -1945,11 +1945,22 @@ class IrToTruffle(
     }
 
     private class RuntimeNameResolution
-        extends NameResolutionAlgorithm[RuntimeExpression, FramePointer] {
+        extends NameResolutionAlgorithm[
+          RuntimeExpression,
+          FramePointer,
+          FramePointerAnalysis.FramePointerMeta
+        ] {
       override protected def findLocalLink(
-        occurrenceMetadata: org.enso.compiler.pass.analyse.alias.AliasMetadata.Occurrence
-      ): Option[FramePointer] =
-        scope.getFramePointer(occurrenceMetadata.id)
+        fpMeta: FramePointerAnalysis.FramePointerMeta
+      ): Option[FramePointer] = {
+        if (scope.flattenToParent && fpMeta.parentLevel() > 0) {
+          Some(
+            new FramePointer(fpMeta.parentLevel() - 1, fpMeta.frameSlotIdx())
+          )
+        } else {
+          Some(fpMeta.framePointer)
+        }
+      }
 
       override protected def resolveLocalName(
         localLink: FramePointer
@@ -2191,14 +2202,12 @@ class IrToTruffle(
             val checkNode = checkAsTypes(unprocessedArg)
             val arg       = argFactory.run(unprocessedArg, idx, checkNode)
             argDefinitions(idx) = arg
-            val occInfo = unprocessedArg
+            val fp = unprocessedArg
               .unsafeGetMetadata(
-                AliasAnalysis,
-                "No occurrence on an argument definition."
+                FramePointerAnalysis,
+                "No frame pointer on an argument definition."
               )
-              .unsafeAs[AliasMetadata.Occurrence]
-
-            val slotIdx = scope.getVarSlotIdx(occInfo.id)
+            val slotIdx = fp.frameSlotIdx()
             val readArg =
               ReadArgumentNode.build(
                 idx,

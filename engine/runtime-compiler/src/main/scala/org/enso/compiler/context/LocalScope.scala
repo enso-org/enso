@@ -73,43 +73,6 @@ class LocalScope(
     )
   }
 
-  /** Get a frame slot index for a given identifier.
-    *
-    * The identifier must be present in the local scope.
-    *
-    * @param id the identifier of a variable definition occurrence from alias
-    *           analysis.
-    * @return the frame slot index for `id`.
-    */
-  def getVarSlotIdx(id: AliasGraph.Id): Int = {
-    assert(
-      localFrameSlotIdxs.contains(id),
-      "Cannot find " + id + " in " + localFrameSlotIdxs
-    )
-    localFrameSlotIdxs(id)
-  }
-
-  /** Obtains the frame pointer for a given identifier from the current scope, or from
-    * any parent scopes.
-    *
-    * @param id the identifier of a variable usage occurrence from alias
-    *           analysis
-    * @return the frame pointer for `id`, if it exists
-    */
-  def getFramePointer(id: AliasGraph.Id): Option[FramePointer] = {
-    aliasingGraph
-      .defLinkFor(id)
-      .flatMap { link =>
-        val slotIdx = allFrameSlotIdxs.get(link.target)
-        slotIdx.map(
-          new FramePointer(
-            if (flattenToParent) link.scopeCount - 1 else link.scopeCount,
-            _
-          )
-        )
-      }
-  }
-
   /** Collects all the bindings in the current stack of scopes, accounting for
     * shadowing.
     *
@@ -154,7 +117,7 @@ class LocalScope(
   }
 
   override def toString: String = {
-    s"LocalScope(${allFrameSlotIdxs.keySet})"
+    s"LocalScope(flattenToParent = ${flattenToParent}, allFrameSlotIdxs = ${allFrameSlotIdxs.keySet})"
   }
 }
 object LocalScope {
@@ -177,7 +140,7 @@ object LocalScope {
     * Every tuple of the list denotes frame slot kind and its name.
     * Note that `info` for a frame slot is not used by Enso.
     */
-  def monadicStateSlotName: String   = "<<monadic_state>>"
-  private def internalSlotsSize: Int = 1
+  def monadicStateSlotName: String = "<<monadic_state>>"
+  def internalSlotsSize: Int       = 1
 
 }
