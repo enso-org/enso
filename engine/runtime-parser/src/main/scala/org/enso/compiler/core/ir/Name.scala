@@ -750,15 +750,21 @@ object Name {
       * @return a copy of `this`, updated with the specified values
       */
     def copy(
-      location: Option[IdentifiedLocation] = location,
       synthetic: Boolean                   = synthetic,
+      location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Self = {
-      val res = Self(location, synthetic, passData, diagnostics)
-      res.id = id
-      res
+      if (synthetic != this.synthetic
+      ||  location != this.location
+      || passData != this.passData
+      || diagnostics != this.diagnostics
+      || id != this.id) {
+        val res = Self(location, synthetic, passData, diagnostics)
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -833,9 +839,14 @@ object Name {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): SelfType = {
-      val res = SelfType(location, passData, diagnostics)
-      res.id = id
-      res
+      if (location != this.location
+      || passData != this.passData
+      || diagnostics != this.diagnostics
+      || id != this.id) {
+        val res = SelfType(location, passData, diagnostics)
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */

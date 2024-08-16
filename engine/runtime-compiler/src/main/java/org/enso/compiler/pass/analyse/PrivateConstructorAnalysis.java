@@ -74,6 +74,7 @@ public final class PrivateConstructorAnalysis implements IRPass {
         ir.imports(),
         ir.exports(),
         newBindings,
+        ir.isPrivate(),
         ir.location(),
         ir.passData(),
         ir.diagnostics(),

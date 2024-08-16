@@ -67,9 +67,17 @@ object Foreign {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Definition = {
-      val res = Definition(lang, code, location, passData, diagnostics)
-      res.id = id
-      res
+      if (lang != this.lang
+        || code != this.code
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id) {
+
+        val res = Definition(lang, code, location, passData, diagnostics)
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */

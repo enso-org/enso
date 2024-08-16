@@ -99,6 +99,7 @@ case object MethodDefinitions extends IRPass {
         ) match {
           case Some(Resolution(ResolvedType(_, tp)))
               if canGenerateStaticWrappers(tp) =>
+            assert(method.body.isInstanceOf[Function.Lambda])
             val dup = method.duplicate()
             // This is the self argument that will receive the `SelfType.type` value upon dispatch, it is added to avoid modifying the dispatch mechanism.
             val syntheticModuleSelfArg = DefinitionArgument.Specified(

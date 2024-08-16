@@ -64,9 +64,17 @@ object Section {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Left = {
-      val res = Left(arg, operator, location, passData, diagnostics)
-      res.id = id
-      res
+      if (arg != this.arg
+        || operator != this.operator
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id) {
+
+        val res = Left(arg, operator, location, passData, diagnostics)
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -164,9 +172,15 @@ object Section {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Sides = {
-      val res = Sides(operator, location, passData, diagnostics)
-      res.id = id
-      res
+      if (operator != this.operator
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id) {
+        val res = Sides(operator, location, passData, diagnostics)
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -259,9 +273,17 @@ object Section {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Right = {
-      val res = Right(operator, arg, location, passData, diagnostics)
-      res.id = id
-      res
+      if (operator != this.operator
+        || arg != this.arg
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id) {
+
+        val res = Right(operator, arg, location, passData, diagnostics)
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */

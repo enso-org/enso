@@ -135,6 +135,7 @@ public final class PrivateModuleAnalysis implements IRPass {
         convertedImports,
         convertedExports,
         moduleIr.bindings(),
+        moduleIr.isPrivate(),
         moduleIr.location(),
         moduleIr.passData(),
         moduleIr.diagnostics(),

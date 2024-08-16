@@ -50,9 +50,16 @@ object Type {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Function = {
-      val res = Function(args, result, location, passData, diagnostics)
-      res.id = id
-      res
+      if (args != this.args
+      || result != this.result
+      || location != this.location
+      || passData != this.passData
+      || diagnostics != this.diagnostics
+      || id != this.id) {
+        val res = Function(args, result, location, passData, diagnostics)
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -158,10 +165,18 @@ object Type {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Ascription = {
-      val res =
-        Ascription(typed, signature, comment, location, passData, diagnostics)
-      res.id = id
-      res
+      if (typed != this.typed
+      || signature != this.signature
+      || comment != this.comment
+      || location != this.location
+      || passData != this.passData
+      || diagnostics != this.diagnostics
+      || id != this.id) {
+        val res =
+          Ascription(typed, signature, comment, location, passData, diagnostics)
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -266,9 +281,16 @@ object Type {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Context = {
-      val res = Context(typed, context, location, passData, diagnostics)
-      res.id = id
-      res
+      if (typed != this.typed
+      || context != this.context
+      || location != this.location
+      || passData != this.passData
+      || diagnostics != this.diagnostics
+      || id != this.id) {
+        val res = Context(typed, context, location, passData, diagnostics)
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -370,9 +392,16 @@ object Type {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Error = {
-      val res = Error(typed, error, location, passData, diagnostics)
-      res.id = id
-      res
+      if (typed != this.typed
+      || error != this.error
+      || location != this.location
+      || passData != this.passData
+      || diagnostics != this.diagnostics
+      || id != this.id) {
+        val res = Error(typed, error, location, passData, diagnostics)
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
