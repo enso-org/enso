@@ -185,7 +185,7 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
           <Form.FormError />
           <ButtonGroup>
             <Form.Submit />
-            <Button variant="cancel" onPress={close}>
+            <Button variant="outline" onPress={close}>
               {getText('cancel')}
             </Button>
           </ButtonGroup>
