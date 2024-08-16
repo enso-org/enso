@@ -10,6 +10,7 @@ from Standard.Table import all hiding Table
 from Standard.Table.Errors import all
 import Standard.Table.Expression.Expression_Error
 
+import Standard.Database.Internal.IR.SQL_Expression.SQL_Expression
 from Standard.Database.Errors import SQL_Error
 
 from Standard.Test import all
@@ -356,6 +357,16 @@ add_specs suite_builder setup =
             t = table_builder [["X", [10, 20, 13, 4, 5]]]
             t.filter "unknown column" . should_fail_with No_Such_Column
             t.filter "unknown column" . catch . should_equal (No_Such_Column.Error "unknown column")
+
+        group_builder.specify "asdfasdf" <|
+            t = table_builder [["X", [10, 20, 13, 4, 5]]]
+            t.to_select_query.traverse x->
+                case x of
+                    SQL_Expression.Column _ _ ->
+                        IO.println "BBBBBB "+x.to_text
+                    _ -> Nothing
+                IO.println "TTTTTT "+x.to_text
+                x
 
         group_builder.specify "should handle selection errors: out of bounds index" <|
             t = table_builder [["X", [10, 20, 13, 4, 5]]]
