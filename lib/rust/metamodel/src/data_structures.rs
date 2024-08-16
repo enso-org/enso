@@ -2,7 +2,6 @@
 
 use vecmap::*;
 
-use derivative::Derivative;
 use derive_where::derive_where;
 use enso_zst::ZST;
 
@@ -175,15 +174,12 @@ pub mod vecmap {
     pub struct Unbound;
 
     /// Identifies a location within a `VecMap`.
-    #[derive(Derivative)]
-    #[derivative(Debug)]
-    #[derive_where(Clone, Copy; State)]
-    #[derive_where(Eq, PartialEq, Ord, PartialOrd, Hash)]
+    #[derive_where(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
     pub struct Key<T, State = MaybeBound> {
         pub(super) index: usize,
-        #[derivative(Debug = "ignore")]
+        #[derive_where(skip)]
         marker:           ZST<T>,
-        #[derivative(Debug = "ignore")]
+        #[derive_where(skip)]
         state:            ZST<State>,
     }
 

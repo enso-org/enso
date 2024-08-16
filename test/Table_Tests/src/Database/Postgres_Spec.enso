@@ -994,7 +994,7 @@ add_data_link_specs suite_builder =
             r.should_fail_with Illegal_Argument
             r.catch.to_display_text . should_contain "The Postgres Data Link does not support writing"
 
-        group_builder.specify "will fail with a clear message if trying to download a Database data link" pending=Http_Test_Setup.pending_has_url <|
+        group_builder.specify "will fail with a clear message if trying to download a Database data link" pending=Http_Test_Setup.pending_has_url <| Test.with_retries <|
             url = Http_Test_Setup.base_url_with_slash+"testfiles/some-postgres.datalink"
             target_file = enso_project.data / "transient" / "some-postgres-target"
             target_file.delete_if_exists

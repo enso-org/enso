@@ -260,9 +260,13 @@ const overFlowStyle = computed(() => {
 }
 
 .after-toolbars {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
   margin-left: auto;
   margin-right: 8px;
   overflow: hidden;
+  width: calc(var(--node-size-x) - var(--permanent-toolbar-width));
 }
 
 .node-type {

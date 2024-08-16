@@ -1,13 +1,18 @@
 <script lang="ts">
 import icons from '@/assets/icons.svg'
-import TextFormattingSelector from '@/components/TextFormattingSelector.vue'
+import { default as TableVizToolbar, type SortModel } from '@/components/TableVizToolbar.vue'
 import AgGridTableView from '@/components/widgets/AgGridTableView.vue'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import { VisualizationContainer, useVisualizationConfig } from '@/util/visualizationBuiltins'
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
-import type { CellClassParams, CellClickedEvent, ICellRendererParams } from 'ag-grid-community'
+import type {
+  CellClassParams,
+  CellClickedEvent,
+  ICellRendererParams,
+  SortChangedEvent,
+} from 'ag-grid-community'
 import type { ColDef } from 'ag-grid-enterprise'
 import { computed, onMounted, ref, shallowRef, watchEffect, type Ref } from 'vue'
 
@@ -101,6 +106,8 @@ const SQLITE_CONNECTIONS_NODE_TYPE =
   'Standard.Database.Internal.SQLite.SQLite_Connection.SQLite_Connection'
 const POSTGRES_CONNECTIONS_NODE_TYPE =
   'Standard.Database.Internal.Postgres.Postgres_Connection.Postgres_Connection'
+const SNOWFLAKE_CONNECTIONS_NODE_TYPE =
+  'Standard.Snowflake.Snowflake_Connection.Snowflake_Connection'
 
 const rowLimit = ref(0)
 const page = ref(0)
@@ -108,6 +115,9 @@ const pageLimit = ref(0)
 const rowCount = ref(0)
 const showRowCount = ref(true)
 const isTruncated = ref(false)
+const isCreateNodeEnabled = ref(false)
+const filterModel = ref({})
+const sortModel = ref<SortModel[]>([])
 const dataGroupingMap = shallowRef<Map<string, boolean>>()
 const defaultColDef: Ref<ColDef> = ref({
   editable: false,
@@ -122,6 +132,7 @@ const rowData = ref<Record<string, any>[]>([])
 const columnDefs: Ref<ColDef[]> = ref([])
 
 const textFormatterSelected = ref<TextFormatOptions>(TextFormatOptions.Partial)
+
 const updateTextFormat = (option: TextFormatOptions) => {
   textFormatterSelected.value = option
 }
@@ -156,6 +167,7 @@ const newNodeSelectorValues = computed(() => {
       break
     case SQLITE_CONNECTIONS_NODE_TYPE:
     case POSTGRES_CONNECTIONS_NODE_TYPE:
+    case SNOWFLAKE_CONNECTIONS_NODE_TYPE:
       tooltipValue = 'table'
       headerName = 'Tables'
       break
@@ -331,7 +343,7 @@ function toField(name: string, valueType?: ValueType | null | undefined): ColDef
     `
   const template =
     icon ?
-      `<span style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'><span ref="eLabel" class="ag-header-cell-label" role="presentation" style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'> ${name} ${menu}</span> ${sort} ${svgTemplate}</span>`
+      `<span style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'><span ref="eLabel" class="ag-header-cell-label" role="presentation" style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'> ${name} </span>  ${menu} ${sort} ${svgTemplate}</span>`
     : `<span ref="eLabel" style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'>${name} ${menu} ${sort}</span>`
   return {
     field: name,
@@ -518,6 +530,38 @@ watchEffect(() => {
   defaultColDef.value.sortable = !isTruncated.value
 })
 
+function checkSortAndFilter(e: SortChangedEvent) {
+  const gridApi = e.api
+  const columnApi = e.columnApi
+  if (gridApi == null || columnApi == null) {
+    console.warn('AG Grid column API does not exist.')
+    isCreateNodeEnabled.value = false
+    return
+  }
+  const colState = columnApi.getColumnState()
+  const filter = gridApi.getFilterModel()
+  const sort = colState
+    .map((cs) => {
+      if (cs.sort) {
+        return {
+          columnName: cs.colId,
+          sortDirection: cs.sort,
+          sortIndex: cs.sortIndex,
+        } as SortModel
+      }
+    })
+    .filter((sort) => sort)
+  if (sort.length || Object.keys(filter).length) {
+    isCreateNodeEnabled.value = true
+    sortModel.value = sort as SortModel[]
+    filterModel.value = filter
+  } else {
+    isCreateNodeEnabled.value = false
+    sortModel.value = []
+    filterModel.value = {}
+  }
+}
+
 // ===============
 // === Updates ===
 // ===============
@@ -530,7 +574,12 @@ onMounted(() => {
 <template>
   <VisualizationContainer :belowToolbar="true" :overflow="true" :toolbarOverflow="true">
     <template #toolbar>
-      <TextFormattingSelector @changeFormat="(i) => updateTextFormat(i)" />
+      <TableVizToolbar
+        :filterModel="filterModel"
+        :sortModel="sortModel"
+        :isDisabled="!isCreateNodeEnabled"
+        @changeFormat="(i) => updateTextFormat(i)"
+      />
     </template>
     <div ref="rootNode" class="TableVisualization" @wheel.stop @pointerdown.stop>
       <div class="table-visualization-status-bar">
@@ -563,6 +612,7 @@ onMounted(() => {
           :columnDefs="columnDefs"
           :rowData="rowData"
           :defaultColDef="defaultColDef"
+          @sortOrFilterUpdated="(e) => checkSortAndFilter(e)"
         />
       </Suspense>
     </div>
@@ -604,5 +654,10 @@ onMounted(() => {
 
 :deep(.link):hover {
   color: darkblue;
+}
+
+.button-wrappers {
+  display: flex;
+  flex-direction: row;
 }
 </style>

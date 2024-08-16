@@ -187,15 +187,23 @@ make_json_for_table dataframe all_rows_count include_index_col =
    Create JSON serialization of values.
 make_json_for_other : Any -> JS_Object
 make_json_for_other x =
-    js_value = x.to_js_object
-    value = if js_value.is_a JS_Object . not then js_value else
-        pairs = [['_display_text_', x.to_display_text]] + js_value.field_names.map f-> [f, make_json_for_value (js_value.get f)]
-        JS_Object.from_pairs pairs
-    link_fields = if js_value.is_a JS_Object . not then [] else
-        if js_value.contains_key 'links' then [["links", js_value.get 'links']] else []
-    additional_fields = if js_value.is_a JS_Object . not then [] else
-        if js_value.contains_key 'get_child_node' then [["get_child_node", js_value.get 'get_child_node']] else []
-    JS_Object.from_pairs <| [["json", value]] + additional_fields + link_fields
+    js_value = Panic.recover Any x.to_js_object
+    supports_js_object = js_value.is_error.not
+    case supports_js_object of
+        True ->
+            value = if js_value.is_a JS_Object . not then js_value else
+                pairs = [['_display_text_', x.to_display_text]] + js_value.field_names.map f-> [f, make_json_for_value (js_value.get f)]
+                JS_Object.from_pairs pairs
+            link_fields = if js_value.is_a JS_Object . not then [] else
+                if js_value.contains_key 'links' then [["links", js_value.get 'links']] else []
+            additional_fields = if js_value.is_a JS_Object . not then [] else
+                if js_value.contains_key 'get_child_node' then [["get_child_node", js_value.get 'get_child_node']] else []
+            JS_Object.from_pairs <| [["json", value]] + additional_fields + link_fields
+
+        # Fallback for objects that fail to be serialized through `to_js_object`.
+        False ->
+            json = JS_Object.from_pairs [["_display_text_", x.to_display_text], ["_to_js_object_error_", js_value.catch.to_display_text]]
+            JS_Object.from_pairs [["json", json]]
 
 ## PRIVATE
    Create JSON serialization of values for the table.
