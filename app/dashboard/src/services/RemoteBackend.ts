@@ -668,6 +668,7 @@ export default class RemoteBackend extends Backend {
     body: backend.CreateProjectExecutionRequestBody,
     // title: string,
   ): Promise<backend.ProjectExecution> {
+    console.log('createProjectExecution', body)
     const projectExecution: backend.ProjectExecution = {
       versionId: backend.S3ObjectVersionId(''),
       projectExecutionId: backend.ProjectExecutionId(uniqueString()),
@@ -692,6 +693,7 @@ export default class RemoteBackend extends Backend {
     executionId: backend.ProjectExecutionId,
     // projectTitle: string,
   ): Promise<void> {
+    console.log('deleteProjectExecution', executionId)
     const index = this.projectExecutions.findIndex(
       (execution) => execution.projectExecutionId === executionId,
     )
@@ -715,6 +717,7 @@ export default class RemoteBackend extends Backend {
     projectId: backend.ProjectId,
     // title: string,
   ): Promise<readonly backend.ProjectExecution[]> {
+    console.log('listProjectExecutions', projectId)
     return Promise.resolve(
       this.projectExecutions.filter((execution) => execution.projectId === projectId),
     )
