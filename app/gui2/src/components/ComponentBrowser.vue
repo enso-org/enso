@@ -5,7 +5,6 @@ import ComponentEditor from '@/components/ComponentBrowser/ComponentEditor.vue'
 import { Filtering } from '@/components/ComponentBrowser/filtering'
 import { useComponentBrowserInput, type Usage } from '@/components/ComponentBrowser/input'
 import { useScrolling } from '@/components/ComponentBrowser/scrolling'
-import DocumentationPanel from '@/components/DocumentationPanel.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
@@ -21,7 +20,7 @@ import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { SuggestionKind, type Typename } from '@/stores/suggestionDatabase/entry'
 import type { VisualizationDataSource } from '@/stores/visualization'
-import { endOnClickOutside, isNodeOutside } from '@/util/autoBlur'
+import { endOnClick, isNodeOutside } from '@/util/autoBlur'
 import { tryGetIndex } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { allRanges } from '@/util/data/range'
@@ -65,6 +64,7 @@ const props = defineProps<{
   nodePosition: Vec2
   navigator: ReturnType<typeof useNavigator>
   usage: Usage
+  closeIfClicked: (e: PointerEvent) => boolean
 }>()
 
 const emit = defineEmits<{
@@ -75,11 +75,14 @@ const emit = defineEmits<{
   ]
   canceled: [],
   selectedSuggestionId: [id: SuggestionId | null],
+  isAiPrompt: [boolean],
 }>()
 
 const cbRoot = ref<HTMLElement>()
 
-const cbOpen: Interaction = endOnClickOutside(cbRoot, {
+defineExpose({ cbRoot })
+
+const cbOpen: Interaction = endOnClick(props.closeIfClicked, {
   cancel: () => emit('canceled'),
   end: () => {
     // In AI prompt mode likely the input is not a valid mode.
@@ -389,13 +392,8 @@ function updateScroll() {
 
 // === Documentation Panel ===
 
-const docsVisible = ref(true)
-
-const docEntry: Ref<Opt<SuggestionId>> = ref(null)
-
-watch(selectedSuggestionId, (id) => {
-  emit('selectedSuggestionId', id)
-})
+watch(selectedSuggestionId, (id) => emit('selectedSuggestionId', id))
+watch(input.isAiPrompt, (v) => emit('isAiPrompt', v))
 
 // === Accepting Entry ===
 
@@ -486,7 +484,6 @@ const handler = componentBrowserBindings.handler({
             <ToggleIcon icon="command3" />
             <ToggleIcon v-model="filterFlags.showUnstable" icon="unstable2" />
             <ToggleIcon icon="marketplace" />
-            <ToggleIcon v-model="docsVisible" icon="right_side_panel" class="first-on-right" />
           </div>
         </div>
         <div v-if="!input.isAiPrompt.value" class="components-content">
@@ -558,9 +555,6 @@ const handler = componentBrowserBindings.handler({
         </div>
         <LoadingSpinner v-if="input.isAiPrompt.value && input.processingAIPrompt" />
       </div>
-      <div class="panel docs" :class="{ hidden: !docsVisible }">
-        <DocumentationPanel v-model:selectedEntry="docEntry" :aiMode="input.isAiPrompt.value" />
-      </div>
     </div>
     <div class="bottom-panel">
       <GraphVisualization
@@ -619,7 +613,7 @@ const handler = componentBrowserBindings.handler({
 }
 
 .components {
-  width: 190px;
+  width: 200px;
   position: relative;
 }
 

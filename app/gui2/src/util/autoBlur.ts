@@ -59,12 +59,20 @@ export function endOnClickOutside(
   area: Ref<Element | VueInstance | null | undefined>,
   interaction: Interaction,
 ): Interaction {
+  return endOnClick((e: PointerEvent) => targetIsOutside(e, unrefElement(area)), interaction) 
+}
+
+export function endOnClick(
+  condition: (e: PointerEvent) => boolean,
+  interaction: Interaction,
+): Interaction {
   const chainedPointerdown = interaction.pointerdown
   const handler = injectInteractionHandler()
   const wrappedInteraction: Interaction = {
     ...interaction,
     pointerdown: (e: PointerEvent, ...args) => {
-      if (targetIsOutside(e, unrefElement(area))) {
+      const shouldEnd = condition(e)
+      if (shouldEnd) {
         handler.end(wrappedInteraction)
         return false
       }

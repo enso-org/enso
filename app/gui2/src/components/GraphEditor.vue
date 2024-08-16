@@ -17,6 +17,7 @@ import DocumentationEditor from '@/components/DocumentationEditor.vue'
 import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
 import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
 import { useGraphEditorClipboard } from '@/components/GraphEditor/clipboard'
+import { useSettings } from '@/stores/settings'
 import { performCollapse, prepareCollapsedInfo } from '@/components/GraphEditor/collapsing'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import { useGraphEditorToasts } from '@/components/GraphEditor/toasts'
@@ -25,6 +26,7 @@ import GraphMouse from '@/components/GraphMouse.vue'
 import PlusButton from '@/components/PlusButton.vue'
 import SceneScroller from '@/components/SceneScroller.vue'
 import TopBar from '@/components/TopBar.vue'
+import { targetIsOutside } from '@/util/autoBlur'
 import { builtinWidgets } from '@/components/widgets'
 import { useAstDocumentation } from '@/composables/astDocumentation'
 import { useDoubleClick } from '@/composables/doubleClick'
@@ -103,6 +105,7 @@ const graphNavigator: GraphNavigator = provideGraphNavigator(viewportNode, keybo
 
 const storedShowRightDock = ref()
 const storedRightDockTab = ref()
+const storedRightDocCB = ref()
 const rightDockWidth = ref<number>()
 
 /**
@@ -121,9 +124,11 @@ interface GraphStoredState {
   /** Whether or not the documentation panel is open. */
   doc: boolean
   /** The selected tab in the right-side panel. */
-  rtab: string
+  rtab: 'docs' | 'help'
   /** Width of the right dock. */
   rwidth: number | null
+  /** Whether to show or hide Component Browser help in the right panel. */
+  rcb: 'show' | 'hide'
 }
 
 const visibleAreasReady = computed(() => {
@@ -131,6 +136,8 @@ const visibleAreasReady = computed(() => {
   const visibleNodeAreas = graphStore.visibleNodeAreas
   return nodesCount > 0 && visibleNodeAreas.length == nodesCount
 })
+
+const { user: userSettings } = useSettings()
 
 useSyncLocalStorage<GraphStoredState>({
   storageKey: 'enso-graph-state',
@@ -151,6 +158,7 @@ useSyncLocalStorage<GraphStoredState>({
       doc: storedShowRightDock.value,
       rtab: storedRightDockTab.value,
       rwidth: rightDockWidth.value ?? null,
+      rcb: storedRightDocCB.value,
     }
   },
   async restoreState(restored, abort) {
@@ -161,6 +169,7 @@ useSyncLocalStorage<GraphStoredState>({
       storedShowRightDock.value = restored.doc ?? undefined
       storedRightDockTab.value = restored.rtab ?? undefined
       rightDockWidth.value = restored.rwidth ?? undefined
+      storedRightDocCB.value = restored.rcb ?? undefined
     } else {
       await until(visibleAreasReady).toBe(true)
       await until(visible).toBe(true)
@@ -404,6 +413,7 @@ const codeEditorHandler = codeEditorBindings.handler({
 // === Documentation Editor ===
 
 const displayedDocs = ref<SuggestionId | null>(null)
+const aiMode = ref<boolean>(false)
 
 const docEditor = shallowRef<ComponentInstance<typeof DocumentationEditor>>()
 const documentationEditorArea = computed(() => unrefElement(docEditor))
@@ -413,10 +423,14 @@ const showRightDock = computedFallback(
   () => !!documentation.state.value,
 )
 const rightDockTab = computedFallback(storedRightDockTab, () => 'docs')
+const showCBDocs = computedFallback(
+  storedRightDocCB,
+  () => 'show',
+)
 
 const documentationEditorHandler = documentationEditorBindings.handler({
   toggle() {
-    showRightDock.value = !showRightDock.value
+    currentVis.value = !currentVis.value
   },
 })
 
@@ -439,7 +453,98 @@ function openComponentBrowser(usage: Usage, position: Vec2) {
 function hideComponentBrowser() {
   graphStore.editedNodeInfo = undefined
   componentBrowserVisible.value = false
+  displayedDocs.value = null
 }
+
+/* 
+showHelp
+tab
+show
+CB
+
+currentTab = CB ? (showHelp ? : 'help' : CBtab) : tab
+currentVis = CB ? (showHelp ? : true : CBshow) : show
+
+currentTab:update => update showHelp & tab/CBtab
+currentVis:update => update showHelp & show/CBshow
+
+Case 1: ✅
+Doc tab opened, CB closed, showHelp = true
+Open CB
+tab = 'help'
+Close CB
+tab = 'doc'
+
+Case 2: ✅
+Doc tab opened, CB closed, showHelp = true
+Open CB
+tab = 'help'
+Choose 'doc' tab
+tab = 'doc'
+showHelp = false
+Close CB
+tab = 'doc'
+
+Case 3: ✅
+Doc tab opened, CB closed, showHelp = true
+Open CB
+tab = 'help'
+Close doc panel
+showHelp = false
+hide panel
+Close CB
+tab = 'doc'
+show panel
+
+Case 4:
+Doc tab opened, CB closed, showHelp = true
+Close doc panel
+hide panel
+Open CB
+show panel
+tab = 'help'
+Close CB
+hide panel
+Open doc panel
+show panel
+tab = 'doc'
+
+CBtab = 'doc'
+showHelpForCB = false
+
+showHelpForCB -> false && !showRightDock => currentVis = false
+
+*/
+
+const CBtab = ref('help')
+const CBvis = ref(true)
+const currentTab = computed({
+  get() {
+    return componentBrowserVisible.value ? (userSettings.value.showHelpForCB ? 'help' : rightDockTab.value) : rightDockTab.value
+  },
+  set(tab) {
+    if (componentBrowserVisible.value) {
+      CBtab.value = tab
+      userSettings.value.showHelpForCB = tab === 'help'
+    } else {
+      rightDockTab.value = tab
+    }
+  }
+})
+const currentVis = computed({
+  get() {
+    return componentBrowserVisible.value ? (userSettings.value.showHelpForCB ? true : CBvis.value) : showRightDock.value
+  },
+  set(vis) {
+    if (componentBrowserVisible.value) {
+      CBvis.value = vis
+      userSettings.value.showHelpForCB = vis
+    } else {
+      showRightDock.value = vis
+    }
+  }
+})
+
 
 function editWithComponentBrowser(node: NodeId, cursorPos: number) {
   openComponentBrowser(
@@ -486,6 +591,17 @@ watch(
     }
   },
 )
+
+const componentBrowser = ref()
+const docPanel = ref()
+
+const closeIfClicked = computed(() => {
+  return (e: PointerEvent) => {
+    const cbRoot = componentBrowser.value?.cbRoot
+    const docPanelRoot = docPanel.value?.root
+    return targetIsOutside(e, cbRoot) && targetIsOutside(e, docPanelRoot)
+  }
+})
 
 // === Node Creation ===
 
@@ -692,18 +808,20 @@ const groupColors = computed(() => {
           :navigator="graphNavigator"
           :nodePosition="componentBrowserNodePosition"
           :usage="componentBrowserUsage"
+          :closeIfClicked="closeIfClicked"
           @accepted="commitComponentBrowser"
           @canceled="hideComponentBrowser"
           @selectedSuggestionId="(displayedDocs = $event)"
+          @isAiPrompt="(aiMode = $event)"
         />
         <TopBar
           v-model:recordMode="projectStore.recordMode"
           v-model:showColorPicker="showColorPicker"
           v-model:showCodeEditor="showCodeEditor"
-          v-model:showDocumentationEditor="showRightDock"
+          v-model:showDocumentationEditor="currentVis"
           :zoomLevel="100.0 * graphNavigator.targetScale"
           :componentsSelected="nodeSelection.selected.size"
-          :class="{ extraRightSpace: !showRightDock }"
+          :class="{ extraRightSpace: !currentVis }"
           @fitToAllClicked="zoomToSelected"
           @zoomIn="graphNavigator.stepZoom(+1)"
           @zoomOut="graphNavigator.stepZoom(-1)"
@@ -724,9 +842,10 @@ const groupColors = computed(() => {
       </BottomPanel>
     </div>
     <DockPanel
-      v-model:show="showRightDock"
+      ref="docPanel"
+      v-model:show="currentVis"
       v-model:size="rightDockWidth"
-      v-model:tab="rightDockTab"
+      v-model:tab="currentTab"
     >
       <template #docs>
         <DocumentationEditor
@@ -736,7 +855,7 @@ const groupColors = computed(() => {
         />
       </template>
       <template #help>
-        <ComponentDocumentation :displayedSuggestionId="displayedDocs" />
+        <ComponentDocumentation :displayedSuggestionId="displayedDocs" :aiMode="aiMode" />
       </template>
     </DockPanel>
   </div>

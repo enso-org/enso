@@ -21,6 +21,8 @@ const size = defineModel<number | undefined>('size')
 const tab = defineModel<Tab>('tab')
 
 const slideInPanel = ref<HTMLElement>()
+const root = ref<HTMLElement>()
+defineExpose({ root })
 
 const computedSize = useResizeObserver(slideInPanel)
 const computedBounds = computed(() => new Rect(Vec2.Zero, computedSize.value))
@@ -43,42 +45,48 @@ const tabStyle = {
 </script>
 
 <template>
-  <ToggleIcon
-    v-model="show"
-    :title="`Documentation Panel (${documentationEditorBindings.bindings.toggle.humanReadable})`"
-    icon="right_panel"
-    class="toggleDock"
-  />
-  <SizeTransition width :duration="100">
-    <div v-if="show" ref="slideInPanel" :style="style" class="DockPanel" data-testid="rightDock">
-      <div class="content">
-        <slot v-if="tab == 'docs'" name="docs" />
-        <slot v-else-if="tab == 'help'" name="help" />
-      </div>
-      <div class="tabBar">
-        <div class="tab" :style="tabStyle">
-          <ToggleIcon
-            :modelValue="tab == 'docs'"
-            @update:modelValue="tab = 'docs'"
-            title="Documentation Editor"
-            icon="text"
-          />
+  <div ref="root" class="DockPanelRoot" data-testid="rightDockRoot">
+    <ToggleIcon
+      v-model="show"
+      :title="`Documentation Panel (${documentationEditorBindings.bindings.toggle.humanReadable})`"
+      icon="right_panel"
+      class="toggleDock"
+    />
+    <SizeTransition width :duration="100">
+      <div v-if="show" ref="slideInPanel" :style="style" class="DockPanel" data-testid="rightDock">
+        <div class="content">
+          <slot v-if="tab == 'docs'" name="docs" />
+          <slot v-else-if="tab == 'help'" name="help" />
         </div>
-        <div class="tab" :style="tabStyle">
-          <ToggleIcon
-            :modelValue="tab == 'help'"
-            @update:modelValue="tab = 'help'"
-            title="Component Help"
-            icon="help"
-          />
+        <div class="tabBar">
+          <div class="tab" :style="tabStyle">
+            <ToggleIcon
+              :modelValue="tab == 'docs'"
+              @update:modelValue="tab = 'docs'"
+              title="Documentation Editor"
+              icon="text"
+            />
+          </div>
+          <div class="tab" :style="tabStyle">
+            <ToggleIcon
+              :modelValue="tab == 'help'"
+              @update:modelValue="tab = 'help'"
+              title="Component Help"
+              icon="help"
+            />
+          </div>
         </div>
+        <ResizeHandles left :modelValue="computedBounds" @update:modelValue="size = $event.width" />
       </div>
-      <ResizeHandles left :modelValue="computedBounds" @update:modelValue="size = $event.width" />
-    </div>
-  </SizeTransition>
+    </SizeTransition>
+  </div>
 </template>
 
 <style scoped>
+.DockPanelRoot {
+  display: flex;
+}
+
 .DockPanel {
   position: relative;
   --icon-margin: 16px;
