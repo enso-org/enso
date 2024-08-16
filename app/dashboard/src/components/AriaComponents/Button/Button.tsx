@@ -201,7 +201,9 @@ export const BUTTON_STYLES = twv.tv({
       ghost:
         'text-primary hover:text-primary/80 hover:bg-white focus-visible:text-primary/80 focus-visible:bg-white',
       submit: 'bg-invite text-white opacity-80 hover:opacity-100',
-      outline: 'border-primary/20 text-primary hover:border-primary hover:bg-primary/5',
+      outline: 'border-primary/40 text-primary hover:border-primary hover:bg-primary/5',
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      'outline-light': 'border-primary/20 text-primary hover:border-primary hover:bg-primary/5',
     },
     iconPosition: {
       start: { content: '' },
