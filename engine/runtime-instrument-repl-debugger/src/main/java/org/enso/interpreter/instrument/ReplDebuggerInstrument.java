@@ -80,6 +80,36 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
         throw new RuntimeException(e);
       }
     }
+    if (!"".equals(env.getOptions().get(FN_OPTION))) {
+      SourceSectionFilter filter =
+          SourceSectionFilter.newBuilder().tagIs(DebuggerTags.AlwaysHalt.class).build();
+
+      DebuggerMessageHandler handler = new DebuggerMessageHandler();
+      try {
+        MessageEndpoint client = env.startServer(URI.create(DebugServerInfo.URI), handler);
+        if (client != null) {
+          handler.setClient(client);
+          Instrumenter instrumenter = env.getInstrumenter();
+          instrumenter.attachExecutionEventFactory(
+              filter,
+              ctx ->
+                  ctx.getInstrumentedNode() instanceof DebugBreakpointNode
+                      ? new ReplExecutionEventNodeImpl(
+                          ctx, handler, env.getLogger(ReplExecutionEventNodeImpl.class))
+                      : null);
+        } else {
+          env.getLogger(ReplDebuggerInstrument.class)
+              .warning("ReplDebuggerInstrument was initialized, " + "but no client connected");
+        }
+      } catch (MessageTransport.VetoException e) {
+        env.getLogger(ReplDebuggerInstrument.class)
+            .warning(
+                "ReplDebuggerInstrument was initialized, "
+                    + "but client connection has been vetoed");
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    }
   }
 
   @Override
