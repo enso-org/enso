@@ -2992,6 +2992,7 @@ lazy val editions = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    compileOrder := CompileOrder.ScalaThenJava, // Note [JPMS Compile order]
     libraryDependencies ++= Seq(
       "io.circe"      %% "circe-core" % circeVersion     % "provided",
       "org.yaml"       % "snakeyaml"  % snakeyamlVersion % "provided",
@@ -3024,8 +3025,7 @@ lazy val semver = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
-    // Compile order needed for JPMSPlugin to work correctly. More specifically,
-    // to force compilation of `module-info.java`
+    // Note [JPMS Compile order]
     compileOrder := CompileOrder.JavaThenScala,
     libraryDependencies ++= Seq(
       "io.circe"      %% "circe-core"      % circeVersion     % "provided",
