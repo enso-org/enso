@@ -1508,7 +1508,13 @@ lazy val `polyglot-api` = project
       "org.scalatest"                         %% "scalatest"             % scalatestVersion          % Test,
       "org.scalacheck"                        %% "scalacheck"            % scalacheckVersion         % Test
     ),
-    compileOrder := CompileOrder.ScalaThenJava, // Note [JPMS Compile order]
+    javaModuleName := "org.enso.polyglot.api",
+    // Note [Compile module-info]
+    excludeFilter := excludeFilter.value || "module-info.java",
+    Compile / compileModuleInfo := JPMSUtils
+      .compileModuleInfo()
+      .dependsOn(Compile / compile)
+      .value,
     moduleDependencies := Seq(
       "com.google.flatbuffers"                 % "flatbuffers-java"      % flatbuffersVersion,
       "org.graalvm.truffle"                    % "truffle-api"           % graalMavenPackagesVersion
