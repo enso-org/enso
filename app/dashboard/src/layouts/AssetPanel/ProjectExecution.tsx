@@ -15,10 +15,11 @@ import * as backendModule from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
 
 const PROJECT_EXECUTION_STYLES = tv({
-  base: 'relative flex gap-2 w-full items-center rounded-2xl border-0.5 border-primary/20 p-2 pt-6',
+  base: 'flex flex-row w-full items-center',
   slots: {
-    timeContainer: 'grow px-2 py-0.5 text-center',
+    timeContainer: 'group flex flex-row items-center gap-2 grow px-2 py-0.5',
     time: '',
+    timeButtons: 'opacity-0 group-hover:opacity-100 transition-[opacity]',
     optionContainer: 'grow-0',
     optionDisplay: 'cursor-default hover:border-primary/40 hover:bg-transparent',
   },
@@ -59,40 +60,40 @@ export default function ProjectExecution(props: ProjectExecutionProps) {
 
   return (
     <div className={styles.base()}>
-      <DialogTrigger>
-        <CloseButton
-          className="absolute left-2 top-2"
-          tooltip={getText('delete')}
-          tooltipPlacement="right"
-        />
-        <ConfirmDeleteModalNew
-          actionText={getText('deleteThisProjectExecution')}
-          doDelete={async () => {
-            await deleteProjectExecution([projectExecution.projectExecutionId, item.title])
-          }}
-        />
-      </DialogTrigger>
       <div className={styles.timeContainer()}>
         <Text elementType="time" className={styles.time()}>
-          {time.date != null && time.date + 1}
-          {time.day != null && getText(DAY_TEXT_IDS[time.day] ?? 'monday')}
+          {time.date != null && `${time.date + 1} `}
+          {time.day != null && `${getText(DAY_TEXT_IDS[time.day] ?? 'monday')} `}
           {timeString}
         </Text>
+        <DialogTrigger>
+          <CloseButton
+            className={styles.timeButtons()}
+            tooltip={getText('delete')}
+            tooltipPlacement="top left"
+          />
+          <ConfirmDeleteModalNew
+            actionText={getText('deleteThisProjectExecution')}
+            doDelete={async () => {
+              await deleteProjectExecution([projectExecution.projectExecutionId, item.title])
+            }}
+          />
+        </DialogTrigger>
       </div>
-      <ButtonGroup direction="column" className={styles.optionContainer()}>
+      <ButtonGroup className={styles.optionContainer()}>
         <Button
+          size="xsmall"
           variant="outline"
           icon={RepeatIcon}
           tooltip={getText('repeatIntervalLabel')}
-          tooltipPlacement="left"
           className={styles.optionDisplay()}
         >
           {getText(backendModule.REPEAT_INTERVAL_TO_TEXT_ID[projectExecution.repeatInterval])}
         </Button>
         <Button
+          size="xsmall"
           variant="outline"
           tooltip={getText('parallelModeLabel')}
-          tooltipPlacement="left"
           icon={ParallelIcon}
           className={styles.optionDisplay()}
         >

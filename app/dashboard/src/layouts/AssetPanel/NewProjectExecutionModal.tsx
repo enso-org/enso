@@ -6,6 +6,7 @@ import {
   getDayOfWeek,
   getLocalTimeZone,
   now,
+  toCalendarDate,
   toTimeZone,
 } from '@internationalized/date'
 import { useMutation } from '@tanstack/react-query'
@@ -31,6 +32,8 @@ import {
 } from '#/components/AriaComponents'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useText, type GetText } from '#/providers/TextProvider'
+
+const REPEAT_TIMES_COUNT = 5
 
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 /** Create the form schema for this page. */
@@ -71,15 +74,17 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
   const { backend, item, defaultOpen } = props
   const { getText } = useText()
 
+  const nowZonedDateTime = now(getLocalTimeZone())
   const form = Form.useForm({ schema: createUpsertExecutionSchema(getText) })
-  const repeatInterval = form.watch('repeatInterval')
+  const repeatInterval = form.watch('repeatInterval', 'weekly')
   const parallelMode = form.watch('parallelMode', 'restart')
+  const date = form.watch('date', nowZonedDateTime)
 
   const createProjectExecution = useMutation(
     backendMutationOptions(backend, 'createProjectExecution'),
   ).mutateAsync
 
-  const minFirstOccurrence = now(getLocalTimeZone())
+  const minFirstOccurrence = nowZonedDateTime
   const maxFirstOccurrence = (() => {
     switch (repeatInterval) {
       case 'hourly': {
@@ -96,6 +101,23 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
       }
     }
   })()
+
+  const repeatTimes = Array.from({ length: REPEAT_TIMES_COUNT }, (_, i) => {
+    switch (repeatInterval) {
+      case 'hourly': {
+        return date.add({ hours: i })
+      }
+      case 'daily': {
+        return date.add({ days: i })
+      }
+      case 'weekly': {
+        return date.add({ weeks: i })
+      }
+      case 'monthly': {
+        return date.add({ months: i })
+      }
+    }
+  })
 
   return (
     <Dialog title={getText('newProjectExecution')} {...(defaultOpen != null && { defaultOpen })}>
@@ -151,7 +173,14 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
             minValue={minFirstOccurrence}
             maxValue={maxFirstOccurrence}
           />
-          {/* FIXME: Show next 5 repeats vertically with opacity-50, and show tooltips on "parallel mode" options */}
+          {repeatInterval !== 'hourly' && (
+            <Text>
+              {getText(
+                'repeatsAtX',
+                repeatTimes.map((time) => toCalendarDate(time).toString()).join(', '),
+              )}
+            </Text>
+          )}
 
           <Form.FormError />
           <ButtonGroup>

@@ -42,7 +42,7 @@ const DATE_PICKER_STYLES = tv({
   slots: {
     inputGroup: 'flex items-center h-8 gap-2 rounded-full border-0.5 border-primary/20 px-4',
     dateInput: 'flex',
-    dateSegment: 'placeholder-shown:text-primary/30',
+    dateSegment: 'rounded placeholder-shown:text-primary/30 focus:bg-primary/10 px-[0.5px]',
     calendarPopover: 'w-0',
     calendarDialog: 'text-primary text-xs',
     calendarContainer: '',

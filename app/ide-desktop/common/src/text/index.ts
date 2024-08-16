@@ -130,6 +130,8 @@ interface PlaceholderOverrides {
   readonly tryFree: [days: number]
   readonly organizationNameSettingsInputDescription: [howLong: number]
   readonly trialDescription: [days: number]
+
+  readonly repeatsAtX: [dates: string]
 }
 
 /** An tuple of `string` for placeholders for each {@link TextId}. */
