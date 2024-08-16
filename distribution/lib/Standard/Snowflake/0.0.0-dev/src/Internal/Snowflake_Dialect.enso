@@ -331,7 +331,7 @@ make_dialect_operations =
         operations = [["date_add", make_date_add], ["date_diff", make_date_diff], ["date_trunc_to_day", make_date_trunc_to_day]]
         trivial + fractional + other + operations
     other = [["IIF", make_iif], ["RUNTIME_ERROR", make_runtime_error_op], ["ROW_NUMBER_IN_GROUP", make_row_number_in_group]]
-    my_mappings = text + counts + stats + arith_extensions + bool + date_ops + other
+    my_mappings = text + counts + stats + arith_extensions + bool + date_ops + other + first_last_aggregators
     Base_Generator.base_dialect_operations . extend_with my_mappings
 
 ## PRIVATE
@@ -381,11 +381,16 @@ first_last_aggregators =
 
 ## PRIVATE
 make_first_aggregator reverse ignore_null args =
-    if args.length < 2 then Error.throw (Illegal_State.Error "Insufficient number of arguments for the operation.") else
+    if args.length < 2 then Panic.throw (Illegal_State.Error "Insufficient number of arguments for the operation.") else
         result_expr = args.first
         order_bys = args.drop 1
 
-        method_name = if reverse then "LAST_VALUE" else "FIRST_VALUE"
+        # TODO do a hack here for single column ordering???
+        if order_bys.length != 1 then
+            Panic.throw (Illegal_State.Error "The operation requires exactly one `order_by` column. This should have been checked by pre-checks.")
+
+        method_name = if reverse then "MAX_BY" else "MIN_BY"
+        # TODO
         filter_clause = if ignore_null then ") IGNORE NULLS" else ")"
         order_clause = SQL_Builder.code " OVER (ORDER BY " ++ SQL_Builder.join "," order_bys ++ ")"
         SQL_Builder.code (method_name + "(") ++ result_expr ++ filter_clause ++ order_clause
