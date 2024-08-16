@@ -5,7 +5,7 @@ import {
 } from '@/stores/suggestionDatabase/entry'
 import type { Opt } from '@/util/data/opt'
 import { Range } from '@/util/data/range'
-import { qnIsTopElement, qnParent, type QualifiedName } from '@/util/qualifiedName'
+import { qnLastSegment, type QualifiedName } from '@/util/qualifiedName'
 import escapeStringRegexp from '@/util/regexp'
 
 export type SelfArg =
@@ -18,24 +18,25 @@ export type SelfArg =
 export interface Filter {
   pattern?: string
   selfArg?: SelfArg
-  qualifiedNamePattern?: string
-  showUnstable?: boolean
-  showLocal?: boolean
 }
 
 export enum MatchTypeScore {
   NameWordMatchFirst = 0,
-  AliasWordMatchFirst = 1000,
   NameWordMatch = 2000,
-  AliasWordMatch = 3000,
   NameInitialMatch = 4000,
-  AliasInitialMatch = 5000,
+}
+const NONEXACT_MATCH_PENALTY = 50
+const ALIAS_PENALTY = 1000
+const OWNER_SCORE_WEIGHT = 1
+
+interface NameMatchResult {
+  score: number
+  ranges: Range[]
 }
 
 interface MatchedParts {
   matchedAlias?: string
   nameRanges?: Range[]
-  definedInRanges?: Range[]
   memberOfRanges?: Range[]
 }
 
@@ -43,7 +44,7 @@ export interface MatchResult extends MatchedParts {
   score: number
 }
 
-class FilteringWithPattern {
+class FilteringName {
   pattern: string
   wordMatchRegex: RegExp
   initialsMatchRegex?: RegExp
@@ -89,19 +90,11 @@ class FilteringWithPattern {
       words.push(matches[i]!, matches[i + 1]!)
     }
     const matchedWords = words.join('_')
-    const nonexactMatchPenalty = this.pattern === matchedString ? 0 : 50
+    const nonexactMatchPenalty = this.pattern === matchedString ? 0 : NONEXACT_MATCH_PENALTY
     const nonexactWordMatchPenalty = Math.floor(
       ((matchedWords.length - this.pattern.length) * 50) / matchedWords.length,
     )
     return matchType + nonexactMatchPenalty + nonexactWordMatchPenalty
-  }
-
-  private firstMatchingAlias(entry: SuggestionEntry) {
-    for (const alias of entry.aliases) {
-      const match = this.wordMatchRegex.exec(alias)
-      if (match != null) return { alias, match }
-    }
-    return null
   }
 
   private static wordMatchRanges(wordMatch: RegExpExecArray) {
@@ -128,63 +121,26 @@ class FilteringWithPattern {
     return result
   }
 
-  tryMatch(entry: SuggestionEntry): MatchResult | null {
-    const nameWordsMatch = this.wordMatchRegex?.exec(entry.name)
-    if (nameWordsMatch?.[1]?.length === 0) {
+  tryMatch(name: string): NameMatchResult | null {
+    const wordsMatch = this.wordMatchRegex?.exec(name)
+    if (wordsMatch?.[1]?.length === 0) {
       return {
-        score: this.matchedWordsScore(
-          MatchTypeScore.NameWordMatchFirst,
-          entry.name,
-          nameWordsMatch,
-        ),
-        nameRanges: FilteringWithPattern.wordMatchRanges(nameWordsMatch),
+        score: this.matchedWordsScore(MatchTypeScore.NameWordMatchFirst, name, wordsMatch),
+        ranges: FilteringName.wordMatchRanges(wordsMatch),
       }
     }
-    const matchedAlias = this.firstMatchingAlias(entry)
-    if (matchedAlias?.match?.[1]?.length === 0) {
+    if (wordsMatch) {
       return {
-        matchedAlias: matchedAlias.alias,
-        score: this.matchedWordsScore(
-          MatchTypeScore.AliasWordMatchFirst,
-          matchedAlias.alias,
-          matchedAlias.match,
-        ),
-        nameRanges: FilteringWithPattern.wordMatchRanges(matchedAlias.match),
-      }
-    }
-    if (nameWordsMatch) {
-      return {
-        score: this.matchedWordsScore(MatchTypeScore.NameWordMatch, entry.name, nameWordsMatch),
-        nameRanges: FilteringWithPattern.wordMatchRanges(nameWordsMatch),
-      }
-    }
-    if (matchedAlias) {
-      return {
-        matchedAlias: matchedAlias.alias,
-        score: this.matchedWordsScore(
-          MatchTypeScore.AliasWordMatch,
-          matchedAlias.alias,
-          matchedAlias.match,
-        ),
-        nameRanges: FilteringWithPattern.wordMatchRanges(matchedAlias.match),
+        score: this.matchedWordsScore(MatchTypeScore.NameWordMatch, name, wordsMatch),
+        ranges: FilteringName.wordMatchRanges(wordsMatch),
       }
     }
     if (this.initialsMatchRegex) {
-      const initialsMatch = this.initialsMatchRegex.exec(entry.name)
+      const initialsMatch = this.initialsMatchRegex.exec(name)
       if (initialsMatch) {
         return {
           score: MatchTypeScore.NameInitialMatch,
-          nameRanges: FilteringWithPattern.initialsMatchRanges(initialsMatch),
-        }
-      }
-      for (const alias of entry.aliases) {
-        const initialsMatch = this.initialsMatchRegex.exec(alias)
-        if (initialsMatch) {
-          return {
-            matchedAlias: alias,
-            score: MatchTypeScore.AliasInitialMatch,
-            nameRanges: FilteringWithPattern.initialsMatchRanges(initialsMatch),
-          }
+          ranges: FilteringName.initialsMatchRanges(initialsMatch),
         }
       }
     }
@@ -192,47 +148,39 @@ class FilteringWithPattern {
   }
 }
 
-class FilteringQualifiedName {
-  pattern: string
-  memberRegex: RegExp
-  memberOfAnyDescendantRegex: RegExp
+class FilteringWithPattern {
+  nameFilter: FilteringName
+  ownerNameFiter: FilteringName
 
   constructor(pattern: string) {
-    this.pattern = pattern
-    // Starting at some segment, each segment should start with the respective
-    // pattern's segment. See `Filtering` docs for full algorithm description.
-    // For both regexes below:
-    // The first match (`match[1]`) is the part before the first matched input.
-    // The rest of the matches come in pairs:
-    // - The matched segment
-    // - The unmatched part before the next matched segment
-    const segmentsMatch = '(^|.*?[.])(' + pattern.replace(/[.]/g, ')([^.]*)([.]') + ')'
-    // The direct members must have no more segments in their path.
-    this.memberRegex = new RegExp(segmentsMatch + '([^.]*$)', 'i')
-    this.memberOfAnyDescendantRegex = new RegExp(segmentsMatch + '(.*)', 'i')
+    const split = pattern.lastIndexOf('.')
+    this.nameFilter = new FilteringName(split >= 0 ? pattern.slice(split + 1) : pattern)
+    this.ownerNameFiter = new FilteringName(split >= 0 ? pattern.slice(0, split) : '')
   }
 
-  private static matchRanges(match: RegExpExecArray) {
-    const result: Range[] = []
-    for (let i = 1, pos = 0; i < match.length; i += 1) {
-      // Matches come in groups of two, and the first matched part is `match[2]` (= 0 mod 2).
-      if (i % 2 === 0) {
-        result.push(new Range(pos, pos + match[i]!.length))
-      }
-      pos += match[i]!.length
+  private firstMatchingAlias(aliases: string[]) {
+    if (!this.nameFilter) return null
+    for (const alias of aliases) {
+      const match = this.nameFilter.tryMatch(alias)
+      if (match != null) return { alias, ...match }
     }
-    return result
+    return null
   }
 
-  matches(entry: SuggestionEntry, alsoFilteringByPattern: boolean): MatchedParts | null {
-    const entryOwner =
-      entry.kind == SuggestionKind.Module ? qnParent(entry.definedIn) : entry.definedIn
-    const regex = alsoFilteringByPattern ? this.memberOfAnyDescendantRegex : this.memberRegex
-    const ownerMatch = entryOwner && regex.exec(entryOwner)
-    if (ownerMatch) return { definedInRanges: FilteringQualifiedName.matchRanges(ownerMatch) }
-    const memberOfMatch = entry.memberOf && regex.exec(entry.memberOf)
-    if (memberOfMatch) return { definedInRanges: FilteringQualifiedName.matchRanges(memberOfMatch) }
-    return null
+  tryMatch(entry: SuggestionEntry & { memberOf: QualifiedName }): MatchResult | null {
+    const nameMatch: (NameMatchResult & { alias?: string }) | null =
+      this.nameFilter.tryMatch(entry.name) ?? this.firstMatchingAlias(entry.aliases)
+    const ownerNameMarch = this.ownerNameFiter.tryMatch(qnLastSegment(entry.memberOf))
+    if (!nameMatch || !ownerNameMarch) return null
+    return {
+      score:
+        nameMatch.score +
+        ownerNameMarch.score * OWNER_SCORE_WEIGHT +
+        ('alias' in nameMatch ? ALIAS_PENALTY : 0),
+      ...('alias' in nameMatch ? { matchedAlias: nameMatch.alias } : {}),
+      nameRanges: nameMatch.ranges,
+      memberOfRanges: nameMatch.ranges,
+    }
   }
 }
 
@@ -240,25 +188,13 @@ class FilteringQualifiedName {
  * Filtering Suggestions for Component Browser.
  *
  * A single entry is filtered in if _all_ conditions below are met:
- *
- * - The private entries never matches.
+ * - The non-private method entries are only matched.
  *
  * - If `selfArg` is specified, only entries of methods taking a value of this type as self
  *   argument are accepted (or any non-static method if the type of self argument is unknown).
  *
- * - If `qualifiedNamePattern` is specified, only entries being a content of a module or type
- *   matching the pattern are accepted. If `pattern` is also specified (see below), the content
- *   of any descendant of the module is included too. The module/type qualified name matches
- *   a pattern with `n` segments, if its last `n` segments starts with the respective pattern's
- *   segments. For example 'local.Project.Main' is matched by 'Project.Main' or 'l.Proj.M'
- *   patterns.
- *
- * - Without `showUnstable` flag, unstable entries will be filtered out.
- *
- * - If 'showLocal' flag is set, only entries defined in currentModule (passed as constructor
- *   argument) are accepted.
- *
- * - Finally, if `pattern` is specified, the entry name or any alias must match the pattern:
+ * - If `pattern` is specified with dot, the part after dot must match entry name or alias, while
+ *   on the left side of the dot must match type/module on which the entry is specified.
  *   there must exists a subsequence of words in name/alias (words are separated by `_`), so each
  *   word:
  *   - starts with respective word in the pattern,
@@ -275,48 +211,14 @@ class FilteringQualifiedName {
 export class Filtering {
   pattern?: FilteringWithPattern
   selfArg?: SelfArg
-  qualifiedName?: FilteringQualifiedName
-  fullPattern: string | undefined
-  /** The first and last match are the parts of the string that are outside of the match.
-   * The middle matches come in groups of three, and contain respectively:
-   * - the unmatched prefix (must end with a `_`)
-   *   (an empty string if the entire qualified name segment was matched)
-   * - the matched text
-   * - the unmatched suffix (an empty string if the entire qualified name segment was matched)
-   * - the separator (`.` or `_`, or the empty string if this is the last segment) */
-  extractMatchesRegex: RegExp | undefined
-  showUnstable: boolean = false
-  showLocal: boolean = false
   currentModule?: QualifiedName
-  browsingInternalModule: boolean = false
 
   constructor(filter: Filter, currentModule: Opt<QualifiedName> = undefined) {
-    const { pattern, selfArg, qualifiedNamePattern, showUnstable, showLocal } = filter
+    const { pattern, selfArg } = filter
     if (pattern) {
       this.pattern = new FilteringWithPattern(pattern)
     }
     if (selfArg != null) this.selfArg = selfArg
-    if (qualifiedNamePattern) {
-      this.qualifiedName = new FilteringQualifiedName(qualifiedNamePattern)
-      this.fullPattern = pattern ? `${qualifiedNamePattern}.${pattern}` : qualifiedNamePattern
-      this.browsingInternalModule = isInternalModulePath(qualifiedNamePattern)
-    } else if (pattern) this.fullPattern = pattern
-    if (this.fullPattern) {
-      let prefix = ''
-      let suffix = ''
-      for (const [, text, separator] of this.fullPattern.matchAll(/(.+?)([._]|$)/g)) {
-        const escaped = escapeStringRegexp(text ?? '')
-        const segment =
-          separator === '_' ?
-            `()(${escaped})([^_.]*)(_)`
-          : `([^.]*_)?(${escaped})([^.]*)(${separator === '.' ? '\\.' : ''})`
-        prefix = '(?:' + prefix
-        suffix += segment + ')?'
-      }
-      this.extractMatchesRegex = new RegExp('^(.*?)' + prefix + suffix + '(.*)$', 'i')
-    }
-    this.showUnstable = showUnstable ?? false
-    this.showLocal = showLocal ?? false
     if (currentModule != null) this.currentModule = currentModule
   }
 
@@ -326,24 +228,13 @@ export class Filtering {
     else return entry.selfType != null
   }
 
-  private qualifiedNameMatches(entry: SuggestionEntry): MatchedParts | null {
-    if (this.qualifiedName == null) return {}
-    else return this.qualifiedName.matches(entry, this.pattern != null)
-  }
-
   isMainView() {
-    return (
-      this.pattern == null && this.selfArg == null && this.qualifiedName == null && !this.showLocal
-    )
+    return this.pattern == null && this.selfArg == null
   }
 
   private mainViewFilter(entry: SuggestionEntry): MatchResult | null {
     const hasGroup = entry.groupIndex != null
-    const isModule = entry.kind === SuggestionKind.Module
-    const isMethod = entry.kind === SuggestionKind.Method
-    const isInTopModule = qnIsTopElement(entry.definedIn)
-    const isTopElementInMainView = (isMethod || isModule) && isInTopModule
-    if (hasGroup || isTopElementInMainView) return { score: 0 }
+    if (hasGroup) return { score: 0 }
     else return null
   }
 
@@ -352,18 +243,16 @@ export class Filtering {
   }
 
   filter(entry: SuggestionEntry): MatchResult | null {
-    if (entry.isPrivate) return null
-    if (this.selfArg == null && isInternal(entry) && !this.browsingInternalModule) return null
+    if (entry.isPrivate || entry.kind != SuggestionKind.Method || entry.memberOf == null)
+      return null
+    if (this.selfArg == null && isInternal(entry)) return null
     if (!this.selfTypeMatches(entry)) return null
-    const qualifiedNameMatch = this.qualifiedNameMatches(entry)
-    if (!qualifiedNameMatch) return null
-    if (!this.showUnstable && entry.isUnstable) return null
-    if (this.showLocal && !this.isLocal(entry)) return null
     if (this.pattern) {
+      if (entry.memberOf == null) return null
       const patternMatch = this.pattern.tryMatch(entry)
       if (!patternMatch) return null
-      if (!this.showLocal && this.isLocal(entry)) patternMatch.score *= 2
-      return { ...qualifiedNameMatch, ...patternMatch }
+      if (this.isLocal(entry)) patternMatch.score *= 2
+      return patternMatch
     }
     if (this.isMainView()) return this.mainViewFilter(entry)
     return { score: 0 }
