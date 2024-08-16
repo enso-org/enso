@@ -73,13 +73,15 @@ object Definition {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Type = {
-      if (name != this.name
+      if (
+        name != this.name
         || params != this.params
         || members != this.members
         || location != this.location
         || passData != this.passData
         || diagnostics != this.diagnostics
-        || id != this.id) {
+        || id != this.id
+      ) {
         val res =
           Type(name, params, members, location, passData, diagnostics)
         res.id = id
@@ -171,7 +173,7 @@ object Definition {
     name: Name,
     arguments: List[DefinitionArgument],
     annotations: List[Name.GenericAnnotation],
-    isPrivate: Boolean             = false,
+    isPrivate: Boolean = false,
     location: Option[IdentifiedLocation],
     passData: MetadataStorage      = new MetadataStorage(),
     diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -194,20 +196,22 @@ object Definition {
       name: Name                                = name,
       arguments: List[DefinitionArgument]       = arguments,
       annotations: List[Name.GenericAnnotation] = annotations,
-      isPrivate: Boolean = isPrivate,
+      isPrivate: Boolean                        = isPrivate,
       location: Option[IdentifiedLocation]      = location,
       passData: MetadataStorage                 = passData,
       diagnostics: DiagnosticStorage            = diagnostics,
       id: UUID @Identifier                      = id
     ): Data = {
-      if (name != this.name
+      if (
+        name != this.name
         || arguments != this.arguments
         || annotations != this.annotations
         || isPrivate != this.isPrivate
         || location != this.location
         || passData != this.passData
         || diagnostics != this.diagnostics
-        || id != this.id) {
+        || id != this.id
+      ) {
         val res = Data(
           name,
           arguments,
@@ -333,13 +337,15 @@ object Definition {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): SugaredType = {
-      if (name != this.name
+      if (
+        name != this.name
         || arguments != this.arguments
         || body != this.body
         || location != this.location
         || passData != this.passData
         || diagnostics != this.diagnostics
-        || id != this.id) {
+        || id != this.id
+      ) {
         val res = SugaredType(
           name,
           arguments,

@@ -46,20 +46,22 @@ final case class Module(
     imports: List[Import]                = imports,
     exports: List[Export]                = exports,
     bindings: List[Definition]           = bindings,
-    isPrivate: Boolean  = isPrivate,
+    isPrivate: Boolean                   = isPrivate,
     location: Option[IdentifiedLocation] = location,
     passData: MetadataStorage            = passData,
     diagnostics: DiagnosticStorage       = diagnostics,
     id: UUID @Identifier                 = id
   ): Module = {
-    if (imports != this.imports
-    || exports != this.exports
-    || bindings != this.bindings
-    || isPrivate != this.isPrivate
-    || location != this.location
-    || passData != this.passData
-    || diagnostics != this.diagnostics
-    || id != this.id) {
+    if (
+      imports != this.imports
+      || exports != this.exports
+      || bindings != this.bindings
+      || isPrivate != this.isPrivate
+      || location != this.location
+      || passData != this.passData
+      || diagnostics != this.diagnostics
+      || id != this.id
+    ) {
       val res =
         Module(
           imports,

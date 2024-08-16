@@ -82,14 +82,16 @@ object Export {
       diagnostics: DiagnosticStorage        = diagnostics,
       id: UUID @Identifier                  = id
     ): Module = {
-      if (name != this.name
+      if (
+        name != this.name
         || rename != this.rename
         || onlyNames != this.onlyNames
         || isSynthetic != this.isSynthetic
         || location != this.location
         || passData != this.passData
         || diagnostics != this.diagnostics
-        || id != this.id) {
+        || id != this.id
+      ) {
 
         val res = Module(
           name,

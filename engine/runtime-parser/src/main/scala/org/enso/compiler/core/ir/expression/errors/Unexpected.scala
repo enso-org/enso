@@ -74,10 +74,12 @@ object Unexpected {
       diagnostics: DiagnosticStorage = diagnostics,
       id: UUID @Identifier           = id
     ): TypeSignature = {
-      if (ir != this.ir
+      if (
+        ir != this.ir
         || passData != this.passData
         || diagnostics != this.diagnostics
-        || id != this.id) {
+        || id != this.id
+      ) {
 
         val res = TypeSignature(ir, passData, diagnostics)
         res.id = id

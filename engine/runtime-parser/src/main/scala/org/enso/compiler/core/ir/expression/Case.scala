@@ -79,13 +79,15 @@ object Case {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Expr = {
-      if (scrutinee != this.scrutinee
+      if (
+        scrutinee != this.scrutinee
         || branches != this.branches
         || isNested != this.isNested
         || location != this.location
         || passData != this.passData
         || diagnostics != this.diagnostics
-        || id != this.id) {
+        || id != this.id
+      ) {
         val res =
           Expr(scrutinee, branches, isNested, location, passData, diagnostics)
         res.id = id
@@ -239,13 +241,15 @@ object Case {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Branch = {
-      if (pattern != this.pattern
+      if (
+        pattern != this.pattern
         || expression != this.expression
         || terminalBranch != this.terminalBranch
         || location != this.location
         || passData != this.passData
         || diagnostics != this.diagnostics
-        || id != this.id) {
+        || id != this.id
+      ) {
 
         val res = Branch(
           pattern,

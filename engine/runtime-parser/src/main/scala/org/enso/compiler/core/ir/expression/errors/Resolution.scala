@@ -51,11 +51,13 @@ sealed case class Resolution(
     diagnostics: DiagnosticStorage = diagnostics,
     id: UUID @Identifier           = id
   ): Resolution = {
-    if (originalName != this.originalName
+    if (
+      originalName != this.originalName
       || reason != this.reason
       || passData != this.passData
       || diagnostics != this.diagnostics
-      || id != this.id) {
+      || id != this.id
+    ) {
 
       val res = Resolution(originalName, reason, passData, diagnostics)
       res.id = id

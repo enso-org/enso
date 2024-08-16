@@ -58,10 +58,12 @@ object Error {
       diagnostics: DiagnosticStorage = diagnostics,
       id: UUID @Identifier           = id
     ): InvalidIR = {
-      if (ir != this.ir
+      if (
+        ir != this.ir
         || passData != this.passData
         || diagnostics != this.diagnostics
-        || id != this.id) {
+        || id != this.id
+      ) {
 
         val res = InvalidIR(ir, passData, diagnostics)
         res.id = id

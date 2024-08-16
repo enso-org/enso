@@ -50,12 +50,14 @@ object Type {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Function = {
-      if (args != this.args
-      || result != this.result
-      || location != this.location
-      || passData != this.passData
-      || diagnostics != this.diagnostics
-      || id != this.id) {
+      if (
+        args != this.args
+        || result != this.result
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
         val res = Function(args, result, location, passData, diagnostics)
         res.id = id
         res
@@ -165,13 +167,15 @@ object Type {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Ascription = {
-      if (typed != this.typed
-      || signature != this.signature
-      || comment != this.comment
-      || location != this.location
-      || passData != this.passData
-      || diagnostics != this.diagnostics
-      || id != this.id) {
+      if (
+        typed != this.typed
+        || signature != this.signature
+        || comment != this.comment
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
         val res =
           Ascription(typed, signature, comment, location, passData, diagnostics)
         res.id = id
@@ -281,12 +285,14 @@ object Type {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Context = {
-      if (typed != this.typed
-      || context != this.context
-      || location != this.location
-      || passData != this.passData
-      || diagnostics != this.diagnostics
-      || id != this.id) {
+      if (
+        typed != this.typed
+        || context != this.context
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
         val res = Context(typed, context, location, passData, diagnostics)
         res.id = id
         res
@@ -392,12 +398,14 @@ object Type {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Error = {
-      if (typed != this.typed
-      || error != this.error
-      || location != this.location
-      || passData != this.passData
-      || diagnostics != this.diagnostics
-      || id != this.id) {
+      if (
+        typed != this.typed
+        || error != this.error
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
         val res = Error(typed, error, location, passData, diagnostics)
         res.id = id
         res

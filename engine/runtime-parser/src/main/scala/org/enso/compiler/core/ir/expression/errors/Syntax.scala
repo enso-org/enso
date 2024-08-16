@@ -44,11 +44,13 @@ sealed case class Syntax(
     diagnostics: DiagnosticStorage = diagnostics,
     id: UUID @Identifier           = id
   ): Syntax = {
-    if (at != this.at
+    if (
+      at != this.at
       || reason != this.reason
       || passData != this.passData
       || diagnostics != this.diagnostics
-      || id != this.id) {
+      || id != this.id
+    ) {
       val res = Syntax(at, reason, passData, diagnostics)
       res.id = id
       res

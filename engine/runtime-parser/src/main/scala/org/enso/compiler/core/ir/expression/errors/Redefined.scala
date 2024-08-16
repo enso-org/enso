@@ -61,10 +61,12 @@ object Redefined {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): SelfArg = {
-      if (location != this.location
+      if (
+        location != this.location
         || passData != this.passData
         || diagnostics != this.diagnostics
-        || id != this.id) {
+        || id != this.id
+      ) {
 
         val res = SelfArg(location, passData, diagnostics)
         res.id = id
@@ -156,12 +158,14 @@ object Redefined {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Conversion = {
-      if (targetType != this.targetType
+      if (
+        targetType != this.targetType
         || sourceType != this.sourceType
         || location != this.location
         || passData != this.passData
         || diagnostics != this.diagnostics
-        || id != this.id) {
+        || id != this.id
+      ) {
 
         val res =
           Conversion(targetType, sourceType, location, passData, diagnostics)
@@ -288,12 +292,14 @@ object Redefined {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Method = {
-      if (typeName != this.typeName
+      if (
+        typeName != this.typeName
         || methodName != this.methodName
         || location != this.location
         || passData != this.passData
         || diagnostics != this.diagnostics
-        || id != this.id) {
+        || id != this.id
+      ) {
 
         val res =
           Method(typeName, methodName, location, passData, diagnostics)
@@ -420,12 +426,14 @@ object Redefined {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): MethodClashWithAtom = {
-      if (atomName != this.atomName
+      if (
+        atomName != this.atomName
         || methodName != this.methodName
         || location != this.location
         || passData != this.passData
         || diagnostics != this.diagnostics
-        || id != this.id) {
+        || id != this.id
+      ) {
 
         val res = MethodClashWithAtom(
           atomName,
@@ -546,11 +554,13 @@ object Redefined {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Type = {
-      if (typeName != this.typeName
+      if (
+        typeName != this.typeName
         || location != this.location
         || passData != this.passData
         || diagnostics != this.diagnostics
-        || id != this.id) {
+        || id != this.id
+      ) {
 
         val res =
           Type(typeName, location, passData, diagnostics)
@@ -654,11 +664,13 @@ object Redefined {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID                             = id
     ): Arg = {
-      if (name != this.name
+      if (
+        name != this.name
         || location != this.location
         || passData != this.passData
         || diagnostics != this.diagnostics
-        || id != this.id) {
+        || id != this.id
+      ) {
 
         val res =
           Arg(name, location, passData, diagnostics)
@@ -757,10 +769,12 @@ object Redefined {
       diagnostics: DiagnosticStorage     = diagnostics,
       id: UUID @Identifier               = id
     ): Binding = {
-      if (invalidBinding != this.invalidBinding
+      if (
+        invalidBinding != this.invalidBinding
         || passData != this.passData
         || diagnostics != this.diagnostics
-        || id != this.id) {
+        || id != this.id
+      ) {
 
         val res = Binding(invalidBinding, passData, diagnostics)
         res.id = id

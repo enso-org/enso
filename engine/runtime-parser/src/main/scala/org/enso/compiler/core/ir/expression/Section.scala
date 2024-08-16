@@ -64,12 +64,14 @@ object Section {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Left = {
-      if (arg != this.arg
+      if (
+        arg != this.arg
         || operator != this.operator
         || location != this.location
         || passData != this.passData
         || diagnostics != this.diagnostics
-        || id != this.id) {
+        || id != this.id
+      ) {
 
         val res = Left(arg, operator, location, passData, diagnostics)
         res.id = id
@@ -172,11 +174,13 @@ object Section {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Sides = {
-      if (operator != this.operator
+      if (
+        operator != this.operator
         || location != this.location
         || passData != this.passData
         || diagnostics != this.diagnostics
-        || id != this.id) {
+        || id != this.id
+      ) {
         val res = Sides(operator, location, passData, diagnostics)
         res.id = id
         res
@@ -273,12 +277,14 @@ object Section {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Right = {
-      if (operator != this.operator
+      if (
+        operator != this.operator
         || arg != this.arg
         || location != this.location
         || passData != this.passData
         || diagnostics != this.diagnostics
-        || id != this.id) {
+        || id != this.id
+      ) {
 
         val res = Right(operator, arg, location, passData, diagnostics)
         res.id = id

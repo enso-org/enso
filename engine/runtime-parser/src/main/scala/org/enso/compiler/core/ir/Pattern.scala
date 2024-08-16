@@ -64,11 +64,13 @@ object Pattern {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Name = {
-      if (name != this.name
-      || location != this.location
-      || passData != this.passData
-      || diagnostics != this.diagnostics
-      || id != this.id) {
+      if (
+        name != this.name
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
         val res = Name(name, location, passData, diagnostics)
         res.id = id
         res
@@ -165,12 +167,14 @@ object Pattern {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Constructor = {
-      if (constructor != this.constructor
+      if (
+        constructor != this.constructor
         || fields != this.fields
         || location != this.location
         || passData != this.passData
         || diagnostics != this.diagnostics
-        || id != this.id) {
+        || id != this.id
+      ) {
         val res =
           Constructor(constructor, fields, location, passData, diagnostics)
         res.id = id
@@ -321,11 +325,13 @@ object Pattern {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Literal = {
-      if (literal != this.literal
-      || location != this.location
-      || passData != this.passData
-      || diagnostics != this.diagnostics
-      || id != this.id) {
+      if (
+        literal != this.literal
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
         val res = Literal(literal, location, passData, diagnostics)
         res.id = id
         res
@@ -424,12 +430,14 @@ object Pattern {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Type = {
-      if (name != this.name
-      || tpe != this.tpe
-      || location != this.location
-      || passData != this.passData
-      || diagnostics != this.diagnostics
-      || id != this.id) {
+      if (
+        name != this.name
+        || tpe != this.tpe
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
         val res = Type(name, tpe, location, passData, diagnostics)
         res.id = id
         res
@@ -544,11 +552,13 @@ object Pattern {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Documentation = {
-      if (doc != this.doc
+      if (
+        doc != this.doc
         || location != this.location
         || passData != this.passData
         || diagnostics != this.diagnostics
-        || id != this.id) {
+        || id != this.id
+      ) {
         val res = Documentation(doc, location, passData, diagnostics)
         res.id = id
         res

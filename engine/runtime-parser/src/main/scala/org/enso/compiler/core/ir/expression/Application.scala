@@ -54,13 +54,15 @@ object Application {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Prefix = {
-      if (function != this.function
+      if (
+        function != this.function
         || arguments != this.arguments
         || hasDefaultsSuspended != this.hasDefaultsSuspended
         || location != this.location
         || passData != this.passData
         || diagnostics != this.diagnostics
-        || id != this.id) {
+        || id != this.id
+      ) {
         val res =
           Prefix(
             function,
@@ -173,11 +175,13 @@ object Application {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Force = {
-      if (target != this.target
+      if (
+        target != this.target
         || location != this.location
         || passData != this.passData
         || diagnostics != this.diagnostics
-        || id != this.id) {
+        || id != this.id
+      ) {
         val res = Force(target, location, passData, diagnostics)
         res.id = id
         res
@@ -296,11 +300,13 @@ object Application {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Typeset = {
-      if (expression != this.expression
+      if (
+        expression != this.expression
         || location != this.location
         || passData != this.passData
         || diagnostics != this.diagnostics
-        || id != this.id) {
+        || id != this.id
+      ) {
 
         val res = Typeset(expression, location, passData, diagnostics)
         res.id = id
@@ -399,11 +405,13 @@ object Application {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Sequence = {
-      if (items != this.items
+      if (
+        items != this.items
         || location != this.location
         || passData != this.passData
         || diagnostics != this.diagnostics
-        || id != this.id) {
+        || id != this.id
+      ) {
 
         val res = Sequence(items, location, passData, diagnostics)
         res.id = id

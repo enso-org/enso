@@ -43,11 +43,13 @@ sealed case class ImportExport(
     diagnostics: DiagnosticStorage = diagnostics,
     id: UUID @Identifier           = id
   ): ImportExport = {
-    if (ir != this.ir
+    if (
+      ir != this.ir
       || reason != this.reason
       || passData != this.passData
       || diagnostics != this.diagnostics
-      || id != this.id) {
+      || id != this.id
+    ) {
 
       val res = ImportExport(ir, reason, passData, diagnostics)
       res.id = id

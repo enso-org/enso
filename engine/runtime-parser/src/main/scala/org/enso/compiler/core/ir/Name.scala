@@ -756,11 +756,13 @@ object Name {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Self = {
-      if (synthetic != this.synthetic
-      ||  location != this.location
-      || passData != this.passData
-      || diagnostics != this.diagnostics
-      || id != this.id) {
+      if (
+        synthetic != this.synthetic
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
         val res = Self(location, synthetic, passData, diagnostics)
         res.id = id
         res
@@ -839,10 +841,12 @@ object Name {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): SelfType = {
-      if (location != this.location
-      || passData != this.passData
-      || diagnostics != this.diagnostics
-      || id != this.id) {
+      if (
+        location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
         val res = SelfType(location, passData, diagnostics)
         res.id = id
         res

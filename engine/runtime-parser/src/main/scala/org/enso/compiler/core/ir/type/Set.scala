@@ -70,13 +70,15 @@ object Set {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Member = {
-      if (label != this.label
-      || memberType != this.memberType
-      || value != this.value
-      || location != this.location
-      || passData != this.passData
-      || diagnostics != this.diagnostics
-      || id != this.id) {
+      if (
+        label != this.label
+        || memberType != this.memberType
+        || value != this.value
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
         val res =
           Member(label, memberType, value, location, passData, diagnostics)
         res.id = id
@@ -199,12 +201,14 @@ object Set {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Subsumption = {
-      if (left != this.left
-      || right != this.right
-      || location != this.location
-      || passData != this.passData
-      || diagnostics != this.diagnostics
-      || id != this.id) {
+      if (
+        left != this.left
+        || right != this.right
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
         val res = Subsumption(left, right, location, passData, diagnostics)
         res.id = id
         res
@@ -311,12 +315,14 @@ object Set {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Equality = {
-      if (left != this.left
+      if (
+        left != this.left
         || right != this.right
         || location != this.location
         || passData != this.passData
         || diagnostics != this.diagnostics
-        || id != this.id) {
+        || id != this.id
+      ) {
         val res = Equality(left, right, location, passData, diagnostics)
         res.id = id
         res
@@ -423,12 +429,14 @@ object Set {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Concat = {
-      if (left != this.left
+      if (
+        left != this.left
         || right != this.right
         || location != this.location
         || passData != this.passData
         || diagnostics != this.diagnostics
-        || id != this.id) {
+        || id != this.id
+      ) {
         val res = Concat(left, right, location, passData, diagnostics)
         res.id = id
         res
@@ -531,11 +539,13 @@ object Set {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Union = {
-      if (operands != this.operands
+      if (
+        operands != this.operands
         || location != this.location
         || passData != this.passData
         || diagnostics != this.diagnostics
-        || id != this.id) {
+        || id != this.id
+      ) {
         val res = Union(operands, location, passData, diagnostics)
         res.id = id
         res
@@ -636,12 +646,14 @@ object Set {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Intersection = {
-      if (left != this.left
+      if (
+        left != this.left
         || right != this.right
         || location != this.location
         || passData != this.passData
         || diagnostics != this.diagnostics
-        || id != this.id) {
+        || id != this.id
+      ) {
         val res = Intersection(left, right, location, passData, diagnostics)
         res.id = id
         res

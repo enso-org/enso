@@ -67,12 +67,14 @@ object Foreign {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Definition = {
-      if (lang != this.lang
+      if (
+        lang != this.lang
         || code != this.code
         || location != this.location
         || passData != this.passData
         || diagnostics != this.diagnostics
-        || id != this.id) {
+        || id != this.id
+      ) {
 
         val res = Definition(lang, code, location, passData, diagnostics)
         res.id = id

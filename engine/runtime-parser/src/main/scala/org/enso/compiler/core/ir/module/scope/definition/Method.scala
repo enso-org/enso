@@ -104,7 +104,8 @@ object Method {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Explicit = {
-      if (methodReference != this.methodReference
+      if (
+        methodReference != this.methodReference
         || body != this.body
         || isStatic != this.isStatic
         || isPrivate != this.isPrivate
@@ -112,7 +113,8 @@ object Method {
         || location != this.location
         || passData != this.passData
         || diagnostics != this.diagnostics
-        || id != this.id) {
+        || id != this.id
+      ) {
         val res = Explicit(
           methodReference,
           Persistance.Reference.of(body, false),
@@ -285,14 +287,16 @@ object Method {
       diagnostics: DiagnosticStorage        = diagnostics,
       id: UUID @Identifier                  = id
     ): Binding = {
-      if (methodReference != this.methodReference
+      if (
+        methodReference != this.methodReference
         || arguments != this.arguments
         || isPrivate != this.isPrivate
         || body != this.body
         || location != this.location
         || passData != this.passData
         || diagnostics != this.diagnostics
-        || id != this.id) {
+        || id != this.id
+      ) {
         val res = Binding(
           methodReference,
           arguments,
@@ -440,13 +444,15 @@ object Method {
       diagnostics: DiagnosticStorage        = diagnostics,
       id: UUID @Identifier                  = id
     ): Conversion = {
-      if (methodReference != this.methodReference
+      if (
+        methodReference != this.methodReference
         || sourceTypeName != this.sourceTypeName
         || body != this.body
         || location != this.location
         || passData != this.passData
         || diagnostics != this.diagnostics
-        || id != this.id) {
+        || id != this.id
+      ) {
 
         val res = Conversion(
           methodReference,

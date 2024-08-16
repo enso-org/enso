@@ -89,7 +89,8 @@ object Import {
       diagnostics: DiagnosticStorage          = diagnostics,
       id: UUID @Identifier                    = id
     ): Module = {
-      if (name != this.name
+      if (
+        name != this.name
         || rename != this.rename
         || isAll != this.isAll
         || onlyNames != this.onlyNames
@@ -98,7 +99,8 @@ object Import {
         || location != this.location
         || passData != this.passData
         || diagnostics != this.diagnostics
-        || id != this.id) {
+        || id != this.id
+      ) {
         val res = Module(
           name,
           rename,
