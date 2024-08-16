@@ -813,14 +813,9 @@ lazy val pkg = (project in file("lib/scala/pkg"))
       "org.scalatest"      %% "scalatest"        % scalatestVersion          % Test,
       "org.apache.commons"  % "commons-compress" % commonsCompressVersion
     ),
-    modulePath := {
-      JPMSUtils.filterModulesFromUpdate(
-        (Compile / update).value,
-        Seq(
-          "org.apache.commons" % "commons-compress" % commonsCompressVersion
-        ),
-        streams.value.log,
-        shouldContainAll = true
+    moduleDependencies := {
+      Seq(
+        "org.apache.commons" % "commons-compress" % commonsCompressVersion
       )
     }
   )
@@ -887,14 +882,9 @@ lazy val `logging-utils` = project
       "org.slf4j"      % "slf4j-api" % slf4jVersion
     ) ++ logbackTest,
     compileOrder := CompileOrder.ScalaThenJava, // Note [JPMS Compile order]
-    modulePath := {
-      JPMSUtils.filterModulesFromUpdate(
-        (Compile / update).value,
-        Seq(
-          "org.slf4j" % "slf4j-api" % slf4jVersion
-        ),
-        streams.value.log,
-        shouldContainAll = true
+    moduleDependencies := {
+      Seq(
+        "org.slf4j" % "slf4j-api" % slf4jVersion
       )
     }
   )
@@ -925,17 +915,10 @@ lazy val `logging-config` = project
       "com.typesafe" % "config"    % typesafeConfigVersion,
       "org.slf4j"    % "slf4j-api" % slf4jVersion
     ),
-    modulePath := {
-      JPMSUtils.filterModulesFromUpdate(
-        update.value,
-        Seq(
-          "com.typesafe" % "config"    % typesafeConfigVersion,
-          "org.slf4j"    % "slf4j-api" % slf4jVersion
-        ),
-        streams.value.log,
-        shouldContainAll = true
-      )
-    }
+    moduleDependencies := Seq(
+      "com.typesafe" % "config"    % typesafeConfigVersion,
+      "org.slf4j"    % "slf4j-api" % slf4jVersion
+    )
   )
 
 lazy val `logging-service-logback` = project
@@ -1485,21 +1468,13 @@ lazy val `engine-common` = project
     libraryDependencies ++= Seq(
       "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided"
     ),
-    modulePath := {
-      val externalMods = JPMSUtils.filterModulesFromUpdate(
-        (Compile / update).value,
-        Seq(
-          "org.graalvm.polyglot" % "polyglot"  % graalMavenPackagesVersion,
-          "org.slf4j"            % "slf4j-api" % slf4jVersion
-        ),
-        streams.value.log,
-        shouldContainAll = true
+    moduleDependencies := {
+      Seq(
+        "org.graalvm.polyglot" % "polyglot"  % graalMavenPackagesVersion,
+        "org.slf4j"            % "slf4j-api" % slf4jVersion,
+        (`logging-utils` / projectID).value,
+        (`logging-config` / projectID).value
       )
-      val ourMods = Seq(
-        (`logging-utils` / Compile / classDirectory).value,
-        (`logging-config` / Compile / classDirectory).value,
-      )
-      externalMods ++ ourMods
     }
   )
   .dependsOn(`logging-config`)
@@ -1534,10 +1509,10 @@ lazy val `polyglot-api` = project
       "org.scalacheck"                        %% "scalacheck"            % scalacheckVersion         % Test
     ),
     compileOrder := CompileOrder.ScalaThenJava, // Note [JPMS Compile order]
-    modulePath := {
+    moduleDependencies := Seq(
       "com.google.flatbuffers"                 % "flatbuffers-java"      % flatbuffersVersion,
-      "org.graalvm.truffle"                    % "truffle-api"           % graalMavenPackagesVersion % "provided",
-    },
+      "org.graalvm.truffle"                    % "truffle-api"           % graalMavenPackagesVersion
+    ),
     GenerateFlatbuffers.flatcVersion := flatbuffersVersion,
     Compile / sourceGenerators += GenerateFlatbuffers.task
   )
@@ -2207,21 +2182,11 @@ lazy val `runtime-parser` =
         "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
       ),
       javaModuleName := "org.enso.runtime.parser",
-      modulePath := {
-        val requiredExternalMods = JPMSUtils.filterModulesFromUpdate(
-          (Compile / update).value,
-          Seq(
-            "org.scala-lang"   % "scala-library"           % scalacVersion,
-            "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion
-          ),
-          streams.value.log,
-          shouldContainAll = true
-        )
-        val syntaxMod =
-          (`syntax-rust-definition` / Compile / exportedProducts).value.head.data
-
-        requiredExternalMods ++ Seq(
-          syntaxMod
+      moduleDependencies := {
+        Seq(
+          "org.scala-lang"   % "scala-library"           % scalacVersion,
+          "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion,
+          (`syntax-rust-definition` / projectID).value
         )
       },
       // Note [Compile module-info]
@@ -2586,68 +2551,27 @@ lazy val `engine-runner` = project
     Compile / compile := (Compile / compile)
       .dependsOn(`runtime-parser` / Compile / compileModuleInfo)
       .value,
-    modulePath := {
-      val requiredModIds = Seq(
+    moduleDependencies := {
+      Seq(
         "org.scala-lang"       % "scala-library" % scalacVersion,
         "org.graalvm.polyglot" % "polyglot"      % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "nativeimage"   % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "word"          % graalMavenPackagesVersion,
         "commons-cli"          % "commons-cli"   % commonsCliVersion,
         "org.jline"            % "jline"         % jlineVersion,
-        "org.slf4j"            % "slf4j-api"     % slf4jVersion
-      )
-      val logger = streams.value.log
-      val requiredExternalMods = JPMSUtils.filterModulesFromUpdate(
-        (Compile / update).value,
-        requiredModIds,
-        logger,
-        shouldContainAll = true
-      )
-      val profilingMod =
-        (`profiling-utils` / Compile / exportedProducts).value.head.data
-      val semverMod =
-        (`semver` / Compile / exportedProducts).value.head.data
-      val cliMod =
-        (`cli` / Compile / exportedProducts).value.head.data
-      val distributionMod =
-        (`distribution-manager` / Compile / exportedProducts).value.head.data
-      val editionsMod =
-        (`editions` / Compile / exportedProducts).value.head.data
-      val editionsUpdaterMod =
-        (`edition-updater` / Compile / exportedProducts).value.head.data
-      val libraryManagerMod =
-        (`library-manager` / Compile / exportedProducts).value.head.data
-      val pkgMod =
-        (`pkg` / Compile / exportedProducts).value.head.data
-      val runnerCommonMod =
-        (`engine-runner-common` / Compile / exportedProducts).value.head.data
-      val parserMod =
-        (`runtime-parser` / Compile / classDirectory).value
-      if (!parserMod.toPath.resolve("module-info.class").toFile.exists()) {
-        logger.error(
-          "module-info.class not in runtime-parser/target" +
-          "Dependencies are probably not set correctly. Make sure that the current " +
-          "task depends on runtime-parser/Compile/compileModuleInfo"
-        )
-      }
-      val versionMod =
-        (`version-output` / Compile / classDirectory).value
-      val engineCommonMod =
-        (`engine-common` / Compile / classDirectory).value
-
-      requiredExternalMods ++ Seq(
-        profilingMod,
-        semverMod,
-        cliMod,
-        distributionMod,
-        editionsMod,
-        editionsUpdaterMod,
-        libraryManagerMod,
-        pkgMod,
-        runnerCommonMod,
-        parserMod,
-        versionMod,
-        engineCommonMod
+        "org.slf4j"            % "slf4j-api"     % slf4jVersion,
+        (`profiling-utils` / projectID).value,
+        (`semver` / projectID).value,
+        (`cli` / projectID).value,
+        (`distribution-manager` / projectID).value,
+        (`editions` / projectID).value,
+        (`edition-updater` / projectID).value,
+        (`library-manager` / projectID).value,
+        (`pkg` / projectID).value,
+        (`engine-runner-common` / projectID).value,
+        (`runtime-parser` / projectID).value,
+        (`version-output` / projectID).value,
+        (`engine-common` / projectID).value,
       )
     },
     run / connectInput := true
@@ -3110,14 +3034,9 @@ lazy val semver = project
       "junit"          % "junit"           % junitVersion     % Test,
       "com.github.sbt" % "junit-interface" % junitIfVersion   % Test
     ),
-    modulePath := {
-      JPMSUtils.filterModulesFromUpdate(
-        (Compile / update).value,
-        Seq(
-          "org.scala-lang" % "scala-library" % scalacVersion
-        ),
-        streams.value.log,
-        shouldContainAll = true
+    moduleDependencies := {
+      Seq(
+        "org.scala-lang" % "scala-library" % scalacVersion
       )
     }
   )
