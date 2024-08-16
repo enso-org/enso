@@ -71,13 +71,15 @@ trait ModifiedTest
       .build()
     context.initialize(LanguageInfo.ID)
     val executionContext = new PolyglotContext(context)
-    InterpreterException.rethrowPolyglot {
+    val result = InterpreterException.rethrowPolyglot {
       val topScope        = executionContext.getTopScope
       val mainModuleScope = topScope.getModule(mainModule.toString)
       val assocCons       = mainModuleScope.getAssociatedType
       val mainFun         = mainModuleScope.getMethod(assocCons, "main").get
       mainFun.execute()
     }
+    context.close()
+    result
   }
 
   private def initialCopy(from: File, to: File): Unit = {

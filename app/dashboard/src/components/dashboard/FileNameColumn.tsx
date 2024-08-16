@@ -1,7 +1,9 @@
 /** @file The icon and name of a {@link backendModule.FileAsset}. */
 import * as React from 'react'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import { useMutation } from '@tanstack/react-query'
+
+import { backendMutationOptions } from '#/hooks/backendHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -50,13 +52,15 @@ export default function FileNameColumn(props: FileNameColumnProps) {
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
   const isCloud = backend.type === backendModule.BackendType.remote
 
-  const updateFileMutation = backendHooks.useBackendMutation(backend, 'updateFile')
-  const uploadFileMutation = backendHooks.useBackendMutation(backend, 'uploadFile', {
-    meta: {
-      invalidates: [['assetVersions', item.item.id, item.item.title]],
-      awaitInvalidates: true,
-    },
-  })
+  const updateFileMutation = useMutation(backendMutationOptions(backend, 'updateFile'))
+  const uploadFileMutation = useMutation(
+    backendMutationOptions(backend, 'uploadFile', {
+      meta: {
+        invalidates: [['assetVersions', item.item.id, item.item.title]],
+        awaitInvalidates: true,
+      },
+    }),
+  )
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {

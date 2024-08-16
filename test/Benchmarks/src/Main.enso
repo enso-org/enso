@@ -18,10 +18,12 @@ import project.Sum
 import project.Table.Add_Row_Number
 import project.Table.Aggregate
 import project.Table.Arithmetic
+import project.Table.Column_Comparisons
 import project.Table.Column_From_Vector
 import project.Table.Cross_Tab
 import project.Table.Csv
 import project.Table.Join
+import project.Table.Mixed_Operations
 import project.Table.Sorting
 import project.Table.Internal.Multi_Value_Key
 import project.Text.Build
@@ -62,12 +64,14 @@ all_benchmarks =
         builder.append Aggregate.collect_benches
         builder.append Arithmetic.collect_benches
         builder.append Add_Row_Number.collect_benches
+        builder.append Column_Comparisons.collect_benches
         builder.append Column_From_Vector.collect_benches
         builder.append Cross_Tab.collect_benches
         builder.append Csv.collect_benches
         builder.append Join.collect_benches
         builder.append Sorting.collect_benches
         builder.append Multi_Value_Key.collect_benches
+        builder.append Mixed_Operations.collect_benches
 
         # Text
         builder.append Build.collect_benches
@@ -101,17 +105,22 @@ all_benchmarks =
 main filter=Nothing =
     benchmarks = if filter.is_nothing then all_benchmarks else
         no_nothing x = x.is_nothing.not
+        filter_regex = Regex.compile filter
+        is_matching name =
+            # We always check simple plain text filter, but also if the filter was a valid regex we check a regex match.
+            (name.contains filter) || (filter_regex.is_error.not && (filter_regex.match name . is_nothing . not))
 
         filter_benchmarks (b:Bench) = case b of
             Bench.All groups ->
                 vec = groups.map filter_benchmarks . filter no_nothing
                 if vec.is_empty then Nothing else
                     Bench.All vec
-            Bench.Group n opts specs -> if n.contains filter then b else
+            Bench.Group n opts specs -> if is_matching n then b else
                 vec = specs.map filter_benchmarks . filter no_nothing
                 if vec.is_empty then Nothing else
                     Bench.Group n opts vec
-            Bench.Spec n _ -> if n.contains filter then b else Nothing
+            Bench.Spec n _ ->
+                if is_matching n then b else Nothing
 
         all_benchmarks.map filter_benchmarks . filter no_nothing
 

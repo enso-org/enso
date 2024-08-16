@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -95,6 +96,7 @@ public class Main {
   private static final String AUTO_PARALLELISM_OPTION = "with-auto-parallelism";
   private static final String EXECUTION_ENVIRONMENT_OPTION = "execution-environment";
   private static final String WARNINGS_LIMIT = "warnings-limit";
+  private static final String SYSTEM_PROPERTY = "vm.D";
 
   private static final org.slf4j.Logger logger = LoggerFactory.getLogger(Main.class);
 
@@ -449,6 +451,17 @@ public class Main {
             .desc("Enable static analysis (Experimental type inference).")
             .build();
 
+    var systemPropOption =
+        cliOptionBuilder()
+            .longOpt(SYSTEM_PROPERTY)
+            .argName("<property>=<value>")
+            .desc(
+                "Sets a system property. May be specified multiple times. If `value` is not"
+                    + " specified, 'true' is inserted.")
+            .hasArg(true)
+            .numberOfArgs(1)
+            .build();
+
     var options = new Options();
     options
         .addOption(help)
@@ -495,6 +508,7 @@ public class Main {
         .addOption(executionEnvironmentOption)
         .addOption(warningsLimitOption)
         .addOption(disablePrivateCheckOption)
+        .addOption(systemPropOption)
         .addOption(enableStaticAnalysisOption);
 
     return options;
@@ -818,8 +832,7 @@ public class Main {
   }
 
   private void runSingleFile(
-      PolyglotContext context, File file, java.util.List<String> additionalArgs)
-      throws IOException {
+      PolyglotContext context, File file, java.util.List<String> additionalArgs) {
     var mainModule = context.evalModule(file);
     runMain(mainModule, file, additionalArgs, "main");
   }
@@ -894,6 +907,15 @@ public class Main {
       boolean enableIrCaches,
       boolean enableStaticAnalysis) {
     var mainMethodName = "internal_repl_entry_point___";
+    var dummySourceToTriggerRepl =
+        """
+         from Standard.Base import all
+         import Standard.Base.Runtime.Debug
+
+         $mainMethodName = Debug.breakpoint
+         """
+            .replace("$mainMethodName", mainMethodName);
+    var replModuleName = "Internal_Repl_Module___";
     var projectRoot = projectPath != null ? projectPath : "";
     var options = Collections.singletonMap(DebugServerInfo.ENABLE_OPTION, "true");
 
@@ -909,8 +931,7 @@ public class Main {
                 .disableLinting(true)
                 .enableStaticAnalysis(enableStaticAnalysis)
                 .build());
-
-    var mainModule = context.evalReplModule(mainMethodName);
+    var mainModule = context.evalModule(dummySourceToTriggerRepl, replModuleName);
     runMain(mainModule, null, Collections.emptyList(), mainMethodName);
     throw exitSuccess();
   }
@@ -1169,6 +1190,32 @@ public class Main {
     }
   }
 
+  /**
+   * Parses all system properties from the given command line.
+   *
+   * @return null if no cmdline argument was specified.
+   */
+  protected Map<String, String> parseSystemProperties(CommandLine cmdLine) {
+    if (cmdLine.hasOption(SYSTEM_PROPERTY)) {
+      Map<String, String> props = new HashMap<>();
+      var optionValues = cmdLine.getOptionValues(SYSTEM_PROPERTY);
+      for (var optionValue : optionValues) {
+        var items = optionValue.split("=");
+        if (items.length == 2) {
+          props.put(items[0], items[1]);
+        } else if (items.length == 1) {
+          props.put(items[0], "true");
+        } else {
+          println("Argument to " + SYSTEM_PROPERTY + " must be in the form <property>=<value>");
+          throw exitFail();
+        }
+      }
+      return props;
+    } else {
+      return null;
+    }
+  }
+
   private static ProfilingConfig parseProfilingConfig(CommandLine line) throws WrongOption {
     Path profilingPath = null;
     try {
@@ -1229,15 +1276,24 @@ public class Main {
 
     var logMasking = new boolean[1];
     var logLevel = setupLogging(line, logMasking);
+    var props = parseSystemProperties(line);
 
+    var loc = Main.class.getProtectionDomain().getCodeSource().getLocation();
+    var component = new File(loc.toURI().resolve("..")).getAbsoluteFile();
+    if (!component.getName().equals("component")) {
+      component = new File(component, "component");
+    }
+    assert checkOutdatedLauncher(new File(loc.toURI()), component) || true;
     if (line.hasOption(JVM_OPTION)) {
       var jvm = line.getOptionValue(JVM_OPTION);
       var current = System.getProperty("java.home");
       if (jvm == null) {
         jvm = current;
       }
-      if (current == null || !current.equals(jvm)) {
-        var loc = Main.class.getProtectionDomain().getCodeSource().getLocation();
+      var shouldLaunchJvm = current == null || !current.equals(jvm);
+      if (!shouldLaunchJvm) {
+        println(JVM_OPTION + " option has no effect - already running in JVM " + current);
+      } else {
         var commandAndArgs = new ArrayList<String>();
         JVM_FOUND:
         if (jvm == null) {
@@ -1267,13 +1323,18 @@ public class Main {
             commandAndArgs.add(op);
           }
         }
-
+        var assertsOn = false;
+        assert assertsOn = true;
+        if (assertsOn) {
+          commandAndArgs.add("-ea");
+        }
+        if (props != null) {
+          for (var e : props.entrySet()) {
+            commandAndArgs.add("-D" + e.getKey() + "=" + e.getValue());
+          }
+        }
         commandAndArgs.add("--add-opens=java.base/java.nio=ALL-UNNAMED");
         commandAndArgs.add("--module-path");
-        var component = new File(loc.toURI().resolve("..")).getAbsoluteFile();
-        if (!component.getName().equals("component")) {
-          component = new File(component, "component");
-        }
         if (!component.isDirectory()) {
           throw new IOException("Cannot find " + component + " directory");
         }
@@ -1284,6 +1345,9 @@ public class Main {
         while (it.hasNext()) {
           var op = it.next();
           if (JVM_OPTION.equals(op.getLongOpt())) {
+            continue;
+          }
+          if (SYSTEM_PROPERTY.equals(op.getLongOpt())) {
             continue;
           }
           var longName = op.getLongOpt();
@@ -1308,6 +1372,12 @@ public class Main {
         } else {
           throw doExit(exitCode);
         }
+      }
+    }
+
+    if (props != null) {
+      for (var e : props.entrySet()) {
+        System.setProperty(e.getKey(), e.getValue());
       }
     }
 
@@ -1377,5 +1447,30 @@ public class Main {
 
   protected String getLanguageId() {
     return LanguageInfo.ID;
+  }
+
+  /**
+   * Check if native image based launcher is up-to-date. Prints a warning when it is outdated.
+   *
+   * @param base the base file to check
+   * @param dir directory with other files that should be older than base
+   * @return
+   */
+  private static boolean checkOutdatedLauncher(File base, File dir) {
+    var needsCheck = base.canExecute();
+    if (needsCheck) {
+      var files = dir.listFiles();
+      if (files != null) {
+        var baseTime = base.lastModified();
+        for (var f : files) {
+          if (baseTime < f.lastModified()) {
+            System.err.println(
+                "File " + base + " is older than " + f + " consider running in --jvm mode");
+            return false;
+          }
+        }
+      }
+    }
+    return true;
   }
 }

@@ -12,12 +12,14 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.data.hash.HashMapInsertAllNode;
 import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
 import org.enso.interpreter.runtime.data.hash.HashMapSizeNode;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
+import org.enso.interpreter.runtime.error.DataflowError;
 
 @GenerateUncached
 public abstract class AppendWarningNode extends Node {
@@ -38,9 +40,9 @@ public abstract class AppendWarningNode extends Node {
    *     It is expected that all the elements in the container are of {@link Warning} class.
    * @return A wrapped object with warnings
    */
-  public abstract WithWarnings executeAppend(VirtualFrame frame, Object object, Object warnings);
+  public abstract EnsoObject executeAppend(VirtualFrame frame, Object object, Object warnings);
 
-  @Specialization
+  @Specialization(guards = "!isError(object)")
   WithWarnings doSingleWarning(
       VirtualFrame frame,
       Object object,
@@ -70,7 +72,7 @@ public abstract class AppendWarningNode extends Node {
     return new WithWarnings(value, warnsLimit, isLimitReached, warnsMap);
   }
 
-  @Specialization
+  @Specialization(guards = "!isError(object)")
   WithWarnings doMultipleWarningsArray(
       VirtualFrame frame,
       Object object,
@@ -106,7 +108,7 @@ public abstract class AppendWarningNode extends Node {
    * This specialization should be the most frequent - just wrapping the given {@code object} with
    * warnings hash map
    */
-  @Specialization(guards = {"!isWithWarns(object)"})
+  @Specialization(guards = {"!isError(object)", "!isWithWarns(object)"})
   WithWarnings doObjectMultipleWarningsHashMap(
       VirtualFrame frame,
       Object object,
@@ -131,14 +133,13 @@ public abstract class AppendWarningNode extends Node {
     var maxWarns = withWarnings.maxWarnings;
     var warnsMap = withWarnings.warnings;
     var curWarnsCnt = (int) mapSizeNode.execute(warnsMap);
-    warnsMap =
-        mapInsertAllNode.executeInsertAll(frame, warnsMap, newWarnsMap, maxWarns - curWarnsCnt);
-    var isLimitReached =
-        mapSizeNode.execute(withWarnings.warnings) + mapSizeNode.execute(newWarnsMap) >= maxWarns;
+    warnsMap = mapInsertAllNode.executeInsertAll(frame, warnsMap, newWarnsMap, maxWarns);
+    var isLimitReached = mapSizeNode.execute(warnsMap) >= maxWarns;
     return new WithWarnings(withWarnings.value, withWarnings.maxWarnings, isLimitReached, warnsMap);
   }
 
-  @Specialization(guards = {"interop.hasArrayElements(warnings)", "!isWarnArray(warnings)"})
+  @Specialization(
+      guards = {"interop.hasArrayElements(warnings)", "!isError(object)", "!isWarnArray(warnings)"})
   WithWarnings doMultipleWarningsInterop(
       VirtualFrame frame,
       Object object,
@@ -171,6 +172,11 @@ public abstract class AppendWarningNode extends Node {
     return new WithWarnings(value, warnsLimit, isLimitReached, resWarningMap);
   }
 
+  @Specialization(guards = "isError(object)")
+  EnsoObject dontAnnotateError(Object object, Object ignoreWarnings) {
+    return (EnsoObject) object;
+  }
+
   /** Inserts all {@code warnings} to the {@code initialWarningMap}. */
   private EnsoHashMap insertToWarningMap(
       VirtualFrame frame,
@@ -199,11 +205,15 @@ public abstract class AppendWarningNode extends Node {
     return resWarningMap;
   }
 
-  protected static boolean isWarnArray(Object obj) {
+  static boolean isWarnArray(Object obj) {
     return obj instanceof Warning[];
   }
 
-  protected static boolean isWithWarns(Object obj) {
+  static boolean isWithWarns(Object obj) {
     return obj instanceof WithWarnings;
+  }
+
+  static boolean isError(Object obj) {
+    return obj instanceof DataflowError;
   }
 }

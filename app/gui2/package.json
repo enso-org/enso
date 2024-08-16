@@ -8,7 +8,7 @@
     "email": "contact@enso.org"
   },
   "scripts": {
-    "dev": "echo DEPRECATED! Use `pnpm dev:gui` in workspace root directory.",
+    "dev": "echo DEPRECATED! Use `pnpm -w dev:gui` instead.",
     "dev:vite": "vite",
     "build": "corepack pnpm -r --filter enso-dashboard run compile && corepack pnpm run build:vite",
     "build-cloud": "cross-env CLOUD_BUILD=true corepack pnpm run build",
@@ -65,6 +65,7 @@
     "@vueuse/core": "^10.4.1",
     "ag-grid-community": "^30.2.1",
     "ag-grid-enterprise": "^30.2.1",
+    "ag-grid-vue3": "^30.2.1",
     "codemirror": "^6.0.1",
     "culori": "^3.2.0",
     "enso-dashboard": "workspace:*",
@@ -82,6 +83,7 @@
     "sucrase": "^3.34.0",
     "veaury": "^2.3.18",
     "vue": "^3.4.19",
+    "vue-component-type-helpers": "^2.0.29",
     "y-codemirror.next": "^0.3.2",
     "y-protocols": "^1.0.5",
     "y-textarea": "^1.0.0",

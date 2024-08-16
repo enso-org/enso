@@ -1,10 +1,12 @@
 /** @file A list of selectable labels. */
 import * as React from 'react'
 
+import { useMutation } from '@tanstack/react-query'
+
 import PlusIcon from '#/assets/plus.svg'
 import Trash2Icon from '#/assets/trash2.svg'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import { backendMutationOptions, useListTags } from '#/hooks/backendHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -47,13 +49,14 @@ export default function Labels(props: LabelsProps) {
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const dispatchAssetEvent = useDispatchAssetEvent()
-  const labels = backendHooks.useBackendListTags(backend) ?? []
-
-  const deleteTagMutation = backendHooks.useBackendMutation(backend, 'deleteTag', {
-    onSuccess: (_data, [, labelName]) => {
-      dispatchAssetEvent({ type: AssetEventType.deleteLabel, labelName })
-    },
-  })
+  const labels = useListTags(backend) ?? []
+  const deleteTag = useMutation(
+    backendMutationOptions(backend, 'deleteTag', {
+      onSuccess: (_data, [, labelName]) => {
+        dispatchAssetEvent({ type: AssetEventType.deleteLabel, labelName })
+      },
+    }),
+  ).mutate
 
   return (
     <FocusArea direction="vertical">
@@ -127,7 +130,7 @@ export default function Labels(props: LabelsProps) {
                             <ConfirmDeleteModal
                               actionText={getText('deleteLabelActionText', label.value)}
                               doDelete={() => {
-                                deleteTagMutation.mutate([label.id, label.value])
+                                deleteTag([label.id, label.value])
                               }}
                             />,
                           )

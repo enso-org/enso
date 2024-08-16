@@ -78,7 +78,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
   const [emailIndices, setEmailIndices] = React.useState<readonly number[]>(() => [])
   const [sortInfo, setSortInfo] =
     React.useState<sorting.SortInfo<ActivityLogSortableColumn> | null>(null)
-  const users = backendHooks.useBackendListUsers(backend)
+  const users = backendHooks.useListUsers(backend)
   const allEmails = React.useMemo(() => (users ?? []).map((user) => user.email), [users])
   const logsQuery = backendHooks.useBackendQuery(backend, 'getLogEvents', [])
   const logs = logsQuery.data

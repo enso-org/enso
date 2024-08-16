@@ -30,44 +30,44 @@ pnpm install
 ### Compile and Hot-Reload for Development
 
 ```sh
-npm run dev
+pnpm -w dev:gui
 ```
 
 ### Type-Check, Compile and Minify for Production
 
 ```sh
-npm run build
+pnpm build
 ```
 
 ### Run Unit Tests with [Vitest](https://vitest.dev/)
 
 ```sh
-npm run test:unit
+# Run once
+pnpm test:unit
+# Run in watch mode
+pnpm test-dev:unit
 ```
 
 ### Run End-to-End Tests with [Playwright](https://playwright.dev)
 
 ```sh
 # Install browsers for the first run
-npx playwright install
-
-# When testing on CI, must build the project first
-npm run build
+pnpm exec playwright install
 
 # Runs the end-to-end tests
-npm run test:e2e
+pnpm test:e2e
 # Runs the tests only on Chromium
-npm run test:e2e -- --project=chromium
+pnpm test:e2e -- --project=chromium
 # Runs the tests of a specific file
-npm run test:e2e -- tests/example.spec.ts
-# Runs the tests in debug mode
-npm run test:e2e -- --debug
+pnpm test:e2e -- tests/example.spec.ts
+# Runs the tests in watch mode, open the testing UI
+pnpm test-dev:e2e
 ```
 
-### Lint with [ESLint](https://eslint.org/)
+### Format code with [ESLint](https://eslint.org/) and Prettier
 
 ```sh
-npm run lint
+pnpm format
 ```
 
 ## Icons license

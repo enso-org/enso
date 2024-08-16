@@ -38,6 +38,7 @@ import * as React from 'react'
 import * as reactQuery from '@tanstack/react-query'
 import * as router from 'react-router-dom'
 import * as toastify from 'react-toastify'
+import * as z from 'zod'
 
 import * as detect from 'enso-common/src/detect'
 
@@ -45,17 +46,14 @@ import * as appUtils from '#/appUtils'
 
 import * as inputBindingsModule from '#/configurations/inputBindings'
 
-import * as backendHooks from '#/hooks/backendHooks'
-
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
-import BackendProvider, { useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
+import BackendProvider from '#/providers/BackendProvider'
 import DriveProvider from '#/providers/DriveProvider'
 import DevtoolsProvider from '#/providers/EnsoDevtoolsProvider'
-import * as httpClientProvider from '#/providers/HttpClientProvider'
+import { useHttpClient } from '#/providers/HttpClientProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
 import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
-import type * as loggerProvider from '#/providers/LoggerProvider'
-import LoggerProvider from '#/providers/LoggerProvider'
+import { useLogger } from '#/providers/LoggerProvider'
 import ModalProvider, * as modalProvider from '#/providers/ModalProvider'
 import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 import SessionProvider from '#/providers/SessionProvider'
@@ -76,10 +74,9 @@ import type * as editor from '#/layouts/Editor'
 import * as openAppWatcher from '#/layouts/OpenAppWatcher'
 import VersionChecker from '#/layouts/VersionChecker'
 
+import { RouterProvider } from '#/components/aria'
 import * as devtools from '#/components/Devtools'
 import * as errorBoundary from '#/components/ErrorBoundary'
-import * as offlineNotificationManager from '#/components/OfflineNotificationManager'
-import * as rootComponent from '#/components/Root'
 import * as suspense from '#/components/Suspense'
 
 import AboutModal from '#/modals/AboutModal'
@@ -92,11 +89,10 @@ import RemoteBackend from '#/services/RemoteBackend'
 
 import * as appBaseUrl from '#/utilities/appBaseUrl'
 import * as eventModule from '#/utilities/event'
-import type HttpClient from '#/utilities/HttpClient'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 
-import * as authServiceModule from '#/authentication/service'
+import { useInitAuthService } from '#/authentication/service'
 
 // ============================
 // === Global configuration ===
@@ -110,17 +106,16 @@ declare module '#/utilities/LocalStorage' {
 }
 
 LocalStorage.registerKey('inputBindings', {
-  tryParse: (value) =>
-    typeof value !== 'object' || value == null ?
-      null
-    : Object.fromEntries(
-        Object.entries<unknown>({ ...value }).flatMap((kv) => {
-          const [k, v] = kv
-          return Array.isArray(v) && v.every((item): item is string => typeof item === 'string') ?
-              [[k, v]]
-            : []
-        }),
-      ),
+  schema: z.record(z.string().array().readonly()).transform((value) =>
+    Object.fromEntries(
+      Object.entries<unknown>({ ...value }).flatMap((kv) => {
+        const [k, v] = kv
+        return Array.isArray(v) && v.every((item): item is string => typeof item === 'string') ?
+            [[k, v]]
+          : []
+      }),
+    ),
+  ),
 })
 
 // ======================
@@ -141,7 +136,6 @@ function getMainPageUrl() {
 /** Global configuration for the `App` component. */
 export interface AppProps {
   readonly vibrancy: boolean
-  readonly logger: loggerProvider.Logger
   /** Whether the application may have the local backend running. */
   readonly supportsLocalBackend: boolean
   /** If true, the app can only be used in offline mode. */
@@ -157,8 +151,6 @@ export interface AppProps {
   readonly projectManagerUrl: string | null
   readonly ydocUrl: string | null
   readonly appRunner: editor.GraphEditorRunner | null
-  readonly portalRoot: Element
-  readonly httpClient: HttpClient
   readonly queryClient: reactQuery.QueryClient
 }
 
@@ -262,12 +254,10 @@ export interface AppRouterProps extends AppProps {
  * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
  * component as the component that defines the provider. */
 function AppRouter(props: AppRouterProps) {
-  const { logger, isAuthenticationDisabled, shouldShowDashboard, httpClient } = props
+  const { isAuthenticationDisabled, shouldShowDashboard } = props
   const { onAuthenticated, projectManagerInstance } = props
-  const { portalRoot } = props
-  // `navigateHooks.useNavigate` cannot be used here as it relies on `AuthProvider`, which has not
-  // yet been initialized at this point.
-  // eslint-disable-next-line no-restricted-properties
+  const httpClient = useHttpClient()
+  const logger = useLogger()
   const navigate = router.useNavigate()
   const { getText } = textProvider.useText()
   const { localStorage } = localStorageProvider.useLocalStorage()
@@ -356,14 +346,8 @@ function AppRouter(props: AppRouterProps) {
       },
     }
   }, [localStorage, inputBindingsRaw])
-
   const mainPageUrl = getMainPageUrl()
-
-  const authService = React.useMemo(() => {
-    const authConfig = { navigate, ...props }
-    return authServiceModule.initAuthService(authConfig)
-  }, [props, navigate])
-
+  const authService = useInitAuthService(props)
   const userSession = authService?.cognito.userSession.bind(authService.cognito) ?? null
   const refreshUserSession =
     authService?.cognito.refreshUserSession.bind(authService.cognito) ?? null
@@ -494,90 +478,41 @@ function AppRouter(props: AppRouterProps) {
     </router.Routes>
   )
 
-  let result = (
-    <>
-      <MutationListener />
-      <VersionChecker />
-      {routes}
-    </>
+  return (
+    <DevtoolsProvider>
+      <RouterProvider navigate={navigate}>
+        <SessionProvider
+          saveAccessToken={authService?.cognito.saveAccessToken.bind(authService.cognito) ?? null}
+          mainPageUrl={mainPageUrl}
+          userSession={userSession}
+          registerAuthEventListener={registerAuthEventListener}
+          refreshUserSession={refreshUserSession}
+        >
+          <BackendProvider remoteBackend={remoteBackend} localBackend={localBackend}>
+            <AuthProvider
+              shouldStartInOfflineMode={isAuthenticationDisabled}
+              authService={authService}
+              onAuthenticated={onAuthenticated}
+            >
+              <InputBindingsProvider inputBindings={inputBindings}>
+                {/* Ideally this would be in `Drive.tsx`, but it currently must be all the way out here
+                 * due to modals being in `TheModal`. */}
+                <DriveProvider>
+                  <errorBoundary.ErrorBoundary>
+                    <VersionChecker />
+                    {routes}
+                    {detect.IS_DEV_MODE && (
+                      <suspense.Suspense>
+                        <devtools.EnsoDevtools />
+                      </suspense.Suspense>
+                    )}
+                  </errorBoundary.ErrorBoundary>
+                </DriveProvider>
+              </InputBindingsProvider>
+            </AuthProvider>
+          </BackendProvider>
+        </SessionProvider>
+      </RouterProvider>
+    </DevtoolsProvider>
   )
-
-  result = (
-    <>
-      {result}
-
-      <errorBoundary.ErrorBoundary>
-        <suspense.Suspense>
-          <devtools.EnsoDevtools />
-        </suspense.Suspense>
-      </errorBoundary.ErrorBoundary>
-    </>
-  )
-  result = <errorBoundary.ErrorBoundary>{result}</errorBoundary.ErrorBoundary>
-  result = <InputBindingsProvider inputBindings={inputBindings}>{result}</InputBindingsProvider>
-  result = (
-    <AuthProvider
-      shouldStartInOfflineMode={isAuthenticationDisabled}
-      authService={authService}
-      onAuthenticated={onAuthenticated}
-    >
-      {result}
-    </AuthProvider>
-  )
-
-  result = (
-    <BackendProvider remoteBackend={remoteBackend} localBackend={localBackend}>
-      {result}
-    </BackendProvider>
-  )
-
-  result = (
-    <SessionProvider
-      saveAccessToken={authService?.cognito.saveAccessToken.bind(authService.cognito) ?? null}
-      mainPageUrl={mainPageUrl}
-      userSession={userSession}
-      registerAuthEventListener={registerAuthEventListener}
-      refreshUserSession={refreshUserSession}
-    >
-      {result}
-    </SessionProvider>
-  )
-  result = <LoggerProvider logger={logger}>{result}</LoggerProvider>
-  result = (
-    <rootComponent.Root navigate={navigate} portalRoot={portalRoot}>
-      {result}
-    </rootComponent.Root>
-  )
-  // Ideally this would be in `Drive.tsx`, but it currently must be all the way out here
-  // due to modals being in `TheModal`.
-  result = <DriveProvider>{result}</DriveProvider>
-  result = (
-    <offlineNotificationManager.OfflineNotificationManager>
-      {result}
-    </offlineNotificationManager.OfflineNotificationManager>
-  )
-  result = (
-    <httpClientProvider.HttpClientProvider httpClient={httpClient}>
-      {result}
-    </httpClientProvider.HttpClientProvider>
-  )
-  result = <LoggerProvider logger={logger}>{result}</LoggerProvider>
-  result = <DevtoolsProvider>{result}</DevtoolsProvider>
-
-  return result
-}
-
-// ========================
-// === MutationListener ===
-// ========================
-
-/** A component that applies state updates for successful mutations. */
-function MutationListener() {
-  const remoteBackend = useRemoteBackend()
-  const localBackend = useLocalBackend()
-
-  backendHooks.useObserveBackend(remoteBackend)
-  backendHooks.useObserveBackend(localBackend)
-
-  return null
 }

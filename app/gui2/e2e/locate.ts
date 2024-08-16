@@ -45,7 +45,7 @@ function or(a: (page: Locator | Page) => Locator, b: (page: Locator | Page) => L
 }
 
 export function toggleVisualizationButton(page: Locator | Page) {
-  return page.getByLabel('Visualization')
+  return page.getByLabel('Visualization', { exact: true })
 }
 
 export function toggleVisualizationSelectorButton(page: Locator | Page) {

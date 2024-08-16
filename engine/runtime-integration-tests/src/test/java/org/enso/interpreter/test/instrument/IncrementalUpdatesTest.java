@@ -68,7 +68,9 @@ public class IncrementalUpdatesTest {
 
   @After
   public void teardownContext() {
+    nodeCountingInstrument = null;
     context.close();
+    context = null;
   }
 
   @Test

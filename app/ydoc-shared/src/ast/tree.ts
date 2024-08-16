@@ -874,8 +874,9 @@ export class NegationApp extends Ast {
     return asOwned(new MutableNegationApp(module, fields))
   }
 
-  static new(module: MutableModule, operator: Token, argument: Owned) {
-    return this.concrete(module, unspaced(operator), autospaced(argument))
+  static new(module: MutableModule, argument: Owned) {
+    const minus = Token.new('-', RawAst.Token.Type.Operator)
+    return this.concrete(module, unspaced(minus), unspaced(argument))
   }
 
   get operator(): Token {
@@ -1800,6 +1801,18 @@ export class NumericLiteral extends Ast {
     if (parsed instanceof MutableNumericLiteral) return parsed
   }
 
+  static tryParseWithSign(
+    source: string,
+    module?: MutableModule,
+  ): Owned<MutableNumericLiteral | MutableNegationApp> | undefined {
+    const parsed = parse(source, module)
+    if (
+      parsed instanceof MutableNumericLiteral ||
+      (parsed instanceof MutableNegationApp && parsed.argument instanceof MutableNumericLiteral)
+    )
+      return parsed
+  }
+
   static concrete(module: MutableModule, tokens: NodeChild<Token>[]) {
     const base = module.baseObject('NumericLiteral')
     const fields = composeFieldData(base, { tokens })
@@ -2380,8 +2393,8 @@ export class Vector extends Ast {
     yield ensureUnspaced(open, verbatim)
     let isFirst = true
     for (const { delimiter, value } of elements) {
-      if (isFirst && value) {
-        yield preferUnspaced(value)
+      if (isFirst) {
+        if (value) yield preferUnspaced(value)
       } else {
         yield preferUnspaced(delimiter)
         if (value) yield preferSpaced(value)
@@ -2395,6 +2408,16 @@ export class Vector extends Ast {
     for (const element of this.fields.get('elements'))
       if (element.value) yield this.module.get(element.value.node)
   }
+
+  *enumerate(): IterableIterator<[number, Ast | undefined]> {
+    for (const [index, element] of this.fields.get('elements').entries()) {
+      yield [index, this.module.get(element.value?.node)]
+    }
+  }
+
+  get length() {
+    return this.fields.get('elements').length
+  }
 }
 export class MutableVector extends Vector implements MutableAst {
   declare readonly module: MutableModule
@@ -2407,6 +2430,28 @@ export class MutableVector extends Vector implements MutableAst {
       ownedToRaw(this.module, this.id),
     )
     this.fields.set('elements', [...elements, element])
+  }
+
+  pop(): Owned | undefined {
+    const elements = this.fields.get('elements')
+    const last = elements[elements.length - 1]?.value?.node
+    this.fields.set('elements', elements.slice(0, -1))
+    const lastNode = this.module.get(last)
+    if (lastNode != null) {
+      lastNode.fields.set('parent', undefined)
+      return lastNode as Owned
+    } else {
+      return undefined
+    }
+  }
+
+  set<T extends MutableAst>(index: number, value: Owned<T>) {
+    const elements = [...this.fields.get('elements')]
+    elements[index] = {
+      delimiter: elements[index]!.delimiter,
+      value: autospaced(this.claimChild(value)),
+    }
+    this.fields.set('elements', elements)
   }
 
   keep(predicate: (ast: Ast) => boolean) {

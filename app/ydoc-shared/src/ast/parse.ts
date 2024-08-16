@@ -300,6 +300,7 @@ class Abstractor {
         const left = this.abstractToken(tree.left)
         const elements = []
         if (tree.first) elements.push({ value: this.abstractTree(tree.first) })
+        else if (!tree.rest.next().done) elements.push({ value: undefined })
         for (const rawElement of tree.rest) {
           elements.push({
             delimiter: this.abstractToken(rawElement.operator),

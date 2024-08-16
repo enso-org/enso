@@ -222,15 +222,15 @@ pub fn check_disk_space(
         .find(|disk| path.starts_with(disk.mount_point()))
         .context("No disk information found for the installation directory.")?;
 
-    let required_space = byte_unit::Byte::from_u64(bytes_required);
-    let free_space = byte_unit::Byte::from_u64(disk.available_space());
+    let required_space = bytesize::ByteSize(bytes_required);
+    let free_space = bytesize::ByteSize(disk.available_space());
 
     if free_space < required_space {
         let msg = format!(
             "Not enough disk space on {} to install. Required: {:.2}, available: {:.2}.",
             disk.mount_point().display(),
-            required_space.get_appropriate_unit(byte_unit::UnitType::Binary),
-            free_space.get_appropriate_unit(byte_unit::UnitType::Binary)
+            required_space,
+            free_space
         );
         return Ok(Some(msg));
     }

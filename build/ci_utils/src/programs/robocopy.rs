@@ -15,7 +15,7 @@ impl Program for Robocopy {
 
     fn handle_exit_status(status: std::process::ExitStatus) -> Result {
         match status.code() {
-            None => status.exit_ok().anyhow_err(),
+            None => Ok(status.exit_ok()?),
             Some(code) if code >= 8 => bail!("Exit with code {}.", code),
             Some(_) => Ok(()),
         }

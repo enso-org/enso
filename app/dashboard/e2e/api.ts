@@ -12,6 +12,8 @@ import * as uniqueString from '#/utilities/uniqueString'
 
 import * as actions from './actions'
 
+import LATEST_GITHUB_RELEASES from './latestGithubReleases.json' with { type: 'json' }
+
 // =================
 // === Constants ===
 // =================
@@ -357,6 +359,67 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     await page.route('https://www.googletagmanager.com/gtag/js*', (route) =>
       route.fulfill({ contentType: 'text/javascript', body: 'export {};' }),
     )
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (process.env.MOCK_ALL_URLS === 'true') {
+      await page.route('https://fonts.googleapis.com/css2*', async (route) => {
+        await route.fulfill({ contentType: 'text/css', body: '' })
+      })
+      await page.route('https://ensoanalytics.com/eula.json', async (route) => {
+        await route.fulfill({
+          json: {
+            path: '/eula.md',
+            // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+            size: 9472,
+            modified: '2024-06-26T10:44:04.939Z',
+            hash: '1c8a655202e59f0efebf5a83a703662527aa97247052964f959a8488382604b8',
+          },
+        })
+      })
+      await page.route(
+        'https://api.github.com/repos/enso-org/enso/releases/latest',
+        async (route) => {
+          await route.fulfill({ json: LATEST_GITHUB_RELEASES })
+        },
+      )
+      await page.route('https://github.com/enso-org/enso/releases/download/**', async (route) => {
+        await route.fulfill({
+          // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+          status: 302,
+          headers: { location: 'https://objects.githubusercontent.com/foo/bar' },
+        })
+      })
+      await page.route('https://objects.githubusercontent.com/**', async (route) => {
+        await route.fulfill({
+          // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+          status: 200,
+          headers: {
+            /* eslint-disable @typescript-eslint/naming-convention */
+            'content-type': 'application/octet-stream',
+            'last-modified': 'Wed, 24 Jul 2024 17:22:47 GMT',
+            etag: '"0x8DCAC053D058EA5"',
+            server: 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0',
+            'x-ms-request-id': '20ab2b4e-c01e-0068-7dfa-dd87c5000000',
+            'x-ms-version': '2020-10-02',
+            'x-ms-creation-time': 'Wed, 24 Jul 2024 17:22:47 GMT',
+            'x-ms-lease-status': 'unlocked',
+            'x-ms-lease-state': 'available',
+            'x-ms-blob-type': 'BlockBlob',
+            'content-disposition': 'attachment; filename=enso-linux-x86_64-2024.3.1-rc3.AppImage',
+            'x-ms-server-encrypted': 'true',
+            via: '1.1 varnish, 1.1 varnish',
+            'accept-ranges': 'bytes',
+            age: '1217',
+            date: 'Mon, 29 Jul 2024 09:40:09 GMT',
+            'x-served-by': 'cache-iad-kcgs7200163-IAD, cache-bne12520-BNE',
+            'x-cache': 'HIT, HIT',
+            'x-cache-hits': '48, 0',
+            'x-timer': 'S1722246008.269342,VS0,VE895',
+            'content-length': '1030383958',
+            /* eslint-enable @typescript-eslint/naming-convention */
+          },
+        })
+      })
+    }
     const isActuallyOnline = await page.evaluate(() => navigator.onLine)
     if (!isActuallyOnline) {
       await page.route('https://fonts.googleapis.com/*', (route) => route.abort())
@@ -776,12 +839,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     await post(remoteBackendPaths.CREATE_TAG_PATH + '*', (route) => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const body: backend.CreateTagRequestBody = route.request().postDataJSON()
-      const json: backend.Label = {
-        id: backend.TagId(`tag-${uniqueString.uniqueString()}`),
-        value: backend.LabelName(body.value),
-        color: body.color,
-      }
-      return json
+      return addLabel(body.value, body.color)
     })
     await post(remoteBackendPaths.CREATE_PROJECT_PATH + '*', (_route, request) => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment

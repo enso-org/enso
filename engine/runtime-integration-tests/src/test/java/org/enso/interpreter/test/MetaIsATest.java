@@ -53,7 +53,10 @@ public class MetaIsATest {
       generator.dispose();
       generator = null;
     }
+    isACheck = null;
+    warningCheck = null;
     ctx.close();
+    ctx = null;
   }
 
   /**

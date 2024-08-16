@@ -243,14 +243,17 @@ Text.characters self =
    Find the regular expression `pattern` in `self`, returning the first match
    if present or `Nothing` if not found.
 
+   For details on Enso's Regex syntax, see the [Help Documentation](https://help.enso.org/docs/using-enso/regular-expressions).
+
    Arguments:
    - pattern: The pattern to match `self` against.
    - case_sensitivity: Specifies if the text values should be compared case
      sensitively.
 
-   If an empty regex is used, `find` throws an `Illegal_Argument` error.
+   ! Error Conditions
 
-   If a non-default locale is used, `find` throws an `Illegal_Argument` error.
+   - If an empty regex is used, `find` throws an `Illegal_Argument` error.
+   - If a non-default locale is used, `find` throws an `Illegal_Argument` error.
 
    > Example
      Find the first substring matching the regex.
@@ -262,7 +265,7 @@ Text.characters self =
              ## This matches `aBc` @ character 11
              "aabbbbccccaaBcaaaa".find "a[ab]c" Case_Sensitivity.Insensitive
 Text.find : Text -> Case_Sensitivity -> Match | Nothing ! Regex_Syntax_Error | Illegal_Argument
-Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
+Text.find self pattern:(Regex|Text)=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     case_insensitive = case_sensitivity.is_case_insensitive_in_memory
     compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
     compiled_pattern.match self
@@ -273,14 +276,17 @@ Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
    Finds all the matches of the regular expression `pattern` in `self`,
    returning a Vector. If not found, will be an empty Vector.
 
+   For details on Enso's Regex syntax, see the [Help Documentation](https://help.enso.org/docs/using-enso/regular-expressions).
+
    Arguments:
    - pattern: The pattern to match `self` against.
    - case_sensitivity: Specifies if the text values should be compared case
      sensitively.
 
-   If an empty regex is used, `find_all` throws an `Illegal_Argument` error.
+   ! Error Conditions
 
-   If a non-default locale is used, `find_all` throws an `Illegal_Argument` error.
+   - If an empty regex is used, `find` throws an `Illegal_Argument` error.
+   - If a non-default locale is used, `find` throws an `Illegal_Argument` error.
 
    > Example
      Find the substring matching the regex.
@@ -303,14 +309,17 @@ Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
 
    Checks if the whole text in `self` matches a provided `pattern`.
 
+   For details on Enso's Regex syntax, see the [Help Documentation](https://help.enso.org/docs/using-enso/regular-expressions).
+
    Arguments:
    - pattern: The pattern to match `self` against.
    - case_sensitivity: Specifies if the text values should be compared case
      sensitively.
 
-   If an empty regex is used, `match` throws an `Illegal_Argument` error.
+   ! Error Conditions
 
-   If a non-default locale is used, `match` throws an `Illegal_Argument` error.
+   - If an empty regex is used, `find` throws an `Illegal_Argument` error.
+   - If a non-default locale is used, `find` throws an `Illegal_Argument` error.
 
    > Example
      Checks if whole text matches a basic email regex.
@@ -462,6 +471,8 @@ Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
        $n: the nth group
        $&lt;foo&gt;: Named group `foo`
 
+   For details on Enso's Regex syntax, see the [Help Documentation](https://help.enso.org/docs/using-enso/regular-expressions).
+
    Arguments:
    - term: The `Text` or `Regex` to find.
    - replacement: The text to replace matches with.
@@ -469,10 +480,10 @@ Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
      sensitively.
    - only_first: If True, only replace the first match.
 
-   If an empty regex is used, `replace` throws an `Illegal_Argument` error.
+   ! Error Conditions
 
-   If a non-default locale is used with a regex, `replace` throws an
-   Illegal_Argument error.
+   - If an empty regex is used, `find` throws an `Illegal_Argument` error.
+   - If a non-default locale is used, `find` throws an `Illegal_Argument` error.
 
    > Example
      Replace letters in the text "aaa".

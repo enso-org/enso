@@ -17,8 +17,8 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.io.IOAccess;
+import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -45,7 +45,7 @@ public class ExecStrictCompilerTest {
     assertNotNull("Enso language is supported", ctx.getEngine().getLanguages().get("enso"));
   }
 
-  @Before
+  @After
   public void cleanMessages() {
     MESSAGES.reset();
   }
@@ -53,6 +53,7 @@ public class ExecStrictCompilerTest {
   @AfterClass
   public static void closeEnsoContext() {
     ctx.close();
+    ctx = null;
   }
 
   @Test

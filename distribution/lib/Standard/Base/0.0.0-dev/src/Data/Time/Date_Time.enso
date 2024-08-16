@@ -605,7 +605,7 @@ type Date_Time
     start_of self period=Date_Period.Month =
         adjusted = period.adjust_start self
         case period of
-            _ : Date_Period -> Time_Period.Day.adjust_start adjusted
+            _ : Date_Period -> Date_Period.Day.adjust_start adjusted
             _ : Time_Period -> adjusted
 
     ## GROUP DateTime
@@ -616,7 +616,7 @@ type Date_Time
     end_of self period=Date_Period.Month =
         adjusted = period.adjust_end self
         case period of
-            _ : Date_Period -> Time_Period.Day.adjust_end adjusted
+            _ : Date_Period -> Date_Period.Day.adjust_end adjusted
             _ : Time_Period -> adjusted
 
     ## ALIAS time to date
@@ -668,7 +668,6 @@ type Date_Time
             Date_Period.Month       -> self.month
             Date_Period.Week _      -> self.week_of_year locale=Nothing
             Date_Period.Day         -> self.day
-            Time_Period.Day         -> self.day
             Time_Period.Hour        -> self.hour
             Time_Period.Minute      -> self.minute
             Time_Period.Second      -> self.second

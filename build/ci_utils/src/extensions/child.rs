@@ -17,7 +17,7 @@ pub trait ChildExt {
 
 impl ChildExt for tokio::process::Child {
     fn wait_ok(&mut self) -> BoxFuture<Result> {
-        async move { self.wait().await?.exit_ok().anyhow_err() }.boxed()
+        async move { Ok(self.wait().await?.exit_ok()?) }.boxed()
     }
 
     fn kill_subtree(&self) {

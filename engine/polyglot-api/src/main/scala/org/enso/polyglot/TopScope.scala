@@ -37,7 +37,4 @@ class TopScope(private val value: Value) {
   def compile(shouldCompileDependencies: Boolean): Unit = {
     value.invokeMember(COMPILE, shouldCompileDependencies)
   }
-
-  def getLibraries(): Array[String] =
-    value.invokeMember(LOCAL_LIBRARIES).as(classOf[Array[String]])
 }

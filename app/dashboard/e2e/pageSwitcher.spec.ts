@@ -8,6 +8,10 @@ test.test('page switcher', ({ page }) =>
     .mockAllAndLogin({ page })
     // Create a new project so that the editor page can be switched to.
     .newEmptyProject()
+    .do(async (thePage) => {
+      await test.expect(actions.locateDriveView(thePage)).not.toBeVisible()
+      await test.expect(actions.locateEditor(thePage)).toBeVisible()
+    })
     .goToPage.drive()
     .do(async (thePage) => {
       await test.expect(actions.locateDriveView(thePage)).toBeVisible()

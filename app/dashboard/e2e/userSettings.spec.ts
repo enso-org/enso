@@ -25,45 +25,37 @@ test.test('change password form', async ({ page }) => {
   test.expect(api.currentPassword()).toBe(actions.VALID_PASSWORD)
   await localActions.locateCurrentPasswordInput(page).fill(actions.VALID_PASSWORD)
   await localActions.locateNewPasswordInput(page).fill(actions.INVALID_PASSWORD)
-  await test
-    .expect(localActions.locateChangeButton(page), 'incomplete form should be rejected')
-    .toBeDisabled()
 
   await test.test.step('Invalid new password', async () => {
     await localActions.locateCurrentPasswordInput(page).fill(actions.VALID_PASSWORD)
     await localActions.locateNewPasswordInput(page).fill(actions.INVALID_PASSWORD)
     await localActions.locateConfirmNewPasswordInput(page).fill(actions.INVALID_PASSWORD)
-    test
-      .expect(
-        await localActions
-          .locateNewPasswordInput(page)
-          .evaluate((element: HTMLInputElement) => element.validity.valid),
-        'invalid new password should be rejected',
-      )
-      .toBe(false)
+    await localActions.locateChangeButton(page).click()
     await test
-      .expect(localActions.locateChangeButton(page), 'invalid new password should be rejected')
-      .toBeDisabled()
+      .expect(
+        localActions
+          .locate(page)
+          .getByRole('group', { name: /^New password/, exact: true })
+          .locator('.text-danger')
+          .last(),
+      )
+      .toHaveText(actions.TEXT.passwordValidationError)
   })
 
   await test.test.step('Invalid new password confirmation', async () => {
     await localActions.locateCurrentPasswordInput(page).fill(actions.VALID_PASSWORD)
     await localActions.locateNewPasswordInput(page).fill(actions.VALID_PASSWORD)
     await localActions.locateConfirmNewPasswordInput(page).fill(actions.VALID_PASSWORD + 'a')
-    test
-      .expect(
-        await localActions
-          .locateConfirmNewPasswordInput(page)
-          .evaluate((element: HTMLInputElement) => element.validity.valid),
-        'invalid new password confirmation should be rejected',
-      )
-      .toBe(false)
+    await localActions.locateChangeButton(page).click()
     await test
       .expect(
-        localActions.locateChangeButton(page),
-        'invalid new password confirmation should be rejected',
+        localActions
+          .locate(page)
+          .getByRole('group', { name: /^Confirm new password/, exact: true })
+          .locator('.text-danger')
+          .last(),
       )
-      .toBeDisabled()
+      .toHaveText(actions.TEXT.passwordMismatchError)
   })
 
   await test.test.step('Successful password change', async () => {

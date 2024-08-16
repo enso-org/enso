@@ -637,6 +637,7 @@ lazy val `text-buffer` = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    commands += WithDebugCommand.withDebug,
     libraryDependencies ++= Seq(
       "org.scalatest"  %% "scalatest"  % scalatestVersion  % Test,
       "org.scalacheck" %% "scalacheck" % scalacheckVersion % Test
@@ -2598,6 +2599,7 @@ lazy val `engine-runner` = project
       "org.jline"               % "jline"                   % jlineVersion,
       "junit"                   % "junit"                   % junitVersion              % Test,
       "com.github.sbt"          % "junit-interface"         % junitIfVersion            % Test,
+      "org.hamcrest"            % "hamcrest-all"            % hamcrestVersion           % Test,
       "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionCompatVersion
     ),
     run / connectInput := true
