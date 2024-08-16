@@ -408,7 +408,7 @@ make_first_aggregator reverse ignore_null args =
         base_order_expression = SQL_Builder.Value (Vector_Builder.from_vector fragments_without_suffixes)
         order_expression = case ignore_null of
             False -> base_order_expression
-            True -> SQL_Builder.code "CASE WHEN " ++ base_order_expression ++ " IS NULL THEN NULL ELSE " ++ base_order_expression ++ " END"
+            True -> SQL_Builder.code "CASE WHEN " ++ result_expr ++ " IS NULL THEN NULL ELSE " ++ base_order_expression ++ " END"
         SQL_Builder.code (method_name + "(") ++ result_expr ++ ", " ++ order_expression ++ ")"
 
 ## PRIVATE

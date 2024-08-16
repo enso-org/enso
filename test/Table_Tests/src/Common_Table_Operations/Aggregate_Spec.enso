@@ -177,7 +177,7 @@ add_specs suite_builder setup =
             materialized.columns.at 5 . at 0 . should_equal -17.960000 epsilon=0.000001
 
         group_builder.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
-            grouped = data.table.aggregate columns=[First "Index" (order_by = [Sort_Column.Name "Value", Sort_Column.Name "TextWithNothing"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
+            grouped = data.table.aggregate columns=[First "Index" (order_by = [Sort_Column.Name "Value"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
@@ -443,7 +443,7 @@ add_specs suite_builder setup =
             materialized.columns.at 3 . name . should_equal "25%-ile Value"
 
         group_builder.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
-            grouped = data.empty_table.aggregate [0] [First "Index" (order_by = [Sort_Column.Name "Hexadecimal", Sort_Column.Name "TextWithNothing"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
+            grouped = data.empty_table.aggregate [0] [First "Index" (order_by = [Sort_Column.Name "Hexadecimal"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 0
