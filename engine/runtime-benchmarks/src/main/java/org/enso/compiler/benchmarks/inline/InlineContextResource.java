@@ -16,7 +16,7 @@ public record InlineContextResource(InlineContext inlineContext) implements Auto
         .localScope()
         .foreach(
             s -> {
-              s.scope().apply().removeScopeFromParent();
+              s.scope().removeScopeFromParent();
               return null;
             });
   }
