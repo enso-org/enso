@@ -129,7 +129,7 @@ object LocalScope {
     *
     * @return a defaulted local scope
     */
-  val root: LocalScope = {
+  def root: LocalScope = {
     val graph = new AliasGraph
     val info  = DataflowAnalysis.DependencyInfo()
     new LocalScope(
