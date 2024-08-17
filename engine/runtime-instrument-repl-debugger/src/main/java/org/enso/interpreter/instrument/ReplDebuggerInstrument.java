@@ -9,7 +9,6 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.EventContext;
 import com.oracle.truffle.api.instrumentation.ExecutionEventNode;
 import com.oracle.truffle.api.instrumentation.ExecutionEventNodeFactory;
-import com.oracle.truffle.api.instrumentation.Instrumenter;
 import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
 import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
@@ -54,46 +53,38 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
    */
   @Override
   protected void onCreate(Env env) {
-    if (env.getOptions().get(ENABLE_OPTION)) {
-      SourceSectionFilter filter =
-          SourceSectionFilter.newBuilder().tagIs(DebuggerTags.AlwaysHalt.class).build();
+    DebuggerMessageHandler handler = new DebuggerMessageHandler();
+    SourceSectionFilter filter = null;
+    ExecutionEventNodeFactory factory = null;
 
-      DebuggerMessageHandler handler = new DebuggerMessageHandler();
-      try {
-        MessageEndpoint client = env.startServer(URI.create(DebugServerInfo.URI), handler);
-        if (client != null) {
-          handler.setClient(client);
-          Instrumenter instrumenter = env.getInstrumenter();
-          instrumenter.attachExecutionEventFactory(
-              filter,
-              ctx ->
-                  ctx.getInstrumentedNode() instanceof DebugBreakpointNode
-                      ? new ReplExecutionEventNodeImpl(
-                          false, ctx, handler, env.getLogger(ReplExecutionEventNodeImpl.class))
-                      : null);
-        } else {
-          env.getLogger(ReplDebuggerInstrument.class)
-              .warning("ReplDebuggerInstrument was initialized, " + "but no client connected");
-        }
-      } catch (MessageTransport.VetoException e) {
-        env.getLogger(ReplDebuggerInstrument.class)
-            .warning(
-                "ReplDebuggerInstrument was initialized, "
-                    + "but client connection has been vetoed");
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
+    if (env.getOptions().get(ENABLE_OPTION)) {
+      factory =
+          ctx ->
+              ctx.getInstrumentedNode() instanceof DebugBreakpointNode
+                  ? new ReplExecutionEventNodeImpl(
+                      false, ctx, handler, env.getLogger(ReplExecutionEventNodeImpl.class))
+                  : null;
+
+      filter = SourceSectionFilter.newBuilder().tagIs(DebuggerTags.AlwaysHalt.class).build();
+      env.getInstrumenter().attachExecutionEventFactory(filter, factory);
     }
-    var replAtMethodName = env.getOptions().get(FN_OPTION);
-    if (!"".equals(replAtMethodName)) {
-      DebuggerMessageHandler handler = new DebuggerMessageHandler();
+    if (env.getOptions().get(FN_OPTION) instanceof String replMethodName
+        && !replMethodName.isEmpty()) {
+      factory = new AtTheEndOfMethod(handler, env);
+
+      filter =
+          SourceSectionFilter.newBuilder()
+              .tagIs(StandardTags.RootBodyTag.class)
+              .rootNameIs(replMethodName::equals)
+              .build();
+      env.getInstrumenter().attachExecutionEventFactory(filter, factory);
+    }
+
+    if (factory != null || filter != null) {
       try {
         MessageEndpoint client = env.startServer(URI.create(DebugServerInfo.URI), handler);
         if (client != null) {
           handler.setClient(client);
-          Instrumenter instrumenter = env.getInstrumenter();
-          var replAtMethod = new AtTheEndOfMethod(handler, env, instrumenter);
-          replAtMethod.activate(replAtMethodName);
         } else {
           env.getLogger(ReplDebuggerInstrument.class)
               .warning("ReplDebuggerInstrument was initialized, " + "but no client connected");
@@ -305,22 +296,12 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
   }
 
   private final class AtTheEndOfMethod implements ExecutionEventNodeFactory {
-    private final Instrumenter instr;
     private final DebuggerMessageHandler handler;
     private final TruffleInstrument.Env env;
 
-    AtTheEndOfMethod(DebuggerMessageHandler h, TruffleInstrument.Env env, Instrumenter instr) {
-      this.instr = instr;
+    AtTheEndOfMethod(DebuggerMessageHandler h, TruffleInstrument.Env env) {
       this.handler = h;
       this.env = env;
-    }
-
-    final void activate(String methodName) {
-      var b = SourceSectionFilter.newBuilder();
-      b.tagIs(StandardTags.RootBodyTag.class);
-      b.rootNameIs(methodName::equals);
-      var anyMethod = b.build();
-      instr.attachExecutionEventFactory(anyMethod, this);
     }
 
     @Override
