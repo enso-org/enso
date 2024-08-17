@@ -13,6 +13,8 @@ import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
 import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.InvalidArrayIndexException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.RootNode;
 import java.io.IOException;
 import java.net.URI;
@@ -28,8 +30,12 @@ import org.enso.interpreter.node.expression.debug.EvalNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.hash.HashMapToVectorNode;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
 import org.enso.interpreter.runtime.state.State;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.enso.polyglot.debugger.DebugServerInfo;
 import org.graalvm.options.OptionDescriptor;
 import org.graalvm.options.OptionDescriptors;
@@ -134,7 +140,29 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
     }
 
     private Object getValue(MaterializedFrame frame, FramePointer ptr) {
-      return getProperFrame(frame, ptr).getValue(ptr.frameSlotIdx());
+      var raw = getProperFrame(frame, ptr).getValue(ptr.frameSlotIdx());
+      if (WarningsLibrary.getUncached().hasWarnings(raw)) {
+        try {
+          var sb = new StringBuilder();
+          sb.append(WarningsLibrary.getUncached().removeWarnings(raw));
+          var mappedWarnings = WarningsLibrary.getUncached().getWarnings(raw, true);
+          var pairs = HashMapToVectorNode.getUncached().execute(mappedWarnings);
+          var size = ArrayLikeLengthNode.getUncached().executeLength(pairs);
+          for (var i = 0L; i < size; i++) {
+            try {
+              var pair = ArrayLikeAtNode.getUncached().executeAt(pairs, i);
+              var value = ArrayLikeAtNode.getUncached().executeAt(pair, 1);
+              sb.append("\n  ! ").append(value);
+            } catch (InvalidArrayIndexException ex) {
+              // go on
+            }
+          }
+          return sb.toString();
+        } catch (UnsupportedMessageException e) {
+          // go on
+        }
+      }
+      return raw;
     }
 
     private MaterializedFrame getProperFrame(MaterializedFrame frame, FramePointer ptr) {
