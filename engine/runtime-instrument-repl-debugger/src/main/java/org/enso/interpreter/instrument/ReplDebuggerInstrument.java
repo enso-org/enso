@@ -6,7 +6,6 @@ import com.oracle.truffle.api.TruffleStackTrace;
 import com.oracle.truffle.api.debug.DebuggerTags;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.EventContext;
 import com.oracle.truffle.api.instrumentation.ExecutionEventNode;
 import com.oracle.truffle.api.instrumentation.ExecutionEventNodeFactory;
@@ -93,7 +92,7 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
         if (client != null) {
           handler.setClient(client);
           Instrumenter instrumenter = env.getInstrumenter();
-          var replAtMethod = new AtTheEndOfFirstMethod(handler, env, instrumenter);
+          var replAtMethod = new AtTheEndOfMethod(handler, env, instrumenter);
           replAtMethod.activate(replAtMethodName);
         } else {
           env.getLogger(ReplDebuggerInstrument.class)
@@ -214,12 +213,14 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
      */
     @Override
     protected void onEnter(VirtualFrame frame) {
-      CallerInfo lastScope = Function.ArgumentsHelper.getCallerInfo(frame.getArguments());
-      Object lastReturn = EnsoContext.get(this).getNothing();
-      // Note [Safe Access to State in the Debugger Instrument]
-      monadicState = Function.ArgumentsHelper.getState(frame.getArguments());
-      nodeState = new ReplExecutionEventNodeState(lastReturn, lastScope);
-      startSessionImpl();
+      if (!atExit) {
+        CallerInfo lastScope = Function.ArgumentsHelper.getCallerInfo(frame.getArguments());
+        Object lastReturn = EnsoContext.get(this).getNothing();
+        // Note [Safe Access to State in the Debugger Instrument]
+        monadicState = Function.ArgumentsHelper.getState(frame.getArguments());
+        nodeState = new ReplExecutionEventNodeState(lastReturn, lastScope);
+        startSessionImpl();
+      }
     }
 
     @Override
@@ -303,13 +304,12 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
     }
   }
 
-  private final class AtTheEndOfFirstMethod implements ExecutionEventNodeFactory {
+  private final class AtTheEndOfMethod implements ExecutionEventNodeFactory {
     private final Instrumenter instr;
     private final DebuggerMessageHandler handler;
     private final TruffleInstrument.Env env;
-    private EventBinding<?> firstMethod;
 
-    AtTheEndOfFirstMethod(DebuggerMessageHandler h, TruffleInstrument.Env env, Instrumenter instr) {
+    AtTheEndOfMethod(DebuggerMessageHandler h, TruffleInstrument.Env env, Instrumenter instr) {
       this.instr = instr;
       this.handler = h;
       this.env = env;
@@ -318,17 +318,13 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
     final void activate(String methodName) {
       var b = SourceSectionFilter.newBuilder();
       b.tagIs(StandardTags.RootBodyTag.class);
-      b.rootNameIs(
-          (n) -> {
-            return methodName.equals(n);
-          });
+      b.rootNameIs(methodName::equals);
       var anyMethod = b.build();
-      this.firstMethod = instr.attachExecutionEventFactory(anyMethod, this);
+      instr.attachExecutionEventFactory(anyMethod, this);
     }
 
     @Override
     public ExecutionEventNode create(EventContext ctx) {
-      firstMethod.dispose();
       var log = env.getLogger(ReplExecutionEventNodeImpl.class);
       return new ReplExecutionEventNodeImpl(true, ctx, handler, log);
     }
