@@ -718,7 +718,6 @@ public class Main {
             .enableIrCaches(enableIrCaches)
             .disablePrivateCheck(disablePrivateCheck)
             .strictErrors(true)
-            .checkForWarnings(mainFile.getName().replace(".enso", "") + ".main")
             .enableAutoParallelism(enableAutoParallelism)
             .enableStaticAnalysis(enableStaticAnalysis)
             .executionEnvironment(executionEnvironment != null ? executionEnvironment : "live")
@@ -734,7 +733,9 @@ public class Main {
     }
     if (enableDebugServer) {
       factory.messageTransport(replTransport());
-      options.put(DebugServerInfo.ENABLE_OPTION, "true");
+      factory.enableDebugServer(true);
+    } else {
+      factory.checkForWarnings(mainFile.getName().replace(".enso", "") + ".main");
     }
     var context = new PolyglotContext(factory.build());
 
@@ -934,14 +935,13 @@ public class Main {
             .replace("$mainMethodName", mainMethodName);
     var replModuleName = "Internal_Repl_Module___";
     var projectRoot = projectPath != null ? projectPath : "";
-    var options = Collections.singletonMap(DebugServerInfo.ENABLE_OPTION, "true");
 
     var context =
         new PolyglotContext(
             ContextFactory.create()
                 .projectRoot(projectRoot)
                 .messageTransport(replTransport())
-                .options(options)
+                .enableDebugServer(true)
                 .logLevel(logLevel)
                 .logMasking(logMasking)
                 .enableIrCaches(enableIrCaches)

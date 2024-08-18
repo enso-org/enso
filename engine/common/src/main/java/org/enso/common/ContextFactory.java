@@ -31,6 +31,7 @@ import org.slf4j.event.Level;
  * @param executionEnvironment optional name of the execution environment to use during execution
  * @param warningsLimit maximal number of warnings reported to the user
  * @param checkForWarnings name of method to check for warnings
+ * @param enableDebugServer enable debug (e.g. REPL) server
  */
 public final class ContextFactory {
   private String projectRoot;
@@ -51,6 +52,7 @@ public final class ContextFactory {
   private String checkForWarnings;
   private int warningsLimit = 100;
   private java.util.Map<String, String> options = java.util.Collections.emptyMap();
+    private boolean enableDebugServer;
 
   private ContextFactory() {}
 
@@ -143,10 +145,15 @@ public final class ContextFactory {
     return this;
   }
 
-    public ContextFactory checkForWarnings(String fqnOfMethod) {
-      this.checkForWarnings = fqnOfMethod;
-      return this;
-    }
+  public ContextFactory checkForWarnings(String fqnOfMethod) {
+    this.checkForWarnings = fqnOfMethod;
+    return this;
+  }
+
+  public ContextFactory enableDebugServer(boolean b) {
+    this.enableDebugServer = b;
+    return this;
+  }
 
   public Context build() {
     if (executionEnvironment != null) {
@@ -178,6 +185,9 @@ public final class ContextFactory {
             .in(in);
     if (checkForWarnings != null) {
       builder.option(DebugServerInfo.FN_OPTION, checkForWarnings);
+    }
+    if (enableDebugServer) {
+      builder.option(DebugServerInfo.ENABLE_OPTION, "true");
     }
     if (messageTransport != null) {
       builder.serverTransport(messageTransport);
@@ -249,5 +259,4 @@ public final class ContextFactory {
         .allowAccessInheritance(true)
         .build();
   }
-
 }
