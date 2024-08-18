@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
@@ -43,7 +44,7 @@ public class DebugServerWithScriptTest {
   }
 
   @Test
-  public void propertyListingVariables() throws Exception {
+  public void listingVariablesWithWarnings() throws Exception {
     var code =
         """
         from Standard.Base import all
@@ -63,12 +64,41 @@ public class DebugServerWithScriptTest {
     assertEquals("Three", 3, r.getArrayElement(2).asInt());
     assertEquals("No output printed", "", out.toString());
     assertThat(
-        "Error contains some warnings",
+        "Stderr contains some warnings",
         err.toString(),
         AllOf.allOf(
             containsString("d = 2"),
             containsString("t = 3"),
             containsString("doubled value"),
+            not(containsString("j = 1"))));
+  }
+
+  @Test
+  public void panicOnError() throws Exception {
+    var code =
+        """
+        from Standard.Base import all
+
+        inspect =
+            j = 1
+            d = Error.throw 2
+            t = j + d
+            v = [j, d, t]
+            v
+        """;
+    var r = ContextUtils.evalModule(ctx, code, "ScriptTest.enso", "inspect");
+    assertTrue("Got array back: " + r, r.hasArrayElements());
+    assertEquals("Got three elements", 3, r.getArraySize());
+    assertFalse("No error at 0th" + r, r.getArrayElement(0).isException());
+    assertTrue("Error 2 at 1st" + r, r.getArrayElement(1).isException());
+    assertTrue("Error 2 at 2nd " + r, r.getArrayElement(2).isException());
+    assertEquals("No output printed", "", out.toString());
+    assertThat(
+        "Stderr contains some errors",
+        err.toString(),
+        AllOf.allOf(
+            containsString("d = Error:2"),
+            containsString("t = Error:2"),
             not(containsString("j = 1"))));
   }
 }

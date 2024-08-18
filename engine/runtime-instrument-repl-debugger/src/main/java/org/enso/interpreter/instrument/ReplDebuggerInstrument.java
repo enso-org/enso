@@ -97,9 +97,6 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
         MessageEndpoint client = env.startServer(URI.create(DebugServerInfo.URI), handler);
         if (client != null) {
           handler.setClient(client);
-        } else {
-          env.getLogger(ReplDebuggerInstrument.class)
-              .warning("ReplDebuggerInstrument was initialized, " + "but no client connected");
         }
       } catch (MessageTransport.VetoException e) {
         env.getLogger(ReplDebuggerInstrument.class)
@@ -145,7 +142,8 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
       this.atExit = atExit;
     }
 
-    private Object getValue(MaterializedFrame frame, FramePointer ptr, boolean onlyWarnings) {
+    private Object readValue(
+        MaterializedFrame frame, FramePointer ptr, boolean onlyWarningsOrErrors) {
       var raw = getProperFrame(frame, ptr).getValue(ptr.frameSlotIdx());
       if (WarningsLibrary.getUncached().hasWarnings(raw)) {
         try {
@@ -168,7 +166,12 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
           // go on
         }
       }
-      return onlyWarnings ? null : raw;
+      if (onlyWarningsOrErrors) {
+        if (!InteropLibrary.getUncached().isException(raw)) {
+          return null;
+        }
+      }
+      return raw;
     }
 
     private MaterializedFrame getProperFrame(MaterializedFrame frame, FramePointer ptr) {
@@ -184,13 +187,13 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
       return listBindings(false);
     }
 
-    public Map<String, Object> listBindings(boolean onlyWarnings) {
+    public Map<String, Object> listBindings(boolean onlyWarningsOrErrors) {
       Map<String, FramePointer> flatScope =
           nodeState.getLastScope().getLocalScope().flattenBindings();
       Map<String, Object> result = new HashMap<>();
       for (Map.Entry<String, FramePointer> entry : flatScope.entrySet()) {
         var valueOrNull =
-            getValue(nodeState.getLastScope().getFrame(), entry.getValue(), onlyWarnings);
+            readValue(nodeState.getLastScope().getFrame(), entry.getValue(), onlyWarningsOrErrors);
         if (valueOrNull != null) {
           result.put(entry.getKey(), valueOrNull);
         }
