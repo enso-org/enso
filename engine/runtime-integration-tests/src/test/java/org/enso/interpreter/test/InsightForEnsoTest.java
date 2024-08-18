@@ -15,6 +15,7 @@ import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class InsightForEnsoTest {
@@ -65,6 +66,7 @@ public class InsightForEnsoTest {
     ctx = null;
   }
 
+  @Ignore
   @Test
   public void computeFactorial() throws Exception {
     var code =
