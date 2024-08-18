@@ -4,7 +4,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
@@ -87,11 +86,8 @@ public class DebugServerWithScriptTest {
             v
         """;
     var r = ContextUtils.evalModule(ctx, code, "ScriptTest.enso", "inspect");
-    assertTrue("Got array back: " + r, r.hasArrayElements());
-    assertEquals("Got three elements", 3, r.getArraySize());
-    assertFalse("No error at 0th" + r, r.getArrayElement(0).isException());
-    assertTrue("Error 2 at 1st" + r, r.getArrayElement(1).isException());
-    assertTrue("Error 2 at 2nd " + r, r.getArrayElement(2).isException());
+    assertTrue("Got error back: " + r, r.isException());
+    assertEquals("(Error: 2)", r.toString());
     assertEquals("No output printed", "", out.toString());
     assertThat(
         "Stderr contains some errors",

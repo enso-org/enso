@@ -318,6 +318,9 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
             } catch (IOException ex) {
               logger.log(Level.SEVERE, line, ex);
             }
+            if (InteropLibrary.getUncached().isException(b.getValue())) {
+              nodeState = new ReplExecutionEventNodeState(b.getValue(), nodeState.getLastScope());
+            }
           }
         }
         exit();
