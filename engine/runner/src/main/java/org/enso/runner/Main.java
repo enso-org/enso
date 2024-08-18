@@ -893,6 +893,9 @@ public class Main {
         if (!res.isNull()) {
           var textRes = res.isString() ? res.asString() : res.toString();
           println(textRes);
+          if (res.isException()) {
+            throw exitFail();
+          }
         }
       }
     } catch (PolyglotException e) {
