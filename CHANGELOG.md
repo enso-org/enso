@@ -25,7 +25,13 @@
 [10725]: https://github.com/enso-org/enso/pull/10725
 [10820]: https://github.com/enso-org/enso/pull/10820
 
-# Enso 2023.3
+#### Enso Language & Runtime
+
+- [Print out warnings associated with local variables][10842]
+
+[10842]: https://github.com/enso-org/enso/pull/10842
+
+# Enso 2024.3
 
 #### Enso Language & Runtime
 
