@@ -1365,7 +1365,7 @@ class IrToTruffle(
         val statementExprs = block.expressions.map(this.run(_, true)).toArray
         val retExpr        = this.run(block.returnValue, true)
 
-        val blockNode = BlockNode.build(statementExprs, retExpr)
+        val blockNode = BlockNode.buildSilent(statementExprs, retExpr)
         setLocation(blockNode, block.location)
       }
     }
@@ -2161,7 +2161,7 @@ class IrToTruffle(
 
       def args(): Array[ArgumentDefinition] = slots._2
       def bodyNode(): RuntimeExpression =
-        BlockNode.build(argsExpr._1.toArray, argsExpr._2)
+        BlockNode.buildRoot(argsExpr._1.toArray, argsExpr._2)
 
       private def computeArgsAndExpression()
         : (Array[RuntimeExpression], RuntimeExpression) = {

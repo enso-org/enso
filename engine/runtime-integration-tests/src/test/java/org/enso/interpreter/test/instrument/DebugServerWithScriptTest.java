@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
@@ -70,6 +71,11 @@ public class DebugServerWithScriptTest {
             containsString("t = 3"),
             containsString("doubled value"),
             not(containsString("j = 1"))));
+
+    var at1 = err.toString().indexOf("d = 2");
+    assertNotEquals("d = 2 found", -1, at1);
+    var at2 = err.toString().indexOf("d = 2", at1 + 1);
+    assertEquals("d = 2 not found for the second time", -1, at2);
   }
 
   @Test
