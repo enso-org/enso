@@ -2160,8 +2160,12 @@ class IrToTruffle(
       lazy val argsExpr      = computeArgsAndExpression()
 
       def args(): Array[ArgumentDefinition] = slots._2
-      def bodyNode(): RuntimeExpression =
-        BlockNode.buildRoot(argsExpr._1.toArray, argsExpr._2)
+      def bodyNode(): RuntimeExpression = {
+        val body = BlockNode.buildRoot(Array(), argsExpr._2)
+        val initVariablesAndThenBody =
+          BlockNode.buildSilent(argsExpr._1.toArray, body)
+        initVariablesAndThenBody
+      }
 
       private def computeArgsAndExpression()
         : (Array[RuntimeExpression], RuntimeExpression) = {
