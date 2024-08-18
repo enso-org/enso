@@ -7,7 +7,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
-import org.enso.polyglot.debugger.DebugServerInfo;
+import org.enso.common.DebugServerInfo;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.hamcrest.core.AllOf;

@@ -177,7 +177,7 @@ public final class ContextFactory {
             .err(err)
             .in(in);
     if (checkForWarnings != null) {
-      builder.option("enso-debug-server.fn", checkForWarnings);
+      builder.option(DebugServerInfo.FN_OPTION, checkForWarnings);
     }
     if (messageTransport != null) {
       builder.serverTransport(messageTransport);

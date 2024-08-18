@@ -1,7 +1,8 @@
 package org.enso.interpreter.test.instrument
 
 import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
-import org.enso.polyglot.debugger.{DebugServerInfo, ObjectRepresentation}
+import org.enso.polyglot.debugger.ObjectRepresentation
+import org.enso.common.DebugServerInfo
 import org.graalvm.polyglot.Context
 import org.scalatest.{BeforeAndAfter, EitherValues, Inside}
 
