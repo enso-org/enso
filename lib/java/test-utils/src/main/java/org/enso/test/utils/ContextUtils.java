@@ -164,8 +164,8 @@ public final class ContextUtils {
     }
     var module = ctx.eval(s);
     var assocType = module.invokeMember(Module.GET_ASSOCIATED_TYPE);
-    var mainMethod = module.invokeMember(Module.GET_METHOD, assocType, methodName);
-    return mainMethod.execute(assocType);
+    var method = module.invokeMember(Module.GET_METHOD, assocType, methodName);
+    return "main".equals(methodName) ? method.execute() : method.execute(assocType);
   }
 
   public static org.enso.compiler.core.ir.Module compileModule(Context ctx, String src) {
