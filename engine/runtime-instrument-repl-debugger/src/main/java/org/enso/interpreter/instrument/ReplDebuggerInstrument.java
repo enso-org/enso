@@ -17,10 +17,13 @@ import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.RootNode;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
 import org.enso.compiler.context.FramePointer;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointNode;
@@ -49,8 +52,11 @@ import scala.util.Right;
 /** The Instrument implementation for the interactive debugger REPL. */
 @TruffleInstrument.Registration(id = DebugServerInfo.INSTRUMENT_NAME)
 public final class ReplDebuggerInstrument extends TruffleInstrument {
-  private static final OptionKey<Boolean> ENABLE_OPTION = new OptionKey<Boolean>(false);
-  private static final OptionKey<String> FN_OPTION = new OptionKey<String>("");
+  /** Option for {@link DebugServerInfo#ENABLE_OPTION} */
+  private static final OptionKey<Boolean> ENABLE_OPTION = new OptionKey<>(false);
+
+  /** Option for {@link DebugServerInfo#FN_OPTION} */
+  private static final OptionKey<String> FN_OPTION = new OptionKey<>("");
 
   /**
    * Called by Truffle when this instrument is installed.
@@ -68,7 +74,7 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
           ctx ->
               ctx.getInstrumentedNode() instanceof DebugBreakpointNode
                   ? new ReplExecutionEventNodeImpl(
-                      false, ctx, handler, env.getLogger(ReplExecutionEventNodeImpl.class))
+                      null, ctx, handler, env.getLogger(ReplExecutionEventNodeImpl.class))
                   : null;
 
       filter = SourceSectionFilter.newBuilder().tagIs(DebuggerTags.AlwaysHalt.class).build();
@@ -126,10 +132,10 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
     private EventContext eventContext;
     private DebuggerMessageHandler handler;
     private TruffleLogger logger;
-    private final boolean atExit;
+    private final OutputStream atExit;
 
     private ReplExecutionEventNodeImpl(
-        boolean atExit,
+        OutputStream atExit,
         EventContext eventContext,
         DebuggerMessageHandler handler,
         TruffleLogger logger) {
@@ -139,7 +145,7 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
       this.atExit = atExit;
     }
 
-    private Object getValue(MaterializedFrame frame, FramePointer ptr) {
+    private Object getValue(MaterializedFrame frame, FramePointer ptr, boolean onlyWarnings) {
       var raw = getProperFrame(frame, ptr).getValue(ptr.frameSlotIdx());
       if (WarningsLibrary.getUncached().hasWarnings(raw)) {
         try {
@@ -162,7 +168,7 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
           // go on
         }
       }
-      return raw;
+      return onlyWarnings ? null : raw;
     }
 
     private MaterializedFrame getProperFrame(MaterializedFrame frame, FramePointer ptr) {
@@ -175,11 +181,19 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
 
     @Override
     public Map<String, Object> listBindings() {
+      return listBindings(false);
+    }
+
+    public Map<String, Object> listBindings(boolean onlyWarnings) {
       Map<String, FramePointer> flatScope =
           nodeState.getLastScope().getLocalScope().flattenBindings();
       Map<String, Object> result = new HashMap<>();
       for (Map.Entry<String, FramePointer> entry : flatScope.entrySet()) {
-        result.put(entry.getKey(), getValue(nodeState.getLastScope().getFrame(), entry.getValue()));
+        var valueOrNull =
+            getValue(nodeState.getLastScope().getFrame(), entry.getValue(), onlyWarnings);
+        if (valueOrNull != null) {
+          result.put(entry.getKey(), valueOrNull);
+        }
       }
       return result;
     }
@@ -232,7 +246,7 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
      */
     @Override
     protected void onEnter(VirtualFrame frame) {
-      if (!atExit) {
+      if (atExit == null) {
         CallerInfo lastScope = Function.ArgumentsHelper.getCallerInfo(frame.getArguments());
         Object lastReturn = EnsoContext.get(this).getNothing();
         // Note [Safe Access to State in the Debugger Instrument]
@@ -244,8 +258,8 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
 
     @Override
     public void onReturnValue(VirtualFrame frame, Object result) {
-      if (atExit) {
-        startSession(getRootNode(), frame);
+      if (atExit != null) {
+        startSession(getRootNode(), frame, result);
       }
     }
 
@@ -270,17 +284,16 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
       return nodeState.getLastReturn();
     }
 
-    private void startSession(RootNode root, VirtualFrame frame) {
+    private void startSession(RootNode root, VirtualFrame frame, Object toReturn) {
       CallerInfo lastScope = Function.ArgumentsHelper.getCallerInfo(frame.getArguments());
       if (lastScope == null && root instanceof EnsoRootNode enso) {
         lastScope =
             new CallerInfo(frame.materialize(), enso.getLocalScope(), enso.getModuleScope());
       }
       if (lastScope != null) {
-        var lastReturn = EnsoContext.get(this).getNothing();
         // Note [Safe Access to State in the Debugger Instrument]
         monadicState = Function.ArgumentsHelper.getState(frame.getArguments());
-        nodeState = new ReplExecutionEventNodeState(lastReturn, lastScope);
+        nodeState = new ReplExecutionEventNodeState(toReturn, lastScope);
         startSessionImpl();
       }
     }
@@ -290,9 +303,20 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
       if (handler.hasClient()) {
         handler.startSession(this);
       } else {
-        logger.warning(
-            "Debugger session starting, "
-                + "but no client connected, will terminate the session immediately");
+        if (atExit == null) {
+          logger.warning(
+              "Debugger session starting, "
+                  + "but no client connected, will terminate the session immediately");
+        } else {
+          for (var b : listBindings(true).entrySet()) {
+            var line = b.getKey() + " = " + b.getValue() + "\n";
+            try {
+              atExit.write(line.getBytes(StandardCharsets.UTF_8));
+            } catch (IOException ex) {
+              logger.log(Level.SEVERE, line, ex);
+            }
+          }
+        }
         exit();
       }
     }
@@ -335,7 +359,7 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
     @Override
     public ExecutionEventNode create(EventContext ctx) {
       var log = env.getLogger(ReplExecutionEventNodeImpl.class);
-      return new ReplExecutionEventNodeImpl(true, ctx, handler, log);
+      return new ReplExecutionEventNodeImpl(env.err(), ctx, handler, log);
     }
   }
 }
