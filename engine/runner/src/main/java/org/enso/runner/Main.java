@@ -688,6 +688,25 @@ public class Main {
     }
     var projectMode = fileAndProject._1();
     var file = fileAndProject._2();
+    var mainFile = file;
+    if (projectMode) {
+      var result = PackageManager$.MODULE$.Default().loadPackage(file);
+      if (result.isSuccess()) {
+        var s = (scala.util.Success) result;
+        @SuppressWarnings("unchecked")
+        var pkg = (org.enso.pkg.Package<java.io.File>) s.get();
+
+        mainFile = pkg.mainFile();
+        if (!mainFile.exists()) {
+          println("Main file does not exist.");
+          throw exitFail();
+        }
+      } else {
+        println(((scala.util.Failure) result).exception().getMessage());
+        throw exitFail();
+      }
+    }
+
     var projectRoot = fileAndProject._3();
     var options = new HashMap<String, String>();
 
@@ -699,6 +718,7 @@ public class Main {
             .enableIrCaches(enableIrCaches)
             .disablePrivateCheck(disablePrivateCheck)
             .strictErrors(true)
+            .checkForWarnings(mainFile.getName().replace(".enso", "") + ".main")
             .enableAutoParallelism(enableAutoParallelism)
             .enableStaticAnalysis(enableStaticAnalysis)
             .executionEnvironment(executionEnvironment != null ? executionEnvironment : "live")
@@ -724,12 +744,6 @@ public class Main {
         var s = (scala.util.Success) result;
         @SuppressWarnings("unchecked")
         var pkg = (org.enso.pkg.Package<java.io.File>) s.get();
-        var main = pkg.mainFile();
-        if (!main.exists()) {
-          println("Main file does not exist.");
-          context.context().close();
-          throw exitFail();
-        }
         var mainModuleName = pkg.moduleNameForFile(pkg.mainFile()).toString();
         runPackage(context, mainModuleName, file, additionalArgs);
       } else {

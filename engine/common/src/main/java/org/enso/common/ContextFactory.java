@@ -30,6 +30,7 @@ import org.slf4j.event.Level;
  * @param options additional options for the Context
  * @param executionEnvironment optional name of the execution environment to use during execution
  * @param warningsLimit maximal number of warnings reported to the user
+ * @param checkForWarnings name of method to check for warnings
  */
 public final class ContextFactory {
   private String projectRoot;
@@ -47,6 +48,7 @@ public final class ContextFactory {
   private boolean useGlobalIrCacheLocation = true;
   private boolean enableAutoParallelism;
   private String executionEnvironment;
+  private String checkForWarnings;
   private int warningsLimit = 100;
   private java.util.Map<String, String> options = java.util.Collections.emptyMap();
 
@@ -141,6 +143,11 @@ public final class ContextFactory {
     return this;
   }
 
+    public ContextFactory checkForWarnings(String fqnOfMethod) {
+      this.checkForWarnings = fqnOfMethod;
+      return this;
+    }
+
   public Context build() {
     if (executionEnvironment != null) {
       options.put("enso.ExecutionEnvironment", executionEnvironment);
@@ -169,6 +176,9 @@ public final class ContextFactory {
             .out(out)
             .err(err)
             .in(in);
+    if (checkForWarnings != null) {
+      builder.option("enso-debug-server.fn", checkForWarnings);
+    }
     if (messageTransport != null) {
       builder.serverTransport(messageTransport);
     }
