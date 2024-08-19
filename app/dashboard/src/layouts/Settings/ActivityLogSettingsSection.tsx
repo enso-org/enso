@@ -160,7 +160,6 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                 multiple
                 items={backendModule.EVENT_TYPES}
                 selectedIndices={typeIndices}
-                render={({ item }) => EVENT_TYPE_NAME[item]}
                 renderMultiple={({ items }) =>
                   items.length === 0 || items.length === backendModule.EVENT_TYPES.length ?
                     'All'
@@ -171,7 +170,9 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                   setTypes(items)
                   setTypeIndices(indices)
                 }}
-              />
+              >
+                {({ item }) => EVENT_TYPE_NAME[item]}
+              </Dropdown>
             </div>
             <div className="flex items-center gap-2">
               <ariaComponents.Text className="whitespace-nowrap">
@@ -181,18 +182,18 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                 multiple
                 items={allEmails}
                 selectedIndices={emailIndices}
-                render={(itemProps) => itemProps.item}
-                renderMultiple={(itemsProps) =>
-                  itemsProps.items.length === 0 || itemsProps.items.length === allEmails.length ?
+                renderMultiple={({ items }) =>
+                  items.length === 0 || items.length === allEmails.length ?
                     'All'
-                  : (itemsProps.items[0] ?? '') +
-                    (itemsProps.items.length <= 1 ? '' : `(+${itemsProps.items.length - 1})`)
+                  : (items[0] ?? '') + (items.length <= 1 ? '' : `(+${items.length - 1})`)
                 }
                 onChange={(items, indices) => {
                   setEmails(items)
                   setEmailIndices(indices)
                 }}
-              />
+              >
+                {({ item }) => item}
+              </Dropdown>
             </div>
           </div>
         )}

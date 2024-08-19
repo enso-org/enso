@@ -20,17 +20,15 @@ interface InternalChildProps<T> {
 
 /** Props for the display of the currently selected item, when the dropdown supports multiple children. */
 interface InternalChildrenProps<T> {
-  readonly items: T[]
-  /** This is the value passed as {@link DropdownProps.render}. */
-  readonly render: (props: InternalChildProps<T>) => ReactNode
+  readonly items: readonly T[]
+  /** This is the value passed as {@link DropdownProps.children}. */
+  readonly children: (props: InternalChildProps<T>) => ReactNode
 }
 
 /** Props for a {@link Dropdown} shared between all variants. */
-interface InternalBaseDropdownProps<T> {
+interface InternalBaseDropdownProps<T> extends InternalChildrenProps<T> {
   readonly readOnly?: boolean
   readonly className?: string
-  readonly items: readonly T[]
-  readonly render: (props: InternalChildProps<T>) => ReactNode
 }
 
 /** Props for a {@link Dropdown}, when `multiple` is `false` or absent. */
@@ -56,7 +54,7 @@ export const Dropdown = forwardRef(function Dropdown<T>(
   props: DropdownProps<T>,
   ref: ForwardedRef<HTMLDivElement>,
 ) {
-  const { readOnly = false, className, items, render: Child } = props
+  const { readOnly = false, className, items, children: Child } = props
   const listBoxItems = useMemo(() => items.map((item, i) => ({ item, i })), [items])
   const [tempSelectedIndex, setTempSelectedIndex] = useState<number | null>(null)
   const rootRef = useRef<HTMLDivElement | null>(null)
@@ -189,7 +187,8 @@ export const Dropdown = forwardRef(function Dropdown<T>(
           <div className="grow">
             {visuallySelectedItem != null ?
               <Child item={visuallySelectedItem} />
-            : multiple && <props.renderMultiple items={selectedItems} render={Child} />}
+            : multiple && <props.renderMultiple items={selectedItems}>{Child}</props.renderMultiple>
+            }
           </div>
         </div>
         {/* Hidden, but required to exist for the width of the parent element to be correct.

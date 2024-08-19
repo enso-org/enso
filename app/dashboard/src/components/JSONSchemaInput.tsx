@@ -328,7 +328,6 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
               readOnly={readOnly}
               items={childSchemas}
               selectedIndex={selectedChildIndex}
-              render={(childProps) => <Text>{getSchemaName(defs, childProps.item)}</Text>}
               className="self-start"
               onChange={(childSchema, index) => {
                 setSelectedChildIndex(index)
@@ -336,7 +335,9 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                 setValue(newConstantValue[0] ?? null)
               }}
               {...innerProps}
-            />
+            >
+              {({ item }) => <Text>{getSchemaName(defs, item)}</Text>}
+            </Dropdown>
           )}
         </FocusArea>
       )
