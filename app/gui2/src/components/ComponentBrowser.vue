@@ -119,7 +119,7 @@ function panIntoView() {
   if (!screenRect) return
   const area = new Rect(
     origin,
-    screenRect.size.scale(clientToSceneFactor.value),
+    new Vec2(screenRect.width, screenRect.height).scale(clientToSceneFactor.value),
   )
   const margins = scaleValues(PAN_MARGINS, clientToSceneFactor.value)
   props.navigator.panTo([
