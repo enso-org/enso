@@ -53,7 +53,7 @@ export type CheckboxProps<
   )
 
 /**
- *
+ * Props for the {@link Checkbox} component when used inside a {@link CheckboxGroup}.
  */
 interface CheckboxGroupCheckboxProps extends AriaCheckboxProps {
   readonly value: string
@@ -62,7 +62,7 @@ interface CheckboxGroupCheckboxProps extends AriaCheckboxProps {
 }
 
 /**
- *
+ * Props for the {@link Checkbox} component when used outside of a {@link CheckboxGroup}.
  */
 interface StandaloneCheckboxProps<
   Schema extends TSchema,
