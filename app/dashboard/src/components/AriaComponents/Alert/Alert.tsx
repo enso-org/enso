@@ -14,12 +14,12 @@ export const ALERT_STYLES = twv.tv({
     fullWidth: { true: 'w-full' },
     variant: {
       custom: '',
-      outline: 'border border-2 bg-transparent border-primary/30 text-primary',
-      neutral: 'border border-2 bg-gray-100 border-gray-800 text-primary',
-      error: 'border border-2 bg-red-100 border-danger text-primary',
-      info: 'border border-2 bg-blue-100 border-blue-800 text-blue-800',
-      success: 'border border-2 bg-green-100 border-green-800 text-green-800',
-      warning: 'border border-2 bg-yellow-100 border-yellow-800 text-yellow-800',
+      outline: 'border bg-transparent border-primary/30 text-primary',
+      neutral: 'border bg-gray-100 border-gray-800 text-primary',
+      error: 'border bg-red-100 border-danger text-primary',
+      info: 'border bg-blue-100 border-blue-800 text-blue-800',
+      success: 'border bg-green-100 border-green-800 text-green-800',
+      warning: 'border bg-yellow-100 border-yellow-800 text-yellow-800',
     },
     rounded: {
       none: 'rounded-none',
@@ -41,7 +41,7 @@ export const ALERT_STYLES = twv.tv({
     fullWidth: true,
     variant: 'error',
     size: 'medium',
-    rounded: 'large',
+    rounded: 'xlarge',
   },
 })
 

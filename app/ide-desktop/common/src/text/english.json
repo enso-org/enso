@@ -737,6 +737,9 @@
   "setOrgNameDescription": "Enter the name of your organization. You can always change it later.",
   "setOrgNameSubmit": "Set organization name",
 
+  "inviteUsers": "Invite Users",
+  "inviteUsersDescription": "Invite users to join your organization by entering their email addresses below. You can always invite more users later.",
+
   "setDefaultUserGroup": "Set default user group name",
   "setDefaultUserGroupDescription": "Enter the name of the default user group. All new users will be added to this group. You can always change it later.",
 

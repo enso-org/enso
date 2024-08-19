@@ -27,6 +27,7 @@ import * as stepper from '#/components/Stepper'
 import { ORGANIZATION_NAME_MAX_LENGTH } from '#/modals/SetOrganizationNameModal'
 
 import { backendMutationOptions } from '#/hooks/backendHooks'
+import { InviteUsersForm } from '#/modals/InviteUsersModal'
 import { PlanSelector } from '#/modules/payments'
 import { Plan } from '#/services/Backend'
 
@@ -180,6 +181,39 @@ const BASE_STEPS: Step[] = [
 
           <ariaComponents.Form.FormError />
         </ariaComponents.Form>
+      )
+    },
+  },
+  {
+    title: 'inviteUsers',
+    text: 'inviteUsersDescription',
+    ignore: (context) => context.plan === Plan.free || context.plan === Plan.solo,
+    hideNext: true,
+    hidePrevious: true,
+    /**
+     * Step component
+     */
+    component: function InviteUsersStep({ goToNextStep, goToPreviousStep }) {
+      const { getText } = textProvider.useText()
+
+      return (
+        <div className="max-w-96">
+          <InviteUsersForm
+            onSubmitted={() => {
+              goToNextStep()
+            }}
+          />
+
+          <ariaComponents.ButtonGroup align="start" className="mt-4">
+            <ariaComponents.Button variant="outline" onPress={goToPreviousStep}>
+              {getText('back')}
+            </ariaComponents.Button>
+
+            <ariaComponents.Button variant="cancel" onPress={goToNextStep}>
+              {getText('skip')}
+            </ariaComponents.Button>
+          </ariaComponents.ButtonGroup>
+        </div>
       )
     },
   },
