@@ -24,14 +24,9 @@ test.each([
   [makeStaticMethod('Standard.Base.Data.Vector.new'), 'Vector.new'],
   [makeMethod('Standard.Base.Data.Vector.get'), 'get'],
   [makeConstructor('Standard.Table.Join_Kind.Join_Kind.Inner'), 'Join_Kind.Inner'],
-  [makeModule('Standard.Table.Excel.Excel_Range'), 'Excel_Range'],
-  [makeModule('Standard.Table.Conversions'), 'Conversions', 'Standard.Table.Conversions'],
   [makeModuleMethod('local.Project.main'), 'Project.main'],
-])("$name Component's label is valid", (suggestion, expected, mainExpected?) => {
-  const mainView = new Filtering({})
-  const filteredView = new Filtering({ pattern: 'e' })
-  expect(labelOfEntry(suggestion, filteredView, { score: 0 }).label).toBe(expected)
-  expect(labelOfEntry(suggestion, mainView, { score: 0 }).label).toBe(mainExpected ?? expected)
+])("$name Component's label is valid", (suggestion, expected) => {
+  expect(labelOfEntry(suggestion, { score: 0 }).label).toBe(expected)
 })
 
 test('Suggestions are ordered properly', () => {
@@ -87,7 +82,19 @@ test('Suggestions are ordered properly', () => {
   }
 })
 
-test('Matched ranges are correct', () => {
+test.each`
+  name                           | aliases                          | highlighted
+  ${'foo_bar'}                   | ${[]}                            | ${'Project.<foo><_bar>'}
+  ${'foo_xyz_barabc'}            | ${[]}                            | ${'Project.<foo>_xyz<_bar>abc'}
+  ${'fooabc_barabc'}             | ${[]}                            | ${'Project.<foo>abc<_bar>abc'}
+  ${'bar'}                       | ${['foo_bar', 'foo']}            | ${'Project.bar (<foo><_bar>)'}
+  ${'bar'}                       | ${['foo', 'foo_xyz_barabc']}     | ${'Project.bar (<foo>_xyz<_bar>abc)'}
+  ${'bar'}                       | ${['foo', 'fooabc_barabc']}      | ${'Project.bar (<foo>abc<_bar>abc)'}
+  ${'xyz_foo_abc_bar_xyz'}       | ${[]}                            | ${'Project.xyz_<foo>_abc<_bar>_xyz'}
+  ${'xyz_fooabc_abc_barabc_xyz'} | ${[]}                            | ${'Project.xyz_<foo>abc_abc<_bar>abc_xyz'}
+  ${'bar'}                       | ${['xyz_foo_abc_bar_xyz']}       | ${'Project.bar (xyz_<foo>_abc<_bar>_xyz)'}
+  ${'bar'}                       | ${['xyz_fooabc_abc_barabc_xyz']} | ${'Project.bar (xyz_<foo>abc_abc<_bar>abc_xyz)'}
+`('Matched ranges of $highlighted are correct', ({ name, aliases, highlighted }) => {
   function replaceMatches(component: Component) {
     if (!component.matchedRanges) return component.label
     const parts: string[] = []
@@ -99,50 +106,12 @@ test('Matched ranges are correct', () => {
   }
 
   const pattern = 'foo_bar'
-  const filtering = new Filtering({ pattern })
-  const matchedSorted = [
-    { name: 'foo_bar', highlighted: 'Project.<foo><_bar>' }, // exact match
-    { name: 'foo_xyz_barabc', highlighted: 'Project.<foo>_xyz<_bar>abc' }, // first word exact match
-    { name: 'fooabc_barabc', highlighted: 'Project.<foo>abc<_bar>abc' }, // first word match
-    {
-      name: 'bar',
-      aliases: ['foo_bar', 'foo'],
-      highlighted: 'Project.bar (<foo><_bar>)',
-    }, // exact alias match
-    {
-      name: 'bar',
-      aliases: ['foo', 'foo_xyz_barabc'],
-      highlighted: 'Project.bar (<foo>_xyz<_bar>abc)',
-    }, // alias first word exact match
-    {
-      name: 'bar',
-      aliases: ['foo', 'fooabc_barabc'],
-      highlighted: 'Project.bar (<foo>abc<_bar>abc)',
-    }, // alias first word match
-    { name: 'xyz_foo_abc_bar_xyz', highlighted: 'Project.xyz_<foo>_abc<_bar>_xyz' }, // exact word match
-    { name: 'xyz_fooabc_abc_barabc_xyz', highlighted: 'Project.xyz_<foo>abc_abc<_bar>abc_xyz' }, // non-exact word match
-    {
-      name: 'bar',
-      aliases: ['xyz_foo_abc_bar_xyz'],
-      highlighted: 'Project.bar (xyz_<foo>_abc<_bar>_xyz)',
-    }, // alias word exact match
-    {
-      name: 'bar',
-      aliases: ['xyz_fooabc_abc_barabc_xyz'],
-      highlighted: 'Project.bar (xyz_<foo>abc_abc<_bar>abc_xyz)',
-    }, // alias word start match
-  ]
-  const entries = Array.from(matchedSorted, ({ name, aliases }, id) => {
-    const entry: SuggestionEntry = {
-      ...makeModuleMethod(`local.Project.${name}`),
-      aliases: aliases ?? [],
-    }
-    return { id, entry, match: filtering.filter(entry)! }
-  })
-  for (let i = 0; i < entries.length; i += 1) {
-    expect(
-      replaceMatches(makeComponent(entries[i]!, filtering)),
-      `replaceMatches(${JSON.stringify(matchedSorted[i])})`,
-    ).toEqual(matchedSorted[i]!.highlighted)
+  const entry = {
+    ...makeModuleMethod(`local.Project.${name}`),
+    aliases: aliases ?? [],
   }
+  const filtering = new Filtering({ pattern })
+  const componentInfo = { id: 0, entry, match: filtering.filter(entry)! }
+  console.log(componentInfo.match.ownerNameRanges)
+  expect(replaceMatches(makeComponent(componentInfo))).toEqual(highlighted)
 })

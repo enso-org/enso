@@ -5,7 +5,7 @@ import {
 } from '@/stores/suggestionDatabase/entry'
 import type { Opt } from '@/util/data/opt'
 import { Range } from '@/util/data/range'
-import { qnLastSegment, type QualifiedName } from '@/util/qualifiedName'
+import { qnIsTopElement, qnLastSegment, type QualifiedName } from '@/util/qualifiedName'
 import escapeStringRegexp from '@/util/regexp'
 
 export type SelfArg =
@@ -27,7 +27,7 @@ export enum MatchTypeScore {
 }
 const NONEXACT_MATCH_PENALTY = 50
 const ALIAS_PENALTY = 1000
-const OWNER_SCORE_WEIGHT = 1
+const OWNER_SCORE_WEIGHT = 0.2
 
 interface NameMatchResult {
   score: number
@@ -37,7 +37,7 @@ interface NameMatchResult {
 interface MatchedParts {
   matchedAlias?: string
   nameRanges?: Range[]
-  memberOfRanges?: Range[]
+  ownerNameRanges?: Range[]
 }
 
 export interface MatchResult extends MatchedParts {
@@ -179,7 +179,7 @@ class FilteringWithPattern {
         ('alias' in nameMatch ? ALIAS_PENALTY : 0),
       ...('alias' in nameMatch ? { matchedAlias: nameMatch.alias } : {}),
       nameRanges: nameMatch.ranges,
-      memberOfRanges: nameMatch.ranges,
+      ownerNameRanges: ownerNameMarch.ranges,
     }
   }
 }
@@ -234,7 +234,8 @@ export class Filtering {
 
   private mainViewFilter(entry: SuggestionEntry): MatchResult | null {
     const hasGroup = entry.groupIndex != null
-    if (hasGroup) return { score: 0 }
+    const isInTopModule = qnIsTopElement(entry.definedIn)
+    if (hasGroup || isInTopModule) return { score: 0 }
     else return null
   }
 

@@ -29,34 +29,31 @@ export interface Component extends ComponentLabel {
   group?: number | undefined
 }
 
-export function labelOfEntry(
-  entry: SuggestionEntry,
-  filtering: Filtering,
-  match: MatchResult,
-): ComponentLabelInfo {
-  const isTopModule = entry.kind == SuggestionKind.Module && qnIsTopElement(entry.definedIn)
-  if (filtering.isMainView() && isTopModule) return { label: entry.definedIn }
-  else if (entry.memberOf && entry.selfType == null) {
-    const lastSegmentStart = qnLastSegmentIndex(entry.memberOf) + 1
-    const parentModule = entry.memberOf.substring(lastSegmentStart)
-    const nameOffset = parentModule.length + 1
-    if (
-      (!match.memberOfRanges && !match.definedInRanges && !match.nameRanges) ||
-      match.matchedAlias
-    )
+export function labelOfEntry(entry: SuggestionEntry, match: MatchResult): ComponentLabelInfo {
+  if (entry.memberOf && entry.selfType == null) {
+    const ownerLastSegmentStart = qnLastSegmentIndex(entry.memberOf) + 1
+    const ownerName = entry.memberOf.substring(ownerLastSegmentStart)
+    const nameOffset = ownerName.length + '.'.length
+    if ((!match.ownerNameRanges && !match.nameRanges) || match.matchedAlias) {
       return {
-        label: `${parentModule}.${entry.name}`,
+        label: `${ownerName}.${entry.name}`,
         matchedAlias: match.matchedAlias,
         matchedRanges: match.nameRanges,
       }
+    }
     return {
-      label: `${parentModule}.${entry.name}`,
+      label: `${ownerName}.${entry.name}`,
       matchedAlias: match.matchedAlias,
       matchedRanges: [
-        ...(match.memberOfRanges ?? match.definedInRanges ?? []).flatMap((range) =>
-          range.end <= lastSegmentStart ?
+        ...(match.ownerNameRanges ?? []).flatMap((range) =>
+          range.end <= ownerLastSegmentStart ?
             []
-          : [new Range(Math.max(0, range.start - lastSegmentStart), range.end - lastSegmentStart)],
+          : [
+              new Range(
+                Math.max(0, range.start - ownerLastSegmentStart),
+                range.end - ownerLastSegmentStart,
+              ),
+            ],
         ),
         ...(match.nameRanges ?? []).map(
           (range) => new Range(range.start + nameOffset, range.end + nameOffset),
@@ -105,12 +102,9 @@ export interface ComponentInfo {
   match: MatchResult
 }
 
-export function makeComponent(
-  { id, entry, match }: ComponentInfo,
-  filtering: Filtering,
-): Component {
+export function makeComponent({ id, entry, match }: ComponentInfo): Component {
   return {
-    ...formatLabel(labelOfEntry(entry, filtering, match)),
+    ...formatLabel(labelOfEntry(entry, match)),
     suggestionId: id,
     icon: displayedIconOf(entry),
     group: entry.groupIndex,
@@ -127,5 +121,5 @@ export function makeComponentList(db: SuggestionDb, filtering: Filtering): Compo
     }
   }
   const matched = Array.from(matchSuggestions()).sort(compareSuggestions)
-  return Array.from(matched, (info) => makeComponent(info, filtering))
+  return Array.from(matched, (info) => makeComponent(info))
 }
