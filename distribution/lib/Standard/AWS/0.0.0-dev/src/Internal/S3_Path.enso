@@ -17,18 +17,20 @@ type S3_Path
     ## PRIVATE
     parse (uri : Text) -> S3_Path ! Illegal_Argument =
         if uri.starts_with S3.uri_prefix . not then Error.throw (Illegal_Argument.Error "An S3 path must start with `"+S3.uri_prefix+"`.") else
-            without_prefix = uri.drop S3.uri_prefix.length
-            first_slash_index = without_prefix.index_of S3_Path.delimiter
-            if first_slash_index == 0 then Error.throw (Illegal_Argument.Error "Invalid S3 path: empty bucket name.") else
-                if first_slash_index.is_nothing then S3_Path.Value without_prefix "" else
-                    bucket = (without_prefix.take first_slash_index)
-                    key = (without_prefix.drop first_slash_index+1)
-                    normalized = Decomposed_S3_Path.parse key . normalize . key
-                    S3_Path.Value bucket normalized
+            if uri.length == S3.uri_prefix.length then S3_Path.Value "" "" else
+                without_prefix = uri.drop S3.uri_prefix.length
+                first_slash_index = without_prefix.index_of S3_Path.delimiter
+                if first_slash_index == 0 then Error.throw (Illegal_Argument.Error "Invalid S3 path: empty bucket name.") else
+                    if first_slash_index.is_nothing then S3_Path.Value without_prefix "" else
+                        bucket = (without_prefix.take first_slash_index)
+                        if bucket == "" then Error.throw (Illegal_Argument.Error "Invalid S3 path: empty bucket name with key name.") else
+                            key = (without_prefix.drop first_slash_index+1)
+                            normalized = Decomposed_S3_Path.parse key . normalize . key
+                            S3_Path.Value bucket normalized
 
     ## PRIVATE
     to_text self -> Text =
-        S3.uri_prefix + self.bucket + S3_Path.delimiter + self.key
+        S3.uri_prefix + (if self.bucket == "" then "" else self.bucket + S3_Path.delimiter + self.key)
 
     ## PRIVATE
     to_display_text self -> Text = self.to_text.to_display_text

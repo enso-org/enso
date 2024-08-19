@@ -7,27 +7,42 @@ export const prefixes = Prefixes.FromLines({
     'Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output __ <| __',
 })
 
+/** Given a node's outer expression, find the root expression and any statements wrapping it. */
+export function nodeRootExpr(ast: Ast.Ast): {
+  root: Ast.Ast | undefined
+  docs: Ast.Documented | undefined
+  assignment: Ast.Assignment | undefined
+} {
+  const [withinDocs, docs] =
+    ast instanceof Ast.Documented ? [ast.expression, ast] : [ast, undefined]
+  const [withinAssignment, assignment] =
+    withinDocs instanceof Ast.Assignment ?
+      [withinDocs.expression, withinDocs]
+    : [withinDocs, undefined]
+  return {
+    root: withinAssignment,
+    docs,
+    assignment,
+  }
+}
+
+/** Given a node's outer expression, return all the `Node` fields that depend on its AST structure. */
 export function nodeFromAst(ast: Ast.Ast, isLastLine: boolean): NodeDataFromAst | undefined {
-  const { nodeCode, documentation } =
-    ast instanceof Ast.Documented ?
-      { nodeCode: ast.expression, documentation: ast.documentation() }
-    : { nodeCode: ast, documentation: undefined }
-  if (!nodeCode) return
-  const pattern = nodeCode instanceof Ast.Assignment ? nodeCode.pattern : undefined
-  const rootExpr = nodeCode instanceof Ast.Assignment ? nodeCode.expression : nodeCode
-  const { innerExpr, matches } = prefixes.extractMatches(rootExpr)
-  const type = pattern == null && isLastLine ? 'output' : 'component'
+  const { root, docs, assignment } = nodeRootExpr(ast)
+  if (!root) return
+  const { innerExpr, matches } = prefixes.extractMatches(root)
+  const type = assignment == null && isLastLine ? 'output' : 'component'
   const primaryApplication = primaryApplicationSubject(innerExpr)
   return {
     type,
     outerExpr: ast,
-    pattern,
-    rootExpr,
+    pattern: assignment?.pattern,
+    rootExpr: root,
     innerExpr,
     prefixes: matches,
     primarySubject: primaryApplication?.subject,
-    documentation,
     conditionalPorts: new Set(primaryApplication?.accessChain ?? []),
+    docs,
   }
 }
 
