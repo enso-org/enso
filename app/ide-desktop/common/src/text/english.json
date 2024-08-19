@@ -423,9 +423,10 @@
   "enableVersionChecker": "Enable Version Checker",
   "enableVersionCheckerDescription": "Show a dialog if the current version of the desktop app does not match the latest version.",
   "changeLocalRootDirectoryInSettings": "Change your root folder in Settings.",
-  "organizationInviteTitle": "You are being invited!",
-  "organizationInviteMessage": "An organization is inviting you:",
-  "organizationInviteOpenMessage": "Would you like to accept? All your assets will be moved with you to your personal space.",
+  "organizationInviteTitle": "You have been invited!",
+  "organizationInvitePrefix": "The organization '",
+  "organizationInviteSuffix": "' is inviting you. Would you like to accept? All your assets will be moved with you to your personal space.",
+  "organizationInviteErrorSuffix": "' is inviting you.",
   "organizationInviteErrorMessage": "Something went wrong. Please contact the administrators at",
 
   "deleteLabelActionText": "delete the label '$0'",

@@ -45,13 +45,24 @@ export function InvitedToOrganizationModal() {
               modalProps={{ defaultOpen: true }}
             >
               {({ close }) => (
-                <div className="flex flex-col items-center gap-4">
-                  <div className="text-center">
-                    <Text>{getText('organizationInviteMessage')}</Text>
-                    <Text className="text-sm font-bold">{user.newOrganizationName}</Text>
-                    <Text>{getText('organizationInviteOpenMessage')}</Text>
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <Text disableLineHeightCompensation>{getText('organizationInvitePrefix')}</Text>
+                    <Text disableLineHeightCompensation className="font-bold">
+                      {user.newOrganizationName}
+                    </Text>
+                    <Text disableLineHeightCompensation>{getText('organizationInviteSuffix')}</Text>
                   </div>
-                  <ButtonGroup className="w-min">
+                  <ButtonGroup className="w-min self-end">
+                    <Button
+                      variant="outline"
+                      onPress={async () => {
+                        await declineInvitation([user.email])
+                        close()
+                      }}
+                    >
+                      {getText('decline')}
+                    </Button>
                     <Button
                       variant="tertiary"
                       onPress={async () => {
@@ -61,15 +72,6 @@ export function InvitedToOrganizationModal() {
                       }}
                     >
                       {getText('accept')}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onPress={async () => {
-                        await declineInvitation([user.email])
-                        close()
-                      }}
-                    >
-                      {getText('decline')}
                     </Button>
                   </ButtonGroup>
                 </div>
@@ -88,18 +90,17 @@ export function InvitedToOrganizationModal() {
               hideCloseButton
               modalProps={{ defaultOpen: true }}
             >
-              <div className="text-center">
-                <Text>{getText('organizationInviteMessage')}</Text>
-                <Text className="text-sm font-bold">{user.newOrganizationName}</Text>
-                <Text className="text-danger">
-                  {getText('organizationInviteErrorMessage')}{' '}
-                  {
-                    <Button variant="link" href={SUPPORT_EMAIL_URL}>
-                      {SUPPORT_EMAIL}
-                    </Button>
-                  }
-                </Text>
-              </div>
+              <Text disableLineHeightCompensation>{getText('organizationInvitePrefix')}</Text>
+              <Text disableLineHeightCompensation className="font-bold">
+                {user.newOrganizationName}
+              </Text>
+              <Text disableLineHeightCompensation>{getText('organizationInviteErrorSuffix')}</Text>
+              <Text className="text-danger">
+                {getText('organizationInviteErrorMessage')}{' '}
+                <Button variant="link" href={SUPPORT_EMAIL_URL}>
+                  {SUPPORT_EMAIL}
+                </Button>
+              </Text>
             </Dialog>
           </>
         )
