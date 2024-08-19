@@ -209,10 +209,25 @@ watch(menuVisible, (visible) => {
 
 function openFullMenu() {
   menuFull.value = true
+  setSelected()
+}
+
+function setSelected() {
   nodeSelection?.setSelection(new Set([nodeId.value]))
 }
 
-const isDocsVisible = ref(false)
+function onAnyClick(e: MouseEvent) {
+  if (isUnmodifiedPrimaryButtonClick(e)) {
+    setSelected()
+  }
+}
+
+function isUnmodifiedPrimaryButtonClick(e: MouseEvent) {
+  const isModified = e.ctrlKey || e.altKey || e.shiftKey || e.metaKey
+  const isPrimaryButton = e.button === 0
+  return isPrimaryButton && !isModified
+}
+
 const outputHovered = ref(false)
 const keyboard = injectKeyboard()
 const visualizationWidth = computed(() => props.node.vis?.width ?? null)
@@ -414,6 +429,7 @@ watchEffect(() => {
     @pointerenter="(nodeHovered = true), updateNodeHover($event)"
     @pointerleave="(nodeHovered = false), updateNodeHover(undefined)"
     @pointermove="updateNodeHover"
+    @click.capture="onAnyClick"
   >
     <Teleport v-if="navigator && !edited" :to="graphNodeSelections">
       <GraphNodeSelection
@@ -444,7 +460,6 @@ watchEffect(() => {
     <CircularMenu
       v-if="menuVisible"
       v-model:isRecordingOverridden="isRecordingOverridden"
-      v-model:isDocsVisible="isDocsVisible"
       :isRecordingEnabledGlobally="projectStore.isRecordingEnabled"
       :isVisualizationEnabled="isVisualizationEnabled"
       :isFullMenuVisible="menuVisible && menuFull"
@@ -457,7 +472,6 @@ watchEffect(() => {
       @startEditingComment="editingComment = true"
       @openFullMenu="openFullMenu"
       @delete="emit('delete')"
-      @createNodes="emit('createNodes', $event)"
       @pointerenter="menuHovered = true"
       @pointerleave="menuHovered = false"
       @update:nodeColor="emit('setNodeColor', $event)"
@@ -532,8 +546,8 @@ watchEffect(() => {
       />
     </svg>
     <SmallPlusButton
-      v-if="menuVisible && isVisualizationVisible"
-      class="afterNode"
+      v-if="menuVisible"
+      :class="isVisualizationVisible ? 'afterNode' : 'belowMenu'"
       @createNodes="emit('createNodes', $event)"
     />
   </div>
@@ -636,6 +650,11 @@ watchEffect(() => {
   top: 100%;
   margin-top: 4px;
   transform: translateY(var(--viz-below-node));
+}
+
+.belowMenu {
+  position: absolute;
+  top: calc(100% + 40px);
 }
 
 .messageWithMenu {

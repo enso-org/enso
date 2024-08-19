@@ -20,6 +20,7 @@ import type {
   RowDataUpdatedEvent,
   RowEditingStartedEvent,
   RowEditingStoppedEvent,
+  SortChangedEvent,
 } from 'ag-grid-community'
 import type {
   ColDef,
@@ -47,6 +48,7 @@ const emit = defineEmits<{
   rowEditingStarted: [event: RowEditingStartedEvent]
   rowEditingStopped: [event: RowEditingStoppedEvent]
   rowDataUpdated: [event: RowDataUpdatedEvent]
+  sortOrFilterUpdated: [event: SortChangedEvent]
 }>()
 
 const widths = reactive(new Map<string, number>())
@@ -186,6 +188,8 @@ const { AgGridVue } = await import('ag-grid-vue3')
     @cellEditingStopped="emit('cellEditingStopped', $event)"
     @rowEditingStarted="emit('rowEditingStarted', $event)"
     @rowEditingStopped="emit('rowEditingStopped', $event)"
+    @sortChanged="emit('sortOrFilterUpdated', $event)"
+    @filterChanged="emit('sortOrFilterUpdated', $event)"
   />
 </template>
 

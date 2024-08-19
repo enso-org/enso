@@ -16,15 +16,8 @@ strum = { workspace = true }
 sysinfo = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
-windows = { version = "0.53.0", features = [
-    "Win32",
-    "Win32_UI",
-    "Win32_UI_Shell",
-    "Win32_System",
-    "Win32_System_LibraryLoader",
-    "Win32_Foundation",
-    "Win32_System_Com",
-] }
+windows = { workspace = true }
+derive_more = { workspace = true }
 
 [target.'cfg(windows)'.dependencies]
 mslnk = "0.1.8"

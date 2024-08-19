@@ -126,7 +126,7 @@ pub trait IsOrganization {
     /// The organization's URL.
     fn url(&self) -> Result<Url> {
         let url_text = format!("https://github.com/{}", self.name());
-        Url::from_str(&url_text)
+        Ok(Url::from_str(&url_text)?)
     }
 }
 
@@ -162,12 +162,10 @@ pub async fn latest_runner_url(octocrab: &Octocrab, os: OS) -> Result<Url> {
         OS::Linux => "linux",
         OS::Windows => "win",
         OS::MacOS => "osx",
-        other_os => unimplemented!("System `{}` is not yet supported!", other_os),
     };
 
     let arch_name = match TARGET_ARCH {
         Arch::X86_64 => "x64",
-        Arch::Arm => "arm",
         Arch::AArch64 => "arm64",
         other_arch => unimplemented!("Architecture `{}` is not yet supported!", other_arch),
     };
@@ -188,9 +186,5 @@ pub async fn fetch_runner(octocrab: &Octocrab, os: OS, output_dir: impl AsRef<Pa
 pub fn create_client(pat: impl AsRef<str>) -> Result<reqwest::Client> {
     let mut header_map = reqwest::header::HeaderMap::new();
     header_map.append(reqwest::header::AUTHORIZATION, format!("Bearer {}", pat.as_ref()).parse()?);
-    reqwest::Client::builder()
-        .user_agent("enso-build")
-        .default_headers(header_map)
-        .build()
-        .anyhow_err()
+    Ok(reqwest::Client::builder().user_agent("enso-build").default_headers(header_map).build()?)
 }

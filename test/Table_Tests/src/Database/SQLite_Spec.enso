@@ -182,11 +182,11 @@ sqlite_specific_spec suite_builder prefix create_connection_func setup =
             m2.at "ś"   . to_vector . should_equal ["A"]
             m2.at "ś 1" . to_vector . should_equal [2]
 
-            r3 = data.connection.query 'SELECT 1 AS "A", 2 AS "A"'
+            r3 = data.connection.query (..Raw_SQL 'SELECT 1 AS "A", 2 AS "A"')
             r3.should_fail_with Illegal_Argument
             r3.catch.cause . should_be_a Duplicate_Output_Column_Names
 
-            r4 = data.connection.query 'SELECT 1 AS ""'
+            r4 = data.connection.query (..Raw_SQL 'SELECT 1 AS ""')
             r4.should_fail_with Illegal_Argument
             r4.catch.cause . should_be_a Invalid_Column_Names
 

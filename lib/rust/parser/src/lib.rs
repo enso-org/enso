@@ -99,6 +99,7 @@ use crate::syntax::token;
 use crate::syntax::tree::SyntaxError;
 use crate::syntax::Finish;
 
+mod im_list;
 
 // ==============
 // === Export ===

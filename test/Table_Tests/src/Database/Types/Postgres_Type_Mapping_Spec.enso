@@ -173,11 +173,11 @@ add_specs suite_builder create_connection_fn =
             table_clean = table.remove_warnings
 
             Problems.assume_no_problems <|
-                table_clean.update_rows (data.connection.query 'SELECT decode(\'ffff\', \'hex\') AS "B"') update_action=Update_Action.Insert
+                table_clean.update_rows (data.connection.query (..Raw_SQL 'SELECT decode(\'ffff\', \'hex\') AS "B"')) update_action=Update_Action.Insert
             Problems.assume_no_problems <|
-                table_clean.update_rows (data.connection.query 'SELECT decode(\'caffee\', \'hex\') AS "B"') update_action=Update_Action.Insert
+                table_clean.update_rows (data.connection.query (..Raw_SQL 'SELECT decode(\'caffee\', \'hex\') AS "B"')) update_action=Update_Action.Insert
             Problems.assume_no_problems <|
-                table_clean.update_rows (data.connection.query 'SELECT decode(\'beef\', \'hex\') AS "B"') update_action=Update_Action.Insert
+                table_clean.update_rows (data.connection.query (..Raw_SQL 'SELECT decode(\'beef\', \'hex\') AS "B"')) update_action=Update_Action.Insert
 
             materialized_table = table_clean.read
             materialized_table.at "B" . value_type . should_equal Value_Type.Mixed

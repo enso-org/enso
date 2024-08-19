@@ -31,8 +31,8 @@ import project.Internal.Statement_Setter.Statement_Setter
 import project.SQL.SQL_Builder
 import project.SQL_Statement.SQL_Statement
 import project.SQL_Type.SQL_Type
-from project.Errors import SQL_Error, Unsupported_Database_Operation
 from project.Dialect import Temp_Table_Style
+from project.Errors import SQL_Error, Unsupported_Database_Operation
 
 ## PRIVATE
 
@@ -140,12 +140,6 @@ type SQLite_Dialect
             Database_Distinct_Helper.make_distinct_expression case_sensitivity problem_builder column value_type
         new_context = Context.for_subquery setup.subquery . set_groups distinct_expressions
         table.updated_context_and_columns new_context new_columns subquery=True
-
-    ## PRIVATE
-       A heuristic used by `Connection.query` to determine if a given text looks
-       like a SQL query for the given dialect or is rather a table name.
-    is_probably_a_query : Text -> Boolean
-    is_probably_a_query self text = Base_Generator.is_probably_a_query text
 
     ## PRIVATE
        Returns the mapping between SQL types of this dialect and Enso

@@ -19,7 +19,7 @@ public abstract class StringBooleanOp
   protected abstract boolean doString(String a, String b);
 
   protected boolean doObject(String a, Object o) {
-    throw new UnexpectedTypeException("a Text");
+    throw new UnexpectedTypeException("a Text", o.toString());
   }
 
   @Override
@@ -90,8 +90,8 @@ public abstract class StringBooleanOp
       for (int i = 0; i < storage.size(); i++) {
         if (!storage.isNothing(i) && i < arg.size() && !arg.isNothing(i)) {
           Object x = arg.getItemBoxed(i);
-          if (x instanceof String) {
-            if (doString(storage.getItem(i), (String) x)) {
+          if (x instanceof String str) {
+            if (doString(storage.getItem(i), str)) {
               newVals.set(i);
             }
           } else {

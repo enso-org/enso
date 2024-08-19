@@ -105,6 +105,7 @@ trait PackageRepository {
     context: CompilerContext
   ): Option[IRModule]
 
+  def shutdown(): Unit
 }
 
 object PackageRepository {

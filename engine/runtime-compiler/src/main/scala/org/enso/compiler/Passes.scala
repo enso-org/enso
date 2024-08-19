@@ -51,11 +51,7 @@ class Passes(config: CompilerConfig) {
               PrivateModuleAnalysis.INSTANCE,
               PrivateConstructorAnalysis.INSTANCE
             )
-          } else List()) ++ (if (config.dumpIrs) {
-                               List(
-                                 IRDumperPass.INSTANCE
-                               )
-                             } else List())
+          } else List())
     ++ List(
       ShadowedPatternFields,
       UnreachableMatchBranches,
@@ -96,6 +92,7 @@ class Passes(config: CompilerConfig) {
             List(PrivateSymbolsAnalysis.INSTANCE)
           } else List()) ++ List(
       AliasAnalysis,
+      FramePointerAnalysis,
       DataflowAnalysis,
       CachePreferenceAnalysis,
       GenericAnnotations
@@ -107,7 +104,9 @@ class Passes(config: CompilerConfig) {
                    List(
                      TypeInference.INSTANCE
                    )
-                 } else Nil)
+                 } else Nil) ++ (if (config.dumpIrs) {
+                                   List(IRDumperPass.INSTANCE)
+                                 } else Nil)
   )
 
   /** A list of the compiler phases, in the order they should be run.

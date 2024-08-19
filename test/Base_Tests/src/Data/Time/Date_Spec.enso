@@ -476,7 +476,7 @@ spec_with suite_builder name create_new_date parse_date pending=Nothing =
             d1.date_part Date_Period.Week . should_equal 52
             d1.date_part Date_Period.Day . should_equal 30
 
-            Test.expect_panic_with (d1.date_part Time_Period.Day) Type_Error
+            Test.expect_panic_with (d1.date_part Time_Period.Hour) Type_Error
 
         group_builder.specify "should allow computing date_diff" <|
             d1 = create_new_date 2021 11 3
@@ -505,7 +505,6 @@ spec_with suite_builder name create_new_date parse_date pending=Nothing =
             d3.date_diff (Date.new 2021 03 01) Date_Period.Day . should_equal 58
             d3.date_diff (Date.new 2021 03 01) Date_Period.Month . should_equal 1
 
-            Test.expect_panic_with (d1.date_diff d2 Time_Period.Day) Type_Error
             Test.expect_panic_with (d1.date_diff d2 Time_Period.Hour) Type_Error
 
         group_builder.specify "should allow shifting with date_add" <|
@@ -521,7 +520,6 @@ spec_with suite_builder name create_new_date parse_date pending=Nothing =
             d1.date_add 2 Date_Period.Quarter . should_equal (Date.new 2021 07 31)
 
             Test.expect_panic_with (d1.date_add 1 Time_Period.Hour) Type_Error
-            Test.expect_panic_with (d1.date_add 1 Time_Period.Day) Type_Error
             Test.expect_panic_with (d1.date_add 1.5 Date_Period.Day) Type_Error
             Test.expect_panic_with (d1.date_add 1.0 Date_Period.Day) Type_Error
 

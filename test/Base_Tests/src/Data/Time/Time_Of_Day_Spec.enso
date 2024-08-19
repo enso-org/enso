@@ -137,7 +137,6 @@ specWith suite_builder name create_new_time parse_time nanoseconds_loss_in_preci
 
         group_builder.specify "should support addition of Time_Period" <|
             time = create_new_time 0
-            time+Time_Period.Day . should_equal <| create_new_time 0
             time+Time_Period.Hour . should_equal <| create_new_time 1
             time+Time_Period.Minute . should_equal <| create_new_time 0 1
             time+Time_Period.Second . should_equal <| create_new_time 0 0 1
@@ -148,7 +147,6 @@ specWith suite_builder name create_new_time parse_time nanoseconds_loss_in_preci
 
         group_builder.specify "should support subtraction of Time_Period" <|
             time = create_new_time 12
-            time-Time_Period.Day . should_equal <| create_new_time 12
             time-Time_Period.Hour . should_equal <| create_new_time 11
             time-Time_Period.Minute . should_equal <| create_new_time 11 59
             time-Time_Period.Second . should_equal <| create_new_time 11 59 59
@@ -183,8 +181,6 @@ specWith suite_builder name create_new_time parse_time nanoseconds_loss_in_preci
         max_nanos = 999999999
         group_builder.specify "should allow to find start/end of a Time_Period containing the current time of day" <|
             d1 = create_new_time 15 37 58 123456789
-            d1.start_of Time_Period.Day . should_equal (Time_Of_Day.new)
-            d1.end_of Time_Period.Day . should_equal (Time_Of_Day.new 23 59 59 nanosecond=max_nanos)
             d1.start_of Time_Period.Hour . should_equal (Time_Of_Day.new 15 0 0 0)
             d1.end_of Time_Period.Hour . should_equal (Time_Of_Day.new 15 59 59 nanosecond=max_nanos)
             d1.start_of Time_Period.Minute . should_equal (Time_Of_Day.new 15 37 0 0)
@@ -201,8 +197,6 @@ specWith suite_builder name create_new_time parse_time nanoseconds_loss_in_preci
                 d1.end_of Time_Period.Nanosecond . should_equal d1
 
             d2 = create_new_time 0 0 0
-            d2.start_of Time_Period.Day . should_equal (Time_Of_Day.new)
-            d2.end_of Time_Period.Day . should_equal (Time_Of_Day.new 23 59 59 nanosecond=max_nanos)
             d2.start_of Time_Period.Hour . should_equal (Time_Of_Day.new 0 0 0 0)
             d2.end_of Time_Period.Hour . should_equal (Time_Of_Day.new 0 59 59 nanosecond=max_nanos)
             d2.start_of Time_Period.Minute . should_equal (Time_Of_Day.new 0 0 0 0)
@@ -211,8 +205,6 @@ specWith suite_builder name create_new_time parse_time nanoseconds_loss_in_preci
             d2.end_of Time_Period.Second . should_equal (Time_Of_Day.new 0 0 0 nanosecond=max_nanos)
 
             d3 = create_new_time 23 59 59 max_nanos
-            d3.start_of Time_Period.Day . should_equal (Time_Of_Day.new)
-            d3.end_of Time_Period.Day . should_equal (Time_Of_Day.new 23 59 59 nanosecond=max_nanos)
             d3.start_of Time_Period.Hour . should_equal (Time_Of_Day.new 23 0 0 0)
             d3.end_of Time_Period.Hour . should_equal (Time_Of_Day.new 23 59 59 nanosecond=max_nanos)
             d3.start_of Time_Period.Minute . should_equal (Time_Of_Day.new 23 59 0 0)
@@ -230,7 +222,6 @@ specWith suite_builder name create_new_time parse_time nanoseconds_loss_in_preci
                 d1.date_part Time_Period.Microsecond . should_equal 456
                 d1.date_part Time_Period.Nanosecond . should_equal 789
 
-            d1.date_part Time_Period.Day . should_fail_with Illegal_Argument
             Test.expect_panic_with (d1.date_part Date_Period.Day) Type_Error
 
         group_builder.specify "should allow computing a date_diff" <|
@@ -240,7 +231,6 @@ specWith suite_builder name create_new_time parse_time nanoseconds_loss_in_preci
             # There is no default period:
             t1.date_diff t2 . should_be_a Function
             Test.expect_panic_with (t1.date_diff t2 Date_Period.Month) Type_Error
-            t1.date_diff t2 Time_Period.Day . should_fail_with Illegal_Argument
 
             t1.date_diff t2 Time_Period.Hour . should_equal 2
             t1.date_diff (Time_Of_Day.new 9 15 0) Time_Period.Hour . should_equal -1
@@ -275,7 +265,6 @@ specWith suite_builder name create_new_time parse_time nanoseconds_loss_in_preci
                 t1.date_add -2 Time_Period.Nanosecond . should_equal (Time_Of_Day.new 23 44 59 999 999 998)
 
             # No sense to shift Time_Of_Day by days
-            t1.date_add 1 Time_Period.Day . should_fail_with Illegal_Argument
             Test.expect_panic_with (t1.date_add 1 Date_Period.Month) Type_Error
 
             # There is no default period.

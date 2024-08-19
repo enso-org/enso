@@ -53,12 +53,12 @@ impl TryFrom<&Prerelease> for NightlyPrerelease {
             "Not a nightly build."
         );
         ensure!(identifiers.len() == 4 || identifiers.len() == 5, "Wrong number of identifiers.");
-        let year = identifiers.get(1).context("Missing year")?.parse2().context("Invalid year")?;
+        let year = identifiers.get(1).context("Missing year")?.parse().context("Invalid year")?;
         let month =
-            identifiers.get(2).context("Missing month")?.parse2().context("Invalid month")?;
-        let day = identifiers.get(3).context("Missing day")?.parse2().context("Invalid day")?;
+            identifiers.get(2).context("Missing month")?.parse().context("Invalid month")?;
+        let day = identifiers.get(3).context("Missing day")?.parse().context("Invalid day")?;
         let index =
-            identifiers.get(4).map(|index| index.parse2()).transpose().context("Invalid index")?;
+            identifiers.get(4).map(|index| index.parse()).transpose().context("Invalid index")?;
         let date = chrono::NaiveDate::from_ymd_opt(year, month, day)
             .with_context(|| format!("Invalid date: {year}-{month}-{day}"))?;
         Ok(Self::new(date, index))
@@ -88,7 +88,7 @@ impl TryInto<Prerelease> for NightlyPrerelease {
 
     fn try_into(self) -> std::result::Result<Prerelease, Self::Error> {
         let as_string = self.to_string();
-        Prerelease::from_str(&as_string)
+        Ok(Prerelease::from_str(&as_string)?)
     }
 }
 

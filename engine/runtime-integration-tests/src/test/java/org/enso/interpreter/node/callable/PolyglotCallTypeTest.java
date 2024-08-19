@@ -27,6 +27,7 @@ public class PolyglotCallTypeTest {
   @AfterClass
   public static void closeCtx() {
     ctx.close();
+    ctx = null;
   }
 
   @Test

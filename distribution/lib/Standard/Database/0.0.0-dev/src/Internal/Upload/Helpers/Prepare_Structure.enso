@@ -7,8 +7,8 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 from Standard.Table import Table
 
-import project.Connection.Connection.Connection
 import project.Column_Description.Column_Description
+import project.Connection.Connection.Connection
 import project.DB_Table.DB_Table
 
 ## PRIVATE
