@@ -232,8 +232,23 @@ const BASE_STEPS: Step[] = [
 
       const defaultUserGroupMaxLength = 64
 
+      const listUsersQuery = useSuspenseQuery({
+        queryKey: ['users'],
+        queryFn: () => remoteBackend.listUsers(),
+      })
+
       const createUserGroupMutation = useMutation(
-        backendMutationOptions(remoteBackend, 'createUserGroup'),
+        backendMutationOptions(remoteBackend, 'createUserGroup', {
+          onSuccess: async (result) => {
+            await Promise.all([
+              listUsersQuery.data.map((user) =>
+                remoteBackend.changeUserGroup(user.userId, { userGroups: [result.id] }, user.name),
+              ),
+            ])
+
+            goToNextStep()
+          },
+        }),
       )
 
       return (
@@ -241,7 +256,6 @@ const BASE_STEPS: Step[] = [
           schema={(z) => z.object({ groupName: z.string().min(1).max(defaultUserGroupMaxLength) })}
           className="max-w-96"
           onSubmit={({ groupName }) => createUserGroupMutation.mutateAsync([{ name: groupName }])}
-          onSubmitSuccess={goToNextStep}
         >
           <ariaComponents.Input
             name="groupName"
