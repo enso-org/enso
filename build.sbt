@@ -1267,14 +1267,18 @@ lazy val `ydoc-server` = project
     Test / fork := true,
     commands += WithDebugCommand.withDebug,
     moduleDependencies := {
-      GraalVM.modules ++ GraalVM.jsPkgs ++ GraalVM.chromeInspectorPkgs ++ helidon ++ Seq(
-        "org.slf4j"      % "slf4j-api"       % slf4jVersion,
-        "ch.qos.logback" % "logback-classic" % logbackClassicVersion,
-        "ch.qos.logback" % "logback-core"    % logbackClassicVersion,
+      helidon ++ Seq(
+        "org.graalvm.polyglot" % "polyglot"        % graalMavenPackagesVersion,
+        "org.graalvm.truffle"  % "truffle-api"     % graalMavenPackagesVersion,
+        "org.slf4j"            % "slf4j-api"       % slf4jVersion,
+        "ch.qos.logback"       % "logback-classic" % logbackClassicVersion,
+        "ch.qos.logback"       % "logback-core"    % logbackClassicVersion,
         (`syntax-rust-definition` / projectID).value,
         (`profiling-utils` / projectID).value
       ),
     },
+    Runtime / moduleDependencies ++=
+      GraalVM.modules ++ GraalVM.jsPkgs ++ GraalVM.chromeInspectorPkgs,
     libraryDependencies ++= Seq(
       "org.graalvm.truffle"        % "truffle-api"                 % graalMavenPackagesVersion % "provided",
       "org.graalvm.polyglot"       % "inspect"                     % graalMavenPackagesVersion % "runtime",
@@ -1285,10 +1289,7 @@ lazy val `ydoc-server` = project
       "junit"                      % "junit"                       % junitVersion              % Test,
       "com.github.sbt"             % "junit-interface"             % junitIfVersion            % Test,
       "com.fasterxml.jackson.core" % "jackson-databind"            % jacksonVersion            % Test
-    ),
-    libraryDependencies ++= {
-      GraalVM.modules ++ GraalVM.jsPkgs ++ GraalVM.chromeInspectorPkgs ++ helidon
-    }
+    )
   )
   // `Compile/run` settings are necessary for the `run` task to work.
   // We add it here for convenience so that one can start ydoc-server directly

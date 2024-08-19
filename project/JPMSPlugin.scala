@@ -12,6 +12,22 @@ import java.io.File
   *
   * If this plugin is enabled, and no settings/tasks from this plugin are used, then the plugin will
   * not inject anything into `javaOptions` or `javacOptions`.
+  *
+  * == How to work with this plugin ==
+  * - Specify `moduleDependencies` with something like:
+  *  {{{
+  *  moduleDependencies := Seq(
+  *    "org.apache.commons" % "commons-lang3" % "3.11",
+  *  )
+  *  }}}
+  *  - Ensure that all the module dependencies were gathered by the plugin correctly by
+  *    `print modulePath`.
+  *    - If not, make sure that these dependencies are in `libraryDependencies`.
+  *      Debug this with `print dependencyClasspath`.
+  *
+  * == Caveats ==
+  * - This plugin cannot determine transitive dependencies of modules in `moduleDependencies`.
+  *   As opposed to `libraryDependencies` which automatically gatheres all the transitive dependencies.
   */
 object JPMSPlugin extends AutoPlugin {
   object autoImport {
@@ -117,6 +133,15 @@ object JPMSPlugin extends AutoPlugin {
         (Test / addExports).value,
         (Test / addReads).value
       )
+    },
+    Runtime / modulePath := {
+      val cp = JPMSUtils.filterModulesFromClasspath(
+        (Runtime / dependencyClasspath).value,
+        (Runtime / moduleDependencies).value,
+        streams.value.log,
+        shouldContainAll = true
+      )
+      cp.map(_.data)
     }
   )
 
