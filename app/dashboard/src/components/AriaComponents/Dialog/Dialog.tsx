@@ -113,6 +113,7 @@ const DIALOG_STYLES = twv.tv({
     closeButton: 'normal',
     hideCloseButton: false,
     size: 'medium',
+    padding: 'medium',
   },
 })
 
