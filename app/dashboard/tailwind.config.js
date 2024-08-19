@@ -598,6 +598,9 @@ inset 0 -36px 51px -51px #00000014`,
           respectImportant: true,
         },
       )
+
+      addVariant('not-focus', '&:where([data-rac]):not([data-focused])')
+      addVariant('not-selected', '&:where([data-rac]):not([data-selected])')
     }),
   ],
 })

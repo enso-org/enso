@@ -1,21 +1,18 @@
 /** @file A dynamic wizard for creating an arbitrary type of Datalink. */
 import * as React from 'react'
 
-import * as backendProvider from '#/providers/BackendProvider'
-import * as textProvider from '#/providers/TextProvider'
-
-import * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
+import { Input, Text } from '#/components/aria'
+import { Button, Dropdown } from '#/components/AriaComponents'
 import Autocomplete from '#/components/Autocomplete'
-import Dropdown from '#/components/Dropdown'
 import Checkbox from '#/components/styled/Checkbox'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
-
 import { useBackendQuery } from '#/hooks/backendHooks'
-import * as jsonSchema from '#/utilities/jsonSchema'
-import * as object from '#/utilities/object'
-import * as tailwindMerge from '#/utilities/tailwindMerge'
+import { useRemoteBackendStrict } from '#/providers/BackendProvider'
+import { useText } from '#/providers/TextProvider'
+import { constantValue, getSchemaName, lookupDef } from '#/utilities/jsonSchema'
+import { asObject, singletonObjectOrNull } from '#/utilities/object'
+import { twMerge } from '#/utilities/tailwindMerge'
 
 // =======================
 // === JSONSchemaInput ===
@@ -39,8 +36,8 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
   const { value, setValue } = props
   // The functionality for inputting `enso-secret`s SHOULD be injected using a plugin,
   // but it is more convenient to avoid having plugin infrastructure.
-  const remoteBackend = backendProvider.useRemoteBackendStrict()
-  const { getText } = textProvider.useText()
+  const remoteBackend = useRemoteBackendStrict()
+  const { getText } = useText()
   const [autocompleteText, setAutocompleteText] = React.useState(() =>
     typeof value === 'string' ? value : null,
   )
@@ -66,7 +63,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
             const isValid = typeof value === 'string' && value !== ''
             children.push(
               <div
-                className={tailwindMerge.twMerge(
+                className={twMerge(
                   'w-60 rounded-default border-0.5',
                   isValid ? 'border-primary/20' : 'border-red-700/60',
                 )}
@@ -91,12 +88,12 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
               <FocusArea direction="horizontal">
                 {(innerProps) => (
                   <FocusRing>
-                    <aria.Input
+                    <Input
                       type="text"
                       readOnly={readOnly}
                       value={typeof value === 'string' ? value : ''}
                       size={1}
-                      className={tailwindMerge.twMerge(
+                      className={twMerge(
                         'focus-child text w-60 grow rounded-input border-0.5 bg-transparent px-input-x read-only:read-only',
                         getValidator(path)(value) ? 'border-primary/20' : 'border-red-700/60',
                       )}
@@ -119,12 +116,12 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
             <FocusArea direction="horizontal">
               {(innerProps) => (
                 <FocusRing>
-                  <aria.Input
+                  <Input
                     type="number"
                     readOnly={readOnly}
                     value={typeof value === 'number' ? value : ''}
                     size={1}
-                    className={tailwindMerge.twMerge(
+                    className={twMerge(
                       'focus-child text w-60 grow rounded-input border-0.5 bg-transparent px-input-x read-only:read-only',
                       getValidator(path)(value) ? 'border-primary/20' : 'border-red-700/60',
                     )}
@@ -148,12 +145,12 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
             <FocusArea direction="horizontal">
               {(innerProps) => (
                 <FocusRing>
-                  <aria.Input
+                  <Input
                     type="number"
                     readOnly={readOnly}
                     value={typeof value === 'number' ? value : ''}
                     size={1}
-                    className={tailwindMerge.twMerge(
+                    className={twMerge(
                       'focus-child min-6- text40 w-80 grow rounded-input border-0.5 bg-transparent px-input-x read-only:read-only',
                       getValidator(path)(value) ? 'border-primary/20' : 'border-red-700/60',
                     )}
@@ -181,37 +178,37 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
           break
         }
         case 'object': {
-          const propertiesObject =
-            'properties' in schema ? object.asObject(schema.properties) ?? {} : {}
+          const propertiesObject = 'properties' in schema ? asObject(schema.properties) ?? {} : {}
           const requiredProperties =
             'required' in schema && Array.isArray(schema.required) ? schema.required : []
           const propertyDefinitions = Object.entries(propertiesObject).flatMap(
             (kv: [string, unknown]) => {
               const [k, v] = kv
-              return object
-                .singletonObjectOrNull(v)
-                .map((childSchema) => ({ key: k, schema: childSchema }))
+              return singletonObjectOrNull(v).map((childSchema) => ({
+                key: k,
+                schema: childSchema,
+              }))
             },
           )
-          if (jsonSchema.constantValue(defs, schema).length !== 1) {
+          if (constantValue(defs, schema).length !== 1) {
             children.push(
               <div className="grid items-center gap-json-schema rounded-default border-0.5 border-primary/20 p-json-schema-object-input">
                 {propertyDefinitions.map((definition) => {
                   const { key, schema: childSchema } = definition
                   const isOptional = !requiredProperties.includes(key)
-                  return jsonSchema.constantValue(defs, childSchema).length === 1 ?
+                  return constantValue(defs, childSchema).length === 1 ?
                       null
                     : <>
                         <FocusArea active={isOptional} direction="horizontal">
                           {(innerProps) => {
                             const isPresent = value != null && key in value
                             return (
-                              <ariaComponents.Button
+                              <Button
                                 size="custom"
                                 variant="custom"
                                 isDisabled={!isOptional}
                                 isActive={!isOptional || isPresent}
-                                className={tailwindMerge.twMerge(
+                                className={twMerge(
                                   'col-start-1 inline-block whitespace-nowrap rounded-full px-button-x',
                                   isOptional && 'hover:bg-hover-bg',
                                 )}
@@ -230,11 +227,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                                       } else {
                                         return {
                                           ...oldValue,
-                                          [key]: jsonSchema.constantValue(
-                                            defs,
-                                            childSchema,
-                                            true,
-                                          )[0],
+                                          [key]: constantValue(defs, childSchema, true)[0],
                                         }
                                       }
                                     })
@@ -243,7 +236,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                                 {...innerProps}
                               >
                                 {'title' in childSchema ? String(childSchema.title) : key}
-                              </ariaComponents.Button>
+                              </Button>
                             )
                           }}
                         </FocusArea>
@@ -298,7 +291,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
       }
     }
     if ('$ref' in schema && typeof schema.$ref === 'string') {
-      const referencedSchema = jsonSchema.lookupDef(defs, schema)
+      const referencedSchema = lookupDef(defs, schema)
       if (referencedSchema != null) {
         children.push(
           <JSONSchemaInput
@@ -311,12 +304,11 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
       }
     }
     if ('anyOf' in schema && Array.isArray(schema.anyOf)) {
-      const childSchemas = schema.anyOf.flatMap(object.singletonObjectOrNull)
+      const childSchemas = schema.anyOf.flatMap(singletonObjectOrNull)
       const selectedChildSchema =
         selectedChildIndex == null ? null : childSchemas[selectedChildIndex]
       const selectedChildPath = `${path}/anyOf/${selectedChildIndex ?? 0}`
-      const childValue =
-        selectedChildSchema == null ? [] : jsonSchema.constantValue(defs, selectedChildSchema)
+      const childValue = selectedChildSchema == null ? [] : constantValue(defs, selectedChildSchema)
       if (
         value != null &&
         (selectedChildSchema == null || getValidator(selectedChildPath)(value) !== true)
@@ -336,13 +328,11 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
               readOnly={readOnly}
               items={childSchemas}
               selectedIndex={selectedChildIndex}
-              render={(childProps) => (
-                <aria.Text>{jsonSchema.getSchemaName(defs, childProps.item)}</aria.Text>
-              )}
+              render={(childProps) => <Text>{getSchemaName(defs, childProps.item)}</Text>}
               className="self-start"
-              onClick={(childSchema, index) => {
+              onChange={(childSchema, index) => {
                 setSelectedChildIndex(index)
-                const newConstantValue = jsonSchema.constantValue(defs, childSchema, true)
+                const newConstantValue = constantValue(defs, childSchema, true)
                 setValue(newConstantValue[0] ?? null)
               }}
               {...innerProps}
@@ -352,10 +342,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
       )
       children.push(
         <div
-          className={tailwindMerge.twMerge(
-            'flex flex-col gap-json-schema',
-            childValue.length === 0 && 'w-full',
-          )}
+          className={twMerge('flex flex-col gap-json-schema', childValue.length === 0 && 'w-full')}
         >
           {dropdownTitle != null ?
             <div className="flex h-row items-center">
@@ -379,7 +366,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
       )
     }
     if ('allOf' in schema && Array.isArray(schema.allOf)) {
-      const childSchemas = schema.allOf.flatMap(object.singletonObjectOrNull)
+      const childSchemas = schema.allOf.flatMap(singletonObjectOrNull)
       const newChildren = childSchemas.map((childSchema, i) => (
         <JSONSchemaInput
           key={i}

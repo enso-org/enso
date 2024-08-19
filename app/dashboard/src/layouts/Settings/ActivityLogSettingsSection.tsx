@@ -13,8 +13,8 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
+import { Dropdown } from '#/components/AriaComponents'
 import DateInput from '#/components/DateInput'
-import Dropdown from '#/components/Dropdown'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
@@ -160,17 +160,14 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                 multiple
                 items={backendModule.EVENT_TYPES}
                 selectedIndices={typeIndices}
-                render={(itemProps) => EVENT_TYPE_NAME[itemProps.item]}
-                renderMultiple={(itemsProps) =>
-                  (
-                    itemsProps.items.length === 0 ||
-                    itemsProps.items.length === backendModule.EVENT_TYPES.length
-                  ) ?
+                render={({ item }) => EVENT_TYPE_NAME[item]}
+                renderMultiple={({ items }) =>
+                  items.length === 0 || items.length === backendModule.EVENT_TYPES.length ?
                     'All'
-                  : (itemsProps.items[0] != null ? EVENT_TYPE_NAME[itemsProps.items[0]] : '') +
-                    (itemsProps.items.length <= 1 ? '' : ` (+${itemsProps.items.length - 1})`)
+                  : (items[0] != null ? EVENT_TYPE_NAME[items[0]] : '') +
+                    (items.length <= 1 ? '' : ` (+${items.length - 1})`)
                 }
-                onClick={(items, indices) => {
+                onChange={(items, indices) => {
                   setTypes(items)
                   setTypeIndices(indices)
                 }}
@@ -191,7 +188,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                   : (itemsProps.items[0] ?? '') +
                     (itemsProps.items.length <= 1 ? '' : `(+${itemsProps.items.length - 1})`)
                 }
-                onClick={(items, indices) => {
+                onChange={(items, indices) => {
                   setEmails(items)
                   setEmailIndices(indices)
                 }}
