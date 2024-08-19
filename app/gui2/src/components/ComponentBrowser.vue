@@ -36,6 +36,7 @@ import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { DEFAULT_ICON, suggestionEntryToIcon } from '@/util/getIconName'
+import { iconOfNode } from '@/util/getIconName.ts'
 import { debouncedGetter } from '@/util/reactivity'
 import type { ComponentInstance, Ref } from 'vue'
 import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue'
@@ -234,34 +235,51 @@ watchEffect(() => {
 })
 
 const selectedSuggestionIcon = computed(() => {
+  return selectedSuggestion.value ? suggestionEntryToIcon(selectedSuggestion.value) : undefined
+})
+
+const icon = computed(() => {
   if (!input.selfArgument.value) return undefined
-  return selectedSuggestion.value ? suggestionEntryToIcon(selectedSuggestion.value) : DEFAULT_ICON
+  if (mode.value === ComponentBrowserMode.COMPONENT_BROWSING && selectedSuggestionIcon.value)
+    return selectedSuggestionIcon.value
+  if (props.usage.type === 'editNode') {
+    return iconOfNode(props.usage.node, graphStore.db)
+  }
+  return DEFAULT_ICON
 })
 
 // === Preview ===
 
-const previewed = debouncedGetter<string>(() => input.code.value, 200)
+const previewedCode = debouncedGetter<string>(() => input.code.value, 200)
 
 const previewedSuggestionReturnType = computed(() => {
   const id = appliedSuggestion.value
-  if (id == null) return
-  return suggestionDbStore.entries.get(id)?.returnType
+  const appliedEntry = id != null ? suggestionDbStore.entries.get(id) : undefined
+  if (appliedEntry != null) return appliedEntry.returnType
+  else if (props.usage.type === 'editNode') {
+    return graphStore.db.getNodeMainSuggestion(props.usage.node)?.returnType
+  }
+  return undefined
 })
 
 const previewDataSource = computed<VisualizationDataSource | undefined>(() => {
   if (input.isAiPrompt.value) return
-  if (!previewed.value.trim()) return
+  if (!previewedCode.value.trim()) return
   if (!graphStore.methodAst.ok) return
   const body = graphStore.methodAst.value.body
   if (!body) return
   return {
     type: 'expression',
-    expression: previewed.value,
+    expression: previewedCode.value,
     contextId: body.externalId,
   }
 })
 
-const visualizationSelection = ref<VisualizationIdentifier>()
+const visualizationSelection = ref<Opt<VisualizationIdentifier>>(
+  props.usage.type === 'editNode' ?
+    graphStore.db.nodeIdToNode.get(props.usage.node)?.vis?.identifier
+  : undefined,
+)
 
 // === Documentation Panel ===
 
@@ -379,7 +397,7 @@ const handler = componentBrowserBindings.handler({
       v-model="input.content.value"
       class="component-editor"
       :navigator="props.navigator"
-      :icon="selectedSuggestionIcon"
+      :icon="icon"
       :nodeColor="nodeColor"
       :style="{ '--component-editor-padding': cssComponentEditorPadding }"
     >
