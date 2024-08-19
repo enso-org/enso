@@ -1,7 +1,7 @@
 /** @file Modal for accepting or rejecting an invite to an organization. */
-import { Outlet, useNavigate } from 'react-router'
+import { Outlet } from 'react-router'
 
-import { LOGIN_PATH, SUPPORT_EMAIL, SUPPORT_EMAIL_URL } from '#/appUtils'
+import { SUPPORT_EMAIL, SUPPORT_EMAIL_URL } from '#/appUtils'
 import { Button, ButtonGroup, Dialog, Text } from '#/components/AriaComponents'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useAuth, useFullUserSession } from '#/providers/AuthProvider'
@@ -17,7 +17,6 @@ import { useMutation } from '@tanstack/react-query'
 export function InvitedToOrganizationModal() {
   const { getText } = useText()
   const { session } = useAuth()
-  const navigate = useNavigate()
   const backend = useRemoteBackendStrict()
   const { user } = useFullUserSession()
   const shouldDisplay = user.newOrganizationName != null && user.newOrganizationInvite != null
@@ -67,7 +66,6 @@ export function InvitedToOrganizationModal() {
                       variant="tertiary"
                       onPress={async () => {
                         await acceptInvitation([])
-                        navigate(LOGIN_PATH)
                         close()
                       }}
                     >

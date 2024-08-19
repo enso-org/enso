@@ -194,6 +194,7 @@ const INVALIDATION_MAP: Partial<Record<MutationMethod, readonly backendQuery.Bac
   changeUserGroup: ['listUsers'],
   createTag: ['listTags'],
   deleteTag: ['listTags'],
+  acceptInvitation: ['usersMe'],
 }
 
 export function backendMutationOptions<Method extends MutationMethod>(
