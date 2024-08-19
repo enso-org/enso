@@ -367,6 +367,7 @@ export interface ProjectExecutionInfo {
 
 /** A specific execution schedule of a project. */
 export interface ProjectExecution extends ProjectExecutionInfo {
+  readonly enabled: boolean
   readonly projectExecutionId: ProjectExecutionId
   readonly versionId: S3ObjectVersionId
 }
@@ -1164,6 +1165,12 @@ export interface OpenProjectRequestBody {
 /** HTTP request body for the "create project execution" endpoint. */
 export interface CreateProjectExecutionRequestBody extends ProjectExecutionInfo {}
 
+/** HTTP request body for the "update project execution" endpoint. */
+export interface UpdateProjectExecutionRequestBody {
+  readonly projectExecutionId: ProjectExecutionId
+  readonly enabled?: boolean | undefined
+}
+
 /** HTTP request body for the "create secret" endpoint. */
 export interface CreateSecretRequestBody {
   readonly name: string
@@ -1442,6 +1449,11 @@ export default abstract class Backend {
     body: CreateProjectExecutionRequestBody,
     title: string,
   ): Promise<ProjectExecution>
+  abstract updateProjectExecution(
+    executionId: ProjectExecutionId,
+    body: UpdateProjectExecutionRequestBody,
+    projectTitle: string,
+  ): Promise<ProjectExecution>
   /** Delete a project execution. */
   abstract deleteProjectExecution(
     executionId: ProjectExecutionId,
@@ -1452,6 +1464,10 @@ export default abstract class Backend {
     projectId: ProjectId,
     title: string,
   ): Promise<readonly ProjectExecution[]>
+  abstract syncProjectExecution(
+    executionId: ProjectExecutionId,
+    projectTitle: string,
+  ): Promise<ProjectExecution>
   /** Restore a project from a different version. */
   abstract restoreProject(
     projectId: ProjectId,

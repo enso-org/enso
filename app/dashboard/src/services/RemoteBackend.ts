@@ -668,20 +668,48 @@ export default class RemoteBackend extends Backend {
     body: backend.CreateProjectExecutionRequestBody,
     // title: string,
   ): Promise<backend.ProjectExecution> {
-    console.log('createProjectExecution', body)
+    const { projectId, ...rest } = body
+    const path = remoteBackendPaths.createProjectExecutionPath(projectId)
+    console.log('createProjectExecution', path, rest)
     const projectExecution: backend.ProjectExecution = {
       versionId: backend.S3ObjectVersionId(''),
       projectExecutionId: backend.ProjectExecutionId(uniqueString()),
+      enabled: true,
       ...body,
     }
     this.projectExecutions.push(projectExecution)
     return Promise.resolve(projectExecution)
     // FIXME: Enable actual API call when ready.
-    /*const { projectId, ...rest } = body
-    const path = remoteBackendPaths.createProjectExecutionPath(projectId)
-    const response = await this.post<backend.ProjectExecution>(path, rest)
+    /*const response = await this.post<backend.ProjectExecution>(path, rest)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'createProjectExecutionBackendError', title)
+    } else {
+      return await response.json()
+    }*/
+  }
+
+  /** Update a project execution.
+   * @throws An error if a non-successful status code (not 200-299) was received. */
+  override async updateProjectExecution(
+    executionId: backend.ProjectExecutionId,
+    body: backend.UpdateProjectExecutionRequestBody,
+    projectTitle: string,
+  ): Promise<backend.ProjectExecution> {
+    const path = remoteBackendPaths.updateProjectExecutionPath(executionId)
+    console.log('updateProjectExecution', path, body)
+    const execution = this.projectExecutions.find(
+      (otherExecution) => otherExecution.projectExecutionId === executionId,
+    )
+    if (execution) {
+      object.unsafeMutable(execution).enabled = body.enabled ?? execution.enabled
+      return execution
+    } else {
+      return await this.throw(null, 'updateProjectExecutionBackendError', projectTitle)
+    }
+    // FIXME: Enable actual API call when ready.
+    /*const response = await this.post<backend.ProjectExecution>(path, body)
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'updateProjectExecutionBackendError', title)
     } else {
       return await response.json()
     }*/
@@ -693,7 +721,8 @@ export default class RemoteBackend extends Backend {
     executionId: backend.ProjectExecutionId,
     // projectTitle: string,
   ): Promise<void> {
-    console.log('deleteProjectExecution', executionId)
+    const path = remoteBackendPaths.deleteProjectExecutionPath(executionId)
+    console.log('deleteProjectExecution', path)
     const index = this.projectExecutions.findIndex(
       (execution) => execution.projectExecutionId === executionId,
     )
@@ -702,8 +731,7 @@ export default class RemoteBackend extends Backend {
     }
     return Promise.resolve()
     // FIXME: Enable actual API call when ready.
-    /*const path = remoteBackendPaths.deleteProjectExecutionPath(executionId)
-    const response = await this.delete<backend.ProjectExecution>(path)
+    /*const response = await this.delete<backend.ProjectExecution>(path)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'createProjectExecutionBackendError', projectTitle)
     } else {
@@ -717,17 +745,43 @@ export default class RemoteBackend extends Backend {
     projectId: backend.ProjectId,
     // title: string,
   ): Promise<readonly backend.ProjectExecution[]> {
-    console.log('listProjectExecutions', projectId)
+    const path = remoteBackendPaths.listProjectExecutionsPath(projectId)
+    console.log('listProjectExecutions', path)
     return Promise.resolve(
       this.projectExecutions.filter((execution) => execution.projectId === projectId),
     )
     // FIXME: Enable actual API call when ready.
-    /*const path = remoteBackendPaths.listProjectExecutionsPath(projectId)
-    const response = await this.get<readonly backend.ProjectExecution[]>(path)
+    /*const response = await this.get<readonly backend.ProjectExecution[]>(path)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'listProjectExecutionsBackendError', title)
     } else {
       return await response.json()
+    }*/
+  }
+
+  /** Update a project execution to use the latest version of a project.
+   * @throws An error if a non-successful status code (not 200-299) was received. */
+  override async syncProjectExecution(
+    executionId: backend.ProjectExecutionId,
+    projectTitle: string,
+  ): Promise<backend.ProjectExecution> {
+    const path = remoteBackendPaths.syncProjectExecutionPath(executionId)
+    console.log('syncProjectExecution', path)
+    const execution = this.projectExecutions.find(
+      (otherExecution) => otherExecution.projectExecutionId === executionId,
+    )
+    if (execution) {
+      object.unsafeMutable(execution).versionId = backend.S3ObjectVersionId(uniqueString())
+      return execution
+    } else {
+      return await this.throw(null, 'syncProjectExecutionBackendError', projectTitle)
+    }
+    // FIXME: Enable actual API call when ready.
+    /*const response = await this.post<backend.ProjectExecution>(path)
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'syncProjectExecutionBackendError', title)
+    } else {
+      return
     }*/
   }
 

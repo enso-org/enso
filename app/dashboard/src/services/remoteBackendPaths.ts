@@ -150,6 +150,14 @@ export function listProjectExecutionsPath(projectId: backend.ProjectId) {
 export function createProjectExecutionPath(projectId: backend.ProjectId) {
   return `projects/${projectId}/executions/new`
 }
+/** Relative HTTP path to the "update project execution" endpoint of the Cloud backend API. */
+export function updateProjectExecutionPath(executionId: backend.ProjectExecutionId) {
+  return `executions/${executionId}`
+}
+/** Relative HTTP path to the "sync project execution" endpoint of the Cloud backend API. */
+export function syncProjectExecutionPath(executionId: backend.ProjectExecutionId) {
+  return `executions/${executionId}/sync`
+}
 /** Relative HTTP path to the "delete project execution" endpoint of the Cloud backend API. */
 export function deleteProjectExecutionPath(executionId: backend.ProjectExecutionId) {
   return `project-executions/${executionId}`
