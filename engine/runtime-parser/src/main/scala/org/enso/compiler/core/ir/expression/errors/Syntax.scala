@@ -10,22 +10,21 @@ import scala.annotation.unused
 
 /** A representation of an Enso syntax error.
   *
-  * @param at          the error location
-  * @param reason      the cause of this error
-  * @param passData    the pass metadata associated with this node
-  * @param diagnostics compiler diagnostics for this node
+  * @param at the error location
+  * @param reason the cause of this error
+  * @param passData the pass metadata associated with this node
   */
 sealed case class Syntax(
   at: IdentifiedLocation,
   reason: Syntax.Reason,
-  passData: MetadataStorage      = new MetadataStorage(),
-  diagnostics: DiagnosticStorage = DiagnosticStorage()
+  passData: MetadataStorage = new MetadataStorage()
 ) extends Error
     with Diagnostic.Kind.Interactive
     with module.scope.Definition
     with module.scope.Export
     with module.scope.Import
     with IRKind.Primitive
+    with LazyDiagnosticStorage
     with LazyId {
 
   /** Creates a copy of `this`.
@@ -41,11 +40,12 @@ sealed case class Syntax(
     at: IdentifiedLocation         = at,
     reason: Syntax.Reason          = reason,
     passData: MetadataStorage      = passData,
-    diagnostics: DiagnosticStorage = diagnostics,
+    diagnostics: DiagnosticStorage = _diagnostics,
     id: UUID @Identifier           = id
   ): Syntax = {
-    val res = Syntax(at, reason, passData, diagnostics)
-    res.id = id
+    val res = Syntax(at, reason, passData)
+    res.diagnostics = diagnostics
+    res.id          = id
     res
   }
 
@@ -108,6 +108,25 @@ sealed case class Syntax(
 }
 
 object Syntax {
+
+  /** Create a [[Syntax]] object.
+    *
+    * @param at the error location
+    * @param reason the cause of this error
+    * @param passData the pass metadata associated with this node
+    * @param diagnostics the compiler diatnostics
+    */
+  def apply(
+    at: IdentifiedLocation,
+    reason: Syntax.Reason,
+    passData: MetadataStorage,
+    diagnostics: DiagnosticStorage
+  ): Syntax = {
+    val syntax = new Syntax(at, reason, passData)
+    syntax.diagnostics = diagnostics
+
+    syntax
+  }
 
   /** A common type for all syntax errors expected by the language.
     */

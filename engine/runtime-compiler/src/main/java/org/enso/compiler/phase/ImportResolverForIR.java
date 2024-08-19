@@ -344,13 +344,13 @@ abstract class ImportResolverForIR extends ImportResolverAlgorithm<
 
   @Override
   protected final Tuple2<Import, Option<BindingsMap.ResolvedImport>> createErrorPackageCoundNotBeLoaded(Import.Module imp, String impName, String loadingError) {
-    org.enso.compiler.core.ir.expression.errors.ImportExport importError = new ImportExport(imp, new ImportExport.PackageCouldNotBeLoaded(impName, loadingError), imp.passData(), imp.diagnostics());
+    org.enso.compiler.core.ir.expression.errors.ImportExport importError = ImportExport.apply(imp, new ImportExport.PackageCouldNotBeLoaded(impName, loadingError), imp.passData(), imp.diagnostics());
     return new Tuple2<>(importError, Option.empty());
   }
 
   @Override
   protected final Tuple2<Import, Option<BindingsMap.ResolvedImport>> createErrorModuleDoesNotExist(Import.Module imp, String impName) {
-    return new Tuple2<>(new ImportExport(imp, new ImportExport.ModuleDoesNotExist(impName), imp.passData(), imp.diagnostics()), Option.empty());
+    return new Tuple2<>(ImportExport.apply(imp, new ImportExport.ModuleDoesNotExist(impName), imp.passData(), imp.diagnostics()), Option.empty());
   }
 
   private BindingsMap loadBindingsMap(CompilerContext.Module mod) {

@@ -10,21 +10,20 @@ import scala.annotation.unused
 
 /** An erroneous import or export statement.
   *
-  * @param ir          the original statement
-  * @param reason      the reason it's erroneous
-  * @param passData    the pass data
-  * @param diagnostics the attached diagnostics
+  * @param ir the original statement
+  * @param reason the reason it's erroneous
+  * @param passData the pass data
   */
 sealed case class ImportExport(
   ir: IR,
   reason: ImportExport.Reason,
-  override val passData: MetadataStorage      = new MetadataStorage(),
-  override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+  override val passData: MetadataStorage = new MetadataStorage()
 ) extends Error
     with Diagnostic.Kind.Interactive
     with org.enso.compiler.core.ir.module.scope.Import
     with org.enso.compiler.core.ir.module.scope.Export
     with IRKind.Primitive
+    with LazyDiagnosticStorage
     with LazyId {
 
   /** Creates a copy of `this`.
@@ -40,11 +39,12 @@ sealed case class ImportExport(
     ir: IR                         = ir,
     reason: ImportExport.Reason    = reason,
     passData: MetadataStorage      = passData,
-    diagnostics: DiagnosticStorage = diagnostics,
+    diagnostics: DiagnosticStorage = _diagnostics,
     id: UUID @Identifier           = id
   ): ImportExport = {
-    val res = ImportExport(ir, reason, passData, diagnostics)
-    res.id = id
+    val res = ImportExport(ir, reason, passData)
+    res.diagnostics = diagnostics
+    res.id          = id
     res
   }
 
@@ -105,6 +105,25 @@ sealed case class ImportExport(
 }
 
 object ImportExport {
+
+  /** An erroneous import or export statement.
+    *
+    * @param ir          the original statement
+    * @param reason      the reason it's erroneous
+    * @param passData    the pass data
+    * @param diagnostics the attached diagnostics
+    */
+  def apply(
+    ir: IR,
+    reason: ImportExport.Reason,
+    passData: MetadataStorage,
+    diagnostics: DiagnosticStorage
+  ): ImportExport = {
+    val importExport = new ImportExport(ir, reason, passData)
+    importExport.diagnostics = diagnostics
+
+    importExport
+  }
 
   /** A reason for a statement being erroneous.
     */

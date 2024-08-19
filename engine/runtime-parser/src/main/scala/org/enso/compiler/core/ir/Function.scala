@@ -39,40 +39,37 @@ object Function {
     * multi-argument lambdas, our internal representation does so to allow for
     * better optimisation.
     *
-    * @param arguments   the arguments to the lambda
+    * @param arguments the arguments to the lambda
     * @param bodyReference the body of the lambda, stored as a reference to ensure
     *                     laziness of storage
-    * @param location    the source location that the node corresponds to
-    * @param canBeTCO    whether or not the function can be tail-call optimised
-    * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
+    * @param location the source location that the node corresponds to
+    * @param canBeTCO whether or not the function can be tail-call optimised
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Lambda(
     override val arguments: List[DefinitionArgument],
     bodyReference: Persistance.Reference[Expression],
     location: Option[IdentifiedLocation],
     override val canBeTCO: Boolean,
-    passData: MetadataStorage,
-    diagnostics: DiagnosticStorage
+    passData: MetadataStorage
   ) extends Function
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
 
     def this(
       arguments: List[DefinitionArgument],
       body: Expression,
       location: Option[IdentifiedLocation],
-      canBeTCO: Boolean              = true,
-      passData: MetadataStorage      = new MetadataStorage(),
-      diagnostics: DiagnosticStorage = new DiagnosticStorage()
+      canBeTCO: Boolean         = true,
+      passData: MetadataStorage = new MetadataStorage()
     ) = {
       this(
         arguments,
         Persistance.Reference.of(body, true),
         location,
         canBeTCO,
-        passData,
-        diagnostics
+        passData
       )
     }
 
@@ -97,7 +94,7 @@ object Function {
       location: Option[IdentifiedLocation] = location,
       canBeTCO: Boolean                    = canBeTCO,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = diagnostics,
+      diagnostics: DiagnosticStorage       = _diagnostics,
       id: UUID @Identifier                 = id
     ): Lambda = {
       val res =
@@ -106,10 +103,10 @@ object Function {
           Persistance.Reference.of(body, false),
           location,
           canBeTCO,
-          passData,
-          diagnostics
+          passData
         )
-      res.id = id
+      res.diagnostics = diagnostics
+      res.id          = id
       res
     }
 
@@ -185,6 +182,37 @@ object Function {
   }
 
   object Lambda {
+
+    /** Create the [[Lambda]] object.
+      *
+      * @param arguments the arguments to the lambda
+      * @param body the body of the lambda expression
+      * @param location the source location that the node corresponds to
+      * @param canBeTCO whether or not the function can be tail-call optimised
+      * @param passData the pass metadata associated with this node
+      * @param diagnostics the attached diagnostics
+      */
+    def apply(
+      arguments: List[DefinitionArgument],
+      body: Expression,
+      location: Option[IdentifiedLocation],
+      canBeTCO: Boolean              = true,
+      passData: MetadataStorage      = new MetadataStorage(),
+      diagnostics: DiagnosticStorage = new DiagnosticStorage()
+    ): Lambda = {
+      val lambda =
+        new Lambda(
+          arguments,
+          Persistance.Reference.of(body, true),
+          location,
+          canBeTCO,
+          passData
+        )
+      lambda.diagnostics = diagnostics
+
+      lambda
+    }
+
     def unapply(l: Lambda): Some[
       (
         List[DefinitionArgument],
@@ -216,7 +244,6 @@ object Function {
     * @param location    the source location that the node corresponds to
     * @param canBeTCO    whether or not the function can be tail-call optimised
     * @param passData    the pass metadata associated with this node
-    * @param diagnostics the compiler diagnostics for this node
     */
   sealed case class Binding(
     name: Name,
@@ -225,10 +252,10 @@ object Function {
     override val isPrivate: Boolean,
     location: Option[IdentifiedLocation],
     override val canBeTCO: Boolean = true,
-    passData: MetadataStorage      = new MetadataStorage(),
-    diagnostics: DiagnosticStorage = DiagnosticStorage()
+    passData: MetadataStorage      = new MetadataStorage()
   ) extends Function
       with IRKind.Sugar
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -252,7 +279,7 @@ object Function {
       location: Option[IdentifiedLocation] = location,
       canBeTCO: Boolean                    = canBeTCO,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = diagnostics,
+      diagnostics: DiagnosticStorage       = _diagnostics,
       id: UUID @Identifier                 = id
     ): Binding = {
       val res =
@@ -263,10 +290,10 @@ object Function {
           isPrivate,
           location,
           canBeTCO,
-          passData,
-          diagnostics
+          passData
         )
-      res.id = id
+      res.diagnostics = diagnostics
+      res.id          = id
       res
     }
 

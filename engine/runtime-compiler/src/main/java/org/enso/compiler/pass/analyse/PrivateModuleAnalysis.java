@@ -85,8 +85,7 @@ public final class PrivateModuleAnalysis implements IRPass {
                           ImportExport.apply(
                               resolvedImp.importDef(),
                               new ImportExport.ImportPrivateModule(importedModuleName),
-                              ImportExport.apply$default$3(),
-                              ImportExport.apply$default$4()));
+                              ImportExport.apply$default$3()));
                     }
                     return null;
                   });
@@ -99,8 +98,7 @@ public final class PrivateModuleAnalysis implements IRPass {
           ImportExport.apply(
               moduleIr.exports().apply(0),
               new ImportExport.ExportSymbolsFromPrivateModule(moduleContext.getName().toString()),
-              ImportExport.apply$default$3(),
-              ImportExport.apply$default$4()));
+              ImportExport.apply$default$3()));
     }
 
     // Ensure that private modules are not exported
@@ -116,8 +114,7 @@ public final class PrivateModuleAnalysis implements IRPass {
                     ImportExport.apply(
                         associatedExportIR.get(),
                         new ImportExport.ExportPrivateModule(expModuleRef.getName().toString()),
-                        ImportExport.apply$default$3(),
-                        ImportExport.apply$default$4()));
+                        ImportExport.apply$default$3()));
               }
               return null;
             });

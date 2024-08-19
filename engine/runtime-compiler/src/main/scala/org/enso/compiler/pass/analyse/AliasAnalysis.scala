@@ -391,7 +391,6 @@ case object AliasAnalysis extends IRPass {
             retVal,
             _,
             isSuspended,
-            _,
             _
           ) =>
         val currentScope =
@@ -418,13 +417,13 @@ case object AliasAnalysis extends IRPass {
               alias.AliasMetadata.ChildScope(graph, currentScope)
             )
           )
-      case binding @ Expression.Binding(name, expression, _, _, _) =>
+      case binding @ Expression.Binding(name, expression, _, _) =>
         if (
           !parentScope.hasSymbolOccurrenceAs[GraphOccurrence.Def](name.name)
         ) {
           val isSuspended = expression match {
-            case Expression.Block(_, _, _, isSuspended, _, _) => isSuspended
-            case _                                            => false
+            case Expression.Block(_, _, _, isSuspended, _) => isSuspended
+            case _                                         => false
           }
           val occurrenceId = graph.nextId()
           val occurrence =
@@ -483,7 +482,7 @@ case object AliasAnalysis extends IRPass {
     parentScope: Scope
   ): Type = {
     value match {
-      case member @ `type`.Set.Member(label, memberType, value, _, _, _) =>
+      case member @ `type`.Set.Member(label, memberType, value, _, _) =>
         val memberTypeScope = memberType match {
           case _: Literal => parentScope
           case _          => parentScope.addChild()
@@ -544,8 +543,7 @@ case object AliasAnalysis extends IRPass {
   ): List[DefinitionArgument] = {
     args.map {
       case arg @ DefinitionArgument.Specified(
-            selfName @ Name.Self(_, true, _, _),
-            _,
+            selfName @ Name.Self(_, true, _),
             _,
             _,
             _,
@@ -579,7 +577,6 @@ case object AliasAnalysis extends IRPass {
             _,
             value,
             suspended,
-            _,
             _,
             _
           ) =>
@@ -648,16 +645,16 @@ case object AliasAnalysis extends IRPass {
     scope: Graph.Scope
   ): Application = {
     application match {
-      case app @ Application.Prefix(fun, arguments, _, _, _, _) =>
+      case app @ Application.Prefix(fun, arguments, _, _, _) =>
         app.copy(
           function  = analyseExpression(fun, graph, scope),
           arguments = analyseCallArguments(arguments, graph, scope)
         )
-      case app @ Application.Force(expr, _, _, _) =>
+      case app @ Application.Force(expr, _, _) =>
         app.copy(target = analyseExpression(expr, graph, scope))
-      case app @ Application.Sequence(items, _, _, _) =>
+      case app @ Application.Sequence(items, _, _) =>
         app.copy(items = items.map(analyseExpression(_, graph, scope)))
-      case tSet @ Application.Typeset(expr, _, _, _) =>
+      case tSet @ Application.Typeset(expr, _, _) =>
         val newScope = scope.addChild()
         tSet
           .copy(expression = expr.map(analyseExpression(_, graph, newScope)))
@@ -690,7 +687,7 @@ case object AliasAnalysis extends IRPass {
     graph: Graph,
     parentScope: Graph.Scope
   ): List[CallArgument] = {
-    args.map { case arg @ CallArgument.Specified(_, expr, _, _, _) =>
+    args.map { case arg @ CallArgument.Specified(_, expr, _, _) =>
       val currentScope = expr match {
         case _: Literal => parentScope
         case _          => parentScope.addChild()
@@ -814,7 +811,7 @@ case object AliasAnalysis extends IRPass {
     parentScope: Scope
   ): Case = {
     ir match {
-      case caseExpr @ Case.Expr(scrutinee, branches, _, _, _, _) =>
+      case caseExpr @ Case.Expr(scrutinee, branches, _, _, _) =>
         caseExpr
           .copy(
             scrutinee = analyseExpression(scrutinee, graph, parentScope),
@@ -869,7 +866,7 @@ case object AliasAnalysis extends IRPass {
     parentScope: Scope
   ): Pattern = {
     pattern match {
-      case named @ Pattern.Name(name, _, _, _) =>
+      case named @ Pattern.Name(name, _, _) =>
         named.copy(
           name = analyseName(
             name,
@@ -879,7 +876,7 @@ case object AliasAnalysis extends IRPass {
             parentScope
           )
         )
-      case cons @ Pattern.Constructor(constructor, fields, _, _, _) =>
+      case cons @ Pattern.Constructor(constructor, fields, _, _) =>
         if (!cons.isDesugared) {
           throw new CompilerError(
             "Nested patterns should be desugared by the point of alias " +
@@ -899,7 +896,7 @@ case object AliasAnalysis extends IRPass {
         )
       case literalPattern: Pattern.Literal =>
         literalPattern
-      case typePattern @ Pattern.Type(name, tpe, _, _, _) =>
+      case typePattern @ Pattern.Type(name, tpe, _, _) =>
         typePattern.copy(
           name = analyseName(
             name,

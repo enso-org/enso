@@ -95,15 +95,14 @@ case object FunctionBinding extends IRPass {
     */
   def desugarExpression(ir: Expression): Expression = {
     ir.transformExpressions {
-      case Function.Binding(
+      case functionBinding @ Function.Binding(
             name,
             args,
             body,
             _,
             location,
             canBeTCO,
-            passData,
-            diagnostics
+            passData
           ) =>
         if (args.isEmpty) {
           throw new CompilerError("The arguments list should not be empty.")
@@ -117,16 +116,20 @@ case object FunctionBinding extends IRPass {
           .asInstanceOf[Function.Lambda]
           .copy(canBeTCO = canBeTCO, location = location)
 
-        Expression.Binding(name, lambda, location, passData, diagnostics)
+        val expressionBinding =
+          Expression.Binding(name, lambda, location, passData)
+        expressionBinding.diagnostics = functionBinding.diagnostics
+
+        expressionBinding
     }
   }
 
   /** Performs desugaring on a module definition.
     *
-    * @param definition the module definition to desugar
+    * @param moduleDefinition the module definition to desugar
     * @return `definition`, with any function definition sugar removed
     */
-  def desugarModuleSymbol(
+  private def desugarModuleSymbol(
     moduleDefinition: Definition
   ): Definition = {
     moduleDefinition match {
@@ -150,19 +153,17 @@ case object FunctionBinding extends IRPass {
             isPrivate,
             _,
             _,
-            _,
             _
           ) if isPrivate && methRef.methodName.name == conversionMethodName =>
         errors.Conversion(meth, errors.Conversion.DeclaredAsPrivate)
 
-      case meth @ definition.Method.Binding(
+      case methodBinding @ definition.Method.Binding(
             methRef,
             args,
             isPrivate,
             body,
             loc,
-            passData,
-            diagnostics
+            passData
           ) =>
         val methodName = methRef.methodName.name
 
@@ -173,17 +174,17 @@ case object FunctionBinding extends IRPass {
               new Function.Lambda(List(arg), body, None)
             )
 
-          new definition.Method.Explicit(
+          definition.Method.Explicit(
             methRef,
             newBody,
             isPrivate,
             loc,
             passData,
-            diagnostics
+            methodBinding.diagnostics
           )
         } else {
           if (args.isEmpty)
-            errors.Conversion(meth, errors.Conversion.MissingArgs)
+            errors.Conversion(methodBinding, errors.Conversion.MissingArgs)
           else if (args.head.ascribedType.isEmpty) {
             errors.Conversion(
               args.head,
@@ -277,7 +278,7 @@ case object FunctionBinding extends IRPass {
                       newBody,
                       loc,
                       passData,
-                      diagnostics
+                      methodBinding.diagnostics
                     )
                   )
               }

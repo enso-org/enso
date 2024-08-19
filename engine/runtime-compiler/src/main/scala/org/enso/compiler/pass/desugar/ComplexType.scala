@@ -167,7 +167,7 @@ case object ComplexType extends IRPass {
     ): List[Definition] = {
       var unusedSig: Option[Type.Ascription] = None
       val sig = lastSignature match {
-        case Some(Type.Ascription(typed, _, _, _, _, _)) =>
+        case Some(Type.Ascription(typed, _, _, _, _)) =>
           typed match {
             case literal: Name.Literal =>
               if (name.name == literal.name) {
@@ -197,9 +197,9 @@ case object ComplexType extends IRPass {
         val res = lastSignature
         lastSignature = Some(sig)
         res
-      case binding @ Expression.Binding(name, _, _, _, _) =>
+      case binding @ Expression.Binding(name, _, _, _) =>
         matchSignaturesAndGenerate(name, binding)
-      case funSugar @ Function.Binding(name, _, _, _, _, _, _, _) =>
+      case funSugar @ Function.Binding(name, _, _, _, _, _, _) =>
         matchSignaturesAndGenerate(name, funSugar)
       case err: Error                  => Seq(err)
       case ann: Name.GenericAnnotation => Seq(ann)
@@ -248,9 +248,14 @@ case object ComplexType extends IRPass {
     signature: Option[Type.Ascription]
   ): List[Definition] = {
     ir match {
-      case Expression.Binding(name, expr, location, passData, diagnostics) =>
+      case expressionBinding @ Expression.Binding(
+            name,
+            expr,
+            location,
+            passData
+          ) =>
         val realExpr = expr match {
-          case b @ Expression.Block(_, _, _, suspended, _, _) if suspended =>
+          case b @ Expression.Block(_, _, _, suspended, _) if suspended =>
             b.copy(suspended = false)
           case _ => expr
         }
@@ -263,18 +268,17 @@ case object ComplexType extends IRPass {
           false,
           location,
           passData,
-          diagnostics,
+          expressionBinding.diagnostics,
           signature
         )
-      case Function.Binding(
+      case functionBinding @ Function.Binding(
             name,
             args,
             body,
             isPrivate,
             location,
             _,
-            passData,
-            diagnostics
+            passData
           ) =>
         genForName(
           typeName,
@@ -284,7 +288,7 @@ case object ComplexType extends IRPass {
           isPrivate,
           location,
           passData,
-          diagnostics,
+          functionBinding.diagnostics,
           signature
         )
       case _ =>

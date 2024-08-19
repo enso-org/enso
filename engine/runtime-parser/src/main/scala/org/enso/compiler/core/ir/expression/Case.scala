@@ -31,33 +31,22 @@ object Case {
 
   /** The main body of the Enso case expression.
     *
-    * @param scrutinee   the expression whose value is being matched on
-    * @param branches    the branches of the case expression
-    * @param isNested    if true, the flag indicates that the expr represents a desugared nested case
-    * @param location    the source location that the node corresponds to
-    * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
+    * @param scrutinee the expression whose value is being matched on
+    * @param branches the branches of the case expression
+    * @param isNested if true, the flag indicates that the expr represents a desugared nested case
+    * @param location the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Expr(
     scrutinee: Expression,
     branches: Seq[Branch],
     isNested: Boolean,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Case
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
-
-    def this(
-      scrutinee: Expression,
-      branches: Seq[Branch],
-      location: Option[IdentifiedLocation],
-      passData: MetadataStorage,
-      diagnostics: DiagnosticStorage
-    ) = {
-      this(scrutinee, branches, false, location, passData, diagnostics)
-    }
 
     /** Creates a copy of `this`.
       *
@@ -76,12 +65,12 @@ object Case {
       isNested: Boolean                    = isNested,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = diagnostics,
+      diagnostics: DiagnosticStorage       = _diagnostics,
       id: UUID @Identifier                 = id
     ): Expr = {
-      val res =
-        Expr(scrutinee, branches, isNested, location, passData, diagnostics)
-      res.id = id
+      val res = Expr(scrutinee, branches, isNested, location, passData)
+      res.diagnostics = diagnostics
+      res.id          = id
       res
     }
 
@@ -160,6 +149,7 @@ object Case {
   }
 
   object Expr {
+    /*
     def apply(
       scrutinee: Expression,
       branches: Seq[Branch],
@@ -180,6 +170,7 @@ object Case {
       passData: MetadataStorage,
       diagnostics: DiagnosticStorage
     ): Expr = new Expr(scrutinee, branches, location, passData, diagnostics)
+     */
   }
 
   /** A branch in a case statement.
@@ -189,28 +180,17 @@ object Case {
     * @param terminalBranch the flag indicating whether the branch represents the final pattern to be checked
     * @param location       the source location that the node corresponds to
     * @param passData       the pass metadata associated with this node
-    * @param diagnostics    compiler diagnostics for this node
     */
   sealed case class Branch(
     pattern: Pattern,
     expression: Expression,
     terminalBranch: Boolean,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Case
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
-
-    def this(
-      pattern: Pattern,
-      expression: Expression,
-      location: Option[IdentifiedLocation],
-      passData: MetadataStorage,
-      diagnostics: DiagnosticStorage
-    ) = {
-      this(pattern, expression, true, location, passData, diagnostics)
-    }
 
     /** Creates a copy of `this`.
       *
@@ -228,18 +208,12 @@ object Case {
       terminalBranch: Boolean              = terminalBranch,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = diagnostics,
+      diagnostics: DiagnosticStorage       = _diagnostics,
       id: UUID @Identifier                 = id
     ): Branch = {
-      val res = Branch(
-        pattern,
-        expression,
-        terminalBranch,
-        location,
-        passData,
-        diagnostics
-      )
-      res.id = id
+      val res = Branch(pattern, expression, terminalBranch, location, passData)
+      res.diagnostics = diagnostics
+      res.id          = id
       res
     }
 
@@ -310,29 +284,5 @@ object Case {
       }
       s"${pattern.showCode(indent)} -> $bodyStr"
     }
-  }
-
-  object Branch {
-    def apply(
-      pattern: Pattern,
-      expression: Expression,
-      location: Option[IdentifiedLocation]
-    ): Branch =
-      apply(
-        pattern,
-        expression,
-        location,
-        new MetadataStorage(),
-        new DiagnosticStorage()
-      )
-
-    def apply(
-      pattern: Pattern,
-      expression: Expression,
-      location: Option[IdentifiedLocation],
-      passData: MetadataStorage,
-      diagnostics: DiagnosticStorage
-    ): Branch =
-      new Branch(pattern, expression, location, passData, diagnostics)
   }
 }

@@ -8,6 +8,7 @@ import org.enso.compiler.core.ir.{
   Expression,
   IRKind,
   IdentifiedLocation,
+  LazyDiagnosticStorage,
   LazyId,
   MetadataStorage,
   Name
@@ -47,7 +48,6 @@ object Import {
     * @param location    the source location that the node corresponds to
     * @param isSynthetic is this import compiler-generated
     * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
     */
   sealed case class Module(
     name: Name.Qualified,
@@ -56,11 +56,11 @@ object Import {
     onlyNames: Option[List[Name.Literal]],
     hiddenNames: Option[List[Name.Literal]],
     override val location: Option[IdentifiedLocation],
-    isSynthetic: Boolean                        = false,
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    isSynthetic: Boolean                   = false,
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Import
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -86,7 +86,7 @@ object Import {
       location: Option[IdentifiedLocation]    = location,
       isSynthetic: Boolean                    = isSynthetic,
       passData: MetadataStorage               = passData,
-      diagnostics: DiagnosticStorage          = diagnostics,
+      diagnostics: DiagnosticStorage          = _diagnostics,
       id: UUID @Identifier                    = id
     ): Module = {
       val res = Module(
@@ -97,10 +97,10 @@ object Import {
         hiddenNames,
         location,
         isSynthetic,
-        passData,
-        diagnostics
+        passData
       )
-      res.id = id
+      res.diagnostics = diagnostics
+      res.id          = id
       res
     }
 

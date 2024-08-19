@@ -286,8 +286,7 @@ public class IrPersistanceTest {
   @Test
   public void serializeModule() throws Exception {
     var meta = new MetadataStorage();
-    var diag = new DiagnosticStorage(nil());
-    var m = new Module(nil(), nil(), nil(), true, Option.empty(), meta, diag);
+    var m = new Module(nil(), nil(), nil(), true, Option.empty(), meta);
 
     var out = serde(Module.class, m, -1);
 

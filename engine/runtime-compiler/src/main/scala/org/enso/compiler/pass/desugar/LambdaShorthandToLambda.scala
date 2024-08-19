@@ -21,7 +21,7 @@ import org.enso.compiler.pass.analyse.{
   TailCall
 }
 import org.enso.compiler.pass.lint.UnusedBindings
-import org.enso.compiler.pass.optimise.{LambdaConsolidate}
+import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.resolve.{
   DocumentationComments,
   IgnoredBindings,
@@ -137,7 +137,7 @@ case object LambdaShorthandToLambda extends IRPass {
     * @param supply the compiler's fresh name supply
     * @return `name`, desugared where necessary
     */
-  def desugarName(name: Name, supply: FreshNameSupply): Expression = {
+  private def desugarName(name: Name, supply: FreshNameSupply): Expression = {
     name match {
       case blank: Name.Blank =>
         val newName = supply.newName()
@@ -169,12 +169,12 @@ case object LambdaShorthandToLambda extends IRPass {
     * @param freshNameSupply the compiler's supply of fresh names
     * @return `application`, with any lambda shorthand arguments desugared
     */
-  def desugarApplication(
+  private def desugarApplication(
     application: Application,
     freshNameSupply: FreshNameSupply
   ): Expression = {
     application match {
-      case p @ Application.Prefix(fn, args, _, _, _, _) =>
+      case p @ Application.Prefix(fn, args, _, _, _) =>
         // Determine which arguments are lambda shorthand
         val argIsUnderscore = determineLambdaShorthand(args)
 
@@ -183,7 +183,7 @@ case object LambdaShorthandToLambda extends IRPass {
           args
             .zip(argIsUnderscore)
             .map(updateShorthandArg(_, freshNameSupply))
-            .map { case s @ CallArgument.Specified(_, value, _, _, _) =>
+            .map { case s @ CallArgument.Specified(_, value, _, _) =>
               s.copy(value = desugarExpression(value, freshNameSupply))
             }
 
@@ -250,9 +250,9 @@ case object LambdaShorthandToLambda extends IRPass {
           case lam: Function.Lambda => lam.copy(location = p.location)
           case result               => result
         }
-      case f @ Application.Force(tgt, _, _, _) =>
+      case f @ Application.Force(tgt, _, _) =>
         f.copy(target = desugarExpression(tgt, freshNameSupply))
-      case vector @ Application.Sequence(items, _, _, _) =>
+      case vector @ Application.Sequence(items, _, _) =>
         var bindings: List[Name] = List()
         val newItems = items.map {
           case blank: Name.Blank =>
@@ -280,7 +280,7 @@ case object LambdaShorthandToLambda extends IRPass {
           )
           new Function.Lambda(List(defArg), body, locWithoutId)
         }
-      case tSet @ Application.Typeset(expr, _, _, _) =>
+      case tSet @ Application.Typeset(expr, _, _) =>
         tSet.copy(expression = expr.map(desugarExpression(_, freshNameSupply)))
       case _: Operator =>
         throw new CompilerError(
@@ -297,8 +297,10 @@ case object LambdaShorthandToLambda extends IRPass {
     * @return a list containing `true` for a given position if the arg in that
     *         position is lambda shorthand, otherwise `false`
     */
-  def determineLambdaShorthand(args: List[CallArgument]): List[Boolean] = {
-    args.map { case CallArgument.Specified(_, value, _, _, _) =>
+  private def determineLambdaShorthand(
+    args: List[CallArgument]
+  ): List[Boolean] = {
+    args.map { case CallArgument.Specified(_, value, _, _) =>
       value match {
         case _: Name.Blank => true
         case _             => false
@@ -314,7 +316,7 @@ case object LambdaShorthandToLambda extends IRPass {
     * @return the above described pair for a given position if the argument in
     *         a given position is shorthand, otherwise [[None]].
     */
-  def updateShorthandArg(
+  private def updateShorthandArg(
     argAndIsShorthand: (CallArgument, Boolean),
     freshNameSupply: FreshNameSupply
   ): CallArgument = {
@@ -322,7 +324,7 @@ case object LambdaShorthandToLambda extends IRPass {
     val isShorthand = argAndIsShorthand._2
 
     arg match {
-      case s @ CallArgument.Specified(_, value, _, _, _) =>
+      case s @ CallArgument.Specified(_, value, _, _) =>
         if (isShorthand) {
           val newName = freshNameSupply
             .newName()
@@ -345,13 +347,13 @@ case object LambdaShorthandToLambda extends IRPass {
     * @return a corresponding definition argument if `arg` `isShorthand`,
     *         otherwise [[None]]
     */
-  def generateDefinitionArg(
+  private def generateDefinitionArg(
     arg: CallArgument,
     isShorthand: Boolean
   ): Option[DefinitionArgument] = {
     if (isShorthand) {
       arg match {
-        case CallArgument.Specified(_, value, _, passData, diagnostics) =>
+        case specified @ CallArgument.Specified(_, value, _, passData) =>
           // Note [Safe Casting to Name.Literal]
           val defArgName =
             Name.Literal(
@@ -368,7 +370,7 @@ case object LambdaShorthandToLambda extends IRPass {
               suspended = false,
               None,
               passData.duplicate,
-              diagnostics.copy
+              specified.diagnostics.copy
             )
           )
       }
@@ -391,7 +393,7 @@ case object LambdaShorthandToLambda extends IRPass {
     * @param freshNameSupply the compiler's supply of fresh names
     * @return `caseExpr`, with any lambda shorthand desugared
     */
-  def desugarCaseExpr(
+  private def desugarCaseExpr(
     caseExpr: Case.Expr,
     freshNameSupply: FreshNameSupply
   ): Expression = {
@@ -400,14 +402,14 @@ case object LambdaShorthandToLambda extends IRPass {
     )
 
     caseExpr.scrutinee match {
-      case Name.Blank(loc, passData, diagnostics) =>
+      case nameBlank: Name.Blank =>
         val scrutineeName =
           freshNameSupply
             .newName()
             .copy(
-              location    = loc,
-              passData    = passData,
-              diagnostics = diagnostics
+              location    = nameBlank.location,
+              passData    = nameBlank.passData,
+              diagnostics = nameBlank.diagnostics
             )
 
         val lambdaArg = DefinitionArgument.Specified(
@@ -423,7 +425,7 @@ case object LambdaShorthandToLambda extends IRPass {
           branches  = newBranches
         )
 
-        new Function.Lambda(
+        Function.Lambda(
           List(lambdaArg),
           newCaseExpr,
           caseExpr.location,

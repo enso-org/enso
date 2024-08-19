@@ -35,20 +35,19 @@ object CallArgument {
     * A [[CallArgument]] where the `value` is an [[Name.Blank]] is a
     * representation of a lambda shorthand argument.
     *
-    * @param name        the name of the argument being called, if present
-    * @param value       the expression being passed as the argument's value
-    * @param location    the source location that the node corresponds to
-    * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
+    * @param name the name of the argument being called, if present
+    * @param value the expression being passed as the argument's value
+    * @param location the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Specified(
     override val name: Option[Name],
     override val value: Expression,
     location: Option[IdentifiedLocation],
-    passData: MetadataStorage      = new MetadataStorage(),
-    diagnostics: DiagnosticStorage = DiagnosticStorage()
+    passData: MetadataStorage = new MetadataStorage()
   ) extends CallArgument
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -56,8 +55,6 @@ object CallArgument {
       * @param name              the name of the argument being called, if present
       * @param value             the expression being passed as the argument's value
       * @param location          the source location that the node corresponds to
-      * @param shouldBeSuspended whether or not the argument should be passed
-      *                          suspended
       * @param passData          the pass metadata associated with this node
       * @param diagnostics       compiler diagnostics for this node
       * @param id                the identifier for the new node
@@ -68,17 +65,12 @@ object CallArgument {
       value: Expression                    = value,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = diagnostics,
+      diagnostics: DiagnosticStorage       = _diagnostics,
       id: UUID @Identifier                 = id
     ): Specified = {
-      val res = Specified(
-        name,
-        value,
-        location,
-        passData,
-        diagnostics
-      )
-      res.id = id
+      val res = Specified(name, value, location, passData)
+      res.diagnostics = diagnostics
+      res.id          = id
       res
     }
 

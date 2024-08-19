@@ -2,6 +2,8 @@ package org.enso.compiler.core;
 
 import java.util.UUID;
 import java.util.function.Function;
+
+import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.compiler.core.ir.DiagnosticStorage;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.IdentifiedLocation;
@@ -102,6 +104,8 @@ public interface IR {
 
   /** Storage for compiler diagnostics related to the IR node. */
   DiagnosticStorage diagnostics();
+
+  List<Diagnostic> diagnosticsList();
 
   /**
    * Creates a deep structural copy of `this`, representing the same structure.

@@ -32,22 +32,21 @@ object Set {
 
   /** The representation of a typeset member.
     *
-    * @param label       the member's label, if given
-    * @param memberType  the member's type, if given
-    * @param value       the member's value, if given
-    * @param location    the source location that the node corresponds to
-    * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
+    * @param label the member's label, if given
+    * @param memberType the member's type, if given
+    * @param value the member's value, if given
+    * @param location the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Member(
     label: Name,
     memberType: Expression,
     value: Expression,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Set
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -67,12 +66,12 @@ object Set {
       value: Expression                    = value,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = diagnostics,
+      diagnostics: DiagnosticStorage       = _diagnostics,
       id: UUID @Identifier                 = id
     ): Member = {
-      val res =
-        Member(label, memberType, value, location, passData, diagnostics)
-      res.id = id
+      val res = Member(label, memberType, value, location, passData)
+      res.diagnostics = diagnostics
+      res.id          = id
       res
     }
 
@@ -157,20 +156,19 @@ object Set {
 
   /** The typeset subsumption judgement `<:`.
     *
-    * @param left        the left operand
-    * @param right       the right operand
-    * @param location    the source location that the node corresponds to
-    * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
+    * @param left the left operand
+    * @param right the right operand
+    * @param location the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Subsumption(
     left: Expression,
     right: Expression,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Set
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -188,11 +186,12 @@ object Set {
       right: Expression                    = right,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = diagnostics,
+      diagnostics: DiagnosticStorage       = _diagnostics,
       id: UUID @Identifier                 = id
     ): Subsumption = {
-      val res = Subsumption(left, right, location, passData, diagnostics)
-      res.id = id
+      val res = Subsumption(left, right, location, passData)
+      res.diagnostics = diagnostics
+      res.id          = id
       res
     }
 
@@ -262,20 +261,19 @@ object Set {
 
   /** The typeset equality judgement `~`.
     *
-    * @param left        the left operand
-    * @param right       the right operand
-    * @param location    the source location that the node corresponds to
-    * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
+    * @param left the left operand
+    * @param right the right operand
+    * @param location the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Equality(
     left: Expression,
     right: Expression,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Set
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -293,11 +291,12 @@ object Set {
       right: Expression                    = right,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = diagnostics,
+      diagnostics: DiagnosticStorage       = _diagnostics,
       id: UUID @Identifier                 = id
     ): Equality = {
-      val res = Equality(left, right, location, passData, diagnostics)
-      res.id = id
+      val res = Equality(left, right, location, passData)
+      res.diagnostics = diagnostics
+      res.id          = id
       res
     }
 
@@ -371,16 +370,15 @@ object Set {
     * @param right       the right operand
     * @param location    the source location that the node corresponds to
     * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
     */
   sealed case class Concat(
     left: Expression,
     right: Expression,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Set
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -398,11 +396,12 @@ object Set {
       right: Expression                    = right,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = diagnostics,
+      diagnostics: DiagnosticStorage       = _diagnostics,
       id: UUID @Identifier                 = id
     ): Concat = {
-      val res = Concat(left, right, location, passData, diagnostics)
-      res.id = id
+      val res = Concat(left, right, location, passData)
+      res.diagnostics = diagnostics
+      res.id          = id
       res
     }
 
@@ -471,24 +470,22 @@ object Set {
 
   /** The typeset union operator `|`.
     *
-    * @param operands    the operands
-    * @param location    the source location that the node corresponds to
-    * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
+    * @param operands the operands
+    * @param location the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Union(
     operands: List[Expression],
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Set
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
       *
-      * @param left        the left operand
-      * @param right       the right operand
+      * @param operands    the list of expressions
       * @param location    the source location that the node corresponds to
       * @param passData    the pass metadata associated with this node
       * @param diagnostics compiler diagnostics for this node
@@ -499,11 +496,12 @@ object Set {
       operands: List[Expression]           = operands,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = diagnostics,
+      diagnostics: DiagnosticStorage       = _diagnostics,
       id: UUID @Identifier                 = id
     ): Union = {
-      val res = Union(operands, location, passData, diagnostics)
-      res.id = id
+      val res = Union(operands, location, passData)
+      res.diagnostics = diagnostics
+      res.id          = id
       res
     }
 
@@ -567,20 +565,19 @@ object Set {
 
   /** The typeset intersection operator `&`.
     *
-    * @param left        the left operand
-    * @param right       the right operand
-    * @param location    the source location that the node corresponds to
-    * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
+    * @param left the left operand
+    * @param right the right operand
+    * @param location the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Intersection(
     left: Expression,
     right: Expression,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Set
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -598,11 +595,12 @@ object Set {
       right: Expression                    = right,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = diagnostics,
+      diagnostics: DiagnosticStorage       = _diagnostics,
       id: UUID @Identifier                 = id
     ): Intersection = {
-      val res = Intersection(left, right, location, passData, diagnostics)
-      res.id = id
+      val res = Intersection(left, right, location, passData)
+      res.diagnostics = diagnostics
+      res.id          = id
       res
     }
 

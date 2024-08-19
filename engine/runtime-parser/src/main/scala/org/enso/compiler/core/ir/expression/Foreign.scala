@@ -37,16 +37,15 @@ object Foreign {
     * @param code        the code written in `lang`
     * @param location    the source location that the node corresponds to
     * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
     */
   sealed case class Definition(
     lang: String,
     code: String,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Foreign
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -64,11 +63,12 @@ object Foreign {
       code: String                         = code,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = diagnostics,
+      diagnostics: DiagnosticStorage       = _diagnostics,
       id: UUID @Identifier                 = id
     ): Definition = {
-      val res = Definition(lang, code, location, passData, diagnostics)
-      res.id = id
+      val res = Definition(lang, code, location, passData)
+      res.diagnostics = diagnostics
+      res.id          = id
       res
     }
 

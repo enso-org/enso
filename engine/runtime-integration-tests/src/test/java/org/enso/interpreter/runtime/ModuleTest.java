@@ -130,7 +130,7 @@ public class ModuleTest {
 
     var ir =
         new org.enso.compiler.core.ir.Module(
-            nil(), nil(), nil(), false, Option.empty(), null, null);
+            nil(), nil(), nil(), false, Option.empty(), null);
     compilerContext.updateModule(
         module,
         (u) -> {

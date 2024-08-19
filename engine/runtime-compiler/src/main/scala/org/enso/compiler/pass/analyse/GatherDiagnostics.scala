@@ -71,7 +71,7 @@ case object GatherDiagnostics extends IRPass {
             .getMetadata(TypeSignatures)
             .map(_.signature.preorder.collect(collectDiagnostics))
             .getOrElse(Nil)
-        typeSignatureDiagnostics ++ arg.diagnostics.toList
+        typeSignatureDiagnostics ++ arg.diagnosticsList
       case x: definition.Method =>
         val typeSignatureDiagnostics =
           x.getMetadata(TypeSignatures)
@@ -81,15 +81,15 @@ case object GatherDiagnostics extends IRPass {
           x.getMetadata(GenericAnnotations)
             .map(_.annotations.flatMap(_.preorder.collect(collectDiagnostics)))
             .getOrElse(Nil)
-        typeSignatureDiagnostics ++ annotationsDiagnostics ++ x.diagnostics.toList
+        typeSignatureDiagnostics ++ annotationsDiagnostics ++ x.diagnosticsList
       case x: Expression =>
         val typeSignatureDiagnostics =
           x.getMetadata(TypeSignatures)
             .map(_.signature.preorder.collect(collectDiagnostics))
             .getOrElse(Nil)
-        typeSignatureDiagnostics ++ x.diagnostics.toList
+        typeSignatureDiagnostics ++ x.diagnosticsList
       case x =>
-        x.diagnostics.toList
+        x.diagnosticsList
     }.flatten
     DiagnosticsMeta(
       diagnostics.distinctBy(d => new DiagnosticKeys(d))

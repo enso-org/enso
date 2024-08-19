@@ -425,7 +425,6 @@ final class EnsureCompiledJob(
                 expression.errors.Resolution
                   .ResolverError(BindingsMap.ResolutionNotFound),
                 _,
-                _
               ) =>
             DataflowAnalysis.DependencyInfo.Type.Static(
               err.getId(),

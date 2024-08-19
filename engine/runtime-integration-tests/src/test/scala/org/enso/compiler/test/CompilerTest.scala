@@ -150,19 +150,15 @@ trait CompilerRunner {
       * @return a method containing `ir` as its body
       */
     def asMethod: definition.Method = {
-      new definition.Method.Explicit(
+      definition.Method.Explicit(
         Name.MethodReference(
           Some(
             Name.Qualified(
-              List(
-                Name
-                  .Literal("TestType", isMethod = false, None)
-              ),
+              List(Name.Literal("TestType", isMethod = false, None)),
               None
             )
           ),
-          Name
-            .Literal("testMethod", isMethod = false, None),
+          Name.Literal("testMethod", isMethod = false, None),
           None
         ),
         ir,

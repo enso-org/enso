@@ -223,8 +223,7 @@ public final class ExportSymbolAnalysis {
 
   private static ImportExport createModuleDoesNotExistError(Export.Module exportIr, String modFQN) {
     assert modFQN.contains(".");
-    return ImportExport.apply(
-        exportIr, new ImportExport.ModuleDoesNotExist(modFQN), emptyPassData(), emptyDiagnostics());
+    return new ImportExport(exportIr, new ImportExport.ModuleDoesNotExist(modFQN), emptyPassData());
   }
 
   private static ImportExport createSymbolDoesNotExistError(

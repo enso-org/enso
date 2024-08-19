@@ -64,7 +64,6 @@ case object ImportSymbolAnalysis extends IRPass {
             _,
             _,
             _,
-            _
           ) =>
         bindingMap.resolvedImports.find(_.importDef == imp) match {
           case Some(resolvedImport) =>
@@ -97,7 +96,6 @@ case object ImportSymbolAnalysis extends IRPass {
             _,
             isSynthetic,
             _,
-            _
           ) if isAll && !isSynthetic =>
         bindingMap.resolvedImports.find(_.importDef == imp) match {
           case Some(resolvedImport) =>

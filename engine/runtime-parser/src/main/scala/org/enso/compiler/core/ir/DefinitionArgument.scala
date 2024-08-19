@@ -52,7 +52,6 @@ object DefinitionArgument {
     * @param suspended    whether or not the argument has its execution suspended
     * @param location     the source location that the node corresponds to
     * @param passData     the pass metadata associated with this node
-    * @param diagnostics  compiler diagnostics for this node
     */
   sealed case class Specified(
     override val name: Name,
@@ -60,10 +59,10 @@ object DefinitionArgument {
     override val defaultValue: Option[Expression],
     override val suspended: Boolean,
     location: Option[IdentifiedLocation],
-    passData: MetadataStorage      = new MetadataStorage(),
-    diagnostics: DiagnosticStorage = DiagnosticStorage()
+    passData: MetadataStorage = new MetadataStorage()
   ) extends DefinitionArgument
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -86,7 +85,7 @@ object DefinitionArgument {
       suspended: Boolean                   = suspended,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = diagnostics,
+      diagnostics: DiagnosticStorage       = _diagnostics,
       id: UUID @Identifier                 = id
     ): Specified = {
       val res = Specified(
@@ -95,10 +94,10 @@ object DefinitionArgument {
         defaultValue,
         suspended,
         location,
-        passData,
-        diagnostics
+        passData
       )
-      res.id = id
+      res.diagnostics = diagnostics
+      res.id          = id
       res
     }
 
@@ -202,6 +201,41 @@ object DefinitionArgument {
       } else {
         withoutLazy
       }
+    }
+  }
+
+  object Specified {
+
+    /** Create a [[Specified]] object.
+      *
+      * @param name the name of the argument
+      * @param ascribedType the explicitly ascribed type of the argument, if present
+      * @param defaultValue the default value of the argument, if present
+      * @param suspended whether or not the argument has its execution suspended
+      * @param location the source location that the node corresponds to
+      * @param passData the pass metadata associated with this node
+      * @param diagnostics the compiler diagnostics
+      */
+    def apply(
+      name: Name,
+      ascribedType: Option[Expression],
+      defaultValue: Option[Expression],
+      suspended: Boolean,
+      location: Option[IdentifiedLocation],
+      passData: MetadataStorage,
+      diagnostics: DiagnosticStorage
+    ): Specified = {
+      val specified = new Specified(
+        name,
+        ascribedType,
+        defaultValue,
+        suspended,
+        location,
+        passData
+      )
+      specified.diagnostics = diagnostics
+
+      specified
     }
   }
 }

@@ -11,13 +11,12 @@ import java.util.UUID
   * Modules may only contain imports and top-level bindings, with no top-level
   * executable code.
   *
-  * @param imports     the import statements that bring other modules into scope
-  * @param exports     the export statements for this module
-  * @param bindings    the top-level bindings for this module
-  * @param isPrivate    whether or not this module is private (project-private)
-  * @param location    the source location that the node corresponds to
-  * @param passData    the pass metadata associated with this node
-  * @param diagnostics compiler diagnostics for this node
+  * @param imports the import statements that bring other modules into scope
+  * @param exports the export statements for this module
+  * @param bindings the top-level bindings for this module
+  * @param isPrivate whether or not this module is private (project-private)
+  * @param location the source location that the node corresponds to
+  * @param passData the pass metadata associated with this node
   */
 final case class Module(
   imports: List[Import],
@@ -25,10 +24,10 @@ final case class Module(
   bindings: List[Definition],
   isPrivate: Boolean,
   location: Option[IdentifiedLocation],
-  passData: MetadataStorage      = new MetadataStorage(),
-  diagnostics: DiagnosticStorage = DiagnosticStorage()
+  passData: MetadataStorage = new MetadataStorage()
 ) extends IR
     with IRKind.Primitive
+    with LazyDiagnosticStorage
     with LazyId {
 
   /** Creates a copy of `this`.
@@ -48,7 +47,7 @@ final case class Module(
     bindings: List[Definition]           = bindings,
     location: Option[IdentifiedLocation] = location,
     passData: MetadataStorage            = passData,
-    diagnostics: DiagnosticStorage       = diagnostics,
+    diagnostics: DiagnosticStorage       = _diagnostics,
     id: UUID @Identifier                 = id
   ): Module = {
     val res =
@@ -58,10 +57,10 @@ final case class Module(
         bindings,
         isPrivate,
         location,
-        passData,
-        diagnostics
+        passData
       )
-    res.id = id
+    res.diagnostics = diagnostics
+    res.id          = id
     res
   }
 
@@ -136,5 +135,34 @@ final case class Module(
     val defsString    = bindings.map(_.showCode(indent)).mkString("\n\n")
 
     List(importsString, exportsString, defsString).mkString("\n\n")
+  }
+}
+
+object Module {
+
+  /** Create a [[Module]] object.
+    *
+    * @param imports the import statements that bring other modules into scope
+    * @param exports the export statements for this module
+    * @param bindings the top-level bindings for this module
+    * @param isPrivate whether or not this module is private (project-private)
+    * @param location the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
+    * @param diagnostics the compiler diagnostics
+    */
+  def apply(
+    imports: List[Import],
+    exports: List[Export],
+    bindings: List[Definition],
+    isPrivate: Boolean,
+    location: Option[IdentifiedLocation],
+    passData: MetadataStorage,
+    diagnostics: DiagnosticStorage
+  ): Module = {
+    val module =
+      Module(imports, exports, bindings, isPrivate, location, passData)
+    module.diagnostics = diagnostics
+
+    module
   }
 }

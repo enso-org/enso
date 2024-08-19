@@ -33,15 +33,14 @@ object Comment {
     * @param doc         the documentation entity
     * @param location    the source location that the node corresponds to
     * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
     */
   sealed case class Documentation(
     doc: String,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Comment
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -57,11 +56,12 @@ object Comment {
       doc: String                          = doc,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = diagnostics,
+      diagnostics: DiagnosticStorage       = _diagnostics,
       id: UUID @Identifier                 = id
     ): Documentation = {
-      val res = Documentation(doc, location, passData, diagnostics)
-      res.id = id
+      val res = Documentation(doc, location, passData)
+      res.diagnostics = diagnostics
+      res.id          = id
       res
     }
 

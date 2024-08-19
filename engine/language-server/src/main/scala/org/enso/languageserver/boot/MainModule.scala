@@ -501,6 +501,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
 
   /** Close the main module releasing all resources. */
   def close(): Unit = {
+    new org.enso.profiling.snapshot.HeapDumpSnapshot()
+      .generateSnapshot(java.nio.file.Path.of("/tmp/language-server.hprof"))
     suggestionsRepo.close()
     contextSupervisor.close()
     runtimeEventsMonitor.close()

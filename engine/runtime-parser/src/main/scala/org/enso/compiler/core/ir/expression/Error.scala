@@ -31,17 +31,16 @@ object Error {
 
   /** A representation of an invalid piece of IR.
     *
-    * @param ir          the IR that is invalid
-    * @param passData    any annotations from compiler passes
-    * @param diagnostics compiler diagnostics for this node
+    * @param ir the IR that is invalid
+    * @param passData any annotations from compiler passes
     */
   sealed case class InvalidIR(
     ir: IR,
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Error
       with Diagnostic.Kind.Static
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -55,11 +54,12 @@ object Error {
     def copy(
       ir: IR                         = ir,
       passData: MetadataStorage      = passData,
-      diagnostics: DiagnosticStorage = diagnostics,
+      diagnostics: DiagnosticStorage = _diagnostics,
       id: UUID @Identifier           = id
     ): InvalidIR = {
-      val res = InvalidIR(ir, passData, diagnostics)
-      res.id = id
+      val res = InvalidIR(ir, passData)
+      res.diagnostics = diagnostics
+      res.id          = id
       res
     }
 

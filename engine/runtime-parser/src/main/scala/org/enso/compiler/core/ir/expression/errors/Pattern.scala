@@ -11,18 +11,18 @@ import java.util.UUID
   * @param originalPattern pattern that resulted in the error
   * @param reason          the cause of this error
   * @param passData        the pass metadata associated with this node
-  * @param diagnostics     compiler diagnostics for this node
   * @return a copy of `this`, updated with the specified values
   */
 sealed case class Pattern(
   originalPattern: org.enso.compiler.core.ir.Pattern,
   reason: Pattern.Reason,
-  passData: MetadataStorage      = new MetadataStorage(),
-  diagnostics: DiagnosticStorage = DiagnosticStorage()
+  passData: MetadataStorage = new MetadataStorage()
 ) extends Error
     with Diagnostic.Kind.Interactive
     with org.enso.compiler.core.ir.Pattern
+    with LazyDiagnosticStorage
     with LazyId {
+
   override def mapExpressions(
     fn: java.util.function.Function[Expression, Expression]
   ): Pattern =
@@ -44,11 +44,12 @@ sealed case class Pattern(
     originalPattern: org.enso.compiler.core.ir.Pattern = originalPattern,
     reason: Pattern.Reason                             = reason,
     passData: MetadataStorage                          = passData,
-    diagnostics: DiagnosticStorage                     = diagnostics,
+    diagnostics: DiagnosticStorage                     = _diagnostics,
     id: UUID @Identifier                               = id
   ): Pattern = {
-    val res = Pattern(originalPattern, reason, passData, diagnostics)
-    res.id = id
+    val res = Pattern(originalPattern, reason, passData)
+    res.diagnostics = diagnostics
+    res.id          = id
     res
   }
 
@@ -89,6 +90,25 @@ sealed case class Pattern(
 }
 
 object Pattern {
+
+  /** Create a [[Pattern]] object.
+    *
+    * @param originalPattern pattern that resulted in the error
+    * @param reason the cause of this error
+    * @param passData the pass metadata associated with this node
+    * @param diagnostics the compiler diagnostics
+    */
+  def apply(
+    originalPattern: org.enso.compiler.core.ir.Pattern,
+    reason: Pattern.Reason,
+    passData: MetadataStorage,
+    diagnostics: DiagnosticStorage
+  ): Pattern = {
+    val pattern = new Pattern(originalPattern, reason, passData)
+    pattern.diagnostics = diagnostics
+
+    pattern
+  }
 
   /** A representation of the reason the pattern is erroneous.
     */

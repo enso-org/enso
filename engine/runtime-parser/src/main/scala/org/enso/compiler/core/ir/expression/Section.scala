@@ -30,20 +30,19 @@ object Section {
 
   /** Represents a left operator section of the form `(arg op)`.
     *
-    * @param arg         the argument (on the left of the operator)
-    * @param operator    the operator
-    * @param location    the source location that the node corresponds to
-    * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
+    * @param arg the argument (on the left of the operator)
+    * @param operator the operator
+    * @param location the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Left(
     arg: CallArgument,
     operator: Name,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Section
       with IRKind.Sugar
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -61,11 +60,12 @@ object Section {
       operator: Name                       = operator,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = diagnostics,
+      diagnostics: DiagnosticStorage       = _diagnostics,
       id: UUID @Identifier                 = id
     ): Left = {
-      val res = Left(arg, operator, location, passData, diagnostics)
-      res.id = id
+      val res = Left(arg, operator, location, passData)
+      res.diagnostics = diagnostics
+      res.id          = id
       res
     }
 
@@ -134,18 +134,17 @@ object Section {
 
   /** Represents a sides operator section of the form `(op)`
     *
-    * @param operator    the operator
-    * @param location    the source location that the node corresponds to
-    * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
+    * @param operator the operator
+    * @param location the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Sides(
     operator: Name,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Section
       with IRKind.Sugar
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -161,11 +160,12 @@ object Section {
       operator: Name                       = operator,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = diagnostics,
+      diagnostics: DiagnosticStorage       = _diagnostics,
       id: UUID @Identifier                 = id
     ): Sides = {
-      val res = Sides(operator, location, passData, diagnostics)
-      res.id = id
+      val res = Sides(operator, location, passData)
+      res.diagnostics = diagnostics
+      res.id          = id
       res
     }
 
@@ -225,20 +225,19 @@ object Section {
 
   /** Represents a right operator section of the form `(op arg)`
     *
-    * @param operator    the operator
-    * @param arg         the argument (on the right of the operator)
-    * @param location    the source location that the node corresponds to
-    * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
+    * @param operator the operator
+    * @param arg the argument (on the right of the operator)
+    * @param location the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Right(
     operator: Name,
     arg: CallArgument,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Section
       with IRKind.Sugar
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -256,11 +255,12 @@ object Section {
       arg: CallArgument                    = arg,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = diagnostics,
+      diagnostics: DiagnosticStorage       = _diagnostics,
       id: UUID @Identifier                 = id
     ): Right = {
-      val res = Right(operator, arg, location, passData, diagnostics)
-      res.id = id
+      val res = Right(operator, arg, location, passData)
+      res.diagnostics = diagnostics
+      res.id          = id
       res
     }
 

@@ -221,9 +221,9 @@ case object LambdaConsolidate extends IRPass {
       if (isShadowed) {
         val restArgs = args.drop(ix + 1)
         arg match {
-          case spec @ DefinitionArgument.Specified(argName, _, _, _, _, _, _) =>
+          case spec @ DefinitionArgument.Specified(argName, _, _, _, _, _) =>
             val mShadower = restArgs.collectFirst {
-              case s @ DefinitionArgument.Specified(sName, _, _, _, _, _, _)
+              case s @ DefinitionArgument.Specified(sName, _, _, _, _, _)
                   if sName.name == argName.name =>
                 s
             }
@@ -249,9 +249,9 @@ case object LambdaConsolidate extends IRPass {
     * @param body the function body to optimise
     * @return the directly chained lambdas in `body`
     */
-  def gatherChainedLambdas(body: Expression): List[Function.Lambda] = {
+  private def gatherChainedLambdas(body: Expression): List[Function.Lambda] = {
     body match {
-      case Expression.Block(expressions, lam: Function.Lambda, _, _, _, _)
+      case Expression.Block(expressions, lam: Function.Lambda, _, _, _)
           if expressions.isEmpty =>
         lam :: gatherChainedLambdas(lam.body)
       case l @ Function.Lambda(_, body, _, _, _, _) =>
@@ -271,7 +271,7 @@ case object LambdaConsolidate extends IRPass {
     * @return `body` and `defaults` with any occurrence of the old name replaced
     *        by the new name
     */
-  def replaceUsages(
+  private def replaceUsages(
     body: Expression,
     defaults: List[Option[Expression]],
     argument: DefinitionArgument,
@@ -296,7 +296,7 @@ case object LambdaConsolidate extends IRPass {
     *                               be replaced
     * @return `expr`, with occurrences of the symbol for `argument` replaced
     */
-  def replaceInExpression(
+  private def replaceInExpression(
     expr: Expression,
     argument: DefinitionArgument,
     toReplaceExpressionIds: Set[UUID @Identifier]
@@ -314,7 +314,7 @@ case object LambdaConsolidate extends IRPass {
     *                               replacement
     * @return `name`, with the symbol replaced by `argument.name`
     */
-  def replaceInName(
+  private def replaceInName(
     name: Name,
     argument: DefinitionArgument,
     toReplaceExpressionIds: Set[UUID @Identifier]
@@ -348,7 +348,7 @@ case object LambdaConsolidate extends IRPass {
     * @param args the consolidated list of function arguments
     * @return the set of aliasing identifiers shadowed by `args`
     */
-  def getShadowedBindingIds(
+  private def getShadowedBindingIds(
     args: List[DefinitionArgument]
   ): Set[AliasGraph.Id] = {
     args
@@ -376,7 +376,7 @@ case object LambdaConsolidate extends IRPass {
     * @return the set of usage IR identifiers for each shadowed argument, where
     *         an empty set represents a non-shadowed argument
     */
-  def usageIdsForShadowedArgs(
+  private def usageIdsForShadowedArgs(
     argsWithShadowed: List[(DefinitionArgument, Boolean)]
   ): List[Set[UUID @Identifier]] = {
     argsWithShadowed.map {
@@ -447,7 +447,7 @@ case object LambdaConsolidate extends IRPass {
     * @param usageIdsForShadowed the identifiers for usages of shadowed names
     * @return `args` and `body`, with any usages of shadowed symbols replaced
     */
-  def computeReplacedExpressions(
+  private def computeReplacedExpressions(
     args: List[DefinitionArgument],
     body: Expression,
     usageIdsForShadowed: List[Set[UUID @Identifier]]
