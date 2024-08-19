@@ -1,12 +1,15 @@
 from Standard.Base import all
+import Standard.Base.Errors.Deprecated.Deprecated
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
+import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 from Standard.Table import Aggregate_Column
-from Standard.Table.Errors import Floating_Point_Equality
+from Standard.Table.Errors import Floating_Point_Equality, No_Output_Columns
 
 import project.DB_Table.DB_Table
 import project.Dialect.Dialect
+import project.Internal.DB_Wrapped_Error.DB_Wrapped_Error
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
@@ -104,9 +107,9 @@ make_aggregate_column table aggregate as dialect infer_return_type problem_build
 aggregate table:DB_Table group_by:(Vector | Text | Integer | Regex) columns:Vector error_on_missing_columns:Boolean on_problems:Problem_Behavior =
     normalized_group_by = Vector.unify_vector_or_element group_by
     if normalized_group_by.is_empty && columns.is_empty then Error.throw (No_Output_Columns.Error "No columns specified in aggregate.") else
-        ## This is a workaround for #10321 - if the source query contains an ORDER BY,
+        ## This is a fix for #10321 - if the source query contains an ORDER BY,
            we need to push it into a subquery to not interfere with aggregations.
-        base_table = if self.context.orders.not_empty then self.as_subquery else self
+        base_table = if table.context.orders.not_empty then table.as_subquery else table
 
         validated = Aggregate_Column_Helper.prepare_aggregate_columns base_table.column_naming_helper normalized_group_by columns base_table error_on_missing_columns=error_on_missing_columns
 
@@ -119,36 +122,14 @@ aggregate table:DB_Table group_by:(Vector | Text | Integer | Regex) columns:Vect
         on_problems.attach_problems_before validated.problems+key_problems <|
             resolved_aggregates = validated.valid_columns
             key_expressions = key_columns.map .expression
-            new_ctx = base_table.context.set_groups key_expressions
-            problem_builder = Problem_Builder.new
-            ## TODO [RW] here we will perform as many fetches as there are
-               aggregate columns, but technically we could perform just one
-               fetch fetching all column types - TODO we should do that. We can
-               do it here by creating a builder that will gather all requests
-               from the executed callbacks and create Lazy references that all
-               point to a single query.
-               See #6118.
-            infer_from_database_callback expression =
-                SQL_Type_Reference.new base_table.connection base_table.context expression
             dialect = base_table.connection.dialect
-            type_mapping = dialect.get_type_mapping
-            infer_return_type op_kind columns expression =
-                type_mapping.infer_return_type infer_from_database_callback op_kind columns expression
-            results = resolved_aggregates.map p->
-                agg = p.second
-                as = p.first
-                result = make_aggregate_column base_table agg as dialect infer_return_type problem_builder
-                ## If the `result` did contain an error, we catch it to be
-                   able to store it in a vector and then we will partition the
-                   created columns and failures.
-                result.catch Any error->(DB_Wrapped_Error.Value error)
 
-            partitioned = results.partition (_.is_a DB_Wrapped_Error)
+            problem_builder = Problem_Builder.new
+            result = default_build_aggregate base_table dialect key_expressions resolved_aggregates problem_builder
+            new_ctx = result.first
+            built_aggregates = result.second
+            partitioned = built_aggregates.partition (_.is_a DB_Wrapped_Error)
 
-            ## When working on join we may encounter further issues with having
-               aggregate columns exposed directly, it may be useful to re-use
-               the `lift_aggregate` method to push the aggregates into a
-               subquery.
             new_columns = partitioned.second
             problem_builder.attach_problems_before on_problems <|
                 problems = partitioned.first.map .value
@@ -157,6 +138,33 @@ aggregate table:DB_Table group_by:(Vector | Text | Integer | Regex) columns:Vect
                         first_problem = if problems.is_empty then Nothing else problems.first
                         Error.throw (No_Output_Columns.Error first_problem)
                     if new_columns.is_empty then handle_no_output_columns else
+                        ## Subquery is needed to avoid unexpected interactions with future transformations of the Table.
+                           We could design optimizations that will be able to elide it.
                         result = base_table.updated_context_and_columns new_ctx new_columns subquery=True
                         if validated.old_style.not then result else
                             Warning.attach (Deprecated.Warning "Standard.Table.Aggregate_Column.Aggregate_Column" "Group_By" "Deprecated: `Group_By` constructor has been deprecated, use the `group_by` argument instead.") result
+
+## PRIVATE
+default_build_aggregate base_table dialect key_expressions resolved_aggregates problem_builder =
+    new_ctx = base_table.context.set_groups key_expressions
+    ## TODO [RW] here we will perform as many fetches as there are
+       aggregate columns, but technically we could perform just one
+       fetch fetching all column types - TODO we should do that. We can
+       do it here by creating a builder that will gather all requests
+       from the executed callbacks and create Lazy references that all
+       point to a single query.
+       See #6118.
+    infer_from_database_callback expression =
+        SQL_Type_Reference.new base_table.connection base_table.context expression
+    type_mapping = dialect.get_type_mapping
+    infer_return_type op_kind columns expression =
+        type_mapping.infer_return_type infer_from_database_callback op_kind columns expression
+    results = resolved_aggregates.map p->
+        agg = p.second
+        as = p.first
+        result = make_aggregate_column base_table agg as dialect infer_return_type problem_builder
+        ## If the `result` did contain an error, we catch it to be
+           able to store it in a vector and then we will partition the
+           created columns and failures.
+        result.catch Any error->(DB_Wrapped_Error.Value error)
+    Pair.new new_ctx results
