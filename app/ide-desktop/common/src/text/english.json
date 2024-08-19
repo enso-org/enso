@@ -594,6 +594,9 @@
   "repeatsAtX": "Repeats at $0",
   "maxDurationMinutesLabel": "Maximum duration (minutes)",
   "xMinutes": "$0 minute(s)",
+  "currentlyEnabledLabel": "Enabled (click to disable)",
+  "currentlyDisabledLabel": "Disabled (click to enable)",
+  "updateExecutionToLatestVersionLabel": "Use latest project version",
 
   "downgradeInfo": "Looking for downgrade options?",
 

@@ -121,12 +121,14 @@ export type MutationMethod = DefineBackendMethods<
   | 'openProject'
   | 'removeUser'
   | 'resendInvitation'
+  | 'syncProjectExecution'
   | 'undoDeleteAsset'
   | 'updateAsset'
   | 'updateDirectory'
   | 'updateFile'
   | 'updateOrganization'
   | 'updateProject'
+  | 'updateProjectExecution'
   | 'updateSecret'
   | 'updateUser'
   | 'uploadFile'
@@ -195,6 +197,7 @@ const INVALIDATION_MAP: Partial<Record<MutationMethod, readonly backendQuery.Bac
   createTag: ['listTags'],
   deleteTag: ['listTags'],
   createProjectExecution: ['listProjectExecutions'],
+  updateProjectExecution: ['listProjectExecutions'],
   deleteProjectExecution: ['listProjectExecutions'],
 }
 

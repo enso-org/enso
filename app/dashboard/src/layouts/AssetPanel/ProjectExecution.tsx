@@ -4,7 +4,11 @@ import { useMutation } from '@tanstack/react-query'
 import { DAY_TEXT_IDS } from 'enso-common/src/utilities/data/dateTime'
 
 import ParallelIcon from '#/assets/parallel.svg'
+import Play2Icon from '#/assets/play2.svg'
 import RepeatIcon from '#/assets/repeat.svg'
+import Stop2Icon from '#/assets/stop2.svg'
+import TimeIcon from '#/assets/time.svg'
+import UpgradeIcon from '#/assets/upgrade.svg'
 import { DialogTrigger } from '#/components/aria'
 import { Button, ButtonGroup, CloseButton, Text } from '#/components/AriaComponents'
 import { backendMutationOptions } from '#/hooks/backendHooks'
@@ -15,8 +19,9 @@ import * as backendModule from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
 
 const PROJECT_EXECUTION_STYLES = tv({
-  base: 'flex flex-row w-full items-center',
+  base: 'flex flex-row gap-1 w-full items-center',
   variants: {
+    isEnabled: { false: { time: 'opacity-50', optionContainer: 'opacity-50' } },
     repeatInterval: {
       hourly: { repeatInterval: 'bg-[oklch(65%_0.2_100)] text-white' },
       daily: { repeatInterval: 'bg-[oklch(65%_0.2_139)] text-white' },
@@ -34,6 +39,7 @@ const PROJECT_EXECUTION_STYLES = tv({
     time: '',
     timeButtons: 'opacity-0 group-hover:opacity-100 transition-[opacity]',
     optionContainer: 'grow-0',
+    maximumDuration: 'cursor-default hover:bg-transparent',
     repeatInterval: 'cursor-default',
     parallelMode: 'cursor-default',
   },
@@ -67,12 +73,21 @@ export default function ProjectExecution(props: ProjectExecutionProps) {
     : `xx${minuteString || ':00'}`
 
   const styles = PROJECT_EXECUTION_STYLES({
+    isEnabled: projectExecution.enabled,
     repeatInterval: projectExecution.repeatInterval,
     parallelMode: projectExecution.parallelMode,
   })
 
   const deleteProjectExecution = useMutation(
     backendMutationOptions(backend, 'deleteProjectExecution'),
+  ).mutateAsync
+
+  const updateProjectExecution = useMutation(
+    backendMutationOptions(backend, 'updateProjectExecution'),
+  ).mutateAsync
+
+  const syncProjectExecution = useMutation(
+    backendMutationOptions(backend, 'syncProjectExecution'),
   ).mutateAsync
 
   return (
@@ -83,6 +98,32 @@ export default function ProjectExecution(props: ProjectExecutionProps) {
           {time.day != null && `${getText(DAY_TEXT_IDS[time.day] ?? 'monday')} `}
           {timeString}
         </Text>
+        <Button
+          variant="icon"
+          tooltip={
+            projectExecution.enabled ?
+              getText('currentlyEnabledLabel')
+            : getText('currentlyDisabledLabel')
+          }
+          icon={projectExecution.enabled ? Stop2Icon : Play2Icon}
+          className={styles.timeButtons()}
+          onPress={async () => {
+            await updateProjectExecution([
+              projectExecution.projectExecutionId,
+              { enabled: !projectExecution.enabled },
+              item.title,
+            ])
+          }}
+        />
+        <Button
+          variant="icon"
+          tooltip={getText('updateExecutionToLatestVersionLabel')}
+          icon={UpgradeIcon}
+          className={styles.timeButtons()}
+          onPress={async () => {
+            await syncProjectExecution([projectExecution.projectExecutionId, item.title])
+          }}
+        />
         <DialogTrigger>
           <CloseButton
             className={styles.timeButtons()}
@@ -101,8 +142,9 @@ export default function ProjectExecution(props: ProjectExecutionProps) {
         <Button
           size="xsmall"
           variant="outline"
-          icon={RepeatIcon}
+          icon={TimeIcon}
           tooltip={getText('maxDurationMinutesLabel')}
+          className={styles.maximumDuration()}
         >
           {getText('xMinutes', projectExecution.maxDurationMinutes)}
         </Button>

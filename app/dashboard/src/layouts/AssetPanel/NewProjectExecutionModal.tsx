@@ -36,7 +36,7 @@ import { useText, type GetText } from '#/providers/TextProvider'
 
 const MAX_DURATION_DEFAULT_MINUTES = 60
 const MAX_DURATION_MINIMUM_MINUTES = 1
-const MAX_DURATION_MAXIMUM_MINUTES = 60
+const MAX_DURATION_MAXIMUM_MINUTES = 180
 const REPEAT_TIMES_COUNT = 5
 
 /* eslint-disable @typescript-eslint/no-magic-numbers */

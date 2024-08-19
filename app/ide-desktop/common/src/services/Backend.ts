@@ -1167,7 +1167,6 @@ export interface CreateProjectExecutionRequestBody extends ProjectExecutionInfo 
 
 /** HTTP request body for the "update project execution" endpoint. */
 export interface UpdateProjectExecutionRequestBody {
-  readonly projectExecutionId: ProjectExecutionId
   readonly enabled?: boolean | undefined
 }
 
