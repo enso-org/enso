@@ -264,28 +264,28 @@ export default function DriveBar(props: DriveBarProps) {
               }}
             />
             {isCloud && (
-              <ariaComponents.Button
-                variant="icon"
-                size="medium"
-                icon={AddKeyIcon}
-                isDisabled={shouldBeDisabled}
-                aria-label={getText('newSecret')}
-                onPress={() => {
-                  setModal(<UpsertSecretModal id={null} name={null} doCreate={doCreateSecret} />)
-                }}
-              />
+              <aria.DialogTrigger>
+                <ariaComponents.Button
+                  variant="icon"
+                  size="medium"
+                  icon={AddKeyIcon}
+                  isDisabled={shouldBeDisabled}
+                  aria-label={getText('newSecret')}
+                />
+                <UpsertSecretModal id={null} name={null} doCreate={doCreateSecret} />
+              </aria.DialogTrigger>
             )}
             {isCloud && (
-              <ariaComponents.Button
-                variant="icon"
-                size="medium"
-                icon={AddDatalinkIcon}
-                isDisabled={shouldBeDisabled}
-                aria-label={getText('newDatalink')}
-                onPress={() => {
-                  setModal(<UpsertDatalinkModal doCreate={doCreateDatalink} />)
-                }}
-              />
+              <aria.DialogTrigger>
+                <ariaComponents.Button
+                  variant="icon"
+                  size="medium"
+                  icon={AddDatalinkIcon}
+                  isDisabled={shouldBeDisabled}
+                  aria-label={getText('newDatalink')}
+                />
+                {/* <UpsertDatalinkModal doCreate={doCreateDatalink} /> */}
+              </aria.DialogTrigger>
             )}
             <aria.Input
               ref={uploadFilesRef}

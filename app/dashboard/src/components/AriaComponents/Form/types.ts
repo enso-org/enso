@@ -199,7 +199,7 @@ interface FormFieldProps<
   > {
   readonly name: TFieldName
   readonly value?: BaseValueType extends TFieldValues[TFieldName] ? TFieldValues[TFieldName] : never
-  readonly defaultValue?: TFieldValues[TFieldName]
+  readonly defaultValue?: TFieldValues[TFieldName] | undefined
   readonly isDisabled?: boolean
   readonly isRequired?: boolean
   readonly isInvalid?: boolean
