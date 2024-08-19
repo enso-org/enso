@@ -8,6 +8,7 @@ import project.Connection.Connection.Connection
 import project.DB_Column.DB_Column
 import project.DB_Table.DB_Table
 import project.Internal.Column_Fetcher.Column_Fetcher
+import project.Internal.DB_Wrapped_Error.DB_Wrapped_Error
 import project.Internal.Error_Mapper.Error_Mapper
 import project.Internal.IR.Context.Context
 import project.Internal.IR.From_Spec.From_Spec
@@ -261,6 +262,17 @@ type Dialect
        transaction was entered. Some dialects may decide to opt-out of
        this check for performance reasons.
     should_check_table_integrity_at_beginning_of_transaction self -> Boolean =
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       An optional method adding custom handling for the `aggregate` operation.
+
+       This method may be left undefined, in which case the default
+       implementation defined in `Aggregate_Helper.default_build_aggregate` will
+       be used. The method should be defined only if the dialect requires custom
+       logic.
+    custom_build_aggregate self (base_table : DB_Table) (key_expressions : Vector SQL_Expression) (resolved_aggregates : Vector Aggregate_Column) (problem_builder : Problem_Builder) -> Pair Context (Vector (Internal_Column | DB_Wrapped_Error)) =
+        _ = [base_table, key_expressions, resolved_aggregates, problem_builder]
         Unimplemented.throw "This is an interface only."
 
 ## PRIVATE

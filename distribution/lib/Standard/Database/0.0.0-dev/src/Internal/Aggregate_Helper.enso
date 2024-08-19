@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.No_Such_Method
 import Standard.Base.Errors.Deprecated.Deprecated
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
@@ -27,8 +28,8 @@ from project.Errors import Unsupported_Database_Operation
      operation, list of input columns and a raw SQL IR Expression) and returns
      the inferred type for the aggregation.
    - problem_builder: A `Problem_Builder` instance used for reporting warnings.
-make_aggregate_column : DB_Table -> Aggregate_Column -> Text -> Dialect -> (Any -> Any -> Any -> SQL_Type_Reference) -> Problem_Builder -> SQL_Expression
-make_aggregate_column table aggregate as dialect infer_return_type problem_builder =
+make_aggregate_column : DB_Table -> Aggregate_Column -> Text -> Dialect -> (Any -> Any -> Any -> SQL_Type_Reference) -> Problem_Builder -> Internal_Column
+make_aggregate_column table aggregate as dialect infer_return_type problem_builder -> Internal_Column =
     is_non_empty_selector v = v.is_nothing.not && v.not_empty
     simple_aggregate op_kind columns =
         expression = dialect.cast_op_type op_kind columns (SQL_Expression.Operation op_kind (columns.map c->c.expression))
@@ -125,7 +126,10 @@ aggregate table:DB_Table group_by:(Vector | Text | Integer | Regex) columns:Vect
             dialect = base_table.connection.dialect
 
             problem_builder = Problem_Builder.new
-            result = default_build_aggregate base_table dialect key_expressions resolved_aggregates problem_builder
+            # If the dialect defines `custom_build_aggregate` we will use it, falling back to the default implementation if not defined.
+            aggregate_builder = Panic.catch No_Such_Method (dialect.custom_build_aggregate) _->
+                default_build_aggregate dialect
+            result = aggregate_builder base_table key_expressions resolved_aggregates problem_builder
             new_ctx = result.first
             built_aggregates = result.second
             partitioned = built_aggregates.partition (_.is_a DB_Wrapped_Error)
@@ -145,7 +149,7 @@ aggregate table:DB_Table group_by:(Vector | Text | Integer | Regex) columns:Vect
                             Warning.attach (Deprecated.Warning "Standard.Table.Aggregate_Column.Aggregate_Column" "Group_By" "Deprecated: `Group_By` constructor has been deprecated, use the `group_by` argument instead.") result
 
 ## PRIVATE
-default_build_aggregate base_table dialect key_expressions resolved_aggregates problem_builder =
+default_build_aggregate dialect base_table key_expressions resolved_aggregates problem_builder =
     new_ctx = base_table.context.set_groups key_expressions
     ## TODO [RW] here we will perform as many fetches as there are
        aggregate columns, but technically we could perform just one
