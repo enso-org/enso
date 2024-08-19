@@ -72,7 +72,12 @@ object JPMSPlugin extends AutoPlugin {
     patchModules := Map.empty,
     addExports := Map.empty,
     addReads := Map.empty,
-    compileModuleInfo := {},
+    compileModuleInfo := {
+      JPMSUtils
+        .compileModuleInfo()
+        .dependsOn(Compile / compile)
+        .value
+    },
     // javacOptions only inject --module-path and --add-modules, not the rest of the
     // options.
     Compile / javacOptions ++= {
