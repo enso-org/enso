@@ -2462,8 +2462,10 @@ lazy val `runtime-fat-jar` =
  */
 lazy val `engine-runner-common` = project
   .in(file("engine/runner-common"))
+  .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
+    compileOrder := CompileOrder.ScalaThenJava, // Note [JPMS Compile order]
     Test / fork := true,
     commands += WithDebugCommand.withDebug,
     Test / envVars ++= distributionEnvironmentOverrides,
@@ -2471,6 +2473,10 @@ lazy val `engine-runner-common` = project
       "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion % "provided",
       "commons-io"           % "commons-io"  % commonsIoVersion,
       "commons-cli"          % "commons-cli" % commonsCliVersion
+    ),
+    moduleDependencies := Seq(
+      "commons-cli"          % "commons-cli" % commonsCliVersion,
+      "org.slf4j"            % "slf4j-api"     % slf4jVersion,
     )
   )
   .dependsOn(`polyglot-api`)
