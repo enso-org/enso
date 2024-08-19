@@ -358,16 +358,6 @@ add_specs suite_builder setup =
             t.filter "unknown column" . should_fail_with No_Such_Column
             t.filter "unknown column" . catch . should_equal (No_Such_Column.Error "unknown column")
 
-        group_builder.specify "asdfasdf" <|
-            t = table_builder [["X", [10, 20, 13, 4, 5]]]
-            t.to_select_query.traverse x->
-                case x of
-                    SQL_Expression.Column _ _ ->
-                        IO.println "BBBBBB "+x.to_text
-                    _ -> Nothing
-                IO.println "TTTTTT "+x.to_text
-                x
-
         group_builder.specify "should handle selection errors: out of bounds index" <|
             t = table_builder [["X", [10, 20, 13, 4, 5]]]
             t.filter 4 . should_fail_with Index_Out_Of_Bounds

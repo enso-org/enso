@@ -68,6 +68,7 @@ add_specs (suite_builder : Suite_Builder) (prefix : Text) default_connection =
             b_sub = (b . rename "p" . to_table . as_subquery . at "p")
             c = b_sub * b_sub
 
+            count_nodes col . should_equal 4
             count_nodes a . should_be_a Integer
             count_nodes b . should_be_a Integer
             count_nodes c . should_be_a Integer
