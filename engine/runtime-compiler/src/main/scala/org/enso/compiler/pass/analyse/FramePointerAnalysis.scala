@@ -376,7 +376,7 @@ case object FramePointerAnalysis extends IRPass {
           "Local scope must be provided for frame pointer analysis"
         )
       case Some(localScope) =>
-        val graph = localScope.aliasingGraph
+        val graph = localScope.aliasingGraph()
         processExpression(exprIr, graph)
         exprIr
     }
