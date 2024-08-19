@@ -15,6 +15,7 @@ import Spinner, * as spinnerModule from '#/components/Spinner'
 import type Backend from '#/services/Backend'
 import * as backendService from '#/services/Backend'
 
+import { Text } from '#/components/AriaComponents'
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
 import * as uniqueString from '#/utilities/uniqueString'
@@ -94,15 +95,15 @@ export default function AssetVersions(props: AssetVersionsProps) {
   return (
     <div className="pointer-events-auto flex flex-1 shrink-0 flex-col items-center overflow-y-auto overflow-x-hidden">
       {!isCloud ?
-        <div>{getText('localAssetsDoNotHaveVersions')}</div>
+        <Text>{getText('localAssetsDoNotHaveVersions')}</Text>
       : versionsQuery.isPending ?
         <Spinner size={32} state={spinnerModule.SpinnerState.loadingMedium} />
       : versionsQuery.isError ?
-        <div>{getText('listVersionsError')}</div>
+        <Text color="danger">{getText('listVersionsError')}</Text>
       : versionsQuery.data.length === 0 ?
-        <div>{getText('noVersionsFound')}</div>
+        <Text color="disabled">{getText('noVersionsFound')}</Text>
       : latestVersion == null ?
-        <div>{getText('fetchLatestVersionError')}</div>
+        <Text color="danger">{getText('fetchLatestVersionError')}</Text>
       : [
           ...placeholderVersions.map((version, i) => (
             <AssetVersion

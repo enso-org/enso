@@ -597,6 +597,8 @@
   "currentlyEnabledLabel": "Enabled (click to disable)",
   "currentlyDisabledLabel": "Disabled (click to enable)",
   "updateExecutionToLatestVersionLabel": "Use latest project version",
+  "noProjectSessions": "No project sessions.",
+  "noProjectExecutions": "Create a execution schedule using the button above.",
 
   "downgradeInfo": "Looking for downgrade options?",
 

@@ -1,7 +1,7 @@
 /** @file A list of previous versions of an asset. */
 import { useSuspenseQuery } from '@tanstack/react-query'
 
-import { Button, ButtonGroup, DialogTrigger } from '#/components/AriaComponents'
+import { Button, ButtonGroup, DialogTrigger, Text } from '#/components/AriaComponents'
 import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Suspense } from '#/components/Suspense'
 import NewProjectExecutionModal from '#/layouts/AssetPanel/NewProjectExecutionModal'
@@ -50,6 +50,7 @@ function ProjectExecutionsInternal(props: ProjectExecutionsInternalProps) {
       return [...executions].reverse()
     },
   })
+  const projectExecutions = projectExecutionsQuery.data
 
   return (
     <div className="pointer-events-auto flex flex-col items-center gap-2 overflow-y-auto overflow-x-hidden">
@@ -59,14 +60,17 @@ function ProjectExecutionsInternal(props: ProjectExecutionsInternalProps) {
           <NewProjectExecutionModal backend={backend} item={item} />
         </DialogTrigger>
       </ButtonGroup>
-      {projectExecutionsQuery.data.map((execution) => (
-        <ProjectExecution
-          key={execution.projectExecutionId}
-          item={item}
-          backend={backend}
-          projectExecution={execution}
-        />
-      ))}
+      {projectExecutions.length === 0 ?
+        <Text color="disabled">{getText('noProjectExecutions')}</Text>
+      : projectExecutions.map((execution) => (
+          <ProjectExecution
+            key={execution.projectExecutionId}
+            item={item}
+            backend={backend}
+            projectExecution={execution}
+          />
+        ))
+      }
     </div>
   )
 }
