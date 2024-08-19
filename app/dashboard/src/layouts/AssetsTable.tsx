@@ -390,8 +390,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   )
 
   const directories = useQueries({
-    // we fetch only expanded directories
-    // this is an optimization technique to reduce the amount of data to fetch
+    // We query only expanded directories, as we don't want to load the data for directories that are not visible.
     queries: React.useMemo(
       () =>
         expandedDirectoryIds.map((directoryId) =>
@@ -450,7 +449,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   })
 
   /**
-   * ReturnType of the query function for the listDirectory query.
+   * Return type of the query function for the listDirectory query.
    */
   type ListDirectoryQueryDataType = (typeof directories)['rootDirectory']['data']
 

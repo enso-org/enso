@@ -236,7 +236,7 @@ export function useOpenProject() {
 
   return eventCallbacks.useEventCallback((project: LaunchedProject) => {
     if (!enableMultitabs) {
-      // Since multiple tabs cannot be opened at the sametime, the opened projects need to be closed first.
+      // Since multiple tabs cannot be opened at the same time, the opened projects need to be closed first.
       if (projectsStore.getState().launchedProjects.length > 0) {
         closeAllProjects()
       }

@@ -7,6 +7,7 @@
 import { useMount } from '#/hooks/mountHooks'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import LocalStorage from '#/utilities/LocalStorage'
+import { unsafeEntries } from '#/utilities/object'
 import type { ReactNode } from 'react'
 import { useEffect } from 'react'
 import { z } from 'zod'
@@ -39,12 +40,9 @@ export interface FeatureFlags {
     readonly enableAssetsTableBackgroundRefresh: boolean
     readonly assetsTableBackgroundRefreshInterval: number
   }
-  readonly setFeatureFlags: <
-    Key extends keyof FeatureFlags['featureFlags'],
-    Value extends FeatureFlags['featureFlags'][Key],
-  >(
+  readonly setFeatureFlags: <Key extends keyof FeatureFlags['featureFlags']>(
     key: Key,
-    value: Value,
+    value: FeatureFlags['featureFlags'][Key],
   ) => void
 }
 
@@ -96,10 +94,8 @@ export function FeatureFlagsProvider({ children }: { children: ReactNode }) {
     const storedFeatureFlags = localStorage.get('featureFlags')
 
     if (storedFeatureFlags) {
-      for (const [key, value] of Object.entries(storedFeatureFlags)) {
-        // This is safe, because we've already validated the feature flags using the schema.
-        // eslint-disable-next-line no-restricted-syntax
-        setFeatureFlags(key as keyof typeof storedFeatureFlags, value)
+      for (const [key, value] of unsafeEntries(storedFeatureFlags)) {
+        setFeatureFlags(key, value)
       }
     }
   })
