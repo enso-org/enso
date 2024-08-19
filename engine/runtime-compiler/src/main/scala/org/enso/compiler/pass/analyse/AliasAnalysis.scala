@@ -254,12 +254,12 @@ case object AliasAnalysis extends IRPass {
               "The body of a method should always be a function."
             )
         }
-      case m @ definition.Method.Explicit(_, body, _, _, _) =>
-        body match {
+      case m: definition.Method.Explicit =>
+        m.body match {
           case _: Function =>
             m.copy(
               body = analyseExpression(
-                body,
+                m.body,
                 topLevelGraph,
                 topLevelGraph.rootScope,
                 lambdaReuseScope = true
