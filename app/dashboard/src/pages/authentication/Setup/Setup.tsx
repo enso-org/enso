@@ -24,7 +24,7 @@ import * as ariaComponents from '#/components/AriaComponents'
 import Page from '#/components/Page'
 import * as stepper from '#/components/Stepper'
 
-import { ORGANIZATION_NAME_MAX_LENGTH } from '#/modals/SetOrganizationNameModal'
+import { ORGANIZATION_NAME_MAX_LENGTH } from '#/modals/SetupOrganizationAfterSubscribe'
 
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { InviteUsersForm } from '#/modals/InviteUsersModal'
@@ -230,13 +230,15 @@ const BASE_STEPS: Step[] = [
       const { getText } = textProvider.useText()
       const remoteBackend = useRemoteBackendStrict()
 
+      const defaultUserGroupMaxLength = 64
+
       const createUserGroupMutation = useMutation(
         backendMutationOptions(remoteBackend, 'createUserGroup'),
       )
 
       return (
         <ariaComponents.Form
-          schema={(z) => z.object({ groupName: z.string().min(1).max(64) })}
+          schema={(z) => z.object({ groupName: z.string().min(1).max(defaultUserGroupMaxLength) })}
           className="max-w-96"
           onSubmit={({ groupName }) => createUserGroupMutation.mutateAsync([{ name: groupName }])}
           onSubmitSuccess={goToNextStep}
@@ -245,7 +247,7 @@ const BASE_STEPS: Step[] = [
             name="groupName"
             autoComplete="off"
             label={getText('groupNameSettingsInput')}
-            description={getText('groupNameSettingsInputDescription', 64)}
+            description={getText('groupNameSettingsInputDescription', defaultUserGroupMaxLength)}
           />
 
           <ariaComponents.ButtonGroup align="start">

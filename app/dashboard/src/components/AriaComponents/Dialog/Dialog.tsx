@@ -32,6 +32,7 @@ const OVERLAY_STYLES = twv.tv({
   variants: {
     isEntering: { true: 'animate-in fade-in duration-200 ease-out' },
     isExiting: { true: 'animate-out fade-out duration-200 ease-in' },
+    blockInteractions: { true: 'backdrop-blur-md' },
   },
 })
 
@@ -80,6 +81,15 @@ const DIALOG_STYLES = twv.tv({
       xxxlarge: { base: '' },
       xxxxlarge: { base: '' },
     },
+    padding: {
+      none: { content: 'p-0' },
+      small: { content: 'px-1 pt-3.5 pb-3.5' },
+      medium: { content: 'px-3.5 pt-3.5 pb-3.5' },
+      large: { content: 'px-8 pt-3.5 pb-5' },
+      xlarge: { content: 'p-12 pt-3.5 pb-8' },
+      xxlarge: { content: 'p-16 pt-3.5 pb-12' },
+      xxxlarge: { content: 'p-20 pt-3.5 pb-16' },
+    },
     scrolledToTop: { true: { header: 'border-transparent' } },
   },
   slots: {
@@ -87,7 +97,7 @@ const DIALOG_STYLES = twv.tv({
       'sticky grid grid-cols-[1fr_auto_1fr] items-center border-b border-primary/10 transition-[border-color] duration-150',
     closeButton: 'col-start-1 col-end-1 mr-auto',
     heading: 'col-start-2 col-end-2 my-0 text-center',
-    content: 'relative flex-auto p-3.5',
+    content: 'relative flex-auto',
   },
   compoundVariants: [
     { type: 'modal', size: 'small', class: 'max-w-sm' },
@@ -127,6 +137,7 @@ export function Dialog(props: DialogProps) {
     testId = 'dialog',
     size,
     rounded,
+    padding,
     ...ariaDialogProps
   } = props
 
@@ -156,6 +167,7 @@ export function Dialog(props: DialogProps) {
     closeButton,
     scrolledToTop: isScrolledToTop,
     size,
+    padding,
   })
 
   utlities.useInteractOutside({
@@ -176,7 +188,13 @@ export function Dialog(props: DialogProps) {
 
   return (
     <aria.ModalOverlay
-      className={OVERLAY_STYLES}
+      className={({ isEntering, isExiting }) =>
+        OVERLAY_STYLES({
+          isEntering,
+          isExiting,
+          blockInteractions: !isDismissable,
+        })
+      }
       isDismissable={isDismissable}
       isKeyboardDismissDisabled={isKeyboardDismissDisabled}
       UNSTABLE_portalContainer={root}

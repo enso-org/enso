@@ -80,7 +80,7 @@ import * as errorBoundary from '#/components/ErrorBoundary'
 import * as suspense from '#/components/Suspense'
 
 import AboutModal from '#/modals/AboutModal'
-import * as setOrganizationNameModal from '#/modals/SetOrganizationNameModal'
+import * as setOrganizationNameModal from '#/modals/SetupOrganizationAfterSubscribe'
 import * as termsOfServiceModal from '#/modals/TermsOfServiceModal'
 
 import LocalBackend from '#/services/LocalBackend'
@@ -421,7 +421,7 @@ function AppRouter(props: AppRouterProps) {
       <router.Route element={<authProvider.NotDeletedUserLayout />}>
         <router.Route element={<authProvider.ProtectedLayout />}>
           <router.Route element={<termsOfServiceModal.TermsOfServiceModal />}>
-            <router.Route element={<setOrganizationNameModal.SetOrganizationNameModal />}>
+            <router.Route element={<setOrganizationNameModal.SetupOrganizationAfterSubscribe />}>
               <router.Route element={<openAppWatcher.OpenAppWatcher />}>
                 <router.Route
                   path={appUtils.DASHBOARD_PATH}

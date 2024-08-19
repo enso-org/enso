@@ -197,6 +197,7 @@
   "shortcuts": "Shortcuts",
   "download": "Download",
   "email": "Email",
+  "intro": "Intro",
   "emailIsRequired": "Email is required",
   "emailIsInvalid": "Email is invalid",
   "emailAlreadyExists": "Email already exists",
@@ -733,6 +734,8 @@
   "bankCardLabel": "Bank Card",
   "contactSales": "Contact Sales",
 
+  "setupOrganization": "Setup your organization",
+  "setupOrganizationDescription": "Before you can invite users, you need to set up your organization.",
   "setOrgNameTitle": "Set your organization name",
   "setOrgNameDescription": "Enter the name of your organization. You can always change it later.",
   "setOrgNameSubmit": "Set organization name",
