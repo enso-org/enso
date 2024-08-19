@@ -70,8 +70,8 @@ export function ErrorDisplay(props: ErrorDisplayProps): React.JSX.Element {
   const { isOffline } = offlineHooks.useOffline()
 
   const {
-    resetErrorBoundary,
     error,
+    resetErrorBoundary,
     title = getText('appErroredMessage'),
     subtitle = isOffline ? getText('offlineErrorMessage') : getText('arbitraryErrorSubtitle'),
     status = isOffline ? 'info' : 'error',

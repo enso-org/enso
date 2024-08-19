@@ -15,6 +15,7 @@ import {
 
 import { mergeRefs } from '#/utilities/mergeRefs'
 
+import { AnimatedBackground } from '#/components/AnimatedBackground'
 import RadioGroup from '#/components/styled/RadioGroup'
 import { tv } from '#/utilities/tailwindVariants'
 import { Controller } from 'react-hook-form'
@@ -166,9 +167,11 @@ export const Selector = React.forwardRef(function Selector<
                   onChange(items[Number(newValue)])
                 }}
               >
-                {items.map((item, i) => (
-                  <SelectorOption value={String(i)} label={itemToString(item)} />
-                ))}
+                <AnimatedBackground value={String(items.indexOf(value))}>
+                  {items.map((item, i) => (
+                    <SelectorOption value={String(i)} label={itemToString(item)} />
+                  ))}
+                </AnimatedBackground>
               </RadioGroup>
             )
           }}

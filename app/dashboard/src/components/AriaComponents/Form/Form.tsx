@@ -184,6 +184,8 @@ export const Form = React.forwardRef(function Form<
   useFormSchema: typeof components.useFormSchema
   Controller: typeof components.Controller
   FIELD_STYLES: typeof components.FIELD_STYLES
+  useFormContext: typeof components.useFormContext
+  useOptionalFormContext: typeof components.useOptionalFormContext
   /* eslint-enable @typescript-eslint/naming-convention */
 }
 
@@ -194,6 +196,8 @@ Form.useFormSchema = components.useFormSchema
 Form.Submit = components.Submit
 Form.Reset = components.Reset
 Form.FormError = components.FormError
+Form.useFormContext = components.useFormContext
+Form.useOptionalFormContext = components.useOptionalFormContext
 Form.Field = components.Field
 Form.Controller = components.Controller
 Form.FIELD_STYLES = components.FIELD_STYLES

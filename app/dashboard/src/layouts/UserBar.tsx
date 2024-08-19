@@ -52,9 +52,10 @@ export default function UserBar(props: UserBarProps) {
   const { getText } = textProvider.useText()
   const { isFeatureUnderPaywall } = billing.usePaywall({ plan: user.plan })
 
-  const shouldShowUpgradeButton = isFeatureUnderPaywall('inviteUser')
+  const shouldShowUpgradeButton = user.isOrganizationAdmin
+  const shouldShowPaywallButton = isFeatureUnderPaywall('inviteUser')
   const shouldShowShareButton = onShareClick != null
-  const shouldShowInviteButton = !shouldShowShareButton && !shouldShowUpgradeButton
+  const shouldShowInviteButton = !shouldShowShareButton && !shouldShowPaywallButton
 
   return (
     <FocusArea active={!invisible} direction="horizontal">
@@ -77,7 +78,7 @@ export default function UserBar(props: UserBarProps) {
               />
             )}
 
-            {shouldShowUpgradeButton && (
+            {shouldShowPaywallButton && (
               <paywall.PaywallDialogButton feature="inviteUser" size="medium" variant="tertiary">
                 {getText('invite')}
               </paywall.PaywallDialogButton>
@@ -93,9 +94,11 @@ export default function UserBar(props: UserBarProps) {
               </ariaComponents.DialogTrigger>
             )}
 
-            <ariaComponents.Button variant="primary" size="medium" href={appUtils.SUBSCRIBE_PATH}>
-              {getText('upgrade')}
-            </ariaComponents.Button>
+            {shouldShowUpgradeButton && (
+              <ariaComponents.Button variant="primary" size="medium" href={appUtils.SUBSCRIBE_PATH}>
+                {getText('upgrade')}
+              </ariaComponents.Button>
+            )}
 
             {shouldShowShareButton && (
               <ariaComponents.Button
