@@ -1,7 +1,7 @@
 /** @file Modal for accepting or rejecting an invite to an organization. */
-import * as router from 'react-router'
+import { Outlet, useNavigate } from 'react-router'
 
-import { SUPPORT_EMAIL, SUPPORT_EMAIL_URL } from '#/appUtils'
+import { LOGIN_PATH, SUPPORT_EMAIL, SUPPORT_EMAIL_URL } from '#/appUtils'
 import { Button, ButtonGroup, Dialog, Text } from '#/components/AriaComponents'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useAuth, useFullUserSession } from '#/providers/AuthProvider'
@@ -17,6 +17,7 @@ import { useMutation } from '@tanstack/react-query'
 export function InvitedToOrganizationModal() {
   const { getText } = useText()
   const { session } = useAuth()
+  const navigate = useNavigate()
   const backend = useRemoteBackendStrict()
   const { user } = useFullUserSession()
   const shouldDisplay = user.newOrganizationName != null && user.newOrganizationInvite != null
@@ -29,13 +30,13 @@ export function InvitedToOrganizationModal() {
   ).mutateAsync
 
   if (!shouldDisplay) {
-    return <router.Outlet context={session} />
+    return <Outlet context={session} />
   } else {
     switch (user.newOrganizationInvite) {
       case 'pending': {
         return (
           <>
-            <router.Outlet context={session} />
+            <Outlet context={session} />
             <Dialog
               title={getText('organizationInviteTitle')}
               isKeyboardDismissDisabled
@@ -55,6 +56,7 @@ export function InvitedToOrganizationModal() {
                       variant="tertiary"
                       onPress={async () => {
                         await acceptInvitation([])
+                        navigate(LOGIN_PATH)
                         close()
                       }}
                     >
@@ -79,7 +81,7 @@ export function InvitedToOrganizationModal() {
       case 'error': {
         return (
           <>
-            <router.Outlet context={session} />
+            <Outlet context={session} />
             <Dialog
               title={getText('organizationInviteTitle')}
               // For now, allow dismissing the modal as the user account is still usable.
