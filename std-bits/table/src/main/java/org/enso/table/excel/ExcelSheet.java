@@ -13,12 +13,12 @@ public class ExcelSheet {
 
   // Still to re-work
   private final IntFunction<Row> rowSupplier;
-  private Sheet sheet;
+  private final Sheet sheet;
 
   public ExcelSheet(Workbook workbook, int sheetIndex) {
     this(
-        workbook.getSheetAt(sheetIndex).getFirstRowNum(),
-        workbook.getSheetAt(sheetIndex).getLastRowNum(),
+        workbook.getSheetAt(sheetIndex).getFirstRowNum() + 1,
+        workbook.getSheetAt(sheetIndex).getLastRowNum() + 1,
         workbook.getSheetAt(sheetIndex)::getRow,
         workbook.getSheetAt(sheetIndex));
   }
