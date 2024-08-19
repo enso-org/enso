@@ -7,9 +7,11 @@
   input and shown only in the initial "component browsing" mode - after picking
   any suggestion with Tab or new button the mode is switched to "code editing",
   where visualization preview is displayed instead.
+- [Drilldown for XML][10824]
 
 [10774]: https://github.com/enso-org/enso/pull/10774
 [10814]: https://github.com/enso-org/enso/pull/10814
+[10824]: https://github.com/enso-org/enso/pull/10824
 
 #### Enso Standard Library
 

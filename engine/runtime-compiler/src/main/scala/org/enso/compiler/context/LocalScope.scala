@@ -31,12 +31,15 @@ import scala.jdk.CollectionConverters._
   */
 class LocalScope(
   final val parentScope: Option[LocalScope],
-  final val aliasingGraph: AliasGraph,
-  final val scope: AliasGraph.Scope,
-  final val dataflowInfo: DataflowAnalysis.Metadata,
+  final val aliasingGraph: () => AliasGraph,
+  final private val scopeProvider: () => AliasGraph.Scope,
+  final private val dataflowInfoProvider: () => DataflowAnalysis.Metadata,
   final val flattenToParent: Boolean                       = false,
   private val parentFrameSlotIdxs: Map[AliasGraph.Id, Int] = Map()
 ) {
+  lazy val scope: AliasGraph.Scope                 = scopeProvider()
+  lazy val dataflowInfo: DataflowAnalysis.Metadata = dataflowInfoProvider()
+
   private lazy val localFrameSlotIdxs: Map[AliasGraph.Id, Int] =
     gatherLocalFrameSlotIdxs()
 
@@ -50,7 +53,7 @@ class LocalScope(
     *
     * @return a child of this scope
     */
-  def createChild(): LocalScope = createChild(scope.addChild())
+  def createChild(): LocalScope = createChild(() => scope.addChild())
 
   /** Creates a child using a known aliasing scope.
     *
@@ -60,14 +63,14 @@ class LocalScope(
     * @return a child of this scope
     */
   def createChild(
-    childScope: AliasGraph.Scope,
+    childScope: () => AliasGraph.Scope,
     flattenToParent: Boolean = false
   ): LocalScope = {
     new LocalScope(
       Some(this),
       aliasingGraph,
       childScope,
-      dataflowInfo,
+      () => dataflowInfo,
       flattenToParent,
       allFrameSlotIdxs
     )
@@ -128,11 +131,12 @@ object LocalScope {
     */
   def root: LocalScope = {
     val graph = new AliasGraph
+    val info  = DataflowAnalysis.DependencyInfo()
     new LocalScope(
       None,
-      graph,
-      graph.rootScope,
-      DataflowAnalysis.DependencyInfo()
+      () => graph,
+      () => graph.rootScope,
+      () => info
     )
   }
 
