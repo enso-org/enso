@@ -68,7 +68,7 @@ public class ExcelRow {
     }
   }
 
-  public static CellType getCellType(Cell cell) {
+  private static CellType getCellType(Cell cell) {
     if (cell == null) {
       return CellType._NONE;
     }

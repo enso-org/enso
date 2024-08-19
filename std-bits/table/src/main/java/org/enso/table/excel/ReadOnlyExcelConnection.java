@@ -2,7 +2,6 @@ package org.enso.table.excel;
 
 import java.io.IOException;
 import java.util.function.Function;
-import org.apache.poi.ss.usermodel.Workbook;
 
 public class ReadOnlyExcelConnection implements AutoCloseable {
 
@@ -28,11 +27,11 @@ public class ReadOnlyExcelConnection implements AutoCloseable {
     record = null;
   }
 
-  public synchronized <T> T withWorkbook(Function<Workbook, T> f) throws IOException {
+  public synchronized <T> T withWorkbook(Function<ExcelWorkbook, T> f) throws IOException {
     if (record == null) {
       throw new IllegalStateException("ReadOnlyExcelConnection is being used after it was closed.");
     }
 
-    return record.withWorkbook(f);
+    return record.withWorkbook(p -> f.apply(ExcelWorkbook.ForWorkbook(p)));
   }
 }
