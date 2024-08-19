@@ -2104,11 +2104,13 @@ lazy val `runtime-benchmarks` =
           "org.slf4j"        % "slf4j-api"                    % slf4jVersion,
           "org.slf4j"        % "slf4j-nop"                    % slf4jVersion,
           "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion,
-          (`runtime-fat-jar` / projectID).value,
           (`ydoc-server` / projectID).value,
           (`syntax-rust-definition` / projectID).value,
           (`profiling-utils` / projectID).value
         )
+      },
+      modulePath += {
+        (`runtime-fat-jar` / assembly / assemblyOutputPath).value
       },
       addModules := {
         val runtimeModuleName = (`runtime-fat-jar` / javaModuleName).value
