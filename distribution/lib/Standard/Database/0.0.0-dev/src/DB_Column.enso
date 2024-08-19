@@ -301,13 +301,13 @@ type DB_Column
 
         if use_ctes.not then callback self else
             # TODO: use shorter unique names for binders.
-            binder = self.connection.base_connection.table_naming_helper.generate_random_table_name prefix=name+"-"
+            binder = self.connection.base_connection.table_naming_helper.generate_random_table_name
 
-            ref_expression = SQL_Expression.With_Ref binder self.expression
+            ref_expression = SQL_Expression.With_Ref name binder self.expression
             ref_column = DB_Column.Value binder self.connection self.sql_type_reference ref_expression self.context
             inner_value = callback ref_column
 
-            with_expression = SQL_Expression.With binder self.expression inner_value.expression
+            with_expression = SQL_Expression.With name binder self.expression inner_value.expression
             DB_Column.Value inner_value.internal_name inner_value.connection inner_value.sql_type_reference with_expression inner_value.context
 
     ## PRIVATE

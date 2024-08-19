@@ -75,10 +75,12 @@ type SQL_Expression
        method ignored its argument.
 
        Arguments:
+       - name: the optional user-provided name describing the expression bound
+         by the WITH ... AS clause
        - binder: the lexically-scoped name of the CTE expression.
        - bindee: the CTE expression.
        - body: the larger expression that contains references to the CTE.
-    With (binder : Text) (bindee : SQL_Expression) (body : SQL_Expression)
+    With (name : Text) (binder : Text) (bindee : SQL_Expression) (body : SQL_Expression)
 
     ## PRIVATE
        The internal representation of a "reference" to a CTE expression.
@@ -94,10 +96,12 @@ type SQL_Expression
        original CTE expression in `standalone_expression` is used instead.
 
        Arguments:
+       - name: the optional user-provided name describing the expression bound
+         by the WITH ... AS clause
        - binder: the lexically-scoped name of the CTE expression.
        - standalone_expression: the full, original expression bound in the
          enclosing `With` value.
-    With_Ref (binder : Text) (standalone_expression : SQL_Expression)
+    With_Ref (name : Text) (binder : Text) (standalone_expression : SQL_Expression)
 
     traverse : (Any -> Any) -> SQL_Expression
     traverse self f -> SQL_Expression =
@@ -109,8 +113,8 @@ type SQL_Expression
             SQL_Expression.Text_Literal _ -> self
             SQL_Expression.Operation kind expressions metadata ->
                 SQL_Expression.Operation kind (expressions.map rec) metadata
-            SQL_Expression.With binder bindee body ->
-                SQL_Expression.With binder (rec bindee) (rec body)
-            SQL_Expression.With_Ref binder standalone_expression ->
-                SQL_Expression.With_Ref binder (rec standalone_expression)
+            SQL_Expression.With name binder bindee body ->
+                SQL_Expression.With name binder (rec bindee) (rec body)
+            SQL_Expression.With_Ref name binder standalone_expression ->
+                SQL_Expression.With_Ref name binder (rec standalone_expression)
         f new_sql_expression
