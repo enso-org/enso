@@ -3092,9 +3092,11 @@ lazy val downloader = (project in file("lib/scala/downloader"))
 
 lazy val `edition-updater` = project
   .in(file("lib/scala/edition-updater"))
+  .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    compileOrder := CompileOrder.ScalaThenJava, // Note [JPMS Compile order]
     Test / test := (Test / test).tag(simpleLibraryServerTag).value,
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
@@ -3119,9 +3121,11 @@ lazy val `edition-uploader` = project
 
 lazy val `library-manager` = project
   .in(file("lib/scala/library-manager"))
+  .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    compileOrder := CompileOrder.ScalaThenJava, // Note [JPMS Compile order]
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
