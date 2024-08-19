@@ -274,7 +274,6 @@ object JPMSUtils {
     val reporter         = (Compile / compile / bspReporter).value
     val output           = CompileOutput((Compile / classDirectory).value.toPath)
     val outputPath: Path = output.getSingleOutputAsPath.get()
-    val moduleName       = javaModuleName.value
     val mp               = (Compile / modulePath).value
     val baseJavacOpts    = (Compile / javacOptions).value
     val cp               = (Compile / fullClasspath).value
