@@ -212,7 +212,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                                 isDisabled={!isOptional}
                                 isActive={!isOptional || isPresent}
                                 className={tailwindMerge.twMerge(
-                                  'text col-start-1 inline-block whitespace-nowrap rounded-full px-button-x text-left',
+                                  'col-start-1 inline-block whitespace-nowrap rounded-full px-button-x',
                                   isOptional && 'hover:bg-hover-bg',
                                 )}
                                 onPress={() => {
