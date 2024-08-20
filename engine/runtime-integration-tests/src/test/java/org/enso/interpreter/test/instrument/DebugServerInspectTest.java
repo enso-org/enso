@@ -17,7 +17,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class DebugServerWithScriptTest {
+public class DebugServerInspectTest {
   private static Context ctx;
   private static ByteArrayOutputStream out = new ByteArrayOutputStream();
   private static ByteArrayOutputStream err = new ByteArrayOutputStream();
@@ -102,5 +102,29 @@ public class DebugServerWithScriptTest {
             containsString("d = Error:2"),
             containsString("t = Error:2"),
             not(containsString("j = 1"))));
+  }
+
+  @Test
+  public void panicOnUnusedError() throws Exception {
+    var code =
+        """
+        from Standard.Base import all
+
+        inspect =
+            j = 1
+            d = Error.throw 2
+            j
+        """;
+    var r = ContextUtils.evalModule(ctx, code, "ScriptTest.enso", "inspect");
+    assertTrue("Got error back: " + r, r.isException());
+    assertEquals("(Error: 2)", r.toString());
+    assertEquals(
+        "Compilation warning printed",
+        "ScriptTest:5:5: warning: Unused variable d.\n",
+        out.toString());
+    assertThat(
+        "Stderr contains some errors",
+        err.toString(),
+        AllOf.allOf(containsString("d = Error:2"), not(containsString("j = 1"))));
   }
 }
