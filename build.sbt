@@ -2284,16 +2284,15 @@ lazy val `runtime-parser` =
       moduleDependencies := {
         Seq(
           "org.scala-lang"   % "scala-library"           % scalacVersion,
-          "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion,
-          (`syntax-rust-definition` / projectID).value
+          "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion
         )
       },
+      internalModuleDependencies := Seq(
+        (`syntax-rust-definition` / exportedModule).value,
+        (`persistance` / exportedModule).value,
+      ),
       // Note [Compile module-info]
-      excludeFilter := excludeFilter.value || "module-info.java",
-      Compile / compileModuleInfo := JPMSUtils
-        .compileModuleInfo()
-        .dependsOn(Compile / compile)
-        .value
+      excludeFilter := excludeFilter.value || "module-info.java"
     )
     .dependsOn(`syntax-rust-definition`)
     .dependsOn(`persistance`)
