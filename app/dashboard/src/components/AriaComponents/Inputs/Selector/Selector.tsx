@@ -36,7 +36,7 @@ export interface SelectorProps<
     FieldProps,
     Omit<twv.VariantProps<typeof SELECTOR_STYLES>, 'disabled' | 'invalid'> {
   readonly items: readonly TFieldValues[TFieldName][]
-  readonly itemToString?: (item: TFieldValues[TFieldName]) => string
+  readonly children?: (item: TFieldValues[TFieldName]) => string
   readonly className?: string
   readonly style?: React.CSSProperties
   readonly inputRef?: React.Ref<HTMLDivElement>
@@ -97,7 +97,7 @@ export const Selector = React.forwardRef(function Selector<
   const {
     name,
     items,
-    itemToString = String,
+    children = String,
     isDisabled = false,
     form,
     defaultValue,
@@ -167,7 +167,7 @@ export const Selector = React.forwardRef(function Selector<
                 }}
               >
                 {items.map((item, i) => (
-                  <SelectorOption value={String(i)} label={itemToString(item)} />
+                  <SelectorOption value={String(i)} label={children(item)} />
                 ))}
               </RadioGroup>
             )

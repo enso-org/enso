@@ -284,7 +284,7 @@ export default function DriveBar(props: DriveBarProps) {
                   isDisabled={shouldBeDisabled}
                   aria-label={getText('newDatalink')}
                 />
-                {/* <UpsertDatalinkModal doCreate={doCreateDatalink} /> */}
+                <UpsertDatalinkModal doCreate={doCreateDatalink} />
               </aria.DialogTrigger>
             )}
             <aria.Input

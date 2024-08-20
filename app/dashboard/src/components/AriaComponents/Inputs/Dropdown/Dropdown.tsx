@@ -158,11 +158,8 @@ export const Dropdown = forwardRef(function Dropdown<T>(
                     key={i}
                     id={i}
                     className={twMerge(
-                      'not-selected:hover:bg-hover-bg not-focus:hover:bg-hover-bg flex h-6 items-center gap-dropdown-arrow rounded-input px-input-x transition-colors selected:focus:cursor-default selected:focus:bg-frame selected:focus:font-bold selected:focus:focus-ring',
+                      'flex h-6 items-center gap-dropdown-arrow rounded-input px-input-x transition-colors selected:focus:cursor-default selected:focus:bg-frame selected:focus:font-bold selected:focus:focus-ring not-focus:hover:bg-hover-bg not-selected:hover:bg-hover-bg',
                       multiple && 'hover:font-semibold',
-                      i === visuallySelectedIndex ?
-                        'cursor-default bg-frame font-bold focus-ring'
-                      : 'hover:bg-hover-bg',
                     )}
                   >
                     <SvgMask

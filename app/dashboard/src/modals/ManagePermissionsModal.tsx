@@ -340,11 +340,6 @@ export default function ManagePermissionsModal<
                       itemToKey={(userOrGroup) =>
                         'userId' in userOrGroup ? userOrGroup.userId : userOrGroup.id
                       }
-                      itemToString={(userOrGroup) =>
-                        'name' in userOrGroup ?
-                          `${userOrGroup.name} (${userOrGroup.email})`
-                        : userOrGroup.groupName
-                      }
                       matches={(userOrGroup, text) =>
                         ('email' in userOrGroup &&
                           userOrGroup.email.toLowerCase().includes(text.toLowerCase())) ||
@@ -355,7 +350,13 @@ export default function ManagePermissionsModal<
                       }
                       text={email}
                       setText={setEmail}
-                    />
+                    >
+                      {(userOrGroup) =>
+                        'name' in userOrGroup ?
+                          `${userOrGroup.name} (${userOrGroup.email})`
+                        : userOrGroup.groupName
+                      }
+                    </Autocomplete>
                   </div>
                 </div>
                 <ariaComponents.Button

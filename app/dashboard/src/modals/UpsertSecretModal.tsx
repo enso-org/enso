@@ -3,8 +3,9 @@ import * as z from 'zod'
 
 import { Button, ButtonGroup, Dialog, Form, Input, Password } from '#/components/AriaComponents'
 import { useText } from '#/providers/TextProvider'
-import { SecretId } from '#/services/Backend'
+import type { SecretId } from '#/services/Backend'
 
+/** Create the schema for this form. */
 function createUpsertSecretSchema() {
   return z.object({
     name: z.string().min(1),
@@ -20,7 +21,7 @@ function createUpsertSecretSchema() {
 export interface UpsertSecretModalProps {
   readonly id: SecretId | null
   readonly name: string | null
-  readonly doCreate: (name: string, value: string) => void | Promise<void>
+  readonly doCreate: (name: string, value: string) => Promise<void> | void
 }
 
 /** A modal for creating and editing a secret. */
