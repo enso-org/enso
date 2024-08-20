@@ -106,7 +106,7 @@ object JPMSPlugin extends AutoPlugin {
         hasModInfo &&
         hasScalaSources
       if (res) {
-        logger.info(
+        logger.warn(
           s"[JPMSPlugin] Project '$projName' will have `module-info.java` compiled " +
           "manually. If this is not the intended behavior, consult the documentation " +
           "of JPMSPlugin."
