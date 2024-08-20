@@ -4,9 +4,9 @@ import { fetcherUrlTransformer } from '@/components/MarkdownEditor/imageUrlTrans
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import type { ToValue } from '@/util/reactivity'
-import type { Path } from 'shared/languageServerTypes'
-import { Err, Ok, mapOk, withContext, type Result } from 'shared/util/data/result'
 import { ref, toRef, toValue } from 'vue'
+import type { Path } from 'ydoc-shared/languageServerTypes'
+import { Err, Ok, mapOk, withContext, type Result } from 'ydoc-shared/util/data/result'
 
 const documentation = defineModel<string>({ required: true })
 const _props = defineProps<{}>()

@@ -4,8 +4,8 @@ import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore, type NodeId } from '@/stores/graph'
 import { filterDefined } from '@/util/data/iterable'
-import { tryGetSoleValue } from 'shared/util/data/iterable'
 import { ref } from 'vue'
+import { tryGetSoleValue } from 'ydoc-shared/util/data/iterable'
 
 const emit = defineEmits<{
   close: []

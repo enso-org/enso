@@ -3,7 +3,7 @@ import * as path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import type * as esbuild from 'esbuild'
-import esbuildPluginYaml from 'esbuild-plugin-yaml'
+import { wasmLoader } from 'esbuild-plugin-wasm'
 
 import * as appConfig from 'enso-common/src/appConfig'
 import * as paths from './paths'
@@ -45,12 +45,11 @@ export function bundlerOptions(
     outdir,
     entryPoints: ['src/index.ts', 'src/preload.ts'],
     outbase: 'src',
-    format: 'cjs',
+    format: 'esm',
     platform: 'node',
-    plugins: [esbuildPluginYaml.yamlPlugin({})],
-    // The names come from a third-party API and cannot be changed.
-    /* eslint-disable @typescript-eslint/naming-convention */
-    outExtension: { '.js': '.cjs' },
+    outExtension: { '.js': '.mjs' },
+    plugins: [wasmLoader()],
+    target: ['node20'], // electron31
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
@@ -60,7 +59,7 @@ export function bundlerOptions(
       'process.env.GUI_CONFIG_PATH': JSON.stringify(path.resolve('../../gui2/vite.config.ts')),
     },
     /* eslint-enable @typescript-eslint/naming-convention */
-    sourcemap: true,
+    sourcemap: 'linked',
     external: ['electron', 'vite', 'lightningcss'],
   }
 }

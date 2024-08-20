@@ -17,7 +17,7 @@ import SelectionBrushWrapper from './SelectionBrushWrapper.vue'
           v-if="scaledMousePos"
           :position="scaledMousePos"
           :anchor="scaledSelectionAnchor"
-          :style="{ transform: navigator.prescaledTransform }"
+          :transform="navigator.prescaledTransform"
         />
       </template>
     </SelectionBrushWrapper>

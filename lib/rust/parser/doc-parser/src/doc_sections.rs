@@ -77,7 +77,7 @@ impl Argument {
         // We split by the first colon or space, whatever comes first.
         // Typically a colon must be used as a separator, but in some documentation snippets we
         // have there is no colon and the name of the argument is simply the first word.
-        let mut split = text.splitn(2, |c| c == ':' || c == ' ');
+        let mut split = text.splitn(2, [':', ' ']);
         let name = split.next().unwrap_or(text).trim().to_string();
         let description = split.next().unwrap_or_default().trim().to_string();
         Self { name, description }

@@ -13,6 +13,15 @@ public interface BigDecimalArrayAdapter {
 
   int size();
 
+  default SpecializedStorage<BigDecimal> intoStorage() {
+    int n = size();
+    BigDecimal[] values = new BigDecimal[n];
+    for (int i = 0; i < n; i++) {
+      values[i] = getItem(i);
+    }
+    return new BigDecimalStorage(values, n);
+  }
+
   static BigDecimalArrayAdapter fromStorage(SpecializedStorage<BigDecimal> storage) {
     return new BigDecimalStorageAsBigDecimal(storage);
   }
@@ -55,6 +64,11 @@ public interface BigDecimalArrayAdapter {
     @Override
     public int size() {
       return storage.size();
+    }
+
+    @Override
+    public SpecializedStorage<BigDecimal> intoStorage() {
+      return storage;
     }
   }
 

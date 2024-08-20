@@ -21,9 +21,9 @@ import { toError } from '@/util/data/error'
 import type { Opt } from '@/util/data/opt'
 import type { DataServer } from '@/util/net/dataServer'
 import * as builtins from '@/util/visualizationBuiltins'
-import { Error as DataError } from 'shared/binaryProtocol'
-import type { Uuid } from 'shared/languageServerTypes'
 import * as vue from 'vue'
+import { Error as DataError } from 'ydoc-shared/binaryProtocol'
+import type { Uuid } from 'ydoc-shared/languageServerTypes'
 
 /** The custom URL protocol used internally for project-local assets. */
 export const currentProjectProtocol = 'enso-current-project:'

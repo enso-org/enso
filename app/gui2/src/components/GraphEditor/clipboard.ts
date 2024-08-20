@@ -5,8 +5,8 @@ import { Pattern } from '@/util/ast/match'
 import { filterDefined } from '@/util/data/iterable'
 import { Vec2 } from '@/util/data/vec2'
 import type { ToValue } from '@/util/reactivity'
-import type { NodeMetadataFields } from 'shared/ast'
 import { computed, toValue } from 'vue'
+import type { NodeMetadataFields } from 'ydoc-shared/ast'
 
 // MIME type in *vendor tree*; see https://www.rfc-editor.org/rfc/rfc6838#section-3.2
 // The `web ` prefix is required by Chromium:
@@ -185,7 +185,7 @@ export function writeClipboard(data: MimeData) {
 function nodeStructuredData(node: Node): CopiedNode {
   return {
     expression: node.innerExpr.code(),
-    documentation: node.documentation,
+    documentation: node.docs?.documentation(),
     metadata: node.rootExpr.serializeMetadata(),
     ...(node.pattern ? { binding: node.pattern.code() } : {}),
   }

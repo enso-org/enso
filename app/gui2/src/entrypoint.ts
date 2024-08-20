@@ -5,7 +5,6 @@ import { isOnLinux } from 'enso-common/src/detect'
 import * as commonQuery from 'enso-common/src/queryClient'
 import * as dashboard from 'enso-dashboard'
 import 'enso-dashboard/src/tailwind.css'
-import { isDevMode } from 'shared/util/detect'
 import { lazyVueInReact } from 'veaury'
 import { type App } from 'vue'
 
@@ -14,6 +13,7 @@ import { AsyncApp } from './asyncApp'
 
 const INITIAL_URL_KEY = `Enso-initial-url`
 const SCAM_WARNING_TIMEOUT = 1000
+export const isDevMode = process.env.NODE_ENV === 'development'
 
 function printScamWarning() {
   if (isDevMode) return

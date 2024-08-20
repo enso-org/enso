@@ -61,6 +61,8 @@ public class EqualsTest {
   @AfterClass
   public static void disposeContext() {
     context.close();
+    context = null;
+    unwrappedValues = null;
   }
 
   @DataPoints public static Object[] unwrappedValues;
@@ -90,6 +92,8 @@ public class EqualsTest {
           .toArray(new Object[] {});
     } catch (Exception e) {
       throw new AssertionError(e);
+    } finally {
+      valGenerator.dispose();
     }
   }
 

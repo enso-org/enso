@@ -22,12 +22,8 @@ pub enum Command {
     Build(BuildJob<Gui>),
     /// Gets the GUI, either by compiling it from scratch or downloading from an external source.
     Get(Source<Gui>),
-    /// Runs the GUI's unit tests.
-    Test,
-    /// Run linter on the GUI's sources.
-    Lint,
-    /// Continuously rebuilds GUI when its sources are changed and serves it using dev-server.
-    Watch,
+    /// Runs the GUI's linting and unit tests.
+    Check,
 }
 
 #[derive(Args, Clone, Debug)]

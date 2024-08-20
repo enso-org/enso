@@ -9,9 +9,9 @@ import {
   makeStaticMethod,
 } from '@/stores/suggestionDatabase/entry'
 import { assert } from '@/util/assert'
-import type { Opt } from 'shared/util/data/opt'
 import { expect, test } from 'vitest'
 import { ref, type Ref } from 'vue'
+import type { Opt } from 'ydoc-shared/util/data/opt'
 import {
   GET_WIDGETS_METHOD,
   WIDGETS_ENSO_MODULE,

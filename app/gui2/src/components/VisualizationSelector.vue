@@ -2,8 +2,8 @@
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useVisualizationStore } from '@/stores/visualization'
 import { useAutoBlur } from '@/util/autoBlur'
-import { visIdentifierEquals, type VisualizationIdentifier } from 'shared/yjsModel'
 import { onMounted, ref } from 'vue'
+import { visIdentifierEquals, type VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 const props = defineProps<{
   types: Iterable<VisualizationIdentifier>

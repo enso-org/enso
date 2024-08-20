@@ -86,4 +86,5 @@
   --visualization-resize-handle-outside: 3px;
   --right-dock-default-width: 40%;
   --code-editor-default-height: 30%;
+  --scrollbar-scrollable-opacity: 100%;
 }

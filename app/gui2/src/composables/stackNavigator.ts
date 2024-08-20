@@ -2,8 +2,8 @@ import type { BreadcrumbItem } from '@/components/NavBreadcrumbs.vue'
 import { type GraphStore, type NodeId } from '@/stores/graph'
 import { type ProjectStore } from '@/stores/project'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
-import { methodPointerEquals, type StackItem } from 'shared/languageServerTypes'
 import { computed, onMounted, ref } from 'vue'
+import { methodPointerEquals, type StackItem } from 'ydoc-shared/languageServerTypes'
 
 export function useStackNavigator(projectStore: ProjectStore, graphStore: GraphStore) {
   const breadcrumbs = ref<StackItem[]>([])
@@ -13,7 +13,8 @@ export function useStackNavigator(projectStore: ProjectStore, graphStore: GraphS
     return breadcrumbs.value.map((item, index) => {
       const label = stackItemToLabel(item, index === 0)
       const isActive = index < activeStackLength
-      return { label, active: isActive } satisfies BreadcrumbItem
+      const isCurrentTop = index == activeStackLength - 1
+      return { label, active: isActive, isCurrentTop } satisfies BreadcrumbItem
     })
   })
 
@@ -40,7 +41,6 @@ export function useStackNavigator(projectStore: ProjectStore, graphStore: GraphS
 
   function handleBreadcrumbClick(index: number) {
     projectStore.executionContext.desiredStack = breadcrumbs.value.slice(0, index + 1)
-    graphStore.updateState()
   }
 
   function enterNode(id: NodeId) {
@@ -60,13 +60,11 @@ export function useStackNavigator(projectStore: ProjectStore, graphStore: GraphS
       return
     }
     projectStore.executionContext.push(id)
-    graphStore.updateState()
     breadcrumbs.value = projectStore.executionContext.desiredStack.slice()
   }
 
   function exitNode() {
     projectStore.executionContext.pop()
-    graphStore.updateState()
   }
 
   /// Enter the next node from the history stack. This is the node that is the first greyed out item in the breadcrumbs.
@@ -78,7 +76,6 @@ export function useStackNavigator(projectStore: ProjectStore, graphStore: GraphS
       return
     }
     projectStore.executionContext.push(nextNode.expressionId)
-    graphStore.updateState()
   }
 
   onMounted(() => {

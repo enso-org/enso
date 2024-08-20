@@ -12,7 +12,8 @@ import * as array from 'lib0/array'
 import * as object from 'lib0/object'
 import { ObservableV2 } from 'lib0/observable'
 import * as random from 'lib0/random'
-import type { LanguageServer } from 'shared/languageServer'
+import { reactive } from 'vue'
+import type { LanguageServer } from 'ydoc-shared/languageServer'
 import {
   stackItemsEqual,
   type ContextId,
@@ -24,10 +25,9 @@ import {
   type StackItem,
   type Uuid,
   type VisualizationConfiguration,
-} from 'shared/languageServerTypes'
-import { exponentialBackoff } from 'shared/util/net'
-import type { ExternalId } from 'shared/yjsModel'
-import { reactive } from 'vue'
+} from 'ydoc-shared/languageServerTypes'
+import { exponentialBackoff } from 'ydoc-shared/util/net'
+import type { ExternalId } from 'ydoc-shared/yjsModel'
 
 // This constant should be synchronized with EXECUTION_ENVIRONMENT constant in
 // engine/runtime/src/main/java/org/enso/interpreter/EnsoLanguage.java

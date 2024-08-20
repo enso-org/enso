@@ -66,6 +66,7 @@ public class TypeOfNodeTest {
   public static void disposeCtx() throws Exception {
     if (ctx != null) {
       ctx.close();
+      ctx = null;
     }
   }
 

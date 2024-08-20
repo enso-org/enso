@@ -1,12 +1,9 @@
 import { Ast } from '@/util/ast'
-import { MutableModule } from 'shared/ast'
-import { initializeFFI } from 'shared/ast/ffi'
-import { SourceDocument } from 'shared/ast/sourceDocument'
-import { applyTextEdits } from 'shared/util/data/text'
 import { expect, test } from 'vitest'
+import { MutableModule } from 'ydoc-shared/ast'
+import { SourceDocument } from 'ydoc-shared/ast/sourceDocument'
+import { applyTextEdits } from 'ydoc-shared/util/data/text'
 import * as Y from 'yjs'
-
-await initializeFFI()
 
 test('Test SourceDocument', () => {
   const syncModule = new MutableModule(new Y.Doc())

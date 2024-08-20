@@ -1,9 +1,11 @@
 /** @file Permissions for a specific user or user group on a specific asset. */
 import * as React from 'react'
 
+import { useMutation } from '@tanstack/react-query'
+
 import type * as text from 'enso-common/src/text'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import { backendMutationOptions } from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as textProvider from '#/providers/TextProvider'
@@ -58,7 +60,9 @@ export default function Permission(props: PermissionProps) {
   const isDisabled = isOnlyOwner && permissionId === self.user.userId
   const assetTypeName = getText(ASSET_TYPE_TO_TEXT_ID[asset.type])
 
-  const createPermissionMutation = backendHooks.useBackendMutation(backend, 'createPermission')
+  const createPermission = useMutation(
+    backendMutationOptions(backend, 'createPermission'),
+  ).mutateAsync
 
   React.useEffect(() => {
     setPermission(initialPermission)
@@ -68,7 +72,7 @@ export default function Permission(props: PermissionProps) {
     try {
       setPermission(newPermission)
       outerSetPermission(newPermission)
-      await createPermissionMutation.mutateAsync([
+      await createPermission([
         {
           actorsIds: [backendModule.getAssetPermissionId(newPermission)],
           resourceId: asset.id,

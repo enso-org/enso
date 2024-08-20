@@ -35,6 +35,7 @@ public class VectorArraySignatureTest {
   @AfterClass
   public static void closeEnsoParser() throws Exception {
     ensoCompiler.close();
+    ensoCompiler = null;
   }
 
   @Test

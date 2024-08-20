@@ -1,10 +1,12 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
+import org.enso.base.CompareException;
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
+import org.enso.table.data.column.operation.map.text.CoalescingStringStringOp;
 import org.enso.table.data.column.operation.map.text.LikeOp;
 import org.enso.table.data.column.operation.map.text.StringBooleanOp;
 import org.enso.table.data.column.operation.map.text.StringIsInOp;
@@ -124,6 +126,34 @@ public final class StringStorage extends SpecializedStorage<String> {
             return Text_Utils.contains(a, b);
           }
         });
+    t.add(
+        new StringComparisonOp(Maps.LT) {
+          @Override
+          protected boolean doString(String a, String b) {
+            return Text_Utils.compare_normalized(a, b) < 0;
+          }
+        });
+    t.add(
+        new StringComparisonOp(Maps.LTE) {
+          @Override
+          protected boolean doString(String a, String b) {
+            return Text_Utils.compare_normalized(a, b) <= 0;
+          }
+        });
+    t.add(
+        new StringComparisonOp(Maps.GT) {
+          @Override
+          protected boolean doString(String a, String b) {
+            return Text_Utils.compare_normalized(a, b) > 0;
+          }
+        });
+    t.add(
+        new StringComparisonOp(Maps.GTE) {
+          @Override
+          protected boolean doString(String a, String b) {
+            return Text_Utils.compare_normalized(a, b) >= 0;
+          }
+        });
     t.add(new LikeOp());
     t.add(new StringIsInOp<>());
     t.add(
@@ -136,6 +166,38 @@ public final class StringStorage extends SpecializedStorage<String> {
           @Override
           protected TextType computeResultType(TextType a, TextType b) {
             return TextType.concatTypes(a, b);
+          }
+        });
+    t.add(
+        new CoalescingStringStringOp(Maps.MIN) {
+          @Override
+          protected String doString(String a, String b) {
+            if (Text_Utils.compare_normalized(a, b) < 0) {
+              return a;
+            } else {
+              return b;
+            }
+          }
+
+          @Override
+          protected TextType computeResultType(TextType a, TextType b) {
+            return TextType.maxType(a, b);
+          }
+        });
+    t.add(
+        new CoalescingStringStringOp(Maps.MAX) {
+          @Override
+          protected String doString(String a, String b) {
+            if (Text_Utils.compare_normalized(a, b) > 0) {
+              return a;
+            } else {
+              return b;
+            }
+          }
+
+          @Override
+          protected TextType computeResultType(TextType a, TextType b) {
+            return TextType.maxType(a, b);
           }
         });
     return t;
@@ -177,6 +239,17 @@ public final class StringStorage extends SpecializedStorage<String> {
       // bound, or the
       // existing elements to do not fit into the 255 bound).
       return getType();
+    }
+  }
+
+  private abstract static class StringComparisonOp extends StringBooleanOp {
+    public StringComparisonOp(String name) {
+      super(name);
+    }
+
+    @Override
+    protected boolean doObject(String a, Object o) {
+      throw new CompareException(a, o);
     }
   }
 }

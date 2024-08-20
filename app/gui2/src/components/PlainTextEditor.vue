@@ -31,6 +31,8 @@ const { editor } = useLexical(contentElement, 'PlainTextEditor', theme, [
   textSync,
 ])
 const { urlUnderCursor } = useLinkNode(editor)
+
+defineExpose({ contentElement })
 </script>
 
 <template>

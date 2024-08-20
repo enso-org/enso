@@ -1,0 +1,12 @@
+{
+  "extends": "../tsconfig.json",
+  "include": ["src/**/*.ts"],
+  "references": [{ "path": "../ydoc-server" }],
+  "compilerOptions": {
+    "composite": true,
+    "noEmit": false,
+    "rootDir": "src",
+    "outDir": "dist",
+    "paths": { "#/*": ["./src/*"] }
+  }
+}

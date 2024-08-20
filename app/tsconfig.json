@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "lib": ["DOM"],
+    "lib": ["ES2021", "DOM", "DOM.Iterable"],
     "composite": true,
     "rootDir": "../..",
     "allowSyntheticDefaultImports": true,
@@ -10,7 +10,6 @@
     "moduleResolution": "Bundler",
     "noEmit": true,
     "allowJs": true,
-    "checkJs": true,
     "strict": true,
     "noImplicitAny": true,
     "exactOptionalPropertyTypes": true,
@@ -21,7 +20,7 @@
     "resolveJsonModule": true,
     "sourceMap": true,
     "skipLibCheck": true,
-    "target": "ES2019",
+    "target": "ES2021",
     "jsx": "react-jsx"
   }
 }

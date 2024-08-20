@@ -21,12 +21,9 @@ import {
   interpretCall,
 } from '@/util/callTree'
 import { fail } from 'assert'
-import { initializeFFI } from 'shared/ast/ffi'
-import type { ExpressionUpdatePayload, MethodCall } from 'shared/languageServerTypes'
-import { assertEqual, assertNotEqual } from 'shared/util/assert'
 import { assert, expect, test } from 'vitest'
-
-await initializeFFI()
+import type { ExpressionUpdatePayload, MethodCall } from 'ydoc-shared/languageServerTypes'
+import { assertEqual, assertNotEqual } from 'ydoc-shared/util/assert'
 
 const prefixFixture = {
   allowInfix: false,

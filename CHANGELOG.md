@@ -1,5 +1,18 @@
 # Next Release
 
+#### Enso IDE
+
+- [Table Editor Widget][10774] displayed in `Table.new` component.
+- [New design of Component Browser][10814] - the component list is under the
+  input and shown only in the initial "component browsing" mode - after picking
+  any suggestion with Tab or new button the mode is switched to "code editing",
+  where visualization preview is displayed instead.
+- [Drilldown for XML][10824]
+
+[10774]: https://github.com/enso-org/enso/pull/10774
+[10814]: https://github.com/enso-org/enso/pull/10814
+[10824]: https://github.com/enso-org/enso/pull/10824
+
 #### Enso Standard Library
 
 - [Implemented in-memory and database mixed `Decimal` column
@@ -8,11 +21,16 @@
   Cloud.][10660]
 - [Added Newline option to Text_Cleanse/Text_Replace.][10761]
 - [Support for reading from Tableau Hyper files.][10733]
+- [Mixed Decimal/Float arithmetic now throws an error; mixed comparisons now
+  attach warnings.][10725]
+- [Support for creating Atoms in expressions.][10820]
 
 [10614]: https://github.com/enso-org/enso/pull/10614
 [10660]: https://github.com/enso-org/enso/pull/10660
 [10761]: https://github.com/enso-org/enso/pull/10761
 [10733]: https://github.com/enso-org/enso/pull/10733
+[10725]: https://github.com/enso-org/enso/pull/10725
+[10820]: https://github.com/enso-org/enso/pull/10820
 
 # Enso 2023.3
 
@@ -23,14 +41,12 @@
 - [Space-precedence does not apply to value-level operators][10597]
 - [Must specify `--repl` to enable debug server][10709]
 - [Improved parser error reporting and performance][10734]
-- [Import all available libraries in `--repl` mode][10746]
 
 [10468]: https://github.com/enso-org/enso/pull/10468
 [10535]: https://github.com/enso-org/enso/pull/10535
 [10597]: https://github.com/enso-org/enso/pull/10597
 [10709]: https://github.com/enso-org/enso/pull/10709
 [10734]: https://github.com/enso-org/enso/pull/10734
-[10746]: https://github.com/enso-org/enso/pull/10746
 
 #### Enso IDE
 

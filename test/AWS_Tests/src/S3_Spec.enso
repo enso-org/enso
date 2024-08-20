@@ -327,7 +327,7 @@ add_specs suite_builder =
 
                 # But the file cannot be listed:
                 err = new_file.list
-                err.should_fail_with S3_Error
+                err.should_fail_with Illegal_Argument
                 err.catch.to_display_text . should_contain "Cannot `list` a non-directory."
 
             new_file.delete . should_succeed

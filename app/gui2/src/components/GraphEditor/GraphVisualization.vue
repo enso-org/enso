@@ -23,8 +23,6 @@ import type { URLString } from '@/util/data/urlString'
 import { Vec2 } from '@/util/data/vec2'
 import type { Icon } from '@/util/iconName'
 import { computedAsync } from '@vueuse/core'
-import { isIdentifier } from 'shared/ast'
-import { visIdentifierEquals, type VisualizationIdentifier } from 'shared/yjsModel'
 import {
   computed,
   nextTick,
@@ -36,6 +34,8 @@ import {
   watchEffect,
   type ShallowRef,
 } from 'vue'
+import { isIdentifier } from 'ydoc-shared/ast'
+import { visIdentifierEquals, type VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 /** The minimum width must be at least the total width of:
  * - both of toolbars that are always visible (32px + 60px), and

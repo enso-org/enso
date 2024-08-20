@@ -4,8 +4,8 @@ import type { WidgetConfiguration } from '@/providers/widgetRegistry/configurati
 import type { GraphDb } from '@/stores/graph/graphDatabase'
 import type { Typename } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
-import { MutableModule } from '@/util/ast/abstract.ts'
-import type { ViteHotContext } from 'vite/types/hot'
+import { MutableModule } from '@/util/ast/abstract'
+import { ViteHotContext } from 'vite/types/hot.js'
 import { computed, shallowReactive, type Component, type PropType } from 'vue'
 import type { WidgetEditHandlerParent } from './widgetRegistry/editHandler'
 

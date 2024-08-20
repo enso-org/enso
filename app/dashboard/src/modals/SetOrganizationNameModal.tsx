@@ -1,8 +1,10 @@
 /** @file Modal for setting the organization name. */
 import * as React from 'react'
 
-import * as reactQuery from '@tanstack/react-query'
+import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
 import * as router from 'react-router'
+
+import { backendMutationOptions } from '#/hooks/backendHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
@@ -35,18 +37,16 @@ export function SetOrganizationNameModal() {
   const userId = user?.userId ?? null
   const userPlan = user?.plan ?? null
 
-  const { data: organizationName } = reactQuery.useSuspenseQuery({
+  const { data: organizationName } = useSuspenseQuery({
     queryKey: ['organization', userId],
     queryFn: () => backend.getOrganization().catch(() => null),
     staleTime: Infinity,
     select: (data) => data?.name ?? '',
   })
 
-  const submit = reactQuery.useMutation({
-    mutationKey: ['organization', userId],
-    mutationFn: (name: string) => backend.updateOrganization({ name }),
-    meta: { invalidates: [['organization', userId]], awaitInvalidates: true },
-  })
+  const updateOrganization = useMutation(
+    backendMutationOptions(backend, 'updateOrganization'),
+  ).mutateAsync
 
   const shouldShowModal =
     userPlan != null && PLANS_TO_SPECIFY_ORG_NAME.includes(userPlan) && organizationName === ''
@@ -62,7 +62,7 @@ export function SetOrganizationNameModal() {
       >
         <SetOrganizationNameForm
           onSubmit={async (name) => {
-            await submit.mutateAsync(name)
+            await updateOrganization([{ name }])
           }}
         />
       </ariaComponents.Dialog>

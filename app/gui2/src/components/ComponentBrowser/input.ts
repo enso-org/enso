@@ -26,8 +26,8 @@ import {
 } from '@/util/qualifiedName'
 import { useToast } from '@/util/toast'
 import { equalFlat } from 'lib0/array'
-import { sourceRangeKey, type SourceRange } from 'shared/yjsModel'
 import { computed, readonly, ref, type ComputedRef } from 'vue'
+import { sourceRangeKey, type SourceRange } from 'ydoc-shared/yjsModel'
 import { useAI } from './ai'
 
 /** Information how the component browser is used, needed for proper input initializing. */

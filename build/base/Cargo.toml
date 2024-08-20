@@ -7,11 +7,10 @@ edition = "2021"
 [dependencies]
 anyhow = { workspace = true }
 fn-error-context = "0.2.0"
-futures-util = "0.3.24"
+futures-util = { workspace = true }
 futures = { workspace = true }
-serde = "1.0.145"
+serde = { workspace = true }
 serde_json = { workspace = true }
-serde_yaml = { workspace = true }
 tracing = { workspace = true }
 
 [lints]

@@ -1,1 +1,1 @@
-export * from 'shared/util/data/opt'
+export * from 'ydoc-shared/util/data/opt'

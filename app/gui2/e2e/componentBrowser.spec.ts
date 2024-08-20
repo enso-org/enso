@@ -106,7 +106,7 @@ test('Graph Editor pans to Component Browser', async ({ page }) => {
   // Dragging out an edge to the bottom of the viewport; when the CB pans into view, some nodes are out of view.
   await page.mouse.move(100, 1100)
   await page.mouse.down({ button: 'middle' })
-  await page.mouse.move(100, 80)
+  await page.mouse.move(100, 280)
   await page.mouse.up({ button: 'middle' })
   await expect(locate.graphNodeByBinding(page, 'five')).toBeInViewport()
   const outputPort = await locate.outputPortCoordinates(locate.graphNodeByBinding(page, 'final'))
@@ -240,14 +240,10 @@ test('Visualization preview: type-based visualization selection', async ({ page 
   await expect(locate.componentBrowser(page)).toExist()
   await expect(locate.componentBrowserEntry(page)).toExist()
   const input = locate.componentBrowserInput(page).locator('input')
-  await input.fill('4')
-  await expect(input).toHaveValue('4')
-  await expect(locate.jsonVisualization(page)).toExist()
   await input.fill('Table.ne')
   await expect(input).toHaveValue('Table.ne')
-  // The table visualization is not currently working with `executeExpression` (#9194), but we can test that the JSON
-  // visualization is no longer selected.
-  await expect(locate.jsonVisualization(page)).toBeHidden()
+  await locate.componentBrowser(page).getByTestId('switchToEditMode').click()
+  await expect(locate.tableVisualization(page)).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(locate.componentBrowser(page)).toBeHidden()
   await expect(locate.graphNode(page)).toHaveCount(nodeCount)
@@ -258,17 +254,15 @@ test('Visualization preview: user visualization selection', async ({ page }) => 
   const nodeCount = await locate.graphNode(page).count()
   await locate.addNewNodeButton(page).click()
   await expect(locate.componentBrowser(page)).toExist()
-  await expect(locate.componentBrowserEntry(page)).toExist()
   const input = locate.componentBrowserInput(page).locator('input')
   await input.fill('4')
   await expect(input).toHaveValue('4')
-  await expect(locate.jsonVisualization(page)).toExist()
+  await locate.componentBrowser(page).getByTestId('switchToEditMode').click()
+  await expect(locate.jsonVisualization(page)).toBeVisible()
   await expect(locate.jsonVisualization(page)).toContainText('"visualizedExpr": "4"')
   await locate.toggleVisualizationSelectorButton(page).click()
   await page.getByRole('button', { name: 'Table' }).click()
-  // The table visualization is not currently working with `executeExpression` (#9194), but we can test that the JSON
-  // visualization is no longer selected.
-  await expect(locate.jsonVisualization(page)).toBeHidden()
+  await expect(locate.tableVisualization(page)).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(locate.componentBrowser(page)).toBeHidden()
   await expect(locate.graphNode(page)).toHaveCount(nodeCount)
@@ -285,6 +279,8 @@ test('Component browser handling of overridden record-mode', async ({ page }) =>
   await locate.graphNodeIcon(node).hover()
   await expect(recordModeToggle).toHaveClass(/toggledOff/)
   await recordModeToggle.click()
+  await expect(recordModeToggle).toHaveClass(/toggledOn/)
+  await page.keyboard.press('Escape')
   // TODO[ao]: The simple move near top-left corner not always works i.e. not always
   //  `pointerleave` event is emitted. Investigated in https://github.com/enso-org/enso/issues/9478
   //  once fixed, remember to change the second `await page.mouse.move(700, 1200, { steps: 20 })`

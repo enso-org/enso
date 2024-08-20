@@ -16,16 +16,17 @@ import org.enso.compiler.core.ir.{
 import org.enso.compiler.core.ir.expression.warnings
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.analyse.alias.graph.{
+  GraphOccurrence,
+  Graph => AliasGraph
+}
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   DataflowAnalysis,
   DemandAnalysis,
   TailCall
 }
-import org.enso.compiler.pass.analyse.alias.{
-  Graph => AliasGraph,
-  Info => AliasInfo
-}
+import org.enso.compiler.pass.analyse.alias.{AliasMetadata => AliasInfo}
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.resolve.IgnoredBindings
 
@@ -364,7 +365,7 @@ case object LambdaConsolidate extends IRPass {
           .flatMap(occ => Some(aliasInfo.graph.knownShadowedDefinitions(occ)))
           .getOrElse(Set())
       }
-      .foldLeft(Set[AliasGraph.Occurrence]())(_ ++ _)
+      .foldLeft(Set[GraphOccurrence]())(_ ++ _)
       .map(_.id)
   }
 
@@ -397,7 +398,7 @@ case object LambdaConsolidate extends IRPass {
               .map(link => aliasInfo.graph.getOccurrence(link.source))
               .collect {
                 case Some(
-                      AliasGraph.Occurrence.Use(_, _, identifier, _)
+                      GraphOccurrence.Use(_, _, identifier, _)
                     ) =>
                   identifier
               }

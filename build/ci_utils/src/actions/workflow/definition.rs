@@ -803,7 +803,7 @@ impl Strategy {
         name: impl Into<String>,
         values: impl IntoIterator<Item: Serialize>,
     ) -> Result<&mut Self> {
-        let values = values.into_iter().map(serde_json::to_value).try_collect_vec()?;
+        let values = values.into_iter().map(serde_json::to_value).try_collect()?;
         self.matrix.insert(name.into(), serde_json::Value::Array(values));
         Ok(self)
     }

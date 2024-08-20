@@ -49,7 +49,7 @@
 use crate::java::implementation::*;
 use crate::java::*;
 
-use derivative::Derivative;
+use derive_where::derive_where;
 use std::fmt::Write;
 
 
@@ -59,17 +59,16 @@ use std::fmt::Write;
 // ==========================
 
 /// Supports configuring deserialization for a type.
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive_where(Debug)]
 pub struct DeserializerBuilder {
     root:           ClassId,
-    #[derivative(Debug = "ignore")]
+    #[derive_where(skip)]
     materializers:  BTreeMap<FieldId, Materializer>,
-    #[derivative(Debug = "ignore")]
+    #[derive_where(skip)]
     mappers:        BTreeMap<FieldId, Mapper>,
-    #[derivative(Debug = "ignore")]
+    #[derive_where(skip)]
     pre_hooks:      Vec<Hook>,
-    #[derivative(Debug = "ignore")]
+    #[derive_where(skip)]
     post_hooks:     Vec<Hook>,
     support:        String,
     either_type:    String,

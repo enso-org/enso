@@ -12,14 +12,13 @@ import { useProjectStore } from '@/stores/project'
 import type { AstId } from '@/util/ast/abstract'
 import type { Vec2 } from '@/util/data/vec2'
 import { set } from 'lib0'
-import { stackItemsEqual } from 'shared/languageServerTypes'
 import { computed, shallowRef, toRaw } from 'vue'
+import { stackItemsEqual } from 'ydoc-shared/languageServerTypes'
 
 const emit = defineEmits<{
   nodeOutputPortDoubleClick: [portId: AstId]
   nodeDoubleClick: [nodeId: NodeId]
   createNodes: [source: NodeId, options: NodeCreationOptions[]]
-  setNodeColor: [color: string | undefined]
 }>()
 
 const projectStore = useProjectStore()
@@ -75,7 +74,7 @@ const graphNodeSelections = shallowRef<HTMLElement>()
       @outputPortDoubleClick="(_event, port) => emit('nodeOutputPortDoubleClick', port)"
       @doubleClick="emit('nodeDoubleClick', id)"
       @createNodes="emit('createNodes', id, $event)"
-      @setNodeColor="emit('setNodeColor', $event)"
+      @setNodeColor="graphStore.overrideNodeColor(id, $event)"
       @update:edited="graphStore.setEditedNode(id, $event)"
       @update:rect="graphStore.updateNodeRect(id, $event)"
       @update:hoverAnim="graphStore.updateNodeHoverAnim(id, $event)"

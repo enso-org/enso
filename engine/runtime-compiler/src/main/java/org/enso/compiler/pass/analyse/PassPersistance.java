@@ -1,8 +1,10 @@
 package org.enso.compiler.pass.analyse;
 
 import java.io.IOException;
-import org.enso.compiler.pass.analyse.alias.Graph;
-import org.enso.compiler.pass.analyse.alias.Info;
+import org.enso.compiler.context.FramePointer;
+import org.enso.compiler.pass.analyse.alias.AliasMetadata;
+import org.enso.compiler.pass.analyse.alias.graph.Graph;
+import org.enso.compiler.pass.analyse.alias.graph.GraphOccurrence;
 import org.enso.compiler.pass.analyse.types.TypeInference;
 import org.enso.compiler.pass.resolve.DocumentationComments;
 import org.enso.compiler.pass.resolve.DocumentationComments$;
@@ -57,25 +59,16 @@ import scala.Tuple2$;
 @Persistable(clazz = GenericAnnotations$.class, id = 1216)
 @Persistable(clazz = ExpressionAnnotations$.class, id = 1217)
 @Persistable(clazz = FullyQualifiedNames$.class, id = 1218)
-@Persistable(clazz = Info.Occurrence.class, id = 1261, allowInlining = false)
-@Persistable(
-    clazz = org.enso.compiler.pass.analyse.alias.Info$Scope$Root.class,
-    id = 1262,
-    allowInlining = false)
-@Persistable(
-    clazz = org.enso.compiler.pass.analyse.alias.Info$Scope$Child.class,
-    id = 1263,
-    allowInlining = false)
-@Persistable(
-    clazz = org.enso.compiler.pass.analyse.alias.Graph$Occurrence$Use.class,
-    id = 1264,
-    allowInlining = false)
-@Persistable(
-    clazz = org.enso.compiler.pass.analyse.alias.Graph$Occurrence$Def.class,
-    id = 1265,
-    allowInlining = false)
+@Persistable(clazz = AliasMetadata.Occurrence.class, id = 1261, allowInlining = false)
+@Persistable(clazz = AliasMetadata.RootScope.class, id = 1262, allowInlining = false)
+@Persistable(clazz = AliasMetadata.ChildScope.class, id = 1263, allowInlining = false)
+@Persistable(clazz = GraphOccurrence.Use.class, id = 1264, allowInlining = false)
+@Persistable(clazz = GraphOccurrence.Def.class, id = 1265, allowInlining = false)
 @Persistable(clazz = Graph.Link.class, id = 1266, allowInlining = false)
 @Persistable(clazz = TypeInference.class, id = 1280)
+@Persistable(clazz = FramePointerAnalysis$.class, id = 1281)
+@Persistable(clazz = FramePointerAnalysis.FramePointerMeta.class, id = 1282)
+@Persistable(clazz = FramePointer.class, id = 1283)
 public final class PassPersistance {
   private PassPersistance() {}
 
@@ -131,7 +124,7 @@ public final class PassPersistance {
     @SuppressWarnings("unchecked")
     protected Graph.Scope readObject(Input in) throws IOException {
       var childScopes = in.readInline(scala.collection.immutable.List.class);
-      var occurrencesValues = (scala.collection.immutable.Set<Graph.Occurrence>) in.readObject();
+      var occurrencesValues = (scala.collection.immutable.Set<GraphOccurrence>) in.readObject();
       var occurrences = occurrencesValues.map(v -> Tuple2$.MODULE$.apply(v.id(), v)).toMap(null);
       var allDefinitions = in.readInline(scala.collection.immutable.List.class);
       var parent = new Graph.Scope(childScopes, occurrences, allDefinitions);

@@ -9,8 +9,8 @@ import { intersectionSize } from '@/util/data/set'
 import type { Vec2 } from '@/util/data/vec2'
 import { dataAttribute, elementHierarchy } from '@/util/dom'
 import * as set from 'lib0/set'
-import { Err, Ok, type Result } from 'shared/util/data/result'
 import { computed, ref, shallowReactive, shallowRef } from 'vue'
+import { Err, Ok, type Result } from 'ydoc-shared/util/data/result'
 
 interface BaseSelectionOptions<T> {
   margin?: number

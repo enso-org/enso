@@ -3,8 +3,8 @@ import { createContextStore } from '@/providers'
 import type { URLString } from '@/util/data/urlString'
 import { Vec2 } from '@/util/data/vec2'
 import type { Icon } from '@/util/iconName'
-import type { VisualizationIdentifier } from 'shared/yjsModel'
 import { reactive } from 'vue'
+import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 export interface VisualizationConfig {
   background?: string

@@ -12,6 +12,22 @@ import java.io.File
   *
   * If this plugin is enabled, and no settings/tasks from this plugin are used, then the plugin will
   * not inject anything into `javaOptions` or `javacOptions`.
+  *
+  * == How to work with this plugin ==
+  * - Specify `moduleDependencies` with something like:
+  *  {{{
+  *  moduleDependencies := Seq(
+  *    "org.apache.commons" % "commons-lang3" % "3.11",
+  *  )
+  *  }}}
+  *  - Ensure that all the module dependencies were gathered by the plugin correctly by
+  *    `print modulePath`.
+  *    - If not, make sure that these dependencies are in `libraryDependencies`.
+  *      Debug this with `print dependencyClasspath`.
+  *
+  * == Caveats ==
+  * - This plugin cannot determine transitive dependencies of modules in `moduleDependencies`.
+  *   As opposed to `libraryDependencies` which automatically gatheres all the transitive dependencies.
   */
 object JPMSPlugin extends AutoPlugin {
   object autoImport {
@@ -19,6 +35,11 @@ object JPMSPlugin extends AutoPlugin {
       settingKey[String]("The name of the Java (JPMS) module")
     val addModules = settingKey[Seq[String]](
       "Module names that will be added to --add-modules option"
+    )
+    val moduleDependencies = taskKey[Seq[ModuleID]](
+      "Modules dependencies that will be added to --module-path option. List all the sbt modules " +
+      "that should be added on module-path, including internal dependencies. To get ModuleID for a " +
+      "local dependency, use the `projectID` setting."
     )
     val modulePath = taskKey[Seq[File]](
       "Directories (Jar archives or expanded Jar archives) that will be put into " +
@@ -51,7 +72,19 @@ object JPMSPlugin extends AutoPlugin {
 
   override lazy val projectSettings: Seq[Setting[_]] = Seq(
     addModules := Seq.empty,
-    modulePath := Seq.empty,
+    moduleDependencies := Seq.empty,
+    // modulePath is set based on moduleDependencies
+    modulePath := {
+      val cp = JPMSUtils.filterModulesFromClasspath(
+        // Do not use fullClasspath here - it will result in an infinite recursion
+        // and sbt will not be able to detect the cycle.
+        (Compile / dependencyClasspath).value,
+        (Compile / moduleDependencies).value,
+        streams.value.log,
+        shouldContainAll = true
+      )
+      cp.map(_.data)
+    },
     patchModules := Map.empty,
     addExports := Map.empty,
     addReads := Map.empty,
@@ -75,6 +108,15 @@ object JPMSPlugin extends AutoPlugin {
         (Compile / addReads).value
       )
     },
+    Test / modulePath := {
+      val cp = JPMSUtils.filterModulesFromClasspath(
+        (Test / dependencyClasspath).value,
+        (Test / moduleDependencies).value,
+        streams.value.log,
+        shouldContainAll = true
+      )
+      cp.map(_.data)
+    },
     Test / javacOptions ++= {
       constructOptions(
         streams.value.log,
@@ -91,6 +133,15 @@ object JPMSPlugin extends AutoPlugin {
         (Test / addExports).value,
         (Test / addReads).value
       )
+    },
+    Runtime / modulePath := {
+      val cp = JPMSUtils.filterModulesFromClasspath(
+        (Runtime / dependencyClasspath).value,
+        (Runtime / moduleDependencies).value,
+        streams.value.log,
+        shouldContainAll = true
+      )
+      cp.map(_.data)
     }
   )
 

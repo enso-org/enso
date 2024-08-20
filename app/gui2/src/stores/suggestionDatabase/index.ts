@@ -11,10 +11,10 @@ import {
   tryQualifiedName,
   type QualifiedName,
 } from '@/util/qualifiedName'
-import { LanguageServer } from 'shared/languageServer'
-import type { MethodPointer } from 'shared/languageServerTypes'
-import { exponentialBackoff } from 'shared/util/net'
 import { markRaw, proxyRefs, ref, type Ref } from 'vue'
+import { LanguageServer } from 'ydoc-shared/languageServer'
+import type { MethodPointer } from 'ydoc-shared/languageServerTypes'
+import { exponentialBackoff } from 'ydoc-shared/util/net'
 
 export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
   nameToId = new ReactiveIndex(this, (id, entry) => [[entryQn(entry), id]])

@@ -10,8 +10,8 @@ import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
+import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -34,7 +34,7 @@ public class TypeInferenceConsistencyTest {
             .build();
   }
 
-  @Before
+  @After
   public void cleanMessages() {
     output.reset();
   }
@@ -46,6 +46,7 @@ public class TypeInferenceConsistencyTest {
   @AfterClass
   public static void disposeCtx() {
     ctx.close();
+    ctx = null;
   }
 
   @Test

@@ -507,7 +507,7 @@ public final class ValuesGenerator {
           v(null, "import Standard.Base.Data.Time.Date_Period.Date_Period", "Date_Period.Year")
               .type());
       collect.add(
-          v(null, "import Standard.Base.Data.Time.Time_Period.Time_Period", "Time_Period.Day")
+          v(null, "import Standard.Base.Data.Time.Time_Period.Time_Period", "Time_Period.Hour")
               .type());
       collect.add(
           v(null, "import Standard.Base.Data.Time.Period.Period", "Period.new 1 2 3").type());

@@ -1,9 +1,9 @@
 import { useAbortScope } from '@/util/net'
 import { debouncedWatch, useLocalStorage } from '@vueuse/core'
 import { encoding } from 'lib0'
-import { xxHash128 } from 'shared/ast/ffi'
-import { AbortScope } from 'shared/util/net'
 import { computed, getCurrentInstance, ref, watch, withCtx } from 'vue'
+import { xxHash128 } from 'ydoc-shared/ast/ffi'
+import { AbortScope } from 'ydoc-shared/util/net'
 
 export interface SyncLocalStorageOptions<StoredState> {
   /**

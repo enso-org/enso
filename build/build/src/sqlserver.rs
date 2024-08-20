@@ -185,7 +185,7 @@ impl SQLServer {
         let mut cmd = Docker.run_cmd(&opts)?;
         cmd.stdout(Stdio::piped());
         cmd.kill_on_drop(true);
-        let mut child = cmd.spawn().anyhow_err()?;
+        let mut child = cmd.spawn()?;
         let stdout = child
             .stdout
             .take()

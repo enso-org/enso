@@ -155,7 +155,7 @@ jobs:
           access_token: ${{ github.token }}
     permissions:
       actions: write
-  enso-build-ci-gen-job-new-gui-build-linux-x86_64:
+  enso-build-ci-gen-job-gui-build-linux-x86_64:
     name: GUI build (linux, x86_64)
     runs-on:
       - self-hosted
@@ -210,7 +210,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build-ci-gen-job-new-gui-build-macos-x86_64:
+  enso-build-ci-gen-job-gui-build-macos-x86_64:
     name: GUI build (macos, x86_64)
     runs-on:
       - macos-12
@@ -264,7 +264,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build-ci-gen-job-new-gui-build-windows-x86_64:
+  enso-build-ci-gen-job-gui-build-windows-x86_64:
     name: GUI build (windows, x86_64)
     runs-on:
       - self-hosted

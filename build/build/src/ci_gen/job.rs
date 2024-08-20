@@ -326,21 +326,21 @@ impl JobArchetype for NativeTest {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct GuiTest;
+pub struct GuiCheck;
 
-impl JobArchetype for GuiTest {
+impl JobArchetype for GuiCheck {
     fn job(&self, target: Target) -> Job {
-        plain_job(target, "GUI tests", "gui test")
+        plain_job(target, "GUI tests", "gui check")
     }
 }
 
 
 #[derive(Clone, Copy, Debug)]
-pub struct NewGuiBuild;
+pub struct GuiBuild;
 
-impl JobArchetype for NewGuiBuild {
+impl JobArchetype for GuiBuild {
     fn job(&self, target: Target) -> Job {
-        let command = "gui build";
+        let command: &str = "gui build";
         RunStepsBuilder::new(command)
             .customize(|step| vec![expose_gui_vars(step)])
             .build_job("GUI build", target)

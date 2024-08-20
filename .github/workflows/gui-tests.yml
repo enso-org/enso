@@ -1,7 +1,7 @@
 # This file is auto-generated. Do not edit it manually!
 # Edit the enso_build::ci_gen module instead and run `cargo run --package enso-build-ci-gen`.
 
-name: GUI Tests
+name: GUI Check
 on:
   push:
     branches:
@@ -27,7 +27,7 @@ jobs:
           access_token: ${{ github.token }}
     permissions:
       actions: write
-  enso-build-ci-gen-job-gui-test-linux-x86_64:
+  enso-build-ci-gen-job-gui-check-linux-x86_64:
     name: GUI tests (linux, x86_64)
     runs-on:
       - self-hosted
@@ -56,7 +56,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run gui test
+      - run: ./run gui check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: failure() && runner.os == 'Windows'

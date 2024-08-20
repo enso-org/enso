@@ -11,6 +11,7 @@ import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.SQL.SQL_Builder
+from project.Dialect import Temp_Table_Style
 from project.Errors import Unsupported_Database_Operation
 from project.Internal.IR.Operation_Metadata import Row_Number_Metadata
 
@@ -587,7 +588,7 @@ generate_create_table dialect name columns primary_key temporary =
     column_definitions = columns.map (generate_column_description dialect)
     modifiers = if primary_key.is_nothing then [] else
         [SQL_Builder.code ", PRIMARY KEY (" ++ SQL_Builder.join ", " (primary_key.map dialect.wrap_identifier) ++ ")"]
-    table_type = if temporary && dialect.suppports_temporary_table_syntax then "TEMPORARY TABLE" else "TABLE"
+    table_type = if temporary && dialect.temp_table_style == Temp_Table_Style.Temporary_Table then "TEMPORARY TABLE" else "TABLE"
     create_prefix = SQL_Builder.code ("CREATE "+table_type+" ") ++ dialect.wrap_identifier name
     create_body = (SQL_Builder.join ", " column_definitions) ++ (SQL_Builder.join "" modifiers)
     create_prefix ++ " (" ++ create_body ++ ")"
@@ -601,12 +602,6 @@ generate_column_description dialect descriptor =
     suffix = if modifiers.is_empty then SQL_Builder.empty else
         SQL_Builder.code " " ++ (SQL_Builder.join " " modifiers)
     (dialect.wrap_identifier descriptor.name) ++ " " ++ descriptor.sql_type ++ suffix
-
-## PRIVATE
-   A heuristic used by `Connection.query` to determine if a given text looks
-   like a SQL query for the given dialect or is rather a table name.
-is_probably_a_query : Text -> Boolean
-is_probably_a_query text = (text.contains "SELECT ") || (text.contains "EXEC ")
 
 ## PRIVATE
    option for implementing generate_truncate_table_sql

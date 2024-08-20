@@ -1,25 +1,20 @@
 import { useNavigator } from '@/composables/navigator'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
-import { effectScope, ref } from 'vue'
+import { withSetup } from '@/util/testing'
+import { describe, expect, test, vi } from 'vitest'
+import { ref } from 'vue'
 import { useKeyboard } from '../keyboard'
 
 describe('useNavigator', async () => {
-  let scope = effectScope()
-  beforeEach(() => {
-    scope = effectScope()
-  })
-  afterEach(() => scope.stop())
-
   function makeTestNavigator() {
-    return scope.run(() => {
+    return withSetup(() => {
       const node = document.createElement('div')
       vi.spyOn(node, 'getBoundingClientRect').mockReturnValue(new DOMRect(150, 150, 800, 400))
       const viewportNode = ref(node)
       const keyboard = useKeyboard()
       return useNavigator(viewportNode, keyboard)
-    })!
+    })[0]!
   }
 
   test('initializes with centered non-zoomed viewport', () => {

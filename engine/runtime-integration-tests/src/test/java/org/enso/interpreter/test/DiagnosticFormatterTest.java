@@ -55,6 +55,7 @@ public class DiagnosticFormatterTest {
   @After
   public void closeCtx() throws IOException {
     ctx.close();
+    ctx = null;
     output.close();
   }
 
