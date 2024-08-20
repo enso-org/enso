@@ -10,10 +10,10 @@ import * as ariaComponents from '#/components/AriaComponents'
 import * as mergeRefs from '#/utilities/mergeRefs'
 import * as twv from '#/utilities/tailwindVariants'
 
-import * as variants from '../variants'
+import { INPUT_STYLES } from '../variants'
 
 const CONTENT_EDITABLE_STYLES = twv.tv({
-  extend: variants.INPUT_STYLES,
+  extend: INPUT_STYLES,
   base: '',
   slots: { placeholder: 'opacity-50 absolute inset-0 pointer-events-none' },
 })
@@ -33,8 +33,13 @@ export interface ResizableContentEditableInputProps<
       TFieldName,
       TTransformedValues
     >,
+    ariaComponents.FieldVariantProps,
     Omit<ariaComponents.FieldProps, 'variant'>,
-    Omit<twv.VariantProps<typeof variants.INPUT_STYLES>, 'disabled' | 'invalid'> {
+    Pick<twv.VariantProps<typeof INPUT_STYLES>, 'rounded' | 'size' | 'variant'>,
+    Omit<
+      twv.VariantProps<typeof CONTENT_EDITABLE_STYLES>,
+      'disabled' | 'invalid' | 'rounded' | 'size' | 'variant'
+    > {
   /**
    * onChange is called when the content of the input changes.
    * There is no way to prevent the change, so the value is always the new value.
@@ -71,6 +76,8 @@ export const ResizableContentEditableInput = React.forwardRef(
       size,
       rounded,
       variant,
+      variants = CONTENT_EDITABLE_STYLES,
+      fieldVariants,
       ...textFieldProps
     } = props
 
@@ -103,16 +110,22 @@ export const ResizableContentEditableInput = React.forwardRef(
       inputContainer,
       textArea,
       placeholder: placeholderClass,
-    } = CONTENT_EDITABLE_STYLES({
-      variant,
+    } = variants({
       invalid: fieldState.invalid,
       disabled: isDisabled || formInstance.formState.isSubmitting,
+      variant,
       rounded,
       size,
     })
 
     return (
-      <ariaComponents.Form.Field form={formInstance} name={name} fullWidth {...textFieldProps}>
+      <ariaComponents.Form.Field
+        form={formInstance}
+        name={name}
+        fullWidth
+        variants={fieldVariants}
+        {...textFieldProps}
+      >
         <div
           className={base()}
           onClick={() => {

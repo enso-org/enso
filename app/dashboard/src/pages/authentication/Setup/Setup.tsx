@@ -128,7 +128,14 @@ const BASE_STEPS: Step[] = [
   {
     title: 'setOrgNameTitle',
     text: 'setOrgNameDescription',
-    ignore: (context) => context.plan === Plan.free || context.plan === Plan.solo,
+    ignore: (context) => {
+      const isOrganizationAdmin =
+        context.session && 'user' in context.session ?
+          context.session.user.isOrganizationAdmin
+        : false
+
+      return (context.plan === Plan.free || context.plan === Plan.solo) && !isOrganizationAdmin
+    },
     hideNext: true,
     hidePrevious: true,
     /**
@@ -187,7 +194,14 @@ const BASE_STEPS: Step[] = [
   {
     title: 'inviteUsers',
     text: 'inviteUsersDescription',
-    ignore: (context) => context.plan === Plan.free || context.plan === Plan.solo,
+    ignore: (context) => {
+      const isOrganizationAdmin =
+        context.session && 'user' in context.session ?
+          context.session.user.isOrganizationAdmin
+        : false
+
+      return (context.plan === Plan.free || context.plan === Plan.solo) && !isOrganizationAdmin
+    },
     hideNext: true,
     hidePrevious: true,
     /**
@@ -220,7 +234,14 @@ const BASE_STEPS: Step[] = [
   {
     title: 'setDefaultUserGroup',
     text: 'setDefaultUserGroupDescription',
-    ignore: (context) => context.plan === Plan.free || context.plan === Plan.solo,
+    ignore: (context) => {
+      const isOrganizationAdmin =
+        context.session && 'user' in context.session ?
+          context.session.user.isOrganizationAdmin
+        : false
+
+      return (context.plan === Plan.free || context.plan === Plan.solo) && !isOrganizationAdmin
+    },
     hideNext: true,
     hidePrevious: true,
     /**
