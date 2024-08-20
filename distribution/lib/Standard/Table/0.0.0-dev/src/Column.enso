@@ -39,6 +39,7 @@ polyglot java import org.enso.table.data.column.operation.cast.CastProblemAggreg
 polyglot java import org.enso.table.data.column.operation.CountNothing
 polyglot java import org.enso.table.data.column.operation.unary.DatePartOperation
 polyglot java import org.enso.table.data.column.operation.unary.IsEmptyOperation
+polyglot java import org.enso.table.data.column.operation.unary.IsFiniteOperation
 polyglot java import org.enso.table.data.column.operation.unary.IsInfiniteOperation
 polyglot java import org.enso.table.data.column.operation.unary.IsNaNOperation
 polyglot java import org.enso.table.data.column.operation.unary.IsNothingOperation
@@ -1087,6 +1088,19 @@ type Column
             _ : Float   -> x.is_infinite
             _           -> False
         apply_unary_operation self IsInfiniteOperation.INSTANCE new_name if_unsupported=(apply_unary_map self new_name fallback Value_Type.Boolean)
+
+    ## GROUP Standard.Base.Math
+       ICON math
+       Returns a column of booleans, with `True` items at the positions where
+       this column contains a non-infinite, non-NaN floating point value. This
+       is only applicable to double columns.
+    is_finite : Column
+    is_finite self = Value_Type.expect_numeric self <|
+        new_name = naming_helper.function_name "is_finite" [self]
+        fallback x = case x of
+            _ : Float   -> x.is_finite
+            _           -> False
+        apply_unary_operation self IsFiniteOperation.INSTANCE new_name if_unsupported=(apply_unary_map self new_name fallback Value_Type.Boolean)
 
     ## PRIVATE
        Returns a column of booleans, with `True` items at the positions where

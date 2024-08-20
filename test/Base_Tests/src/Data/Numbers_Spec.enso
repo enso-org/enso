@@ -101,6 +101,8 @@ add_specs suite_builder =
 
             1/0 . is_infinite . should_be_true
             -1/0 . is_infinite . should_be_true
+            1/0 . is_finite . should_be_false
+            -1/0 . is_finite . should_be_false
 
         group_builder.specify "should support integer division" <|
             (10.div 3) . should_equal 3
@@ -553,6 +555,11 @@ add_specs suite_builder =
             0.is_infinite . should_be_false
             Number.positive_infinity.is_infinite . should_be_true
             Number.negative_infinity.is_infinite . should_be_true
+
+            Number.nan.is_finite . should_be_true
+            0.is_finite . should_be_true
+            Number.positive_infinity.is_finite . should_be_false
+            Number.negative_infinity.is_finite . should_be_false
 
             Number.nan==Number.nan . should_be_false
             Number.nan==0 . should_be_false
