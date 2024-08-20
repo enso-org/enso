@@ -90,6 +90,9 @@ const rootStyle = computed(() => {
       @pointerup.stop
       @click.stop
     />
+    <div class="buttonPanel">
+      <slot></slot>
+    </div>
   </div>
 </template>
 
@@ -143,5 +146,13 @@ const rootStyle = computed(() => {
   color: white;
   width: var(--icon-height);
   height: var(--icon-height);
+}
+
+.buttonPanel {
+  display: flex;
+  flex-direction: row;
+  flex-shrink: 0;
+  flex-grow: 0;
+  gap: 8px;
 }
 </style>

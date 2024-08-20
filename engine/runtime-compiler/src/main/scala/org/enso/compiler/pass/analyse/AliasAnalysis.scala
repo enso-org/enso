@@ -132,11 +132,12 @@ case object AliasAnalysis extends IRPass {
               .deepCopy(mutable.Map())
               .withParent(localScope.scope)
 
+        val ag = localScope.aliasingGraph()
         val graph =
-          if (shouldWriteState) localScope.aliasingGraph
+          if (shouldWriteState) ag
           else {
             val mapping = mutable.Map(localScope.scope -> scope)
-            localScope.aliasingGraph.deepCopy(mapping)
+            ag.deepCopy(mapping)
           }
         val result = analyseExpression(ir, graph, scope)
 
