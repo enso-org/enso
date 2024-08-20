@@ -151,25 +151,7 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
         MaterializedFrame frame, FramePointer ptr, boolean onlyWarningsOrErrors) {
       var raw = getProperFrame(frame, ptr).getValue(ptr.frameSlotIdx());
       if (WarningsLibrary.getUncached().hasWarnings(raw)) {
-        try {
-          var sb = new StringBuilder();
-          sb.append(WarningsLibrary.getUncached().removeWarnings(raw));
-          var mappedWarnings = WarningsLibrary.getUncached().getWarnings(raw, true);
-          var pairs = HashMapToVectorNode.getUncached().execute(mappedWarnings);
-          var size = ArrayLikeLengthNode.getUncached().executeLength(pairs);
-          for (var i = 0L; i < size; i++) {
-            try {
-              var pair = ArrayLikeAtNode.getUncached().executeAt(pairs, i);
-              var value = ArrayLikeAtNode.getUncached().executeAt(pair, 1);
-              sb.append("\n  ! ").append(value);
-            } catch (InvalidArrayIndexException ex) {
-              // go on
-            }
-          }
-          return sb.toString();
-        } catch (UnsupportedMessageException e) {
-          // go on
-        }
+        return formatObject(raw);
       }
       if (onlyWarningsOrErrors) {
         if (!InteropLibrary.getUncached().isException(raw)) {
@@ -234,12 +216,32 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
       }
     }
 
-    private Object formatObject(Object o) {
-      if (o instanceof Text) {
-        return toJavaStringNode.execute((Text) o);
-      } else {
-        return o;
+    private Object formatObject(Object raw) {
+      if (raw instanceof Text) {
+        return toJavaStringNode.execute((Text) raw);
       }
+      if (WarningsLibrary.getUncached().hasWarnings(raw)) {
+        try {
+          var sb = new StringBuilder();
+          sb.append(WarningsLibrary.getUncached().removeWarnings(raw));
+          var mappedWarnings = WarningsLibrary.getUncached().getWarnings(raw, true);
+          var pairs = HashMapToVectorNode.getUncached().execute(mappedWarnings);
+          var size = ArrayLikeLengthNode.getUncached().executeLength(pairs);
+          for (var i = 0L; i < size; i++) {
+            try {
+              var pair = ArrayLikeAtNode.getUncached().executeAt(pairs, i);
+              var value = ArrayLikeAtNode.getUncached().executeAt(pair, 1);
+              sb.append("\n  ! ").append(value);
+            } catch (InvalidArrayIndexException ex) {
+              // go on
+            }
+          }
+          return sb.toString();
+        } catch (UnsupportedMessageException e) {
+          // go on
+        }
+      }
+      return raw;
     }
 
     @Override
