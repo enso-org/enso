@@ -1,11 +1,12 @@
 package org.enso.runner;
 
 import org.enso.semver.SemVer;
+import org.enso.version.BuildVersion;
 
 /**
  * A helper class that allows to access current version of the runner.
  *
- * <p>The current version is parsed from {@link buildinfo}, but in development mode it can be
+ * <p>The current version is parsed from {@link BuildVersion}, but in development mode it can be
  * overridden by setting `enso.version.override` property. This is used in project-manager tests to
  * override the version of projects created using the runner.
  */
@@ -24,14 +25,14 @@ final class CurrentVersion {
   private static SemVer computeVersion() {
     var buildVersion =
         (SemVer)
-            SemVer.parse(buildinfo.Info.ensoVersion())
+            SemVer.parse(BuildVersion.ensoVersion())
                 .getOrElse(
                     () -> {
                       throw new IllegalStateException(
                           "Fatal error: Enso version included in buildinfo is not a valid "
                               + "semver string, this should never happen.");
                     });
-    if (!buildinfo.Info.isRelease()) {
+    if (!BuildVersion.isRelease()) {
       var overrideVersionProp = System.getProperty("enso.version.override");
       if (overrideVersionProp == null) {
         return buildVersion;

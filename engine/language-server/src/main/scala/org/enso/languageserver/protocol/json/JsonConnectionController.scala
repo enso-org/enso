@@ -100,6 +100,7 @@ import org.enso.languageserver.workspace.WorkspaceApi.ProjectInfo
 import org.enso.logger.akka.ActorMessageLogging
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ProgressNotification
+import org.enso.version.BuildVersion
 
 import java.util.UUID
 
@@ -289,8 +290,8 @@ class JsonConnectionController(
           InitProtocolConnection,
           request.id,
           InitProtocolConnection.Result(
-            buildinfo.Info.ensoVersion,
-            buildinfo.Info.currentEdition,
+            BuildVersion.ensoVersion,
+            BuildVersion.currentEdition,
             allContentRoots
           )
         )
@@ -346,8 +347,8 @@ class JsonConnectionController(
           InitProtocolConnection,
           id,
           InitProtocolConnection.Result(
-            buildinfo.Info.ensoVersion,
-            buildinfo.Info.currentEdition,
+            BuildVersion.ensoVersion,
+            BuildVersion.currentEdition,
             roots
           )
         )

@@ -1,6 +1,5 @@
 package org.enso.interpreter.caches;
 
-import buildinfo.Info;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.source.Source;
 import java.io.ByteArrayInputStream;
@@ -20,6 +19,7 @@ import org.enso.compiler.core.ir.Module;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.persist.Persistance;
+import org.enso.version.BuildVersion;
 
 public final class ModuleCache
     implements Cache.Spi<ModuleCache.CachedModule, ModuleCache.Metadata> {
@@ -116,7 +116,7 @@ public final class ModuleCache
           .getPackageOf(module.getSourceFile())
           .map(
               pkg -> {
-                var irCacheRoot = pkg.getIrCacheRootForPackage(Info.ensoVersion());
+                var irCacheRoot = pkg.getIrCacheRootForPackage(BuildVersion.ensoVersion());
                 var qualName = module.getName();
                 var localCacheRoot = irCacheRoot.resolve(qualName.path().mkString("/"));
 
@@ -127,7 +127,7 @@ public final class ModuleCache
                         pkg.namespace(),
                         pkg.normalizedName(),
                         pkg.getConfig().version(),
-                        Info.ensoVersion()));
+                        BuildVersion.ensoVersion()));
                 pathSegmentsJava.addAll(qualName.pathAsJava());
                 var path =
                     distribution.LocallyInstalledDirectories()
@@ -142,7 +142,7 @@ public final class ModuleCache
       var pathSegmentsJava = new ArrayList<String>();
       pathSegmentsJava.addAll(
           Arrays.asList(
-              Builtins.NAMESPACE, Builtins.PACKAGE_NAME, Info.ensoVersion(), Info.ensoVersion()));
+              Builtins.NAMESPACE, Builtins.PACKAGE_NAME, BuildVersion.ensoVersion(), BuildVersion.ensoVersion()));
       pathSegmentsJava.addAll(module.getName().pathAsJava());
       var path =
           distribution.LocallyInstalledDirectories()

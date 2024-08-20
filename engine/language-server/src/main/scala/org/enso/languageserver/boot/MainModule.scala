@@ -1,7 +1,6 @@
 package org.enso.languageserver.boot
 
 import akka.actor.ActorSystem
-import buildinfo.Info
 import com.typesafe.config.ConfigFactory
 import org.enso.distribution.locking.{
   ResourceManager,
