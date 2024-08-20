@@ -3099,6 +3099,7 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
 
 lazy val editions = project
   .in(file("lib/scala/editions"))
+  .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
@@ -3107,6 +3108,9 @@ lazy val editions = project
       "io.circe"      %% "circe-core" % circeVersion     % "provided",
       "org.yaml"       % "snakeyaml"  % snakeyamlVersion % "provided",
       "org.scalatest" %% "scalatest"  % scalatestVersion % Test
+    ),
+    moduleDependencies := Seq(
+      "org.scala-lang" % "scala-library" % scalacVersion
     )
   )
   .settings(
