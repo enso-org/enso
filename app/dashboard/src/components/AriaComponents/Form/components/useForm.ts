@@ -41,22 +41,39 @@ export function useForm<Schema extends types.TSchema>(
     `,
   )
 
-  if ('formState' in optionsOrFormInstance) {
-    return optionsOrFormInstance
-  } else {
-    const { schema, ...options } = optionsOrFormInstance
+  const form =
+    'formState' in optionsOrFormInstance ? optionsOrFormInstance : (
+      (() => {
+        const { schema, ...options } = optionsOrFormInstance
 
-    const computedSchema = typeof schema === 'function' ? schema(schemaModule.schema) : schema
+        const computedSchema = typeof schema === 'function' ? schema(schemaModule.schema) : schema
 
-    return reactHookForm.useForm<
-      types.FieldValues<Schema>,
-      unknown,
-      types.TransformedValues<Schema>
-    >({
-      ...options,
-      resolver: zodResolver.zodResolver(computedSchema, { async: true }),
-    })
-  }
+        return reactHookForm.useForm<
+          types.FieldValues<Schema>,
+          unknown,
+          types.TransformedValues<Schema>
+        >({
+          ...options,
+          resolver: zodResolver.zodResolver(computedSchema, { async: true }),
+        })
+      })()
+    )
+
+  // Expose default values to controlled inputs like `Selector` and `MultiSelector`
+  const initialDefaultValues = React.useRef(
+    'defaultValues' in optionsOrFormInstance ? optionsOrFormInstance.defaultValues : undefined,
+  )
+
+  React.useEffect(() => {
+    const defaults = initialDefaultValues.current
+    if (defaults) {
+      if (typeof defaults !== 'function') {
+        form.reset(defaults)
+      }
+    }
+  }, [form])
+
+  return form
 }
 
 /**
