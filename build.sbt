@@ -2928,6 +2928,9 @@ lazy val `distribution-manager` = project
       "org.yaml"                    % "snakeyaml"     % snakeyamlVersion,
       "commons-io"                  % "commons-io"    % commonsIoVersion,
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
+    ),
+    moduleDependencies := Seq(
+      "org.scala-lang" % "scala-library" % scalacVersion
     )
   )
   .dependsOn(editions)
