@@ -66,12 +66,12 @@ type SQL_Expression
     Operation (kind : Text) (expressions : Vector SQL_Expression) (metadata : Any | Nothing = Nothing)
 
     ## PRIVATE
-       The internal representation of a `WITH ... AS` CTE expression. A `With`
+       The internal representation of a `WITH ... AS` CTE expression. A `Let`
        value contains the "binding" of the CTE expression to a lexically scoped
        table name, as well as the body expression that refers to the binding.
 
-       A `With` value's body always contains at least one `With_Ref` value with
-       the same `binder` identifier, unless the callback passed to the `with`
+       A `Let` value's body always contains at least one `Let_Ref` value with
+       the same `binder` identifier, unless the callback passed to the `let`
        method ignored its argument.
 
        Arguments:
@@ -80,18 +80,18 @@ type SQL_Expression
        - binder: the lexically-scoped name of the CTE expression.
        - bindee: the CTE expression.
        - body: the larger expression that contains references to the CTE.
-    With (name : Text) (binder : Text) (bindee : SQL_Expression) (body : SQL_Expression)
+    Let (name : Text) (binder : Text) (bindee : SQL_Expression) (body : SQL_Expression)
 
     ## PRIVATE
        The internal representation of a "reference" to a CTE expression.
 
-       A `With_Ref` value always occurs within the `body` expression of an
-       enclosing `With` value.
+       A `Let_Ref` value always occurs within the `body` expression of an
+       enclosing `Let` value.
 
        Database backends often evaluate sub-expressions of `DB_Table` and
        `DB_Column` values, for example when querying the datanbase for an
-       expression type. `With_Ref` values are sometimes evaluated in the
-       database without their enclosing `With` values, in which case the
+       expression type. `Let_Ref` values are sometimes evaluated in the
+       database without their enclosing `Let` values, in which case the
        `binder` field refers to an unbound identifier. In these cases, the
        original CTE expression in `standalone_expression` is used instead.
 
@@ -100,8 +100,8 @@ type SQL_Expression
          by the WITH ... AS clause
        - binder: the lexically-scoped name of the CTE expression.
        - standalone_expression: the full, original expression bound in the
-         enclosing `With` value.
-    With_Ref (name : Text) (binder : Text) (standalone_expression : SQL_Expression)
+         enclosing `Let` value.
+    Let_Ref (name : Text) (binder : Text) (standalone_expression : SQL_Expression)
 
     traverse : (Any -> Any) -> SQL_Expression
     traverse self f -> SQL_Expression =
@@ -113,8 +113,8 @@ type SQL_Expression
             SQL_Expression.Text_Literal _ -> self
             SQL_Expression.Operation kind expressions metadata ->
                 SQL_Expression.Operation kind (expressions.map rec) metadata
-            SQL_Expression.With name binder bindee body ->
-                SQL_Expression.With name binder (rec bindee) (rec body)
-            SQL_Expression.With_Ref name binder standalone_expression ->
-                SQL_Expression.With_Ref name binder (rec standalone_expression)
+            SQL_Expression.Let name binder bindee body ->
+                SQL_Expression.Let name binder (rec bindee) (rec body)
+            SQL_Expression.Let_Ref name binder standalone_expression ->
+                SQL_Expression.Let_Ref name binder (rec standalone_expression)
         f new_sql_expression

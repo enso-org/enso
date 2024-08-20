@@ -119,7 +119,7 @@ type Query
             Query.Drop_Table _ _ -> self
             Query.Truncate_Table _ -> self
             Query.Insert_From_Select table_name column_names select ->
-                Query.Insert_From_Select table_name column_names (rec select) 
+                Query.Insert_From_Select table_name column_names (rec select)
             Query.Update_From_Table _ _ _ _ -> self
             Query.Delete_Unmatched_Rows _ _ _ -> self
             Query.Delete_Matching_Rows _ _ _ -> self

@@ -55,7 +55,7 @@ type Dialect_Operations
    and that state is stored in the fields of this type. This type only contains
    the mutually recursive generators for the SQL IR that require this state.
 type SQL_Generator
-    Value (with_bindings_ref : Ref Hashset)
+    Value (let_bindings_ref : Ref Hashset)
 
     new -> SQL_Generator = SQL_Generator.Value (Ref.new Hashset.empty)
 
@@ -83,19 +83,19 @@ type SQL_Generator
             case result of
                 _ : Function -> result metadata
                 _ -> result
-        SQL_Expression.With _ binder bindee body ->
+        SQL_Expression.Let _ binder bindee body ->
             wrapped_binder = dialect.wrap_identifier binder
             bindee_exp = SQL_Builder.code "SELECT " ++ (self.generate_expression dialect bindee).paren ++ " AS " ++ "x"
 
             #IO.println "AAA scope push "+binder
-            body_sql_builder = self.with_bindings_ref.with_modification (h-> h.insert binder) <|
+            body_sql_builder = self.let_bindings_ref.with_modification (h-> h.insert binder) <|
                 self.generate_expression dialect body
             #IO.println "AAA scope pop "+binder
 
             body_exp = SQL_Builder.code "SELECT " ++ body_sql_builder ++ " FROM " ++ wrapped_binder
             (SQL_Builder.code "WITH " ++ wrapped_binder  ++ " AS " ++ bindee_exp.paren ++ " " ++ body_exp).paren
-        SQL_Expression.With_Ref _ binder standalone_expression ->
-            binding_state = self.with_bindings_ref.get
+        SQL_Expression.Let_Ref _ binder standalone_expression ->
+            binding_state = self.let_bindings_ref.get
             #IO.println "AAA scope check "+binder+": "+(with_scope.contains binder).to_text
             case binding_state.contains binder of
                 True ->
@@ -602,23 +602,23 @@ collect_table_names (query : Query) -> Vector Text =
 ## PRIVATE
    Preprocessing step before converting Query to SQL.
 
-   This preprocessing step replaces the long UUID binder names in `With` clauses
+   This preprocessing step replaces the long UUID binder names in `WITH` clauses
    with shorter names.
 
-   For `With_Ref` nodes that are not inside a containing `With` nodes, the
+   For `Let_Ref` nodes that are not inside a containing `WITH` nodes, the
    substitution is performed, but it is not used, since the binder is not used
    in those cases.
 preprocess_query (query : Query) -> Query =
     table_names = collect_table_names query . distinct
-    renamer = With_Binder_Renamer.new table_names
+    renamer = Let_Binder_Renamer.new table_names
 
     transform node = case node of
-        SQL_Expression.With name binder bindee body ->
+        SQL_Expression.Let name binder bindee body ->
             new_binder = renamer.rename name binder
-            SQL_Expression.With name new_binder bindee body
-        SQL_Expression.With_Ref name binder standalone_expression ->
+            SQL_Expression.Let name new_binder bindee body
+        SQL_Expression.Let_Ref name binder standalone_expression ->
             new_binder = renamer.rename name binder
-            SQL_Expression.With_Ref name new_binder standalone_expression
+            SQL_Expression.Let_Ref name new_binder standalone_expression
         _ -> node
 
     query.traverse transform
@@ -709,11 +709,11 @@ default_fetch_types_query dialect expression context where_filter_always_false_l
 
 ## PRIVATE
    Helper class for shortening the binder names generated for WITH clauses.
-type With_Binder_Renamer
+type Let_Binder_Renamer
     Value (existing_tables : Hashset Text) (binders_ref : Ref Dictionary) (serial_ref : Ref Integer)
 
-    new (existing_tables : Vector Text) -> With_Binder_Renamer =
-        With_Binder_Renamer.Value (Hashset.from_vector existing_tables) (Ref.new Dictionary.empty) (Ref.new 0)
+    new (existing_tables : Vector Text) -> Let_Binder_Renamer =
+        Let_Binder_Renamer.Value (Hashset.from_vector existing_tables) (Ref.new Dictionary.empty) (Ref.new 0)
 
     rename self (name : Text) (binder : Text) =
         binders = self.binders_ref.get
