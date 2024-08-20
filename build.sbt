@@ -981,6 +981,89 @@ lazy val `logging-truffle-connector` = project
   .dependsOn(`logging-utils`)
   .dependsOn(`polyglot-api`)
 
+/** This is a simple wrapper for some Scala libraries that cannot be put directly
+  * on module-path. For example because it's automatic module name cannot be derived:
+  * {{{
+  * $ jar --describe-module -f ./circe-core_2.13-0.14.7.jar
+  * Unable to derive module descriptor for: ./circe-core_2.13-0.14.7.jar
+  * circe.core.2.13: Invalid module name: '2' is not a Java identifier
+  * }}}
+  * This project contains only a single `module-info.java` that serves as the module
+  * descriptor for these problematic dependencies.
+  */
+lazy val `scala-libs-wrapper` = project
+  .in(file("lib/java/scala-libs-wrapper"))
+  .enablePlugins(JPMSPlugin)
+  .settings(
+    javaModuleName := "org.enso.scalalibs.wrapper",
+    libraryDependencies ++= circe ++ Seq(
+      "com.typesafe.scala-logging" %% "scala-logging"  % scalaLoggingVersion,
+      "org.slf4j"   % "slf4j-api"   % slf4jVersion,
+      "org.typelevel" %% "cats-core" % "2.10.0",
+    ),
+    moduleDependencies := Seq(
+      "org.scala-lang"   % "scala-library"           % scalacVersion,
+      "org.scala-lang"   % "scala-reflect"           % scalacVersion,
+    ),
+    shouldCompileModuleInfoManually := true,
+    excludeFilter := excludeFilter.value || "module-info.java",
+    compileModuleInfo := {
+      JPMSUtils.compileModuleInfo()
+        .value
+    },
+    javacOptions ++= {
+      JPMSPlugin.constructOptions(
+        streams.value.log,
+        modulePath = modulePath.value,
+        patchModules = patchModules.value
+      )
+    },
+    // Ensure that `module-info.class` is included in the assembled Jar
+    assembly := assembly
+      .dependsOn(compileModuleInfo)
+      .value,
+    assembly / assemblyExcludedJars := {
+      JPMSUtils.filterModulesFromClasspath(
+        (Compile / fullClasspath).value,
+        Seq(
+          "org.slf4j"   % "slf4j-api"   % slf4jVersion,
+          "org.scala-lang"   % "scala-library"           % scalacVersion,
+          "org.scala-lang"   % "scala-reflect"           % scalacVersion,
+        ),
+        streams.value.log,
+        shouldContainAll = true
+      )
+    },
+    // Patch this JPMS module such that the JVM thinks that all the Scala stuff
+    // is part of this module
+    patchModules := {
+      val scalaVer = scalaBinaryVersion.value
+      val scalaLibs = JPMSUtils.filterModulesFromUpdate(
+        update.value,
+        Seq(
+          "com.typesafe.scala-logging" % ("scala-logging_" + scalaVer) % scalaLoggingVersion,
+          "io.circe" % ("circe-core_" + scalaVer) % circeVersion,
+          "io.circe" % ("circe-generic_" + scalaVer) % circeVersion,
+          "io.circe" % ("circe-parser_" + scalaVer) % circeVersion,
+          "io.circe" % ("circe-jawn_" + scalaVer) % circeVersion,
+          "io.circe" % ("circe-numbers_" + scalaVer) % circeVersion,
+          "org.typelevel" % ("cats-core_" + scalaVer) % "2.10.0",
+          "org.typelevel" % ("cats-kernel_" + scalaVer) % "2.10.0",
+          "org.typelevel" % ("jawn-parser_" + scalaVer) % "1.5.1",
+          "com.chuusai" % ("shapeless_" + scalaVer) % "2.3.10",
+        ),
+        streams.value.log,
+        shouldContainAll = true
+      )
+      Map(
+        javaModuleName.value -> scalaLibs
+      )
+    },
+    exportedModule := {
+      (assembly / assembly).value
+    }
+  )
+
 lazy val cli = project
   .in(file("lib/scala/cli"))
   .configs(Test)
