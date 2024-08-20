@@ -1,24 +1,20 @@
 import { useApproach } from '@/composables/animation'
-import { computed, ref } from 'vue'
+import { ToValue } from '@/util/reactivity'
+import { computed, ref, toValue } from 'vue'
 
 export type ScrollTarget =
-  | { type: 'bottom' }
+  | { type: 'top' }
   | { type: 'selected' }
   | { type: 'offset'; offset: number }
 
-export function useScrolling(
-  selectedPos: { value: number },
-  scrollerSize: { value: number },
-  contentSize: { value: number },
-  entrySize: number,
-) {
-  const targetScroll = ref<ScrollTarget>({ type: 'bottom' })
+export function useScrolling(selectedPos: ToValue<number>) {
+  const targetScroll = ref<ScrollTarget>({ type: 'top' })
   const targetScrollPosition = computed(() => {
     switch (targetScroll.value.type) {
       case 'selected':
-        return Math.max(selectedPos.value - scrollerSize.value + entrySize, 0)
-      case 'bottom':
-        return contentSize.value - scrollerSize.value
+        return toValue(selectedPos)
+      case 'top':
+        return 0.0
       case 'offset':
         return targetScroll.value.offset
     }
