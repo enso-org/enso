@@ -51,11 +51,11 @@ import project.Internal.Aggregate_Helper
 import project.Internal.Base_Generator
 import project.Internal.Common.Database_Join_Helper
 import project.Internal.Common.Lookup_Query_Helper
+import project.Internal.Common.Row_Number_Helpers
 import project.Internal.Helpers
 import project.Internal.IR.Context.Context
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
-import project.Internal.IR.Operation_Metadata
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
@@ -873,11 +873,7 @@ type DB_Table
                     descriptors -> descriptors
             grouping_expressions = (grouping_columns.map _.as_internal).map .expression
 
-            # The SQL row_number() counts from 1, so we adjust the offset.
-            offset = from - step
-            params = [SQL_Expression.Constant offset, SQL_Expression.Constant step] + order_descriptors + grouping_expressions
-            metadata = Operation_Metadata.Row_Number_Metadata.Value grouping_expressions.length
-            new_expr = SQL_Expression.Operation "ROW_NUMBER" params metadata
+            new_expr = Row_Number_Helpers.make_row_number from step order_descriptors grouping_expressions
 
             type_mapping = self.connection.dialect.get_type_mapping
             infer_from_database_callback expression =

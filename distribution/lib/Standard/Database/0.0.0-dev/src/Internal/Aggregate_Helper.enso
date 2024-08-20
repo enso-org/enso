@@ -10,6 +10,7 @@ from Standard.Table.Errors import Floating_Point_Equality, No_Output_Columns
 
 import project.DB_Table.DB_Table
 import project.Dialect.Dialect
+import project.Internal.Common.Row_Number_Helpers
 import project.Internal.DB_Wrapped_Error.DB_Wrapped_Error
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.SQL_Expression.SQL_Expression
@@ -122,14 +123,13 @@ aggregate table:DB_Table group_by:(Vector | Text | Integer | Regex) columns:Vect
                 False -> []
         on_problems.attach_problems_before validated.problems+key_problems <|
             resolved_aggregates = validated.valid_columns
-            key_expressions = key_columns.map .expression
             dialect = base_table.connection.dialect
 
             problem_builder = Problem_Builder.new
             # If the dialect defines `custom_build_aggregate` we will use it, falling back to the default implementation if not defined.
             aggregate_builder = Panic.catch No_Such_Method (dialect.custom_build_aggregate) _->
                 default_build_aggregate dialect
-            result = aggregate_builder base_table key_expressions resolved_aggregates problem_builder
+            result = aggregate_builder base_table key_columns resolved_aggregates problem_builder
             new_ctx = result.first
             built_aggregates = result.second
             partitioned = built_aggregates.partition (_.is_a DB_Wrapped_Error)
@@ -149,20 +149,11 @@ aggregate table:DB_Table group_by:(Vector | Text | Integer | Regex) columns:Vect
                             Warning.attach (Deprecated.Warning "Standard.Table.Aggregate_Column.Aggregate_Column" "Group_By" "Deprecated: `Group_By` constructor has been deprecated, use the `group_by` argument instead.") result
 
 ## PRIVATE
-default_build_aggregate dialect base_table key_expressions resolved_aggregates problem_builder =
+default_build_aggregate dialect base_table key_columns resolved_aggregates problem_builder =
+    key_expressions = key_columns.map .expression
     new_ctx = base_table.context.set_groups key_expressions
-    ## TODO [RW] here we will perform as many fetches as there are
-       aggregate columns, but technically we could perform just one
-       fetch fetching all column types - TODO we should do that. We can
-       do it here by creating a builder that will gather all requests
-       from the executed callbacks and create Lazy references that all
-       point to a single query.
-       See #6118.
-    infer_from_database_callback expression =
-        SQL_Type_Reference.new base_table.connection base_table.context expression
-    type_mapping = dialect.get_type_mapping
-    infer_return_type op_kind columns expression =
-        type_mapping.infer_return_type infer_from_database_callback op_kind columns expression
+    # TODO new_ctx fits here? I think it makes more sense than base_table.context that used to be here
+    infer_return_type = make_infer_return_type dialect base_table.connection new_ctx
     results = resolved_aggregates.map p->
         agg = p.second
         as = p.first
@@ -172,6 +163,21 @@ default_build_aggregate dialect base_table key_expressions resolved_aggregates p
            created columns and failures.
         result.catch Any error->(DB_Wrapped_Error.Value error)
     Pair.new new_ctx results
+
+## PRIVATE
+make_infer_return_type dialect connection context =
+    ## TODO [RW] here we will perform as many fetches as there are
+       aggregate columns, but technically we could perform just one
+       fetch fetching all column types - TODO we should do that. We can
+       do it here by creating a builder that will gather all requests
+       from the executed callbacks and create Lazy references that all
+       point to a single query.
+       See #6118.
+    infer_from_database_callback expression =
+        SQL_Type_Reference.new connection context expression
+    type_mapping = dialect.get_type_mapping
+    infer_return_type op_kind columns expression =
+        type_mapping.infer_return_type infer_from_database_callback op_kind columns expression
 
 ## PRIVATE
    An implementation that can be used for `custom_build_aggregate` in dialects
@@ -187,9 +193,40 @@ default_build_aggregate dialect base_table key_expressions resolved_aggregates p
 
    If no First/Last aggregations are requested, no sub-queries are created - in
    fact we just delegate to the default implementation.
-build_aggregate_with_row_number_for_first_last dialect base_table key_expressions resolved_aggregates problem_builder =
-    if (has_first_last resolved_aggregates).not then default_build_aggregate dialect base_table key_expressions resolved_aggregates problem_builder else
-        # TODO
+build_aggregate_with_row_number_for_first_last dialect base_table key_columns resolved_aggregates problem_builder =
+    if (has_first_last resolved_aggregates).not then default_build_aggregate dialect base_table key_columns resolved_aggregates problem_builder else
+        needed_orderings = resolved_aggregates.flat_map agg-> case agg.second of
+            Aggregate_Column.First _ _ _ order_by -> [order_by]
+            Aggregate_Column.Last _ _ _ order_by -> [order_by]
+            _ -> []
+
+        # This function will infer return type at the context of the current query - used to extend it with row numbers.
+        infer_return_type_in_orderings = make_infer_return_type dialect base_table.connection base_table.context
+        name_generator = base_table.column_naming_helper.create_unique_name_strategy
+        name_generator.mark_used base_table.column_names
+        key_expressions_for_orderings = key_columns.map .expression
+        numbering_columns = needed_orderings.distinct.map ordering->
+            name = name_generator.make_unique "row-number"
+            order_descriptors = dialect.prepare_order_descriptor ordering.column ordering.direction text_ordering=Nothing
+            expression = Row_Number_Helpers.make_row_number 1 1 order_descriptors key_expressions_for_orderings
+            # We can ignore the type for this column as it is used only internally.
+            column = Internal_Column.Value name SQL_Type_Reference.null expression
+            [ordering, column]
+
+
+        subquery_setup = base_table.context.as_subquery base_table.name [base_table.internal_columns, (numbering_columns.map .second)]
+
+        # The context referring to the outer query that contains the subquery with additional columns and also is now grouped for the aggregation:
+        remapped_key_expressions = key_columns.map key_column->
+            subquery_setup.remap_column key_column . expression
+        new_ctx = (Context.for_subquery setup.subquery).set_groups remapped_key_expressions
+
+        # This function will infer return type at the context of the subquery with aggregation groupings.
+        infer_return_type_in_new_context = make_infer_return_type dialect base_table.connection new_ctx
+
+        # Now we also need to remap all aggregate columns to the subquery...
+        # Argh....
+        Nothing
 
 ## PRIVATE
 has_first_last resolved_aggregates = resolved_aggregates.any agg->

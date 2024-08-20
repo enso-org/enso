@@ -271,7 +271,7 @@ type Dialect
        implementation defined in `Aggregate_Helper.default_build_aggregate` will
        be used. The method should be defined only if the dialect requires custom
        logic.
-    custom_build_aggregate self (base_table : DB_Table) (key_expressions : Vector SQL_Expression) (resolved_aggregates : Vector (Pair Text Aggregate_Column)) (problem_builder : Problem_Builder) -> Pair Context (Vector (Internal_Column | DB_Wrapped_Error)) =
+    custom_build_aggregate self (base_table : DB_Table) (key_columns : Vector Internal_Column) (resolved_aggregates : Vector (Pair Text Aggregate_Column)) (problem_builder : Problem_Builder) -> Pair Context (Vector (Internal_Column | DB_Wrapped_Error)) =
         _ = [base_table, key_expressions, resolved_aggregates, problem_builder]
         Unimplemented.throw "This is an interface only."
 

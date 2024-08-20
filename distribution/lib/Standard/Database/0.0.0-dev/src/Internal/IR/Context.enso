@@ -170,12 +170,20 @@ type Context
             columns.map column-> [column.name, column.expression]
         new_from = From_Spec.Sub_Query encapsulated_columns self alias
 
-        Subquery_Setup.Value new_from new_columns
+        Subquery_Setup.Value new_from new_columns rewrite_internal_column
 
 ## PRIVATE
 type Subquery_Setup
     ## PRIVATE
-    Value (subquery : From_Spec) (new_columns : Vector (Vector Internal_Column))
+       Arguments:
+       - subquery: The From_Spec for the created subquery.
+       - new_columns: All columns that are available in the subquery, remapped
+         to be accessible from a context that uses `subquery` as its from spec.
+       - remap_column: A function that remaps an internal column to be accessible
+         from a context that uses `subquery` as its from spec.
+         The behaviour is undefined if this method is called with a column that
+         was not part of the subquery.
+    Value (subquery : From_Spec) (new_columns : Vector (Vector Internal_Column)) (remap_column : Internal_Column -> Internal_Column)
 
 ## PRIVATE
    Describes an extension to a Context that can be used to add additional custom
