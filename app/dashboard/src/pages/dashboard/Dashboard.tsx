@@ -332,6 +332,7 @@ function DashboardInner(props: DashboardProps) {
           {appRunner != null &&
             launchedProjects.map((project) => (
               <aria.TabPanel
+                key={project.id}
                 shouldForceMount
                 id={project.id}
                 className="flex min-h-0 grow [&[data-inert]]:hidden"

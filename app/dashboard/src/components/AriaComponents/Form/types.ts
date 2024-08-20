@@ -55,18 +55,22 @@ interface BaseFormProps<
   readonly style?:
     | React.CSSProperties
     | ((
-        props: FormStateRenderProps<Schema, TFieldValues, TTransformedValues>,
+        props: components.UseFormReturn<Schema, TFieldValues, TTransformedValues>,
       ) => React.CSSProperties)
   readonly children:
     | React.ReactNode
-    | ((props: FormStateRenderProps<Schema, TFieldValues, TTransformedValues>) => React.ReactNode)
+    | ((
+        props: components.UseFormReturn<Schema, TFieldValues, TTransformedValues> & {
+          readonly form: components.UseFormReturn<Schema, TFieldValues, TTransformedValues>
+        },
+      ) => React.ReactNode)
   readonly formRef?: React.MutableRefObject<
     components.UseFormReturn<Schema, TFieldValues, TTransformedValues>
   >
 
   readonly className?:
     | string
-    | ((props: FormStateRenderProps<Schema, TFieldValues, TTransformedValues>) => string)
+    | ((props: components.UseFormReturn<Schema, TFieldValues, TTransformedValues>) => string)
 
   readonly onSubmitFailed?: (error: unknown) => Promise<void> | void
   readonly onSubmitSuccess?: () => Promise<void> | void

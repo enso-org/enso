@@ -10,6 +10,7 @@ import SvgMask from '#/components/SvgMask'
 
 import * as twv from '#/utilities/tailwindVariants'
 
+import type { VariantProps } from '#/utilities/tailwindVariants'
 import * as text from '../Text'
 
 // ==============
@@ -39,7 +40,7 @@ interface PropsWithoutHref {
  * Base props for a button.
  */
 export interface BaseButtonProps<Render>
-  extends Omit<twv.VariantProps<typeof BUTTON_STYLES>, 'iconOnly'> {
+  extends Omit<VariantProps<typeof BUTTON_STYLES>, 'iconOnly'> {
   /** Falls back to `aria-label`. Pass `false` to explicitly disable the tooltip. */
   readonly tooltip?: React.ReactElement | string | false | null
   readonly tooltipPlacement?: aria.Placement
@@ -301,6 +302,7 @@ export const Button = React.forwardRef(function Button(
     loaderPosition = 'full',
     extraClickZone: extraClickZoneProp,
     onPress = () => {},
+    variants = BUTTON_STYLES,
     ...ariaProps
   } = props
   const focusChildProps = focusHooks.useFocusChild()
@@ -381,7 +383,7 @@ export const Button = React.forwardRef(function Button(
     extraClickZone,
     icon: iconClasses,
     text: textClasses,
-  } = BUTTON_STYLES({
+  } = variants({
     isDisabled: isDisabled,
     isActive,
     loading: isLoading,

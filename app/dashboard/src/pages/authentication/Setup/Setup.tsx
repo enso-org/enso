@@ -4,7 +4,7 @@
  */
 import * as React from 'react'
 
-import { useSuspenseQuery } from '@tanstack/react-query'
+import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
 import { Navigate, useSearchParams } from 'react-router-dom'
 import invariant from 'tiny-invariant'
 
@@ -24,8 +24,10 @@ import * as ariaComponents from '#/components/AriaComponents'
 import Page from '#/components/Page'
 import * as stepper from '#/components/Stepper'
 
-import { ORGANIZATION_NAME_MAX_LENGTH } from '#/modals/SetOrganizationNameModal'
+import { ORGANIZATION_NAME_MAX_LENGTH } from '#/modals/SetupOrganizationAfterSubscribe'
 
+import { backendMutationOptions } from '#/hooks/backendHooks'
+import { InviteUsersForm } from '#/modals/InviteUsersModal'
 import { PlanSelector } from '#/modules/payments'
 import { Plan } from '#/services/Backend'
 
@@ -102,15 +104,21 @@ const BASE_STEPS: Step[] = [
   {
     title: 'choosePlan',
     text: 'choosePlanDescription',
+    ignore: ({ session }) =>
+      session && 'user' in session ? !session.user.isOrganizationAdmin : true,
     canSkip: ({ plan }) => plan === Plan.free,
     hideNext: ({ plan }) => plan === Plan.free,
     /**
      * Step component
      */
-    component: function ChoosePlanStep({ goToNextStep, plan }) {
+    component: function ChoosePlanStep({ goToNextStep, plan, session }) {
+      const isOrganizationAdmin =
+        session && 'user' in session ? session.user.isOrganizationAdmin : false
+
       return (
         <PlanSelector
           userPlan={plan}
+          isOrganizationAdmin={isOrganizationAdmin}
           hasTrial={plan === Plan.free}
           onSubscribeSuccess={goToNextStep}
         />
@@ -159,6 +167,101 @@ const BASE_STEPS: Step[] = [
               'organizationNameSettingsInputDescription',
               ORGANIZATION_NAME_MAX_LENGTH,
             )}
+          />
+
+          <ariaComponents.ButtonGroup align="start">
+            <ariaComponents.Button variant="outline" onPress={goToPreviousStep}>
+              {getText('back')}
+            </ariaComponents.Button>
+
+            <ariaComponents.Form.Submit variant="primary">
+              {getText('next')}
+            </ariaComponents.Form.Submit>
+          </ariaComponents.ButtonGroup>
+
+          <ariaComponents.Form.FormError />
+        </ariaComponents.Form>
+      )
+    },
+  },
+  {
+    title: 'inviteUsers',
+    text: 'inviteUsersDescription',
+    ignore: (context) => context.plan === Plan.free || context.plan === Plan.solo,
+    hideNext: true,
+    hidePrevious: true,
+    /**
+     * Step component
+     */
+    component: function InviteUsersStep({ goToNextStep, goToPreviousStep }) {
+      const { getText } = textProvider.useText()
+
+      return (
+        <div className="max-w-96">
+          <InviteUsersForm
+            onSubmitted={() => {
+              goToNextStep()
+            }}
+          />
+
+          <ariaComponents.ButtonGroup align="start" className="mt-4">
+            <ariaComponents.Button variant="outline" onPress={goToPreviousStep}>
+              {getText('back')}
+            </ariaComponents.Button>
+
+            <ariaComponents.Button variant="cancel" onPress={goToNextStep}>
+              {getText('skip')}
+            </ariaComponents.Button>
+          </ariaComponents.ButtonGroup>
+        </div>
+      )
+    },
+  },
+  {
+    title: 'setDefaultUserGroup',
+    text: 'setDefaultUserGroupDescription',
+    ignore: (context) => context.plan === Plan.free || context.plan === Plan.solo,
+    hideNext: true,
+    hidePrevious: true,
+    /**
+     * Step component
+     */
+    component: function CreateUserGroupStep({ goToNextStep, goToPreviousStep }) {
+      const { getText } = textProvider.useText()
+      const remoteBackend = useRemoteBackendStrict()
+
+      const defaultUserGroupMaxLength = 64
+
+      const listUsersQuery = useSuspenseQuery({
+        queryKey: ['users'],
+        queryFn: () => remoteBackend.listUsers(),
+      })
+
+      const createUserGroupMutation = useMutation(
+        backendMutationOptions(remoteBackend, 'createUserGroup', {
+          onSuccess: async (result) => {
+            await Promise.all([
+              listUsersQuery.data.map((user) =>
+                remoteBackend.changeUserGroup(user.userId, { userGroups: [result.id] }, user.name),
+              ),
+            ])
+
+            goToNextStep()
+          },
+        }),
+      )
+
+      return (
+        <ariaComponents.Form
+          schema={(z) => z.object({ groupName: z.string().min(1).max(defaultUserGroupMaxLength) })}
+          className="max-w-96"
+          onSubmit={({ groupName }) => createUserGroupMutation.mutateAsync([{ name: groupName }])}
+        >
+          <ariaComponents.Input
+            name="groupName"
+            autoComplete="off"
+            label={getText('groupNameSettingsInput')}
+            description={getText('groupNameSettingsInputDescription', defaultUserGroupMaxLength)}
           />
 
           <ariaComponents.ButtonGroup align="start">

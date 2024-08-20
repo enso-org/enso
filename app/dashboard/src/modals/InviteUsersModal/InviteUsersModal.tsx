@@ -9,6 +9,8 @@ import * as ariaComponents from '#/components/AriaComponents'
 import * as inviteUsersForm from '#/modals/InviteUsersModal/InviteUsersForm'
 import * as inviteUsersSuccess from '#/modals/InviteUsersModal/InviteUsersSuccess'
 
+import { Stepper } from '#/components/Stepper'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type * as backendModule from '#/services/Backend'
 
 // ========================
@@ -57,14 +59,16 @@ interface InviteUsersModalContentProps {
 function InviteUsersModalContent(props: InviteUsersModalContentProps) {
   const { organizationId } = props
 
-  const [step, setStep] = React.useState<'invite' | 'success'>('invite')
+  const { stepperState, nextStep } = Stepper.useStepperState({
+    steps: 2,
+  })
+
   const [submittedEmails, setSubmittedEmails] = React.useState<string[]>([])
-  const onInviteUsersFormInviteUsersFormSubmitted = React.useCallback(
+  const onInviteUsersFormInviteUsersFormSubmitted = useEventCallback(
     (emails: backendModule.EmailAddress[]) => {
-      setStep('success')
+      nextStep()
       setSubmittedEmails(emails)
     },
-    [],
   )
 
   const invitationParams = new URLSearchParams({
@@ -74,18 +78,24 @@ function InviteUsersModalContent(props: InviteUsersModalContentProps) {
   const invitationLink = `enso://auth/registration?${invitationParams}`
 
   return (
-    <>
-      {step === 'invite' && (
-        <inviteUsersForm.InviteUsersForm onSubmitted={onInviteUsersFormInviteUsersFormSubmitted} />
-      )}
+    <Stepper state={stepperState} renderStep={() => null}>
+      {({ currentStep }) => (
+        <>
+          {currentStep === 0 && (
+            <inviteUsersForm.InviteUsersForm
+              onSubmitted={onInviteUsersFormInviteUsersFormSubmitted}
+            />
+          )}
 
-      {step === 'success' && (
-        <inviteUsersSuccess.InviteUsersSuccess
-          {...props}
-          invitationLink={invitationLink}
-          emails={submittedEmails}
-        />
+          {currentStep === 1 && (
+            <inviteUsersSuccess.InviteUsersSuccess
+              {...props}
+              invitationLink={invitationLink}
+              emails={submittedEmails}
+            />
+          )}
+        </>
       )}
-    </>
+    </Stepper>
   )
 }

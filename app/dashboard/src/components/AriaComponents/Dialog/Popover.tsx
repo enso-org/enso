@@ -30,7 +30,6 @@ export interface PopoverProps
 }
 
 export const POPOVER_STYLES = twv.tv({
-  extend: variants.DIALOG_BACKGROUND,
   base: 'shadow-md w-full overflow-clip',
   variants: {
     isEntering: {
@@ -47,17 +46,29 @@ export const POPOVER_STYLES = twv.tv({
       hero: { base: 'max-w-xl', dialog: 'px-6 py-5' },
     },
     rounded: {
-      none: '',
-      small: 'rounded-sm',
-      medium: 'rounded-md',
-      large: 'rounded-lg',
-      xlarge: 'rounded-xl',
-      xxlarge: 'rounded-2xl',
-      xxxlarge: 'rounded-3xl',
+      none: {
+        base: 'rounded-none',
+        dialog: 'rounded-none',
+      },
+      small: {
+        base: 'rounded-sm',
+        dialog: 'rounded-sm',
+      },
+      medium: { dialog: 'rounded-md' },
+      large: { dialog: 'rounded-lg' },
+      xlarge: { dialog: 'rounded-xl' },
+      xxlarge: { base: 'rounded-2xl', dialog: 'rounded-2xl' },
+      xxxlarge: {
+        base: 'rounded-3xl',
+        dialog: 'rounded-3xl',
+      },
+      xxxxlarge: { dialog: 'rounded-4xl' },
     },
   },
   slots: {
-    dialog: 'flex-auto overflow-y-auto max-h-[inherit]',
+    dialog: variants.DIALOG_BACKGROUND({
+      class: 'flex-auto overflow-y-auto max-h-[inherit]',
+    }),
   },
   defaultVariants: { rounded: 'xxlarge', size: 'small' },
 })

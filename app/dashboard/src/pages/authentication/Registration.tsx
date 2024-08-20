@@ -99,7 +99,7 @@ export default function Registration() {
       <Input
         autoFocus
         required
-        data-testid="email-input"
+        testId="email-input"
         name="email"
         label={getText('emailLabel')}
         type="email"
@@ -113,7 +113,7 @@ export default function Registration() {
       />
       <Password
         required
-        data-testid="password-input"
+        testId="password-input"
         name="password"
         label={getText('passwordLabel')}
         autoComplete="new-password"
@@ -123,7 +123,7 @@ export default function Registration() {
       />
       <Password
         required
-        data-testid="confirm-password-input"
+        testId="confirm-password-input"
         name="confirmPassword"
         label={getText('confirmPasswordLabel')}
         autoComplete="new-password"
@@ -131,7 +131,7 @@ export default function Registration() {
         placeholder={getText('confirmPasswordPlaceholder')}
       />
 
-      <Form.Submit size="large" icon={CreateAccountIcon} className="w-full">
+      <Form.Submit size="large" icon={CreateAccountIcon} fullWidth>
         {getText('register')}
       </Form.Submit>
 

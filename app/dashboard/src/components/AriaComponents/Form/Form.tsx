@@ -13,22 +13,10 @@ import * as aria from '#/components/aria'
 
 import * as errorUtils from '#/utilities/error'
 
-import type { Mutable } from 'enso-common/src/utilities/data/object'
 import * as dialog from '../Dialog'
 import * as components from './components'
 import * as styles from './styles'
 import type * as types from './types'
-
-/**
- * Maps the value to the event object.
- */
-function mapValueOnEvent(value: unknown) {
-  if (typeof value === 'object' && value != null && 'target' in value && 'type' in value) {
-    return value
-  } else {
-    return { target: { value } }
-  }
-}
 
 /** Form component. It wraps a `form` and provides form context.
  * It also handles form submission.
@@ -72,17 +60,11 @@ export const Form = React.forwardRef(function Form<
     formOptions.defaultValues = defaultValues
   }
 
-  const innerForm = components.useForm(
-    form ?? {
-      shouldFocusError: true,
-      schema,
-      ...formOptions,
-    },
-  )
-
-  const dialogContext = dialog.useDialogContext()
+  const innerForm = components.useForm(form ?? { shouldFocusError: true, schema, ...formOptions })
 
   React.useImperativeHandle(formRef, () => innerForm, [innerForm])
+
+  const dialogContext = dialog.useDialogContext()
 
   const formMutation = reactQuery.useMutation({
     // We use template literals to make the mutation key more readable in the devtools
@@ -140,51 +122,12 @@ export const Form = React.forwardRef(function Form<
     { isDisabled: canSubmitOffline },
   )
 
-  const {
-    formState,
-    clearErrors,
-    getValues,
-    setValue,
-    setError,
-    register,
-    unregister,
-    setFocus,
-    reset,
-    control,
-  } = innerForm
-
-  const formStateRenderProps: types.FormStateRenderProps<Schema, TFieldValues, TTransformedValues> =
-    {
-      formState,
-      register: (name, options) => {
-        const registered = register(name, options)
-
-        const result: types.UseFormRegisterReturn<Schema, TFieldValues, typeof name> = {
-          ...registered,
-          isDisabled: registered.disabled ?? false,
-          isRequired: registered.required ?? false,
-          isInvalid: Boolean(formState.errors[name]),
-          onChange: (value) => registered.onChange(mapValueOnEvent(value)),
-          onBlur: (value) => registered.onBlur(mapValueOnEvent(value)),
-        }
-
-        return result
-      },
-      unregister,
-      setError,
-      clearErrors,
-      getValues,
-      setValue,
-      setFocus,
-      reset,
-      control,
-      form: innerForm,
-    }
-
   const base = styles.FORM_STYLES({
-    className: typeof className === 'function' ? className(formStateRenderProps) : className,
+    className: typeof className === 'function' ? className(innerForm) : className,
     gap,
   })
+
+  const { formState, setError } = innerForm
 
   // eslint-disable-next-line no-restricted-syntax
   const errors = Object.fromEntries(
@@ -209,41 +152,42 @@ export const Form = React.forwardRef(function Form<
         }
       }}
       className={base}
-      style={typeof style === 'function' ? style(formStateRenderProps) : style}
+      style={typeof style === 'function' ? style(innerForm) : style}
       noValidate
       data-testid={testId}
       {...formProps}
     >
       <aria.FormValidationContext.Provider value={errors}>
         <reactHookForm.FormProvider {...innerForm}>
-          {typeof children === 'function' ? children(formStateRenderProps) : children}
+          {typeof children === 'function' ? children({ ...innerForm, form: innerForm }) : children}
         </reactHookForm.FormProvider>
       </aria.FormValidationContext.Provider>
     </form>
   )
-}) as unknown as Mutable<
-  Pick<
-    typeof components,
-    | 'FIELD_STYLES'
-    | 'Field'
-    | 'FormError'
-    | 'Reset'
-    | 'schema'
-    | 'Submit'
-    | 'useField'
-    | 'useForm'
-    | 'useFormSchema'
-  >
-> &
-  (<
-    Schema extends components.TSchema,
-    TFieldValues extends components.FieldValues<Schema>,
-    TTransformedValues extends components.FieldValues<Schema> | undefined = undefined,
-  >(
-    props: React.RefAttributes<HTMLFormElement> &
-      types.FormProps<Schema, TFieldValues, TTransformedValues>,
-    // eslint-disable-next-line no-restricted-syntax
-  ) => React.JSX.Element)
+}) as unknown as (<
+  Schema extends components.TSchema,
+  TFieldValues extends components.FieldValues<Schema>,
+  TTransformedValues extends components.FieldValues<Schema> | undefined = undefined,
+>(
+  props: React.RefAttributes<HTMLFormElement> &
+    types.FormProps<Schema, TFieldValues, TTransformedValues>,
+  // eslint-disable-next-line no-restricted-syntax
+) => React.JSX.Element) & {
+  /* eslint-disable @typescript-eslint/naming-convention */
+  schema: typeof components.schema
+  useForm: typeof components.useForm
+  useField: typeof components.useField
+  Submit: typeof components.Submit
+  Reset: typeof components.Reset
+  Field: typeof components.Field
+  FormError: typeof components.FormError
+  useFormSchema: typeof components.useFormSchema
+  Controller: typeof components.Controller
+  FIELD_STYLES: typeof components.FIELD_STYLES
+  useFormContext: typeof components.useFormContext
+  useOptionalFormContext: typeof components.useOptionalFormContext
+  /* eslint-enable @typescript-eslint/naming-convention */
+}
 
 Form.schema = components.schema
 Form.useForm = components.useForm
@@ -252,5 +196,8 @@ Form.useFormSchema = components.useFormSchema
 Form.Submit = components.Submit
 Form.Reset = components.Reset
 Form.FormError = components.FormError
+Form.useFormContext = components.useFormContext
+Form.useOptionalFormContext = components.useOptionalFormContext
 Form.Field = components.Field
+Form.Controller = components.Controller
 Form.FIELD_STYLES = components.FIELD_STYLES

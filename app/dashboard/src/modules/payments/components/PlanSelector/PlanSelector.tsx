@@ -30,6 +30,7 @@ export interface PlanSelectorProps {
   readonly showFreePlan?: boolean
   readonly hasTrial?: boolean
   readonly userPlan?: Plan | undefined
+  readonly isOrganizationAdmin?: boolean
   readonly plan?: Plan | null | undefined
   readonly onSubscribeSuccess?: (plan: Plan, paymentMethodId: string) => void
   readonly onSubscribeError?: (error: Error) => void
@@ -47,6 +48,7 @@ export function PlanSelector(props: PlanSelectorProps) {
     userPlan,
     showFreePlan = true,
     hasTrial = true,
+    isOrganizationAdmin = false,
   } = props
 
   const { getText } = useText()
@@ -137,6 +139,7 @@ export function PlanSelector(props: PlanSelectorProps) {
                     features={planProps.features}
                     canTrial={hasTrial}
                     planName={getText(newPlan)}
+                    isOrganizationAdmin={isOrganizationAdmin}
                   />
                 }
                 learnMore={<planProps.learnMore />}

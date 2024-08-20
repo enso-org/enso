@@ -9,7 +9,7 @@ import * as React from 'react'
 import * as aria from '#/components/aria'
 
 import { useText } from '#/providers/TextProvider'
-import { type ExtractFunction, tv, type VariantProps } from '#/utilities/tailwindVariants'
+import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import * as text from '../../Text'
 import type * as types from './types'
 import * as formContext from './useFormContext'
@@ -21,12 +21,18 @@ export interface FieldComponentProps extends VariantProps<typeof FIELD_STYLES>, 
   readonly 'data-testid'?: string | undefined
   readonly name: string
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly form?: types.FormInstance<any, any, any>
+  readonly form?: types.FormInstance<any, any, any> | undefined
   readonly isInvalid?: boolean | undefined
   readonly className?: string | undefined
   readonly children?: React.ReactNode | ((props: FieldChildrenRenderProps) => React.ReactNode)
   readonly style?: React.CSSProperties | undefined
-  readonly variants?: ExtractFunction<typeof FIELD_STYLES> | undefined
+}
+
+/**
+ * Props for Field variants
+ */
+export interface FieldVariantProps {
+  readonly fieldVariants?: VariantProps<typeof FIELD_STYLES>['variants'] | undefined
 }
 
 /**
@@ -54,9 +60,7 @@ export const FIELD_STYLES = tv({
     description: text.TEXT_STYLE({ variant: 'body', color: 'disabled' }),
     error: text.TEXT_STYLE({ variant: 'body', color: 'danger' }),
   },
-  defaultVariants: {
-    fullWidth: true,
-  },
+  defaultVariants: { fullWidth: true },
 })
 
 /**
@@ -78,7 +82,7 @@ export const Field = React.forwardRef(function Field(
     name,
     isHidden,
     isRequired = false,
-    variants,
+    variants = FIELD_STYLES,
   } = props
   const { getText } = useText()
 
@@ -90,7 +94,7 @@ export const Field = React.forwardRef(function Field(
 
   const invalid = isInvalid === true || fieldState.invalid
 
-  const classes = (variants ?? FIELD_STYLES)({
+  const classes = variants({
     fullWidth,
     isInvalid: invalid,
     isHidden,

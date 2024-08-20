@@ -238,11 +238,13 @@ export default function DriveBar(props: DriveBarProps) {
             loaderPosition="icon"
             onPress={() => {
               setIsCreatingProject(true)
+
               doCreateProject(
                 null,
                 null,
                 (project) => {
                   setCreatedProjectId(project.projectId)
+                  setIsCreatingProject(false)
                 },
                 () => {
                   setIsCreatingProject(false)

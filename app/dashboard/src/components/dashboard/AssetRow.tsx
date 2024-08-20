@@ -58,7 +58,7 @@ import { useQuery } from '@tanstack/react-query'
 // =================
 
 /** The height of the header row. */
-const HEADER_HEIGHT_PX = 34
+const HEADER_HEIGHT_PX = 40
 /** The amount of time (in milliseconds) the drag item must be held over this component
  * to make a directory row expand. */
 const DRAG_EXPAND_DELAY_MS = 500
@@ -285,6 +285,7 @@ export default function AssetRow(props: AssetRowProps) {
         // This is SAFE as the type of `newId` is not changed from its original type.
         // eslint-disable-next-line no-restricted-syntax
         const newAsset = object.merge(asset, { id: newId as never, parentId: nonNullNewParentId })
+
         dispatchAssetListEvent({
           type: AssetListEventType.move,
           newParentKey: nonNullNewParentKey,
@@ -292,7 +293,9 @@ export default function AssetRow(props: AssetRowProps) {
           key: item.key,
           item: newAsset,
         })
+
         setAsset(newAsset)
+
         await updateAsset([
           asset.id,
           { parentDirectoryId: newParentId ?? rootDirectoryId, description: null },
@@ -440,21 +443,11 @@ export default function AssetRow(props: AssetRowProps) {
           break
         }
         default: {
-          return
+          break
         }
       }
     } else {
       switch (event.type) {
-        // These events are handled in the specific `NameColumn` files.
-        case AssetEventType.newProject:
-        case AssetEventType.newFolder:
-        case AssetEventType.uploadFiles:
-        case AssetEventType.newDatalink:
-        case AssetEventType.newSecret:
-        case AssetEventType.updateFiles:
-        case AssetEventType.projectClosed: {
-          break
-        }
         case AssetEventType.copy: {
           if (event.ids.has(item.key)) {
             await doCopyOnBackend(event.newParentId)
@@ -674,18 +667,18 @@ export default function AssetRow(props: AssetRowProps) {
         }
         case AssetEventType.deleteLabel: {
           setAsset((oldAsset) => {
-            // The IIFE is required to prevent TypeScript from narrowing this value.
-            let found = (() => false)()
-            const labels =
-              oldAsset.labels?.filter((label) => {
-                if (label === event.labelName) {
-                  found = true
-                  return false
-                } else {
-                  return true
-                }
-              }) ?? null
-            return found ? object.merge(oldAsset, { labels }) : oldAsset
+            const oldLabels = oldAsset.labels ?? []
+            const labels: backendModule.LabelName[] = []
+
+            for (const label of oldLabels) {
+              if (label !== event.labelName) {
+                labels.push(label)
+              }
+            }
+
+            return oldLabels.length !== labels.length ?
+                object.merge(oldAsset, { labels })
+              : oldAsset
           })
           break
         }
@@ -695,6 +688,8 @@ export default function AssetRow(props: AssetRowProps) {
           }
           break
         }
+        default:
+          break
       }
     }
   }, item.initialAssetEvents)
@@ -749,18 +744,23 @@ export default function AssetRow(props: AssetRowProps) {
                 tabIndex={0}
                 ref={(element) => {
                   rootRef.current = element
-                  if (isSoleSelected && element != null && scrollContainerRef.current != null) {
-                    const rect = element.getBoundingClientRect()
-                    const scrollRect = scrollContainerRef.current.getBoundingClientRect()
-                    const scrollUp = rect.top - (scrollRect.top + HEADER_HEIGHT_PX)
-                    const scrollDown = rect.bottom - scrollRect.bottom
-                    if (scrollUp < 0 || scrollDown > 0) {
-                      scrollContainerRef.current.scrollBy({
-                        top: scrollUp < 0 ? scrollUp : scrollDown,
-                        behavior: 'smooth',
-                      })
+
+                  requestAnimationFrame(() => {
+                    if (isSoleSelected && element != null && scrollContainerRef.current != null) {
+                      const rect = element.getBoundingClientRect()
+                      const scrollRect = scrollContainerRef.current.getBoundingClientRect()
+                      const scrollUp = rect.top - (scrollRect.top + HEADER_HEIGHT_PX)
+                      const scrollDown = rect.bottom - scrollRect.bottom
+
+                      if (scrollUp < 0 || scrollDown > 0) {
+                        scrollContainerRef.current.scrollBy({
+                          top: scrollUp < 0 ? scrollUp : scrollDown,
+                          behavior: 'smooth',
+                        })
+                      }
                     }
-                  }
+                  })
+
                   if (isKeyboardSelected && element?.contains(document.activeElement) === false) {
                     element.focus()
                   }
@@ -784,7 +784,7 @@ export default function AssetRow(props: AssetRowProps) {
                     window.setTimeout(() => {
                       setSelected(false)
                     })
-                    doToggleDirectoryExpansion(item.item.id, item.key, asset.title)
+                    doToggleDirectoryExpansion(item.item.id, item.key)
                   }
                 }}
                 onContextMenu={(event) => {
@@ -829,7 +829,7 @@ export default function AssetRow(props: AssetRowProps) {
                   }
                   if (item.type === backendModule.AssetType.directory) {
                     dragOverTimeoutHandle.current = window.setTimeout(() => {
-                      doToggleDirectoryExpansion(item.item.id, item.key, asset.title, true)
+                      doToggleDirectoryExpansion(item.item.id, item.key, true)
                     }, DRAG_EXPAND_DELAY_MS)
                   }
                   // Required because `dragover` does not fire on `mouseenter`.
@@ -867,10 +867,10 @@ export default function AssetRow(props: AssetRowProps) {
                   if (state.category !== Category.trash) {
                     props.onDrop?.(event)
                     clearDragState()
-                    const [directoryKey, directoryId, directoryTitle] =
+                    const [directoryKey, directoryId] =
                       item.type === backendModule.AssetType.directory ?
-                        [item.key, item.item.id, asset.title]
-                      : [item.directoryKey, item.directoryId, null]
+                        [item.key, item.item.id]
+                      : [item.directoryKey, item.directoryId]
                     const payload = drag.ASSET_ROWS.lookup(event)
                     if (
                       payload != null &&
@@ -879,7 +879,7 @@ export default function AssetRow(props: AssetRowProps) {
                       event.preventDefault()
                       event.stopPropagation()
                       unsetModal()
-                      doToggleDirectoryExpansion(directoryId, directoryKey, directoryTitle, true)
+                      doToggleDirectoryExpansion(directoryId, directoryKey, true)
                       const ids = payload
                         .filter((payloadItem) => payloadItem.asset.parentId !== directoryId)
                         .map((dragItem) => dragItem.key)
@@ -892,7 +892,7 @@ export default function AssetRow(props: AssetRowProps) {
                     } else if (event.dataTransfer.types.includes('Files')) {
                       event.preventDefault()
                       event.stopPropagation()
-                      doToggleDirectoryExpansion(directoryId, directoryKey, directoryTitle, true)
+                      doToggleDirectoryExpansion(directoryId, directoryKey, true)
                       dispatchAssetListEvent({
                         type: AssetListEventType.uploadFiles,
                         parentKey: directoryKey,

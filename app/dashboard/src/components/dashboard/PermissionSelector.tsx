@@ -144,8 +144,8 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             isDisabled={isDisabled}
             isActive={!isDisabled || !isInput}
             {...(isDisabled && error != null ? { title: error } : {})}
-            className={tailwindMerge.twMerge(
-              'flex-1 rounded-l-full border-0 py-0',
+            className={tailwindMerge.twJoin(
+              'flex-1 rounded-l-full',
               permissions.PERMISSION_CLASS_NAME[permission.type],
             )}
             onPress={doShowPermissionTypeSelector}
@@ -159,7 +159,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             isDisabled={isDisabled}
             isActive={permission.docs && (!isDisabled || !isInput)}
             {...(isDisabled && error != null ? { title: error } : {})}
-            className={tailwindMerge.twMerge('flex-1 border-0 py-0', permissions.DOCS_CLASS_NAME)}
+            className={tailwindMerge.twJoin('flex-1', permissions.DOCS_CLASS_NAME)}
             onPress={() => {
               setAction(
                 permissions.toPermissionAction({
@@ -179,10 +179,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             isDisabled={isDisabled}
             isActive={permission.execute && (!isDisabled || !isInput)}
             {...(isDisabled && error != null ? { title: error } : {})}
-            className={tailwindMerge.twMerge(
-              'flex-1 rounded-r-full border-0 py-0',
-              permissions.EXEC_CLASS_NAME,
-            )}
+            className={tailwindMerge.twJoin('flex-1 rounded-r-full', permissions.EXEC_CLASS_NAME)}
             onPress={() => {
               setAction(
                 permissions.toPermissionAction({
@@ -206,10 +203,11 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
           variant="custom"
           ref={permissionSelectorButtonRef}
           isDisabled={isDisabled}
+          rounded="full"
           isActive={!isDisabled || !isInput}
           {...(isDisabled && error != null ? { title: error } : {})}
-          className={tailwindMerge.twMerge(
-            'w-[121px] rounded-full border-0 py-0',
+          className={tailwindMerge.twJoin(
+            'w-[121px]',
             permissions.PERMISSION_CLASS_NAME[permission.type],
           )}
           onPress={doShowPermissionTypeSelector}
