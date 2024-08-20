@@ -56,7 +56,7 @@ export default function Login() {
         <Button
           size="large"
           variant="outline"
-          icon={<img src={GoogleIcon} />}
+          icon={GoogleIcon}
           onPress={async () => {
             await signInWithGoogle()
           }}
@@ -66,7 +66,7 @@ export default function Login() {
         <Button
           size="large"
           variant="outline"
-          icon={<img src={GithubIcon} />}
+          icon={GithubIcon}
           onPress={async () => {
             await signInWithGitHub()
           }}
