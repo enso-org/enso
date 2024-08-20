@@ -134,7 +134,7 @@ const BASE_STEPS: Step[] = [
           context.session.user.isOrganizationAdmin
         : false
 
-      return (context.plan === Plan.free || context.plan === Plan.solo) && !isOrganizationAdmin
+      return context.plan === Plan.free || context.plan === Plan.solo || !isOrganizationAdmin
     },
     hideNext: true,
     hidePrevious: true,
@@ -200,7 +200,7 @@ const BASE_STEPS: Step[] = [
           context.session.user.isOrganizationAdmin
         : false
 
-      return (context.plan === Plan.free || context.plan === Plan.solo) && !isOrganizationAdmin
+      return context.plan === Plan.free || context.plan === Plan.solo || !isOrganizationAdmin
     },
     hideNext: true,
     hidePrevious: true,
@@ -240,7 +240,7 @@ const BASE_STEPS: Step[] = [
           context.session.user.isOrganizationAdmin
         : false
 
-      return (context.plan === Plan.free || context.plan === Plan.solo) && !isOrganizationAdmin
+      return context.plan === Plan.free || context.plan === Plan.solo || !isOrganizationAdmin
     },
     hideNext: true,
     hidePrevious: true,

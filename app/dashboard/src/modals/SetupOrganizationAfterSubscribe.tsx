@@ -37,8 +37,9 @@ export function SetupOrganizationAfterSubscribe() {
   const { session } = authProvider.useAuth()
 
   const user = session != null && 'user' in session ? session.user : null
+  const userIsAdmin = user?.isOrganizationAdmin ?? false
   const userId = user?.userId ?? null
-  const userPlan = user?.plan ?? null
+  const userPlan = user?.plan ?? backendModule.Plan.free
 
   const { data: organizationName } = useSuspenseQuery({
     queryKey: ['organization', userId],
@@ -65,10 +66,10 @@ export function SetupOrganizationAfterSubscribe() {
     }),
   )
 
-  const shouldSetOrgName =
-    userPlan != null && PLANS_TO_SPECIFY_ORG_NAME.includes(userPlan) && organizationName === ''
-  const shouldSetDefaultUserGroup = hasUserGroups === 0
-  const shouldShowModal = shouldSetOrgName || shouldSetDefaultUserGroup
+  const shouldSetOrgName = PLANS_TO_SPECIFY_ORG_NAME.includes(userPlan) && organizationName === ''
+  const shouldSetDefaultUserGroup =
+    PLANS_TO_SPECIFY_ORG_NAME.includes(userPlan) && hasUserGroups === 0
+  const shouldShowModal = userIsAdmin && (shouldSetOrgName || shouldSetDefaultUserGroup)
 
   const { stepperState } = Stepper.useStepperState({
     steps: 3,
