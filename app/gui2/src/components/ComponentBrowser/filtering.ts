@@ -27,7 +27,10 @@ export enum MatchTypeScore {
 }
 const NONEXACT_MATCH_PENALTY = 50
 const ALIAS_PENALTY = 1000
+/** If we match by both entry name and owner name, the owner name is less important. */
 const OWNER_SCORE_WEIGHT = 0.2
+/** The matches on actual names should be better than matches on owner names only */
+const OWNER_ONLY_MATCH_PENALTY = 6000
 
 interface NameMatchResult {
   score: number
@@ -60,9 +63,9 @@ class FilteringName {
     // - The unmatched rest of the word, up to, but excluding, the next underscore
     // - The unmatched words before the next matched word, including any underscores
     this.wordMatchRegex = new RegExp(
-      '(^|.*?_)(' +
-        escapeStringRegexp(pattern).replace(/_/g, ')([^_]*)(.*?)([_ ]') +
-        ')([^_]*)(.*)',
+      '(^|.*?[_ ])(' +
+        escapeStringRegexp(pattern).replace(/[_ ]/g, ')([^_ ]*)(.*?)([_ ]') +
+        ')([^_ ]*)(.*)',
       'i',
     )
     if (pattern.length > 1 && !/_/.test(pattern)) {
@@ -75,8 +78,8 @@ class FilteringName {
       const regex = pattern
         .split('')
         .map((c) => `(${escapeStringRegexp(c)})`)
-        .join('([^_]*?[_ ])')
-      this.initialsMatchRegex = new RegExp('(^|.*?_)' + regex + '(.*)', 'i')
+        .join('([^_ ]*?[_ ])')
+      this.initialsMatchRegex = new RegExp('(^|.*?[_ ])' + regex + '(.*)', 'i')
     }
   }
 
@@ -150,16 +153,26 @@ class FilteringName {
 
 class FilteringWithPattern {
   nameFilter: FilteringName
-  ownerNameFiter: FilteringName
+  ownerNameFilter: FilteringName
+  bothFiltersMustMatch: boolean
 
   constructor(pattern: string) {
     const split = pattern.lastIndexOf('.')
-    this.nameFilter = new FilteringName(split >= 0 ? pattern.slice(split + 1) : pattern)
-    this.ownerNameFiter = new FilteringName(split >= 0 ? pattern.slice(0, split) : '')
+    if (split >= 0) {
+      // If there is a dot in the pattern, the segment before must match owner name,
+      // and the segment after - the entry name
+      this.nameFilter = new FilteringName(pattern.slice(split + 1))
+      this.ownerNameFilter = new FilteringName(pattern.slice(0, split))
+      this.bothFiltersMustMatch = true
+    } else {
+      // the pattern has to match name or the owner name
+      this.nameFilter = new FilteringName(pattern)
+      this.ownerNameFilter = this.nameFilter
+      this.bothFiltersMustMatch = false
+    }
   }
 
   private firstMatchingAlias(aliases: string[]) {
-    if (!this.nameFilter) return null
     for (const alias of aliases) {
       const match = this.nameFilter.tryMatch(alias)
       if (match != null) return { alias, ...match }
@@ -170,17 +183,29 @@ class FilteringWithPattern {
   tryMatch(name: string, aliases: string[], memberOf: QualifiedName): MatchResult | null {
     const nameMatch: (NameMatchResult & { alias?: string }) | null =
       this.nameFilter.tryMatch(name) ?? this.firstMatchingAlias(aliases)
-    const ownerNameMarch = this.ownerNameFiter.tryMatch(qnLastSegment(memberOf))
-    if (!nameMatch || !ownerNameMarch) return null
-    return {
-      score:
-        nameMatch.score +
-        ownerNameMarch.score * OWNER_SCORE_WEIGHT +
-        ('alias' in nameMatch ? ALIAS_PENALTY : 0),
-      ...('alias' in nameMatch ? { matchedAlias: nameMatch.alias } : {}),
-      nameRanges: nameMatch.ranges,
-      ownerNameRanges: ownerNameMarch.ranges,
+    const ownerNameMatch = this.ownerNameFilter.tryMatch(qnLastSegment(memberOf))
+    if (!nameMatch && !ownerNameMatch) return null
+    if (this.bothFiltersMustMatch && (!nameMatch || !ownerNameMatch)) return null
+
+    const result: MatchResult = { score: 0 }
+    if (nameMatch) {
+      result.score += nameMatch.score
+      if ('alias' in nameMatch) {
+        result.score += ALIAS_PENALTY
+        result.matchedAlias = nameMatch.alias
+      }
+      result.nameRanges = nameMatch.ranges
+
+      if (!this.bothFiltersMustMatch) return result
     }
+    if (ownerNameMatch) {
+      result.score +=
+        ownerNameMatch.score * (nameMatch ? OWNER_SCORE_WEIGHT : 1) +
+        (nameMatch ? 0 : OWNER_ONLY_MATCH_PENALTY)
+      result.ownerNameRanges = ownerNameMatch.ranges
+      return result
+    }
+    return null
   }
 }
 

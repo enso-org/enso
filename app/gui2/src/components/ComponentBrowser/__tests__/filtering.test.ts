@@ -152,6 +152,27 @@ test.each([
     ],
   },
   {
+    pattern: 'foo bar',
+    matchedSorted: [
+      { name: 'foo_bar' }, // exact match
+      { name: 'foo_xyz_barabc' }, // first word exact match
+      { name: 'fooabc_barabc' }, // first word match
+      { name: 'bar', aliases: ['foo bar', 'foo'] }, // exact alias match
+      { name: 'bar', aliases: ['foo', 'foo_xyz_barabc'] }, // alias first word exact match
+      { name: 'bar', aliases: ['foo', 'fooabc barabc'] }, // alias first word match
+      { name: 'xyz_foo_abc_bar_xyz' }, // exact word match
+      { name: 'xyz_fooabc_abc_barabc_xyz' }, // non-exact word match
+      { name: 'bar', aliases: ['xyz_foo_abc_bar_xyz'] }, // alias word exact match
+      { name: 'bar', aliases: ['xyz_fooabc_abc_barabc_xyz'] }, // alias word start match
+    ],
+    notMatched: [
+      { name: 'foo' },
+      { name: 'bar' },
+      { name: 'fo_bar' },
+      { name: 'foo_ba', aliases: ['baz'] },
+    ],
+  },
+  {
     pattern: 'pr.foo',
     matchedSorted: [
       { module: 'local.Pr', name: 'foo' }, // exact match
@@ -182,15 +203,13 @@ test.each([
   const matchResults = Array.from(matchedSortedEntries, (entry) => filtering.filter(entry))
   // Checking matching entries
   function checkResult(entry: SuggestionEntry, result: Opt<MatchResult>) {
-    expect(result).not.toBeNull()
+    expect(result, `Matching entry ${entryQn(entry)}`).not.toBeNull()
     expect(
-      matchedText(
-        entry.memberOf ? qnLastSegment(entry.memberOf) : '',
-        entry.name,
-        result!,
-      ).toLowerCase(),
-      `matchedText('${entry.name}')`,
-    ).toEqual(pattern.toLowerCase())
+      matchedText(entry.memberOf ? qnLastSegment(entry.memberOf) : '', entry.name, result!)
+        .toLowerCase()
+        .replace(/ /g, '_'),
+      `Matched text of entry ${entryQn(entry)}`,
+    ).toEqual(pattern.toLowerCase().replace(/ /g, '_'))
   }
   checkResult(matchedSortedEntries[0]!, matchResults[0])
   for (let i = 1; i < matchResults.length; i++) {

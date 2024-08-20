@@ -14,7 +14,6 @@ import {
   makeModule,
   makeModuleMethod,
   makeStaticMethod,
-  type SuggestionEntry,
 } from '@/stores/suggestionDatabase/entry'
 import { allRanges } from '@/util/data/range'
 import shuffleSeed from 'shuffle-seed'
@@ -112,6 +111,5 @@ test.each`
   }
   const filtering = new Filtering({ pattern })
   const componentInfo = { id: 0, entry, match: filtering.filter(entry)! }
-  console.log(componentInfo.match.ownerNameRanges)
   expect(replaceMatches(makeComponent(componentInfo))).toEqual(highlighted)
 })
