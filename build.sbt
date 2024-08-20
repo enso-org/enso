@@ -1353,11 +1353,13 @@ lazy val `ydoc-server` = project
       GraalVM.modules ++ GraalVM.jsPkgs ++ GraalVM.chromeInspectorPkgs ++ helidon ++ Seq(
         "org.slf4j"      % "slf4j-api"       % slf4jVersion,
         "ch.qos.logback" % "logback-classic" % logbackClassicVersion,
-        "ch.qos.logback" % "logback-core"    % logbackClassicVersion,
-        (`syntax-rust-definition` / projectID).value,
-        (`profiling-utils` / projectID).value
-      ),
+        "ch.qos.logback" % "logback-core"    % logbackClassicVersion
+      )
     },
+    internalModuleDependencies := Seq(
+      (`syntax-rust-definition` / exportedModule).value,
+      (`profiling-utils` / exportedModule).value,
+    ),
     libraryDependencies ++= Seq(
       "org.graalvm.truffle"        % "truffle-api"                 % graalMavenPackagesVersion % "provided",
       "org.graalvm.polyglot"       % "inspect"                     % graalMavenPackagesVersion % "runtime",
