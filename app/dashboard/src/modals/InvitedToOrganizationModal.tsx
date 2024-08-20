@@ -1,8 +1,10 @@
 /** @file Modal for accepting or rejecting an invite to an organization. */
 import { Outlet } from 'react-router'
 
+import * as z from 'zod'
+
 import { SUPPORT_EMAIL, SUPPORT_EMAIL_URL } from '#/appUtils'
-import { Button, ButtonGroup, Dialog, Text } from '#/components/AriaComponents'
+import { Alert, Button, ButtonGroup, Dialog, Form, Text } from '#/components/AriaComponents'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useAuth, useFullUserSession } from '#/providers/AuthProvider'
 import { useRemoteBackendStrict } from '#/providers/BackendProvider'
@@ -44,7 +46,14 @@ export function InvitedToOrganizationModal() {
               modalProps={{ defaultOpen: true }}
             >
               {({ close }) => (
-                <div className="flex flex-col gap-4">
+                <Form
+                  schema={z.object({})}
+                  className="flex flex-col gap-4"
+                  onSubmit={async () => {
+                    await acceptInvitation([])
+                    close()
+                  }}
+                >
                   <div>
                     <Text disableLineHeightCompensation>{getText('organizationInvitePrefix')}</Text>
                     <Text disableLineHeightCompensation className="font-bold">
@@ -62,17 +71,9 @@ export function InvitedToOrganizationModal() {
                     >
                       {getText('decline')}
                     </Button>
-                    <Button
-                      variant="tertiary"
-                      onPress={async () => {
-                        await acceptInvitation([])
-                        close()
-                      }}
-                    >
-                      {getText('accept')}
-                    </Button>
+                    <Form.Submit variant="tertiary">{getText('accept')}</Form.Submit>
                   </ButtonGroup>
-                </div>
+                </Form>
               )}
             </Dialog>
           </>
@@ -93,12 +94,12 @@ export function InvitedToOrganizationModal() {
                 {user.newOrganizationName}
               </Text>
               <Text disableLineHeightCompensation>{getText('organizationInviteErrorSuffix')}</Text>
-              <Text className="text-danger">
+              <Alert>
                 {getText('organizationInviteErrorMessage')}{' '}
                 <Button variant="link" href={SUPPORT_EMAIL_URL}>
                   {SUPPORT_EMAIL}
                 </Button>
-              </Text>
+              </Alert>
             </Dialog>
           </>
         )
