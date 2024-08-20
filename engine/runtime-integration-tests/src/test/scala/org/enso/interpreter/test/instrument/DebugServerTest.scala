@@ -16,7 +16,7 @@ class DebugServerTest
 
   override def contextModifiers: Option[Context#Builder => Context#Builder] =
     Some(b => {
-      b.option(DebugServerInfo.FN_OPTION, "Test.main")
+      b.option(DebugServerInfo.METHOD_BREAKPOINT_OPTION, "Test.main")
     })
 
   override def specify(implicit
