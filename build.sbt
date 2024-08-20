@@ -1562,11 +1562,13 @@ lazy val `engine-common` = project
     moduleDependencies := {
       Seq(
         "org.graalvm.polyglot" % "polyglot"  % graalMavenPackagesVersion,
-        "org.slf4j"            % "slf4j-api" % slf4jVersion,
-        (`logging-utils` / projectID).value,
-        (`logging-config` / projectID).value
+        "org.slf4j"            % "slf4j-api" % slf4jVersion
       )
-    }
+    },
+    internalModuleDependencies := Seq(
+      (`logging-utils` / exportedModule).value,
+      (`logging-config` / exportedModule).value
+    )
   )
   .dependsOn(`logging-config`)
   .dependsOn(`logging-utils`)
