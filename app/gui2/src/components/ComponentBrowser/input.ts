@@ -281,8 +281,6 @@ export function useComponentBrowserInput(
     selfArgument: sourceNodeIdentifier,
     /** The current selection (or cursor position if start is equal to end). */
     selection,
-    /** Whether the input is an AI prompt. */
-    isAiPrompt: computed(() => mode.value.mode === 'aiPrompt'),
     /** Flag indincating that we're waiting for AI's answer for user's prompt. */
     processingAIPrompt,
     /** Re-initializes the input for given usage. */

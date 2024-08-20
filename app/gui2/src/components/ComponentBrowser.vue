@@ -72,7 +72,7 @@ const cbOpen: Interaction = cancelOnClickOutside(cbRoot, {
   cancel: () => emit('canceled'),
   end: () => {
     // In AI prompt mode likely the input is not a valid mode.
-    if (!input.isAiPrompt) {
+    if (input.mode.mode !== 'aiPrompt') {
       acceptInput()
     } else {
       emit('canceled')
@@ -249,7 +249,7 @@ const previewedSuggestionReturnType = computed(() => {
 })
 
 const previewDataSource = computed<VisualizationDataSource | undefined>(() => {
-  if (input.isAiPrompt) return
+  if (input.mode.mode !== 'codeEditing') return
   if (!previewedCode.value.trim()) return
   if (!graphStore.methodAst.ok) return
   const body = graphStore.methodAst.value.body
