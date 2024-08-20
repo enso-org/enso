@@ -1419,6 +1419,7 @@ lazy val `ydoc-server` = project
   .dependsOn(`profiling-utils`)
 
 lazy val `persistance` = (project in file("lib/java/persistance"))
+  .enablePlugins(JPMSPlugin)
   .settings(
     version := mavenUploadVersion,
     Test / fork := true,
@@ -1436,6 +1437,10 @@ lazy val `persistance` = (project in file("lib/java/persistance"))
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion,
       "junit"            % "junit"                   % junitVersion   % Test,
       "com.github.sbt"   % "junit-interface"         % junitIfVersion % Test
+    ),
+    moduleDependencies := Seq(
+      "org.slf4j"        % "slf4j-api"               % slf4jVersion,
+      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion,
     )
   )
   .dependsOn(`persistance-dsl` % Test)
