@@ -12,10 +12,9 @@ import {
   Form,
   type TSchema,
 } from '#/components/AriaComponents'
-
-import { mergeRefs } from '#/utilities/mergeRefs'
-
 import RadioGroup from '#/components/styled/RadioGroup'
+import { mergeRefs } from '#/utilities/mergeRefs'
+import { forwardRef } from '#/utilities/react'
 import { tv } from '#/utilities/tailwindVariants'
 import { Controller } from 'react-hook-form'
 import { SelectorOption } from './SelectorOption'
@@ -78,8 +77,7 @@ export const SELECTOR_STYLES = tv({
 /**
  * A horizontal selector.
  */
-// eslint-disable-next-line no-restricted-syntax
-export const Selector = React.forwardRef(function Selector<
+export const Selector = forwardRef(function Selector<
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema>,
 >(props: SelectorProps<Schema, TFieldName>, ref: React.ForwardedRef<HTMLFieldSetElement>) {
@@ -164,7 +162,7 @@ export const Selector = React.forwardRef(function Selector<
                 }}
               >
                 {items.map((item, i) => (
-                  <SelectorOption value={String(i)} label={itemToString(item)} />
+                  <SelectorOption key={i} value={String(i)} label={itemToString(item)} />
                 ))}
               </RadioGroup>
             )
@@ -173,6 +171,4 @@ export const Selector = React.forwardRef(function Selector<
       </div>
     </Form.Field>
   )
-}) as <Schema extends TSchema, TFieldName extends FieldPath<Schema>>(
-  props: React.RefAttributes<HTMLDivElement> & SelectorProps<Schema, TFieldName>,
-) => React.ReactElement
+})

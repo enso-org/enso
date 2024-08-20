@@ -28,6 +28,9 @@ import type * as types from './types'
  */
 export function useForm<Schema extends types.TSchema>(
   optionsOrFormInstance: types.UseFormProps<Schema> | types.UseFormReturn<Schema>,
+  defaultValues?:
+    | reactHookForm.DefaultValues<types.FieldValues<Schema>>
+    | ((payload?: unknown) => Promise<types.FieldValues<Schema>>),
 ): types.UseFormReturn<Schema> {
   const initialTypePassed = React.useRef(getArgsType(optionsOrFormInstance))
 
@@ -59,16 +62,15 @@ export function useForm<Schema extends types.TSchema>(
       })()
     )
 
-  // Expose default values to controlled inputs like `Selector` and `MultiSelector`
-  const initialDefaultValues = React.useRef(
-    'defaultValues' in optionsOrFormInstance ? optionsOrFormInstance.defaultValues : undefined,
-  )
+  const initialDefaultValues = React.useRef(defaultValues)
 
   React.useEffect(() => {
+    // Expose default values to controlled inputs like `Selector` and `MultiSelector`.
+    // Using `defaultValues` is not sufficient as the value needs to be manually set at least once.
     const defaults = initialDefaultValues.current
     if (defaults) {
       if (typeof defaults !== 'function') {
-        form.reset(defaults)
+        form.reset(defaults, { keepDirtyValues: true })
       }
     }
   }, [form])

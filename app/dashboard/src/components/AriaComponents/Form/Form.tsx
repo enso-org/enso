@@ -76,6 +76,7 @@ export const Form = React.forwardRef(function Form<Schema extends components.TSc
       schema,
       ...formOptions,
     },
+    defaultValues,
   )
 
   const dialogContext = dialog.useDialogContext()
