@@ -70,7 +70,7 @@ export function useForm<Schema extends types.TSchema>(
     const defaults = initialDefaultValues.current
     if (defaults) {
       if (typeof defaults !== 'function') {
-        form.reset(defaults, { keepDirtyValues: true })
+        form.reset(defaults)
       }
     }
   }, [form])

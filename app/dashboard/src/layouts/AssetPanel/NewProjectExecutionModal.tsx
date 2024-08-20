@@ -166,23 +166,25 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
             />
             <Text>{getText(PARALLEL_MODE_TO_DESCRIPTION_ID[parallelMode])}</Text>
           </div>
-          <DatePicker
-            form={form}
-            isRequired
-            name="date"
-            label={getText('firstOccurrenceLabel')}
-            noCalendarHeader
-            minValue={minFirstOccurrence}
-            maxValue={maxFirstOccurrence}
-          />
-          {repeatInterval !== 'hourly' && (
-            <Text>
-              {getText(
-                'repeatsAtX',
-                repeatTimes.map((time) => toCalendarDate(time).toString()).join(', '),
-              )}
-            </Text>
-          )}
+          <div className="flex flex-col">
+            <DatePicker
+              form={form}
+              isRequired
+              name="date"
+              label={getText('firstOccurrenceLabel')}
+              noCalendarHeader
+              minValue={minFirstOccurrence}
+              maxValue={maxFirstOccurrence}
+            />
+            {repeatInterval !== 'hourly' && (
+              <Text>
+                {getText(
+                  'repeatsAtX',
+                  repeatTimes.map((time) => toCalendarDate(time).toString()).join(', '),
+                )}
+              </Text>
+            )}
+          </div>
           <Input
             form={form}
             name="maxDurationMinutes"
