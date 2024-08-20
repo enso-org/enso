@@ -172,3 +172,28 @@ default_build_aggregate dialect base_table key_expressions resolved_aggregates p
            created columns and failures.
         result.catch Any error->(DB_Wrapped_Error.Value error)
     Pair.new new_ctx results
+
+## PRIVATE
+   An implementation that can be used for `custom_build_aggregate` in dialects
+   that do not implement First/Last aggregations natively and instead need to
+   use a ROW_NUMBER sub-query trick. This is e.g. SQLite and Snowflake.
+
+   If a First/Last aggregation is requested, a sub-query containing a row number
+   with requested ordering is created, and that row number expression will be
+   passed to the aggregate instead of the ordering.
+   If several aggregations with different orderings are requested, a separate
+   row number column is created for each ordering. Aggregations with the same
+   ordering will re-use the same column.
+
+   If no First/Last aggregations are requested, no sub-queries are created - in
+   fact we just delegate to the default implementation.
+build_aggregate_with_row_number_for_first_last dialect base_table key_expressions resolved_aggregates problem_builder =
+    if (has_first_last resolved_aggregates).not then default_build_aggregate dialect base_table key_expressions resolved_aggregates problem_builder else
+        # TODO
+
+## PRIVATE
+has_first_last resolved_aggregates = resolved_aggregates.any agg->
+    case agg.second of
+        Aggregate_Column.First _ _ _ _ -> True
+        Aggregate_Column.Last _ _ _ _ -> True
+        _ -> False
