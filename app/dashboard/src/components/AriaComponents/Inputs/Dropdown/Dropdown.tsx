@@ -6,6 +6,8 @@ import FolderArrowIcon from '#/assets/folder_arrow.svg'
 import { ListBox, ListBoxItem, mergeProps, useFocusWithin } from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
+import { useSyncRef } from '#/hooks/syncRefHooks'
+import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
 import { tv } from '#/utilities/tailwindVariants'
 
@@ -103,6 +105,8 @@ export const Dropdown = forwardRef(function Dropdown<T>(
   const [tempSelectedIndex, setTempSelectedIndex] = useState<number | null>(null)
   const rootRef = useRef<HTMLDivElement | null>(null)
   const [isFocused, setIsFocused] = useState(false)
+  const isFocusedRef = useSyncRef(isFocused)
+  const shouldBlurRef = useRef(isFocused)
   const { focusWithinProps } = useFocusWithin({ onFocusWithinChange: setIsFocused })
   const multiple = props.multiple === true
   const selectedIndex = 'selectedIndex' in props ? props.selectedIndex : null
@@ -122,26 +126,29 @@ export const Dropdown = forwardRef(function Dropdown<T>(
 
   useEffect(() => {
     const onDocumentClick = () => {
-      rootRef.current?.blur()
+      if (shouldBlurRef.current) {
+        rootRef.current?.blur()
+      }
+    }
+    const onDocumentMouseDown = () => {
+      shouldBlurRef.current = isFocusedRef.current
     }
     document.addEventListener('click', onDocumentClick)
+    document.addEventListener('mousedown', onDocumentMouseDown)
     return () => {
       document.removeEventListener('click', onDocumentClick)
+      document.removeEventListener('mousedown', onDocumentMouseDown)
     }
-  }, [])
+  }, [isFocusedRef])
 
   return (
     <FocusRing placement="outset">
       <div
-        {...mergeProps<JSX.IntrinsicElements['div']>()(
-          focusWithinProps,
-          { ref: rootRef },
-          {
-            tabIndex: 0,
-            ref,
-            className: styles.base(),
-          },
-        )}
+        ref={mergeRefs(ref, rootRef)}
+        {...mergeProps<JSX.IntrinsicElements['div']>()(focusWithinProps, {
+          tabIndex: 0,
+          className: styles.base(),
+        })}
       >
         <div className={styles.container()}>
           <div className={styles.options()}>
@@ -156,6 +163,7 @@ export const Dropdown = forwardRef(function Dropdown<T>(
                   : 'single'
                 }
                 items={listBoxItems}
+                dependencies={[selectedIndices]}
                 className={styles.optionsList()}
                 onSelectionChange={(keys) => {
                   if (multiple) {
