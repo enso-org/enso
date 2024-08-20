@@ -279,7 +279,7 @@ watch(selectedSuggestionId, (id) => {
 
 function acceptSuggestion(component: Opt<Component> = null) {
   const suggestionId = component?.suggestionId ?? selectedSuggestionId.value
-  if (suggestionId == null) return
+  if (suggestionId == null) return acceptInput()
   const result = input.applySuggestion(suggestionId)
   if (result.ok) acceptInput()
   else result.error.log('Cannot apply suggestion')

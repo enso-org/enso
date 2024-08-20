@@ -148,6 +148,7 @@ export function useComponentBrowserInput(
   function applySuggestionAndSwitchToCodeEditMode(id: SuggestionId): Result {
     const applied = applySuggestion(id)
     if (applied.ok) {
+      console.log('Switching to code mode', id)
       switchedToCodeMode.value = { appliedSuggestion: id }
     }
     return applied
@@ -161,8 +162,8 @@ export function useComponentBrowserInput(
   } {
     const newText =
       !sourceNodeIdentifier.value && entry.memberOf ?
-        `${qnLastSegment(entry.memberOf)}.${entry.name}`
-      : entry.name
+        `${qnLastSegment(entry.memberOf)}.${entry.name} `
+      : `${entry.name} `
     const newCode =
       sourceNodeIdentifier.value ? `${sourceNodeIdentifier.value}.${entry.name} ` : `${newText} `
     const newCursorPos = newText.length

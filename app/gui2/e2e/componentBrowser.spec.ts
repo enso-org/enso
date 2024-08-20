@@ -171,23 +171,14 @@ test('Accepting any written input', async ({ page }) => {
   await expect(locate.graphNode(page).last().locator('.WidgetToken')).toHaveText('re')
 })
 
-test('Filling input with suggestions', async ({ page }) => {
+test('Filling input with suggestion', async ({ page }) => {
   await actions.goToGraph(page)
   await locate.addNewNodeButton(page).click()
-
-  // Entering module
-  await locate.componentBrowserEntryByLabel(page, 'Standard.Base.Data').click()
-  await expect(locate.componentBrowser(page)).toExist()
-  await expect(locate.componentBrowserInput(page).locator('input')).toHaveValue(
-    'Standard.Base.Data.',
-  )
 
   // Applying suggestion
   await page.keyboard.press('Tab')
   await expect(locate.componentBrowser(page)).toExist()
-  await expect(locate.componentBrowserInput(page).locator('input')).toHaveValue(
-    'Standard.Base.Data.read ',
-  )
+  await expect(locate.componentBrowserInput(page).locator('input')).toHaveValue('Data.read ')
 })
 
 test('Filtering list', async ({ page }) => {
