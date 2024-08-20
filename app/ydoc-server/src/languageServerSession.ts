@@ -659,6 +659,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
         }
         return
       }
+      case LsSyncState.CapabilityError:
       case LsSyncState.WriteError:
       case LsSyncState.Synchronized: {
         this.setState(LsSyncState.Closing)
