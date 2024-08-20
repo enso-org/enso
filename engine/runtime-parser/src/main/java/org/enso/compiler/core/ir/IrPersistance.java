@@ -468,14 +468,23 @@ public final class IrPersistance {
 
     @Override
     protected void writeObject(DiagnosticStorage obj, Output out) throws IOException {
-      out.writeInline(List.class, obj == null ? Nil$.MODULE$ : obj.toList());
+      if (obj == null) {
+        out.writeBoolean(false);
+      } else {
+        out.writeBoolean(true);
+        out.writeInline(List.class, obj.toList());
+      }
     }
 
     @Override
     @SuppressWarnings("unchecked")
     protected DiagnosticStorage readObject(Input in) throws IOException, ClassNotFoundException {
-      var diags = in.readInline(List.class);
-      return new DiagnosticStorage(diags);
+      if (in.readBoolean()) {
+        var diags = in.readInline(List.class);
+        return new DiagnosticStorage(diags);
+      } else {
+        return null;
+      }
     }
   }
 }
