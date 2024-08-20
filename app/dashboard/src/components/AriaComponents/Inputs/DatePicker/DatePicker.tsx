@@ -68,7 +68,7 @@ export interface DatePickerProps<Schema extends TSchema, TFieldName extends Fiel
       TFieldName
     >,
     FieldProps,
-    Pick<FieldComponentProps, 'className' | 'style'> {
+    Pick<FieldComponentProps<Schema>, 'className' | 'style'> {
   readonly noCalendarHeader?: boolean
   readonly segments?: Partial<Record<DateSegmentType['type'], boolean>>
 }
