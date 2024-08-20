@@ -46,23 +46,14 @@ export const POPOVER_STYLES = twv.tv({
       hero: { base: 'max-w-xl', dialog: 'px-6 py-5' },
     },
     rounded: {
-      none: {
-        base: 'rounded-none',
-        dialog: 'rounded-none',
-      },
-      small: {
-        base: 'rounded-sm',
-        dialog: 'rounded-sm',
-      },
-      medium: { dialog: 'rounded-md' },
-      large: { dialog: 'rounded-lg' },
-      xlarge: { dialog: 'rounded-xl' },
+      none: { base: 'rounded-none', dialog: 'rounded-none' },
+      small: { base: 'rounded-sm', dialog: 'rounded-sm' },
+      medium: { base: 'rounded-md', dialog: 'rounded-md' },
+      large: { base: 'rounded-lg', dialog: 'rounded-lg' },
+      xlarge: { base: 'rounded-xl', dialog: 'rounded-xl' },
       xxlarge: { base: 'rounded-2xl', dialog: 'rounded-2xl' },
-      xxxlarge: {
-        base: 'rounded-3xl',
-        dialog: 'rounded-3xl',
-      },
-      xxxxlarge: { dialog: 'rounded-4xl' },
+      xxxlarge: { base: 'rounded-3xl', dialog: 'rounded-3xl' },
+      xxxxlarge: { base: 'rounded-4xl', dialog: 'rounded-4xl' },
     },
   },
   slots: {
