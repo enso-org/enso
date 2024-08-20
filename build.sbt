@@ -1094,6 +1094,7 @@ lazy val `task-progress-notifications` = project
   .dependsOn(`json-rpc-server`)
 
 lazy val `version-output` = (project in file("lib/scala/version-output"))
+  .enablePlugins(JPMSPlugin)
   .settings(
     version := "0.1"
   )
