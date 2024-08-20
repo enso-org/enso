@@ -1,43 +1,50 @@
-/** @file A horizontal selector. */
-import * as React from 'react'
+/** @file A horizontal selector supporting multiple input. */
+import { useRef, type CSSProperties, type ForwardedRef, type Ref } from 'react'
 
-import type * as twv from 'tailwind-variants'
+import type { VariantProps } from 'tailwind-variants'
 
-import { mergeProps, type RadioGroupProps } from '#/components/aria'
 import {
+  FieldError,
+  ListBox,
+  mergeProps,
+  type ListBoxItemProps,
+  type ListBoxProps,
+} from '#/components/aria'
+import {
+  Form,
   type FieldPath,
   type FieldProps,
   type FieldStateProps,
   type FieldValues,
-  Form,
   type TSchema,
 } from '#/components/AriaComponents'
-import RadioGroup from '#/components/styled/RadioGroup'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
 import { tv } from '#/utilities/tailwindVariants'
 import { Controller } from 'react-hook-form'
-import { SelectorOption } from './SelectorOption'
+import { MultiSelectorOption } from './MultiSelectorOption'
 
-/** * Props for the Selector component. */
-export interface SelectorProps<Schema extends TSchema, TFieldName extends FieldPath<Schema>>
+/** * Props for the MultiSelector component. */
+export interface MultiSelectorProps<Schema extends TSchema, TFieldName extends FieldPath<Schema>>
   extends FieldStateProps<
-      Omit<RadioGroupProps, 'children' | 'value'> & { value: FieldValues<Schema>[TFieldName] },
+      Omit<ListBoxItemProps, 'children' | 'value'> & { value: FieldValues<Schema>[TFieldName] },
       Schema,
       TFieldName
     >,
     FieldProps,
-    Omit<twv.VariantProps<typeof SELECTOR_STYLES>, 'disabled' | 'invalid'> {
-  readonly items: readonly FieldValues<Schema>[TFieldName][]
-  readonly itemToString?: (item: FieldValues<Schema>[TFieldName]) => string
+    Omit<VariantProps<typeof MULTI_SELECTOR_STYLES>, 'disabled' | 'invalid'> {
+  readonly items: readonly Extract<FieldValues<Schema>[TFieldName], readonly unknown[]>[number][]
+  readonly itemToString?: (
+    item: Extract<FieldValues<Schema>[TFieldName], readonly unknown[]>[number],
+  ) => string
   readonly columns?: number
   readonly className?: string
-  readonly style?: React.CSSProperties
-  readonly inputRef?: React.Ref<HTMLDivElement>
+  readonly style?: CSSProperties
+  readonly inputRef?: Ref<HTMLDivElement>
   readonly placeholder?: string
 }
 
-export const SELECTOR_STYLES = tv({
+export const MULTI_SELECTOR_STYLES = tv({
   base: 'block w-full bg-transparent transition-[border-color,outline] duration-200',
   variants: {
     disabled: {
@@ -66,21 +73,21 @@ export const SELECTOR_STYLES = tv({
   },
   defaultVariants: {
     size: 'medium',
-    rounded: 'xxxlarge',
+    rounded: 'xxlarge',
     variant: 'outline',
   },
   slots: {
-    radioGroup: 'flex',
+    listBox: 'grid',
   },
 })
 
 /**
- * A horizontal selector.
+ * A horizontal multi-selector.
  */
-export const Selector = forwardRef(function Selector<
+export const MultiSelector = forwardRef(function MultiSelector<
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema>,
->(props: SelectorProps<Schema, TFieldName>, ref: React.ForwardedRef<HTMLFieldSetElement>) {
+>(props: MultiSelectorProps<Schema, TFieldName>, ref: ForwardedRef<HTMLFieldSetElement>) {
   const {
     name,
     items,
@@ -97,16 +104,16 @@ export const Selector = forwardRef(function Selector<
     ...inputProps
   } = props
 
-  const privateInputRef = React.useRef<HTMLDivElement>(null)
+  const privateInputRef = useRef<HTMLDivElement>(null)
 
   const { fieldState, formInstance } = Form.useField({
     name,
     isDisabled,
     form,
-    ...(defaultValue != null ? { defaultValue } : {}),
+    defaultValue,
   })
 
-  const classes = SELECTOR_STYLES({
+  const classes = MULTI_SELECTOR_STYLES({
     size,
     rounded,
     readOnly: inputProps.readOnly,
@@ -139,36 +146,42 @@ export const Selector = forwardRef(function Selector<
           render={(renderProps) => {
             const { ref: fieldRef, value, onChange, ...field } = renderProps.field
             return (
-              <RadioGroup
+              <ListBox
                 ref={mergeRefs(inputRef, privateInputRef, fieldRef)}
-                {...mergeProps<RadioGroupProps>()(
+                orientation="horizontal"
+                selectionMode="multiple"
+                {...mergeProps<ListBoxProps<FieldValues<Schema>[TFieldName]>>()(
                   {
-                    className: classes.radioGroup(),
-                    name,
-                    isRequired,
-                    isDisabled,
-                    style:
-                      columns != null ? { gridTemplateColumns: `repeat(${columns}, 1fr)` } : {},
+                    className: classes.listBox(),
+                    style: { gridTemplateColumns: `repeat(${columns ?? items.length}, 1fr)` },
                   },
+                  // @ts-expect-error This is UNSAFE. This error is caused by type mismatches for
+                  // the `id` and `aria-*` properties.
                   inputProps,
                   field,
                 )}
                 // eslint-disable-next-line no-restricted-syntax
                 aria-label={props['aria-label'] ?? (typeof label === 'string' ? label : '')}
-                value={String(items.indexOf(value))}
-                onChange={(newValue) => {
+                // This is SAFE, as there is a constraint on `items` that prevents using keys
+                // that do not correspond to array values.
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+                defaultSelectedKeys={value?.map((item: FieldValues<Schema>[TFieldName]) =>
+                  items.indexOf(item),
+                )}
+                onSelectionChange={(selection) => {
                   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-                  onChange(items[Number(newValue)])
+                  onChange([...selection].map((key) => items[Number(key)]))
                 }}
               >
                 {items.map((item, i) => (
-                  <SelectorOption key={i} value={String(i)} label={itemToString(item)} />
+                  <MultiSelectorOption key={i} id={i} value={{ item }} label={itemToString(item)} />
                 ))}
-              </RadioGroup>
+              </ListBox>
             )
           }}
         />
       </div>
+      <FieldError />
     </Form.Field>
   )
 })

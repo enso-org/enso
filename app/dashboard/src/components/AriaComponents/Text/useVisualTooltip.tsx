@@ -35,6 +35,12 @@ export interface VisualTooltipProps
   readonly testId?: string
 }
 
+/** The return value of the {@link useVisualTooltip} hook. */
+export interface VisualTooltipReturn {
+  readonly targetProps: aria.DOMAttributes<aria.FocusableElement> & { readonly id: string }
+  readonly tooltip: JSX.Element | null
+}
+
 /**
  * The display strategy for the tooltip.
  */
@@ -50,7 +56,7 @@ const DEFAULT_DELAY = 250
  * Common use case is to show a tooltip when the content of an element is overflowing,
  * Or show a description of the element when hovered over.
  */
-export function useVisualTooltip(props: VisualTooltipProps) {
+export function useVisualTooltip(props: VisualTooltipProps): VisualTooltipReturn {
   const {
     children,
     targetRef,

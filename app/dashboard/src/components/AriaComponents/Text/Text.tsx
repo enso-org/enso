@@ -17,6 +17,7 @@ import * as visualTooltip from './useVisualTooltip'
 export interface TextProps
   extends Omit<aria.TextProps, 'color'>,
     twv.VariantProps<typeof TEXT_STYLE> {
+  readonly elementType?: keyof HTMLElementTagNameMap
   readonly lineClamp?: number
   readonly tooltip?: React.ReactElement | string | false | null
   readonly tooltipDisplay?: visualTooltip.VisualTooltipProps['display']
@@ -185,8 +186,8 @@ export const Text = React.forwardRef(function Text(
 
   return (
     <textProvider.TextProvider value={{ isInsideTextComponent: true }}>
-      {/* @ts-expect-error We suppose that elementType is a valid HTML element */}
       <ElementType
+        // @ts-expect-error This is caused by the type-safe `elementType` type.
         ref={mergeRefs.mergeRefs(ref, textElementRef)}
         className={textClasses}
         {...aria.mergeProps<React.HTMLAttributes<HTMLElement>>()(
