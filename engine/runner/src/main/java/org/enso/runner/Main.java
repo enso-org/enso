@@ -895,13 +895,19 @@ public class Main {
           var textRes = res.isString() ? res.asString() : res.toString();
           println(textRes);
           if (res.isException()) {
-            throw exitFail();
+            try {
+              throw res.throwException();
+            } catch (PolyglotException e) {
+              if (e.isExit()) {
+                throw doExit(e.getExitStatus());
+              }
+            }
           }
         }
       }
     } catch (PolyglotException e) {
       if (e.isExit()) {
-        doExit(e.getExitStatus());
+        throw doExit(e.getExitStatus());
       } else {
         printPolyglotException(e, rootPkgPath);
         throw exitFail();

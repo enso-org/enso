@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.TruffleStackTrace;
 import com.oracle.truffle.api.debug.DebuggerTags;
+import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.EventContext;
@@ -12,9 +13,13 @@ import com.oracle.truffle.api.instrumentation.ExecutionEventNodeFactory;
 import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
 import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
+import com.oracle.truffle.api.interop.ExceptionType;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
+import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.ExportLibrary;
+import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.RootNode;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -319,7 +324,8 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
               logger.log(Level.SEVERE, line, ex);
             }
             if (InteropLibrary.getUncached().isException(b.getValue())) {
-              nodeState = new ReplExecutionEventNodeState(b.getValue(), nodeState.getLastScope());
+              var wrappingError = new ErrorDetected(nodeState.lastReturn);
+              nodeState = new ReplExecutionEventNodeState(wrappingError, nodeState.getLastScope());
             }
           }
         }
@@ -366,6 +372,35 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
     public ExecutionEventNode create(EventContext ctx) {
       var log = env.getLogger(ReplExecutionEventNodeImpl.class);
       return new ReplExecutionEventNodeImpl(env.err(), ctx, handler, log);
+    }
+  }
+
+  @ExportLibrary(delegateTo = "delegate", value = InteropLibrary.class)
+  static final class ErrorDetected extends AbstractTruffleException implements TruffleObject {
+    final Object delegate;
+
+    ErrorDetected(Object delegate) {
+      this.delegate = delegate;
+    }
+
+    @ExportMessage
+    boolean isException() {
+      return true;
+    }
+
+    @ExportMessage
+    ExceptionType getExceptionType() {
+      return ExceptionType.EXIT;
+    }
+
+    @ExportMessage
+    RuntimeException throwException() {
+      throw this;
+    }
+
+    @ExportMessage
+    int getExceptionExitStatus() {
+      return 173;
     }
   }
 }

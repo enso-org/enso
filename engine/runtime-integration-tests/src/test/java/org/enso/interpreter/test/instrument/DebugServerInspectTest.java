@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -11,6 +12,7 @@ import java.io.ByteArrayOutputStream;
 import org.enso.common.DebugServerInfo;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.PolyglotException;
 import org.hamcrest.core.AllOf;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -93,7 +95,19 @@ public class DebugServerInspectTest {
         """;
     var r = ContextUtils.evalModule(ctx, code, "ScriptTest.enso", "inspect");
     assertTrue("Got error back: " + r, r.isException());
-    assertEquals("(Error: 2)", r.toString());
+    try {
+      throw r.throwException();
+    } catch (PolyglotException ex) {
+      assertTrue("It is exit exception", ex.isExit());
+      assertEquals("Error code is right", 173, ex.getExitStatus());
+    }
+    assertTrue("It is also an array value", r.hasArrayElements());
+    assertEquals("Three elements", 3, r.getArraySize());
+    assertFalse("No error at 0", r.getArrayElement(0).isException());
+    assertTrue("No error at 1", r.getArrayElement(1).isException());
+    assertTrue("No error at 2", r.getArrayElement(2).isException());
+    assertEquals("(Error: 2)", r.getArrayElement(1).toString());
+    assertEquals("(Error: 2)", r.getArrayElement(2).toString());
     assertEquals("No output printed", "", out.toString());
     assertThat(
         "Stderr contains some errors",
@@ -117,7 +131,7 @@ public class DebugServerInspectTest {
         """;
     var r = ContextUtils.evalModule(ctx, code, "ScriptTest.enso", "inspect");
     assertTrue("Got error back: " + r, r.isException());
-    assertEquals("(Error: 2)", r.toString());
+    assertEquals("But it is also the right value", 1, r.asInt());
     assertEquals(
         "Compilation warning printed",
         "ScriptTest:5:5: warning: Unused variable d.\n",
