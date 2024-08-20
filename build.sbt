@@ -1604,13 +1604,13 @@ lazy val `polyglot-api` = project
     javaModuleName := "org.enso.polyglot.api",
     // Note [Compile module-info]
     excludeFilter := excludeFilter.value || "module-info.java",
-    Compile / compileModuleInfo := JPMSUtils
-      .compileModuleInfo()
-      .dependsOn(Compile / compile)
-      .value,
     moduleDependencies := Seq(
-      "com.google.flatbuffers"                 % "flatbuffers-java"      % flatbuffersVersion,
-      "org.graalvm.truffle"                    % "truffle-api"           % graalMavenPackagesVersion
+      "com.google.flatbuffers" % "flatbuffers-java" % flatbuffersVersion,
+      "org.graalvm.sdk"        % "word"             % graalMavenPackagesVersion,
+      "org.graalvm.polyglot"   % "polyglot"         % graalMavenPackagesVersion,
+      "org.graalvm.sdk"        % "collections"      % graalMavenPackagesVersion,
+      "org.graalvm.sdk"        % "nativeimage"      % graalMavenPackagesVersion,
+      "org.graalvm.truffle"    % "truffle-api"      % graalMavenPackagesVersion
     ),
     GenerateFlatbuffers.flatcVersion := flatbuffersVersion,
     Compile / sourceGenerators += GenerateFlatbuffers.task
