@@ -61,6 +61,7 @@ object JPMSPlugin extends AutoPlugin {
         |effect as if module A would have `requires B` in its module-info.java file.
         |""".stripMargin
     )
+
     // TODO: Make this private
     val compileModuleInfo = taskKey[Unit]("Compile module-info.java")
 
@@ -290,7 +291,7 @@ object JPMSPlugin extends AutoPlugin {
       modInfo.exists()
     } else if (file.getName.endsWith(".jar")) {
       val jarFile      = new JarFile(file)
-      val modInfoEntry = jarFile.getJarEntry("module-info.class")
+      val modInfoEntry = jarFile.getJarEntry("module-info")
       modInfoEntry == null
     } else {
       false
