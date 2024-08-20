@@ -1,7 +1,10 @@
-import sbt._
-import sbt.Keys._
+import sbt.*
+import sbt.Keys.*
+import sbt.internal.util.ManagedLogger
 
 import java.io.File
+import java.net.{URI, URL}
+import java.util.jar.JarFile
 
 /** An automatic plugin that handles everything related to JPMS modules. One needs to explicitly
   * enable this plugin in a project with `.enablePlugins(JPMSPlugin)`. The keys and tasks provided by this plugin
@@ -22,9 +25,18 @@ object JPMSPlugin extends AutoPlugin {
     )
     val moduleDependencies = taskKey[Seq[ModuleID]](
       "Modules dependencies that will be added to --module-path option. List all the sbt modules " +
-      "that should be added on module-path, including internal dependencies. To get ModuleID for a " +
-      "local dependency, use the `projectID` setting."
+      "that should be added on module-path. Use it only for external dependencies."
     )
+
+    val internalModuleDependencies = taskKey[Seq[File]](
+      """
+        |Inter-project JPMS module dependencies. This task has a different return type than
+        |`moduleDependencies` task. It returns a sequence of files on purpose - that way,
+        |projects are able to override their `exportedModule` task to somehow prepare for
+        |modularization.
+        |""".stripMargin
+    )
+
     val modulePath = taskKey[Seq[File]](
       "Directories (Jar archives or expanded Jar archives) that will be put into " +
       "--module-path option"
@@ -49,35 +61,114 @@ object JPMSPlugin extends AutoPlugin {
         |effect as if module A would have `requires B` in its module-info.java file.
         |""".stripMargin
     )
+    // TODO: Make this private
     val compileModuleInfo = taskKey[Unit]("Compile module-info.java")
+
+    val exportedModule = taskKey[File](
+      """
+        |Similarly to `exportedProducts` task, this task returns a file that can be
+        |directly put on module-path. For majority of projects, this task will have
+        |the same result as `exportedProducts`. The purpose of this task is to be able
+        |for the projects to *prepare* for modularization. For example, mixed Scala/Java
+        |projects are known to be problematic for modularization, and one needs to manually
+        |compile `module-info.java` file. For this mixed project, this task can be declared
+        |to depend on `compileModuleInfo`.
+        |""".stripMargin
+    )
   }
 
   import autoImport._
 
+  /** Should module-info.java be compiled manually? True iff there is `module-info.java`
+    * in java sources and if the compile order is Mixed. In such case, sbt tries to first
+    * parse all the Java sources via its internal parser, and that fails for `modue-info`.
+    * In these cases, we need to exclude `module-info.java` from the sources and compile it
+    * manually.
+    */
+  private lazy val shouldCompileModuleInfoManually = taskKey[Boolean](
+    "Should module-info.java be compiled manually?"
+  )
+
   override lazy val projectSettings: Seq[Setting[_]] = Seq(
     addModules := Seq.empty,
     moduleDependencies := Seq.empty,
+    internalModuleDependencies := Seq.empty,
+    shouldCompileModuleInfoManually := {
+      val javaSrcDir = (Compile / javaSource).value
+      val hasModInfo =
+        javaSrcDir.toPath.resolve("module-info.java").toFile.exists()
+      val projName        = moduleName.value
+      val logger          = streams.value.log
+      val hasScalaSources = (Compile / scalaSource).value.exists()
+      val _compileOrder   = (Compile / compileOrder).value
+      val res =
+        _compileOrder == CompileOrder.Mixed &&
+        hasModInfo &&
+        hasScalaSources
+      if (res) {
+        logger.info(
+          s"[JPMSPlugin] Project '$projName' will have `module-info.java` compiled " +
+          "manually. If this is not the intended behavior, consult the documentation " +
+          "of JPMSPlugin."
+        )
+      }
+      res
+    },
     // modulePath is set based on moduleDependencies
     modulePath := {
-      val cp = JPMSUtils.filterModulesFromClasspath(
-        // Do not use fullClasspath here - it will result in an infinite recursion
-        // and sbt will not be able to detect the cycle.
-        (Compile / dependencyClasspath).value,
+      // Do not use fullClasspath here - it will result in an infinite recursion
+      // and sbt will not be able to detect the cycle.
+      transformModuleDependenciesToModulePath(
         (Compile / moduleDependencies).value,
+        (Compile / internalModuleDependencies).value,
+        (Compile / dependencyClasspath).value,
         streams.value.log,
-        shouldContainAll = true
+        moduleName.value
       )
-      cp.map(_.data)
+    },
+    exportedModule := {
+      // Ensure module-info.java is compiled
+      compileModuleInfo.value
+      val logger   = streams.value.log
+      val projName = moduleName.value
+      val targetClassDir = (Compile / exportedProducts).value
+        .map(_.data)
+        .head
+      if (!isModule(targetClassDir)) {
+        logger.error(
+          s"[JPMSPlugin/$projName] The target classes directory ${targetClassDir.getAbsolutePath} is not " +
+          "a module - it does not contain module-info.class. Make sure the `compileModuleInfo` task " +
+          "is set correctly."
+        )
+      }
+      targetClassDir
     },
     patchModules := Map.empty,
     addExports := Map.empty,
     addReads := Map.empty,
-    compileModuleInfo := {
-      JPMSUtils
-        .compileModuleInfo()
-        .dependsOn(Compile / compile)
-        .value
-    },
+    compileModuleInfo := Def.taskIf {
+      if (shouldCompileModuleInfoManually.value) {
+        val projectName = moduleName.value
+        val logger      = streams.value.log
+        val sources     = (Compile / unmanagedSources).value
+        val moduleInfo  = sources.find(_.name == "module-info.java")
+        if (moduleInfo.isDefined) {
+          logger.error(
+            s"[JPMSPlugin/$projectName] module-info.java is contained in `Compile / unmanagedSources`. " +
+            s"This means that it is not excluded from the default sbt compilation. " +
+            """Declare `excludedFilter := excludedFilter.value || \"module-info.java\"` in settings. """ +
+            s"Otherwise, JPMSPlugin cannot manually compile module-info.java. " +
+            s"(See the docs for `JPMSPlugin.shouldCompileModuleInfoManually`)"
+          )
+        }
+        JPMSUtils
+          .compileModuleInfo()
+          .dependsOn(Compile / compile)
+          .value
+      } else {
+        (Compile / compile).value
+      }
+    }.value,
     // javacOptions only inject --module-path and --add-modules, not the rest of the
     // options.
     Compile / javacOptions ++= {
@@ -98,13 +189,13 @@ object JPMSPlugin extends AutoPlugin {
       )
     },
     Test / modulePath := {
-      val cp = JPMSUtils.filterModulesFromClasspath(
-        (Test / dependencyClasspath).value,
+      transformModuleDependenciesToModulePath(
         (Test / moduleDependencies).value,
+        (Test / internalModuleDependencies).value,
+        (Test / dependencyClasspath).value,
         streams.value.log,
-        shouldContainAll = true
+        moduleName.value
       )
-      cp.map(_.data)
     },
     Test / javacOptions ++= {
       constructOptions(
@@ -124,6 +215,83 @@ object JPMSPlugin extends AutoPlugin {
       )
     }
   )
+
+  /** @param moduleDeps External module dependencies, fetched from `moduleDependencies` task.
+    * @param classPath Dependency class path of the project. From this class path, external dependencies
+    *                  will be searched for.
+    * @param internalModuleDeps Internal module dependencies, fetched from `internalModuleDependencies` task.
+    *                           It is assumed that there is `module-info.class` in the root of the internal
+    *                           module dependency.
+    * @param logger
+    * @param currProjName Current name of the local project, for debugging purposes.
+    * @return
+    */
+  private def transformModuleDependenciesToModulePath(
+    moduleDeps: Seq[ModuleID],
+    internalModuleDeps: Seq[File],
+    classPath: Def.Classpath,
+    logger: ManagedLogger,
+    currProjName: String
+  ): Seq[File] = {
+    moduleDeps.foreach { moduleDep =>
+      if (moduleDep.organization == "org.enso") {
+        logger.warn(
+          s"[JPMSPlugin/$currProjName] ModuleID $moduleDep specified inside " +
+          "`moduleDependencies` task. This is and internal dependency " +
+          "and should be specified in `internalModuleDependencies`. "
+        )
+      }
+    }
+
+    internalModuleDeps.foreach { internalModuleDep =>
+      if (internalModuleDep.isDirectory) {
+        val modInfo =
+          internalModuleDep.toPath.resolve("module-info.class").toFile
+        if (!modInfo.exists()) {
+          logger.error(
+            s"[JPMSPlugin/$currProjName] Internal module dependency $internalModuleDep does not contain " +
+            "module-info.class file. This is required for JPMS modules."
+          )
+        }
+      } else if (internalModuleDep.getName.endsWith(".jar")) {
+        val jarFile      = new JarFile(internalModuleDep)
+        val modInfoEntry = jarFile.getJarEntry("module-info.class")
+        if (modInfoEntry == null) {
+          logger.error(
+            s"[JPMSPlugin/$currProjName] Internal module dependency (JAR) $internalModuleDep does not contain " +
+            "module-info.class file. This is required for JPMS modules."
+          )
+        }
+      } else {
+        logger.error(
+          s"[JPMSPlugin/$currProjName] Internal module dependency $internalModuleDep is not a directory " +
+          "nor a jar file. This is not supported. "
+        )
+      }
+    }
+
+    val cp = JPMSUtils.filterModulesFromClasspath(
+      classPath,
+      moduleDeps,
+      logger,
+      shouldContainAll = true
+    )
+    val externalFiles = cp.map(_.data)
+    externalFiles ++ internalModuleDeps
+  }
+
+  private def isModule(file: File): Boolean = {
+    if (file.isDirectory) {
+      val modInfo = file.toPath.resolve("module-info.class").toFile
+      modInfo.exists()
+    } else if (file.getName.endsWith(".jar")) {
+      val jarFile      = new JarFile(file)
+      val modInfoEntry = jarFile.getJarEntry("module-info.class")
+      modInfoEntry == null
+    } else {
+      false
+    }
+  }
 
   def constructOptions(
     log: Logger,
