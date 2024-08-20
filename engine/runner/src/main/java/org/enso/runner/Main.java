@@ -701,7 +701,7 @@ public class Main {
           throw exitFail();
         }
       } else {
-        println(((scala.util.Failure) result).exception().getMessage());
+        println(result.failed().get().getMessage());
         throw exitFail();
       }
     }
