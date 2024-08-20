@@ -6,6 +6,7 @@ import * as focusHooks from '#/hooks/focusHooks'
 import * as focusDirectionProvider from '#/providers/FocusDirectionProvider'
 
 import * as aria from '#/components/aria'
+import { forwardRef } from '#/utilities/react'
 
 // =============
 // === Input ===
@@ -13,6 +14,8 @@ import * as aria from '#/components/aria'
 
 /** Props for a {@link Input}. */
 export interface InputProps extends Readonly<aria.InputProps> {}
+
+export default forwardRef(Input)
 
 /** An input that handles focus movement. */
 function Input(props: InputProps, ref: React.ForwardedRef<HTMLInputElement>) {
@@ -29,5 +32,3 @@ function Input(props: InputProps, ref: React.ForwardedRef<HTMLInputElement>) {
     />
   )
 }
-
-export default React.forwardRef(Input)

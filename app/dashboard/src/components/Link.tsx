@@ -7,6 +7,7 @@ import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 import { useFocusChild } from '#/hooks/focusHooks'
 import { useText } from '#/providers/TextProvider'
+import { forwardRef } from '#/utilities/react'
 import { twMerge } from 'tailwind-merge'
 
 // ============
@@ -21,7 +22,7 @@ export interface LinkProps {
   readonly text: string
 }
 
-export default React.forwardRef(Link)
+export default forwardRef(Link)
 
 /** A styled colored link with an icon. */
 function Link(props: LinkProps, ref: React.ForwardedRef<HTMLAnchorElement>) {

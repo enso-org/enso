@@ -10,6 +10,7 @@ import * as aria from '#/components/aria'
 import * as mergeRefs from '#/utilities/mergeRefs'
 import * as twv from '#/utilities/tailwindVariants'
 
+import { forwardRef } from '#/utilities/react'
 import * as formComponent from '../Form'
 import * as radioGroupContext from './RadioGroupContext'
 
@@ -39,7 +40,7 @@ export const RADIO_GROUP_STYLES = twv.tv({
  * A radio group component.
  */
 // eslint-disable-next-line no-restricted-syntax
-export const RadioGroup = React.forwardRef(function RadioGroup<
+export const RadioGroup = forwardRef(function RadioGroup<
   Schema extends formComponent.TSchema,
   TFieldName extends formComponent.FieldPath<Schema>,
 >(props: RadioGroupProps<Schema, TFieldName>, ref: React.ForwardedRef<HTMLDivElement>) {
@@ -100,6 +101,4 @@ export const RadioGroup = React.forwardRef(function RadioGroup<
       </radioGroupContext.RadioGroupProvider>
     </aria.RadioGroup>
   )
-}) as <Schema extends formComponent.TSchema, TFieldName extends formComponent.FieldPath<Schema>>(
-  props: RadioGroupProps<Schema, TFieldName> & React.RefAttributes<HTMLFormElement>,
-) => React.JSX.Element
+})

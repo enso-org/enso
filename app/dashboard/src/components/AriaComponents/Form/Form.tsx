@@ -13,6 +13,7 @@ import * as aria from '#/components/aria'
 
 import * as errorUtils from '#/utilities/error'
 
+import { forwardRef } from '#/utilities/react'
 import type { Mutable } from 'enso-common/src/utilities/data/object'
 import * as dialog from '../Dialog'
 import * as components from './components'
@@ -35,7 +36,7 @@ function mapValueOnEvent(value: unknown) {
  * Provides better error handling and form state management and better UX out of the box. */
 // There is no way to avoid type casting here
 // eslint-disable-next-line no-restricted-syntax
-export const Form = React.forwardRef(function Form<Schema extends components.TSchema>(
+export const Form = forwardRef(function Form<Schema extends components.TSchema>(
   props: types.FormProps<Schema>,
   ref: React.Ref<HTMLFormElement>,
 ) {

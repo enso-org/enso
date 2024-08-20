@@ -10,7 +10,8 @@ import SvgMask from '#/components/SvgMask'
 
 import * as twv from '#/utilities/tailwindVariants'
 
-import * as text from '../Text'
+import { forwardRef } from '#/utilities/react'
+import { TEXT_STYLE } from '../Text'
 
 // ==============
 // === Button ===
@@ -104,7 +105,7 @@ export const BUTTON_STYLES = twv.tv({
       custom: { base: '', extraClickZone: '', icon: 'h-full' },
       hero: { base: 'px-8 py-4 text-lg font-bold', content: 'gap-[0.75em]' },
       large: {
-        base: text.TEXT_STYLE({
+        base: TEXT_STYLE({
           variant: 'body',
           color: 'custom',
           weight: 'semibold',
@@ -115,7 +116,7 @@ export const BUTTON_STYLES = twv.tv({
         extraClickZone: 'after:inset-[-6px]',
       },
       medium: {
-        base: text.TEXT_STYLE({
+        base: TEXT_STYLE({
           variant: 'body',
           color: 'custom',
           weight: 'semibold',
@@ -126,7 +127,7 @@ export const BUTTON_STYLES = twv.tv({
         extraClickZone: 'after:inset-[-8px]',
       },
       small: {
-        base: text.TEXT_STYLE({
+        base: TEXT_STYLE({
           variant: 'body',
           color: 'custom',
           weight: 'medium',
@@ -137,7 +138,7 @@ export const BUTTON_STYLES = twv.tv({
         extraClickZone: 'after:inset-[-10px]',
       },
       xsmall: {
-        base: text.TEXT_STYLE({
+        base: TEXT_STYLE({
           variant: 'body',
           color: 'custom',
           weight: 'medium',
@@ -149,7 +150,7 @@ export const BUTTON_STYLES = twv.tv({
         extraClickZone: 'after:inset-[-12px]',
       },
       xxsmall: {
-        base: text.TEXT_STYLE({
+        base: TEXT_STYLE({
           variant: 'body',
           color: 'custom',
           className: 'flex px-[3px] pt-[0.5px] pb-[2.5px] leading-[16px]',
@@ -164,7 +165,7 @@ export const BUTTON_STYLES = twv.tv({
     },
     iconOnly: {
       true: {
-        base: text.TEXT_STYLE({
+        base: TEXT_STYLE({
           disableLineHeightCompensation: true,
           className: 'border-0 outline-offset-[5px]',
         }),
@@ -278,7 +279,7 @@ export const BUTTON_STYLES = twv.tv({
 })
 
 /** A button allows a user to perform an action, with mouse, touch, and keyboard interactions. */
-export const Button = React.forwardRef(function Button(
+export const Button = forwardRef(function Button(
   props: ButtonProps,
   ref: React.ForwardedRef<HTMLButtonElement>,
 ) {

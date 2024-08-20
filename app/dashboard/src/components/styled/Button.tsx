@@ -8,6 +8,7 @@ import * as ariaComponents from '#/components/AriaComponents'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 
+import { forwardRef } from '#/utilities/react'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ==============
@@ -38,6 +39,8 @@ export interface ButtonProps {
   readonly buttonClassName?: string
   readonly onPress: (event: aria.PressEvent) => void
 }
+
+export default forwardRef(Button)
 
 /** A styled button. */
 function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) {
@@ -103,5 +106,3 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
       </ariaComponents.TooltipTrigger>
     )
 }
-
-export default React.forwardRef(Button)

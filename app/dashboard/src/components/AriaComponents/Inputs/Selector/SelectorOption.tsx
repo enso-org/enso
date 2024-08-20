@@ -1,5 +1,6 @@
 /** @file An option in a selector. */
 import { Radio, type RadioProps } from '#/components/aria'
+import { forwardRef } from '#/utilities/react'
 import { tv } from '#/utilities/tailwindVariants'
 import * as React from 'react'
 import type { VariantProps } from 'tailwind-variants'
@@ -45,7 +46,7 @@ export const SELECTOR_OPTION_STYLES = tv({
   },
 })
 
-export const SelectorOption = React.forwardRef(function SelectorOption(
+export const SelectorOption = forwardRef(function SelectorOption(
   props: SelectorOptionProps,
   ref: React.ForwardedRef<HTMLLabelElement>,
 ) {
