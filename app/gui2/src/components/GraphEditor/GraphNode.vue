@@ -627,10 +627,6 @@ watchEffect(() => {
   z-index: 25;
 }
 
-.CircularMenu.partial {
-  z-index: 1;
-}
-
 .beforeNode {
   position: absolute;
   bottom: 100%;
