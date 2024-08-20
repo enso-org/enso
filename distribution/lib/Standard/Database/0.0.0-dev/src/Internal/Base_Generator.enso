@@ -11,6 +11,7 @@ import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
+import project.Internal.IR.Traversal_Helpers
 import project.SQL.SQL_Builder
 from project.Dialect import Temp_Table_Style
 from project.Errors import Unsupported_Database_Operation
@@ -576,6 +577,29 @@ make_not_equals a b =
     a.paren ++ " != " ++ b.paren
 
 ## PRIVATE
+   Collect all table names / aliases in a query. Used to generate unused names
+   for WITH clauses.
+collect_table_names : Query -> Vector Text
+collect_table_names (query : Query) -> Vector Text =
+    table_name_collector node = case node of
+        Query.Insert table_name _ -> [table_name]
+        Query.Create_Table table_name _ _ _ -> [table_name]
+        Query.Drop_Table table_name _ -> [table_name]
+        Query.Truncate_Table table_name -> [table_name]
+        Query.Insert_From_Select table_name _ _ -> [table_name]
+        Query.Update_From_Table target_table_name source_table_name _ _ -> [target_table_name, source_table_name]
+        Query.Delete_Unmatched_Rows target_table_name source_table_name _ -> [target_table_name, source_table_name]
+        Query.Delete_Matching_Rows  target_table_name source_table_name _ -> [target_table_name, source_table_name]
+        SQL_Expression.Column origin _ -> [origin]
+        From_Spec.Table table_name alias _ -> [table_name, alias]
+        From_Spec.Query _ alias -> [alias]
+        From_Spec.Literal_Values _ _ alias -> [alias]
+        From_Spec.Union _ alias -> [alias]
+        From_Spec.Sub_Query _ _ alias -> [alias]
+        _ -> Nothing
+    Traversal_Helpers.traverse_and_accumulate table_name_collector query
+
+## PRIVATE
    Preprocessing step before converting Query to SQL.
 
    This preprocessing step replaces the long UUID binder names in `With` clauses
@@ -585,7 +609,8 @@ make_not_equals a b =
    substitution is performed, but it is not used, since the binder is not used
    in those cases.
 preprocess_query (query : Query) -> Query =
-    renamer = With_Binder_Renamer.new
+    table_names = collect_table_names query . distinct
+    renamer = With_Binder_Renamer.new table_names
 
     transform node = case node of
         SQL_Expression.With name binder bindee body ->
@@ -685,15 +710,23 @@ default_fetch_types_query dialect expression context where_filter_always_false_l
 ## PRIVATE
    Helper class for shortening the binder names generated for WITH clauses.
 type With_Binder_Renamer
-    Value (binders_ref : Ref Dictionary) (serial_ref : Ref Integer)
+    Value (existing_tables : Hashset Text) (binders_ref : Ref Dictionary) (serial_ref : Ref Integer)
 
-    new -> With_Binder_Renamer =
-        With_Binder_Renamer.Value (Ref.new Dictionary.empty) (Ref.new 0)
+    new (existing_tables : Vector Text) -> With_Binder_Renamer =
+        With_Binder_Renamer.Value (Hashset.from_vector existing_tables) (Ref.new Dictionary.empty) (Ref.new 0)
 
     rename self (name : Text) (binder : Text) =
         binders = self.binders_ref.get
         if binders.contains_key binder then binders.get binder else
-            next_serial = self.serial_ref.modify (_+1)
-            new_binder = name + "_" + next_serial.to_text
-            self.binders_ref.modify (d-> d.insert binder new_binder)
-            new_binder
+            max_tries = 1000
+            go i =
+                next_serial = self.serial_ref.modify (_+1)
+                new_binder = name + "_" + next_serial.to_text
+                case self.existing_tables.contains new_binder of
+                    True ->
+                        if i >= max_tries then Error.throw "Unable to find a unique name for a WITH binder" else
+                            @Tail_Call go (i+1)
+                    False ->
+                        self.binders_ref.modify (d-> d.insert binder new_binder)
+                        new_binder
+            go 0

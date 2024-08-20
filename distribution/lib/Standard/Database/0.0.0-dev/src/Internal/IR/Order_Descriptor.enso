@@ -15,4 +15,4 @@ type Order_Descriptor
         new_order_descriptor = case self of
             Order_Descriptor.Value expression direction nulls_order collation ->
                 Order_Descriptor.Value (rec expression) direction nulls_order collation
-        f new_order_descriptor  
+        f new_order_descriptor
