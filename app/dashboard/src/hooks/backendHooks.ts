@@ -261,7 +261,7 @@ export function backendMutationOptions<Method extends MutationMethod>(
         ...(options?.meta?.invalidates ?? []),
         ...(INVALIDATION_MAP[method]?.flatMap((queryMethod) =>
           queryMethod === INVALIDATE_ALL_QUERIES ?
-            [[]]
+            [[backend?.type]]
           : [[backend?.type, queryMethod], ...(queryMethod === 'usersMe' ? [[queryMethod]] : [])],
         ) ?? []),
       ],

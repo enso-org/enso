@@ -133,7 +133,7 @@ function createUsersMeQuery(
   performLogout: () => Promise<void>,
 ) {
   return reactQuery.queryOptions({
-    queryKey: [remoteBackend.type, 'usersMe', session?.clientId] as const,
+    queryKey: ['usersMe', session?.clientId] as const,
     queryFn: async () => {
       if (session == null) {
         // eslint-disable-next-line no-restricted-syntax
