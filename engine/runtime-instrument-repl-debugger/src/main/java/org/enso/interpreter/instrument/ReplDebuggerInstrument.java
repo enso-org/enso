@@ -60,8 +60,8 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
   /** Option for {@link DebugServerInfo#ENABLE_OPTION} */
   private static final OptionKey<Boolean> ENABLE_OPTION = new OptionKey<>(false);
 
-  /** Option for {@link DebugServerInfo#FN_OPTION} */
-  private static final OptionKey<String> FN_OPTION = new OptionKey<>("");
+  /** * Option for {@link DebugServerInfo#METHOD_BREAKPOINT_OPTION} */
+  private static final OptionKey<String> METHOD_BREAKPOINT_OPTION = new OptionKey<>("");
 
   /**
    * Called by Truffle when this instrument is installed.
@@ -85,7 +85,7 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
       filter = SourceSectionFilter.newBuilder().tagIs(DebuggerTags.AlwaysHalt.class).build();
       env.getInstrumenter().attachExecutionEventFactory(filter, factory);
     }
-    if (env.getOptions().get(FN_OPTION) instanceof String replMethodName
+    if (env.getOptions().get(METHOD_BREAKPOINT_OPTION) instanceof String replMethodName
         && !replMethodName.isEmpty()) {
       factory = new AtTheEndOfMethod(handler, env);
 
@@ -118,7 +118,10 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
   protected OptionDescriptors getOptionDescriptors() {
     var options = new ArrayList<OptionDescriptor>();
     options.add(OptionDescriptor.newBuilder(ENABLE_OPTION, DebugServerInfo.ENABLE_OPTION).build());
-    options.add(OptionDescriptor.newBuilder(FN_OPTION, DebugServerInfo.FN_OPTION).build());
+    options.add(
+        OptionDescriptor.newBuilder(
+                METHOD_BREAKPOINT_OPTION, DebugServerInfo.METHOD_BREAKPOINT_OPTION)
+            .build());
     return OptionDescriptors.create(options);
   }
 

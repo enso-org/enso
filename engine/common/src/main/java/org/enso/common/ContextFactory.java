@@ -184,7 +184,7 @@ public final class ContextFactory {
             .err(err)
             .in(in);
     if (checkForWarnings != null) {
-      builder.option(DebugServerInfo.FN_OPTION, checkForWarnings);
+      builder.option(DebugServerInfo.METHOD_BREAKPOINT_OPTION, checkForWarnings);
     }
     if (enableDebugServer) {
       builder.option(DebugServerInfo.ENABLE_OPTION, "true");

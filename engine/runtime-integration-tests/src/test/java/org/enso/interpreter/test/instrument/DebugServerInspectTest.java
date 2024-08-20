@@ -27,7 +27,7 @@ public class DebugServerInspectTest {
   @BeforeClass
   public static void initContext() throws Exception {
     var b = ContextUtils.defaultContextBuilder().out(out).err(err);
-    b.option(DebugServerInfo.FN_OPTION, "ScriptTest.inspect");
+    b.option(DebugServerInfo.METHOD_BREAKPOINT_OPTION, "ScriptTest.inspect");
     ctx = b.build();
   }
 
