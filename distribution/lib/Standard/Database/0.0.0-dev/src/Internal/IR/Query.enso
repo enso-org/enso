@@ -117,6 +117,7 @@ type Query
                 Query.Insert table_name (do_name_exps pairs)
             Query.Create_Table _ _ _ _ -> self
             Query.Drop_Table _ _ -> self
+            Query.Truncate_Table _ -> self
             Query.Insert_From_Select table_name column_names select ->
                 Query.Insert_From_Select table_name column_names (rec select) 
             Query.Update_From_Table _ _ _ _ -> self
