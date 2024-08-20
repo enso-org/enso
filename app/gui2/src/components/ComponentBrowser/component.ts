@@ -10,7 +10,7 @@ import { isSome } from '@/util/data/opt'
 import { Range } from '@/util/data/range'
 import { displayedIconOf } from '@/util/getIconName'
 import type { Icon } from '@/util/iconName'
-import { qnIsTopElement, qnLastSegmentIndex } from '@/util/qualifiedName'
+import { qnLastSegmentIndex } from '@/util/qualifiedName'
 
 interface ComponentLabelInfo {
   label: string
@@ -45,16 +45,7 @@ export function labelOfEntry(entry: SuggestionEntry, match: MatchResult): Compon
       label: `${ownerName}.${entry.name}`,
       matchedAlias: match.matchedAlias,
       matchedRanges: [
-        ...(match.ownerNameRanges ?? []).flatMap((range) =>
-          range.end <= ownerLastSegmentStart ?
-            []
-          : [
-              new Range(
-                Math.max(0, range.start - ownerLastSegmentStart),
-                range.end - ownerLastSegmentStart,
-              ),
-            ],
-        ),
+        ...(match.ownerNameRanges ?? []),
         ...(match.nameRanges ?? []).map(
           (range) => new Range(range.start + nameOffset, range.end + nameOffset),
         ),
