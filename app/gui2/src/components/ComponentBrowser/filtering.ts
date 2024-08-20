@@ -167,10 +167,10 @@ class FilteringWithPattern {
     return null
   }
 
-  tryMatch(entry: SuggestionEntry & { memberOf: QualifiedName }): MatchResult | null {
+  tryMatch(name: string, aliases: string[], memberOf: QualifiedName): MatchResult | null {
     const nameMatch: (NameMatchResult & { alias?: string }) | null =
-      this.nameFilter.tryMatch(entry.name) ?? this.firstMatchingAlias(entry.aliases)
-    const ownerNameMarch = this.ownerNameFiter.tryMatch(qnLastSegment(entry.memberOf))
+      this.nameFilter.tryMatch(name) ?? this.firstMatchingAlias(aliases)
+    const ownerNameMarch = this.ownerNameFiter.tryMatch(qnLastSegment(memberOf))
     if (!nameMatch || !ownerNameMarch) return null
     return {
       score:
@@ -250,7 +250,7 @@ export class Filtering {
     if (!this.selfTypeMatches(entry)) return null
     if (this.pattern) {
       if (entry.memberOf == null) return null
-      const patternMatch = this.pattern.tryMatch(entry)
+      const patternMatch = this.pattern.tryMatch(entry.name, entry.aliases, entry.memberOf)
       if (!patternMatch) return null
       if (this.isLocal(entry)) patternMatch.score *= 2
       return patternMatch

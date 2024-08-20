@@ -10,13 +10,10 @@ import {
   makeModule,
   makeModuleMethod,
   makeStaticMethod,
-  makeType,
   SuggestionEntry,
 } from '@/stores/suggestionDatabase/entry'
-import { unwrap } from '@/util/data/result'
-import { qnLastSegment, tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
+import { qnLastSegment } from '@/util/qualifiedName'
 import { Opt } from 'ydoc-shared/util/data/opt'
-import { string } from 'zod'
 
 test.each([
   { ...makeModuleMethod('Standard.Base.Data.read'), groupIndex: 0 },

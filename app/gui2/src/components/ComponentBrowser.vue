@@ -1,15 +1,3 @@
-<script lang="ts">
-/** One of the modes of the component browser:
- * * "component browsing" when user wants to add new component
- * * "code editing" for editing existing, or just added nodes
- * See https://github.com/enso-org/enso/issues/10598 for design details.
- */
-export enum ComponentBrowserMode {
-  COMPONENT_BROWSING,
-  CODE_EDITING,
-}
-</script>
-
 <script setup lang="ts">
 import { componentBrowserBindings } from '@/bindings'
 import { type Component } from '@/components/ComponentBrowser/component'
@@ -28,7 +16,7 @@ import { useGraphStore } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import { SuggestionKind, type Typename } from '@/stores/suggestionDatabase/entry'
+import { type Typename } from '@/stores/suggestionDatabase/entry'
 import type { VisualizationDataSource } from '@/stores/visualization'
 import { cancelOnClickOutside, isNodeOutside } from '@/util/autoBlur'
 import { tryGetIndex } from '@/util/data/array'
@@ -80,17 +68,11 @@ const emit = defineEmits<{
 const cbRoot = ref<HTMLElement>()
 const componentList = ref<ComponentInstance<typeof ComponentList>>()
 
-const mode = ref<ComponentBrowserMode>(
-  props.usage.type === 'newNode' ?
-    ComponentBrowserMode.COMPONENT_BROWSING
-  : ComponentBrowserMode.CODE_EDITING,
-)
-
 const cbOpen: Interaction = cancelOnClickOutside(cbRoot, {
   cancel: () => emit('canceled'),
   end: () => {
     // In AI prompt mode likely the input is not a valid mode.
-    if (input.anyChange.value && !input.isAiPrompt.value) {
+    if (!input.isAiPrompt) {
       acceptInput()
     } else {
       emit('canceled')
@@ -173,8 +155,12 @@ const selectedSuggestion = computed(() => {
 const input = useComponentBrowserInput()
 
 const currentFiltering = computed(() => {
-  const currentModule = projectStore.modulePath
-  return new Filtering(input.filter.value, currentModule?.ok ? currentModule.value : undefined)
+  if (input.mode.mode === 'componentBrowsing') {
+    const currentModule = projectStore.modulePath
+    return new Filtering(input.mode.filter, currentModule?.ok ? currentModule.value : undefined)
+  } else {
+    return undefined
+  }
 })
 
 onUnmounted(() => {
@@ -183,7 +169,7 @@ onUnmounted(() => {
 
 // Compute edge, except for the color. The color is set in a separate watch, as it changes more often.
 watchEffect(() => {
-  const sourceIdent = input.selfArgument.value
+  const sourceIdent = input.selfArgument
   const sourceNode =
     sourceIdent != null ? graphStore.db.getIdentDefiningNode(sourceIdent) : undefined
   const source = graphStore.db.getNodeFirstOutputPort(sourceNode)
@@ -239,8 +225,8 @@ const selectedSuggestionIcon = computed(() => {
 })
 
 const icon = computed(() => {
-  if (!input.selfArgument.value) return undefined
-  if (mode.value === ComponentBrowserMode.COMPONENT_BROWSING && selectedSuggestionIcon.value)
+  if (!input.selfArgument) return undefined
+  if (input.mode.mode === 'componentBrowsing' && selectedSuggestionIcon.value)
     return selectedSuggestionIcon.value
   if (props.usage.type === 'editNode') {
     return iconOfNode(props.usage.node, graphStore.db)
@@ -250,10 +236,10 @@ const icon = computed(() => {
 
 // === Preview ===
 
-const previewedCode = debouncedGetter<string>(() => input.code.value, 200)
+const previewedCode = debouncedGetter<string>(() => input.code, 200)
 
 const previewedSuggestionReturnType = computed(() => {
-  const id = appliedSuggestion.value
+  const id = input.mode.mode === 'codeEditing' ? input.mode.appliedSuggestion : undefined
   const appliedEntry = id != null ? suggestionDbStore.entries.get(id) : undefined
   if (appliedEntry != null) return appliedEntry.returnType
   else if (props.usage.type === 'editNode') {
@@ -263,7 +249,7 @@ const previewedSuggestionReturnType = computed(() => {
 })
 
 const previewDataSource = computed<VisualizationDataSource | undefined>(() => {
-  if (input.isAiPrompt.value) return
+  if (input.isAiPrompt) return
   if (!previewedCode.value.trim()) return
   if (!graphStore.methodAst.ok) return
   const body = graphStore.methodAst.value.body
@@ -291,37 +277,27 @@ watch(selectedSuggestionId, (id) => {
 
 // === Accepting Entry ===
 
-const appliedSuggestion = ref<SuggestionId>()
-
-function applySuggestion(component: Opt<Component> = null) {
+function acceptSuggestion(component: Opt<Component> = null) {
   const suggestionId = component?.suggestionId ?? selectedSuggestionId.value
   if (suggestionId == null) return
-  input.applySuggestion(suggestionId)
-  appliedSuggestion.value = suggestionId
+  const result = input.applySuggestion(suggestionId)
+  if (result.ok) acceptInput()
+  else result.error.log('Cannot apply suggestion')
 }
 
-function applySuggestionAndSwitchToEditMode() {
-  applySuggestion()
-  mode.value = ComponentBrowserMode.CODE_EDITING
-}
-
-function acceptSuggestion(component: Opt<Component> = null) {
-  applySuggestion(component)
-  const providedSuggestion =
-    component != null ? suggestionDbStore.entries.get(component.suggestionId) : null
-  const suggestion = providedSuggestion ?? selectedSuggestion.value
-  const shouldFinish =
-    component == null || (suggestion != null && suggestion.kind !== SuggestionKind.Module)
-  if (shouldFinish) acceptInput()
+function applySuggestionAndSwitchToEditMode(component: Opt<Component> = null) {
+  const suggestionId = component?.suggestionId ?? selectedSuggestionId.value
+  if (suggestionId == null) return
+  const result = input.applySuggestionAndSwitchToCodeEditMode(suggestionId)
+  if (!result.ok) result.error.log('Cannot apply suggestion')
 }
 
 function acceptInput() {
-  emit(
-    'accepted',
-    input.code.value.trim(),
-    input.importsToAdd(),
-    input.firstAppliedReturnType.value,
-  )
+  const appliedReturnType =
+    input.mode.mode === 'codeEditing' && input.mode.appliedSuggestion != null ?
+      suggestionDbStore.entries.get(input.mode.appliedSuggestion)?.returnType
+    : undefined
+  emit('accepted', input.code.trim(), input.importsToAdd(), appliedReturnType)
   interaction.ended(cbOpen)
 }
 
@@ -329,25 +305,24 @@ function acceptInput() {
 
 const handler = componentBrowserBindings.handler({
   applySuggestionAndSwitchToEditMode() {
-    if (mode.value != ComponentBrowserMode.COMPONENT_BROWSING || input.isAiPrompt.value)
-      return false
+    if (input.mode.mode != 'componentBrowsing') return false
     applySuggestionAndSwitchToEditMode()
   },
   acceptSuggestion() {
-    if (mode.value != ComponentBrowserMode.COMPONENT_BROWSING || input.isAiPrompt.value)
-      return false
+    if (input.mode.mode != 'componentBrowsing') return false
     acceptSuggestion()
   },
   acceptCode() {
-    if (mode.value != ComponentBrowserMode.CODE_EDITING || input.isAiPrompt.value) return false
+    if (input.mode.mode != 'codeEditing') return false
     acceptInput()
   },
   acceptInput() {
-    if (input.isAiPrompt.value) return false
+    if (input.mode.mode != 'componentBrowsing' && input.mode.mode != 'codeEditing') return false
     acceptInput()
   },
   acceptAIPrompt() {
-    if (input.isAiPrompt.value) input.applyAIPrompt()
+    if (input.mode.mode == 'aiPrompt') input.applyAIPrompt()
+    else return false
   },
   moveUp() {
     componentList.value?.moveUp()
@@ -363,7 +338,7 @@ const handler = componentBrowserBindings.handler({
     ref="cbRoot"
     class="ComponentBrowser"
     :style="{ transform }"
-    :data-self-argument="input.selfArgument.value"
+    :data-self-argument="input.selfArgument"
     tabindex="-1"
     @focusout="handleDefocus"
     @keydown="handler"
@@ -377,7 +352,7 @@ const handler = componentBrowserBindings.handler({
     @keydown.arrow-right.stop
   >
     <GraphVisualization
-      v-if="mode === ComponentBrowserMode.CODE_EDITING && !input.isAiPrompt.value"
+      v-if="input.mode.mode === 'codeEditing'"
       class="visualization-preview"
       :nodeSize="inputSize"
       :nodePosition="nodePosition"
@@ -394,7 +369,7 @@ const handler = componentBrowserBindings.handler({
     />
     <ComponentEditor
       ref="inputElement"
-      v-model="input.content.value"
+      v-model="input.content"
       class="component-editor"
       :navigator="props.navigator"
       :icon="icon"
@@ -404,27 +379,25 @@ const handler = componentBrowserBindings.handler({
       <SvgButton
         name="add"
         :title="
-          mode === ComponentBrowserMode.COMPONENT_BROWSING && selected != null ?
+          input.mode.mode === 'componentBrowsing' && selected != null ?
             'Accept Suggested Component'
           : 'Accept'
         "
-        @click.stop="
-          mode === ComponentBrowserMode.COMPONENT_BROWSING ? acceptSuggestion() : acceptInput()
-        "
+        @click.stop="input.mode.mode === 'componentBrowsing' ? acceptSuggestion() : acceptInput()"
       />
       <SvgButton
         name="edit"
-        :disabled="mode === ComponentBrowserMode.CODE_EDITING"
+        :disabled="input.mode.mode === 'codeEditing'"
         :title="selected != null ? 'Edit Suggested Component' : 'Code Edit Mode'"
         data-testid="switchToEditMode"
         @click.stop="applySuggestionAndSwitchToEditMode()"
       />
     </ComponentEditor>
     <ComponentList
-      v-if="mode === ComponentBrowserMode.COMPONENT_BROWSING && !input.isAiPrompt.value"
+      v-if="input.mode.mode === 'componentBrowsing' && currentFiltering"
       ref="componentList"
       :filtering="currentFiltering"
-      :autoSelectFirstComponent="input.autoSelectFirstComponent.value"
+      :autoSelectFirstComponent="true"
       @acceptSuggestion="acceptSuggestion($event)"
       @update:selectedComponent="selected = $event"
     />
