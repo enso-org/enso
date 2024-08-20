@@ -692,9 +692,8 @@ public class Main {
     if (projectMode) {
       var result = PackageManager$.MODULE$.Default().loadPackage(file);
       if (result.isSuccess()) {
-        var s = (scala.util.Success) result;
         @SuppressWarnings("unchecked")
-        var pkg = (org.enso.pkg.Package<java.io.File>) s.get();
+        var pkg = (org.enso.pkg.Package<java.io.File>) result.get();
 
         mainFile = pkg.mainFile();
         if (!mainFile.exists()) {
