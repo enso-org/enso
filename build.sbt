@@ -3199,6 +3199,13 @@ lazy val `edition-updater` = project
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
+    ),
+    moduleDependencies := Seq(
+      "org.scala-lang" % "scala-library" % scalacVersion
+    ),
+    internalModuleDependencies := Seq(
+      (`distribution-manager` / exportedModule).value,
+      (`editions` / exportedModule).value
     )
   )
   .dependsOn(editions)
