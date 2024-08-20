@@ -1,7 +1,7 @@
 module org.enso.runtime.parser {
   requires org.enso.syntax;
-  requires org.openide.util.lookup.RELEASE180;
   requires scala.library;
+  requires org.enso.persistance;
 
   exports org.enso.compiler.core;
   exports org.enso.compiler.core.ir;

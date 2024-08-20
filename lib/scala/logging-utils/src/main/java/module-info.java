@@ -1,4 +1,5 @@
 module org.enso.logging.utils {
+  requires scala.library;
   requires java.logging;
   requires org.slf4j;
 
