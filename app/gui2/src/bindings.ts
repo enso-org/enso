@@ -19,7 +19,7 @@ export const interactionBindings = defineKeybinds('current-interaction', {
 })
 
 export const componentBrowserBindings = defineKeybinds('component-browser', {
-  applySuggestionAndSwitchToEditMode: ['Tab'],
+  applySuggestion: ['Tab'],
   acceptSuggestion: ['Enter'],
   acceptCode: ['Enter'],
   acceptInput: ['Mod+Enter'],

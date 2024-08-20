@@ -49,7 +49,7 @@ export function useComponentBrowserInput(
   const processingAIPrompt = ref(false)
   const toastError = useToast.error()
   const sourceNodeIdentifier = ref<Identifier>()
-  const switchedToCodeMode = ref<{ appliedSuggestion: SuggestionId }>()
+  const switchedToCodeMode = ref<{ appliedSuggestion?: SuggestionId }>()
 
   // Text Model to being edited externally (by user).
   //
@@ -128,6 +128,7 @@ export function useComponentBrowserInput(
   function applySuggestion(id: SuggestionId): Result {
     const entry = suggestionDb.get(id)
     if (!entry) return Err(`No entry with id ${id}`)
+    switchedToCodeMode.value = { appliedSuggestion: id }
     const { newText, newCursorPos, requiredImport } = inputAfterApplyingSuggestion(entry)
     text.value = newText
     selection.value = { start: newCursorPos, end: newCursorPos }
@@ -145,13 +146,8 @@ export function useComponentBrowserInput(
     return Ok()
   }
 
-  function applySuggestionAndSwitchToCodeEditMode(id: SuggestionId): Result {
-    const applied = applySuggestion(id)
-    if (applied.ok) {
-      console.log('Switching to code mode', id)
-      switchedToCodeMode.value = { appliedSuggestion: id }
-    }
-    return applied
+  function switchToCodeEditMode() {
+    switchedToCodeMode.value = {}
   }
 
   function inputAfterApplyingSuggestion(entry: SuggestionEntry): {
@@ -291,15 +287,13 @@ export function useComponentBrowserInput(
     processingAIPrompt,
     /** Re-initializes the input for given usage. */
     reset,
-    /** Apply given suggested entry to the input. */
+    /** Apply given suggested entry to the input. It will switch mode to code editing. */
     applySuggestion,
-    /** Apply given suggested entry to the input and switch to code edit mode. */
-    applySuggestionAndSwitchToCodeEditMode,
+    /** Switch to code edit mode with input as-is */
+    switchToCodeEditMode,
     /** Apply the currently written AI prompt. */
     applyAIPrompt,
     /** A list of imports to add when the suggestion is accepted. */
     importsToAdd,
-    /** The return type of the first applied suggestion. */
-    // firstAppliedReturnType: computed(() => graphDb.getExpressionInfo(switchedToCodeMode.value?.appliedSuggestion)?.typename )
   })
 }

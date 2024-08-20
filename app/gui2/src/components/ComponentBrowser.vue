@@ -285,10 +285,10 @@ function acceptSuggestion(component: Opt<Component> = null) {
   else result.error.log('Cannot apply suggestion')
 }
 
-function applySuggestionAndSwitchToEditMode(component: Opt<Component> = null) {
+function applySuggestion(component: Opt<Component> = null) {
   const suggestionId = component?.suggestionId ?? selectedSuggestionId.value
-  if (suggestionId == null) return
-  const result = input.applySuggestionAndSwitchToCodeEditMode(suggestionId)
+  if (suggestionId == null) return input.switchToCodeEditMode()
+  const result = input.applySuggestion(suggestionId)
   if (!result.ok) result.error.log('Cannot apply suggestion')
 }
 
@@ -304,9 +304,9 @@ function acceptInput() {
 // === Key Events Handler ===
 
 const handler = componentBrowserBindings.handler({
-  applySuggestionAndSwitchToEditMode() {
+  applySuggestion() {
     if (input.mode.mode != 'componentBrowsing') return false
-    applySuggestionAndSwitchToEditMode()
+    applySuggestion()
   },
   acceptSuggestion() {
     if (input.mode.mode != 'componentBrowsing') return false
@@ -390,7 +390,7 @@ const handler = componentBrowserBindings.handler({
         :disabled="input.mode.mode === 'codeEditing'"
         :title="selected != null ? 'Edit Suggested Component' : 'Code Edit Mode'"
         data-testid="switchToEditMode"
-        @click.stop="applySuggestionAndSwitchToEditMode()"
+        @click.stop="applySuggestion()"
       />
     </ComponentEditor>
     <ComponentList
