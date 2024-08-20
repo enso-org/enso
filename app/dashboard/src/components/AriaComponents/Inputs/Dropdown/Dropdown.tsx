@@ -7,7 +7,51 @@ import { ListBox, ListBoxItem, mergeProps, useFocusWithin } from '#/components/a
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 import { forwardRef } from '#/utilities/react'
-import { twMerge } from '#/utilities/tailwindMerge'
+import { tv } from '#/utilities/tailwindVariants'
+
+const DROPDOWN_STYLES = tv({
+  base: 'focus-child group relative flex w-max cursor-pointer flex-col items-start whitespace-nowrap rounded-input leading-cozy',
+  variants: {
+    isFocused: {
+      true: {
+        container: 'z-1',
+        options: 'before:h-full before:shadow-soft',
+        optionsContainer: 'grid-rows-1fr',
+        input: 'z-1',
+      },
+      false: {
+        container: 'overflow-hidden',
+        options: 'before:h-6 group-hover:before:bg-hover-bg',
+        optionsContainer: 'grid-rows-0fr',
+      },
+    },
+    isReadOnly: {
+      true: {
+        input: 'read-only',
+      },
+    },
+    multiple: {
+      true: {
+        optionsItem: 'hover:font-semibold',
+      },
+    },
+  },
+  slots: {
+    container: 'absolute left-0 h-full w-full min-w-max',
+    options:
+      'relative before:absolute before:top before:w-full before:rounded-input before:border-0.5 before:border-primary/20 before:backdrop-blur-default before:transition-colors',
+    optionsSpacing: 'padding relative h-6',
+    optionsContainer:
+      'relative grid max-h-dropdown-items w-full overflow-auto rounded-input transition-grid-template-rows',
+    optionsList: 'overflow-hidden',
+    optionsItem:
+      'flex h-6 items-center gap-dropdown-arrow rounded-input px-input-x transition-colors selected:focus:cursor-default selected:focus:bg-frame selected:focus:font-bold selected:focus:focus-ring not-focus:hover:bg-hover-bg not-selected:hover:bg-hover-bg',
+    input: 'relative flex h-6 items-center gap-dropdown-arrow px-input-x',
+    inputDisplay: 'grow',
+    hiddenOptions: 'flex h-0 flex-col overflow-hidden',
+    hiddenOption: 'flex gap-dropdown-arrow px-input-x font-bold',
+  },
+})
 
 // ================
 // === Dropdown ===
@@ -70,6 +114,8 @@ export const Dropdown = forwardRef(function Dropdown<T>(
   const visuallySelectedIndex = tempSelectedIndex ?? selectedIndex
   const visuallySelectedItem = visuallySelectedIndex == null ? null : items[visuallySelectedIndex]
 
+  const styles = DROPDOWN_STYLES({ className, isFocused, isReadOnly: readOnly })
+
   useEffect(() => {
     setTempSelectedIndex(selectedIndex)
   }, [selectedIndex])
@@ -93,35 +139,15 @@ export const Dropdown = forwardRef(function Dropdown<T>(
           {
             tabIndex: 0,
             ref,
-            className: twMerge(
-              'focus-child group relative flex w-max cursor-pointer flex-col items-start whitespace-nowrap rounded-input leading-cozy',
-              className,
-            ),
+            className: styles.base(),
           },
         )}
       >
-        <div
-          className={twMerge(
-            'absolute left-0 h-full w-full min-w-max',
-            isFocused ? 'z-1' : 'overflow-hidden',
-          )}
-        >
-          <div
-            className={twMerge(
-              'relative before:absolute before:top before:w-full before:rounded-input before:border-0.5 before:border-primary/20 before:backdrop-blur-default before:transition-colors',
-              isFocused ?
-                'before:h-full before:shadow-soft'
-              : 'before:h-6 group-hover:before:bg-hover-bg',
-            )}
-          >
+        <div className={styles.container()}>
+          <div className={styles.options()}>
             {/* Spacing. */}
-            <div className="padding relative h-6" />
-            <div
-              className={twMerge(
-                'relative grid max-h-dropdown-items w-full overflow-auto rounded-input transition-grid-template-rows',
-                isFocused ? 'grid-rows-1fr' : 'grid-rows-0fr',
-              )}
-            >
+            <div className={styles.optionsSpacing()} />
+            <div className={styles.optionsContainer()}>
               <ListBox
                 selectionMode={
                   !isFocused ? 'none'
@@ -130,7 +156,7 @@ export const Dropdown = forwardRef(function Dropdown<T>(
                   : 'single'
                 }
                 items={listBoxItems}
-                className="overflow-hidden"
+                className={styles.optionsList()}
                 onSelectionChange={(keys) => {
                   if (multiple) {
                     const indices = Array.from(keys, (i) => Number(i))
@@ -154,14 +180,7 @@ export const Dropdown = forwardRef(function Dropdown<T>(
                 }}
               >
                 {({ item, i }) => (
-                  <ListBoxItem
-                    key={i}
-                    id={i}
-                    className={twMerge(
-                      'flex h-6 items-center gap-dropdown-arrow rounded-input px-input-x transition-colors selected:focus:cursor-default selected:focus:bg-frame selected:focus:font-bold selected:focus:focus-ring not-focus:hover:bg-hover-bg not-selected:hover:bg-hover-bg',
-                      multiple && 'hover:font-semibold',
-                    )}
-                  >
+                  <ListBoxItem key={i} id={i} className={styles.optionsItem()}>
                     <SvgMask
                       src={CheckMarkIcon}
                       className={selectedIndices.includes(i) ? '' : 'invisible'}
@@ -173,15 +192,9 @@ export const Dropdown = forwardRef(function Dropdown<T>(
             </div>
           </div>
         </div>
-        <div
-          className={twMerge(
-            'relative flex h-6 items-center gap-dropdown-arrow px-input-x',
-            isFocused && 'z-1',
-            readOnly && 'read-only',
-          )}
-        >
+        <div className={styles.input()}>
           <SvgMask src={FolderArrowIcon} className="rotate-90" />
-          <div className="grow">
+          <div className={styles.inputDisplay()}>
             {visuallySelectedItem != null ?
               <Child item={visuallySelectedItem} />
             : multiple && <props.renderMultiple items={selectedItems}>{Child}</props.renderMultiple>
@@ -190,9 +203,9 @@ export const Dropdown = forwardRef(function Dropdown<T>(
         </div>
         {/* Hidden, but required to exist for the width of the parent element to be correct.
          * Classes that do not affect width have been removed. */}
-        <div className="flex h-0 flex-col overflow-hidden">
+        <div className={styles.hiddenOptions()}>
           {items.map((item, i) => (
-            <div key={i} className="flex gap-dropdown-arrow px-input-x font-bold">
+            <div key={i} className={styles.hiddenOption()}>
               <SvgMask src={CheckMarkIcon} />
               <Child item={item} />
             </div>
