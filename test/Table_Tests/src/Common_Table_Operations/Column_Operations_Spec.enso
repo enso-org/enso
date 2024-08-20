@@ -1747,26 +1747,27 @@ add_specs suite_builder setup =
             t = table_builder [["x", ["1", "2", "3"]]]
             t.at "x" . const (t.at "x") . should_fail_with Illegal_Argument
 
-    suite_builder.group prefix+"(Column_Operations_Spec) Column.let" group_builder->
-        group_builder.specify "Should allow the use of let-style CTEs" <|
-            t = table_builder [["X", [1, 2, 3, 4]], ["Y", [4, 3, 100, 200]], ["Z", [12.1, 23.4, -4.5, 44.33]]]
-            x = t.at "X"
-            y = t.at "Y"
-            z = t.at "Z"
-            a = ((x - 2.3) * (y + 1)) + z
-            b = (x - 2.3).let name="xx" xx-> (xx * (y + 1)) + z
-            c = (x - 2.3).let name="xx" xx-> (y + 1).let name="yy" yy-> (xx * yy) + z
-            d = ((x - 2.3) * (y + 1)).let name="xxyy" xxyy-> xxyy + z
-            a.to_vector . should_equal [5.6000000000000005, 22.2, 66.20000000000002, 386.03000000000003]
-            a.to_vector . should_equal b.to_vector
-            a.to_vector . should_equal c.to_vector
-            a.to_vector . should_equal d.to_vector
+    if setup.is_database then
+        suite_builder.group prefix+"(Column_Operations_Spec) Column.let" group_builder->
+            group_builder.specify "Should allow the use of let-style CTEs" <|
+                t = table_builder [["X", [1, 2, 3, 4]], ["Y", [4, 3, 100, 200]], ["Z", [12.1, 23.4, -4.5, 44.33]]]
+                x = t.at "X"
+                y = t.at "Y"
+                z = t.at "Z"
+                a = ((x - 2.3) * (y + 1)) + z
+                b = (x - 2.3).let name="xx" xx-> (xx * (y + 1)) + z
+                c = (x - 2.3).let name="xx" xx-> (y + 1).let name="yy" yy-> (xx * yy) + z
+                d = ((x - 2.3) * (y + 1)).let name="xxyy" xxyy-> xxyy + z
+                a.to_vector . should_equal [5.6000000000000005, 22.2, 66.20000000000002, 386.03000000000003]
+                a.to_vector . should_equal b.to_vector
+                a.to_vector . should_equal c.to_vector
+                a.to_vector . should_equal d.to_vector
 
-            a.to_table.to_sql . prepare . at 0 . should_not_contain "WITH"
-            b.to_table.to_sql . prepare . at 0 . should_contain 'WITH \"xx_0'
-            c.to_table.to_sql . prepare . at 0 . should_contain 'WITH \"xx_0'
-            c.to_table.to_sql . prepare . at 0 . should_contain 'WITH \"yy_1'
-            d.to_table.to_sql . prepare . at 0 . should_contain 'WITH \"xxyy_0'
+                a.to_table.to_sql . prepare . at 0 . should_not_contain "WITH"
+                b.to_table.to_sql . prepare . at 0 . should_contain 'WITH \"xx_0'
+                c.to_table.to_sql . prepare . at 0 . should_contain 'WITH \"xx_0'
+                c.to_table.to_sql . prepare . at 0 . should_contain 'WITH \"yy_1'
+                d.to_table.to_sql . prepare . at 0 . should_contain 'WITH \"xxyy_0'
 
     suite_builder.group prefix+"(Column_Operations_Spec) Table.make_constant_column" group_builder->
         group_builder.specify "Should allow the creation of constant columns" <|

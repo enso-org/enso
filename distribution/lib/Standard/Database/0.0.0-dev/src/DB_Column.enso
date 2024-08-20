@@ -212,10 +212,10 @@ type DB_Column
     ## PRIVATE
        Column-level manual CTE factoring.
 
-       Calling `let` on a `DB_Column` wraps it as a CTE (common table
+       Calling `let` on a column wraps it as a CTE (common table
        expression), using a SQL `WITH ... AS` clause. More specifically, it
        takes a callback that receives a "reference" to the CTE; the callback
-       then returns an arbitrary `DB_Column` that uses the reference. The `let`
+       then returns an arbitrary column that uses the reference. The `let`
        call itself returns the full `WITH` clause, containing both the CTE and
        the callback return value.
 
@@ -229,15 +229,15 @@ type DB_Column
        below to see how the generated SQL is structured.
 
        Internally, `let` generates a unique name for the CTE, and creates a
-       "reference" `DB_Column` which refers to that unique name. This
+       "reference" column which refers to that unique name. This
        "reference" column is passed to the callback, which can compute values
        based on the reference and any other values. Finally, the return value of
        the callback is wrapped in the binding `WITH ... AS` clause, which is
        returned from the original call to `let`.
 
-       `let` is only available in backends that support `WITH` clauses inside
-       expressions. For backends that only support a single `WITH` claus at the
-       top level, `let` returns `self` unchanged.
+       `let` is only available in database backends that support `WITH` clauses
+       inside expressions. For database backends that only support a single
+       `WITH` claus at the top level, `let` returns `self` unchanged.
 
        Semantically, the following expressions will always have the same value:
 
@@ -300,7 +300,6 @@ type DB_Column
         use_ctes = self.connection.dialect.supports_nested_with_clause
 
         if use_ctes.not then callback self else
-            # TODO: use shorter unique names for binders.
             binder = self.connection.base_connection.table_naming_helper.generate_random_table_name
 
             ref_expression = SQL_Expression.Let_Ref name binder self.expression

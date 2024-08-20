@@ -87,21 +87,17 @@ type SQL_Generator
             wrapped_binder = dialect.wrap_identifier binder
             bindee_exp = SQL_Builder.code "SELECT " ++ (self.generate_expression dialect bindee).paren ++ " AS " ++ "x"
 
-            #IO.println "AAA scope push "+binder
             body_sql_builder = self.let_bindings_ref.with_modification (h-> h.insert binder) <|
                 self.generate_expression dialect body
-            #IO.println "AAA scope pop "+binder
 
             body_exp = SQL_Builder.code "SELECT " ++ body_sql_builder ++ " FROM " ++ wrapped_binder
             (SQL_Builder.code "WITH " ++ wrapped_binder  ++ " AS " ++ bindee_exp.paren ++ " " ++ body_exp).paren
         SQL_Expression.Let_Ref _ binder standalone_expression ->
             binding_state = self.let_bindings_ref.get
-            #IO.println "AAA scope check "+binder+": "+(with_scope.contains binder).to_text
             case binding_state.contains binder of
                 True ->
                     wrapped_binder = dialect.wrap_identifier binder
                     wrapped_binder ++ "." ++ "x"
-                    #wrapped_binder
                 False ->
                     self.generate_expression dialect standalone_expression
         query : Query -> self.generate_sub_query dialect query
