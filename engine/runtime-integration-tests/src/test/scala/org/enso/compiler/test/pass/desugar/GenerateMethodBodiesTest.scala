@@ -244,7 +244,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
       bodyLambda.arguments.size shouldEqual 1
       val selfArg = bodyLambda.arguments.head.name
       selfArg shouldEqual Name.Self(location = irBazSndArg.location)
-      resultLambda.diagnostics.collect { case w: Warning =>
+      resultLambda.getDiagnostics.collect { case w: Warning =>
         w
       }.head shouldBe an[Warning.WrongSelfParameterPos]
     }
@@ -294,7 +294,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
       selfArg shouldEqual Name.Self(location =
         irMethodAddSelfArg.head.name.location
       )
-      resultLambda.diagnostics.collect { case w: Warning =>
+      resultLambda.getDiagnostics.collect { case w: Warning =>
         w
       } shouldBe empty
     }
@@ -307,7 +307,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
       resultArgs.size shouldEqual 1
       val selfArg = resultArgs(0).name
       selfArg should not be an[Name.Self]
-      resultLambda.diagnostics.collect { case w: Warning =>
+      resultLambda.getDiagnostics.collect { case w: Warning =>
         w
       }.head shouldBe an[Warning.WrongSelfParameterPos]
 
@@ -364,7 +364,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
       body.arguments.head.name shouldBe an[Name.Literal]
       body.arguments.head.name.name shouldBe ConstantsNames.THAT_ARGUMENT
 
-      conversion.body.diagnostics.collect { case w: Warning =>
+      conversion.body.getDiagnostics.collect { case w: Warning =>
         w
       }.head shouldBe an[Warning.WrongSelfParameterPos]
     }
@@ -382,7 +382,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
       body.arguments.head.name shouldBe an[Name.Literal]
       body.arguments.head.name.name shouldBe ConstantsNames.THAT_ARGUMENT
 
-      conversion.body.diagnostics.collect { case w: Warning =>
+      conversion.body.getDiagnostics.collect { case w: Warning =>
         w
       }.head shouldBe an[Warning.WrongSelfParameterPos]
     }

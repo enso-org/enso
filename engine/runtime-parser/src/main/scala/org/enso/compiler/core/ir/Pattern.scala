@@ -60,7 +60,7 @@ object Pattern {
       name: IRName                         = name,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = _diagnostics,
+      diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Name = {
       val res = Name(name, location, passData)
@@ -87,7 +87,7 @@ object Pattern {
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+          if (keepDiagnostics) diagnosticsCopy else null,
         id = if (keepIdentifiers) id else null
       )
 
@@ -155,7 +155,7 @@ object Pattern {
       fields: List[Pattern]                = fields,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = _diagnostics,
+      diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Constructor = {
       val res = Constructor(constructor, fields, location, passData)
@@ -190,7 +190,7 @@ object Pattern {
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+          if (keepDiagnostics) diagnosticsCopy else null,
         id = if (keepIdentifiers) id else null
       )
 
@@ -303,7 +303,7 @@ object Pattern {
       literal: IRLiteral                   = literal,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = _diagnostics,
+      diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Literal = {
       val res = Literal(literal, location, passData)
@@ -330,7 +330,7 @@ object Pattern {
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+          if (keepDiagnostics) diagnosticsCopy else null,
         id = if (keepIdentifiers) id else null
       )
 
@@ -400,7 +400,7 @@ object Pattern {
       tpe: IRName                          = tpe,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = _diagnostics,
+      diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Type = {
       val res = Type(name, tpe, location, passData)
@@ -433,7 +433,7 @@ object Pattern {
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+          if (keepDiagnostics) diagnosticsCopy else null,
         id = if (keepIdentifiers) id else null
       )
 
@@ -513,7 +513,7 @@ object Pattern {
       doc: String                          = doc,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = _diagnostics,
+      diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Documentation = {
       val res = Documentation(doc, location, passData)
@@ -535,7 +535,7 @@ object Pattern {
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+          if (keepDiagnostics) diagnosticsCopy else null,
         id = if (keepIdentifiers) id else null
       )
 

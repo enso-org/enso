@@ -65,7 +65,7 @@ object CallArgument {
       value: Expression                    = value,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = _diagnostics,
+      diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Specified = {
       val res = Specified(name, value, location, passData)
@@ -99,9 +99,8 @@ object CallArgument {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */

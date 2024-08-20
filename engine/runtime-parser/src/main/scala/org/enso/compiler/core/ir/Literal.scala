@@ -58,7 +58,7 @@ object Literal {
       value: String                        = value,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = _diagnostics,
+      diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Number = {
       val res = Number(base, value, location, passData)
@@ -79,7 +79,7 @@ object Literal {
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+          if (keepDiagnostics) diagnosticsCopy else null,
         id = if (keepIdentifiers) id else null
       )
 
@@ -183,7 +183,7 @@ object Literal {
       text: String                         = text,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = _diagnostics,
+      diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Text = {
       val res = Text(text, location, passData)
@@ -204,7 +204,7 @@ object Literal {
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+          if (keepDiagnostics) diagnosticsCopy else null,
         id = if (keepIdentifiers) id else null
       )
 

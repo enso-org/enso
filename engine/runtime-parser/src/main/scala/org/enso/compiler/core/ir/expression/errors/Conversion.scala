@@ -49,7 +49,7 @@ sealed case class Conversion(
     storedIr: IR                   = storedIr,
     reason: Conversion.Reason      = reason,
     passData: MetadataStorage      = passData,
-    diagnostics: DiagnosticStorage = _diagnostics,
+    diagnostics: DiagnosticStorage = diagnostics,
     id: UUID @Identifier           = id
   ): Conversion = {
     val res = Conversion(storedIr, reason, passData)
@@ -75,7 +75,7 @@ sealed case class Conversion(
       passData =
         if (keepMetadata) passData.duplicate else new MetadataStorage(),
       diagnostics =
-        if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+        if (keepDiagnostics) diagnosticsCopy else null,
       id = if (keepIdentifiers) id else null
     )
   }

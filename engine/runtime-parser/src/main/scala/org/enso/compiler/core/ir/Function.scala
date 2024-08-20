@@ -73,6 +73,22 @@ object Function {
       )
     }
 
+    def this(
+      ir: expression.Case.Expr,
+      arguments: List[DefinitionArgument],
+      body: Expression,
+      location: Option[IdentifiedLocation]
+    ) = {
+      this(
+        arguments,
+        Persistance.Reference.of(body, true),
+        location,
+        true,
+        ir.passData
+      )
+      diagnostics = ir.diagnostics
+    }
+
     override lazy val body: Expression = bodyReference.get(classOf[Expression])
 
     override val isPrivate: Boolean = false
@@ -94,7 +110,7 @@ object Function {
       location: Option[IdentifiedLocation] = location,
       canBeTCO: Boolean                    = canBeTCO,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = _diagnostics,
+      diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Lambda = {
       val res =
@@ -136,7 +152,7 @@ object Function {
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+          if (keepDiagnostics) diagnosticsCopy else null,
         id = if (keepIdentifiers) id else null
       )
 
@@ -182,36 +198,6 @@ object Function {
   }
 
   object Lambda {
-
-    /** Create the [[Lambda]] object.
-      *
-      * @param arguments the arguments to the lambda
-      * @param body the body of the lambda expression
-      * @param location the source location that the node corresponds to
-      * @param canBeTCO whether or not the function can be tail-call optimised
-      * @param passData the pass metadata associated with this node
-      * @param diagnostics the attached diagnostics
-      */
-    def apply(
-      arguments: List[DefinitionArgument],
-      body: Expression,
-      location: Option[IdentifiedLocation],
-      canBeTCO: Boolean              = true,
-      passData: MetadataStorage      = new MetadataStorage(),
-      diagnostics: DiagnosticStorage = new DiagnosticStorage()
-    ): Lambda = {
-      val lambda =
-        new Lambda(
-          arguments,
-          Persistance.Reference.of(body, true),
-          location,
-          canBeTCO,
-          passData
-        )
-      lambda.diagnostics = diagnostics
-
-      lambda
-    }
 
     def unapply(l: Lambda): Some[
       (
@@ -279,7 +265,7 @@ object Function {
       location: Option[IdentifiedLocation] = location,
       canBeTCO: Boolean                    = canBeTCO,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = _diagnostics,
+      diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Binding = {
       val res =
@@ -329,7 +315,7 @@ object Function {
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+          if (keepDiagnostics) diagnosticsCopy else null,
         id = if (keepIdentifiers) id else null
       )
 

@@ -62,7 +62,7 @@ case object GatherDiagnostics extends IRPass {
     * @return `ir`, with all diagnostics from its subtree associated with it
     */
   private def gatherMetadata(ir: IR): DiagnosticsMeta = {
-    val diagnostics = ir.preorder.collect {
+    val diagnostics = ir.preorder.flatMap {
       case err: Diagnostic =>
         List(err)
       case arg: DefinitionArgument =>
@@ -90,7 +90,7 @@ case object GatherDiagnostics extends IRPass {
         typeSignatureDiagnostics ++ x.diagnosticsList
       case x =>
         x.diagnosticsList
-    }.flatten
+    }
     DiagnosticsMeta(
       diagnostics.distinctBy(d => new DiagnosticKeys(d))
     )

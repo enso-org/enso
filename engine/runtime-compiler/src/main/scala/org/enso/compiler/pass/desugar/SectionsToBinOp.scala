@@ -101,7 +101,7 @@ case object SectionsToBinOp extends IRPass {
     inlineContext: InlineContext
   ): Expression = {
     section match {
-      case sectionLeft @ Section.Left(arg, op, loc, passData) =>
+      case sectionLeft @ Section.Left(arg, op, loc, _) =>
         val rightArgName = freshNameSupply.newName()
         val rightCallArg =
           CallArgument.Specified(None, rightArgName, None)
@@ -124,13 +124,11 @@ case object SectionsToBinOp extends IRPass {
             suspended = false,
             None
           )
-          val opCall = Application.Prefix(
+          val opCall = new Application.Prefix(
+            ir                   = sectionLeft,
             function             = op,
             arguments            = List(leftCallArg, rightCallArg),
-            hasDefaultsSuspended = false,
-            location             = None,
-            passData,
-            sectionLeft.diagnostics
+            hasDefaultsSuspended = false
           )
 
           val rightLam = new Function.Lambda(
@@ -144,21 +142,18 @@ case object SectionsToBinOp extends IRPass {
             rightLam,
             loc
           )
-
         } else {
           val newArg = arg.mapExpressions(runExpression(_, inlineContext))
 
-          Application.Prefix(
+          new Application.Prefix(
+            ir                   = sectionLeft,
             function             = op,
             arguments            = List(newArg),
-            hasDefaultsSuspended = false,
-            location             = loc,
-            passData             = passData,
-            diagnostics          = sectionLeft.diagnostics
+            hasDefaultsSuspended = false
           )
         }
 
-      case sectionSides @ Section.Sides(op, loc, passData) =>
+      case sectionSides @ Section.Sides(op, loc, _) =>
         val leftArgName = freshNameSupply.newName()
         val leftCallArg =
           CallArgument.Specified(None, leftArgName, None)
@@ -181,13 +176,11 @@ case object SectionsToBinOp extends IRPass {
           None
         )
 
-        val opCall = Application.Prefix(
+        val opCall = new Application.Prefix(
+          ir                   = sectionSides,
           function             = op,
           arguments            = List(leftCallArg, rightCallArg),
-          hasDefaultsSuspended = false,
-          location             = None,
-          passData             = passData,
-          diagnostics          = sectionSides.diagnostics
+          hasDefaultsSuspended = false
         )
 
         val rightLambda = new Function.Lambda(
@@ -221,7 +214,7 @@ case object SectionsToBinOp extends IRPass {
        * The same is true of left sections.
        */
 
-      case sectionRight @ Section.Right(op, arg, loc, passData) =>
+      case sectionRight @ Section.Right(op, arg, loc, _) =>
         val leftArgName = freshNameSupply.newName()
         val leftCallArg =
           CallArgument.Specified(None, leftArgName, None)
@@ -247,13 +240,11 @@ case object SectionsToBinOp extends IRPass {
             None
           )
 
-          val opCall = Application.Prefix(
+          val opCall = new Application.Prefix(
+            ir                   = sectionRight,
             function             = op,
             arguments            = List(leftCallArg, rightCallArg),
-            hasDefaultsSuspended = false,
-            location             = None,
-            passData             = passData,
-            diagnostics          = sectionRight.diagnostics
+            hasDefaultsSuspended = false
           )
 
           val leftLam = new Function.Lambda(
@@ -270,13 +261,11 @@ case object SectionsToBinOp extends IRPass {
         } else {
           val newArg = arg.mapExpressions(runExpression(_, inlineContext))
 
-          val opCall = Application.Prefix(
+          val opCall = new Application.Prefix(
+            ir                   = sectionRight,
             function             = op,
             arguments            = List(leftCallArg, newArg),
-            hasDefaultsSuspended = false,
-            location             = None,
-            passData             = passData,
-            diagnostics          = sectionRight.diagnostics
+            hasDefaultsSuspended = false
           )
 
           new Function.Lambda(

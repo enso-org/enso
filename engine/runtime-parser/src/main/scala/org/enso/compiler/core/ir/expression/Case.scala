@@ -65,7 +65,7 @@ object Case {
       isNested: Boolean                    = isNested,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = _diagnostics,
+      diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Expr = {
       val res = Expr(scrutinee, branches, isNested, location, passData)
@@ -101,7 +101,7 @@ object Case {
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+          if (keepDiagnostics) diagnosticsCopy else null,
         id = if (keepIdentifiers) id else null
       )
 
@@ -208,7 +208,7 @@ object Case {
       terminalBranch: Boolean              = terminalBranch,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = _diagnostics,
+      diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Branch = {
       val res = Branch(pattern, expression, terminalBranch, location, passData)
@@ -242,7 +242,7 @@ object Case {
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+          if (keepDiagnostics) diagnosticsCopy else null,
         id = if (keepIdentifiers) id else null
       )
 

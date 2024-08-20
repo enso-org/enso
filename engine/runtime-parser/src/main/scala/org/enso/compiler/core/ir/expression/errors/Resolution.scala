@@ -47,7 +47,7 @@ sealed case class Resolution(
     originalName: Name             = originalName,
     reason: Resolution.Reason      = reason,
     passData: MetadataStorage      = passData,
-    diagnostics: DiagnosticStorage = _diagnostics,
+    diagnostics: DiagnosticStorage = diagnostics,
     id: UUID @Identifier           = id
   ): Resolution = {
     val res = Resolution(originalName, reason, passData)
@@ -74,7 +74,7 @@ sealed case class Resolution(
       passData =
         if (keepMetadata) passData.duplicate else new MetadataStorage(),
       diagnostics =
-        if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+        if (keepDiagnostics) diagnosticsCopy else null,
       id = if (keepIdentifiers) id else null
     )
 

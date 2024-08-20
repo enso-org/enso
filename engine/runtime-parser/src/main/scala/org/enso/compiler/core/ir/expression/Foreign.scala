@@ -63,7 +63,7 @@ object Foreign {
       code: String                         = code,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = _diagnostics,
+      diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Definition = {
       val res = Definition(lang, code, location, passData)
@@ -84,7 +84,7 @@ object Foreign {
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+          if (keepDiagnostics) diagnosticsCopy else null,
         id = if (keepIdentifiers) id else null
       )
 

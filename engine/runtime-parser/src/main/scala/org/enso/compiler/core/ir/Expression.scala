@@ -82,7 +82,7 @@ object Expression {
       location: Option[IdentifiedLocation] = location,
       suspended: Boolean                   = suspended,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = _diagnostics,
+      diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Block = {
       val res = Block(
@@ -123,7 +123,7 @@ object Expression {
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+          if (keepDiagnostics) diagnosticsCopy else null,
         id = if (keepIdentifiers) id else null
       )
 
@@ -190,6 +190,16 @@ object Expression {
       with LazyDiagnosticStorage
       with LazyId {
 
+    /** Create a [[Binding]] object from a [[Function.Binding]].
+      *
+      * @param ir the function binding
+      * @param lambda the body of the function
+      */
+    def this(ir: Function.Binding, lambda: Function.Lambda) = {
+      this(ir.name, lambda, ir.location, ir.passData)
+      this.diagnostics = ir.diagnostics
+    }
+
     /** Creates a copy of `this`.
       *
       * @param name        the name being bound to
@@ -205,7 +215,7 @@ object Expression {
       expression: Expression               = expression,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = _diagnostics,
+      diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Binding = {
       val res = Binding(name, expression, location, passData)
@@ -238,7 +248,7 @@ object Expression {
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+          if (keepDiagnostics) diagnosticsCopy else null,
         id = if (keepIdentifiers) id else null
       )
 

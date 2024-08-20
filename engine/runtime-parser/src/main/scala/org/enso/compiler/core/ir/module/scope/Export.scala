@@ -79,7 +79,7 @@ object Export {
       location: Option[IdentifiedLocation]  = location,
       isSynthetic: Boolean                  = isSynthetic,
       passData: MetadataStorage             = passData,
-      diagnostics: DiagnosticStorage        = _diagnostics,
+      diagnostics: DiagnosticStorage        = diagnostics,
       id: UUID @Identifier                  = id
     ): Module = {
       val res = Module(
@@ -107,7 +107,7 @@ object Export {
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+          if (keepDiagnostics) diagnosticsCopy else null,
         id = if (keepIdentifiers) id else null
       )
 

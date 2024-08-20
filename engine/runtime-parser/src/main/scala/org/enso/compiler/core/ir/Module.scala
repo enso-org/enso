@@ -47,7 +47,7 @@ final case class Module(
     bindings: List[Definition]           = bindings,
     location: Option[IdentifiedLocation] = location,
     passData: MetadataStorage            = passData,
-    diagnostics: DiagnosticStorage       = _diagnostics,
+    diagnostics: DiagnosticStorage       = diagnostics,
     id: UUID @Identifier                 = id
   ): Module = {
     val res =
@@ -92,7 +92,7 @@ final case class Module(
       passData =
         if (keepMetadata) passData.duplicate else new MetadataStorage(),
       diagnostics =
-        if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+        if (keepDiagnostics) diagnosticsCopy else null,
       id = if (keepIdentifiers) id else null
     )
 

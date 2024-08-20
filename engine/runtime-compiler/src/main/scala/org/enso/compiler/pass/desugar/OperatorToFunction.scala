@@ -71,16 +71,14 @@ case object OperatorToFunction extends IRPass {
     inlineContext: InlineContext
   ): Expression =
     ir.transformExpressions { case operatorBinary: Operator.Binary =>
-      Application.Prefix(
+      new Application.Prefix(
+        operatorBinary,
         operatorBinary.operator,
         List(
           operatorBinary.left.mapExpressions(runExpression(_, inlineContext)),
           operatorBinary.right.mapExpressions(runExpression(_, inlineContext))
         ),
-        hasDefaultsSuspended = false,
-        operatorBinary.location,
-        operatorBinary.passData,
-        operatorBinary.diagnostics
+        hasDefaultsSuspended = false
       )
     }
 }

@@ -61,23 +61,22 @@ public final class PrivateConstructorAnalysis implements IRPass {
                     var ctorsCnt = type.members().size();
                     if (!(privateCtorsCnt == ctorsCnt || publicCtorsCnt == ctorsCnt)) {
                       assert type.location().isDefined();
-                      return Syntax.apply(
+                      return new Syntax(
+                          type,
                           type.location().get(),
-                          InconsistentConstructorVisibility$.MODULE$,
-                          type.passData(),
-                          type.diagnostics());
+                          InconsistentConstructorVisibility$.MODULE$);
                     }
                   }
                   return binding;
                 });
     return ir.copy(
-        ir.imports(),
-        ir.exports(),
+        ir.copy$default$1(),
+        ir.copy$default$2(),
         newBindings,
-        ir.location(),
-        ir.passData(),
-        ir.diagnostics(),
-        ir.id());
+        ir.copy$default$4(),
+        ir.copy$default$5(),
+        ir.copy$default$6(),
+        ir.copy$default$7());
   }
 
   /** Not supported on a single expression. */

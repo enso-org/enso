@@ -1720,7 +1720,7 @@ class IrToTruffle(
               ) match {
                 case Some(tpe) =>
                   val argOfType = List(
-                    DefinitionArgument.Specified(
+                    new DefinitionArgument.Specified(
                       varName,
                       None,
                       None,
@@ -1754,7 +1754,7 @@ class IrToTruffle(
                 asScope(mod.unsafeAsModule()).getPolyglotSymbol(symbol.name)
               if (polySymbol != null) {
                 val argOfType = List(
-                  DefinitionArgument.Specified(
+                  new DefinitionArgument.Specified(
                     varName,
                     None,
                     None,
@@ -1813,8 +1813,8 @@ class IrToTruffle(
       * @param name the pattern field to generate from
       * @return `name` as a function definition argument.
       */
-    def genArgFromMatchField(name: Pattern.Name): DefinitionArgument = {
-      DefinitionArgument.Specified(
+    private def genArgFromMatchField(name: Pattern.Name): DefinitionArgument = {
+      new DefinitionArgument.Specified(
         name.name,
         None,
         None,

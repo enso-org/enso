@@ -4,17 +4,10 @@ import org.enso.compiler.core.IR
 
 trait LazyDiagnosticStorage { self: IR =>
 
-  protected var _diagnostics: DiagnosticStorage = _
+  private[this] var _diagnostics: DiagnosticStorage = _
 
-  override def diagnostics: DiagnosticStorage = {
-    if (_diagnostics eq null) {
-      _diagnostics = DiagnosticStorage()
-    }
+  def diagnostics: DiagnosticStorage = {
     _diagnostics
-  }
-
-  override def diagnosticsList: List[Diagnostic] = {
-    if (_diagnostics eq null) Nil else _diagnostics.toList
   }
 
   def diagnostics_=(diagnostics: DiagnosticStorage): Unit = {
@@ -22,4 +15,18 @@ trait LazyDiagnosticStorage { self: IR =>
     _diagnostics = diagnostics
   }
 
+  def diagnosticsList: List[Diagnostic] = {
+    if (_diagnostics eq null) Nil else _diagnostics.toList
+  }
+
+  def diagnosticsCopy: DiagnosticStorage = {
+    if (_diagnostics eq null) _diagnostics else _diagnostics.copy
+  }
+
+  def getDiagnostics: DiagnosticStorage = {
+    if (_diagnostics eq null) {
+      _diagnostics = DiagnosticStorage()
+    }
+    _diagnostics
+  }
 }

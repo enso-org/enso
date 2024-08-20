@@ -32,6 +32,30 @@ object Application {
       with LazyDiagnosticStorage
       with LazyId {
 
+    /** Create a prefix application from the existing expression.
+      *
+      * @param ir the original expression
+      * @param function the function being called
+      * @param arguments the arguments to the function being called
+      * @param hasDefaultsSuspended whether the function application has any
+      * argument defaults in `function` suspended
+      */
+    def this(
+      ir: Expression,
+      function: Expression,
+      arguments: List[CallArgument],
+      hasDefaultsSuspended: Boolean
+    ) = {
+      this(
+        function,
+        arguments,
+        hasDefaultsSuspended,
+        ir.location,
+        ir.passData
+      )
+      diagnostics = ir.diagnostics
+    }
+
     /** Creates a copy of `this`.
       *
       * @param function             the function being called
@@ -50,7 +74,7 @@ object Application {
       hasDefaultsSuspended: Boolean        = hasDefaultsSuspended,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = _diagnostics,
+      diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Prefix = {
       val res =
@@ -92,7 +116,7 @@ object Application {
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+          if (keepDiagnostics) diagnosticsCopy else null,
         id = if (keepIdentifiers) id else null
       )
 
@@ -132,39 +156,6 @@ object Application {
     }
   }
 
-  object Prefix {
-
-    /** Create a [[Prefix]] object.
-      *
-      * @param function the function being called
-      * @param arguments the arguments to the function being called
-      * @param hasDefaultsSuspended whether the function application has any
-      * argument defaults in `function` suspended
-      * @param location the source location that the node corresponds to
-      * @param passData the pass metadata associated with this node
-      * @param diagnostics the compiler diagnostics
-      */
-    def apply(
-      function: Expression,
-      arguments: List[CallArgument],
-      hasDefaultsSuspended: Boolean,
-      location: Option[IdentifiedLocation],
-      passData: MetadataStorage,
-      diagnostics: DiagnosticStorage
-    ): Prefix = {
-      val prefix = new Prefix(
-        function,
-        arguments,
-        hasDefaultsSuspended,
-        location,
-        passData
-      )
-      prefix.diagnostics = diagnostics
-
-      prefix
-    }
-  }
-
   /** A representation of a term that is explicitly forced.
     *
     * @param target the expression being forced
@@ -193,7 +184,7 @@ object Application {
       target: Expression                   = target,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = _diagnostics,
+      diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Force = {
       val res = Force(target, location, passData)
@@ -220,7 +211,7 @@ object Application {
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+          if (keepDiagnostics) diagnosticsCopy else null,
         id = if (keepIdentifiers) id else null
       )
 
@@ -310,7 +301,7 @@ object Application {
       expression: Option[Expression]       = expression,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = _diagnostics,
+      diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Typeset = {
       val res = Typeset(expression, location, passData)
@@ -339,7 +330,7 @@ object Application {
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+          if (keepDiagnostics) diagnosticsCopy else null,
         id = if (keepIdentifiers) id else null
       )
 
@@ -406,7 +397,7 @@ object Application {
       items: List[Expression]              = items,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = _diagnostics,
+      diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Sequence = {
       val res = Sequence(items, location, passData)
@@ -435,7 +426,7 @@ object Application {
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+          if (keepDiagnostics) diagnosticsCopy else null,
         id = if (keepIdentifiers) id else null
       )
 

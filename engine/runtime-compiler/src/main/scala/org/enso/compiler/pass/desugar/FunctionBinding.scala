@@ -96,13 +96,13 @@ case object FunctionBinding extends IRPass {
   def desugarExpression(ir: Expression): Expression = {
     ir.transformExpressions {
       case functionBinding @ Function.Binding(
-            name,
+            _,
             args,
             body,
             _,
             location,
             canBeTCO,
-            passData
+            _
           ) =>
         if (args.isEmpty) {
           throw new CompilerError("The arguments list should not be empty.")
@@ -116,11 +116,7 @@ case object FunctionBinding extends IRPass {
           .asInstanceOf[Function.Lambda]
           .copy(canBeTCO = canBeTCO, location = location)
 
-        val expressionBinding =
-          Expression.Binding(name, lambda, location, passData)
-        expressionBinding.diagnostics = functionBinding.diagnostics
-
-        expressionBinding
+        new Expression.Binding(functionBinding, lambda)
     }
   }
 
@@ -162,8 +158,8 @@ case object FunctionBinding extends IRPass {
             args,
             isPrivate,
             body,
-            loc,
-            passData
+            _,
+            _
           ) =>
         val methodName = methRef.methodName.name
 
@@ -174,14 +170,7 @@ case object FunctionBinding extends IRPass {
               new Function.Lambda(List(arg), body, None)
             )
 
-          definition.Method.Explicit(
-            methRef,
-            newBody,
-            isPrivate,
-            loc,
-            passData,
-            methodBinding.diagnostics
-          )
+          new definition.Method.Explicit(methodBinding, newBody)
         } else {
           if (args.isEmpty)
             errors.Conversion(methodBinding, errors.Conversion.MissingArgs)
@@ -272,13 +261,10 @@ case object FunctionBinding extends IRPass {
                       new Function.Lambda(List(arg), body, None)
                     )
                   Right(
-                    definition.Method.Conversion(
-                      methRef,
+                    new definition.Method.Conversion(
+                      methodBinding,
                       firstArgumentType,
-                      newBody,
-                      loc,
-                      passData,
-                      methodBinding.diagnostics
+                      newBody
                     )
                   )
               }

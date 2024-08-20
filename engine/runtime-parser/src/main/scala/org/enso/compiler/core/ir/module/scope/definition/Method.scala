@@ -60,6 +60,24 @@ object Method {
       with LazyDiagnosticStorage
       with LazyId {
 
+    /** Create an [[Explicit]] object from [[Method.Binding]].
+      *
+      * @param ir the method binding IR
+      * @param body the method body expression
+      */
+    def this(ir: Method.Binding, body: Expression) = {
+      this(
+        ir.methodReference,
+        Persistance.Reference.of(body, false),
+        Explicit.computeIsStatic(body),
+        ir.isPrivate,
+        Explicit.computeIsStaticWrapperForInstanceMethod(body),
+        ir.location,
+        ir.passData
+      )
+      diagnostics = ir.diagnostics
+    }
+
     lazy val body: Expression = bodyReference.get(classOf[Expression])
 
     /** Creates a copy of `this`.
@@ -81,7 +99,7 @@ object Method {
         Explicit.computeIsStaticWrapperForInstanceMethod(body),
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = _diagnostics,
+      diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Explicit = {
       val res = Explicit(
@@ -121,10 +139,8 @@ object Method {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy
-          else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -172,37 +188,6 @@ object Method {
   }
 
   object Explicit {
-
-    /** Create a [[Method.Explicit]] object.
-      *
-      * @param methodReference a reference to the method being defined
-      * @param body            the body of the method
-      * @param isPrivate       the flag telling if the method is private
-      * @param location        the source location that the node corresponds to
-      * @param passData        the pass metadata associated with this node
-      * @param diagnostics     compiler diagnostics for this node
-      */
-    def apply(
-      methodReference: Name.MethodReference,
-      body: Expression,
-      isPrivate: Boolean,
-      location: Option[IdentifiedLocation],
-      passData: MetadataStorage      = new MetadataStorage(),
-      diagnostics: DiagnosticStorage = DiagnosticStorage()
-    ): Explicit = {
-      val explicit = new Explicit(
-        methodReference,
-        Persistance.Reference.of(body, false),
-        computeIsStatic(body),
-        isPrivate,
-        computeIsStaticWrapperForInstanceMethod(body),
-        location,
-        passData
-      )
-      explicit.diagnostics = diagnostics
-
-      explicit
-    }
 
     def unapply(m: Explicit): Option[
       (
@@ -260,6 +245,37 @@ object Method {
       with LazyDiagnosticStorage
       with LazyId {
 
+    /** Create a [[Binding]] object.
+      *
+      * @param methodReference a reference to the method being defined
+      * @param arguments the arguments to the method
+      * @param isPrivate if the method is declared as private (project-private).
+      * i.e. with prepended `private` keyword.
+      * @param body the body of the method
+      * @param location the source location that the node corresponds to
+      * @param passData the pass metadata associated with this node
+      * @param diagnostics the compiler diagnostics
+      */
+    def this(
+      methodReference: Name.MethodReference,
+      arguments: List[DefinitionArgument],
+      isPrivate: Boolean,
+      body: Expression,
+      location: Option[IdentifiedLocation],
+      passData: MetadataStorage,
+      diagnostics: DiagnosticStorage
+    ) = {
+      this(
+        methodReference,
+        arguments,
+        isPrivate,
+        body,
+        location,
+        passData
+      )
+      this.diagnostics = diagnostics
+    }
+
     /** Creates a copy of `this`.
       *
       * @param methodReference a reference to the method being defined
@@ -278,7 +294,7 @@ object Method {
       body: Expression                      = body,
       location: Option[IdentifiedLocation]  = location,
       passData: MetadataStorage             = passData,
-      diagnostics: DiagnosticStorage        = _diagnostics,
+      diagnostics: DiagnosticStorage        = diagnostics,
       id: UUID @Identifier                  = id
     ): Binding = {
       val res = Binding(
@@ -325,10 +341,8 @@ object Method {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy
-          else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -380,42 +394,6 @@ object Method {
     }
   }
 
-  object Binding {
-
-    /** Create a [[Binding]] object.
-      *
-      * @param methodReference a reference to the method being defined
-      * @param arguments the arguments to the method
-      * @param isPrivate if the method is declared as private (project-private).
-      * i.e. with prepended `private` keyword.
-      * @param body the body of the method
-      * @param location the source location that the node corresponds to
-      * @param passData the pass metadata associated with this node
-      * @param diagnostics the compiler diagnostics
-      */
-    def apply(
-      methodReference: Name.MethodReference,
-      arguments: List[DefinitionArgument],
-      isPrivate: Boolean,
-      body: Expression,
-      location: Option[IdentifiedLocation],
-      passData: MetadataStorage,
-      diagnostics: DiagnosticStorage
-    ): Binding = {
-      val binding = new Binding(
-        methodReference,
-        arguments,
-        isPrivate,
-        body,
-        location,
-        passData
-      )
-      binding.diagnostics = diagnostics
-
-      binding
-    }
-  }
-
   /** A method that represents a conversion from one type to another.
     *
     * @param methodReference a reference to the type on which the
@@ -436,6 +414,21 @@ object Method {
       with IRKind.Primitive
       with LazyDiagnosticStorage
       with LazyId {
+
+    /** Create a conversion method from [[Method.Binding]].
+      *
+      * @param ir the method binding IR
+      * @param sourceTypeName the type of the source value for this conversion
+      * @param body the body of the method
+      */
+    def this(
+      ir: Method.Binding,
+      sourceTypeName: Expression,
+      body: Expression
+    ) = {
+      this(ir.methodReference, sourceTypeName, body, ir.location, ir.passData)
+      diagnostics = ir.diagnostics
+    }
 
     // Conversion methods cannot be private for now
     override val isPrivate: Boolean = false
@@ -459,7 +452,7 @@ object Method {
       body: Expression                      = body,
       location: Option[IdentifiedLocation]  = location,
       passData: MetadataStorage             = passData,
-      diagnostics: DiagnosticStorage        = _diagnostics,
+      diagnostics: DiagnosticStorage        = diagnostics,
       id: UUID @Identifier                  = id
     ): Conversion = {
       val res = Conversion(
@@ -503,10 +496,8 @@ object Method {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy
-          else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
     }
 
@@ -553,40 +544,6 @@ object Method {
       }
 
       s"${methodReference.showCode(indent)} = $exprStr"
-    }
-  }
-
-  object Conversion {
-
-    /** Create a conversion method.
-      *
-      * @param methodReference a reference to the type on which the
-      *                        conversion is being defined
-      * @param sourceTypeName  the type of the source value for this
-      *                        conversion
-      * @param body            the body of the method
-      * @param location        the source location that the node corresponds to
-      * @param passData        the pass metadata associated with this node
-      * @param diagnostics     the diagnostic storage
-      */
-    def apply(
-      methodReference: Name.MethodReference,
-      sourceTypeName: Expression,
-      body: Expression,
-      location: Option[IdentifiedLocation],
-      passData: MetadataStorage,
-      diagnostics: DiagnosticStorage
-    ): Conversion = {
-      val conversion = new Conversion(
-        methodReference,
-        sourceTypeName,
-        body,
-        location,
-        passData
-      )
-      conversion.diagnostics = diagnostics
-
-      conversion
     }
   }
 }

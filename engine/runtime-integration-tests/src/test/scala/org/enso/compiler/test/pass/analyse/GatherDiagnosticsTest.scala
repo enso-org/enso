@@ -94,8 +94,14 @@ class GatherDiagnosticsTest extends CompilerTest {
             List(),
             None
           ),
-          definition.Method.Explicit(method1Ref, lam, false, None),
-          definition.Method.Explicit(method2Ref, error3, false, None)
+          new definition.Method.Explicit(
+            definition.Method.Binding(method1Ref, Nil, false, lam, None),
+            lam
+          ),
+          new definition.Method.Explicit(
+            definition.Method.Binding(method2Ref, Nil, false, error3, None),
+            lam
+          )
         ),
         false,
         None

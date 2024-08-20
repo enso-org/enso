@@ -23,6 +23,7 @@ import org.openide.util.lookup.ServiceProvider;
 import scala.Option;
 import scala.Tuple2;
 import scala.collection.immutable.List;
+import scala.collection.immutable.Nil$;
 import scala.collection.immutable.Seq;
 
 @Persistable(clazz = Module.class, id = 201)
@@ -467,7 +468,7 @@ public final class IrPersistance {
 
     @Override
     protected void writeObject(DiagnosticStorage obj, Output out) throws IOException {
-      out.writeInline(List.class, obj.toList());
+      out.writeInline(List.class, obj == null ? Nil$.MODULE$ : obj.toList());
     }
 
     @Override

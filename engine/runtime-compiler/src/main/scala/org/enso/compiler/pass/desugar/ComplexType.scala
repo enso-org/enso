@@ -268,7 +268,7 @@ case object ComplexType extends IRPass {
           false,
           location,
           passData,
-          expressionBinding.diagnostics,
+          expressionBinding.diagnosticsCopy,
           signature
         )
       case functionBinding @ Function.Binding(
@@ -288,7 +288,7 @@ case object ComplexType extends IRPass {
           isPrivate,
           location,
           passData,
-          functionBinding.diagnostics,
+          functionBinding.diagnosticsCopy,
           signature
         )
       case _ =>
@@ -328,14 +328,14 @@ case object ComplexType extends IRPass {
     val newSig =
       signature.map(sig => sig.copy(typed = methodRef.duplicate()).duplicate())
 
-    val binding = definition.Method.Binding(
+    val binding = new definition.Method.Binding(
       methodRef.duplicate(),
       args.map(_.duplicate()),
       isPrivate,
       body.duplicate(),
       location,
       passData.duplicate,
-      diagnostics.copy
+      diagnostics
     )
 
     newSig.toList :+ binding

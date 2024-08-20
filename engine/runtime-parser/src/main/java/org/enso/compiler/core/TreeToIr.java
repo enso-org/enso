@@ -1209,7 +1209,7 @@ final class TreeToIr {
     for (var warning : tree.getWarnings()) {
       var message = Parser.getWarningMessage(warning);
       var irWarning = new Warning.Syntax(ir, message);
-      ir.diagnostics().add(irWarning);
+      ir.getDiagnostics().add(irWarning);
     }
   }
 

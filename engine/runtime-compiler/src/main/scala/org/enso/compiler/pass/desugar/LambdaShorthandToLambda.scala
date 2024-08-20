@@ -363,14 +363,14 @@ case object LambdaShorthandToLambda extends IRPass {
             )
 
           Some(
-            DefinitionArgument.Specified(
+            new DefinitionArgument.Specified(
               defArgName,
               None,
               None,
               suspended = false,
               None,
               passData.duplicate,
-              specified.diagnostics.copy
+              specified.diagnosticsCopy
             )
           )
       }
@@ -425,12 +425,11 @@ case object LambdaShorthandToLambda extends IRPass {
           branches  = newBranches
         )
 
-        Function.Lambda(
+        new Function.Lambda(
+          caseExpr,
           List(lambdaArg),
           newCaseExpr,
-          caseExpr.location,
-          passData    = caseExpr.passData,
-          diagnostics = caseExpr.diagnostics
+          caseExpr.location
         )
       case x =>
         caseExpr.copy(

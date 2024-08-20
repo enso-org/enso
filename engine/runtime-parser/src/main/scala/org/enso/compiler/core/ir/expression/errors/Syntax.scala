@@ -27,6 +27,17 @@ sealed case class Syntax(
     with LazyDiagnosticStorage
     with LazyId {
 
+  /** Create a syntax error from original IR.
+    *
+    * @param ir the original IR
+    * @param at the error location
+    * @param reason the cause of this error
+    */
+  def this(ir: IR, at: IdentifiedLocation, reason: Syntax.Reason) = {
+    this(at, reason, ir.passData())
+    diagnostics = ir.diagnostics
+  }
+
   /** Creates a copy of `this`.
     *
     * @param ast         the error location
@@ -40,7 +51,7 @@ sealed case class Syntax(
     at: IdentifiedLocation         = at,
     reason: Syntax.Reason          = reason,
     passData: MetadataStorage      = passData,
-    diagnostics: DiagnosticStorage = _diagnostics,
+    diagnostics: DiagnosticStorage = diagnostics,
     id: UUID @Identifier           = id
   ): Syntax = {
     val res = Syntax(at, reason, passData)
@@ -60,7 +71,7 @@ sealed case class Syntax(
       passData =
         if (keepMetadata) passData.duplicate else new MetadataStorage(),
       diagnostics =
-        if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+        if (keepDiagnostics) diagnosticsCopy else null,
       id = if (keepIdentifiers) id else null
     )
 
@@ -109,31 +120,10 @@ sealed case class Syntax(
 
 object Syntax {
 
-  /** Create a [[Syntax]] object.
-    *
-    * @param at the error location
-    * @param reason the cause of this error
-    * @param passData the pass metadata associated with this node
-    * @param diagnostics the compiler diatnostics
-    */
-  def apply(
-    at: IdentifiedLocation,
-    reason: Syntax.Reason,
-    passData: MetadataStorage,
-    diagnostics: DiagnosticStorage
-  ): Syntax = {
-    val syntax = new Syntax(at, reason, passData)
-    syntax.diagnostics = diagnostics
-
-    syntax
-  }
-
-  /** A common type for all syntax errors expected by the language.
-    */
+  /** A common type for all syntax errors expected by the language. */
   sealed trait Reason {
 
-    /** @return a human-readable description of the error.
-      */
+    /** @return a human-readable description of the error. */
     def explanation: String
   }
 
