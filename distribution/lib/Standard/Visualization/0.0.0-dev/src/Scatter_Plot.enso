@@ -67,11 +67,9 @@ type Point_Data
     fallback_column : Table -> Column ! No_Fallback_Column
     fallback_column self table = case self of
         Point_Data.X ->
-            candidates = table.columns
-            is_good_enough c = c.is_numeric
-            is_good c = is_good_enough c && (self.is_recognized c).not
+            candidate = table.columns.first
 
-            candidates.find if_missing=(Error.throw Nothing) is_good . catch_ <| candidates.find is_good_enough
+            if candidate.is_numeric then candidate else Point_Data.iota table.row_count
         Point_Data.Y ->
             x_column = Point_Data.X.lookup_in table
             candidates = table.columns
