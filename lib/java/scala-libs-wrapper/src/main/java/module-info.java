@@ -1,4 +1,4 @@
-module org.enso.scalalibs.wrapper {
+module org.enso.scala.wrapper {
   requires scala.library;
   requires scala.reflect;
   // scala-compiler.jar

@@ -1008,7 +1008,7 @@ lazy val `scala-libs-wrapper` = project
   .in(file("lib/java/scala-libs-wrapper"))
   .enablePlugins(JPMSPlugin)
   .settings(
-    javaModuleName := "org.enso.scalalibs.wrapper",
+    javaModuleName := "org.enso.scala.wrapper",
     libraryDependencies ++= circe ++ Seq(
       "com.typesafe.scala-logging" %% "scala-logging"  % scalaLoggingVersion,
       "org.slf4j"   % "slf4j-api"   % slf4jVersion,
