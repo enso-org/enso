@@ -9,37 +9,36 @@ import KeyIcon from '#/assets/key.svg'
 import Play2Icon from '#/assets/play2.svg'
 import SortAscendingIcon from '#/assets/sort_ascending.svg'
 import TrashIcon from '#/assets/trash.svg'
-import * as aria from '#/components/aria'
 import { Button, DatePicker, Dropdown, Form, Text } from '#/components/AriaComponents'
-import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
+import StatelessSpinner, { SpinnerState } from '#/components/StatelessSpinner'
 import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
-import * as backendHooks from '#/hooks/backendHooks'
-import * as textProvider from '#/providers/TextProvider'
+import { useBackendQuery, useListUsers } from '#/hooks/backendHooks'
+import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import * as backendModule from '#/services/Backend'
-import * as dateTime from '#/utilities/dateTime'
-import * as sorting from '#/utilities/sorting'
-import * as tailwindMerge from '#/utilities/tailwindMerge'
+import { EVENT_TYPES, EventType, type Event } from '#/services/Backend'
+import { formatDateTime } from '#/utilities/dateTime'
+import { nextSortDirection, SortDirection, type SortInfo } from '#/utilities/sorting'
+import { twMerge } from '#/utilities/tailwindMerge'
 
 // =================
 // === Constants ===
 // =================
 
-const EVENT_TYPE_ICON: Record<backendModule.EventType, string> = {
-  [backendModule.EventType.GetSecret]: KeyIcon,
-  [backendModule.EventType.DeleteAssets]: TrashIcon,
-  [backendModule.EventType.ListSecrets]: KeyIcon,
-  [backendModule.EventType.OpenProject]: Play2Icon,
-  [backendModule.EventType.UploadFile]: DataUploadIcon,
+const EVENT_TYPE_ICON: Record<EventType, string> = {
+  [EventType.GetSecret]: KeyIcon,
+  [EventType.DeleteAssets]: TrashIcon,
+  [EventType.ListSecrets]: KeyIcon,
+  [EventType.OpenProject]: Play2Icon,
+  [EventType.UploadFile]: DataUploadIcon,
 }
 
-const EVENT_TYPE_NAME: Record<backendModule.EventType, string> = {
-  [backendModule.EventType.GetSecret]: 'Get Secret',
-  [backendModule.EventType.DeleteAssets]: 'Delete Assets',
-  [backendModule.EventType.ListSecrets]: 'List Secrets',
-  [backendModule.EventType.OpenProject]: 'Open Project',
-  [backendModule.EventType.UploadFile]: 'Upload File',
+const EVENT_TYPE_NAME: Record<EventType, string> = {
+  [EventType.GetSecret]: 'Get Secret',
+  [EventType.DeleteAssets]: 'Delete Assets',
+  [EventType.ListSecrets]: 'List Secrets',
+  [EventType.OpenProject]: 'Open Project',
+  [EventType.UploadFile]: 'Upload File',
 }
 
 /** Create the schema for this form. */
@@ -73,16 +72,15 @@ export interface ActivityLogSettingsSectionProps {
 /** Settings tab for viewing and editing organization members. */
 export default function ActivityLogSettingsSection(props: ActivityLogSettingsSectionProps) {
   const { backend } = props
-  const { getText } = textProvider.useText()
-  const [types, setTypes] = React.useState<readonly backendModule.EventType[]>([])
+  const { getText } = useText()
+  const [types, setTypes] = React.useState<readonly EventType[]>([])
   const [typeIndices, setTypeIndices] = React.useState<readonly number[]>(() => [])
   const [emails, setEmails] = React.useState<readonly string[]>([])
   const [emailIndices, setEmailIndices] = React.useState<readonly number[]>(() => [])
-  const [sortInfo, setSortInfo] =
-    React.useState<sorting.SortInfo<ActivityLogSortableColumn> | null>(null)
-  const users = backendHooks.useListUsers(backend)
+  const [sortInfo, setSortInfo] = React.useState<SortInfo<ActivityLogSortableColumn> | null>(null)
+  const users = useListUsers(backend)
   const allEmails = React.useMemo(() => (users ?? []).map((user) => user.email), [users])
-  const logsQuery = backendHooks.useBackendQuery(backend, 'getLogEvents', [])
+  const logsQuery = useBackendQuery(backend, 'getLogEvents', [])
   const logs = logsQuery.data
 
   const form = Form.useForm({ schema: createActivityLogSchema() })
@@ -91,7 +89,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
   const maxDate = today(getLocalTimeZone())
 
   const filteredLogs = React.useMemo(() => {
-    const typesSet = new Set(types.length > 0 ? types : backendModule.EVENT_TYPES)
+    const typesSet = new Set(types.length > 0 ? types : EVENT_TYPES)
     const emailsSet = new Set(emails.length > 0 ? emails : allEmails)
     return logs == null ? null : (
         logs.filter((log) => {
@@ -110,8 +108,8 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
     if (sortInfo == null || filteredLogs == null) {
       return filteredLogs
     } else {
-      let compare: (a: backendModule.Event, b: backendModule.Event) => number
-      const multiplier = sortInfo.direction === sorting.SortDirection.ascending ? 1 : -1
+      let compare: (a: Event, b: Event) => number
+      const multiplier = sortInfo.direction === SortDirection.ascending ? 1 : -1
       switch (sortInfo.field) {
         case ActivityLogSortableColumn.type: {
           compare = (a, b) =>
@@ -141,7 +139,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
       return [...filteredLogs].sort(compare)
     }
   }, [filteredLogs, sortInfo])
-  const isDescending = sortInfo?.direction === sorting.SortDirection.descending
+  const isDescending = sortInfo?.direction === SortDirection.descending
   const isLoading = sortedLogs == null
 
   return (
@@ -173,10 +171,10 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
               <Text className="whitespace-nowrap">{getText('types')}</Text>
               <Dropdown
                 multiple
-                items={backendModule.EVENT_TYPES}
+                items={EVENT_TYPES}
                 selectedIndices={typeIndices}
                 renderMultiple={({ items }) =>
-                  items.length === 0 || items.length === backendModule.EVENT_TYPES.length ?
+                  items.length === 0 || items.length === EVENT_TYPES.length ?
                     'All'
                   : (items[0] != null ? EVENT_TYPE_NAME[items[0]] : '') +
                     (items.length <= 1 ? '' : ` (+${items.length - 1})`)
@@ -229,8 +227,8 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                 onPress={() => {
                   const nextDirection =
                     sortInfo?.field === ActivityLogSortableColumn.type ?
-                      sorting.nextSortDirection(sortInfo.direction)
-                    : sorting.SortDirection.ascending
+                      nextSortDirection(sortInfo.direction)
+                    : SortDirection.ascending
                   if (nextDirection == null) {
                     setSortInfo(null)
                   } else {
@@ -241,7 +239,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                   }
                 }}
               >
-                <aria.Text className="text-header">{getText('type')}</aria.Text>
+                <Text className="text-sm">{getText('type')}</Text>
                 <img
                   alt={
                     sortInfo?.field === ActivityLogSortableColumn.type && isDescending ?
@@ -249,7 +247,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                     : getText('sortAscending')
                   }
                   src={SortAscendingIcon}
-                  className={tailwindMerge.twMerge(
+                  className={twMerge(
                     'transition-all duration-arrow',
                     sortInfo?.field !== ActivityLogSortableColumn.type &&
                       'opacity-0 group-hover:opacity-50',
@@ -274,8 +272,8 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                 onPress={() => {
                   const nextDirection =
                     sortInfo?.field === ActivityLogSortableColumn.email ?
-                      sorting.nextSortDirection(sortInfo.direction)
-                    : sorting.SortDirection.ascending
+                      nextSortDirection(sortInfo.direction)
+                    : SortDirection.ascending
                   if (nextDirection == null) {
                     setSortInfo(null)
                   } else {
@@ -286,7 +284,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                   }
                 }}
               >
-                <aria.Text className="text-header">{getText('email')}</aria.Text>
+                <Text className="text-sm">{getText('email')}</Text>
                 <img
                   alt={
                     sortInfo?.field === ActivityLogSortableColumn.email && isDescending ?
@@ -294,7 +292,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                     : getText('sortAscending')
                   }
                   src={SortAscendingIcon}
-                  className={tailwindMerge.twMerge(
+                  className={twMerge(
                     'transition-all duration-arrow',
                     sortInfo?.field !== ActivityLogSortableColumn.email &&
                       'opacity-0 group-hover:opacity-50',
@@ -320,8 +318,8 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                 onPress={() => {
                   const nextDirection =
                     sortInfo?.field === ActivityLogSortableColumn.timestamp ?
-                      sorting.nextSortDirection(sortInfo.direction)
-                    : sorting.SortDirection.ascending
+                      nextSortDirection(sortInfo.direction)
+                    : SortDirection.ascending
                   if (nextDirection == null) {
                     setSortInfo(null)
                   } else {
@@ -332,7 +330,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                   }
                 }}
               >
-                <aria.Text className="text-header">{getText('timestamp')}</aria.Text>
+                <Text className="text-sm">{getText('timestamp')}</Text>
                 <img
                   alt={
                     sortInfo?.field === ActivityLogSortableColumn.timestamp && isDescending ?
@@ -340,7 +338,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                     : getText('sortAscending')
                   }
                   src={SortAscendingIcon}
-                  className={tailwindMerge.twMerge(
+                  className={twMerge(
                     'transition-all duration-arrow',
                     sortInfo?.field !== ActivityLogSortableColumn.timestamp &&
                       'opacity-0 group-hover:opacity-50',
@@ -358,7 +356,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
             <tr className="h-table-row">
               <td colSpan={4} className="rounded-full bg-transparent">
                 <div className="flex justify-center">
-                  <StatelessSpinner size={32} state={statelessSpinner.SpinnerState.loadingMedium} />
+                  <StatelessSpinner size={32} state={SpinnerState.loadingMedium} />
                 </div>
               </td>
             </tr>
@@ -372,7 +370,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                 <ActivityLogTableCell>{EVENT_TYPE_NAME[log.metadata.type]}</ActivityLogTableCell>
                 <ActivityLogTableCell>{log.userEmail}</ActivityLogTableCell>
                 <ActivityLogTableCell>
-                  {log.timestamp ? dateTime.formatDateTime(new Date(log.timestamp)) : ''}
+                  {log.timestamp ? formatDateTime(new Date(log.timestamp)) : ''}
                 </ActivityLogTableCell>
               </tr>
             ))
@@ -398,7 +396,7 @@ function ActivityLogHeaderCell(props: ActivityLogHeaderCellProps) {
 
   return (
     <td
-      className={tailwindMerge.twMerge(
+      className={twMerge(
         'border-x-2 border-transparent bg-clip-padding text-left text-sm font-semibold last:border-r-0',
         className,
       )}
