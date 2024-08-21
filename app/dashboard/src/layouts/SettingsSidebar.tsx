@@ -1,17 +1,14 @@
 /** @file A panel to switch between settings tabs. */
-import * as React from 'react'
+import type { Dispatch, SetStateAction } from 'react'
 
-import * as textProvider from '#/providers/TextProvider'
-
-import * as settingsData from '#/layouts/Settings/settingsData'
-import type SettingsTabType from '#/layouts/Settings/SettingsTabType'
-
-import * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
+import { Header } from '#/components/aria'
+import { ButtonGroup } from '#/components/AriaComponents'
 import FocusArea from '#/components/styled/FocusArea'
 import SidebarTabButton from '#/components/styled/SidebarTabButton'
-
-import * as tailwindMerge from '#/utilities/tailwindMerge'
+import { SETTINGS_DATA, type SettingsContext } from '#/layouts/Settings/settingsData'
+import type SettingsTabType from '#/layouts/Settings/SettingsTabType'
+import { useText } from '#/providers/TextProvider'
+import { twMerge } from '#/utilities/tailwindMerge'
 
 // =======================
 // === SettingsSidebar ===
@@ -19,11 +16,11 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 /** Props for a {@link SettingsSidebar} */
 export interface SettingsSidebarProps {
-  readonly context: settingsData.SettingsContext
+  readonly context: SettingsContext
   readonly tabsToShow: readonly SettingsTabType[]
   readonly isMenu?: true
   readonly tab: SettingsTabType
-  readonly setTab: React.Dispatch<React.SetStateAction<SettingsTabType>>
+  readonly setTab: Dispatch<SetStateAction<SettingsTabType>>
   readonly onClickCapture?: () => void
 }
 
@@ -31,14 +28,14 @@ export interface SettingsSidebarProps {
 export default function SettingsSidebar(props: SettingsSidebarProps) {
   const { context, tabsToShow, isMenu = false, tab, setTab } = props
   const { onClickCapture } = props
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
 
   return (
     <FocusArea direction="vertical">
       {(innerProps) => (
         <div
           aria-label={getText('settingsSidebarLabel')}
-          className={tailwindMerge.twMerge(
+          className={twMerge(
             'w-settings-sidebar shrink-0 flex-col gap-settings-sidebar overflow-y-auto',
             !isMenu ? 'hidden sm:flex' : (
               'relative rounded-default p-modal text-xs text-primary before:absolute before:inset before:rounded-default before:bg-frame before:backdrop-blur-default sm:hidden'
@@ -47,7 +44,7 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
           onClickCapture={onClickCapture}
           {...innerProps}
         >
-          {settingsData.SETTINGS_DATA.map((section) => {
+          {SETTINGS_DATA.map((section) => {
             const name = getText(section.nameId)
             const visibleTabData = section.tabs.filter(
               (tabData) =>
@@ -57,14 +54,14 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
             return visibleTabData.length === 0 ?
                 null
               : <div key={name} className="flex flex-col items-start">
-                  <aria.Header
+                  <Header
                     id={`${name}_header`}
                     className="mb-sidebar-section-heading-b h-text px-sidebar-section-heading-x py-sidebar-section-heading-y text-[13.5px] font-bold leading-cozy"
                   >
                     {name}
-                  </aria.Header>
+                  </Header>
 
-                  <ariaComponents.ButtonGroup gap="xxsmall" direction="column" align="start">
+                  <ButtonGroup gap="xxsmall" direction="column" align="start">
                     {visibleTabData.map((tabData) => (
                       <SidebarTabButton
                         key={tabData.settingsTab}
@@ -82,7 +79,7 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
                         }
                       />
                     ))}
-                  </ariaComponents.ButtonGroup>
+                  </ButtonGroup>
                 </div>
           })}
         </div>
