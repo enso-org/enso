@@ -33,6 +33,10 @@ public abstract class HashMapToVectorNode extends Node {
     return HashMapToVectorNodeGen.create();
   }
 
+  public static HashMapToVectorNode getUncached() {
+    return HashMapToVectorNodeGen.getUncached();
+  }
+
   public abstract Object execute(Object self);
 
   @Specialization

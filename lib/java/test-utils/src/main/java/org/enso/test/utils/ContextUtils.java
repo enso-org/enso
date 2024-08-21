@@ -137,14 +137,35 @@ public final class ContextUtils {
   /**
    * Evaluates the given source as if it was in an unnamed module.
    *
+   * @param ctx context to evaluate the module at
    * @param src The source code of the module
    * @return The value returned from the main method of the unnamed module.
    */
-  public static Value evalModule(Context ctx, String src) {
-    Value module = ctx.eval(Source.create("enso", src));
-    Value assocType = module.invokeMember(Module.GET_ASSOCIATED_TYPE);
-    Value mainMethod = module.invokeMember(Module.GET_METHOD, assocType, "main");
-    return mainMethod.execute();
+  public static Value evalModule(Context ctx, CharSequence src) {
+    return evalModule(ctx, src, null, "main");
+  }
+
+  /**
+   * Evaluates the given source as if it was in a module with given name.
+   *
+   * @param ctx context to evaluate the module at
+   * @param src The source code of the module
+   * @param name name of the module defining the source
+   * @param methodName name of main method to invoke
+   * @return The value returned from the main method of the unnamed module.
+   */
+  public static Value evalModule(Context ctx, CharSequence src, String name, String methodName) {
+    Source s;
+    if (name == null) {
+      s = Source.create("enso", src);
+    } else {
+      var b = Source.newBuilder("enso", src, name);
+      s = b.buildLiteral();
+    }
+    var module = ctx.eval(s);
+    var assocType = module.invokeMember(Module.GET_ASSOCIATED_TYPE);
+    var method = module.invokeMember(Module.GET_METHOD, assocType, methodName);
+    return "main".equals(methodName) ? method.execute() : method.execute(assocType);
   }
 
   public static org.enso.compiler.core.ir.Module compileModule(Context ctx, String src) {
