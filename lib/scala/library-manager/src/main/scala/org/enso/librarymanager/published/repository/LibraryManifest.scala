@@ -1,7 +1,7 @@
 package org.enso.librarymanager.published.repository
 
 import org.enso.editions.LibraryName
-import org.enso.yaml.{YamlDecoder, YamlEncoder}
+import org.enso.scala.yaml.{YamlDecoder, YamlEncoder}
 import org.yaml.snakeyaml.error.YAMLException
 import org.yaml.snakeyaml.nodes.{MappingNode, Node}
 

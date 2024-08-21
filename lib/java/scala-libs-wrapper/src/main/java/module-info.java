@@ -1,6 +1,9 @@
 module org.enso.scalalibs.wrapper {
   requires scala.library;
   requires scala.reflect;
+  // scala-compiler.jar
+  requires scala.tools.nsc;
+  requires org.jline;
 
   // "org.typelevel" % ("cats-core_" + scalaVer) % "2.10.0",
   exports cats;

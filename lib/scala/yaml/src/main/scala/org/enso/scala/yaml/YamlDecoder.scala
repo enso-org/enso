@@ -1,14 +1,10 @@
-package org.enso.yaml
+package org.enso.scala.yaml
 
-import org.yaml.snakeyaml.nodes.Node
-import org.yaml.snakeyaml.nodes.ScalarNode
-import org.yaml.snakeyaml.nodes.MappingNode
-import org.yaml.snakeyaml.nodes.SequenceNode
-import org.yaml.snakeyaml.nodes.Tag
 import org.yaml.snakeyaml.error.YAMLException
+import org.yaml.snakeyaml.nodes._
 
+import scala.collection.{BuildFrom, mutable}
 import scala.jdk.CollectionConverters.CollectionHasAsScala
-import scala.collection.{mutable, BuildFrom}
 
 abstract class YamlDecoder[T] {
   def decode(node: Node): Either[Throwable, T]

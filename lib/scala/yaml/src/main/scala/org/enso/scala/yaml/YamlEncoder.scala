@@ -1,4 +1,4 @@
-package org.enso.yaml
+package org.enso.scala.yaml
 
 import java.util
 

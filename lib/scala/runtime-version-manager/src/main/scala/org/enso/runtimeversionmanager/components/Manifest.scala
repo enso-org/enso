@@ -11,7 +11,8 @@ import org.enso.runtimeversionmanager.components.Manifest.{
   RequiredInstallerVersions
 }
 import org.enso.runtimeversionmanager.components
-import org.enso.yaml.{ParseError, YamlDecoder}
+import org.enso.scala.yaml.YamlDecoder
+import org.enso.yaml.ParseError
 import org.yaml.snakeyaml.error.YAMLException
 import org.yaml.snakeyaml.nodes.{MappingNode, Node}
 
@@ -179,7 +180,7 @@ object Manifest {
       val snakeYaml = new org.yaml.snakeyaml.Yaml()
       Try(snakeYaml.compose(reader))
         .flatMap(
-          implicitly[enso.yaml.YamlDecoder[Manifest]].decode(_).toTry
+          implicitly[YamlDecoder[Manifest]].decode(_).toTry
         )
     }.flatten.recoverWith { error =>
       Failure(ManifestLoadingError.fromThrowable(error))
@@ -192,7 +193,7 @@ object Manifest {
   def fromYaml(yamlString: String): Try[Manifest] = {
     val snakeYaml = new org.yaml.snakeyaml.Yaml()
     Try(snakeYaml.compose(new StringReader(yamlString))).toEither
-      .flatMap(implicitly[enso.yaml.YamlDecoder[Manifest]].decode(_))
+      .flatMap(implicitly[YamlDecoder[Manifest]].decode(_))
       .left
       .map(ParseError(_))
       .toTry

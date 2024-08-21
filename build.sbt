@@ -791,13 +791,24 @@ lazy val yaml = (project in file("lib/java/yaml"))
   )
 
 lazy val `scala-yaml` = (project in file("lib/scala/yaml"))
+  .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    excludeFilter := excludeFilter.value || "module-info.java",
     libraryDependencies ++= Seq(
-      "org.yaml" % "snakeyaml" % snakeyamlVersion % "provided"
+      "org.yaml" % "snakeyaml" % snakeyamlVersion % "provided",
+      "com.chuusai" %% "shapeless" % "2.3.10",
+    ),
+    moduleDependencies ++= Seq(
+      "org.scala-lang"     % "scala-library"    % scalacVersion,
+      "org.yaml" % "snakeyaml" % snakeyamlVersion
+    ),
+    internalModuleDependencies := Seq(
+      (`scala-libs-wrapper` / exportedModule).value
     )
   )
+  .dependsOn(`scala-libs-wrapper`)
 
 lazy val pkg = (project in file("lib/scala/pkg"))
   .enablePlugins(JPMSPlugin)
