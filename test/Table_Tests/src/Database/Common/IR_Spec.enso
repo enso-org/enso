@@ -56,13 +56,13 @@ add_specs (suite_builder : Suite_Builder) (prefix : Text) default_connection =
 
         group_builder.specify "should be able to traverse a Query to reconstruct it" <|
             col = data.t1 . at "a"
-            a = col.round_float 0 False * col.round_float 0 use_bankers=True
+            a = col.round * col.round use_bankers=True
             a_query = a.to_table.to_select_query
             a_query.traverse (x->x) . should_equal a_query
 
         group_builder.specify "should be able to traverse a Query to count nodes" <|
             col = data.t1 . at "a"
-            a = col.round_float 0 False * col.round_float 0 use_bankers=True
+            a = col.round * col.round use_bankers=True
             a_sub = (a . rename "p" . to_table . as_subquery . at "p")
             b = a_sub * a_sub
             b_sub = (b . rename "p" . to_table . as_subquery . at "p")
