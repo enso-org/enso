@@ -179,7 +179,7 @@ public final class AtomConstructor implements EnsoObject {
     if (section != null) {
       instantiateNode.setSourceLocation(section.getCharIndex(), section.getCharLength());
     }
-    BlockNode instantiateBlock = BlockNode.buildSilent(assignments, instantiateNode);
+    BlockNode instantiateBlock = BlockNode.buildRoot(assignments, instantiateNode);
     RootNode rootNode =
         MethodRootNode.buildConstructor(
             language, localScope, scopeBuilder.asModuleScope(), instantiateBlock, section, this);
