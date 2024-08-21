@@ -7,7 +7,6 @@ import { ListBox, ListBoxItem, mergeProps, useFocusWithin } from '#/components/a
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 import { useSyncRef } from '#/hooks/syncRefHooks'
-import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
 import { tv } from '#/utilities/tailwindVariants'
 
@@ -49,7 +48,7 @@ const DROPDOWN_STYLES = tv({
     optionsItem:
       'flex h-6 items-center gap-dropdown-arrow rounded-input px-input-x transition-colors selected:border-0.5 selected:border-primary selected:font-bold focus:cursor-default focus:bg-frame focus:font-bold focus:focus-ring not-focus:hover:bg-hover-bg not-selected:hover:bg-hover-bg',
     input: 'relative flex h-6 items-center gap-dropdown-arrow px-input-x',
-    inputDisplay: 'grow',
+    inputDisplay: 'grow select-none',
     hiddenOptions: 'flex h-0 flex-col overflow-hidden',
     hiddenOption: 'flex gap-dropdown-arrow px-input-x font-bold',
   },
@@ -118,7 +117,7 @@ export const Dropdown = forwardRef(function Dropdown<T>(
   const visuallySelectedIndex = tempSelectedIndex ?? selectedIndex
   const visuallySelectedItem = visuallySelectedIndex == null ? null : items[visuallySelectedIndex]
 
-  const styles = DROPDOWN_STYLES({ className, isFocused, isReadOnly: readOnly })
+  const styles = DROPDOWN_STYLES({ isFocused, isReadOnly: readOnly })
 
   useEffect(() => {
     setTempSelectedIndex(selectedIndex)
@@ -126,31 +125,33 @@ export const Dropdown = forwardRef(function Dropdown<T>(
 
   useEffect(() => {
     const onDocumentClick = () => {
-      if (shouldBlurRef.current) {
-        rootRef.current?.blur()
+      if (
+        shouldBlurRef.current &&
+        document.activeElement instanceof HTMLElement &&
+        rootRef.current?.contains(document.activeElement) === true
+      ) {
+        document.activeElement.blur()
       }
     }
-    const onDocumentMouseDown = () => {
-      shouldBlurRef.current = isFocusedRef.current
-    }
     document.addEventListener('click', onDocumentClick)
-    document.addEventListener('mousedown', onDocumentMouseDown)
     return () => {
       document.removeEventListener('click', onDocumentClick)
-      document.removeEventListener('mousedown', onDocumentMouseDown)
     }
   }, [isFocusedRef])
 
   return (
     <FocusRing placement="outset">
-      <div
-        ref={mergeRefs(ref, rootRef)}
-        {...mergeProps<JSX.IntrinsicElements['div']>()(focusWithinProps, {
-          tabIndex: 0,
-          className: styles.base(),
-        })}
-      >
-        <div className={styles.container()}>
+      <div ref={ref} className={styles.base({ className })}>
+        <div
+          ref={rootRef}
+          tabIndex={-1}
+          onMouseDown={() => {
+            shouldBlurRef.current = false //isFocusedRef.current
+          }}
+          {...mergeProps<JSX.IntrinsicElements['div']>()(focusWithinProps, {
+            className: styles.container(),
+          })}
+        >
           <div className={styles.options()}>
             {/* Spacing. */}
             <div className={styles.optionsSpacing()} />
@@ -182,6 +183,7 @@ export const Dropdown = forwardRef(function Dropdown<T>(
                       const item = items[i]
                       if (item !== undefined) {
                         props.onChange(item, i)
+                        rootRef.current?.blur()
                       }
                     }
                   }

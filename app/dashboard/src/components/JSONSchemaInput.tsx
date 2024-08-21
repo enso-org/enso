@@ -1,5 +1,5 @@
 /** @file A dynamic wizard for creating an arbitrary type of Datalink. */
-import * as React from 'react'
+import { type Dispatch, Fragment, type JSX, type SetStateAction, useState } from 'react'
 
 import { Input, Text } from '#/components/aria'
 import { Button, Dropdown } from '#/components/AriaComponents'
@@ -26,7 +26,7 @@ export interface JSONSchemaInputProps {
   readonly path: string
   readonly getValidator: (path: string) => (value: unknown) => boolean
   readonly value: NonNullable<unknown> | null
-  readonly onChange: React.Dispatch<React.SetStateAction<NonNullable<unknown> | null>>
+  readonly onChange: Dispatch<SetStateAction<NonNullable<unknown> | null>>
 }
 
 /** A dynamic wizard for creating an arbitrary type of Datalink. */
@@ -37,10 +37,10 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
   // but it is more convenient to avoid having plugin infrastructure.
   const remoteBackend = useRemoteBackendStrict()
   const { getText } = useText()
-  const [autocompleteText, setAutocompleteText] = React.useState(() =>
+  const [autocompleteText, setAutocompleteText] = useState(() =>
     typeof value === 'string' ? value : null,
   )
-  const [selectedChildIndex, setSelectedChildIndex] = React.useState<number | null>(null)
+  const [selectedChildIndex, setSelectedChildIndex] = useState<number | null>(null)
   const isSecret =
     'type' in schema &&
     schema.type === 'string' &&
@@ -54,7 +54,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
     // This value cannot change.
     return null
   } else {
-    const children: React.JSX.Element[] = []
+    const children: JSX.Element[] = []
     if ('type' in schema) {
       switch (schema.type) {
         case 'string': {
@@ -184,7 +184,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                   const isPresent = value != null && key in value
                   return constantValueOfSchema(defs, childSchema).length === 1 ?
                       null
-                    : <>
+                    : <Fragment key={key}>
                         <Button
                           size="custom"
                           variant="custom"
@@ -259,7 +259,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                             />
                           </div>
                         )}
-                      </>
+                      </Fragment>
                 })}
               </div>,
             )

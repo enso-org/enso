@@ -273,22 +273,21 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               }}
             />
           )}
-          {canExecute && !isRunningProject && !isOtherUserUsingProject && (
-            <ContextMenuEntry
-              hidden={hidden}
-              isDisabled={
-                isCloud ?
-                  asset.type !== backendModule.AssetType.project &&
-                  asset.type !== backendModule.AssetType.directory
-                : false
-              }
-              action="rename"
-              doAction={() => {
-                setRowState(object.merger({ isEditingName: true }))
-                unsetModal()
-              }}
-            />
-          )}
+          {canExecute &&
+            !isRunningProject &&
+            !isOtherUserUsingProject &&
+            (!isCloud ||
+              asset.type == backendModule.AssetType.project ||
+              asset.type === backendModule.AssetType.directory) && (
+              <ContextMenuEntry
+                hidden={hidden}
+                action="rename"
+                doAction={() => {
+                  setRowState(object.merger({ isEditingName: true }))
+                  unsetModal()
+                }}
+              />
+            )}
           {asset.type === backendModule.AssetType.secret &&
             canEditThisAsset &&
             remoteBackend != null && (
