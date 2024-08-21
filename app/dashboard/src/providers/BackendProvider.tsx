@@ -97,7 +97,7 @@ export function useBackend(category: Category) {
   const remoteBackend = useRemoteBackendStrict()
   const localBackend = useLocalBackend()
 
-  if (categoryModule.isCloud(category)) {
+  if (categoryModule.isCloudCategory(category)) {
     return remoteBackend
   } else {
     invariant(
