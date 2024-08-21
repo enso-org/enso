@@ -1,7 +1,7 @@
 /** @file Settings tab for viewing and editing account information. */
 import * as React from 'react'
 
-import { fromDate, ZonedDateTime } from '@internationalized/date'
+import { fromDate, getLocalTimeZone, today, ZonedDateTime } from '@internationalized/date'
 import * as z from 'zod'
 
 import DataUploadIcon from '#/assets/data_upload.svg'
@@ -88,6 +88,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
   const form = Form.useForm({ schema: createActivityLogSchema() })
   const startDate = form.watch('startDate')
   const endDate = form.watch('endDate')
+  const maxDate = today(getLocalTimeZone())
 
   const filteredLogs = React.useMemo(() => {
     const typesSet = new Set(types.length > 0 ? types : backendModule.EVENT_TYPES)
@@ -150,11 +151,23 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
           <Form form={form} className="flex flex-row flex-wrap gap-3" {...innerProps}>
             <div className="flex items-center gap-2">
               <Text className="whitespace-nowrap">{getText('startDate')}</Text>
-              <DatePicker form={form} name="startDate" size="small" className="w-[120px]" />
+              <DatePicker
+                form={form}
+                name="startDate"
+                size="small"
+                maxValue={maxDate}
+                className="w-[120px]"
+              />
             </div>
             <div className="flex items-center gap-2">
               <Text className="whitespace-nowrap">{getText('endDate')}</Text>
-              <DatePicker form={form} name="endDate" size="small" className="w-[120px]" />
+              <DatePicker
+                form={form}
+                name="endDate"
+                size="small"
+                maxValue={maxDate}
+                className="w-[120px]"
+              />
             </div>
             <div className="flex items-center gap-2">
               <Text className="whitespace-nowrap">{getText('types')}</Text>

@@ -63,7 +63,7 @@ const DATE_PICKER_STYLES = tv({
     calendarGridHeaderCell: '',
     calendarGridBody: '',
     calendarGridCell:
-      'text-center px-1 rounded hover:bg-primary/10 outside-visible-range:text-primary/30',
+      'text-center px-1 rounded hover:bg-primary/10 outside-visible-range:text-primary/30 disabled:text-primary/30',
   },
   defaultVariants: {
     size: 'medium',
