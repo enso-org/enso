@@ -1642,6 +1642,10 @@ lazy val `polyglot-api` = project
       "org.graalvm.sdk"        % "nativeimage"      % graalMavenPackagesVersion,
       "org.graalvm.truffle"    % "truffle-api"      % graalMavenPackagesVersion
     ),
+    internalModuleDependencies := Seq(
+      (`scala-libs-wrapper` / exportedModule).value,
+      (`engine-common` / exportedModule).value,
+    ),
     GenerateFlatbuffers.flatcVersion := flatbuffersVersion,
     Compile / sourceGenerators += GenerateFlatbuffers.task
   )
@@ -2598,7 +2602,14 @@ lazy val `engine-runner-common` = project
     ),
     moduleDependencies := Seq(
       "commons-cli" % "commons-cli" % commonsCliVersion,
-      "org.slf4j"   % "slf4j-api"   % slf4jVersion
+      "org.slf4j"   % "slf4j-api"   % slf4jVersion,
+      "commons-io"           % "commons-io"  % commonsIoVersion,
+      "org.scala-lang"       % "scala-library" % scalacVersion,
+    ),
+    internalModuleDependencies := Seq(
+      (`pkg` / exportedModule).value,
+      (`editions` / exportedModule).value,
+      (`engine-common` / exportedModule).value,
     )
   )
   .dependsOn(`polyglot-api`)
@@ -3282,6 +3293,9 @@ lazy val `library-manager` = project
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
+    ),
+    moduleDependencies := Seq(
+      "org.scala-lang"     % "scala-library"    % scalacVersion,
     ),
     internalModuleDependencies := Seq(
       (`distribution-manager` / exportedModule).value,
