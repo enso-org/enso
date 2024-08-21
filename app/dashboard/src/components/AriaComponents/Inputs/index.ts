@@ -5,6 +5,7 @@
  */
 
 export * from './Input'
+export * from './OTPInput'
 export * from './Password'
 export * from './ResizableInput'
 export * from './Selector'
