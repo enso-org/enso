@@ -5,6 +5,7 @@
  */
 
 export * from './DatePicker'
+export * from './Dropdown'
 export * from './Input'
 export * from './MultiSelector'
 export * from './Password'
