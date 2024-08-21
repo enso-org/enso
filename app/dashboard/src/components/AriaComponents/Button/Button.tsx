@@ -202,6 +202,8 @@ export const BUTTON_STYLES = twv.tv({
       },
       ghost:
         'text-primary hover:text-primary/80 hover:bg-white focus-visible:text-primary/80 focus-visible:bg-white',
+      'ghost-fading':
+        'text-primary opacity-80 hover:opacity-100 hover:bg-white focus-visible:bg-white',
       submit: 'bg-invite text-white opacity-80 hover:opacity-100',
       outline: 'border-primary/40 text-primary hover:border-primary hover:bg-primary/5',
       bar: 'border-primary/20 hover:bg-primary/5',

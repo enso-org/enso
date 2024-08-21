@@ -27,12 +27,12 @@ export default function SidebarTabButton(props: SidebarTabButtonProps) {
     <ariaComponent.Button
       onPress={onPress}
       icon={icon}
-      variant="ghost"
+      variant="ghost-fading"
       loaderPosition="icon"
       size="medium"
       isDisabled={isDisabled}
       rounded="full"
-      className={active ? 'bg-white opacity-100' : ''}
+      className={`${active ? 'bg-white opacity-100' : ''} font-medium`}
     >
       {label}
     </ariaComponent.Button>
