@@ -3,6 +3,7 @@ module org.enso.distribution {
   requires org.enso.cli;
   requires org.enso.logging.utils;
   requires org.enso.scalalibs.wrapper;
+  requires org.enso.scala.yaml;
 
   exports org.enso.distribution;
   exports org.enso.distribution.config;

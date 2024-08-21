@@ -1100,6 +1100,9 @@ lazy val cli = project
     moduleDependencies := Seq(
       "org.scala-lang" % "scala-library" % scalacVersion
     ),
+    internalModuleDependencies := Seq(
+      (`scala-yaml` / exportedModule).value
+    ),
     Test / parallelExecution := false
   )
   .dependsOn(`scala-yaml`)
@@ -3143,6 +3146,9 @@ lazy val editions = project
     ),
     moduleDependencies := Seq(
       "org.scala-lang" % "scala-library" % scalacVersion
+    ),
+    internalModuleDependencies := Seq(
+      (`scala-yaml` / exportedModule).value
     )
   )
   .settings(
@@ -3273,6 +3279,11 @@ lazy val `library-manager` = project
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
+    ),
+    internalModuleDependencies := Seq(
+      (`distribution-manager` / exportedModule).value,
+      (`cli` / exportedModule).value,
+      (`editions` / exportedModule).value,
     )
   )
   .dependsOn(`version-output`) // Note [Default Editions]
