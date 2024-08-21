@@ -82,12 +82,14 @@ type Point_Data
             candidates.find if_missing=(Error.throw Nothing) is_good . catch_ <| candidates.find is_good_enough
         Point_Data.Y_multi _ ->
             x_column = Point_Data.X.lookup_in table
+            y_column = Point_Data.Y.lookup_in table
             candidates = table.columns
-            is_good_enough c = c.is_numeric && c.name != x_column.name
+            is_good_enough c = c.is_numeric && c.name != x_column.name && c.name != y_column.name
             is_good c = is_good_enough c && (self.is_recognized c).not
 
             candidates.find if_missing=(Error.throw Nothing) is_good . catch_ <| candidates.find is_good_enough
         _ -> Error.throw No_Fallback_Column
+
 
     ## PRIVATE
 
@@ -200,29 +202,17 @@ limit_data limit data = case limit of
         if limit <= extreme.length then extreme.take (..First limit) else
             extreme + data.take (..Sample (limit - extreme.length))
 
-###make_json_for_matrix : Builder -> Vector -> Integer -> Vector | Nothing
-###make_json_for_matrix current vector idx=0 = if idx == vector.length then current.to_vector else
-    row = vector.at idx
-    to_append = case row of
-        Nothing -> Nothing
-        _ : Vector -> row.take max_columns . map make_json_for_value
-        _ : Array -> row.to_vector.take max_columns . map make_json_for_value
-        _ -> False
-    if to_append == False then Nothing else
-        current.append to_append
-        @Tail_Call make_json_for_matrix current vector idx+1
-
 
 ## PRIVATE
 add_fields : Builder -> Integer -> Integer -> Vector | Nothing
-add_fields current number_of_numeric idx=0 = if idx == number_of_numeric then current.to_vector else
+add_fields current number_of_numeric idx=1 = if idx == number_of_numeric then current.to_vector else
     current.append (Point_Data.Y_multi idx)
     @Tail_Call add_fields current number_of_numeric idx+1
 
 ##PRIVATE
 get_all_multi_fields : Vector -> Vector
 get_all_multi_fields mutli_fields_vec = 
-    mutli_fields_vec . insert item=Point_Data.X . insert item=Point_Data.Color . insert item=Point_Data.Shape . insert item=Point_Data.Label . insert item=Point_Data.Size
+    mutli_fields_vec . insert 0 item=Point_Data.X insert item=Point_Data.Y . insert item=Point_Data.Color . insert item=Point_Data.Shape . insert item=Point_Data.Label . insert item=Point_Data.Size
 
 ## PRIVATE
 json_from_table : Table -> Vector Integer | Nothing -> Integer | Nothing -> Text
@@ -233,7 +223,7 @@ json_from_table table bounds limit =
     fields_for_plot = if number_of_numeric_cols > 0 then all_multi_fields else Point_Data.all_fields
     data = table.point_data fields_for_plot |> bound_data bounds |> limit_data limit
     axes = table.axes
-    JS_Object.from_pairs [[data_field, data], [axis_field, axes], ["feilds", all_multi_fields]] . to_json
+    JS_Object.from_pairs [[data_field, data], [axis_field, axes]] . to_json
 
 ## PRIVATE
 json_from_vector : Vector Any -> Vector Integer | Nothing -> Integer | Nothing -> Text
