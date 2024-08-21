@@ -51,7 +51,7 @@ const DATE_PICKER_STYLES = tv({
   },
   slots: {
     inputGroup: 'flex items-center gap-2 rounded-full border-0.5 border-primary/20',
-    dateInput: 'flex',
+    dateInput: 'flex justify-center grow',
     dateSegment: 'rounded placeholder-shown:text-primary/30 focus:bg-primary/10 px-[0.5px]',
     calendarPopover: 'w-0',
     calendarDialog: 'text-primary text-xs',
@@ -112,7 +112,8 @@ export const DatePicker = forwardRef(function DatePicker<
     defaultValue,
   })
 
-  const styles = DATE_PICKER_STYLES({ className, size })
+  const styles = DATE_PICKER_STYLES({ size })
+  console.log(className, styles.base({ className }))
 
   return (
     <Form.Field
@@ -128,14 +129,13 @@ export const DatePicker = forwardRef(function DatePicker<
       aria-details={props['aria-details']}
       ref={ref}
       style={props.style}
-      className={styles.base()}
     >
       <Controller
         control={formInstance.control}
         name={name}
         render={(renderProps) => {
           return (
-            <AriaDatePicker {...renderProps.field}>
+            <AriaDatePicker className={styles.base({ className })} {...renderProps.field}>
               <Label />
               <Group className={styles.inputGroup()}>
                 <DateInput className={styles.dateInput()}>
@@ -165,9 +165,7 @@ export const DatePicker = forwardRef(function DatePicker<
                       {noCalendarHeader ?
                         <></>
                       : <CalendarGridHeader className={styles.calendarGridHeader()}>
-                          {() => (
-                            <CalendarHeaderCell className={styles.calendarGridHeaderCell()} />
-                          )}
+                          {() => <CalendarHeaderCell className={styles.calendarGridHeaderCell()} />}
                         </CalendarGridHeader>
                       }
                       <CalendarGridBody className={styles.calendarGridBody()}>

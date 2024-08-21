@@ -150,11 +150,11 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
           <Form form={form} className="flex flex-row flex-wrap gap-3" {...innerProps}>
             <div className="flex items-center gap-2">
               <Text className="whitespace-nowrap">{getText('startDate')}</Text>
-              <DatePicker form={form} name="startDate" size="small" />
+              <DatePicker form={form} name="startDate" size="small" className="w-[120px]" />
             </div>
             <div className="flex items-center gap-2">
               <Text className="whitespace-nowrap">{getText('endDate')}</Text>
-              <DatePicker form={form} name="endDate" size="small" />
+              <DatePicker form={form} name="endDate" size="small" className="w-[120px]" />
             </div>
             <div className="flex items-center gap-2">
               <Text className="whitespace-nowrap">{getText('types')}</Text>
