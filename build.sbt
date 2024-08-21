@@ -1084,6 +1084,7 @@ lazy val `scala-libs-wrapper` = project
 
 lazy val cli = project
   .in(file("lib/scala/cli"))
+  .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
@@ -1093,6 +1094,9 @@ lazy val cli = project
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
       "org.yaml"                    % "snakeyaml"     % snakeyamlVersion % "provided",
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
+    ),
+    moduleDependencies := Seq(
+      "org.scala-lang" % "scala-library" % scalacVersion
     ),
     Test / parallelExecution := false
   )
