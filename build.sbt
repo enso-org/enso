@@ -2953,6 +2953,12 @@ lazy val `distribution-manager` = project
     ),
     moduleDependencies := Seq(
       "org.scala-lang" % "scala-library" % scalacVersion
+    ),
+    internalModuleDependencies := Seq(
+      (`cli` / exportedModule).value,
+      (`logging-utils` / exportedModule).value,
+      (`scala-libs-wrapper` / exportedModule).value,
+      (`scala-yaml` / exportedModule).value,
     )
   )
   .dependsOn(editions)
