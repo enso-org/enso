@@ -63,7 +63,7 @@ const BASE_STEPS: Step[] = [
     /**
      * Step component
      */
-    component: function SetUsernameStep({ goToNextStep, session }) {
+    component: function SetUsernameStep({ session, goToNextStep }) {
       const { setUsername } = useAuth()
       const { getText } = textProvider.useText()
 
@@ -72,16 +72,26 @@ const BASE_STEPS: Step[] = [
       return (
         <ariaComponents.Form
           className="max-w-96"
-          /* eslint-disable-next-line @typescript-eslint/no-magic-numbers */
-          schema={(z) => z.object({ username: z.string().min(3).max(48) })}
+          schema={(z) =>
+            z.object({
+              username: z
+                .string()
+                .min(3)
+                /* eslint-disable-next-line @typescript-eslint/no-magic-numbers */
+                .max(48),
+            })
+          }
           defaultValues={{ username: defaultName }}
           onSubmit={({ username }) => {
-            if (username !== defaultName) {
-              // eslint-disable-next-line no-restricted-syntax
-              return setUsername(username)
+            if (username === defaultName) {
+              goToNextStep()
+              return
+            } else {
+              return setUsername(username).then(() => {
+                goToNextStep()
+              })
             }
           }}
-          onSubmitSuccess={goToNextStep}
         >
           <ariaComponents.Input
             name="username"
@@ -90,11 +100,9 @@ const BASE_STEPS: Step[] = [
             description="Minimum 3 characters, maximum 48 characters"
           />
 
-          <ariaComponents.ButtonGroup align="start">
-            <ariaComponents.Form.Submit variant="primary">
-              {getText('next')}
-            </ariaComponents.Form.Submit>
-          </ariaComponents.ButtonGroup>
+          <ariaComponents.Form.Submit variant="primary">
+            {getText('next')}
+          </ariaComponents.Form.Submit>
 
           <ariaComponents.Form.FormError />
         </ariaComponents.Form>
@@ -325,8 +333,16 @@ export function Setup() {
     steps: steps.length,
     onStepChange: (step, direction) => {
       const screen = steps[step]
+
       if (screen?.ignore != null) {
-        if (screen.ignore(context)) {
+        if (
+          screen.ignore({
+            session,
+            plan: userPlan,
+            goToNextStep: nextStep,
+            goToPreviousStep: previousStep,
+          })
+        ) {
           if (direction === 'forward') {
             nextStep()
           } else {

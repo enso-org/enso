@@ -59,7 +59,7 @@ export interface UseStepperStateResult {
  * @returns current step and a function to set the current step
  */
 export function useStepperState(props: StepperStateProps): UseStepperStateResult {
-  const { steps, defaultStep = 0, onStepChange, onCompleted } = props
+  const { steps, defaultStep = 0, onStepChange = () => {}, onCompleted = () => {} } = props
 
   invariant(steps > 0, 'Invalid number of steps')
   invariant(defaultStep >= 0, 'Default step must be greater than or equal to 0')
@@ -70,31 +70,32 @@ export function useStepperState(props: StepperStateProps): UseStepperStateResult
     direction: Direction
   }>(() => ({ current: defaultStep, direction: 'initial' }))
 
+  const onStepChangeEventCallback = eventCallbackHooks.useEventCallback(onStepChange)
+  const onCompletedEventCallback = eventCallbackHooks.useEventCallback(onCompleted)
+
   const setCurrentStep = eventCallbackHooks.useEventCallback(
     (step: number | ((current: number) => number)) => {
-      React.startTransition(() => {
-        privateSetCurrentStep((current) => {
-          const newStep = typeof step === 'function' ? step(current.current) : step
-          const direction = newStep > current.current ? 'forward' : 'back'
+      privateSetCurrentStep((current) => {
+        const newStep = typeof step === 'function' ? step(current.current) : step
+        const direction = newStep > current.current ? 'forward' : 'back'
 
-          if (newStep < 0) {
-            return {
-              current: 0,
-              direction: 'back-none',
-            }
-          } else if (newStep > steps) {
-            onCompleted?.()
-
-            return {
-              current: steps,
-              direction: 'forward-none',
-            }
-          } else {
-            onStepChange?.(newStep, direction)
-
-            return { current: newStep, direction }
+        if (newStep < 0) {
+          return {
+            current: 0,
+            direction: 'back-none',
           }
-        })
+        } else if (newStep > steps) {
+          onCompletedEventCallback()
+
+          return {
+            current: steps,
+            direction: 'forward-none',
+          }
+        } else {
+          onStepChangeEventCallback(newStep, direction)
+
+          return { current: newStep, direction }
+        }
       })
     },
   )
