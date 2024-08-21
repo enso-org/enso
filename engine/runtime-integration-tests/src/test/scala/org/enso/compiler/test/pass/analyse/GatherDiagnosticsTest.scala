@@ -100,7 +100,7 @@ class GatherDiagnosticsTest extends CompilerTest {
           ),
           new definition.Method.Explicit(
             definition.Method.Binding(method2Ref, Nil, false, error3, None),
-            lam
+            lam.copy(body = error3)
           )
         ),
         false,
