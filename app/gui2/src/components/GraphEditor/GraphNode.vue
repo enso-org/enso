@@ -625,6 +625,9 @@ watchEffect(() => {
 
 .CircularMenu {
   z-index: 25;
+  &.partial {
+    z-index: 1;
+  }
 }
 
 .beforeNode {
