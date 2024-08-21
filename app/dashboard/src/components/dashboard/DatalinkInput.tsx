@@ -53,15 +53,15 @@ export default function DatalinkInput(props: DatalinkInputProps) {
 /** Props for a {@link DatalinkFormInput}. */
 export interface DatalinkFormInputProps<Schema extends TSchema>
   extends Omit<DatalinkInputProps, 'onChange' | 'value'> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly form?: FormInstance<Schema, any, any>
+  readonly form?: FormInstance<Schema>
   readonly name: FieldPath<FieldValues<Schema>>
 }
 
 /** A dynamic wizard for creating an arbitrary type of Datalink. */
 export function DatalinkFormInput<Schema extends TSchema>(props: DatalinkFormInputProps<Schema>) {
   const fallbackForm = useFormContext()
-  const { form = fallbackForm, name, ...inputProps } = props
+  // eslint-disable-next-line no-restricted-syntax
+  const { form = fallbackForm as unknown as FormInstance<Schema>, name, ...inputProps } = props
 
   return (
     <Controller

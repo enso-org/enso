@@ -29,7 +29,7 @@ export interface SelectorProps<Schema extends TSchema, TFieldName extends FieldP
     FieldProps,
     Omit<twv.VariantProps<typeof SELECTOR_STYLES>, 'disabled' | 'invalid'> {
   readonly items: readonly FieldValues<Schema>[TFieldName][]
-  readonly itemToString?: (item: FieldValues<Schema>[TFieldName]) => string
+  readonly children?: (item: FieldValues<Schema>[TFieldName]) => string
   readonly columns?: number
   readonly className?: string
   readonly style?: React.CSSProperties
@@ -84,7 +84,7 @@ export const Selector = forwardRef(function Selector<
   const {
     name,
     items,
-    itemToString = String,
+    children = String,
     isDisabled = false,
     columns,
     form,
@@ -162,7 +162,7 @@ export const Selector = forwardRef(function Selector<
                 }}
               >
                 {items.map((item, i) => (
-                  <SelectorOption key={i} value={String(i)} label={itemToString(item)} />
+                  <SelectorOption key={i} value={String(i)} label={children(item)} />
                 ))}
               </RadioGroup>
             )

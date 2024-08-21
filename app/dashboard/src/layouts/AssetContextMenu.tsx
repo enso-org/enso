@@ -277,7 +277,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             !isRunningProject &&
             !isOtherUserUsingProject &&
             (!isCloud ||
-              asset.type == backendModule.AssetType.project ||
+              asset.type === backendModule.AssetType.project ||
               asset.type === backendModule.AssetType.directory) && (
               <ContextMenuEntry
                 hidden={hidden}

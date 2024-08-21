@@ -142,7 +142,7 @@ interface FormFieldProps<
   readonly value?: BaseValueType extends components.FieldValues<Schema>[TFieldName] ?
     components.FieldValues<Schema>[TFieldName]
   : never
-  readonly defaultValue?: components.FieldValues<Schema>[TFieldName]
+  readonly defaultValue?: components.FieldValues<Schema>[TFieldName] | undefined
   readonly isDisabled?: boolean
   readonly isRequired?: boolean
   readonly isInvalid?: boolean
