@@ -134,8 +134,8 @@ public class DebugServerInspectTest {
     assertEquals("But it is also the right value", 1, r.asInt());
     assertEquals(
         "Compilation warning printed",
-        "ScriptTest:5:5: warning: Unused variable d.\n",
-        out.toString());
+        "ScriptTest:5:5: warning: Unused variable d.",
+        out.toString().trim());
     assertThat(
         "Stderr contains some errors",
         err.toString(),
