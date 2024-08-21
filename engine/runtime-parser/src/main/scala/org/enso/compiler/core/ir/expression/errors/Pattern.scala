@@ -23,6 +23,23 @@ sealed case class Pattern(
     with LazyDiagnosticStorage
     with LazyId {
 
+  /** Create a [[Pattern]] object.
+    *
+    * @param originalPattern pattern that resulted in the error
+    * @param reason the cause of this error
+    * @param passData the pass metadata associated with this node
+    * @param diagnostics the compiler diagnostics
+    */
+  def this(
+    originalPattern: org.enso.compiler.core.ir.Pattern,
+    reason: Pattern.Reason,
+    passData: MetadataStorage,
+    diagnostics: DiagnosticStorage
+  ) = {
+    this(originalPattern, reason, passData)
+    this.diagnostics = diagnostics
+  }
+
   override def mapExpressions(
     fn: java.util.function.Function[Expression, Expression]
   ): Pattern =
@@ -74,7 +91,7 @@ sealed case class Pattern(
       id          = if (keepIdentifiers) id else null
     )
 
-  override def message(source: (IdentifiedLocation => String)): String =
+  override def message(source: IdentifiedLocation => String): String =
     reason.explain
 
   override def diagnosticKeys(): Array[Any] = Array(reason)
@@ -90,27 +107,7 @@ sealed case class Pattern(
 
 object Pattern {
 
-  /** Create a [[Pattern]] object.
-    *
-    * @param originalPattern pattern that resulted in the error
-    * @param reason the cause of this error
-    * @param passData the pass metadata associated with this node
-    * @param diagnostics the compiler diagnostics
-    */
-  def apply(
-    originalPattern: org.enso.compiler.core.ir.Pattern,
-    reason: Pattern.Reason,
-    passData: MetadataStorage,
-    diagnostics: DiagnosticStorage
-  ): Pattern = {
-    val pattern = new Pattern(originalPattern, reason, passData)
-    pattern.diagnostics = diagnostics
-
-    pattern
-  }
-
-  /** A representation of the reason the pattern is erroneous.
-    */
+  /** A representation of the reason the pattern is erroneous. */
   sealed trait Reason {
 
     /** Provides a human-readable explanation of the error.

@@ -134,7 +134,7 @@ public class PrivateSymbolsAnalysis implements IRPass {
             var reason =
                 new org.enso.compiler.core.ir.expression.errors.Pattern.PrivateConstructor(
                     consName.name(), curProjName, resolvedProjName);
-            return org.enso.compiler.core.ir.expression.errors.Pattern.apply(
+            return new org.enso.compiler.core.ir.expression.errors.Pattern(
                 cons, reason, cons.passData(), cons.diagnostics());
           }
         }
@@ -153,7 +153,7 @@ public class PrivateSymbolsAnalysis implements IRPass {
           var reason =
               new org.enso.compiler.core.ir.expression.errors.Resolution.PrivateEntity(
                   curProjName, resolvedProjName);
-          return org.enso.compiler.core.ir.expression.errors.Resolution.apply(
+          return new org.enso.compiler.core.ir.expression.errors.Resolution(
               name, reason, name.passData(), name.diagnostics());
         }
       }

@@ -1939,8 +1939,8 @@ final class TreeToIr {
 
   private Name sanitizeName(Name.Literal id) {
     return switch (id.name()) {
-      case "self" -> Name.Self$.MODULE$.apply(id.location(), false, id.passData(), id.diagnostics());
-      case "Self" -> Name.SelfType$.MODULE$.apply(id.location(), id.passData(), id.diagnostics());
+      case "self" -> new Name.Self(id.location(), false, id.passData(), id.diagnostics());
+      case "Self" -> new Name.SelfType(id.location(), id.passData(), id.diagnostics());
       default -> id;
     };
   }

@@ -147,31 +147,6 @@ object Case {
     }
   }
 
-  object Expr {
-    /*
-    def apply(
-      scrutinee: Expression,
-      branches: Seq[Branch],
-      location: Option[IdentifiedLocation]
-    ): Expr =
-      apply(
-        scrutinee,
-        branches,
-        location,
-        new MetadataStorage(),
-        new DiagnosticStorage()
-      )
-
-    def apply(
-      scrutinee: Expression,
-      branches: Seq[Branch],
-      location: Option[IdentifiedLocation],
-      passData: MetadataStorage,
-      diagnostics: DiagnosticStorage
-    ): Expr = new Expr(scrutinee, branches, location, passData, diagnostics)
-     */
-  }
-
   /** A branch in a case statement.
     *
     * @param pattern        the pattern that attempts to match against the scrutinee

@@ -22,6 +22,24 @@ sealed case class Resolution(
     with Name
     with LazyDiagnosticStorage
     with LazyId {
+
+  /** Create a [[Resolution]] object.
+    *
+    * @param originalName the original name that could not be resolved
+    * @param reason the cause of this error
+    * @param passData the pass metadata associated with this node
+    * @param diagnostics the compiler diagnostics
+    */
+  def this(
+    originalName: Name,
+    reason: Resolution.Reason,
+    passData: MetadataStorage,
+    diagnostics: DiagnosticStorage
+  ) = {
+    this(originalName, reason, passData)
+    this.diagnostics = diagnostics
+  }
+
   override val name: String = originalName.name
 
   override def mapExpressions(
@@ -100,27 +118,7 @@ sealed case class Resolution(
 
 object Resolution {
 
-  /** Create a [[Resolution]] object.
-    *
-    * @param originalName the original name that could not be resolved
-    * @param reason the cause of this error
-    * @param passData the pass metadata associated with this node
-    * @param diagnostics the compiler diagnostics
-    */
-  def apply(
-    originalName: Name,
-    reason: Resolution.Reason,
-    passData: MetadataStorage,
-    diagnostics: DiagnosticStorage
-  ): Resolution = {
-    val resolution = new Resolution(originalName, reason, passData)
-    resolution.diagnostics = diagnostics
-
-    resolution
-  }
-
-  /** A representation of a symbol resolution error.
-    */
+  /** A representation of a symbol resolution error. */
   sealed trait Reason {
     def explain(originalName: Name): String
   }

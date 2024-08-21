@@ -712,6 +712,7 @@ object Name {
   /** A representation of the name `self`, used to refer to the current type.
     *
     * @param location the source location that the node corresponds to
+    * @param synthetic the flag indicating that the name was generated
     * @param passData the pass metadata associated with this node
     */
   sealed case class Self(
@@ -721,6 +722,23 @@ object Name {
   ) extends Name
       with LazyDiagnosticStorage
       with LazyId {
+
+    /** Create a [[Self]] object.
+      *
+      * @param location the source location that the node corresponds to
+      * @param synthetic the flag indicating that the name was generated
+      * @param passData the pass metadata associated with this node
+      * @param diagnostics the compiler diagnostics
+      */
+    def this(
+      location: Option[IdentifiedLocation],
+      synthetic: Boolean,
+      passData: MetadataStorage,
+      diagnostics: DiagnosticStorage
+    ) = {
+      this(location, synthetic, passData)
+      this.diagnostics = diagnostics
+    }
 
     override val name: String = ConstantsNames.SELF_ARGUMENT
 
@@ -788,27 +806,6 @@ object Name {
     override def showCode(indent: Int): String = name
   }
 
-  object Self {
-
-    /** Create a [[Self]] object.
-      *
-      * @param location the source location that the node corresponds to
-      * @param passData the pass metadata associated with this node
-      * @param diagnostics the compiler diagnostics
-      */
-    def apply(
-      location: Option[IdentifiedLocation],
-      synthetic: Boolean,
-      passData: MetadataStorage,
-      diagnostics: DiagnosticStorage
-    ): Self = {
-      val self = new Self(location, synthetic, passData)
-      self.diagnostics = diagnostics
-
-      self
-    }
-  }
-
   /** A representation of the name `Self`, used to refer to the current type.
     *
     * @param location the source location that the node corresponds to
@@ -820,6 +817,22 @@ object Name {
   ) extends Name
       with LazyDiagnosticStorage
       with LazyId {
+
+    /** Create a [[SelfType]] object.
+      *
+      * @param location the source location that the node corresponds to
+      * @param passData the pass metadata associated with this node
+      * @param diagnostics the compiler diagnostics
+      */
+    def this(
+      location: Option[IdentifiedLocation],
+      passData: MetadataStorage,
+      diagnostics: DiagnosticStorage
+    ) = {
+      this(location, passData)
+      this.diagnostics = diagnostics
+    }
+
     override val name: String = ConstantsNames.SELF_TYPE_ARGUMENT
 
     /** Creates a copy of `Self`.
@@ -882,25 +895,5 @@ object Name {
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = name
-  }
-
-  object SelfType {
-
-    /** Create a [[SelfType]] object.
-      *
-      * @param location the source location that the node corresponds to
-      * @param passData the pass metadata associated with this node
-      * @param diagnostics the compiler diagnostics
-      */
-    def apply(
-      location: Option[IdentifiedLocation],
-      passData: MetadataStorage,
-      diagnostics: DiagnosticStorage
-    ): SelfType = {
-      val selfType = new SelfType(location, passData)
-      selfType.diagnostics = diagnostics
-
-      selfType
-    }
   }
 }
