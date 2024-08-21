@@ -23,7 +23,6 @@ import org.openide.util.lookup.ServiceProvider;
 import scala.Option;
 import scala.Tuple2;
 import scala.collection.immutable.List;
-import scala.collection.immutable.Nil$;
 import scala.collection.immutable.Seq;
 
 @Persistable(clazz = Module.class, id = 201)

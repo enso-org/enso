@@ -81,9 +81,8 @@ object Type {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnosticsCopy else null,
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -187,9 +186,8 @@ object Type {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnosticsCopy else null,
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -294,9 +292,8 @@ object Type {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnosticsCopy else null,
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -398,9 +395,8 @@ object Type {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnosticsCopy else null,
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */

@@ -2,7 +2,6 @@ package org.enso.compiler.core;
 
 import java.util.UUID;
 import java.util.function.Function;
-
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.core.ir.LazyDiagnosticStorage;
@@ -101,20 +100,6 @@ public interface IR extends LazyDiagnosticStorage, LazyId {
    */
   @Identifier
   UUID getId();
-
-//  /**
-//   * Get storage for compiler diagnostics related to the IR node.
-//   *
-//   * @return the diagnostic storage of this node
-//   * */
-//  DiagnosticStorage getDiagnostics();
-//
-//  /**
-//   * Get all diagnostic info associated with this IR node.
-//   *
-//   * @return the list of diagnostics
-//   */
-//  List<Diagnostic> diagnosticsList();
 
   /**
    * Creates a deep structural copy of `this`, representing the same structure.

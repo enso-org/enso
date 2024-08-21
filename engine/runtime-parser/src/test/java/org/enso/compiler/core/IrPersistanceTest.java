@@ -9,7 +9,6 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import org.enso.compiler.core.ir.DiagnosticStorage;
 import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.core.ir.Location;
 import org.enso.compiler.core.ir.MetadataStorage;
