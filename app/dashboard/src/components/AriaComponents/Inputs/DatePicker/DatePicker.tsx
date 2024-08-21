@@ -112,7 +112,7 @@ export const DatePicker = forwardRef(function DatePicker<
     defaultValue,
   })
 
-  const classes = DATE_PICKER_STYLES({ className, size })
+  const styles = DATE_PICKER_STYLES({ className, size })
 
   return (
     <Form.Field
@@ -128,7 +128,7 @@ export const DatePicker = forwardRef(function DatePicker<
       aria-details={props['aria-details']}
       ref={ref}
       style={props.style}
-      className={props.className}
+      className={styles.base()}
     >
       <Controller
         control={formInstance.control}
@@ -137,42 +137,42 @@ export const DatePicker = forwardRef(function DatePicker<
           return (
             <AriaDatePicker {...renderProps.field}>
               <Label />
-              <Group className={classes.inputGroup()}>
-                <DateInput className={classes.dateInput()}>
+              <Group className={styles.inputGroup()}>
+                <DateInput className={styles.dateInput()}>
                   {(segment) =>
                     segments[segment.type] === false ?
                       <></>
-                    : <DateSegment segment={segment} className={classes.dateSegment()} />
+                    : <DateSegment segment={segment} className={styles.dateSegment()} />
                   }
                 </DateInput>
                 <Button variant="icon" icon={ArrowIcon} className="rotate-90" />
               </Group>
               {props.description && <Text slot="description" />}
-              <Popover size="auto" className={classes.calendarPopover()}>
-                <Dialog className={classes.calendarDialog()}>
-                  <Calendar className={classes.calendarContainer()}>
-                    <header className={classes.calendarHeader()}>
+              <Popover size="auto" className={styles.calendarPopover()}>
+                <Dialog className={styles.calendarDialog()}>
+                  <Calendar className={styles.calendarContainer()}>
+                    <header className={styles.calendarHeader()}>
                       <Button
                         variant="icon"
                         slot="previous"
                         icon={ArrowIcon}
                         className="rotate-180"
                       />
-                      <Heading className={classes.calendarHeading()} />
+                      <Heading className={styles.calendarHeading()} />
                       <Button variant="icon" slot="next" icon={ArrowIcon} />
                     </header>
-                    <CalendarGrid className={classes.calendarGrid()}>
+                    <CalendarGrid className={styles.calendarGrid()}>
                       {noCalendarHeader ?
                         <></>
-                      : <CalendarGridHeader className={classes.calendarGridHeader()}>
+                      : <CalendarGridHeader className={styles.calendarGridHeader()}>
                           {() => (
-                            <CalendarHeaderCell className={classes.calendarGridHeaderCell()} />
+                            <CalendarHeaderCell className={styles.calendarGridHeaderCell()} />
                           )}
                         </CalendarGridHeader>
                       }
-                      <CalendarGridBody className={classes.calendarGridBody()}>
+                      <CalendarGridBody className={styles.calendarGridBody()}>
                         {(date) => (
-                          <CalendarCell date={date} className={classes.calendarGridCell()} />
+                          <CalendarCell date={date} className={styles.calendarGridCell()} />
                         )}
                       </CalendarGridBody>
                     </CalendarGrid>
