@@ -6,12 +6,14 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 from Standard.Table import Aggregate_Column
+from Standard.Table.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import Floating_Point_Equality, No_Output_Columns
 
 import project.DB_Table.DB_Table
 import project.Dialect.Dialect
 import project.Internal.Common.Row_Number_Helpers
 import project.Internal.DB_Wrapped_Error.DB_Wrapped_Error
+import project.Internal.IR.Context.Context
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
@@ -178,6 +180,7 @@ make_infer_return_type dialect connection context =
     type_mapping = dialect.get_type_mapping
     infer_return_type op_kind columns expression =
         type_mapping.infer_return_type infer_from_database_callback op_kind columns expression
+    infer_return_type
 
 ## PRIVATE
    An implementation that can be used for `custom_build_aggregate` in dialects
@@ -201,11 +204,11 @@ build_aggregate_with_row_number_for_first_last dialect base_table key_columns re
             _ -> []
 
         # This function will infer return type at the context of the current query - used to extend it with row numbers.
-        infer_return_type_in_orderings = make_infer_return_type dialect base_table.connection base_table.context
+        # infer_return_type_in_orderings = make_infer_return_type dialect base_table.connection base_table.context
         name_generator = base_table.column_naming_helper.create_unique_name_strategy
         name_generator.mark_used base_table.column_names
         key_expressions_for_orderings = key_columns.map .expression
-        numbering_columns = needed_orderings.distinct.map ordering->
+        numbering_columns = Dictionary.from_vector <| needed_orderings.distinct.map ordering->
             name = name_generator.make_unique "row-number"
             order_descriptors = dialect.prepare_order_descriptor ordering.column ordering.direction text_ordering=Nothing
             expression = Row_Number_Helpers.make_row_number 1 1 order_descriptors key_expressions_for_orderings
@@ -213,20 +216,41 @@ build_aggregate_with_row_number_for_first_last dialect base_table key_columns re
             column = Internal_Column.Value name SQL_Type_Reference.null expression
             [ordering, column]
 
-
-        subquery_setup = base_table.context.as_subquery base_table.name [base_table.internal_columns, (numbering_columns.map .second)]
+        subquery_setup = base_table.context.as_subquery base_table.name [base_table.internal_columns, numbering_columns.values]
+        updated_numbering_columns = numbering_columns.map subquery_setup.remap_column
 
         # The context referring to the outer query that contains the subquery with additional columns and also is now grouped for the aggregation:
         remapped_key_expressions = key_columns.map key_column->
             subquery_setup.remap_column key_column . expression
-        new_ctx = (Context.for_subquery setup.subquery).set_groups remapped_key_expressions
+        new_ctx = (Context.for_subquery subquery_setup.subquery).set_groups remapped_key_expressions
 
         # This function will infer return type at the context of the subquery with aggregation groupings.
         infer_return_type_in_new_context = make_infer_return_type dialect base_table.connection new_ctx
+        results = resolved_aggregates.map p->
+            original_aggregate = p.second
+            as = p.first
+            updated_aggregate = map_column_inputs subquery_setup.remap_column original_aggregate
 
-        # Now we also need to remap all aggregate columns to the subquery...
-        # Argh....
-        Nothing
+            make_first_last op_kind =
+                row_number = updated_numbering_columns.at (original_aggregate.order_by)
+                op = case updated_aggregate.ignore_nothing of
+                    False -> op_kind
+                    True  -> op_kind + "_NOT_NULL"
+                # We just inherit the type of the source column, as the FIRST/LAST element of a column should have the same type.
+                sql_type_reference = updated_aggregate.column.sql_type_reference
+                Internal_Column.Value as sql_type_reference (SQL_Expression.Operation op [updated_aggregate.column.expression, row_number.expression])
+
+            case updated_aggregate of
+                Aggregate_Column.First _ _ _ _ ->
+                    make_first_last "FIRST"
+                Aggregate_Column.Last _ _ _ _ ->
+                    make_first_last "LAST"
+                _ ->
+                    # For all other aggregates we fallback to the default implementation.
+                    result = make_aggregate_column base_table updated_aggregate as dialect infer_return_type_in_new_context problem_builder
+                    result.catch Any error->(DB_Wrapped_Error.Value error)
+        Pair.new new_ctx results
+
 
 ## PRIVATE
 has_first_last resolved_aggregates = resolved_aggregates.any agg->
@@ -234,3 +258,30 @@ has_first_last resolved_aggregates = resolved_aggregates.any agg->
         Aggregate_Column.First _ _ _ _ -> True
         Aggregate_Column.Last _ _ _ _ -> True
         _ -> False
+
+## PRIVATE
+   Applies a mapping to column inputs of the aggregate.
+   It does not modify the columns inside of the `order_by` argument though.
+map_column_inputs f:Function aggregate_column:Aggregate_Column -> Aggregate_Column =
+    case aggregate_column of
+        Group_By c as -> Group_By (f c) as
+        Count as -> Count as
+        Count_Distinct c as ignore_nothing ->
+            Count_Distinct (c.map f) as ignore_nothing
+        Count_Not_Nothing c as -> Count_Not_Nothing (f c) as
+        Count_Nothing c as -> Count_Nothing (f c) as
+        Count_Not_Empty c as -> Count_Not_Empty (f c) as
+        Count_Empty c as ->  Count_Empty (f c) as
+        Sum c as -> Sum (f c) as
+        Average c as -> Average (f c) as
+        Median c as -> Median (f c) as
+        Percentile p c as -> Percentile p (f c) as
+        Mode c as -> Mode (f c) as
+        Standard_Deviation c as population -> Standard_Deviation (f c) as population
+        Concatenate c as separator prefix suffix quote_char -> Concatenate (f c) as separator prefix suffix quote_char
+        First c as ignore_nothing order_by -> First (f c) as ignore_nothing order_by
+        Last c as ignore_nothing order_by -> Last (f c) as ignore_nothing order_by
+        Maximum c as -> Maximum (f c) as
+        Minimum c as -> Minimum (f c) as
+        Shortest c as -> Shortest (f c) as
+        Longest c as -> Longest (f c) as

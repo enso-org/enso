@@ -383,32 +383,15 @@ first_last_aggregators =
 
 ## PRIVATE
 make_first_aggregator reverse ignore_null args =
-    if args.length < 2 then Panic.throw (Illegal_State.Error "Insufficient number of arguments for the operation.") else
+    if args.length != 2 then Panic.throw (Illegal_State.Error "Expected exactly 2 arguments.") else
         result_expr = args.first
-        order_bys = args.drop 1
+        row_number = args.second
 
-        if order_bys.length != 1 then
-            Panic.throw (Illegal_State.Error "The operation requires exactly one `order_by` column. This should have been checked by pre-checks.")
-
-        only_order_by = order_bys.first
-        # This is an ugly hack to extract the expression from generated SQL. Later we should instead change how we construct the IR.
-        raw_fragments = only_order_by.fragments.build
-        # By construction we know that this ends with order_suffix followed by nulls_suffix
-        order_suffix = raw_fragments.at -2
-        fragments_without_suffixes = raw_fragments.drop (..Last 2)
-
-        is_ascending = case order_suffix of
-            SQL_Fragment.Code_Part " ASC"  -> True
-            SQL_Fragment.Code_Part " DESC" -> False
-            _ -> Panic.throw (Illegal_State.Error "Unexpected internal state of the ordering: "+raw_fragments.to_display_text)
-
-        should_flip = reverse == is_ascending
-        method_name = if should_flip then "MAX_BY" else "MIN_BY"
-
-        base_order_expression = SQL_Builder.Value (Vector_Builder.from_vector fragments_without_suffixes)
+        method_name = if reverse then "MAX_BY" else "MIN_BY"
+        # If we want to ignore null values, we replace the row number in such cases with NULL, so these rows are skipped to find a non-null one (if any).
         order_expression = case ignore_null of
-            False -> base_order_expression
-            True -> SQL_Builder.code "CASE WHEN " ++ result_expr ++ " IS NULL THEN NULL ELSE " ++ base_order_expression ++ " END"
+            False -> row_number
+            True -> SQL_Builder.code "CASE WHEN " ++ result_expr ++ " IS NULL THEN NULL ELSE " ++ row_number ++ " END"
         SQL_Builder.code (method_name + "(") ++ result_expr ++ ", " ++ order_expression ++ ")"
 
 ## PRIVATE

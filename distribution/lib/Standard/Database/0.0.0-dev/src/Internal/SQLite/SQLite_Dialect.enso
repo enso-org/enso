@@ -325,7 +325,7 @@ make_dialect_operations =
     other = [["RUNTIME_ERROR", make_runtime_error_op]]
 
     bool = [bool_or]
-    my_mappings = text + counts + stats + arith_extensions + bool + other
+    my_mappings = text + counts + stats + arith_extensions + bool + other + first_last_aggregators
     Base_Generator.base_dialect_operations . extend_with my_mappings
 
 ## PRIVATE
@@ -364,24 +364,15 @@ agg_stddev_samp = Base_Generator.lift_unary_op "STDDEV_SAMP" arg->
    This is a prototype that doesn't work correctly. Left for reference for
    future implementation.
 first_last_aggregators =
-    first_value = "first_value"
-    first = window_aggregate first_value ignore_null=False
-    first_not_null = window_aggregate first_value ignore_null=True
-    last_value = "last_value"
-    last = window_aggregate last_value ignore_null=False
-    last_not_null = window_aggregate last_value ignore_null=True
-    [["FIRST", first], ["FIRST_NOT_NULL", first_not_null], ["LAST", last], ["LAST_NOT_NULL", last_not_null]]
-
-## PRIVATE
-window_aggregate window_type ignore_null args =
-    if args.length < 2 then Error.throw (Illegal_State.Error "Insufficient number of arguments for the operation.") else
-        result_expr = args.first
-        order_exprs = args.drop 1
-
-        filter_clause = if ignore_null.not then SQL_Builder.code "" else
-            SQL_Builder.code " FILTER (WHERE " ++ result_expr.paren ++ " IS NOT NULL)"
-
-        SQL_Builder.code window_type+"(" ++ result_expr ++ ")" ++ filter_clause ++ " OVER (ORDER BY " ++ SQL_Builder.join "," order_exprs ++ ")"
+    #first_value = "first_value"
+    #first = window_aggregate first_value ignore_null=False
+    #first_not_null = window_aggregate first_value ignore_null=True
+    #last_value = "last_value"
+    #last = window_aggregate last_value ignore_null=False
+    #last_not_null = window_aggregate last_value ignore_null=True
+    #[["FIRST", first], ["FIRST_NOT_NULL", first_not_null], ["LAST", last], ["LAST_NOT_NULL", last_not_null]]
+    # TODO
+    []
 
 ## PRIVATE
 concat_ops =
