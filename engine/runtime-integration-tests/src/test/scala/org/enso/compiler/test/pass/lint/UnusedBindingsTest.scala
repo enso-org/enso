@@ -94,7 +94,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
           |""".stripMargin.preprocessExpression.get.lint
           .asInstanceOf[Function.Lambda]
 
-      val lintMeta = ir.arguments.head.getDiagnostics.collect {
+      val lintMeta = ir.arguments.head.diagnosticsList.collect {
         case u: warnings.Unused.FunctionArgument => u
       }
 
@@ -115,7 +115,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
 
       inside(ir.bindings.head) { case definition: definition.Method.Explicit =>
         inside(definition.body) { case f: Function.Lambda =>
-          val lintMeta = f.arguments(1).getDiagnostics.collect {
+          val lintMeta = f.arguments(1).diagnosticsList.collect {
             case u: warnings.Unused.FunctionArgument => u
           }
 
@@ -135,7 +135,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
           |""".stripMargin.preprocessExpression.get.lint
           .asInstanceOf[Function.Lambda]
 
-      val lintMeta = ir.arguments.head.getDiagnostics.collect {
+      val lintMeta = ir.arguments.head.diagnosticsList.collect {
         case u: warnings.Unused => u
       }
 
@@ -151,7 +151,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
           |""".stripMargin.preprocessExpression.get.lint
           .asInstanceOf[Expression.Binding]
 
-      val lintMeta = ir.getDiagnostics.collect { case u: warnings.Unused =>
+      val lintMeta = ir.diagnosticsList.collect { case u: warnings.Unused =>
         u
       }
 
@@ -169,7 +169,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
           |""".stripMargin.preprocessExpression.get.lint
           .asInstanceOf[Expression.Binding]
 
-      val lintMeta = ir.getDiagnostics.collect { case u: warnings.Unused =>
+      val lintMeta = ir.diagnosticsList.collect { case u: warnings.Unused =>
         u
       }
 
@@ -192,11 +192,13 @@ class UnusedBindingsTest extends CompilerTest with Inside {
       val field1  = pattern.fields.head.asInstanceOf[Pattern.Name]
       val field2  = pattern.fields(1).asInstanceOf[Pattern.Name]
 
-      val lintMeta1 = field1.getDiagnostics.collect { case u: warnings.Unused =>
-        u
+      val lintMeta1 = field1.diagnosticsList.collect {
+        case u: warnings.Unused =>
+          u
       }
-      val lintMeta2 = field2.getDiagnostics.collect { case u: warnings.Unused =>
-        u
+      val lintMeta2 = field2.diagnosticsList.collect {
+        case u: warnings.Unused =>
+          u
       }
 
       lintMeta1 should not be empty
@@ -218,7 +220,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
 
       inside(ir.bindings.head) { case definition: definition.Method.Explicit =>
         inside(definition.body) { case f: Function.Lambda =>
-          val lintMeta = f.arguments(1).getDiagnostics.collect {
+          val lintMeta = f.arguments(1).diagnosticsList.collect {
             case u: warnings.Unused.FunctionArgument => u
           }
 
@@ -245,11 +247,13 @@ class UnusedBindingsTest extends CompilerTest with Inside {
       val field1  = pattern.fields.head.asInstanceOf[Pattern.Name]
       val field2  = pattern.fields(1).asInstanceOf[Pattern.Name]
 
-      val lintMeta1 = field1.getDiagnostics.collect { case u: warnings.Unused =>
-        u
+      val lintMeta1 = field1.diagnosticsList.collect {
+        case u: warnings.Unused =>
+          u
       }
-      val lintMeta2 = field2.getDiagnostics.collect { case u: warnings.Unused =>
-        u
+      val lintMeta2 = field2.diagnosticsList.collect {
+        case u: warnings.Unused =>
+          u
       }
 
       lintMeta2 should not be empty

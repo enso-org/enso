@@ -24,67 +24,6 @@ final class DiagnosticStorage(initDiagnostics: Seq[Diagnostic] = Seq())
     diagnostics = newDiagnostics.toList ::: diagnostics
   }
 
-  /** Applies the function `f` across the diagnostic storage, producing a
-    * result sequence.
-    *
-    * @param f the function to apply
-    * @tparam R the result type of `f`
-    * @return the sequence that results from applying `f` over the storage
-    */
-  def map[R](f: Diagnostic => R): Seq[R] = {
-    diagnostics.map(f)
-  }
-
-  /** Applies the function `f` across the diagnostic storage in place.
-    *
-    * @param f the function to apply
-    */
-  def mapInPlace(f: Diagnostic => Diagnostic): Unit = {
-    diagnostics = diagnostics.map(f)
-  }
-
-  /** Performs a collection operation on the diagnostics storage, producing
-    * a new sequence.
-    *
-    * @param pf the partial function to apply
-    * @tparam R the result type of the partial function
-    * @return the result of collecting across the storage with `pf`
-    */
-  def collect[R](pf: PartialFunction[Diagnostic, R]): Seq[R] = {
-    diagnostics.collect(pf)
-  }
-
-  /** Filters the elements of the diagnostic storage using the predicate.
-    *
-    * @param pred the predicate to filter with
-    * @return a new diagnostic storage instance containing elements matching
-    *         `pred`
-    */
-  def filter(pred: Diagnostic => Boolean): DiagnosticStorage = {
-    new DiagnosticStorage(diagnostics.filter(pred))
-  }
-
-  /** Filters the elements of the diagnostic storage in place using the
-    * predicate.
-    *
-    * @param pred the predicate to filter with
-    */
-  def filterInPlace(pred: Diagnostic => Boolean): Unit = {
-    diagnostics = diagnostics.filter(pred)
-  }
-
-  /** Performs a left fold over the diagnostic storage to produce a result.
-    *
-    * @param init the starting value
-    * @param op the operator to use to fold
-    * @tparam L the result type of the fold
-    * @return the result of folding over the storage using `op` starting wit
-    *         `init`
-    */
-  def foldLeft[L](init: L)(op: (L, Diagnostic) => L): L = {
-    diagnostics.foldLeft(init)(op)
-  }
-
   /** Checks two diagnostics storages for equality.
     *
     * @param obj the object to check against `this`

@@ -186,15 +186,11 @@ class TailCallTest extends CompilerTest {
         .expressions(0)
         .asInstanceOf[Expression.Binding]
         .expression
-        .getDiagnostics
-        .filter(_.isInstanceOf[Warning.WrongTco])
-        .toList
-        .length shouldEqual 1
+        .diagnosticsList
+        .count(_.isInstanceOf[Warning.WrongTco]) shouldEqual 1
 
-      fnBody.returnValue.getDiagnostics
-        .filter(_.isInstanceOf[Warning.WrongTco])
-        .toList
-        .length shouldEqual 0
+      fnBody.returnValue.diagnosticsList
+        .count(_.isInstanceOf[Warning.WrongTco]) shouldEqual 0
     }
   }
 
@@ -225,10 +221,8 @@ class TailCallTest extends CompilerTest {
         .returnValue
         .asInstanceOf[Application.Prefix]
         .function
-        .getDiagnostics
-        .filter(_.isInstanceOf[Warning.WrongTco])
-        .toList
-        .length shouldEqual 0
+        .diagnosticsList
+        .count(_.isInstanceOf[Warning.WrongTco]) shouldEqual 0
     }
 
   }
