@@ -826,9 +826,16 @@ lazy val pkg = (project in file("lib/scala/pkg"))
     moduleDependencies := {
       Seq(
         "org.apache.commons" % "commons-compress" % commonsCompressVersion,
-        "org.scala-lang"     % "scala-library"    % scalacVersion
+        "org.scala-lang"     % "scala-library"    % scalacVersion,
+        "org.yaml"                    % "snakeyaml"     % snakeyamlVersion,
       )
-    }
+    },
+    internalModuleDependencies := Seq(
+      (`editions` / exportedModule).value,
+      (`semver` / exportedModule).value,
+      (`scala-yaml` / exportedModule).value,
+      (`scala-libs-wrapper` / exportedModule).value,
+    )
   )
   .dependsOn(editions)
 
@@ -1634,6 +1641,7 @@ lazy val `polyglot-api` = project
     // Note [Compile module-info]
     excludeFilter := excludeFilter.value || "module-info.java",
     moduleDependencies := Seq(
+      "org.scala-lang"         % "scala-library"    % scalacVersion,
       "com.google.flatbuffers" % "flatbuffers-java" % flatbuffersVersion,
       "org.graalvm.sdk"        % "word"             % graalMavenPackagesVersion,
       "org.graalvm.polyglot"   % "polyglot"         % graalMavenPackagesVersion,
@@ -2609,6 +2617,7 @@ lazy val `engine-runner-common` = project
       (`pkg` / exportedModule).value,
       (`editions` / exportedModule).value,
       (`engine-common` / exportedModule).value,
+      (`library-manager` / exportedModule).value,
     )
   )
   .dependsOn(`polyglot-api`)
@@ -3225,6 +3234,7 @@ lazy val semver = project
   .dependsOn(`scala-yaml`)
 
 lazy val downloader = (project in file("lib/scala/downloader"))
+  .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
     // Fork the tests to make sure that the withDebug command works (we can
@@ -3240,6 +3250,17 @@ lazy val downloader = (project in file("lib/scala/downloader"))
       "junit"                       % "junit"            % junitVersion     % Test,
       "com.github.sbt"              % "junit-interface"  % junitIfVersion   % Test,
       "org.hamcrest"                % "hamcrest-all"     % hamcrestVersion  % Test
+    ),
+    moduleDependencies := Seq(
+      "org.scala-lang"              % "scala-library"    % scalacVersion,
+      "commons-io"                  % "commons-io"       % commonsIoVersion,
+      "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
+      "org.slf4j"                   % "slf4j-api"        % slf4jVersion,
+    ),
+    excludeFilter := excludeFilter.value || "module-info.java",
+    internalModuleDependencies := Seq(
+      (`cli` / exportedModule).value,
+      (`scala-libs-wrapper` / exportedModule).value,
     )
   )
   .dependsOn(cli)
@@ -3295,11 +3316,18 @@ lazy val `library-manager` = project
     ),
     moduleDependencies := Seq(
       "org.scala-lang"     % "scala-library"    % scalacVersion,
+      "org.yaml"                    % "snakeyaml"     % snakeyamlVersion,
     ),
     internalModuleDependencies := Seq(
       (`distribution-manager` / exportedModule).value,
+      (`downloader` / exportedModule).value,
       (`cli` / exportedModule).value,
       (`editions` / exportedModule).value,
+      (`pkg` / exportedModule).value,
+      (`semver` / exportedModule).value,
+      (`logging-utils` / exportedModule).value,
+      (`scala-libs-wrapper` / exportedModule).value,
+      (`scala-yaml` / exportedModule).value,
     )
   )
   .dependsOn(`version-output`) // Note [Default Editions]
