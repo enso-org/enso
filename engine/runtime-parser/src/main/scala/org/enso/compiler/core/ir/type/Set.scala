@@ -70,10 +70,20 @@ object Set {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Member = {
-      val res =
-        Member(label, memberType, value, location, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        label != this.label
+        || memberType != this.memberType
+        || value != this.value
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res =
+          Member(label, memberType, value, location, passData, diagnostics)
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -191,9 +201,18 @@ object Set {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Subsumption = {
-      val res = Subsumption(left, right, location, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        left != this.left
+        || right != this.right
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Subsumption(left, right, location, passData, diagnostics)
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -296,9 +315,18 @@ object Set {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Equality = {
-      val res = Equality(left, right, location, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        left != this.left
+        || right != this.right
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Equality(left, right, location, passData, diagnostics)
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -401,9 +429,18 @@ object Set {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Concat = {
-      val res = Concat(left, right, location, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        left != this.left
+        || right != this.right
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Concat(left, right, location, passData, diagnostics)
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -502,9 +539,17 @@ object Set {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Union = {
-      val res = Union(operands, location, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        operands != this.operands
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Union(operands, location, passData, diagnostics)
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -601,9 +646,18 @@ object Set {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Intersection = {
-      val res = Intersection(left, right, location, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        left != this.left
+        || right != this.right
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Intersection(left, right, location, passData, diagnostics)
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */

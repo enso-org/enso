@@ -62,9 +62,18 @@ object Literal {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Number = {
-      val res = Number(base, value, location, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        base != this.base
+        || value != this.value
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Number(base, value, location, passData, diagnostics)
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -187,9 +196,17 @@ object Literal {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Text = {
-      val res = Text(text, location, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        text != this.text
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Text(text, location, passData, diagnostics)
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */

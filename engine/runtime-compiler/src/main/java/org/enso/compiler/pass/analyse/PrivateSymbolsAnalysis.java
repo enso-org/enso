@@ -75,6 +75,7 @@ public class PrivateSymbolsAnalysis implements IRPass {
         ir.imports(),
         ir.exports(),
         newBindings,
+        ir.isPrivate(),
         ir.location(),
         ir.passData(),
         ir.diagnostics(),

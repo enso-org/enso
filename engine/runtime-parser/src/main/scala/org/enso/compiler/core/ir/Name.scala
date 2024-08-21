@@ -73,16 +73,25 @@ object Name {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): MethodReference = {
-      val res =
-        MethodReference(
-          typePointer,
-          methodName,
-          location,
-          passData,
-          diagnostics
-        )
-      res.id = id
-      res
+      if (
+        typePointer != this.typePointer
+        || methodName != this.methodName
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res =
+          MethodReference(
+            typePointer,
+            methodName,
+            location,
+            passData,
+            diagnostics
+          )
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -239,15 +248,23 @@ object Name {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Qualified = {
-      val res =
-        Qualified(
-          parts,
-          location,
-          passData,
-          diagnostics
-        )
-      res.id = id
-      res
+      if (
+        parts != this.parts
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res =
+          Qualified(
+            parts,
+            location,
+            passData,
+            diagnostics
+          )
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -310,9 +327,16 @@ object Name {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Blank = {
-      val res = Blank(location, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Blank(location, passData, diagnostics)
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -384,9 +408,17 @@ object Name {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Special = {
-      val res = Special(specialName, location, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        specialName != this.specialName
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Special(specialName, location, passData, diagnostics)
+        res.id = id
+        res
+      } else this
     }
 
     override def duplicate(
@@ -481,10 +513,20 @@ object Name {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Literal = {
-      val res =
-        Literal(name, isMethod, location, originalName, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        name != this.name
+        || isMethod != this.isMethod
+        || location != this.location
+        || originalName != this.originalName
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res =
+          Literal(name, isMethod, location, originalName, passData, diagnostics)
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -584,9 +626,17 @@ object Name {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): BuiltinAnnotation = {
-      val res = BuiltinAnnotation(name, location, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        name != this.name
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = BuiltinAnnotation(name, location, passData, diagnostics)
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -671,10 +721,19 @@ object Name {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): GenericAnnotation = {
-      val res =
-        GenericAnnotation(name, expression, location, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        name != this.name
+        || expression != this.expression
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res =
+          GenericAnnotation(name, expression, location, passData, diagnostics)
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -750,15 +809,23 @@ object Name {
       * @return a copy of `this`, updated with the specified values
       */
     def copy(
-      location: Option[IdentifiedLocation] = location,
       synthetic: Boolean                   = synthetic,
+      location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Self = {
-      val res = Self(location, synthetic, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        synthetic != this.synthetic
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Self(location, synthetic, passData, diagnostics)
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -833,9 +900,16 @@ object Name {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): SelfType = {
-      val res = SelfType(location, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = SelfType(location, passData, diagnostics)
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */

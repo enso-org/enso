@@ -52,9 +52,18 @@ sealed case class Conversion(
     diagnostics: DiagnosticStorage = diagnostics,
     id: UUID @Identifier           = id
   ): Conversion = {
-    val res = Conversion(storedIr, reason, passData, diagnostics)
-    res.id = id
-    res
+    if (
+      storedIr != this.storedIr
+      || reason != this.reason
+      || passData != this.passData
+      || diagnostics != this.diagnostics
+      || id != this.id
+    ) {
+
+      val res = Conversion(storedIr, reason, passData, diagnostics)
+      res.id = id
+      res
+    } else this
   }
 
   /** @inheritdoc */

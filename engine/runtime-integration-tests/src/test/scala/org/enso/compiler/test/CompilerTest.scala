@@ -190,6 +190,7 @@ trait CompilerRunner {
             )
         ),
         List(),
+        false,
         None
       )
     }
