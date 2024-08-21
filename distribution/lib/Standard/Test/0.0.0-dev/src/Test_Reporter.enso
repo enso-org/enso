@@ -194,17 +194,17 @@ print_progress current_progress total_count status_text =
     truncated_line = if line.length <= progress_width then line else
         line.take (progress_width - 3) + '...'
 
-    Java_System.out.print '\r'
-    Java_System.out.print (' ' * progress_width)
-    Java_System.out.print '\r'
-    Java_System.out.print truncated_line
-    Java_System.out.print '\r'
+    IO.println ends_with='' '\r'
+    IO.println ends_with=''  (' ' * progress_width)
+    IO.println ends_with=''  '\r'
+    IO.println ends_with=''  truncated_line
+    IO.println ends_with=''  '\r'
 
 ## PRIVATE
 clear_progress =
-    Java_System.out.print '\r'
-    Java_System.out.print (' ' * progress_width)
-    Java_System.out.print '\r'
+    IO.println ends_with=''  '\r'
+    IO.println ends_with=''  (' ' * progress_width)
+    IO.println ends_with=''  '\r'
 
 ## PRIVATE
 type Ignore_Progress_Reporter

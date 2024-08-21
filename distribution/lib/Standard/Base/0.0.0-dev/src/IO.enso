@@ -1,6 +1,7 @@
 import project.Any.Any
 import project.Data.Text.Text
 import project.Nothing.Nothing
+import project.Internal.IO_Helpers
 
 ## PRIVATE
    ADVANCED
@@ -24,13 +25,15 @@ print_err message = @Builtin_Method "IO.print_err"
    Arguments:
    - message: The message to print. It will have to_text called on it to
      generate a textual representation that is then printed.
+   - ends_with: By default a new line is added to the printed text. It can
+     be changed by specifying different `ends_with` value.
 
    > Example
      Print the message "Oh yes!" to standard output.
 
          IO.println "Oh yes!"
-println : Any -> Nothing
-println message = @Builtin_Method "IO.println"
+println : Any -> Text -> Nothing
+println message ends_with='\n' = IO_Helpers.println message ends_with
 
 ## PRIVATE
    ADVANCED
