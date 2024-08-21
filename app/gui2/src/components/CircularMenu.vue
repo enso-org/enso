@@ -111,7 +111,7 @@ function readableBinding(binding: keyof (typeof graphBindings)['bindings']) {
 .CircularMenu {
   position: absolute;
   left: -36px;
-  top: -36px;
+  bottom: -36px;
   width: var(--outer-diameter);
   height: var(--outer-diameter);
   user-select: none;
