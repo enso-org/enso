@@ -2676,9 +2676,6 @@ lazy val `engine-runner` = project
       "org.hamcrest"            % "hamcrest-all"            % hamcrestVersion           % Test,
       "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionCompatVersion
     ),
-    Compile / compile := (Compile / compile)
-      .dependsOn(`runtime-parser` / Compile / compileModuleInfo)
-      .value,
     moduleDependencies := {
       Seq(
         "org.scala-lang"       % "scala-library" % scalacVersion,
@@ -2687,21 +2684,26 @@ lazy val `engine-runner` = project
         "org.graalvm.sdk"      % "word"          % graalMavenPackagesVersion,
         "commons-cli"          % "commons-cli"   % commonsCliVersion,
         "org.jline"            % "jline"         % jlineVersion,
-        "org.slf4j"            % "slf4j-api"     % slf4jVersion,
-        (`profiling-utils` / projectID).value,
-        (`semver` / projectID).value,
-        (`cli` / projectID).value,
-        (`distribution-manager` / projectID).value,
-        (`editions` / projectID).value,
-        (`edition-updater` / projectID).value,
-        (`library-manager` / projectID).value,
-        (`pkg` / projectID).value,
-        (`engine-runner-common` / projectID).value,
-        (`runtime-parser` / projectID).value,
-        (`version-output` / projectID).value,
-        (`engine-common` / projectID).value,
+        "org.slf4j"            % "slf4j-api"     % slf4jVersion
       )
     },
+    internalModuleDependencies := Seq(
+      (`profiling-utils` / exportedModule).value,
+      (`semver` / exportedModule).value,
+      (`cli` / exportedModule).value,
+      (`distribution-manager` / exportedModule).value,
+      (`editions` / exportedModule).value,
+      (`edition-updater` / exportedModule).value,
+      (`library-manager` / exportedModule).value,
+      (`pkg` / exportedModule).value,
+      (`engine-runner-common` / exportedModule).value,
+      (`runtime-parser` / exportedModule).value,
+      (`version-output` / exportedModule).value,
+      (`engine-common` / exportedModule).value,
+      (`polyglot-api` / exportedModule).value,
+      (`logging-config` / exportedModule).value,
+      (`logging-utils` / exportedModule).value
+    ),
     run / connectInput := true
   )
   .settings(
