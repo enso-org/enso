@@ -55,6 +55,8 @@ type Dialect_Operations
    and that state is stored in the fields of this type. This type only contains
    the mutually recursive generators for the SQL IR that require this state.
 type SQL_Generator
+    ## We can use a Hashset for the let-binding names, since they are guaranteed
+       to be distinct and not result in any shadowing.
     Value (let_bindings_ref : Ref Hashset)
 
     new -> SQL_Generator = SQL_Generator.Value (Ref.new Hashset.empty)
