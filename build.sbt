@@ -1015,6 +1015,7 @@ lazy val `scala-libs-wrapper` = project
       "org.typelevel" %% "cats-core" % "2.10.0",
       "org.scala-lang" % "scala-compiler" % scalacVersion,
       "org.jline"               % "jline"                   % jlineVersion,
+      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion,
     ),
     moduleDependencies := Seq(
       "org.scala-lang"   % "scala-library"           % scalacVersion,
@@ -1071,6 +1072,8 @@ lazy val `scala-libs-wrapper` = project
           "org.typelevel" % ("cats-kernel_" + scalaVer) % "2.10.0",
           "org.typelevel" % ("jawn-parser_" + scalaVer) % "1.5.1",
           "com.chuusai" % ("shapeless_" + scalaVer) % "2.3.10",
+          "com.github.plokhotnyuk.jsoniter-scala" % ("jsoniter-scala-macros_" + scalaVer) % jsoniterVersion,
+          "com.github.plokhotnyuk.jsoniter-scala" % ("jsoniter-scala-core_" + scalaVer) % jsoniterVersion,
         ),
         streams.value.log,
         shouldContainAll = true
