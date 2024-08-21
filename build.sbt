@@ -826,7 +826,8 @@ lazy val pkg = (project in file("lib/scala/pkg"))
     ),
     moduleDependencies := {
       Seq(
-        "org.apache.commons" % "commons-compress" % commonsCompressVersion
+        "org.apache.commons" % "commons-compress" % commonsCompressVersion,
+        "org.scala-lang"     % "scala-library"    % scalacVersion
       )
     }
   )
@@ -895,7 +896,8 @@ lazy val `logging-utils` = project
     compileOrder := CompileOrder.ScalaThenJava, // Note [JPMS Compile order]
     moduleDependencies := {
       Seq(
-        "org.slf4j" % "slf4j-api" % slf4jVersion
+        "org.scala-lang" % "scala-library" % scalacVersion,
+        "org.slf4j"      % "slf4j-api"     % slf4jVersion
       )
     }
   )
@@ -2589,8 +2591,8 @@ lazy val `engine-runner-common` = project
       "commons-cli"          % "commons-cli" % commonsCliVersion
     ),
     moduleDependencies := Seq(
-      "commons-cli"          % "commons-cli" % commonsCliVersion,
-      "org.slf4j"            % "slf4j-api"     % slf4jVersion,
+      "commons-cli" % "commons-cli" % commonsCliVersion,
+      "org.slf4j"   % "slf4j-api"   % slf4jVersion
     )
   )
   .dependsOn(`polyglot-api`)
