@@ -68,7 +68,7 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
                         id={tabData.settingsTab}
                         icon={tabData.icon}
                         label={getText(tabData.nameId)}
-                        active={tabData.settingsTab === tab}
+                        isActive={tabData.settingsTab === tab}
                         onPress={() =>
                           tabData.onPress ?
                             tabData.onPress(context)

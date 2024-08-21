@@ -66,7 +66,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
       },
       fontSize: {
         xs: '11.5px',
-        sm: '15px',
+        sm: '13px',
         xl: '19px',
         '3xl': '32px',
         '4xl': '38px',
