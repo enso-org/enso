@@ -8,10 +8,13 @@
   any suggestion with Tab or new button the mode is switched to "code editing",
   where visualization preview is displayed instead.
 - [Drilldown for XML][10824]
+- [Fixed issue where switching edited widget with <kbd>tab</kbd> key did not
+  updated actual code][10857]
 
 [10774]: https://github.com/enso-org/enso/pull/10774
 [10814]: https://github.com/enso-org/enso/pull/10814
 [10824]: https://github.com/enso-org/enso/pull/10824
+[10857]: https://github.com/enso-org/enso/pull/10857
 
 #### Enso Standard Library
 
