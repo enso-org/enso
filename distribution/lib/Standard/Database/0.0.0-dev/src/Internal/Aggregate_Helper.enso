@@ -33,7 +33,6 @@ from project.Errors import Unsupported_Database_Operation
    - problem_builder: A `Problem_Builder` instance used for reporting warnings.
 make_aggregate_column : DB_Table -> Aggregate_Column -> Text -> Dialect -> (Any -> Any -> Any -> SQL_Type_Reference) -> Problem_Builder -> Internal_Column
 make_aggregate_column table aggregate as dialect infer_return_type problem_builder -> Internal_Column =
-    is_non_empty_selector v = v.is_nothing.not && v.not_empty
     simple_aggregate op_kind columns =
         expression = dialect.cast_op_type op_kind columns (SQL_Expression.Operation op_kind (columns.map c->c.expression))
         sql_type_ref = infer_return_type op_kind columns expression
@@ -70,14 +69,14 @@ make_aggregate_column table aggregate as dialect infer_return_type problem_build
                 problem_builder.report_other_warning (Floating_Point_Equality.Error as)
             simple_aggregate "MODE" [c]
         Aggregate_Column.First c _ ignore_nothing order_by -> case is_non_empty_selector order_by of
-            False -> Error.throw (Unsupported_Database_Operation.Error "`First` aggregation requires at least one `order_by` column.")
+            False -> throw_ordering_required "First"
             True ->
                 op = case ignore_nothing of
                     False -> "FIRST"
                     True -> "FIRST_NOT_NULL"
                 aggregate_with_order_by op c order_by
         Aggregate_Column.Last c _ ignore_nothing order_by -> case is_non_empty_selector order_by of
-            False -> Error.throw (Unsupported_Database_Operation.Error "`Last` aggregation requires at least one `order_by` column.")
+            False -> throw_ordering_required "Last"
             True ->
                 op = case ignore_nothing of
                     False -> "LAST"
@@ -199,8 +198,8 @@ make_infer_return_type dialect connection context =
 build_aggregate_with_row_number_for_first_last dialect base_table key_columns resolved_aggregates problem_builder =
     if (has_first_last resolved_aggregates).not then default_build_aggregate dialect base_table key_columns resolved_aggregates problem_builder else
         needed_orderings = resolved_aggregates.flat_map agg-> case agg.second of
-            Aggregate_Column.First _ _ _ order_by -> [order_by]
-            Aggregate_Column.Last _ _ _ order_by -> [order_by]
+            Aggregate_Column.First _ _ _ order_by -> if is_non_empty_selector order_by then [order_by] else []
+            Aggregate_Column.Last _ _ _ order_by -> if is_non_empty_selector order_by then [order_by] else []
             _ -> []
 
         # This function will infer return type at the context of the current query - used to extend it with row numbers.
@@ -208,13 +207,13 @@ build_aggregate_with_row_number_for_first_last dialect base_table key_columns re
         name_generator = base_table.column_naming_helper.create_unique_name_strategy
         name_generator.mark_used base_table.column_names
         key_expressions_for_orderings = key_columns.map .expression
-        numbering_columns = Dictionary.from_vector <| needed_orderings.distinct.map ordering->
+        numbering_columns = Dictionary.from_vector <| needed_orderings.distinct.map orderings->
             name = name_generator.make_unique "row-number"
-            order_descriptors = dialect.prepare_order_descriptor ordering.column ordering.direction text_ordering=Nothing
+            order_descriptors = orderings.map o-> dialect.prepare_order_descriptor o.column o.direction text_ordering=Nothing
             expression = Row_Number_Helpers.make_row_number 1 1 order_descriptors key_expressions_for_orderings
             # We can ignore the type for this column as it is used only internally.
             column = Internal_Column.Value name SQL_Type_Reference.null expression
-            [ordering, column]
+            [orderings, column]
 
         subquery_setup = base_table.context.as_subquery base_table.name [base_table.internal_columns, numbering_columns.values]
         updated_numbering_columns = numbering_columns.map subquery_setup.remap_column
@@ -227,6 +226,7 @@ build_aggregate_with_row_number_for_first_last dialect base_table key_columns re
         # This function will infer return type at the context of the subquery with aggregation groupings.
         infer_return_type_in_new_context = make_infer_return_type dialect base_table.connection new_ctx
         results = resolved_aggregates.map p->
+            # TODO throw if ordering selector is empty...
             original_aggregate = p.second
             as = p.first
             updated_aggregate = map_column_inputs subquery_setup.remap_column original_aggregate
@@ -253,10 +253,11 @@ build_aggregate_with_row_number_for_first_last dialect base_table key_columns re
 
 
 ## PRIVATE
+   We check if aggregates requiring special handling are present.
 has_first_last resolved_aggregates = resolved_aggregates.any agg->
     case agg.second of
         Aggregate_Column.First _ _ _ _ -> True
-        Aggregate_Column.Last _ _ _ _ -> True
+        Aggregate_Column.Last _ _ _ _  -> True
         _ -> False
 
 ## PRIVATE
@@ -285,3 +286,9 @@ map_column_inputs f:Function aggregate_column:Aggregate_Column -> Aggregate_Colu
         Minimum c as -> Minimum (f c) as
         Shortest c as -> Shortest (f c) as
         Longest c as -> Longest (f c) as
+
+## PRIVATE
+is_non_empty_selector v = v.is_nothing.not && v.not_empty
+
+## PRIVATE
+throw_ordering_required op_name = Error.throw (Unsupported_Database_Operation.Error ("`" + op_name + "` aggregation requires at least one `order_by` column."))

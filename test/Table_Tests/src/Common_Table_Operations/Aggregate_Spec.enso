@@ -1317,6 +1317,17 @@ add_specs suite_builder setup =
             m1.at "First A 1" . to_vector . should_equal ["a"]
             m1.at "Last A 1" . to_vector . should_equal ["c"]
 
+        group_builder.specify "may return Nothing even if `ignore_nothing=True` if there are no values" <|
+            # We create a non-empty table because all-Nothing columns are problematic in some backends:
+            t1 = table_builder [["ix", [Nothing, 1, 2, 3]], ["A", [1, Nothing, Nothing, Nothing]]]
+                . filter "ix" ..Not_Nothing
+            r1 = t1.aggregate columns=[First "A" order_by="ix" ignore_nothing=True, Last "A" order_by="ix" ignore_nothing=True]
+            r1.column_names . should_equal ["First A", "Last A"]
+            m1 = materialize r1
+            m1.row_count . should_equal 1
+            m1.at "First A" . to_vector . should_equal [Nothing]
+            m1.at "Last A" . to_vector . should_equal [Nothing]
+
     suite_builder.group prefix+"Table.aggregate" group_builder->
         group_builder.specify "should work even if no aggregations apart from groupings are specified" <|
             table = table_builder [["A", [1, 1, 2, 1]], ["B", [3, 2, 2, 3]], ["C", [11, 12, 13, 14]]]
