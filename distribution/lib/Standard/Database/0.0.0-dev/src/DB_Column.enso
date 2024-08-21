@@ -993,7 +993,7 @@ type DB_Column
         remainder = self % scale
         remainder.let name="remainer" remainder->
             scaled_down = (self / scale).truncate . cast Value_Type.Integer
-            scaled_down.let "scaled_down" scaled_down->
+            scaled_down.let name="scaled_down" scaled_down->
                 result_unnudged = scaled_down * scale
                 result_unnudged.let name="result_unnudged" result_unnudged->
                     if_non_neg =
