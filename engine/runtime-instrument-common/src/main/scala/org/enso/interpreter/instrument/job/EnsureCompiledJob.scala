@@ -427,7 +427,7 @@ final class EnsureCompiledJob(
                 _,
               ) =>
             DataflowAnalysis.DependencyInfo.Type.Static(
-              err.getId(),
+              err.getId,
               err.getExternalId
             )
         }

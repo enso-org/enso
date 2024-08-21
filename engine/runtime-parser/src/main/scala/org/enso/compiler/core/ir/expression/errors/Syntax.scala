@@ -27,15 +27,21 @@ sealed case class Syntax(
     with LazyDiagnosticStorage
     with LazyId {
 
-  /** Create a syntax error from original IR.
+  /** Create a syntax error.
     *
-    * @param ir the original IR
     * @param at the error location
     * @param reason the cause of this error
+    * @param passData the pass metadata associated with this node
+    * @param diagnostics the compiler diagnostics
     */
-  def this(ir: IR, at: IdentifiedLocation, reason: Syntax.Reason) = {
-    this(at, reason, ir.passData())
-    diagnostics = ir.diagnostics
+  def this(
+    at: IdentifiedLocation,
+    reason: Syntax.Reason,
+    passData: MetadataStorage,
+    diagnostics: DiagnosticStorage
+  ) = {
+    this(at, reason, passData)
+    this.diagnostics = diagnostics
   }
 
   /** Creates a copy of `this`.
@@ -70,9 +76,8 @@ sealed case class Syntax(
     copy(
       passData =
         if (keepMetadata) passData.duplicate else new MetadataStorage(),
-      diagnostics =
-        if (keepDiagnostics) diagnosticsCopy else null,
-      id = if (keepIdentifiers) id else null
+      diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+      id          = if (keepIdentifiers) id else null
     )
 
   /** @inheritdoc */

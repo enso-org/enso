@@ -430,7 +430,7 @@ case object AliasAnalysis extends IRPass {
             GraphOccurrence.Def(
               occurrenceId,
               name.name,
-              binding.getId(),
+              binding.getId,
               binding.getExternalId,
               isSuspended
             )
@@ -556,7 +556,7 @@ case object AliasAnalysis extends IRPass {
         val definition = GraphOccurrence.Def(
           occurrenceId,
           selfName.name,
-          arg.getId(),
+          arg.getId,
           arg.getExternalId
         )
         scope.addDefinition(definition)
@@ -595,7 +595,7 @@ case object AliasAnalysis extends IRPass {
           val definition = GraphOccurrence.Def(
             occurrenceId,
             name.name,
-            arg.getId(),
+            arg.getId,
             arg.getExternalId,
             suspended
           )

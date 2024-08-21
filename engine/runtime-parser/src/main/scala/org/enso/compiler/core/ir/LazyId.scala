@@ -6,13 +6,14 @@ import org.enso.compiler.core.{IR, Identifier}
 import java.util.UUID
 
 trait LazyId { self: IR =>
-  private[this] var _id: UUID @Identifier = null
+
+  private[this] var _id: UUID @Identifier = _
 
   protected def id: UUID @Identifier = {
     _id
   }
 
-  override def getId(): UUID @Identifier = {
+  def getId: UUID @Identifier = {
     if (_id == null) {
       _id = randomId()
     }

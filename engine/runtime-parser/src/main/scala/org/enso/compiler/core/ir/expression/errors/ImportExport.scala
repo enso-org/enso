@@ -26,6 +26,23 @@ sealed case class ImportExport(
     with LazyDiagnosticStorage
     with LazyId {
 
+  /** Create an erroneous import or export statement.
+    *
+    * @param ir the original statement
+    * @param reason the reason it's erroneous
+    * @param passData the pass data
+    * @param diagnostics the attached diagnostics
+    */
+  def this(
+    ir: IR,
+    reason: ImportExport.Reason,
+    passData: MetadataStorage,
+    diagnostics: DiagnosticStorage
+  ) = {
+    this(ir, reason, passData)
+    this.diagnostics = diagnostics
+  }
+
   /** Creates a copy of `this`.
     *
     * @param ir          the original IR
@@ -58,9 +75,8 @@ sealed case class ImportExport(
     copy(
       passData =
         if (keepMetadata) passData.duplicate else new MetadataStorage(),
-      diagnostics =
-        if (keepDiagnostics) diagnosticsCopy else null,
-      id = if (keepIdentifiers) id else null
+      diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+      id          = if (keepIdentifiers) id else null
     )
 
   /** @inheritdoc */
@@ -106,27 +122,7 @@ sealed case class ImportExport(
 
 object ImportExport {
 
-  /** An erroneous import or export statement.
-    *
-    * @param ir          the original statement
-    * @param reason      the reason it's erroneous
-    * @param passData    the pass data
-    * @param diagnostics the attached diagnostics
-    */
-  def apply(
-    ir: IR,
-    reason: ImportExport.Reason,
-    passData: MetadataStorage,
-    diagnostics: DiagnosticStorage
-  ): ImportExport = {
-    val importExport = new ImportExport(ir, reason, passData)
-    importExport.diagnostics = diagnostics
-
-    importExport
-  }
-
-  /** A reason for a statement being erroneous.
-    */
+  /** A reason for a statement being erroneous. */
   sealed trait Reason {
 
     /** @param source Location of the original import/export IR.

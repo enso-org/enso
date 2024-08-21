@@ -14,12 +14,12 @@ object Application {
 
   /** A standard prefix function application.
     *
-    * @param function             the function being called
-    * @param arguments            the arguments to the function being called
+    * @param function the function being called
+    * @param arguments the arguments to the function being called
     * @param hasDefaultsSuspended whether the function application has any
-    *                             argument defaults in `function` suspended
-    * @param location             the source location that the node corresponds to
-    * @param passData             the pass metadata associated with this node
+    * argument defaults in `function` suspended
+    * @param location the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Prefix(
     function: Expression,
@@ -32,28 +32,32 @@ object Application {
       with LazyDiagnosticStorage
       with LazyId {
 
-    /** Create a prefix application from the existing expression.
+    /** Create a prefix application.
       *
-      * @param ir the original expression
       * @param function the function being called
       * @param arguments the arguments to the function being called
       * @param hasDefaultsSuspended whether the function application has any
       * argument defaults in `function` suspended
+      * @param location the source location that the node corresponds to
+      * @param passData the pass metadata associated with this node
+      * @param diagnostics the compiler diagnostics
       */
     def this(
-      ir: Expression,
       function: Expression,
       arguments: List[CallArgument],
-      hasDefaultsSuspended: Boolean
+      hasDefaultsSuspended: Boolean,
+      location: Option[IdentifiedLocation],
+      passData: MetadataStorage,
+      diagnostics: DiagnosticStorage
     ) = {
       this(
         function,
         arguments,
         hasDefaultsSuspended,
-        ir.location,
-        ir.passData
+        location,
+        passData
       )
-      diagnostics = ir.diagnostics
+      this.diagnostics = diagnostics
     }
 
     /** Creates a copy of `this`.
@@ -115,9 +119,8 @@ object Application {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnosticsCopy else null,
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -210,9 +213,8 @@ object Application {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnosticsCopy else null,
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -329,9 +331,8 @@ object Application {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnosticsCopy else null,
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -425,9 +426,8 @@ object Application {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnosticsCopy else null,
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */

@@ -62,9 +62,10 @@ public final class PrivateConstructorAnalysis implements IRPass {
                     if (!(privateCtorsCnt == ctorsCnt || publicCtorsCnt == ctorsCnt)) {
                       assert type.location().isDefined();
                       return new Syntax(
-                          type,
                           type.location().get(),
-                          InconsistentConstructorVisibility$.MODULE$);
+                          InconsistentConstructorVisibility$.MODULE$,
+                          type.passData(),
+                          type.diagnostics());
                     }
                   }
                   return binding;

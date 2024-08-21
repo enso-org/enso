@@ -48,11 +48,12 @@ object NoSelfInStatic extends IRPass {
   }
 
   private def transformSelfToError: PartialFunction[Expression, Expression] = {
-    case nameSelf @ Name.Self(location, false, _) =>
+    case nameSelf @ Name.Self(location, false, passData) =>
       new errors.Syntax(
-        nameSelf,
         location.get,
-        errors.Syntax.InvalidSelfArgUsage
+        errors.Syntax.InvalidSelfArgUsage,
+        passData,
+        nameSelf.diagnostics
       )
   }
 

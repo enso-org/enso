@@ -230,7 +230,7 @@ public final class ExportSymbolAnalysis {
       Name symbolIr, String symbolName, String modFQN) {
     assert modFQN.contains(".");
     assert !symbolName.contains(".");
-    return ImportExport.apply(
+    return new ImportExport(
         symbolIr,
         new ImportExport.SymbolDoesNotExist(symbolName, modFQN),
         emptyPassData(),
@@ -240,7 +240,7 @@ public final class ExportSymbolAnalysis {
   private static ImportExport createNoSuchConstructorError(
       Name symbolIr, String typeName, String consName) {
     assert !consName.contains(".");
-    return ImportExport.apply(
+    return new ImportExport(
         symbolIr,
         new ImportExport.NoSuchConstructor(typeName, consName),
         emptyPassData(),
@@ -251,7 +251,7 @@ public final class ExportSymbolAnalysis {
       Export.Module exportIr, String modFQN, String typeName) {
     assert modFQN.contains(".");
     assert !typeName.contains(".");
-    return ImportExport.apply(
+    return new ImportExport(
         exportIr,
         new ImportExport.TypeDoesNotExist(typeName, modFQN),
         emptyPassData(),
