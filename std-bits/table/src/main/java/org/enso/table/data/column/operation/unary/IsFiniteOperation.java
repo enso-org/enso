@@ -69,4 +69,3 @@ public class IsFiniteOperation extends AbstractUnaryBooleanOperation {
     }
   }
 }
-
