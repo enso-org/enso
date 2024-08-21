@@ -38,7 +38,7 @@ import {
 import { useText } from '#/providers/TextProvider'
 import { forwardRef } from '#/utilities/react'
 import { Controller } from 'react-hook-form'
-import { tv, VariantProps } from 'tailwind-variants'
+import { tv, type VariantProps } from 'tailwind-variants'
 
 const DATE_PICKER_STYLES = tv({
   base: '',
@@ -119,7 +119,6 @@ export const DatePicker = forwardRef(function DatePicker<
   })
 
   const styles = DATE_PICKER_STYLES({ size })
-  console.log(className, styles.base({ className }))
 
   return (
     <Form.Field
@@ -154,7 +153,7 @@ export const DatePicker = forwardRef(function DatePicker<
                 {!noResetButton && <DatePickerResetButton className={styles.resetButton()} />}
                 <Button variant="icon" icon={ArrowIcon} className="rotate-90" />
               </Group>
-              {props.description && <Text slot="description" />}
+              {props.description != null && <Text slot="description" />}
               <Popover size="auto" className={styles.calendarPopover()}>
                 <Dialog className={styles.calendarDialog()}>
                   <Calendar className={styles.calendarContainer()}>
@@ -193,10 +192,12 @@ export const DatePicker = forwardRef(function DatePicker<
   )
 })
 
+/** Props for a {@link DatePickerResetButton}. */
 interface DatePickerResetButtonProps {
   readonly className?: string
 }
 
+/** A reset button for a {@link DatePicker}. */
 function DatePickerResetButton(props: DatePickerResetButtonProps) {
   const { className } = props
   const state = useContext(DatePickerStateContext)
