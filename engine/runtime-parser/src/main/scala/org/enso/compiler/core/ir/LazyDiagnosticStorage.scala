@@ -37,7 +37,7 @@ trait LazyDiagnosticStorage { self: IR =>
     */
   def getDiagnostics: DiagnosticStorage = {
     if (_diagnostics eq null) {
-      _diagnostics = DiagnosticStorage()
+      _diagnostics = new DiagnosticStorage()
     }
     _diagnostics
   }

@@ -30,6 +30,29 @@ final case class Module(
     with LazyDiagnosticStorage
     with LazyId {
 
+  /** Create a module.
+    *
+    * @param imports the import statements that bring other modules into scope
+    * @param exports the export statements for this module
+    * @param bindings the top-level bindings for this module
+    * @param isPrivate whether or not this module is private (project-private)
+    * @param location the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
+    * @param diagnostics the compiler diagnostics
+    */
+  def this(
+    imports: List[Import],
+    exports: List[Export],
+    bindings: List[Definition],
+    isPrivate: Boolean,
+    location: Option[IdentifiedLocation],
+    passData: MetadataStorage,
+    diagnostics: DiagnosticStorage
+  ) = {
+    this(imports, exports, bindings, isPrivate, location, passData)
+    this.diagnostics = diagnostics
+  }
+
   /** Creates a copy of `this`.
     *
     * @param imports     the import statements that bring other modules into scope
@@ -134,34 +157,5 @@ final case class Module(
     val defsString    = bindings.map(_.showCode(indent)).mkString("\n\n")
 
     List(importsString, exportsString, defsString).mkString("\n\n")
-  }
-}
-
-object Module {
-
-  /** Create a [[Module]] object.
-    *
-    * @param imports the import statements that bring other modules into scope
-    * @param exports the export statements for this module
-    * @param bindings the top-level bindings for this module
-    * @param isPrivate whether or not this module is private (project-private)
-    * @param location the source location that the node corresponds to
-    * @param passData the pass metadata associated with this node
-    * @param diagnostics the compiler diagnostics
-    */
-  def apply(
-    imports: List[Import],
-    exports: List[Export],
-    bindings: List[Definition],
-    isPrivate: Boolean,
-    location: Option[IdentifiedLocation],
-    passData: MetadataStorage,
-    diagnostics: DiagnosticStorage
-  ): Module = {
-    val module =
-      Module(imports, exports, bindings, isPrivate, location, passData)
-    module.diagnostics = diagnostics
-
-    module
   }
 }

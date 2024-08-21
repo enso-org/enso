@@ -58,16 +58,6 @@ final class DiagnosticStorage(initDiagnostics: Seq[Diagnostic] = Seq())
     * @return a shallow copy of this
     */
   def copy: DiagnosticStorage = {
-    DiagnosticStorage(this.diagnostics)
+    new DiagnosticStorage(this.diagnostics)
   }
-}
-object DiagnosticStorage {
-
-  /** Creates a new instance of the diagnostics storage.
-    *
-    * @param initDiagnostics the initial diagnostics to construct it with
-    * @return a new diagnostics storage instance
-    */
-  def apply(initDiagnostics: Seq[Diagnostic] = Seq()): DiagnosticStorage =
-    new DiagnosticStorage(initDiagnostics)
 }

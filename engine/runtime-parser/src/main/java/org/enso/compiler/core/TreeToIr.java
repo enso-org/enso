@@ -206,8 +206,13 @@ final class TreeToIr {
             default -> bindings = translateModuleSymbol(expr, bindings);
           }
         }
-        yield Module.apply(imports.reverse(), exports.reverse(), bindings.reverse(), isPrivate,
-            getIdentifiedLocation(module), meta(), DiagnosticStorage.apply(diag));
+        if (diag.isEmpty()) {
+          yield new Module(imports.reverse(), exports.reverse(), bindings.reverse(), isPrivate,
+            getIdentifiedLocation(module), meta(), new DiagnosticStorage(diag));
+        } else {
+          yield new Module(imports.reverse(), exports.reverse(), bindings.reverse(), isPrivate,
+              getIdentifiedLocation(module), meta());
+        }
       }
       default -> new Module(
           nil(), nil(),
@@ -2036,10 +2041,6 @@ final class TreeToIr {
 
   private MetadataStorage meta() {
     return new MetadataStorage();
-  }
-
-  private DiagnosticStorage diag() {
-    return DiagnosticStorage.apply(nil());
   }
 
   private static int castToInt(long presumablyInt) {
