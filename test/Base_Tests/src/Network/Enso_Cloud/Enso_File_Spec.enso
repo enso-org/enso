@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Enso_Cloud.Cloud_Caching_Settings
+import Standard.Base.Enso_Cloud.Errors.Enso_Cloud_Error
 import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.Common.Not_Found
 import Standard.Base.Errors.File_Error.File_Error
@@ -25,8 +26,8 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         Panic.rethrow <| "Hello Another!".write (sub / "another.txt")
     group_builder.teardown test_root.cleanup
 
-    group_builder.specify "should be able to list the root directory" <|
-        assets = Enso_File.root.list
+    group_builder.specify "should be able to list a directory" <|
+        assets = Enso_File.home.list
         # We don't a priori know the contents, so we can only check very generic properties
         assets . should_be_a Vector
         assets.each f-> f.should_be_a Enso_File
@@ -36,7 +37,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
 
     group_builder.specify "should allow to create and delete a directory" <|
         my_name = "my_test_dir-" + (Random.uuid.take 5)
-        my_dir = (Enso_File.root / my_name).create_directory
+        my_dir = (test_root.get / my_name).create_directory
         my_dir.should_succeed
         delete_on_fail caught_panic =
             my_dir.delete
@@ -45,19 +46,19 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
             my_dir.is_directory . should_be_true
             my_dir.exists . should_be_true
             my_dir.name . should_equal my_name
-            Enso_File.root.list . should_contain my_dir
+            test_root.get.list . should_contain my_dir
 
         my_dir.delete . should_succeed
 
         Test.with_retries <|
-            Enso_File.root.list . should_not_contain my_dir
+            test_root.get.list . should_not_contain my_dir
             my_dir.exists . should_be_false
 
     group_builder.specify "should set the current working directory by environment variable" <|
         # If nothing set, defaults to root:
-        Enso_File.current_working_directory . should_equal Enso_File.root
+        Enso_File.current_working_directory . should_equal Enso_File.home
 
-        subdir = (Enso_File.root / ("my_test_CWD-" + Random.uuid.take 5)).create_directory
+        subdir = (test_root.get / ("my_test_CWD-" + Random.uuid.take 5)).create_directory
         subdir.should_succeed
         cleanup =
             Enso_User.flush_caches
@@ -70,7 +71,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
                 Enso_File.current_working_directory . should_equal subdir
 
         # It should be back to default afterwards:
-        Enso_File.current_working_directory . should_equal Enso_File.root
+        Enso_File.current_working_directory . should_equal Enso_File.home
 
     group_builder.specify "should allow to find a file by name" <|
         f = test_root.get / "test_file.json"
@@ -96,9 +97,9 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
                     f.size.should_equal 16
 
     group_builder.specify "should be able to find a file by path" <|
-        File.new "enso://"+Enso_User.current.organization_name+"/" . should_equal Enso_File.root
-        File.new "enso://"+Enso_User.current.organization_name+"/test_file.json" . should_equal (Enso_File.root / "test_file.json")
-        File.new "enso://"+Enso_User.current.organization_name+"/abc/" . should_equal (Enso_File.root / "abc")
+        File.new "enso://" . should_equal Enso_File.root
+        File.new "enso://test_file.json" . should_equal (Enso_File.root / "test_file.json")
+        File.new "enso://abc/" . should_equal (Enso_File.root / "abc")
 
     group_builder.specify "should fail to read nonexistent files" <|
         f = Enso_File.root / "nonexistent_file.json"
@@ -108,8 +109,9 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         r.should_fail_with File_Error
         r.catch.should_be_a File_Error.Not_Found
 
-    group_builder.specify "should not allow to delete the root directory" <|
+    group_builder.specify "should not allow to delete the root or home directory" <|
         Enso_File.root.delete . should_fail_with Illegal_Argument
+        Enso_File.home.delete . should_fail_with Any
 
     # See Inter_Backend_File_Operations_Spec for copy/move tests
     group_builder.specify "should be able to write a file using with_output_stream" <|
@@ -239,7 +241,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         nested_file.last_modified_time . should_be_a Date_Time
 
         Enso_File.root.parent . should_equal Nothing
-        Enso_File.root.path . should_equal ("enso://"+Enso_User.current.organization_name+"/")
+        Enso_File.root.path . should_equal "enso://"
 
         dir.path . should_contain "enso://"
         dir.path . should_contain "/test-directory"
@@ -275,7 +277,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         dir.last_modified_time.should_fail_with Illegal_Argument
 
     group_builder.specify "should be able to read other file metadata" pending="TODO needs further design" <|
-        nested_file = Enso_File.root / "test-directory" / "another.txt"
+        nested_file = test_root.get / "test-directory" / "another.txt"
 
         nested_file.is_absolute.should_be_true
         nested_file.absolute . should_equal nested_file
