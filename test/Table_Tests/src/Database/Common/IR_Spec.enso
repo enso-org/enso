@@ -46,7 +46,8 @@ count_nodes col =
 rebuild col =
     col.to_table.to_select_query . traverse (x->x) . at col.name
 
-add_specs (suite_builder : Suite_Builder) (prefix : Text) default_connection =
+add_specs (suite_builder : Suite_Builder) setup (prefix : Text) default_connection =
+    table_builder = setup.table_builder
 
     suite_builder.group (prefix + "IR Traversal") group_builder->
         data = Data.setup default_connection
@@ -72,6 +73,23 @@ add_specs (suite_builder : Suite_Builder) (prefix : Text) default_connection =
             count_nodes a . should_be_a Integer
             count_nodes b . should_be_a Integer
             count_nodes c . should_be_a Integer
+
+        group_builder.specify "let bindings should not affect the end result" <|
+            t = table_builder [["x", [1.3, 2.8]], ["y", [-3.4, 7.2]]]
+            x = t.at "x"
+            y = t.at "y"
+            wm enabled expression callback =
+                if enabled then expression.let callback else callback expression
+            bools = [True, False]
+            results = bools.map b0-> bools.map b1-> bools.map b2-> bools.map b3->
+                ## Complex query that optionally enables let bindings at each step
+                big = wm b0 (x * y) xty->
+                    wm b1 (x + y + 10) xpyp10->
+                        wm b2 (xty.round 1 use_bankers=True) r0->
+                            wm b3 (xpyp10.round 1 use_bankers=True) r1->
+                                r0 + r1
+                big.to_vector
+            results.flatten.flatten.flatten.distinct.length . should_equal 1
 
         group_builder.specify "should convert WITH binders to short names that do not conflict with existing table names" <|
             t = Table.new [["x", [1, 2]], ["y", ['a', 'b']]]
