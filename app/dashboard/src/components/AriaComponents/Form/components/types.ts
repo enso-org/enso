@@ -53,10 +53,7 @@ export interface UseFormReturn<Schema extends TSchema>
  * Form state type.
  * @alias reactHookForm.FormState
  */
-export type FormState<
-  Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-> = reactHookForm.FormState<TFieldValues>
+export type FormState<Schema extends TSchema> = reactHookForm.FormState<FieldValues<Schema>>
 
 /**
  * Form instance type

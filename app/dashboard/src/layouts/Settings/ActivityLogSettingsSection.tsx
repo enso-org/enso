@@ -1,27 +1,23 @@
 /** @file Settings tab for viewing and editing account information. */
 import * as React from 'react'
 
+import { fromDate, ZonedDateTime } from '@internationalized/date'
+import * as z from 'zod'
+
 import DataUploadIcon from '#/assets/data_upload.svg'
 import KeyIcon from '#/assets/key.svg'
 import Play2Icon from '#/assets/play2.svg'
 import SortAscendingIcon from '#/assets/sort_ascending.svg'
 import TrashIcon from '#/assets/trash.svg'
-
-import * as backendHooks from '#/hooks/backendHooks'
-
-import * as textProvider from '#/providers/TextProvider'
-
 import * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
-import { Dropdown } from '#/components/AriaComponents'
-import DateInput from '#/components/DateInput'
+import { Button, DatePicker, Dropdown, Form, Text } from '#/components/AriaComponents'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
-
+import * as backendHooks from '#/hooks/backendHooks'
+import * as textProvider from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
-
 import * as dateTime from '#/utilities/dateTime'
 import * as sorting from '#/utilities/sorting'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
@@ -44,6 +40,14 @@ const EVENT_TYPE_NAME: Record<backendModule.EventType, string> = {
   [backendModule.EventType.ListSecrets]: 'List Secrets',
   [backendModule.EventType.OpenProject]: 'Open Project',
   [backendModule.EventType.UploadFile]: 'Upload File',
+}
+
+/** Create the schema for this form. */
+function createActivityLogSchema() {
+  return z.object({
+    startDate: z.instanceof(ZonedDateTime).optional(),
+    endDate: z.instanceof(ZonedDateTime).optional(),
+  })
 }
 
 // =================================
@@ -70,8 +74,6 @@ export interface ActivityLogSettingsSectionProps {
 export default function ActivityLogSettingsSection(props: ActivityLogSettingsSectionProps) {
   const { backend } = props
   const { getText } = textProvider.useText()
-  const [startDate, setStartDate] = React.useState<Date | null>(null)
-  const [endDate, setEndDate] = React.useState<Date | null>(null)
   const [types, setTypes] = React.useState<readonly backendModule.EventType[]>([])
   const [typeIndices, setTypeIndices] = React.useState<readonly number[]>(() => [])
   const [emails, setEmails] = React.useState<readonly string[]>([])
@@ -82,12 +84,17 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
   const allEmails = React.useMemo(() => (users ?? []).map((user) => user.email), [users])
   const logsQuery = backendHooks.useBackendQuery(backend, 'getLogEvents', [])
   const logs = logsQuery.data
+
+  const form = Form.useForm({ schema: createActivityLogSchema() })
+  const startDate = form.watch('startDate')
+  const endDate = form.watch('endDate')
+
   const filteredLogs = React.useMemo(() => {
     const typesSet = new Set(types.length > 0 ? types : backendModule.EVENT_TYPES)
     const emailsSet = new Set(emails.length > 0 ? emails : allEmails)
     return logs == null ? null : (
         logs.filter((log) => {
-          const date = log.timestamp == null ? null : dateTime.toDate(new Date(log.timestamp))
+          const date = log.timestamp == null ? null : fromDate(new Date(log.timestamp), 'UTC')
           return (
             typesSet.has(log.metadata.type) &&
             emailsSet.has(log.userEmail) &&
@@ -97,6 +104,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
         })
       )
   }, [logs, types, emails, startDate, endDate, allEmails])
+
   const sortedLogs = React.useMemo(() => {
     if (sortInfo == null || filteredLogs == null) {
       return filteredLogs
@@ -139,23 +147,17 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
     <div className="flex flex-col gap-4">
       <FocusArea direction="horizontal">
         {(innerProps) => (
-          <div className="flex flex-wrap gap-3" {...innerProps}>
+          <Form form={form} className="flex flex-row flex-wrap gap-3" {...innerProps}>
             <div className="flex items-center gap-2">
-              <ariaComponents.Text className="whitespace-nowrap">
-                {getText('startDate')}
-              </ariaComponents.Text>
-              <DateInput date={startDate} onInput={setStartDate} />
+              <Text className="whitespace-nowrap">{getText('startDate')}</Text>
+              <DatePicker form={form} name="startDate" size="small" />
             </div>
             <div className="flex items-center gap-2">
-              <ariaComponents.Text className="whitespace-nowrap">
-                {getText('endDate')}
-              </ariaComponents.Text>
-              <DateInput date={endDate} onInput={setEndDate} />
+              <Text className="whitespace-nowrap">{getText('endDate')}</Text>
+              <DatePicker form={form} name="endDate" size="small" />
             </div>
             <div className="flex items-center gap-2">
-              <ariaComponents.Text className="whitespace-nowrap">
-                {getText('types')}
-              </ariaComponents.Text>
+              <Text className="whitespace-nowrap">{getText('types')}</Text>
               <Dropdown
                 multiple
                 items={backendModule.EVENT_TYPES}
@@ -175,9 +177,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
               </Dropdown>
             </div>
             <div className="flex items-center gap-2">
-              <ariaComponents.Text className="whitespace-nowrap">
-                {getText('users')}
-              </ariaComponents.Text>
+              <Text className="whitespace-nowrap">{getText('users')}</Text>
               <Dropdown
                 multiple
                 items={allEmails}
@@ -195,7 +195,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                 {({ item }) => item}
               </Dropdown>
             </div>
-          </div>
+          </Form>
         )}
       </FocusArea>
       <table className="table-fixed self-start rounded-rows">
@@ -203,7 +203,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
           <tr className="h-table-row">
             <ActivityLogHeaderCell className="w-8" />
             <ActivityLogHeaderCell className="w-32">
-              <ariaComponents.Button
+              <Button
                 size="custom"
                 variant="custom"
                 aria-label={
@@ -245,10 +245,10 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                       'rotate-180',
                   )}
                 />
-              </ariaComponents.Button>
+              </Button>
             </ActivityLogHeaderCell>
             <ActivityLogHeaderCell className="w-48">
-              <ariaComponents.Button
+              <Button
                 size="custom"
                 variant="custom"
                 aria-label={
@@ -290,10 +290,10 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                       'rotate-180',
                   )}
                 />
-              </ariaComponents.Button>
+              </Button>
             </ActivityLogHeaderCell>
             <ActivityLogHeaderCell className="w-36">
-              <ariaComponents.Button
+              <Button
                 size="custom"
                 variant="custom"
                 aria-label={
@@ -336,7 +336,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                       'rotate-180',
                   )}
                 />
-              </ariaComponents.Button>
+              </Button>
             </ActivityLogHeaderCell>
           </tr>
         </thead>

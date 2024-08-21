@@ -35,12 +35,22 @@ import {
 } from '#/components/AriaComponents'
 import { forwardRef } from '#/utilities/react'
 import { Controller } from 'react-hook-form'
-import { tv } from 'tailwind-variants'
+import { tv, VariantProps } from 'tailwind-variants'
 
 const DATE_PICKER_STYLES = tv({
   base: '',
+  variants: {
+    size: {
+      small: {
+        inputGroup: 'h-6 px-2',
+      },
+      medium: {
+        inputGroup: 'h-8 px-4',
+      },
+    },
+  },
   slots: {
-    inputGroup: 'flex items-center h-8 gap-2 rounded-full border-0.5 border-primary/20 px-4',
+    inputGroup: 'flex items-center gap-2 rounded-full border-0.5 border-primary/20',
     dateInput: 'flex',
     dateSegment: 'rounded placeholder-shown:text-primary/30 focus:bg-primary/10 px-[0.5px]',
     calendarPopover: 'w-0',
@@ -55,6 +65,9 @@ const DATE_PICKER_STYLES = tv({
     calendarGridCell:
       'text-center px-1 rounded hover:bg-primary/10 outside-visible-range:text-primary/30',
   },
+  defaultVariants: {
+    size: 'medium',
+  },
 })
 
 /** Props for a {@link DatePicker}. */
@@ -68,7 +81,8 @@ export interface DatePickerProps<Schema extends TSchema, TFieldName extends Fiel
       TFieldName
     >,
     FieldProps,
-    Pick<FieldComponentProps<Schema>, 'className' | 'style'> {
+    Pick<FieldComponentProps<Schema>, 'className' | 'style'>,
+    VariantProps<typeof DATE_PICKER_STYLES> {
   readonly noCalendarHeader?: boolean
   readonly segments?: Partial<Record<DateSegmentType['type'], boolean>>
 }
@@ -87,6 +101,8 @@ export const DatePicker = forwardRef(function DatePicker<
     defaultValue,
     label,
     isRequired,
+    className,
+    size,
   } = props
 
   const { fieldState, formInstance } = Form.useField({
@@ -96,7 +112,7 @@ export const DatePicker = forwardRef(function DatePicker<
     defaultValue,
   })
 
-  const classes = DATE_PICKER_STYLES({})
+  const classes = DATE_PICKER_STYLES({ className, size })
 
   return (
     <Form.Field
@@ -131,7 +147,7 @@ export const DatePicker = forwardRef(function DatePicker<
                 </DateInput>
                 <Button variant="icon" icon={ArrowIcon} className="rotate-90" />
               </Group>
-              <Text slot="description" />
+              {props.description && <Text slot="description" />}
               <Popover size="auto" className={classes.calendarPopover()}>
                 <Dialog className={classes.calendarDialog()}>
                   <Calendar className={classes.calendarContainer()}>
