@@ -156,7 +156,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                 name="startDate"
                 size="small"
                 maxValue={maxDate}
-                className="w-[120px]"
+                className="w-36"
               />
             </div>
             <div className="flex items-center gap-2">
@@ -166,7 +166,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                 name="endDate"
                 size="small"
                 maxValue={maxDate}
-                className="w-[120px]"
+                className="w-36"
               />
             </div>
             <div className="flex items-center gap-2">

@@ -1,8 +1,9 @@
 /** @file A date picker. */
-import type { ForwardedRef } from 'react'
+import { useContext, type ForwardedRef } from 'react'
 
 import type { DateSegment as DateSegmentType } from 'react-stately'
 
+import CrossIcon from '#/assets/cross.svg'
 import ArrowIcon from '#/assets/folder_arrow.svg'
 import {
   DatePicker as AriaDatePicker,
@@ -13,6 +14,7 @@ import {
   CalendarGridHeader,
   CalendarHeaderCell,
   DateInput,
+  DatePickerStateContext,
   DateSegment,
   Dialog,
   Group,
@@ -33,6 +35,7 @@ import {
   type FieldValues,
   type TSchema,
 } from '#/components/AriaComponents'
+import { useText } from '#/providers/TextProvider'
 import { forwardRef } from '#/utilities/react'
 import { Controller } from 'react-hook-form'
 import { tv, VariantProps } from 'tailwind-variants'
@@ -53,6 +56,7 @@ const DATE_PICKER_STYLES = tv({
     inputGroup: 'flex items-center gap-2 rounded-full border-0.5 border-primary/20',
     dateInput: 'flex justify-center grow',
     dateSegment: 'rounded placeholder-shown:text-primary/30 focus:bg-primary/10 px-[0.5px]',
+    resetButton: '',
     calendarPopover: 'w-0',
     calendarDialog: 'text-primary text-xs',
     calendarContainer: '',
@@ -83,6 +87,7 @@ export interface DatePickerProps<Schema extends TSchema, TFieldName extends Fiel
     FieldProps,
     Pick<FieldComponentProps<Schema>, 'className' | 'style'>,
     VariantProps<typeof DATE_PICKER_STYLES> {
+  readonly noResetButton?: boolean
   readonly noCalendarHeader?: boolean
   readonly segments?: Partial<Record<DateSegmentType['type'], boolean>>
 }
@@ -93,6 +98,7 @@ export const DatePicker = forwardRef(function DatePicker<
   TFieldName extends FieldPath<Schema>,
 >(props: DatePickerProps<Schema, TFieldName>, ref: ForwardedRef<HTMLFieldSetElement>) {
   const {
+    noResetButton = false,
     noCalendarHeader = false,
     segments = {},
     name,
@@ -145,6 +151,7 @@ export const DatePicker = forwardRef(function DatePicker<
                     : <DateSegment segment={segment} className={styles.dateSegment()} />
                   }
                 </DateInput>
+                {!noResetButton && <DatePickerResetButton className={styles.resetButton()} />}
                 <Button variant="icon" icon={ArrowIcon} className="rotate-90" />
               </Group>
               {props.description && <Text slot="description" />}
@@ -185,3 +192,27 @@ export const DatePicker = forwardRef(function DatePicker<
     </Form.Field>
   )
 })
+
+interface DatePickerResetButtonProps {
+  readonly className?: string
+}
+
+function DatePickerResetButton(props: DatePickerResetButtonProps) {
+  const { className } = props
+  const state = useContext(DatePickerStateContext)
+  const { getText } = useText()
+
+  return (
+    <Button
+      // Do not inherit default Button behavior from DatePicker.
+      slot={null}
+      variant="icon"
+      aria-label={getText('reset')}
+      icon={CrossIcon}
+      className={className ?? ''}
+      onPress={() => {
+        state.setValue(null)
+      }}
+    />
+  )
+}
