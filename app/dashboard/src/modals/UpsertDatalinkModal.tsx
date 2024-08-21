@@ -35,11 +35,12 @@ export default function UpsertDatalinkModal(props: UpsertDatalinkModalProps) {
   const { getText } = useText()
 
   return (
-    <Dialog title={getText('createDatalink')}>
+    <Dialog title={getText('createDatalink')} className="min-w-max">
       {({ close }) => (
         <Form
           schema={createUpsertDatalinkSchema()}
           defaultValues={{ value: INITIAL_DATALINK_VALUE }}
+          className="min-w-max"
           onSubmit={async ({ name, value }) => {
             await doCreate(name, value)
           }}

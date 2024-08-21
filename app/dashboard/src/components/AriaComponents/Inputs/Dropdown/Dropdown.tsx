@@ -47,7 +47,7 @@ const DROPDOWN_STYLES = tv({
       'relative grid max-h-dropdown-items w-full overflow-auto rounded-input transition-grid-template-rows',
     optionsList: 'overflow-hidden',
     optionsItem:
-      'flex h-6 items-center gap-dropdown-arrow rounded-input px-input-x transition-colors selected:focus:cursor-default selected:focus:bg-frame selected:focus:font-bold selected:focus:focus-ring not-focus:hover:bg-hover-bg not-selected:hover:bg-hover-bg',
+      'flex h-6 items-center gap-dropdown-arrow rounded-input px-input-x transition-colors selected:border-0.5 selected:border-primary selected:font-bold focus:cursor-default focus:bg-frame focus:font-bold focus:focus-ring not-focus:hover:bg-hover-bg not-selected:hover:bg-hover-bg',
     input: 'relative flex h-6 items-center gap-dropdown-arrow px-input-x',
     inputDisplay: 'grow',
     hiddenOptions: 'flex h-0 flex-col overflow-hidden',
