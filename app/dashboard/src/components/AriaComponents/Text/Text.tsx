@@ -208,6 +208,8 @@ export const Text = React.forwardRef(function Text(
 }) as unknown as React.FC<React.RefAttributes<HTMLSpanElement> & TextProps> & {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   Heading: React.FC<HeadingProps>
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  Group: React.FC<React.PropsWithChildren>
 }
 
 /**
@@ -228,3 +230,14 @@ Text.Heading = React.forwardRef(function Heading(
   const { level = 1, ...textProps } = props
   return <Text ref={ref} elementType={`h${level}`} variant="h1" balance {...textProps} />
 })
+
+/**
+ * Text group component. It's used to visually group text elements together
+ */
+Text.Group = function Group(props: React.PropsWithChildren) {
+  return (
+    <textProvider.TextProvider value={{ isInsideTextComponent: true }}>
+      {props.children}
+    </textProvider.TextProvider>
+  )
+}

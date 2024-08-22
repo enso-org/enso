@@ -433,6 +433,12 @@ inset 0 -36px 51px -51px #00000014`,
     plugin(({ addVariant, addUtilities, matchUtilities, addComponents, theme }) => {
       addVariant('group-hover-2', ['.group:where([data-hovered]) &', '.group:where(:hover) &'])
 
+      addUtilities({
+        '.scrollbar-gutter-stable': {
+          scrollbarGutter: 'stable',
+        },
+      })
+
       addUtilities(
         {
           '.container-size': {

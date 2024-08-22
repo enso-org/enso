@@ -9,7 +9,7 @@ import { omit } from 'enso-common/src/utilities/data/object'
 import type { OTPInputProps } from 'input-otp'
 import { OTPInput, type SlotProps as OTPInputSlotProps } from 'input-otp'
 import type { ForwardedRef, Ref } from 'react'
-import { forwardRef } from 'react'
+import { forwardRef, useRef } from 'react'
 import type {
   FieldPath,
   FieldProps,
@@ -47,7 +47,7 @@ export interface OtpInputProps<
 }
 
 const STYLES = tv({
-  base: 'group flex w-full',
+  base: 'group flex w-full overflow-hidden p-1 w-[calc(100%+8px)] -m-1 flex-1',
   slots: {
     slotsContainer: 'flex items-center flex-1 w-full',
   },
@@ -56,7 +56,7 @@ const STYLES = tv({
 const SLOT_STYLES = tv({
   base: [
     'flex-1 h-10 min-w-4 flex items-center justify-center',
-    'border-border border-y border-r first:border-l first:border-xl first:rounded-l-xl last:rounded-r-xl',
+    'border-primary border-y border-r first:border-l first:border-xl first:rounded-l-xl last:rounded-r-xl',
     'outline outline-1 outline-transparent -outline-offset-2',
     'transition-[outline-offset] duration-200',
   ],
@@ -107,6 +107,7 @@ export const OtpInput = forwardRef(function OtpInput<
     ...inputProps
   } = props
 
+  const innerOtpInputRef = useRef<HTMLInputElement>(null)
   const classes = variants({ className })
 
   const { formInstance, field } = Form.useField({ name, isDisabled, form, defaultValue })
@@ -130,6 +131,7 @@ export const OtpInput = forwardRef(function OtpInput<
       style={props.style}
       className={props.className}
       variants={fieldVariants}
+      description={props.description}
     >
       <OTPInput
         {...mergeProps<OTPInputProps>()(
@@ -142,9 +144,17 @@ export const OtpInput = forwardRef(function OtpInput<
             isDisabled,
             noScriptCSSFallback: null,
             containerClassName: classes.base(),
+            onClick: () => {
+              if (innerOtpInputRef.current) {
+                // Check if the input is not already focused
+                if (document.activeElement !== innerOtpInputRef.current) {
+                  innerOtpInputRef.current.focus()
+                }
+              }
+            },
           },
         )}
-        ref={mergeRefs(fieldProps.ref, inputRef)}
+        ref={mergeRefs(fieldProps.ref, inputRef, innerOtpInputRef)}
         render={({ slots }) => (
           <div role="presentation" className={classes.slotsContainer()}>
             {slots.map((slot, idx) => (

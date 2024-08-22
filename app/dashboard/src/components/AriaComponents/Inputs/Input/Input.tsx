@@ -156,9 +156,9 @@ export const Input = React.forwardRef(function Input<
             <aria.Input
               ref={mergeRefs.mergeRefs(inputRef, privateInputRef, fieldRef)}
               {...aria.mergeProps<aria.InputProps>()(
-                { className: classes.textArea(), type, name, min, max, isRequired, isDisabled },
+                { className: classes.textArea(), type, name, min, max },
                 inputProps,
-                omit(field, 'required', 'disabled'),
+                omit(field, 'required', 'disabled', 'isRequired', 'isDisabled', 'isInvalid'),
               )}
             />
           </div>

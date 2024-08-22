@@ -39,7 +39,7 @@ export const SELECTOR_OPTION_STYLES = tv({
     },
   },
   slots: {
-    animation: 'bg-primary',
+    animation: 'bg-primary inset-[1px]',
     radio: TEXT_STYLE({
       className: 'flex flex-1 w-full items-center justify-center transition-colors duration-200',
       variant: 'body',

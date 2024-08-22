@@ -13,6 +13,7 @@ import * as aria from '#/components/aria'
 
 import * as errorUtils from '#/utilities/error'
 
+import { useWatch } from 'react-hook-form'
 import * as dialog from '../Dialog'
 import * as components from './components'
 import * as styles from './styles'
@@ -137,6 +138,8 @@ export const Form = React.forwardRef(function Form<
     }),
   ) as Record<keyof TFieldValues, string>
 
+  const values = useWatch({ control: innerForm.control })
+
   return (
     <form
       id={id}
@@ -159,7 +162,9 @@ export const Form = React.forwardRef(function Form<
     >
       <aria.FormValidationContext.Provider value={errors}>
         <reactHookForm.FormProvider {...innerForm}>
-          {typeof children === 'function' ? children({ ...innerForm, form: innerForm }) : children}
+          {typeof children === 'function' ?
+            children({ ...innerForm, form: innerForm, values })
+          : children}
         </reactHookForm.FormProvider>
       </aria.FormValidationContext.Provider>
     </form>

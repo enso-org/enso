@@ -60,7 +60,8 @@
     "zod": "^3.23.8",
     "zustand": "^4.5.4",
     "framer-motion": "11.3.0",
-    "input-otp": "1.2.4"
+    "input-otp": "1.2.4",
+    "qrcode.react": "3.1.0"
   },
   "devDependencies": {
     "@fast-check/vitest": "^0.0.8",

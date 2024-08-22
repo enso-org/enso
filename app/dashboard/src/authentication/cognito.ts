@@ -70,6 +70,11 @@ interface UserAttributes {
 }
 /* eslint-enable @typescript-eslint/naming-convention */
 
+/**
+ * The type of multi-factor authentication (MFA) that the user has set up.
+ */
+export type MfaType = 'NOMFA' | 'SMS_MFA' | 'SOFTWARE_TOKEN_MFA' | 'TOTP'
+
 /** User information returned from {@link amplify.Auth.currentUserInfo}. */
 interface UserInfo {
   readonly username: string
@@ -356,6 +361,86 @@ export class Cognito {
       const cognitoUser = cognitoUserResult.unwrap()
       const result = await results.Result.wrapAsync(async () => {
         await amplify.Auth.changePassword(cognitoUser, oldPassword, newPassword)
+      })
+      return result.mapErr(intoAmplifyErrorOrThrow)
+    } else {
+      return results.Err(cognitoUserResult.val)
+    }
+  }
+
+  /**
+   *
+   */
+  async setupTOTP() {
+    const cognitoUserResult = await currentAuthenticatedUser()
+    if (cognitoUserResult.ok) {
+      const cognitoUser = cognitoUserResult.unwrap()
+      const result = await results.Result.wrapAsync(() => amplify.Auth.setupTOTP(cognitoUser))
+
+      return result.mapErr(intoAmplifyErrorOrThrow)
+    } else {
+      return results.Err(cognitoUserResult.val)
+    }
+  }
+
+  /**
+   *
+   */
+  async verifyTotpSetup(totpToken: string) {
+    const cognitoUserResult = await currentAuthenticatedUser()
+    if (cognitoUserResult.ok) {
+      const cognitoUser = cognitoUserResult.unwrap()
+      const result = await results.Result.wrapAsync(async () => {
+        await amplify.Auth.verifyTotpToken(cognitoUser, totpToken)
+      })
+      return result.mapErr(intoAmplifyErrorOrThrow)
+    } else {
+      return results.Err(cognitoUserResult.val)
+    }
+  }
+
+  /**
+   *
+   */
+  async updateMFAPreference(mfaMethod: MfaType) {
+    const cognitoUserResult = await currentAuthenticatedUser()
+    if (cognitoUserResult.ok) {
+      const cognitoUser = cognitoUserResult.unwrap()
+      const result = await results.Result.wrapAsync(async () => {
+        return await amplify.Auth.setPreferredMFA(cognitoUser, mfaMethod)
+      })
+      return result.mapErr(intoAmplifyErrorOrThrow)
+    } else {
+      return results.Err(cognitoUserResult.val)
+    }
+  }
+
+  /**
+   *
+   */
+  async getMFAPreference() {
+    const cognitoUserResult = await currentAuthenticatedUser()
+    if (cognitoUserResult.ok) {
+      const cognitoUser = cognitoUserResult.unwrap()
+      const result = await results.Result.wrapAsync(async () => {
+        // eslint-disable-next-line no-restricted-syntax
+        return (await amplify.Auth.getPreferredMFA(cognitoUser)) as MfaType
+      })
+      return result.mapErr(intoAmplifyErrorOrThrow)
+    } else {
+      return results.Err(cognitoUserResult.val)
+    }
+  }
+
+  /**
+   *
+   */
+  async verifyTotpToken(totpToken: string) {
+    const cognitoUserResult = await currentAuthenticatedUser()
+    if (cognitoUserResult.ok) {
+      const cognitoUser = cognitoUserResult.unwrap()
+      const result = await results.Result.wrapAsync(async () => {
+        await amplify.Auth.verifyTotpToken(cognitoUser, totpToken)
       })
       return result.mapErr(intoAmplifyErrorOrThrow)
     } else {

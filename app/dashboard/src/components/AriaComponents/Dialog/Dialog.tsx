@@ -46,7 +46,7 @@ const MODAL_STYLES = twv.tv({
 
 const DIALOG_STYLES = twv.tv({
   extend: variants.DIALOG_STYLES,
-  base: 'w-full overflow-y-auto',
+  base: 'w-full max-w-full overflow-y-auto',
   variants: {
     type: {
       modal: {
@@ -125,7 +125,7 @@ const DIALOG_STYLES = twv.tv({
  * Can be used to display alerts, confirmations, or other content. */
 export function Dialog(props: DialogProps) {
   const {
-    children,
+    children: Children,
     title,
     type = 'modal',
     closeButton = 'normal',
@@ -276,7 +276,9 @@ export function Dialog(props: DialogProps) {
                           <suspense.Suspense
                             loaderProps={{ minHeight: type === 'fullscreen' ? 'full' : 'h32' }}
                           >
-                            {typeof children === 'function' ? children(opts) : children}
+                            {typeof Children === 'function' ?
+                              <Children {...opts} />
+                            : Children}
                           </suspense.Suspense>
                         </errorBoundary.ErrorBoundary>
                       </div>

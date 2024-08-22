@@ -48,22 +48,23 @@ export type SubmitProps = Omit<ariaComponents.ButtonProps, 'href' | 'variant'> &
  * Manages the form state and displays a loading spinner when the form is submitting.
  */
 export function Submit(props: SubmitProps): React.JSX.Element {
+  const { getText } = textProvider.useText()
+
   const {
     form = formContext.useFormContext(),
-    variant = 'submit',
     size = 'medium',
-    testId = 'form-submit-button',
     formnovalidate = false,
     loading = false,
-    children,
+    children = formnovalidate ? getText('cancel') : getText('submit'),
+    variant = formnovalidate ? 'secondary' : 'submit',
+    testId = formnovalidate ? 'form-cancel=button' : 'form-submit-button',
     ...buttonProps
   } = props
 
-  const { getText } = textProvider.useText()
   const dialogContext = ariaComponents.useDialogContext()
   const { formState } = form
 
-  const isLoading = loading || formState.isSubmitting
+  const isLoading = formnovalidate ? false : loading || formState.isSubmitting
   const type = formnovalidate || isLoading ? 'button' : 'submit'
 
   return (
@@ -82,7 +83,7 @@ export function Submit(props: SubmitProps): React.JSX.Element {
         }
       }}
     >
-      {children ?? getText('submit')}
+      {children}
     </ariaComponents.Button>
   )
 }

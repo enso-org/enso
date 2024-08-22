@@ -116,6 +116,7 @@ interface AuthContextType {
   readonly isUserDeleted: () => boolean
   /** Return `true` if the user is soft deleted. */
   readonly isUserSoftDeleted: () => boolean
+  readonly cognito: cognitoModule.Cognito
 }
 
 const AuthContext = React.createContext<AuthContextType | null>(null)
@@ -163,7 +164,7 @@ function createUsersMeQuery(
 /** Props for an {@link AuthProvider}. */
 export interface AuthProviderProps {
   readonly shouldStartInOfflineMode: boolean
-  readonly authService: authServiceModule.AuthService | null
+  readonly authService: authServiceModule.AuthService
   /** Callback to execute once the user has authenticated successfully. */
   readonly onAuthenticated: (accessToken: string | null) => void
   readonly children: React.ReactNode
@@ -174,7 +175,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   const { authService, onAuthenticated } = props
   const { children } = props
   const remoteBackend = backendProvider.useRemoteBackendStrict()
-  const { cognito } = authService ?? {}
+  const { cognito } = authService
   const { session, sessionQueryKey } = sessionProvider.useSession()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
@@ -194,23 +195,19 @@ export default function AuthProvider(props: AuthProviderProps) {
   }, [])
 
   const performLogout = async () => {
-    if (cognito != null) {
-      await cognito.signOut()
+    await cognito.signOut()
 
-      const parentDomain = location.hostname.replace(/^[^.]*\./, '')
-      document.cookie = `logged_in=no;max-age=0;domain=${parentDomain}`
-      gtagEvent('cloud_sign_out')
-      cognito.saveAccessToken(null)
-      localStorage.clearUserSpecificEntries()
-      sentry.setUser(null)
+    const parentDomain = location.hostname.replace(/^[^.]*\./, '')
+    document.cookie = `logged_in=no;max-age=0;domain=${parentDomain}`
+    gtagEvent('cloud_sign_out')
+    cognito.saveAccessToken(null)
+    localStorage.clearUserSpecificEntries()
+    sentry.setUser(null)
 
-      await queryClient.invalidateQueries({ queryKey: sessionQueryKey })
-      await queryClient.clearWithPersister()
+    await queryClient.invalidateQueries({ queryKey: sessionQueryKey })
+    await queryClient.clearWithPersister()
 
-      return Promise.resolve()
-    } else {
-      return Promise.reject()
-    }
+    return Promise.resolve()
   }
 
   const logoutMutation = reactQuery.useMutation({
@@ -289,106 +286,86 @@ export default function AuthProvider(props: AuthProviderProps) {
 
   const signUp = useEventCallback(
     async (username: string, password: string, organizationId: string | null) => {
-      if (cognito != null) {
-        gtagEvent('cloud_sign_up')
-        const result = await cognito.signUp(username, password, organizationId)
-        if (result.ok) {
-          navigate(appUtils.LOGIN_PATH)
-        } else {
-          // eslint-disable-next-line no-restricted-syntax
-          throw new Error(result.val.message)
-        }
+      gtagEvent('cloud_sign_up')
+      const result = await cognito.signUp(username, password, organizationId)
+      if (result.ok) {
+        navigate(appUtils.LOGIN_PATH)
+      } else {
+        // eslint-disable-next-line no-restricted-syntax
+        throw new Error(result.val.message)
       }
     },
   )
 
   const confirmSignUp = useEventCallback(async (email: string, code: string) => {
-    if (cognito == null) {
-      return false
-    } else {
-      gtagEvent('cloud_confirm_sign_up')
-      const result = await cognito.confirmSignUp(email, code)
-      if (result.err) {
-        switch (result.val.type) {
-          case cognitoModule.CognitoErrorType.userAlreadyConfirmed: {
-            break
-          }
-          case cognitoModule.CognitoErrorType.userNotFound: {
-            toastError(getText('confirmSignUpError'))
-            navigate(appUtils.LOGIN_PATH)
-            return false
-          }
-          default: {
-            throw new errorModule.UnreachableCaseError(result.val.type)
-          }
+    gtagEvent('cloud_confirm_sign_up')
+    const result = await cognito.confirmSignUp(email, code)
+    if (result.err) {
+      switch (result.val.type) {
+        case cognitoModule.CognitoErrorType.userAlreadyConfirmed: {
+          break
+        }
+        case cognitoModule.CognitoErrorType.userNotFound: {
+          toastError(getText('confirmSignUpError'))
+          navigate(appUtils.LOGIN_PATH)
+          return false
+        }
+        default: {
+          throw new errorModule.UnreachableCaseError(result.val.type)
         }
       }
-      toastSuccess(getText('confirmSignUpSuccess'))
-      navigate(appUtils.LOGIN_PATH)
-      return result.ok
     }
+    toastSuccess(getText('confirmSignUpSuccess'))
+    navigate(appUtils.LOGIN_PATH)
+    return result.ok
   })
 
   const signInWithPassword = useEventCallback(async (email: string, password: string) => {
-    if (cognito != null) {
-      gtagEvent('cloud_sign_in', { provider: 'Email' })
-      const result = await cognito.signInWithPassword(email, password)
-      if (result.ok) {
-        void queryClient.invalidateQueries({ queryKey: sessionQueryKey })
-        navigate(appUtils.DASHBOARD_PATH)
-        return
-      } else {
-        throw new Error(result.val.message)
-      }
+    gtagEvent('cloud_sign_in', { provider: 'Email' })
+    const result = await cognito.signInWithPassword(email, password)
+    if (result.ok) {
+      void queryClient.invalidateQueries({ queryKey: sessionQueryKey })
+      navigate(appUtils.DASHBOARD_PATH)
+      return
+    } else {
+      throw new Error(result.val.message)
     }
   })
 
   const setUsername = useEventCallback(async (username: string) => {
-    if (cognito == null) {
-      return false
+    gtagEvent('cloud_user_created')
+
+    if (userData?.type === UserSessionType.full) {
+      await updateUserMutation.mutateAsync({ username: username })
     } else {
-      gtagEvent('cloud_user_created')
+      const organizationId = await cognito.organizationId()
+      const email = session?.email ?? ''
 
-      if (userData?.type === UserSessionType.full) {
-        await updateUserMutation.mutateAsync({ username: username })
-      } else {
-        const organizationId = await cognito.organizationId()
-        const email = session?.email ?? ''
-
-        await createUserMutation.mutateAsync({
-          userName: username,
-          userEmail: backendModule.EmailAddress(email),
-          organizationId:
-            organizationId != null ? backendModule.OrganizationId(organizationId) : null,
-        })
-      }
-
-      return true
+      await createUserMutation.mutateAsync({
+        userName: username,
+        userEmail: backendModule.EmailAddress(email),
+        organizationId:
+          organizationId != null ? backendModule.OrganizationId(organizationId) : null,
+      })
     }
+
+    return true
   })
 
   const deleteUser = useEventCallback(async () => {
-    if (cognito == null) {
-      return false
-    } else {
-      await deleteUserMutation.mutateAsync()
+    await deleteUserMutation.mutateAsync()
 
-      toastSuccess(getText('deleteUserSuccess'))
+    toastSuccess(getText('deleteUserSuccess'))
 
-      return true
-    }
+    return true
   })
 
   const restoreUser = useEventCallback(async () => {
-    if (cognito == null) {
-      return false
-    } else {
-      await restoreUserMutation.mutateAsync()
+    await restoreUserMutation.mutateAsync()
 
-      toastSuccess(getText('restoreUserSuccess'))
+    toastSuccess(getText('restoreUserSuccess'))
 
-      return true
-    }
+    return true
   })
 
   /**
@@ -408,41 +385,36 @@ export default function AuthProvider(props: AuthProviderProps) {
   })
 
   const forgotPassword = useEventCallback(async (email: string) => {
-    if (cognito != null) {
-      const result = await cognito.forgotPassword(email)
-      if (result.ok) {
-        navigate(appUtils.LOGIN_PATH)
-        return
-      } else {
-        throw new Error(result.val.message)
-      }
+    const result = await cognito.forgotPassword(email)
+    if (result.ok) {
+      navigate(appUtils.LOGIN_PATH)
+      return
+    } else {
+      throw new Error(result.val.message)
     }
   })
 
   const resetPassword = useEventCallback(async (email: string, code: string, password: string) => {
-    if (cognito != null) {
-      const result = await cognito.forgotPasswordSubmit(email, code, password)
-      if (result.ok) {
-        navigate(appUtils.LOGIN_PATH)
-        return
-      } else {
-        throw new Error(result.val.message)
-      }
+    const result = await cognito.forgotPasswordSubmit(email, code, password)
+
+    if (result.ok) {
+      navigate(appUtils.LOGIN_PATH)
+      return
+    } else {
+      throw new Error(result.val.message)
     }
   })
 
   const changePassword = useEventCallback(async (oldPassword: string, newPassword: string) => {
-    if (cognito == null) {
-      return false
+    const result = await cognito.changePassword(oldPassword, newPassword)
+
+    if (result.ok) {
+      toastSuccess(getText('changePasswordSuccess'))
     } else {
-      const result = await cognito.changePassword(oldPassword, newPassword)
-      if (result.ok) {
-        toastSuccess(getText('changePasswordSuccess'))
-      } else {
-        toastError(result.val.message)
-      }
-      return result.ok
+      toastError(result.val.message)
     }
+
+    return result.ok
   })
 
   const isUserMarkedForDeletion = useEventCallback(
@@ -509,33 +481,28 @@ export default function AuthProvider(props: AuthProviderProps) {
     isUserSoftDeleted,
     restoreUser,
     deleteUser,
+    cognito,
     signInWithGoogle: useEventCallback(() => {
-      if (cognito == null) {
-        return Promise.resolve(false)
-      } else {
-        gtagEvent('cloud_sign_in', { provider: 'Google' })
-        return cognito
-          .signInWithGoogle()
-          .then(() => queryClient.invalidateQueries({ queryKey: sessionQueryKey }))
-          .then(
-            () => true,
-            () => false,
-          )
-      }
+      gtagEvent('cloud_sign_in', { provider: 'Google' })
+
+      return cognito
+        .signInWithGoogle()
+        .then(() => queryClient.invalidateQueries({ queryKey: sessionQueryKey }))
+        .then(
+          () => true,
+          () => false,
+        )
     }),
     signInWithGitHub: useEventCallback(() => {
-      if (cognito == null) {
-        return Promise.resolve(false)
-      } else {
-        gtagEvent('cloud_sign_in', { provider: 'GitHub' })
-        return cognito
-          .signInWithGitHub()
-          .then(() => queryClient.invalidateQueries({ queryKey: sessionQueryKey }))
-          .then(
-            () => true,
-            () => false,
-          )
-      }
+      gtagEvent('cloud_sign_in', { provider: 'GitHub' })
+
+      return cognito
+        .signInWithGitHub()
+        .then(() => queryClient.invalidateQueries({ queryKey: sessionQueryKey }))
+        .then(
+          () => true,
+          () => false,
+        )
     }),
     signInWithPassword,
     forgotPassword,
