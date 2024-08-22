@@ -76,23 +76,35 @@ object Export {
       name: Name.Qualified                  = name,
       rename: Option[Name.Literal]          = rename,
       onlyNames: Option[List[Name.Literal]] = onlyNames,
-      location: Option[IdentifiedLocation]  = location,
       isSynthetic: Boolean                  = isSynthetic,
+      location: Option[IdentifiedLocation]  = location,
       passData: MetadataStorage             = passData,
       diagnostics: DiagnosticStorage        = diagnostics,
       id: UUID @Identifier                  = id
     ): Module = {
-      val res = Module(
-        name,
-        rename,
-        onlyNames,
-        location,
-        isSynthetic,
-        passData,
-        diagnostics
-      )
-      res.id = id
-      res
+      if (
+        name != this.name
+        || rename != this.rename
+        || onlyNames != this.onlyNames
+        || isSynthetic != this.isSynthetic
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+
+        val res = Module(
+          name,
+          rename,
+          onlyNames,
+          location,
+          isSynthetic,
+          passData,
+          diagnostics
+        )
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */

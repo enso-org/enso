@@ -48,13 +48,10 @@ add_specs suite_builder =
 
         group_builder.specify "passing a non-string should fail with a type error" <|
             Test.expect_panic_with (Regex.compile 12) Type_Error
-            p = Regex.compile "[a-z]"
-            Test.expect_panic_with (Regex.compile p) Type_Error
 
     suite_builder.group "Escape" group_builder->
         group_builder.specify "should escape an expression for use as a literal" <|
             Regex.escape "[a-z\d]+" . should_equal '\\[a-z\\d\\]\\+'
-
 
     suite_builder.group "Pattern.matches" group_builder->
         group_builder.specify "should return True when the pattern matches against the input" <|

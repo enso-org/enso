@@ -1,13 +1,18 @@
 <script lang="ts">
 import icons from '@/assets/icons.svg'
-import TextFormattingSelector from '@/components/TextFormattingSelector.vue'
+import { default as TableVizToolbar, type SortModel } from '@/components/TableVizToolbar.vue'
 import AgGridTableView from '@/components/widgets/AgGridTableView.vue'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import { VisualizationContainer, useVisualizationConfig } from '@/util/visualizationBuiltins'
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
-import type { CellClassParams, CellClickedEvent, ICellRendererParams } from 'ag-grid-community'
+import type {
+  CellClassParams,
+  CellClickedEvent,
+  ICellRendererParams,
+  SortChangedEvent,
+} from 'ag-grid-community'
 import type { ColDef } from 'ag-grid-enterprise'
 import { computed, onMounted, ref, shallowRef, watchEffect, type Ref } from 'vue'
 
@@ -40,7 +45,7 @@ interface Matrix {
   all_rows_count: number
   json: unknown[][]
   value_type: ValueType[]
-  get_child_node: string
+  get_child_node_action: string
 }
 
 interface Excel_Workbook {
@@ -49,7 +54,7 @@ interface Excel_Workbook {
   all_rows_count: number
   sheet_names: string[]
   json: unknown[][]
-  get_child_node: string
+  get_child_node_action: string
 }
 
 interface ObjectMatrix {
@@ -58,7 +63,7 @@ interface ObjectMatrix {
   all_rows_count: number
   json: object[]
   value_type: ValueType[]
-  get_child_node: string
+  get_child_node_action: string
 }
 
 interface UnknownTable {
@@ -73,7 +78,9 @@ interface UnknownTable {
   value_type: ValueType[]
   has_index_col: boolean | undefined
   links: string[] | undefined
-  get_child_node: string
+  get_child_node_action: string
+  get_child_node_link_name: string
+  link_value_type: string
 }
 
 export enum TextFormatOptions {
@@ -101,6 +108,8 @@ const SQLITE_CONNECTIONS_NODE_TYPE =
   'Standard.Database.Internal.SQLite.SQLite_Connection.SQLite_Connection'
 const POSTGRES_CONNECTIONS_NODE_TYPE =
   'Standard.Database.Internal.Postgres.Postgres_Connection.Postgres_Connection'
+const SNOWFLAKE_CONNECTIONS_NODE_TYPE =
+  'Standard.Snowflake.Snowflake_Connection.Snowflake_Connection'
 
 const rowLimit = ref(0)
 const page = ref(0)
@@ -108,6 +117,9 @@ const pageLimit = ref(0)
 const rowCount = ref(0)
 const showRowCount = ref(true)
 const isTruncated = ref(false)
+const isCreateNodeEnabled = ref(false)
+const filterModel = ref({})
+const sortModel = ref<SortModel[]>([])
 const dataGroupingMap = shallowRef<Map<string, boolean>>()
 const defaultColDef: Ref<ColDef> = ref({
   editable: false,
@@ -122,6 +134,7 @@ const rowData = ref<Record<string, any>[]>([])
 const columnDefs: Ref<ColDef[]> = ref([])
 
 const textFormatterSelected = ref<TextFormatOptions>(TextFormatOptions.Partial)
+
 const updateTextFormat = (option: TextFormatOptions) => {
   textFormatterSelected.value = option
 }
@@ -156,6 +169,7 @@ const newNodeSelectorValues = computed(() => {
       break
     case SQLITE_CONNECTIONS_NODE_TYPE:
     case POSTGRES_CONNECTIONS_NODE_TYPE:
+    case SNOWFLAKE_CONNECTIONS_NODE_TYPE:
       tooltipValue = 'table'
       headerName = 'Tables'
       break
@@ -331,7 +345,7 @@ function toField(name: string, valueType?: ValueType | null | undefined): ColDef
     `
   const template =
     icon ?
-      `<span style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'><span ref="eLabel" class="ag-header-cell-label" role="presentation" style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'> ${name} ${menu}</span> ${sort} ${svgTemplate}</span>`
+      `<span style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'><span ref="eLabel" class="ag-header-cell-label" role="presentation" style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'> ${name} </span>  ${menu} ${sort} ${svgTemplate}</span>`
     : `<span ref="eLabel" style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'>${name} ${menu} ${sort}</span>`
   return {
     field: name,
@@ -350,13 +364,11 @@ function toRowField(name: string, valueType?: ValueType | null | undefined) {
   }
 }
 
-function getAstPattern(selector: string | number, action?: string) {
-  const identifierAction =
-    config.nodeType === (COLUMN_NODE_TYPE || VECTOR_NODE_TYPE) ? 'at' : action
-  if (identifierAction) {
+function getAstPattern(selector?: string | number, action?: string) {
+  if (action && selector != null) {
     return Pattern.new((ast) =>
       Ast.App.positional(
-        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(identifierAction)!),
+        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(action)!),
         typeof selector === 'number' ?
           Ast.tryNumberToEnso(selector, ast.module)!
         : Ast.TextLiteral.new(selector, ast.module),
@@ -365,8 +377,18 @@ function getAstPattern(selector: string | number, action?: string) {
   }
 }
 
-function createNode(params: CellClickedEvent, selector: string, action?: string) {
-  const pattern = getAstPattern(params.data[selector], action)
+function createNode(
+  params: CellClickedEvent,
+  selector: string,
+  action?: string,
+  castValueTypes?: string,
+) {
+  const selectorKey = params.data[selector]
+  const castSelector =
+    castValueTypes === 'number' && !isNaN(Number(selectorKey)) ? Number(selectorKey) : selectorKey
+  const identifierAction =
+    config.nodeType === (COLUMN_NODE_TYPE || VECTOR_NODE_TYPE) ? 'at' : action
+  const pattern = getAstPattern(castSelector, identifierAction)
   if (pattern) {
     config.createNodes({
       content: pattern,
@@ -375,12 +397,12 @@ function createNode(params: CellClickedEvent, selector: string, action?: string)
   }
 }
 
-function toLinkField(fieldName: string, getChildAction?: string): ColDef {
+function toLinkField(fieldName: string, getChildAction?: string, castValueTypes?: string): ColDef {
   return {
     headerName:
       newNodeSelectorValues.value.headerName ? newNodeSelectorValues.value.headerName : fieldName,
     field: fieldName,
-    onCellDoubleClicked: (params) => createNode(params, fieldName, getChildAction),
+    onCellDoubleClicked: (params) => createNode(params, fieldName, getChildAction, castValueTypes),
     tooltipValueGetter: () => {
       return `Double click to view this ${newNodeSelectorValues.value.tooltipValue} in a separate component`
     },
@@ -410,9 +432,12 @@ watchEffect(() => {
         has_index_col: false,
         links: undefined,
         // eslint-disable-next-line camelcase
-        get_child_node: undefined,
+        get_child_node_action: undefined,
+        // eslint-disable-next-line camelcase
+        get_child_node_link_name: undefined,
+        // eslint-disable-next-line camelcase
+        link_value_type: undefined,
       }
-
   if ('error' in data_) {
     columnDefs.value = [
       {
@@ -422,14 +447,14 @@ watchEffect(() => {
     ]
     rowData.value = [{ Error: data_.error }]
   } else if (data_.type === 'Matrix') {
-    columnDefs.value = [toLinkField(INDEX_FIELD_NAME, data_.get_child_node)]
+    columnDefs.value = [toLinkField(INDEX_FIELD_NAME, data_.get_child_node_action)]
     for (let i = 0; i < data_.column_count; i++) {
       columnDefs.value.push(toField(i.toString()))
     }
     rowData.value = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
   } else if (data_.type === 'Object_Matrix') {
-    columnDefs.value = [toLinkField(INDEX_FIELD_NAME, data_.get_child_node)]
+    columnDefs.value = [toLinkField(INDEX_FIELD_NAME, data_.get_child_node_action)]
     let keys = new Set<string>()
     for (const val of data_.json) {
       if (val != null) {
@@ -444,15 +469,18 @@ watchEffect(() => {
     rowData.value = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
   } else if (data_.type === 'Excel_Workbook') {
-    columnDefs.value = [toLinkField('Value', data_.get_child_node)]
+    columnDefs.value = [toLinkField('Value', data_.get_child_node_action)]
     rowData.value = data_.sheet_names.map((name) => ({ Value: name }))
   } else if (Array.isArray(data_.json)) {
-    columnDefs.value = [toLinkField(INDEX_FIELD_NAME, data_.get_child_node), toField('Value')]
+    columnDefs.value = [
+      toLinkField(INDEX_FIELD_NAME, data_.get_child_node_action),
+      toField('Value'),
+    ]
     rowData.value = data_.json.map((row, i) => ({ [INDEX_FIELD_NAME]: i, Value: toRender(row) }))
     isTruncated.value = data_.all_rows_count ? data_.all_rows_count !== data_.json.length : false
   } else if (data_.json !== undefined) {
     columnDefs.value =
-      data_.links ? [toLinkField('Value', data_.get_child_node)] : [toField('Value')]
+      data_.links ? [toLinkField('Value', data_.get_child_node_action)] : [toField('Value')]
     rowData.value =
       data_.links ?
         data_.links.map((link) => ({
@@ -463,15 +491,18 @@ watchEffect(() => {
     const dataHeader =
       ('header' in data_ ? data_.header : [])?.map((v, i) => {
         const valueType = data_.value_type ? data_.value_type[i] : null
+        if (data_.get_child_node_link_name === v) {
+          return toLinkField(v, data_.get_child_node_action, data_.link_value_type)
+        }
         if (config.nodeType === ROW_NODE_TYPE) {
-          return v === 'column' ? toLinkField(v, data_.get_child_node) : toRowField(v, valueType)
+          return toRowField(v, valueType)
         }
         return toField(v, valueType)
       }) ?? []
 
     columnDefs.value =
       data_.has_index_col ?
-        [toLinkField(INDEX_FIELD_NAME, data_.get_child_node), ...dataHeader]
+        [toLinkField(INDEX_FIELD_NAME, data_.get_child_node_action), ...dataHeader]
       : dataHeader
     const rows = data_.data && data_.data.length > 0 ? data_.data[0]?.length ?? 0 : 0
     rowData.value = Array.from({ length: rows }, (_, i) => {
@@ -518,6 +549,38 @@ watchEffect(() => {
   defaultColDef.value.sortable = !isTruncated.value
 })
 
+function checkSortAndFilter(e: SortChangedEvent) {
+  const gridApi = e.api
+  const columnApi = e.columnApi
+  if (gridApi == null || columnApi == null) {
+    console.warn('AG Grid column API does not exist.')
+    isCreateNodeEnabled.value = false
+    return
+  }
+  const colState = columnApi.getColumnState()
+  const filter = gridApi.getFilterModel()
+  const sort = colState
+    .map((cs) => {
+      if (cs.sort) {
+        return {
+          columnName: cs.colId,
+          sortDirection: cs.sort,
+          sortIndex: cs.sortIndex,
+        } as SortModel
+      }
+    })
+    .filter((sort) => sort)
+  if (sort.length || Object.keys(filter).length) {
+    isCreateNodeEnabled.value = true
+    sortModel.value = sort as SortModel[]
+    filterModel.value = filter
+  } else {
+    isCreateNodeEnabled.value = false
+    sortModel.value = []
+    filterModel.value = {}
+  }
+}
+
 // ===============
 // === Updates ===
 // ===============
@@ -530,7 +593,12 @@ onMounted(() => {
 <template>
   <VisualizationContainer :belowToolbar="true" :overflow="true" :toolbarOverflow="true">
     <template #toolbar>
-      <TextFormattingSelector @changeFormat="(i) => updateTextFormat(i)" />
+      <TableVizToolbar
+        :filterModel="filterModel"
+        :sortModel="sortModel"
+        :isDisabled="!isCreateNodeEnabled"
+        @changeFormat="(i) => updateTextFormat(i)"
+      />
     </template>
     <div ref="rootNode" class="TableVisualization" @wheel.stop @pointerdown.stop>
       <div class="table-visualization-status-bar">
@@ -563,6 +631,7 @@ onMounted(() => {
           :columnDefs="columnDefs"
           :rowData="rowData"
           :defaultColDef="defaultColDef"
+          @sortOrFilterUpdated="(e) => checkSortAndFilter(e)"
         />
       </Suspense>
     </div>
@@ -604,5 +673,10 @@ onMounted(() => {
 
 :deep(.link):hover {
   color: darkblue;
+}
+
+.button-wrappers {
+  display: flex;
+  flex-direction: row;
 }
 </style>

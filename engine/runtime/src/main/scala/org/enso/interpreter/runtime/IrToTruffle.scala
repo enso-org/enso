@@ -47,10 +47,10 @@ import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.exception.BadPatternMatch
 import org.enso.compiler.pass.analyse.alias.graph.Graph.{Scope => AliasScope}
 import org.enso.compiler.pass.analyse.{
-  alias,
   AliasAnalysis,
   BindingAnalysis,
   DataflowAnalysis,
+  FramePointerAnalysis,
   TailCall
 }
 import org.enso.compiler.pass.analyse.alias.AliasMetadata
@@ -270,21 +270,23 @@ class IrToTruffle(
     atomCons: AtomConstructor,
     atomDefn: Definition.Data
   ): Unit = {
-    val scopeInfo = atomDefn
-      .unsafeGetMetadata(
-        AliasAnalysis,
-        "No root scope on an atom definition."
-      )
-      .unsafeAs[AliasMetadata.RootScope]
+    def scopeInfo() = {
+      atomDefn
+        .unsafeGetMetadata(
+          AliasAnalysis,
+          "No root scope on an atom definition."
+        )
+        .unsafeAs[AliasMetadata.RootScope]
+    }
 
-    val dataflowInfo = atomDefn.unsafeGetMetadata(
+    def dataflowInfo() = atomDefn.unsafeGetMetadata(
       DataflowAnalysis,
       "No dataflow information associated with an atom."
     )
     val localScope = new LocalScope(
       None,
-      scopeInfo.graph,
-      scopeInfo.graph.rootScope,
+      () => scopeInfo().graph,
+      () => scopeInfo().graph.rootScope,
       dataflowInfo
     )
 
@@ -302,13 +304,12 @@ class IrToTruffle(
       val unprocessedArg = atomDefn.arguments(idx)
       val checkNode      = checkAsTypes(unprocessedArg)
       val arg            = argFactory.run(unprocessedArg, idx, checkNode)
-      val occInfo = unprocessedArg
+      val fp = unprocessedArg
         .unsafeGetMetadata(
-          AliasAnalysis,
-          "No occurrence on an argument definition."
+          FramePointerAnalysis,
+          "No frame pointer on an argument definition."
         )
-        .unsafeAs[alias.AliasMetadata.Occurrence]
-      val slotIdx = localScope.getVarSlotIdx(occInfo.id)
+      val slotIdx = fp.frameSlotIdx()
       argDefs(idx) = arg
       val readArg =
         ReadArgumentNode.build(
@@ -334,8 +335,8 @@ class IrToTruffle(
         scopeElements.mkString(Constants.SCOPE_SEPARATOR)
       val expressionProcessor = new ExpressionProcessor(
         scopeName,
-        scopeInfo.graph,
-        scopeInfo.graph.rootScope,
+        () => scopeInfo().graph,
+        () => scopeInfo().graph.rootScope,
         dataflowInfo,
         atomDefn.name.name
       )
@@ -374,14 +375,16 @@ class IrToTruffle(
     }
 
     methodDefs.foreach(methodDef => {
-      val scopeInfo = methodDef
-        .unsafeGetMetadata(
-          AliasAnalysis,
-          s"Missing scope information for method " +
-          s"`${methodDef.typeName.map(_.name + ".").getOrElse("")}${methodDef.methodName.name}`."
-        )
-        .unsafeAs[AliasMetadata.RootScope]
-      val dataflowInfo = methodDef.unsafeGetMetadata(
+      def scopeInfo() = {
+        methodDef
+          .unsafeGetMetadata(
+            AliasAnalysis,
+            s"Missing scope information for method " +
+            s"`${methodDef.typeName.map(_.name + ".").getOrElse("")}${methodDef.methodName.name}`."
+          )
+          .unsafeAs[AliasMetadata.RootScope]
+      }
+      def dataflowInfo() = methodDef.unsafeGetMetadata(
         DataflowAnalysis,
         "Method definition missing dataflow information."
       )
@@ -415,8 +418,8 @@ class IrToTruffle(
           cons.getName ++ Constants.SCOPE_SEPARATOR ++ methodDef.methodName.name
         val expressionProcessor = new ExpressionProcessor(
           fullMethodDefName,
-          scopeInfo.graph,
-          scopeInfo.graph.rootScope,
+          () => scopeInfo().graph,
+          () => scopeInfo().graph.rootScope,
           dataflowInfo,
           fullMethodDefName
         )
@@ -549,16 +552,18 @@ class IrToTruffle(
             )
             val scopeName =
               scopeElements.mkString(Constants.SCOPE_SEPARATOR)
-            val scopeInfo = annotation
-              .unsafeGetMetadata(
-                AliasAnalysis,
-                s"Missing scope information for annotation " +
-                s"${annotation.name} of method " +
-                scopeElements.init
-                  .mkString(Constants.SCOPE_SEPARATOR)
-              )
-              .unsafeAs[AliasMetadata.RootScope]
-            val dataflowInfo = annotation.unsafeGetMetadata(
+            def scopeInfo() = {
+              annotation
+                .unsafeGetMetadata(
+                  AliasAnalysis,
+                  s"Missing scope information for annotation " +
+                  s"${annotation.name} of method " +
+                  scopeElements.init
+                    .mkString(Constants.SCOPE_SEPARATOR)
+                )
+                .unsafeAs[AliasMetadata.RootScope]
+            }
+            def dataflowInfo() = annotation.unsafeGetMetadata(
               DataflowAnalysis,
               "Missing dataflow information for annotation " +
               s"${annotation.name} of method " +
@@ -567,8 +572,8 @@ class IrToTruffle(
             )
             val expressionProcessor = new ExpressionProcessor(
               scopeName,
-              scopeInfo.graph,
-              scopeInfo.graph.rootScope,
+              () => scopeInfo().graph,
+              () => scopeInfo().graph.rootScope,
               dataflowInfo,
               methodDef.methodName.name
             )
@@ -768,14 +773,16 @@ class IrToTruffle(
 
     // Register the conversion definitions in scope
     conversionDefs.foreach(methodDef => {
-      val scopeInfo = methodDef
-        .unsafeGetMetadata(
-          AliasAnalysis,
-          s"Missing scope information for conversion " +
-          s"`${methodDef.typeName.map(_.name + ".").getOrElse("")}${methodDef.methodName.name}`."
-        )
-        .unsafeAs[AliasMetadata.RootScope]
-      val dataflowInfo = methodDef.unsafeGetMetadata(
+      def scopeInfo() = {
+        methodDef
+          .unsafeGetMetadata(
+            AliasAnalysis,
+            s"Missing scope information for conversion " +
+            s"`${methodDef.typeName.map(_.name + ".").getOrElse("")}${methodDef.methodName.name}`."
+          )
+          .unsafeAs[AliasMetadata.RootScope]
+      }
+      def dataflowInfo() = methodDef.unsafeGetMetadata(
         DataflowAnalysis,
         "Method definition missing dataflow information."
       )
@@ -791,8 +798,8 @@ class IrToTruffle(
       toOpt.zip(fromOpt).foreach { case (toType, fromType) =>
         val expressionProcessor = new ExpressionProcessor(
           toType.getName ++ Constants.SCOPE_SEPARATOR ++ methodDef.methodName.name,
-          scopeInfo.graph,
-          scopeInfo.graph.rootScope,
+          () => scopeInfo().graph,
+          () => scopeInfo().graph.rootScope,
           dataflowInfo,
           methodDef.methodName.name
         )
@@ -1226,9 +1233,9 @@ class IrToTruffle(
       */
     def this(
       scopeName: String,
-      graph: AliasGraph,
-      scope: AliasScope,
-      dataflowInfo: DataflowAnalysis.Metadata,
+      graph: () => AliasGraph,
+      scope: () => AliasScope,
+      dataflowInfo: () => DataflowAnalysis.Metadata,
       initialName: String
     ) = {
       this(
@@ -1247,7 +1254,7 @@ class IrToTruffle(
       */
     def createChild(
       name: String,
-      scope: AliasScope,
+      scope: () => AliasScope,
       initialName: String
     ): ExpressionProcessor = {
       new ExpressionProcessor(this.scope.createChild(scope), name, initialName)
@@ -1333,16 +1340,18 @@ class IrToTruffle(
       */
     private def processBlock(block: Expression.Block): RuntimeExpression = {
       if (block.suspended) {
-        val scopeInfo = block
-          .unsafeGetMetadata(
-            AliasAnalysis,
-            "Missing scope information on block."
-          )
-          .unsafeAs[AliasMetadata.ChildScope]
+        def scopeInfo() = {
+          block
+            .unsafeGetMetadata(
+              AliasAnalysis,
+              "Missing scope information on block."
+            )
+            .unsafeAs[AliasMetadata.ChildScope]
+        }
 
         val childFactory = this.createChild(
           "suspended-block",
-          scopeInfo.scope,
+          () => scopeInfo().scope,
           "suspended " + currentVarName
         )
         val childScope = childFactory.scope
@@ -1366,7 +1375,7 @@ class IrToTruffle(
         val statementExprs = block.expressions.map(this.run(_, true)).toArray
         val retExpr        = this.run(block.returnValue, true)
 
-        val blockNode = BlockNode.build(statementExprs, retExpr)
+        val blockNode = BlockNode.buildSilent(statementExprs, retExpr)
         setLocation(blockNode, block.location)
       }
     }
@@ -1447,17 +1456,19 @@ class IrToTruffle(
     def processCaseBranch(
       branch: Case.Branch
     ): Either[BadPatternMatch, BranchNode] = {
-      val scopeInfo = branch
-        .unsafeGetMetadata(
-          AliasAnalysis,
-          "No scope information on a case branch."
-        )
-        .unsafeAs[AliasMetadata.ChildScope]
+      def scopeInfo() = {
+        branch
+          .unsafeGetMetadata(
+            AliasAnalysis,
+            "No scope information on a case branch."
+          )
+          .unsafeAs[AliasMetadata.ChildScope]
+      }
 
       val childProcessor =
         this.createChild(
           "case_branch",
-          scopeInfo.scope,
+          () => scopeInfo().scope,
           "case " + currentVarName
         )
 
@@ -1823,17 +1834,14 @@ class IrToTruffle(
     private def processBinding(
       binding: Expression.Binding
     ): RuntimeExpression = {
-      val occInfo = binding
+      val fp = binding
         .unsafeGetMetadata(
-          AliasAnalysis,
-          "Binding with missing occurrence information."
+          FramePointerAnalysis,
+          "Binding with missing frame pointer."
         )
-        .unsafeAs[AliasMetadata.Occurrence]
 
       currentVarName = binding.name.name
-
-      val slotIdx = scope.getVarSlotIdx(occInfo.id)
-
+      val slotIdx = fp.frameSlotIdx()
       setLocation(
         AssignmentNode.build(this.run(binding.expression, true, true), slotIdx),
         binding.location
@@ -1850,10 +1858,11 @@ class IrToTruffle(
       function: Function,
       binding: Boolean
     ): RuntimeExpression = {
-      val scopeInfo = function
-        .unsafeGetMetadata(AliasAnalysis, "No scope info on a function.")
-        .unsafeAs[AliasMetadata.ChildScope]
-
+      def scopeInfo() = {
+        function
+          .unsafeGetMetadata(AliasAnalysis, "No scope info on a function.")
+          .unsafeAs[AliasMetadata.ChildScope]
+      }
       if (function.body.isInstanceOf[Function]) {
         throw new CompilerError(
           "Lambda found directly as function body. It looks like Lambda " +
@@ -1868,7 +1877,11 @@ class IrToTruffle(
       }
 
       val child =
-        this.createChild(scopeName, scopeInfo.scope, "case " + currentVarName)
+        this.createChild(
+          scopeName,
+          () => scopeInfo().scope,
+          "case " + currentVarName
+        )
 
       val fn = child.processFunctionBody(
         function.arguments,
@@ -1889,7 +1902,11 @@ class IrToTruffle(
       val nameExpr = name match {
         case literalName: Name.Literal =>
           val resolver = new RuntimeNameResolution()
-          resolver.resolveName(literalName)
+          val fpMeta = literalName.passData.get(FramePointerAnalysis) match {
+            case Some(meta: FramePointerAnalysis.FramePointerMeta) => meta
+            case _                                                 => null
+          }
+          resolver.resolveName(literalName, fpMeta)
         case Name.MethodReference(
               None,
               Name.Literal(nameStr, _, _, _, _, _),
@@ -1945,11 +1962,22 @@ class IrToTruffle(
     }
 
     private class RuntimeNameResolution
-        extends NameResolutionAlgorithm[RuntimeExpression, FramePointer] {
+        extends NameResolutionAlgorithm[
+          RuntimeExpression,
+          FramePointer,
+          FramePointerAnalysis.FramePointerMeta
+        ] {
       override protected def findLocalLink(
-        occurrenceMetadata: org.enso.compiler.pass.analyse.alias.AliasMetadata.Occurrence
-      ): Option[FramePointer] =
-        scope.getFramePointer(occurrenceMetadata.id)
+        fpMeta: FramePointerAnalysis.FramePointerMeta
+      ): Option[FramePointer] = {
+        if (scope.flattenToParent && fpMeta.parentLevel() > 0) {
+          Some(
+            new FramePointer(fpMeta.parentLevel() - 1, fpMeta.frameSlotIdx())
+          )
+        } else {
+          Some(fpMeta.framePointer)
+        }
+      }
 
       override protected def resolveLocalName(
         localLink: FramePointer
@@ -2149,8 +2177,12 @@ class IrToTruffle(
       lazy val argsExpr      = computeArgsAndExpression()
 
       def args(): Array[ArgumentDefinition] = slots._2
-      def bodyNode(): RuntimeExpression =
-        BlockNode.build(argsExpr._1.toArray, argsExpr._2)
+      def bodyNode(): RuntimeExpression = {
+        val body = BlockNode.buildRoot(Array(), argsExpr._2)
+        val initVariablesAndThenBody =
+          BlockNode.buildSilent(argsExpr._1.toArray, body)
+        initVariablesAndThenBody
+      }
 
       private def computeArgsAndExpression()
         : (Array[RuntimeExpression], RuntimeExpression) = {
@@ -2191,14 +2223,12 @@ class IrToTruffle(
             val checkNode = checkAsTypes(unprocessedArg)
             val arg       = argFactory.run(unprocessedArg, idx, checkNode)
             argDefinitions(idx) = arg
-            val occInfo = unprocessedArg
+            val fp = unprocessedArg
               .unsafeGetMetadata(
-                AliasAnalysis,
-                "No occurrence on an argument definition."
+                FramePointerAnalysis,
+                "No frame pointer on an argument definition."
               )
-              .unsafeAs[AliasMetadata.Occurrence]
-
-            val slotIdx = scope.getVarSlotIdx(occInfo.id)
+            val slotIdx = fp.frameSlotIdx()
             val readArg =
               ReadArgumentNode.build(
                 idx,
@@ -2425,12 +2455,14 @@ class IrToTruffle(
               _,
               _
             ) =>
-          val scopeInfo = arg
-            .unsafeGetMetadata(
-              AliasAnalysis,
-              "No scope attached to a call argument."
-            )
-            .unsafeAs[AliasMetadata.ChildScope]
+          def scopeInfo() = {
+            arg
+              .unsafeGetMetadata(
+                AliasAnalysis,
+                "No scope attached to a call argument."
+              )
+              .unsafeAs[AliasMetadata.ChildScope]
+          }
 
           def valueHasSomeTypeCheck() =
             value.getMetadata(TypeSignatures).isDefined
@@ -2443,10 +2475,10 @@ class IrToTruffle(
           }
 
           val childScope = if (shouldCreateClosureRootNode) {
-            scope.createChild(scopeInfo.scope)
+            scope.createChild(() => scopeInfo().scope)
           } else {
             // Note [Scope Flattening]
-            scope.createChild(scopeInfo.scope, flattenToParent = true)
+            scope.createChild(() => scopeInfo().scope, flattenToParent = true)
           }
           val argumentExpression =
             new ExpressionProcessor(childScope, scopeName, initialName)

@@ -28,7 +28,7 @@ impl IsVersion for Version {
         let matched =
             SEMVER_REGEX.find(text).context("No semver-like substring found within the text.")?;
         let version_text = matched.as_str();
-        Version::from_str(version_text)
+        Ok(Version::from_str(version_text)?)
     }
 }
 

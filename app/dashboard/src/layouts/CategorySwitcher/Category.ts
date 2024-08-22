@@ -1,13 +1,14 @@
 /** @file The categories available in the category switcher. */
-import type * as backend from '#/services/Backend'
 import * as z from 'zod'
+
+import type { DirectoryId, Path, UserGroupInfo } from '#/services/Backend'
 
 // ================
 // === Category ===
 // ================
 
-const PATH_SCHEMA = z.string().refine((s): s is backend.Path => true)
-const DIRECTORY_ID_SCHEMA = z.string().refine((s): s is backend.DirectoryId => true)
+const PATH_SCHEMA = z.string().refine((s): s is Path => true)
+const DIRECTORY_ID_SCHEMA = z.string().refine((s): s is DirectoryId => true)
 
 /** A category corresponding to the root of the user or organization. */
 const CLOUD_CATEGORY_SCHEMA = z.object({ type: z.literal('cloud') }).readonly()
@@ -38,7 +39,7 @@ export type UserCategory = z.infer<typeof USER_CATEGORY_SCHEMA>
 export const TEAM_CATEGORY_SCHEMA = z
   .object({
     type: z.literal('team'),
-    team: z.custom<backend.UserGroupInfo>(() => true),
+    team: z.custom<UserGroupInfo>(() => true),
     rootPath: PATH_SCHEMA,
     homeDirectoryId: DIRECTORY_ID_SCHEMA,
   })

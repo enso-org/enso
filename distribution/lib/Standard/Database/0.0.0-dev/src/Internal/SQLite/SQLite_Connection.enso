@@ -285,4 +285,4 @@ type SQLite_Connection
        Converts this value to a JSON serializable object.
     to_js_object : JS_Object
     to_js_object self =
-        JS_Object.from_pairs [["type", "SQLite_Connection"], ["links", self.connection.tables.at "Name" . to_vector], ["get_child_node", "query"]]
+        JS_Object.from_pairs [["type", "SQLite_Connection"], ["links", self.connection.tables.at "Name" . to_vector], ["get_child_node_action", "query"]]

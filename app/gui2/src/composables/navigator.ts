@@ -284,17 +284,32 @@ export function useNavigator(
     scale.skip()
   }
 
+  /**
+   * Translate the viewport as necessary to ensure that a particular client point corresponds to the same scene point
+   * before and after running the provided function.
+   */
+  function maintainingScenePosAtClientPoint<T>(clientPos: Vec2, f: () => T): T {
+    const scenePos0 = clientToScenePos(clientPos)
+    const result = f()
+    const scenePos1 = clientToScenePos(clientPos)
+    targetCenter.value = center.value.add(scenePos0.sub(scenePos1))
+    center.skip()
+    return result
+  }
+
   const { events: wheelEvents, captureEvents: wheelEventsCapture } = useWheelActions(
     keyboard,
     WHEEL_CAPTURE_DURATION_MS,
     (e, inputType) => {
-      if (inputType === 'trackpad') {
-        // OS X trackpad events provide usable rate-of-change information.
-        updateScale((oldValue: number) => oldValue * Math.exp(-e.deltaY / 100))
-      } else {
-        // Mouse wheel rate information is unreliable. We just step in the direction of the sign.
-        stepZoom(-Math.sign(e.deltaY))
-      }
+      maintainingScenePosAtClientPoint(eventScreenPos(e), () => {
+        if (inputType === 'trackpad') {
+          // OS X trackpad events provide usable rate-of-change information.
+          updateScale((oldValue: number) => oldValue * Math.exp(-e.deltaY / 100))
+        } else {
+          // Mouse wheel rate information is unreliable. We just step in the direction of the sign.
+          stepZoom(-Math.sign(e.deltaY))
+        }
+      })
     },
     (e) => {
       const delta = new Vec2(e.deltaX, e.deltaY)

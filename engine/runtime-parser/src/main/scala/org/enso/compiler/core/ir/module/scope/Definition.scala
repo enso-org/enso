@@ -73,10 +73,20 @@ object Definition {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Type = {
-      val res =
-        Type(name, params, members, location, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        name != this.name
+        || params != this.params
+        || members != this.members
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res =
+          Type(name, params, members, location, passData, diagnostics)
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -163,8 +173,8 @@ object Definition {
     name: Name,
     arguments: List[DefinitionArgument],
     annotations: List[Name.GenericAnnotation],
+    isPrivate: Boolean = false,
     location: Option[IdentifiedLocation],
-    isPrivate: Boolean             = false,
     passData: MetadataStorage      = new MetadataStorage(),
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends IR
@@ -186,22 +196,34 @@ object Definition {
       name: Name                                = name,
       arguments: List[DefinitionArgument]       = arguments,
       annotations: List[Name.GenericAnnotation] = annotations,
+      isPrivate: Boolean                        = isPrivate,
       location: Option[IdentifiedLocation]      = location,
       passData: MetadataStorage                 = passData,
       diagnostics: DiagnosticStorage            = diagnostics,
       id: UUID @Identifier                      = id
     ): Data = {
-      val res = Data(
-        name,
-        arguments,
-        annotations,
-        location,
-        isPrivate,
-        passData,
-        diagnostics
-      )
-      res.id = id
-      res
+      if (
+        name != this.name
+        || arguments != this.arguments
+        || annotations != this.annotations
+        || isPrivate != this.isPrivate
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Data(
+          name,
+          arguments,
+          annotations,
+          isPrivate,
+          location,
+          passData,
+          diagnostics
+        )
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -315,16 +337,26 @@ object Definition {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): SugaredType = {
-      val res = SugaredType(
-        name,
-        arguments,
-        body,
-        location,
-        passData,
-        diagnostics
-      )
-      res.id = id
-      res
+      if (
+        name != this.name
+        || arguments != this.arguments
+        || body != this.body
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = SugaredType(
+          name,
+          arguments,
+          body,
+          location,
+          passData,
+          diagnostics
+        )
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */

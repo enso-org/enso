@@ -1,4 +1,5 @@
-use inflector::cases::snakecase::to_snake_case;
+use convert_case::Case;
+use convert_case::Casing;
 use quote::quote;
 use syn::AttrStyle;
 use syn::Attribute;
@@ -65,7 +66,7 @@ pub fn run(
         split_attr_sections(std::mem::take(&mut decl.attrs));
     let (impl_generics, ty_generics, inherent_where_clause_opt) = &decl.generics.split_for_impl();
     let mut where_clause = enso_macro_utils::new_where_clause(vec![]);
-    for inherent_where_clause in inherent_where_clause_opt {
+    if let Some(inherent_where_clause) = inherent_where_clause_opt {
         where_clause.predicates.extend(inherent_where_clause.predicates.iter().cloned())
     }
 
@@ -224,7 +225,7 @@ pub fn run(
         //         Self::App(Box::new(App{func, args}))
         //     }
         // }
-        let variant_snake_name = to_snake_case(&variant_name.to_string());
+        let variant_snake_name = variant_name.to_string().to_case(Case::Snake);
         let variant_snake_ident = quote::format_ident!("{}", variant_snake_name);
         let (names, types) = match &variant.fields {
             Fields::Unit => (vec![], vec![]),
@@ -360,18 +361,16 @@ enum ApplyAttributesTo {
 }
 
 fn parse_attr(attr: &Attribute) -> Option<Attr> {
-    if attr.style != AttrStyle::Outer {
+    if attr.style != AttrStyle::Outer || !attr.path().is_ident(HELPER_ATTRIBUTE_PATH) {
         return None;
     }
-    if attr.path.get_ident()? != HELPER_ATTRIBUTE_PATH {
-        return None;
-    }
+
     let name_value = "Parsing name-value argument";
-    let syn::MetaNameValue { lit, path, .. } = attr.parse_args().expect(name_value);
+    let syn::MetaNameValue { path, value, .. } = attr.parse_args().expect(name_value);
     match path.get_ident().expect("Unsupported helper-attribute name").to_string().as_str() {
         "apply_attributes_to" => Some(Attr::ApplyAttributesTo({
-            let value = match lit {
-                syn::Lit::Str(lit_str) => lit_str.value(),
+            let value = match value {
+                syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(lit_str), .. }) => lit_str.value(),
                 _ => panic!("Expected a LitStr in argument to helper-attribute."),
             };
             match value.as_str() {
