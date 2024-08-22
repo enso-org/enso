@@ -143,6 +143,7 @@ export const DatePicker = forwardRef(function DatePicker<
             <AriaDatePicker className={styles.base({ className })} {...renderProps.field}>
               <Label />
               <Group className={styles.inputGroup()}>
+                <Button variant="icon" icon={ArrowIcon} className="rotate-90" />
                 <DateInput className={styles.dateInput()}>
                   {(segment) =>
                     segments[segment.type] === false ?
@@ -151,7 +152,6 @@ export const DatePicker = forwardRef(function DatePicker<
                   }
                 </DateInput>
                 {!noResetButton && <DatePickerResetButton className={styles.resetButton()} />}
-                <Button variant="icon" icon={ArrowIcon} className="rotate-90" />
               </Group>
               {props.description != null && <Text slot="description" />}
               <Popover size="auto" className={styles.calendarPopover()}>
