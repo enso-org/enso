@@ -24,7 +24,7 @@
 - [Mixed Decimal/Float arithmetic now throws an error; mixed comparisons now
   attach warnings.][10725]
 - [Support for creating Atoms in expressions.][10820]
-- [IO.println without new line][10858]
+- [IO.print without new line][10858]
 
 [10614]: https://github.com/enso-org/enso/pull/10614
 [10660]: https://github.com/enso-org/enso/pull/10660

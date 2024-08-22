@@ -25,15 +25,29 @@ print_err message = @Builtin_Method "IO.print_err"
    Arguments:
    - message: The message to print. It will have to_text called on it to
      generate a textual representation that is then printed.
-   - ends_with: By default a new line is added to the printed text. It can
-     be changed by specifying different `ends_with` value.
 
    > Example
      Print the message "Oh yes!" to standard output.
 
          IO.println "Oh yes!"
-println : Any -> Text -> Nothing
-println message ends_with='\n' = IO_Helpers.println message ends_with
+println : Any -> Nothing
+println message = IO_Helpers.println message '\n'
+
+## PRIVATE
+   ADVANCED
+   Prints the provided message to standard output without adding a new line at the end.
+
+   Arguments:
+   - message: The message to print. It will have to_text called on it to
+     generate a textual representation that is then printed.
+
+   > Example
+     Print the message "Oh yes!" to standard output using `print` and then `println`.
+
+         IO.print "Oh "
+         IO.println "yes!"
+print : Any -> Nothing
+print message = IO_Helpers.println message ''
 
 ## PRIVATE
    ADVANCED

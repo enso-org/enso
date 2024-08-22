@@ -194,17 +194,17 @@ print_progress current_progress total_count status_text =
     truncated_line = if line.length <= progress_width then line else
         line.take (progress_width - 3) + '...'
 
-    IO.println ends_with='' '\r'
-    IO.println ends_with=''  (' ' * progress_width)
-    IO.println ends_with=''  '\r'
-    IO.println ends_with=''  truncated_line
-    IO.println ends_with=''  '\r'
+    IO.print '\r'
+    IO.print (' ' * progress_width)
+    IO.print '\r'
+    IO.print truncated_line
+    IO.print '\r'
 
 ## PRIVATE
 clear_progress =
-    IO.println ends_with=''  '\r'
-    IO.println ends_with=''  (' ' * progress_width)
-    IO.println ends_with=''  '\r'
+    IO.print '\r'
+    IO.print (' ' * progress_width)
+    IO.print '\r'
 
 ## PRIVATE
 type Ignore_Progress_Reporter
