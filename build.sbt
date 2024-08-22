@@ -3434,12 +3434,22 @@ lazy val `library-manager-test` = project
 
 lazy val `connected-lock-manager` = project
   .in(file("lib/scala/connected-lock-manager"))
+  .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    compileOrder := CompileOrder.ScalaThenJava,
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
+    ),
+    moduleDependencies := Seq(
+      "org.scala-lang"       % "scala-library" % scalacVersion,
+    ),
+    internalModuleDependencies := Seq(
+      (`distribution-manager` / exportedModule).value,
+      (`polyglot-api` / exportedModule).value,
+      (`scala-libs-wrapper` / exportedModule).value,
     )
   )
   .dependsOn(`distribution-manager`)
