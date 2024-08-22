@@ -1,6 +1,3 @@
-// === Features ===
-#![feature(exit_status_error)]
-
 use ide_ci::prelude::*;
 
 use ide_ci::programs::cargo::build::rerun_if_file_changed;
@@ -14,6 +11,6 @@ fn main() -> Result {
     let out_dir = ide_ci::programs::cargo::build_env::OUT_DIR.get()?;
     let out_path = out_dir.join("paths.rs");
     ide_ci::fs::write(&out_path, code.to_string())?;
-    std::process::Command::new("rustfmt").arg(&out_path).status()?.exit_ok()?;
+    assert!(std::process::Command::new("rustfmt").arg(&out_path).status()?.success());
     Ok(())
 }

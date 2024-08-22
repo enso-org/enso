@@ -161,10 +161,11 @@ pub struct RemoveEmptyCscEnvVars;
 impl Manipulator for RemoveEmptyCscEnvVars {
     fn apply<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) {
         for var in ide_ci::env::known::electron_builder::CI_CSC_SECRETS {
-            if let Ok(value) = std::env::var(var)
-                && value.is_empty()
-            {
-                command.env_remove(var);
+            match std::env::var(var) {
+                Ok(value) if value.is_empty() => {
+                    command.env_remove(var);
+                }
+                _ => {}
             }
         }
     }
