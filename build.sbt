@@ -1159,6 +1159,7 @@ lazy val `version-output` = (project in file("lib/scala/version-output"))
 
 lazy val `refactoring-utils` = project
   .in(file("lib/scala/refactoring-utils"))
+  .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
@@ -1167,6 +1168,14 @@ lazy val `refactoring-utils` = project
     libraryDependencies ++= Seq(
       "junit"          % "junit"           % junitVersion   % Test,
       "com.github.sbt" % "junit-interface" % junitIfVersion % Test
+    ),
+    excludeFilter := excludeFilter.value || "module-info.java",
+    moduleDependencies := Seq(
+      "org.scala-lang"       % "scala-library" % scalacVersion,
+    ),
+    internalModuleDependencies := Seq(
+      (`text-buffer` / exportedModule).value,
+      (`runtime-parser` / exportedModule).value,
     )
   )
   .dependsOn(`runtime-parser`)
