@@ -139,7 +139,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                 value={typeof value === 'number' ? value : ''}
                 size={1}
                 className={twMerge(
-                  'focus-child min-6- text40 w-80 grow rounded-input border-0.5 bg-transparent px-input-x read-only:read-only',
+                  'focus-child min-6- text40 w-60 grow rounded-input border-0.5 bg-transparent px-input-x read-only:read-only',
                   getValidator(path)(value) ? 'border-primary/20' : 'border-red-700/60',
                 )}
                 placeholder={getText('enterInteger')}
