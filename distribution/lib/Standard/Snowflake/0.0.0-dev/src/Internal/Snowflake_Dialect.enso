@@ -18,9 +18,11 @@ import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
 import Standard.Database.Dialect
 import Standard.Database.Internal.Aggregate_Helper
+import Standard.Database.Internal.Aggregate_Helper.Aggregate_With_Helper_Expressions
 import Standard.Database.Internal.Base_Generator
 import Standard.Database.Internal.Common.Database_Distinct_Helper
 import Standard.Database.Internal.Common.Database_Join_Helper
+import Standard.Database.Internal.Common.Row_Number_Helpers
 import Standard.Database.Internal.Error_Mapper.Error_Mapper
 import Standard.Database.Internal.Internals_Access
 import Standard.Database.Internal.IR.Context.Context
@@ -316,7 +318,38 @@ type Snowflake_Dialect
         False
 
     ## PRIVATE
-    custom_build_aggregate self = Aggregate_Helper.build_aggregate_with_row_number_for_first_last self
+    custom_build_aggregate self =
+        create_row_number_for orderings key_columns =
+            order_descriptors = orderings.map o-> self.prepare_order_descriptor o.column o.direction text_ordering=Nothing
+            key_expressions_for_orderings = key_columns.map .expression
+            expression = Row_Number_Helpers.make_row_number 1 1 order_descriptors key_expressions_for_orderings
+            Pair.new "row-number" expression
+
+        create_helper_expressions aggregate_column key_columns =
+            make_selector_for_first_last order_by =
+                if Aggregate_Helper.is_non_empty_selector order_by then [create_row_number_for order_by key_columns] else []
+            case aggregate_column of
+                Aggregate_Column.First _ _ _ order_by -> make_selector_for_first_last order_by
+                Aggregate_Column.Last _ _ _ order_by  -> make_selector_for_first_last order_by
+                _ -> []
+
+        make_aggregate aggregate_column as helper_expressions base_table infer_return_type problem_builder =
+            make_first_last op_kind = if Aggregate_Helper.is_non_empty_selector aggregate_column.order_by . not then Aggregate_Helper.throw_ordering_required (op_kind.to_case ..Title) else
+                Runtime.assert (helper_expressions.length == 1)
+                row_number = helper_expressions.first
+                op = case aggregate_column.ignore_nothing of
+                    False -> op_kind
+                    True  -> op_kind + "_NOT_NULL"
+                # We just inherit the type of the source column, as the FIRST/LAST element of a column should have the same type.
+                sql_type_reference = aggregate_column.column.sql_type_reference
+                Internal_Column.Value as sql_type_reference (SQL_Expression.Operation op [aggregate_column.column.expression, row_number.expression])
+            case aggregate_column of
+                Aggregate_Column.First _ _ _ _ -> make_first_last "FIRST"
+                Aggregate_Column.Last _ _ _ _ -> make_first_last "LAST"
+                _ -> Aggregate_Helper.make_aggregate_column base_table aggregate_column as self infer_return_type problem_builder
+
+        setup = Aggregate_With_Helper_Expressions.Value create_helper_expressions make_aggregate
+        setup.build self
 
 ## PRIVATE
 make_dialect_operations =
