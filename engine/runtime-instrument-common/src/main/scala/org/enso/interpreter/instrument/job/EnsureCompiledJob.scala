@@ -2,27 +2,16 @@ package org.enso.interpreter.instrument.job
 
 import com.oracle.truffle.api.TruffleLogger
 import org.enso.common.CompilationStage
-import org.enso.compiler.{data, CompilerResult}
+import org.enso.compiler.{CompilerResult, data}
 import org.enso.compiler.context._
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.{ExternalID, IR}
 import org.enso.compiler.core.ir
-import org.enso.compiler.core.ir.{expression, Location}
+import org.enso.compiler.core.ir.{Location, expression}
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.pass.analyse.{
-  CachePreferenceAnalysis,
-  DataflowAnalysis,
-  GatherDiagnostics
-}
-import org.enso.interpreter.instrument.execution.{
-  LocationResolver,
-  RuntimeContext
-}
-import org.enso.interpreter.instrument.{
-  CacheInvalidation,
-  InstrumentFrame,
-  Visualization
-}
+import org.enso.compiler.pass.analyse.{CachePreferenceAnalysis, DataflowAnalysis, GatherDiagnostics}
+import org.enso.interpreter.instrument.execution.{LocationResolver, RuntimeContext}
+import org.enso.interpreter.instrument.{CacheInvalidation, Changeset, ChangesetBuilder, InstrumentFrame, Visualization}
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.service.error.ModuleNotFoundForFileException
 import org.enso.logger.masking.MaskedPath
@@ -36,7 +25,6 @@ import java.io.File
 import java.util
 import java.util.UUID
 import java.util.logging.Level
-
 import scala.jdk.OptionConverters._
 
 /** A job that ensures that specified files are compiled.

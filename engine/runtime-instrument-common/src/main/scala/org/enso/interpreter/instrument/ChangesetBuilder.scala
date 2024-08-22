@@ -1,26 +1,17 @@
-package org.enso.compiler.context
+package org.enso.interpreter.instrument
 
 import com.oracle.truffle.api.source.Source
-
-import java.util.UUID
-import org.enso.compiler.core.{
-  CompilerError,
-  EnsoParser,
-  ExternalID,
-  IR,
-  Identifier
-}
 import org.enso.compiler.core.Implicits.AsMetadata
-import org.enso.compiler.core.ir.Literal
-import org.enso.compiler.core.ir.Location
-import org.enso.compiler.core.ir.Name
-import org.enso.compiler.suggestions.SimpleUpdate
+import org.enso.compiler.core.ir.{Literal, Location, Name}
 import org.enso.compiler.core.ir.module.scope.definition
+import org.enso.compiler.core._
 import org.enso.compiler.pass.analyse.DataflowAnalysis
+import org.enso.compiler.suggestions.SimpleUpdate
 import org.enso.interpreter.instrument.execution.model.PendingEdit
 import org.enso.text.editing.model.{IdMap, TextEdit}
 import org.enso.text.editing.{IndexedSource, TextEditor}
 
+import java.util.UUID
 import scala.collection.mutable
 import scala.util.Using
 

@@ -48,7 +48,7 @@ import org.enso.distribution.locking.LockManager;
 import org.enso.editions.LibraryName;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.OptionsHelper;
-import org.enso.interpreter.instrument.NotificationHandler;
+import org.enso.interpreter.runtime.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;

@@ -1,4 +1,4 @@
-package org.enso.interpreter.instrument;
+package org.enso.interpreter.instrument.repl.debugger;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLogger;
@@ -18,6 +18,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import org.enso.compiler.context.FramePointer;
+import org.enso.interpreter.instrument.DebuggerMessageHandler;
+import org.enso.interpreter.instrument.ReplExecutionEventNode;
 import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.node.expression.debug.CaptureResultScopeNode;

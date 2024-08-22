@@ -2091,11 +2091,17 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.apache.commons" % "commons-lang3"        % commonsLangVersion,
     ),
     internalModuleDependencies := Seq(
+      (`distribution-manager` / exportedModule).value,
+      (`engine-common` / exportedModule).value,
       (`library-manager` / exportedModule).value,
+      (`connected-lock-manager` / exportedModule).value,
       (`logging-utils` / exportedModule).value,
-      (`pkg` / exportedModule).value,
-      (`polyglot-api` / exportedModule).value,
+      (`runtime-compiler` / exportedModule).value,
       (`runtime-parser` / exportedModule).value,
+      (`polyglot-api` / exportedModule).value,
+      (`pkg` / exportedModule).value,
+      (`cli` / exportedModule).value,
+      (`editions` / exportedModule).value,
       (`syntax-rust-definition` / exportedModule).value,
       (`version-output` / exportedModule).value,
     )
@@ -2487,19 +2493,47 @@ lazy val `runtime-instrument-common` =
 
 lazy val `runtime-instrument-id-execution` =
   (project in file("engine/runtime-instrument-id-execution"))
+    .enablePlugins(JPMSPlugin)
     .settings(
       frgaalJavaCompilerSetting,
       inConfig(Compile)(truffleRunOptionsSettings),
-      instrumentationSettings
+      instrumentationSettings,
+      moduleDependencies := Seq(
+        "org.graalvm.truffle" % "truffle-api"             % graalMavenPackagesVersion,
+        "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion,
+        "org.graalvm.sdk"        % "collections"      % graalMavenPackagesVersion,
+        "org.graalvm.sdk"        % "word"             % graalMavenPackagesVersion,
+        "org.graalvm.sdk"        % "nativeimage"      % graalMavenPackagesVersion,
+      ),
+      internalModuleDependencies := Seq(
+        (`runtime` / exportedModule).value,
+        (`runtime-compiler` / exportedModule).value,
+        (`polyglot-api` / exportedModule).value,
+      )
     )
     .dependsOn(LocalProject("runtime"))
     .dependsOn(`runtime-instrument-common`)
 
 lazy val `runtime-instrument-repl-debugger` =
   (project in file("engine/runtime-instrument-repl-debugger"))
+    .enablePlugins(JPMSPlugin)
     .settings(
       inConfig(Compile)(truffleRunOptionsSettings),
-      instrumentationSettings
+      instrumentationSettings,
+      moduleDependencies := Seq(
+        "org.scala-lang" % "scala-library" % scalacVersion,
+        "org.graalvm.truffle" % "truffle-api"             % graalMavenPackagesVersion,
+        "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion,
+        "org.graalvm.sdk"        % "collections"      % graalMavenPackagesVersion,
+        "org.graalvm.sdk"        % "word"             % graalMavenPackagesVersion,
+        "org.graalvm.sdk"        % "nativeimage"      % graalMavenPackagesVersion,
+      ),
+      internalModuleDependencies := Seq(
+        (`runtime-instrument-common` / exportedModule).value,
+        (`runtime` / exportedModule).value,
+        (`polyglot-api` / exportedModule).value,
+        (`runtime-compiler` / exportedModule).value,
+      )
     )
     .dependsOn(LocalProject("runtime"))
     .dependsOn(`runtime-instrument-common`)

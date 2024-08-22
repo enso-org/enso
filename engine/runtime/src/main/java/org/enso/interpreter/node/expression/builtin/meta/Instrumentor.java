@@ -6,7 +6,7 @@ import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import org.enso.interpreter.EnsoLanguage;
-import org.enso.interpreter.instrument.Timer;
+import org.enso.interpreter.runtime.instrument.Timer;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;

@@ -12,6 +12,8 @@ import java.util.Arrays;
 import java.util.Optional;
 import org.enso.distribution.locking.LockManager;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.instrument.NotificationHandler;
+import org.enso.interpreter.runtime.instrument.Timer;
 import org.enso.interpreter.service.ExecutionService;
 import org.enso.lockmanager.client.ConnectedLockManager;
 import org.enso.polyglot.RuntimeServerInfo;

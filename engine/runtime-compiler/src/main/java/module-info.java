@@ -12,4 +12,6 @@ module org.enso.runtime.compiler {
   exports org.enso.compiler;
   exports org.enso.compiler.context;
   exports org.enso.compiler.data;
+  exports org.enso.compiler.dump;
+  exports org.enso.compiler.exception;
 }

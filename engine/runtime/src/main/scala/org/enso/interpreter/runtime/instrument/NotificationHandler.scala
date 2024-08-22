@@ -1,4 +1,4 @@
-package org.enso.interpreter.instrument
+package org.enso.interpreter.runtime.instrument
 
 import com.typesafe.scalalogging.Logger
 import org.enso.cli.ProgressBar
