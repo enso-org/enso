@@ -616,16 +616,30 @@ lazy val componentModulesPaths =
     GraalVM.toolsPkgs ++
     helidon ++
     Seq(
-      "org.slf4j"        % "slf4j-api"                    % slf4jVersion,
-      "ch.qos.logback"   % "logback-classic"              % logbackClassicVersion,
-      "ch.qos.logback"   % "logback-core"                 % logbackClassicVersion,
-      "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion
+      "org.scala-lang"         % "scala-library"                % scalacVersion,
+      "org.scala-lang"         % "scala-reflect"                % scalacVersion,
+      "org.scala-lang"         % "scala-compiler"               % scalacVersion,
+      "org.netbeans.api"       % "org-openide-util-lookup"      % netbeansApiVersion,
+      "org.netbeans.api"       % "org-netbeans-modules-sampler" % netbeansApiVersion,
+      "com.google.flatbuffers" % "flatbuffers-java"             % flatbuffersVersion,
+      "commons-io"             % "commons-io"                   % commonsIoVersion,
+      "org.yaml"               % "snakeyaml"                    % snakeyamlVersion,
+      "com.typesafe"           % "config"                       % typesafeConfigVersion,
+      "org.jline"              % "jline"                        % jlineVersion,
+      "commons-cli"            % "commons-cli"                  % commonsCliVersion,
+      "org.apache.commons"     % "commons-lang3"                % commonsLangVersion,
+      "org.apache.commons"     % "commons-compress"             % commonsCompressVersion,
+      "org.apache.tika"        % "tika-core"                    % tikaVersion,
+      "org.slf4j"              % "slf4j-api"                    % slf4jVersion,
+      "ch.qos.logback"         % "logback-classic"              % logbackClassicVersion,
+      "ch.qos.logback"         % "logback-core"                 % logbackClassicVersion,
+      "com.ibm.icu"            % "icu4j"                        % icuVersion
     )
   val thirdPartyMods = JPMSUtils.filterModulesFromClasspath(
     fullCp,
     thirdPartyModIds,
     log,
-    projName = moduleName.value,
+    projName         = moduleName.value,
     shouldContainAll = true
   )
   val thirdPartyModFiles = thirdPartyMods.map(_.data)
@@ -635,6 +649,7 @@ lazy val componentModulesPaths =
     (`engine-runner-common` / exportedModuleBin).value,
     (`polyglot-api` / exportedModuleBin).value,
     (`runtime` / exportedModuleBin).value,
+    (`syntax-rust-definition` / exportedModuleBin).value,
     (`runtime-compiler` / exportedModuleBin).value,
     (`runtime-parser` / exportedModuleBin).value,
     (`runtime-instrument-common` / exportedModuleBin).value,
@@ -659,6 +674,8 @@ lazy val componentModulesPaths =
     (`version-output` / exportedModuleBin).value,
     (`scala-yaml` / exportedModuleBin).value,
     (`scala-libs-wrapper` / exportedModuleBin).value,
+    (`edition-updater` / exportedModuleBin).value,
+    (`profiling-utils` / exportedModuleBin).value
   )
   ourMods ++ thirdPartyModFiles
 }
