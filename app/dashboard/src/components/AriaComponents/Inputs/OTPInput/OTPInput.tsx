@@ -47,7 +47,7 @@ export interface OtpInputProps<
 }
 
 const STYLES = tv({
-  base: 'group flex w-full overflow-hidden p-1 w-[calc(100%+8px)] -m-1 flex-1',
+  base: 'group flex overflow-hidden p-1 w-[calc(100%+8px)] -m-1 flex-1',
   slots: {
     slotsContainer: 'flex items-center flex-1 w-full',
   },
