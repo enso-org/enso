@@ -1047,6 +1047,19 @@ add_specs suite_builder =
             d.unscaled_value . should_equal 123456
             d.internal_representation . should_equal [123456, 6, 3]
 
+    suite_builder.group "(Decimal_Spec) Text.to_decimal" group_builder->
+        group_builder.specify "should be able to convert a Text to a Decimal" <|
+            "23.456".to_decimal . should_equal (dec "23.456")
+
+        group_builder.specify "should be able to convert a Text to a Decimal, with scale" <|
+            "23.456".to_decimal scale=3 . should_equal (dec "23.456")
+            "23.456".to_decimal scale=3 . internal_representation . should_equal [23456, 5, 3]
+            "23.456".to_decimal scale=4 . should_equal (dec "23.456")
+            "23.456".to_decimal scale=4 . internal_representation . should_equal [234560, 6, 4]
+
+        group_builder.specify "converting a Text to a Decimal with a scale that is too small should result in an error" <|
+            "23.456".to_decimal scale=2 . should_fail_with Arithmetic_Error
+
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
