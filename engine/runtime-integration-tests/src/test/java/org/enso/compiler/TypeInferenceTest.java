@@ -15,7 +15,6 @@ import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.compiler.core.ir.Expression;
-import org.enso.compiler.core.ir.LazyDiagnosticStorage;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.ProcessingPass;
 import org.enso.compiler.core.ir.Warning;
@@ -1049,8 +1048,7 @@ public class TypeInferenceTest extends CompilerTest {
   }
 
   private List<Diagnostic> getDescendantsDiagnostics(IR ir) {
-    return CollectionConverters.asJava(
-        ir.preorder().flatMap(LazyDiagnosticStorage::diagnosticsList));
+    return CollectionConverters.asJava(ir.preorder().flatMap(IR::diagnosticsList));
   }
 
   private Method findStaticMethod(Module module, String name) {
