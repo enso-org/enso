@@ -140,18 +140,17 @@ Table.multi_series_info self =
 ## PRIVATE
 
    Generates JSON that describes plot axes.
-Table.axes : JS_Object
-Table.axes self =
+Table.axes : Vector -> JS_Object
+Table.axes self all_fields =
     describe_axis field =
         col_name = field.lookup_in self . name
         label = JS_Object.from_pairs [[label_field, col_name]]
         [field.name, label]
-    x_axis = describe_axis Point_Data.X
-    y_axis = describe_axis Point_Data.Y
+    axis = all_fields.map describe_axis
     is_valid axis_pair =
         label = axis_pair.at 1
         label.is_valid && (self.columns.length > 0)
-    axes_obj = JS_Object.from_pairs <| [x_axis, y_axis].filter is_valid
+    axes_obj = JS_Object.from_pairs <| axis.filter is_valid
     if axes_obj.length > 0 then axes_obj else Nothing
 
 ## PRIVATE
@@ -210,13 +209,20 @@ add_fields current number_of_numeric idx=0 = if idx == number_of_numeric then cu
     @Tail_Call add_fields current number_of_numeric idx+1
 
 ## PRIVATE
+get_axes_field : Integer -> Vector
+get_axes_field number_of_numeric =
+    extra_axes_fields = add_fields (Builder.new number_of_numeric) number_of_numeric
+    extra_axes_fields . insert item=Point_Data.X . insert item=Point_Data.Y
+
+## PRIVATE
 json_from_table : Table -> Vector Integer | Nothing -> Integer | Nothing -> Text
 json_from_table table bounds limit =
     number_of_numeric_cols = table.multi_series_info-2
     feilds_for_multiseries = Point_Data.all_fields + add_fields (Builder.new number_of_numeric_cols) number_of_numeric_cols
     fields_for_plot = if number_of_numeric_cols > 0 then feilds_for_multiseries else Point_Data.all_fields
     data = table.point_data fields_for_plot |> bound_data bounds |> limit_data limit
-    axes = table.axes
+    fields_for_axes = get_axes_field number_of_numeric_cols
+    axes = table.axes fields_for_axes
     JS_Object.from_pairs [[data_field, data], [axis_field, axes]] . to_json
 
 ## PRIVATE
@@ -228,7 +234,7 @@ json_from_vector vec bounds limit =
 ## PRIVATE
 
    Default preprocessor for the scatter-plot visualization.
-   
+
    Generates JSON text describing the scatter-plot visualization.
 
    Arguments:
