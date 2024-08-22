@@ -101,6 +101,7 @@ public interface IR {
   @Identifier
   UUID getId();
 
+  /** Storage for compiler diagnostics related to the IR node. */
   DiagnosticStorage diagnostics();
 
   /**

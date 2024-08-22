@@ -11,7 +11,7 @@ trait LazyDiagnosticStorage { self: IR =>
     _diagnostics = diagnostics
   }
 
-  def diagnostics: DiagnosticStorage = {
+  override def diagnostics: DiagnosticStorage = {
     _diagnostics
   }
 
