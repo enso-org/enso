@@ -1958,6 +1958,7 @@ lazy val instrumentationSettings =
 
 lazy val `runtime-language-epb` =
   (project in file("engine/runtime-language-epb"))
+    .enablePlugins(JPMSPlugin)
     .settings(
       frgaalJavaCompilerSetting,
       inConfig(Compile)(truffleRunOptionsSettings),
@@ -1971,7 +1972,14 @@ lazy val `runtime-language-epb` =
         "com.github.sbt"      % "junit-interface"       % junitIfVersion            % Test,
         "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion % "provided",
         "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided"
-      )
+      ),
+      moduleDependencies := Seq(
+        "org.graalvm.truffle" % "truffle-api"             % graalMavenPackagesVersion,
+        "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion,
+        "org.graalvm.sdk"        % "collections"      % graalMavenPackagesVersion,
+        "org.graalvm.sdk"        % "word"             % graalMavenPackagesVersion,
+        "org.graalvm.sdk"        % "nativeimage"      % graalMavenPackagesVersion,
+      ),
     )
 
 lazy val `runtime-language-arrow` =
