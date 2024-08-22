@@ -23,4 +23,5 @@ module org.enso.runtime.instrument.common {
   // TODO: com.oracle.truffle.api.TruffleContext?
 
   exports org.enso.interpreter.instrument;
+  exports org.enso.interpreter.service;
 }

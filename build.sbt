@@ -2540,9 +2540,28 @@ lazy val `runtime-instrument-repl-debugger` =
 
 lazy val `runtime-instrument-runtime-server` =
   (project in file("engine/runtime-instrument-runtime-server"))
+    .enablePlugins(JPMSPlugin)
     .settings(
       inConfig(Compile)(truffleRunOptionsSettings),
-      instrumentationSettings
+      instrumentationSettings,
+      moduleDependencies := Seq(
+        "org.scala-lang" % "scala-library" % scalacVersion,
+        "org.graalvm.truffle" % "truffle-api"             % graalMavenPackagesVersion,
+        "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion,
+        "org.graalvm.sdk"        % "collections"      % graalMavenPackagesVersion,
+        "org.graalvm.sdk"        % "word"             % graalMavenPackagesVersion,
+        "org.graalvm.sdk"        % "nativeimage"      % graalMavenPackagesVersion,
+        "org.netbeans.api"     % "org-openide-util-lookup"  % netbeansApiVersion
+      ),
+      internalModuleDependencies := Seq(
+        (`runtime-instrument-common` / exportedModule).value,
+        (`engine-common` / exportedModule).value,
+        (`distribution-manager` / exportedModule).value,
+        (`runtime` / exportedModule).value,
+        (`polyglot-api` / exportedModule).value,
+        (`runtime-compiler` / exportedModule).value,
+        (`connected-lock-manager` / exportedModule).value,
+      )
     )
     .dependsOn(LocalProject("runtime"))
     .dependsOn(`runtime-instrument-common` % "test->test;compile->compile")

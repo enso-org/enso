@@ -1,4 +1,4 @@
-package org.enso.interpreter.instrument;
+package org.enso.interpreter.instrument.runtime.server;
 
 import com.oracle.truffle.api.TruffleContext;
 import com.oracle.truffle.api.TruffleOptions;
@@ -11,6 +11,9 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.Optional;
 import org.enso.distribution.locking.LockManager;
+import org.enso.interpreter.instrument.Handler;
+import org.enso.interpreter.instrument.HandlerFactory;
+import org.enso.interpreter.instrument.HandlerFactoryImpl;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.instrument.Timer;
