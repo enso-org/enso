@@ -1081,6 +1081,7 @@ lazy val `scala-libs-wrapper` = project
         patchModules = patchModules.value
       )
     },
+    exportedModuleBin := assembly.value,
     // Ensure that `module-info.class` is included in the assembled Jar
     assembly := assembly
       .dependsOn(compileModuleInfo)
