@@ -5,7 +5,6 @@ import FindIcon from '#/assets/find.svg'
 
 import * as aria from '#/components/aria'
 import FocusArea from '#/components/styled/FocusArea'
-import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 
 // =================

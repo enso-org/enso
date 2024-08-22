@@ -132,7 +132,6 @@ export const Dropdown = forwardRef(function Dropdown<T>(
   const visuallySelectedItem = visuallySelectedIndex == null ? null : items[visuallySelectedIndex]
 
   const isFocused = isFocusVisible ? isFocusWithin : isMouseFocused
-  console.log(isFocusVisible, isFocusWithin, isMouseFocused, document.activeElement)
   const styles = DROPDOWN_STYLES({ isFocused, isReadOnly: readOnly })
 
   useEffect(() => {
@@ -142,7 +141,6 @@ export const Dropdown = forwardRef(function Dropdown<T>(
   useEffect(() => {
     const onDocumentMouseDown = () => {
       if (!isSelfMouseDownRef.current) {
-        console.log(':)')
         setIsMouseFocused(false)
         if (document.activeElement === rootRef.current) {
           rootRef.current?.blur()
@@ -186,7 +184,6 @@ export const Dropdown = forwardRef(function Dropdown<T>(
                 dependencies={[selectedIndices]}
                 className={styles.optionsList()}
                 onSelectionChange={(keys) => {
-                  console.log('a', multiple)
                   if (multiple) {
                     const indices = Array.from(keys, (i) => Number(i))
                     props.onChange(
