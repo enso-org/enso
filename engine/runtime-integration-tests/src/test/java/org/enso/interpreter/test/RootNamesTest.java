@@ -87,15 +87,12 @@ public class RootNamesTest {
             .map(l -> l.substring(7))
             .collect(Collectors.toSet());
 
-    assertEquals("Few closures: " + closures, 3, closures.size());
+    assertEquals("Few closures: " + closures, 2, closures.size());
     assertTrue(
         "Fully qualified name for method: " + closures,
         closures.contains("factorial::factorial::fac"));
     assertTrue(
         "Name with dots for local method: " + closures, closures.contains("factorial.fac.acc"));
-    assertTrue(
-        "Prefixed with dot name for argument thunk: " + closures,
-        closures.contains("factorial.fac.acc<arg-2>"));
   }
 
   @Test

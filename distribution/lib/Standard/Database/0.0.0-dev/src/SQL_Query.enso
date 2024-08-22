@@ -1,5 +1,5 @@
-from Standard.Base import Text
 import Standard.Base.Errors.Common.Missing_Argument
+from Standard.Base import Text
 
 type SQL_Query
     ## Query a whole table or view.

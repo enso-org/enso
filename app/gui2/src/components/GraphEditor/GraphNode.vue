@@ -216,18 +216,6 @@ function setSelected() {
   nodeSelection?.setSelection(new Set([nodeId.value]))
 }
 
-function onAnyClick(e: MouseEvent) {
-  if (isUnmodifiedPrimaryButtonClick(e)) {
-    setSelected()
-  }
-}
-
-function isUnmodifiedPrimaryButtonClick(e: MouseEvent) {
-  const isModified = e.ctrlKey || e.altKey || e.shiftKey || e.metaKey
-  const isPrimaryButton = e.button === 0
-  return isPrimaryButton && !isModified
-}
-
 const outputHovered = ref(false)
 const keyboard = injectKeyboard()
 const visualizationWidth = computed(() => props.node.vis?.width ?? null)
@@ -429,7 +417,6 @@ watchEffect(() => {
     @pointerenter="(nodeHovered = true), updateNodeHover($event)"
     @pointerleave="(nodeHovered = false), updateNodeHover(undefined)"
     @pointermove="updateNodeHover"
-    @click.capture="onAnyClick"
   >
     <Teleport v-if="navigator && !edited" :to="graphNodeSelections">
       <GraphNodeSelection
@@ -453,7 +440,7 @@ watchEffect(() => {
       v-if="!menuVisible && isRecordingOverridden"
       class="overrideRecordButton clickable"
       data-testid="recordingOverriddenButton"
-      @click="isRecordingOverridden = false"
+      @click="(isRecordingOverridden = false), setSelected()"
     >
       <SvgIcon name="record" />
     </button>
@@ -475,6 +462,7 @@ watchEffect(() => {
       @pointerenter="menuHovered = true"
       @pointerleave="menuHovered = false"
       @update:nodeColor="emit('setNodeColor', $event)"
+      @click.capture="setSelected"
     />
     <GraphVisualization
       v-if="isVisualizationVisible"
@@ -498,8 +486,14 @@ watchEffect(() => {
       @update:height="emit('update:visualizationHeight', $event)"
       @update:nodePosition="graph.setNodePosition(nodeId, $event)"
       @createNodes="emit('createNodes', $event)"
+      @click.capture="setSelected"
     />
-    <GraphNodeComment v-model:editing="editingComment" :node="node" class="beforeNode" />
+    <GraphNodeComment
+      v-model:editing="editingComment"
+      :node="node"
+      class="beforeNode"
+      @click.capture="setSelected"
+    />
     <div
       ref="contentNode"
       :class="{ content: true, dragged: isDragged }"
@@ -548,7 +542,7 @@ watchEffect(() => {
     <SmallPlusButton
       v-if="menuVisible"
       :class="isVisualizationVisible ? 'afterNode' : 'belowMenu'"
-      @createNodes="emit('createNodes', $event)"
+      @createNodes="setSelected(), emit('createNodes', $event)"
     />
   </div>
 </template>
@@ -631,10 +625,9 @@ watchEffect(() => {
 
 .CircularMenu {
   z-index: 25;
-}
-
-.CircularMenu.partial {
-  z-index: 1;
+  &.partial {
+    z-index: 1;
+  }
 }
 
 .beforeNode {

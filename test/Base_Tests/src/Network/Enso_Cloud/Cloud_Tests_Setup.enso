@@ -184,7 +184,7 @@ type Temporary_Directory
         was_initialized = Ref.new False
         Temporary_Directory.Value was_initialized <|
             directory_name = "test-run-"+name+"-"+Temporary_Directory.timestamp_text
-            test_root = (Enso_File.root / directory_name).create_directory
+            test_root = (Enso_File.home / directory_name).create_directory
             test_root.if_not_error <|
                 was_initialized.put True
                 with_initializer test_root . if_not_error test_root

@@ -60,9 +60,18 @@ object Comment {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Documentation = {
-      val res = Documentation(doc, location, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        doc != this.doc
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+
+        val res = Documentation(doc, location, passData, diagnostics)
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */

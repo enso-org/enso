@@ -8,11 +8,11 @@ import org.enso.interpreter.test.instruments.{
 }
 import org.enso.interpreter.test.instruments.CodeLocationsTestInstrument.LocationsEventListener
 import org.enso.polyglot.debugger.{
-  DebugServerInfo,
   DebuggerSessionManagerEndpoint,
   ReplExecutor,
   SessionManager
 }
+import org.enso.common.DebugServerInfo
 import org.enso.common.LanguageInfo
 import org.enso.common.RuntimeOptions
 import org.enso.polyglot.{Function, PolyglotContext}

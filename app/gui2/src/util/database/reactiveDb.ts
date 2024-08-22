@@ -11,7 +11,7 @@
  */
 
 import { assert } from '@/util/assert'
-import { LazySyncEffectSet } from '@/util/reactivity'
+import { LazySyncEffectSet, NonReactiveView } from '@/util/reactivity'
 import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
 import * as set from 'lib0/set'
@@ -71,9 +71,24 @@ export class ReactiveDb<K, V>
    * @param key - The key for which to retrieve the value.
    * @returns The value associated with the key, or undefined if the key is not found.
    */
-  /** Same as `Map.get` */
   get(key: K): V | undefined {
     return this._internal.get(key)
+  }
+
+  /**
+   * Retrieves the value corresponding to a specified key, without creating any reactive dependency for the lookup or
+   * any subsequent access to the data.
+   *
+   * This can be useful to read a reactive value for the purpose of incrementally updating it, without creating a cyclic
+   * dependency.
+   *
+   * @param key - The key for which to retrieve the value.
+   * @returns The value associated with the key, or undefined if the key is not found.
+   */
+  getUntracked(key: K): NonReactiveView<V> | undefined {
+    const value = toRaw(this._internal).get(key)
+    if (value === undefined) return
+    return value as NonReactiveView<V>
   }
 
   /**

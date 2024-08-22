@@ -5,7 +5,7 @@ import type { AssetColumnHeadingProps } from '#/components/dashboard/column'
 import { Column } from '#/components/dashboard/column/columnUtils'
 import { PaywallDialogButton } from '#/components/Paywall'
 import { usePaywall } from '#/hooks/billing'
-import { useNonPartialUserSession } from '#/providers/AuthProvider'
+import { useFullUserSession } from '#/providers/AuthProvider'
 import { useText } from '#/providers/TextProvider'
 
 /** A heading for the "Shared with" column. */
@@ -14,7 +14,7 @@ export default function SharedWithColumnHeading(props: AssetColumnHeadingProps) 
   const { hideColumn } = state
   const { getText } = useText()
 
-  const { user } = useNonPartialUserSession()
+  const { user } = useFullUserSession()
 
   const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })
 

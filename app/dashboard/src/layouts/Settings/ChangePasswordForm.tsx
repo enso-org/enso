@@ -4,7 +4,7 @@ import * as React from 'react'
 import * as z from 'zod'
 
 import { ButtonGroup, Form, Input } from '#/components/AriaComponents'
-import { useAuth, useNonPartialUserSession } from '#/providers/AuthProvider'
+import { useAuth, useFullUserSession } from '#/providers/AuthProvider'
 import { type GetText, useText } from '#/providers/TextProvider'
 
 import SettingsAriaInput from '#/layouts/Settings/SettingsAriaInput'
@@ -40,7 +40,7 @@ function createChangePasswordFormSchema(getText: GetText) {
 
 /** A form for changing the user's password. */
 export default function ChangePasswordForm() {
-  const { user } = useNonPartialUserSession()
+  const { user } = useFullUserSession()
   const { changePassword } = useAuth()
   const { getText } = useText()
 
