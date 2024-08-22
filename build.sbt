@@ -1534,6 +1534,7 @@ lazy val `persistance-dsl` = (project in file("lib/java/persistance-dsl"))
   )
 
 lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
+  .enablePlugins(JPMSPlugin)
   .settings(
     version := "0.1",
     frgaalJavaCompilerSetting,
@@ -1548,6 +1549,11 @@ lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
       "org.apache.commons" % "commons-lang3"           % commonsLangVersion,
       "org.netbeans.api"   % "org-openide-util-lookup" % netbeansApiVersion % "provided",
       "com.google.guava"   % "guava"                   % guavaVersion exclude ("com.google.code.findbugs", "jsr305")
+    ),
+    moduleDependencies := Seq(
+      "org.apache.commons" % "commons-lang3"           % commonsLangVersion,
+      "org.netbeans.api"   % "org-openide-util-lookup" % netbeansApiVersion,
+      "com.google.guava"   % "guava"                   % guavaVersion
     )
   )
 
@@ -2063,6 +2069,8 @@ lazy val runtime = (project in file("engine/runtime"))
       (`editions` / exportedModule).value,
       (`syntax-rust-definition` / exportedModule).value,
       (`version-output` / exportedModule).value,
+      (`interpreter-dsl` / exportedModule).value,
+      (`persistance` / exportedModule).value
     )
   )
   .settings(
