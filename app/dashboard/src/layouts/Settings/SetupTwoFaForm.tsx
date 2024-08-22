@@ -176,8 +176,6 @@ function TwoFa() {
 
   const { field } = Form.useField({ name: 'display' })
 
-  const str = 'otpauth://totp/AWSCognito:' + email + '?secret=' + data + '&issuer=' + 'Enso'
-
   return (
     <>
       <div className="flex w-full flex-col gap-4">
@@ -197,7 +195,7 @@ function TwoFa() {
 
             <div className="self-center">
               <LazyQRCode
-                value={str}
+                value={data.url}
                 bgColor="transparent"
                 fgColor="rgb(0 0 0 / 60%)"
                 size={192}
@@ -218,7 +216,7 @@ function TwoFa() {
               </Text.Group>
             </Alert>
 
-            <CopyBlock copyText={str} />
+            <CopyBlock copyText={data.url} />
           </>
         )}
 

@@ -219,6 +219,11 @@ export class Cognito {
     return userInfo.attributes['custom:organizationId'] ?? null
   }
 
+  async email() {
+    const userInfo: UserInfo = await amplify.Auth.currentUserInfo()
+    return userInfo.attributes.email
+  }
+
   /** Sign up with username and password.
    *
    * Does not rely on federated identity providers (e.g., Google or GitHub). */
@@ -369,13 +374,24 @@ export class Cognito {
   }
 
   /**
-   *
+   * Start the TOTP setup process. Returns the secret and the URL to scan the QR code.
    */
   async setupTOTP() {
     const cognitoUserResult = await currentAuthenticatedUser()
     if (cognitoUserResult.ok) {
       const cognitoUser = cognitoUserResult.unwrap()
-      const result = await results.Result.wrapAsync(() => amplify.Auth.setupTOTP(cognitoUser))
+
+      const result = (
+        await results.Result.wrapAsync(() => amplify.Auth.setupTOTP(cognitoUser))
+      ).map((data) => {
+        const str =
+          'otpauth://totp/AWSCognito:' + this.email() + '?secret=' + data + '&issuer=' + 'Enso'
+
+        return {
+          secret: data,
+          url: str,
+        }
+      })
 
       return result.mapErr(intoAmplifyErrorOrThrow)
     } else {
@@ -384,7 +400,8 @@ export class Cognito {
   }
 
   /**
-   *
+   * Verify the TOTP token during the setup process.
+   * Use it *only* during the setup process.
    */
   async verifyTotpSetup(totpToken: string) {
     const cognitoUserResult = await currentAuthenticatedUser()
@@ -400,7 +417,7 @@ export class Cognito {
   }
 
   /**
-   *
+   * Set the user's preferred MFA method.
    */
   async updateMFAPreference(mfaMethod: MfaType) {
     const cognitoUserResult = await currentAuthenticatedUser()
@@ -416,7 +433,7 @@ export class Cognito {
   }
 
   /**
-   *
+   * Get the user's preferred MFA method.
    */
   async getMFAPreference() {
     const cognitoUserResult = await currentAuthenticatedUser()
@@ -433,16 +450,18 @@ export class Cognito {
   }
 
   /**
-   *
+   * Verify the TOTP token.
+   * Returns the user session if the token is valid.
    */
   async verifyTotpToken(totpToken: string) {
     const cognitoUserResult = await currentAuthenticatedUser()
+
     if (cognitoUserResult.ok) {
       const cognitoUser = cognitoUserResult.unwrap()
-      const result = await results.Result.wrapAsync(async () => {
-        await amplify.Auth.verifyTotpToken(cognitoUser, totpToken)
-      })
-      return result.mapErr(intoAmplifyErrorOrThrow)
+
+      return (
+        await results.Result.wrapAsync(() => amplify.Auth.verifyTotpToken(cognitoUser, totpToken))
+      ).mapErr(intoAmplifyErrorOrThrow)
     } else {
       return results.Err(cognitoUserResult.val)
     }
