@@ -1,4 +1,4 @@
-package org.enso.logger.config;
+package org.enso.logging.config;
 
 public class MissingConfigurationField extends Exception {
   public MissingConfigurationField(String name) {

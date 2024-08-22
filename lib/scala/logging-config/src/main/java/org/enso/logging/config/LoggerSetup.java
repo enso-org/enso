@@ -1,4 +1,4 @@
-package org.enso.logger.config;
+package org.enso.logging.config;
 
 import java.nio.file.Path;
 import java.util.ServiceLoader;

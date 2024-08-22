@@ -2,7 +2,7 @@ package org.enso.logger;
 
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.LogbackServiceProvider;
-import org.enso.logger.config.MissingConfigurationField;
+import org.enso.logging.config.MissingConfigurationField;
 import org.slf4j.ILoggerFactory;
 import org.slf4j.IMarkerFactory;
 import org.slf4j.spi.MDCAdapter;

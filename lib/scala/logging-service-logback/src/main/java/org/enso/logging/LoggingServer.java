@@ -6,7 +6,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import org.enso.logger.LogbackSetup;
-import org.enso.logger.config.BaseConfig;
+import org.enso.logging.config.BaseConfig;
 import org.slf4j.event.Level;
 
 class LoggingServer extends LoggingService<URI> {

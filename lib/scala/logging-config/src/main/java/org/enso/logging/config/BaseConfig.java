@@ -1,4 +1,4 @@
-package org.enso.logger.config;
+package org.enso.logging.config;
 
 import java.util.Map;
 

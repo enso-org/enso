@@ -52,7 +52,7 @@ The configuration has two main sections:
 During component's setup, its `application.conf` config file is parsed. The
 config's keys and values are validated and, if correct, the parsed
 representation is available as an instance of
-`org.enso.logger.config.LoggingServiceConfig` class. The class encapsulates the
+`org.enso.logging.config.LoggingServiceConfig` class. The class encapsulates the
 `logging-service` section of `application.conf` file and is used to
 programmatically initialize loggers.
 
@@ -191,7 +191,7 @@ File appender directs all log events to a log file:
 
 Rolling policy is a fully optional property of File Appender that would trigger
 automatic log rotation. All properties are optional with some reasonable
-defaults if missing (defined in `org.enso.logger.config.FileAppender` config
+defaults if missing (defined in `org.enso.logging.config.FileAppender` config
 class).
 
 #### Socket Appender
@@ -281,9 +281,9 @@ The `org.slf4j.Logger` instances have to know where to send log events. This
 setting is typically performed once, when the service starts, and applies
 globally during its execution. Currently, it is not possible to dynamically
 change where log events are being stored. The main (abstract) class used for
-setting up logging is `org.enso.logger.config.LoggerSetup`. An instance of that class
-can be retrieved with the thread-safe `org.enso.logger.config.LoggerSetup.get` factory
-method. `org.enso.logger.config.LoggerSetup` provides a number of `setupXYZAppender`
+setting up logging is `org.enso.logging.config.LoggerSetup`. An instance of that class
+can be retrieved with the thread-safe `org.enso.logging.config.LoggerSetup.get` factory
+method. `org.enso.logging.config.LoggerSetup` provides a number of `setupXYZAppender`
 methods that will direct loggers to send log events to an `XYZ` appender.
 Setting a specific hard-coded appender programmatically should however be
 avoided by the users. Instead, one should invoke one of the overloaded `setup`
@@ -292,7 +292,7 @@ configuration.
 
 ```java
 package foo;
-import org.enso.logger.config.LoggerSetup;
+import org.enso.logging.config.LoggerSetup;
 import org.slf4j.event.Level;
 
 public class MyService {

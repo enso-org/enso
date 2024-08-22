@@ -2,7 +2,7 @@ package org.enso.logging;
 
 import java.net.URI;
 import java.nio.file.Path;
-import org.enso.logger.config.LoggingServer;
+import org.enso.logging.config.LoggingServer;
 import org.slf4j.event.Level;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
