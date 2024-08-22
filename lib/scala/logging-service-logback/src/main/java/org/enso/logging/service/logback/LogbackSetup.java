@@ -1,4 +1,4 @@
-package org.enso.logger;
+package org.enso.logging.service.logback;
 
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;

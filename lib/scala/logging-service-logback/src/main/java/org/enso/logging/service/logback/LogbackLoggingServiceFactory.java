@@ -1,4 +1,4 @@
-package org.enso.logging;
+package org.enso.logging.service.logback;
 
 import java.net.URI;
 import org.enso.logging.service.LoggingService;

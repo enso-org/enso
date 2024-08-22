@@ -1,11 +1,10 @@
-package org.enso.logging;
+package org.enso.logging.service.logback;
 
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.net.SimpleSocketServer;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
-import org.enso.logger.LogbackSetup;
 import org.enso.logging.config.BaseConfig;
 import org.enso.logging.service.LoggingService;
 import org.slf4j.event.Level;
