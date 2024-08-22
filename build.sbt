@@ -653,6 +653,7 @@ lazy val compileModuleInfo = taskKey[Unit]("Compiles `module-info.java`")
 
 lazy val `text-buffer` = project
   .in(file("lib/scala/text-buffer"))
+  .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
@@ -660,7 +661,11 @@ lazy val `text-buffer` = project
     libraryDependencies ++= Seq(
       "org.scalatest"  %% "scalatest"  % scalatestVersion  % Test,
       "org.scalacheck" %% "scalacheck" % scalacheckVersion % Test
-    )
+    ),
+    excludeFilter := excludeFilter.value || "module-info.java",
+    moduleDependencies := Seq(
+      "org.scala-lang"       % "scala-library" % scalacVersion,
+    ),
   )
 
 lazy val rustParserTargetDirectory =
