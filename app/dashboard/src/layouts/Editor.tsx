@@ -97,6 +97,19 @@ export default function Editor(props: EditorProps) {
     networkMode: project.type === backendModule.BackendType.remote ? 'online' : 'always',
   })
 
+  const artificialDelayQuery = reactQuery.useQuery({
+    queryKey: ['artificialDelay'],
+    queryFn: async () => {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve('test')
+        }, 3_000)
+      })
+    },
+    gcTime: 0,
+    enabled: projectQuery.data?.state.type === backendModule.ProjectState.opened,
+  })
+
   const isProjectClosed = projectQuery.data?.state.type === backendModule.ProjectState.closed
   const shouldRefetch = !projectQuery.isError && !projectQuery.isLoading
 
@@ -126,6 +139,7 @@ export default function Editor(props: EditorProps) {
             )
           } else if (
             projectQuery.isLoading ||
+            artificialDelayQuery.isLoading ||
             projectQuery.data?.state.type !== backendModule.ProjectState.opened
           ) {
             return <suspense.Loader loaderProps={{ minHeight: 'full' }} />
