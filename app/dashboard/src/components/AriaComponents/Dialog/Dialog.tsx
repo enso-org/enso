@@ -45,7 +45,7 @@ const MODAL_STYLES = twv.tv({
 
 const DIALOG_STYLES = twv.tv({
   extend: variants.DIALOG_STYLES,
-  base: 'w-full min-w-max',
+  base: 'w-full',
   variants: {
     type: {
       modal: {
@@ -55,6 +55,12 @@ const DIALOG_STYLES = twv.tv({
       fullscreen: {
         base: 'w-full h-full max-w-full max-h-full bg-clip-border',
         header: 'px-4 pt-[5px] pb-1.5 min-h-12',
+      },
+    },
+    fitContent: {
+      true: {
+        base: 'min-w-max',
+        content: 'min-w-max',
       },
     },
     hideCloseButton: { true: { closeButton: 'hidden' } },
@@ -87,7 +93,7 @@ const DIALOG_STYLES = twv.tv({
       'sticky grid grid-cols-[1fr_auto_1fr] items-center border-b border-primary/10 transition-[border-color] duration-150',
     closeButton: 'col-start-1 col-end-1 mr-auto',
     heading: 'col-start-2 col-end-2 my-0 text-center',
-    content: 'relative flex-auto overflow-y-auto p-3.5 min-w-max',
+    content: 'relative flex-auto overflow-y-auto p-3.5',
   },
   compoundVariants: [
     { type: 'modal', size: 'small', class: 'max-w-sm' },
@@ -127,6 +133,7 @@ export function Dialog(props: DialogProps) {
     testId = 'dialog',
     size,
     rounded,
+    fitContent,
     ...ariaDialogProps
   } = props
 
@@ -148,7 +155,7 @@ export function Dialog(props: DialogProps) {
   const overlayState = React.useRef<aria.OverlayTriggerState | null>(null)
   const root = portal.useStrictPortalContext()
 
-  const dialogSlots = DIALOG_STYLES({
+  const styles = DIALOG_STYLES({
     className,
     type,
     rounded,
@@ -156,6 +163,7 @@ export function Dialog(props: DialogProps) {
     closeButton,
     scrolledToTop: isScrolledToTop,
     size,
+    fitContent,
   })
 
   utlities.useInteractOutside({
@@ -216,17 +224,15 @@ export function Dialog(props: DialogProps) {
                     element.dataset.testId = testId
                   }
                 })}
-                className={dialogSlots.base()}
+                className={styles.base()}
                 {...ariaDialogProps}
               >
                 {(opts) => {
                   return (
                     <dialogProvider.DialogProvider value={{ close: opts.close, dialogId }}>
-                      <aria.Header
-                        className={dialogSlots.header({ scrolledToTop: isScrolledToTop })}
-                      >
+                      <aria.Header className={styles.header({ scrolledToTop: isScrolledToTop })}>
                         <ariaComponents.CloseButton
-                          className={dialogSlots.closeButton()}
+                          className={styles.closeButton()}
                           onPress={opts.close}
                         />
 
@@ -234,7 +240,7 @@ export function Dialog(props: DialogProps) {
                           <ariaComponents.Text.Heading
                             slot="title"
                             level={2}
-                            className={dialogSlots.heading()}
+                            className={styles.heading()}
                             weight="semibold"
                           >
                             {title}
@@ -248,7 +254,7 @@ export function Dialog(props: DialogProps) {
                             handleScroll(ref.scrollTop)
                           }
                         }}
-                        className={dialogSlots.content()}
+                        className={styles.content()}
                         onScroll={(event) => {
                           handleScroll(event.currentTarget.scrollTop)
                         }}

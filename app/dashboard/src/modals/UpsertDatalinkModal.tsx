@@ -35,7 +35,7 @@ export default function UpsertDatalinkModal(props: UpsertDatalinkModalProps) {
   const { getText } = useText()
 
   return (
-    <Dialog title={getText('createDatalink')} className="min-w-max">
+    <Dialog fitContent title={getText('createDatalink')} className="min-w-max">
       {({ close }) => (
         <Form
           schema={createUpsertDatalinkSchema()}
