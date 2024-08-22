@@ -2714,7 +2714,6 @@ lazy val `engine-runner` = project
       }
       .dependsOn(NativeImage.additionalCp)
       .dependsOn(NativeImage.smallJdk)
-      .dependsOn(assembly)
       .dependsOn(
         buildEngineDistribution
       )
@@ -4081,9 +4080,7 @@ updateLibraryManifests := {
   val runtimeCp  = (LocalProject("runtime") / Runtime / fullClasspath).value
   val fullCp     = (runnerCp ++ runtimeCp).distinct
   val modulePath = componentModulesPaths.value
-  val runnerJar  = (LocalProject("engine-runner") / assembly).value
   val javaOpts = Seq(
-    "-Denso.runner=" + runnerJar.getAbsolutePath,
     "--module-path",
     modulePath.map(_.getAbsolutePath).mkString(File.pathSeparator),
     "-m",
