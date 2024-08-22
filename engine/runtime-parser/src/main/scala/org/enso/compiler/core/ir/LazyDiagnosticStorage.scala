@@ -15,17 +15,14 @@ trait LazyDiagnosticStorage { self: IR =>
     _diagnostics
   }
 
-  /** @inheritdoc */
   override def diagnosticsList: List[Diagnostic] = {
     if (_diagnostics eq null) Nil else _diagnostics.toList
   }
 
-  /** @inheritdoc */
   override def diagnosticsCopy: DiagnosticStorage = {
     if (_diagnostics eq null) _diagnostics else _diagnostics.copy
   }
 
-  /** @inheritdoc */
   override def getDiagnostics: DiagnosticStorage = {
     if (_diagnostics eq null) {
       _diagnostics = new DiagnosticStorage()
