@@ -629,15 +629,36 @@ lazy val componentModulesPaths =
     shouldContainAll = true
   )
   val thirdPartyModFiles = thirdPartyMods.map(_.data)
-  val arrow              = (`runtime-language-arrow` / Compile / packageBin).value
-  val syntax             = (`syntax-rust-definition` / Compile / packageBin).value
-  val ydoc               = (`ydoc-server` / Compile / packageBin).value
-  val profilingUtils     = (`profiling-utils` / Compile / packageBin).value
   val ourMods = Seq(
-    arrow,
-    syntax,
-    ydoc,
-    profilingUtils
+    (`engine-common` / exportedModuleBin).value,
+    (`engine-runner` / exportedModuleBin).value,
+    (`engine-runner-common` / exportedModuleBin).value,
+    (`polyglot-api` / exportedModuleBin).value,
+    (`runtime` / exportedModuleBin).value,
+    (`runtime-compiler` / exportedModuleBin).value,
+    (`runtime-parser` / exportedModuleBin).value,
+    (`runtime-instrument-common` / exportedModuleBin).value,
+    (`runtime-instrument-id-execution` / exportedModuleBin).value,
+    (`runtime-instrument-repl-debugger` / exportedModuleBin).value,
+    (`runtime-instrument-runtime-server` / exportedModuleBin).value,
+    (`runtime-language-arrow` / exportedModuleBin).value,
+    (`runtime-language-epb` / exportedModuleBin).value,
+    (`persistance` / exportedModuleBin).value,
+    (`cli` / exportedModuleBin).value,
+    (`connected-lock-manager` / exportedModuleBin).value,
+    (`distribution-manager` / exportedModuleBin).value,
+    (`downloader` / exportedModuleBin).value,
+    (`editions` / exportedModuleBin).value,
+    (`library-manager` / exportedModuleBin).value,
+    (`logging-config` / exportedModuleBin).value,
+    (`logging-utils` / exportedModuleBin).value,
+    (`pkg` / exportedModuleBin).value,
+    (`refactoring-utils` / exportedModuleBin).value,
+    (`semver` / exportedModuleBin).value,
+    (`text-buffer` / exportedModuleBin).value,
+    (`version-output` / exportedModuleBin).value,
+    (`scala-yaml` / exportedModuleBin).value,
+    (`scala-libs-wrapper` / exportedModuleBin).value,
   )
   ourMods ++ thirdPartyModFiles
 }
