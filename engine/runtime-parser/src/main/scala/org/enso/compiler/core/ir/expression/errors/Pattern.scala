@@ -47,9 +47,18 @@ sealed case class Pattern(
     diagnostics: DiagnosticStorage                     = diagnostics,
     id: UUID @Identifier                               = id
   ): Pattern = {
-    val res = Pattern(originalPattern, reason, passData, diagnostics)
-    res.id = id
-    res
+    if (
+      originalPattern != this.originalPattern
+      || reason != this.reason
+      || passData != this.passData
+      || diagnostics != this.diagnostics
+      || id != this.id
+    ) {
+
+      val res = Pattern(originalPattern, reason, passData, diagnostics)
+      res.id = id
+      res
+    } else this
   }
 
   /** @inheritdoc */

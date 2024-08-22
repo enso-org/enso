@@ -4,15 +4,17 @@ polyglot java import org.enso.tableau.HyperQueryError
 polyglot java import org.enso.tableau.HyperTableNotFound
 
 ## Error when a Table is not found in a Hyper File.
-type Table_Not_Found
+type Hyper_Table_Not_Found
+    ## PRIVATE
     Error schema:Text name:Text
 
 ## Error when a query fails.
 type Query_Failed
+    ## PRIVATE
     Error message:Text query:Text
 
 ## PRIVATE
 private handle_java_exceptions ~action =
-    Panic.catch HyperTableNotFound handler=(c-> Error.throw (Table_Not_Found.Error c.payload.getSchema c.payload.getName)) <|
+    Panic.catch HyperTableNotFound handler=(c-> Error.throw (Hyper_Table_Not_Found.Error c.payload.getSchema c.payload.getName)) <|
         Panic.catch HyperQueryError handler=(c-> Error.throw (Query_Failed.Error c.payload.getMessage c.payload.getQuery)) <|
             action

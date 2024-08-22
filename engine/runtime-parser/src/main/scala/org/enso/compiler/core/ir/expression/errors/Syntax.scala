@@ -44,9 +44,17 @@ sealed case class Syntax(
     diagnostics: DiagnosticStorage = diagnostics,
     id: UUID @Identifier           = id
   ): Syntax = {
-    val res = Syntax(at, reason, passData, diagnostics)
-    res.id = id
-    res
+    if (
+      at != this.at
+      || reason != this.reason
+      || passData != this.passData
+      || diagnostics != this.diagnostics
+      || id != this.id
+    ) {
+      val res = Syntax(at, reason, passData, diagnostics)
+      res.id = id
+      res
+    } else this
   }
 
   /** @inheritdoc */

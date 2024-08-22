@@ -3,9 +3,9 @@ private
 import project.Data.Decimal.Decimal
 import project.Data.Numbers.Number
 import project.Data.Text.Text
-from project.Errors.Common import Loss_Of_Numeric_Precision
 import project.Warning.Warning
 from project.Data.Ordering import Comparable, Ordering
+from project.Errors.Common import Loss_Of_Numeric_Precision
 
 polyglot java import org.enso.base.numeric.Decimal_Utils
 

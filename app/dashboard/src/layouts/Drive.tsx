@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import * as appUtils from '#/appUtils'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as offlineHooks from '#/hooks/offlineHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -20,7 +21,8 @@ import type * as assetsTable from '#/layouts/AssetsTable'
 import AssetsTable from '#/layouts/AssetsTable'
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
-import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
+import type Category from '#/layouts/CategorySwitcher/Category'
+import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import DriveBar from '#/layouts/DriveBar'
 import Labels from '#/layouts/Labels'
 
@@ -74,7 +76,7 @@ export default function Drive(props: DriveProps) {
   const { isOffline } = offlineHooks.useOffline()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useFullUserSession()
   const localBackend = backendProvider.useLocalBackend()
   const backend = backendProvider.useBackend(category)
   const { getText } = textProvider.useText()
@@ -90,14 +92,23 @@ export default function Drive(props: DriveProps) {
     () => localStorage.get('isAssetPanelVisible') ?? false,
   )
   const [isAssetPanelTemporarilyVisible, setIsAssetPanelTemporarilyVisible] = React.useState(false)
-  const rootDirectoryId = React.useMemo(
-    () => backend.rootDirectoryId(user) ?? backendModule.DirectoryId(''),
-    [backend, user],
-  )
+  const organizationQuery = backendHooks.useBackendQuery(backend, 'getOrganization', [])
+  const organization = organizationQuery.data ?? null
+  const rootDirectoryId = React.useMemo(() => {
+    switch (category.type) {
+      case categoryModule.CategoryType.user:
+      case categoryModule.CategoryType.team: {
+        return category.homeDirectoryId
+      }
+      default: {
+        return backend.rootDirectoryId(user, organization) ?? backendModule.DirectoryId('')
+      }
+    }
+  }, [category, backend, user, organization])
   const targetDirectoryNodeRef = React.useRef<AssetTreeNode<backendModule.DirectoryAsset> | null>(
     null,
   )
-  const isCloud = categoryModule.isCloud(category)
+  const isCloud = categoryModule.isCloudCategory(category)
   const supportLocalBackend = localBackend != null
 
   const status =
@@ -285,7 +296,7 @@ export default function Drive(props: DriveProps) {
                 {isCloud && (
                   <Labels
                     backend={backend}
-                    draggable={category !== Category.trash}
+                    draggable={category.type !== categoryModule.CategoryType.trash}
                     query={query}
                     setQuery={setQuery}
                   />
@@ -305,7 +316,7 @@ export default function Drive(props: DriveProps) {
                       size="small"
                       className="mx-auto"
                       onPress={() => {
-                        setCategory(Category.local)
+                        setCategory({ type: categoryModule.CategoryType.local })
                       }}
                     >
                       {getText('switchToLocal')}
@@ -340,7 +351,7 @@ export default function Drive(props: DriveProps) {
               item={assetPanelProps?.item ?? null}
               setItem={assetPanelProps?.setItem ?? null}
               category={category}
-              isReadonly={category === Category.trash}
+              isReadonly={category.type === categoryModule.CategoryType.trash}
             />
           </div>
         </div>

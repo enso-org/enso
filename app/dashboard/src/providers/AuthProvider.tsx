@@ -690,15 +690,6 @@ export function usePartialUserSession() {
   return session
 }
 
-// ================================
-// === useNonPartialUserSession ===
-// ================================
-
-/** A React context hook returning the user session for a user that can perform actions. */
-export function useNonPartialUserSession() {
-  return useFullUserSession()
-}
-
 // ======================
 // === useUserSession ===
 // ======================
@@ -708,9 +699,11 @@ export function useUserSession() {
   return useAuth().session
 }
 
-/**
- * A React context hook returning the user session for a user that is fully logged in.
- */
+// ==========================
+// === useFullUserSession ===
+// ==========================
+
+/** A React context hook returning the user session for a user that is fully logged in. */
 export function useFullUserSession(): FullUserSession {
   const { session } = useAuth()
 

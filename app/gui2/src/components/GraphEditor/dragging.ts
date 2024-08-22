@@ -162,7 +162,7 @@ export function useDragging() {
     createSnapGrid() {
       const nonDraggedRects = computed(() => {
         const nonDraggedNodes = iteratorFilter(
-          graphStore.db.nodeIdToNode.keys(),
+          graphStore.db.nodeIds(),
           (id) => !this.draggedNodes.has(id),
         )
         return Array.from(nonDraggedNodes, (id) => graphStore.nodeRects.get(id)!)

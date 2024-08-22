@@ -49,7 +49,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   const { backend, item: itemRaw, setItem: setItemRaw, category } = props
   const { isReadonly = false } = props
 
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useFullUserSession()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const localBackend = backendProvider.useLocalBackend()

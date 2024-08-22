@@ -318,7 +318,6 @@ spec_with suite_builder name create_new_datetime parse_datetime nanoseconds_loss
 
         group_builder.specify "should support addition of Time_Period" <|
             time = create_new_datetime 1970 (zone = Time_Zone.utc)
-            time+Time_Period.Day . should_equal <| create_new_datetime 1970 1 2 (zone = Time_Zone.utc)
             time+Time_Period.Hour . should_equal <| create_new_datetime 1970 1 1 1 (zone = Time_Zone.utc)
             time+Time_Period.Minute . should_equal <| create_new_datetime 1970 1 1 0 1 (zone = Time_Zone.utc)
             time+Time_Period.Second . should_equal <| create_new_datetime 1970 1 1 0 0 1 (zone = Time_Zone.utc)
@@ -329,7 +328,6 @@ spec_with suite_builder name create_new_datetime parse_datetime nanoseconds_loss
 
         group_builder.specify "should support subtraction of Time_Period" <|
             time = create_new_datetime 1970 (zone = Time_Zone.utc)
-            time-Time_Period.Day . should_equal <| create_new_datetime 1969 12 31 (zone = Time_Zone.utc)
             time-Time_Period.Hour . should_equal <| create_new_datetime 1969 12 31 23 (zone = Time_Zone.utc)
             time-Time_Period.Minute . should_equal <| create_new_datetime 1969 12 31 23 59 (zone = Time_Zone.utc)
             time-Time_Period.Second . should_equal <| create_new_datetime 1969 12 31 23 59 59 (zone = Time_Zone.utc)
@@ -346,20 +344,6 @@ spec_with suite_builder name create_new_datetime parse_datetime nanoseconds_loss
             time+Date_Period.Year-Time_Period.Minute . should_equal <| create_new_datetime 1970 12 31 23 59 (zone = Time_Zone.utc)
             time+Time_Period.Minute+Time_Period.Minute-Time_Period.Minute . should_equal <| create_new_datetime 1970 1 1 0 1 (zone = Time_Zone.utc)
             time+Date_Period.Quarter-Date_Period.Month . should_equal <| create_new_datetime 1970 3 1 (zone = Time_Zone.utc)
-            time+Date_Period.Day-Time_Period.Day . should_equal <| create_new_datetime 1970 (zone = Time_Zone.utc)
-
-        group_builder.specify "will reflect that Time_Period.Day does not reflect daylight saving" <|
-            tz = Time_Zone.parse "Europe/Warsaw"
-            dt = Date_Time.new 2023 03 26 01 20 zone=tz
-
-            dt1 = dt + Time_Period.Day
-            dt2 = dt + Date_Period.Day
-
-            # Time Period adds 24 hours which will be 1 hour later due to the DST hole.
-            dt1 . should_equal (Date_Time.new 2023 03 27 02 20 zone=tz)
-
-            # Date Period shifts by 1 calendar day.
-            dt2 . should_equal (Date_Time.new 2023 03 27 01 20 zone=tz)
 
         group_builder.specify "should get the default comparator for datetimes" <|
             assert_comparator value comparator =
@@ -482,8 +466,6 @@ spec_with suite_builder name create_new_datetime parse_datetime nanoseconds_loss
 
         group_builder.specify "should allow to find start/end of a Time_Period containing the current datetime" <|
             d1 = create_new_datetime 2022 9 12 15 37 58 123456789
-            d1.start_of Time_Period.Day . should_equal (Date_Time.new 2022 9 12)
-            d1.end_of Time_Period.Day . should_equal (Date_Time.new 2022 9 12 23 59 59 nanosecond=max_nanos)
             d1.start_of Time_Period.Hour . should_equal (Date_Time.new 2022 9 12 15 0 0 0)
             d1.end_of Time_Period.Hour . should_equal (Date_Time.new 2022 9 12 15 59 59 nanosecond=max_nanos)
             d1.start_of Time_Period.Minute . should_equal (Date_Time.new 2022 9 12 15 37 0 0)
@@ -501,8 +483,6 @@ spec_with suite_builder name create_new_datetime parse_datetime nanoseconds_loss
                 d1.end_of Time_Period.Nanosecond . should_equal d1
 
             d2 = create_new_datetime 1970 1 1 0 0 0
-            d2.start_of Time_Period.Day . should_equal (Date_Time.new 1970)
-            d2.end_of Time_Period.Day . should_equal (Date_Time.new 1970 1 1 23 59 59 nanosecond=max_nanos)
             d2.start_of Time_Period.Hour . should_equal (Date_Time.new 1970 1 1 0 0 0 0)
             d2.end_of Time_Period.Hour . should_equal (Date_Time.new 1970 1 1 0 59 59 nanosecond=max_nanos)
             d2.start_of Time_Period.Minute . should_equal (Date_Time.new 1970 1 1 0 0 0 0)
@@ -511,8 +491,6 @@ spec_with suite_builder name create_new_datetime parse_datetime nanoseconds_loss
             d2.end_of Time_Period.Second . should_equal (Date_Time.new 1970 1 1 0 0 0 nanosecond=max_nanos)
 
             d3 = create_new_datetime 2100 12 31 23 59 59 max_nanos
-            d3.start_of Time_Period.Day . should_equal (Date_Time.new 2100 12 31)
-            d3.end_of Time_Period.Day . should_equal (Date_Time.new 2100 12 31 23 59 59 nanosecond=max_nanos)
             d3.start_of Time_Period.Hour . should_equal (Date_Time.new 2100 12 31 23 0 0 0)
             d3.end_of Time_Period.Hour . should_equal (Date_Time.new 2100 12 31 23 59 59 nanosecond=max_nanos)
             d3.start_of Time_Period.Minute . should_equal (Date_Time.new 2100 12 31 23 59 0 0)
@@ -536,8 +514,6 @@ spec_with suite_builder name create_new_datetime parse_datetime nanoseconds_loss
             check_dates_spring date =
                 date.start_of Date_Period.Day . should_equal (Date_Time.new 2022 3 27 zone=tz)
                 date.end_of Date_Period.Day . should_equal (Date_Time.new 2022 3 27 23 59 59 nanosecond=max_nanos zone=tz)
-                date.start_of Time_Period.Day . should_equal (Date_Time.new 2022 3 27 zone=tz)
-                date.end_of Time_Period.Day . should_equal (Date_Time.new 2022 3 27 23 59 59 nanosecond=max_nanos zone=tz)
 
                 date.start_of Date_Period.Month . should_equal (Date_Time.new 2022 3 1 zone=tz)
                 date.end_of Date_Period.Month . should_equal (Date_Time.new 2022 3 31 23 59 59 nanosecond=max_nanos zone=tz)
@@ -575,9 +551,6 @@ spec_with suite_builder name create_new_datetime parse_datetime nanoseconds_loss
             Time_Utils.get_datetime_offset d4 . should_equal offset_1_h
 
             check_dates_autumn date =
-                date.start_of Time_Period.Day . should_equal (Date_Time.new 2022 10 30 zone=tz)
-                date.end_of Time_Period.Day . should_equal (Date_Time.new 2022 10 30 23 59 59 nanosecond=max_nanos zone=tz)
-
                 date.start_of Date_Period.Month . should_equal (Date_Time.new 2022 10 1 zone=tz)
                 date.end_of Date_Period.Month . should_equal (Date_Time.new 2022 10 31 23 59 59 nanosecond=max_nanos zone=tz)
 
@@ -686,7 +659,6 @@ spec_with suite_builder name create_new_datetime parse_datetime nanoseconds_loss
             d1.date_part Date_Period.Month . should_equal 12
             d1.date_part Date_Period.Week . should_equal 52
             d1.date_part Date_Period.Day . should_equal 30
-            d1.date_part Time_Period.Day . should_equal 30
             d1.date_part Time_Period.Hour . should_equal 15
             d1.date_part Time_Period.Minute . should_equal 37
             d1.date_part Time_Period.Second . should_equal 58
@@ -711,8 +683,6 @@ spec_with suite_builder name create_new_datetime parse_datetime nanoseconds_loss
             t1.date_diff t2 Date_Period.Year . should_equal 0
             t1.date_diff (Date_Time.new 2031 12 1 10 15 0) Date_Period.Year . should_equal 10
 
-            t1.date_diff t2 Time_Period.Day . should_equal 32
-
             t1.date_diff t2 Time_Period.Hour . should_equal 770
             t1.date_diff (Date_Time.new 2021 11 3 12 15 0 zone=Time_Zone.utc) Time_Period.Hour . should_equal 2
 
@@ -734,7 +704,6 @@ spec_with suite_builder name create_new_datetime parse_datetime nanoseconds_loss
         group_builder.specify "should allow shifting with date_add" <|
             t1 = Date_Time.new 2021 01 01 12 30 0
             t1.date_add 5 Date_Period.Day . should_equal (Date_Time.new 2021 01 06 12 30 0)
-            t1.date_add -1 Time_Period.Day . should_equal (Date_Time.new 2020 12 31 12 30 0)
             t1.date_add 1 Date_Period.Month . should_equal (Date_Time.new 2021 02 01 12 30 0)
             t1.date_add 10 Date_Period.Year . should_equal (Date_Time.new 2031 01 01 12 30 0)
 
@@ -759,21 +728,16 @@ spec_with suite_builder name create_new_datetime parse_datetime nanoseconds_loss
 
             # But 1 day date shift will shift 1 day, keeping the time, even if that particular day is only 23 hours.
             dt1.date_add 1 Date_Period.Day . should_equal (Date_Time.new 2023 03 27 00 30 00 zone=zone)
-            # Time_Period.Day will shift by 24 hours.
-            dt1.date_add 1 Time_Period.Day . should_equal (Date_Time.new 2023 03 27 01 30 00 zone=zone)
 
             dt2 = Date_Time.new 2023 03 27 00 30 00 zone=zone
             dt1.date_diff dt2 Time_Period.Hour . should_equal 23
 
             dt1.date_diff dt2 Date_Period.Day . should_equal 1
-            # But when counting in hours - 23 hours is not a full 24-hour day.
-            dt1.date_diff dt2 Time_Period.Day . should_equal 0
 
             dt3 = Date_Time.new 2023 03 28 01 30 00 zone=zone
             dt4 = Date_Time.new 2023 03 29 00 30 00 zone=zone
 
             dt3.date_diff dt4 Date_Period.Day . should_equal 0
-            dt3.date_diff dt4 Time_Period.Day . should_equal 0
             dt3.date_diff dt4 Time_Period.Hour . should_equal 23
 
     Date_Part_Spec.add_specs suite_builder name create_new_datetime

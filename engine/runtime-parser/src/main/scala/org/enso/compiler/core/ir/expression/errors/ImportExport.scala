@@ -43,9 +43,18 @@ sealed case class ImportExport(
     diagnostics: DiagnosticStorage = diagnostics,
     id: UUID @Identifier           = id
   ): ImportExport = {
-    val res = ImportExport(ir, reason, passData, diagnostics)
-    res.id = id
-    res
+    if (
+      ir != this.ir
+      || reason != this.reason
+      || passData != this.passData
+      || diagnostics != this.diagnostics
+      || id != this.id
+    ) {
+
+      val res = ImportExport(ir, reason, passData, diagnostics)
+      res.id = id
+      res
+    } else this
   }
 
   /** @inheritdoc */
