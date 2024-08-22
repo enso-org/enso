@@ -77,6 +77,11 @@ object JPMSPlugin extends AutoPlugin {
         |""".stripMargin
     )
 
+    val exportedModuleBin = taskKey[File](
+      "Similar to `packageBin` task. This task returns a modular JAR archive that can be " +
+      "directly put on module-path"
+    )
+
     /**
      * Should module-info.java be compiled manually? True iff there is `module-info.java`
      * in java sources and if the compile order is Mixed. In such case, sbt tries to first
@@ -147,6 +152,10 @@ object JPMSPlugin extends AutoPlugin {
         )
       }
       targetClassDir
+    },
+    exportedModuleBin := {
+      exportedModule.value
+      (Compile / packageBin).value
     },
     patchModules := Map.empty,
     addExports := Map.empty,
