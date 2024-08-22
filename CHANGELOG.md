@@ -28,6 +28,7 @@
 - [Mixed Decimal/Float arithmetic now throws an error; mixed comparisons now
   attach warnings.][10725]
 - [Support for creating Atoms in expressions.][10820]
+- [Add `Text.to_decimal`.][10874]
 
 [10614]: https://github.com/enso-org/enso/pull/10614
 [10660]: https://github.com/enso-org/enso/pull/10660
@@ -35,6 +36,7 @@
 [10733]: https://github.com/enso-org/enso/pull/10733
 [10725]: https://github.com/enso-org/enso/pull/10725
 [10820]: https://github.com/enso-org/enso/pull/10820
+[10874]: https://github.com/enso-org/enso/pull/10874
 
 #### Enso Language & Runtime
 
