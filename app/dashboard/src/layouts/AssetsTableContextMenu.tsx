@@ -10,7 +10,8 @@ import * as textProvider from '#/providers/TextProvider'
 import AssetEventType from '#/events/AssetEventType'
 
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
+import type Category from '#/layouts/CategorySwitcher/Category'
+import { CategoryType, isCloudCategory } from '#/layouts/CategorySwitcher/Category'
 import GlobalContextMenu from '#/layouts/GlobalContextMenu'
 
 import ContextMenu from '#/components/ContextMenu'
@@ -57,11 +58,11 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const { hidden = false, backend, category, pasteData } = props
   const { nodeMapRef, event, rootDirectoryId } = props
   const { doCopy, doCut, doPaste } = props
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useFullUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
+  const isCloud = isCloudCategory(category)
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
-  const isCloud = categoryModule.isCloud(category)
   const selectedKeys = useSelectedKeys()
   const setSelectedKeys = useSetSelectedKeys()
 
@@ -103,9 +104,9 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
     }
   }
 
-  if (category === Category.trash) {
+  if (category.type === CategoryType.trash) {
     return selectedKeys.size === 0 ?
-        <></>
+        null
       : <ContextMenus key={uniqueString.uniqueString()} hidden={hidden} event={event}>
           <ContextMenu aria-label={getText('assetsTableContextMenuLabel')} hidden={hidden}>
             <ContextMenuEntry
@@ -149,7 +150,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
             )}
           </ContextMenu>
         </ContextMenus>
-  } else if (category !== Category.cloud && category !== Category.local) {
+  } else if (category.type === CategoryType.recent) {
     return null
   } else {
     return (
@@ -201,15 +202,19 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
             )}
           </ContextMenu>
         )}
-        <GlobalContextMenu
-          hidden={hidden}
-          backend={backend}
-          hasPasteData={pasteData != null}
-          rootDirectoryId={rootDirectoryId}
-          directoryKey={null}
-          directoryId={null}
-          doPaste={doPaste}
-        />
+        {(category.type !== CategoryType.cloud ||
+          user.plan == null ||
+          user.plan === backendModule.Plan.solo) && (
+          <GlobalContextMenu
+            hidden={hidden}
+            backend={backend}
+            hasPasteData={pasteData != null}
+            rootDirectoryId={rootDirectoryId}
+            directoryKey={null}
+            directoryId={null}
+            doPaste={doPaste}
+          />
+        )}
       </ContextMenus>
     )
   }

@@ -98,7 +98,9 @@ export interface DropdownEntry {
 <style scoped>
 .DropdownWidget {
   --item-height: 23px;
+  --visible-items: 6.4;
   --dropdown-padding: 6px;
+  --item-padding: 8px;
   /* When dropdown is displayed right below the last node's argument, the rounded corner needs to be
      covered. This is done by covering extra node-sized space at the top of the dropdown. */
   --dropdown-extend: calc(var(--node-base-height) - var(--extend-margin));
@@ -106,7 +108,6 @@ export interface DropdownEntry {
   position: relative;
   user-select: none;
   min-width: 100%;
-  z-index: 21;
   margin-top: calc(0px - var(--dropdown-extend));
   padding-top: var(--dropdown-extend);
   background-color: var(--dropdown-bg);
@@ -127,7 +128,7 @@ export interface DropdownEntry {
   overflow: auto;
   min-width: 100%;
   min-height: 16px;
-  max-height: 152px;
+  max-height: calc(var(--visible-items) * var(--item-height) + 2 * var(--dropdown-padding));
   list-style-type: none;
   color: var(--color-text-light);
   scrollbar-width: thin;
@@ -136,8 +137,8 @@ export interface DropdownEntry {
 }
 
 .item {
-  padding-left: 8px;
-  padding-right: 8px;
+  padding-left: var(--item-padding);
+  padding-right: var(--item-padding);
   border-radius: calc(var(--item-height) / 2);
   height: var(--item-height);
   text-align: left;

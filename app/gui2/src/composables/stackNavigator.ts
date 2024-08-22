@@ -41,7 +41,6 @@ export function useStackNavigator(projectStore: ProjectStore, graphStore: GraphS
 
   function handleBreadcrumbClick(index: number) {
     projectStore.executionContext.desiredStack = breadcrumbs.value.slice(0, index + 1)
-    graphStore.updateState()
   }
 
   function enterNode(id: NodeId) {
@@ -61,13 +60,11 @@ export function useStackNavigator(projectStore: ProjectStore, graphStore: GraphS
       return
     }
     projectStore.executionContext.push(id)
-    graphStore.updateState()
     breadcrumbs.value = projectStore.executionContext.desiredStack.slice()
   }
 
   function exitNode() {
     projectStore.executionContext.pop()
-    graphStore.updateState()
   }
 
   /// Enter the next node from the history stack. This is the node that is the first greyed out item in the breadcrumbs.
@@ -79,7 +76,6 @@ export function useStackNavigator(projectStore: ProjectStore, graphStore: GraphS
       return
     }
     projectStore.executionContext.push(nextNode.expressionId)
-    graphStore.updateState()
   }
 
   onMounted(() => {

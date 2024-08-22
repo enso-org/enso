@@ -10,7 +10,7 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import Category from '#/layouts/CategorySwitcher/Category'
+import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import ContextMenu from '#/components/ContextMenu'
@@ -37,7 +37,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
   const { backend, category, setQuery } = state
   const { temporarilyAddedLabels, temporarilyRemovedLabels } = rowState
   const asset = item.item
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useFullUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -46,11 +46,9 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
     return new Map(labels?.map((label) => [label.value, label]))
   }, [labels])
   const plusButtonRef = React.useRef<HTMLButtonElement>(null)
-  const self = asset.permissions?.find(
-    backendModule.isUserPermissionAnd((permission) => permission.user.userId === user.userId),
-  )
+  const self = permissions.tryFindSelfPermission(user, asset.permissions)
   const managesThisAsset =
-    category !== Category.trash &&
+    category.type !== categoryModule.CategoryType.trash &&
     (self?.permission === permissions.PermissionAction.own ||
       self?.permission === permissions.PermissionAction.admin)
   const setAsset = React.useCallback(

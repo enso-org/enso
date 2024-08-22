@@ -20,7 +20,7 @@ export default function SharedWithColumnHeading(props: column.AssetColumnHeading
   const { hideColumn } = state
   const { getText } = textProvider.useText()
 
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useFullUserSession()
 
   const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
 

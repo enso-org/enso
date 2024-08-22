@@ -2,6 +2,7 @@ import { expect, test } from 'vitest'
 
 import { Filtering, type MatchResult } from '@/components/ComponentBrowser/filtering'
 import {
+  entryQn,
   makeConstructor,
   makeFunction,
   makeLocal,
@@ -9,17 +10,15 @@ import {
   makeModule,
   makeModuleMethod,
   makeStaticMethod,
-  makeType,
+  SuggestionEntry,
 } from '@/stores/suggestionDatabase/entry'
-import { unwrap } from '@/util/data/result'
-import { tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
+import { qnLastSegment } from '@/util/qualifiedName'
+import { Opt } from 'ydoc-shared/util/data/opt'
 
 test.each([
   { ...makeModuleMethod('Standard.Base.Data.read'), groupIndex: 0 },
   { ...makeModuleMethod('Standard.Base.Data.write'), groupIndex: 0 },
   { ...makeStaticMethod('Standard.Base.Data.Vector.Vector.new'), groupIndex: 1 },
-  makeModule('local.New_Project'),
-  makeModule('Standard.Base.Data'),
   makeModuleMethod('Standard.Base.Data.read_text'),
   makeStaticMethod('local.Project.Foo.new'),
   makeStaticMethod('local.Project.Internalization.internalize'),
@@ -32,116 +31,11 @@ test.each([
   makeModuleMethod('Standard.Base.Data.Vector.some_method'), // not in top group
   { ...makeMethod('Standard.Base.Data.Vector.Vector.get'), groupIndex: 1 }, // not static method
   makeModule('Standard.Base.Data.Vector'), // Not top module
+  makeModule('local.New_Project'), // Main module
+  makeModule('Standard.Base.Data'), // Top module
   makeStaticMethod('Standard.Base.Internal.Foo.bar'), // Internal method
-  makeModule('Standard.Base.Internal'), // Internal module
-  makeModule('Standard.Internal.Foo'), // Internal project
 ])('$name entry is not in the CB main view', (entry) => {
   const filtering = new Filtering({})
-  expect(filtering.filter(entry)).toBeNull()
-})
-
-test.each([
-  makeModuleMethod('local.Project.Module.module_method'),
-  makeType('local.Project.Module.Type'),
-  makeConstructor('local.Project.Module.Type.Con'),
-  makeStaticMethod('local.Project.Module.Type.method'),
-  makeModule('local.Project.Module.Submodule'),
-  makeModuleMethod('another.Project.Local.Project.Module.module_method_with_matching_suffix'),
-])('$name entry is in the local.Project.Module content', (entry) => {
-  const filtering = new Filtering({ qualifiedNamePattern: 'local.Project.Module' })
-  const substringFiltering = new Filtering({ qualifiedNamePattern: 'local.Proj.Mod' })
-  expect(filtering.filter(entry)).not.toBeNull()
-  expect(substringFiltering.filter(entry)).not.toBeNull()
-})
-
-test.each([
-  makeModuleMethod('local.Project.Another_Module.another_module_method'),
-  makeModuleMethod('local.Project.Another_Module.Module.another_module_with_same_name_method'),
-  makeModuleMethod('local.Project.Module.Submodule.submodules_method'),
-  makeModule('local.Project.Module'),
-  makeModule('local.Project.Module.Submodule.Nested'),
-  makeType('local.Project.In_Parent_Module'),
-  makeType('local.Project.Module.Submodule.In_Submodule'),
-])('$name entry is not in the local.Project.Module content', (entry) => {
-  const filtering = new Filtering({ qualifiedNamePattern: 'local.Project.Module' })
-  const substringFiltering = new Filtering({ qualifiedNamePattern: 'local.Proj.Mod' })
-  expect(filtering.filter(entry)).toBeNull()
-  expect(substringFiltering.filter(entry)).toBeNull()
-})
-
-test('Internal entry is not in the Standard.Base.Data content', () => {
-  const entry = makeModule('Standard.Base.Data.Internal')
-  const filtering = new Filtering({ qualifiedNamePattern: 'Standard.Base.Data' })
-  expect(filtering.filter(entry)).toBeNull()
-})
-
-test('The content of an internal module is displayed', () => {
-  const entry = makeModuleMethod('Standard.Base.Data.Internal.foo')
-  const filtering = new Filtering({ qualifiedNamePattern: 'Standard.Base.Data.Internal' })
-  expect(filtering.filter(entry)).not.toBeNull()
-})
-
-test.each([
-  makeModuleMethod('local.Project.Module.foo'),
-  makeModuleMethod('local.Project.Module.Submodule.foo_in_submodule'),
-  makeModuleMethod('local.Project.Module.Submodule.Nested.foo_nested'),
-  makeType('local.Project.Module.Submodule.Nested.Foo_Type'),
-  makeConstructor('local.Project.Module.Submodule.Nested.Foo_Type.Foo_Con'),
-  makeStaticMethod('local.Project.Module.Submodule.Nested.Foo_Type.foo_method'),
-  makeModule('local.Project.Module.Foo_Direct_Submodule'),
-  makeModule('local.Project.Module.Submodule.Foo_Nested'),
-  makeModuleMethod('another.Project.Local.Project.Module.foo_with_matching_suffix'),
-])(
-  "$name entry is in the local.Project.Module content when filtering by pattern 'foo'",
-  (entry) => {
-    const filtering = new Filtering({
-      pattern: 'foo',
-      qualifiedNamePattern: 'local.Project.Module',
-    })
-    expect(filtering.filter(entry)).not.toBeNull()
-  },
-)
-
-test.each([
-  makeModuleMethod('local.Project.Module.bar'),
-  makeModuleMethod('local.Project.Another_Module.foo_in_another_module'),
-  makeModuleMethod('local.Project.Another_Module.Module.foo_in_another_module_with_same_name'),
-  makeModuleMethod('local.Project.foo_in_parent_module'),
-])(
-  "$name entry is in not the local.Project.Module content when filtering by pattern 'foo'",
-  (entry) => {
-    const filtering = new Filtering({
-      pattern: 'foo',
-      qualifiedNamePattern: 'local.Project.Module',
-    })
-    expect(filtering.filter(entry)).toBeNull()
-  },
-)
-
-test.each([
-  makeStaticMethod('local.Project.Module.Type.foo_method'),
-  makeConstructor('local.Project.Module.Type.Foo_Con'),
-  {
-    ...makeStaticMethod('local.Project.Module.Type.foo_extension'),
-    definedIn: 'local.Project.Another_Module' as QualifiedName,
-  },
-])('$name entry is in the local.Project.Module.Type content', (entry) => {
-  const filtering = new Filtering({ qualifiedNamePattern: 'local.Project.Module.Type' })
-  const filteringWithPattern = new Filtering({
-    pattern: 'foo',
-    qualifiedNamePattern: 'local.Project.Module.Type',
-  })
-  expect(filtering.filter(entry)).not.toBeNull()
-  expect(filteringWithPattern.filter(entry)).not.toBeNull()
-})
-
-test.each([
-  makeType('local.Project.Module.Type'),
-  makeModuleMethod('local.Project.Module.module_method'),
-  makeStaticMethod('local.Project.Module.Another_Type.another_type_method'),
-  makeStaticMethod('local.Project.Another_Module.Type.another_module_type_method'),
-])('$name entry is not in the local.Project.Module.Type content', (entry) => {
-  const filtering = new Filtering({ qualifiedNamePattern: 'local.Project.Module.Type' })
   expect(filtering.filter(entry)).toBeNull()
 })
 
@@ -193,176 +87,145 @@ test.each`
   expect(filtering.filter(entry)).toBeNull()
 })
 
-function matchedText(text: string, matchResult: MatchResult) {
-  text = matchResult.matchedAlias ?? text
-  const parts: string[] = []
-  for (const range of [
-    ...(matchResult.definedInRanges ?? []),
-    ...(matchResult.memberOfRanges ?? []),
-    ...(matchResult.nameRanges ?? []),
-  ]) {
-    parts.push(text.slice(range.start, range.end))
-  }
-  return parts.join('')
+function matchedText(ownerName: string, name: string, matchResult: MatchResult) {
+  name = matchResult.matchedAlias ?? name
+  const ownerPart = matchResult.ownerNameRanges?.reduce(
+    (acc, range) => acc + ownerName.slice(range.start, range.end),
+    '',
+  )
+  const namePart = matchResult.nameRanges?.reduce(
+    (acc, range) => acc + name.slice(range.start, range.end),
+    '',
+  )
+  return ownerPart ? `${ownerPart}.${namePart}` : `${namePart}`
 }
 
-test('Matching pattern without underscores', () => {
-  const pattern = 'foo'
-  const filtering = new Filtering({ pattern })
-  const matchedSorted = [
-    { name: 'foo' }, // exact match
-    { name: 'foobar' }, // name start match
-    { name: 'bar', aliases: ['baz', 'foo'] }, // exact alias match
-    { name: 'bar', aliases: ['bazbar', 'foobar'] }, // alias start match
-    { name: 'bar_foo' }, // name word exact match
-    { name: 'baz_foobar' }, // name word start match
-    { name: 'bar', aliases: ['bar_foo'] }, // alias word exact match
-    { name: 'bar', aliases: ['baz_foobar'] }, // alias word start match
-    { name: 'frequent_objective_objections' }, // initials match
-    { name: 'bar', aliases: ['frequent_objective_objections'] }, // alias initials match
-  ]
-  const matchResults = Array.from(matchedSorted, ({ name, aliases }) => {
-    const entry = { ...makeModuleMethod(`local.Project.${name}`), aliases: aliases ?? [] }
-    return filtering.filter(entry)
-  })
-  expect(matchResults[0]).not.toBeNull()
-  expect(
-    matchedText(matchedSorted[0]!.name, matchResults[0]!),
-    `matchedText('${matchedSorted[0]!.name}')`,
-  ).toEqual(pattern)
-  for (let i = 1; i < matchResults.length; i++) {
-    expect(
-      matchResults[i],
-      `\`matchResults\` for ${JSON.stringify(matchedSorted[i]!)}`,
-    ).not.toBeNull()
-    expect(
-      matchResults[i]!.score,
-      `score('${matchedSorted[i]!.name}') > score('${matchedSorted[i - 1]!.name}')`,
-    ).toBeGreaterThan(matchResults[i - 1]!.score)
-    expect(
-      matchedText(matchedSorted[i]!.name, matchResults[i]!),
-      `matchedText('${matchedSorted[i]!.name}')`,
-    ).toEqual(pattern)
-  }
-})
+type MatchingTestCase = {
+  pattern: string
+  matchedSorted: { module?: string; name: string; aliases: string[] }[]
+  notMatched: { module?: string; name: string; aliases: string[] }[]
+}
 
-test('Matching pattern with underscores', () => {
-  const pattern = 'foo_bar'
-  const filtering = new Filtering({ pattern })
-  const matchedSorted = [
-    { name: 'foo_bar' }, // exact match
-    { name: 'foo_xyz_barabc' }, // first word exact match
-    { name: 'fooabc_barabc' }, // first word match
-    { name: 'bar', aliases: ['foo_bar', 'foo'] }, // exact alias match
-    { name: 'bar', aliases: ['foo', 'foo_xyz_barabc'] }, // alias first word exact match
-    { name: 'bar', aliases: ['foo', 'fooabc_barabc'] }, // alias first word match
-    { name: 'xyz_foo_abc_bar_xyz' }, // exact word match
-    { name: 'xyz_fooabc_abc_barabc_xyz' }, // non-exact word match
-    { name: 'bar', aliases: ['xyz_foo_abc_bar_xyz'] }, // alias word exact match
-    { name: 'bar', aliases: ['xyz_fooabc_abc_barabc_xyz'] }, // alias word start match
-  ]
-  const matchResults = Array.from(matchedSorted, ({ name, aliases }) => {
-    const entry = { ...makeModuleMethod(`local.Project.${name}`), aliases: aliases ?? [] }
-    return filtering.filter(entry)
-  })
-  expect(matchResults[0]).not.toBeNull()
-  expect(
-    matchedText(matchedSorted[0]!.name, matchResults[0]!),
-    `matchedText('${matchedSorted[0]!.name}')`,
-  ).toEqual(pattern)
-  for (let i = 1; i < matchResults.length; i++) {
-    expect(
-      matchResults[i],
-      `\`matchResults\` for ${JSON.stringify(matchedSorted[i]!)}`,
-    ).not.toBeNull()
-    expect(
-      matchResults[i]!.score,
-      `score('${matchedSorted[i]!.name}') > score('${matchedSorted[i - 1]!.name}')`,
-    ).toBeGreaterThan(matchResults[i - 1]!.score)
-    expect(
-      matchedText(matchedSorted[i]!.name, matchResults[i]!),
-      `matchedText('${matchedSorted[i]!.name}')`,
-    ).toEqual(pattern)
-  }
-})
-
-test('Matching operators', () => {
-  const pattern = '+'
-  const filtering = new Filtering({
-    pattern,
-    selfArg: { type: 'known', typename: 'local.Project.Type' },
-  })
-  const matchedSorted = [
-    { name: '+' }, // exact match
-    { name: '+=' }, // prefix match
-    { name: 'add', aliases: ['+'] }, // alias exact match
-    { name: 'increase', aliases: ['+='] }, // alias match
-  ]
-  const matchResults = Array.from(matchedSorted, ({ name, aliases }) => {
-    const entry = { ...makeMethod(`local.Project.Type.${name}`), aliases: aliases ?? [] }
-    return filtering.filter(entry)
-  })
-  expect(matchResults[0]).not.toBeNull()
-  expect(
-    matchedText(matchedSorted[0]!.name, matchResults[0]!),
-    `matchedText('${matchedSorted[0]!.name}')`,
-  ).toEqual(pattern)
-  for (let i = 1; i < matchResults.length; i++) {
-    expect(
-      matchResults[i],
-      `\`matchResults\` for ${JSON.stringify(matchedSorted[i]!)}`,
-    ).not.toBeNull()
-    expect(
-      matchResults[i]!.score,
-      `score('${matchedSorted[i]!.name}') > score('${matchedSorted[i - 1]!.name}')`,
-    ).toBeGreaterThan(matchResults[i - 1]!.score)
-    expect(
-      matchedText(matchedSorted[i]!.name, matchResults[i]!),
-      `matchedText('${matchedSorted[i]!.name}')`,
-    ).toEqual(pattern)
-  }
-})
-
-test('Unstable filtering', () => {
-  const stableEntry = makeStaticMethod('local.Project.Type.stable')
-  const unstableEntry = {
-    ...makeStaticMethod('local.Project.Type.unstable'),
-    isUnstable: true,
-  }
-  const stableFiltering = new Filtering({ qualifiedNamePattern: 'local.Project.Type' })
-  expect(stableFiltering.filter(stableEntry)).not.toBeNull()
-  expect(stableFiltering.filter(unstableEntry)).toBeNull()
-  const unstableFiltering = new Filtering({
-    qualifiedNamePattern: 'local.Project.Type',
-    showUnstable: true,
-  })
-  expect(unstableFiltering.filter(stableEntry)).not.toBeNull()
-  expect(unstableFiltering.filter(unstableEntry)).not.toBeNull()
-})
-
+// In this test, `matchedSorted` are specified in expected score ascending order.
 test.each([
-  makeModuleMethod('local.Project.Module.func1'),
-  makeType('local.Project.Module.Type'),
-  makeConstructor('local.Project.Module.Type.Con'),
-  makeStaticMethod('local.Project.Module.Type.method'),
-  makeLocal('local.Project.Module', 'operator1'),
-  makeFunction('local.Project.Module', 'func2'),
-])('$name entry is in Local Scope view', (entry) => {
-  const filtering = new Filtering(
-    { showLocal: true },
-    unwrap(tryQualifiedName('local.Project.Module')),
-  )
-  expect(filtering.filter(entry)).not.toBeNull()
-})
+  {
+    pattern: 'foo',
+    matchedSorted: [
+      { name: 'foo' }, // exact match
+      { name: 'foobar' }, // name start match
+      { name: 'bar', aliases: ['baz', 'foo'] }, // exact alias match
+      { name: 'bar', aliases: ['bazbar', 'foobar'] }, // alias start match
+      { name: 'bar_foo' }, // name word exact match
+      { name: 'baz_foobar' }, // name word start match
+      { name: 'bar', aliases: ['bar_foo'] }, // alias word exact match
+      { name: 'bar', aliases: ['baz_foobar'] }, // alias word start match
+      { name: 'frequent_objective_objections' }, // initials match
+      { name: 'bar', aliases: ['frequent_objective_objections'] }, // alias initials match
+    ],
+    notMatched: [
+      { name: 'bar' },
+      { name: 'fo' },
+      { name: 'fo_o' },
+      { name: 'bar', aliases: ['baz'] },
+      { name: 'bar', aliases: ['fo', 'fo_o'] },
+    ],
+  },
+  {
+    pattern: 'foo_bar',
+    matchedSorted: [
+      { name: 'foo_bar' }, // exact match
+      { name: 'foo_xyz_barabc' }, // first word exact match
+      { name: 'fooabc_barabc' }, // first word match
+      { name: 'bar', aliases: ['foo_bar', 'foo'] }, // exact alias match
+      { name: 'bar', aliases: ['foo', 'foo_xyz_barabc'] }, // alias first word exact match
+      { name: 'bar', aliases: ['foo', 'fooabc_barabc'] }, // alias first word match
+      { name: 'xyz_foo_abc_bar_xyz' }, // exact word match
+      { name: 'xyz_fooabc_abc_barabc_xyz' }, // non-exact word match
+      { name: 'bar', aliases: ['xyz_foo_abc_bar_xyz'] }, // alias word exact match
+      { name: 'bar', aliases: ['xyz_fooabc_abc_barabc_xyz'] }, // alias word start match
+    ],
+    notMatched: [
+      { name: 'foo' },
+      { name: 'bar' },
+      { name: 'fo_bar' },
+      { name: 'foo_ba', aliases: ['baz'] },
+    ],
+  },
+  {
+    pattern: 'foo bar',
+    matchedSorted: [
+      { name: 'foo_bar' }, // exact match
+      { name: 'foo_xyz_barabc' }, // first word exact match
+      { name: 'fooabc_barabc' }, // first word match
+      { name: 'bar', aliases: ['foo bar', 'foo'] }, // exact alias match
+      { name: 'bar', aliases: ['foo', 'foo_xyz_barabc'] }, // alias first word exact match
+      { name: 'bar', aliases: ['foo', 'fooabc barabc'] }, // alias first word match
+      { name: 'xyz_foo_abc_bar_xyz' }, // exact word match
+      { name: 'xyz_fooabc_abc_barabc_xyz' }, // non-exact word match
+      { name: 'bar', aliases: ['xyz_foo_abc_bar_xyz'] }, // alias word exact match
+      { name: 'bar', aliases: ['xyz_fooabc_abc_barabc_xyz'] }, // alias word start match
+    ],
+    notMatched: [
+      { name: 'foo' },
+      { name: 'bar' },
+      { name: 'fo_bar' },
+      { name: 'foo_ba', aliases: ['baz'] },
+    ],
+  },
+  {
+    pattern: 'pr.foo',
+    matchedSorted: [
+      { module: 'local.Pr', name: 'foo' }, // exact match
+      { module: 'local.Project', name: 'foo' }, // name exact match and owner name start match
+      { module: 'local.Pr', name: 'foobar' }, // module exact match and name start match
+      { module: 'local.Pr', name: 'bar', aliases: ['baz', 'foo'] }, // exact alias match
+      { module: 'local.Project', name: 'bar', aliases: ['baz', 'foo'] }, // exact alias match, but nonexact owner match
+      { module: 'local.Project', name: 'bar', aliases: ['bazbar', 'foobar'] }, // alias start match
+      { name: 'bar_foo' }, // name word exact match
+      { name: 'baz_foobar' }, // name word start match
+      { name: 'bar', aliases: ['bar_foo'] }, // alias word exact match
+      { name: 'bar', aliases: ['baz_foobar'] }, // alias word start match
+      { name: 'frequent_objective_objections' }, // initials match
+      { name: 'bar', aliases: ['frequent_objective_objections'] }, // alias initials match
+    ],
+    notMatched: [
+      { module: 'local.Project.Data', name: 'foo' },
+      { module: 'local.Ploject', name: 'foo' },
+      { module: 'local.Pr', name: 'bar' },
+    ],
+  },
+] as MatchingTestCase[])('Matching pattern $pattern', ({ pattern, matchedSorted, notMatched }) => {
+  const filtering = new Filtering({ pattern })
+  const matchedSortedEntries = Array.from(matchedSorted, ({ name, aliases, module }) => ({
+    ...makeModuleMethod(`${module ?? 'local.Project'}.${name}`),
+    aliases: aliases ?? [],
+  }))
+  const matchResults = Array.from(matchedSortedEntries, (entry) => filtering.filter(entry))
+  // Checking matching entries
+  function checkResult(entry: SuggestionEntry, result: Opt<MatchResult>) {
+    expect(result, `Matching entry ${entryQn(entry)}`).not.toBeNull()
+    expect(
+      matchedText(entry.memberOf ? qnLastSegment(entry.memberOf) : '', entry.name, result!)
+        .toLowerCase()
+        .replace(/ /g, '_'),
+      `Matched text of entry ${entryQn(entry)}`,
+    ).toEqual(pattern.toLowerCase().replace(/ /g, '_'))
+  }
+  checkResult(matchedSortedEntries[0]!, matchResults[0])
+  for (let i = 1; i < matchResults.length; i++) {
+    checkResult(matchedSortedEntries[i]!, matchResults[i])
+    expect(
+      matchResults[i]!.score,
+      `score('${entryQn(matchedSortedEntries[i]!)}') > score('${entryQn(matchedSortedEntries[i - 1]!)}')`,
+    ).toBeGreaterThan(matchResults[i - 1]!.score)
+  }
 
-test.each([
-  makeModuleMethod('Standard.Base.Data.read'),
-  makeLocal('local.Project.Another_Module', 'local_in_another_module'),
-  makeFunction('local.Project.Another_Module', 'function_in_another_module'),
-])('$name entry is not in Local Scope View', (entry) => {
-  const filtering = new Filtering(
-    { showLocal: true },
-    unwrap(tryQualifiedName('local.Project.Module')),
-  )
-  expect(filtering.filter(entry)).toBeNull()
+  // Checking non-matching entries
+  for (const { module, name, aliases } of notMatched) {
+    const entry = {
+      ...makeModuleMethod(`${module ?? 'local.Project'}.${name}`),
+      aliases: aliases ?? [],
+    }
+    expect(filtering.filter(entry), entryQn(entry)).toBeNull()
+  }
 })

@@ -34,7 +34,7 @@ export interface UserRowProps {
 /** A row representing a user in a table of users. */
 export default function UserRow(props: UserRowProps) {
   const { draggable = false, user, doDeleteUser: doDeleteUserRaw } = props
-  const { user: self } = authProvider.useNonPartialUserSession()
+  const { user: self } = authProvider.useFullUserSession()
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const isAdmin = self.isOrganizationAdmin
