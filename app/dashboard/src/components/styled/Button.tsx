@@ -67,13 +67,17 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
   const button = (
     <FocusRing placement="after">
       <aria.Button
-        {...aria.mergeProps<aria.ButtonProps>()(buttonProps, focusChildProps, {
-          ref,
-          className: tailwindMerge.twMerge(
-            'relative after:pointer-events-none after:absolute after:inset after:rounded-button-focus-ring transition-colors hover:enabled:bg-primary/10 rounded-button-focus-ring -m-1 p-1',
-            buttonClassName,
-          ),
-        })}
+        {...aria.mergeProps<aria.ButtonProps & React.RefAttributes<HTMLButtonElement>>()(
+          buttonProps,
+          focusChildProps,
+          {
+            ref,
+            className: tailwindMerge.twMerge(
+              'relative after:pointer-events-none after:absolute after:inset after:rounded-button-focus-ring transition-colors hover:enabled:bg-primary/10 rounded-button-focus-ring -m-1 p-1',
+              buttonClassName,
+            ),
+          },
+        )}
       >
         <div
           className={tailwindMerge.twMerge(

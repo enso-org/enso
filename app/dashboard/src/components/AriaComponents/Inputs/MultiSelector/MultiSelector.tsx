@@ -21,6 +21,7 @@ import {
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
 import { tv } from '#/utilities/tailwindVariants'
+import { omit, unsafeRemoveUndefined } from 'enso-common/src/utilities/data/object'
 import { Controller } from 'react-hook-form'
 import { MultiSelectorOption } from './MultiSelectorOption'
 
@@ -155,9 +156,8 @@ export const MultiSelector = forwardRef(function MultiSelector<
                     className: classes.listBox(),
                     style: { gridTemplateColumns: `repeat(${columns ?? items.length}, 1fr)` },
                   },
-                  // @ts-expect-error This is UNSAFE. This error is caused by type mismatches for
-                  // the `id` and `aria-*` properties.
-                  inputProps,
+                  unsafeRemoveUndefined(omit(inputProps, 'id')),
+                  inputProps.id == null ? {} : { id: String(inputProps.id) },
                   field,
                 )}
                 // eslint-disable-next-line no-restricted-syntax
