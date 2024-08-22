@@ -156,9 +156,9 @@ export const Input = forwardRef(function Input<
             <aria.Input
               ref={mergeRefs(inputRef, privateInputRef, fieldRef)}
               {...aria.mergeProps<aria.InputProps>()(
-                { className: classes.textArea(), type, name, min, max, isRequired, isDisabled },
+                { className: classes.textArea(), type, name, min, max },
                 inputProps,
-                omit(field, 'required', 'disabled'),
+                field,
               )}
             />
           </div>

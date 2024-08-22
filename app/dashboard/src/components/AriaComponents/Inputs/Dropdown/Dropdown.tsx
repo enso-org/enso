@@ -146,7 +146,7 @@ export const Dropdown = forwardRef(function Dropdown<T>(
           ref={rootRef}
           tabIndex={-1}
           onMouseDown={() => {
-            shouldBlurRef.current = false //isFocusedRef.current
+            shouldBlurRef.current = isFocusedRef.current
           }}
           {...mergeProps<JSX.IntrinsicElements['div']>()(focusWithinProps, {
             className: styles.container(),

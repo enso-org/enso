@@ -19,6 +19,7 @@ export { useTooltipTriggerState, type OverlayTriggerState } from 'react-stately'
  *
  * The constraint is defaulted to `never` to make an explicit constraint mandatory. */
 export function mergeProps<Constraint extends object = never>() {
-  return <T extends (Partial<Constraint> | null | undefined)[]>(...args: T) =>
-    aria.mergeProps(...args)
+  return <const T extends readonly (Partial<Constraint> | null | undefined)[]>(
+    ...args: T & { [K in keyof T]: Pick<T[K], keyof Constraint & keyof T[K]> }
+  ) => aria.mergeProps(...args)
 }
