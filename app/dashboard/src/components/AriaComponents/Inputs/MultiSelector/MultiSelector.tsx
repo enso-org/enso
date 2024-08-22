@@ -151,13 +151,13 @@ export const MultiSelector = forwardRef(function MultiSelector<
                 ref={mergeRefs(inputRef, privateInputRef, fieldRef)}
                 orientation="horizontal"
                 selectionMode="multiple"
+                {...(inputProps.id != null && { id: String(inputProps.id) })}
                 {...mergeProps<ListBoxProps<FieldValues<Schema>[TFieldName]>>()(
                   {
                     className: classes.listBox(),
                     style: { gridTemplateColumns: `repeat(${columns ?? items.length}, 1fr)` },
                   },
                   unsafeRemoveUndefined(omit(inputProps, 'id')),
-                  inputProps.id == null ? {} : { id: String(inputProps.id) },
                   field,
                 )}
                 // eslint-disable-next-line no-restricted-syntax

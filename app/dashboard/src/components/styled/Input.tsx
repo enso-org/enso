@@ -1,11 +1,13 @@
 /** @file An input that handles focus movement. */
-import * as React from 'react'
+import type { ForwardedRef, RefAttributes } from 'react'
 
-import * as focusHooks from '#/hooks/focusHooks'
-
-import * as focusDirectionProvider from '#/providers/FocusDirectionProvider'
-
-import * as aria from '#/components/aria'
+import {
+  Input as AriaInput,
+  mergeProps,
+  type InputProps as AriaInputProps,
+} from '#/components/aria'
+import { useHandleFocusMove } from '#/hooks/focusHooks'
+import { useFocusDirection } from '#/providers/FocusDirectionProvider'
 import { forwardRef } from '#/utilities/react'
 
 // =============
@@ -13,18 +15,18 @@ import { forwardRef } from '#/utilities/react'
 // =============
 
 /** Props for a {@link Input}. */
-export interface InputProps extends Readonly<aria.InputProps> {}
+export interface InputProps extends Readonly<AriaInputProps> {}
 
 export default forwardRef(Input)
 
 /** An input that handles focus movement. */
-function Input(props: InputProps, ref: React.ForwardedRef<HTMLInputElement>) {
-  const focusDirection = focusDirectionProvider.useFocusDirection()
-  const handleFocusMove = focusHooks.useHandleFocusMove(focusDirection)
+function Input(props: InputProps, ref: ForwardedRef<HTMLInputElement>) {
+  const focusDirection = useFocusDirection()
+  const handleFocusMove = useHandleFocusMove(focusDirection)
 
   return (
-    <aria.Input
-      {...aria.mergeProps<aria.InputProps & React.RefAttributes<HTMLInputElement>>()(props, {
+    <AriaInput
+      {...mergeProps<AriaInputProps & RefAttributes<HTMLInputElement>>()(props, {
         ref,
         className: 'focus-child',
         onKeyDown: handleFocusMove,

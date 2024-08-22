@@ -28,7 +28,6 @@ import SvgMask from '#/components/SvgMask'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
 import type { ExtractFunction } from '#/utilities/tailwindVariants'
-import { omit } from 'enso-common/src/utilities/data/object'
 import { INPUT_STYLES } from '../variants'
 
 /**
