@@ -273,6 +273,7 @@ object JPMSUtils {
     */
   def compileModuleInfo(): Def.Initialize[Task[Unit]] = Def.task {
     val moduleInfo       = (Compile / javaSource).value / "module-info.java"
+    val projName         = moduleName.value
     val log              = streams.value.log
     val incToolOpts      = IncToolOptionsUtil.defaultIncToolOptions()
     val reporter         = (Compile / compile / bspReporter).value
@@ -283,29 +284,40 @@ object JPMSUtils {
     val cp               = (Compile / fullClasspath).value
     val javaCompiler =
       (Compile / compile / compilers).value.javaTools.javac()
-    log.info(s"Compiling $moduleInfo with javac")
-    val allOpts = baseJavacOpts ++ Seq(
-      "--class-path",
-      cp.map(_.data.getAbsolutePath).mkString(File.pathSeparator),
-      "--module-path",
-      mp.map(_.getAbsolutePath).mkString(File.pathSeparator),
-      "-d",
-      outputPath.toAbsolutePath.toString
-    )
-    log.debug(s"javac options: $allOpts")
-    val succ = javaCompiler.run(
-      Array(PlainVirtualFile(moduleInfo.toPath)),
-      allOpts.toArray,
-      output,
-      incToolOpts,
-      reporter,
-      log
-    )
-    if (!succ) {
-      val msg = s"Compilation of ${moduleInfo} failed"
-      log.error(s"javac options: $allOpts")
-      log.error(msg)
-      throw new IllegalStateException(msg)
+    val cache =
+      streams.value.cacheStoreFactory.make("cache-module-info-" + projName)
+
+    Tracked.diffInputs(cache, FileInfo.lastModified) (
+      Set(moduleInfo)
+    ) { changeReport =>
+      if (
+        changeReport.modified.nonEmpty || changeReport.added.nonEmpty
+      ) {
+        log.info(s"Compiling $moduleInfo with javac")
+        val allOpts = baseJavacOpts ++ Seq(
+          "--class-path",
+          cp.map(_.data.getAbsolutePath).mkString(File.pathSeparator),
+          "--module-path",
+          mp.map(_.getAbsolutePath).mkString(File.pathSeparator),
+          "-d",
+          outputPath.toAbsolutePath.toString
+        )
+        log.debug(s"javac options: $allOpts")
+        val succ = javaCompiler.run(
+          Array(PlainVirtualFile(moduleInfo.toPath)),
+          allOpts.toArray,
+          output,
+          incToolOpts,
+          reporter,
+          log
+        )
+        if (!succ) {
+          val msg = s"Compilation of ${moduleInfo} failed"
+          log.error(s"javac options: $allOpts")
+          log.error(msg)
+          throw new IllegalStateException(msg)
+        }
+      }
     }
   }
 
