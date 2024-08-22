@@ -99,8 +99,7 @@ object Expression {
           returnValue,
           location,
           suspended,
-          passData,
-          diagnostics
+          passData
         )
         res.diagnostics = diagnostics
         res.id          = id

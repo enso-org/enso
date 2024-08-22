@@ -173,7 +173,7 @@ object Definition {
     annotations: List[Name.GenericAnnotation],
     isPrivate: Boolean = false,
     location: Option[IdentifiedLocation],
-    passData: MetadataStorage      = new MetadataStorage()
+    passData: MetadataStorage = new MetadataStorage()
   ) extends IR
       with IRKind.Primitive
       with LazyDiagnosticStorage

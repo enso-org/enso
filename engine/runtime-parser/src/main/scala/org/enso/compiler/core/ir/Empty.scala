@@ -39,8 +39,9 @@ sealed case class Empty(
       || diagnostics != this.diagnostics
       || id != this.id
     ) {
-      val res = Empty(location, passData, diagnostics)
-      res.id = id
+      val res = Empty(location, passData)
+      res.diagnostics = diagnostics
+      res.id          = id
       res
     } else this
   }

@@ -77,7 +77,7 @@ sealed case class Resolution(
     ) {
       val res = Resolution(originalName, reason, passData)
       res.diagnostics = diagnostics
-      res.id           = id
+      res.id          = id
       res
     } else this
   }

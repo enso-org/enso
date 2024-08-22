@@ -137,7 +137,7 @@ object DefinitionArgument {
           passData
         )
         res.diagnostics = diagnostics
-        res.id = id
+        res.id          = id
         res
       } else this
     }

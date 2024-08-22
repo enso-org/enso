@@ -250,7 +250,7 @@ object Name {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-        val res = Qualified( parts, location, passData)
+        val res = Qualified(parts, location, passData)
         res.diagnostics = diagnostics
         res.id          = id
         res

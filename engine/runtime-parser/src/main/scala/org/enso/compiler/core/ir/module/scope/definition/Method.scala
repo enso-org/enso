@@ -54,7 +54,7 @@ object Method {
     methodReference: Name.MethodReference,
     bodyReference: Persistance.Reference[Expression],
     isStatic: Boolean,
-    override vel isPrivate: Boolean,
+    override val isPrivate: Boolean,
     isStaticWrapperForInstanceMethod: Boolean,
     override val location: Option[IdentifiedLocation],
     override val passData: MetadataStorage

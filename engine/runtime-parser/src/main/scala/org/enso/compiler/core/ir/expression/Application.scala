@@ -209,7 +209,7 @@ object Application {
       ) {
         val res = Force(target, location, passData)
         res.diagnostics = diagnostics
-        res.id = id
+        res.id          = id
         res
       } else this
     }
@@ -333,7 +333,7 @@ object Application {
       ) {
         val res = Typeset(expression, location, passData)
         res.diagnostics = diagnostics
-        res.id = id
+        res.id          = id
         res
       } else this
     }
