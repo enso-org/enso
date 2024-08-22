@@ -1,6 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
-import com.google.common.base.Objects;
+import java.util.Objects;
 import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
@@ -130,7 +130,7 @@ public abstract class HashCodeNode extends Node {
       @Shared("hashCodeNode") @Cached HashCodeNode hashCodeNode) {
     long nameHash = hashCodeNode.execute(unresolvedSymbol.getName());
     long scopeHash = hashCodeNode.execute(unresolvedSymbol.getScope());
-    return Objects.hashCode(nameHash, scopeHash);
+    return Objects.hash(nameHash, scopeHash);
   }
 
   @Specialization
