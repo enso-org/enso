@@ -2378,6 +2378,7 @@ lazy val `runtime-parser` =
 
 lazy val `runtime-compiler` =
   (project in file("engine/runtime-compiler"))
+    .enablePlugins(JPMSPlugin)
     .settings(
       frgaalJavaCompilerSetting,
       annotationProcSetting,
@@ -2387,6 +2388,17 @@ lazy val `runtime-compiler` =
         "com.github.sbt"   % "junit-interface"         % junitIfVersion     % Test,
         "org.scalatest"   %% "scalatest"               % scalatestVersion   % Test,
         "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
+      ),
+      moduleDependencies := Seq(
+        "org.scala-lang"       % "scala-library" % scalacVersion,
+        "org.slf4j"            % "slf4j-api"               % slf4jVersion,
+        "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion,
+      ),
+      excludeFilter := excludeFilter.value || "module-info.java",
+      internalModuleDependencies := Seq(
+        (`engine-common` / exportedModule).value,
+        (`pkg` / exportedModule).value,
+        (`runtime-parser` / exportedModule).value,
       )
     )
     .dependsOn(`runtime-parser`)

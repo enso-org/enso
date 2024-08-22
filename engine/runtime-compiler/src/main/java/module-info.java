@@ -1,0 +1,15 @@
+module org.enso.runtime.compiler {
+  requires java.logging;
+  requires scala.library;
+
+  requires org.enso.engine.common;
+  requires org.enso.pkg;
+  requires org.enso.runtime.parser;
+
+  requires org.openide.util.lookup.RELEASE180;
+  requires org.slf4j;
+
+  exports org.enso.compiler;
+  exports org.enso.compiler.context;
+  exports org.enso.compiler.data;
+}
