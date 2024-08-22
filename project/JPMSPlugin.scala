@@ -82,22 +82,20 @@ object JPMSPlugin extends AutoPlugin {
       "directly put on module-path"
     )
 
-    /**
-     * Should module-info.java be compiled manually? True iff there is `module-info.java`
-     * in java sources and if the compile order is Mixed. In such case, sbt tries to first
-     * parse all the Java sources via its internal parser, and that fails for `modue-info`.
-     * In these cases, we need to exclude `module-info.java` from the sources and compile it
-     * manually.
-     *
-     * WARNING: Do not use override this task directly if you don't know exactly what you are doing.
-     */
+    /** Should module-info.java be compiled manually? True iff there is `module-info.java`
+      * in java sources and if the compile order is Mixed. In such case, sbt tries to first
+      * parse all the Java sources via its internal parser, and that fails for `modue-info`.
+      * In these cases, we need to exclude `module-info.java` from the sources and compile it
+      * manually.
+      *
+      * WARNING: Do not use override this task directly if you don't know exactly what you are doing.
+      */
     val shouldCompileModuleInfoManually = taskKey[Boolean](
       "Should module-info.java be compiled manually?"
     )
   }
 
   import autoImport._
-
 
   override lazy val projectSettings: Seq[Setting[_]] = Seq(
     addModules := Seq.empty,

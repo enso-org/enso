@@ -699,8 +699,8 @@ lazy val `text-buffer` = project
     ),
     excludeFilter := excludeFilter.value || "module-info.java",
     moduleDependencies := Seq(
-      "org.scala-lang"       % "scala-library" % scalacVersion,
-    ),
+      "org.scala-lang" % "scala-library" % scalacVersion
+    )
   )
 
 lazy val rustParserTargetDirectory =
@@ -837,12 +837,12 @@ lazy val `scala-yaml` = (project in file("lib/scala/yaml"))
     frgaalJavaCompilerSetting,
     excludeFilter := excludeFilter.value || "module-info.java",
     libraryDependencies ++= Seq(
-      "org.yaml" % "snakeyaml" % snakeyamlVersion % "provided",
-      "com.chuusai" %% "shapeless" % "2.3.10",
+      "org.yaml"     % "snakeyaml" % snakeyamlVersion % "provided",
+      "com.chuusai" %% "shapeless" % "2.3.10"
     ),
     moduleDependencies ++= Seq(
-      "org.scala-lang"     % "scala-library"    % scalacVersion,
-      "org.yaml" % "snakeyaml" % snakeyamlVersion
+      "org.scala-lang" % "scala-library" % scalacVersion,
+      "org.yaml"       % "snakeyaml"     % snakeyamlVersion
     ),
     internalModuleDependencies := Seq(
       (`scala-libs-wrapper` / exportedModule).value
@@ -858,23 +858,23 @@ lazy val pkg = (project in file("lib/scala/pkg"))
     compileOrder := CompileOrder.ScalaThenJava,
     version := "0.1",
     libraryDependencies ++= Seq(
-      "io.circe"           %% "circe-core"       % circeVersion              % "provided",
-      "org.yaml"            % "snakeyaml"        % snakeyamlVersion          % "provided",
-      "org.scalatest"      %% "scalatest"        % scalatestVersion          % Test,
-      "org.apache.commons"  % "commons-compress" % commonsCompressVersion
+      "io.circe"          %% "circe-core"       % circeVersion     % "provided",
+      "org.yaml"           % "snakeyaml"        % snakeyamlVersion % "provided",
+      "org.scalatest"     %% "scalatest"        % scalatestVersion % Test,
+      "org.apache.commons" % "commons-compress" % commonsCompressVersion
     ),
     moduleDependencies := {
       Seq(
         "org.apache.commons" % "commons-compress" % commonsCompressVersion,
         "org.scala-lang"     % "scala-library"    % scalacVersion,
-        "org.yaml"                    % "snakeyaml"     % snakeyamlVersion,
+        "org.yaml"           % "snakeyaml"        % snakeyamlVersion
       )
     },
     internalModuleDependencies := Seq(
       (`editions` / exportedModule).value,
       (`semver` / exportedModule).value,
       (`scala-yaml` / exportedModule).value,
-      (`scala-libs-wrapper` / exportedModule).value,
+      (`scala-libs-wrapper` / exportedModule).value
     )
   )
   .dependsOn(editions)
@@ -1056,29 +1056,28 @@ lazy val `scala-libs-wrapper` = project
   .settings(
     javaModuleName := "org.enso.scala.wrapper",
     libraryDependencies ++= circe ++ Seq(
-      "com.typesafe.scala-logging" %% "scala-logging"  % scalaLoggingVersion,
-      "org.slf4j"   % "slf4j-api"   % slf4jVersion,
-      "org.typelevel" %% "cats-core" % "2.10.0",
-      "org.scala-lang" % "scala-compiler" % scalacVersion,
-      "org.jline"               % "jline"                   % jlineVersion,
-      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion,
+      "com.typesafe.scala-logging"            %% "scala-logging"         % scalaLoggingVersion,
+      "org.slf4j"                              % "slf4j-api"             % slf4jVersion,
+      "org.typelevel"                         %% "cats-core"             % "2.10.0",
+      "org.scala-lang"                         % "scala-compiler"        % scalacVersion,
+      "org.jline"                              % "jline"                 % jlineVersion,
+      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion
     ),
     moduleDependencies := Seq(
-      "org.scala-lang"   % "scala-library"           % scalacVersion,
-      "org.scala-lang"   % "scala-reflect"           % scalacVersion,
+      "org.scala-lang" % "scala-library"  % scalacVersion,
+      "org.scala-lang" % "scala-reflect"  % scalacVersion,
       "org.scala-lang" % "scala-compiler" % scalacVersion,
-      "org.jline"               % "jline"                   % jlineVersion,
+      "org.jline"      % "jline"          % jlineVersion
     ),
     shouldCompileModuleInfoManually := true,
     excludeFilter := excludeFilter.value || "module-info.java",
     compileModuleInfo := {
-      JPMSUtils.compileModuleInfo()
-        .value
+      JPMSUtils.compileModuleInfo().value
     },
     javacOptions ++= {
       JPMSPlugin.constructOptions(
         streams.value.log,
-        modulePath = modulePath.value,
+        modulePath   = modulePath.value,
         patchModules = patchModules.value
       )
     },
@@ -1090,12 +1089,12 @@ lazy val `scala-libs-wrapper` = project
       JPMSUtils.filterModulesFromClasspath(
         (Compile / fullClasspath).value,
         Seq(
-          "org.slf4j"   % "slf4j-api"   % slf4jVersion,
-          "org.scala-lang"   % "scala-library"           % scalacVersion,
-          "org.scala-lang"   % "scala-reflect"           % scalacVersion,
-          "org.scala-lang" % "scala-compiler" % scalacVersion,
+          "org.slf4j"                 % "slf4j-api"       % slf4jVersion,
+          "org.scala-lang"            % "scala-library"   % scalacVersion,
+          "org.scala-lang"            % "scala-reflect"   % scalacVersion,
+          "org.scala-lang"            % "scala-compiler"  % scalacVersion,
           "io.github.java-diff-utils" % "java-diff-utils" % "4.12",
-          "org.jline"               % "jline"                   % jlineVersion,
+          "org.jline"                 % "jline"           % jlineVersion
         ),
         streams.value.log,
         moduleName.value,
@@ -1109,18 +1108,18 @@ lazy val `scala-libs-wrapper` = project
       val scalaLibs = JPMSUtils.filterModulesFromUpdate(
         update.value,
         Seq(
-          "com.typesafe.scala-logging" % ("scala-logging_" + scalaVer) % scalaLoggingVersion,
-          "io.circe" % ("circe-core_" + scalaVer) % circeVersion,
-          "io.circe" % ("circe-generic_" + scalaVer) % circeVersion,
-          "io.circe" % ("circe-parser_" + scalaVer) % circeVersion,
-          "io.circe" % ("circe-jawn_" + scalaVer) % circeVersion,
-          "io.circe" % ("circe-numbers_" + scalaVer) % circeVersion,
-          "org.typelevel" % ("cats-core_" + scalaVer) % "2.10.0",
-          "org.typelevel" % ("cats-kernel_" + scalaVer) % "2.10.0",
-          "org.typelevel" % ("jawn-parser_" + scalaVer) % "1.5.1",
-          "com.chuusai" % ("shapeless_" + scalaVer) % "2.3.10",
+          "com.typesafe.scala-logging"            % ("scala-logging_" + scalaVer)         % scalaLoggingVersion,
+          "io.circe"                              % ("circe-core_" + scalaVer)            % circeVersion,
+          "io.circe"                              % ("circe-generic_" + scalaVer)         % circeVersion,
+          "io.circe"                              % ("circe-parser_" + scalaVer)          % circeVersion,
+          "io.circe"                              % ("circe-jawn_" + scalaVer)            % circeVersion,
+          "io.circe"                              % ("circe-numbers_" + scalaVer)         % circeVersion,
+          "org.typelevel"                         % ("cats-core_" + scalaVer)             % "2.10.0",
+          "org.typelevel"                         % ("cats-kernel_" + scalaVer)           % "2.10.0",
+          "org.typelevel"                         % ("jawn-parser_" + scalaVer)           % "1.5.1",
+          "com.chuusai"                           % ("shapeless_" + scalaVer)             % "2.3.10",
           "com.github.plokhotnyuk.jsoniter-scala" % ("jsoniter-scala-macros_" + scalaVer) % jsoniterVersion,
-          "com.github.plokhotnyuk.jsoniter-scala" % ("jsoniter-scala-core_" + scalaVer) % jsoniterVersion,
+          "com.github.plokhotnyuk.jsoniter-scala" % ("jsoniter-scala-core_" + scalaVer)   % jsoniterVersion
         ),
         streams.value.log,
         moduleName.value,
@@ -1208,11 +1207,11 @@ lazy val `refactoring-utils` = project
     ),
     excludeFilter := excludeFilter.value || "module-info.java",
     moduleDependencies := Seq(
-      "org.scala-lang"       % "scala-library" % scalacVersion,
+      "org.scala-lang" % "scala-library" % scalacVersion
     ),
     internalModuleDependencies := Seq(
       (`text-buffer` / exportedModule).value,
-      (`runtime-parser` / exportedModule).value,
+      (`runtime-parser` / exportedModule).value
     )
   )
   .dependsOn(`runtime-parser`)
@@ -1443,7 +1442,7 @@ lazy val `ydoc-server` = project
     },
     internalModuleDependencies := Seq(
       (`syntax-rust-definition` / exportedModule).value,
-      (`profiling-utils` / exportedModule).value,
+      (`profiling-utils` / exportedModule).value
     ),
     libraryDependencies ++= Seq(
       "org.graalvm.truffle"        % "truffle-api"                 % graalMavenPackagesVersion % "provided",
@@ -1525,7 +1524,7 @@ lazy val `persistance` = (project in file("lib/java/persistance"))
     ),
     moduleDependencies := Seq(
       "org.slf4j"        % "slf4j-api"               % slf4jVersion,
-      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion,
+      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion
     )
   )
   .dependsOn(`persistance-dsl` % Test)
@@ -1701,7 +1700,7 @@ lazy val `polyglot-api` = project
     ),
     internalModuleDependencies := Seq(
       (`scala-libs-wrapper` / exportedModule).value,
-      (`engine-common` / exportedModule).value,
+      (`engine-common` / exportedModule).value
     ),
     GenerateFlatbuffers.flatcVersion := flatbuffersVersion,
     Compile / sourceGenerators += GenerateFlatbuffers.task
@@ -1948,12 +1947,12 @@ lazy val `runtime-language-epb` =
         "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided"
       ),
       moduleDependencies := Seq(
-        "org.graalvm.truffle" % "truffle-api"             % graalMavenPackagesVersion,
-        "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion,
-        "org.graalvm.sdk"        % "collections"      % graalMavenPackagesVersion,
-        "org.graalvm.sdk"        % "word"             % graalMavenPackagesVersion,
-        "org.graalvm.sdk"        % "nativeimage"      % graalMavenPackagesVersion,
-      ),
+        "org.graalvm.truffle"  % "truffle-api" % graalMavenPackagesVersion,
+        "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
+        "org.graalvm.sdk"      % "collections" % graalMavenPackagesVersion,
+        "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion,
+        "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion
+      )
     )
 
 lazy val `runtime-language-arrow` =
@@ -2060,17 +2059,17 @@ lazy val runtime = (project in file("engine/runtime"))
     },
     excludeFilter := excludeFilter.value || "module-info.java",
     moduleDependencies := Seq(
-      "org.scala-lang"       % "scala-library" % scalacVersion,
+      "org.scala-lang"       % "scala-library"           % scalacVersion,
       "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion,
       "org.apache.tika"      % "tika-core"               % tikaVersion,
       "org.slf4j"            % "slf4j-api"               % slf4jVersion,
-      "org.graalvm.truffle" % "truffle-api"             % graalMavenPackagesVersion,
+      "org.graalvm.truffle"  % "truffle-api"             % graalMavenPackagesVersion,
       "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion,
-      "org.graalvm.sdk"        % "collections"      % graalMavenPackagesVersion,
-      "org.graalvm.sdk"        % "word"             % graalMavenPackagesVersion,
-      "org.graalvm.sdk"        % "nativeimage"      % graalMavenPackagesVersion,
-      "com.ibm.icu"          % "icu4j"    % icuVersion,
-      "org.apache.commons" % "commons-lang3"        % commonsLangVersion,
+      "org.graalvm.sdk"      % "collections"             % graalMavenPackagesVersion,
+      "org.graalvm.sdk"      % "word"                    % graalMavenPackagesVersion,
+      "org.graalvm.sdk"      % "nativeimage"             % graalMavenPackagesVersion,
+      "com.ibm.icu"          % "icu4j"                   % icuVersion,
+      "org.apache.commons"   % "commons-lang3"           % commonsLangVersion
     ),
     internalModuleDependencies := Seq(
       (`distribution-manager` / exportedModule).value,
@@ -2181,7 +2180,7 @@ lazy val `runtime-integration-tests` =
           (`syntax-rust-definition` / projectID).value,
           (`profiling-utils` / projectID).value
         )
-      },
+      }
     )
     .dependsOn(`runtime-test-instruments`)
     .dependsOn(`logging-service-logback` % "test->test")
@@ -2289,7 +2288,7 @@ lazy val `runtime-parser` =
       },
       internalModuleDependencies := Seq(
         (`syntax-rust-definition` / exportedModule).value,
-        (`persistance` / exportedModule).value,
+        (`persistance` / exportedModule).value
       ),
       // Note [Compile module-info]
       excludeFilter := excludeFilter.value || "module-info.java"
@@ -2312,15 +2311,15 @@ lazy val `runtime-compiler` =
         "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
       ),
       moduleDependencies := Seq(
-        "org.scala-lang"       % "scala-library" % scalacVersion,
-        "org.slf4j"            % "slf4j-api"               % slf4jVersion,
-        "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion,
+        "org.scala-lang"   % "scala-library"           % scalacVersion,
+        "org.slf4j"        % "slf4j-api"               % slf4jVersion,
+        "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion
       ),
       excludeFilter := excludeFilter.value || "module-info.java",
       internalModuleDependencies := Seq(
         (`engine-common` / exportedModule).value,
         (`pkg` / exportedModule).value,
-        (`runtime-parser` / exportedModule).value,
+        (`runtime-parser` / exportedModule).value
       )
     )
     .dependsOn(`runtime-parser`)
@@ -2371,12 +2370,12 @@ lazy val `runtime-instrument-common` =
       ),
       excludeFilter := excludeFilter.value || "module-info.java",
       moduleDependencies := Seq(
-        "org.graalvm.truffle"  % "truffle-api"             % graalMavenPackagesVersion,
-        "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion,
-        "org.graalvm.sdk"        % "collections"      % graalMavenPackagesVersion,
-        "org.graalvm.sdk"        % "nativeimage"      % graalMavenPackagesVersion,
-        "org.graalvm.sdk"        % "word"             % graalMavenPackagesVersion,
-        "org.scala-lang"       % "scala-library" % scalacVersion,
+        "org.graalvm.truffle"  % "truffle-api"   % graalMavenPackagesVersion,
+        "org.graalvm.polyglot" % "polyglot"      % graalMavenPackagesVersion,
+        "org.graalvm.sdk"      % "collections"   % graalMavenPackagesVersion,
+        "org.graalvm.sdk"      % "nativeimage"   % graalMavenPackagesVersion,
+        "org.graalvm.sdk"      % "word"          % graalMavenPackagesVersion,
+        "org.scala-lang"       % "scala-library" % scalacVersion
       ),
       internalModuleDependencies := Seq(
         (`cli` / exportedModule).value,
@@ -2392,7 +2391,7 @@ lazy val `runtime-instrument-common` =
         (`text-buffer` / exportedModule).value,
         (`pkg` / exportedModule).value,
         (`polyglot-api` / exportedModule).value,
-        (`scala-libs-wrapper` / exportedModule).value,
+        (`scala-libs-wrapper` / exportedModule).value
       )
     )
     .dependsOn(`refactoring-utils`)
@@ -2410,16 +2409,16 @@ lazy val `runtime-instrument-id-execution` =
       inConfig(Compile)(truffleRunOptionsSettings),
       instrumentationSettings,
       moduleDependencies := Seq(
-        "org.graalvm.truffle" % "truffle-api"             % graalMavenPackagesVersion,
-        "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion,
-        "org.graalvm.sdk"        % "collections"      % graalMavenPackagesVersion,
-        "org.graalvm.sdk"        % "word"             % graalMavenPackagesVersion,
-        "org.graalvm.sdk"        % "nativeimage"      % graalMavenPackagesVersion,
+        "org.graalvm.truffle"  % "truffle-api" % graalMavenPackagesVersion,
+        "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
+        "org.graalvm.sdk"      % "collections" % graalMavenPackagesVersion,
+        "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion,
+        "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion
       ),
       internalModuleDependencies := Seq(
         (`runtime` / exportedModule).value,
         (`runtime-compiler` / exportedModule).value,
-        (`polyglot-api` / exportedModule).value,
+        (`polyglot-api` / exportedModule).value
       )
     )
     .dependsOn(LocalProject("runtime"))
@@ -2432,18 +2431,18 @@ lazy val `runtime-instrument-repl-debugger` =
       inConfig(Compile)(truffleRunOptionsSettings),
       instrumentationSettings,
       moduleDependencies := Seq(
-        "org.scala-lang" % "scala-library" % scalacVersion,
-        "org.graalvm.truffle" % "truffle-api"             % graalMavenPackagesVersion,
-        "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion,
-        "org.graalvm.sdk"        % "collections"      % graalMavenPackagesVersion,
-        "org.graalvm.sdk"        % "word"             % graalMavenPackagesVersion,
-        "org.graalvm.sdk"        % "nativeimage"      % graalMavenPackagesVersion,
+        "org.scala-lang"       % "scala-library" % scalacVersion,
+        "org.graalvm.truffle"  % "truffle-api"   % graalMavenPackagesVersion,
+        "org.graalvm.polyglot" % "polyglot"      % graalMavenPackagesVersion,
+        "org.graalvm.sdk"      % "collections"   % graalMavenPackagesVersion,
+        "org.graalvm.sdk"      % "word"          % graalMavenPackagesVersion,
+        "org.graalvm.sdk"      % "nativeimage"   % graalMavenPackagesVersion
       ),
       internalModuleDependencies := Seq(
         (`runtime-instrument-common` / exportedModule).value,
         (`runtime` / exportedModule).value,
         (`polyglot-api` / exportedModule).value,
-        (`runtime-compiler` / exportedModule).value,
+        (`runtime-compiler` / exportedModule).value
       )
     )
     .dependsOn(LocalProject("runtime"))
@@ -2456,13 +2455,13 @@ lazy val `runtime-instrument-runtime-server` =
       inConfig(Compile)(truffleRunOptionsSettings),
       instrumentationSettings,
       moduleDependencies := Seq(
-        "org.scala-lang" % "scala-library" % scalacVersion,
-        "org.graalvm.truffle" % "truffle-api"             % graalMavenPackagesVersion,
+        "org.scala-lang"       % "scala-library"           % scalacVersion,
+        "org.graalvm.truffle"  % "truffle-api"             % graalMavenPackagesVersion,
         "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion,
-        "org.graalvm.sdk"        % "collections"      % graalMavenPackagesVersion,
-        "org.graalvm.sdk"        % "word"             % graalMavenPackagesVersion,
-        "org.graalvm.sdk"        % "nativeimage"      % graalMavenPackagesVersion,
-        "org.netbeans.api"     % "org-openide-util-lookup"  % netbeansApiVersion
+        "org.graalvm.sdk"      % "collections"             % graalMavenPackagesVersion,
+        "org.graalvm.sdk"      % "word"                    % graalMavenPackagesVersion,
+        "org.graalvm.sdk"      % "nativeimage"             % graalMavenPackagesVersion,
+        "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion
       ),
       internalModuleDependencies := Seq(
         (`runtime-instrument-common` / exportedModule).value,
@@ -2471,12 +2470,11 @@ lazy val `runtime-instrument-runtime-server` =
         (`runtime` / exportedModule).value,
         (`polyglot-api` / exportedModule).value,
         (`runtime-compiler` / exportedModule).value,
-        (`connected-lock-manager` / exportedModule).value,
+        (`connected-lock-manager` / exportedModule).value
       )
     )
     .dependsOn(LocalProject("runtime"))
     .dependsOn(`runtime-instrument-common` % "test->test;compile->compile")
-
 
 /* Note [Unmanaged Classpath]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -2520,16 +2518,16 @@ lazy val `engine-runner-common` = project
       "commons-cli"          % "commons-cli" % commonsCliVersion
     ),
     moduleDependencies := Seq(
-      "commons-cli" % "commons-cli" % commonsCliVersion,
-      "org.slf4j"   % "slf4j-api"   % slf4jVersion,
-      "commons-io"           % "commons-io"  % commonsIoVersion,
-      "org.scala-lang"       % "scala-library" % scalacVersion,
+      "commons-cli"    % "commons-cli"   % commonsCliVersion,
+      "org.slf4j"      % "slf4j-api"     % slf4jVersion,
+      "commons-io"     % "commons-io"    % commonsIoVersion,
+      "org.scala-lang" % "scala-library" % scalacVersion
     ),
     internalModuleDependencies := Seq(
       (`pkg` / exportedModule).value,
       (`editions` / exportedModule).value,
       (`engine-common` / exportedModule).value,
-      (`library-manager` / exportedModule).value,
+      (`library-manager` / exportedModule).value
     )
   )
   .dependsOn(`polyglot-api`)
@@ -2847,7 +2845,7 @@ lazy val `distribution-manager` = project
       (`cli` / exportedModule).value,
       (`logging-utils` / exportedModule).value,
       (`scala-libs-wrapper` / exportedModule).value,
-      (`scala-yaml` / exportedModule).value,
+      (`scala-yaml` / exportedModule).value
     )
   )
   .dependsOn(editions)
@@ -3101,15 +3099,15 @@ lazy val downloader = (project in file("lib/scala/downloader"))
       "org.hamcrest"                % "hamcrest-all"     % hamcrestVersion  % Test
     ),
     moduleDependencies := Seq(
-      "org.scala-lang"              % "scala-library"    % scalacVersion,
-      "commons-io"                  % "commons-io"       % commonsIoVersion,
-      "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
-      "org.slf4j"                   % "slf4j-api"        % slf4jVersion,
+      "org.scala-lang"     % "scala-library"    % scalacVersion,
+      "commons-io"         % "commons-io"       % commonsIoVersion,
+      "org.apache.commons" % "commons-compress" % commonsCompressVersion,
+      "org.slf4j"          % "slf4j-api"        % slf4jVersion
     ),
     excludeFilter := excludeFilter.value || "module-info.java",
     internalModuleDependencies := Seq(
       (`cli` / exportedModule).value,
-      (`scala-libs-wrapper` / exportedModule).value,
+      (`scala-libs-wrapper` / exportedModule).value
     )
   )
   .dependsOn(cli)
@@ -3164,8 +3162,8 @@ lazy val `library-manager` = project
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
     ),
     moduleDependencies := Seq(
-      "org.scala-lang"     % "scala-library"    % scalacVersion,
-      "org.yaml"                    % "snakeyaml"     % snakeyamlVersion,
+      "org.scala-lang" % "scala-library" % scalacVersion,
+      "org.yaml"       % "snakeyaml"     % snakeyamlVersion
     ),
     internalModuleDependencies := Seq(
       (`distribution-manager` / exportedModule).value,
@@ -3176,7 +3174,7 @@ lazy val `library-manager` = project
       (`semver` / exportedModule).value,
       (`logging-utils` / exportedModule).value,
       (`scala-libs-wrapper` / exportedModule).value,
-      (`scala-yaml` / exportedModule).value,
+      (`scala-yaml` / exportedModule).value
     )
   )
   .dependsOn(`version-output`) // Note [Default Editions]
@@ -3218,12 +3216,12 @@ lazy val `connected-lock-manager` = project
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
     ),
     moduleDependencies := Seq(
-      "org.scala-lang"       % "scala-library" % scalacVersion,
+      "org.scala-lang" % "scala-library" % scalacVersion
     ),
     internalModuleDependencies := Seq(
       (`distribution-manager` / exportedModule).value,
       (`polyglot-api` / exportedModule).value,
-      (`scala-libs-wrapper` / exportedModule).value,
+      (`scala-libs-wrapper` / exportedModule).value
     )
   )
   .dependsOn(`distribution-manager`)

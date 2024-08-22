@@ -44,7 +44,7 @@ object JPMSUtils {
     *
     * @param cp               The classpath to filter
     * @param modules          These modules are looked for in the class path, can be duplicated.
-   * @param projName Name of the current sbt project for debugging.
+    * @param projName Name of the current sbt project for debugging.
     * @param shouldContainAll If true, the method will throw an exception if not all modules were found
     *                         in the classpath.
     * @return The classpath with only the provided modules searched by their IDs.
@@ -72,7 +72,9 @@ object JPMSUtils {
     })
     if (shouldContainAll) {
       if (ret.size < distinctModules.size) {
-        log.error(s"[JPMSUtils/$projName] Not all modules from classpath were found")
+        log.error(
+          s"[JPMSUtils/$projName] Not all modules from classpath were found"
+        )
         log.error(
           s"[JPMSUtils/$projName] Ensure libraryDependencies and moduleDependencies are correct"
         )
@@ -90,7 +92,7 @@ object JPMSUtils {
     * @param updateReport     The update report to filter. This is the result of `update.value`.
     * @param modules          The modules to filter from the update report. Can be duplicated.
     * @param log              The logger to use for logging.
-   * @param projName Name of the current sbt project for debugging.
+    * @param projName Name of the current sbt project for debugging.
     * @param shouldContainAll If true, the method will log an error if not all modules were found.
     * @return The list of files (Jar archives, directories, etc.) that were found in the update report.
     */
@@ -116,11 +118,15 @@ object JPMSUtils {
     )
     if (shouldContainAll) {
       if (foundFiles.size < distinctModules.size) {
-        log.error(s"[JPMSUtils/$projName] Not all modules from update were found")
+        log.error(
+          s"[JPMSUtils/$projName] Not all modules from update were found"
+        )
         log.error(
           s"[JPMSUtils/$projName] Ensure libraryDependencies and moduleDependencies are correct"
         )
-        log.error(s"[JPMSUtils/$projName] Returned (${foundFiles.size}): $foundFiles")
+        log.error(
+          s"[JPMSUtils/$projName] Returned (${foundFiles.size}): $foundFiles"
+        )
         log.error(
           s"[JPMSUtils/$projName] Expected: (${distinctModules.size}): $distinctModules"
         )
@@ -287,12 +293,10 @@ object JPMSUtils {
     val cache =
       streams.value.cacheStoreFactory.make("cache-module-info-" + projName)
 
-    Tracked.diffInputs(cache, FileInfo.lastModified) (
+    Tracked.diffInputs(cache, FileInfo.lastModified)(
       Set(moduleInfo)
     ) { changeReport =>
-      if (
-        changeReport.modified.nonEmpty || changeReport.added.nonEmpty
-      ) {
+      if (changeReport.modified.nonEmpty || changeReport.added.nonEmpty) {
         log.info(s"Compiling $moduleInfo with javac")
         val allOpts = baseJavacOpts ++ Seq(
           "--class-path",
