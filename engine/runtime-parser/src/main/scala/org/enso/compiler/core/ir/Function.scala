@@ -113,17 +113,27 @@ object Function {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Lambda = {
-      val res =
-        Lambda(
-          arguments,
-          Persistance.Reference.of(body, false),
-          location,
-          canBeTCO,
-          passData
-        )
-      res.diagnostics = diagnostics
-      res.id          = id
-      res
+      if (
+        arguments != this.arguments
+        || body != this.body
+        || location != this.location
+        || canBeTCO != this.canBeTCO
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res =
+          Lambda(
+            arguments,
+            Persistance.Reference.of(body, false),
+            location,
+            canBeTCO,
+            passData
+          )
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -267,19 +277,31 @@ object Function {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Binding = {
-      val res =
-        Binding(
-          name,
-          arguments,
-          body,
-          isPrivate,
-          location,
-          canBeTCO,
-          passData
-        )
-      res.diagnostics = diagnostics
-      res.id          = id
-      res
+      if (
+        name != this.name
+        || arguments != this.arguments
+        || body != this.body
+        || isPrivate != this.isPrivate
+        || location != this.location
+        || canBeTCO != this.canBeTCO
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res =
+          Binding(
+            name,
+            arguments,
+            body,
+            isPrivate,
+            location,
+            canBeTCO,
+            passData
+          )
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
     }
 
     /** @inheritdoc */

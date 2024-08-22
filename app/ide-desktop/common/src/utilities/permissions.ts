@@ -1,8 +1,6 @@
 /** @file Utilities for working with permissions. */
 import type * as text from 'enso-common/src/text'
 
-import type * as backend from '../services/Backend'
-
 // ========================
 // === PermissionAction ===
 // ========================
@@ -216,20 +214,3 @@ export const DEFAULT_PERMISSIONS: Permissions = Object.freeze({
   docs: false,
   execute: false,
 })
-
-// ======================================
-// === tryGetSingletonOwnerPermission ===
-// ======================================
-
-/** Return an array containing the owner permission if `owner` is not `null`,
- * else return an empty array (`[]`). */
-export function tryGetSingletonOwnerPermission(
-  owner: backend.User | null,
-): backend.UserPermission[] {
-  if (owner != null) {
-    const { organizationId, userId, name, email } = owner
-    return [{ user: { organizationId, userId, name, email }, permission: PermissionAction.own }]
-  } else {
-    return []
-  }
-}

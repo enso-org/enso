@@ -91,8 +91,8 @@ final class SuggestionBuilder[A: IndexedSource](
                     name,
                     arguments,
                     annotations,
-                    _,
                     isPrivate,
+                    _,
                     _
                   ) if !isPrivate =>
                 buildAtomConstructor(

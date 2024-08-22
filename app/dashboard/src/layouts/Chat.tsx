@@ -393,7 +393,7 @@ export interface ChatProps {
 /** Chat sidebar. */
 export default function Chat(props: ChatProps) {
   const { isOpen, doClose, endpoint } = props
-  const { accessToken: rawAccessToken } = authProvider.useNonPartialUserSession()
+  const { accessToken: rawAccessToken } = authProvider.useFullUserSession()
   const { getText } = textProvider.useText()
   const logger = loggerProvider.useLogger()
   const toastAndLog = toastAndLogHooks.useToastAndLog()

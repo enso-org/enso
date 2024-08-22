@@ -81,17 +81,27 @@ object Application {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Prefix = {
-      val res =
-        Prefix(
-          function,
-          arguments,
-          hasDefaultsSuspended,
-          location,
-          passData
-        )
-      res.diagnostics = diagnostics
-      res.id          = id
-      res
+      if (
+        function != this.function
+        || arguments != this.arguments
+        || hasDefaultsSuspended != this.hasDefaultsSuspended
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res =
+          Prefix(
+            function,
+            arguments,
+            hasDefaultsSuspended,
+            location,
+            passData
+          )
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -190,10 +200,18 @@ object Application {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Force = {
-      val res = Force(target, location, passData)
-      res.diagnostics = diagnostics
-      res.id          = id
-      res
+      if (
+        target != this.target
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Force(target, location, passData)
+        res.diagnostics = diagnostics
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -306,10 +324,18 @@ object Application {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Typeset = {
-      val res = Typeset(expression, location, passData)
-      res.diagnostics = diagnostics
-      res.id          = id
-      res
+      if (
+        expression != this.expression
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Typeset(expression, location, passData)
+        res.diagnostics = diagnostics
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -401,10 +427,18 @@ object Application {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Sequence = {
-      val res = Sequence(items, location, passData)
-      res.diagnostics = diagnostics
-      res.id          = id
-      res
+      if (
+        items != this.items
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Sequence(items, location, passData)
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
     }
 
     /** @inheritdoc */

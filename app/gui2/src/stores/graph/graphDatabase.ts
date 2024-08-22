@@ -21,7 +21,7 @@ import {
 } from '@/util/reactivity'
 import * as objects from 'enso-common/src/utilities/data/object'
 import * as set from 'lib0/set'
-import { reactive, ref, shallowReactive, watchEffect, WatchStopHandle, type Ref } from 'vue'
+import { reactive, ref, shallowReactive, WatchStopHandle, type Ref } from 'vue'
 import type { MethodCall, StackItem } from 'ydoc-shared/languageServerTypes'
 import type { Opt } from 'ydoc-shared/util/data/opt'
 import type { ExternalId, SourceRange, VisualizationMetadata } from 'ydoc-shared/yjsModel'

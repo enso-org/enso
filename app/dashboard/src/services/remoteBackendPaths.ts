@@ -178,3 +178,12 @@ export function deleteUserGroupPath(groupId: backend.UserGroupId) {
 export function getCheckoutSessionPath(checkoutSessionId: backend.CheckoutSessionId) {
   return `${GET_CHECKOUT_SESSION_PATH}/${checkoutSessionId}`
 }
+
+// ===========
+// === IDs ===
+// ===========
+
+/** The ID of the directory containing the home directories of all users. */
+export const USERS_DIRECTORY_ID = 'directory-0000000000000000000000users'
+/** The ID of the directory containing home directories of all teams. */
+export const TEAMS_DIRECTORY_ID = 'directory-0000000000000000000000teams'

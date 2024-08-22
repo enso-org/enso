@@ -255,12 +255,12 @@ case object AliasAnalysis extends IRPass {
               "The body of a method should always be a function."
             )
         }
-      case m @ definition.Method.Explicit(_, body, _, _, _) =>
-        body match {
+      case m: definition.Method.Explicit =>
+        m.body match {
           case _: Function =>
             m.copy(
               body = analyseExpression(
-                body,
+                m.body,
                 topLevelGraph,
                 topLevelGraph.rootScope,
                 lambdaReuseScope = true
@@ -386,19 +386,13 @@ case object AliasAnalysis extends IRPass {
           parentScope
         )
       case cse: Case => analyseCase(cse, graph, parentScope)
-      case block @ Expression.Block(
-            expressions,
-            retVal,
-            _,
-            isSuspended,
-            _
-          ) =>
+      case block: Expression.Block =>
         val currentScope =
-          if (!isSuspended) parentScope else parentScope.addChild()
+          if (!block.suspended) parentScope else parentScope.addChild()
 
         block
           .copy(
-            expressions = expressions.map((expression: Expression) =>
+            expressions = block.expressions.map((expression: Expression) =>
               analyseExpression(
                 expression,
                 graph,
@@ -406,7 +400,7 @@ case object AliasAnalysis extends IRPass {
               )
             ),
             returnValue = analyseExpression(
-              retVal,
+              block.returnValue,
               graph,
               currentScope
             )
@@ -645,19 +639,21 @@ case object AliasAnalysis extends IRPass {
     scope: Graph.Scope
   ): Application = {
     application match {
-      case app @ Application.Prefix(fun, arguments, _, _, _) =>
+      case app: Application.Prefix =>
         app.copy(
-          function  = analyseExpression(fun, graph, scope),
-          arguments = analyseCallArguments(arguments, graph, scope)
+          function  = analyseExpression(app.function, graph, scope),
+          arguments = analyseCallArguments(app.arguments, graph, scope)
         )
-      case app @ Application.Force(expr, _, _) =>
-        app.copy(target = analyseExpression(expr, graph, scope))
-      case app @ Application.Sequence(items, _, _) =>
-        app.copy(items = items.map(analyseExpression(_, graph, scope)))
-      case tSet @ Application.Typeset(expr, _, _) =>
+      case app: Application.Force =>
+        app.copy(target = analyseExpression(app.target, graph, scope))
+      case app: Application.Sequence =>
+        app.copy(items = app.items.map(analyseExpression(_, graph, scope)))
+      case tSet: Application.Typeset =>
         val newScope = scope.addChild()
         tSet
-          .copy(expression = expr.map(analyseExpression(_, graph, newScope)))
+          .copy(expression =
+            tSet.expression.map(analyseExpression(_, graph, newScope))
+          )
           .updateMetadata(
             new MetadataPair(
               this,
@@ -722,12 +718,13 @@ case object AliasAnalysis extends IRPass {
       if (lambdaReuseScope) parentScope else parentScope.addChild()
 
     function match {
-      case lambda @ Function.Lambda(arguments, body, _, _, _, _) =>
+      case lambda: Function.Lambda =>
         lambda
           .copy(
-            arguments = analyseArgumentDefs(arguments, graph, currentScope),
+            arguments =
+              analyseArgumentDefs(lambda.arguments, graph, currentScope),
             body = analyseExpression(
-              body,
+              lambda.body,
               graph,
               currentScope
             )
@@ -811,11 +808,13 @@ case object AliasAnalysis extends IRPass {
     parentScope: Scope
   ): Case = {
     ir match {
-      case caseExpr @ Case.Expr(scrutinee, branches, _, _, _) =>
+      case caseExpr: Case.Expr =>
         caseExpr
           .copy(
-            scrutinee = analyseExpression(scrutinee, graph, parentScope),
-            branches  = branches.map(analyseCaseBranch(_, graph, parentScope))
+            scrutinee =
+              analyseExpression(caseExpr.scrutinee, graph, parentScope),
+            branches =
+              caseExpr.branches.map(analyseCaseBranch(_, graph, parentScope))
           )
       case _: Case.Branch =>
         throw new CompilerError("Case branch in `analyseCase`.")
@@ -866,17 +865,17 @@ case object AliasAnalysis extends IRPass {
     parentScope: Scope
   ): Pattern = {
     pattern match {
-      case named @ Pattern.Name(name, _, _) =>
+      case named: Pattern.Name =>
         named.copy(
           name = analyseName(
-            name,
+            named.name,
             isInPatternContext                = true,
             isConstructorNameInPatternContext = false,
             graph,
             parentScope
           )
         )
-      case cons @ Pattern.Constructor(constructor, fields, _, _) =>
+      case cons: Pattern.Constructor =>
         if (!cons.isDesugared) {
           throw new CompilerError(
             "Nested patterns should be desugared by the point of alias " +
@@ -886,27 +885,27 @@ case object AliasAnalysis extends IRPass {
 
         cons.copy(
           constructor = analyseName(
-            constructor,
+            cons.constructor,
             isInPatternContext                = true,
             isConstructorNameInPatternContext = true,
             graph,
             parentScope
           ),
-          fields = fields.map(analysePattern(_, graph, parentScope))
+          fields = cons.fields.map(analysePattern(_, graph, parentScope))
         )
       case literalPattern: Pattern.Literal =>
         literalPattern
-      case typePattern @ Pattern.Type(name, tpe, _, _) =>
+      case typePattern: Pattern.Type =>
         typePattern.copy(
           name = analyseName(
-            name,
+            typePattern.name,
             isInPatternContext                = true,
             isConstructorNameInPatternContext = false,
             graph,
             parentScope
           ),
           tpe = analyseName(
-            tpe,
+            typePattern.tpe,
             isInPatternContext                = false,
             isConstructorNameInPatternContext = false,
             graph,

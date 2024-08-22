@@ -77,7 +77,8 @@ public final class PrivateConstructorAnalysis implements IRPass {
         ir.copy$default$4(),
         ir.copy$default$5(),
         ir.copy$default$6(),
-        ir.copy$default$7());
+        ir.copy$default$7(),
+        ir.copy$default$8());
   }
 
   /** Not supported on a single expression. */

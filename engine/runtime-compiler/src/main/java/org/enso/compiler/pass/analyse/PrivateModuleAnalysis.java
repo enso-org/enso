@@ -135,7 +135,8 @@ public final class PrivateModuleAnalysis implements IRPass {
         moduleIr.copy$default$4(),
         moduleIr.copy$default$5(),
         moduleIr.copy$default$6(),
-        moduleIr.copy$default$7());
+        moduleIr.copy$default$7(),
+        moduleIr.copy$default$8());
   }
 
   @Override

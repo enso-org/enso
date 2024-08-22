@@ -68,10 +68,19 @@ object CallArgument {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Specified = {
-      val res = Specified(name, value, location, passData)
-      res.diagnostics = diagnostics
-      res.id          = id
-      res
+      if (
+        name != this.name
+        || value != this.value
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Specified( name, value, location, passData)
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
     }
 
     /** @inheritdoc */

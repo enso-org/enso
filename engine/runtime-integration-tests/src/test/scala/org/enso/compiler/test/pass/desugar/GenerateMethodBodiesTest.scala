@@ -291,9 +291,8 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
       resultArgs.size shouldEqual 1
       val selfArg = resultArgs.head.name
-      selfArg shouldEqual Name.Self(location =
-        irMethodAddSelfArg.head.name.location
-      )
+      selfArg shouldBe a[Name.Self]
+      selfArg.location shouldEqual irMethodAddSelfArg.head.name.location
       resultLambda.diagnosticsList.collect { case w: Warning =>
         w
       } shouldBe empty

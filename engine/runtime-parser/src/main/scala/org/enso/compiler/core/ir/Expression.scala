@@ -85,16 +85,27 @@ object Expression {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Block = {
-      val res = Block(
-        expressions,
-        returnValue,
-        location,
-        suspended,
-        passData
-      )
-      res.diagnostics = diagnostics
-      res.id          = id
-      res
+      if (
+        expressions != this.expressions
+        || returnValue != this.returnValue
+        || suspended != this.suspended
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Block(
+          expressions,
+          returnValue,
+          location,
+          suspended,
+          passData,
+          diagnostics
+        )
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -217,10 +228,19 @@ object Expression {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Binding = {
-      val res = Binding(name, expression, location, passData)
-      res.diagnostics = diagnostics
-      res.id          = id
-      res
+      if (
+        name != this.name
+        || expression != this.expression
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Binding(name, expression, location, passData)
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
     }
 
     /** @inheritdoc */

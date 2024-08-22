@@ -378,7 +378,7 @@ final class TreeToIr {
       var constructorName = buildName(inputAst, cons.getConstructor());
       List<DefinitionArgument> args = translateArgumentsDefinition(cons.getArguments());
       var cAt = getIdentifiedLocation(inputAst);
-      return new Definition.Data(constructorName, args, nil(), cAt, isPrivate, meta());
+      return new Definition.Data(constructorName, args, nil(), isPrivate, cAt, meta());
     } catch (SyntaxException ex) {
       return ex.toError();
     }

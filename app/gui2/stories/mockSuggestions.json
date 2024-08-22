@@ -48,17 +48,6 @@
   {
     "type": "method",
     "module": "Standard.Base.Data",
-    "name": "every_tag",
-    "arguments": [],
-    "selfType": "Standard.Base.Data",
-    "returnType": "Standard.Base.Any.Any",
-    "isStatic": true,
-    "documentation": " ADDED 0.1\nADVANCED\nALIAS alias1, alias2\nDEPRECATED\nICON select_row\nGROUP Output\nMODIFIED 0.9\nREMOVED 1.2\nUNSTABLE\nUPCOMING\nThis is a test entry that has every tag set, except for `PRIVATE` (as it would hide the entry from the documentation).",
-    "annotations": ["format"]
-  },
-  {
-    "type": "method",
-    "module": "Standard.Base.Data",
     "name": "read_text",
     "arguments": [
       {
@@ -95,6 +84,17 @@
     "isStatic": true,
     "documentation": " ALIAS load text, open text\nGROUP Input\nOpen and read the file at the provided `path`.\n\nArguments:\n- path: The path of the file to open and read the contents of. It will\n accept a textual path or a file.\n- encoding: The text encoding to decode the file with. Defaults to UTF-8.\n- on_problems: Specifies the behavior when a problem occurs during the\n function.\n By default, a warning is issued, but the operation proceeds.\n If set to `Report_Error`, the operation fails with a dataflow error.\n If set to `Ignore`, the operation proceeds without errors or warnings.\n\n> Example\n Read the `data.csv` file in the project directory's `data` directory. You\n will need to create the file `data.csv` manually in that directory.\n\n     import Standard.Base.Data\n     import Standard.Examples\n\n     example_read = Data.read_text Examples.csv_path",
     "annotations": ["encoding"]
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data",
+    "name": "every_tag",
+    "arguments": [],
+    "selfType": "Standard.Base.Data",
+    "returnType": "Standard.Base.Any.Any",
+    "isStatic": true,
+    "documentation": " ADDED 0.1\nADVANCED\nALIAS alias1, alias2\nDEPRECATED\nICON select_row\nGROUP Output\nMODIFIED 0.9\nREMOVED 1.2\nUNSTABLE\nUPCOMING\nThis is a test entry that has every tag set, except for `PRIVATE` (as it would hide the entry from the documentation).",
+    "annotations": ["format"]
   },
   {
     "type": "method",

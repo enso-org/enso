@@ -145,6 +145,7 @@ public final class ExportSymbolAnalysis {
           moduleIr.imports(),
           CollectionConverters.asScala(exportErrors).toList(),
           moduleIr.bindings(),
+          moduleIr.isPrivate(),
           moduleIr.location(),
           moduleIr.passData(),
           moduleIr.diagnostics(),

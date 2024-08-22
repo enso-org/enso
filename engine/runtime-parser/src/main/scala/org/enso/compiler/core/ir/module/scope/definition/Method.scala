@@ -44,14 +44,17 @@ object Method {
     *
     * @param methodReference a reference to the method being defined
     * @param bodyReference   the body of the method
+    * @param isStatic        true if this method is static, false otherwise
+    * @param isPrivate       true if this method is private, false otherwise
+    * @param isStaticWrapperForInstanceMethod true if this method represents a static wrapper for instance method, false otherwise
     * @param location        the source location that the node corresponds to
     * @param passData        the pass metadata associated with this node
     */
   sealed case class Explicit(
-    override val methodReference: Name.MethodReference,
+    methodReference: Name.MethodReference,
     bodyReference: Persistance.Reference[Expression],
     isStatic: Boolean,
-    override val isPrivate: Boolean,
+    override vel isPrivate: Boolean,
     isStaticWrapperForInstanceMethod: Boolean,
     override val location: Option[IdentifiedLocation],
     override val passData: MetadataStorage
@@ -84,6 +87,9 @@ object Method {
       *
       * @param methodReference a reference to the method being defined
       * @param body            the body of the method
+      * @param isStatic        true if this method is static, false otherwise
+      * @param isPrivate       true if this method is private, false otherwise
+      * @param isStaticWrapperForInstanceMethod true if this method represents a static wrapper for instance method, false otherwise
       * @param location        the source location that the node corresponds to
       * @param passData        the pass metadata associated with this node
       * @param diagnostics     compiler diagnostics for this node
@@ -93,27 +99,39 @@ object Method {
     def copy(
       methodReference: Name.MethodReference = methodReference,
       body: Expression                      = body,
-      isStatic: Boolean                     = Explicit.computeIsStatic(body),
+      isStatic: Boolean                     = isStatic,
       isPrivate: Boolean                    = isPrivate,
       isStaticWrapperForInstanceMethod: Boolean =
-        Explicit.computeIsStaticWrapperForInstanceMethod(body),
+        isStaticWrapperForInstanceMethod,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Explicit = {
-      val res = Explicit(
-        methodReference,
-        Persistance.Reference.of(body, false),
-        isStatic,
-        isPrivate,
-        isStaticWrapperForInstanceMethod,
-        location,
-        passData
-      )
-      res.diagnostics = diagnostics
-      res.id          = id
-      res
+      if (
+        methodReference != this.methodReference
+        || body != this.body
+        || isStatic != this.isStatic
+        || isPrivate != this.isPrivate
+        || isStaticWrapperForInstanceMethod != this.isStaticWrapperForInstanceMethod
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Explicit(
+          methodReference,
+          Persistance.Reference.of(body, false),
+          isStatic,
+          isPrivate,
+          isStaticWrapperForInstanceMethod,
+          location,
+          passData
+        )
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -136,6 +154,7 @@ object Method {
           keepDiagnostics,
           keepIdentifiers
         ),
+        isStatic = Explicit.computeIsStatic(body),
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
@@ -200,11 +219,11 @@ object Method {
     ] = {
       Some((m.methodReference, m.body, m.location, m.passData, m.diagnostics))
     }
-    private def computeIsStatic(body: IR): Boolean = body match {
+    def computeIsStatic(body: IR): Boolean = body match {
       case function: Function.Lambda =>
         function.arguments.headOption.map(_.name) match {
-          case Some(Name.Self(_, true, _)) => true
-          case _                           => false
+          case Some(self: Name.Self) => self.synthetic
+          case _                     => false
         }
       case _ =>
         true // if it's not a function, it has no arguments, therefore no `self`
@@ -214,8 +233,8 @@ object Method {
       body match {
         case function: Function.Lambda =>
           function.arguments.map(_.name) match {
-            case Name.Self(_, true, _) :: Name.Self(_, false, _) :: _ =>
-              true
+            case (self1: Name.Self) :: (self2: Name.Self) :: _ =>
+              self1.synthetic && !self2.synthetic
             case _ => false
           }
         case _ => false
@@ -297,17 +316,28 @@ object Method {
       diagnostics: DiagnosticStorage        = diagnostics,
       id: UUID @Identifier                  = id
     ): Binding = {
-      val res = Binding(
-        methodReference,
-        arguments,
-        isPrivate,
-        body,
-        location,
-        passData
-      )
-      res.diagnostics = diagnostics
-      res.id          = id
-      res
+      if (
+        methodReference != this.methodReference
+        || arguments != this.arguments
+        || isPrivate != this.isPrivate
+        || body != this.body
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Binding(
+          methodReference,
+          arguments,
+          isPrivate,
+          body,
+          location,
+          passData
+        )
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -455,16 +485,26 @@ object Method {
       diagnostics: DiagnosticStorage        = diagnostics,
       id: UUID @Identifier                  = id
     ): Conversion = {
-      val res = Conversion(
-        methodReference,
-        sourceTypeName,
-        body,
-        location,
-        passData
-      )
-      res.diagnostics = diagnostics
-      res.id          = id
-      res
+      if (
+        methodReference != this.methodReference
+        || sourceTypeName != this.sourceTypeName
+        || body != this.body
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Conversion(
+          methodReference,
+          sourceTypeName,
+          body,
+          location,
+          passData
+        )
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
