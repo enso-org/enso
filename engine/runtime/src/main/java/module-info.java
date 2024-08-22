@@ -5,11 +5,15 @@ module org.enso.runtime {
   requires org.enso.distribution;
   requires org.enso.editions;
   requires org.enso.engine.common;
+  requires static org.enso.interpreter.dsl;
+  requires static org.enso.persistance;
   requires org.enso.librarymanager;
   requires org.enso.lockmanager;
   requires org.enso.logging.utils;
   requires org.enso.pkg;
+  requires org.enso.polyglot.api;
   requires org.enso.runtime.compiler;
+  requires org.enso.runtime.parser;
   requires org.enso.syntax;
   requires org.enso.version.output;
 
