@@ -56,13 +56,10 @@ public class ExcelHeaders {
     }
 
     int currentEndCol = endCol == -1 ? row.getLastColumn() : endCol;
-    DataFormatter formatter = new DataFormatter();
 
     String[] output = new String[currentEndCol - startCol + 1];
     for (int col = startCol; col <= currentEndCol; col++) {
-      Cell cell = row.get(col);
-
-      String cellText = cell == null ? "" : formatter.formatCellValue(cell);
+      String cellText = row.getCellText(col);
       String name = cellText.isEmpty() ? "" : deduplicator.makeUnique(cellText);
 
       output[col - startCol] = name;

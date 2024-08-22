@@ -64,6 +64,7 @@ public interface ExcelWorkbook {
     return new ExcelWorkbookForWorkbook(workbook);
   }
 
+  //** Wrap a Workbook object in the interface. */
   record ExcelWorkbookForWorkbook(org.apache.poi.ss.usermodel.Workbook workbook) implements ExcelWorkbook {
     @Override
     public int getNumberOfSheets() {
@@ -99,8 +100,7 @@ public interface ExcelWorkbook {
 
     @Override
     public ExcelSheet getSheetAt(int sheetIndex) {
-      var sheet = workbook.getSheetAt(sheetIndex);
-      return new ExcelSheet(sheet.getFirstRowNum() + 1, sheet.getLastRowNum() + 1, sheet::getRow, sheet);
+      return ExcelSheet.fromWorkbook(workbook, sheetIndex);
     }
   }
 }
