@@ -1005,6 +1005,25 @@ The range of `1` is
 }
 ```
 
+For unicode characters, the range is measured in code units, for example given
+the function with the old key emoji `foo 🗝 = ...` argument consisting of two
+unicode code units `\uD83D` and `\uDDDD`.
+
+```rust
+0|foo \uD83D\uDDDD = ...
+  ^^^^^^^^^^^^^^^^^^
+  01234     5     67
+```
+
+The range of old key emoji `🗝` argument is
+
+```typescript
+{
+    start: { line: 0, character: 4},
+    end: { line: 0, character: 6}
+}
+```
+
 #### Format
 
 ```typescript

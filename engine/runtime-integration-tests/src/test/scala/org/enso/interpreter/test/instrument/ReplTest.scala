@@ -1,7 +1,8 @@
 package org.enso.interpreter.test.instrument
 
 import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
-import org.enso.polyglot.debugger.{DebugServerInfo, ObjectRepresentation}
+import org.enso.common.DebugServerInfo
+import org.enso.polyglot.debugger.ObjectRepresentation
 import org.graalvm.polyglot.Context
 import org.scalatest.{BeforeAndAfter, EitherValues, Inside}
 
@@ -14,23 +15,23 @@ class ReplTest
   override def subject: String = "Repl"
 
   override def contextModifiers: Option[Context#Builder => Context#Builder] =
-    Some(_.option(DebugServerInfo.ENABLE_OPTION, "true"))
+    Some(b => {
+      b.option(DebugServerInfo.ENABLE_OPTION, "true")
+    })
 
   override def specify(implicit
     interpreterContext: InterpreterContext
   ): Unit = {
 
     "initialize properly" in {
-      var counter = 0;
-      setSessionManager(executor => {
-        counter = counter + 1
-        executor.exit()
-      })
-      val mainFn = "my_main_fn__"
-      val replModule =
-        interpreterContext.executionContext.evalReplModule(mainFn)
-      replModule.evalExpression(mainFn)
-      counter shouldEqual 1
+      val code =
+        """
+          |import Standard.Base.Runtime.Debug
+          |
+          |main = Debug.breakpoint
+          |""".stripMargin
+      setSessionManager(executor => executor.exit())
+      eval(code)
     }
 
     "be able to execute arbitrary code in the caller scope" in {
@@ -295,7 +296,7 @@ class ReplTest
       }
       eval(code)
       val errorMsg =
-        "Compile error: The name `undefined` could not be found."
+        "Compile_Error.Error"
       evalResult.left.value.getMessage shouldEqual errorMsg
     }
 

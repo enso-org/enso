@@ -46,7 +46,7 @@ export interface ManagePermissionsModalProps<
 > {
   readonly item: Pick<Asset, 'id' | 'permissions' | 'type'>
   readonly setItem: React.Dispatch<React.SetStateAction<Asset>>
-  readonly self: backendModule.UserPermission
+  readonly self: backendModule.AssetPermission
   /** Remove the current user's permissions from this asset. This MUST be a prop because it should
    * change the assets list. */
   readonly doRemoveSelf: () => void
@@ -121,6 +121,7 @@ export default function ManagePermissionsModal<
       ),
     [user.userId, permissions, self.permission],
   )
+  const selfId = backendModule.getAssetPermissionId(self)
 
   const inviteUserMutation = useMutation(backendMutationOptions(remoteBackend, 'inviteUser'))
   const createPermissionMutation = useMutation(
@@ -235,7 +236,7 @@ export default function ManagePermissionsModal<
   }
 
   const doDelete = async (permissionId: backendModule.UserPermissionIdentifier) => {
-    if (permissionId === self.user.userId) {
+    if (selfId === permissionId) {
       doRemoveSelf()
     } else {
       const oldPermission = permissions.find(
@@ -395,7 +396,7 @@ export default function ManagePermissionsModal<
                         : oldPermission,
                       ),
                     )
-                    if (permissionId === self.user.userId) {
+                    if (selfId === permissionId) {
                       // This must run only after the permissions have
                       // been updated through `setItem`.
                       setTimeout(() => {
@@ -404,7 +405,7 @@ export default function ManagePermissionsModal<
                     }
                   }}
                   doDelete={(id) => {
-                    if (id === self.user.userId) {
+                    if (selfId === id) {
                       unsetModal()
                     }
                     void doDelete(id)

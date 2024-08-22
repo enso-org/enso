@@ -64,7 +64,11 @@ case object MethodDefinitions extends IRPass {
         method match {
           case method: definition.Method.Explicit =>
             val resolvedMethod =
-              method.copy(methodReference = resolvedMethodRef)
+              method.copy(
+                methodReference = resolvedMethodRef,
+                isStatic =
+                  definition.Method.Explicit.computeIsStatic(method.body)
+              )
             resolvedMethod
           case method: definition.Method.Conversion =>
             val sourceTypeExpr = method.sourceTypeName
@@ -99,6 +103,7 @@ case object MethodDefinitions extends IRPass {
         ) match {
           case Some(Resolution(ResolvedType(_, tp)))
               if canGenerateStaticWrappers(tp) =>
+            assert(method.body.isInstanceOf[Function.Lambda])
             val dup = method.duplicate()
             // This is the self argument that will receive the `SelfType.type` value upon dispatch, it is added to avoid modifying the dispatch mechanism.
             val syntheticModuleSelfArg = DefinitionArgument.Specified(
@@ -112,14 +117,16 @@ case object MethodDefinitions extends IRPass {
             // The actual `self` argument that is referenced inside of method body is the second one in the lambda.
             // This is the argument that will hold the actual instance of the object we are calling on, e.g. `My_Type.method instance`.
             // We add a type check to it to ensure only `instance` of `My_Type` can be passed to it.
-            val static = dup.copy(body =
-              new Function.Lambda(
+            val static = dup.copy(
+              body = new Function.Lambda(
                 // This is the synthetic Self argument that gets the static module
                 List(syntheticModuleSelfArg),
                 // Here we add the type ascription ensuring that the 'proper' self argument only accepts _instances_ of the type (or triggers conversions)
                 addTypeAscriptionToSelfArgument(dup.body),
                 None
-              )
+              ),
+              isStaticWrapperForInstanceMethod = true,
+              isStatic                         = true
             )
             List(method, static)
           case _ =>

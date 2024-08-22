@@ -290,6 +290,10 @@ public final class EnsoContext {
     threadManager.shutdown();
     resourceManager.shutdown();
     compiler.shutdown(shouldWaitForPendingSerializationJobs);
+    packageRepository.shutdown();
+    guestJava = null;
+    topScope = null;
+    hostClassLoader.close();
   }
 
   private boolean shouldAssertionsBeEnabled() {

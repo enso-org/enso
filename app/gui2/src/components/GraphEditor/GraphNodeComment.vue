@@ -10,23 +10,22 @@ const editing = defineModel<boolean>('editing', { required: true })
 const props = defineProps<{ node: Node }>()
 
 const textEditor = ref<ComponentInstance<typeof PlainTextEditor>>()
+const textEditorContent = computed(() => textEditor.value?.contentElement)
 
 const graphStore = useGraphStore()
-const { documentation: astDocumentation } = useAstDocumentation(
+const { documentation } = useAstDocumentation(
   graphStore,
-  () => props.node.outerExpr,
+  () => props.node.docs ?? props.node.outerExpr,
 )
-// This returns the same value as `astDocumentation.state`, but with fewer reactive dependencies.
-const documentation = computed(() => props.node.documentation ?? '')
 
-syncRef(editing, useFocusDelayed(textEditor).focused)
+syncRef(editing, useFocusDelayed(textEditorContent).focused)
 </script>
 <template>
-  <div v-if="editing || props.node.documentation?.trimStart()" class="GraphNodeComment">
+  <div v-if="editing || documentation.state.value.trimStart()" class="GraphNodeComment">
     <PlainTextEditor
       ref="textEditor"
-      :modelValue="documentation"
-      @update:modelValue="astDocumentation.set"
+      :modelValue="documentation.state.value"
+      @update:modelValue="documentation.set"
       @keydown.enter.capture.stop="editing = false"
     />
   </div>

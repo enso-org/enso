@@ -88,7 +88,9 @@ export const BUTTON_STYLES = twv.tv({
     'transition-[opacity,outline-offset,background,border-color] duration-150 ease-in-out',
   ],
   variants: {
-    isDisabled: { true: 'disabled:opacity-50 disabled:cursor-not-allowed' },
+    isDisabled: {
+      true: 'disabled:opacity-50 disabled:cursor-not-allowed aria-disabled:opacity-50 aria-disabled:cursor-not-allowed',
+    },
     isFocused: {
       true: 'focus:outline-none focus-visible:outline-2 focus-visible:outline-black focus-visible:outline-offset-[-2px]',
     },
@@ -100,7 +102,6 @@ export const BUTTON_STYLES = twv.tv({
     },
     loading: { true: { base: 'cursor-wait' } },
     fullWidth: { true: 'w-full' },
-    fullWidthText: { true: { text: 'w-full' } },
     size: {
       custom: { base: '', extraClickZone: '', icon: 'h-full' },
       hero: { base: 'px-8 py-4 text-lg font-bold', content: 'gap-[0.75em]' },
@@ -112,7 +113,7 @@ export const BUTTON_STYLES = twv.tv({
           className: 'flex px-[11px] py-[5.5px]',
         }),
         content: 'gap-2',
-        icon: 'mb-[-0.1cap] h-4.5 w-4.5',
+        icon: 'mb-[-0.1cap] h-4 w-4',
         extraClickZone: 'after:inset-[-6px]',
       },
       medium: {
@@ -215,10 +216,11 @@ export const BUTTON_STYLES = twv.tv({
     },
     extraClickZone: {
       true: {
-        extraClickZone: 'flex relative after:absolute after:cursor-pointer',
+        extraClickZone:
+          'flex relative after:absolute after:cursor-pointer group-disabled:after:cursor-not-allowed',
       },
       false: {
-        extraClickZone: '',
+        extraClickZone: 'after:inset-0',
       },
       xxsmall: {
         extraClickZone: 'after:inset-[-2px]',
@@ -241,7 +243,8 @@ export const BUTTON_STYLES = twv.tv({
     },
   },
   slots: {
-    extraClickZone: 'flex relative after:absolute after:cursor-pointer',
+    extraClickZone:
+      'flex relative after:absolute after:cursor-pointer group-disabled:after:cursor-not-allowed',
     wrapper: 'relative block',
     loader: 'absolute inset-0 flex items-center justify-center',
     content: 'flex items-center gap-[0.5em]',
@@ -295,7 +298,6 @@ export const Button = React.forwardRef(function Button(
     iconPosition,
     size,
     fullWidth,
-    fullWidthText,
     rounded,
     tooltip,
     tooltipPlacement,
@@ -316,8 +318,7 @@ export const Button = React.forwardRef(function Button(
   const Tag = isLink ? aria.Link : aria.Button
 
   const goodDefaults = {
-    ...(isLink ? { rel: 'noopener noreferrer', ref } : {}),
-    ...(isLink ? {} : { type: 'button' as const }),
+    ...(isLink ? { rel: 'noopener noreferrer' } : { type: 'button' as const }),
     'data-testid': testId ?? (isLink ? 'link' : 'button'),
   }
 
@@ -334,7 +335,7 @@ export const Button = React.forwardRef(function Button(
   const tooltipElement = shouldShowTooltip ? tooltip ?? ariaProps['aria-label'] : null
 
   const isLoading = loading || implicitlyLoading
-  const isDisabled = props.isDisabled == null ? isLoading : props.isDisabled
+  const isDisabled = props.isDisabled ?? isLoading
 
   React.useLayoutEffect(() => {
     const delay = 350
@@ -385,11 +386,10 @@ export const Button = React.forwardRef(function Button(
     icon: iconClasses,
     text: textClasses,
   } = BUTTON_STYLES({
-    isDisabled: isDisabled,
+    isDisabled,
     isActive,
     loading: isLoading,
     fullWidth,
-    fullWidthText,
     size,
     rounded,
     variant,
@@ -443,10 +443,15 @@ export const Button = React.forwardRef(function Button(
     <Tag
       // @ts-expect-error ts errors are expected here because we are merging props with different types
       {...aria.mergeProps<aria.ButtonProps>()(goodDefaults, ariaProps, focusChildProps, {
-        isDisabled: isDisabled,
+        ref,
+        isDisabled,
         // we use onPressEnd instead of onPress because for some reason react-aria doesn't trigger
         // onPress on EXTRA_CLICK_ZONE, but onPress{start,end} are triggered
-        onPressEnd: handlePress,
+        onPressEnd: (e) => {
+          if (!isDisabled) {
+            handlePress(e)
+          }
+        },
         className: aria.composeRenderProps(className, (classNames, states) =>
           base({ className: classNames, ...states }),
         ),

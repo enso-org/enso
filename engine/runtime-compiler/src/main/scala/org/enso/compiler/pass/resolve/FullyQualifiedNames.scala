@@ -25,7 +25,7 @@ import org.enso.compiler.core.Implicits.{AsDiagnostics, AsMetadata}
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis}
-import org.enso.compiler.pass.analyse.alias.{Info => AliasInfo}
+import org.enso.compiler.pass.analyse.alias.{AliasMetadata => AliasInfo}
 import org.enso.compiler.pass.desugar.Imports
 import org.enso.editions.LibraryName
 

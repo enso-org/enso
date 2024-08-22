@@ -24,6 +24,7 @@
 
 use crate::prelude::*;
 
+use crate::im_list::List;
 use crate::macros;
 use crate::macros::pattern;
 use crate::source::Code;
@@ -37,7 +38,6 @@ use crate::syntax::Item;
 use crate::syntax::NewlineConsumer;
 use crate::syntax::TokenConsumer;
 
-use enso_data_structures::im_list::List;
 use std::collections::HashMap;
 use std::collections::VecDeque;
 

@@ -189,4 +189,17 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
       return storage.size();
     }
   }
+
+  /**
+   * Returns the specialized storage casted to my own type, if it is of the same type; or null
+   * otherwise.
+   */
+  @SuppressWarnings("unchecked")
+  public SpecializedStorage<T> castIfSameType(SpecializedStorage<?> storage) {
+    if (storage.getType().equals(getType())) {
+      return (SpecializedStorage<T>) storage;
+    } else {
+      return null;
+    }
+  }
 }

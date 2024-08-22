@@ -14,6 +14,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -28,6 +29,12 @@ public class ModuleCacheTest {
         ContextUtils.defaultContextBuilder()
             .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
             .build();
+  }
+
+  @AfterClass
+  public static void disposeContext() {
+    ctx.close();
+    ctx = null;
   }
 
   @Test

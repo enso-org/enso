@@ -25,10 +25,10 @@ pub async fn client_from_env() -> aws_sdk_s3::Client {
 }
 
 /// Everything we need to get/put files to S3.
-#[derive(Clone, Derivative)]
-#[derivative(Debug)]
+#[derive(Clone)]
+#[derive_where(Debug)]
 pub struct BucketContext {
-    #[derivative(Debug = "ignore")]
+    #[derive_where(skip)]
     pub client:     aws_sdk_s3::Client,
     pub bucket:     String,
     pub upload_acl: ObjectCannedAcl,
@@ -127,7 +127,7 @@ impl BucketContext {
 
     pub async fn get_yaml<T: DeserializeOwned>(&self, path: &str) -> Result<T> {
         let text = self.get(path).await?.collect().await?;
-        serde_yaml::from_reader(text.reader()).anyhow_err()
+        Ok(serde_yaml::from_reader(text.reader())?)
     }
 
     pub async fn put_yaml(&self, path: &str, data: &impl Serialize) -> Result<PutObjectOutput> {
@@ -226,8 +226,8 @@ mod tests {
             assert_eq!(headers.content_type.to_string().as_str(), expected_type);
         }
 
-        case("wasm_imports.js.gz", Some("gzip"), "application/javascript");
-        case("index.js", None, "application/javascript");
+        case("wasm_imports.js.gz", Some("gzip"), "text/javascript");
+        case("index.js", None, "text/javascript");
         case("style.css", None, "text/css");
         case("ide.wasm", None, "application/wasm");
         case("ide.wasm.gz", Some("gzip"), "application/wasm");

@@ -56,10 +56,10 @@ impl Program for WasmOpt {
 #[derive(Clone, Copy, Debug, Display, PartialEq, PartialOrd, Deref, Eq)]
 pub struct Version(pub u32);
 
-impl std::str::FromStr for Version {
-    type Err = <u32 as std::str::FromStr>::Err;
+impl FromStr for Version {
+    type Err = <u32 as FromStr>::Err;
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        std::str::FromStr::from_str(s).map(Self)
+        Ok(Self(s.parse()?))
     }
 }
 
@@ -68,7 +68,7 @@ impl IsVersion for Version {
         let number_regex = regex::Regex::new(r#"\d+"#)?;
         let number_match = number_regex.find(text).context("No number in the given text.")?;
         let number_text = number_match.as_str();
-        number_text.parse2()
+        Ok(number_text.parse()?)
     }
 }
 

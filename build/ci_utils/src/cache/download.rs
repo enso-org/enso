@@ -7,7 +7,6 @@ use crate::io::web::filename_from_response;
 use crate::io::web::handle_error_response;
 use crate::io::web::stream_response_to_file;
 
-use derivative::Derivative;
 use headers::HeaderMap;
 use reqwest::Client;
 use reqwest::ClientBuilder;
@@ -16,10 +15,8 @@ use reqwest::Response;
 
 
 
-#[derive(Clone, Derivative, Serialize, Deserialize)]
-#[derivative(Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Key {
-    #[derivative(Debug(format_with = "std::fmt::Display::fmt"))]
     pub url: Url,
 
     /// We keep this as part of the key, as some GitHub API endpoints change their meaning based on

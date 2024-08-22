@@ -4,6 +4,7 @@ import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.TextType;
 
 /* An operation that checks if a column's row values are empty.
@@ -19,7 +20,9 @@ public class IsEmptyOperation extends AbstractUnaryBooleanOperation {
 
   @Override
   public boolean canApply(ColumnStorage storage) {
-    return storage.getType() instanceof TextType;
+    var type = storage.getType();
+    // We also allow this operation on Mixed type to facilitate `internal_is_empty` helper.
+    return type instanceof TextType || type instanceof AnyObjectType;
   }
 
   @Override
@@ -31,8 +34,7 @@ public class IsEmptyOperation extends AbstractUnaryBooleanOperation {
       if (value instanceof String s) {
         builder.appendBoolean(s.isEmpty());
       } else {
-        throw new IllegalArgumentException(
-            "Unsupported type: " + value.getClass() + " (expected text type).");
+        builder.appendBoolean(false);
       }
     }
   }

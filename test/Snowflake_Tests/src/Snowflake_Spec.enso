@@ -184,11 +184,11 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
             # The integer column is treated as NUMBER(38, 0) in Snowflake so the value type reflects that:
             i.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Decimal 38 0, Value_Type.Boolean, Value_Type.Float]
 
-        group_builder.specify "should return Table information, also for aggregated results" pending="TODO: fix https://github.com/enso-org/enso/issues/10611" <|
+        group_builder.specify "should return Table information, also for aggregated results" <|
             i = data.t.aggregate columns=[Aggregate_Column.Concatenate "strs", Aggregate_Column.Sum "ints", Aggregate_Column.Count_Distinct "bools"] . column_info
             i.at "Column" . to_vector . should_equal ["Concatenate strs", "Sum ints", "Count Distinct bools"]
             i.at "Items Count" . to_vector . should_equal [1, 1, 1]
-            i.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Decimal 38 0, Value_Type.Decimal 38 0]
+            i.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Decimal 38 0, Value_Type.Decimal 18 0]
 
         group_builder.specify "should infer standard types correctly" <|
             data.t.at "strs" . value_type . is_text . should_be_true
@@ -321,11 +321,11 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
             m2.at "ś"   . to_vector . should_equal ["A"]
             m2.at "ś 1" . to_vector . should_equal [2]
 
-            r3 = default_connection.get.query 'SELECT 1 AS "A", 2 AS "A"'
+            r3 = default_connection.get.query (SQL_Query.Raw_SQL 'SELECT 1 AS "A", 2 AS "A"')
             r3.should_fail_with Illegal_Argument
             r3.catch.cause . should_be_a Duplicate_Output_Column_Names
 
-            r4 = default_connection.get.query 'SELECT 1 AS ""'
+            r4 = default_connection.get.query (SQL_Query.Raw_SQL 'SELECT 1 AS ""')
             r4.should_fail_with Illegal_Argument
             r4.catch.to_display_text . should_contain "The provided custom SQL query is invalid and may suffer data corruption"
             r4.catch.to_display_text . should_contain "The name '' is invalid"
@@ -394,7 +394,7 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
             table_name = Name_Generator.random_name "TimestampTZ"
             table = default_connection.get.create_table table_name [Column_Description.Value "A" (Value_Type.Date_Time with_timezone=True), Column_Description.Value "rowid" Value_Type.Integer] primary_key=[]
             table.should_succeed
-            Panic.with_finalizer default_connection.get.drop_table table.name <|
+            Panic.with_finalizer (default_connection.get.drop_table table.name) <|
                 dt1 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.utc)
                 dt2 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.parse "US/Hawaii")
                 dt3 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.parse "Europe/Warsaw")
@@ -419,7 +419,7 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
             table_name = Name_Generator.random_name "Timestamp"
             table = default_connection.get.create_table table_name [Column_Description.Value "A" (Value_Type.Date_Time with_timezone=False)] primary_key=[]
             Problems.assume_no_problems table
-            Panic.with_finalizer default_connection.get.drop_table table.name <|
+            Panic.with_finalizer (default_connection.get.drop_table table.name) <|
                 dt1 = Date_Time.new 2022 05 04 15 30
                 dt2 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.utc)
                 dt3 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.parse "US/Hawaii")

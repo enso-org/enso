@@ -42,29 +42,29 @@ public class SerializerTest {
     var pkgPath = new File(getClass().getClassLoader().getResource(testName).getPath());
     var pkg = PackageManager.Default().fromDirectory(pkgPath).get();
 
-    var ctx = ensoContextForPackage(testName, pkgPath);
-    var ensoContext =
-        (EnsoContext)
-            ctx.getBindings(LanguageInfo.ID)
-                .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
-                .asHostObject();
-    var mainModuleOpt = ensoContext.getModuleForFile(pkg.mainFile());
-    assertEquals(mainModuleOpt.isPresent(), true);
+    try (var ctx = ensoContextForPackage(testName, pkgPath)) {
+      var ensoContext =
+          (EnsoContext)
+              ctx.getBindings(LanguageInfo.ID)
+                  .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
+                  .asHostObject();
+      var mainModuleOpt = ensoContext.getModuleForFile(pkg.mainFile());
+      assertEquals(mainModuleOpt.isPresent(), true);
 
-    var compiler = ensoContext.getCompiler();
-    var module = mainModuleOpt.get().asCompilerModule();
+      var compiler = ensoContext.getCompiler();
+      var module = mainModuleOpt.get().asCompilerModule();
 
-    ctx.enter();
-    var result = compiler.run(module);
-    assertEquals(result.compiledModules().exists(m -> m == module), true);
-    var useThreadPool = compiler.context().isCreateThreadAllowed();
-    var future = compiler.context().serializeModule(compiler, module, true, useThreadPool);
-    var serialized = future.get(5, TimeUnit.SECONDS);
-    assertEquals(serialized, true);
-    var deserialized = compiler.context().deserializeModule(compiler, module);
-    assertTrue("Deserialized", deserialized);
-    compiler.context().shutdown(true);
-    ctx.leave();
-    ctx.close();
+      ctx.enter();
+      var result = compiler.run(module);
+      assertEquals(result.compiledModules().exists(m -> m == module), true);
+      var useThreadPool = compiler.context().isCreateThreadAllowed();
+      var future = compiler.context().serializeModule(compiler, module, true, useThreadPool);
+      var serialized = future.get(5, TimeUnit.SECONDS);
+      assertEquals(serialized, true);
+      var deserialized = compiler.context().deserializeModule(compiler, module);
+      assertTrue("Deserialized", deserialized);
+      compiler.context().shutdown(true);
+      ctx.leave();
+    }
   }
 }

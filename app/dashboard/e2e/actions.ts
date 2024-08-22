@@ -2,6 +2,8 @@
 /** @file Various actions, locators, and constants used in end-to-end tests. */
 import * as test from '@playwright/test'
 
+import * as text from 'enso-common/src/text'
+
 import DrivePageActions from './actions/DrivePageActions'
 import LoginPageActions from './actions/LoginPageActions'
 import * as apiModule from './api'
@@ -18,6 +20,7 @@ export const INVALID_PASSWORD = 'password'
 export const VALID_PASSWORD = 'Password0!'
 /** An example valid email address. */
 export const VALID_EMAIL = 'email@example.com'
+export const TEXT = text.TEXTS.english
 
 // ================
 // === Locators ===
@@ -328,6 +331,11 @@ export function locateAssetRows(page: test.Page) {
   return locateAssetsTable(page).getByTestId('asset-row')
 }
 
+/** Find assets table placeholder rows (if any) on the current page. */
+export function locateNonAssetRows(page: test.Page) {
+  return locateAssetsTable(page).locator('tbody tr:not([data-testid="asset-row"])')
+}
+
 /** Find the name column of the given asset row. */
 export function locateAssetName(locator: test.Locator) {
   return locator.locator('> :nth-child(1)')
@@ -494,17 +502,21 @@ export namespace settings {
 
     /** Find a "current password" input in the "user account" settings section. */
     export function locateCurrentPasswordInput(page: test.Page) {
-      return locate(page).getByLabel('Current password')
+      return locate(page).getByRole('group', { name: 'Current password' }).getByRole('textbox')
     }
 
     /** Find a "new password" input in the "user account" settings section. */
     export function locateNewPasswordInput(page: test.Page) {
-      return locate(page).getByLabel('New password', { exact: true })
+      return locate(page)
+        .getByRole('group', { name: /^New password/, exact: true })
+        .getByRole('textbox')
     }
 
     /** Find a "confirm new password" input in the "user account" settings section. */
     export function locateConfirmNewPasswordInput(page: test.Page) {
-      return locate(page).getByLabel('Confirm new password')
+      return locate(page)
+        .getByRole('group', { name: /^Confirm new password/, exact: true })
+        .getByRole('textbox')
     }
 
     /** Find a "change" button. */
@@ -701,34 +713,6 @@ export async function expectNotOnScreen(locator: test.Locator) {
   })
 }
 
-// =======================
-// === Mouse utilities ===
-// =======================
-
-// eslint-disable-next-line @typescript-eslint/no-magic-numbers
-export const ASSET_ROW_SAFE_POSITION = { x: 300, y: 16 }
-
-/** Click an asset row. The center must not be clicked as that is the button for adding a label. */
-export async function clickAssetRow(assetRow: test.Locator) {
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  await assetRow.click({ position: ASSET_ROW_SAFE_POSITION })
-}
-
-/** Drag an asset row. The center must not be clicked as that is the button for adding a label. */
-export async function dragAssetRowToAssetRow(from: test.Locator, to: test.Locator) {
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  await from.dragTo(to, {
-    sourcePosition: ASSET_ROW_SAFE_POSITION,
-    targetPosition: ASSET_ROW_SAFE_POSITION,
-  })
-}
-
-/** Drag an asset row. The center must not be clicked as that is the button for adding a label. */
-export async function dragAssetRow(from: test.Locator, to: test.Locator) {
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  await from.dragTo(to, { sourcePosition: ASSET_ROW_SAFE_POSITION })
-}
-
 // ==========================
 // === Keyboard utilities ===
 // ==========================
@@ -776,7 +760,6 @@ export async function login(
   first = true,
 ) {
   await test.test.step('Login', async () => {
-    await page.goto('/')
     await locateEmailInput(page).fill(email)
     await locatePasswordInput(page).fill(password)
     await locateLoginButton(page).click()
@@ -885,6 +868,7 @@ export function mockAll({ page, setupAPI }: MockParams) {
   return new LoginPageActions(page).step('Execute all mocks', async () => {
     await mockApi({ page, setupAPI })
     await mockDate({ page, setupAPI })
+    await page.goto('/')
   })
 }
 
@@ -900,6 +884,7 @@ export function mockAllAndLogin({ page, setupAPI }: MockParams) {
     .step('Execute all mocks', async () => {
       await mockApi({ page, setupAPI })
       await mockDate({ page, setupAPI })
+      await page.goto('/')
     })
     .do((thePage) => login({ page: thePage, setupAPI }))
 }
@@ -916,6 +901,7 @@ export async function mockAllAndLoginAndExposeAPI({ page, setupAPI }: MockParams
   return await test.test.step('Execute all mocks and login', async () => {
     const api = await mockApi({ page, setupAPI })
     await mockDate({ page, setupAPI })
+    await page.goto('/')
     await login({ page, setupAPI })
     return api
   })

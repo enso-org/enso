@@ -4,7 +4,9 @@ import * as React from 'react'
 import invariant from 'tiny-invariant'
 import * as zustand from 'zustand'
 
+import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import type { AssetId } from 'enso-common/src/services/Backend'
+import { type DirectoryAsset } from 'enso-common/src/services/Backend'
 
 // ==================
 // === DriveStore ===
@@ -12,6 +14,8 @@ import type { AssetId } from 'enso-common/src/services/Backend'
 
 /** The state of this zustand store. */
 interface DriveStore {
+  readonly targetDirectory: AssetTreeNode<DirectoryAsset> | null
+  readonly setTargetDirectory: (targetDirectory: AssetTreeNode<DirectoryAsset> | null) => void
   readonly canDownload: boolean
   readonly setCanDownload: (canDownload: boolean) => void
   readonly selectedKeys: ReadonlySet<AssetId>
@@ -42,6 +46,10 @@ export default function DriveProvider(props: ProjectsProviderProps) {
   const { children } = props
   const [store] = React.useState(() => {
     return zustand.createStore<DriveStore>((set) => ({
+      targetDirectory: null,
+      setTargetDirectory: (targetDirectory) => {
+        set({ targetDirectory })
+      },
       canDownload: false,
       setCanDownload: (canDownload) => {
         set({ canDownload })
@@ -71,6 +79,26 @@ export function useDriveStore() {
   invariant(store, 'Drive store can only be used inside an `DriveProvider`.')
 
   return store
+}
+
+// ==========================
+// === useTargetDirectory ===
+// ==========================
+
+/** A function to get the target directory of the Asset Table selection. */
+export function useTargetDirectory() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.targetDirectory)
+}
+
+// =============================
+// === useSetTargetDirectory ===
+// =============================
+
+/** A function to set the target directory of the Asset Table selection. */
+export function useSetTargetDirectory() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.setTargetDirectory)
 }
 
 // ======================

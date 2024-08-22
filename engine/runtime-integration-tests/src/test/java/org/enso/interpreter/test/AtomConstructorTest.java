@@ -31,6 +31,7 @@ public class AtomConstructorTest {
   @AfterClass
   public static void closeContext() {
     ctx.close();
+    ctx = null;
   }
 
   @Test

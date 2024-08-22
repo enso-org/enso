@@ -5,12 +5,12 @@
 // ================================
 
 /** Return just the file name, including the extension. */
-export function fileName(filePath: string) {
+export function getFileName(filePath: string) {
   return filePath.match(/(?:[/]|^)([^/]+)[/]?$/)?.[1] ?? filePath
 }
 
 /** Return the entire path, without the file name. */
-export function folderPath(filePath: string) {
+export function getFolderPath(filePath: string) {
   return filePath.match(/^.+[/]/)?.[0] ?? filePath
 }
 

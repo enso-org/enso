@@ -33,7 +33,7 @@ export interface ResizableContentEditableInputProps<
       TFieldName,
       TTransformedValues
     >,
-    ariaComponents.FieldProps,
+    Omit<ariaComponents.FieldProps, 'variant'>,
     Omit<twv.VariantProps<typeof variants.INPUT_STYLES>, 'disabled' | 'invalid'> {
   /**
    * onChange is called when the content of the input changes.
@@ -70,6 +70,7 @@ export const ResizableContentEditableInput = React.forwardRef(
       defaultValue,
       size,
       rounded,
+      variant,
       ...textFieldProps
     } = props
 
@@ -103,6 +104,7 @@ export const ResizableContentEditableInput = React.forwardRef(
       textArea,
       placeholder: placeholderClass,
     } = CONTENT_EDITABLE_STYLES({
+      variant,
       invalid: fieldState.invalid,
       disabled: isDisabled || formInstance.formState.isSubmitting,
       rounded,

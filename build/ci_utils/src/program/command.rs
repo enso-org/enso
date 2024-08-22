@@ -81,7 +81,7 @@ pub trait MyCommand<P: Program>: BorrowMut<Command> + From<Command> + Into<Comma
     }
 
     fn spawn(&mut self) -> Result<Child> {
-        self.borrow_mut().spawn().anyhow_err()
+        self.borrow_mut().spawn()
     }
 }
 
@@ -298,7 +298,7 @@ impl Debug for Command {
 impl Command {
     pub fn new<S: AsRef<OsStr>>(program: S) -> Command {
         let inner = tokio::process::Command::new(program);
-        let status_checker = Arc::new(|status: ExitStatus| status.exit_ok().anyhow_err());
+        let status_checker = Arc::new(|status: ExitStatus| Ok(status.exit_ok()?));
         Self { inner, status_checker, pretty_name: None }
     }
 

@@ -8,8 +8,8 @@ import * as React from 'react'
 
 import * as aria from '#/components/aria'
 
-import * as twv from '#/utilities/tailwindVariants'
-
+import { useText } from '#/providers/TextProvider'
+import { type ExtractFunction, tv, type VariantProps } from '#/utilities/tailwindVariants'
 import * as text from '../../Text'
 import type * as types from './types'
 import * as formContext from './useFormContext'
@@ -17,9 +17,8 @@ import * as formContext from './useFormContext'
 /**
  * Props for Field component
  */
-export interface FieldComponentProps
-  extends twv.VariantProps<typeof FIELD_STYLES>,
-    types.FieldProps {
+export interface FieldComponentProps extends VariantProps<typeof FIELD_STYLES>, types.FieldProps {
+  readonly 'data-testid'?: string | undefined
   readonly name: string
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly form?: types.FormInstance<any, any, any>
@@ -27,6 +26,7 @@ export interface FieldComponentProps
   readonly className?: string | undefined
   readonly children?: React.ReactNode | ((props: FieldChildrenRenderProps) => React.ReactNode)
   readonly style?: React.CSSProperties | undefined
+  readonly variants?: ExtractFunction<typeof FIELD_STYLES> | undefined
 }
 
 /**
@@ -40,11 +40,12 @@ export interface FieldChildrenRenderProps {
   readonly error?: string | undefined
 }
 
-export const FIELD_STYLES = twv.tv({
+export const FIELD_STYLES = tv({
   base: 'flex flex-col gap-0.5 items-start',
   variants: {
     fullWidth: { true: 'w-full' },
     isInvalid: { true: { label: 'text-danger' } },
+    isHidden: { true: { base: 'hidden' } },
   },
   slots: {
     labelContainer: 'contents',
@@ -53,7 +54,9 @@ export const FIELD_STYLES = twv.tv({
     description: text.TEXT_STYLE({ variant: 'body', color: 'disabled' }),
     error: text.TEXT_STYLE({ variant: 'body', color: 'danger' }),
   },
-  defaultVariants: { fullWidth: true },
+  defaultVariants: {
+    fullWidth: true,
+  },
 })
 
 /**
@@ -73,8 +76,11 @@ export const Field = React.forwardRef(function Field(
     fullWidth,
     error,
     name,
+    isHidden,
     isRequired = false,
+    variants,
   } = props
+  const { getText } = useText()
 
   const fieldState = form.getFieldState(name)
 
@@ -84,9 +90,10 @@ export const Field = React.forwardRef(function Field(
 
   const invalid = isInvalid === true || fieldState.invalid
 
-  const classes = FIELD_STYLES({
+  const classes = (variants ?? FIELD_STYLES)({
     fullWidth,
     isInvalid: invalid,
+    isHidden,
   })
 
   const hasError = (error ?? fieldState.error?.message) != null
@@ -95,6 +102,7 @@ export const Field = React.forwardRef(function Field(
     <fieldset
       ref={ref}
       className={classes.base({ className })}
+      data-testid={props['data-testid']}
       aria-invalid={invalid}
       aria-label={props['aria-label']}
       aria-labelledby={labelId}
@@ -137,7 +145,7 @@ export const Field = React.forwardRef(function Field(
       )}
 
       {hasError && (
-        <span id={errorId} className={classes.error()}>
+        <span aria-label={getText('fieldErrorLabel')} id={errorId} className={classes.error()}>
           {error ?? fieldState.error?.message}
         </span>
       )}

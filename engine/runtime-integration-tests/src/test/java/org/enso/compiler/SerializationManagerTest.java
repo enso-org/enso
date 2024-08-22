@@ -28,11 +28,12 @@ public class SerializationManagerTest {
 
   private static final long COMPILE_TIMEOUT_SECONDS = 20;
 
-  private final PackageManager<TruffleFile> packageManager;
-  private final InterpreterContext interpreterContext;
-  private final EnsoContext ensoContext;
+  private PackageManager<TruffleFile> packageManager;
+  private InterpreterContext interpreterContext;
+  private EnsoContext ensoContext;
 
-  public SerializationManagerTest() {
+  @Before
+  public void setup() {
     packageManager = new PackageManager<>(new TruffleFileSystem());
     interpreterContext = new InterpreterContext(x -> x);
     ensoContext =
@@ -41,22 +42,20 @@ public class SerializationManagerTest {
             .getBindings(LanguageInfo.ID)
             .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
             .asHostObject();
-  }
-
-  @Before
-  public void setup() {
     interpreterContext.ctx().initialize(LanguageInfo.ID);
     interpreterContext.ctx().enter();
   }
 
   @After
   public void teardown() {
-    interpreterContext.ctx().close();
+    interpreterContext.close();
+    ensoContext.shutdown();
+    ensoContext = null;
   }
 
   private Path getLibraryPath(LibraryName libraryName) {
     return Paths.get(
-            interpreterContext.languageHome(),
+            interpreterContext.languageHome().toFile().getAbsolutePath(),
             "..",
             "lib",
             libraryName.namespace(),

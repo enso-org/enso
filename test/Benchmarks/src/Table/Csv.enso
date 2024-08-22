@@ -10,9 +10,9 @@ type Lazy_Data
     private Write ~table:Table
 
 collect_benches = Bench.build builder->
-    assert Examples.csv_2500_rows.exists "Expecting the file to exist at "+Examples.csv_2500_rows.path
-
-    write_data = Lazy_Data.Write (Examples.csv_2500_rows . read)
+    write_data = Lazy_Data.Write <|
+        assert Examples.csv_2500_rows.exists "Expecting the file to exist at "+Examples.csv_2500_rows.path
+        Examples.csv_2500_rows . read
 
     builder.group ("Read_csv_file") options group_builder->
         group_builder.specify "data_csv" <|

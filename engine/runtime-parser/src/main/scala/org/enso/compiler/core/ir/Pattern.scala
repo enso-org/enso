@@ -64,9 +64,17 @@ object Pattern {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Name = {
-      val res = Name(name, location, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        name != this.name
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Name(name, location, passData, diagnostics)
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -159,10 +167,19 @@ object Pattern {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Constructor = {
-      val res =
-        Constructor(constructor, fields, location, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        constructor != this.constructor
+        || fields != this.fields
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res =
+          Constructor(constructor, fields, location, passData, diagnostics)
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -308,9 +325,17 @@ object Pattern {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Literal = {
-      val res = Literal(literal, location, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        literal != this.literal
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Literal(literal, location, passData, diagnostics)
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -405,9 +430,18 @@ object Pattern {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Type = {
-      val res = Type(name, tpe, location, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        name != this.name
+        || tpe != this.tpe
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Type(name, tpe, location, passData, diagnostics)
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -518,9 +552,17 @@ object Pattern {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Documentation = {
-      val res = Documentation(doc, location, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        doc != this.doc
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Documentation(doc, location, passData, diagnostics)
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
