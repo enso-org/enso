@@ -115,6 +115,7 @@ export const Dropdown = forwardRef(function Dropdown<T>(
   const { isFocusVisible } = useFocusVisible()
   const isFocusedRef = useSyncRef(isFocusWithin)
   const isSelfMouseDownRef = useRef(false)
+  const delayedIsFocused = useRef(false)
   const { focusWithinProps } = useFocusWithin({
     onFocusWithinChange: setIsFocusWithin,
   })
@@ -154,13 +155,24 @@ export const Dropdown = forwardRef(function Dropdown<T>(
     }
   }, [isFocusedRef])
 
+  useEffect(() => {
+    const handle = requestAnimationFrame(() => {
+      delayedIsFocused.current = isFocused
+    })
+    return () => {
+      cancelAnimationFrame(handle)
+    }
+  }, [isFocused])
+
   return (
     <FocusRing placement="outset">
       <div
         ref={mergeRefs(ref, rootRef)}
         onMouseDown={() => {
           isSelfMouseDownRef.current = true
-          setIsMouseFocused(!isFocused)
+          // `isFocused` cannot be used as `isFocusWithin` is set to `false` immediately before
+          // this event handler is called.
+          setIsMouseFocused(!delayedIsFocused.current)
         }}
         tabIndex={-1}
         className={styles.base({ className })}
