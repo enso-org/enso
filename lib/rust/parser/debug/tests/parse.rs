@@ -771,6 +771,12 @@ fn dot_operator_precedence() {
 }
 
 #[test]
+fn dot_operator_template_function() {
+    test!("foo._", (TemplateFunction 1 (OprApp (Ident foo) (Ok ".") (Wildcard 0))));
+    test!("_.foo", (TemplateFunction 1 (OprApp (Wildcard 0) (Ok ".") (Ident foo))));
+}
+
+#[test]
 fn right_associative_operators() {
     test!("x --> y ---> z", (OprApp (Ident x) (Ok "-->") (OprApp (Ident y) (Ok "--->") (Ident z))));
     test!("x <| y <<| z", (OprApp (Ident x) (Ok "<|") (OprApp (Ident y) (Ok "<<|") (Ident z))));

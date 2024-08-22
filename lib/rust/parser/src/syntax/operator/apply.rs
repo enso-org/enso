@@ -68,7 +68,7 @@ impl<'s> ApplyOperator<'s> {
             let ast = syntax::tree::apply_operator(lhs, tokens, rhs);
             MaybeSection::from(ast)
         } else if tokens.len() < 2
-            && tokens.first().map_or(false, |opr| opr.is_syntactic_binary_operator())
+            && tokens.first().is_some_and(|opr| !opr.is_syntactic_binary_operator())
         {
             let mut rhs = None;
             let mut elided = 0;
