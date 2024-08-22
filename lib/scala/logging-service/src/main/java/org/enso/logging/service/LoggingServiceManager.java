@@ -1,4 +1,4 @@
-package org.enso.logging;
+package org.enso.logging.service;
 
 import java.net.URI;
 import java.nio.file.Path;

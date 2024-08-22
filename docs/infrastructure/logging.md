@@ -308,12 +308,12 @@ public class MyService {
 }
 ```
 
-`org.enso.logging.LoggingSetupHelper` class was introduced to help with the most
+`org.enso.logging.service.LoggingSetupHelper` class was introduced to help with the most
 common use cases - establishing a file-based logging in the Enso's dedicated
 directories or connecting to an existing logging server once it starts accepting
 connections. That is why services don't call `LoggerSetup` directly but instead
 provide a service-specific implementation of
-`org.enso.logging.LoggingSetupHelper`. `LoggingSetupHelper` and `LoggerSetup`
+`org.enso.logging.service.LoggingSetupHelper`. `LoggingSetupHelper` and `LoggerSetup`
 provide `teardown` methods to properly dispose of log events.
 
 ### Log Masking
