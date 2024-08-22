@@ -37,7 +37,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
       {({ close }) => (
         <Form
           data-testid="upsert-secret-modal"
-          action="dialog"
+          method="dialog"
           schema={createUpsertSecretSchema()}
           onSubmit={async ({ name, value }) => {
             await doCreate(name, value)

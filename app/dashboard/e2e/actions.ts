@@ -65,12 +65,12 @@ export function locateNewLabelModalColorButtons(page: test.Page) {
 
 /** Find a "name" input for an "upsert secret" modal (if any) on the current page. */
 export function locateSecretNameInput(page: test.Page) {
-  return locateUpsertSecretModal(page).getByPlaceholder('Enter the name of the secret')
+  return locateUpsertSecretModal(page).getByPlaceholder(TEXT.secretNamePlaceholder)
 }
 
 /** Find a "value" input for an "upsert secret" modal (if any) on the current page. */
 export function locateSecretValueInput(page: test.Page) {
-  return locateUpsertSecretModal(page).getByPlaceholder('Enter the value of the secret')
+  return locateUpsertSecretModal(page).getByPlaceholder(TEXT.secretValuePlaceholder)
 }
 
 /** Find a search bar input (if any) on the current page. */
