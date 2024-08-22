@@ -2424,6 +2424,7 @@ lazy val `runtime-suggestions` =
 
 lazy val `runtime-instrument-common` =
   (project in file("engine/runtime-instrument-common"))
+    .enablePlugins(JPMSPlugin)
     .configs(Benchmark)
     .settings(
       frgaalJavaCompilerSetting,
@@ -2445,6 +2446,31 @@ lazy val `runtime-instrument-common` =
         "junit"          % "junit"           % junitVersion     % Test,
         "com.github.sbt" % "junit-interface" % junitIfVersion   % Test,
         "org.scalatest" %% "scalatest"       % scalatestVersion % Test
+      ),
+      excludeFilter := excludeFilter.value || "module-info.java",
+      moduleDependencies := Seq(
+        "org.graalvm.truffle"  % "truffle-api"             % graalMavenPackagesVersion,
+        "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion,
+        "org.graalvm.sdk"        % "collections"      % graalMavenPackagesVersion,
+        "org.graalvm.sdk"        % "nativeimage"      % graalMavenPackagesVersion,
+        "org.graalvm.sdk"        % "word"             % graalMavenPackagesVersion,
+        "org.scala-lang"       % "scala-library" % scalacVersion,
+      ),
+      internalModuleDependencies := Seq(
+        (`cli` / exportedModule).value,
+        (`distribution-manager` / exportedModule).value,
+        (`connected-lock-manager` / exportedModule).value,
+        (`logging-utils` / exportedModule).value,
+        (`editions` / exportedModule).value,
+        (`engine-common` / exportedModule).value,
+        (`refactoring-utils` / exportedModule).value,
+        (`runtime` / exportedModule).value,
+        (`runtime-compiler` / exportedModule).value,
+        (`runtime-parser` / exportedModule).value,
+        (`text-buffer` / exportedModule).value,
+        (`pkg` / exportedModule).value,
+        (`polyglot-api` / exportedModule).value,
+        (`scala-libs-wrapper` / exportedModule).value,
       )
     )
     .dependsOn(`refactoring-utils`)
