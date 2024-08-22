@@ -2056,7 +2056,30 @@ lazy val runtime = (project in file("engine/runtime"))
       val tools =
         GraalVM.toolsPkgs.map(_.withConfigurations(Some(Runtime.name)))
       necessaryModules ++ langs ++ tools
-    }
+    },
+    excludeFilter := excludeFilter.value || "module-info.java",
+    moduleDependencies := Seq(
+      "org.scala-lang"       % "scala-library" % scalacVersion,
+      "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion,
+      "org.apache.tika"      % "tika-core"               % tikaVersion,
+      "org.slf4j"            % "slf4j-api"               % slf4jVersion,
+      "org.graalvm.truffle" % "truffle-api"             % graalMavenPackagesVersion,
+      "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion,
+      "org.graalvm.sdk"        % "collections"      % graalMavenPackagesVersion,
+      "org.graalvm.sdk"        % "word"             % graalMavenPackagesVersion,
+      "org.graalvm.sdk"        % "nativeimage"      % graalMavenPackagesVersion,
+      "com.ibm.icu"          % "icu4j"    % icuVersion,
+      "org.apache.commons" % "commons-lang3"        % commonsLangVersion,
+    ),
+    internalModuleDependencies := Seq(
+      (`library-manager` / exportedModule).value,
+      (`logging-utils` / exportedModule).value,
+      (`pkg` / exportedModule).value,
+      (`polyglot-api` / exportedModule).value,
+      (`runtime-parser` / exportedModule).value,
+      (`syntax-rust-definition` / exportedModule).value,
+      (`version-output` / exportedModule).value,
+    )
   )
   .settings(
     (Runtime / compile) := (Runtime / compile)
