@@ -582,6 +582,7 @@ val jnaVersion              = "5.14.0"
 // === Utility methods =====================================================
 // ============================================================================
 
+// TODO: Remove
 lazy val componentModulesIds =
   taskKey[Seq[ModuleID]](
     "Gather all sbt module IDs that will be put on the module-path for the engine runner"
@@ -599,7 +600,6 @@ lazy val componentModulesIds =
   )
 }
 
-// TODO[pm]: this is now deprecated and should be removed
 lazy val componentModulesPaths =
   taskKey[Seq[File]](
     "Gathers all component modules (Jar archives that should be put on module-path" +
@@ -2505,55 +2505,6 @@ lazy val `engine-runner` = project
     ),
     Compile / run / mainClass := Some("org.enso.runner.Main"),
     compileOrder := CompileOrder.JavaThenScala,
-    assembly / mainClass := (Compile / run / mainClass).value,
-    assembly / assemblyJarName := "runner.jar",
-    assembly / test := {},
-    assembly / assemblyOutputPath := file("runner.jar"),
-    assembly / assemblyExcludedJars := {
-      val excludedExternalPkgs = JPMSUtils.filterArtifacts(
-        (Compile / fullClasspath).value,
-        "graalvm",
-        "truffle",
-        "helidon"
-      )
-      val syntaxJar =
-        (`syntax-rust-definition` / Compile / exportedProducts).value
-      val ydocJar              = (`ydoc-server` / Compile / exportedProducts).value
-      val profilingJar         = (`profiling-utils` / Compile / exportedProducts).value
-      val excludedInternalPkgs = syntaxJar ++ ydocJar ++ profilingJar
-      val log                  = streams.value.log
-      excludedInternalPkgs.foreach { internalPkg =>
-        val isJar =
-          internalPkg.data.exists() && internalPkg.data.name.endsWith(".jar")
-        if (!isJar) {
-          log.error(
-            internalPkg.data.absolutePath + " is not a JAR archive." +
-            " It might not be excluded from runner.jar fat jar."
-          )
-        }
-      }
-      excludedInternalPkgs ++ excludedExternalPkgs
-    },
-    assembly / assemblyMergeStrategy := {
-      case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
-        MergeStrategy.discard
-      case PathList("META-INF", file, xs @ _*) if file.endsWith(".SF") =>
-        MergeStrategy.discard
-      case PathList("META-INF", "MANIFEST.MF", xs @ _*) =>
-        MergeStrategy.discard
-      case "application.conf" =>
-        MergeStrategy.concat
-      case "reference.conf" =>
-        MergeStrategy.concat
-      // remove once https://github.com/snakeyaml/snakeyaml/pull/12 gets integrated
-      case PathList("org", "yaml", "snakeyaml", "introspector", xs @ _*) =>
-        MergeStrategy.preferProject
-      case PathList(xs @ _*) if xs.last.contains("module-info") =>
-        // runner.jar must not be a JPMS module
-        MergeStrategy.discard
-      case x =>
-        MergeStrategy.first
-    },
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
     libraryDependencies ++= Seq(
@@ -3800,7 +3751,6 @@ projectManagerDistributionRoot :=
 lazy val buildEngineDistribution =
   taskKey[Unit]("Builds the engine distribution")
 buildEngineDistribution := {
-  val _ = (`engine-runner` / assembly).value
   updateLibraryManifests.value
   val modulesToCopy = componentModulesPaths.value
   val root          = engineDistributionRoot.value
@@ -3836,7 +3786,6 @@ ThisBuild / engineDistributionRoot := {
 lazy val buildEngineDistributionNoIndex =
   taskKey[Unit]("Builds the engine distribution without generating indexes")
 buildEngineDistributionNoIndex := {
-  val _ = (`engine-runner` / assembly).value
   updateLibraryManifests.value
   val modulesToCopy = componentModulesPaths.value
   val root          = engineDistributionRoot.value
@@ -4078,7 +4027,6 @@ lazy val updateLibraryManifests =
     "Recomputes dependencies to update manifests bundled with libraries."
   )
 updateLibraryManifests := {
-  val _            = (`engine-runner` / assembly).value
   val log          = streams.value.log
   val cacheFactory = streams.value.cacheStoreFactory
   val libraries = Editions.standardLibraries.map(libName =>
