@@ -184,13 +184,13 @@ function TwoFa() {
         {field.value === 'qr' && (
           <>
             <Alert variant="neutral">
-              <div className="flex flex-col">
+              <Text.Group>
                 <Text variant="subtitle" weight="bold">
                   {getText('scanQR')}
                 </Text>
 
                 <Text>{getText('scanQRDescription')}</Text>
-              </div>
+              </Text.Group>
             </Alert>
 
             <div className="self-center">
@@ -208,12 +208,12 @@ function TwoFa() {
         {field.value === 'text' && (
           <>
             <Alert variant="neutral">
-              <div className="flex flex-col">
+              <Text.Group>
                 <Text variant="subtitle" weight="bold">
                   {getText('copyLink')}
                 </Text>
                 <Text>{getText('copyLinkDescription')}</Text>
-              </div>
+              </Text.Group>
             </Alert>
 
             <CopyBlock copyText={str} />
@@ -229,9 +229,11 @@ function TwoFa() {
         />
       </div>
 
-      <Form.Submit />
+      <ButtonGroup>
+        <Form.Submit>{getText('enable')}</Form.Submit>
 
-      <Form.Reset />
+        <Form.Reset>{getText('cancel')}</Form.Reset>
+      </ButtonGroup>
 
       <Form.FormError />
     </>

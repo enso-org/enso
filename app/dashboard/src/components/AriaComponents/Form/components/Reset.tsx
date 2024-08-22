@@ -7,6 +7,7 @@ import * as React from 'react'
 
 import * as ariaComponents from '#/components/AriaComponents'
 
+import { useText } from '#/providers/TextProvider'
 import type * as types from './types'
 import * as formContext from './useFormContext'
 
@@ -29,11 +30,13 @@ export interface ResetProps extends Omit<ariaComponents.ButtonProps, 'loading'> 
  * Reset button for forms.
  */
 export function Reset(props: ResetProps): React.JSX.Element {
+  const { getText } = useText()
   const {
     form = formContext.useFormContext(),
     variant = 'cancel',
     size = 'medium',
     testId = 'form-reset-button',
+    children = getText('reset'),
     ...buttonProps
   } = props
   const { formState } = form
@@ -48,6 +51,7 @@ export function Reset(props: ResetProps): React.JSX.Element {
       size={size}
       isDisabled={formState.isSubmitting || !formState.isDirty}
       testId={testId}
+      children={children}
     />
   )
 }

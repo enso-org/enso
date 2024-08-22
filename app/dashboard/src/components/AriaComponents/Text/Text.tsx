@@ -234,7 +234,7 @@ Text.Heading = React.forwardRef(function Heading(
 /**
  * Text group component. It's used to visually group text elements together
  */
-Text.Group = function Group(props: React.PropsWithChildren) {
+Text.Group = function TextGroup(props: React.PropsWithChildren) {
   return (
     <textProvider.TextProvider value={{ isInsideTextComponent: true }}>
       {props.children}
