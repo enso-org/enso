@@ -34,6 +34,7 @@ function Link(props: LinkProps, ref: React.ForwardedRef<HTMLAnchorElement>) {
       <aria.Link
         ref={ref}
         href={to}
+        {...(openInBrowser && { target: '_blank' })}
         rel="noopener noreferrer"
         className={twMerge(
           'flex items-center gap-auth-link rounded-full px-auth-link-x py-auth-link-y text-center text-xs font-bold text-blue-500 transition-all duration-auth hover:text-blue-700 focus:text-blue-700',
