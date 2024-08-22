@@ -2,10 +2,11 @@ package org.enso.compiler.core;
 
 import java.util.UUID;
 import java.util.function.Function;
+
+import org.enso.compiler.core.ir.Diagnostic;
+import org.enso.compiler.core.ir.DiagnosticStorage;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.IdentifiedLocation;
-import org.enso.compiler.core.ir.LazyDiagnosticStorage;
-import org.enso.compiler.core.ir.LazyId;
 import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.debug.Debug;
 import scala.Option;
@@ -28,7 +29,7 @@ import scala.collection.immutable.List;
  *
  * <p>See also: Note [IR Equality and hashing]
  */
-public interface IR extends LazyDiagnosticStorage, LazyId {
+public interface IR {
 
   /**
    * Storage for metadata that the node has been tagged with as the result of various compiler
@@ -100,6 +101,29 @@ public interface IR extends LazyDiagnosticStorage, LazyId {
    */
   @Identifier
   UUID getId();
+
+  DiagnosticStorage diagnostics();
+
+  /**
+   * Get all diagnostic info associated with this IR node.
+   *
+   * @return the list of diagnostics
+   */
+  List<Diagnostic> diagnosticsList();
+
+  /**
+   * Get the copy of diagnostic storage associated with this IR node.
+   *
+   * @return the copy of diagnostic storage
+   */
+  DiagnosticStorage diagnosticsCopy();
+
+  /**
+   * Get storage for compiler diagnostics associated with this IR node.
+   *
+   * @return the diagnostic storage of this node
+   */
+  DiagnosticStorage getDiagnostics();
 
   /**
    * Creates a deep structural copy of `this`, representing the same structure.

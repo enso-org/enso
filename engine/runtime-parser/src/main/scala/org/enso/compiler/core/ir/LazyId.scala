@@ -13,14 +13,14 @@ trait LazyId { self: IR =>
     _id
   }
 
-  def getId: UUID @Identifier = {
+  override def getId: UUID @Identifier = {
     if (_id == null) {
       _id = randomId()
     }
     _id
   }
 
-  def id_=(id: UUID @Identifier) = {
+  def id_=(id: UUID @Identifier): Unit = {
     assert(_id == null)
     _id = id
   }
