@@ -3,10 +3,17 @@ import { useEffect, useMemo, useRef, useState, type ForwardedRef, type ReactNode
 
 import CheckMarkIcon from '#/assets/check_mark.svg'
 import FolderArrowIcon from '#/assets/folder_arrow.svg'
-import { ListBox, ListBoxItem, mergeProps, useFocusWithin } from '#/components/aria'
+import {
+  ListBox,
+  ListBoxItem,
+  mergeProps,
+  useFocusVisible,
+  useFocusWithin,
+} from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 import { useSyncRef } from '#/hooks/syncRefHooks'
+import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
 import { tv } from '#/utilities/tailwindVariants'
 
@@ -46,7 +53,7 @@ const DROPDOWN_STYLES = tv({
       'relative grid max-h-dropdown-items w-full overflow-auto rounded-input transition-grid-template-rows',
     optionsList: 'overflow-hidden',
     optionsItem:
-      'flex h-6 items-center gap-dropdown-arrow rounded-input px-input-x transition-colors selected:border-0.5 selected:border-primary selected:font-bold focus:cursor-default focus:bg-frame focus:font-bold focus:focus-ring not-focus:hover:bg-hover-bg not-selected:hover:bg-hover-bg',
+      'flex h-6 items-center gap-dropdown-arrow rounded-input px-input-x transition-colors focus:cursor-default focus:bg-frame focus:font-bold focus:focus-ring not-focus:hover:bg-hover-bg not-selected:hover:bg-hover-bg',
     input: 'relative flex h-6 items-center gap-dropdown-arrow px-input-x',
     inputDisplay: 'grow select-none',
     hiddenOptions: 'flex h-0 flex-col overflow-hidden',
@@ -103,13 +110,20 @@ export const Dropdown = forwardRef(function Dropdown<T>(
   const listBoxItems = useMemo(() => items.map((item, i) => ({ item, i })), [items])
   const [tempSelectedIndex, setTempSelectedIndex] = useState<number | null>(null)
   const rootRef = useRef<HTMLDivElement | null>(null)
-  const [isFocused, setIsFocused] = useState(false)
-  const isFocusedRef = useSyncRef(isFocused)
-  const shouldBlurRef = useRef(isFocused)
-  const { focusWithinProps } = useFocusWithin({ onFocusWithinChange: setIsFocused })
+  const [isFocusWithin, setIsFocusWithin] = useState(false)
+  const [isMouseFocused, setIsMouseFocused] = useState(false)
+  const { isFocusVisible } = useFocusVisible()
+  const isFocusedRef = useSyncRef(isFocusWithin)
+  const isSelfMouseDownRef = useRef(false)
+  const { focusWithinProps } = useFocusWithin({
+    onFocusWithinChange: setIsFocusWithin,
+  })
   const multiple = props.multiple === true
   const selectedIndex = 'selectedIndex' in props ? props.selectedIndex : null
-  const selectedIndices = 'selectedIndices' in props ? props.selectedIndices : []
+  const selectedIndices =
+    'selectedIndices' in props ? props.selectedIndices
+    : selectedIndex != null ? [selectedIndex]
+    : []
   const selectedItems = selectedIndices.flatMap((index) => {
     const item = items[index]
     return item != null ? [item] : []
@@ -117,6 +131,8 @@ export const Dropdown = forwardRef(function Dropdown<T>(
   const visuallySelectedIndex = tempSelectedIndex ?? selectedIndex
   const visuallySelectedItem = visuallySelectedIndex == null ? null : items[visuallySelectedIndex]
 
+  const isFocused = isFocusVisible ? isFocusWithin : isMouseFocused
+  console.log(isFocusVisible, isFocusWithin, isMouseFocused, document.activeElement)
   const styles = DROPDOWN_STYLES({ isFocused, isReadOnly: readOnly })
 
   useEffect(() => {
@@ -124,49 +140,53 @@ export const Dropdown = forwardRef(function Dropdown<T>(
   }, [selectedIndex])
 
   useEffect(() => {
-    const onDocumentClick = () => {
-      if (
-        shouldBlurRef.current &&
-        document.activeElement instanceof HTMLElement &&
-        rootRef.current?.contains(document.activeElement) === true
-      ) {
-        document.activeElement.blur()
+    const onDocumentMouseDown = () => {
+      if (!isSelfMouseDownRef.current) {
+        console.log(':)')
+        setIsMouseFocused(false)
+        if (document.activeElement === rootRef.current) {
+          rootRef.current?.blur()
+        }
+        isSelfMouseDownRef.current = false
       }
     }
-    document.addEventListener('click', onDocumentClick)
+    document.addEventListener('mousedown', onDocumentMouseDown)
     return () => {
-      document.removeEventListener('click', onDocumentClick)
+      document.removeEventListener('mousedown', onDocumentMouseDown)
     }
   }, [isFocusedRef])
 
   return (
     <FocusRing placement="outset">
-      <div ref={ref} className={styles.base({ className })}>
-        <div
-          ref={rootRef}
-          tabIndex={-1}
-          onMouseDown={() => {
-            shouldBlurRef.current = isFocusedRef.current
-          }}
-          {...mergeProps<JSX.IntrinsicElements['div']>()(focusWithinProps, {
-            className: styles.container(),
-          })}
-        >
+      <div
+        ref={mergeRefs(ref, rootRef)}
+        onMouseDown={() => {
+          isSelfMouseDownRef.current = true
+          setIsMouseFocused(!isFocused)
+        }}
+        tabIndex={-1}
+        className={styles.base({ className })}
+        {...mergeProps<React.JSX.IntrinsicElements['div']>()(focusWithinProps, {
+          onBlur: (event) => {
+            if (!event.currentTarget.contains(event.relatedTarget)) {
+              setIsMouseFocused(false)
+            }
+          },
+        })}
+      >
+        <div className={styles.container()}>
           <div className={styles.options()}>
             {/* Spacing. */}
             <div className={styles.optionsSpacing()} />
             <div className={styles.optionsContainer()}>
               <ListBox
-                selectionMode={
-                  !isFocused ? 'none'
-                  : multiple ?
-                    'multiple'
-                  : 'single'
-                }
+                selectionMode={multiple ? 'multiple' : 'single'}
+                selectionBehavior={multiple ? 'toggle' : 'replace'}
                 items={listBoxItems}
                 dependencies={[selectedIndices]}
                 className={styles.optionsList()}
                 onSelectionChange={(keys) => {
+                  console.log('a', multiple)
                   if (multiple) {
                     const indices = Array.from(keys, (i) => Number(i))
                     props.onChange(
@@ -183,6 +203,7 @@ export const Dropdown = forwardRef(function Dropdown<T>(
                       const item = items[i]
                       if (item !== undefined) {
                         props.onChange(item, i)
+                        setIsMouseFocused(false)
                         rootRef.current?.blur()
                       }
                     }
