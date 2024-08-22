@@ -627,6 +627,7 @@ lazy val componentModulesPaths =
     fullCp,
     thirdPartyModIds,
     log,
+    projName = moduleName.value,
     shouldContainAll = true
   )
   val thirdPartyModFiles = thirdPartyMods.map(_.data)
@@ -1063,6 +1064,7 @@ lazy val `scala-libs-wrapper` = project
           "org.jline"               % "jline"                   % jlineVersion,
         ),
         streams.value.log,
+        moduleName.value,
         shouldContainAll = true
       )
     },
@@ -1087,6 +1089,7 @@ lazy val `scala-libs-wrapper` = project
           "com.github.plokhotnyuk.jsoniter-scala" % ("jsoniter-scala-core_" + scalaVer) % jsoniterVersion,
         ),
         streams.value.log,
+        moduleName.value,
         shouldContainAll = true
       )
       Map(
@@ -1228,7 +1231,8 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       JPMSUtils.filterModulesFromClasspath(
         ourFullCp,
         pkgsToExclude,
-        streams.value.log
+        streams.value.log,
+        moduleName.value
       )
     },
     assembly / assemblyMergeStrategy := {
@@ -1796,6 +1800,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
           "org.apache.tika" % "tika-core" % tikaVersion
         ),
         streams.value.log,
+        moduleName.value,
         shouldContainAll = true
       )
       Map(
@@ -2592,7 +2597,8 @@ lazy val `runtime-fat-jar` =
         val excludedExternalPkgs = JPMSUtils.filterModulesFromClasspath(
           ourFullCp,
           pkgsToExclude,
-          streams.value.log
+          streams.value.log,
+          moduleName.value
         )
         val syntaxJar =
           (`syntax-rust-definition` / Compile / exportedProducts).value

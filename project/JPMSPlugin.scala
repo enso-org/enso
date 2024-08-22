@@ -279,6 +279,7 @@ object JPMSPlugin extends AutoPlugin {
       classPath,
       moduleDeps,
       logger,
+      currProjName,
       shouldContainAll = true
     )
     val externalFiles = cp.map(_.data)
