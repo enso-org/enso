@@ -1,15 +1,17 @@
 /** @file Alert component. */
 import * as React from 'react'
 
+import SvgMask from '#/components/SvgMask'
 import * as mergeRefs from '#/utilities/mergeRefs'
-import * as twv from '#/utilities/tailwindVariants'
+import type { VariantProps } from '#/utilities/tailwindVariants'
+import { tv } from '#/utilities/tailwindVariants'
 
 // =================
 // === Constants ===
 // =================
 
-export const ALERT_STYLES = twv.tv({
-  base: 'flex flex-col items-stretch',
+export const ALERT_STYLES = tv({
+  base: 'flex items-stretch gap-2',
   variants: {
     fullWidth: { true: 'w-full' },
     variant: {
@@ -37,6 +39,11 @@ export const ALERT_STYLES = twv.tv({
       large: 'px-4 pt-2 pb-2',
     },
   },
+  slots: {
+    iconContainer: 'flex items-center justify-center w-6 h-6',
+    children: 'flex flex-col items-stretch',
+    icon: 'flex items-center justify-center w-6 h-6 mr-2',
+  },
   defaultVariants: {
     fullWidth: true,
     variant: 'error',
@@ -52,24 +59,46 @@ export const ALERT_STYLES = twv.tv({
 /** Props for an {@link Alert}. */
 export interface AlertProps
   extends React.PropsWithChildren,
-    twv.VariantProps<typeof ALERT_STYLES>,
-    React.HTMLAttributes<HTMLDivElement> {}
+    VariantProps<typeof ALERT_STYLES>,
+    React.HTMLAttributes<HTMLDivElement> {
+  /**
+   * The icon to display in the Alert
+   */
+  readonly icon?: React.ReactElement | string | null | undefined
+}
 
 /** Alert component. */
 export const Alert = React.forwardRef(function Alert(
   props: AlertProps,
   ref: React.ForwardedRef<HTMLDivElement>,
 ) {
-  const { children, className, variant, size, rounded, fullWidth, ...containerProps } = props
+  const {
+    children,
+    className,
+    variant,
+    size,
+    rounded,
+    fullWidth,
+    icon,
+    variants = ALERT_STYLES,
+    ...containerProps
+  } = props
 
   if (variant === 'error') {
     containerProps.tabIndex = -1
     containerProps.role = 'alert'
   }
 
+  const classes = variants({
+    variant,
+    size,
+    rounded,
+    fullWidth,
+  })
+
   return (
     <div
-      className={ALERT_STYLES({ variant, size, className, rounded, fullWidth })}
+      className={classes.base({ className })}
       ref={mergeRefs.mergeRefs(ref, (e) => {
         if (variant === 'error') {
           e?.focus()
@@ -77,7 +106,19 @@ export const Alert = React.forwardRef(function Alert(
       })}
       {...containerProps}
     >
-      {children}
+      {icon != null &&
+        (() => {
+          if (typeof icon === 'string') {
+            // eslint-disable-next-line no-restricted-syntax
+            return (
+              <div className={classes.iconContainer()}>
+                <SvgMask src={icon} />
+              </div>
+            )
+          }
+          return <div className={classes.iconContainer()}>{icon}</div>
+        })()}
+      <div className={classes.children()}>{children}</div>
     </div>
   )
 })

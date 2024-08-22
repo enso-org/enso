@@ -3,6 +3,8 @@
  *
  * 2FA Setup Settings Section. Allows users to setup, disable, and change their 2FA method.
  */
+import ShieldCheck from '#/assets/shield_check.svg'
+import ShieldCrossed from '#/assets/shield_crossed.svg'
 import type { MfaType } from '#/authentication/cognito'
 import {
   Alert,
@@ -60,7 +62,7 @@ export function SetupTwoFaForm() {
   if (MFAEnabled) {
     return (
       <div className="flex w-full flex-col gap-4">
-        <Alert variant="neutral">
+        <Alert variant="neutral" icon={ShieldCheck}>
           <Text.Group>
             <Text variant="subtitle" weight="bold">
               {getText('2FAEnabled')}
@@ -79,11 +81,11 @@ export function SetupTwoFaForm() {
           </Text>
 
           <DialogTrigger>
-            <Button variant="delete" className="self-start">
+            <Button variant="delete" className="self-start" icon={ShieldCrossed}>
               {getText('disable2FA')}
             </Button>
 
-            <Dialog title={getText('areYouSure')}>
+            <Dialog title={getText('disable2FA')}>
               <Form
                 schema={(z) =>
                   z.object({
@@ -100,7 +102,7 @@ export function SetupTwoFaForm() {
                 method="dialog"
                 onSubmit={() => updateMFAPreferenceMutation.mutateAsync('NOMFA')}
               >
-                <Text>{getText('disable2FADescription')}</Text>
+                <Text>{getText('disable2FAWarning')}</Text>
 
                 <OtpInput name="otp" maxLength={6} label={getText('verificationCode')} />
 
