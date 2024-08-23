@@ -2,23 +2,16 @@ package org.enso.interpreter.test.instrument
 
 import org.apache.commons.io.output.TeeOutputStream
 import org.enso.interpreter.runtime.EnsoContext
-import org.enso.interpreter.runtime.`type`.{ConstantsGen}
-/*
 import org.enso.interpreter.runtime.`type`.{Constants, ConstantsGen, Types}
- */
 import org.enso.interpreter.test.Metadata
 import org.enso.common.LanguageInfo
 import org.enso.common.MethodNames
-/*
 import org.enso.polyglot.data.TypeGraph
- */
 import org.enso.common.RuntimeOptions
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
-/*
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
- */
 import org.graalvm.polyglot.Context
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.flatspec.AnyFlatSpec
@@ -496,19 +489,20 @@ class RuntimeServerTest
     )
   }
 
-  it should "push method with unapplied argument111" in {
+  it should "substitute Nothing when pushing method with unapplied arguments" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
 
-    val metadata = new Metadata
-    val idFoo    = metadata.addItem(26, 3, "aa")
+    val metadata         = new Metadata
+    val identityResultId = metadata.addItem(13, 1, "aa")
+    val identityCallId   = metadata.addItem(27, 8, "ab")
 
     val code =
-      """inc x = x + 1
+      """identity x = x
         |
         |main =
-        |    inc
+        |    identity
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -541,22 +535,22 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+    context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
-        idFoo,
+        identityCallId,
         ConstantsGen.FUNCTION_BUILTIN,
         methodCall = Some(
           Api.MethodCall(
-            Api.MethodPointer(moduleName, moduleName, "inc"),
+            Api.MethodPointer(moduleName, moduleName, "identity"),
             Vector(0)
           )
         ),
         payload = Api.ExpressionUpdate.Payload.Value(
           functionSchema = Some(
             Api.FunctionSchema(
-              Api.MethodPointer(moduleName, moduleName, "inc"),
+              Api.MethodPointer(moduleName, moduleName, "identity"),
               Vector(0)
             )
           )
@@ -566,26 +560,25 @@ class RuntimeServerTest
     )
     context.consumeOut shouldEqual List()
 
-    // push inc
+    // push identity
     context.send(
       Api.Request(
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.LocalCall(idFoo)
+          Api.StackItem.LocalCall(identityCallId)
         )
       )
     )
-    val r = context.receiveNIgnoreStdLib(3, 10)
-    println(r)
-    r should contain theSameElementsAs Seq(
+    context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages
+        .update(contextId, identityResultId, ConstantsGen.NOTHING_BUILTIN),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List()
   }
 
-  /*
   it should "push method with default arguments on top of the stack" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
@@ -4553,7 +4546,7 @@ class RuntimeServerTest
         |
         |main = IO.println "I'm a modified!"
         |""".stripMargin.linesIterator.mkString("\n")
-   */
+     */
     context.send(
       Api.Request(
         Api.EditFileNotification(
@@ -7342,5 +7335,4 @@ class RuntimeServerTest
     context.consumeOut shouldEqual List("Hello World!")
   }
 
-   */
 }

@@ -202,6 +202,7 @@ public final class ExecutionService {
 
     Object p = context.getThreadManager().enter();
     try {
+      substituteMissingArguments(call);
       execute.getCallTarget().call(call);
     } finally {
       context.getThreadManager().leave(p);
@@ -259,6 +260,24 @@ public final class ExecutionService {
         onComputedCallback,
         onCachedCallback,
         onExecutedVisualizationCallback);
+  }
+
+  /**
+   * Replace the missing arguments of the provided function call with {@link
+   * org.enso.interpreter.node.expression.builtin.Nothing} to make sure that the function call can
+   * be invoked.
+   *
+   * @param functionCall the function call to update
+   */
+  private void substituteMissingArguments(
+      FunctionCallInstrumentationNode.FunctionCall functionCall) {
+    var arguments = functionCall.getArguments();
+    var argumentInfos = functionCall.getFunction().getSchema().getArgumentInfos();
+    for (var i = 0; i < arguments.length; i++) {
+      if (arguments[i] == null && !argumentInfos[i].hasDefaultValue()) {
+        arguments[i] = context.getBuiltins().nothing();
+      }
+    }
   }
 
   /**
