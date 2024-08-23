@@ -30,7 +30,6 @@ import * as ariaComponents from '#/components/AriaComponents'
 import * as result from '#/components/Result'
 
 import * as backendModule from '#/services/Backend'
-import * as projectManager from '#/services/ProjectManager'
 
 import AssetQuery from '#/utilities/AssetQuery'
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
@@ -38,24 +37,6 @@ import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import { useSuspenseQuery } from '@tanstack/react-query'
-
-// ===================
-// === DriveStatus ===
-// ===================
-
-/** The predicted status of project listing. This is used to avoid sending requests to the backend
- * if it is already known that the request will fail. */
-enum DriveStatus {
-  /** No errors predicted. The request may still error because of an issue in the backend. */
-  ok = 'ok',
-  /** Trying to use the remote backend when offline. The network request will fail. */
-  offline = 'offline',
-  /** The user does not have an active plan, and therefore has no access to the remote backend. */
-  notEnabled = 'not-enabled',
-  /** The connection to the Project Manager timed out. This may happen if the Project Manager
-   * crashed, or was never run in the first place. */
-  noProjectManager = 'no-project-manager',
-}
 
 // =============
 // === Drive ===
@@ -84,7 +65,6 @@ export default function Drive(props: DriveProps) {
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
   const [suggestions, setSuggestions] = React.useState<readonly assetSearchBar.Suggestion[]>([])
-  const [didLoadingProjectManagerFail, setDidLoadingProjectManagerFail] = React.useState(false)
   const [assetPanelPropsRaw, setAssetPanelProps] =
     React.useState<assetPanel.AssetPanelRequiredProps | null>(null)
   const assetPanelProps =
@@ -121,32 +101,15 @@ export default function Drive(props: DriveProps) {
   const supportLocalBackend = localBackend != null
 
   const status =
-    !isCloud && didLoadingProjectManagerFail ? DriveStatus.noProjectManager
-    : isCloud && isOffline ? DriveStatus.offline
-    : isCloud && !user.isEnabled ? DriveStatus.notEnabled
-    : DriveStatus.ok
+    isCloud && isOffline ? 'offline'
+    : isCloud && !user.isEnabled ? 'not-enabled'
+    : 'ok'
 
   const isAssetPanelVisible = isAssetPanelEnabled || isAssetPanelTemporarilyVisible
 
   React.useEffect(() => {
     localStorage.set('isAssetPanelVisible', isAssetPanelEnabled)
   }, [isAssetPanelEnabled, /* should never change */ localStorage])
-
-  React.useEffect(() => {
-    const onProjectManagerLoadingFailed = () => {
-      setDidLoadingProjectManagerFail(true)
-    }
-    document.addEventListener(
-      projectManager.ProjectManagerEvents.loadingFailed,
-      onProjectManagerLoadingFailed,
-    )
-    return () => {
-      document.removeEventListener(
-        projectManager.ProjectManagerEvents.loadingFailed,
-        onProjectManagerLoadingFailed,
-      )
-    }
-  }, [])
 
   const doUploadFiles = React.useCallback(
     (files: File[]) => {
@@ -225,16 +188,7 @@ export default function Drive(props: DriveProps) {
   )
 
   switch (status) {
-    case DriveStatus.noProjectManager: {
-      return (
-        <div className={tailwindMerge.twMerge('grid grow place-items-center', hidden && 'hidden')}>
-          <div className="flex flex-col gap-status-page text-center text-base">
-            {getText('couldNotConnectToPM')}
-          </div>
-        </div>
-      )
-    }
-    case DriveStatus.notEnabled: {
+    case 'not-enabled': {
       return (
         <result.Result
           status="error"
@@ -268,8 +222,8 @@ export default function Drive(props: DriveProps) {
         </result.Result>
       )
     }
-    case DriveStatus.offline:
-    case DriveStatus.ok: {
+    case 'offline':
+    case 'ok': {
       return (
         <div className={tailwindMerge.twMerge('relative flex grow', hidden && 'hidden')}>
           <div
@@ -311,7 +265,7 @@ export default function Drive(props: DriveProps) {
                   />
                 )}
               </div>
-              {status === DriveStatus.offline ?
+              {status === 'offline' ?
                 <result.Result
                   status="info"
                   className="my-12"

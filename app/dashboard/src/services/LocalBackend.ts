@@ -118,6 +118,11 @@ export default class LocalBackend extends Backend {
     this.projectManager.resetRootDirectory()
   }
 
+  /** Tell the {@link ProjectManager} to reconnect. */
+  async reconnectProjectManager() {
+    await this.projectManager.reconnect()
+  }
+
   /** Return the ID of the root directory. */
   override rootDirectoryId(
     _user: backend.User | null,

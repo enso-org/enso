@@ -75,6 +75,7 @@ import * as backendModule from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
 import { isSpecialReadonlyDirectoryId } from '#/services/RemoteBackend'
 
+import { ErrorDisplay } from '#/components/ErrorBoundary'
 import * as array from '#/utilities/array'
 import type * as assetQuery from '#/utilities/AssetQuery'
 import AssetQuery from '#/utilities/AssetQuery'
@@ -415,6 +416,8 @@ export default function AssetsTable(props: AssetsTableProps) {
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const setTargetDirectoryRaw = useSetTargetDirectory()
+  const didLoadingProjectManagerFail = backendProvider.useDidLoadingProjectManagerFail()
+  const reconnectToProjectManager = backendProvider.useReconnectToProjectManager()
   const [enabledColumns, setEnabledColumns] = React.useState(columnUtils.DEFAULT_ENABLED_COLUMNS)
   const [sortInfo, setSortInfo] =
     React.useState<sorting.SortInfo<columnUtils.SortableColumn> | null>(null)
@@ -2635,121 +2638,124 @@ export default function AssetsTable(props: AssetsTableProps) {
     </div>
   )
 
-  return (
-    <div className="relative grow">
-      <FocusArea direction="vertical">
-        {(innerProps) => (
-          <div
-            {...aria.mergeProps<JSX.IntrinsicElements['div']>()(innerProps, {
-              ref: (value) => {
-                rootRef.current = value
-                cleanupRootRef.current()
-                if (value) {
-                  updateClipPathObserver.observe(value)
-                  cleanupRootRef.current = () => {
-                    updateClipPathObserver.unobserve(value)
+  return !isCloud && didLoadingProjectManagerFail ?
+      <ErrorDisplay
+        error={getText('couldNotConnectToPM')}
+        resetErrorBoundary={reconnectToProjectManager}
+      />
+    : <div className="relative grow">
+        <FocusArea direction="vertical">
+          {(innerProps) => (
+            <div
+              {...aria.mergeProps<JSX.IntrinsicElements['div']>()(innerProps, {
+                ref: (value) => {
+                  rootRef.current = value
+                  cleanupRootRef.current()
+                  if (value) {
+                    updateClipPathObserver.observe(value)
+                    cleanupRootRef.current = () => {
+                      updateClipPathObserver.unobserve(value)
+                    }
+                  } else {
+                    cleanupRootRef.current = () => {}
                   }
-                } else {
-                  cleanupRootRef.current = () => {}
-                }
-              },
-              className: 'flex-1 overflow-auto container-size w-full h-full',
-              onKeyDown,
-              onScroll: updateClipPath,
-              onBlur: (event) => {
-                if (
-                  event.relatedTarget instanceof HTMLElement &&
-                  !event.currentTarget.contains(event.relatedTarget)
-                ) {
-                  setKeyboardSelectedIndex(null)
-                }
-              },
-              onDragEnter: updateIsDraggingFiles,
-              onDragOver: updateIsDraggingFiles,
-              onDragLeave: (event) => {
-                if (
-                  !(event.relatedTarget instanceof Node) ||
-                  !event.currentTarget.contains(event.relatedTarget)
-                ) {
-                  lastSelectedIdsRef.current = null
-                  setIsDraggingFiles(false)
-                }
-              },
-            })}
-          >
-            {!hidden && hiddenContextMenu}
-            {!hidden && (
-              <SelectionBrush
-                targetRef={rootRef}
-                margin={8}
-                onDrag={onSelectionDrag}
-                onDragEnd={onSelectionDragEnd}
-                onDragCancel={onSelectionDragCancel}
-              />
-            )}
-            <div className="flex h-max min-h-full w-max min-w-full flex-col">
-              {isCloud && (
-                <div className="flex-0 sticky top-0 flex h-0 flex-col">
-                  <div
-                    data-testid="extra-columns"
-                    className="sticky right-0 flex self-end px-2 py-3"
-                  >
-                    <FocusArea direction="horizontal">
-                      {(columnsBarProps) => (
-                        <div
-                          {...aria.mergeProps<JSX.IntrinsicElements['div']>()(columnsBarProps, {
-                            className: 'inline-flex gap-icons',
-                            onFocus: () => {
-                              setKeyboardSelectedIndex(null)
-                            },
-                          })}
-                        >
-                          {columnUtils.CLOUD_COLUMNS.filter(
-                            (column) => !enabledColumns.has(column),
-                          ).map((column) => (
-                            <Button
-                              key={column}
-                              light
-                              image={columnUtils.COLUMN_ICONS[column]}
-                              alt={getText(columnUtils.COLUMN_SHOW_TEXT_ID[column])}
-                              onPress={() => {
-                                const newExtraColumns = new Set(enabledColumns)
-                                if (enabledColumns.has(column)) {
-                                  newExtraColumns.delete(column)
-                                } else {
-                                  newExtraColumns.add(column)
-                                }
-                                setEnabledColumns(newExtraColumns)
-                              }}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </FocusArea>
-                  </div>
-                </div>
+                },
+                className: 'flex-1 overflow-auto container-size w-full h-full',
+                onKeyDown,
+                onScroll: updateClipPath,
+                onBlur: (event) => {
+                  if (
+                    event.relatedTarget instanceof HTMLElement &&
+                    !event.currentTarget.contains(event.relatedTarget)
+                  ) {
+                    setKeyboardSelectedIndex(null)
+                  }
+                },
+                onDragEnter: updateIsDraggingFiles,
+                onDragOver: updateIsDraggingFiles,
+                onDragLeave: (event) => {
+                  if (
+                    !(event.relatedTarget instanceof Node) ||
+                    !event.currentTarget.contains(event.relatedTarget)
+                  ) {
+                    lastSelectedIdsRef.current = null
+                    setIsDraggingFiles(false)
+                  }
+                },
+              })}
+            >
+              {!hidden && hiddenContextMenu}
+              {!hidden && (
+                <SelectionBrush
+                  targetRef={rootRef}
+                  margin={8}
+                  onDrag={onSelectionDrag}
+                  onDragEnd={onSelectionDragEnd}
+                  onDragCancel={onSelectionDragCancel}
+                />
               )}
-              <div className="flex h-full w-min min-w-full grow flex-col">{table}</div>
+              <div className="flex h-max min-h-full w-max min-w-full flex-col">
+                {isCloud && (
+                  <div className="flex-0 sticky top-0 flex h-0 flex-col">
+                    <div
+                      data-testid="extra-columns"
+                      className="sticky right-0 flex self-end px-2 py-3"
+                    >
+                      <FocusArea direction="horizontal">
+                        {(columnsBarProps) => (
+                          <div
+                            {...aria.mergeProps<JSX.IntrinsicElements['div']>()(columnsBarProps, {
+                              className: 'inline-flex gap-icons',
+                              onFocus: () => {
+                                setKeyboardSelectedIndex(null)
+                              },
+                            })}
+                          >
+                            {columnUtils.CLOUD_COLUMNS.filter(
+                              (column) => !enabledColumns.has(column),
+                            ).map((column) => (
+                              <Button
+                                key={column}
+                                light
+                                image={columnUtils.COLUMN_ICONS[column]}
+                                alt={getText(columnUtils.COLUMN_SHOW_TEXT_ID[column])}
+                                onPress={() => {
+                                  const newExtraColumns = new Set(enabledColumns)
+                                  if (enabledColumns.has(column)) {
+                                    newExtraColumns.delete(column)
+                                  } else {
+                                    newExtraColumns.add(column)
+                                  }
+                                  setEnabledColumns(newExtraColumns)
+                                }}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </FocusArea>
+                    </div>
+                  </div>
+                )}
+                <div className="flex h-full w-min min-w-full grow flex-col">{table}</div>
+              </div>
+            </div>
+          )}
+        </FocusArea>
+        {isDraggingFiles && !isMainDropzoneVisible && (
+          <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2">
+            <div
+              className="flex items-center justify-center gap-3 rounded-default bg-selected-frame px-8 py-6 text-primary/50 backdrop-blur-3xl transition-all"
+              onDragEnter={onDropzoneDragOver}
+              onDragOver={onDropzoneDragOver}
+              onDrop={(event) => {
+                setIsDraggingFiles(false)
+                handleFileDrop(event)
+              }}
+            >
+              <SvgMask src={DropFilesImage} className="size-8" />
+              {dropzoneText}
             </div>
           </div>
         )}
-      </FocusArea>
-      {isDraggingFiles && !isMainDropzoneVisible && (
-        <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2">
-          <div
-            className="flex items-center justify-center gap-3 rounded-default bg-selected-frame px-8 py-6 text-primary/50 backdrop-blur-3xl transition-all"
-            onDragEnter={onDropzoneDragOver}
-            onDragOver={onDropzoneDragOver}
-            onDrop={(event) => {
-              setIsDraggingFiles(false)
-              handleFileDrop(event)
-            }}
-          >
-            <SvgMask src={DropFilesImage} className="size-8" />
-            {dropzoneText}
-          </div>
-        </div>
-      )}
-    </div>
-  )
+      </div>
 }

@@ -8,7 +8,9 @@ import * as common from 'enso-common'
 
 import { type Category, isCloudCategory } from '#/layouts/CategorySwitcher/Category'
 
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type LocalBackend from '#/services/LocalBackend'
+import { ProjectManagerEvents } from '#/services/ProjectManager'
 import type RemoteBackend from '#/services/RemoteBackend'
 
 // ======================
@@ -19,11 +21,15 @@ import type RemoteBackend from '#/services/RemoteBackend'
 export interface BackendContextType {
   readonly remoteBackend: RemoteBackend | null
   readonly localBackend: LocalBackend | null
+  readonly didLoadingProjectManagerFail: boolean
+  readonly reconnectToProjectManager: () => void
 }
 
 const BackendContext = React.createContext<BackendContextType>({
   remoteBackend: null,
   localBackend: null,
+  didLoadingProjectManagerFail: false,
+  reconnectToProjectManager: () => {},
 })
 
 /** Props for a {@link BackendProvider}. */
@@ -39,9 +45,35 @@ export interface BackendProviderProps extends Readonly<React.PropsWithChildren> 
 /** A React Provider that lets components get and set the current backend. */
 export default function BackendProvider(props: BackendProviderProps) {
   const { remoteBackend, localBackend, children } = props
+  const [didLoadingProjectManagerFail, setDidLoadingProjectManagerFail] = React.useState(false)
+
+  React.useEffect(() => {
+    const onProjectManagerLoadingFailed = () => {
+      setDidLoadingProjectManagerFail(true)
+    }
+    document.addEventListener(ProjectManagerEvents.loadingFailed, onProjectManagerLoadingFailed)
+    return () => {
+      document.removeEventListener(
+        ProjectManagerEvents.loadingFailed,
+        onProjectManagerLoadingFailed,
+      )
+    }
+  }, [])
+
+  const reconnectToProjectManager = useEventCallback(() => {
+    setDidLoadingProjectManagerFail(false)
+    localBackend?.reconnectProjectManager()
+  })
 
   return (
-    <BackendContext.Provider value={{ remoteBackend, localBackend }}>
+    <BackendContext.Provider
+      value={{
+        remoteBackend,
+        localBackend,
+        didLoadingProjectManagerFail,
+        reconnectToProjectManager,
+      }}
+    >
       {children}
     </BackendContext.Provider>
   )
@@ -105,4 +137,14 @@ export function useBackend(category: Category) {
     )
     return localBackend
   }
+}
+
+/** Whether connecting to the Project Manager failed. */
+export function useDidLoadingProjectManagerFail() {
+  return React.useContext(BackendContext).didLoadingProjectManagerFail
+}
+
+/** Reconnect to the Project Manager. */
+export function useReconnectToProjectManager() {
+  return React.useContext(BackendContext).reconnectToProjectManager
 }

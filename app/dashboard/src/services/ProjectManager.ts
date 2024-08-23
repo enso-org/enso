@@ -288,6 +288,7 @@ export default class ProjectManager {
   // eslint-disable-next-line @typescript-eslint/member-ordering
   readonly projectPaths: ReadonlyMap<UUID, Path> = this.internalProjectPaths
   private id = 0
+  private reconnecting = false
   private resolvers = new Map<number, (value: never) => void>()
   private rejecters = new Map<number, (reason?: JSONRPCError) => void>()
   private socketPromise: Promise<WebSocket>
@@ -298,10 +299,20 @@ export default class ProjectManager {
     public rootDirectory: Path,
   ) {
     this.initialRootDirectory = this.rootDirectory
+    this.socketPromise = this.reconnect()
+  }
+
+  /** Begin reconnecting the {@link WebSocket}. */
+  reconnect() {
+    if (this.reconnecting) {
+      // eslint-disable-next-line no-restricted-syntax
+      return this.socketPromise
+    }
+    this.reconnecting = true
     const firstConnectionStartMs = Number(new Date())
     let lastConnectionStartMs = 0
     let justErrored = false
-    const createSocket = () => {
+    const reconnect = () => {
       lastConnectionStartMs = Number(new Date())
       this.resolvers = new Map()
       const oldRejecters = this.rejecters
@@ -322,6 +333,7 @@ export default class ProjectManager {
           }
         }
         socket.onopen = () => {
+          this.reconnecting = false
           resolve(socket)
         }
         socket.onerror = (event) => {
@@ -334,7 +346,7 @@ export default class ProjectManager {
             const delay = RETRY_INTERVAL_MS - (Number(new Date()) - lastConnectionStartMs)
             window.setTimeout(
               () => {
-                void createSocket().then(resolve)
+                void reconnect().then(resolve)
               },
               Math.max(0, delay),
             )
@@ -342,13 +354,14 @@ export default class ProjectManager {
         }
         socket.onclose = () => {
           if (!justErrored) {
-            this.socketPromise = createSocket()
+            this.socketPromise = reconnect()
           }
           justErrored = false
         }
       })
     }
-    this.socketPromise = createSocket()
+    this.socketPromise = reconnect()
+    return this.socketPromise
   }
 
   /** Set the root directory to the initial root directory. */
