@@ -236,17 +236,9 @@ type Snowflake_Dialect
     ## PRIVATE
     check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation
     check_aggregate_support self aggregate =
-        many_order_by_unsupported name =
-            Error.throw (Unsupported_Database_Operation.Error name+" currently does not allow ordering by multiple columns in the Snowflake backend. You may need to materialize the table and perform the operation in-memory, or use `add_row_number` to create a single ordering column.")
-        case aggregate of
-            First _ _ _ order_by ->
-                if order_by.is_nothing then False else
-                    if order_by.length > 1 then many_order_by_unsupported "First" else True
-            Last _ _ _ order_by ->
-                if order_by.is_nothing then False else
-                    if order_by.length > 1 then many_order_by_unsupported "Last" else True
-            # All other aggregates are supported.
-            _ -> True
+        # All aggregates are currently supported.
+        _ = aggregate
+        True
 
     ## PRIVATE
        Checks if an operation is supported by the dialect.
