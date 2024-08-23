@@ -724,8 +724,7 @@ type Let_Binder_Renamer
         Let_Binder_Renamer.Value (Hashset.from_vector existing_tables) (Ref.new Dictionary.empty) (Ref.new 0)
 
     rename self (name : Text) (binder : Text) =
-        binders = self.binders_ref.get
-        if binders.contains_key binder then binders.get binder else
+        self.binders_ref.get.get binder if_missing=Nothing . if_nothing <|
             max_tries = 1000
             go i =
                 next_serial = self.serial_ref.modify (_+1)
