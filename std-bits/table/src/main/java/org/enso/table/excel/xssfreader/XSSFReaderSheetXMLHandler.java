@@ -1,12 +1,19 @@
 package org.enso.table.excel.xssfreader;
 
+import static org.apache.poi.xssf.usermodel.XSSFRelation.NS_SPREADSHEETML;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.temporal.Temporal;
+import org.apache.poi.ss.usermodel.BuiltinFormats;
+import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.xssf.model.SharedStrings;
 import org.apache.poi.xssf.model.Styles;
 import org.apache.poi.xssf.usermodel.XSSFRichTextString;
 import org.xml.sax.Attributes;
 import org.xml.sax.helpers.DefaultHandler;
-
-import static org.apache.poi.xssf.usermodel.XSSFRelation.NS_SPREADSHEETML;
 
 /** Based on the XSSFSheetXMLHandler class from Apache POI. */
 public class XSSFReaderSheetXMLHandler extends DefaultHandler {
@@ -19,8 +26,7 @@ public class XSSFReaderSheetXMLHandler extends DefaultHandler {
     FORMULA,
     INLINE_STRING,
     SST_STRING,
-    NUMBER,
-    TEXT // Resolved Text Value
+    NUMBER
   }
 
   // Set when V start element is seen
@@ -42,6 +48,7 @@ public class XSSFReaderSheetXMLHandler extends DefaultHandler {
 
   // Gathers characters as they are seen.
   private final StringBuilder value = new StringBuilder(64);
+  private int numberFormatIndex = -1;
   private String numberFormat = null;
 
   public XSSFReaderSheetXMLHandler(Styles styles, SharedStrings strings) {
@@ -83,22 +90,31 @@ public class XSSFReaderSheetXMLHandler extends DefaultHandler {
           if (cellType == null) {
             cellType = "n"; // Number is default
           }
-          dataType = switch (cellType) {
-            case "b" -> XSSDataType.BOOL;
-            case "e" -> XSSDataType.ERROR;
-            case "inlineStr" -> XSSDataType.INLINE_STRING;
-            case "s" -> XSSDataType.SST_STRING;
-            case "str" -> XSSDataType.FORMULA;
-            default -> XSSDataType.NUMBER;
-          };
+          dataType =
+              switch (cellType) {
+                case "b" -> XSSDataType.BOOL;
+                case "e" -> XSSDataType.ERROR;
+                case "inlineStr" -> XSSDataType.INLINE_STRING;
+                case "s" -> XSSDataType.SST_STRING;
+                case "str" -> XSSDataType.FORMULA;
+                default -> XSSDataType.NUMBER;
+              };
 
           // Read the format for NUMBER or FORMULA
+          numberFormatIndex = -1;
           numberFormat = null;
           if (dataType == XSSDataType.NUMBER) {
             String cellStyleStr = attributes.getValue("s");
             if (cellStyleStr != null) {
-              short styleIndex = (short)Integer.parseInt(cellStyleStr);
-              numberFormat = styleTables.getNumberFormatAt(styleIndex);
+              short styleIndex = (short) Integer.parseInt(cellStyleStr);
+              var style = styleTables.getStyleAt(styleIndex);
+              if (style != null) {
+                numberFormatIndex = style.getDataFormat();
+                numberFormat = style.getDataFormatString();
+                if (numberFormat == null) {
+                  numberFormat = BuiltinFormats.getBuiltinFormat(numberFormatIndex);
+                }
+              }
             }
           }
           break;
@@ -114,9 +130,7 @@ public class XSSFReaderSheetXMLHandler extends DefaultHandler {
     }
   }
 
-  /**
-   * Captures characters if a suitable element is open.
-   */
+  /** Captures characters if a suitable element is open. */
   @Override
   public void characters(char[] ch, int start, int length) {
     if (vIsOpen) {
@@ -153,7 +167,28 @@ public class XSSFReaderSheetXMLHandler extends DefaultHandler {
     }
   }
 
-  public record CellValue(XSSDataType dataType, String strValue, String format) {
+  public record CellValue(XSSDataType dataType, String strValue, int formatIndex, String format) {
+    static final LocalDate EPOC_1900 = LocalDate.of(1899, 12, 31);
+    static final long MILLIS_PER_DAY = 24 * 60 * 60 * 1000;
+
+    static Temporal fromExcelDate(String text) {
+      var idx = text.indexOf('.');
+
+      // Get the date part
+      long date = Long.parseLong(idx == -1 ? text : text.substring(0, idx));
+      var adjustedEpoch = EPOC_1900.plusDays((date < 61 ? 1 : 0) + date);
+
+      if (idx == -1) {
+        return adjustedEpoch;
+      }
+
+      // Get the time part (fractional part)
+      var fraction = Double.parseDouble(text.substring(idx));
+      var millis = (long) (fraction * MILLIS_PER_DAY + 0.5);
+      var time = LocalTime.ofNanoOfDay(millis * 1_000_000);
+      return adjustedEpoch.atTime(time);
+    }
+
     public boolean getBooleanValue() {
       return strValue.charAt(0) == '1';
     }
@@ -169,6 +204,23 @@ public class XSSFReaderSheetXMLHandler extends DefaultHandler {
     public double getNumberValue() {
       return Double.parseDouble(strValue);
     }
+
+    public Object getValue(boolean resolveDates) {
+      return switch (dataType()) {
+        case BOOL -> getBooleanValue();
+        case ERROR -> null;
+        case INLINE_STRING, SST_STRING -> strValue();
+        default -> {
+          if (resolveDates && DateUtil.isADateFormat(formatIndex, format)) {
+            var datetime = fromExcelDate(strValue());
+            yield datetime instanceof LocalDate
+                ? datetime
+                : ((LocalDateTime) datetime).atZone(ZoneId.systemDefault());
+          }
+          yield getNumberValue();
+        }
+      };
+    }
   }
 
   public String getStringValue() {
@@ -183,19 +235,15 @@ public class XSSFReaderSheetXMLHandler extends DefaultHandler {
   }
 
   private void outputCellValue() {
-    var cellValue = new CellValue(dataType, getStringValue(), numberFormat);
+    var cellValue = new CellValue(dataType, getStringValue(), numberFormatIndex, numberFormat);
     onCell(rowNumber, cellRef, cellValue);
   }
 
-  protected void onDimensions(String dimension) {
-  }
+  protected void onDimensions(String dimension) {}
 
-  protected void onStartRow(int rowNumber) {
-  }
+  protected void onStartRow(int rowNumber) {}
 
-  protected void onCell(int rowNumber, String ref, CellValue cellValue) {
-  }
+  protected void onCell(int rowNumber, String ref, CellValue cellValue) {}
 
-  protected void onSheetEnd() {
-  }
+  protected void onSheetEnd() {}
 }
