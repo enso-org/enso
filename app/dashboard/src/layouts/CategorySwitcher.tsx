@@ -448,6 +448,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                     size="medium"
                     variant="icon"
                     icon={Trash2Icon}
+                    aria-label={getText('removeDirectoryFromFavorites')}
                     className="hidden text-delete group-hover:block"
                     onPress={() => {
                       setModal(
