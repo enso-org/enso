@@ -22,6 +22,7 @@ import * as mimeTypes from '#/data/mimeTypes'
 import AssetEventType from '#/events/AssetEventType'
 import {
   useBackendQuery,
+  useGetOrganization,
   useListUserGroups,
   useListUsers,
   type WithPlaceholder,
@@ -91,6 +92,8 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const { user } = authProvider.useFullUserSession()
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
+  const remoteBackend = backendProvider.useRemoteBackendStrict()
+  const organization = useGetOrganization(remoteBackend)
   const localBackend = backendProvider.useLocalBackend()
   const { isOffline } = offlineHooks.useOffline()
   const isCurrent = areCategoriesEqual(currentCategory, category)
@@ -129,8 +132,15 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
       return false
     } else {
       switch (currentCategory.type) {
-        case 'cloud': {
-          return category.type === 'trash'
+        case 'cloud':
+        case 'team':
+        case 'user': {
+          return (
+            category.type === 'trash' ||
+            category.type === 'cloud' ||
+            category.type === 'team' ||
+            category.type === 'user'
+          )
         }
         case 'recent': {
           return false
@@ -174,8 +184,29 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
       }),
     ).then((keys) => {
       switch (currentCategory.type) {
-        case 'cloud': {
-          dispatchAssetEvent({ type: AssetEventType.delete, ids: new Set(keys.flat(1)) })
+        case 'cloud':
+        case 'recent':
+        case 'team':
+        case 'user': {
+          if (category.type === 'trash') {
+            dispatchAssetEvent({ type: AssetEventType.delete, ids: new Set(keys.flat(1)) })
+          } else if (
+            category.type === 'cloud' ||
+            category.type === 'team' ||
+            category.type === 'user'
+          ) {
+            const newParentId =
+              category.type === 'cloud' ?
+                remoteBackend.rootDirectoryId(user, organization)
+              : category.homeDirectoryId
+            invariant(newParentId != null, 'The Cloud backend is missing a root directory.')
+            dispatchAssetEvent({
+              type: AssetEventType.move,
+              newParentKey: newParentId,
+              newParentId,
+              ids: new Set(keys.flat(1)),
+            })
+          }
           break
         }
         case 'trash': {
@@ -187,7 +218,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
           if (category.type === 'local' || category.type === 'local-directory') {
             const parentDirectory =
               category.type === 'local' ? localBackend?.rootPath : category.rootPath
-            invariant(parentDirectory != null, 'Local backend is missing a root directory')
+            invariant(parentDirectory != null, 'The Local backend is missing a root directory.')
             const newParentId = newDirectoryId(parentDirectory)
             dispatchAssetEvent({
               type: AssetEventType.move,

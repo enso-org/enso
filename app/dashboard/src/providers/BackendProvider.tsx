@@ -62,7 +62,7 @@ export default function BackendProvider(props: BackendProviderProps) {
 
   const reconnectToProjectManager = useEventCallback(() => {
     setDidLoadingProjectManagerFail(false)
-    localBackend?.reconnectProjectManager()
+    void localBackend?.reconnectProjectManager()
   })
 
   return (
