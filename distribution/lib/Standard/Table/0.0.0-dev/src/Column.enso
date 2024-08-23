@@ -2859,7 +2859,7 @@ Cleansable_Text.from (that:Column) = Cleansable_Text.Value (pattern->replace_wit
    - operation: The UnaryOperation to apply.
    - new_name: The name of the column created as the result of this operation.
    - if_unsupported: The result if the operation is not supported for the column.
-apply_unary_operation column:Column operation:UnaryOperation new_name:Text|Nothing=Nothing ~if_unsupported=(Panic.throw (Illegal_State.Error "Unsupported unary operation for column called. This is a bug in the Table library.")) =
+apply_unary_operation column:Column operation:UnaryOperation new_name:Text|Nothing=Nothing ~if_unsupported=(Panic.throw (Illegal_State.Error "Unsupported unary operation for column called "+column.name+". This is a bug in the Table library.")) =
     used_name = new_name.if_nothing (naming_helper.function_name operation.getName [column])
     Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning java_problem_aggregator->
         java_column = UnaryOperation.apply column.java_column operation used_name java_problem_aggregator
