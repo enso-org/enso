@@ -94,7 +94,11 @@ public abstract class PrintlnNode extends Node {
 
   @CompilerDirectives.TruffleBoundary
   private void print(PrintStream out, Object str, String nl) {
-    out.print(str + nl);
+    switch (nl) {
+      case "\n" -> out.println(str);
+      case "" -> out.print(str);
+      default -> out.print(str + nl);
+    }
   }
 
   @NeverDefault
