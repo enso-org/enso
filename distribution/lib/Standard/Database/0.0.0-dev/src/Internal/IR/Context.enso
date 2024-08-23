@@ -172,6 +172,7 @@ type Context
 
         Subquery_Setup.Value new_from new_columns
 
+    ## PRIVATE
     traverse : (Any -> Any) -> Context
     traverse self f -> Context =
         rec e = e.traverse f
@@ -209,6 +210,7 @@ type Context_Extension
          returns the SQL code that will be inserted at the desired position.
     Value (position : Integer) (expressions : Vector SQL_Expression) (run_generator : Vector SQL_Builder -> SQL_Builder)
 
+    ## PRIVATE
     traverse : (Any -> Any) -> Context_Extension
     traverse self f -> Context_Extension =
         rec e = e.traverse f

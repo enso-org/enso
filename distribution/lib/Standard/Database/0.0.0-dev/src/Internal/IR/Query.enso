@@ -105,6 +105,7 @@ type Query
        `DELETE FROM target WHERE (key_columns...) EXISTS (SELECT 1 FROM source WHERE source.key_columns = target.key_columns)`.
     Delete_Matching_Rows (target_table_name:Text) (source_table_name:Text) (key_columns : Vector Text)
 
+    ## PRIVATE
     traverse : (Any -> Any) -> Query
     traverse self f -> Query =
         rec e = e.traverse f

@@ -8,6 +8,7 @@ type Order_Descriptor
     ## PRIVATE
     Value (expression : SQL_Expression) (direction : Sort_Direction) (nulls_order : Nothing | Nulls_Order = Nothing) (collation : Nothing | Text = Nothing)
 
+    ## PRIVATE
     traverse : (Any -> Any) -> Order_Descriptor
     traverse self f -> Order_Descriptor =
         rec e = e.traverse f

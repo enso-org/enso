@@ -277,6 +277,16 @@ type SQL_Generator
             SQL_Builder.code "DELETE FROM " ++ target ++ " WHERE EXISTS (SELECT 1 FROM " ++ source ++ " WHERE " ++ conditions ++ ")"
         _ -> Error.throw <| Unsupported_Database_Operation.Error "Unsupported query type: "+query.to_text
 
+## PRVIATE
+   Builds code for a whole query.
+
+   Also preprocesses the query.
+
+   This is the entry-point to using SQL_Builder.
+
+   Arguments:
+   - dialect: The SQL dialect for which the code is being generated.
+   - query: An IR describing the query.
 generate_query : Dialect -> Query -> SQL_Builder
 generate_query dialect query =
     preprocessed = preprocess_query query

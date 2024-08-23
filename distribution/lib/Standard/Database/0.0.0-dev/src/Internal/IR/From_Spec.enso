@@ -91,6 +91,7 @@ type From_Spec
          referred to in other parts of the query.
     Sub_Query (columns : Vector (Pair Text SQL_Expression)) (context : Context) (alias : Text)
 
+    ## PRIVATE
     traverse : (Any -> Any) -> From_Spec
     traverse self f -> From_Spec =
         rec e = e.traverse f

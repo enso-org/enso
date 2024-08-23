@@ -103,6 +103,7 @@ type SQL_Expression
          enclosing `Let` value.
     Let_Ref (name : Text) (binder : Text) (standalone_expression : SQL_Expression)
 
+    ## PRIVATE
     traverse : (Any -> Any) -> SQL_Expression
     traverse self f -> SQL_Expression =
         rec e = e.traverse f
