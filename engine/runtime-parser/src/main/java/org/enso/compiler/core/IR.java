@@ -110,7 +110,7 @@ public interface IR {
   /**
    * Initialize and get the storage for compiler diagnostics associated with this IR node.
    *
-   * @return the diagnostic storage of this node
+   * @return the diagnostic storage of this node. The result is never {@code null}
    */
   DiagnosticStorage getDiagnostics();
 
