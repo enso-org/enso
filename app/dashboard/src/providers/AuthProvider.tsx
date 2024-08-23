@@ -92,7 +92,10 @@ interface AuthContextType {
   readonly setUsername: (username: string) => Promise<boolean>
   readonly signInWithGoogle: () => Promise<boolean>
   readonly signInWithGitHub: () => Promise<boolean>
-  readonly signInWithPassword: (email: string, password: string) => Promise<void>
+  readonly signInWithPassword: (
+    email: string,
+    password: string,
+  ) => Promise<{ challenge: cognitoModule.UserSessionChallenge; user: cognitoModule.CognitoUser }>
   readonly forgotPassword: (email: string) => Promise<void>
   readonly changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>
   readonly resetPassword: (email: string, code: string, password: string) => Promise<void>
@@ -322,11 +325,23 @@ export default function AuthProvider(props: AuthProviderProps) {
 
   const signInWithPassword = useEventCallback(async (email: string, password: string) => {
     gtagEvent('cloud_sign_in', { provider: 'Email' })
+
     const result = await cognito.signInWithPassword(email, password)
+
+    console.log('result', result)
+
     if (result.ok) {
-      void queryClient.invalidateQueries({ queryKey: sessionQueryKey })
-      navigate(appUtils.DASHBOARD_PATH)
-      return
+      const user = result.unwrap()
+
+      const challenge = user.challengeName ?? 'NO_CHALLENGE'
+
+      if (['SMS_MFA', 'SOFTWARE_TOKEN_MFA'].includes(challenge)) {
+        return { challenge, user } as const
+      }
+
+      return queryClient
+        .invalidateQueries({ queryKey: sessionQueryKey })
+        .then(() => ({ challenge, user }) as const)
     } else {
       throw new Error(result.val.message)
     }

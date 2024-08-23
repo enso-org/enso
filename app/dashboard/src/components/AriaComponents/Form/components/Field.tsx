@@ -11,8 +11,9 @@ import * as aria from '#/components/aria'
 import { useText } from '#/providers/TextProvider'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import * as text from '../../Text'
+import * as formContext from './FormProvider'
 import type * as types from './types'
-import * as formContext from './useFormContext'
+import { useField } from './useField'
 
 /**
  * Props for Field component
@@ -86,19 +87,15 @@ export const Field = React.forwardRef(function Field(
   } = props
   const { getText } = useText()
 
-  const fieldState = form.getFieldState(name)
-
   const labelId = React.useId()
   const descriptionId = React.useId()
   const errorId = React.useId()
 
+  const { fieldState } = useField({ form, name })
+
   const invalid = isInvalid === true || fieldState.invalid
 
-  const classes = variants({
-    fullWidth,
-    isInvalid: invalid,
-    isHidden,
-  })
+  const classes = variants({ fullWidth, isInvalid: invalid, isHidden })
 
   const hasError = (error ?? fieldState.error?.message) != null
 

@@ -14,6 +14,7 @@ export const LOGIN_PATH = '/login'
 export const REGISTRATION_PATH = '/registration'
 /** Path to the confirm registration page. */
 export const CONFIRM_REGISTRATION_PATH = '/confirmation'
+
 export const SETUP_PATH = '/setup'
 /** Path to the page in which a user can restore their account after it has been
  * marked for deletion. */

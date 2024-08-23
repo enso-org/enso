@@ -30,7 +30,7 @@
  * `kind` field provides a unique string that can be used to brand the error in place of the
  * `internalCode`, when rethrowing the error. */
 import * as amplify from '@aws-amplify/auth'
-import type * as cognito from 'amazon-cognito-identity-js'
+import * as cognito from 'amazon-cognito-identity-js'
 import * as results from 'ts-results'
 
 import * as detect from 'enso-common/src/detect'
@@ -74,6 +74,13 @@ interface UserAttributes {
  * The type of multi-factor authentication (MFA) that the user has set up.
  */
 export type MfaType = 'NOMFA' | 'SMS_MFA' | 'SOFTWARE_TOKEN_MFA' | 'TOTP'
+
+/**
+ * The type of challenge that the user is currently facing after signing in.
+ *
+ * The `NO_CHALLENGE` value is used when the user is not currently facing any challenge.
+ */
+export type UserSessionChallenge = cognito.ChallengeName | 'NO_CHALLENGE'
 
 /** User information returned from {@link amplify.Auth.currentUserInfo}. */
 interface UserInfo {
@@ -278,7 +285,13 @@ export class Cognito {
    * Does not rely on external identity providers (e.g., Google or GitHub). */
   async signInWithPassword(username: string, password: string) {
     const result = await results.Result.wrapAsync(async () => {
-      await amplify.Auth.signIn(username, password)
+      const maybeUser = await amplify.Auth.signIn(username, password)
+
+      if (maybeUser instanceof cognito.CognitoUser) {
+        return maybeUser
+      } else {
+        throw new Error('Unknown result from signIn, expected CognitoUser, got ' + typeof maybeUser)
+      }
     })
 
     return result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoSignInWithPasswordErrorOrThrow)
@@ -465,6 +478,18 @@ export class Cognito {
     } else {
       return results.Err(cognitoUserResult.val)
     }
+  }
+
+  async confirmSignIn(
+    user: amplify.CognitoUser,
+    confirmationCode: string,
+    mfaType: 'SMS_MFA' | 'SOFTWARE_TOKEN_MFA',
+  ) {
+    const result = await results.Result.wrapAsync(() =>
+      amplify.Auth.confirmSignIn(user, confirmationCode, mfaType),
+    )
+
+    return result.mapErr(intoAmplifyErrorOrThrow)
   }
 
   /** We want to signal to Amplify to fire a "custom state change" event when the user is
@@ -811,3 +836,4 @@ async function currentAuthenticatedUser() {
   )
   return result.mapErr(intoAmplifyErrorOrThrow)
 }
+export { CognitoUser } from '@aws-amplify/auth'

@@ -2,7 +2,6 @@
 import * as React from 'react'
 
 import SvgMask from '#/components/SvgMask'
-import * as mergeRefs from '#/utilities/mergeRefs'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
 
@@ -97,15 +96,7 @@ export const Alert = React.forwardRef(function Alert(
   })
 
   return (
-    <div
-      className={classes.base({ className })}
-      ref={mergeRefs.mergeRefs(ref, (e) => {
-        if (variant === 'error') {
-          e?.focus()
-        }
-      })}
-      {...containerProps}
-    >
+    <div className={classes.base({ className })} ref={ref} {...containerProps}>
       {icon != null &&
         (() => {
           if (typeof icon === 'string') {

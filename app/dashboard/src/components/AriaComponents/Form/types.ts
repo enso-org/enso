@@ -21,7 +21,8 @@ export type FormProps<
   TFieldValues extends components.FieldValues<Schema>,
   // eslint-disable-next-line no-restricted-syntax
   TTransformedValues extends components.FieldValues<Schema> | undefined = undefined,
-> = BaseFormProps<Schema, TFieldValues, TTransformedValues> &
+  SubmitResult extends unknown = void,
+> = BaseFormProps<Schema, TFieldValues, TTransformedValues, SubmitResult> &
   (
     | FormPropsWithOptions<Schema, TFieldValues>
     | FormPropsWithParentForm<Schema, TFieldValues, TTransformedValues>
@@ -35,11 +36,13 @@ interface BaseFormProps<
   TFieldValues extends components.FieldValues<Schema>,
   // eslint-disable-next-line no-restricted-syntax
   TTransformedValues extends components.FieldValues<Schema> | undefined = undefined,
+  SubmitResult extends unknown = void,
 > extends Omit<
       React.HTMLProps<HTMLFormElement>,
       'children' | 'className' | 'form' | 'onSubmit' | 'onSubmitCapture' | 'style'
     >,
-    styles.FormStyleProps {
+    styles.FormStyleProps,
+    components.OnSubmitCallbacks<Schema, TFieldValues, TTransformedValues, SubmitResult> {
   /**
    * The default values for the form fields
    *
@@ -49,10 +52,6 @@ interface BaseFormProps<
    * This is a known limitation and we are working on a solution.
    */
   readonly defaultValues?: components.UseFormProps<Schema, TFieldValues>['defaultValues']
-  readonly onSubmit?: (
-    values: TFieldValues,
-    form: components.UseFormReturn<Schema, TFieldValues, TTransformedValues>,
-  ) => unknown
   readonly style?:
     | React.CSSProperties
     | ((
@@ -73,10 +72,6 @@ interface BaseFormProps<
   readonly className?:
     | string
     | ((props: components.UseFormReturn<Schema, TFieldValues, TTransformedValues>) => string)
-
-  readonly onSubmitFailed?: (error: unknown) => Promise<void> | void
-  readonly onSubmitSuccess?: () => Promise<void> | void
-  readonly onSubmitted?: () => Promise<void> | void
 
   readonly testId?: string
   /**
@@ -99,6 +94,10 @@ interface FormPropsWithParentForm<
   TTransformedValues extends components.FieldValues<Schema> | undefined = undefined,
 > {
   readonly form: components.UseFormReturn<Schema, TFieldValues, TTransformedValues>
+  readonly onSubmit?: never
+  readonly onSubmitFailed?: never
+  readonly onSubmitSuccess?: never
+  readonly onSubmitted?: never
   readonly schema?: never
   readonly formOptions?: never
 }
@@ -113,7 +112,10 @@ interface FormPropsWithOptions<
 > {
   readonly schema: Schema | ((schema: typeof components.schema) => Schema)
   readonly form?: never
-  readonly formOptions?: Omit<components.UseFormProps<Schema, TFieldValues>, 'resolver' | 'schema'>
+  readonly formOptions?: Omit<
+    components.UseFormProps<Schema, TFieldValues>,
+    'resolver' | 'schema' | 'handleSubmit'
+  >
 }
 
 /**
@@ -183,49 +185,4 @@ export type FormStateRenderProps<
    * Form Instance
    */
   readonly form: components.FormInstance<Schema, TFieldValues, TTransformedValues>
-}
-
-/**
- * Base Props for a Form Field.
- * @private
- */
-interface FormFieldProps<
-  BaseValueType,
-  Schema extends components.TSchema,
-  TFieldValues extends components.FieldValues<Schema>,
-  TFieldName extends components.FieldPath<Schema, TFieldValues>,
-  // eslint-disable-next-line no-restricted-syntax
-  TTransformedValues extends components.FieldValues<Schema> | undefined = undefined,
-> extends components.FormWithValueValidation<
-    BaseValueType,
-    Schema,
-    TFieldValues,
-    TFieldName,
-    TTransformedValues
-  > {
-  readonly name: TFieldName
-  readonly value?: BaseValueType extends TFieldValues[TFieldName] ? TFieldValues[TFieldName] : never
-  readonly defaultValue?: TFieldValues[TFieldName]
-  readonly isDisabled?: boolean
-  readonly isRequired?: boolean
-  readonly isInvalid?: boolean
-}
-
-/**
- * Field State Props
- */
-export type FieldStateProps<
-  // eslint-disable-next-line no-restricted-syntax
-  BaseProps extends { value?: unknown },
-  Schema extends components.TSchema,
-  TFieldValues extends components.FieldValues<Schema>,
-  TFieldName extends components.FieldPath<Schema, TFieldValues>,
-  // eslint-disable-next-line no-restricted-syntax
-  TTransformedValues extends components.FieldValues<Schema> | undefined = undefined,
-> = FormFieldProps<BaseProps['value'], Schema, TFieldValues, TFieldName, TTransformedValues> & {
-  // to avoid conflicts with the FormFieldProps we need to omit the FormFieldProps from the BaseProps
-  [K in keyof Omit<
-    BaseProps,
-    keyof FormFieldProps<BaseProps['value'], Schema, TFieldValues, TFieldName, TTransformedValues>
-  >]: BaseProps[K]
 }

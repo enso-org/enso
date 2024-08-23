@@ -29,6 +29,7 @@
   },
   "dependencies": {
     "@aws-amplify/auth": "5.6.5",
+    "amazon-cognito-identity-js": "6.3.6",
     "@aws-amplify/core": "5.8.5",
     "@hookform/resolvers": "^3.4.0",
     "@monaco-editor/react": "4.6.0",

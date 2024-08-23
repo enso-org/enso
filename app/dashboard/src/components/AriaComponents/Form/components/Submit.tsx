@@ -10,8 +10,8 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
 
+import * as formContext from './FormProvider'
 import type * as types from './types'
-import * as formContext from './useFormContext'
 
 /**
  * Additional props for the Submit component.
@@ -57,7 +57,7 @@ export function Submit(props: SubmitProps): React.JSX.Element {
     loading = false,
     children = formnovalidate ? getText('cancel') : getText('submit'),
     variant = formnovalidate ? 'secondary' : 'submit',
-    testId = formnovalidate ? 'form-cancel=button' : 'form-submit-button',
+    testId = formnovalidate ? 'form-cancel-button' : 'form-submit-button',
     ...buttonProps
   } = props
 

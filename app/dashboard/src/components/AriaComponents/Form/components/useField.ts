@@ -5,8 +5,9 @@
  */
 import * as reactHookForm from 'react-hook-form'
 
+import invariant from 'tiny-invariant'
+import * as formContext from './FormProvider'
 import type * as types from './types'
-import * as formContext from './useFormContext'
 
 /**
  * Options for {@link useField} hook.
@@ -48,11 +49,16 @@ export function useField<
   // The assertion is needed because we use additional type validation for form instance and throw
   // ts error if form does not pass the validation.
   // eslint-disable-next-line no-restricted-syntax
-  const formInstance = form as types.FormInstance<Schema, TFieldValues, TTransformedValues>
+  const formInstance = form as
+    | types.FormInstance<Schema, TFieldValues, TTransformedValues>
+    | undefined
+
+  invariant(formInstance != null, 'Form instance is not provided.')
 
   const { field, fieldState, formState } = reactHookForm.useController({
     name,
     disabled: isDisabled,
+    control: formInstance.control,
     ...(defaultValue != null ? { defaultValue } : {}),
   })
 

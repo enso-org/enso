@@ -14,14 +14,14 @@ import {
   Dialog,
   DialogTrigger,
   Form,
-  OtpInput,
+  OTPInput,
   Selector,
   Switch,
   Text,
 } from '#/components/AriaComponents'
 import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Suspense } from '#/components/Suspense'
-import { useAuth, useFullUserSession } from '#/providers/AuthProvider'
+import { useAuth } from '#/providers/AuthProvider'
 import { useText } from '#/providers/TextProvider'
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
 import { lazy } from 'react'
@@ -104,12 +104,14 @@ export function SetupTwoFaForm() {
               >
                 <Text>{getText('disable2FAWarning')}</Text>
 
-                <OtpInput name="otp" maxLength={6} label={getText('verificationCode')} />
+                <OTPInput name="otp" maxLength={6} label={getText('verificationCode')} />
 
                 <ButtonGroup>
                   <Form.Submit variant="delete">{getText('disable')}</Form.Submit>
                   <Form.Submit formnovalidate>{getText('cancel')}</Form.Submit>
                 </ButtonGroup>
+
+                <Form.FormError />
               </Form>
             </Dialog>
           </DialogTrigger>
@@ -159,7 +161,6 @@ export function SetupTwoFaForm() {
  */
 function TwoFa() {
   const { cognito } = useAuth()
-  const { email } = useFullUserSession()
   const { getText } = useText()
 
   const { data } = useSuspenseQuery({
@@ -220,7 +221,7 @@ function TwoFa() {
           </>
         )}
 
-        <OtpInput
+        <OTPInput
           className="max-w-96"
           label={getText('verificationCode')}
           name="otp"

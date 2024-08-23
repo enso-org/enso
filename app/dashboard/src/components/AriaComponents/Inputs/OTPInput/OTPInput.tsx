@@ -7,10 +7,11 @@ import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
 import { omit } from 'enso-common/src/utilities/data/object'
 import type { OTPInputProps } from 'input-otp'
-import { OTPInput, type SlotProps as OTPInputSlotProps } from 'input-otp'
+import { OTPInput as BaseOTPInput, type SlotProps as OTPInputSlotProps } from 'input-otp'
 import type { ForwardedRef, Ref } from 'react'
 import { forwardRef, useRef } from 'react'
 import type {
+  FieldComponentProps,
   FieldPath,
   FieldProps,
   FieldStateProps,
@@ -19,11 +20,12 @@ import type {
   TSchema,
 } from '../../Form'
 import { Form } from '../../Form'
+import { Separator } from '../../Separator'
 import { TEXT_STYLE } from '../../Text'
 import type { TestIdProps } from '../../types'
 
 /**
- * Props for an {@link OtpInput}.
+ * Props for an {@link OTPInput}.
  */
 export interface OtpInputProps<
   Schema extends TSchema,
@@ -44,24 +46,33 @@ export interface OtpInputProps<
   readonly inputRef?: Ref<HTMLInputElement>
   readonly maxLength: number
   readonly className?: string
+  /**
+   * Whether to submit the form when the OTP is filled.
+   * @default true
+   */
+  readonly submitOnComplete?: boolean
+  /**
+   * Callback when the OTP is filled.
+   */
+  readonly onComplete?: () => void
 }
 
 const STYLES = tv({
   base: 'group flex overflow-hidden p-1 w-[calc(100%+8px)] -m-1 flex-1',
   slots: {
-    slotsContainer: 'flex items-center flex-1 w-full',
+    slotsContainer: 'flex items-center justify-center flex-1 w-full gap-1',
   },
 })
 
 const SLOT_STYLES = tv({
   base: [
-    'flex-1 h-10 min-w-4 flex items-center justify-center',
-    'border-primary border-y border-r first:border-l first:border-xl first:rounded-l-xl last:rounded-r-xl',
+    'flex-1 h-10 min-w-8 flex items-center justify-center',
+    'border border-primary rounded-xl',
     'outline outline-1 outline-transparent -outline-offset-2',
     'transition-[outline-offset] duration-200',
   ],
   variants: {
-    isActive: { true: 'relative -outline-offset-1 outline-2 outline-primary' },
+    isActive: { true: 'relative outline-offset-0 outline-2 outline-primary' },
     isInvalid: { true: { base: 'border-danger', char: 'text-danger' } },
   },
   slots: {
@@ -85,7 +96,7 @@ const SLOT_STYLES = tv({
 /**
  * Accessible one-time password component with copy paste functionality.
  */
-export const OtpInput = forwardRef(function OtpInput<
+export const OTPInput = forwardRef(function OTPInput<
   Schema extends TSchema,
   TFieldValues extends FieldValues<Schema>,
   TFieldName extends FieldPath<Schema, TFieldValues>,
@@ -100,48 +111,36 @@ export const OtpInput = forwardRef(function OtpInput<
     className,
     name,
     fieldVariants,
-    isDisabled = false,
-    form,
-    defaultValue,
     inputRef,
+    submitOnComplete = true,
+    onComplete,
+    form,
     ...inputProps
   } = props
 
   const innerOtpInputRef = useRef<HTMLInputElement>(null)
   const classes = variants({ className })
 
-  const { formInstance, field } = Form.useField({ name, isDisabled, form, defaultValue })
-  const fieldProps = formInstance.register(name)
+  const { fieldProps, formInstance } = Form.useFieldRegister({ ...props, form })
 
   return (
     <Form.Field
-      data-testid={props['data-testid']}
-      form={formInstance}
-      name={name}
-      fullWidth
-      isHidden={props.hidden}
-      label={props.label}
-      aria-label={props['aria-label']}
-      aria-labelledby={props['aria-labelledby']}
-      aria-describedby={props['aria-describedby']}
-      isRequired={fieldProps.isRequired}
-      isInvalid={fieldProps.isInvalid}
-      aria-details={props['aria-details']}
-      ref={ref}
-      style={props.style}
-      className={props.className}
-      variants={fieldVariants}
-      description={props.description}
+      {...mergeProps<FieldComponentProps>()(inputProps, omit(fieldProps), {
+        ref,
+        isHidden: props.hidden,
+        fullWidth: true,
+        variants: fieldVariants,
+        form: formInstance,
+      })}
+      name={props.name}
     >
-      <OTPInput
+      <BaseOTPInput
         {...mergeProps<OTPInputProps>()(
           inputProps,
-          omit(fieldProps, 'required', 'disabled'),
-          field,
+          omit(fieldProps, 'isInvalid', 'isRequired', 'isDisabled', 'invalid'),
           {
             name,
             maxLength,
-            isDisabled,
             noScriptCSSFallback: null,
             containerClassName: classes.base(),
             onClick: () => {
@@ -152,16 +151,59 @@ export const OtpInput = forwardRef(function OtpInput<
                 }
               }
             },
+            onComplete: () => {
+              onComplete?.()
+
+              if (submitOnComplete) {
+                void formInstance.trigger(name).then(() => formInstance.submit())
+              }
+            },
           },
         )}
         ref={mergeRefs(fieldProps.ref, inputRef, innerOtpInputRef)}
-        render={({ slots }) => (
-          <div role="presentation" className={classes.slotsContainer()}>
-            {slots.map((slot, idx) => (
-              <Slot isInvalid={fieldProps.isInvalid} key={idx} {...slot} />
-            ))}
-          </div>
-        )}
+        render={({ slots }) => {
+          const sections = (() => {
+            const items = []
+            const remainingSlots = slots.length % 3
+
+            const sectionsCount = Math.floor(slots.length / 3) + (remainingSlots > 0 ? 1 : 0)
+
+            // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+            if (slots.length < 6) {
+              items.push(slots)
+            } else {
+              for (let i = 0; i < sectionsCount; i++) {
+                const section = slots.slice(i * 3, (i + 1) * 3)
+                items.push(section)
+              }
+            }
+
+            return items
+          })()
+
+          return (
+            <div role="presentation" className="flex w-full items-center gap-2">
+              {sections.map((section, idx) => (
+                <>
+                  <div key={idx} className={classes.slotsContainer()}>
+                    {section.map((slot, key) => (
+                      <Slot isInvalid={fieldProps.isInvalid} key={key} {...slot} />
+                    ))}
+                  </div>
+
+                  {idx < sections.length - 1 && (
+                    <Separator
+                      key={idx + 'separator'}
+                      orientation="horizontal"
+                      className="w-3"
+                      size="medium"
+                    />
+                  )}
+                </>
+              ))}
+            </div>
+          )
+        }}
       />
     </Form.Field>
   )

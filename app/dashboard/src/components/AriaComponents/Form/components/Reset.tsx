@@ -8,8 +8,8 @@ import * as React from 'react'
 import * as ariaComponents from '#/components/AriaComponents'
 
 import { useText } from '#/providers/TextProvider'
+import * as formContext from './FormProvider'
 import type * as types from './types'
-import * as formContext from './useFormContext'
 
 /**
  * Props for the Reset component.

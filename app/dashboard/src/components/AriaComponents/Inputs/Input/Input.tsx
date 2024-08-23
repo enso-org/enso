@@ -60,55 +60,33 @@ export const Input = React.forwardRef(function Input<
 ) {
   const {
     name,
-    isDisabled = false,
-    form,
-    defaultValue,
     description,
     inputRef,
     addonStart,
     addonEnd,
-    label,
     size,
     rounded,
-    isRequired = false,
-    min,
-    max,
     icon,
     type = 'text',
     variant,
     variants = INPUT_STYLES,
     fieldVariants,
+    form,
     ...inputProps
   } = props
 
   const privateInputRef = React.useRef<HTMLInputElement>(null)
 
-  const { fieldState, formInstance } = ariaComponents.Form.useField({
-    name,
-    isDisabled,
+  const { fieldProps, formInstance } = ariaComponents.Form.useFieldRegister<
+    Omit<aria.InputProps, 'children' | 'size'>,
+    Schema,
+    TFieldValues,
+    TFieldName,
+    TTransformedValues
+  >({
+    ...props,
     form,
-    defaultValue,
-  })
-
-  const classes = variants({
-    variant,
-    size,
-    rounded,
-    invalid: fieldState.invalid,
-    readOnly: inputProps.readOnly,
-    disabled: isDisabled || formInstance.formState.isSubmitting,
-  })
-
-  const { ref: fieldRef, ...field } = formInstance.register(name, {
-    disabled: isDisabled,
-    required: isRequired,
-    ...(inputProps.onBlur && { onBlur: inputProps.onBlur }),
-    ...(inputProps.onChange && { onChange: inputProps.onChange }),
-    ...(inputProps.minLength != null ? { minLength: inputProps.minLength } : {}),
-    ...(inputProps.maxLength != null ? { maxLength: inputProps.maxLength } : {}),
-    ...(min != null ? { min } : {}),
-    ...(max != null ? { max } : {}),
-    setValueAs: (value) => {
+    setValueAs: (value: unknown) => {
       if (typeof value === 'string') {
         if (type === 'number') {
           return Number(value)
@@ -124,24 +102,25 @@ export const Input = React.forwardRef(function Input<
     },
   })
 
+  const classes = variants({
+    variant,
+    size,
+    rounded,
+    invalid: fieldProps.isInvalid,
+    readOnly: inputProps.readOnly,
+    disabled: fieldProps.disabled || formInstance.formState.isSubmitting,
+  })
+
   return (
     <ariaComponents.Form.Field
-      data-testid={props['data-testid']}
-      form={formInstance}
-      name={name}
-      fullWidth
-      isHidden={inputProps.hidden}
-      label={label}
-      aria-label={props['aria-label']}
-      aria-labelledby={props['aria-labelledby']}
-      aria-describedby={props['aria-describedby']}
-      isRequired={field.required}
-      isInvalid={fieldState.invalid}
-      aria-details={props['aria-details']}
-      ref={ref}
-      style={props.style}
-      className={props.className}
-      variants={fieldVariants}
+      {...aria.mergeProps<ariaComponents.FieldComponentProps>()(inputProps, omit(fieldProps), {
+        isHidden: props.hidden,
+        ref: ref,
+        fullWidth: true,
+        variants: fieldVariants,
+        form: formInstance,
+      })}
+      name={props.name}
     >
       <div
         className={classes.base()}
@@ -154,12 +133,12 @@ export const Input = React.forwardRef(function Input<
 
           <div className={classes.inputContainer()}>
             <aria.Input
-              ref={mergeRefs.mergeRefs(inputRef, privateInputRef, fieldRef)}
               {...aria.mergeProps<aria.InputProps>()(
-                { className: classes.textArea(), type, name, min, max },
                 inputProps,
-                omit(field, 'required', 'disabled', 'isRequired', 'isDisabled', 'isInvalid'),
+                { className: classes.textArea(), type, name },
+                omit(fieldProps, 'isInvalid', 'isRequired', 'isDisabled', 'invalid'),
               )}
+              ref={mergeRefs.mergeRefs(inputRef, privateInputRef, fieldProps.ref)}
             />
           </div>
 

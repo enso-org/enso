@@ -10,8 +10,8 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as reactAriaComponents from '#/components/AriaComponents'
 
+import * as formContext from './FormProvider'
 import type * as types from './types'
-import * as formContext from './useFormContext'
 
 /**
  * Props for the FormError component.
