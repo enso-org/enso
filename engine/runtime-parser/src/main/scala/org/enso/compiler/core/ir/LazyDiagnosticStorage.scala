@@ -15,10 +15,6 @@ trait LazyDiagnosticStorage { self: IR =>
     _diagnostics
   }
 
-  def diagnosticsList: List[Diagnostic] = {
-    if (_diagnostics eq null) Nil else _diagnostics.toList
-  }
-
   def diagnosticsCopy: DiagnosticStorage = {
     if (_diagnostics eq null) _diagnostics else _diagnostics.copy
   }
