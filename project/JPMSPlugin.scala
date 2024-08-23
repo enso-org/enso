@@ -134,23 +134,26 @@ object JPMSPlugin extends AutoPlugin {
         moduleName.value
       )
     },
-    exportedModule := {
-      // Ensure module-info.java is compiled
-      compileModuleInfo.value
-      val logger   = streams.value.log
-      val projName = moduleName.value
-      val targetClassDir = (Compile / exportedProducts).value
+    // Returns the reference to target/classes directory and ensures that module-info
+    // is compiled and present in the target directory.
+    exportedModule := Def.task {
+      val targetClassDir = (Compile / exportedProducts)
+        .value
         .map(_.data)
         .head
+      val logger   = streams.value.log
+      val projName = moduleName.value
       if (!isModule(targetClassDir)) {
         logger.error(
           s"[JPMSPlugin/$projName] The target classes directory ${targetClassDir.getAbsolutePath} is not " +
-          "a module - it does not contain module-info.class. Make sure the `compileModuleInfo` task " +
-          "is set correctly."
+            "a module - it does not contain module-info.class. Make sure the `compileModuleInfo` task " +
+            "is set correctly."
         )
       }
       targetClassDir
-    },
+    }
+      .dependsOn(compileModuleInfo)
+      .value,
     exportedModuleBin := {
       (Compile / packageBin)
         .dependsOn(exportedModule)
