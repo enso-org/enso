@@ -105,38 +105,38 @@ type SQL_Generator
         query : Query -> self.generate_sub_query dialect query
         descriptor : Order_Descriptor -> self.generate_order dialect descriptor
 
-  ## PRIVATE
+    ## PRIVATE
 
-     Builds code for the FROM clause.
+       Builds code for the FROM clause.
 
-     Arguments:
-     - dialect: The SQL dialect for which the code is generated.
-     - from_spec: A description of the FROM clause.
-  generate_from_part : Dialect -> From_Spec -> SQL_Builder
-  generate_from_part self dialect from_spec = case from_spec of
-      From_Spec.Table name as_name _ ->
-          dialect.wrap_identifier name ++ alias dialect as_name
-      From_Spec.Query raw_sql as_name ->
-          SQL_Builder.code raw_sql . paren ++ alias dialect as_name
-      From_Spec.Literal_Values vecs column_names as_name ->
-          Runtime.assert (vecs.length == column_names.length) "Vectors and column names must have the same length"
-          dialect.make_table_literal vecs column_names as_name
-      From_Spec.Join kind left_spec right_spec on ->
-          left = self.generate_from_part dialect left_spec
-          right = self.generate_from_part dialect right_spec
-          ons = SQL_Builder.join " AND " (on.map (self.generate_expression dialect)) . prefix_if_present " ON "
-          left ++ (" " + kind.to_sql + " ") ++ right ++ ons
-      From_Spec.Union queries as_name ->
-          built_queries = queries.map query->
-              case query of
-                  Query.Select _ _ -> Nothing
-                  _ -> Panic.throw <| Illegal_State.Error "Only SELECT queries can be used in a UNION. This is a bug in the Database library."
-              self.generate_sub_query dialect query
-          joined = SQL_Builder.join " UNION ALL " built_queries
-          joined.paren ++ alias dialect as_name
-      From_Spec.Sub_Query columns context as_name ->
-          sub = self.generate_sub_query dialect (Query.Select columns context)
-          sub.paren ++ alias dialect as_name
+       Arguments:
+       - dialect: The SQL dialect for which the code is generated.
+       - from_spec: A description of the FROM clause.
+    generate_from_part : Dialect -> From_Spec -> SQL_Builder
+    generate_from_part self dialect from_spec = case from_spec of
+        From_Spec.Table name as_name _ ->
+            dialect.wrap_identifier name ++ alias dialect as_name
+        From_Spec.Query raw_sql as_name ->
+            SQL_Builder.code raw_sql . paren ++ alias dialect as_name
+        From_Spec.Literal_Values vecs column_names as_name ->
+            Runtime.assert (vecs.length == column_names.length) "Vectors and column names must have the same length"
+            dialect.make_table_literal vecs column_names as_name
+        From_Spec.Join kind left_spec right_spec on ->
+            left = self.generate_from_part dialect left_spec
+            right = self.generate_from_part dialect right_spec
+            ons = SQL_Builder.join " AND " (on.map (self.generate_expression dialect)) . prefix_if_present " ON "
+            left ++ (" " + kind.to_sql + " ") ++ right ++ ons
+        From_Spec.Union queries as_name ->
+            built_queries = queries.map query->
+                case query of
+                    Query.Select _ _ -> Nothing
+                    _ -> Panic.throw <| Illegal_State.Error "Only SELECT queries can be used in a UNION. This is a bug in the Database library."
+                self.generate_sub_query dialect query
+            joined = SQL_Builder.join " UNION ALL " built_queries
+            joined.paren ++ alias dialect as_name
+        From_Spec.Sub_Query columns context as_name ->
+            sub = self.generate_sub_query dialect (Query.Select columns context)
+            sub.paren ++ alias dialect as_name
 
     ## PRIVATE
 
