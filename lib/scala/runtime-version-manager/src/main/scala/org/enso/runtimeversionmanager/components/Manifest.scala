@@ -2,7 +2,6 @@ package org.enso.runtimeversionmanager.components
 
 import java.io.{FileReader, StringReader}
 import java.nio.file.Path
-import org.enso
 import org.enso.semver.SemVer
 import org.enso.cli.OS
 import org.enso.semver.SemVerYaml._

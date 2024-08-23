@@ -8,6 +8,7 @@ import org.enso.editions.Editions.RawEdition
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.process.WrappedProcess
+import org.enso.version.BuildVersion
 import org.enso.yaml.YamlHelper
 
 import java.io.File
@@ -125,7 +126,7 @@ abstract class DummyRepository(toolsRootDirectory: Path) {
     */
   def createEdition(repoUrl: String): RawEdition = {
     Editions.Raw.Edition(
-      parent       = Some(buildinfo.Info.currentEdition),
+      parent       = Some(BuildVersion.currentEdition),
       repositories = Map(repoName -> Editions.Repository(repoName, repoUrl)),
       libraries = Map.from(libraries.map { lib =>
         lib.libraryName -> Editions.Raw
