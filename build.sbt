@@ -684,8 +684,6 @@ lazy val componentModulesPaths =
   ourMods ++ thirdPartyModFiles
 }
 
-lazy val compileModuleInfo = taskKey[Unit]("Compiles `module-info.java`")
-
 // ============================================================================
 // === Internal Libraries =====================================================
 // ============================================================================
@@ -1095,11 +1093,7 @@ lazy val `scala-libs-wrapper` = project
       "org.scala-lang" % "scala-compiler" % scalacVersion,
       "org.jline"      % "jline"          % jlineVersion
     ),
-    shouldCompileModuleInfoManually := true,
     excludeFilter := excludeFilter.value || "module-info.java",
-    compileModuleInfo := {
-      JPMSUtils.compileModuleInfo().value
-    },
     javacOptions ++= {
       JPMSPlugin.constructOptions(
         streams.value.log,
@@ -1108,10 +1102,6 @@ lazy val `scala-libs-wrapper` = project
       )
     },
     exportedModuleBin := assembly.value,
-    // Ensure that `module-info.class` is included in the assembled Jar
-    assembly := assembly
-      .dependsOn(compileModuleInfo)
-      .value,
     assembly / assemblyExcludedJars := {
       JPMSUtils.filterModulesFromClasspath(
         (Compile / fullClasspath).value,
@@ -1918,6 +1908,16 @@ lazy val javadocSettings = Seq(
   )
 )
 
+lazy val shouldCompileModuleInfo = taskKey[Boolean](
+  "Determines whether the module-info.java file should be compiled. " +
+  "Used in mixed Scala/Java projects where module-info.java compilation cannot be " +
+  "done by sbt automatically."
+)
+
+lazy val isJPMSModule = taskKey[Boolean](
+  "Determines whether the project is a JPMS module."
+)
+
 /** A setting to replace javac with Frgaal compiler, allowing to use latest Java features in the code
   * and still compile down to JDK 17
   */
@@ -1925,10 +1925,52 @@ lazy val frgaalJavaCompilerSetting =
   customFrgaalJavaCompilerSettings(targetJavaVersion)
 
 def customFrgaalJavaCompilerSettings(targetJdk: String) = Seq(
+  isJPMSModule := {
+    // modulePath task is defined by the JPMSPlugin. The following code checks whether
+    // the `modulePath` task is defined in the current project.
+    // Note that there is no simple way how to check whether the project has `JPMSPlugin`.
+    modulePath.?.value.isDefined
+  },
+  shouldCompileModuleInfo := Def.taskIf {
+    if (isJPMSModule.value) {
+      val javaSrcDir = (Compile / javaSource).value
+      val modInfo =
+        javaSrcDir.toPath.resolve("module-info.java").toFile
+      val hasModInfo = modInfo.exists
+      val projName        = moduleName.value
+      val logger          = streams.value.log
+      val hasScalaSources = (Compile / scalaSource).value.exists()
+      val _compileOrder   = (Compile / compileOrder).value
+      val res =
+        _compileOrder == CompileOrder.Mixed &&
+          hasModInfo &&
+          hasScalaSources
+      if (res) {
+        logger.warn(
+          s"[FrgaalJavaCompilerSetting] Project '$projName' will have `module-info.java` compiled " +
+            "manually. If this is not the intended behavior, consult the documentation " +
+            "of JPMSPlugin."
+        )
+      }
+      // Check excludeFilter - there should be module-info.java specified
+      if (res && !excludeFilter.value.accept(modInfo)) {
+        logger.error(
+          s"[FrgaalJavaCompilerSetting/$projName] `module-info.java` is not in `excludeFilter`. " +
+          "You should add module-info.java to " +
+          "`excludedFilter` so that sbt does not handle the compilation. Check docs of JPMSPlugin."
+        )
+      }
+      res
+    } else {
+      false
+    }
+  }.value,
   Compile / compile / compilers := FrgaalJavaCompiler.compilers(
     (Compile / dependencyClasspath).value,
     compilers.value,
-    targetJdk
+    targetJdk,
+    shouldCompileModuleInfo.value,
+    (Compile / javaSource).value
   ),
   // This dependency is needed only so that developers don't download Frgaal manually.
   // Sadly it cannot be placed under plugins either because meta dependencies are not easily

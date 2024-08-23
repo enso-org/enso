@@ -62,9 +62,6 @@ object JPMSPlugin extends AutoPlugin {
         |""".stripMargin
     )
 
-    // TODO: Make this private
-    val compileModuleInfo = taskKey[Unit]("Compile module-info.java")
-
     val exportedModule = taskKey[File](
       """
         |Similarly to `exportedProducts` task, this task returns a file that can be
@@ -81,18 +78,6 @@ object JPMSPlugin extends AutoPlugin {
       "Similar to `packageBin` task. This task returns a modular JAR archive that can be " +
       "directly put on module-path"
     )
-
-    /** Should module-info.java be compiled manually? True iff there is `module-info.java`
-      * in java sources and if the compile order is Mixed. In such case, sbt tries to first
-      * parse all the Java sources via its internal parser, and that fails for `modue-info`.
-      * In these cases, we need to exclude `module-info.java` from the sources and compile it
-      * manually.
-      *
-      * WARNING: Do not use override this task directly if you don't know exactly what you are doing.
-      */
-    val shouldCompileModuleInfoManually = taskKey[Boolean](
-      "Should module-info.java be compiled manually?"
-    )
   }
 
   import autoImport._
@@ -101,27 +86,6 @@ object JPMSPlugin extends AutoPlugin {
     addModules := Seq.empty,
     moduleDependencies := Seq.empty,
     internalModuleDependencies := Seq.empty,
-    shouldCompileModuleInfoManually := {
-      val javaSrcDir = (Compile / javaSource).value
-      val hasModInfo =
-        javaSrcDir.toPath.resolve("module-info.java").toFile.exists()
-      val projName        = moduleName.value
-      val logger          = streams.value.log
-      val hasScalaSources = (Compile / scalaSource).value.exists()
-      val _compileOrder   = (Compile / compileOrder).value
-      val res =
-        _compileOrder == CompileOrder.Mixed &&
-        hasModInfo &&
-        hasScalaSources
-      if (res) {
-        logger.warn(
-          s"[JPMSPlugin] Project '$projName' will have `module-info.java` compiled " +
-          "manually. If this is not the intended behavior, consult the documentation " +
-          "of JPMSPlugin."
-        )
-      }
-      res
-    },
     // modulePath is set based on moduleDependencies
     modulePath := {
       // Do not use fullClasspath here - it will result in an infinite recursion
@@ -152,7 +116,7 @@ object JPMSPlugin extends AutoPlugin {
       }
       targetClassDir
     }
-      .dependsOn(compileModuleInfo)
+      .dependsOn(Compile / compile)
       .value,
     exportedModuleBin := {
       (Compile / packageBin)
@@ -162,29 +126,6 @@ object JPMSPlugin extends AutoPlugin {
     patchModules := Map.empty,
     addExports := Map.empty,
     addReads := Map.empty,
-    compileModuleInfo := Def.taskIf {
-      if (shouldCompileModuleInfoManually.value) {
-        val projectName = moduleName.value
-        val logger      = streams.value.log
-        val sources     = (Compile / unmanagedSources).value
-        val moduleInfo  = sources.find(_.name == "module-info.java")
-        if (moduleInfo.isDefined) {
-          logger.error(
-            s"[JPMSPlugin/$projectName] module-info.java is contained in `Compile / unmanagedSources`. " +
-            s"This means that it is not excluded from the default sbt compilation. " +
-            """Declare `excludedFilter := excludedFilter.value || \"module-info.java\"` in settings. """ +
-            s"Otherwise, JPMSPlugin cannot manually compile module-info.java. " +
-            s"(See the docs for `JPMSPlugin.shouldCompileModuleInfoManually`)"
-          )
-        }
-        JPMSUtils
-          .compileJava()
-          .dependsOn(Compile / compile)
-          .value
-      } else {
-        (Compile / compile).value
-      }
-    }.value,
     // javacOptions only inject --module-path and --add-modules, not the rest of the
     // options.
     Compile / javacOptions ++= {
