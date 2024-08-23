@@ -246,11 +246,11 @@ type SQLite_Dialect
         Mode _ _ -> unsupported "Mode"
         First _ _ ignore_nothing order_by ->
             if ignore_nothing then unsupported "First with ignore_nothing=True" else
-                if Aggregate_Helper.is_non_empty_selector order_by . not then unsupported "First without order_by" else
+                if Aggregate_Helper.is_non_empty_selector order_by . not then Aggregate_Helper.throw_ordering_required "First" else
                     True
         Last _ _ ignore_nothing order_by ->
             if ignore_nothing then unsupported "Last with ignore_nothing=True" else
-                if Aggregate_Helper.is_non_empty_selector order_by . not then unsupported "Last without order_by" else
+                if Aggregate_Helper.is_non_empty_selector order_by . not then Aggregate_Helper.throw_ordering_required "Last" else
                     True
         Maximum _ _ -> True
         Minimum _ _ -> True

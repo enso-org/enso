@@ -1427,7 +1427,7 @@ add_specs suite_builder setup =
         if test_selection.first_last && test_selection.first_last_row_order.not then
             group_builder.specify "should report a warning and ignore problematic columns if a feature is not supported" <|
                 table = table_builder [["A", [1,2,Nothing,3]]]
-                action = table.aggregate columns=[Sum "A", First "A", Last "A"] on_problems=_
+                action = table.aggregate columns=[Sum "A", First ignore_nothing=False "A", Last ignore_nothing=False "A"] on_problems=_
                 tester result =
                     result.row_count . should_equal 1
                     materialized = materialize result
@@ -1439,7 +1439,7 @@ add_specs suite_builder setup =
 
             group_builder.specify "will include unsupported feature problem in No_Output_Columns" <|
                 table = table_builder [["A", [1,2,Nothing,3]]]
-                r1 = table.aggregate columns=[First "A"]
+                r1 = table.aggregate columns=[First ignore_nothing=False "A"]
                 r1.should_fail_with No_Output_Columns
                 r1.catch.cause . should_be_a Unsupported_Database_Operation
                 r1.to_display_text . should_contain "No columns in the result"
