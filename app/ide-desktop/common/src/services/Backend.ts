@@ -1220,6 +1220,25 @@ export function getAssetId<Type extends AssetType>(asset: Asset<Type>) {
   return asset.id
 }
 
+// ================================
+// === userHasUserAndTeamSpaces ===
+// ================================
+
+/** Whether a user's root directory has the "Users" and "Teams" subdirectories. */
+export function userHasUserAndTeamSpaces(user: User | null) {
+  switch (user?.plan ?? null) {
+    case null:
+    case Plan.free:
+    case Plan.solo: {
+      return false
+    }
+    case Plan.team:
+    case Plan.enterprise: {
+      return true
+    }
+  }
+}
+
 // =====================
 // === fileIsProject ===
 // =====================

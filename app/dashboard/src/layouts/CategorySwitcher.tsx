@@ -241,6 +241,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   const [, setSearchParams] = useSearchParams()
   const [localRootDirectories, setLocalRootDirectories] =
     useLocalStorageState('localRootDirectories')
+  const hasUserAndTeamSpaces = backend.userHasUserAndTeamSpaces(user)
   const { setModal } = modalProvider.useSetModal()
 
   const localBackend = backendProvider.useLocalBackend()
@@ -271,25 +272,34 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
       ),
     [teams],
   )
-  const usersDirectoryQuery = useBackendQuery(remoteBackend, 'listDirectory', [
-    {
-      parentId: backend.DirectoryId(USERS_DIRECTORY_ID),
-      filterBy: backend.FilterBy.active,
-      labels: [],
-      recentProjects: false,
-    },
-    'Users',
-  ])
-  const teamsDirectoryQuery = useBackendQuery(remoteBackend, 'listDirectory', [
-    {
-      parentId: backend.DirectoryId(TEAMS_DIRECTORY_ID),
-      filterBy: backend.FilterBy.active,
-      labels: [],
-      recentProjects: false,
-    },
-
-    'Teams',
-  ])
+  const usersDirectoryQuery = useBackendQuery(
+    remoteBackend,
+    'listDirectory',
+    [
+      {
+        parentId: backend.DirectoryId(USERS_DIRECTORY_ID),
+        filterBy: backend.FilterBy.active,
+        labels: [],
+        recentProjects: false,
+      },
+      'Users',
+    ],
+    { enabled: hasUserAndTeamSpaces },
+  )
+  const teamsDirectoryQuery = useBackendQuery(
+    remoteBackend,
+    'listDirectory',
+    [
+      {
+        parentId: backend.DirectoryId(TEAMS_DIRECTORY_ID),
+        filterBy: backend.FilterBy.active,
+        labels: [],
+        recentProjects: false,
+      },
+      'Teams',
+    ],
+    { enabled: hasUserAndTeamSpaces },
+  )
 
   return (
     <FocusArea direction="vertical">
