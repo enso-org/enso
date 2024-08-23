@@ -212,6 +212,11 @@ type DB_Column
     ## PRIVATE
        Column-level manual CTE factoring.
 
+       Arguments:
+       - name: A prefix to use for the generated let binder.
+       - callback: A functiont that receives the let reference and returns a
+         column value that refers to it.
+
        Calling `let` on a column wraps it as a CTE (common table
        expression), using a SQL `WITH ... AS` clause. More specifically, it
        takes a callback that receives a "reference" to the CTE; the callback
@@ -251,9 +256,10 @@ type DB_Column
          table name, also takes up space, so if the `self` argument to `let`
          isn't very large, `let` can actually make the query longer.
 
-         For this reason, it is generally better to apply `let` to values
-         before passing them into a library method, rather than to apply it to
-         the value inside the library method itself.
+         For this reason, it makes sense to use let only on expressions that at
+         the same time: are expected to be relatively large (results of complex
+         transformations already) and are going to be repeated multiple times in
+         the query.
 
        > Example
          Remove duplicates of a large column expression from a query.

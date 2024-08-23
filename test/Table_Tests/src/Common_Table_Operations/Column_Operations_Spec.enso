@@ -1758,16 +1758,18 @@ add_specs suite_builder setup =
                 b = (x - 2.3).let "xx" xx-> (xx * (y + 1)) + z
                 c = (x - 2.3).let "xx" xx-> (y + 1).let "yy" yy-> (xx * yy) + z
                 d = ((x - 2.3) * (y + 1)).let "xxyy" xxyy-> xxyy + z
-                a.to_vector . should_equal [5.6000000000000005, 22.2, 66.20000000000002, 386.03000000000003]
-                a.to_vector . should_equal b.to_vector
-                a.to_vector . should_equal c.to_vector
-                a.to_vector . should_equal d.to_vector
+
+                r = a . to_table . set b "b" . set c "c" . set d "d" . read
+                r.at "a" . to_vector . should_equal [5.6000000000000005, 22.2, 66.20000000000002, 386.03000000000003]
+                r.at "a" . to_vector . should_equal (r.at "b" . to_vector)
+                r.at "a" . to_vector . should_equal (r.at "c" . to_vector)
+                r.at "a" . to_vector . should_equal (r.at "d" . to_vector)
 
                 a.to_table.to_sql . prepare . at 0 . should_not_contain "WITH"
-                b.to_table.to_sql . prepare . at 0 . should_contain 'WITH \"xx_0'
-                c.to_table.to_sql . prepare . at 0 . should_contain 'WITH \"xx_0'
-                c.to_table.to_sql . prepare . at 0 . should_contain 'WITH \"yy_1'
-                d.to_table.to_sql . prepare . at 0 . should_contain 'WITH \"xxyy_0'
+                b.to_table.to_sql . prepare . at 0 . should_contain 'xx_0'
+                c.to_table.to_sql . prepare . at 0 . should_contain 'xx_0'
+                c.to_table.to_sql . prepare . at 0 . should_contain 'yy_1'
+                d.to_table.to_sql . prepare . at 0 . should_contain 'xxyy_0'
 
     suite_builder.group prefix+"(Column_Operations_Spec) Table.make_constant_column" group_builder->
         group_builder.specify "Should allow the creation of constant columns" <|

@@ -99,9 +99,9 @@ add_specs (suite_builder : Suite_Builder) setup (prefix : Text) default_connecti
             x = joined.at "x"
             with_ctes = x.let "x" x-> x.let "x" x-> x
             with_ctes_sql = with_ctes.to_table.to_sql . prepare . at 0
-            with_ctes_sql . should_contain 'WITH \"let_1'
-            with_ctes_sql . should_contain 'WITH \"let_3'
-            with_ctes_sql . should_not_contain 'WITH \"let_4'
+            with_ctes_sql . should_contain 'let_1'
+            with_ctes_sql . should_contain 'let_3'
+            with_ctes_sql . should_not_contain 'let_4'
 
 main filter=Nothing =
     suite = Test.build suite_builder->

@@ -47,7 +47,7 @@ type Dialect_Operations
     is_supported self operation =
         self.operations_dict.contains_key operation
 
-## Private
+## PRIVATE
 
    Generates SQL from a `Query`.
 
