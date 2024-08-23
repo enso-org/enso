@@ -126,18 +126,22 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const isDropTarget = (() => {
     if (areCategoriesEqual(category, currentCategory)) {
       return false
-    } else if (currentCategory.type === 'trash') {
-      switch (category.type) {
-        case 'trash':
+    } else {
+      switch (currentCategory.type) {
+        case 'cloud': {
+          return category.type === 'trash'
+        }
         case 'recent': {
           return false
         }
-        default: {
-          return true
+        case 'trash': {
+          return category.type === 'cloud'
+        }
+        case 'local':
+        case 'local-directory': {
+          return category.type === 'local' || category.type === 'local-directory'
         }
       }
-    } else {
-      return category.type !== 'recent'
     }
   })()
   const acceptedDragTypes = isDropTarget ? [mimeTypes.ASSETS_MIME_TYPE] : []
@@ -454,7 +458,10 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                     onPress={() => {
                       setModal(
                         <ConfirmDeleteModal
-                          actionText={getText('removeTheLocalDirectoryXFromFavorites', getFileName(directory))}
+                          actionText={getText(
+                            'removeTheLocalDirectoryXFromFavorites',
+                            getFileName(directory),
+                          )}
                           actionButtonLabel={getText('remove')}
                           doDelete={() => {
                             setLocalRootDirectories(
