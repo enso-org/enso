@@ -32,6 +32,6 @@ public class ReadOnlyExcelConnection implements AutoCloseable {
       throw new IllegalStateException("ReadOnlyExcelConnection is being used after it was closed.");
     }
 
-    return record.withWorkbook(p -> f.apply(ExcelWorkbook.ForWorkbook(p)));
+    return record.withWorkbook(f);
   }
 }

@@ -2,6 +2,8 @@ package org.enso.table.excel;
 
 import org.apache.poi.ss.usermodel.Name;
 
+import java.io.IOException;
+
 /** Represents an Excel workbook. Wraps the underlying Apache POI Workbook object. */
 public interface ExcelWorkbook {
   /**
@@ -57,12 +59,22 @@ public interface ExcelWorkbook {
   ExcelSheet getSheetAt(int sheetIndex);
 
   /**
+   * Close the underlying input resource (File or Stream),
+   *  from which the Workbook was read.
+   *
+   * <p>Once this has been called, no further
+   *  operations, updates or reads should be performed on the
+   *  Workbook.
+   */
+  void close() throws IOException;
+
+  /**
    * Create an ExcelWorkbook object from an Apache POI Workbook object
    *
    * @param workbook the Apache POI Workbook object
    * @return the ExcelWorkbook object
    */
-  static ExcelWorkbook ForWorkbook(org.apache.poi.ss.usermodel.Workbook workbook) {
+  static ExcelWorkbook forWorkbook(org.apache.poi.ss.usermodel.Workbook workbook) {
     return new ExcelWorkbookForWorkbook(workbook);
   }
 
@@ -104,6 +116,11 @@ public interface ExcelWorkbook {
     @Override
     public ExcelSheet getSheetAt(int sheetIndex) {
       return ExcelSheet.fromWorkbook(workbook, sheetIndex);
+    }
+
+    @Override
+    public void close() throws IOException {
+      workbook.close();
     }
   }
 }

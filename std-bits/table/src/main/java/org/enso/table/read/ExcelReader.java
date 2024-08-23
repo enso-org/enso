@@ -36,8 +36,7 @@ public class ExcelReader {
    * @return a String[] containing the sheet names.
    * @throws IOException when the action fails
    */
-  public static String[] readSheetNames(File file, ExcelFileFormat format)
-      throws IOException {
+  public static String[] readSheetNames(File file, ExcelFileFormat format) throws IOException {
     return withWorkbook(file, format, ExcelReader::readSheetNames);
   }
 
@@ -66,8 +65,7 @@ public class ExcelReader {
    * @return a String[] containing the range names.
    * @throws IOException when the action fails
    */
-  public static String[] readRangeNames(File file, ExcelFileFormat format)
-      throws IOException {
+  public static String[] readRangeNames(File file, ExcelFileFormat format) throws IOException {
     return withWorkbook(file, format, ExcelWorkbook::getRangeNames);
   }
 

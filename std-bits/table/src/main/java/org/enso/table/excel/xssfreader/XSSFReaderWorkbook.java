@@ -78,6 +78,7 @@ public class XSSFReaderWorkbook implements ExcelWorkbook {
   private static final String WORKSHEET_1904_XPATH = "/ss:workbook/ss:workbookPr/@date1904";
 
   private final String path;
+  private boolean isClosed = false;
 
   private boolean readWorkbookData = false;
   private List<SheetInfo> sheetInfos;
@@ -97,12 +98,21 @@ public class XSSFReaderWorkbook implements ExcelWorkbook {
   }
 
   void withReader(Consumer<XSSFReader> action) {
+    if (isClosed) {
+      throw new IllegalStateException("Workbook is closed");
+    }
+
     try (var pkg = OPCPackage.open(path, PackageAccess.READ)) {
       var reader = new XSSFReader(pkg);
       action.accept(reader);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
+  }
+
+  @Override
+  public void close() throws IOException {
+    isClosed = true;
   }
 
   private record SheetInfo(int index, String name, String relID, boolean visible) {}
@@ -128,8 +138,7 @@ public class XSSFReaderWorkbook implements ExcelWorkbook {
             for (int i = 0; i < sheetNodes.getLength(); i++) {
               var node = sheetNodes.item(i);
               var sheetName = node.getAttributes().getNamedItem("name").getNodeValue();
-              var sheetId =
-                  Integer.parseInt(node.getAttributes().getNamedItem("sheetId").getNodeValue());
+              var sheetId = i;
               var relId = node.getAttributes().getNamedItem("r:id").getNodeValue();
               var visible = node.getAttributes().getNamedItem("state") == null;
               var sheetInfo = new SheetInfo(sheetId, sheetName, relId, visible);

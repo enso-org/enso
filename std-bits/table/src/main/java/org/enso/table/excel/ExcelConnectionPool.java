@@ -20,6 +20,7 @@ import org.apache.poi.openxml4j.opc.PackageAccess;
 import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.enso.table.excel.xssfreader.XSSFReaderWorkbook;
 
 public class ExcelConnectionPool {
   public static final ExcelConnectionPool INSTANCE = new ExcelConnectionPool();
@@ -64,7 +65,7 @@ public class ExcelConnectionPool {
         record.refCount = 1;
         record.file = file;
         record.format = format;
-        record.workbook = openWorkbook(file, format, false);
+        record.reopen(true);
         records.put(key, record);
         return new ReadOnlyExcelConnection(this, key, record);
       }
@@ -212,10 +213,10 @@ public class ExcelConnectionPool {
     private int refCount;
     private File file;
     private ExcelFileFormat format;
-    private Workbook workbook;
+    private ExcelWorkbook workbook;
     private IOException initializationException = null;
 
-    <T> T withWorkbook(Function<Workbook, T> action) throws IOException {
+    <T> T withWorkbook(Function<ExcelWorkbook, T> action) throws IOException {
       synchronized (this) {
         return action.apply(accessCurrentWorkbook());
       }
@@ -238,7 +239,9 @@ public class ExcelConnectionPool {
         }
 
         try {
-          workbook = openWorkbook(file, format, false);
+          workbook = format == ExcelFileFormat.XLSX
+              ? new XSSFReaderWorkbook(file.getAbsolutePath())
+              : ExcelWorkbook.forWorkbook(openWorkbook(file, format, false));
         } catch (IOException e) {
           initializationException = e;
           if (throwOnFailure) {
@@ -248,7 +251,7 @@ public class ExcelConnectionPool {
       }
     }
 
-    private Workbook accessCurrentWorkbook() throws IOException {
+    private ExcelWorkbook accessCurrentWorkbook() throws IOException {
       synchronized (this) {
         if (workbook == null) {
           if (initializationException != null) {

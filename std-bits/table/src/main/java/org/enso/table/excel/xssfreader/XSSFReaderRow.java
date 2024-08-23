@@ -3,6 +3,7 @@ package org.enso.table.excel.xssfreader;
 import java.util.SortedMap;
 import org.apache.poi.ss.usermodel.Cell;
 import org.enso.table.excel.ExcelRow;
+import org.graalvm.polyglot.Context;
 
 public class XSSFReaderRow implements ExcelRow {
   private final int index;
@@ -58,6 +59,25 @@ public class XSSFReaderRow implements ExcelRow {
 
   @Override
   public String[] getCellsAsText(int startCol, int endCol) {
-    return new String[0];
+    Context context = Context.getCurrent();
+    int currentEndCol = endCol == -1 ? getLastColumn() : endCol;
+
+    String[] output = new String[currentEndCol - startCol + 1];
+    for (int col = startCol; col <= currentEndCol; col++) {
+
+      var cell = data.get((short) col);
+      if (cell != null) {
+        var dataType = cell.dataType();
+        if (dataType != XSSFReaderSheetXMLHandler.XSSDataType.INLINE_STRING
+            && dataType != XSSFReaderSheetXMLHandler.XSSDataType.SST_STRING) {
+          return null;
+        }
+      }
+
+      output[col - startCol] = cell == null ? "" : cell.strValue();
+      context.safepoint();
+    }
+
+    return output;
   }
 }
