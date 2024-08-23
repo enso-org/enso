@@ -1,15 +1,20 @@
 <script setup lang="ts">
+import FullscreenButton from '@/components/FullscreenButton.vue'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import { fetcherUrlTransformer } from '@/components/MarkdownEditor/imageUrlTransformer'
+import WithFullscreenMode from '@/components/WithFullscreenMode.vue'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import type { ToValue } from '@/util/reactivity'
-import { ref, toRef, toValue } from 'vue'
+import { ref, toRef, toValue, watch } from 'vue'
 import type { Path } from 'ydoc-shared/languageServerTypes'
 import { Err, Ok, mapOk, withContext, type Result } from 'ydoc-shared/util/data/result'
 
 const documentation = defineModel<string>({ required: true })
 const _props = defineProps<{}>()
+const emit = defineEmits<{
+  'update:fullscreen': [boolean]
+}>()
 
 const toolbarElement = ref<HTMLElement>()
 
@@ -66,25 +71,40 @@ function useDocumentationImages(
 
   return { transformImageUrl }
 }
+
+const fullscreen = ref(false)
+const fullscreenAnimating = ref(false)
+
+watch(
+  () => fullscreen.value || fullscreenAnimating.value,
+  (fullscreenOrAnimating) => emit('update:fullscreen', fullscreenOrAnimating),
+)
 </script>
 
 <template>
-  <div class="DocumentationEditor">
-    <div ref="toolbarElement" class="toolbar"></div>
-    <div class="scrollArea">
-      <MarkdownEditor
-        v-model="documentation"
-        :transformImageUrl="transformImageUrl"
-        :toolbarContainer="toolbarElement"
-      />
+  <WithFullscreenMode :fullscreen="fullscreen" @update:animating="fullscreenAnimating = $event">
+    <div class="DocumentationEditor">
+      <div ref="toolbarElement" class="toolbar">
+        <FullscreenButton v-model="fullscreen" />
+      </div>
+      <div class="scrollArea">
+        <MarkdownEditor
+          v-model="documentation"
+          :transformImageUrl="transformImageUrl"
+          :toolbarContainer="toolbarElement"
+        />
+      </div>
     </div>
-  </div>
+  </WithFullscreenMode>
 </template>
 
 <style scoped>
 .DocumentationEditor {
   display: flex;
   flex-direction: column;
+  background-color: #fff;
+  height: 100%;
+  width: 100%;
 }
 
 .scrollArea {
@@ -100,5 +120,10 @@ function useDocumentationImages(
   height: 48px;
   padding-left: 4px;
   flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  gap: 8px;
 }
 </style>
