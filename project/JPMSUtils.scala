@@ -5,6 +5,7 @@ import sbt.internal.inc.{CompileOutput, PlainVirtualFile}
 import sbt.util.CacheStore
 import sbtassembly.Assembly.{Dependency, JarEntry, Project}
 import sbtassembly.{CustomMergeStrategy, MergeStrategy}
+import xsbti.VirtualFile
 import xsbti.compile.IncToolOptionsUtil
 
 import java.io.File
@@ -309,6 +310,65 @@ object JPMSUtils {
         log.debug(s"javac options: $allOpts")
         val succ = javaCompiler.run(
           Array(PlainVirtualFile(moduleInfo.toPath)),
+          allOpts.toArray,
+          output,
+          incToolOpts,
+          reporter,
+          log
+        )
+        if (!succ) {
+          val msg = s"Compilation of ${moduleInfo} failed"
+          log.error(s"javac options: $allOpts")
+          log.error(msg)
+          throw new IllegalStateException(msg)
+        }
+      }
+    }
+  }
+
+  /**
+   * Compile everything including module-info.java in mixed projects.
+   * @return
+   */
+  def compileJava(): Def.Initialize[Task[Unit]] = Def.task {
+    val moduleInfo       = (Compile / javaSource).value / "module-info.java"
+    val projName         = moduleName.value
+    val log              = streams.value.log
+    val incToolOpts      = IncToolOptionsUtil.defaultIncToolOptions()
+    val reporter         = (Compile / compile / bspReporter).value
+    val output           = CompileOutput((Compile / classDirectory).value.toPath)
+    val outputPath: Path = output.getSingleOutputAsPath.get()
+    val mp               = (Compile / modulePath).value
+    val baseJavacOpts    = (Compile / javacOptions).value
+    val cp               = (Compile / fullClasspath).value
+    val javaCompiler =
+      (Compile / compile / compilers).value.javaTools.javac()
+    val cache =
+      streams.value.cacheStoreFactory.make("java-src-" + projName)
+    val otherJavaSources = (Compile / unmanagedSources)
+      .value
+      .filter(_.name.endsWith(".java"))
+    val allJavaSources = Set(moduleInfo) ++ otherJavaSources.toSet
+
+    Tracked.diffInputs(cache, FileInfo.lastModified)(
+      allJavaSources
+    ) { changeReport =>
+      if (changeReport.modified.nonEmpty || changeReport.added.nonEmpty) {
+        log.info(s"[JPMSUtils/$projName] Compiling ${allJavaSources.size} Java sources, including module-info.java")
+        val allOpts = baseJavacOpts ++ Seq(
+          "--class-path",
+          cp.map(_.data.getAbsolutePath).mkString(File.pathSeparator),
+          "--module-path",
+          mp.map(_.getAbsolutePath).mkString(File.pathSeparator),
+          "-d",
+          outputPath.toAbsolutePath.toString
+        )
+        log.debug(s"javac options: $allOpts")
+        val virtualFiles: Array[VirtualFile] = allJavaSources
+          .map(file => PlainVirtualFile(file.toPath))
+          .toArray
+        val succ = javaCompiler.run(
+          virtualFiles,
           allOpts.toArray,
           output,
           incToolOpts,

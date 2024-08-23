@@ -175,7 +175,7 @@ object JPMSPlugin extends AutoPlugin {
           )
         }
         JPMSUtils
-          .compileModuleInfo()
+          .compileJava()
           .dependsOn(Compile / compile)
           .value
       } else {
