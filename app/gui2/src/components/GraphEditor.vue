@@ -47,6 +47,7 @@ import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { provideSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { suggestionDocumentationUrl, type Typename } from '@/stores/suggestionDatabase/entry'
+import { applyUpdates } from '@/stores/suggestionDatabase/lsUpdate'
 import { provideVisualizationStore } from '@/stores/visualization'
 import { bail } from '@/util/assert'
 import type { AstId } from '@/util/ast/abstract'
@@ -71,10 +72,9 @@ import {
   type ComponentInstance,
 } from 'vue'
 import { encodeMethodPointer } from 'ydoc-shared/languageServerTypes'
+import * as lsTypes from 'ydoc-shared/languageServerTypes/suggestions'
 import * as iterable from 'ydoc-shared/util/data/iterable'
 import { isDevMode } from 'ydoc-shared/util/detect'
-import * as lsTypes from 'ydoc-shared/languageServerTypes/suggestions'
-import { applyUpdates } from '@/stores/suggestionDatabase/lsUpdate'
 
 const rootNode = ref<HTMLElement>()
 
@@ -86,7 +86,6 @@ const widgetRegistry = provideWidgetRegistry(graphStore.db)
 const _visualizationStore = provideVisualizationStore(projectStore)
 const visible = injectVisibility()
 provideFullscreenContext(rootNode)
-
 ;(window as any)._mockSuggestion = suggestionDb.mockSuggestion
 
 onMounted(() => {
