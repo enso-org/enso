@@ -10,4 +10,5 @@ module org.enso.polyglot.api {
   exports org.enso.polyglot;
   exports org.enso.polyglot.debugger;
   exports org.enso.polyglot.data;
+  exports org.enso.polyglot.runtime;
 }

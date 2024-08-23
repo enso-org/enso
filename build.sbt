@@ -2445,6 +2445,7 @@ lazy val `runtime-instrument-common` =
         (`runtime` / exportedModule).value,
         (`runtime-compiler` / exportedModule).value,
         (`runtime-parser` / exportedModule).value,
+        (`runtime-suggestions` / exportedModule).value,
         (`text-buffer` / exportedModule).value,
         (`pkg` / exportedModule).value,
         (`polyglot-api` / exportedModule).value,

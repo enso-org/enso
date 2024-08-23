@@ -12,6 +12,7 @@ module org.enso.runtime.instrument.common {
   requires org.enso.runtime;
   requires org.enso.runtime.compiler;
   requires org.enso.runtime.parser;
+  requires org.enso.runtime.suggestions;
   requires org.enso.text.buffer;
   requires org.enso.pkg;
   requires org.enso.polyglot.api;
