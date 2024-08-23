@@ -84,11 +84,10 @@ type Point_Data
             x_column = Point_Data.X.lookup_in table
             y_column = Point_Data.Y.lookup_in table
             candidates_filtered = table.columns.filter (c-> c.is_numeric && c.name != x_column.name && c.name != y_column.name)
-            candidates = candidates_filtered.slice self.number (candidates_filtered.length)
-            is_good_enough c = c.is_numeric && c.name != x_column.name && c.name != y_column.name
-            is_good c = is_good_enough c && (self.is_recognized c).not
+            candidates = candidates_filtered.drop self.number
+            is_good c = (self.is_recognized c).not
 
-            candidates.find if_missing=(Error.throw Nothing) is_good . catch_ <| candidates.find is_good_enough
+            candidates.find if_missing=candidates.first is_good
         _ -> Error.throw No_Fallback_Column
 
     ## PRIVATE
@@ -130,11 +129,10 @@ Table.point_data self all_fields =
 
 ## PRIVATE
 
-   Generates JSON that describes points data.
-Table.multi_series_info : Number
-Table.multi_series_info self =
-    is_good c = c.is_numeric
-    columns = self.columns . filter is_good
+   Returns the number of numeric columns for the plot.
+Table.numeric_column_count : Number
+Table.numeric_column_count self =
+    columns = self.columns . filter c-> c.is_numeric
     columns.length
 
 ## PRIVATE
@@ -203,22 +201,16 @@ limit_data limit data = case limit of
 
 
 ## PRIVATE
-add_fields : Builder -> Integer -> Integer -> Vector | Nothing
-add_fields current number_of_numeric idx=0 = if idx == number_of_numeric then current.to_vector else
-    current.append (Point_Data.Y_multi idx)
-    @Tail_Call add_fields current number_of_numeric idx+1
-
-## PRIVATE
 get_axes_field : Integer -> Vector
 get_axes_field number_of_numeric =
-    extra_axes_fields = add_fields (Builder.new number_of_numeric) number_of_numeric
-    extra_axes_fields . insert item=Point_Data.X . insert item=Point_Data.Y
+    feilds_for_multiseries = ((0.up_to number_of_numeric).map idx-> Point_Data.Y_multi idx)
+    feilds_for_multiseries . insert item=Point_Data.X . insert item=Point_Data.Y
 
 ## PRIVATE
 json_from_table : Table -> Vector Integer | Nothing -> Integer | Nothing -> Text
 json_from_table table bounds limit =
-    number_of_numeric_cols = table.multi_series_info-2
-    feilds_for_multiseries = Point_Data.all_fields + add_fields (Builder.new number_of_numeric_cols) number_of_numeric_cols
+    number_of_numeric_cols = table.numeric_column_count-2
+    feilds_for_multiseries = Point_Data.all_fields + ((0.up_to number_of_numeric_cols).map idx-> Point_Data.Y_multi idx)
     fields_for_plot = if number_of_numeric_cols > 0 then feilds_for_multiseries else Point_Data.all_fields
     data = table.point_data fields_for_plot |> bound_data bounds |> limit_data limit
     fields_for_axes = get_axes_field number_of_numeric_cols
