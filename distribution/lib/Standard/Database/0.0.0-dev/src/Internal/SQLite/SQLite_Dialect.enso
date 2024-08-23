@@ -244,10 +244,14 @@ type SQLite_Dialect
         Count_Empty _ _ -> True
         Percentile _ _ _ -> unsupported "Percentile"
         Mode _ _ -> unsupported "Mode"
-        First _ _ ignore_nothing _ ->
-            if ignore_nothing == False then True else unsupported "First with ignore_nothing=True"
-        Last _ _ ignore_nothing _ ->
-            if ignore_nothing == False then True else unsupported "Last with ignore_nothing=True"
+        First _ _ ignore_nothing order_by ->
+            if ignore_nothing then unsupported "First with ignore_nothing=True" else
+                if Aggregate_Helper.is_non_empty_selector order_by . not then unsupported "First without order_by" else
+                    True
+        Last _ _ ignore_nothing order_by ->
+            if ignore_nothing then unsupported "Last with ignore_nothing=True" else
+                if Aggregate_Helper.is_non_empty_selector order_by . not then unsupported "Last without order_by" else
+                    True
         Maximum _ _ -> True
         Minimum _ _ -> True
         Shortest _ _ -> unsupported "Shortest"
@@ -326,18 +330,18 @@ type SQLite_Dialect
 
         create_count_for key_columns =
             key_expressions_for_orderings = key_columns.map .expression
-            expression = if key_expressions_for_orderings.is_empty then (SQL_Expression.Operation "COUNT_ROWS" []) else
-                SQL_Expression.Operation "COUNT_OVER_PARTITION" key_expressions_for_orderings
+            ## Even if key_expressions_for_orderings is empty, we still use COUNT_OVER_PARTITION to make it a window
+               function and not an aggregate (we want to return all rows, not a single aggregated one).
+            expression = SQL_Expression.Operation "COUNT_OVER_PARTITION" key_expressions_for_orderings
             Pair.new "group-count" expression
 
         create_helper_expressions aggregate_column key_columns =
-            is_selector_invalid order_by = Aggregate_Helper.is_non_empty_selector order_by . not
             case aggregate_column of
                 Aggregate_Column.First _ _ _ order_by ->
-                    if is_selector_invalid order_by then [] else
+                    if self.check_aggregate_support aggregate_column . is_error then [] else
                         [create_row_number_for order_by key_columns]
                 Aggregate_Column.Last _ _ _ order_by ->
-                    if is_selector_invalid order_by then [] else
+                    if self.check_aggregate_support aggregate_column . is_error then [] else
                         [create_row_number_for order_by key_columns, create_count_for key_columns]
                 _ -> []
 
@@ -419,7 +423,9 @@ agg_stddev_samp = Base_Generator.lift_unary_op "STDDEV_SAMP" arg->
    future implementation.
 first_last_aggregators =
     count_over_partition args =
-        SQL_Builder.code "COUNT(*) OVER (PARTITION BY " ++ SQL_Builder.join ", " args ++ ")"
+        partition = if args.is_empty then SQL_Builder.code "" else
+            SQL_Builder.code "PARTITION BY " ++ SQL_Builder.join ", " args
+        SQL_Builder.code "COUNT(*) OVER (" ++ partition ++ ")"
 
     first_agg args =
         if args.length != 2 then
