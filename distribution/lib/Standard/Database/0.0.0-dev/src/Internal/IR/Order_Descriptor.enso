@@ -9,6 +9,9 @@ type Order_Descriptor
     Value (expression : SQL_Expression) (direction : Sort_Direction) (nulls_order : Nothing | Nulls_Order = Nothing) (collation : Nothing | Text = Nothing)
 
     ## PRIVATE
+       A bottom-up, depth-first traversal of this IR node and its children. Each
+       node is passed to the provided function, and the return value of the
+       function replaces this node in the tree.
     traverse : (Any -> Any) -> Order_Descriptor
     traverse self f -> Order_Descriptor =
         rec e = e.traverse f

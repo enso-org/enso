@@ -237,7 +237,7 @@ type DB_Column
 
        `let` is only available in database backends that support `WITH` clauses
        inside expressions. For database backends that only support a single
-       `WITH` claus at the top level, `let` returns `self` unchanged.
+       `WITH` clause at the top level, `let` returns `self` unchanged.
 
        Semantically, the following expressions will always have the same value:
 

@@ -106,6 +106,9 @@ type Query
     Delete_Matching_Rows (target_table_name:Text) (source_table_name:Text) (key_columns : Vector Text)
 
     ## PRIVATE
+       A bottom-up, depth-first traversal of this IR node and its children. Each
+       node is passed to the provided function, and the return value of the
+       function replaces this node in the tree.
     traverse : (Any -> Any) -> Query
     traverse self f -> Query =
         rec e = e.traverse f
