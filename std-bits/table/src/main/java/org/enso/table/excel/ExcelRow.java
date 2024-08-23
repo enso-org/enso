@@ -38,7 +38,7 @@ public interface ExcelRow {
   /** Gets the underlying Apache POI Sheet object. */
   static ExcelRow fromSheet(Sheet sheet, int rowIndex) {
     var row = sheet.getRow(rowIndex - 1);
-    return new ExcelRowFromSheet(row, row.getFirstCellNum() + 1, row.getLastCellNum());
+    return row == null ? null : new ExcelRowFromSheet(row, row.getFirstCellNum() + 1, row.getLastCellNum());
   }
 
   record ExcelRowFromSheet(Row row, int firstColumn, int lastColumn) implements ExcelRow {
@@ -49,11 +49,11 @@ public interface ExcelRow {
     }
 
     public int getFirstColumn() {
-      return row.getFirstCellNum() + 1;
+      return firstColumn;
     }
 
     public int getLastColumn() {
-      return row.getLastCellNum();
+      return lastColumn;
     }
 
     public Cell get(int column) {
