@@ -394,7 +394,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
               }
             })}
             {localBackend && (
-              <div className="group flex items-center self-stretch">
+              <div className="group flex items-center justify-between self-stretch">
                 <CategorySwitcherItem
                   {...itemProps}
                   category={{ type: 'local' }}
