@@ -133,6 +133,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
     } else {
       switch (currentCategory.type) {
         case 'cloud':
+        case 'recent':
         case 'team':
         case 'user': {
           return (
@@ -141,9 +142,6 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
             category.type === 'team' ||
             category.type === 'user'
           )
-        }
-        case 'recent': {
-          return false
         }
         case 'trash': {
           return category.type === 'cloud'
