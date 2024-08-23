@@ -1755,9 +1755,9 @@ add_specs suite_builder setup =
                 y = t.at "Y"
                 z = t.at "Z"
                 a = ((x - 2.3) * (y + 1)) + z
-                b = (x - 2.3).let name="xx" xx-> (xx * (y + 1)) + z
-                c = (x - 2.3).let name="xx" xx-> (y + 1).let name="yy" yy-> (xx * yy) + z
-                d = ((x - 2.3) * (y + 1)).let name="xxyy" xxyy-> xxyy + z
+                b = (x - 2.3).let "xx" xx-> (xx * (y + 1)) + z
+                c = (x - 2.3).let "xx" xx-> (y + 1).let "yy" yy-> (xx * yy) + z
+                d = ((x - 2.3) * (y + 1)).let "xxyy" xxyy-> xxyy + z
                 a.to_vector . should_equal [5.6000000000000005, 22.2, 66.20000000000002, 386.03000000000003]
                 a.to_vector . should_equal b.to_vector
                 a.to_vector . should_equal c.to_vector

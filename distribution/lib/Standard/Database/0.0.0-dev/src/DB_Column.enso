@@ -242,7 +242,7 @@ type DB_Column
        Semantically, the following expressions will always have the same value:
 
            1. f column
-           2. column.let f
+           2. column.let "name" f
 
        ? When to use `let`
 
@@ -272,7 +272,7 @@ type DB_Column
 
             ## With CTEs
 
-             not_so_large = column.round.let rounded->
+             not_so_large = column.round.let "rounded" rounded->
                 rounded * rounded
              not_so_large.to_sql
              ## =>
@@ -285,18 +285,18 @@ type DB_Column
        > Example
          Use multiple CTEs in a query.
 
-         (column_a * column_b).let product_a_b->
-            (product_a_b * 10).let times_ten->
+         (column_a * column_b).let "product_a_b" product_a_b->
+            (product_a_b * 10).let "plus_10" times_ten->
                 times_ten + product_a_b + 100
 
        > Example
          Give names to the CTE table names.
 
-         (column_a * column_b).let name="product_a_b" product_a_b->
-            (product_a_b * 10).let name="times_ten" times_ten->
+         (column_a * column_b).let "product_a_b" product_a_b->
+            (product_a_b * 10).let "times_ten" times_ten->
                 times_ten + product_a_b + 100
-    let : (DB_Column -> DB_Column) -> Text -> DB_Column
-    let self (callback : (DB_Column -> DB_Column)) (name : Text = "let") -> DB_Column =
+    let : Text -> (DB_Column -> DB_Column) -> DB_Column
+    let self (name : Text) (callback : (DB_Column -> DB_Column)) -> DB_Column =
         use_ctes = self.connection.dialect.supports_nested_with_clause
 
         if use_ctes.not then callback self else
@@ -950,16 +950,16 @@ type DB_Column
         scale = 10 ^ decimal_places
         scaled = self * scale
 
-        scaled.let name="scaled" scaled->
-            round_base = scaled.floor . rename "rb"
-            round_base.let name="round_base" round_base->
+        scaled.let "scaled" scaled->
+            round_base = scaled.floor
+            round_base.let "round_base" round_base->
                 round_midpoint = (round_base + 0.5) / scale
-                round_midpoint.let name="round_midpoint" round_midpoint->
-                    ((scaled.truncate % 2) == 0).let name="scaled_truncate_mod_2_equals_0" scaled_truncate_mod_2_equals_0->
+                round_midpoint.let "round_midpoint" round_midpoint->
+                    ((scaled.truncate % 2) == 0).let "scaled_truncate_mod_2_equals_0" scaled_truncate_mod_2_equals_0->
                         even_is_up = (self >= 0).iif scaled_truncate_mod_2_equals_0.not scaled_truncate_mod_2_equals_0
                         half_goes_up = if use_bankers then even_is_up else self >= 0
-                        do_round_up = half_goes_up.let x-> x.iif (self >= round_midpoint) (self > round_midpoint)
-                        result = do_round_up.let x-> x.iif ((round_base + 1.0) / scale) (round_base / scale)
+                        do_round_up = half_goes_up.let "half_goes_up" x-> x.iif (self >= round_midpoint) (self > round_midpoint)
+                        result = do_round_up.let "do_round_up" x-> x.iif ((round_base + 1.0) / scale) (round_base / scale)
                         result.rename new_name
 
     ## PRIVATE
@@ -971,16 +971,16 @@ type DB_Column
         new_name = self.naming_helper.function_name "round" [self]
         scale = 10 ^ decimal_places
         scaled = self * scale
-        scaled.let name="scaled" scaled->
-            round_base = scaled.floor . rename "rb"
-            round_base.let name="round_base" round_base->
+        scaled.let "scaled" scaled->
+            round_base = scaled.floor
+            round_base.let "round_base" round_base->
                 round_midpoint = (round_base + k 0.5).decimal_div scale
-                round_midpoint.let name="round_midpoint" round_midpoint->
-                    ((scaled.truncate.decimal_mod (k 2)) != k 0).let name="scaled_truncate_mod_2_equals_0" scaled_truncate_mod_2_equals_0->
+                round_midpoint.let "round_midpoint" round_midpoint->
+                    ((scaled.truncate.decimal_mod (k 2)) != k 0).let "scaled_truncate_mod_2_equals_0" scaled_truncate_mod_2_equals_0->
                         even_is_up = (self >= k 0).iif scaled_truncate_mod_2_equals_0.not scaled_truncate_mod_2_equals_0
                         half_goes_up = if use_bankers then even_is_up else self >= k 0
-                        do_round_up = half_goes_up.let x-> x.iif (self >= round_midpoint) (self > round_midpoint)
-                        result = do_round_up.let x-> x.iif ((round_base + k 1).decimal_div scale) (round_base.decimal_div scale)
+                        do_round_up = half_goes_up.let "half_goes_up" x-> x.iif (self >= round_midpoint) (self > round_midpoint)
+                        result = do_round_up.let "do_round_up" x-> x.iif ((round_base + k 1).decimal_div scale) (round_base.decimal_div scale)
                         result.rename new_name
 
     ## PRIVATE
@@ -991,21 +991,21 @@ type DB_Column
         scale = 10 ^ -decimal_places
         halfway = scale.div 2
         remainder = self % scale
-        remainder.let name="remainer" remainder->
+        remainder.let "remainer" remainder->
             scaled_down = (self / scale).truncate . cast Value_Type.Integer
-            scaled_down.let name="scaled_down" scaled_down->
+            scaled_down.let "scaled_down" scaled_down->
                 result_unnudged = scaled_down * scale
-                result_unnudged.let name="result_unnudged" result_unnudged->
+                result_unnudged.let "result_unnudged" result_unnudged->
                     if_non_neg =
                         half_goes_up = if use_bankers then (scaled_down % 2) != 0 else self >= 0
-                        round_up = half_goes_up.let x-> x.iif (remainder >= halfway) (remainder > halfway)
-                        round_up.let x-> x.iif (result_unnudged + scale) result_unnudged
+                        round_up = half_goes_up.let "half_goes_up" x-> x.iif (remainder >= halfway) (remainder > halfway)
+                        round_up.let "round_up" x-> x.iif (result_unnudged + scale) result_unnudged
                     if_neg =
                         half_goes_up = if use_bankers then (scaled_down % 2) == 0 else self >= 0
-                        round_up = half_goes_up.let x-> x.iif (remainder < -halfway) (remainder <= -halfway)
-                        round_up.let x-> x.iif (result_unnudged - scale) result_unnudged
+                        round_up = half_goes_up.let "half_goes_up" x-> x.iif (remainder < -halfway) (remainder <= -halfway)
+                        round_up.let "round_up" x-> x.iif (result_unnudged - scale) result_unnudged
 
-                    result = (self >= 0).let x-> x.iif if_non_neg if_neg
+                    result = (self >= 0).let "self_gt_0" x-> x.iif if_non_neg if_neg
                     result.cast Value_Type.Float . rename new_name
 
     ## ALIAS int
