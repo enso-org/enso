@@ -15,7 +15,7 @@ on:
         type: boolean
         default: false
 jobs:
-  enso-build-ci-gen-job-cancel-workflow-linux-x86_64:
+  enso-build::ci-gen::job::cancel-workflow-linux-amd64:
     name: Cancel Previous Runs
     if: github.ref != 'refs/heads/develop'
     runs-on:
@@ -27,8 +27,8 @@ jobs:
           access_token: ${{ github.token }}
     permissions:
       actions: write
-  enso-build-ci-gen-job-gui-check-linux-x86_64:
-    name: GUI tests (linux, x86_64)
+  enso-build::ci-gen::job::gui-check-linux-amd64:
+    name: GUI tests (linux, amd64)
     runs-on:
       - self-hosted
       - Linux
@@ -70,8 +70,8 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build-ci-gen-job-lint-linux-x86_64:
-    name: Lint (linux, x86_64)
+  enso-build::ci-gen::job::lint-linux-amd64:
+    name: Lint (linux, amd64)
     runs-on:
       - self-hosted
       - Linux
@@ -113,8 +113,8 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build-ci-gen-job-native-test-linux-x86_64:
-    name: Native Rust tests (linux, x86_64)
+  enso-build::ci-gen::job::native-test-linux-amd64:
+    name: Native Rust tests (linux, amd64)
     runs-on:
       - self-hosted
       - Linux
@@ -156,8 +156,8 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build-ci-gen-job-wasm-test-linux-x86_64:
-    name: WASM tests (linux, x86_64)
+  enso-build::ci-gen::job::wasm-test-linux-amd64:
+    name: WASM tests (linux, amd64)
     runs-on:
       - self-hosted
       - Linux

@@ -13,8 +13,8 @@ on:
         type: boolean
         default: false
 jobs:
-  enso-build-ci-gen-job-snowflake-tests-linux-x86_64:
-    name: Snowflake Tests (linux, x86_64)
+  enso-build::ci-gen::job::snowflake-tests-linux-amd64:
+    name: Snowflake Tests (linux, amd64)
     runs-on:
       - self-hosted
       - Linux
@@ -56,7 +56,7 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           max-annotations: 50
-          name: Extra Library Tests Report (GraalVM CE, linux, x86_64)
+          name: Extra Library Tests Report (GraalVM CE, linux, amd64)
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit

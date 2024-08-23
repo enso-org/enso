@@ -15,7 +15,7 @@ on:
         type: boolean
         default: false
 jobs:
-  enso-build-ci-gen-job-cancel-workflow-linux-x86_64:
+  enso-build::ci-gen::job::cancel-workflow-linux-amd64:
     name: Cancel Previous Runs
     if: github.ref != 'refs/heads/develop'
     runs-on:
@@ -27,8 +27,8 @@ jobs:
           access_token: ${{ github.token }}
     permissions:
       actions: write
-  enso-build-ci-gen-job-ci-check-backend-graal-vm-ce-linux-x86_64:
-    name: Engine (GraalVM CE) (linux, x86_64)
+  enso-build::ci-gen::job::ci-check-backend-graal-vm-ce-linux-amd64:
+    name: Engine (GraalVM CE) (linux, amd64)
     runs-on:
       - self-hosted
       - Linux
@@ -72,8 +72,54 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
       GRAAL_EDITION: GraalVM CE
-  enso-build-ci-gen-job-ci-check-backend-graal-vm-ce-macos-x86_64:
-    name: Engine (GraalVM CE) (macos, x86_64)
+  enso-build::ci-gen::job::ci-check-backend-graal-vm-ce-macos-aarch64:
+    name: Engine (GraalVM CE) (macos, aarch64)
+    runs-on:
+      - self-hosted
+      - macOS
+      - ARM64
+    steps:
+      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+        name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: v0.10.2
+      - name: Expose Artifact API and context information.
+        uses: actions/github-script@v7
+        with:
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+      - name: Checking out the repository
+        uses: actions/checkout@v4
+        with:
+          clean: false
+          submodules: recursive
+      - name: Build Script Setup
+        run: ./run --help || (git clean -ffdx && ./run --help)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+        name: Clean before
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: ./run backend ci-check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - if: failure() && runner.os == 'Windows'
+        name: List files if failed (Windows)
+        run: Get-ChildItem -Force -Recurse
+      - if: failure() && runner.os != 'Windows'
+        name: List files if failed (non-Windows)
+        run: ls -lAR
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+        name: Clean after
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      GRAAL_EDITION: GraalVM CE
+  enso-build::ci-gen::job::ci-check-backend-graal-vm-ce-macos-amd64:
+    name: Engine (GraalVM CE) (macos, amd64)
     runs-on:
       - macos-12
     steps:
@@ -116,8 +162,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
       GRAAL_EDITION: GraalVM CE
-  enso-build-ci-gen-job-ci-check-backend-graal-vm-ce-windows-x86_64:
-    name: Engine (GraalVM CE) (windows, x86_64)
+  enso-build::ci-gen::job::ci-check-backend-graal-vm-ce-windows-amd64:
+    name: Engine (GraalVM CE) (windows, amd64)
     runs-on:
       - self-hosted
       - Windows
@@ -161,8 +207,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
       GRAAL_EDITION: GraalVM CE
-  enso-build-ci-gen-job-jvm-tests-graal-vm-ce-linux-x86_64:
-    name: JVM Tests (GraalVM CE) (linux, x86_64)
+  enso-build::ci-gen::job::jvm-tests-graal-vm-ce-linux-amd64:
+    name: JVM Tests (GraalVM CE) (linux, amd64)
     runs-on:
       - self-hosted
       - Linux
@@ -198,7 +244,7 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           max-annotations: 50
-          name: Engine Tests Report (GraalVM CE, linux, x86_64)
+          name: Engine Tests Report (GraalVM CE, linux, amd64)
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
           path-replace-backslashes: true
           reporter: java-junit
@@ -217,8 +263,65 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build-ci-gen-job-jvm-tests-graal-vm-ce-macos-x86_64:
-    name: JVM Tests (GraalVM CE) (macos, x86_64)
+  enso-build::ci-gen::job::jvm-tests-graal-vm-ce-macos-aarch64:
+    name: JVM Tests (GraalVM CE) (macos, aarch64)
+    runs-on:
+      - self-hosted
+      - macOS
+      - ARM64
+    steps:
+      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+        name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: v0.10.2
+      - name: Expose Artifact API and context information.
+        uses: actions/github-script@v7
+        with:
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+      - name: Checking out the repository
+        uses: actions/checkout@v4
+        with:
+          clean: false
+          submodules: recursive
+      - name: Build Script Setup
+        run: ./run --help || (git clean -ffdx && ./run --help)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+        name: Clean before
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: ./run backend test jvm
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - if: (success() || failure()) && github.event.pull_request.head.repo.full_name == github.repository
+        name: Engine Test Reporter
+        uses: dorny/test-reporter@v1
+        with:
+          max-annotations: 50
+          name: Engine Tests Report (GraalVM CE, macos, aarch64)
+          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
+          path-replace-backslashes: true
+          reporter: java-junit
+      - if: failure() && runner.os == 'Windows'
+        name: List files if failed (Windows)
+        run: Get-ChildItem -Force -Recurse
+      - if: failure() && runner.os != 'Windows'
+        name: List files if failed (non-Windows)
+        run: ls -lAR
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+        name: Clean after
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      GRAAL_EDITION: GraalVM CE
+    permissions:
+      checks: write
+  enso-build::ci-gen::job::jvm-tests-graal-vm-ce-macos-amd64:
+    name: JVM Tests (GraalVM CE) (macos, amd64)
     runs-on:
       - macos-12
     steps:
@@ -253,7 +356,7 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           max-annotations: 50
-          name: Engine Tests Report (GraalVM CE, macos, x86_64)
+          name: Engine Tests Report (GraalVM CE, macos, amd64)
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
           path-replace-backslashes: true
           reporter: java-junit
@@ -272,8 +375,8 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build-ci-gen-job-jvm-tests-graal-vm-ce-windows-x86_64:
-    name: JVM Tests (GraalVM CE) (windows, x86_64)
+  enso-build::ci-gen::job::jvm-tests-graal-vm-ce-windows-amd64:
+    name: JVM Tests (GraalVM CE) (windows, amd64)
     runs-on:
       - self-hosted
       - Windows
@@ -309,7 +412,7 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           max-annotations: 50
-          name: Engine Tests Report (GraalVM CE, windows, x86_64)
+          name: Engine Tests Report (GraalVM CE, windows, amd64)
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
           path-replace-backslashes: true
           reporter: java-junit
@@ -328,8 +431,8 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-linux-x86_64:
-    name: Standard Library Tests (GraalVM CE) (linux, x86_64)
+  enso-build::ci-gen::job::standard-library-tests-graal-vm-ce-linux-amd64:
+    name: Standard Library Tests (GraalVM CE) (linux, amd64)
     runs-on:
       - self-hosted
       - Linux
@@ -368,7 +471,7 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           max-annotations: 50
-          name: Standard Library Tests Report (GraalVM CE, linux, x86_64)
+          name: Standard Library Tests Report (GraalVM CE, linux, amd64)
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit
@@ -387,8 +490,68 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-macos-x86_64:
-    name: Standard Library Tests (GraalVM CE) (macos, x86_64)
+  enso-build::ci-gen::job::standard-library-tests-graal-vm-ce-macos-aarch64:
+    name: Standard Library Tests (GraalVM CE) (macos, aarch64)
+    runs-on:
+      - self-hosted
+      - macOS
+      - ARM64
+    steps:
+      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+        name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: v0.10.2
+      - name: Expose Artifact API and context information.
+        uses: actions/github-script@v7
+        with:
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+      - name: Checking out the repository
+        uses: actions/checkout@v4
+        with:
+          clean: false
+          submodules: recursive
+      - name: Build Script Setup
+        run: ./run --help || (git clean -ffdx && ./run --help)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+        name: Clean before
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: ./run backend test standard-library
+        env:
+          ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
+          ENSO_LIB_S3_AWS_REGION: ${{ secrets.ENSO_LIB_S3_AWS_REGION }}
+          ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY: ${{ secrets.ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - if: (success() || failure()) && github.event.pull_request.head.repo.full_name == github.repository
+        name: Standard Library Test Reporter
+        uses: dorny/test-reporter@v1
+        with:
+          max-annotations: 50
+          name: Standard Library Tests Report (GraalVM CE, macos, aarch64)
+          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
+          path-replace-backslashes: true
+          reporter: java-junit
+      - if: failure() && runner.os == 'Windows'
+        name: List files if failed (Windows)
+        run: Get-ChildItem -Force -Recurse
+      - if: failure() && runner.os != 'Windows'
+        name: List files if failed (non-Windows)
+        run: ls -lAR
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+        name: Clean after
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      GRAAL_EDITION: GraalVM CE
+    permissions:
+      checks: write
+  enso-build::ci-gen::job::standard-library-tests-graal-vm-ce-macos-amd64:
+    name: Standard Library Tests (GraalVM CE) (macos, amd64)
     runs-on:
       - macos-12
     steps:
@@ -426,7 +589,7 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           max-annotations: 50
-          name: Standard Library Tests Report (GraalVM CE, macos, x86_64)
+          name: Standard Library Tests Report (GraalVM CE, macos, amd64)
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit
@@ -445,8 +608,8 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-windows-x86_64:
-    name: Standard Library Tests (GraalVM CE) (windows, x86_64)
+  enso-build::ci-gen::job::standard-library-tests-graal-vm-ce-windows-amd64:
+    name: Standard Library Tests (GraalVM CE) (windows, amd64)
     runs-on:
       - self-hosted
       - Windows
@@ -485,7 +648,7 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           max-annotations: 50
-          name: Standard Library Tests Report (GraalVM CE, windows, x86_64)
+          name: Standard Library Tests Report (GraalVM CE, windows, amd64)
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit
@@ -504,8 +667,8 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build-ci-gen-job-verify-license-packages-linux-x86_64:
-    name: Verify License Packages (linux, x86_64)
+  enso-build::ci-gen::job::verify-license-packages-linux-amd64:
+    name: Verify License Packages (linux, amd64)
     runs-on:
       - self-hosted
       - Linux
