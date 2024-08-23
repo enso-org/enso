@@ -7,6 +7,7 @@ import * as z from 'zod'
 import CloudIcon from '#/assets/cloud.svg'
 import ComputerIcon from '#/assets/computer.svg'
 import FolderIcon from '#/assets/folder.svg'
+import Minus2Icon from '#/assets/minus2.svg'
 import PeopleIcon from '#/assets/people.svg'
 import PersonIcon from '#/assets/person.svg'
 import PlusIcon from '#/assets/plus.svg'
@@ -447,13 +448,14 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                   <ariaComponents.Button
                     size="medium"
                     variant="icon"
-                    icon={Trash2Icon}
+                    icon={Minus2Icon}
                     aria-label={getText('removeDirectoryFromFavorites')}
-                    className="hidden text-delete group-hover:block"
+                    className="hidden group-hover:block"
                     onPress={() => {
                       setModal(
                         <ConfirmDeleteModal
-                          actionText={getText('removeTheLocalDirectoryX', getFileName(directory))}
+                          actionText={getText('removeTheLocalDirectoryXFromFavorites', getFileName(directory))}
+                          actionButtonLabel={getText('remove')}
                           doDelete={() => {
                             setLocalRootDirectories(
                               localRootDirectories.filter(
