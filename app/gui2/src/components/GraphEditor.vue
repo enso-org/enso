@@ -73,6 +73,8 @@ import {
 import { encodeMethodPointer } from 'ydoc-shared/languageServerTypes'
 import * as iterable from 'ydoc-shared/util/data/iterable'
 import { isDevMode } from 'ydoc-shared/util/detect'
+import * as lsTypes from 'ydoc-shared/languageServerTypes/suggestions'
+import { applyUpdates } from '@/stores/suggestionDatabase/lsUpdate'
 
 const rootNode = ref<HTMLElement>()
 
@@ -84,6 +86,8 @@ const widgetRegistry = provideWidgetRegistry(graphStore.db)
 const _visualizationStore = provideVisualizationStore(projectStore)
 const visible = injectVisibility()
 provideFullscreenContext(rootNode)
+
+;(window as any)._mockSuggestion = suggestionDb.mockSuggestion
 
 onMounted(() => {
   widgetRegistry.loadWidgets(Object.entries(builtinWidgets))
