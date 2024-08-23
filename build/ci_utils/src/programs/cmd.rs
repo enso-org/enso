@@ -26,6 +26,9 @@ pub mod args {
 
 
 impl Program for Cmd {
+    type Command = Command;
+    type Version = Version;
+
     fn executable_name(&self) -> &'static str {
         "cmd"
     }

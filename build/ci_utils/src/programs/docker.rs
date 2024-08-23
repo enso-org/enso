@@ -104,6 +104,9 @@ impl Credentials {
 pub struct Docker;
 
 impl Program for Docker {
+    type Command = Command;
+    type Version = Version;
+
     fn executable_name(&self) -> &'static str {
         "docker"
     }
@@ -145,9 +148,7 @@ impl Docker {
     pub async fn run_detached(&self, options: &RunOptions) -> Result<ContainerId> {
         let output =
             dbg!(self.cmd()?.arg("run").arg("-d").args(options.args())).output_ok().await?;
-        // dbg!(&output);
         Ok(ContainerId(output.single_line_stdout()?))
-        // output.status.exit_ok()?;
     }
 
     pub async fn kill(&self, target: impl AsRef<str>) -> Result {

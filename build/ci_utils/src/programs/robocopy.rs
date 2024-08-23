@@ -9,13 +9,16 @@ use crate::prelude::*;
 pub struct Robocopy;
 
 impl Program for Robocopy {
+    type Command = Command;
+    type Version = Version;
+
     fn executable_name(&self) -> &'static str {
         "robocopy"
     }
 
     fn handle_exit_status(status: std::process::ExitStatus) -> Result {
         match status.code() {
-            None => Ok(status.exit_ok()?),
+            None => default_status_checker(status),
             Some(code) if code >= 8 => bail!("Exit with code {}.", code),
             Some(_) => Ok(()),
         }

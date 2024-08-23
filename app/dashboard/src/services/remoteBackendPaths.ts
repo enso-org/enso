@@ -29,6 +29,10 @@ export const UPLOAD_ORGANIZATION_PICTURE_PATH = 'organizations/me/picture'
 export const INVITE_USER_PATH = 'users/invite'
 /** Relative HTTP path to the "list invitations" endpoint of the Cloud backend API. */
 export const INVITATION_PATH = 'invitations'
+/** Relative HTTP path to the "accept invitation" endpoint of the Cloud backend API. */
+export const ACCEPT_INVITATION_PATH = 'invitations/accept'
+/** Relative HTTP path to the "delete invitation" endpoint of the Cloud backend API. */
+export const DECLINE_INVITATION_PATH = 'invitations'
 /** Relative HTTP path to the "create permission" endpoint of the Cloud backend API. */
 export const CREATE_PERMISSION_PATH = 'permissions'
 /** Relative HTTP path to the "list directory" endpoint of the Cloud backend API. */

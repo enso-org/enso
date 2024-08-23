@@ -812,6 +812,16 @@ export default class LocalBackend extends Backend {
   }
 
   /** Invalid operation. */
+  override acceptInvitation() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override declineInvitation() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
   override getLogEvents() {
     return this.invalidOperation()
   }

@@ -39,6 +39,9 @@ impl AsRef<OsStr> for HashAlgorithm {
 pub struct SignTool;
 
 impl Program for SignTool {
+    type Command = Command;
+    type Version = Version;
+
     fn executable_name(&self) -> &str {
         "signtool"
     }
