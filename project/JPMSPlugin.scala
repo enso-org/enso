@@ -152,8 +152,9 @@ object JPMSPlugin extends AutoPlugin {
       targetClassDir
     },
     exportedModuleBin := {
-      exportedModule.value
-      (Compile / packageBin).value
+      (Compile / packageBin)
+        .dependsOn(exportedModule)
+        .value
     },
     patchModules := Map.empty,
     addExports := Map.empty,
