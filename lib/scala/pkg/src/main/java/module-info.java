@@ -9,4 +9,5 @@ module org.enso.pkg {
   requires org.yaml.snakeyaml;
 
   exports org.enso.pkg;
+  exports org.enso.filesystem;
 }

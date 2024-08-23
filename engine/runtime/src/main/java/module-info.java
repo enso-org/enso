@@ -2,6 +2,7 @@ module org.enso.runtime {
   requires java.logging;
 
   requires org.enso.cli;
+  requires org.enso.common.polyglot.core.utils;
   requires org.enso.distribution;
   requires org.enso.editions;
   requires org.enso.engine.common;
@@ -14,11 +15,14 @@ module org.enso.runtime {
   requires org.enso.polyglot.api;
   requires org.enso.runtime.compiler;
   requires org.enso.runtime.parser;
+  requires org.enso.runtime.suggestions;
+  requires org.enso.text.buffer;
   requires org.enso.syntax;
   requires org.enso.version.output;
 
   requires org.apache.commons.lang3;
   requires org.apache.tika.core;
+  requires org.slf4j;
   requires org.graalvm.collections;
   requires org.graalvm.truffle;
   requires com.ibm.icu;

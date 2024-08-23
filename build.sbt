@@ -633,7 +633,9 @@ lazy val componentModulesPaths =
       "org.slf4j"              % "slf4j-api"                    % slf4jVersion,
       "ch.qos.logback"         % "logback-classic"              % logbackClassicVersion,
       "ch.qos.logback"         % "logback-core"                 % logbackClassicVersion,
-      "com.ibm.icu"            % "icu4j"                        % icuVersion
+      "com.ibm.icu"            % "icu4j"                        % icuVersion,
+      "io.sentry"              % "sentry-logback"               % "6.28.0",
+      "io.sentry"              % "sentry"                       % "6.28.0"
     )
   val thirdPartyMods = JPMSUtils.filterModulesFromClasspath(
     fullCp,
@@ -667,6 +669,8 @@ lazy val componentModulesPaths =
     (`library-manager` / exportedModuleBin).value,
     (`logging-config` / exportedModuleBin).value,
     (`logging-utils` / exportedModuleBin).value,
+    (`logging-service` / exportedModuleBin).value,
+    (`logging-service-logback` / exportedModuleBin).value,
     (`pkg` / exportedModuleBin).value,
     (`refactoring-utils` / exportedModuleBin).value,
     (`semver` / exportedModuleBin).value,
@@ -950,6 +954,7 @@ lazy val `logging-utils` = project
 
 lazy val `logging-service` = project
   .in(file("lib/scala/logging-service"))
+  .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
@@ -958,6 +963,14 @@ lazy val `logging-service` = project
       "org.slf4j"      % "slf4j-api" % slf4jVersion,
       "com.typesafe"   % "config"    % typesafeConfigVersion,
       "org.scalatest" %% "scalatest" % scalatestVersion % Test
+    ),
+    moduleDependencies := Seq(
+      "org.scala-lang" % "scala-library" % scalacVersion,
+      "org.slf4j"      % "slf4j-api" % slf4jVersion,
+    ),
+    internalModuleDependencies := Seq(
+      (`logging-config` / exportedModule).value,
+      (`logging-utils` / exportedModule).value,
     )
   )
   .dependsOn(`logging-utils`)
@@ -982,6 +995,7 @@ lazy val `logging-config` = project
 
 lazy val `logging-service-logback` = project
   .in(file("lib/scala/logging-service-logback"))
+  .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
@@ -992,7 +1006,19 @@ lazy val `logging-service-logback` = project
       "io.sentry"        % "sentry"                  % "6.28.0",
       "org.scalatest"   %% "scalatest"               % scalatestVersion   % Test,
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
-    ) ++ logbackPkg
+    ) ++ logbackPkg,
+    moduleDependencies := Seq(
+      "org.slf4j"        % "slf4j-api"               % slf4jVersion,
+      "io.sentry"        % "sentry-logback"          % "6.28.0",
+      "io.sentry"        % "sentry"                  % "6.28.0",
+      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
+      "ch.qos.logback" % "logback-classic" % logbackClassicVersion,
+      "ch.qos.logback" % "logback-core"    % logbackClassicVersion
+    ),
+    internalModuleDependencies := Seq(
+      (`logging-service` / exportedModule).value,
+      (`logging-config` / exportedModule).value,
+    )
   )
   .dependsOn(`logging-config`)
   .dependsOn(`logging-service`)
@@ -1701,7 +1727,8 @@ lazy val `polyglot-api` = project
     ),
     internalModuleDependencies := Seq(
       (`scala-libs-wrapper` / exportedModule).value,
-      (`engine-common` / exportedModule).value
+      (`engine-common` / exportedModule).value,
+      (`logging-utils` / exportedModule).value,
     ),
     GenerateFlatbuffers.flatcVersion := flatbuffersVersion,
     Compile / sourceGenerators += GenerateFlatbuffers.task
@@ -2080,14 +2107,17 @@ lazy val runtime = (project in file("engine/runtime"))
       (`logging-utils` / exportedModule).value,
       (`runtime-compiler` / exportedModule).value,
       (`runtime-parser` / exportedModule).value,
+      (`runtime-suggestions` / exportedModule).value,
       (`polyglot-api` / exportedModule).value,
+      (`common-polyglot-core-utils` / exportedModule).value,
       (`pkg` / exportedModule).value,
       (`cli` / exportedModule).value,
       (`editions` / exportedModule).value,
       (`syntax-rust-definition` / exportedModule).value,
       (`version-output` / exportedModule).value,
       (`interpreter-dsl` / exportedModule).value,
-      (`persistance` / exportedModule).value
+      (`persistance` / exportedModule).value,
+      (`text-buffer` / exportedModule).value,
     )
   )
   .settings(
@@ -2320,7 +2350,10 @@ lazy val `runtime-compiler` =
       internalModuleDependencies := Seq(
         (`engine-common` / exportedModule).value,
         (`pkg` / exportedModule).value,
-        (`runtime-parser` / exportedModule).value
+        (`runtime-parser` / exportedModule).value,
+        (`syntax-rust-definition` / exportedModule).value,
+        (`persistance` / exportedModule).value,
+        (`editions` / exportedModule).value,
       )
     )
     .dependsOn(`runtime-parser`)
@@ -2331,6 +2364,7 @@ lazy val `runtime-compiler` =
 
 lazy val `runtime-suggestions` =
   (project in file("engine/runtime-suggestions"))
+    .enablePlugins(JPMSPlugin)
     .settings(
       frgaalJavaCompilerSetting,
       (Test / fork) := true,
@@ -2339,6 +2373,17 @@ lazy val `runtime-suggestions` =
         "com.github.sbt"   % "junit-interface"         % junitIfVersion     % Test,
         "org.scalatest"   %% "scalatest"               % scalatestVersion   % Test,
         "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
+      ),
+      excludeFilter := excludeFilter.value || "module-info.java",
+      moduleDependencies := Seq(
+        "org.scala-lang"   % "scala-library"           % scalacVersion,
+      ),
+      internalModuleDependencies := Seq(
+        (`pkg` / exportedModule).value,
+        (`polyglot-api` / exportedModule).value,
+        (`runtime-compiler` / exportedModule).value,
+        (`runtime-parser` / exportedModule).value,
+        (`text-buffer` / exportedModule).value
       )
     )
     .dependsOn(`runtime-compiler`)
@@ -2526,6 +2571,7 @@ lazy val `engine-runner-common` = project
     ),
     internalModuleDependencies := Seq(
       (`pkg` / exportedModule).value,
+      (`polyglot-api` / exportedModule).value,
       (`editions` / exportedModule).value,
       (`engine-common` / exportedModule).value,
       (`library-manager` / exportedModule).value
@@ -3358,6 +3404,7 @@ lazy val `std-base` = project
 
 lazy val `common-polyglot-core-utils` = project
   .in(file("lib/scala/common-polyglot-core-utils"))
+  .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
@@ -3366,6 +3413,9 @@ lazy val `common-polyglot-core-utils` = project
     libraryDependencies ++= Seq(
       "com.ibm.icu"          % "icu4j"    % icuVersion,
       "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided"
+    ),
+    moduleDependencies := Seq(
+      "com.ibm.icu"          % "icu4j"    % icuVersion,
     )
   )
 

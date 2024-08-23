@@ -5,4 +5,5 @@ module org.enso.interpreter.dsl {
   requires org.openide.util.lookup.RELEASE180;
 
   exports org.enso.interpreter.dsl;
+  exports org.enso.interpreter.dsl.atom;
 }

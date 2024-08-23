@@ -12,4 +12,5 @@ module org.enso.runtime.parser {
   exports org.enso.compiler.core.ir.module.scope;
   exports org.enso.compiler.core.ir.module.scope.definition;
   exports org.enso.compiler.core.ir.module.scope.imports;
+  exports org.enso.compiler.core.ir.type;
 }

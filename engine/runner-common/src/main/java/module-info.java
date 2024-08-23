@@ -5,6 +5,7 @@ module org.enso.runner.common {
   requires org.enso.engine.common;
   requires org.enso.librarymanager;
   requires org.enso.pkg;
+  requires org.enso.polyglot.api;
   requires org.slf4j;
   requires scala.library;
 
