@@ -98,6 +98,20 @@ type Fool
 
 Fool.from (that : Any) = Fool.Value that
 
+type Mixin
+    Value mix:Text
+
+    text_and_mixin t:Text =
+        mixin = t:(Text & Mixin)
+        mixin
+
+    text_and_mixin_with_check t:Text -> Mixin =
+        v = Mixin.text_and_mixin t
+        v
+
+Mixin.from (that:Text) = Mixin.Value that
+Mixin.from (that:Any) = Mixin.text_and_mixin that.to_text
+
 type Blob
     Text c:Text
     Binary b:File
@@ -449,6 +463,38 @@ add_specs suite_builder =
                 x.to_text . should_equal "{FOOL "+now.to_text+"}"
 
             do_duration now
+
+        group_builder.specify "Returning Text & Mixin from method" <|
+            m = Mixin.text_and_mixin "hi there"
+
+            m:Text . should_equal "hi there"
+            (m:Mixin).mix . should_equal "hi there"
+
+            Meta.type_of (m:Text) . should_equal Text
+            Meta.type_of (m:Mixin) . should_equal Mixin
+            Meta.type_of m . should_equal Text
+
+        group_builder.specify "Returning Text & Mixin from method with check" <|
+            m = Mixin.text_and_mixin_with_check "hi there"
+
+            m:Text . should_equal "hi there"
+            (m:Mixin).mix . should_equal "hi there"
+
+            Meta.type_of (m:Text) . should_equal Text
+            Meta.type_of (m:Mixin) . should_equal Mixin
+            Meta.type_of m . should_equal Text
+
+        group_builder.specify "Returning Text & Mixin from Conversion method" <|
+            v = 42
+            m = v:Mixin
+
+            m:Text . should_equal "42"
+            (m:Mixin).mix . should_equal "42"
+
+            Meta.type_of (m:Text) . should_equal Text
+            Meta.type_of (m:Mixin) . should_equal Mixin
+            Meta.type_of m . should_equal Text
+
 
     suite_builder.group "Autoscoped Constructors" group_builder->
 

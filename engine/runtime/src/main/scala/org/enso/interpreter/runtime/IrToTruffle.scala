@@ -1303,19 +1303,25 @@ class IrToTruffle(
       }
       runtimeExpression.setTailStatus(getTailStatus(ir))
 
+      def attachTypes(allowWholeMultiValue: Boolean) = {
+        val types: Option[TypeSignatures.Signature] =
+          ir.getMetadata(TypeSignatures)
+        types.foreach { tpe =>
+          val checkNode =
+            extractAscribedType(tpe.comment.orNull, tpe.signature);
+          if (checkNode != null) {
+            runtimeExpression = ReadArgumentCheckNode.wrapWithTypeCheck(
+              runtimeExpression,
+              checkNode,
+              allowWholeMultiValue
+            )
+          }
+        }
+      }
       ir match {
         case _: Expression.Binding =>
-        case _ =>
-          val types: Option[TypeSignatures.Signature] =
-            ir.getMetadata(TypeSignatures)
-          types.foreach { tpe =>
-            val checkNode =
-              extractAscribedType(tpe.comment.orNull, tpe.signature);
-            if (checkNode != null) {
-              runtimeExpression =
-                ReadArgumentCheckNode.wrap(runtimeExpression, checkNode)
-            }
-          }
+        case _: Expression.Block   => attachTypes(true)
+        case _                     => attachTypes(false)
       }
       runtimeExpression
     }
@@ -2204,7 +2210,8 @@ class IrToTruffle(
         if (typeCheck == null) {
           (argExpressions.toArray, bodyExpr)
         } else {
-          val bodyWithCheck = ReadArgumentCheckNode.wrap(bodyExpr, typeCheck)
+          val bodyWithCheck =
+            ReadArgumentCheckNode.wrapWithTypeCheck(bodyExpr, typeCheck, true)
           (argExpressions.toArray, bodyWithCheck)
         }
       }

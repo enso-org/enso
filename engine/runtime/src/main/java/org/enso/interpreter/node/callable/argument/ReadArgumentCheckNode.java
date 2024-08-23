@@ -55,9 +55,26 @@ public abstract class ReadArgumentCheckNode extends Node {
     this.comment = comment;
   }
 
-  /** */
-  public static ExpressionNode wrap(ExpressionNode original, ReadArgumentCheckNode check) {
-    return new TypeCheckExpressionNode(original, check);
+  /**
+   * Wraps {@code original} node with a check for specified type. One can specify whether it is OK
+   * to accept {@link EnsoMultiValue} without conversion or not. Currently the explicit conversions:
+   *
+   * <pre>
+   * x:Integer
+   * </pre>
+   *
+   * extract the Integer component from a multi value (if it is there). However the implicit checks
+   * like <em>method return type</em> allow multi value to propagage as a whole (if it has the right
+   * component requested by the type).
+   *
+   * @param original node computing the original expression value
+   * @param check node that performs the type check
+   * @param acceptWholeMultiValue is it OK to accept multi value?
+   * @return
+   */
+  public static ExpressionNode wrapWithTypeCheck(
+      ExpressionNode original, ReadArgumentCheckNode check, boolean acceptWholeMultiValue) {
+    return new TypeCheckExpressionNode(original, check, acceptWholeMultiValue);
   }
 
   /**
@@ -553,16 +570,22 @@ public abstract class ReadArgumentCheckNode extends Node {
   private static final class TypeCheckExpressionNode extends ExpressionNode {
     @Child private ExpressionNode original;
     @Child private ReadArgumentCheckNode check;
+    private final boolean acceptWholeMultiValue;
 
-    TypeCheckExpressionNode(ExpressionNode original, ReadArgumentCheckNode check) {
+    private TypeCheckExpressionNode(
+        ExpressionNode original, ReadArgumentCheckNode check, boolean acceptWholeMultiValue) {
       this.check = check;
       this.original = original;
+      this.acceptWholeMultiValue = acceptWholeMultiValue;
     }
 
     @Override
     public Object executeGeneric(VirtualFrame frame) {
       var value = original.executeGeneric(frame);
       var result = check.handleCheckOrConversion(frame, value);
+      if (acceptWholeMultiValue && value instanceof EnsoMultiValue) {
+        return value;
+      }
       return result;
     }
 
