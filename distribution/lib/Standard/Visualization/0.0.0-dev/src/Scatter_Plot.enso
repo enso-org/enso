@@ -133,8 +133,7 @@ Table.point_data self all_fields =
    Returns the number of numeric columns for the plot.
 Table.numeric_column_count : Number
 Table.numeric_column_count self =
-    size_column = Point_Data.Size.lookup_in self
-    columns = self.columns . filter c-> c.is_numeric && c.name != size_column.name
+    columns = self.columns . filter (c-> c.is_numeric && c.name != Point_Data.Size.name)
     columns.length
 
 ## PRIVATE
@@ -238,6 +237,7 @@ process_to_json_text value bounds=Nothing limit=Nothing =
     json = case value of
         _ : Table  -> json_from_table  value bounds limit
         _ : Vector -> json_from_vector value bounds limit
+        _ : Column -> json_from_table  value.to_table bounds limit
         _          -> json_from_vector value.to_vector bounds limit
 
     json
