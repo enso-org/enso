@@ -242,8 +242,10 @@ type SQLite_Dialect
         Count_Empty _ _ -> True
         Percentile _ _ _ -> unsupported "Percentile"
         Mode _ _ -> unsupported "Mode"
-        First _ _ _ _ -> True
-        Last _ _ _ _ -> True
+        First _ _ ignore_nothing _ ->
+            if ignore_nothing == False then True else unsupported "First with ignore_nothing=True"
+        Last _ _ ignore_nothing _ ->
+            if ignore_nothing == False then True else unsupported "Last with ignore_nothing=True"
         Maximum _ _ -> True
         Minimum _ _ -> True
         Shortest _ _ -> unsupported "Shortest"
