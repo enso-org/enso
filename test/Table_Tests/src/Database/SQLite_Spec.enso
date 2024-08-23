@@ -341,7 +341,7 @@ sqlite_spec suite_builder prefix create_connection_func persistent_connector =
        - creating complex nested queries using NTILE to compute the stats,
        - compiling SQLite library on our own and adding native extensions for
          the missing statistics.
-    aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config advanced_stats=False text_shortest_longest=False first_last_row_order=False multi_distinct=False aggregation_problems=False nan=False date_support=False
+    aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config advanced_stats=False text_shortest_longest=False first_last_row_order=False first_last_ignore_nothing=False multi_distinct=False aggregation_problems=False nan=False date_support=False
     agg_in_memory_table = (enso_project.data / "data.csv") . read
 
     agg_table_fn = _ ->

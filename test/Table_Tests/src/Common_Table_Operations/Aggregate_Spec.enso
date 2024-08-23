@@ -16,7 +16,7 @@ import project.Common_Table_Operations.Util
 polyglot java import java.lang.Double
 
 type Test_Selection
-    Config problem_handling=True advanced_stats=True text_concat=True text_shortest_longest=True first_last=True first_last_row_order=True first_last_multi_order=True std_dev=True multi_distinct=True aggregation_problems=True nan=True date_support=True
+    Config problem_handling=True advanced_stats=True text_concat=True text_shortest_longest=True first_last=True first_last_row_order=True first_last_multi_order=True first_last_ignore_nothing=True std_dev=True multi_distinct=True aggregation_problems=True nan=True date_support=True
 
 main filter=Nothing =
     run_default_backend add_specs filter
@@ -177,7 +177,7 @@ add_specs suite_builder setup =
             materialized.columns.at 5 . at 0 . should_equal -17.960000 epsilon=0.000001
 
         group_builder.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
-            grouped = data.table.aggregate columns=[First "Index" (order_by = [Sort_Column.Name "Value"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
+            grouped = data.table.aggregate columns=[First ignore_nothing=False "Index" (order_by = [Sort_Column.Name "Value"]), Last ignore_nothing=False "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
@@ -187,7 +187,7 @@ add_specs suite_builder setup =
             materialized.columns.at 1 . name . should_equal "Last ValueWithNothing"
             materialized.columns.at 1 . at 0 . should_equal -89.78 epsilon=0.000001
 
-        group_builder.specify "should be able to get first and last values ordering by a single column" (pending = resolve_pending test_selection.first_last) <|
+        group_builder.specify "should be able to get first and last values ordering by a single column" (pending = resolve_pending test_selection.first_last_ignore_nothing) <|
             grouped = data.table.aggregate columns=[First "TextWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending])]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
@@ -197,7 +197,7 @@ add_specs suite_builder setup =
             materialized.columns.at 1 . name . should_equal "Last ValueWithNothing"
             materialized.columns.at 1 . at 0 . should_equal -38.56 epsilon=0.000001
 
-        group_builder.specify "should be able to get first and last values with mixed ordering by many columns" (pending = resolve_pending test_selection.first_last_multi_order) <|
+        group_builder.specify "should be able to get first and last values with mixed ordering by many columns" (pending = resolve_pending (test_selection.first_last_multi_order && test_selection.first_last_ignore_nothing)) <|
             grouped = data.table.aggregate columns=[First "TextWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending, Sort_Column.Name "Code"]), First "TextWithNothing" (order_by = [Sort_Column.Name "Code", Sort_Column.Name "Value" Sort_Direction.Descending]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending])]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
@@ -326,7 +326,7 @@ add_specs suite_builder setup =
             materialized.columns.at 2 . at 0 . should_equal Nothing
 
         group_builder.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
-            grouped = data.empty_table.aggregate columns=[First "Index" (order_by = [Sort_Column.Name "Hexadecimal"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
+            grouped = data.empty_table.aggregate columns=[First "Index" ignore_nothing=False (order_by = [Sort_Column.Name "Hexadecimal"]), Last "ValueWithNothing" ignore_nothing=False (order_by = [Sort_Column.Name "Value"])]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
@@ -443,7 +443,7 @@ add_specs suite_builder setup =
             materialized.columns.at 3 . name . should_equal "25%-ile Value"
 
         group_builder.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
-            grouped = data.empty_table.aggregate [0] [First "Index" (order_by = [Sort_Column.Name "Hexadecimal"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
+            grouped = data.empty_table.aggregate [0] [First "Index" ignore_nothing=False (order_by = [Sort_Column.Name "Hexadecimal"]), Last "ValueWithNothing" ignore_nothing=False (order_by = [Sort_Column.Name "Value"])]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 0
@@ -608,7 +608,7 @@ add_specs suite_builder setup =
             materialized.columns.at 6 . at idx . should_equal -18.802000 epsilon=0.000001
 
         group_builder.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
-            grouped = data.table.aggregate ["Index"] [First "TextWithNothing" (order_by = [Sort_Column.Name "Value"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
+            grouped = data.table.aggregate ["Index"] [First "TextWithNothing" ignore_nothing=False (order_by = [Sort_Column.Name "Value"]), Last "ValueWithNothing" ignore_nothing=False (order_by = [Sort_Column.Name "Value"])]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 10
@@ -622,7 +622,7 @@ add_specs suite_builder setup =
             materialized.columns.at 2 . at idx . should_equal -89.78 epsilon=0.000001
 
         group_builder.specify "should be able to get first and last values with mixed ordering" (pending = resolve_pending test_selection.first_last_multi_order) <|
-            grouped = data.table.aggregate ["Index"] [First "TextWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending, Sort_Column.Name "Flag"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending])]
+            grouped = data.table.aggregate ["Index"] [First "TextWithNothing" ignore_nothing=False (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending, Sort_Column.Name "Flag"]), Last "ValueWithNothing" ignore_nothing=False (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending])]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 10
@@ -817,7 +817,7 @@ add_specs suite_builder setup =
             materialized.columns.at 7 . at idx . should_equal -17.174000 epsilon=0.000001
 
         group_builder.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
-            grouped = data.table.aggregate ["Flag", "Index"] [First "TextWithNothing" (order_by = [Sort_Column.Name "Value"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
+            grouped = data.table.aggregate ["Flag", "Index"] [First "TextWithNothing" ignore_nothing=False (order_by = [Sort_Column.Name "Value"]), Last ignore_nothing=False "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 20
@@ -831,7 +831,7 @@ add_specs suite_builder setup =
             materialized.columns.at 3 . name . should_equal "Last ValueWithNothing"
             materialized.columns.at 3 . at idx . should_equal -89.78 epsilon=0.000001
 
-        group_builder.specify "should be able to get first and last values with mixed ordering" (pending = resolve_pending test_selection.first_last_multi_order) <|
+        group_builder.specify "should be able to get first and last values with mixed ordering" (pending = resolve_pending (test_selection.first_last_multi_order && test_selection.first_last_ignore_nothing)) <|
             grouped = data.table.aggregate ["Flag", "Index"] [First "TextWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending, Sort_Column.Name "Flag"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending])]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
@@ -1298,7 +1298,7 @@ add_specs suite_builder setup =
         group_builder.specify "should not return the same value for groups with different values but equal ordering keys" <|
             t1 = table_builder [["G", ["a", "a"]], ["X", [1, 2]]]
             order = [Sort_Column.Name "G"]
-            r1 = t1.aggregate columns=[First "X" (order_by=order), Last "X" (order_by=order)]
+            r1 = t1.aggregate columns=[First "X" ignore_nothing=False (order_by=order), Last "X" ignore_nothing=False (order_by=order)]
             r1.row_count.should_equal 1
             m1 = materialize r1
             m1.column_count . should_equal 2
@@ -1306,7 +1306,7 @@ add_specs suite_builder setup =
             last = m1.columns.second.at 0
             (first != last).should_be_true
 
-        group_builder.specify "should respect the `ignore_nothing` setting" <|
+        group_builder.specify "should respect the `ignore_nothing` setting" (pending = resolve_pending test_selection.first_last_ignore_nothing) <|
             t1 = table_builder [["ix", [1, 2, 3, 4, 5]], ["A", [Nothing, "a", "b", "c", Nothing]]]
             r1 = t1.aggregate columns=[First "A" order_by="ix" ignore_nothing=False, Last "A" order_by="ix" ignore_nothing=False, First "A" order_by="ix" ignore_nothing=True, Last "A" order_by="ix" ignore_nothing=True]
             r1.column_names . should_equal ["First A", "Last A", "First A 1", "Last A 1"]
@@ -1317,7 +1317,7 @@ add_specs suite_builder setup =
             m1.at "First A 1" . to_vector . should_equal ["a"]
             m1.at "Last A 1" . to_vector . should_equal ["c"]
 
-        group_builder.specify "may return Nothing even if `ignore_nothing=True` if there are no values" <|
+        group_builder.specify "may return Nothing even if `ignore_nothing=True` if there are no values" (pending = resolve_pending test_selection.first_last_ignore_nothing) <|
             # We create a non-empty table because all-Nothing columns are problematic in some backends:
             t1 = table_builder [["ix", [Nothing, 1, 2, 3]], ["A", [1, Nothing, Nothing, Nothing]]]
                 . filter "ix" ..Not_Nothing
@@ -1666,6 +1666,13 @@ add_specs suite_builder setup =
 
             if test_selection.first_last.not then
                 group_builder.specify "with First and Last with ordering" <|
+                    table = table_builder [["A", [3,2,1]], ["X", [1,2,3]]]
+                    order = [Sort_Column.Name "A"]
+                    expect_sum_and_unsupported_errors 2 <|
+                        table.aggregate columns=[Sum "X", First ignore_nothing=False "X" (order_by=order), Last ignore_nothing=False "X" (order_by=order)]
+
+            if test_selection.first_last_ignore_nothing.not then
+                group_builder.specify "with First and Last with ignore_nothing=True" <|
                     table = table_builder [["A", [3,2,1]], ["X", [1,2,3]]]
                     order = [Sort_Column.Name "A"]
                     expect_sum_and_unsupported_errors 2 <|
