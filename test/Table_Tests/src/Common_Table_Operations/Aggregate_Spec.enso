@@ -179,13 +179,14 @@ add_specs suite_builder setup =
         group_builder.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
             grouped = data.table.aggregate columns=[First ignore_nothing=False "Index" (order_by = [Sort_Column.Name "Value"]), Last ignore_nothing=False "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
             materialized = materialize grouped
-            Problems.assume_no_problems materialized
-            grouped.row_count . should_equal 1
-            materialized.column_count . should_equal 2
-            materialized.columns.at 0 . name . should_equal "First Index"
-            materialized.columns.at 0 . at 0 . should_equal 9
-            materialized.columns.at 1 . name . should_equal "Last ValueWithNothing"
-            materialized.columns.at 1 . at 0 . should_equal -89.78 epsilon=0.000001
+            within_table grouped <|
+                Problems.assume_no_problems materialized
+                grouped.row_count . should_equal 1
+                materialized.column_count . should_equal 2
+                materialized.columns.at 0 . name . should_equal "First Index"
+                materialized.columns.at 0 . at 0 . should_equal 9
+                materialized.columns.at 1 . name . should_equal "Last ValueWithNothing"
+                materialized.columns.at 1 . at 0 . should_equal -89.78 epsilon=0.000001
 
         group_builder.specify "should be able to get first and last values ordering by a single column" (pending = resolve_pending test_selection.first_last_ignore_nothing) <|
             grouped = data.table.aggregate columns=[First "TextWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending])]
@@ -1306,15 +1307,29 @@ add_specs suite_builder setup =
             last = m1.columns.second.at 0
             (first != last).should_be_true
 
-        group_builder.specify "should work with grouping and ordering" <|
-            t1 = table_builder [["Group", ["A", "A", "B", "C", "C", "C"]], ["Order", [1, 2, 3, 3, 2, 1]], ["Value", ["a", "b", "c", "d", "e", "f"]]]
-            r1 = t1.aggregate ["Group"] [First "Value" ignore_nothing=False order_by="Order", Last "Value" ignore_nothing=False order_by="Order"]
-            r1.row_count.should_equal 3
-            m1 = materialize r1 . sort "Group"
-            m1.column_count . should_equal 3
-            m1.at "Group" . to_vector . should_equal ["A", "B", "C"]
-            m1.at "First Value" . to_vector . should_equal ["a", "c", "f"]
-            m1.at "Last Value" . to_vector . should_equal ["b", "c", "d"]
+        group_builder.specify "should work with grouping and ordering, and other aggregates" <|
+            t1 = table_builder [["Group", ["A", "A", "B", "C", "C", "C"]], ["Order", [1, 2, 3, 50, 40, 20]], ["Value", ["a", "b", "c", "d", "e", "f"]]]
+            aggregates = [First "Value" ignore_nothing=False order_by="Order", Last "Value" ignore_nothing=False order_by="Order", Count, Sum "Order"]
+            r1 = t1.aggregate group_by=["Group"] aggregates
+            within_table r1 <|
+                r1.row_count.should_equal 3
+                m1 = materialize r1 . sort "Group"
+                m1.column_count . should_equal 5
+                m1.at "Group" . to_vector . should_equal ["A", "B", "C"]
+                m1.at "First Value" . to_vector . should_equal ["a", "c", "f"]
+                m1.at "Last Value" . to_vector . should_equal ["b", "c", "d"]
+                m1.at "Count" . to_vector . should_equal [2, 1, 3]
+                m1.at "Sum Order" . to_vector . should_equal [3, 3, 110]
+
+            r2 = t1.aggregate group_by=[] aggregates
+            within_table r2 <|
+                r2.row_count.should_equal 1
+                m2 = materialize r2
+                m2.column_count . should_equal 4
+                m2.at "First Value" . to_vector . should_equal ["a"]
+                m2.at "Last Value" . to_vector . should_equal ["d"]
+                m2.at "Count" . to_vector . should_equal [6]
+                m2.at "Sum Order" . to_vector . should_equal [116]
 
         group_builder.specify "should respect the `ignore_nothing` setting" (pending = resolve_pending test_selection.first_last_ignore_nothing) <|
             t1 = table_builder [["ix", [1, 2, 3, 4, 5]], ["A", [Nothing, "a", "b", "c", Nothing]]]
