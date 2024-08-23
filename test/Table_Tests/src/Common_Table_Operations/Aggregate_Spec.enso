@@ -1306,6 +1306,16 @@ add_specs suite_builder setup =
             last = m1.columns.second.at 0
             (first != last).should_be_true
 
+        group_builder.specify "should work with grouping and ordering" <|
+            t1 = table_builder [["Group", ["A", "A", "B", "C", "C", "C"]], ["Order", [1, 2, 3, 3, 2, 1]], ["Value", ["a", "b", "c", "d", "e", "f"]]]
+            r1 = t1.aggregate ["Group"] [First "Value" ignore_nothing=False order_by="Order", Last "Value" ignore_nothing=False order_by="Order"]
+            r1.row_count.should_equal 3
+            m1 = materialize r1 . sort "Group"
+            m1.column_count . should_equal 3
+            m1.at "Group" . to_vector . should_equal ["A", "B", "C"]
+            m1.at "First Value" . to_vector . should_equal ["a", "c", "f"]
+            m1.at "Last Value" . to_vector . should_equal ["b", "c", "d"]
+
         group_builder.specify "should respect the `ignore_nothing` setting" (pending = resolve_pending test_selection.first_last_ignore_nothing) <|
             t1 = table_builder [["ix", [1, 2, 3, 4, 5]], ["A", [Nothing, "a", "b", "c", Nothing]]]
             r1 = t1.aggregate columns=[First "A" order_by="ix" ignore_nothing=False, Last "A" order_by="ix" ignore_nothing=False, First "A" order_by="ix" ignore_nothing=True, Last "A" order_by="ix" ignore_nothing=True]
