@@ -1,4 +1,5 @@
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
+import { SavedSize } from '@/components/WithFullscreenMode.vue'
 import { createContextStore } from '@/providers'
 import type { URLString } from '@/util/data/urlString'
 import { Vec2 } from '@/util/data/vec2'
@@ -23,6 +24,7 @@ export interface VisualizationConfig {
   height: number
   nodePosition: Vec2
   fullscreen: boolean
+  savedSize: SavedSize | undefined
   hide: () => void
   updateType: (type: VisualizationIdentifier) => void
   createNodes: (...options: NodeCreationOptions[]) => void
