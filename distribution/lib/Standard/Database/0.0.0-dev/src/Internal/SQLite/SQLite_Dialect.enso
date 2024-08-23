@@ -326,7 +326,9 @@ type SQLite_Dialect
 
         create_count_for key_columns =
             key_expressions_for_orderings = key_columns.map .expression
-            Pair.new "group-count" (SQL_Expression.Operation "COUNT_OVER_PARTITION" key_expressions_for_orderings)
+            expression = if key_expressions_for_orderings.is_empty then (SQL_Expression.Operation "COUNT_ROWS" []) else
+                SQL_Expression.Operation "COUNT_OVER_PARTITION" key_expressions_for_orderings
+            Pair.new "group-count" expression
 
         create_helper_expressions aggregate_column key_columns =
             is_selector_invalid order_by = Aggregate_Helper.is_non_empty_selector order_by . not
