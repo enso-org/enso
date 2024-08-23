@@ -93,8 +93,8 @@ final class SuggestionBuilder[A: IndexedSource](
                     name,
                     arguments,
                     annotations,
-                    _,
                     isPrivate,
+                    _,
                     _,
                     _
                   ) if !isPrivate =>

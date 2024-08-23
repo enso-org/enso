@@ -71,7 +71,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const closeProject = projectHooks.useCloseProject()
   const openProjectTab = projectHooks.useOpenEditor()
 
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useFullUserSession()
   const { getText } = textProvider.useText()
 
   const {

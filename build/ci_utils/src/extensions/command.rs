@@ -15,7 +15,7 @@ pub trait CommandExt {
             let _ = write!(ret, "\n\twith working directory: {}", cwd.display());
         };
         let env = self.as_std().get_envs();
-        if !env.is_empty() {
+        if env.len() != 0 {
             let _ = write!(ret, "\n\twith environment overrides:");
         }
         for (name, val) in self.as_std().get_envs() {

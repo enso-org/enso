@@ -590,9 +590,8 @@ impl RunContext {
                         .args(run)
                         .current_dir(&self.paths.repo_root)
                         .spawn()?
-                        .wait()
-                        .await?
-                        .exit_ok()?;
+                        .wait_ok()
+                        .await?;
                 } else {
                     debug!("Spawning default shell.");
                     let mut shell =

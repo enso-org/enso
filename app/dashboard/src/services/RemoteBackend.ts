@@ -55,43 +55,54 @@ function responseIsSuccessful(response: Response) {
   return response.status >= STATUS_SUCCESS_FIRST && response.status <= STATUS_SUCCESS_LAST
 }
 
+// ====================================
+// === isSpecialReadonlyDirectoryId ===
+// ====================================
+
+/** Whether the given directory is a special directory that cannot be written to. */
+export function isSpecialReadonlyDirectoryId(id: backend.AssetId) {
+  return (
+    id !== remoteBackendPaths.USERS_DIRECTORY_ID && id !== remoteBackendPaths.TEAMS_DIRECTORY_ID
+  )
+}
+
 // =============
 // === Types ===
 // =============
 
 /** HTTP response body for the "list users" endpoint. */
 export interface ListUsersResponseBody {
-  readonly users: backend.User[]
+  readonly users: readonly backend.User[]
 }
 
 /** HTTP response body for the "list projects" endpoint. */
 export interface ListDirectoryResponseBody {
-  readonly assets: backend.AnyAsset[]
+  readonly assets: readonly backend.AnyAsset[]
 }
 
 /** HTTP response body for the "list projects" endpoint. */
 export interface ListProjectsResponseBody {
-  readonly projects: backend.ListedProjectRaw[]
+  readonly projects: readonly backend.ListedProjectRaw[]
 }
 
 /** HTTP response body for the "list files" endpoint. */
 export interface ListFilesResponseBody {
-  readonly files: backend.FileLocator[]
+  readonly files: readonly backend.FileLocator[]
 }
 
 /** HTTP response body for the "list secrets" endpoint. */
 export interface ListSecretsResponseBody {
-  readonly secrets: backend.SecretInfo[]
+  readonly secrets: readonly backend.SecretInfo[]
 }
 
 /** HTTP response body for the "list tag" endpoint. */
 export interface ListTagsResponseBody {
-  readonly tags: backend.Label[]
+  readonly tags: readonly backend.Label[]
 }
 
 /** HTTP response body for the "list versions" endpoint. */
 export interface ListVersionsResponseBody {
-  readonly versions: [backend.Version, ...backend.Version[]]
+  readonly versions: readonly [backend.Version, ...backend.Version[]]
 }
 
 // =====================
@@ -164,8 +175,23 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Return the ID of the root directory. */
-  override rootDirectoryId(user: backend.User | null): backend.DirectoryId | null {
-    return user?.rootDirectoryId ?? null
+  override rootDirectoryId(
+    user: backend.User | null,
+    organization: backend.OrganizationInfo | null,
+  ): backend.DirectoryId | null {
+    switch (user?.plan ?? null) {
+      case null:
+      case backend.Plan.free:
+      case backend.Plan.solo: {
+        return user?.rootDirectoryId ?? null
+      }
+      case backend.Plan.team:
+      case backend.Plan.enterprise: {
+        return organization == null ? null : (
+            backend.DirectoryId(`directory-${organization.id.replace(/^organization-/, '')}`)
+          )
+      }
+    }
   }
 
   /** Return a list of all users in the same organization. */
@@ -253,11 +279,12 @@ export default class RemoteBackend extends Backend {
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'listInvitationsBackendError')
     } else {
-      return await response.json().then((data) => data.invitations)
+      const data = await response.json()
+      return data.invitations
     }
   }
 
-  /** Delete an invitation. */
+  /** Delete an outgoing invitation. */
   override async deleteInvitation(userEmail: backend.EmailAddress): Promise<void> {
     const response = await this.delete(remoteBackendPaths.INVITATION_PATH, { userEmail })
 
@@ -268,9 +295,24 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Resend an invitation to a user. */
+  /** Resend an outgoing invitation to a user. */
   override async resendInvitation(userEmail: backend.EmailAddress): Promise<void> {
     await this.inviteUser({ userEmail, resend: true })
+  }
+
+  /** Accept an invitation to a new organization. */
+  override async acceptInvitation(): Promise<void> {
+    const response = await this.patch(remoteBackendPaths.ACCEPT_INVITATION_PATH, {})
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'acceptInvitationBackendError')
+    } else {
+      return
+    }
+  }
+
+  /** Decline an invitation to a new organization. */
+  override async declineInvitation(userEmail: backend.EmailAddress): Promise<void> {
+    await this.deleteInvitation(userEmail)
   }
 
   /** Upload a new profile picture for the current user. */
@@ -399,7 +441,7 @@ export default class RemoteBackend extends Backend {
   override async listDirectory(
     query: backend.ListDirectoryRequestParams,
     title: string,
-  ): Promise<backend.AnyAsset[]> {
+  ): Promise<readonly backend.AnyAsset[]> {
     const path = remoteBackendPaths.LIST_DIRECTORY_PATH
     const response = await this.get<ListDirectoryResponseBody>(
       path +
@@ -626,8 +668,7 @@ export default class RemoteBackend extends Backend {
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'duplicateProjectBackendError', title)
     } else {
-      const json = await response.json()
-      return json
+      return await response.json()
     }
   }
 
@@ -767,7 +808,7 @@ export default class RemoteBackend extends Backend {
 
   /** Return a list of files accessible by the current user.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async listFiles(): Promise<backend.FileLocator[]> {
+  override async listFiles(): Promise<readonly backend.FileLocator[]> {
     const path = remoteBackendPaths.LIST_FILES_PATH
     const response = await this.get<ListFilesResponseBody>(path)
     if (!responseIsSuccessful(response)) {
@@ -902,7 +943,7 @@ export default class RemoteBackend extends Backend {
 
   /** Return the secret environment variables accessible by the user.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async listSecrets(): Promise<backend.SecretInfo[]> {
+  override async listSecrets(): Promise<readonly backend.SecretInfo[]> {
     const path = remoteBackendPaths.LIST_SECRETS_PATH
     const response = await this.get<ListSecretsResponseBody>(path)
     if (!responseIsSuccessful(response)) {
@@ -926,7 +967,7 @@ export default class RemoteBackend extends Backend {
 
   /** Return all labels accessible by the user.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async listTags(): Promise<backend.Label[]> {
+  override async listTags(): Promise<readonly backend.Label[]> {
     const path = remoteBackendPaths.LIST_TAGS_PATH
     const response = await this.get<ListTagsResponseBody>(path)
     if (!responseIsSuccessful(response)) {
@@ -1004,7 +1045,7 @@ export default class RemoteBackend extends Backend {
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async listVersions(
     params: backend.ListVersionsRequestParams,
-  ): Promise<backend.Version[]> {
+  ): Promise<readonly backend.Version[]> {
     const paramsString = new URLSearchParams({
       // eslint-disable-next-line @typescript-eslint/naming-convention
       version_type: params.versionType,

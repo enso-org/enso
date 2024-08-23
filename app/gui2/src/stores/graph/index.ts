@@ -387,7 +387,6 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       const empty: VisualizationMetadata = {
         identifier: null,
         visible: false,
-        fullscreen: false,
         width: null,
         height: null,
       }
@@ -403,7 +402,6 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       const data: Partial<VisualizationMetadata> = {
         identifier: vis.identifier ?? metadata.get('visualization')?.identifier ?? null,
         visible: vis.visible ?? metadata.get('visualization')?.visible ?? false,
-        fullscreen: vis.fullscreen ?? metadata.get('visualization')?.fullscreen ?? false,
         width: vis.width ?? metadata.get('visualization')?.width ?? null,
         height: vis.height ?? metadata.get('visualization')?.height ?? null,
       }

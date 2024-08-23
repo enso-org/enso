@@ -83,25 +83,38 @@ object Import {
       isAll: Boolean                          = isAll,
       onlyNames: Option[List[Name.Literal]]   = onlyNames,
       hiddenNames: Option[List[Name.Literal]] = hiddenNames,
-      location: Option[IdentifiedLocation]    = location,
       isSynthetic: Boolean                    = isSynthetic,
+      location: Option[IdentifiedLocation]    = location,
       passData: MetadataStorage               = passData,
       diagnostics: DiagnosticStorage          = diagnostics,
       id: UUID @Identifier                    = id
     ): Module = {
-      val res = Module(
-        name,
-        rename,
-        isAll,
-        onlyNames,
-        hiddenNames,
-        location,
-        isSynthetic,
-        passData,
-        diagnostics
-      )
-      res.id = id
-      res
+      if (
+        name != this.name
+        || rename != this.rename
+        || isAll != this.isAll
+        || onlyNames != this.onlyNames
+        || hiddenNames != this.hiddenNames
+        || isSynthetic != this.isSynthetic
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Module(
+          name,
+          rename,
+          isAll,
+          onlyNames,
+          hiddenNames,
+          location,
+          isSynthetic,
+          passData,
+          diagnostics
+        )
+        res.id = id
+        res
+      } else this
     }
 
     /** @inheritdoc */

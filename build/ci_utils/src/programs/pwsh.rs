@@ -19,6 +19,9 @@ pub mod arg {
 }
 
 impl Program for PwSh {
+    type Command = Command;
+    type Version = Version;
+
     fn executable_name(&self) -> &'static str {
         "pwsh"
     }
