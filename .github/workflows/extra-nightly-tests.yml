@@ -13,7 +13,7 @@ on:
         type: boolean
         default: false
 jobs:
-  enso-build::ci-gen::job::snowflake-tests-linux-amd64:
+  enso-build-ci-gen-job-snowflake-tests-linux-amd64:
     name: Snowflake Tests (linux, amd64)
     runs-on:
       - self-hosted

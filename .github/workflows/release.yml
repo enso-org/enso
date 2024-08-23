@@ -16,7 +16,7 @@ on:
         required: true
         type: string
 jobs:
-  enso-build::ci-gen::draft-release-linux-amd64:
+  enso-build-ci-gen-draft-release-linux-amd64:
     name: Create a release draft.
     runs-on:
       - self-hosted
@@ -47,11 +47,11 @@ jobs:
     outputs:
       ENSO_RELEASE_ID: ${{ steps.prepare.outputs.ENSO_RELEASE_ID }}
       ENSO_VERSION: ${{ steps.prepare.outputs.ENSO_VERSION }}
-  enso-build::ci-gen::job::deploy-runtime-linux-amd64:
+  enso-build-ci-gen-job-deploy-runtime-linux-amd64:
     name: Upload Runtime to ECR (linux, amd64)
     needs:
-      - enso-build::ci-gen::draft-release-linux-amd64
-      - enso-build::ci-gen::job::upload-backend-linux-amd64
+      - enso-build-ci-gen-draft-release-linux-amd64
+      - enso-build-ci-gen-job-upload-backend-linux-amd64
     runs-on:
       - self-hosted
       - Linux
@@ -98,12 +98,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
-      ENSO_RELEASE_ID: ${{ needs.enso-build::ci-gen::draft-release-linux-amd64.outputs.ENSO_RELEASE_ID }}
-      ENSO_VERSION: ${{ needs.enso-build::ci-gen::draft-release-linux-amd64.outputs.ENSO_VERSION }}
-  enso-build::ci-gen::job::upload-backend-linux-amd64:
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_VERSION }}
+  enso-build-ci-gen-job-upload-backend-linux-amd64:
     name: Upload Backend (linux, amd64)
     needs:
-      - enso-build::ci-gen::draft-release-linux-amd64
+      - enso-build-ci-gen-draft-release-linux-amd64
     runs-on:
       - self-hosted
       - Linux
@@ -146,12 +146,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
-      ENSO_RELEASE_ID: ${{ needs.enso-build::ci-gen::draft-release-linux-amd64.outputs.ENSO_RELEASE_ID }}
-      ENSO_VERSION: ${{ needs.enso-build::ci-gen::draft-release-linux-amd64.outputs.ENSO_VERSION }}
-  enso-build::ci-gen::job::upload-backend-macos-aarch64:
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_VERSION }}
+  enso-build-ci-gen-job-upload-backend-macos-aarch64:
     name: Upload Backend (macos, aarch64)
     needs:
-      - enso-build::ci-gen::draft-release-linux-amd64
+      - enso-build-ci-gen-draft-release-linux-amd64
     runs-on:
       - self-hosted
       - macOS
@@ -195,12 +195,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
-      ENSO_RELEASE_ID: ${{ needs.enso-build::ci-gen::draft-release-linux-amd64.outputs.ENSO_RELEASE_ID }}
-      ENSO_VERSION: ${{ needs.enso-build::ci-gen::draft-release-linux-amd64.outputs.ENSO_VERSION }}
-  enso-build::ci-gen::job::upload-backend-macos-amd64:
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_VERSION }}
+  enso-build-ci-gen-job-upload-backend-macos-amd64:
     name: Upload Backend (macos, amd64)
     needs:
-      - enso-build::ci-gen::draft-release-linux-amd64
+      - enso-build-ci-gen-draft-release-linux-amd64
     runs-on:
       - macos-12
     steps:
@@ -242,12 +242,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
-      ENSO_RELEASE_ID: ${{ needs.enso-build::ci-gen::draft-release-linux-amd64.outputs.ENSO_RELEASE_ID }}
-      ENSO_VERSION: ${{ needs.enso-build::ci-gen::draft-release-linux-amd64.outputs.ENSO_VERSION }}
-  enso-build::ci-gen::job::upload-backend-windows-amd64:
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_VERSION }}
+  enso-build-ci-gen-job-upload-backend-windows-amd64:
     name: Upload Backend (windows, amd64)
     needs:
-      - enso-build::ci-gen::draft-release-linux-amd64
+      - enso-build-ci-gen-draft-release-linux-amd64
     runs-on:
       - self-hosted
       - Windows
@@ -290,17 +290,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
-      ENSO_RELEASE_ID: ${{ needs.enso-build::ci-gen::draft-release-linux-amd64.outputs.ENSO_RELEASE_ID }}
-      ENSO_VERSION: ${{ needs.enso-build::ci-gen::draft-release-linux-amd64.outputs.ENSO_VERSION }}
-  enso-build::ci-gen::publish-release-linux-amd64:
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_VERSION }}
+  enso-build-ci-gen-publish-release-linux-amd64:
     name: Publish release (linux, amd64)
     needs:
-      - enso-build::ci-gen::draft-release-linux-amd64
-      - enso-build::ci-gen::job::deploy-runtime-linux-amd64
-      - enso-build::ci-gen::upload-ide-linux-amd64
-      - enso-build::ci-gen::upload-ide-macos-aarch64
-      - enso-build::ci-gen::upload-ide-macos-amd64
-      - enso-build::ci-gen::upload-ide-windows-amd64
+      - enso-build-ci-gen-draft-release-linux-amd64
+      - enso-build-ci-gen-job-deploy-runtime-linux-amd64
+      - enso-build-ci-gen-upload-ide-linux-amd64
+      - enso-build-ci-gen-upload-ide-macos-aarch64
+      - enso-build-ci-gen-upload-ide-macos-amd64
+      - enso-build-ci-gen-upload-ide-windows-amd64
     runs-on:
       - self-hosted
       - Linux
@@ -346,13 +346,13 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.ARTEFACT_S3_ACCESS_KEY_ID }}
       AWS_REGION: us-west-1
       AWS_SECRET_ACCESS_KEY: ${{ secrets.ARTEFACT_S3_SECRET_ACCESS_KEY }}
-      ENSO_RELEASE_ID: ${{ needs.enso-build::ci-gen::draft-release-linux-amd64.outputs.ENSO_RELEASE_ID }}
-      ENSO_VERSION: ${{ needs.enso-build::ci-gen::draft-release-linux-amd64.outputs.ENSO_VERSION }}
-  enso-build::ci-gen::upload-ide-linux-amd64:
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_VERSION }}
+  enso-build-ci-gen-upload-ide-linux-amd64:
     name: Build IDE (linux, amd64)
     needs:
-      - enso-build::ci-gen::draft-release-linux-amd64
-      - enso-build::ci-gen::job::upload-backend-linux-amd64
+      - enso-build-ci-gen-draft-release-linux-amd64
+      - enso-build-ci-gen-job-upload-backend-linux-amd64
     runs-on:
       - self-hosted
       - Linux
@@ -407,13 +407,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
-      ENSO_RELEASE_ID: ${{ needs.enso-build::ci-gen::draft-release-linux-amd64.outputs.ENSO_RELEASE_ID }}
-      ENSO_VERSION: ${{ needs.enso-build::ci-gen::draft-release-linux-amd64.outputs.ENSO_VERSION }}
-  enso-build::ci-gen::upload-ide-macos-aarch64:
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_VERSION }}
+  enso-build-ci-gen-upload-ide-macos-aarch64:
     name: Build IDE (macos, aarch64)
     needs:
-      - enso-build::ci-gen::draft-release-linux-amd64
-      - enso-build::ci-gen::job::upload-backend-macos-aarch64
+      - enso-build-ci-gen-draft-release-linux-amd64
+      - enso-build-ci-gen-job-upload-backend-macos-aarch64
     runs-on:
       - self-hosted
       - macOS
@@ -476,13 +476,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
-      ENSO_RELEASE_ID: ${{ needs.enso-build::ci-gen::draft-release-linux-amd64.outputs.ENSO_RELEASE_ID }}
-      ENSO_VERSION: ${{ needs.enso-build::ci-gen::draft-release-linux-amd64.outputs.ENSO_VERSION }}
-  enso-build::ci-gen::upload-ide-macos-amd64:
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_VERSION }}
+  enso-build-ci-gen-upload-ide-macos-amd64:
     name: Build IDE (macos, amd64)
     needs:
-      - enso-build::ci-gen::draft-release-linux-amd64
-      - enso-build::ci-gen::job::upload-backend-macos-amd64
+      - enso-build-ci-gen-draft-release-linux-amd64
+      - enso-build-ci-gen-job-upload-backend-macos-amd64
     runs-on:
       - macos-12
     steps:
@@ -543,13 +543,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
-      ENSO_RELEASE_ID: ${{ needs.enso-build::ci-gen::draft-release-linux-amd64.outputs.ENSO_RELEASE_ID }}
-      ENSO_VERSION: ${{ needs.enso-build::ci-gen::draft-release-linux-amd64.outputs.ENSO_VERSION }}
-  enso-build::ci-gen::upload-ide-windows-amd64:
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_VERSION }}
+  enso-build-ci-gen-upload-ide-windows-amd64:
     name: Build IDE (windows, amd64)
     needs:
-      - enso-build::ci-gen::draft-release-linux-amd64
-      - enso-build::ci-gen::job::upload-backend-windows-amd64
+      - enso-build-ci-gen-draft-release-linux-amd64
+      - enso-build-ci-gen-job-upload-backend-windows-amd64
     runs-on:
       - self-hosted
       - Windows
@@ -606,8 +606,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
-      ENSO_RELEASE_ID: ${{ needs.enso-build::ci-gen::draft-release-linux-amd64.outputs.ENSO_RELEASE_ID }}
-      ENSO_VERSION: ${{ needs.enso-build::ci-gen::draft-release-linux-amd64.outputs.ENSO_VERSION }}
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_VERSION }}
 env:
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"
   ENSO_EDITION: ${{ inputs.version }}

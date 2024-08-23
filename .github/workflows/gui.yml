@@ -15,7 +15,7 @@ on:
         type: boolean
         default: false
 jobs:
-  enso-build::ci-gen::job::build-backend-linux-amd64:
+  enso-build-ci-gen-job-build-backend-linux-amd64:
     name: Build Backend (linux, amd64)
     runs-on:
       - self-hosted
@@ -58,7 +58,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build::ci-gen::job::build-backend-macos-aarch64:
+  enso-build-ci-gen-job-build-backend-macos-aarch64:
     name: Build Backend (macos, aarch64)
     runs-on:
       - self-hosted
@@ -102,7 +102,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build::ci-gen::job::build-backend-macos-amd64:
+  enso-build-ci-gen-job-build-backend-macos-amd64:
     name: Build Backend (macos, amd64)
     runs-on:
       - macos-12
@@ -144,7 +144,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build::ci-gen::job::build-backend-windows-amd64:
+  enso-build-ci-gen-job-build-backend-windows-amd64:
     name: Build Backend (windows, amd64)
     runs-on:
       - self-hosted
@@ -187,7 +187,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build::ci-gen::job::cancel-workflow-linux-amd64:
+  enso-build-ci-gen-job-cancel-workflow-linux-amd64:
     name: Cancel Previous Runs
     if: github.ref != 'refs/heads/develop'
     runs-on:
@@ -199,7 +199,7 @@ jobs:
           access_token: ${{ github.token }}
     permissions:
       actions: write
-  enso-build::ci-gen::job::gui-build-linux-amd64:
+  enso-build-ci-gen-job-gui-build-linux-amd64:
     name: GUI build (linux, amd64)
     runs-on:
       - self-hosted
@@ -254,7 +254,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build::ci-gen::job::gui-build-macos-aarch64:
+  enso-build-ci-gen-job-gui-build-macos-aarch64:
     name: GUI build (macos, aarch64)
     runs-on:
       - self-hosted
@@ -310,7 +310,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build::ci-gen::job::gui-build-macos-amd64:
+  enso-build-ci-gen-job-gui-build-macos-amd64:
     name: GUI build (macos, amd64)
     runs-on:
       - macos-12
@@ -364,7 +364,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build::ci-gen::job::gui-build-windows-amd64:
+  enso-build-ci-gen-job-gui-build-windows-amd64:
     name: GUI build (windows, amd64)
     runs-on:
       - self-hosted
@@ -419,10 +419,10 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build::ci-gen::job::package-ide-linux-amd64:
+  enso-build-ci-gen-job-package-ide-linux-amd64:
     name: Package New IDE (linux, amd64)
     needs:
-      - enso-build::ci-gen::job::build-backend-linux-amd64
+      - enso-build-ci-gen-job-build-backend-linux-amd64
     runs-on:
       - self-hosted
       - Linux
@@ -476,10 +476,10 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build::ci-gen::job::package-ide-macos-aarch64:
+  enso-build-ci-gen-job-package-ide-macos-aarch64:
     name: Package New IDE (macos, aarch64)
     needs:
-      - enso-build::ci-gen::job::build-backend-macos-aarch64
+      - enso-build-ci-gen-job-build-backend-macos-aarch64
     runs-on:
       - self-hosted
       - macOS
@@ -541,10 +541,10 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build::ci-gen::job::package-ide-macos-amd64:
+  enso-build-ci-gen-job-package-ide-macos-amd64:
     name: Package New IDE (macos, amd64)
     needs:
-      - enso-build::ci-gen::job::build-backend-macos-amd64
+      - enso-build-ci-gen-job-build-backend-macos-amd64
     runs-on:
       - macos-12
     steps:
@@ -604,10 +604,10 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build::ci-gen::job::package-ide-windows-amd64:
+  enso-build-ci-gen-job-package-ide-windows-amd64:
     name: Package New IDE (windows, amd64)
     needs:
-      - enso-build::ci-gen::job::build-backend-windows-amd64
+      - enso-build-ci-gen-job-build-backend-windows-amd64
     runs-on:
       - self-hosted
       - Windows

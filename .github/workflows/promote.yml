@@ -21,7 +21,7 @@ on:
         required: true
         type: string
 jobs:
-  enso-build::ci-gen::promote-release-job-linux-amd64:
+  enso-build-ci-gen-promote-release-job-linux-amd64:
     name: Promote release (linux, amd64)
     runs-on:
       - self-hosted
@@ -72,10 +72,10 @@ jobs:
   release:
     name: Release
     needs:
-      - enso-build::ci-gen::promote-release-job-linux-amd64
+      - enso-build-ci-gen-promote-release-job-linux-amd64
     uses: ./.github/workflows/release.yml
     with:
-      version: ${{ needs.enso-build::ci-gen::promote-release-job-linux-amd64.outputs.ENSO_VERSION }}
+      version: ${{ needs.enso-build-ci-gen-promote-release-job-linux-amd64.outputs.ENSO_VERSION }}
     secrets: inherit
 env:
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"

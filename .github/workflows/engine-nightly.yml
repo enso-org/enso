@@ -13,7 +13,7 @@ on:
         type: boolean
         default: false
 jobs:
-  enso-build::ci-gen::job::ci-check-backend-graal-vm-ce-linux-amd64:
+  enso-build-ci-gen-job-ci-check-backend-graal-vm-ce-linux-amd64:
     name: Engine (GraalVM CE) (linux, amd64)
     runs-on:
       - self-hosted
@@ -58,7 +58,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
       GRAAL_EDITION: GraalVM CE
-  enso-build::ci-gen::job::ci-check-backend-graal-vm-ce-macos-aarch64:
+  enso-build-ci-gen-job-ci-check-backend-graal-vm-ce-macos-aarch64:
     name: Engine (GraalVM CE) (macos, aarch64)
     runs-on:
       - self-hosted
@@ -104,7 +104,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
       GRAAL_EDITION: GraalVM CE
-  enso-build::ci-gen::job::ci-check-backend-graal-vm-ce-macos-amd64:
+  enso-build-ci-gen-job-ci-check-backend-graal-vm-ce-macos-amd64:
     name: Engine (GraalVM CE) (macos, amd64)
     runs-on:
       - macos-12
@@ -148,7 +148,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
       GRAAL_EDITION: GraalVM CE
-  enso-build::ci-gen::job::ci-check-backend-graal-vm-ce-windows-amd64:
+  enso-build-ci-gen-job-ci-check-backend-graal-vm-ce-windows-amd64:
     name: Engine (GraalVM CE) (windows, amd64)
     runs-on:
       - self-hosted
@@ -193,7 +193,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
       GRAAL_EDITION: GraalVM CE
-  enso-build::ci-gen::job::ci-check-backend-oracle-graal-vm-linux-amd64:
+  enso-build-ci-gen-job-ci-check-backend-oracle-graal-vm-linux-amd64:
     name: Engine (Oracle GraalVM) (linux, amd64)
     runs-on:
       - self-hosted
@@ -238,7 +238,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
       GRAAL_EDITION: Oracle GraalVM
-  enso-build::ci-gen::job::jvm-tests-graal-vm-ce-linux-amd64:
+  enso-build-ci-gen-job-jvm-tests-graal-vm-ce-linux-amd64:
     name: JVM Tests (GraalVM CE) (linux, amd64)
     runs-on:
       - self-hosted
@@ -294,7 +294,7 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build::ci-gen::job::jvm-tests-graal-vm-ce-macos-aarch64:
+  enso-build-ci-gen-job-jvm-tests-graal-vm-ce-macos-aarch64:
     name: JVM Tests (GraalVM CE) (macos, aarch64)
     runs-on:
       - self-hosted
@@ -351,7 +351,7 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build::ci-gen::job::jvm-tests-graal-vm-ce-macos-amd64:
+  enso-build-ci-gen-job-jvm-tests-graal-vm-ce-macos-amd64:
     name: JVM Tests (GraalVM CE) (macos, amd64)
     runs-on:
       - macos-12
@@ -406,7 +406,7 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build::ci-gen::job::jvm-tests-graal-vm-ce-windows-amd64:
+  enso-build-ci-gen-job-jvm-tests-graal-vm-ce-windows-amd64:
     name: JVM Tests (GraalVM CE) (windows, amd64)
     runs-on:
       - self-hosted
@@ -462,7 +462,7 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build::ci-gen::job::jvm-tests-oracle-graal-vm-linux-amd64:
+  enso-build-ci-gen-job-jvm-tests-oracle-graal-vm-linux-amd64:
     name: JVM Tests (Oracle GraalVM) (linux, amd64)
     runs-on:
       - self-hosted
@@ -518,7 +518,7 @@ jobs:
       GRAAL_EDITION: Oracle GraalVM
     permissions:
       checks: write
-  enso-build::ci-gen::job::standard-library-tests-graal-vm-ce-linux-amd64:
+  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-linux-amd64:
     name: Standard Library Tests (GraalVM CE) (linux, amd64)
     runs-on:
       - self-hosted
@@ -577,7 +577,7 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build::ci-gen::job::standard-library-tests-graal-vm-ce-macos-aarch64:
+  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-macos-aarch64:
     name: Standard Library Tests (GraalVM CE) (macos, aarch64)
     runs-on:
       - self-hosted
@@ -637,7 +637,7 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build::ci-gen::job::standard-library-tests-graal-vm-ce-macos-amd64:
+  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-macos-amd64:
     name: Standard Library Tests (GraalVM CE) (macos, amd64)
     runs-on:
       - macos-12
@@ -695,7 +695,7 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build::ci-gen::job::standard-library-tests-graal-vm-ce-windows-amd64:
+  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-windows-amd64:
     name: Standard Library Tests (GraalVM CE) (windows, amd64)
     runs-on:
       - self-hosted
@@ -754,7 +754,7 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build::ci-gen::job::standard-library-tests-oracle-graal-vm-linux-amd64:
+  enso-build-ci-gen-job-standard-library-tests-oracle-graal-vm-linux-amd64:
     name: Standard Library Tests (Oracle GraalVM) (linux, amd64)
     runs-on:
       - self-hosted
