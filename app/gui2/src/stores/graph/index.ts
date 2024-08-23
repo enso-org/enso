@@ -546,6 +546,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
           assert(root instanceof Ast.BodyBlock)
           Ast.repair(root, edit)
         }
+        syncModule.value!.applyEdit(edit)
       })
       return result!
     }
