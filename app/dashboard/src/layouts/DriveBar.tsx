@@ -26,7 +26,11 @@ import AssetEventType from '#/events/AssetEventType'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import AssetSearchBar from '#/layouts/AssetSearchBar'
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-import { isCloudCategory, type Category } from '#/layouts/CategorySwitcher/Category'
+import {
+  isCloudCategory,
+  isLocalCategory,
+  type Category,
+} from '#/layouts/CategorySwitcher/Category'
 import StartModal from '#/layouts/StartModal'
 
 import * as aria from '#/components/aria'
@@ -101,8 +105,9 @@ export default function DriveBar(props: DriveBarProps) {
   const canCreateAssets =
     targetDirectory == null ?
       category.type !== 'cloud' || user.plan == null || user.plan === Plan.solo
-    : targetDirectorySelfPermission != null &&
-      canPermissionModifyDirectoryContents(targetDirectorySelfPermission.permission)
+    : isLocalCategory(category) ||
+      (targetDirectorySelfPermission != null &&
+        canPermissionModifyDirectoryContents(targetDirectorySelfPermission.permission))
   const shouldBeDisabled = (isCloud && isOffline) || !canCreateAssets
   const error =
     !shouldBeDisabled ? null
