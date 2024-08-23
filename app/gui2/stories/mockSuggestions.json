@@ -1221,5 +1221,17 @@
     "isStatic": false,
     "documentation": "",
     "annotations": ["columns"]
+  },
+  {
+    "type": "method",
+    "module": "local.Mock_Project",
+    "name": "collapsed",
+    "isStatic": true,
+    "aliases": [],
+    "arguments": [{ "name": "five", "reprType": "Any", "isSuspended": false, "hasDefault": false }],
+    "selfType": "local.Mock_Project",
+    "returnType": "Standard.Base.Any.Any",
+    "documentation": [],
+    "annotations": []
   }
 ]
