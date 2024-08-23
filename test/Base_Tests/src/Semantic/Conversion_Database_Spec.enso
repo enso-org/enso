@@ -1,0 +1,82 @@
+from Standard.Base import all
+from Standard.Test import all
+
+
+#class Connection a where
+#    get_tables :: a -> [String]
+
+type Connection
+    private By value dict
+
+    get_tables self = self.dict.get_tables self.value
+
+    new value dict =
+        Connection.By value dict
+
+type Snowflake_Connection
+    private Details details:Snowflake_Connection_Details
+
+    get_warehouses self  -> Vector Text = ["SNOWFLAKE_WAREHOUSE"]
+
+# database_connect :: Connection c => Connection_Details d c => d -> c
+database_connect details:Any -> Connection =
+    Connection.from details
+
+# data Snowflake_Connection_Details = Snowflake_Connection_Details String String String -- username, password etc.
+type Snowflake_Connection_Details
+    Value username:Text password:Text etc:Text
+
+two_roles_of_snowflake_connection -> Pair Text =
+    # let snowflake_connection = database_connect (Snowflake_Connection_Details "foo" "bar" "baz")
+    details = Snowflake_Connection_Details.Value "foo" "bar" "baz"
+    snowflake_connection = database_connect details
+
+    # get_tables is methods from Connection type
+    # it is there because `database_connect` returns Connection
+    r1 = snowflake_connection.get_tables
+    # get_warehouses is a method from Snowflake_Connection type
+    # it has been "mixed in" in Connection.from (that:Snowflake_Connection)
+    r2 = snowflake_connection.get_warehouses
+
+    Pair.new r1.to_text r2.to_text
+
+# data Snowflake_Connection = Snowflake_Connection_Impl -- here we'd have internals of the connection
+#instance Connection Snowflake_Connection where
+#    get_tables c = ["some Snowflake table"] -- we'd call JDBC here ofc.
+
+type Snowflake_Connection_Impl
+    get_tables self c:Snowflake_Connection =
+        ["some Snowflake table for "+c.to_text]
+
+Connection.from (that:Snowflake_Connection_Details) =
+    c = Snowflake_Connection.Details that
+    mixin = c:(Snowflake_Connection & Connection)
+    mixin
+
+Connection.from (that:Snowflake_Connection) =
+    Connection.new that Snowflake_Connection_Impl
+
+#
+# running
+#
+
+main =
+    pair = two_roles_of_snowflake_connection
+    IO.println pair.first
+    IO.println pair.second
+
+#
+# testing
+#
+
+add_specs suite_builder =
+    suite_builder.group "Conversion Database Example" group_builder->
+        group_builder.specify "snowflake_connection plays two roles" <|
+            pair = two_roles_of_snowflake_connection
+
+            pair.first . should_contain "some Snowflake table for"
+            pair.first . should_contain "Snowflake_Connection_Details"
+            pair.first . should_contain "foo"
+            pair.first . should_contain "bar"
+            pair.first . should_contain "baz"
+            pair.second . should_equal "[SNOWFLAKE_WAREHOUSE]"
