@@ -72,7 +72,6 @@ case object ExpressionAnnotations extends IRPass {
             arguments,
             _,
             _,
-            _,
             _
           ) =>
         if (isKnownAnnotation(ann.name)) {
@@ -88,7 +87,7 @@ case object ExpressionAnnotations extends IRPass {
             case realFun :: args =>
               val recurFun = doExpression(realFun.value)
               val (finalFun, preArgs) = recurFun match {
-                case Application.Prefix(nextFun, moreArgs, _, _, _, _) =>
+                case Application.Prefix(nextFun, moreArgs, _, _, _) =>
                   (nextFun, moreArgs)
                 case _ => (recurFun, List())
               }
