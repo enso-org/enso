@@ -8,7 +8,7 @@ import Standard.Database.Connection.SSL_Mode.SSL_Mode
 import Standard.Database.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
 import Standard.Database.Internal.JDBC_Connection
 import Standard.Database.Internal.Postgres.Pgpass
-from Standard.Database.Internal.Postgres.Postgres_Connection import get_encoding_name, parse_postgres_encoding
+from Standard.Database.Connection.Postgres_Connection import get_encoding_name, parse_postgres_encoding
 
 import project.AWS_Credential.AWS_Credential
 import project.Database.Redshift.Internal.Redshift_Dialect
