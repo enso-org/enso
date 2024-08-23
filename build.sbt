@@ -1078,6 +1078,7 @@ lazy val `scala-libs-wrapper` = project
   .in(file("lib/java/scala-libs-wrapper"))
   .enablePlugins(JPMSPlugin)
   .settings(
+    frgaalJavaCompilerSetting,
     javaModuleName := "org.enso.scala.wrapper",
     libraryDependencies ++= circe ++ Seq(
       "com.typesafe.scala-logging"            %% "scala-logging"         % scalaLoggingVersion,
@@ -1093,7 +1094,6 @@ lazy val `scala-libs-wrapper` = project
       "org.scala-lang" % "scala-compiler" % scalacVersion,
       "org.jline"      % "jline"          % jlineVersion
     ),
-    excludeFilter := excludeFilter.value || "module-info.java",
     javacOptions ++= {
       JPMSPlugin.constructOptions(
         streams.value.log,
@@ -1101,7 +1101,13 @@ lazy val `scala-libs-wrapper` = project
         patchModules = patchModules.value
       )
     },
-    exportedModuleBin := assembly.value,
+    forceModuleInfoCompilation := true,
+    exportedModuleBin := assembly
+      .dependsOn(compileModuleInfo)
+      .value,
+    exportedModule := assembly
+      .dependsOn(compileModuleInfo)
+      .value,
     assembly / assemblyExcludedJars := {
       JPMSUtils.filterModulesFromClasspath(
         (Compile / fullClasspath).value,
@@ -1146,9 +1152,6 @@ lazy val `scala-libs-wrapper` = project
         javaModuleName.value -> scalaLibs
       )
     },
-    exportedModule := {
-      (assembly / assembly).value
-    }
   )
 
 lazy val cli = project
@@ -1925,53 +1928,19 @@ lazy val frgaalJavaCompilerSetting =
   customFrgaalJavaCompilerSettings(targetJavaVersion)
 
 def customFrgaalJavaCompilerSettings(targetJdk: String) = Seq(
-  isJPMSModule := {
-    // modulePath task is defined by the JPMSPlugin. The following code checks whether
-    // the `modulePath` task is defined in the current project.
-    // Note that there is no simple way how to check whether the project has `JPMSPlugin`.
-    modulePath.?.value.isDefined
+  Compile / compile / compilers := {
+    // True if there is module-info.java in the sources, and this is a mixed
+    // project, and module-info.java is excluded from the compilation
+    val shouldCompileModInfo = shouldCompileModuleInfoManually.?.value.isDefined
+
+    FrgaalJavaCompiler.compilers(
+      (Compile / dependencyClasspath).value,
+      compilers.value,
+      targetJdk,
+      shouldCompileModInfo,
+      (Compile / javaSource).value
+    )
   },
-  shouldCompileModuleInfo := Def.taskIf {
-    if (isJPMSModule.value) {
-      val javaSrcDir = (Compile / javaSource).value
-      val modInfo =
-        javaSrcDir.toPath.resolve("module-info.java").toFile
-      val hasModInfo = modInfo.exists
-      val projName        = moduleName.value
-      val logger          = streams.value.log
-      val hasScalaSources = (Compile / scalaSource).value.exists()
-      val _compileOrder   = (Compile / compileOrder).value
-      val res =
-        _compileOrder == CompileOrder.Mixed &&
-          hasModInfo &&
-          hasScalaSources
-      if (res) {
-        logger.warn(
-          s"[FrgaalJavaCompilerSetting] Project '$projName' will have `module-info.java` compiled " +
-            "manually. If this is not the intended behavior, consult the documentation " +
-            "of JPMSPlugin."
-        )
-      }
-      // Check excludeFilter - there should be module-info.java specified
-      if (res && !excludeFilter.value.accept(modInfo)) {
-        logger.error(
-          s"[FrgaalJavaCompilerSetting/$projName] `module-info.java` is not in `excludeFilter`. " +
-          "You should add module-info.java to " +
-          "`excludedFilter` so that sbt does not handle the compilation. Check docs of JPMSPlugin."
-        )
-      }
-      res
-    } else {
-      false
-    }
-  }.value,
-  Compile / compile / compilers := FrgaalJavaCompiler.compilers(
-    (Compile / dependencyClasspath).value,
-    compilers.value,
-    targetJdk,
-    shouldCompileModuleInfo.value,
-    (Compile / javaSource).value
-  ),
   // This dependency is needed only so that developers don't download Frgaal manually.
   // Sadly it cannot be placed under plugins either because meta dependencies are not easily
   // accessible from the non-meta build definition.
