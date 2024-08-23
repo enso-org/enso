@@ -66,9 +66,9 @@ export function unsafeEntries<T extends object>(
   return Object.entries(object)
 }
 
-// =====================
-// === unsafeEntries ===
-// =====================
+// =============================
+// === unsafeRemoveUndefined ===
+// =============================
 
 /** A the object with `undefined` unsafely removed from the value types of all of its keys. */
 export function unsafeRemoveUndefined<T extends object>(
