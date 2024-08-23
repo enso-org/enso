@@ -71,8 +71,8 @@ type Point_Data
     fallback_column self table = case self of
         Point_Data.X ->
             candidate = table.columns.first
-
-            if candidate.is_numeric then candidate else Point_Data.iota table.row_count
+            is_good c = c.is_numeric && c.name != Point_Data.Y.name
+            if is_good candidate then candidate else Point_Data.iota table.row_count
         Point_Data.Y ->
             x_column = Point_Data.X.lookup_in table
             candidates = table.columns
@@ -83,7 +83,8 @@ type Point_Data
         Point_Data.Y_multi _ ->
             x_column = Point_Data.X.lookup_in table
             y_column = Point_Data.Y.lookup_in table
-            candidates_filtered = table.columns.filter (c-> c.is_numeric && c.name != x_column.name && c.name != y_column.name)
+            size_column = Point_Data.Size.lookup_in table
+            candidates_filtered = table.columns.filter (c-> c.is_numeric && c.name != x_column.name && c.name != y_column.name && c.name != size_column.name)
             candidates = candidates_filtered.drop self.number
             is_good c = (self.is_recognized c).not
 
@@ -132,7 +133,8 @@ Table.point_data self all_fields =
    Returns the number of numeric columns for the plot.
 Table.numeric_column_count : Number
 Table.numeric_column_count self =
-    columns = self.columns . filter c-> c.is_numeric
+    size_column = Point_Data.Size.lookup_in self
+    columns = self.columns . filter c-> c.is_numeric && c.name != size_column.name
     columns.length
 
 ## PRIVATE
@@ -234,7 +236,6 @@ json_from_vector vec bounds limit =
 process_to_json_text : Any -> Integer | Nothing -> Integer | Nothing -> Text
 process_to_json_text value bounds=Nothing limit=Nothing =
     json = case value of
-        _ : Column -> json_from_table  value.to_table bounds limit
         _ : Table  -> json_from_table  value bounds limit
         _ : Vector -> json_from_vector value bounds limit
         _          -> json_from_vector value.to_vector bounds limit
