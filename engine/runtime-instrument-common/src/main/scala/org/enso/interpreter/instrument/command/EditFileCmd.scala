@@ -52,8 +52,9 @@ class EditFileCmd(request: Api.EditFileNotification)
             }
             if (request.execute) {
               ctx.jobControlPlane.abortAllJobs()
-              ctx.jobProcessor.run(new EnsureCompiledJob(Seq(request.path)))
-              executeJobs.foreach(ctx.jobProcessor.run)
+              ctx.jobProcessor
+                .run(new EnsureCompiledJob(Seq(request.path)))
+                .map(_ => executeJobs.foreach(ctx.jobProcessor.run))
             } else if (request.idMap.isDefined) {
               ctx.jobProcessor.run(new EnsureCompiledJob(Seq(request.path)))
             }
