@@ -965,67 +965,59 @@ export default function AssetsTable(props: AssetsTableProps) {
     [driveStore, isCloud, setCanDownload],
   )
 
-  const overwriteNodes = React.useCallback(
-    (newAssets: readonly backendModule.AnyAsset[]) => {
-      mostRecentlySelectedIndexRef.current = null
-      selectionStartIndexRef.current = null
-      const rootPath = 'rootPath' in category ? category.rootPath : backend.rootPath
-      // This is required, otherwise we are using an outdated
-      // `nameOfProjectToImmediatelyOpen`.
-      const nameOfProjectToImmediatelyOpen = nameOfProjectToImmediatelyOpenRef.current
-      const rootParentDirectoryId = backendModule.DirectoryId('')
-      const rootDirectory = backendModule.createRootDirectoryAsset(rootDirectoryId)
-      const rootId = rootDirectory.id
-      const children = newAssets.map((asset) =>
-        AssetTreeNode.fromAsset(asset, rootId, rootId, 0, `${rootPath}/${asset.title}`, null),
-      )
-      const newRootNode = new AssetTreeNode(
-        rootDirectory,
-        rootParentDirectoryId,
-        rootParentDirectoryId,
-        children,
-        -1,
-        rootPath,
-        null,
-        rootId,
-        true,
-      )
-      setAssetTree(newRootNode)
-      // The project name here might also be a string with project id, e.g.
-      // when opening a project file from explorer on Windows.
-      const isInitialProject = (asset: backendModule.AnyAsset) =>
-        asset.title === nameOfProjectToImmediatelyOpen ||
-        asset.id === nameOfProjectToImmediatelyOpen
-      if (nameOfProjectToImmediatelyOpen != null) {
-        const projectToLoad = newAssets.filter(backendModule.assetIsProject).find(isInitialProject)
-        if (projectToLoad != null) {
-          const backendType = backendModule.BackendType.local
-          const { id, title, parentId } = projectToLoad
-          doOpenProject({ type: backendType, id, title, parentId })
-        } else {
-          toastAndLog('findProjectError', null, nameOfProjectToImmediatelyOpen)
-        }
+  const overwriteNodes = useEventCallback((newAssets: readonly backendModule.AnyAsset[]) => {
+    mostRecentlySelectedIndexRef.current = null
+    selectionStartIndexRef.current = null
+    const rootPath = 'rootPath' in category ? category.rootPath : backend.rootPath
+    // This is required, otherwise we are using an outdated
+    // `nameOfProjectToImmediatelyOpen`.
+    const nameOfProjectToImmediatelyOpen = nameOfProjectToImmediatelyOpenRef.current
+    const rootParentDirectoryId = backendModule.DirectoryId('')
+    const rootDirectory = backendModule.createRootDirectoryAsset(rootDirectoryId)
+    const rootId = rootDirectory.id
+    const children = newAssets.map((asset) =>
+      AssetTreeNode.fromAsset(asset, rootId, rootId, 0, `${rootPath}/${asset.title}`, null),
+    )
+    const newRootNode = new AssetTreeNode(
+      rootDirectory,
+      rootParentDirectoryId,
+      rootParentDirectoryId,
+      children,
+      -1,
+      rootPath,
+      null,
+      rootId,
+      true,
+    )
+    setAssetTree(newRootNode)
+    // The project name here might also be a string with project id, e.g.
+    // when opening a project file from explorer on Windows.
+    const isInitialProject = (asset: backendModule.AnyAsset) =>
+      asset.title === nameOfProjectToImmediatelyOpen || asset.id === nameOfProjectToImmediatelyOpen
+    if (nameOfProjectToImmediatelyOpen != null) {
+      const projectToLoad = newAssets.filter(backendModule.assetIsProject).find(isInitialProject)
+      if (projectToLoad != null) {
+        const backendType = backendModule.BackendType.local
+        const { id, title, parentId } = projectToLoad
+        doOpenProject({ type: backendType, id, title, parentId })
+      } else {
+        toastAndLog('findProjectError', null, nameOfProjectToImmediatelyOpen)
       }
-      setQueuedAssetEvents((oldQueuedAssetEvents) => {
-        if (oldQueuedAssetEvents.length !== 0) {
-          queueMicrotask(() => {
-            for (const event of oldQueuedAssetEvents) {
-              dispatchAssetEvent(event)
-            }
-          })
-        }
-        return []
-      })
-      nameOfProjectToImmediatelyOpenRef.current = null
-    },
-    [doOpenProject, rootDirectoryId, backend.rootPath, category, dispatchAssetEvent, toastAndLog],
-  )
+    }
+    setQueuedAssetEvents((oldQueuedAssetEvents) => {
+      if (oldQueuedAssetEvents.length !== 0) {
+        queueMicrotask(() => {
+          for (const event of oldQueuedAssetEvents) {
+            dispatchAssetEvent(event)
+          }
+        })
+      }
+      return []
+    })
+    nameOfProjectToImmediatelyOpenRef.current = null
+  })
   const overwriteNodesRef = React.useRef(overwriteNodes)
   overwriteNodesRef.current = overwriteNodes
-
-  React.useEffect(() => {
-    overwriteNodesRef.current([])
-  }, [backend, category])
 
   const rootDirectoryQuery = useBackendQuery(
     backend,
