@@ -14,15 +14,15 @@ import org.enso.table.data.column.storage.type.BigDecimalType;
 public class UnaryDecimalRoundOperation extends AbstractUnaryOperation {
   public static final String CEIL = "ceil";
   public static final UnaryOperation CEIL_INSTANCE =
-      new UnaryDecimalRoundOperation(CEIL, d -> Decimal_Utils.ceil(d));
+      new UnaryDecimalRoundOperation(CEIL, Decimal_Utils::ceil);
 
   public static final String FLOOR = "floor";
   public static final UnaryOperation FLOOR_INSTANCE =
-      new UnaryDecimalRoundOperation(CEIL, d -> Decimal_Utils.floor(d));
+      new UnaryDecimalRoundOperation(CEIL, Decimal_Utils::floor);
 
   public static String TRUNCATE = "truncate";
   public static final UnaryOperation TRUNCATE_INSTANCE =
-      new UnaryDecimalRoundOperation(CEIL, d -> Decimal_Utils.truncate(d));
+      new UnaryDecimalRoundOperation(CEIL, Decimal_Utils::truncate);
 
   private final Function<BigDecimal, BigInteger> function;
 

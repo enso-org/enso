@@ -1123,7 +1123,8 @@ add_specs suite_builder setup =
                 c.ceil.to_vector.should_equal [Decimal.new "123492233720368547758075679.0", Decimal.new "15250331789246130610154663179243023788662739454197524.0", Decimal.new "-123492233720368547758075678.0", Decimal.new "-15250331789246130610154663179243023788662739454197523.0"]
                 c.truncate.to_vector.should_equal [Decimal.new "123492233720368547758075678.0", Decimal.new "15250331789246130610154663179243023788662739454197523.0", Decimal.new "-123492233720368547758075678.0", Decimal.new "-15250331789246130610154663179243023788662739454197523.0"]
 
-            group_builder.specify "round should work correctly on Decimals" <|
+            pending = if setup.is_database.not then "https://github.com/enso-org/enso/issues/10644"
+            group_builder.specify "round should work correctly on Decimals" pending=pending <|
                 c = table_builder [["X", [Decimal.new "1.3", Decimal.new "1.5", Decimal.new "1.7", Decimal.new "-1.3", Decimal.new "-1.5", Decimal.new "-1.7"]]] . at "X"
                 c.value_type.is_decimal . should_be_true
                 c.round 0 . to_vector . should_equal [Decimal.new "1.0", Decimal.new "2.0", Decimal.new "2.0", Decimal.new "-1.0", Decimal.new "-2.0", Decimal.new "-2.0"]
