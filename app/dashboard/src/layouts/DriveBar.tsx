@@ -29,7 +29,6 @@ import { useCanDownload, useTargetDirectory } from '#/providers/DriveProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
-
 import type Backend from '#/services/Backend'
 import {
   Plan,
@@ -38,7 +37,6 @@ import {
   type Project,
   type ProjectId,
 } from '#/services/Backend'
-
 import type AssetQuery from '#/utilities/AssetQuery'
 import {
   canPermissionModifyDirectoryContents,
@@ -79,7 +77,7 @@ export default function DriveBar(props: DriveBarProps) {
   const { doEmptyTrash, doCreateProject, doCreateDirectory } = props
   const { doCreateSecret, doCreateDatalink, doUploadFiles } = props
   const { isAssetPanelOpen, setIsAssetPanelOpen } = props
-  const { setModal, unsetModal } = useSetModal()
+  const { unsetModal } = useSetModal()
   const { getText } = useText()
   const { user } = useFullUserSession()
   const inputBindings = useInputBindings()
@@ -201,21 +199,15 @@ export default function DriveBar(props: DriveBarProps) {
     case CategoryType.trash: {
       return (
         <ButtonGroup className="my-0.5 grow-0">
-          <Button
-            size="medium"
-            variant="bar"
-            isDisabled={shouldBeDisabled}
-            onPress={() => {
-              setModal(
-                <ConfirmDeleteModal
-                  actionText={getText('allTrashedItemsForever')}
-                  doDelete={doEmptyTrash}
-                />,
-              )
-            }}
-          >
-            {getText('clearTrash')}
-          </Button>
+          <DialogTrigger>
+            <Button size="medium" variant="bar" isDisabled={shouldBeDisabled}>
+              {getText('clearTrash')}
+            </Button>
+            <ConfirmDeleteModal
+              actionText={getText('allTrashedItemsForever')}
+              doDelete={doEmptyTrash}
+            />
+          </DialogTrigger>
           {searchBar}
           {assetPanelToggle}
         </ButtonGroup>

@@ -90,6 +90,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
         firstKey != null ? nodeMapRef.current.get(firstKey)?.item.title ?? '(unknown)' : '(unknown)'
       setModal(
         <ConfirmDeleteModal
+          defaultOpen
           actionText={
             selectedKeys.size === 1 ?
               getText('deleteSelectedAssetActionText', soleAssetName)
@@ -131,6 +132,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
                     : '(unknown)'
                   setModal(
                     <ConfirmDeleteModal
+                      defaultOpen
                       actionText={
                         selectedKeys.size === 1 ?
                           getText('deleteSelectedAssetForeverActionText', soleAssetName)

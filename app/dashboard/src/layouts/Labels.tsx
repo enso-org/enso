@@ -13,7 +13,6 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import Label from '#/components/dashboard/Label'
-import Button from '#/components/styled/Button'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
 
@@ -120,22 +119,20 @@ export default function Labels(props: LabelsProps) {
                   </Label>
                   {!label.isPlaceholder && (
                     <FocusRing placement="after">
-                      <Button
-                        active
-                        image={Trash2Icon}
-                        alt={getText('delete')}
-                        className="relative flex size-4 text-delete opacity-0 transition-all after:absolute after:-inset-1 after:rounded-button-focus-ring group-has-[[data-focus-visible]]:active group-hover:active"
-                        onPress={() => {
-                          setModal(
-                            <ConfirmDeleteModal
-                              actionText={getText('deleteLabelActionText', label.value)}
-                              doDelete={() => {
-                                deleteTag([label.id, label.value])
-                              }}
-                            />,
-                          )
-                        }}
-                      />
+                      <ariaComponents.DialogTrigger>
+                        <ariaComponents.Button
+                          variant="icon"
+                          icon={Trash2Icon}
+                          aria-label={getText('delete')}
+                          className="relative flex size-4 text-delete opacity-0 transition-all after:absolute after:-inset-1 after:rounded-button-focus-ring group-has-[[data-focus-visible]]:active group-hover:active"
+                        />
+                        <ConfirmDeleteModal
+                          actionText={getText('deleteLabelActionText', label.value)}
+                          doDelete={() => {
+                            deleteTag([label.id, label.value])
+                          }}
+                        />
+                      </ariaComponents.DialogTrigger>
                     </FocusRing>
                   )}
                 </div>

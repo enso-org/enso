@@ -171,6 +171,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               doAction={() => {
                 setModal(
                   <ConfirmDeleteModal
+                    defaultOpen
                     actionText={`delete the ${asset.type} '${asset.title}' forever`}
                     doDelete={() => {
                       const ids = new Set([asset.id])
@@ -367,6 +368,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 } else {
                   setModal(
                     <ConfirmDeleteModal
+                      defaultOpen
                       actionText={getText('deleteTheAssetTypeTitle', asset.type, asset.title)}
                       doDelete={doDelete}
                     />,
