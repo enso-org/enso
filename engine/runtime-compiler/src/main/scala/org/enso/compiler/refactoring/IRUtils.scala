@@ -88,7 +88,7 @@ trait IRUtils {
     for {
       metadata <- ir.getMetadata(DataflowAnalysis)
       key = DataflowAnalysis.DependencyInfo.Type
-        .Static(literal.getId, literal.getExternalId)
+        .Static(literal.getId(), literal.getExternalId)
       dependents <- metadata.dependents.get(key)
     } yield {
       dependents

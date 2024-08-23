@@ -356,31 +356,31 @@ class DataflowAnalysisTest extends CompilerTest {
     val plusSymbol       = mkDynamicDep("+")
 
     // The Identifiers
-    val methodId           = mkStaticDep(method.getId)
-    val fnId               = mkStaticDep(fn.getId)
-    val fnArgAId           = mkStaticDep(fnArgA.getId)
-    val fnArgBId           = mkStaticDep(fnArgB.getId)
-    val fnBodyId           = mkStaticDep(fnBody.getId)
-    val printlnExprId      = mkStaticDep(printlnExpr.getId)
-    val printlnFnId        = mkStaticDep(printlnFn.getId)
-    val printlnArgIOId     = mkStaticDep(printlnArgIO.getId)
-    val printlnArgIOExprId = mkStaticDep(printlnArgIOExpr.getId)
-    val printlnArgBId      = mkStaticDep(printlnArgB.getId)
-    val printlnArgBExprId  = mkStaticDep(printlnArgBExpr.getId)
-    val cBindExprId        = mkStaticDep(cBindExpr.getId)
-    val cBindNameId        = mkStaticDep(cBindName.getId)
-    val plusExprId         = mkStaticDep(plusExpr.getId)
-    val plusExprFnId       = mkStaticDep(plusExprFn.getId)
-    val plusExprArgAId     = mkStaticDep(plusExprArgA.getId)
-    val plusExprArgAExprId = mkStaticDep(plusExprArgAExpr.getId)
-    val plusExprArgBId     = mkStaticDep(plusExprArgB.getId)
-    val plusExprArgBExprId = mkStaticDep(plusExprArgBExpr.getId)
-    val frobExprId         = mkStaticDep(frobExpr.getId)
-    val frobFnId           = mkStaticDep(frobFn.getId)
-    val frobArgAId         = mkStaticDep(frobArgA.getId)
-    val frobArgAExprId     = mkStaticDep(frobArgAExpr.getId)
-    val frobArgCId         = mkStaticDep(frobArgC.getId)
-    val frobArgCExprId     = mkStaticDep(frobArgCExpr.getId)
+    val methodId           = mkStaticDep(method.getId())
+    val fnId               = mkStaticDep(fn.getId())
+    val fnArgAId           = mkStaticDep(fnArgA.getId())
+    val fnArgBId           = mkStaticDep(fnArgB.getId())
+    val fnBodyId           = mkStaticDep(fnBody.getId())
+    val printlnExprId      = mkStaticDep(printlnExpr.getId())
+    val printlnFnId        = mkStaticDep(printlnFn.getId())
+    val printlnArgIOId     = mkStaticDep(printlnArgIO.getId())
+    val printlnArgIOExprId = mkStaticDep(printlnArgIOExpr.getId())
+    val printlnArgBId      = mkStaticDep(printlnArgB.getId())
+    val printlnArgBExprId  = mkStaticDep(printlnArgBExpr.getId())
+    val cBindExprId        = mkStaticDep(cBindExpr.getId())
+    val cBindNameId        = mkStaticDep(cBindName.getId())
+    val plusExprId         = mkStaticDep(plusExpr.getId())
+    val plusExprFnId       = mkStaticDep(plusExprFn.getId())
+    val plusExprArgAId     = mkStaticDep(plusExprArgA.getId())
+    val plusExprArgAExprId = mkStaticDep(plusExprArgAExpr.getId())
+    val plusExprArgBId     = mkStaticDep(plusExprArgB.getId())
+    val plusExprArgBExprId = mkStaticDep(plusExprArgBExpr.getId())
+    val frobExprId         = mkStaticDep(frobExpr.getId())
+    val frobFnId           = mkStaticDep(frobFn.getId())
+    val frobArgAId         = mkStaticDep(frobArgA.getId())
+    val frobArgAExprId     = mkStaticDep(frobArgAExpr.getId())
+    val frobArgCId         = mkStaticDep(frobArgC.getId())
+    val frobArgCExprId     = mkStaticDep(frobArgCExpr.getId())
 
     "correctly identify global symbol direct dependents" in {
       depInfo.dependents.getDirect(frobnicateSymbol) shouldEqual Some(
@@ -960,15 +960,15 @@ class DataflowAnalysisTest extends CompilerTest {
       val plusArgYExpr = plusArgY.value.asInstanceOf[Name.Literal]
 
       // Identifiers
-      val fnId           = mkStaticDep(fn.getId)
-      val fnArgXId       = mkStaticDep(fnArgX.getId)
-      val fnArgYId       = mkStaticDep(fnArgY.getId)
-      val fnBodyId       = mkStaticDep(fnBody.getId)
-      val plusFnId       = mkStaticDep(plusFn.getId)
-      val plusArgXId     = mkStaticDep(plusArgX.getId)
-      val plusArgXExprId = mkStaticDep(plusArgXExpr.getId)
-      val plusArgYId     = mkStaticDep(plusArgY.getId)
-      val plusArgYExprId = mkStaticDep(plusArgYExpr.getId)
+      val fnId           = mkStaticDep(fn.getId())
+      val fnArgXId       = mkStaticDep(fnArgX.getId())
+      val fnArgYId       = mkStaticDep(fnArgY.getId())
+      val fnBodyId       = mkStaticDep(fnBody.getId())
+      val plusFnId       = mkStaticDep(plusFn.getId())
+      val plusArgXId     = mkStaticDep(plusArgX.getId())
+      val plusArgXExprId = mkStaticDep(plusArgXExpr.getId())
+      val plusArgYId     = mkStaticDep(plusArgY.getId())
+      val plusArgYExprId = mkStaticDep(plusArgYExpr.getId())
 
       // Dynamic Symbols
       val plusSym = mkDynamicDep("+")
@@ -1029,20 +1029,20 @@ class DataflowAnalysisTest extends CompilerTest {
       val mulArg2Expr = mulArg2.value.asInstanceOf[Name.Literal]
 
       // Identifiers
-      val appId          = mkStaticDep(app.getId)
-      val appFnId        = mkStaticDep(appFn.getId)
-      val appArg10Id     = mkStaticDep(appArg10.getId)
-      val appArg10ExprId = mkStaticDep(appArg10Expr.getId)
-      val appArg10NameId = mkStaticDep(appArg10Name.getId)
-      val appArgFnId     = mkStaticDep(appArgFn.getId)
-      val lamId          = mkStaticDep(lam.getId)
-      val lamArgXId      = mkStaticDep(lamArgX.getId)
-      val mulId          = mkStaticDep(mul.getId)
-      val mulFnId        = mkStaticDep(mulFn.getId)
-      val mulArg1Id      = mkStaticDep(mulArg1.getId)
-      val mulArg1ExprId  = mkStaticDep(mulArg1Expr.getId)
-      val mulArg2Id      = mkStaticDep(mulArg2.getId)
-      val mulArg2ExprId  = mkStaticDep(mulArg2Expr.getId)
+      val appId          = mkStaticDep(app.getId())
+      val appFnId        = mkStaticDep(appFn.getId())
+      val appArg10Id     = mkStaticDep(appArg10.getId())
+      val appArg10ExprId = mkStaticDep(appArg10Expr.getId())
+      val appArg10NameId = mkStaticDep(appArg10Name.getId())
+      val appArgFnId     = mkStaticDep(appArgFn.getId())
+      val lamId          = mkStaticDep(lam.getId())
+      val lamArgXId      = mkStaticDep(lamArgX.getId())
+      val mulId          = mkStaticDep(mul.getId())
+      val mulFnId        = mkStaticDep(mulFn.getId())
+      val mulArg1Id      = mkStaticDep(mulArg1.getId())
+      val mulArg1ExprId  = mkStaticDep(mulArg1Expr.getId())
+      val mulArg2Id      = mkStaticDep(mulArg2.getId())
+      val mulArg2ExprId  = mkStaticDep(mulArg2Expr.getId())
 
       // Global Symbols
       val mulSym = mkDynamicDep("*")
@@ -1108,7 +1108,7 @@ class DataflowAnalysisTest extends CompilerTest {
         lam.arguments.head.asInstanceOf[DefinitionArgument.Specified]
 
       // The IDs
-      val argXId = mkStaticDep(argX.getId)
+      val argXId = mkStaticDep(argX.getId())
 
       // The info
       val dependencies = depInfo.dependencies
@@ -1134,10 +1134,10 @@ class DataflowAnalysisTest extends CompilerTest {
       val xBindExpr = xBind.expression.asInstanceOf[Literal.Number]
 
       // The IDs
-      val blockId     = mkStaticDep(block.getId)
-      val xBindId     = mkStaticDep(xBind.getId)
-      val xBindNameId = mkStaticDep(xBindName.getId)
-      val xBindExprId = mkStaticDep(xBindExpr.getId)
+      val blockId     = mkStaticDep(block.getId())
+      val xBindId     = mkStaticDep(xBind.getId())
+      val xBindNameId = mkStaticDep(xBindName.getId())
+      val xBindExprId = mkStaticDep(xBindExpr.getId())
 
       // The info
       val dependents   = depInfo.dependents
@@ -1171,9 +1171,9 @@ class DataflowAnalysisTest extends CompilerTest {
       val bindingExpr = binding.expression.asInstanceOf[Literal.Number]
 
       // The IDs
-      val bindingId     = mkStaticDep(binding.getId)
-      val bindingNameId = mkStaticDep(bindingName.getId)
-      val bindingExprId = mkStaticDep(bindingExpr.getId)
+      val bindingId     = mkStaticDep(binding.getId())
+      val bindingNameId = mkStaticDep(bindingName.getId())
+      val bindingExprId = mkStaticDep(bindingExpr.getId())
 
       // The info
       val dependents   = depInfo.dependents
@@ -1217,14 +1217,14 @@ class DataflowAnalysisTest extends CompilerTest {
       val undefinedName = undefinedExpr.originalName
 
       // The IDs
-      val bindingId       = mkStaticDep(binding.getId)
-      val bindingExprId   = mkStaticDep(bindingExpr.getId)
-      val bindingNameId   = mkStaticDep(bindingName.getId)
-      val plusFnId        = mkStaticDep(plusFn.getId)
-      val numArgId        = mkStaticDep(numArg.getId)
-      val numArgExprId    = mkStaticDep(numArgExpr.getId)
-      val undefinedArgId  = mkStaticDep(undefinedArg.getId)
-      val undefinedExprId = mkStaticDep(undefinedExpr.getId)
+      val bindingId       = mkStaticDep(binding.getId())
+      val bindingExprId   = mkStaticDep(bindingExpr.getId())
+      val bindingNameId   = mkStaticDep(bindingName.getId())
+      val plusFnId        = mkStaticDep(plusFn.getId())
+      val numArgId        = mkStaticDep(numArg.getId())
+      val numArgExprId    = mkStaticDep(numArgExpr.getId())
+      val undefinedArgId  = mkStaticDep(undefinedArg.getId())
+      val undefinedExprId = mkStaticDep(undefinedExpr.getId())
 
       val undefinedSym = mkDynamicDep(undefinedName.name)
       val plusSym      = mkDynamicDep("+")
@@ -1277,12 +1277,12 @@ class DataflowAnalysisTest extends CompilerTest {
       val vector = ir.body
         .asInstanceOf[Application.Sequence]
 
-      val xUseId = mkStaticDep(vector.items(0).getId)
-      val yId    = mkStaticDep(vector.items(1).getId)
-      val litId  = mkStaticDep(vector.items(2).getId)
-      val vecId  = mkStaticDep(vector.getId)
-      val appId  = mkStaticDep(ir.body.getId)
-      val lamId  = mkStaticDep(ir.getId)
+      val xUseId = mkStaticDep(vector.items(0).getId())
+      val yId    = mkStaticDep(vector.items(1).getId())
+      val litId  = mkStaticDep(vector.items(2).getId())
+      val vecId  = mkStaticDep(vector.getId())
+      val appId  = mkStaticDep(ir.body.getId())
+      val lamId  = mkStaticDep(ir.getId())
 
       // The info
       val dependents   = depInfo.dependents
@@ -1313,8 +1313,8 @@ class DataflowAnalysisTest extends CompilerTest {
         val literal           = ir.asInstanceOf[Application.Typeset]
         val literalExpression = literal.expression.get
 
-        val literalId           = mkStaticDep(literal.getId)
-        val literalExpressionId = mkStaticDep(literalExpression.getId)
+        val literalId           = mkStaticDep(literal.getId())
+        val literalExpressionId = mkStaticDep(literalExpression.getId())
 
         depInfo.dependents.getDirect(literalExpressionId).get shouldEqual Set(
           literalId
@@ -1369,26 +1369,26 @@ class DataflowAnalysisTest extends CompilerTest {
       val plusSym = mkDynamicDep("+")
 
       // The IDs
-      val caseBlockId       = mkStaticDep(caseBlock.getId)
-      val caseBindingId     = mkStaticDep(caseBinding.getId)
-      val caseBindingExprId = mkStaticDep(caseBindingExpr.getId)
-      val caseBindingNameId = mkStaticDep(caseBindingName.getId)
-      val caseExprId        = mkStaticDep(caseExpr.getId)
-      val consBranchId      = mkStaticDep(consBranch.getId)
+      val caseBlockId       = mkStaticDep(caseBlock.getId())
+      val caseBindingId     = mkStaticDep(caseBinding.getId())
+      val caseBindingExprId = mkStaticDep(caseBindingExpr.getId())
+      val caseBindingNameId = mkStaticDep(caseBindingName.getId())
+      val caseExprId        = mkStaticDep(caseExpr.getId())
+      val consBranchId      = mkStaticDep(consBranch.getId())
 
-      val consBranchPatternId     = mkStaticDep(consBranchPattern.getId)
-      val consBranchPatternConsId = mkStaticDep(consBranchPatternCons.getId)
-      val consBranchAPatternId    = mkStaticDep(consBranchAPattern.getId)
-      val consBranchADefId        = mkStaticDep(consBranchADef.getId)
-      val consBranchBPatternId    = mkStaticDep(consBranchBPattern.getId)
-      val consBranchBDefId        = mkStaticDep(consBranchBDef.getId)
+      val consBranchPatternId     = mkStaticDep(consBranchPattern.getId())
+      val consBranchPatternConsId = mkStaticDep(consBranchPatternCons.getId())
+      val consBranchAPatternId    = mkStaticDep(consBranchAPattern.getId())
+      val consBranchADefId        = mkStaticDep(consBranchADef.getId())
+      val consBranchBPatternId    = mkStaticDep(consBranchBPattern.getId())
+      val consBranchBDefId        = mkStaticDep(consBranchBDef.getId())
 
-      val consBranchExpressionId = mkStaticDep(consBranchExpression.getId)
-      val consBranchFnId         = mkStaticDep(consBranchFn.getId)
-      val aArgId                 = mkStaticDep(aArg.getId)
-      val aUseId                 = mkStaticDep(aUse.getId)
-      val bArgId                 = mkStaticDep(bArg.getId)
-      val bUseId                 = mkStaticDep(bUse.getId)
+      val consBranchExpressionId = mkStaticDep(consBranchExpression.getId())
+      val consBranchFnId         = mkStaticDep(consBranchFn.getId())
+      val aArgId                 = mkStaticDep(aArg.getId())
+      val aUseId                 = mkStaticDep(aUse.getId())
+      val bArgId                 = mkStaticDep(bArg.getId())
+      val bUseId                 = mkStaticDep(bUse.getId())
 
       // The info
       val dependents   = depInfo.dependents
@@ -1567,18 +1567,18 @@ class DataflowAnalysisTest extends CompilerTest {
     val fooSymbol = mkDynamicDep("Foo")
 
     // The identifiers
-    val conversionId  = mkStaticDep(conversion.getId)
-    val sourceTypeId  = mkStaticDep(sourceType.getId)
-    val lambdaId      = mkStaticDep(lambda.getId)
-    val fnArgThisId   = mkStaticDep(fnArgThis.getId)
-    val fnArgValueId  = mkStaticDep(fnArgValue.getId)
-    val fnBodyId      = mkStaticDep(fnBody.getId)
-    val fooExprId     = mkStaticDep(fooExpr.getId)
-    val fooFunctionId = mkStaticDep(fooFunction.getId)
-    val fooArg1Id     = mkStaticDep(fooArg1.getId)
-    val fooArg1ExprId = mkStaticDep(fooArg1Expr.getId)
-    val fooArg2Id     = mkStaticDep(fooArg2.getId)
-    val fooArg2ExprId = mkStaticDep(fooArg2Expr.getId)
+    val conversionId  = mkStaticDep(conversion.getId())
+    val sourceTypeId  = mkStaticDep(sourceType.getId())
+    val lambdaId      = mkStaticDep(lambda.getId())
+    val fnArgThisId   = mkStaticDep(fnArgThis.getId())
+    val fnArgValueId  = mkStaticDep(fnArgValue.getId())
+    val fnBodyId      = mkStaticDep(fnBody.getId())
+    val fooExprId     = mkStaticDep(fooExpr.getId())
+    val fooFunctionId = mkStaticDep(fooFunction.getId())
+    val fooArg1Id     = mkStaticDep(fooArg1.getId())
+    val fooArg1ExprId = mkStaticDep(fooArg1Expr.getId())
+    val fooArg2Id     = mkStaticDep(fooArg2.getId())
+    val fooArg2ExprId = mkStaticDep(fooArg2Expr.getId())
 
     // The info
     val dependents   = depInfo.dependents

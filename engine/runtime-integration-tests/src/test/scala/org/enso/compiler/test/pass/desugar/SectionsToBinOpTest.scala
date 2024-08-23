@@ -118,8 +118,8 @@ class SectionsToBinOpTest extends CompilerTest {
 
       lamBodyFirstArg.name shouldEqual leftLamArgName.name
       lamBodySecondArg.name shouldEqual rightLamArgName.name
-      lamBodyFirstArg.getId should not equal leftLamArgName.getId
-      lamBodySecondArg.getId should not equal rightLamArgName.getId
+      lamBodyFirstArg.getId() should not equal leftLamArgName.getId()
+      lamBodySecondArg.getId() should not equal rightLamArgName.getId()
     }
 
     "work for right sections" in {
@@ -148,7 +148,7 @@ class SectionsToBinOpTest extends CompilerTest {
           .asInstanceOf[Name.Literal]
 
       lamBodyFirstArg.name shouldEqual lamArgName.name
-      lamBodyFirstArg.getId should not equal lamArgName.getId
+      lamBodyFirstArg.getId() should not equal lamArgName.getId()
     }
 
     "work when the section is nested" in {
