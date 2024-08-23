@@ -717,12 +717,21 @@ default_fetch_types_query dialect expression context where_filter_always_false_l
 
 ## PRIVATE
    Helper class for shortening the binder names generated for WITH clauses.
+
+   Each time `rename` is called on an identifier it hasn't seen before, it
+   generates a new, short identifier. The short identifier consits of the `name`
+   string and a unique (serial) number. The short name is saved and returned the
+   next time that same identifier is passed in.
 type Let_Binder_Renamer
     Value (existing_tables : Hashset Text) (binders_ref : Ref Dictionary) (serial_ref : Ref Integer)
 
+    ## PRIVATE
     new (existing_tables : Vector Text) -> Let_Binder_Renamer =
         Let_Binder_Renamer.Value (Hashset.from_vector existing_tables) (Ref.new Dictionary.empty) (Ref.new 0)
 
+    ## PRIVATE
+       Returns the short identifier that this binder maps to, and generates one
+       if it hasn't been mapped yet.
     rename self (name : Text) (binder : Text) =
         self.binders_ref.get.get binder if_missing=Nothing . if_nothing <|
             max_tries = 1000
