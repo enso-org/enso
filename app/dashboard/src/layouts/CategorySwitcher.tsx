@@ -42,6 +42,7 @@ import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackend
 import { getFileName } from '#/utilities/fileInfo'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
+import invariant from 'tiny-invariant'
 
 // ============================
 // === Global configuration ===
@@ -172,10 +173,31 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
         }
       }),
     ).then((keys) => {
-      dispatchAssetEvent({
-        type: currentCategory.type === 'trash' ? AssetEventType.restore : AssetEventType.delete,
-        ids: new Set(keys.flat(1)),
-      })
+      switch (currentCategory.type) {
+        case 'cloud': {
+          dispatchAssetEvent({ type: AssetEventType.delete, ids: new Set(keys.flat(1)) })
+          break
+        }
+        case 'trash': {
+          dispatchAssetEvent({ type: AssetEventType.restore, ids: new Set(keys.flat(1)) })
+          break
+        }
+        case 'local':
+        case 'local-directory': {
+          if (category.type === 'local' || category.type === 'local-directory') {
+            const parentDirectory =
+              category.type === 'local' ? localBackend?.rootPath : category.rootPath
+            invariant(parentDirectory != null, 'Local backend is missing a root directory')
+            const newParentId = newDirectoryId(parentDirectory)
+            dispatchAssetEvent({
+              type: AssetEventType.move,
+              newParentKey: newParentId,
+              newParentId,
+              ids: new Set(keys.flat(1)),
+            })
+          }
+        }
+      }
     })
   }
 

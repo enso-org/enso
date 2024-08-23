@@ -93,8 +93,8 @@ import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 
 import { useInitAuthService } from '#/authentication/service'
-import { Path } from '#/utilities/path'
 import { InvitedToOrganizationModal } from '#/modals/InvitedToOrganizationModal'
+import { Path } from '#/utilities/path'
 
 // ============================
 // === Global configuration ===
