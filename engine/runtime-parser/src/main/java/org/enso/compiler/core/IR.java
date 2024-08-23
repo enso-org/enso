@@ -2,7 +2,6 @@ package org.enso.compiler.core;
 
 import java.util.UUID;
 import java.util.function.Function;
-import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.compiler.core.ir.DiagnosticStorage;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.IdentifiedLocation;
@@ -103,20 +102,6 @@ public interface IR {
 
   /** Storage for compiler diagnostics related to the IR node. */
   DiagnosticStorage diagnostics();
-
-  /**
-   * Get all diagnostic info associated with this IR node.
-   *
-   * @return the list of diagnostics
-   */
-  List<Diagnostic> diagnosticsList();
-
-  /**
-   * Get the copy of diagnostic storage associated with this IR node.
-   *
-   * @return the copy of diagnostic storage
-   */
-  DiagnosticStorage diagnosticsCopy();
 
   /**
    * Get storage for compiler diagnostics associated with this IR node.

@@ -744,7 +744,8 @@ class ImportExportTest
       val origImport = mainIr.imports(0)
       val warn = mainIr
         .imports(1)
-        .diagnosticsList
+        .getDiagnostics
+        .toList
         .collect({ case w: Warning.DuplicatedImport => w })
       warn.size shouldEqual 1
       warn.head.originalImport shouldEqual origImport
@@ -768,7 +769,8 @@ class ImportExportTest
       val origImport = mainIr.imports(0)
       val warn = mainIr
         .imports(1)
-        .diagnosticsList
+        .getDiagnostics
+        .toList
         .collect({ case w: Warning.DuplicatedImport => w })
       warn.size shouldEqual 1
       warn.head.originalImport shouldEqual origImport
@@ -792,7 +794,8 @@ class ImportExportTest
       val origImport = mainIr.imports(0)
       val warn = mainIr
         .imports(1)
-        .diagnosticsList
+        .getDiagnostics
+        .toList
         .collect({ case w: Warning.DuplicatedImport => w })
       warn.size shouldEqual 1
       warn.head.originalImport shouldEqual origImport
@@ -817,7 +820,8 @@ class ImportExportTest
       val origImport = mainIr.imports(0)
       val warn = mainIr
         .imports(1)
-        .diagnosticsList
+        .getDiagnostics
+        .toList
         .collect({ case w: Warning.DuplicatedImport => w })
       warn.size shouldEqual 2
       warn.foreach(_.originalImport shouldEqual origImport)
@@ -888,7 +892,8 @@ class ImportExportTest
           .getIr
       val warns = mainIr
         .imports(0)
-        .diagnosticsList
+        .getDiagnostics
+        .toList
         .collect({ case w: Warning.DuplicatedImport => w })
       warns.size shouldEqual 1
       warns.head.symbolName shouldEqual "A_Type"
@@ -933,7 +938,8 @@ class ImportExportTest
       val origImport = mainIr.imports(0)
       val warns = mainIr
         .imports(1)
-        .diagnosticsList
+        .getDiagnostics
+        .toList
         .collect({ case w: Warning.DuplicatedImport => w })
       warns.size shouldEqual 1
       warns.head.symbolName shouldEqual "A_Type"
@@ -975,7 +981,7 @@ class ImportExportTest
       mainIr.imports.size shouldEqual 3
       val origImport = mainIr.imports(0)
       val allWarns =
-        mainIr.imports.flatMap(_.diagnosticsList.collect({
+        mainIr.imports.flatMap(_.getDiagnostics.toList.collect({
           case w: Warning.DuplicatedImport => w
         }))
       allWarns.size shouldEqual 2
@@ -999,7 +1005,7 @@ class ImportExportTest
       mainIr.imports.size shouldEqual 3
       val origImport = mainIr.imports(0)
       val allWarns =
-        mainIr.imports.flatMap(_.diagnosticsList.collect({
+        mainIr.imports.flatMap(_.getDiagnostics.toList.collect({
           case w: Warning.DuplicatedImport => w
         }))
       allWarns.size shouldEqual 2
@@ -1022,7 +1028,8 @@ class ImportExportTest
       mainIr.imports.size shouldEqual 2
       val warn = mainIr
         .imports(1)
-        .diagnosticsList
+        .getDiagnostics
+        .toList
         .collect({ case w: Warning.DuplicatedImport => w })
       warn.size shouldEqual 1
       val arr = Persistance.write(

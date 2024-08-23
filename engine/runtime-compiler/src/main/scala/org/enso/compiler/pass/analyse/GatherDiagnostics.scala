@@ -71,7 +71,7 @@ case object GatherDiagnostics extends IRPass {
             .getMetadata(TypeSignatures)
             .map(_.signature.preorder.collect(collectDiagnostics))
             .getOrElse(Nil)
-        typeSignatureDiagnostics ++ arg.diagnosticsList
+        typeSignatureDiagnostics ++ diagnosticsList(arg)
       case x: definition.Method =>
         val typeSignatureDiagnostics =
           x.getMetadata(TypeSignatures)
@@ -81,15 +81,15 @@ case object GatherDiagnostics extends IRPass {
           x.getMetadata(GenericAnnotations)
             .map(_.annotations.flatMap(_.preorder.collect(collectDiagnostics)))
             .getOrElse(Nil)
-        typeSignatureDiagnostics ++ annotationsDiagnostics ++ x.diagnosticsList
+        typeSignatureDiagnostics ++ annotationsDiagnostics ++ diagnosticsList(x)
       case x: Expression =>
         val typeSignatureDiagnostics =
           x.getMetadata(TypeSignatures)
             .map(_.signature.preorder.collect(collectDiagnostics))
             .getOrElse(Nil)
-        typeSignatureDiagnostics ++ x.diagnosticsList
+        typeSignatureDiagnostics ++ diagnosticsList(x)
       case x =>
-        x.diagnosticsList
+        diagnosticsList(x)
     }
     DiagnosticsMeta(
       diagnostics.distinctBy(d => new DiagnosticKeys(d))
@@ -99,6 +99,9 @@ case object GatherDiagnostics extends IRPass {
   private val collectDiagnostics: PartialFunction[IR, Diagnostic] = {
     case err: Diagnostic => err
   }
+
+  private def diagnosticsList(ir: IR): List[Diagnostic] =
+    if (ir.diagnostics() eq null) Nil else ir.diagnostics().toList
 
   final private class DiagnosticKeys(private val diagnostic: Diagnostic) {
 
