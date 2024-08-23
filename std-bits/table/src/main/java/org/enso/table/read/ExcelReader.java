@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.util.CellReference;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.InferredBuilder;
@@ -38,7 +37,7 @@ public class ExcelReader {
    * @throws IOException when the action fails
    */
   public static String[] readSheetNames(File file, ExcelFileFormat format)
-      throws IOException, InvalidFormatException {
+      throws IOException {
     return withWorkbook(file, format, ExcelReader::readSheetNames);
   }
 
@@ -68,7 +67,7 @@ public class ExcelReader {
    * @throws IOException when the action fails
    */
   public static String[] readRangeNames(File file, ExcelFileFormat format)
-      throws IOException, InvalidFormatException {
+      throws IOException {
     return withWorkbook(file, format, ExcelWorkbook::getRangeNames);
   }
 
@@ -258,8 +257,8 @@ public class ExcelReader {
             readRange(workbook, excelRange, headers, skip_rows, row_limit, problemAggregator));
   }
 
-  private static <T> T withWorkbook(File file, ExcelFileFormat format, Function<ExcelWorkbook, T> action)
-      throws IOException {
+  private static <T> T withWorkbook(
+      File file, ExcelFileFormat format, Function<ExcelWorkbook, T> action) throws IOException {
     try (ReadOnlyExcelConnection connection =
         ExcelConnectionPool.INSTANCE.openReadOnlyConnection(file, format)) {
       return connection.withWorkbook(action);

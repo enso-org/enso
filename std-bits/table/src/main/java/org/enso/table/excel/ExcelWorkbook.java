@@ -2,10 +2,7 @@ package org.enso.table.excel;
 
 import org.apache.poi.ss.usermodel.Name;
 
-/**
- * Represents an Excel workbook.
- * Wraps the underlying Apache POI Workbook object.
- */
+/** Represents an Excel workbook. Wraps the underlying Apache POI Workbook object. */
 public interface ExcelWorkbook {
   /**
    * Get the number of spreadsheets in the workbook
@@ -37,12 +34,14 @@ public interface ExcelWorkbook {
 
   /**
    * Get all the range names in the workbook
+   *
    * @return an array of range names
    */
   String[] getRangeNames();
 
   /**
    * Get the formula for a named range.
+   *
    * @param name the name of the range.
    * @return the formula for the range or null if not found.
    */
@@ -50,13 +49,16 @@ public interface ExcelWorkbook {
 
   /**
    * Get a sheet by its index
+   *
    * @param sheetIndex the index of the sheet (0 based)
    * @return the sheet as an ExcelSheet object
+   * @throws IllegalArgumentException if the sheet index is out of range.
    */
   ExcelSheet getSheetAt(int sheetIndex);
 
   /**
    * Create an ExcelWorkbook object from an Apache POI Workbook object
+   *
    * @param workbook the Apache POI Workbook object
    * @return the ExcelWorkbook object
    */
@@ -64,8 +66,9 @@ public interface ExcelWorkbook {
     return new ExcelWorkbookForWorkbook(workbook);
   }
 
-  //** Wrap a Workbook object in the interface. */
-  record ExcelWorkbookForWorkbook(org.apache.poi.ss.usermodel.Workbook workbook) implements ExcelWorkbook {
+  // ** Wrap a Workbook object in the interface. */
+  record ExcelWorkbookForWorkbook(org.apache.poi.ss.usermodel.Workbook workbook)
+      implements ExcelWorkbook {
     @Override
     public int getNumberOfSheets() {
       return workbook.getNumberOfSheets();

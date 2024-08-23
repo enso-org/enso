@@ -83,7 +83,8 @@ public class ExcelWriter {
       headers =
           headers != ExcelHeaders.HeaderBehavior.INFER
               ? headers
-              : shouldWriteHeaders(ExcelSheet.fromWorkbook(workbook, sheetIndex), firstRow + 1, 1, -1);
+              : shouldWriteHeaders(
+                  ExcelSheet.fromWorkbook(workbook, sheetIndex), firstRow + 1, 1, -1);
 
       String sheetName = workbook.getSheetName(sheetIndex - 1);
       workbook.removeSheetAt(sheetIndex - 1);
@@ -136,7 +137,8 @@ public class ExcelWriter {
       headers =
           headers != ExcelHeaders.HeaderBehavior.INFER
               ? headers
-              : shouldWriteHeaders(ExcelSheet.fromWorkbook(workbook, sheetIndex), firstRow + 1, 1, -1);
+              : shouldWriteHeaders(
+                  ExcelSheet.fromWorkbook(workbook, sheetIndex), firstRow + 1, 1, -1);
 
       workbook.removeSheetAt(sheetIndex);
       Sheet sheet = workbook.createSheet(sheetName);
