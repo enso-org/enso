@@ -16,7 +16,7 @@ import Standard.Database.Internal.Postgres.Pgpass
 import Standard.Database.Internal.Replace_Params.Replace_Params
 from Standard.Database import all
 from Standard.Database.Errors import all
-from Standard.Database.Connection.Postgres_Connection import parse_postgres_encoding
+from Standard.Database.Internal.Postgres.Helpers import parse_postgres_encoding
 
 from Standard.Test import all
 import Standard.Test.Test_Environment
