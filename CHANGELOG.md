@@ -39,8 +39,10 @@
 #### Enso Language & Runtime
 
 - [Print out warnings associated with local variables][10842]
+- [Method return type checks avoid conversion when the type fits][10882]
 
 [10842]: https://github.com/enso-org/enso/pull/10842
+[10882]: https://github.com/enso-org/enso/pull/10882
 
 # Enso 2024.3
 
