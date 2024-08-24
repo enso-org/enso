@@ -32,7 +32,7 @@ export type FieldPath<
 export type TSchema = z.AnyZodObject | z.ZodEffects<z.AnyZodObject>
 
 /**
- *
+ * OnSubmitCallbacks type.
  */
 export interface OnSubmitCallbacks<
   Schema extends TSchema,
@@ -63,7 +63,7 @@ export interface OnSubmitCallbacks<
     | undefined
   readonly onSubmitted?:
     | ((
-        data: SubmitResult,
+        data: SubmitResult | undefined,
         error: unknown,
         values: TFieldValues,
         form: UseFormReturn<Schema, TFieldValues, TTransformedValues>,
@@ -138,7 +138,7 @@ export interface UseFormReturn<
   TTransformedValues extends FieldValues<Schema> | undefined = undefined,
 > extends Omit<
     reactHookForm.UseFormReturn<TFieldValues, unknown, TTransformedValues>,
-    'handleSubmit' | 'resetOptions' | 'resolver'
+    'resetOptions' | 'resolver'
   > {
   readonly register: UseFormRegister<Schema, TFieldValues>
   readonly submit: (event?: FormEvent<HTMLFormElement> | null | undefined) => Promise<void>
@@ -190,6 +190,18 @@ export interface FormWithValueValidation<
 }
 
 /**
+ * Form instance type that has been validated.
+ * Cast validatable form type to FormInstance
+ */
+export type FormInstanceValidated<
+  Schema extends TSchema,
+  TFieldValues extends FieldValues<Schema>,
+  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
+  // We use any here because we want to bypass the type check for Error type as it won't be a case here
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any,@typescript-eslint/ban-types
+> = FormInstance<Schema, TFieldValues, TTransformedValues> | (any[] & {})
+
+/**
  * Props for the Field component.
  */
 // Readonly omitted here to avoid type mismatch with native HTML attributes
@@ -228,7 +240,7 @@ export interface FieldProps {
  * Base Props for a Form Field.
  * @private
  */
-interface FormFieldProps<
+export interface FormFieldProps<
   BaseValueType,
   Schema extends TSchema,
   TFieldValues extends FieldValues<Schema>,

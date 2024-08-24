@@ -7,6 +7,7 @@ import type { PropsWithChildren } from 'react'
 import { createContext, useContext } from 'react'
 import invariant from 'tiny-invariant'
 import type * as types from './types'
+import type { FormInstance, FormInstanceValidated } from './types'
 
 /**
  * Context type for the form provider.
@@ -42,29 +43,38 @@ export function useFormContext<
   Schema extends types.TSchema,
   TFieldValues extends types.FieldValues<Schema>,
   TTransformedValues extends types.FieldValues<Schema> | undefined = undefined,
->() {
-  const ctx = useContext(FormContext)
+>(
+  form?: FormInstanceValidated<Schema, TFieldValues, TTransformedValues> | undefined,
+): FormInstance<Schema, TFieldValues, TTransformedValues> {
+  if (form != null && 'control' in form) {
+    return form
+  } else {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const ctx = useContext(FormContext)
 
-  invariant(ctx, 'FormContext not found')
+    invariant(ctx, 'FormContext not found')
 
-  const { form } = ctx
-
-  // This is safe, as it's we pass the value transparently and it's typed outside
-  // eslint-disable-next-line no-restricted-syntax
-  return form as unknown as types.UseFormReturn<Schema, TFieldValues, TTransformedValues>
+    // This is safe, as it's we pass the value transparently and it's typed outside
+    // eslint-disable-next-line no-restricted-syntax
+    return ctx.form as unknown as types.UseFormReturn<Schema, TFieldValues, TTransformedValues>
+  }
 }
 
 /**
  * Returns the form instance from the context, or null if the context is not available.
  */
 export function useOptionalFormContext<
+  Form extends FormInstanceValidated<Schema, TFieldValues, TTransformedValues> | undefined,
   Schema extends types.TSchema,
   TFieldValues extends types.FieldValues<Schema>,
   TTransformedValues extends types.FieldValues<Schema> | undefined = undefined,
->() {
+>(
+  form?: Form,
+): Form extends undefined ? FormInstance<Schema, TFieldValues, TTransformedValues> | null
+: FormInstance<Schema, TFieldValues, TTransformedValues> {
   try {
-    return useFormContext<Schema, TFieldValues, TTransformedValues>()
+    return useFormContext<Schema, TFieldValues, TTransformedValues>(form)
   } catch {
-    return null
+    return null as any
   }
 }

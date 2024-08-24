@@ -5,11 +5,13 @@ import type * as twv from 'tailwind-variants'
 
 import { mergeProps, type RadioGroupProps } from '#/components/aria'
 import {
+  FieldComponentProps,
+  Form,
   type FieldPath,
   type FieldProps,
   type FieldStateProps,
   type FieldValues,
-  Form,
+  type FieldVariantProps,
   type TSchema,
 } from '#/components/AriaComponents'
 
@@ -18,6 +20,7 @@ import { mergeRefs } from '#/utilities/mergeRefs'
 import { AnimatedBackground } from '#/components/AnimatedBackground'
 import RadioGroup from '#/components/styled/RadioGroup'
 import { tv } from '#/utilities/tailwindVariants'
+import { omit } from 'enso-common/src/utilities/data/object'
 import { Controller } from 'react-hook-form'
 import { SelectorOption } from './SelectorOption'
 
@@ -35,7 +38,8 @@ export interface SelectorProps<
       TTransformedValues
     >,
     FieldProps,
-    Omit<twv.VariantProps<typeof SELECTOR_STYLES>, 'disabled' | 'invalid'> {
+    Omit<twv.VariantProps<typeof SELECTOR_STYLES>, 'disabled' | 'invalid'>,
+    FieldVariantProps {
   readonly items: readonly TFieldValues[TFieldName][]
   readonly itemToString?: (item: TFieldValues[TFieldName]) => string
   readonly className?: string
@@ -99,7 +103,7 @@ export const Selector = React.forwardRef(function Selector<
     name,
     items,
     itemToString = String,
-    isDisabled = false,
+    isDisabled,
     form,
     defaultValue,
     inputRef,
@@ -107,17 +111,13 @@ export const Selector = React.forwardRef(function Selector<
     size,
     rounded,
     isRequired = false,
+    fieldVariants,
     ...inputProps
   } = props
 
   const privateInputRef = React.useRef<HTMLDivElement>(null)
 
-  const { fieldState, formInstance } = Form.useField({
-    name,
-    isDisabled,
-    form,
-    defaultValue,
-  })
+  const formInstance = Form.useFormContext(form)
 
   const classes = SELECTOR_STYLES({
     size,
@@ -127,57 +127,53 @@ export const Selector = React.forwardRef(function Selector<
   })
 
   return (
-    <Form.Field
-      form={formInstance}
+    <Controller
+      control={formInstance.control}
       name={name}
-      fullWidth
-      label={label}
-      aria-label={props['aria-label']}
-      aria-labelledby={props['aria-labelledby']}
-      aria-describedby={props['aria-describedby']}
-      isRequired={isRequired}
-      isInvalid={fieldState.invalid}
-      aria-details={props['aria-details']}
-      ref={ref}
-      style={props.style}
-      className={props.className}
-    >
-      <div
-        className={classes.base()}
-        onClick={() => privateInputRef.current?.focus({ preventScroll: true })}
-      >
-        <Controller
-          control={formInstance.control}
-          name={name}
-          render={(renderProps) => {
-            const { ref: fieldRef, value, onChange, ...field } = renderProps.field
-            return (
+      render={(renderProps) => {
+        const { value } = renderProps.field
+        return (
+          <Form.Field
+            {...mergeProps<FieldComponentProps>()(inputProps, renderProps.field, {
+              ref,
+              fullWidth: true,
+              variants: fieldVariants,
+              form: formInstance,
+              label,
+              isRequired,
+            })}
+            name={props.name}
+          >
+            <div
+              className={classes.base()}
+              onClick={() => privateInputRef.current?.focus({ preventScroll: true })}
+            >
               <RadioGroup
-                ref={mergeRefs(inputRef, privateInputRef, fieldRef)}
                 {...mergeProps<RadioGroupProps>()(
-                  { className: classes.radioGroup(), name, isRequired, isDisabled },
-                  inputProps,
-                  field,
+                  { className: classes.radioGroup(), name },
+                  omit(inputProps, 'isInvalid'),
+                  renderProps.field,
                 )}
+                ref={mergeRefs(inputRef, privateInputRef, renderProps.field.ref)}
                 // eslint-disable-next-line no-restricted-syntax
                 aria-label={props['aria-label'] ?? (typeof label === 'string' ? label : '')}
                 value={String(items.indexOf(value))}
                 onChange={(newValue) => {
                   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-                  onChange(items[Number(newValue)])
+                  renderProps.field.onChange(items[Number(newValue)])
                 }}
               >
                 <AnimatedBackground value={String(items.indexOf(value))}>
                   {items.map((item, i) => (
-                    <SelectorOption value={String(i)} label={itemToString(item)} />
+                    <SelectorOption key={i} value={String(i)} label={itemToString(item)} />
                   ))}
                 </AnimatedBackground>
               </RadioGroup>
-            )
-          }}
-        />
-      </div>
-    </Form.Field>
+            </div>
+          </Form.Field>
+        )
+      }}
+    />
   )
 }) as <
   Schema extends TSchema,

@@ -143,6 +143,9 @@ export const OTPInput = forwardRef(function OTPInput<
             maxLength,
             noScriptCSSFallback: null,
             containerClassName: classes.base(),
+            onChange: (value) => {
+              console.log('onChange', value)
+            },
             onClick: () => {
               if (innerOtpInputRef.current) {
                 // Check if the input is not already focused
@@ -151,7 +154,8 @@ export const OTPInput = forwardRef(function OTPInput<
                 }
               }
             },
-            onComplete: () => {
+            onComplete: async () => {
+              console.log('onComplete')
               onComplete?.()
 
               if (submitOnComplete) {

@@ -48,9 +48,10 @@ export function useForm<
   Schema extends types.TSchema,
   TFieldValues extends types.FieldValues<Schema> = types.FieldValues<Schema>,
   TTransformedValues extends types.FieldValues<Schema> | undefined = undefined,
+  SubmitResult = void,
 >(
   optionsOrFormInstance:
-    | types.UseFormProps<Schema, TFieldValues, TTransformedValues>
+    | types.UseFormProps<Schema, TFieldValues, TTransformedValues, SubmitResult>
     | types.UseFormReturn<Schema, TFieldValues, TTransformedValues>,
 ): types.UseFormReturn<Schema, TFieldValues, TTransformedValues> {
   const { getText } = useText()
@@ -84,35 +85,39 @@ export function useForm<
 
     const formInstance = reactHookForm.useForm({
       ...options,
-      resolver: zodResolver.zodResolver(computedSchema, {
-        async: true,
-        errorMap: (issue) => {
-          switch (issue.code) {
-            case 'too_small':
-              if (issue.minimum === 0) {
-                return {
-                  message: getText('arbitraryFieldRequired'),
+      resolver: zodResolver.zodResolver(
+        computedSchema,
+        {
+          async: true,
+          errorMap: (issue) => {
+            switch (issue.code) {
+              case 'too_small':
+                if (issue.minimum === 0) {
+                  return {
+                    message: getText('arbitraryFieldRequired'),
+                  }
+                } else {
+                  return {
+                    message: getText('arbitraryFieldTooSmall', issue.minimum.toString()),
+                  }
                 }
-              } else {
+              case 'too_big':
                 return {
-                  message: getText('arbitraryFieldTooSmall', issue.minimum.toString()),
+                  message: getText('arbitraryFieldTooLarge', issue.maximum.toString()),
                 }
-              }
-            case 'too_big':
-              return {
-                message: getText('arbitraryFieldTooLarge', issue.maximum.toString()),
-              }
-            case 'invalid_type':
-              return {
-                message: getText('arbitraryFieldInvalid'),
-              }
-            default:
-              return {
-                message: getText('arbitraryFieldInvalid'),
-              }
-          }
+              case 'invalid_type':
+                return {
+                  message: getText('arbitraryFieldInvalid'),
+                }
+              default:
+                return {
+                  message: getText('arbitraryFieldInvalid'),
+                }
+            }
+          },
         },
-      }),
+        { mode: 'async' },
+      ),
     })
 
     const register: types.UseFormRegister<Schema, TFieldValues> = (name, opts) => {
@@ -148,7 +153,10 @@ export function useForm<
       mutationKey: ['Form submission', `debugName: ${debugName}`],
       mutationFn: async (fieldValues: TFieldValues) => {
         try {
-          return await onSubmit?.(fieldValues, form)
+          // This is safe, because we transparently passing the result of the onSubmit function,
+          // and the type of the result is the same as the type of the SubmitResult.
+          // eslint-disable-next-line no-restricted-syntax
+          return (await onSubmit?.(fieldValues, form)) as SubmitResult
         } catch (error) {
           const isJSError = errorUtils.isJSError(error)
 
@@ -212,6 +220,7 @@ export function useForm<
       },
     )
 
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     const setFormError = useEventCallback((error: string) => {
       formInstance.setError('root.submit', { message: error })
     })
@@ -223,6 +232,7 @@ export function useForm<
       register,
       schema: computedSchema,
       setFormError,
+      handleSubmit: formInstance.handleSubmit,
     }
 
     return form
@@ -236,9 +246,10 @@ function getArgsType<
   Schema extends types.TSchema,
   TFieldValues extends types.FieldValues<Schema>,
   TTransformedValues extends types.FieldValues<Schema> | undefined = undefined,
+  SubmitResult = void,
 >(
   args:
-    | types.UseFormProps<Schema, TFieldValues, TTransformedValues>
+    | types.UseFormProps<Schema, TFieldValues, TTransformedValues, SubmitResult>
     | types.UseFormReturn<Schema, TFieldValues, TTransformedValues>,
 ) {
   return 'formState' in args ? ('formInstance' as const) : ('formOptions' as const)

@@ -170,6 +170,7 @@ export default function Login() {
             <Form
               schema={(z) => z.object({ otp: z.string().min(6).max(6) })}
               onSubmit={async ({ otp }, formInstance) => {
+                console.log('submit', { otp })
                 if (user) {
                   const res = await cognito.confirmSignIn(user, otp, 'SOFTWARE_TOKEN_MFA')
 

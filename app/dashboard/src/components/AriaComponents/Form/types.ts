@@ -21,10 +21,10 @@ export type FormProps<
   TFieldValues extends components.FieldValues<Schema>,
   // eslint-disable-next-line no-restricted-syntax
   TTransformedValues extends components.FieldValues<Schema> | undefined = undefined,
-  SubmitResult extends unknown = void,
+  SubmitResult = void,
 > = BaseFormProps<Schema, TFieldValues, TTransformedValues, SubmitResult> &
   (
-    | FormPropsWithOptions<Schema, TFieldValues>
+    | FormPropsWithOptions<Schema, TFieldValues, TTransformedValues>
     | FormPropsWithParentForm<Schema, TFieldValues, TTransformedValues>
   )
 
@@ -34,9 +34,8 @@ export type FormProps<
 interface BaseFormProps<
   Schema extends components.TSchema,
   TFieldValues extends components.FieldValues<Schema>,
-  // eslint-disable-next-line no-restricted-syntax
   TTransformedValues extends components.FieldValues<Schema> | undefined = undefined,
-  SubmitResult extends unknown = void,
+  SubmitResult = void,
 > extends Omit<
       React.HTMLProps<HTMLFormElement>,
       'children' | 'className' | 'form' | 'onSubmit' | 'onSubmitCapture' | 'style'
@@ -94,10 +93,6 @@ interface FormPropsWithParentForm<
   TTransformedValues extends components.FieldValues<Schema> | undefined = undefined,
 > {
   readonly form: components.UseFormReturn<Schema, TFieldValues, TTransformedValues>
-  readonly onSubmit?: never
-  readonly onSubmitFailed?: never
-  readonly onSubmitSuccess?: never
-  readonly onSubmitted?: never
   readonly schema?: never
   readonly formOptions?: never
 }
@@ -109,12 +104,13 @@ interface FormPropsWithParentForm<
 interface FormPropsWithOptions<
   Schema extends components.TSchema,
   TFieldValues extends components.FieldValues<Schema>,
+  TTransformedValues extends components.FieldValues<Schema> | undefined = undefined,
 > {
   readonly schema: Schema | ((schema: typeof components.schema) => Schema)
   readonly form?: never
   readonly formOptions?: Omit<
     components.UseFormProps<Schema, TFieldValues>,
-    'resolver' | 'schema' | 'handleSubmit'
+    'handleSubmit' | 'resolver' | 'schema'
   >
 }
 

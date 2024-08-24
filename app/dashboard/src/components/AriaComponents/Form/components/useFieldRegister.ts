@@ -5,8 +5,14 @@
  * Use this hook to register a field in the form.
  */
 import { useFormContext } from './FormProvider'
-import type { FieldPath, FieldStateProps, FieldValues, FormInstance, TSchema } from './types'
-import { useField } from './useField'
+import type {
+  FieldPath,
+  FieldStateProps,
+  FieldValues,
+  FormFieldProps,
+  FormInstanceValidated,
+  TSchema,
+} from './types'
 
 /**
  * Options for the useFieldRegister hook.
@@ -17,14 +23,18 @@ export type UseFieldRegisterOptions<
   TFieldValues extends FieldValues<Schema>,
   TFieldName extends FieldPath<Schema, TFieldValues>,
   TTransformedValues extends FieldValues<Schema> | undefined = undefined,
-> = FieldStateProps<BaseValueType, Schema, TFieldValues, TFieldName, TTransformedValues> & {
+> = Omit<
+  FormFieldProps<BaseValueType, Schema, TFieldValues, TFieldName, TTransformedValues>,
+  'form'
+> & {
+  form?: FormInstanceValidated<Schema, TFieldValues, TTransformedValues> | undefined
   name: TFieldName
   defaultValue?: TFieldValues[TFieldName] | undefined
   min?: number | string | undefined
   max?: number | string | undefined
   minLength?: number | undefined
   maxLength?: number | undefined
-  setValueAs?: (value: unknown) => unknown
+  setValueAs?: ((value: unknown) => unknown) | undefined
 }
 
 /**
@@ -47,14 +57,7 @@ export function useFieldRegister<
 ) {
   const { name, min, max, minLength, maxLength, isRequired, isDisabled, form, setValueAs } = options
 
-  // eslint-disable-next-line no-restricted-syntax
-  const formInstance = (form ??
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    useFormContext<Schema, TFieldValues, TTransformedValues>()) as FormInstance<
-    Schema,
-    TFieldValues,
-    TTransformedValues
-  >
+  const formInstance = useFormContext(form)
 
   const extractedValidationDetails = unsafe__extractValidationDetailsFromSchema<
     Schema,
@@ -86,7 +89,6 @@ function unsafe__extractValidationDetailsFromSchema<
   TFieldValues extends FieldValues<Schema>,
   TFieldName extends FieldPath<Schema, TFieldValues>,
 >(schema: Schema, name: TFieldName) {
-  console.log('schema', schema)
   try {
     if ('shape' in schema) {
       if (name in schema.shape) {
@@ -106,6 +108,8 @@ function unsafe__extractValidationDetailsFromSchema<
       // eslint-disable-next-line no-restricted-syntax
       return null
     }
+    // eslint-disable-next-line no-restricted-syntax
+    return null
   } catch {
     // eslint-disable-next-line no-restricted-syntax
     return null

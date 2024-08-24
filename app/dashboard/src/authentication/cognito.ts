@@ -390,20 +390,17 @@ export class Cognito {
    * Start the TOTP setup process. Returns the secret and the URL to scan the QR code.
    */
   async setupTOTP() {
+    const email = await this.email()
     const cognitoUserResult = await currentAuthenticatedUser()
     if (cognitoUserResult.ok) {
       const cognitoUser = cognitoUserResult.unwrap()
 
       const result = (
         await results.Result.wrapAsync(() => amplify.Auth.setupTOTP(cognitoUser))
-      ).map((data) => {
-        const str =
-          'otpauth://totp/AWSCognito:' + this.email() + '?secret=' + data + '&issuer=' + 'Enso'
+      ).map(async (data) => {
+        const str = 'otpauth://totp/AWSCognito:' + email + '?secret=' + data + '&issuer=' + 'Enso'
 
-        return {
-          secret: data,
-          url: str,
-        }
+        return { secret: data, url: str } as const
       })
 
       return result.mapErr(intoAmplifyErrorOrThrow)

@@ -11,9 +11,9 @@ import * as aria from '#/components/aria'
 import { useText } from '#/providers/TextProvider'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import * as text from '../../Text'
+import { Form } from '../Form'
 import * as formContext from './FormProvider'
 import type * as types from './types'
-import { useField } from './useField'
 
 /**
  * Props for Field component
@@ -44,6 +44,7 @@ export interface FieldChildrenRenderProps {
   readonly isDirty: boolean
   readonly isTouched: boolean
   readonly isValidating: boolean
+  readonly hasError: boolean
   readonly error?: string | undefined
 }
 
@@ -91,13 +92,13 @@ export const Field = React.forwardRef(function Field(
   const descriptionId = React.useId()
   const errorId = React.useId()
 
-  const { fieldState } = useField({ form, name })
+  const fieldState = Form.useFieldState({ form, name })
 
-  const invalid = isInvalid === true || fieldState.invalid
+  const invalid = isInvalid === true || fieldState.hasError
 
   const classes = variants({ fullWidth, isInvalid: invalid, isHidden })
 
-  const hasError = (error ?? fieldState.error?.message) != null
+  const hasError = (error ?? fieldState.error) != null
 
   return (
     <fieldset
@@ -133,7 +134,8 @@ export const Field = React.forwardRef(function Field(
               isDirty: fieldState.isDirty,
               isTouched: fieldState.isTouched,
               isValidating: fieldState.isValidating,
-              error: fieldState.error?.message,
+              hasError: fieldState.hasError,
+              error: fieldState.error,
             })
           : children}
         </div>
@@ -147,7 +149,7 @@ export const Field = React.forwardRef(function Field(
 
       {hasError && (
         <span aria-label={getText('fieldErrorLabel')} id={errorId} className={classes.error()}>
-          {error ?? fieldState.error?.message}
+          {error ?? fieldState.error}
         </span>
       )}
     </fieldset>

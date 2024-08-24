@@ -1,8 +1,6 @@
 /** @file Form component. */
 import * as React from 'react'
 
-import * as reactHookForm from 'react-hook-form'
-
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
@@ -22,8 +20,9 @@ export const Form = React.forwardRef(function Form<
   Schema extends components.TSchema,
   TFieldValues extends components.FieldValues<Schema>,
   TTransformedValues extends components.FieldValues<Schema> | undefined = undefined,
+  SubmitResult = void,
 >(
-  props: types.FormProps<Schema, TFieldValues, TTransformedValues>,
+  props: types.FormProps<Schema, TFieldValues, TTransformedValues, SubmitResult>,
   ref: React.Ref<HTMLFormElement>,
 ) {
   const formId = React.useId()
@@ -71,18 +70,21 @@ export const Form = React.forwardRef(function Form<
     },
   )
 
-  const innerForm = components.useForm<Schema, TFieldValues, TTransformedValues>(
-    form ?? {
-      schema,
-      canSubmitOffline,
-      onSubmit,
-      onSubmitFailed,
-      onSubmitSuccess,
-      onSubmitted,
-      shouldFocusError: true,
-      debugName: `Form ${testId} id: ${id}`,
-      ...formOptions,
-    },
+  const innerForm = components.useForm<Schema, TFieldValues, TTransformedValues, SubmitResult>(
+    form ??
+      // This is unsafe, but it is necessary to avoid a type error and make typescript happy here
+      // eslint-disable-next-line no-restricted-syntax
+      ({
+        schema,
+        canSubmitOffline,
+        onSubmit,
+        onSubmitFailed,
+        onSubmitSuccess,
+        onSubmitted,
+        shouldFocusError: true,
+        debugName: `Form ${testId} id: ${id}`,
+        ...formOptions,
+      } as components.UseFormProps<Schema, TFieldValues, TTransformedValues, SubmitResult>),
   )
 
   React.useImperativeHandle(formRef, () => innerForm, [innerForm])
@@ -102,7 +104,7 @@ export const Form = React.forwardRef(function Form<
     }),
   ) as Record<keyof TFieldValues, string>
 
-  const values = reactHookForm.useWatch({ control: innerForm.control })
+  const values = components.useWatch({ control: innerForm.control })
 
   return (
     <form
@@ -128,9 +130,10 @@ export const Form = React.forwardRef(function Form<
   Schema extends components.TSchema,
   TFieldValues extends components.FieldValues<Schema>,
   TTransformedValues extends components.FieldValues<Schema> | undefined = undefined,
+  SubmitResult = void,
 >(
   props: React.RefAttributes<HTMLFormElement> &
-    types.FormProps<Schema, TFieldValues, TTransformedValues>,
+    types.FormProps<Schema, TFieldValues, TTransformedValues, SubmitResult>,
   // eslint-disable-next-line no-restricted-syntax
 ) => React.JSX.Element) & {
   /* eslint-disable @typescript-eslint/naming-convention */
@@ -146,8 +149,9 @@ export const Form = React.forwardRef(function Form<
   FIELD_STYLES: typeof components.FIELD_STYLES
   useFormContext: typeof components.useFormContext
   useOptionalFormContext: typeof components.useOptionalFormContext
-  useWatch: typeof reactHookForm.useWatch
+  useWatch: typeof components.useWatch
   useFieldRegister: typeof components.useFieldRegister
+  useFieldState: typeof components.useFieldState
   /* eslint-enable @typescript-eslint/naming-convention */
 }
 
@@ -162,6 +166,7 @@ Form.useFormContext = components.useFormContext
 Form.useOptionalFormContext = components.useOptionalFormContext
 Form.Field = components.Field
 Form.Controller = components.Controller
-Form.useWatch = reactHookForm.useWatch
+Form.useWatch = components.useWatch
 Form.FIELD_STYLES = components.FIELD_STYLES
 Form.useFieldRegister = components.useFieldRegister
+Form.useFieldState = components.useFieldState

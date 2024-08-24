@@ -87,24 +87,18 @@ export function SetupTwoFaForm() {
 
             <Dialog title={getText('disable2FA')}>
               <Form
-                schema={(z) =>
-                  z.object({
-                    otp: z
-                      .string()
-                      .min(6)
-                      .max(6)
-                      .refine(async (value) =>
-                        cognito.verifyTotpToken(value).then((res) => res.ok),
-                      ),
-                  })
-                }
+                schema={(z) => z.object({ otp: z.string().min(6).max(6) })}
                 formOptions={{ mode: 'onSubmit' }}
                 method="dialog"
-                onSubmit={() => updateMFAPreferenceMutation.mutateAsync('NOMFA')}
+                onSubmit={async ({ otp }) => {
+                  await cognito.verifyTotpToken(otp)
+
+                  return updateMFAPreferenceMutation.mutateAsync('NOMFA')
+                }}
               >
                 <Text>{getText('disable2FAWarning')}</Text>
 
-                <OTPInput name="otp" maxLength={6} label={getText('verificationCode')} />
+                <OTPInput autoFocus name="otp" maxLength={6} label={getText('verificationCode')} />
 
                 <ButtonGroup>
                   <Form.Submit variant="delete">{getText('disable')}</Form.Submit>
@@ -125,15 +119,13 @@ export function SetupTwoFaForm() {
           z.object({
             enabled: z.boolean(),
             display: z.string(),
-            otp: z
-              .string()
-              .refine(async (value) => cognito.verifyTotpToken(value).then((res) => res.ok)),
+            otp: z.string().min(6).max(6),
           })
         }
-        formOptions={{ mode: 'onSubmit' }}
         defaultValues={{ enabled: false, display: 'qr' }}
-        onSubmit={async ({ enabled }) => {
+        onSubmit={async ({ enabled, otp }) => {
           if (enabled) {
+            await cognito.verifyTotpToken(otp)
             await updateMFAPreferenceMutation.mutateAsync('TOTP')
           }
         }}
@@ -180,7 +172,7 @@ function TwoFa() {
   return (
     <>
       <div className="flex w-full flex-col gap-4">
-        <Selector name="display" items={['qr', 'text']} />
+        <Selector name="display" items={['qr', 'text']} aria-label={getText('display')} />
 
         {field.value === 'qr' && (
           <>
