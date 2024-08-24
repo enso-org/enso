@@ -52,7 +52,9 @@ class DataflowErrorsTest extends InterpreterTest {
 
     "be catchable by a user-provided special handling function" in {
       val code =
-        """import Standard.Base.Error.Error
+        """
+          |import Standard.Base.Data.Numbers
+          |import Standard.Base.Error.Error
           |
           |main =
           |    intError = Error.throw 1
@@ -81,6 +83,7 @@ class DataflowErrorsTest extends InterpreterTest {
     "accept a method handle in catch function" in {
       val code =
         """import Standard.Base.Error.Error
+          |import Standard.Base.Data.Numbers
           |import Standard.Base.IO
           |
           |type My_Recovered
@@ -163,6 +166,7 @@ class DataflowErrorsTest extends InterpreterTest {
     "propagate through builtin methods" in {
       val code =
         """import Standard.Base.IO
+          |import Standard.Base.Data.Numbers
           |import Standard.Base.Error.Error
           |
           |type My_Error
