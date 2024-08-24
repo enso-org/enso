@@ -22,9 +22,9 @@ export type FormProps<
   // eslint-disable-next-line no-restricted-syntax
   TTransformedValues extends components.FieldValues<Schema> | undefined = undefined,
   SubmitResult = void,
-> = BaseFormProps<Schema, TFieldValues, TTransformedValues, SubmitResult> &
+> = BaseFormProps<Schema, TFieldValues, TTransformedValues> &
   (
-    | FormPropsWithOptions<Schema, TFieldValues, TTransformedValues>
+    | FormPropsWithOptions<Schema, TFieldValues, TTransformedValues, SubmitResult>
     | FormPropsWithParentForm<Schema, TFieldValues, TTransformedValues>
   )
 
@@ -35,13 +35,11 @@ interface BaseFormProps<
   Schema extends components.TSchema,
   TFieldValues extends components.FieldValues<Schema>,
   TTransformedValues extends components.FieldValues<Schema> | undefined = undefined,
-  SubmitResult = void,
 > extends Omit<
       React.HTMLProps<HTMLFormElement>,
       'children' | 'className' | 'form' | 'onSubmit' | 'onSubmitCapture' | 'style'
     >,
-    styles.FormStyleProps,
-    components.OnSubmitCallbacks<Schema, TFieldValues, TTransformedValues, SubmitResult> {
+    styles.FormStyleProps {
   /**
    * The default values for the form fields
    *
@@ -95,6 +93,10 @@ interface FormPropsWithParentForm<
   readonly form: components.UseFormReturn<Schema, TFieldValues, TTransformedValues>
   readonly schema?: never
   readonly formOptions?: never
+  readonly onSubmit?: never
+  readonly onSubmitSuccess?: never
+  readonly onSubmitFailed?: never
+  readonly onSubmitted?: never
 }
 
 /**
@@ -105,7 +107,8 @@ interface FormPropsWithOptions<
   Schema extends components.TSchema,
   TFieldValues extends components.FieldValues<Schema>,
   TTransformedValues extends components.FieldValues<Schema> | undefined = undefined,
-> {
+  SubmitResult = void,
+> extends components.OnSubmitCallbacks<Schema, TFieldValues, TTransformedValues, SubmitResult> {
   readonly schema: Schema | ((schema: typeof components.schema) => Schema)
   readonly form?: never
   readonly formOptions?: Omit<
