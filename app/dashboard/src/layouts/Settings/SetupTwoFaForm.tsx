@@ -41,7 +41,7 @@ export function SetupTwoFaForm() {
   const { cognito } = useAuth()
 
   const { data } = useSuspenseQuery({
-    queryKey: ['twoFa'],
+    queryKey: ['twoFaPreference'],
     queryFn: () =>
       cognito.getMFAPreference().then((res) => {
         if (res.err) {
@@ -55,8 +55,15 @@ export function SetupTwoFaForm() {
   const MFAEnabled = data !== 'NOMFA'
 
   const updateMFAPreferenceMutation = useMutation({
-    mutationFn: (preference: MfaType) => cognito.updateMFAPreference(preference),
-    meta: { invalidates: [['twoFa']] },
+    mutationFn: (preference: MfaType) =>
+      cognito.updateMFAPreference(preference).then((res) => {
+        if (res.err) {
+          throw res.val
+        } else {
+          return res.unwrap()
+        }
+      }),
+    meta: { invalidates: [['twoFaPreference']] },
   })
 
   if (MFAEnabled) {
@@ -90,11 +97,15 @@ export function SetupTwoFaForm() {
                 schema={(z) => z.object({ otp: z.string().min(6).max(6) })}
                 formOptions={{ mode: 'onSubmit' }}
                 method="dialog"
-                onSubmit={async ({ otp }) => {
-                  await cognito.verifyTotpToken(otp)
-
-                  return updateMFAPreferenceMutation.mutateAsync('NOMFA')
-                }}
+                onSubmit={({ otp }) =>
+                  cognito.verifyTotpToken(otp).then((res) => {
+                    if (res.ok) {
+                      return updateMFAPreferenceMutation.mutateAsync('NOMFA')
+                    } else {
+                      throw res.val
+                    }
+                  })
+                }
               >
                 <Text>{getText('disable2FAWarning')}</Text>
 
@@ -125,8 +136,13 @@ export function SetupTwoFaForm() {
         defaultValues={{ enabled: false, display: 'qr' }}
         onSubmit={async ({ enabled, otp }) => {
           if (enabled) {
-            await cognito.verifyTotpToken(otp)
-            await updateMFAPreferenceMutation.mutateAsync('TOTP')
+            return cognito.verifyTotpToken(otp).then((res) => {
+              if (res.ok) {
+                return updateMFAPreferenceMutation.mutateAsync('TOTP')
+              } else {
+                throw res.val
+              }
+            })
           }
         }}
       >
@@ -176,7 +192,7 @@ function TwoFa() {
 
         {field.value === 'qr' && (
           <>
-            <Alert variant="neutral">
+            <Alert variant="neutral" icon={ShieldCheck}>
               <Text.Group>
                 <Text variant="subtitle" weight="bold">
                   {getText('scanQR')}
@@ -200,7 +216,7 @@ function TwoFa() {
 
         {field.value === 'text' && (
           <>
-            <Alert variant="neutral">
+            <Alert variant="neutral" icon={ShieldCheck}>
               <Text.Group>
                 <Text variant="subtitle" weight="bold">
                   {getText('copyLink')}

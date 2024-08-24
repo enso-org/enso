@@ -433,9 +433,9 @@ export class Cognito {
     const cognitoUserResult = await currentAuthenticatedUser()
     if (cognitoUserResult.ok) {
       const cognitoUser = cognitoUserResult.unwrap()
-      const result = await results.Result.wrapAsync(async () => {
-        return await amplify.Auth.setPreferredMFA(cognitoUser, mfaMethod)
-      })
+      const result = await results.Result.wrapAsync(
+        async () => await amplify.Auth.setPreferredMFA(cognitoUser, mfaMethod),
+      )
       return result.mapErr(intoAmplifyErrorOrThrow)
     } else {
       return results.Err(cognitoUserResult.val)
