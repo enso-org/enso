@@ -1154,6 +1154,69 @@ lazy val `scala-libs-wrapper` = project
     },
   )
 
+/**
+ * Wrapper project for dependencies of `language-server` that cannot be used as
+ * JPMS modules (cannot be put directly on module-path).
+ */
+lazy val `language-server-deps-wrapper` = project
+  .in(file("lib/java/language-server-deps-wrapper"))
+  .enablePlugins(JPMSPlugin)
+  .settings(
+    frgaalJavaCompilerSetting,
+    libraryDependencies ++= Seq(
+      "com.github.pureconfig" %% "pureconfig" % pureconfigVersion,
+      "com.chuusai" %% "shapeless" % "2.3.10",
+      "com.typesafe" % "config"   % typesafeConfigVersion
+    ),
+    javaModuleName := "org.enso.language.server.deps.wrapper",
+    moduleDependencies := Seq(
+      "org.scala-lang" % "scala-library" % scalacVersion
+    ),
+    javacOptions ++= {
+      JPMSPlugin.constructOptions(
+        streams.value.log,
+        modulePath   = modulePath.value,
+        patchModules = patchModules.value
+      )
+    },
+    forceModuleInfoCompilation := true,
+    exportedModuleBin := assembly
+      .dependsOn(compileModuleInfo)
+      .value,
+    exportedModule := assembly
+      .dependsOn(compileModuleInfo)
+      .value,
+    assembly / assemblyExcludedJars := {
+      val scalaVer = scalaBinaryVersion.value
+      JPMSUtils.filterModulesFromClasspath(
+        (Compile / fullClasspath).value,
+        Seq(
+          "org.scala-lang"            % "scala-library"   % scalacVersion,
+          "com.chuusai" % ("shapeless_" + scalaVer) % "2.3.10",
+          "com.typesafe" % "config"   % typesafeConfigVersion
+        ),
+        streams.value.log,
+        moduleName.value,
+        shouldContainAll = true
+      )
+    },
+    patchModules := {
+      val scalaVer = scalaBinaryVersion.value
+      val scalaLibs = JPMSUtils.filterModulesFromUpdate(
+        update.value,
+        Seq(
+          "com.github.pureconfig" % ("pureconfig_" + scalaVer) % pureconfigVersion,
+        ),
+        streams.value.log,
+        moduleName.value,
+        shouldContainAll = true
+      )
+      Map(
+        javaModuleName.value -> scalaLibs
+      )
+    }
+  )
+
 lazy val cli = project
   .in(file("lib/scala/cli"))
   .enablePlugins(JPMSPlugin)
