@@ -1557,17 +1557,16 @@ lazy val `json-rpc-server` = project
       "org.apache.httpcomponents"   % "httpcore"        % httpComponentsVersion % Test,
       "commons-io"                  % "commons-io"      % commonsIoVersion      % Test
     ),
-    excludeFilter := excludeFilter.value || "module-info.java",
+    compileOrder := CompileOrder.ScalaThenJava,
     moduleDependencies := {
       val scalaVer = scalaBinaryVersion.value
       Seq(
-        "org.scala-lang" % "scala-library"             % scalacVersion,
-        akkaURL          % ("akka-stream_" + scalaVer) % akkaVersion,
-        akkaURL          % ("akka-actor_" + scalaVer)  % akkaVersion
+        "org.scala-lang" % "scala-library"   % scalacVersion,
       )
     },
     internalModuleDependencies := Seq(
-      (`scala-libs-wrapper` / exportedModule).value
+      (`scala-libs-wrapper` / exportedModule).value,
+      (`akka-wrapper` / exportedModule).value,
     )
   )
 
