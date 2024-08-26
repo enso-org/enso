@@ -11,18 +11,35 @@ import java.util.UUID
   * @param originalName the original name that could not be resolved
   * @param reason       the cause of this error
   * @param passData     the pass metadata associated with this node
-  * @param diagnostics  compiler diagnostics for this node
   */
 sealed case class Resolution(
   originalName: Name,
   reason: Resolution.Reason,
-  passData: MetadataStorage      = new MetadataStorage(),
-  diagnostics: DiagnosticStorage = DiagnosticStorage()
+  passData: MetadataStorage = new MetadataStorage()
 ) extends Error
     with Diagnostic.Kind.Interactive
     with IRKind.Primitive
     with Name
+    with LazyDiagnosticStorage
     with LazyId {
+
+  /** Create a [[Resolution]] object.
+    *
+    * @param originalName the original name that could not be resolved
+    * @param reason the cause of this error
+    * @param passData the pass metadata associated with this node
+    * @param diagnostics the compiler diagnostics
+    */
+  def this(
+    originalName: Name,
+    reason: Resolution.Reason,
+    passData: MetadataStorage,
+    diagnostics: DiagnosticStorage
+  ) = {
+    this(originalName, reason, passData)
+    this.diagnostics = diagnostics
+  }
+
   override val name: String = originalName.name
 
   override def mapExpressions(
@@ -58,9 +75,9 @@ sealed case class Resolution(
       || diagnostics != this.diagnostics
       || id != this.id
     ) {
-
-      val res = Resolution(originalName, reason, passData, diagnostics)
-      res.id = id
+      val res = Resolution(originalName, reason, passData)
+      res.diagnostics = diagnostics
+      res.id          = id
       res
     } else this
   }
@@ -82,9 +99,8 @@ sealed case class Resolution(
         ),
       passData =
         if (keepMetadata) passData.duplicate else new MetadataStorage(),
-      diagnostics =
-        if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-      id = if (keepIdentifiers) id else null
+      diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+      id          = if (keepIdentifiers) id else null
     )
 
   /** @inheritdoc */
@@ -110,8 +126,7 @@ sealed case class Resolution(
 
 object Resolution {
 
-  /** A representation of a symbol resolution error.
-    */
+  /** A representation of a symbol resolution error. */
   sealed trait Reason {
     def explain(originalName: Name): String
   }

@@ -232,7 +232,7 @@ class FramePointerAnalysisTest extends CompilerTest {
       val syntheticSelfArg = findIRElement[DefinitionArgument.Specified](
         ir,
         _.name match {
-          case Name.Self(loc, synthetic, _, _) if loc.isEmpty && synthetic =>
+          case Name.Self(loc, synthetic, _) if loc.isEmpty && synthetic =>
             true
           case _ => false
         }
@@ -251,7 +251,7 @@ class FramePointerAnalysisTest extends CompilerTest {
       val syntheticSelfArg = findIRElement[DefinitionArgument.Specified](
         ir,
         _.name match {
-          case Name.Self(loc, synthetic, _, _) if loc.isEmpty && synthetic =>
+          case Name.Self(loc, synthetic, _) if loc.isEmpty && synthetic =>
             true
           case _ => false
         }

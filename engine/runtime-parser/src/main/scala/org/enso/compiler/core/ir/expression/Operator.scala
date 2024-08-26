@@ -35,17 +35,16 @@ object Operator {
     * @param right       the right operand to `operator`
     * @param location    the source location that the node corresponds to
     * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
     */
   sealed case class Binary(
     left: CallArgument,
     operator: Name,
     right: CallArgument,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Operator
       with IRKind.Sugar
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -77,10 +76,9 @@ object Operator {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-
-        val res =
-          Binary(left, operator, right, location, passData, diagnostics)
-        res.id = id
+        val res = Binary(left, operator, right, location, passData)
+        res.diagnostics = diagnostics
+        res.id          = id
         res
       } else this
     }
@@ -114,9 +112,8 @@ object Operator {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */

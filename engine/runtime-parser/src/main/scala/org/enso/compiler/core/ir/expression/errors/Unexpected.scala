@@ -46,17 +46,16 @@ object Unexpected {
   /** An error representing a type signature not associated with a
     * binding of some kind.
     *
-    * @param ir          the erroneous signature
-    * @param passData    any pass metadata associated with this node
-    * @param diagnostics any compiler diagnostics for this node
+    * @param ir the erroneous signature
+    * @param passData any pass metadata associated with this node
     */
   sealed case class TypeSignature(
     override val ir: IR,
-    passData: MetadataStorage      = new MetadataStorage(),
-    diagnostics: DiagnosticStorage = DiagnosticStorage()
+    passData: MetadataStorage = new MetadataStorage()
   ) extends Unexpected
       with IRKind.Primitive
       with org.enso.compiler.core.ir.module.scope.Definition
+      with LazyDiagnosticStorage
       with LazyId {
     override val entity: String = "type signature"
 
@@ -80,9 +79,9 @@ object Unexpected {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-
-        val res = TypeSignature(ir, passData, diagnostics)
-        res.id = id
+        val res = TypeSignature(ir, passData)
+        res.diagnostics = diagnostics
+        res.id          = id
         res
       } else this
     }
@@ -113,9 +112,8 @@ object Unexpected {
         ),
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
