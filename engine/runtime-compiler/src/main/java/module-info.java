@@ -21,4 +21,6 @@ module org.enso.runtime.compiler {
   exports org.enso.compiler.pass.analyse;
   exports org.enso.compiler.pass.analyse.alias;
   exports org.enso.compiler.pass.analyse.alias.graph;
+  exports org.enso.compiler.pass.analyse.types;
+  exports org.enso.compiler.pass.resolve;
 }

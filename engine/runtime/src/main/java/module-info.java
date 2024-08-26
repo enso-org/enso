@@ -30,6 +30,7 @@ module org.enso.runtime {
   requires org.graalvm.truffle;
   requires com.ibm.icu;
 
+  exports org.enso.interpreter.caches;
   exports org.enso.interpreter.node;
   exports org.enso.interpreter.runtime.callable;
   exports org.enso.interpreter.runtime.state;
