@@ -97,7 +97,7 @@ case object TypeSignatures extends IRPass {
           case _            =>
         }
         val res = lastSignature match {
-          case Some(asc @ Type.Ascription(typed, sig, comment, _, _, _)) =>
+          case Some(asc @ Type.Ascription(typed, sig, comment, _, _)) =>
             val methodRef = meth.methodReference
             val newMethodWithDoc = asc
               .getMetadata(DocumentationComments)
@@ -223,7 +223,6 @@ case object TypeSignatures extends IRPass {
             _,
             _,
             _,
-            _,
             _
           ) =>
         val sig = resolveExpression(ascribedType.duplicate())
@@ -273,7 +272,7 @@ case object TypeSignatures extends IRPass {
       case binding: Expression.Binding =>
         val newBinding = binding.mapExpressions(resolveExpression)
         val res = lastSignature match {
-          case Some(asc @ Type.Ascription(typed, sig, comment, _, _, _)) =>
+          case Some(asc @ Type.Ascription(typed, sig, comment, _, _)) =>
             val name = binding.name
             val newBindingWithDoc = asc
               .getMetadata(DocumentationComments)

@@ -11,11 +11,13 @@
 - [Drilldown for XML][10824]
 - [Fixed issue where switching edited widget with <kbd>tab</kbd> key did not
   updated actual code][10857]
+- [Added fullscreen modes to documentation editor and code editor][10876]
 
 [10774]: https://github.com/enso-org/enso/pull/10774
 [10814]: https://github.com/enso-org/enso/pull/10814
 [10824]: https://github.com/enso-org/enso/pull/10824
 [10857]: https://github.com/enso-org/enso/pull/10857
+[10876]: https://github.com/enso-org/enso/pull/10876
 
 #### Enso Standard Library
 
@@ -28,6 +30,7 @@
 - [Mixed Decimal/Float arithmetic now throws an error; mixed comparisons now
   attach warnings.][10725]
 - [Support for creating Atoms in expressions.][10820]
+- [IO.print without new line][10858]
 - [Add `Text.to_decimal`.][10874]
 
 [10614]: https://github.com/enso-org/enso/pull/10614
@@ -36,6 +39,7 @@
 [10733]: https://github.com/enso-org/enso/pull/10733
 [10725]: https://github.com/enso-org/enso/pull/10725
 [10820]: https://github.com/enso-org/enso/pull/10820
+[10858]: https://github.com/enso-org/enso/pull/10858
 [10874]: https://github.com/enso-org/enso/pull/10874
 
 #### Enso Language & Runtime

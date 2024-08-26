@@ -172,7 +172,7 @@ case object CachePreferenceAnalysis extends IRPass {
     }
   }
 
-  def analyseSelfCallArgument(
+  private def analyseSelfCallArgument(
     callArgument: CallArgument,
     weights: WeightInfo
   ): CallArgument = {
@@ -198,7 +198,7 @@ case object CachePreferenceAnalysis extends IRPass {
     weights: WeightInfo
   ): DefinitionArgument = {
     argument match {
-      case spec @ DefinitionArgument.Specified(_, _, defValue, _, _, _, _) =>
+      case spec @ DefinitionArgument.Specified(_, _, defValue, _, _, _) =>
         spec
           .copy(defaultValue = defValue.map(analyseExpression(_, weights)))
           .updateMetadata(new MetadataPair(this, weights))

@@ -100,8 +100,19 @@ public interface IR {
   @Identifier
   UUID getId();
 
-  /** Storage for compiler diagnostics related to the IR node. */
+  /**
+   * Get the storage for compiler diagnostics related to the IR node.
+   *
+   * @return the diagnostic storage or {@code null} if not initialized
+   */
   DiagnosticStorage diagnostics();
+
+  /**
+   * Initialize and get the storage for compiler diagnostics associated with this IR node.
+   *
+   * @return the diagnostic storage of this node. The result is never {@code null}
+   */
+  DiagnosticStorage getDiagnostics();
 
   /**
    * Creates a deep structural copy of `this`, representing the same structure.

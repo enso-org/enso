@@ -103,6 +103,7 @@ export const setupVue3 = defineSetupVue3(({ app, addWrapper }) => {
   provideVisualizationConfig._mock(
     {
       fullscreen: false,
+      savedSize: undefined,
       scale: 1,
       width: 200,
       height: 150,

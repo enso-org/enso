@@ -244,7 +244,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
       bodyLambda.arguments.size shouldEqual 1
       val selfArg = bodyLambda.arguments.head.name
       selfArg shouldEqual Name.Self(location = irBazSndArg.location)
-      resultLambda.diagnostics.collect { case w: Warning =>
+      resultLambda.diagnosticsList.collect { case w: Warning =>
         w
       }.head shouldBe an[Warning.WrongSelfParameterPos]
     }
@@ -293,7 +293,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
       val selfArg = resultArgs.head.name
       selfArg shouldBe a[Name.Self]
       selfArg.location shouldEqual irMethodAddSelfArg.head.name.location
-      resultLambda.diagnostics.collect { case w: Warning =>
+      resultLambda.diagnosticsList.collect { case w: Warning =>
         w
       } shouldBe empty
     }
@@ -306,13 +306,13 @@ class GenerateMethodBodiesTest extends CompilerTest {
       resultArgs.size shouldEqual 1
       val selfArg = resultArgs(0).name
       selfArg should not be an[Name.Self]
-      resultLambda.diagnostics.collect { case w: Warning =>
+      resultLambda.diagnosticsList.collect { case w: Warning =>
         w
       }.head shouldBe an[Warning.WrongSelfParameterPos]
 
-      val nestedLmabda = resultLambda.body.asInstanceOf[Function.Lambda]
-      nestedLmabda.arguments.size shouldEqual 1
-      nestedLmabda.arguments(0).name shouldBe an[Name.Self]
+      val nestedLambda = resultLambda.body.asInstanceOf[Function.Lambda]
+      nestedLambda.arguments.size shouldEqual 1
+      nestedLambda.arguments(0).name shouldBe an[Name.Self]
     }
   }
 
@@ -363,7 +363,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
       body.arguments.head.name shouldBe an[Name.Literal]
       body.arguments.head.name.name shouldBe ConstantsNames.THAT_ARGUMENT
 
-      conversion.body.diagnostics.collect { case w: Warning =>
+      conversion.body.diagnosticsList.collect { case w: Warning =>
         w
       }.head shouldBe an[Warning.WrongSelfParameterPos]
     }
@@ -381,7 +381,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
       body.arguments.head.name shouldBe an[Name.Literal]
       body.arguments.head.name.name shouldBe ConstantsNames.THAT_ARGUMENT
 
-      conversion.body.diagnostics.collect { case w: Warning =>
+      conversion.body.diagnosticsList.collect { case w: Warning =>
         w
       }.head shouldBe an[Warning.WrongSelfParameterPos]
     }

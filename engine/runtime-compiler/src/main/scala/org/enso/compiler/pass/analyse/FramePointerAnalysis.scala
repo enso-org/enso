@@ -28,7 +28,7 @@ import org.enso.compiler.pass.analyse.alias.AliasMetadata
 import org.enso.compiler.pass.analyse.alias.graph.{Graph, GraphOccurrence}
 
 /** This pass attaches [[FramePointer]] as metadata to all the IR elements that already
-  * have [[org.enso.compiler.pass.analyse.alias.Info.Occurrence]] attached.
+  * have [[org.enso.compiler.pass.analyse.alias.AliasMetadata.Occurrence]] attached.
   * It does not replace the IR elements with errors, it just attaches metadata.
   */
 case object FramePointerAnalysis extends IRPass {
@@ -112,7 +112,7 @@ case object FramePointerAnalysis extends IRPass {
   ): Unit = {
     args.foreach { arg =>
       arg.name match {
-        case Name.Self(loc, synthetic, _, _) if loc.isEmpty && synthetic =>
+        case Name.Self(loc, synthetic, _) if loc.isEmpty && synthetic =>
           // synthetic self argument has occurrence attached, but there is no Occurence.Def for it.
           // So we have to handle it specially.
           updateMeta(arg, new FramePointer(0, 1))
@@ -146,7 +146,7 @@ case object FramePointerAnalysis extends IRPass {
       case Function.Lambda(args, body, _, _, _, _) =>
         processArgumentDefs(args, graph)
         processExpression(body, graph)
-      case binding @ Expression.Binding(name, expr, _, _, _) =>
+      case binding @ Expression.Binding(name, expr, _, _) =>
         maybeAttachFramePointer(binding, graph)
         maybeAttachFramePointer(name, graph)
         processExpression(expr, graph)
@@ -204,17 +204,17 @@ case object FramePointerAnalysis extends IRPass {
     graph: Graph
   ): Unit = {
     application match {
-      case app @ Application.Prefix(func, arguments, _, _, _, _) =>
+      case app @ Application.Prefix(func, arguments, _, _, _) =>
         maybeAttachFramePointer(app, graph)
         processExpression(func, graph)
         processCallArguments(arguments, graph)
-      case Application.Force(expr, _, _, _) =>
+      case Application.Force(expr, _, _) =>
         processExpression(expr, graph)
-      case Application.Sequence(items, _, _, _) =>
+      case Application.Sequence(items, _, _) =>
         items.foreach { item =>
           processExpression(item, graph)
         }
-      case Application.Typeset(expr, _, _, _) =>
+      case Application.Typeset(expr, _, _) =>
         expr.foreach(processExpression(_, graph))
       case _ =>
         throw new CompilerError(
@@ -227,16 +227,15 @@ case object FramePointerAnalysis extends IRPass {
     arguments: List[CallArgument],
     graph: Graph
   ): Unit = {
-    arguments.foreach {
-      case arg @ CallArgument.Specified(name, value, _, _, _) =>
-        maybeAttachFramePointer(arg, graph)
-        name.foreach(maybeAttachFramePointer(_, graph))
-        processExpression(value, graph)
+    arguments.foreach { case arg @ CallArgument.Specified(name, value, _, _) =>
+      maybeAttachFramePointer(arg, graph)
+      name.foreach(maybeAttachFramePointer(_, graph))
+      processExpression(value, graph)
     }
   }
 
   /** Attaches [[FramePointerMeta]] metadata to the given `ir` if there is an
-    * appropriate [[Info.Occurrence]] already attached to it.
+    * appropriate [[AliasMetadata.Occurrence]] already attached to it.
     * @param ir IR to attach the frame pointer metadata to.
     * @param graph Alias analysis graph
     * @return Copy of `ir` with attached metadata, or just the `ir` if nothing

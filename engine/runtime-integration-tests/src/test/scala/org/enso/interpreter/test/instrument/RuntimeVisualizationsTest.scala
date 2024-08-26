@@ -4166,7 +4166,8 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         )
       )
       val attachVisualizationResponses =
-        context.receiveNIgnoreExpressionUpdates(3)
+        context.receiveNIgnoreExpressionUpdates(2)
+      attachVisualizationResponses.size should be(2)
       attachVisualizationResponses should contain(
         Api.Response(requestId, Api.VisualizationAttached())
       )
