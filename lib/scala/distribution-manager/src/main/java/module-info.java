@@ -4,6 +4,10 @@ module org.enso.distribution {
   requires org.enso.logging.utils;
   requires org.enso.scala.wrapper;
   requires org.enso.scala.yaml;
+  requires org.enso.semver;
+
+  requires org.yaml.snakeyaml;
+  requires org.slf4j;
 
   exports org.enso.distribution;
   exports org.enso.distribution.config;

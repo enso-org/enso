@@ -646,6 +646,7 @@ lazy val componentModulesPaths =
   )
   val thirdPartyModFiles = thirdPartyMods.map(_.data)
   val ourMods = Seq(
+    (`common-polyglot-core-utils` / exportedModuleBin).value,
     (`engine-common` / exportedModuleBin).value,
     (`engine-runner` / exportedModuleBin).value,
     (`engine-runner-common` / exportedModuleBin).value,
@@ -654,6 +655,7 @@ lazy val componentModulesPaths =
     (`syntax-rust-definition` / exportedModuleBin).value,
     (`runtime-compiler` / exportedModuleBin).value,
     (`runtime-parser` / exportedModuleBin).value,
+    (`runtime-suggestions` / exportedModuleBin).value,
     (`runtime-instrument-common` / exportedModuleBin).value,
     (`runtime-instrument-id-execution` / exportedModuleBin).value,
     (`runtime-instrument-repl-debugger` / exportedModuleBin).value,
@@ -1135,7 +1137,8 @@ lazy val `scala-libs-wrapper` = project
       "org.scala-lang" % "scala-library"  % scalacVersion,
       "org.scala-lang" % "scala-reflect"  % scalacVersion,
       "org.scala-lang" % "scala-compiler" % scalacVersion,
-      "org.jline"      % "jline"          % jlineVersion
+      "org.jline"      % "jline"          % jlineVersion,
+      "org.slf4j"      % "slf4j-api"      % slf4jVersion
     ),
     assembly / assemblyExcludedJars := {
       JPMSUtils.filterModulesFromClasspath(
@@ -1390,6 +1393,7 @@ lazy val cli = project
       "org.scala-lang" % "scala-library" % scalacVersion
     ),
     internalModuleDependencies := Seq(
+      (`scala-libs-wrapper` / exportedModule).value,
       (`scala-yaml` / exportedModule).value
     ),
     Test / parallelExecution := false
@@ -2395,11 +2399,13 @@ lazy val runtime = (project in file("engine/runtime"))
       (`pkg` / exportedModule).value,
       (`cli` / exportedModule).value,
       (`editions` / exportedModule).value,
+      (`edition-updater` / exportedModule).value,
       (`syntax-rust-definition` / exportedModule).value,
       (`version-output` / exportedModule).value,
       (`interpreter-dsl` / exportedModule).value,
       (`persistance` / exportedModule).value,
-      (`text-buffer` / exportedModule).value
+      (`text-buffer` / exportedModule).value,
+      (`scala-libs-wrapper` / exportedModule).value,
     )
   )
   .settings(
@@ -3168,13 +3174,16 @@ lazy val `distribution-manager` = project
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
     ),
     moduleDependencies := Seq(
-      "org.scala-lang" % "scala-library" % scalacVersion
+      "org.scala-lang" % "scala-library" % scalacVersion,
+      "org.slf4j"      % "slf4j-api"     % slf4jVersion,
+      "org.yaml"       % "snakeyaml"     % snakeyamlVersion
     ),
     internalModuleDependencies := Seq(
       (`cli` / exportedModule).value,
       (`logging-utils` / exportedModule).value,
       (`scala-libs-wrapper` / exportedModule).value,
-      (`scala-yaml` / exportedModule).value
+      (`scala-yaml` / exportedModule).value,
+      (`semver` / exportedModule).value
     )
   )
   .dependsOn(editions)
@@ -3343,10 +3352,14 @@ lazy val editions = project
       "org.scalatest" %% "scalatest"  % scalatestVersion % Test
     ),
     moduleDependencies := Seq(
-      "org.scala-lang" % "scala-library" % scalacVersion
+      "org.scala-lang" % "scala-library" % scalacVersion,
+      "org.yaml"       % "snakeyaml"     % snakeyamlVersion
     ),
     internalModuleDependencies := Seq(
-      (`scala-yaml` / exportedModule).value
+      (`scala-yaml` / exportedModule).value,
+      (`version-output` / exportedModule).value,
+      (`semver` / exportedModule).value,
+      (`scala-libs-wrapper` / exportedModule).value,
     )
   )
   .settings(
@@ -3386,9 +3399,13 @@ lazy val semver = project
     ),
     moduleDependencies := {
       Seq(
-        "org.scala-lang" % "scala-library" % scalacVersion
+        "org.scala-lang" % "scala-library" % scalacVersion,
+        "org.yaml"       % "snakeyaml"     % snakeyamlVersion
       )
-    }
+    },
+    internalModuleDependencies := Seq(
+      (`scala-yaml` / exportedModule).value
+    )
   )
   .settings(
     (Compile / compile) := (Compile / compile)
@@ -3492,7 +3509,8 @@ lazy val `library-manager` = project
     ),
     moduleDependencies := Seq(
       "org.scala-lang" % "scala-library" % scalacVersion,
-      "org.yaml"       % "snakeyaml"     % snakeyamlVersion
+      "org.yaml"       % "snakeyaml"     % snakeyamlVersion,
+      "org.slf4j"      % "slf4j-api"     % slf4jVersion
     ),
     internalModuleDependencies := Seq(
       (`distribution-manager` / exportedModule).value,

@@ -4,6 +4,7 @@ module org.enso.scala.wrapper {
   // scala-compiler.jar
   requires scala.tools.nsc;
   requires org.jline;
+  requires org.slf4j;
 
   // "org.typelevel" % ("cats-core_" + scalaVer) % "2.10.0",
   exports cats;

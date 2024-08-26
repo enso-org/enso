@@ -6,6 +6,7 @@ module org.enso.runtime {
   requires org.enso.common.polyglot.core.utils;
   requires org.enso.distribution;
   requires org.enso.editions;
+  requires org.enso.editions.updater;
   requires org.enso.engine.common;
   requires static org.enso.interpreter.dsl;
   requires static org.enso.persistance;
@@ -18,6 +19,7 @@ module org.enso.runtime {
   requires org.enso.runtime.parser;
   requires org.enso.runtime.suggestions;
   requires org.enso.text.buffer;
+  requires org.enso.scala.wrapper;
   requires org.enso.syntax;
   requires org.enso.version.output;
 
