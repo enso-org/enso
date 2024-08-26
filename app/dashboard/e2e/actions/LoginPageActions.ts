@@ -6,7 +6,7 @@ import BaseActions, { type LocatorCallback } from './BaseActions'
 import DrivePageActions from './DrivePageActions'
 import ForgotPasswordPageActions from './ForgotPasswordPageActions'
 import RegisterPageActions from './RegisterPageActions'
-import SetupPageActions from './SetupPageActions'
+import SetupUsernamePageActions from './SetupUsernamePageActions'
 
 // ========================
 // === LoginPageActions ===
@@ -36,7 +36,7 @@ export default class LoginPageActions extends BaseActions {
   /** Perform a login as a new user (a user that does not yet have a username). */
   loginAsNewUser(email = VALID_EMAIL, password = VALID_PASSWORD) {
     return this.step('Login (as new user)', () => this.loginInternal(email, password)).into(
-      SetupPageActions,
+      SetupUsernamePageActions,
     )
   }
 

@@ -797,10 +797,9 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         name: body.userName,
         organizationId,
         userId: backend.UserId(`user-${uniqueString.uniqueString()}`),
-        isEnabled: false,
+        isEnabled: true,
         rootDirectoryId,
         userGroups: null,
-        plan: backend.Plan.enterprise,
         isOrganizationAdmin: true,
       }
       await route.fulfill({ json: currentUser })

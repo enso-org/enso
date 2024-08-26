@@ -43,11 +43,6 @@ export function locateConfirmPasswordInput(page: test.Locator | test.Page) {
   return page.getByPlaceholder('Confirm your password')
 }
 
-/** Find a "username" input (if any) on the current page. */
-export function locateUsernameInput(page: test.Locator | test.Page) {
-  return page.getByPlaceholder('Enter your username')
-}
-
 /** Find a "name" input for a "new label" modal (if any) on the current page. */
 export function locateNewLabelModalNameInput(page: test.Page) {
   return locateNewLabelModal(page).getByLabel('Name')
@@ -93,11 +88,6 @@ export function locateLoginButton(page: test.Locator | test.Page) {
 /** Find a "register" button (if any) on the current locator. */
 export function locateRegisterButton(page: test.Locator | test.Page) {
   return page.getByRole('button', { name: 'Register' }).getByText('Register')
-}
-
-/** Find a "set username" button (if any) on the current page. */
-export function locateSetUsernameButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Set Username' }).getByText('Set Username')
 }
 
 /** Find a "delete" button (if any) on the current page. */
