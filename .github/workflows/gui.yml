@@ -61,9 +61,7 @@ jobs:
   enso-build-ci-gen-job-build-backend-macos-aarch64:
     name: Build Backend (macos, aarch64)
     runs-on:
-      - self-hosted
-      - macOS
-      - ARM64
+      - macos-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
@@ -257,9 +255,7 @@ jobs:
   enso-build-ci-gen-job-gui-build-macos-aarch64:
     name: GUI build (macos, aarch64)
     runs-on:
-      - self-hosted
-      - macOS
-      - ARM64
+      - macos-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
@@ -481,9 +477,7 @@ jobs:
     needs:
       - enso-build-ci-gen-job-build-backend-macos-aarch64
     runs-on:
-      - self-hosted
-      - macOS
-      - ARM64
+      - macos-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
