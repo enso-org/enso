@@ -4435,7 +4435,7 @@ updateLibraryManifests := {
     "--module-path",
     modulePath.map(_.getAbsolutePath).mkString(File.pathSeparator),
     "-m",
-    "org.enso.runtime/org.enso.EngineRunnerBootLoader"
+    "org.enso.runner/org.enso.runner.Main"
   )
   LibraryManifestGenerator.generateManifests(
     libraries,
