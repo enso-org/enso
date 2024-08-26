@@ -1,6 +1,5 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
-import java.util.Objects;
 import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
@@ -25,6 +24,7 @@ import com.oracle.truffle.api.profiles.LoopConditionProfile;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
+import java.util.Objects;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;

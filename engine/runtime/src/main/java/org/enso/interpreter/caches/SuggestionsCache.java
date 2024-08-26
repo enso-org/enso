@@ -106,7 +106,8 @@ public final class SuggestionsCache
         .getPackageForLibraryJava(libraryName)
         .map(
             pkg -> {
-              var bindingsCacheRoot = pkg.getSuggestionsCacheRootForPackage(BuildVersion.ensoVersion());
+              var bindingsCacheRoot =
+                  pkg.getSuggestionsCacheRootForPackage(BuildVersion.ensoVersion());
               var localCacheRoot = bindingsCacheRoot.resolve(libraryName.namespace());
               var distribution = context.getDistributionManager();
               var pathSegments =

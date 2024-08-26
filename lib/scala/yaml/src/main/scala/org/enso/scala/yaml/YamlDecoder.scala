@@ -3,7 +3,7 @@ package org.enso.scala.yaml
 import org.yaml.snakeyaml.error.YAMLException
 import org.yaml.snakeyaml.nodes._
 
-import scala.collection.{BuildFrom, mutable}
+import scala.collection.{mutable, BuildFrom}
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 abstract class YamlDecoder[T] {

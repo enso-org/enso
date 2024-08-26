@@ -34,18 +34,17 @@ object FrgaalJavaCompiler {
   val debugArg =
     "-J-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:8000"
 
-  /**
-   * Returns custom setting for compiler that delegates to `Frgaal`.
-   * @param classpath The dependencyClasspath of the current project
-   * @param sbtCompilers Configuration for compilers for current sbt project
-   * @param javaVersion Target Java version
-   * @param shouldCompileModuleInfo If true, module-info.java will be compiled
-   *                                in addition to other Java sources. See the docs
-   *                                of `shouldCompileModuleInfo` task in `build.sbt` and
-   *                                the docs of [[JPMSPlugin]].
-   * @param javaSourceDir The directory where Java sources are located
-   * @return
-   */
+  /** Returns custom setting for compiler that delegates to `Frgaal`.
+    * @param classpath The dependencyClasspath of the current project
+    * @param sbtCompilers Configuration for compilers for current sbt project
+    * @param javaVersion Target Java version
+    * @param shouldCompileModuleInfo If true, module-info.java will be compiled
+    *                                in addition to other Java sources. See the docs
+    *                                of `shouldCompileModuleInfo` task in `build.sbt` and
+    *                                the docs of [[JPMSPlugin]].
+    * @param javaSourceDir The directory where Java sources are located
+    * @return
+    */
   def compilers(
     classpath: sbt.Keys.Classpath,
     sbtCompilers: xsbti.compile.Compilers,
@@ -77,8 +76,8 @@ object FrgaalJavaCompiler {
     val frgaalJavac = new FrgaalJavaCompiler(
       javaHome,
       frgaalOnClasspath.get,
-      javaSourceDir = javaSourceDir,
-      target = javaVersion,
+      javaSourceDir           = javaSourceDir,
+      target                  = javaVersion,
       shouldCompileModuleInfo = shouldCompileModuleInfo
     )
     val javaTools = sbt.internal.inc.javac
@@ -140,12 +139,18 @@ object FrgaalJavaCompiler {
     val allSources = if (shouldCompileModuleInfo) {
       val moduleInfo = javaSourceDir.toPath.resolve("module-info.java").toFile
       if (!moduleInfo.exists()) {
-        log.error(s"[FrgaalJavaCompiler] module-info.java not found in $javaSourceDir")
+        log.error(
+          s"[FrgaalJavaCompiler] module-info.java not found in $javaSourceDir"
+        )
       }
-      log.info(s"[FrgaalJavaCompiler] compiling ${sources.size + 1} Java sources with module-info.java to $out ...")
+      log.info(
+        s"[FrgaalJavaCompiler] compiling ${sources.size + 1} Java sources with module-info.java to $out ..."
+      )
       Seq(moduleInfo.getAbsolutePath) ++ sources
     } else {
-      log.info(s"[FrgaalJavaCompiler] compiling ${sources.size} Java sources to $out ...")
+      log.info(
+        s"[FrgaalJavaCompiler] compiling ${sources.size} Java sources to $out ..."
+      )
       sources
     }
 
@@ -349,7 +354,7 @@ final class FrgaalJavaCompiler(
   compilerPath: Path,
   target: String,
   javaSourceDir: File,
-  source: Option[String] = None,
+  source: Option[String]           = None,
   shouldCompileModuleInfo: Boolean = false
 ) extends XJavaCompiler {
   def run(

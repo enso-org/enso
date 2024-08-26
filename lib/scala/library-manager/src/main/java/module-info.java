@@ -1,6 +1,5 @@
 module org.enso.librarymanager {
   requires scala.library;
-
   requires org.enso.distribution;
   requires org.enso.downloader;
   requires org.enso.cli;
@@ -11,7 +10,6 @@ module org.enso.librarymanager {
   // For com.typesafe.scalalogging.Logger
   requires org.enso.scala.wrapper;
   requires org.enso.scala.yaml;
-
   requires org.yaml.snakeyaml;
 
   exports org.enso.librarymanager;

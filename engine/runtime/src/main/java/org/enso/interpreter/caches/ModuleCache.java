@@ -142,7 +142,10 @@ public final class ModuleCache
       var pathSegmentsJava = new ArrayList<String>();
       pathSegmentsJava.addAll(
           Arrays.asList(
-              Builtins.NAMESPACE, Builtins.PACKAGE_NAME, BuildVersion.ensoVersion(), BuildVersion.ensoVersion()));
+              Builtins.NAMESPACE,
+              Builtins.PACKAGE_NAME,
+              BuildVersion.ensoVersion(),
+              BuildVersion.ensoVersion()));
       pathSegmentsJava.addAll(module.getName().pathAsJava());
       var path =
           distribution.LocallyInstalledDirectories()

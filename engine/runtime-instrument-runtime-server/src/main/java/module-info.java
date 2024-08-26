@@ -5,7 +5,6 @@ module org.enso.runtime.instrument.runtime.server {
   requires org.enso.engine.common;
   requires org.enso.distribution;
   requires org.enso.lockmanager;
-
   requires org.openide.util.lookup.RELEASE180;
   requires org.graalvm.polyglot;
   requires org.graalvm.truffle;

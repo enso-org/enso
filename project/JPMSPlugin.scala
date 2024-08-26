@@ -79,7 +79,7 @@ object JPMSPlugin extends AutoPlugin {
       "directly put on module-path"
     )
 
-    val shouldCompileModuleInfoManually = taskKey[Boolean] (
+    val shouldCompileModuleInfoManually = taskKey[Boolean](
       "If module-info.java should be compiled by us and not by sbt. " +
       "DO NOT USE DIRECTLY."
     )
@@ -89,7 +89,7 @@ object JPMSPlugin extends AutoPlugin {
       "DO NOT USE DIRECTLY."
     )
 
-    val compileModuleInfo = taskKey[Unit] (
+    val compileModuleInfo = taskKey[Unit](
       "Compiles only module-info.java in some special cases. " +
       "DO NOT USE DIRECTLY."
     )
@@ -97,7 +97,6 @@ object JPMSPlugin extends AutoPlugin {
   }
 
   import autoImport._
-
 
   override lazy val projectSettings: Seq[Setting[_]] = Seq(
     addModules := Seq.empty,
@@ -107,39 +106,37 @@ object JPMSPlugin extends AutoPlugin {
       val javaSrcDir = (Compile / javaSource).value
       val modInfo =
         javaSrcDir.toPath.resolve("module-info.java").toFile
-      val hasModInfo = modInfo.exists
+      val hasModInfo      = modInfo.exists
       val projName        = moduleName.value
       val logger          = streams.value.log
       val hasScalaSources = (Compile / scalaSource).value.exists()
       val _compileOrder   = (Compile / compileOrder).value
       val res =
         _compileOrder == CompileOrder.Mixed &&
-          hasModInfo &&
-          hasScalaSources
+        hasModInfo &&
+        hasScalaSources
       if (res) {
         logger.debug(
           s"[JPMSPlugin] Project '$projName' will have `module-info.java` compiled " +
-            "manually. If this is not the intended behavior, consult the documentation " +
-            "of JPMSPlugin."
+          "manually. If this is not the intended behavior, consult the documentation " +
+          "of JPMSPlugin."
         )
       }
       // Check excludeFilter - there should be module-info.java specified
       if (res && !excludeFilter.value.accept(modInfo)) {
         logger.error(
           s"[JPMSPlugin/$projName] `module-info.java` is not in `excludeFilter`. " +
-            "You should add module-info.java to " +
-            "`excludedFilter` so that sbt does not handle the compilation. Check docs of JPMSPlugin."
+          "You should add module-info.java to " +
+          "`excludedFilter` so that sbt does not handle the compilation. Check docs of JPMSPlugin."
         )
       }
       res
     },
-
     // module-info.java compilation will be forced iff there are no other Java sources except
     // for module-info.java.
     forceModuleInfoCompilation := Def.taskIf {
       if (shouldCompileModuleInfoManually.value) {
-        val javaSources = (Compile / unmanagedSources)
-          .value
+        val javaSources = (Compile / unmanagedSources).value
           .filter(_.getName.endsWith(".java"))
         // If there are no Java source in `unmanagedSources`, it means that sbt will
         // not call Java compiler. So we force it to compile `module-info.java`.
@@ -148,7 +145,6 @@ object JPMSPlugin extends AutoPlugin {
         false
       }
     }.value,
-
     compileModuleInfo := Def.taskIf {
       if (forceModuleInfoCompilation.value) {
         JPMSUtils.compileModuleInfo().value
@@ -157,7 +153,6 @@ object JPMSPlugin extends AutoPlugin {
         ()
       }
     }.value,
-
     // modulePath is set based on `moduleDependencies` and `internalModuleDependencies`
     modulePath := {
       // Do not use fullClasspath here - it will result in an infinite recursion
@@ -170,29 +165,27 @@ object JPMSPlugin extends AutoPlugin {
         moduleName.value
       )
     },
-
     // Returns the reference to target/classes directory and ensures that module-info
     // is compiled and present in the target directory.
-    exportedModule := Def.task {
-      val targetClassDir = (Compile / exportedProducts)
-        .value
-        .map(_.data)
-        .head
-      val logger   = streams.value.log
-      val projName = moduleName.value
-      if (!isModule(targetClassDir)) {
-        logger.error(
-          s"[JPMSPlugin/$projName] The target classes directory ${targetClassDir.getAbsolutePath} is not " +
+    exportedModule := Def
+      .task {
+        val targetClassDir = (Compile / exportedProducts).value
+          .map(_.data)
+          .head
+        val logger   = streams.value.log
+        val projName = moduleName.value
+        if (!isModule(targetClassDir)) {
+          logger.error(
+            s"[JPMSPlugin/$projName] The target classes directory ${targetClassDir.getAbsolutePath} is not " +
             "a module - it does not contain module-info.class. Make sure the `compileModuleInfo` task " +
             "is set correctly."
-        )
+          )
+        }
+        targetClassDir
       }
-      targetClassDir
-    }
       .dependsOn(compileModuleInfo)
       .dependsOn(Compile / compile)
       .value,
-
     exportedModuleBin := {
       (Compile / packageBin)
         .dependsOn(exportedModule)

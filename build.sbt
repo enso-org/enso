@@ -964,11 +964,11 @@ lazy val `logging-service` = project
     ),
     moduleDependencies := Seq(
       "org.scala-lang" % "scala-library" % scalacVersion,
-      "org.slf4j"      % "slf4j-api" % slf4jVersion,
+      "org.slf4j"      % "slf4j-api"     % slf4jVersion
     ),
     internalModuleDependencies := Seq(
       (`logging-config` / exportedModule).value,
-      (`logging-utils` / exportedModule).value,
+      (`logging-utils` / exportedModule).value
     )
   )
   .dependsOn(`logging-utils`)
@@ -1010,12 +1010,12 @@ lazy val `logging-service-logback` = project
       "io.sentry"        % "sentry-logback"          % "6.28.0",
       "io.sentry"        % "sentry"                  % "6.28.0",
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "ch.qos.logback" % "logback-classic" % logbackClassicVersion,
-      "ch.qos.logback" % "logback-core"    % logbackClassicVersion
+      "ch.qos.logback"   % "logback-classic"         % logbackClassicVersion,
+      "ch.qos.logback"   % "logback-core"            % logbackClassicVersion
     ),
     internalModuleDependencies := Seq(
       (`logging-service` / exportedModule).value,
-      (`logging-config` / exportedModule).value,
+      (`logging-config` / exportedModule).value
     )
   )
   .dependsOn(`logging-config`)
@@ -1036,8 +1036,8 @@ lazy val `logging-utils-akka` = project
     moduleDependencies := {
       val scalaVer = scalaBinaryVersion.value
       Seq(
-        "org.scala-lang" % "scala-library" % scalacVersion,
-        "org.slf4j" % "slf4j-api" % slf4jVersion,
+        "org.scala-lang"    % "scala-library"            % scalacVersion,
+        "org.slf4j"         % "slf4j-api"                % slf4jVersion,
         "com.typesafe.akka" % ("akka-actor_" + scalaVer) % akkaVersion
       )
     }
@@ -1161,13 +1161,12 @@ lazy val `scala-libs-wrapper` = project
       Map(
         javaModuleName.value -> scalaLibs
       )
-    },
+    }
   )
 
-/**
- * Wrapper project for dependencies of `language-server` that cannot be used as
- * JPMS modules (cannot be put directly on module-path).
- */
+/** Wrapper project for dependencies of `language-server` that cannot be used as
+  * JPMS modules (cannot be put directly on module-path).
+  */
 lazy val `language-server-deps-wrapper` = project
   .in(file("lib/java/language-server-deps-wrapper"))
   .enablePlugins(JPMSPlugin)
@@ -1175,8 +1174,8 @@ lazy val `language-server-deps-wrapper` = project
     frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
       "com.github.pureconfig" %% "pureconfig" % pureconfigVersion,
-      "com.chuusai" %% "shapeless" % "2.3.10",
-      "com.typesafe" % "config"   % typesafeConfigVersion
+      "com.chuusai"           %% "shapeless"  % "2.3.10",
+      "com.typesafe"           % "config"     % typesafeConfigVersion
     ),
     javaModuleName := "org.enso.language.server.deps.wrapper",
     moduleDependencies := Seq(
@@ -1201,9 +1200,9 @@ lazy val `language-server-deps-wrapper` = project
       JPMSUtils.filterModulesFromClasspath(
         (Compile / fullClasspath).value,
         Seq(
-          "org.scala-lang"            % "scala-library"   % scalacVersion,
-          "com.chuusai" % ("shapeless_" + scalaVer) % "2.3.10",
-          "com.typesafe" % "config"   % typesafeConfigVersion
+          "org.scala-lang" % "scala-library"           % scalacVersion,
+          "com.chuusai"    % ("shapeless_" + scalaVer) % "2.3.10",
+          "com.typesafe"   % "config"                  % typesafeConfigVersion
         ),
         streams.value.log,
         moduleName.value,
@@ -1572,9 +1571,9 @@ lazy val `json-rpc-server` = project
     moduleDependencies := {
       val scalaVer = scalaBinaryVersion.value
       Seq(
-        "org.scala-lang" % "scala-library" % scalacVersion,
-        akkaURL % ("akka-stream_" + scalaVer) % akkaVersion,
-        akkaURL % ("akka-actor_" + scalaVer) % akkaVersion,
+        "org.scala-lang" % "scala-library"             % scalacVersion,
+        akkaURL          % ("akka-stream_" + scalaVer) % akkaVersion,
+        akkaURL          % ("akka-actor_" + scalaVer)  % akkaVersion
       )
     },
     internalModuleDependencies := Seq(
@@ -1916,7 +1915,7 @@ lazy val `polyglot-api` = project
     internalModuleDependencies := Seq(
       (`scala-libs-wrapper` / exportedModule).value,
       (`engine-common` / exportedModule).value,
-      (`logging-utils` / exportedModule).value,
+      (`logging-utils` / exportedModule).value
     ),
     GenerateFlatbuffers.flatcVersion := flatbuffersVersion,
     Compile / sourceGenerators += GenerateFlatbuffers.task
@@ -1969,17 +1968,16 @@ lazy val `language-server` = (project in file("engine/language-server"))
     moduleDependencies := {
       val scalaVer = scalaBinaryVersion.value
       Seq(
-        "org.scala-lang" % "scala-library" % scalacVersion,
-        "org.graalvm.polyglot" % "polyglot"  % graalMavenPackagesVersion,
-        "org.slf4j"                   % "slf4j-api"               % slf4jVersion,
-        "org.netbeans.api"            % "org-openide-util-lookup" % netbeansApiVersion,
-        "commons-cli"          % "commons-cli" % commonsCliVersion,
-        "commons-io"     % "commons-io"    % commonsIoVersion,
+        "org.scala-lang"         % "scala-library"                % scalacVersion,
+        "org.graalvm.polyglot"   % "polyglot"                     % graalMavenPackagesVersion,
+        "org.slf4j"              % "slf4j-api"                    % slf4jVersion,
+        "org.netbeans.api"       % "org-openide-util-lookup"      % netbeansApiVersion,
+        "commons-cli"            % "commons-cli"                  % commonsCliVersion,
+        "commons-io"             % "commons-io"                   % commonsIoVersion,
         "com.google.flatbuffers" % "flatbuffers-java"             % flatbuffersVersion,
-        akkaURL % ("akka-actor_" + scalaVer) % akkaVersion,
-        akkaURL % ("akka-http_" + scalaVer) % akkaHTTPVersion,
-        "dev.zio"        % ("zio_" + scalaVer)   % zioVersion,
-
+        akkaURL                  % ("akka-actor_" + scalaVer)     % akkaVersion,
+        akkaURL                  % ("akka-http-core_" + scalaVer) % akkaHTTPVersion,
+        "dev.zio"                % ("zio_" + scalaVer)            % zioVersion
       )
     },
     internalModuleDependencies := Seq(
@@ -1996,7 +1994,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       (`profiling-utils` / exportedModule).value,
       (`searcher` / exportedModule).value,
       (`text-buffer` / exportedModule).value,
-      (`version-output` / exportedModule).value,
+      (`version-output` / exportedModule).value
     ),
     Test / testOptions += Tests
       .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000"),
@@ -2356,7 +2354,7 @@ lazy val runtime = (project in file("engine/runtime"))
       (`version-output` / exportedModule).value,
       (`interpreter-dsl` / exportedModule).value,
       (`persistance` / exportedModule).value,
-      (`text-buffer` / exportedModule).value,
+      (`text-buffer` / exportedModule).value
     )
   )
   .settings(
@@ -2592,7 +2590,7 @@ lazy val `runtime-compiler` =
         (`runtime-parser` / exportedModule).value,
         (`syntax-rust-definition` / exportedModule).value,
         (`persistance` / exportedModule).value,
-        (`editions` / exportedModule).value,
+        (`editions` / exportedModule).value
       )
     )
     .dependsOn(`runtime-parser`)
@@ -2615,7 +2613,7 @@ lazy val `runtime-suggestions` =
       ),
       excludeFilter := excludeFilter.value || "module-info.java",
       moduleDependencies := Seq(
-        "org.scala-lang"   % "scala-library"           % scalacVersion,
+        "org.scala-lang" % "scala-library" % scalacVersion
       ),
       internalModuleDependencies := Seq(
         (`pkg` / exportedModule).value,
@@ -3655,7 +3653,7 @@ lazy val `common-polyglot-core-utils` = project
       "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided"
     ),
     moduleDependencies := Seq(
-      "com.ibm.icu"          % "icu4j"    % icuVersion,
+      "com.ibm.icu" % "icu4j" % icuVersion
     )
   )
 
