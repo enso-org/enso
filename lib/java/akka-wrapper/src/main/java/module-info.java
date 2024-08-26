@@ -121,4 +121,13 @@ module org.enso.akka.wrapper {
 
   // io.spray:spray-json_2.13
   exports spray.json;
+
+  // scala-lang.modules:scala-arser-combinators_2.13:1.1.2
+  // Loaded by classes from com.typesafe.sslconfig.ssl.*
+  exports scala.util.parsing.combinator;
+  exports scala.util.parsing.combinator.lexical;
+  exports scala.util.parsing.combinator.syntactical;
+  exports scala.util.parsing.combinator.token;
+  exports scala.util.parsing.input;
+  exports scala.util.parsing.json;
 }

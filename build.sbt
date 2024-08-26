@@ -1069,9 +1069,11 @@ lazy val `logging-utils-akka` = project
       Seq(
         "org.scala-lang"    % "scala-library"            % scalacVersion,
         "org.slf4j"         % "slf4j-api"                % slf4jVersion,
-        "com.typesafe.akka" % ("akka-actor_" + scalaVer) % akkaVersion
       )
-    }
+    },
+    internalModuleDependencies := Seq(
+      (`akka-wrapper` / exportedModule).value
+    )
   )
 
 lazy val filewatcher = project
@@ -1270,7 +1272,6 @@ lazy val `akka-wrapper` = project
           "org.scala-lang"            % "scala-library"                          % scalacVersion,
           "org.scala-lang"            % "scala-reflect"                          % scalacVersion,
           "org.scala-lang"            % "scala-compiler"                         % scalacVersion,
-          "org.scala-lang.modules"    % ("scala-parser-combinators_" + scalaVer) % "1.1.2",
           "org.scala-lang.modules"    % ("scala-java8-compat_" + scalaVer)       % "1.0.0",
           "org.slf4j"                 % "slf4j-api"                              % slf4jVersion,
           "com.typesafe"              % "config"                                 % typesafeConfigVersion,
@@ -1295,6 +1296,7 @@ lazy val `akka-wrapper` = project
           "org.scala-lang" % "scala-library"                      % scalacVersion,
           "org.scala-lang" % "scala-reflect"                      % scalacVersion,
           "org.scala-lang" % "scala-compiler"                     % scalacVersion,
+          "org.scala-lang.modules"    % ("scala-parser-combinators_" + scalaVer) % "1.1.2",
           "com.typesafe"   % "config"                             % typesafeConfigVersion,
           "org.slf4j"      % "slf4j-api"                          % slf4jVersion,
           "io.spray"       % ("spray-json_" + scalaVer)           % "1.3.6",
@@ -1306,6 +1308,60 @@ lazy val `akka-wrapper` = project
           akkaURL          % ("akka-slf4j_" + scalaVer)           % akkaVersion,
           akkaURL          % ("akka-parsing_" + scalaVer)         % "10.2.10",
           akkaURL          % ("akka-protobuf-v3_" + scalaVer)     % akkaVersion
+        ),
+        streams.value.log,
+        moduleName.value,
+        shouldContainAll = true
+      )
+      Map(
+        javaModuleName.value -> scalaLibs
+      )
+    }
+  )
+
+lazy val `zio-wrapper` = project
+  .in(file("lib/java/zio-wrapper"))
+  .enablePlugins(JPMSPlugin)
+  .settings(
+    modularFatJarWrapperSettings,
+    javaModuleName := "org.enso.zio.wrapper",
+    libraryDependencies ++= zio ++ Seq(
+      "dev.zio" %% "zio-internal-macros" % zioVersion,
+      "dev.zio" %% "zio-stacktracer" % zioVersion,
+      "dev.zio" %% "izumi-reflect" % "2.3.8",
+      "dev.zio" %% "izumi-reflect-thirdparty-boopickle-shaded" % "2.3.8",
+    ),
+    moduleDependencies := Seq(
+      "org.scala-lang"      % "scala-library"    % scalacVersion,
+    ),
+    assembly / assemblyExcludedJars := {
+      val scalaVer = scalaBinaryVersion.value
+      val excludedJars = JPMSUtils.filterModulesFromUpdate(
+        update.value,
+        Seq(
+          "org.scala-lang"            % "scala-library"         % scalacVersion,
+          "org.scala-lang"            % "scala-reflect"         % scalacVersion,
+          "org.scala-lang"            % "scala-compiler"        % scalacVersion,
+          "dev.zio" % ("zio-interop-cats_" + scalaVer) % zioInteropCatsVersion,
+        ),
+        streams.value.log,
+        moduleName.value,
+        shouldContainAll = true
+      )
+      excludedJars
+        .map(Attributed.blank)
+    },
+    patchModules := {
+      val scalaVer = scalaBinaryVersion.value
+      val scalaLibs = JPMSUtils.filterModulesFromUpdate(
+        update.value,
+        Seq(
+          "org.scala-lang" % "scala-library"      % scalacVersion,
+          "dev.zio" % ("zio_" + scalaVer) % zioVersion,
+          "dev.zio" % ("zio-internal-macros_" + scalaVer) % zioVersion,
+          "dev.zio" % ("zio-stacktracer_" + scalaVer) % zioVersion,
+          "dev.zio" % ("izumi-reflect_" + scalaVer) % "2.3.8",
+          "dev.zio" % ("izumi-reflect-thirdparty-boopickle-shaded_" + scalaVer) % "2.3.8",
         ),
         streams.value.log,
         moduleName.value,
@@ -1970,6 +2026,8 @@ lazy val `language-server` = (project in file("engine/language-server"))
       )
     },
     internalModuleDependencies := Seq(
+      (`akka-wrapper` / exportedModule).value,
+      (`zio-wrapper` / exportedModule).value,
       (`scala-libs-wrapper` / exportedModule).value,
       (`language-server-deps-wrapper` / exportedModule).value,
       (`engine-runner-common` / exportedModule).value,

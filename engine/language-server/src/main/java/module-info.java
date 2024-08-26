@@ -2,16 +2,15 @@ module org.enso.language.server {
   requires java.logging;
   requires scala.library;
 
-  requires akka.actor;
-  requires akka.http;
   requires commons.cli;
-  requires dev.zio.zio;
   requires flatbuffers.java;
   requires org.apache.commons.io;
   requires org.graalvm.polyglot;
   requires org.openide.util.lookup.RELEASE180;
   requires org.slf4j;
 
+  requires org.enso.akka.wrapper;
+  requires org.enso.zio.wrapper;
   requires org.enso.runner.common;
   requires org.enso.engine.common;
   requires org.enso.json.rpc.server;
