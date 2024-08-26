@@ -1082,9 +1082,8 @@ add_specs suite_builder setup =
                 result.name . should_equal "floor([x])"
 
         test_floatlike Value_Type.Float
-        group_builder.specify "should allow round on a Decimal column" <|
-            if setup.test_selection.supports_decimal_type then
-              test_floatlike Value_Type.Decimal
+        if setup.test_selection.supports_decimal_type then
+            test_floatlike Value_Type.Decimal
 
         group_builder.specify "should allow round on an int column" <|
             table = table_builder [["x", [1, 9, 31, 39, -1, -9, -31, -39]]]
