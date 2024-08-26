@@ -6,19 +6,13 @@ import org.enso.common.{LanguageInfo, MethodNames}
 
 import scala.ref.WeakReference
 import scala.util.Try
-import org.scalatest.BeforeAndAfterAll
 
-class RuntimeManagementTest extends InterpreterTest with BeforeAndAfterAll {
+class RuntimeManagementTest extends InterpreterTest {
   override def subject: String = "Enso Code Execution"
-
-  override protected def afterAll(): Unit = {
-    RuntimeManagementTest.toClose.forEach(_.close())
-  }
 
   override def specify(implicit
     interpreterContext: InterpreterContext
   ): Unit = {
-    RuntimeManagementTest.toClose.add(interpreterContext)
 
     "Interrupt threads through Thread#interrupt()" in {
       val langCtx = interpreterContext
@@ -53,9 +47,7 @@ class RuntimeManagementTest extends InterpreterTest with BeforeAndAfterAll {
       }
 
       def runTest(n: Int = 5): Unit = {
-        val threads = 0
-          .until(n)
-          .map(_ => new Thread(runnable, "RuntimeManagementTest-Thread"))
+        val threads = 0.until(n).map(_ => new Thread(runnable))
         threads.foreach(_.start())
         var reportedCount = 0
         while (reportedCount < n) {
@@ -204,9 +196,4 @@ class RuntimeManagementTest extends InterpreterTest with BeforeAndAfterAll {
       totalOut should contain theSameElementsAs all
     }
   }
-}
-
-object RuntimeManagementTest {
-  val toClose: java.util.Set[InterpreterContext] =
-    new java.util.HashSet[InterpreterContext]
 }
