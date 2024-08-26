@@ -42,6 +42,7 @@ add_specs suite_builder prefix ~datalink_to_connection database_pending =
                 create.should_succeed
                 create.user_email . should_equal Enso_User.current.email
                 create.metadata.get "connection_uri" . should_contain "jdbc:"
+                create.metadata.get "projectName" . should_equal enso_project.namespace+"."+enso_project.name
 
                 insert = relevant_events.find (e-> e.message.contains "INSERT INTO")
                 insert.should_succeed
