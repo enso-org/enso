@@ -1023,14 +1023,24 @@ lazy val `logging-service-logback` = project
 
 lazy val `logging-utils-akka` = project
   .in(file("lib/scala/logging-utils-akka"))
+  .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
     version := "0.1",
+    compileOrder := CompileOrder.ScalaThenJava,
     libraryDependencies ++= Seq(
       "org.slf4j"          % "slf4j-api"  % slf4jVersion,
       "com.typesafe.akka" %% "akka-actor" % akkaVersion
-    )
+    ),
+    moduleDependencies := {
+      val scalaVer = scalaBinaryVersion.value
+      Seq(
+        "org.scala-lang" % "scala-library" % scalacVersion,
+        "org.slf4j" % "slf4j-api" % slf4jVersion,
+        "com.typesafe.akka" % ("akka-actor_" + scalaVer) % akkaVersion
+      )
+    }
   )
 
 lazy val filewatcher = project
@@ -1441,6 +1451,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
 
 lazy val `json-rpc-server` = project
   .in(file("lib/scala/json-rpc-server"))
+  .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
     libraryDependencies ++= akka ++ logbackTest,
@@ -1455,6 +1466,18 @@ lazy val `json-rpc-server` = project
       "org.apache.httpcomponents"   % "httpclient"      % httpComponentsVersion % Test,
       "org.apache.httpcomponents"   % "httpcore"        % httpComponentsVersion % Test,
       "commons-io"                  % "commons-io"      % commonsIoVersion      % Test
+    ),
+    excludeFilter := excludeFilter.value || "module-info.java",
+    moduleDependencies := {
+      val scalaVer = scalaBinaryVersion.value
+      Seq(
+        "org.scala-lang" % "scala-library" % scalacVersion,
+        akkaURL % ("akka-stream_" + scalaVer) % akkaVersion,
+        akkaURL % ("akka-actor_" + scalaVer) % akkaVersion,
+      )
+    },
+    internalModuleDependencies := Seq(
+      (`scala-libs-wrapper` / exportedModule).value
     )
   )
 
@@ -1488,13 +1511,21 @@ lazy val testkit = project
 
 lazy val searcher = project
   .in(file("lib/scala/searcher"))
+  .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
     annotationProcSetting,
     libraryDependencies ++= jmh ++ Seq(
       "org.scalatest" %% "scalatest" % scalatestVersion % Test
-    ) ++ logbackTest
+    ) ++ logbackTest,
+    compileOrder := CompileOrder.ScalaThenJava,
+    moduleDependencies := Seq(
+      "org.scala-lang" % "scala-library" % scalacVersion
+    ),
+    internalModuleDependencies := Seq(
+      (`polyglot-api` / exportedModule).value
+    )
   )
   .configs(Benchmark)
   .settings(
@@ -1832,6 +1863,39 @@ lazy val `language-server` = (project in file("engine/language-server"))
       "org.bouncycastle"            % "bcpkix-jdk18on"          % "1.76"                    % Test,
       "org.bouncycastle"            % "bcprov-jdk18on"          % "1.76"                    % Test,
       "org.apache.tika"             % "tika-core"               % tikaVersion               % Test
+    ),
+    excludeFilter := excludeFilter.value || "module-info.java",
+    moduleDependencies := {
+      val scalaVer = scalaBinaryVersion.value
+      Seq(
+        "org.scala-lang" % "scala-library" % scalacVersion,
+        "org.graalvm.polyglot" % "polyglot"  % graalMavenPackagesVersion,
+        "org.slf4j"                   % "slf4j-api"               % slf4jVersion,
+        "org.netbeans.api"            % "org-openide-util-lookup" % netbeansApiVersion,
+        "commons-cli"          % "commons-cli" % commonsCliVersion,
+        "commons-io"     % "commons-io"    % commonsIoVersion,
+        "com.google.flatbuffers" % "flatbuffers-java"             % flatbuffersVersion,
+        akkaURL % ("akka-actor_" + scalaVer) % akkaVersion,
+        akkaURL % ("akka-http_" + scalaVer) % akkaHTTPVersion,
+        "dev.zio"        % ("zio_" + scalaVer)   % zioVersion,
+
+      )
+    },
+    internalModuleDependencies := Seq(
+      (`scala-libs-wrapper` / exportedModule).value,
+      (`language-server-deps-wrapper` / exportedModule).value,
+      (`engine-runner-common` / exportedModule).value,
+      (`ydoc-server` / exportedModule).value,
+      (`logging-utils` / exportedModule).value,
+      (`logging-utils-akka` / exportedModule).value,
+      (`engine-common` / exportedModule).value,
+      (`library-manager` / exportedModule).value,
+      (`polyglot-api` / exportedModule).value,
+      (`json-rpc-server` / exportedModule).value,
+      (`profiling-utils` / exportedModule).value,
+      (`searcher` / exportedModule).value,
+      (`text-buffer` / exportedModule).value,
+      (`version-output` / exportedModule).value,
     ),
     Test / testOptions += Tests
       .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000"),
