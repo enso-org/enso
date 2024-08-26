@@ -41,7 +41,7 @@ add_specs suite_builder prefix ~datalink_to_connection database_pending =
                 create = relevant_events.find (e-> e.message.contains "CREATE")
                 create.should_succeed
                 create.user_email . should_equal Enso_User.current.email
-                create.metadata.get "connection_uri" . should_contain "jdbc:"
+                create.metadata.get "connectionUri" . should_contain "jdbc:"
                 create.metadata.get "projectName" . should_equal enso_project.namespace+"."+enso_project.name
 
                 insert = relevant_events.find (e-> e.message.contains "INSERT INTO")
@@ -49,8 +49,8 @@ add_specs suite_builder prefix ~datalink_to_connection database_pending =
                 # The insert query should not contain column cell data - only column names / metadata.
                 insert.message.should_not_contain "my_payload"
 
-                create_sequence_number = create.metadata.get "sequence_number"
-                insert_sequence_number = insert.metadata.get "sequence_number"
+                create_sequence_number = create.metadata.get "sequenceNumber"
+                insert_sequence_number = insert.metadata.get "sequenceNumber"
                 create_sequence_number.should_be_a Integer
                 insert_sequence_number.should_be_a Integer
                 (create_sequence_number < insert_sequence_number) . should_be_true
