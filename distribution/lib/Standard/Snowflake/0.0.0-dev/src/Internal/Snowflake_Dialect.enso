@@ -325,11 +325,11 @@ type Snowflake_Dialect
             Pair.new "row-number" expression
 
         create_helper_expressions aggregate_column key_columns =
-            make_selector_for_first_last order_by =
+            make_helper_for_first_last order_by =
                 if Aggregate_Helper.is_non_empty_selector order_by then [create_row_number_for order_by key_columns] else []
             case aggregate_column of
-                Aggregate_Column.First _ _ _ order_by -> make_selector_for_first_last order_by
-                Aggregate_Column.Last _ _ _ order_by  -> make_selector_for_first_last order_by
+                Aggregate_Column.First _ _ _ order_by -> make_helper_for_first_last order_by
+                Aggregate_Column.Last _ _ _ order_by  -> make_helper_for_first_last order_by
                 _ -> []
 
         make_aggregate aggregate_column as helper_expressions base_table infer_return_type problem_builder =
