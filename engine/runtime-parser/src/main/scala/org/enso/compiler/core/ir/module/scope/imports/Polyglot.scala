@@ -8,6 +8,7 @@ import org.enso.compiler.core.ir.{
   Expression,
   IRKind,
   IdentifiedLocation,
+  LazyDiagnosticStorage,
   LazyId,
   MetadataStorage
 }
@@ -16,21 +17,19 @@ import java.util.UUID
 
 /** An import of a polyglot class.
   *
-  * @param entity      language-specific information on the imported entity
-  * @param rename      the name this object should be visible under in the
-  *                    importing scope
-  * @param location    the source location that the node corresponds to
-  * @param passData    the pass metadata associated with this node
-  * @param diagnostics compiler diagnostics for this node
+  * @param entity language-specific information on the imported entity
+  * @param rename the name this object should be visible under in the importing scope
+  * @param location the source location that the node corresponds to
+  * @param passData the pass metadata associated with this node
   */
 sealed case class Polyglot(
   entity: Polyglot.Entity,
   rename: Option[String],
   override val location: Option[IdentifiedLocation],
-  override val passData: MetadataStorage      = new MetadataStorage(),
-  override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+  override val passData: MetadataStorage = new MetadataStorage()
 ) extends Import
     with IRKind.Primitive
+    with LazyDiagnosticStorage
     with LazyId {
 
   /** Creates a copy of `this`.
@@ -60,9 +59,9 @@ sealed case class Polyglot(
       || diagnostics != this.diagnostics
       || id != this.id
     ) {
-      val res =
-        Polyglot(entity, rename, location, passData, diagnostics)
-      res.id = id
+      val res = Polyglot(entity, rename, location, passData)
+      res.diagnostics = diagnostics
+      res.id          = id
       res
     } else this
   }
@@ -78,9 +77,8 @@ sealed case class Polyglot(
       location = if (keepLocations) location else None,
       passData =
         if (keepMetadata) passData.duplicate else new MetadataStorage(),
-      diagnostics =
-        if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-      id = if (keepIdentifiers) id else null
+      diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+      id          = if (keepIdentifiers) id else null
     )
 
   /** @inheritdoc */

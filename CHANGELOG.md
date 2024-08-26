@@ -30,6 +30,7 @@
 - [Mixed Decimal/Float arithmetic now throws an error; mixed comparisons now
   attach warnings.][10725]
 - [Support for creating Atoms in expressions.][10820]
+- [IO.print without new line][10858]
 - [Added .floor, .ceil, .trunc to the in-memory Decimal column.][10887]
 
 [10614]: https://github.com/enso-org/enso/pull/10614
@@ -38,6 +39,7 @@
 [10733]: https://github.com/enso-org/enso/pull/10733
 [10725]: https://github.com/enso-org/enso/pull/10725
 [10820]: https://github.com/enso-org/enso/pull/10820
+[10858]: https://github.com/enso-org/enso/pull/10858
 [10887]: https://github.com/enso-org/enso/pull/10887
 
 #### Enso Language & Runtime

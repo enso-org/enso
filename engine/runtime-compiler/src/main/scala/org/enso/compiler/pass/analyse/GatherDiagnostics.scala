@@ -62,7 +62,7 @@ case object GatherDiagnostics extends IRPass {
     * @return `ir`, with all diagnostics from its subtree associated with it
     */
   private def gatherMetadata(ir: IR): DiagnosticsMeta = {
-    val diagnostics = ir.preorder.collect {
+    val diagnostics = ir.preorder.flatMap {
       case err: Diagnostic =>
         List(err)
       case arg: DefinitionArgument =>
@@ -71,7 +71,7 @@ case object GatherDiagnostics extends IRPass {
             .getMetadata(TypeSignatures)
             .map(_.signature.preorder.collect(collectDiagnostics))
             .getOrElse(Nil)
-        typeSignatureDiagnostics ++ arg.diagnostics.toList
+        typeSignatureDiagnostics ++ diagnosticsList(arg)
       case x: definition.Method =>
         val typeSignatureDiagnostics =
           x.getMetadata(TypeSignatures)
@@ -81,16 +81,16 @@ case object GatherDiagnostics extends IRPass {
           x.getMetadata(GenericAnnotations)
             .map(_.annotations.flatMap(_.preorder.collect(collectDiagnostics)))
             .getOrElse(Nil)
-        typeSignatureDiagnostics ++ annotationsDiagnostics ++ x.diagnostics.toList
+        typeSignatureDiagnostics ++ annotationsDiagnostics ++ diagnosticsList(x)
       case x: Expression =>
         val typeSignatureDiagnostics =
           x.getMetadata(TypeSignatures)
             .map(_.signature.preorder.collect(collectDiagnostics))
             .getOrElse(Nil)
-        typeSignatureDiagnostics ++ x.diagnostics.toList
+        typeSignatureDiagnostics ++ diagnosticsList(x)
       case x =>
-        x.diagnostics.toList
-    }.flatten
+        diagnosticsList(x)
+    }
     DiagnosticsMeta(
       diagnostics.distinctBy(d => new DiagnosticKeys(d))
     )
@@ -99,6 +99,9 @@ case object GatherDiagnostics extends IRPass {
   private val collectDiagnostics: PartialFunction[IR, Diagnostic] = {
     case err: Diagnostic => err
   }
+
+  private def diagnosticsList(ir: IR): List[Diagnostic] =
+    if (ir.diagnostics() eq null) Nil else ir.diagnostics().toList
 
   final private class DiagnosticKeys(private val diagnostic: Diagnostic) {
 
