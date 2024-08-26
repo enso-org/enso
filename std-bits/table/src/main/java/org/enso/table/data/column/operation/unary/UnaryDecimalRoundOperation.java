@@ -18,11 +18,11 @@ public class UnaryDecimalRoundOperation extends AbstractUnaryOperation {
 
   public static final String FLOOR = "floor";
   public static final UnaryOperation FLOOR_INSTANCE =
-      new UnaryDecimalRoundOperation(CEIL, Decimal_Utils::floor);
+      new UnaryDecimalRoundOperation(FLOOR, Decimal_Utils::floor);
 
   public static String TRUNCATE = "truncate";
   public static final UnaryOperation TRUNCATE_INSTANCE =
-      new UnaryDecimalRoundOperation(CEIL, Decimal_Utils::truncate);
+      new UnaryDecimalRoundOperation(TRUNCATE, Decimal_Utils::truncate);
 
   private final Function<BigDecimal, BigInteger> function;
 
