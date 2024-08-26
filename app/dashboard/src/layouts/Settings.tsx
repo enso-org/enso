@@ -49,7 +49,7 @@ export default function Settings() {
     SettingsTabType.account,
     array.includesPredicate(Object.values(SettingsTabType)),
   )
-  const { user, accessToken } = authProvider.useNonPartialUserSession()
+  const { user, accessToken } = authProvider.useFullUserSession()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [query, setQuery] = React.useState('')

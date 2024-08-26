@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { codeEditorBindings } from '@/bindings'
+import FullscreenButton from '@/components/FullscreenButton.vue'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
+import WithFullscreenMode from '@/components/WithFullscreenMode.vue'
 import { useResizeObserver } from '@/composables/events'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { useLocalStorage } from '@vueuse/core'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 const MIN_DOCK_SIZE_PX = 20
 
@@ -23,6 +25,13 @@ function clampSize(size: number) {
   return Math.max(size, MIN_DOCK_SIZE_PX)
 }
 
+const fullscreen = ref(false)
+const fullscreenAnimating = ref(false)
+
+watch(show, (show) => {
+  if (!show) fullscreen.value = false
+})
+
 const style = computed(() =>
   savedSize.value?.height != null ?
     { '--panel-size': `${clampSize(savedSize.value.height)}px` }
@@ -35,7 +44,8 @@ const style = computed(() =>
     v-model="show"
     :title="`Code Editor (${codeEditorBindings.bindings.toggle.humanReadable})`"
     icon="bottom_panel"
-    class="toggleDock"
+    class="gutterButton bottomOfGutter"
+    :class="{ aboveFullscreen: fullscreen || fullscreenAnimating }"
   />
   <Transition>
     <div
@@ -45,7 +55,14 @@ const style = computed(() =>
       :style="style"
       data-testid="bottomDock"
     >
-      <slot />
+      <WithFullscreenMode :fullscreen="fullscreen" @update:animating="fullscreenAnimating = $event">
+        <FullscreenButton
+          v-model="fullscreen"
+          class="gutterButton topOfGutter"
+          :class="{ aboveFullscreen: fullscreen || fullscreenAnimating }"
+        />
+        <slot />
+      </WithFullscreenMode>
       <ResizeHandles
         top
         :modelValue="computedBounds"
@@ -62,10 +79,6 @@ const style = computed(() =>
   bottom: 0;
   height: var(--panel-size);
   margin-right: 1px;
-  backdrop-filter: var(--blur-app-bg);
-  background-color: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.4);
 }
 .v-enter-active,
 .v-leave-active {
@@ -76,10 +89,20 @@ const style = computed(() =>
   height: 0;
 }
 
-.toggleDock {
-  z-index: 1;
+.gutterButton {
   position: absolute;
+  z-index: 1;
   left: 12px;
+  &.aboveFullscreen {
+    z-index: 2;
+  }
+}
+
+.bottomOfGutter {
   bottom: 12px;
+}
+
+.topOfGutter {
+  top: 12px;
 }
 </style>

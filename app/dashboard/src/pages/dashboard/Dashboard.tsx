@@ -37,7 +37,8 @@ import AssetListEventType from '#/events/AssetListEventType'
 
 import type * as assetTable from '#/layouts/AssetsTable'
 import EventListProvider, * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
+import type Category from '#/layouts/CategorySwitcher/Category'
+import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
 import Drive from '#/layouts/Drive'
@@ -120,16 +121,53 @@ function DashboardInner(props: DashboardProps) {
     : null
   const initialProjectName = initialLocalProjectId ?? initialProjectNameRaw
 
-  const [category, setCategory] = searchParamsState.useSearchParamsState(
+  const [category, setCategory] = searchParamsState.useSearchParamsState<Category>(
     'driveCategory',
     () => {
       const shouldDefaultToCloud =
         initialLocalProjectId == null && (user.isEnabled || localBackend == null)
-      return shouldDefaultToCloud ? Category.cloud : Category.local
+      const type =
+        shouldDefaultToCloud ? categoryModule.CategoryType.cloud : categoryModule.CategoryType.local
+      return { type }
     },
     (value): value is Category => {
-      if (array.includes(Object.values(Category), value)) {
-        return categoryModule.isLocal(value) ? localBackend != null : true
+      if (typeof value !== 'object' || value == null) {
+        return false
+      } else if (!('type' in value) || typeof value.type !== 'string') {
+        return false
+      } else if (array.includes(Object.values(categoryModule.CategoryType), value.type)) {
+        switch (value.type) {
+          case categoryModule.CategoryType.user:
+          case categoryModule.CategoryType.team: {
+            if (!('homeDirectoryId' in value) || typeof value.homeDirectoryId !== 'string') {
+              return false
+            } else if (!('rootPath' in value) || typeof value.rootPath !== 'string') {
+              return false
+            } else {
+              if (value.type === categoryModule.CategoryType.user) {
+                const narrowedValue = {
+                  type: value.type,
+                  rootPath: backendModule.Path(value.rootPath),
+                  homeDirectoryId: backendModule.DirectoryId(value.homeDirectoryId),
+                } as const
+                return categoryModule.isLocalCategory(narrowedValue) ? localBackend != null : true
+              } else {
+                const narrowedValue = {
+                  type: value.type,
+                  rootPath: backendModule.Path(value.rootPath),
+                  homeDirectoryId: backendModule.DirectoryId(value.homeDirectoryId),
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any, no-restricted-syntax, @typescript-eslint/no-unsafe-member-access
+                  team: (value as any).team,
+                } as const
+                return categoryModule.isLocalCategory(narrowedValue) ? localBackend != null : true
+              }
+            }
+          }
+          default: {
+            const narrowedValue = { type: value.type } as const
+            return categoryModule.isLocalCategory(narrowedValue) ? localBackend != null : true
+          }
+        }
       } else {
         return false
       }
@@ -152,7 +190,7 @@ function DashboardInner(props: DashboardProps) {
 
   React.useEffect(() => {
     window.projectManagementApi?.setOpenProjectHandler((project) => {
-      setCategory(Category.local)
+      setCategory({ type: categoryModule.CategoryType.local })
       const projectId = localBackendModule.newProjectId(projectManager.UUID(project.id))
       openProject({
         type: backendModule.BackendType.local,

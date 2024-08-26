@@ -80,7 +80,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     isEnabled: true,
     rootDirectoryId: defaultDirectoryId,
     userGroups: null,
-    plan: backend.Plan.enterprise,
+    plan: backend.Plan.solo,
     isOrganizationAdmin: true,
   }
   const defaultOrganization: backend.OrganizationInfo = {
@@ -530,6 +530,9 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         return
       }
     })
+    await get(remoteBackendPaths.LIST_USER_GROUPS_PATH + '*', async (route) => {
+      await route.fulfill({ json: [] })
+    })
     await get(remoteBackendPaths.LIST_VERSIONS_PATH + '*', (_route, request) => ({
       versions: [
         {
@@ -927,6 +930,11 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     },
     goOnline: () => {
       isOnline = true
+    },
+    setPlan: (plan: backend.Plan) => {
+      if (currentUser) {
+        object.unsafeMutable(currentUser).plan = plan
+      }
     },
     currentUser: () => currentUser,
     setCurrentUser: (user: backend.User | null) => {

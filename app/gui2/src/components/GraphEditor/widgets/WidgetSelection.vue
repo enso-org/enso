@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import { enclosingTopLevelArgument } from '@/components/GraphEditor/widgets/WidgetTopLevelArgument.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import DropdownWidget, { type DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
@@ -36,7 +37,7 @@ const graph = useGraphStore()
 
 const tree = injectWidgetTree()
 
-const widgetRoot = ref<HTMLElement>()
+const widgetRoot = shallowRef<HTMLElement>()
 const dropdownElement = ref<HTMLElement>()
 const activityElement = ref<HTMLElement>()
 
@@ -50,8 +51,13 @@ const activity = shallowRef<VNode>()
 // Any text beyond that limit will receive an ellipsis and sliding animation on hover.
 const MAX_DROPDOWN_OVERSIZE_PX = 150
 
+const floatReference = computed(
+  () => enclosingTopLevelArgument(widgetRoot.value, tree) ?? widgetRoot.value,
+)
+
 function dropdownStyles(dropdownElement: Ref<HTMLElement | undefined>, limitWidth: boolean) {
-  return useFloating(widgetRoot, dropdownElement, {
+  return useFloating(floatReference, dropdownElement, {
+    placement: 'bottom-start',
     middleware: computed(() => {
       return [
         offset((state) => {
@@ -471,18 +477,21 @@ declare module '@/providers/widgetRegistry' {
       <SvgIcon v-else name="arrow_right_head_only" class="arrow widgetOutOfLayout" />
     </template>
     <Teleport v-if="tree.nodeElement" :to="tree.nodeElement">
-      <div ref="dropdownElement" :style="floatingStyles" class="widgetOutOfLayout">
+      <div ref="dropdownElement" :style="floatingStyles" class="widgetOutOfLayout floatingElement">
         <SizeTransition height :duration="100">
-          <div v-if="dropDownInteraction.isActive() && activity == null">
-            <DropdownWidget
-              color="var(--node-color-primary)"
-              :entries="entries"
-              @clickEntry="onClick"
-            />
-          </div>
+          <DropdownWidget
+            v-if="dropDownInteraction.isActive() && activity == null"
+            color="var(--node-color-primary)"
+            :entries="entries"
+            @clickEntry="onClick"
+          />
         </SizeTransition>
       </div>
-      <div ref="activityElement" class="activityElement" :style="activityStyles">
+      <div
+        ref="activityElement"
+        class="activityElement widgetOutOfLayout floatingElement"
+        :style="activityStyles"
+      >
         <SizeTransition height :duration="100">
           <div v-if="dropDownInteraction.isActive() && activity">
             <component :is="activity" />
@@ -500,6 +509,10 @@ declare module '@/providers/widgetRegistry' {
   align-items: center;
   position: relative;
   min-height: var(--node-port-height);
+}
+
+.floatingElement {
+  z-index: 21;
 }
 
 svg.arrow {

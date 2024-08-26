@@ -92,6 +92,7 @@ import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 
 import { useInitAuthService } from '#/authentication/service'
+import { InvitedToOrganizationModal } from '#/modals/InvitedToOrganizationModal'
 import { FeatureFlagsProvider } from '#/providers/FeatureFlagsProvider'
 
 // ============================
@@ -422,22 +423,24 @@ function AppRouter(props: AppRouterProps) {
         <router.Route element={<authProvider.ProtectedLayout />}>
           <router.Route element={<termsOfServiceModal.TermsOfServiceModal />}>
             <router.Route element={<setOrganizationNameModal.SetOrganizationNameModal />}>
-              <router.Route element={<openAppWatcher.OpenAppWatcher />}>
-                <router.Route
-                  path={appUtils.DASHBOARD_PATH}
-                  element={shouldShowDashboard && <Dashboard {...props} />}
-                />
+              <router.Route element={<InvitedToOrganizationModal />}>
+                <router.Route element={<openAppWatcher.OpenAppWatcher />}>
+                  <router.Route
+                    path={appUtils.DASHBOARD_PATH}
+                    element={shouldShowDashboard && <Dashboard {...props} />}
+                  />
 
-                <router.Route
-                  path={appUtils.SUBSCRIBE_PATH}
-                  element={
-                    <errorBoundary.ErrorBoundary>
-                      <suspense.Suspense>
-                        <subscribe.Subscribe />
-                      </suspense.Suspense>
-                    </errorBoundary.ErrorBoundary>
-                  }
-                />
+                  <router.Route
+                    path={appUtils.SUBSCRIBE_PATH}
+                    element={
+                      <errorBoundary.ErrorBoundary>
+                        <suspense.Suspense>
+                          <subscribe.Subscribe />
+                        </suspense.Suspense>
+                      </errorBoundary.ErrorBoundary>
+                    }
+                  />
+                </router.Route>
               </router.Route>
             </router.Route>
           </router.Route>

@@ -1,18 +1,3 @@
-// === Features ===
-#![allow(incomplete_features)]
-#![feature(const_fmt_arguments_new)]
-#![feature(hash_set_entry)]
-#![feature(let_chains)]
-#![feature(min_specialization)]
-#![feature(exit_status_error)]
-#![feature(associated_type_defaults)]
-#![feature(exact_size_is_empty)]
-#![feature(async_closure)]
-#![feature(type_alias_impl_trait)]
-#![feature(trait_alias)]
-#![feature(string_remove_matches)]
-#![feature(duration_constants)]
-#![feature(const_trait_impl)]
 // === Non-Standard Linter Configuration ===
 #![warn(unused_qualifications)]
 
@@ -76,6 +61,7 @@ pub mod prelude {
     pub use crate::os::target::OS;
     pub use crate::os::target::TARGET_ARCH;
     pub use crate::os::target::TARGET_OS;
+    pub use crate::program::command::default_status_checker;
     pub use crate::program::command::provider::CommandProvider;
     pub use crate::program::command::Command;
     pub use crate::program::command::IsCommandWrapper;

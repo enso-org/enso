@@ -6,7 +6,7 @@ import { useStore } from 'zustand'
 
 import BlankIcon from '#/assets/blank.svg'
 
-import { backendMutationOptions } from '#/hooks/backendHooks'
+import { backendMutationOptions, useListUserGroups, useListUsers } from '#/hooks/backendHooks'
 import * as dragAndDropHooks from '#/hooks/dragAndDropHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
@@ -23,7 +23,7 @@ import AssetListEventType from '#/events/AssetListEventType'
 import AssetContextMenu from '#/layouts/AssetContextMenu'
 import type * as assetsTable from '#/layouts/AssetsTable'
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-import Category from '#/layouts/CategorySwitcher/Category'
+import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
 import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
@@ -36,7 +36,6 @@ import EditAssetDescriptionModal from '#/modals/EditAssetDescriptionModal'
 
 import * as backendModule from '#/services/Backend'
 import * as localBackend from '#/services/LocalBackend'
-import * as projectManager from '#/services/ProjectManager'
 
 import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
@@ -47,6 +46,7 @@ import * as eventModule from '#/utilities/event'
 import * as fileInfo from '#/utilities/fileInfo'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
+import * as path from '#/utilities/path'
 import * as permissions from '#/utilities/permissions'
 import * as set from '#/utilities/set'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
@@ -98,7 +98,7 @@ export default function AssetRow(props: AssetRowProps) {
   const { item: rawItem, hidden: hiddenRaw, updateAssetRef, grabKeyboardFocus } = props
   const { nodeMap, setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
   const { setIsAssetPanelTemporarilyVisible, scrollContainerRef, rootDirectoryId, backend } = state
-  const { visibilities } = state
+  const { visibilities, category } = state
 
   const [item, setItem] = React.useState(rawItem)
   const driveStore = useDriveStore()
@@ -115,12 +115,14 @@ export default function AssetRow(props: AssetRowProps) {
     ({ selectedKeys }) => selectedKeys.size === 0 || !selected || isSoleSelected,
   )
   const draggableProps = dragAndDropHooks.useDraggable()
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useFullUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
+  const users = useListUsers(backend)
+  const userGroups = useListUserGroups(backend)
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
   const rootRef = React.useRef<HTMLElement | null>(null)
   const dragOverTimeoutHandle = React.useRef<number | null>(null)
@@ -131,7 +133,11 @@ export default function AssetRow(props: AssetRowProps) {
   const [rowState, setRowState] = React.useState<assetsTable.AssetRowState>(() =>
     object.merge(assetRowUtils.INITIAL_ROW_STATE, { setVisibility: setInsertionVisibility }),
   )
-  const isCloud = backend.type === backendModule.BackendType.remote
+  const nodeParentKeysRef = React.useRef<{
+    readonly nodeMap: WeakRef<ReadonlyMap<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>>
+    readonly parentKeys: Map<backendModule.AssetId, backendModule.DirectoryId>
+  } | null>(null)
+  const isCloud = categoryModule.isCloudCategory(category)
   const outerVisibility = visibilities.get(item.key)
   const visibility =
     outerVisibility == null || outerVisibility === Visibility.visible ?
@@ -205,7 +211,13 @@ export default function AssetRow(props: AssetRowProps) {
           object.merge(oldAsset, {
             title: oldAsset.title + ' (copy)',
             labels: [],
-            permissions: permissions.tryGetSingletonOwnerPermission(user),
+            permissions: permissions.tryCreateOwnerPermission(
+              `${item.path} (copy)`,
+              category,
+              user,
+              users ?? [],
+              userGroups ?? [],
+            ),
             modifiedAt: dateTime.toRfc3339(new Date()),
           }),
         )
@@ -232,14 +244,19 @@ export default function AssetRow(props: AssetRowProps) {
       }
     },
     [
-      user,
-      rootDirectoryId,
-      asset,
-      item.key,
-      toastAndLog,
-      copyAsset,
-      nodeMap,
       setAsset,
+      rootDirectoryId,
+      copyAsset,
+      asset.id,
+      asset.title,
+      nodeMap,
+      item.path,
+      item.key,
+      category,
+      user,
+      users,
+      userGroups,
+      toastAndLog,
       dispatchAssetListEvent,
     ],
   )
@@ -259,7 +276,7 @@ export default function AssetRow(props: AssetRowProps) {
         let newId = asset.id
         if (!isCloud) {
           const oldPath = localBackend.extractTypeAndId(asset.id).id
-          const newPath = projectManager.joinPath(newParentPath, fileInfo.fileName(oldPath))
+          const newPath = path.joinPath(newParentPath, fileInfo.getFileName(oldPath))
           switch (asset.type) {
             case backendModule.AssetType.file: {
               newId = localBackend.newFileId(newPath)
@@ -428,7 +445,7 @@ export default function AssetRow(props: AssetRowProps) {
   }, [setModal, asset.description, setAsset, backend, item.item.id, item.item.title])
 
   eventListProvider.useAssetEventListener(async (event) => {
-    if (state.category === Category.trash) {
+    if (state.category.type === categoryModule.CategoryType.trash) {
       switch (event.type) {
         case AssetEventType.deleteForever: {
           if (event.ids.has(item.key)) {
@@ -707,14 +724,35 @@ export default function AssetRow(props: AssetRowProps) {
     const directoryKey =
       item.item.type === backendModule.AssetType.directory ? item.key : item.directoryKey
     const payload = drag.ASSET_ROWS.lookup(event)
-    if (
-      (payload != null && payload.every((innerItem) => innerItem.key !== directoryKey)) ||
-      event.dataTransfer.types.includes('Files')
-    ) {
+    const isPayloadMatch =
+      payload != null && payload.every((innerItem) => innerItem.key !== directoryKey)
+    const canPaste = (() => {
+      if (!isPayloadMatch) {
+        return true
+      } else {
+        if (nodeMap.current !== nodeParentKeysRef.current?.nodeMap.deref()) {
+          const parentKeys = new Map(
+            Array.from(nodeMap.current.entries()).map(([id, otherAsset]) => [
+              id,
+              otherAsset.directoryKey,
+            ]),
+          )
+          nodeParentKeysRef.current = { nodeMap: new WeakRef(nodeMap.current), parentKeys }
+        }
+        return !payload.some((payloadItem) => {
+          const parentKey = nodeParentKeysRef.current?.parentKeys.get(payloadItem.key)
+          const parent = parentKey == null ? null : nodeMap.current.get(parentKey)
+          return !parent ? true : (
+              permissions.isTeamPath(parent.path) && permissions.isUserPath(item.path)
+            )
+        })
+      }
+    })()
+    if ((isPayloadMatch && canPaste) || event.dataTransfer.types.includes('Files')) {
       event.preventDefault()
       if (
         item.item.type === backendModule.AssetType.directory &&
-        state.category !== Category.trash
+        state.category.type !== categoryModule.CategoryType.trash
       ) {
         setIsDraggedOver(true)
       }
@@ -837,7 +875,7 @@ export default function AssetRow(props: AssetRowProps) {
                   onDragOver(event)
                 }}
                 onDragOver={(event) => {
-                  if (state.category === Category.trash) {
+                  if (state.category.type === categoryModule.CategoryType.trash) {
                     event.dataTransfer.dropEffect = 'none'
                   }
                   props.onDragOver?.(event)
@@ -864,7 +902,7 @@ export default function AssetRow(props: AssetRowProps) {
                   props.onDragLeave?.(event)
                 }}
                 onDrop={(event) => {
-                  if (state.category !== Category.trash) {
+                  if (state.category.type !== categoryModule.CategoryType.trash) {
                     props.onDrop?.(event)
                     clearDragState()
                     const [directoryKey, directoryId] =
@@ -921,7 +959,7 @@ export default function AssetRow(props: AssetRowProps) {
                         state={state}
                         rowState={rowState}
                         setRowState={setRowState}
-                        isEditable={state.category !== Category.trash}
+                        isEditable={state.category.type !== categoryModule.CategoryType.trash}
                       />
                     </td>
                   )

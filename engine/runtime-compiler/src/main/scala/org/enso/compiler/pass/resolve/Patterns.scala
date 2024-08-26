@@ -255,7 +255,7 @@ object Patterns extends IRPass {
                 }
               case None => consPat.copy(constructor = resolvedName)
             }
-          case tpePattern @ Pattern.Type(_, tpeName, _, _, _) =>
+          case tpePattern @ Pattern.Type(_, tpeName, _, _) =>
             val resolution = tpeName match {
               case qual: Name.Qualified =>
                 val parts = qual.parts.map(_.name)

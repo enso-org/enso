@@ -268,28 +268,30 @@ impl<'a> ser::Serializer for &'a mut Serializer {
     where
         T: ?Sized + Serialize,
     {
-        if name == "Variant"
-            && let Some(ancestor) = self.parent_structs.last()
-            && ancestor.object_depth_inside == self.object_depth
-        {
-            let parent_start = ancestor.begin;
-            let _ancestor_name = ancestor._name;
-            // Add the child's fields to the stack (following the parent's fields).
-            value.serialize(&mut *self)?;
-            // Build the object on the heap.
-            let address = self.heap.len();
-            self.heap.extend_from_slice(&variant_index.to_le_bytes());
-            self.heap.extend(self.stack.drain(parent_start..));
-            let end_address = self.heap.len();
-            if DEBUG {
-                eprintln!(">> {address}-{end_address} [{_ancestor_name}::{variant}]");
+        match self.parent_structs.last() {
+            Some(ancestor)
+                if name == "Variant" && ancestor.object_depth_inside == self.object_depth =>
+            {
+                let parent_start = ancestor.begin;
+                let _ancestor_name = ancestor._name;
+                // Add the child's fields to the stack (following the parent's fields).
+                value.serialize(&mut *self)?;
+                // Build the object on the heap.
+                let address = self.heap.len();
+                self.heap.extend_from_slice(&variant_index.to_le_bytes());
+                self.heap.extend(self.stack.drain(parent_start..));
+                let end_address = self.heap.len();
+                if DEBUG {
+                    eprintln!(">> {address}-{end_address} [{_ancestor_name}::{variant}]");
+                }
+                self.serialize_u32(u32::try_from(address).unwrap())?;
             }
-            self.serialize_u32(u32::try_from(address).unwrap())?;
-        } else {
-            let mut ser = self.object_serializer()?;
-            ser.serialize_element(&variant_index)?;
-            ser.serialize_element(value)?;
-            ser.finish()?;
+            _ => {
+                let mut ser = self.object_serializer()?;
+                ser.serialize_element(&variant_index)?;
+                ser.serialize_element(value)?;
+                ser.finish()?;
+            }
         }
         Ok(())
     }

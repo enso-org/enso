@@ -103,7 +103,7 @@ case object UnreachableMatchBranches extends IRPass {
     * @param expression the expression to optimize
     * @return `expression` with unreachable case branches removed
     */
-  def optimizeExpression(expression: Expression): Expression = {
+  private def optimizeExpression(expression: Expression): Expression = {
     expression.transformExpressions { case cse: Case =>
       optimizeCase(cse)
     }
@@ -118,9 +118,9 @@ case object UnreachableMatchBranches extends IRPass {
     * @return `cse` with unreachable branches removed
     */
   //noinspection DuplicatedCode
-  def optimizeCase(cse: Case): Case = {
+  private def optimizeCase(cse: Case): Case = {
     cse match {
-      case expr @ Case.Expr(scrutinee, branches, _, _, _, _) =>
+      case expr @ Case.Expr(scrutinee, branches, _, _, _) =>
         val reachableNonCatchAllBranches = branches.takeWhile(!isCatchAll(_))
         val firstCatchAll                = branches.find(isCatchAll)
         val unreachableBranches =
@@ -178,7 +178,7 @@ case object UnreachableMatchBranches extends IRPass {
     * @param branch the branch to check
     * @return `true` if `branch` is catch-all, otherwise `false`
     */
-  def isCatchAll(branch: Case.Branch): Boolean = {
+  private def isCatchAll(branch: Case.Branch): Boolean = {
     branch.pattern match {
       case _: Pattern.Name          => true
       case _: Pattern.Constructor   => false
