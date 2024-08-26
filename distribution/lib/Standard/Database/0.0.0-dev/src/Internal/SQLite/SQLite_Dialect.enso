@@ -321,6 +321,9 @@ type SQLite_Dialect
         False
 
     ## PRIVATE
+       We need custom handling for First and Last, as SQLite does not support
+       such aggregation functions out of the box, so instead we create a row
+       number column in a subquery and compute the result based on that.
     custom_build_aggregate self =
         create_row_number_for orderings key_columns =
             order_descriptors = orderings.map o-> self.prepare_order_descriptor o.column o.direction text_ordering=Nothing
