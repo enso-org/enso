@@ -1759,7 +1759,7 @@ add_specs suite_builder setup =
                 c = (x - 2.3).let "xx" xx-> (y + 1).let "yy" yy-> (xx * yy) + z
                 d = ((x - 2.3) * (y + 1)).let "xxyy" xxyy-> xxyy + z
 
-                r = a . to_table . set b "b" . set c "c" . set d "d" . read
+                r = a . rename "a" . to_table . set b "b" . set c "c" . set d "d" . read
                 r.at "a" . to_vector . should_equal [5.6000000000000005, 22.2, 66.20000000000002, 386.03000000000003]
                 r.at "a" . to_vector . should_equal (r.at "b" . to_vector)
                 r.at "a" . to_vector . should_equal (r.at "c" . to_vector)

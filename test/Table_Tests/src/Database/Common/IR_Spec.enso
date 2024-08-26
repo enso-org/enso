@@ -91,14 +91,15 @@ add_specs (suite_builder : Suite_Builder) setup (prefix : Text) default_connecti
                 big.to_vector
             results.flatten.flatten.flatten.distinct.length . should_equal 1
 
-        group_builder.specify "should convert WITH binders to short names that do not conflict with existing table names" <|
-            t = Table.new [["x", [1, 2]], ["y", ['a', 'b']]]
-            let0 = t.select_into_database_table data.connection "let_0" temporary=True
-            let2 = t.select_into_database_table data.connection "let_2" temporary=True
-            joined = let0.join let2 join_kind=Join_Kind.Inner on=(Join_Condition.Equals "x" "x")
-            x = joined.at "x"
-            with_ctes = x.let "let" x-> x.let "let" x-> x
-            with_ctes_sql = with_ctes.to_table.to_sql . prepare . at 0
-            with_ctes_sql . should_contain 'let_1'
-            with_ctes_sql . should_contain 'let_3'
-            with_ctes_sql . should_not_contain 'let_4'
+        if data.connection.dialect.supports_nested_with_clause then
+            group_builder.specify "should convert WITH binders to short names that do not conflict with existing table names" <|
+                t = Table.new [["x", [1, 2]], ["y", ['a', 'b']]]
+                let0 = t.select_into_database_table data.connection "let_0" temporary=True
+                let2 = t.select_into_database_table data.connection "let_2" temporary=True
+                joined = let0.join let2 join_kind=Join_Kind.Inner on=(Join_Condition.Equals "x" "x")
+                x = joined.at "x"
+                with_ctes = x.let "let" x-> x.let "let" x-> x
+                with_ctes_sql = with_ctes.to_table.to_sql . prepare . at 0
+                with_ctes_sql . should_contain 'let_1'
+                with_ctes_sql . should_contain 'let_3'
+                with_ctes_sql . should_not_contain 'let_4'
