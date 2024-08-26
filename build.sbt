@@ -2020,9 +2020,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
         "commons-cli"            % "commons-cli"                  % commonsCliVersion,
         "commons-io"             % "commons-io"                   % commonsIoVersion,
         "com.google.flatbuffers" % "flatbuffers-java"             % flatbuffersVersion,
-        akkaURL                  % ("akka-actor_" + scalaVer)     % akkaVersion,
-        akkaURL                  % ("akka-http-core_" + scalaVer) % akkaHTTPVersion,
-        "dev.zio"                % ("zio_" + scalaVer)            % zioVersion
+        "org.eclipse.jgit"       % "org.eclipse.jgit"             % jgitVersion
       )
     },
     internalModuleDependencies := Seq(

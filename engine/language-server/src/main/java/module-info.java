@@ -6,6 +6,7 @@ module org.enso.language.server {
   requires flatbuffers.java;
   requires org.apache.commons.io;
   requires org.graalvm.polyglot;
+  requires org.eclipse.jgit;
   requires org.openide.util.lookup.RELEASE180;
   requires org.slf4j;
 
