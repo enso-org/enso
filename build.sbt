@@ -1215,7 +1215,108 @@ lazy val `language-server-deps-wrapper` = project
       val scalaLibs = JPMSUtils.filterModulesFromUpdate(
         update.value,
         Seq(
-          "com.github.pureconfig" % ("pureconfig_" + scalaVer) % pureconfigVersion,
+          "com.github.pureconfig" % ("pureconfig_" + scalaVer) % pureconfigVersion
+        ),
+        streams.value.log,
+        moduleName.value,
+        shouldContainAll = true
+      )
+      Map(
+        javaModuleName.value -> scalaLibs
+      )
+    }
+  )
+
+/** JPMS module wrapper for Akka.
+  */
+lazy val `akka-wrapper` = project
+  .in(file("lib/java/akka-wrapper"))
+  .enablePlugins(JPMSPlugin)
+  .settings(
+    frgaalJavaCompilerSetting,
+    libraryDependencies ++= akka ++ Seq(
+      "org.scala-lang"            % "scala-library"            % scalacVersion,
+      "org.scala-lang"            % "scala-reflect"            % scalacVersion,
+      "org.scala-lang"            % "scala-compiler"           % scalacVersion,
+      "org.scala-lang.modules"   %% "scala-parser-combinators" % "1.1.2",
+      "org.scala-lang.modules"   %% "scala-java8-compat"       % "1.0.0",
+      akkaURL                    %% "akka-http-core"           % akkaHTTPVersion,
+      akkaURL                    %% "akka-slf4j"               % akkaVersion,
+      akkaURL                    %% "akka-parsing"             % "10.2.10",
+      akkaURL                    %% "akka-protobuf-v3"         % akkaVersion,
+      akkaURL                    %% "akka-http-spray-json"     % "10.2.10",
+      "com.typesafe"              % "config"                   % typesafeConfigVersion,
+      "org.slf4j"                 % "slf4j-api"                % slf4jVersion,
+      "com.google.protobuf"       % "protobuf-java"            % "3.25.1",
+      "io.github.java-diff-utils" % "java-diff-utils"          % "4.12",
+      "org.reactivestreams"       % "reactive-streams"         % "1.0.3",
+      "org.jline"                 % "jline"                    % jlineVersion,
+      "net.java.dev.jna"          % "jna"                      % "5.13.0",
+      "io.spray"                 %% "spray-json"               % "1.3.6"
+    ),
+    javaModuleName := "org.enso.akka.wrapper",
+    moduleDependencies := Seq(
+      "org.scala-lang"      % "scala-library"    % scalacVersion,
+      "com.google.protobuf" % "protobuf-java"    % "3.25.1",
+      "org.reactivestreams" % "reactive-streams" % "1.0.3"
+    ),
+    javacOptions ++= {
+      JPMSPlugin.constructOptions(
+        streams.value.log,
+        modulePath   = modulePath.value,
+        patchModules = patchModules.value
+      )
+    },
+    forceModuleInfoCompilation := true,
+    // First assemble, then compile `module-info.java`
+    exportedModuleBin := assembly
+      .dependsOn(compileModuleInfo)
+      .value,
+    exportedModule := exportedModuleBin.value,
+    assembly / assemblyExcludedJars := {
+      val scalaVer = scalaBinaryVersion.value
+      val excludedJars = JPMSUtils.filterModulesFromUpdate(
+        update.value,
+        Seq(
+          "org.scala-lang"            % "scala-library"                          % scalacVersion,
+          "org.scala-lang"            % "scala-reflect"                          % scalacVersion,
+          "org.scala-lang"            % "scala-compiler"                         % scalacVersion,
+          "org.scala-lang.modules"    % ("scala-parser-combinators_" + scalaVer) % "1.1.2",
+          "org.scala-lang.modules"    % ("scala-java8-compat_" + scalaVer)       % "1.0.0",
+          "org.slf4j"                 % "slf4j-api"                              % slf4jVersion,
+          "com.typesafe"              % "config"                                 % typesafeConfigVersion,
+          "io.github.java-diff-utils" % "java-diff-utils"                        % "4.12",
+          "org.jline"                 % "jline"                                  % jlineVersion,
+          "com.google.protobuf"       % "protobuf-java"                          % "3.25.1",
+          "org.reactivestreams"       % "reactive-streams"                       % "1.0.3",
+          "net.java.dev.jna"          % "jna"                                    % "5.13.0"
+        ),
+        streams.value.log,
+        moduleName.value,
+        shouldContainAll = true
+      )
+      excludedJars
+        .map(Attributed.blank)
+    },
+    patchModules := {
+      val scalaVer = scalaBinaryVersion.value
+      val scalaLibs = JPMSUtils.filterModulesFromUpdate(
+        update.value,
+        Seq(
+          "org.scala-lang" % "scala-library"                      % scalacVersion,
+          "org.scala-lang" % "scala-reflect"                      % scalacVersion,
+          "org.scala-lang" % "scala-compiler"                     % scalacVersion,
+          "com.typesafe"   % "config"                             % typesafeConfigVersion,
+          "org.slf4j"      % "slf4j-api"                          % slf4jVersion,
+          "io.spray"       % ("spray-json_" + scalaVer)           % "1.3.6",
+          akkaURL          % ("akka-actor_" + scalaVer)           % akkaVersion,
+          akkaURL          % ("akka-actor-typed_" + scalaVer)     % akkaVersion,
+          akkaURL          % ("akka-stream_" + scalaVer)          % akkaVersion,
+          akkaURL          % ("akka-http-core_" + scalaVer)       % akkaHTTPVersion,
+          akkaURL          % ("akka-http-spray-json_" + scalaVer) % "10.2.10",
+          akkaURL          % ("akka-slf4j_" + scalaVer)           % akkaVersion,
+          akkaURL          % ("akka-parsing_" + scalaVer)         % "10.2.10",
+          akkaURL          % ("akka-protobuf-v3_" + scalaVer)     % akkaVersion
         ),
         streams.value.log,
         moduleName.value,
