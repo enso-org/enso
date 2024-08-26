@@ -1086,9 +1086,8 @@ add_specs suite_builder setup =
         test_truncate_ceiling_floor_floatlike Value_Type.Float
         if setup.test_selection.supports_decimal_type then
             test_truncate_ceiling_floor_floatlike Value_Type.Decimal
-        group_builder.specify "should allow round on a Decimal column" pending="https://github.com/enso-org/enso/issues/10344" <|
-            if setup.test_selection.supports_decimal_type then
-                test_round_floatlike Value_Type.Decimal
+        if setup.test_selection.supports_decimal_type then
+            test_round_floatlike Value_Type.Decimal
 
         group_builder.specify "should allow round on an int column" <|
             table = table_builder [["x", [1, 9, 31, 39, -1, -9, -31, -39]]]
