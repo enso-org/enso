@@ -32,17 +32,18 @@ public abstract class PrintlnNode extends Node {
           InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
           InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
 
-  abstract Object execute(VirtualFrame frame, State state, @AcceptsError Object message);
+  abstract Object execute(VirtualFrame frame, State state, @AcceptsError Object message, Object nl);
 
   @Specialization(guards = "strings.isString(message)")
   Object doPrintText(
       VirtualFrame frame,
       State state,
       Object message,
+      Object nl,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary strings) {
     EnsoContext ctx = EnsoContext.get(this);
     try {
-      print(ctx.getOut(), strings.asString(message));
+      print(ctx.getOut(), strings.asString(message), strings.asString(nl));
     } catch (UnsupportedMessageException e) {
       throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
@@ -54,6 +55,7 @@ public abstract class PrintlnNode extends Node {
       VirtualFrame frame,
       State state,
       Object message,
+      Object nl,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary strings,
       @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Cached("buildSymbol()") UnresolvedSymbol symbol,
@@ -68,21 +70,21 @@ public abstract class PrintlnNode extends Node {
       }
     }
 
-    String str;
-    if (strings.isString(probablyStr)) {
-      try {
+    try {
+      String str;
+      if (strings.isString(probablyStr)) {
         str = strings.asString(probablyStr);
-      } catch (UnsupportedMessageException e) {
-        var ctx = EnsoContext.get(this);
-        throw ctx.raiseAssertionPanic(this, null, e);
+      } else {
+        str = fallbackToString(probablyStr);
       }
-    } else {
-      str = fallbackToString(probablyStr);
-    }
 
-    EnsoContext ctx = EnsoContext.get(this);
-    print(ctx.getOut(), str);
-    return ctx.getNothing();
+      EnsoContext ctx = EnsoContext.get(this);
+      print(ctx.getOut(), str, strings.asString(nl));
+      return ctx.getNothing();
+    } catch (UnsupportedMessageException e) {
+      var ctx = EnsoContext.get(this);
+      throw ctx.raiseAssertionPanic(this, null, e);
+    }
   }
 
   @CompilerDirectives.TruffleBoundary
@@ -91,8 +93,12 @@ public abstract class PrintlnNode extends Node {
   }
 
   @CompilerDirectives.TruffleBoundary
-  private void print(PrintStream out, Object str) {
-    out.println(str);
+  private void print(PrintStream out, Object str, String nl) {
+    switch (nl) {
+      case "\n" -> out.println(str);
+      case "" -> out.print(str);
+      default -> out.print(str + nl);
+    }
   }
 
   @NeverDefault

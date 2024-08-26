@@ -1045,7 +1045,10 @@ type DB_Table
     evaluate_expression : Text | Expression -> Problem_Behavior -> DB_Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
     evaluate_expression self expression:(Text | Expression) on_problems:Problem_Behavior=..Report_Warning = if expression.is_a Text then self.evaluate_expression (Expression.Value expression) on_problems else
         get_column name = self.at name
-        new_column = Expression.evaluate expression get_column self.make_constant_column "Standard.Database.DB_Column" "DB_Column" DB_Column.var_args_functions
+        make_constant_column value = case value of
+            _ : DB_Column -> value
+            _ -> self.make_constant_column value
+        new_column = Expression.evaluate expression get_column make_constant_column "Standard.Database.DB_Column" "DB_Column" DB_Column.var_args_functions
         problems = Warning.get_all new_column . map .value
         result = new_column.rename (self.connection.base_connection.column_naming_helper.sanitize_name expression.expression)
         on_problems.attach_problems_before problems <|
@@ -2902,6 +2905,16 @@ type DB_Table
        table unchanged.
 
        This method follows the exact replacement semantics of `Text.replace`.
+
+       If regex is used the replacement string can contain references to groups
+       matched. The following syntaxes are supported:
+           $0: the entire match string
+           $&: the entire match string
+           $n: the nth group
+           $&lt;foo&gt;: Named group `foo`
+
+       The exact syntax of the regular expression is dependent on the database
+       engine.
 
        Arguments:
        - columns: Specifies columns by a name, index or regular expression to

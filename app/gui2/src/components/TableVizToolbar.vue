@@ -164,7 +164,7 @@ const changeFormat = (option: TextFormatOptions) => {
 </script>
 
 <template>
-  <div>
+  <div class="TableVizToolbar">
     <DropdownMenu v-model:open="open" class="TextFormattingSelector" title="Text Display Options">
       <template #button
         ><div :class="buttonClass">
@@ -204,16 +204,20 @@ const changeFormat = (option: TextFormatOptions) => {
     </DropdownMenu>
   </div>
 
-  <SvgButton
-    name="add"
-    title="Create new component(s) with the current grid's sort and filters applied to the workflow"
-    :disabled="props.isDisabled"
-    @click="createNewNodes()"
-  />
+  <div class="sortFilterNode">
+    <SvgButton
+      name="add"
+      title="Create new component(s) with the current grid's sort and filters applied to the workflow"
+      :disabled="props.isDisabled"
+      @click="createNewNodes()"
+    />
+  </div>
 </template>
 
 <style scoped>
-.TextFormattingSelector {
+.TableVizToolbar {
+  display: flex;
+  flex-direction: row;
   background: var(--color-frame-bg);
   border-radius: 16px;
 }
@@ -266,5 +270,9 @@ const changeFormat = (option: TextFormatOptions) => {
 
 .title {
   padding-left: 2px;
+}
+
+.sortFilterNode {
+  overflow: hidden;
 }
 </style>

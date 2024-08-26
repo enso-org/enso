@@ -31,12 +31,15 @@ import scala.jdk.CollectionConverters._
   */
 class LocalScope(
   final val parentScope: Option[LocalScope],
-  final val aliasingGraph: AliasGraph,
-  final val scope: AliasGraph.Scope,
-  final val dataflowInfo: DataflowAnalysis.Metadata,
+  final val aliasingGraph: () => AliasGraph,
+  final private val scopeProvider: () => AliasGraph.Scope,
+  final private val dataflowInfoProvider: () => DataflowAnalysis.Metadata,
   final val flattenToParent: Boolean                       = false,
   private val parentFrameSlotIdxs: Map[AliasGraph.Id, Int] = Map()
 ) {
+  lazy val scope: AliasGraph.Scope                 = scopeProvider()
+  lazy val dataflowInfo: DataflowAnalysis.Metadata = dataflowInfoProvider()
+
   private lazy val localFrameSlotIdxs: Map[AliasGraph.Id, Int] =
     gatherLocalFrameSlotIdxs()
 
@@ -50,7 +53,7 @@ class LocalScope(
     *
     * @return a child of this scope
     */
-  def createChild(): LocalScope = createChild(scope.addChild())
+  def createChild(): LocalScope = createChild(() => scope.addChild())
 
   /** Creates a child using a known aliasing scope.
     *
@@ -60,54 +63,17 @@ class LocalScope(
     * @return a child of this scope
     */
   def createChild(
-    childScope: AliasGraph.Scope,
+    childScope: () => AliasGraph.Scope,
     flattenToParent: Boolean = false
   ): LocalScope = {
     new LocalScope(
       Some(this),
       aliasingGraph,
       childScope,
-      dataflowInfo,
+      () => dataflowInfo,
       flattenToParent,
       allFrameSlotIdxs
     )
-  }
-
-  /** Get a frame slot index for a given identifier.
-    *
-    * The identifier must be present in the local scope.
-    *
-    * @param id the identifier of a variable definition occurrence from alias
-    *           analysis.
-    * @return the frame slot index for `id`.
-    */
-  def getVarSlotIdx(id: AliasGraph.Id): Int = {
-    assert(
-      localFrameSlotIdxs.contains(id),
-      "Cannot find " + id + " in " + localFrameSlotIdxs
-    )
-    localFrameSlotIdxs(id)
-  }
-
-  /** Obtains the frame pointer for a given identifier from the current scope, or from
-    * any parent scopes.
-    *
-    * @param id the identifier of a variable usage occurrence from alias
-    *           analysis
-    * @return the frame pointer for `id`, if it exists
-    */
-  def getFramePointer(id: AliasGraph.Id): Option[FramePointer] = {
-    aliasingGraph
-      .defLinkFor(id)
-      .flatMap { link =>
-        val slotIdx = allFrameSlotIdxs.get(link.target)
-        slotIdx.map(
-          new FramePointer(
-            if (flattenToParent) link.scopeCount - 1 else link.scopeCount,
-            _
-          )
-        )
-      }
   }
 
   /** Collects all the bindings in the current stack of scopes, accounting for
@@ -154,7 +120,7 @@ class LocalScope(
   }
 
   override def toString: String = {
-    s"LocalScope(${allFrameSlotIdxs.keySet})"
+    s"LocalScope(flattenToParent = ${flattenToParent}, allFrameSlotIdxs = ${allFrameSlotIdxs.keySet})"
   }
 }
 object LocalScope {
@@ -165,11 +131,12 @@ object LocalScope {
     */
   def root: LocalScope = {
     val graph = new AliasGraph
+    val info  = DataflowAnalysis.DependencyInfo()
     new LocalScope(
       None,
-      graph,
-      graph.rootScope,
-      DataflowAnalysis.DependencyInfo()
+      () => graph,
+      () => graph.rootScope,
+      () => info
     )
   }
 
@@ -177,7 +144,7 @@ object LocalScope {
     * Every tuple of the list denotes frame slot kind and its name.
     * Note that `info` for a frame slot is not used by Enso.
     */
-  def monadicStateSlotName: String   = "<<monadic_state>>"
-  private def internalSlotsSize: Int = 1
+  def monadicStateSlotName: String = "<<monadic_state>>"
+  def internalSlotsSize: Int       = 1
 
 }

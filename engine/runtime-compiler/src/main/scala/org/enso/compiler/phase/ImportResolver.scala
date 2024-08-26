@@ -3,7 +3,7 @@ package org.enso.compiler.phase
 import org.enso.compiler.Compiler
 import org.enso.compiler.context.CompilerContext.Module
 import org.enso.compiler.core.Implicits.AsMetadata
-import org.enso.compiler.core.ir.{DiagnosticStorage, MetadataStorage}
+import org.enso.compiler.core.ir.MetadataStorage
 import org.enso.compiler.core.ir.module.scope.{Export, Import}
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.analyse.BindingAnalysis
@@ -187,7 +187,6 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
             onlyNames,
             _,
             isSynthetic,
-            _,
             _
           ) if !isSynthetic =>
         val exportsItself = curModName.equals(expName.name)
@@ -201,8 +200,7 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
             None,
             location    = None,
             isSynthetic = true,
-            passData    = new MetadataStorage(),
-            diagnostics = DiagnosticStorage()
+            passData    = new MetadataStorage()
           )
           tryResolveImport(module.getIr, syntheticImport) match {
             case (_, Some(resolvedImp)) =>

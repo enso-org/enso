@@ -971,7 +971,6 @@ function syncTree(
     }
     return true
   })
-  return newRoot
 }
 
 /** Provides a `SpanTree` view of an `Ast`, given span information. */

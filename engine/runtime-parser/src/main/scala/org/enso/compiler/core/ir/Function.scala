@@ -39,41 +39,54 @@ object Function {
     * multi-argument lambdas, our internal representation does so to allow for
     * better optimisation.
     *
-    * @param arguments   the arguments to the lambda
+    * @param arguments the arguments to the lambda
     * @param bodyReference the body of the lambda, stored as a reference to ensure
     *                     laziness of storage
-    * @param location    the source location that the node corresponds to
-    * @param canBeTCO    whether or not the function can be tail-call optimised
-    * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
+    * @param location the source location that the node corresponds to
+    * @param canBeTCO whether or not the function can be tail-call optimised
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Lambda(
     override val arguments: List[DefinitionArgument],
     bodyReference: Persistance.Reference[Expression],
     location: Option[IdentifiedLocation],
     override val canBeTCO: Boolean,
-    passData: MetadataStorage,
-    diagnostics: DiagnosticStorage
+    passData: MetadataStorage
   ) extends Function
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
 
     def this(
       arguments: List[DefinitionArgument],
       body: Expression,
       location: Option[IdentifiedLocation],
-      canBeTCO: Boolean              = true,
-      passData: MetadataStorage      = new MetadataStorage(),
-      diagnostics: DiagnosticStorage = new DiagnosticStorage()
+      canBeTCO: Boolean         = true,
+      passData: MetadataStorage = new MetadataStorage()
     ) = {
       this(
         arguments,
         Persistance.Reference.of(body, true),
         location,
         canBeTCO,
-        passData,
-        diagnostics
+        passData
       )
+    }
+
+    def this(
+      ir: expression.Case.Expr,
+      arguments: List[DefinitionArgument],
+      body: Expression,
+      location: Option[IdentifiedLocation]
+    ) = {
+      this(
+        arguments,
+        Persistance.Reference.of(body, true),
+        location,
+        true,
+        ir.passData
+      )
+      diagnostics = ir.diagnostics
     }
 
     override lazy val body: Expression = bodyReference.get(classOf[Expression])
@@ -100,17 +113,27 @@ object Function {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Lambda = {
-      val res =
-        Lambda(
-          arguments,
-          Persistance.Reference.of(body, false),
-          location,
-          canBeTCO,
-          passData,
-          diagnostics
-        )
-      res.id = id
-      res
+      if (
+        arguments != this.arguments
+        || body != this.body
+        || location != this.location
+        || canBeTCO != this.canBeTCO
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res =
+          Lambda(
+            arguments,
+            Persistance.Reference.of(body, false),
+            location,
+            canBeTCO,
+            passData
+          )
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -138,9 +161,8 @@ object Function {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -185,6 +207,7 @@ object Function {
   }
 
   object Lambda {
+
     def unapply(l: Lambda): Some[
       (
         List[DefinitionArgument],
@@ -216,7 +239,6 @@ object Function {
     * @param location    the source location that the node corresponds to
     * @param canBeTCO    whether or not the function can be tail-call optimised
     * @param passData    the pass metadata associated with this node
-    * @param diagnostics the compiler diagnostics for this node
     */
   sealed case class Binding(
     name: Name,
@@ -225,10 +247,10 @@ object Function {
     override val isPrivate: Boolean,
     location: Option[IdentifiedLocation],
     override val canBeTCO: Boolean = true,
-    passData: MetadataStorage      = new MetadataStorage(),
-    diagnostics: DiagnosticStorage = DiagnosticStorage()
+    passData: MetadataStorage      = new MetadataStorage()
   ) extends Function
       with IRKind.Sugar
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -255,19 +277,31 @@ object Function {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Binding = {
-      val res =
-        Binding(
-          name,
-          arguments,
-          body,
-          isPrivate,
-          location,
-          canBeTCO,
-          passData,
-          diagnostics
-        )
-      res.id = id
-      res
+      if (
+        name != this.name
+        || arguments != this.arguments
+        || body != this.body
+        || isPrivate != this.isPrivate
+        || location != this.location
+        || canBeTCO != this.canBeTCO
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res =
+          Binding(
+            name,
+            arguments,
+            body,
+            isPrivate,
+            location,
+            canBeTCO,
+            passData
+          )
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -301,9 +335,8 @@ object Function {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
