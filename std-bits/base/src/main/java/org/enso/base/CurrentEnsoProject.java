@@ -18,7 +18,8 @@ public final class CurrentEnsoProject {
 
   public static CurrentEnsoProject get() {
     if (!isCached) {
-      Value ensoProject = EnsoMeta.callStaticModuleMethod("Standard.Base.Meta.Enso_Project", "enso_project");
+      Value ensoProject =
+          EnsoMeta.callStaticModuleMethod("Standard.Base.Meta.Enso_Project", "enso_project");
       if (ensoProject.hasMember("name") && ensoProject.hasMember("namespace")) {
         Value namespace = ensoProject.invokeMember("namespace");
         Value name = ensoProject.invokeMember("name");

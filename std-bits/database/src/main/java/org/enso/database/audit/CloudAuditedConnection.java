@@ -5,8 +5,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.logging.Logger;
-
-import org.enso.base.CurrentEnsoProject;
 import org.enso.base.enso_cloud.audit.AuditLog;
 
 public final class CloudAuditedConnection extends AuditedConnection {
