@@ -19,7 +19,7 @@ const hovered = ref(false)
 
 injectInteractionHandler().setWhen(
   open,
-  endOnClickOutside([rootElement], {
+  endOnClickOutside(rootElement, {
     cancel: () => (open.value = false),
     end: () => (open.value = false),
   }),

@@ -38,6 +38,7 @@ import { provideGraphNavigator, type GraphNavigator } from '@/providers/graphNav
 import { provideNodeColors } from '@/providers/graphNodeColors'
 import { provideNodeCreation } from '@/providers/graphNodeCreation'
 import { provideGraphSelection } from '@/providers/graphSelection'
+import type { SuggestionId } from '@/stores/suggestionDatabase/entry'
 import { provideStackNavigator } from '@/providers/graphStackNavigator'
 import { provideInteractionHandler } from '@/providers/interactionHandler'
 import { provideKeyboard } from '@/providers/keyboard'
@@ -514,13 +515,16 @@ showHelpForCB = false
 
 showHelpForCB -> false && !showRightDock => currentVis = false
 
+when choosing another tab, showHelpForCB goes false, and the panel closes because showRightDock is false
+
+CBvis || showRightDock.value => now you can’t close the panel because only CBvis gets changed.
 */
 
 const CBtab = ref('help')
 const CBvis = ref(true)
 const currentTab = computed({
   get() {
-    return componentBrowserVisible.value ? (userSettings.value.showHelpForCB ? 'help' : rightDockTab.value) : rightDockTab.value
+    return componentBrowserVisible.value ? (userSettings.value.showHelpForCB ? 'help' : CBtab.value) : rightDockTab.value
   },
   set(tab) {
     if (componentBrowserVisible.value) {
@@ -533,12 +537,13 @@ const currentTab = computed({
 })
 const currentVis = computed({
   get() {
-    return componentBrowserVisible.value ? (userSettings.value.showHelpForCB ? true : CBvis.value) : showRightDock.value
+    return componentBrowserVisible.value ? (userSettings.value.showHelpForCB ? true : CBvis.value || showRightDock.value) : showRightDock.value
   },
   set(vis) {
     if (componentBrowserVisible.value) {
       CBvis.value = vis
       userSettings.value.showHelpForCB = vis
+      if (!vis) showRightDock.value = false
     } else {
       showRightDock.value = vis
     }

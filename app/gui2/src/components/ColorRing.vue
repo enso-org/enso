@@ -67,7 +67,7 @@ const interaction = injectInteractionHandler()
 
 onMounted(() => {
   interaction.setCurrent(
-    endOnClickOutside([svgElement], {
+    endOnClickOutside(svgElement, {
       cancel: () => {
         selectedColor.value = initialColor
         emit('close')

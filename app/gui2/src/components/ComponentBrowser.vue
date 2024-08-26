@@ -274,8 +274,8 @@ const visualizationSelection = ref<Opt<VisualizationIdentifier>>(
 
 // === Documentation Panel ===
 
-watch(selectedSuggestionId, (id) => emit('selectedSuggestionId', id))
-watch(input.isAiPrompt, (v) => emit('isAiPrompt', v))
+watch(selectedSuggestionId, (id) => emit('selectedSuggestionId', id ?? null))
+watch(input.mode, (mode) => emit('isAiPrompt', mode.mode === 'aiPrompt'))
 
 // === Accepting Entry ===
 
