@@ -88,7 +88,11 @@ impl RunsOn for (OS, Arch) {
         match self {
             (OS::MacOS, Arch::X86_64) => vec![RunnerLabel::MacOS12],
             (os, Arch::X86_64) => runs_on(*os, RunnerType::SelfHosted),
-            (OS::MacOS, Arch::AArch64) => runs_on(OS::MacOS, RunnerType::GitHubHosted),
+            (OS::MacOS, Arch::AArch64) => {
+                let mut ret = runs_on(OS::MacOS, RunnerType::SelfHosted);
+                ret.push(RunnerLabel::Arm64);
+                ret
+            }
             _ => panic!("Unsupported OS/arch combination: {self:?}"),
         }
     }
