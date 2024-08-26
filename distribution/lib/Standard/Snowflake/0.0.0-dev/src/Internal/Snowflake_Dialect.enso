@@ -22,7 +22,6 @@ import Standard.Database.Internal.Aggregate_Helper.Aggregate_With_Helper_Express
 import Standard.Database.Internal.Base_Generator
 import Standard.Database.Internal.Common.Database_Distinct_Helper
 import Standard.Database.Internal.Common.Database_Join_Helper
-import Standard.Database.Internal.Common.Row_Number_Helpers
 import Standard.Database.Internal.Error_Mapper.Error_Mapper
 import Standard.Database.Internal.Internals_Access
 import Standard.Database.Internal.IR.Context.Context
@@ -30,6 +29,7 @@ import Standard.Database.Internal.IR.Context.Context_Extension
 import Standard.Database.Internal.IR.From_Spec.From_Spec
 import Standard.Database.Internal.IR.Internal_Column.Internal_Column
 import Standard.Database.Internal.IR.Nulls_Order.Nulls_Order
+import Standard.Database.Internal.IR.Operation_Metadata
 import Standard.Database.Internal.IR.Order_Descriptor.Order_Descriptor
 import Standard.Database.Internal.IR.Query.Query
 import Standard.Database.Internal.IR.SQL_Expression.SQL_Expression
@@ -318,33 +318,33 @@ type Snowflake_Dialect
        If tried to be used inside of a group by, it yields an error:
            Window function [FIRST_VALUE(T.A) OVER (PARTITION BY T.B ORDER BY T.C ASC NULLS LAST)] may not appear inside an aggregate function.
     custom_build_aggregate self =
-        create_row_number_for orderings key_columns =
+        create_window_function op col ignore_nothing orderings key_columns =
             order_descriptors = orderings.map o-> self.prepare_order_descriptor o.column o.direction text_ordering=Nothing
-            key_expressions_for_orderings = key_columns.map .expression
-            expression = Row_Number_Helpers.make_row_number 1 1 order_descriptors key_expressions_for_orderings
-            Pair.new "row-number" expression
+            grouping_expressions = key_columns.map .expression
+
+            effective_op = if ignore_nothing then op+"_IGNORE_NULL" else op
+            params = [col.expression] + order_descriptors + grouping_expressions
+            metadata = Operation_Metadata.Row_Number_Metadata.Value grouping_expressions.length
+            expression = SQL_Expression.Operation op params metadata
+            Pair.new effective_op expression
 
         create_helper_expressions aggregate_column key_columns =
-            make_helper_for_first_last order_by =
-                if Aggregate_Helper.is_non_empty_selector order_by then [create_row_number_for order_by key_columns] else []
+            make_window_for_first_last op agg =
+                if Aggregate_Helper.is_non_empty_selector agg.order_by then [create_window_function op agg.column agg.ignore_nothing agg.order_by key_columns] else []
             case aggregate_column of
-                Aggregate_Column.First _ _ _ order_by -> make_helper_for_first_last order_by
-                Aggregate_Column.Last _ _ _ order_by  -> make_helper_for_first_last order_by
+                Aggregate_Column.First _ _ _ _ -> make_window_for_first_last "FIRST_VALUE" aggregate_column
+                Aggregate_Column.Last _ _ _ _  -> make_window_for_first_last "LAST_VALUE" aggregate_column
                 _ -> []
 
         make_aggregate aggregate_column as helper_expressions base_table infer_return_type problem_builder =
-            make_first_last op_kind = if Aggregate_Helper.is_non_empty_selector aggregate_column.order_by . not then Aggregate_Helper.throw_ordering_required (op_kind.to_case ..Title) else
+            make_first_last op = if Aggregate_Helper.is_non_empty_selector aggregate_column.order_by . not then Aggregate_Helper.throw_ordering_required op else
                 Runtime.assert (helper_expressions.length == 1)
-                row_number = helper_expressions.first
-                op = case aggregate_column.ignore_nothing of
-                    False -> op_kind
-                    True  -> op_kind + "_NOT_NULL"
-                # We just inherit the type of the source column, as the FIRST/LAST element of a column should have the same type.
+                window = helper_expressions.first
                 sql_type_reference = aggregate_column.column.sql_type_reference
-                Internal_Column.Value as sql_type_reference (SQL_Expression.Operation op [aggregate_column.column.expression, row_number.expression])
+                Internal_Column.Value as sql_type_reference (SQL_Expression.Operation "ANY_VALUE" [window.expression])
             case aggregate_column of
-                Aggregate_Column.First _ _ _ _ -> make_first_last "FIRST"
-                Aggregate_Column.Last _ _ _ _ -> make_first_last "LAST"
+                Aggregate_Column.First _ _ _ _ -> make_first_last "First"
+                Aggregate_Column.Last _ _ _ _ -> make_first_last "Last"
                 _ -> Aggregate_Helper.make_aggregate_column base_table aggregate_column as self infer_return_type problem_builder
 
         setup = Aggregate_With_Helper_Expressions.Value create_helper_expressions make_aggregate
@@ -411,11 +411,23 @@ agg_percentile = Base_Generator.lift_binary_op "PERCENTILE" p-> expr->
 
 ## PRIVATE
 first_last_aggregators =
-    first = make_first_aggregator reverse=False ignore_null=False
-    first_not_null = make_first_aggregator reverse=False ignore_null=True
-    last = make_first_aggregator reverse=True ignore_null=False
-    last_not_null = make_first_aggregator reverse=True ignore_null=True
-    [["FIRST", first], ["FIRST_NOT_NULL", first_not_null], ["LAST", last], ["LAST_NOT_NULL", last_not_null]]
+    make_op op:Text ignore_null:Boolean (arguments : Vector) (metadata : Operation_Metadata.Row_Number_Metadata) =
+        column = arguments.first
+        ordering_and_grouping = arguments.drop 1
+        ordering = ordering_and_grouping.drop (..Last metadata.groupings_count)
+        grouping = ordering_and_grouping.take (..Last metadata.groupings_count)
+
+        filter_clause = if ignore_null then "IGNORE NULLS " else ""
+        group_part = if grouping.length == 0 then "" else
+            SQL_Builder.code "PARTITION BY " ++ SQL_Builder.join ", " grouping
+        SQL_Builder.code "(" ++ op ++ "(" ++ column ++ ") " ++ filter_clause ++ "OVER (" ++ group_part ++ " ORDER BY " ++ SQL_Builder.join ", " ordering ++ "))"
+
+    first_value = make_op "FIRST_VALUE" ignore_null=False
+    last_value = make_op "LAST_VALUE" ignore_null=False
+    first_value_ignore_null = make_op "FIRST_VALUE" ignore_null=True
+    last_value_ignore_null = make_op "LAST_VALUE" ignore_null=True
+    any_value = Base_Generator.make_function "ANY_VALUE"
+    [["FIRST_VALUE", first_value], ["LAST_VALUE", last_value], ["FIRST_VALUE_IGNORE_NULL", first_value_ignore_null], ["LAST_VALUE_IGNORE_NULL", last_value_ignore_null], ["ANY_VALUE", any_value]]
 
 ## PRIVATE
 make_first_aggregator reverse ignore_null args =
