@@ -684,6 +684,37 @@ lazy val componentModulesPaths =
   ourMods ++ thirdPartyModFiles
 }
 
+/**
+ * Common settings for our wrappers of some *problematic* dependencies that are not
+ * compatible with the JPMS system, i.e., these dependencies cannot be put on module-path.
+ * These projects contain only single `module-info.java` source.
+ * Before this source is compiled, all the dependencies are gathered via the `assembly`
+ * task into a Jar.
+ * The `module-info.java` exports all the packages from these dependencies.
+ * Note that this is the recommended way how to handle dependencies that are not
+ * JPMS-friendly.
+ *
+ * `exportedModule` of these projects return path to the assembled modular Jar.
+ * The projects should define:
+ * - `moduleDependencies`
+ * - `patchModules`
+ * - `assembly / assemblyExcludedJars`
+ */
+lazy val modularFatJarWrapperSettings = frgaalJavaCompilerSetting ++ Seq(
+  javacOptions ++= {
+    JPMSPlugin.constructOptions(
+      streams.value.log,
+      modulePath   = modulePath.value,
+      patchModules = patchModules.value
+    )
+  },
+  forceModuleInfoCompilation := true,
+  exportedModuleBin := assembly
+    .dependsOn(compileModuleInfo)
+    .value,
+  exportedModule := exportedModuleBin.value,
+)
+
 // ============================================================================
 // === Internal Libraries =====================================================
 // ============================================================================
@@ -1088,7 +1119,7 @@ lazy val `scala-libs-wrapper` = project
   .in(file("lib/java/scala-libs-wrapper"))
   .enablePlugins(JPMSPlugin)
   .settings(
-    frgaalJavaCompilerSetting,
+    modularFatJarWrapperSettings,
     javaModuleName := "org.enso.scala.wrapper",
     libraryDependencies ++= circe ++ Seq(
       "com.typesafe.scala-logging"            %% "scala-logging"         % scalaLoggingVersion,
@@ -1104,20 +1135,6 @@ lazy val `scala-libs-wrapper` = project
       "org.scala-lang" % "scala-compiler" % scalacVersion,
       "org.jline"      % "jline"          % jlineVersion
     ),
-    javacOptions ++= {
-      JPMSPlugin.constructOptions(
-        streams.value.log,
-        modulePath   = modulePath.value,
-        patchModules = patchModules.value
-      )
-    },
-    forceModuleInfoCompilation := true,
-    exportedModuleBin := assembly
-      .dependsOn(compileModuleInfo)
-      .value,
-    exportedModule := assembly
-      .dependsOn(compileModuleInfo)
-      .value,
     assembly / assemblyExcludedJars := {
       JPMSUtils.filterModulesFromClasspath(
         (Compile / fullClasspath).value,
@@ -1171,7 +1188,7 @@ lazy val `language-server-deps-wrapper` = project
   .in(file("lib/java/language-server-deps-wrapper"))
   .enablePlugins(JPMSPlugin)
   .settings(
-    frgaalJavaCompilerSetting,
+    modularFatJarWrapperSettings,
     libraryDependencies ++= Seq(
       "com.github.pureconfig" %% "pureconfig" % pureconfigVersion,
       "com.chuusai"           %% "shapeless"  % "2.3.10",
@@ -1181,20 +1198,6 @@ lazy val `language-server-deps-wrapper` = project
     moduleDependencies := Seq(
       "org.scala-lang" % "scala-library" % scalacVersion
     ),
-    javacOptions ++= {
-      JPMSPlugin.constructOptions(
-        streams.value.log,
-        modulePath   = modulePath.value,
-        patchModules = patchModules.value
-      )
-    },
-    forceModuleInfoCompilation := true,
-    exportedModuleBin := assembly
-      .dependsOn(compileModuleInfo)
-      .value,
-    exportedModule := assembly
-      .dependsOn(compileModuleInfo)
-      .value,
     assembly / assemblyExcludedJars := {
       val scalaVer = scalaBinaryVersion.value
       JPMSUtils.filterModulesFromClasspath(
@@ -1232,7 +1235,7 @@ lazy val `akka-wrapper` = project
   .in(file("lib/java/akka-wrapper"))
   .enablePlugins(JPMSPlugin)
   .settings(
-    frgaalJavaCompilerSetting,
+    modularFatJarWrapperSettings,
     libraryDependencies ++= akka ++ Seq(
       "org.scala-lang"            % "scala-library"            % scalacVersion,
       "org.scala-lang"            % "scala-reflect"            % scalacVersion,
@@ -1259,19 +1262,6 @@ lazy val `akka-wrapper` = project
       "com.google.protobuf" % "protobuf-java"    % "3.25.1",
       "org.reactivestreams" % "reactive-streams" % "1.0.3"
     ),
-    javacOptions ++= {
-      JPMSPlugin.constructOptions(
-        streams.value.log,
-        modulePath   = modulePath.value,
-        patchModules = patchModules.value
-      )
-    },
-    forceModuleInfoCompilation := true,
-    // First assemble, then compile `module-info.java`
-    exportedModuleBin := assembly
-      .dependsOn(compileModuleInfo)
-      .value,
-    exportedModule := exportedModuleBin.value,
     assembly / assemblyExcludedJars := {
       val scalaVer = scalaBinaryVersion.value
       val excludedJars = JPMSUtils.filterModulesFromUpdate(
