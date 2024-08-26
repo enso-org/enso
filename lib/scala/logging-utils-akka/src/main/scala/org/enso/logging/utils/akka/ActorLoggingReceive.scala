@@ -1,4 +1,4 @@
-package org.enso.logger.akka
+package org.enso.logging.utils.akka
 
 import akka.actor.Actor.Receive
 import akka.actor.ActorContext

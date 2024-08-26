@@ -1,4 +1,4 @@
-package org.enso.logger.akka;
+package org.enso.logging.utils.akka;
 
 import static org.slf4j.event.Level.*;
 

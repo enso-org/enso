@@ -2,7 +2,7 @@ package org.enso.projectmanager.infrastructure.languageserver
 
 import akka.actor.{Actor, ActorRef, Props}
 import com.typesafe.scalalogging.LazyLogging
-import org.enso.logger.akka.ActorMessageLogging
+import org.enso.logging.utils.akka.ActorMessageLogging
 import org.enso.projectmanager.boot.configuration.BootloaderConfig
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootLoader.{
   ServerBootFailed,

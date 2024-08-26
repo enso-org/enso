@@ -9,8 +9,8 @@ import org.enso.languageserver.runtime.RuntimeConnector.{
 }
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.lockmanager.server.LockManagerService
-import org.enso.logger.akka.ActorMessageLogging
 import org.enso.logger.masking.ToLogString
+import org.enso.logging.utils.akka.ActorMessageLogging
 import org.enso.polyglot.runtime.Runtime
 import org.enso.polyglot.runtime.Runtime.{Api, ApiEnvelope}
 import org.enso.polyglot.runtime.serde.ApiSerde
