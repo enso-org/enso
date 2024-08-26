@@ -1044,7 +1044,7 @@ add_specs suite_builder setup =
             table = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]]
             table.at "x" . round . name . should_equal "round([x])"
 
-        test_round_floatlike typ =
+        test_floatlike typ =
             group_builder.specify "should allow round on a "+typ.to_text+" column" <|
                 table = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]]
                 result = table.at "x" . cast typ . round
@@ -1063,7 +1063,6 @@ add_specs suite_builder setup =
                 result.to_vector.should_equal [50.0, 60.0, 350.0, 360.0, -50.0, -60.0, -350.0, -360.0]
                 result.name . should_equal "round([x])"
 
-        test_truncate_ceiling_floor_floatlike typ =
             group_builder.specify "should allow truncate on a "+typ.to_text+" column" <|
                 table = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]]
                 result = table.at "x" . cast typ . truncate
@@ -1082,12 +1081,15 @@ add_specs suite_builder setup =
                 result.to_vector.should_equal [0, 0, 3, 3, -1, -1, -4, -4]
                 result.name . should_equal "floor([x])"
 
-        test_round_floatlike Value_Type.Float
-        test_truncate_ceiling_floor_floatlike Value_Type.Float
+            group_builder.specify "should handle Nothing in rounding on a "+typ.to_text+" column" <|
+                table = table_builder [["x", [0.1, 0.9, 3.1, Nothing, Nothing, -0.9, -3.1, -3.9]]]
+                result = table.at "x" . cast typ . round
+                result.to_vector.should_equal [0, 1, 3, Nothing, Nothing, -1, -3, -4]
+                result.name . should_equal "round([x])"
+
+        test_floatlike Value_Type.Float
         if setup.test_selection.supports_decimal_type then
-            test_truncate_ceiling_floor_floatlike Value_Type.Decimal
-        if setup.test_selection.supports_decimal_type then
-            test_round_floatlike Value_Type.Decimal
+            test_floatlike Value_Type.Decimal
 
         group_builder.specify "should allow round on an int column" <|
             table = table_builder [["x", [1, 9, 31, 39, -1, -9, -31, -39]]]
