@@ -1,13 +1,9 @@
 package org.enso.interpreter.runtime;
 
-import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.Enumeration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import org.enso.ClassLoaderConstants;
-import org.graalvm.polyglot.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,15 +17,9 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable {
 
   private final Map<String, Class<?>> loadedClasses = new ConcurrentHashMap<>();
   private static final Logger logger = LoggerFactory.getLogger(HostClassLoader.class);
-  // Classes from "org.graalvm" packages are loaded either by a class loader for the boot
-  // module layer, or by a specific class loader, depending on how enso is run. For example,
-  // if enso is run via `org.graalvm.polyglot.Context.eval` from `javac`, then the graalvm
-  // classes are loaded via a class loader somehow created by `javac` and not by the boot
-  // module layer's class loader.
-  private static final ClassLoader polyglotClassLoader = Context.class.getClassLoader();
 
   public HostClassLoader() {
-    super(new URL[0], polyglotClassLoader);
+    super(new URL[0]);
   }
 
   void add(URL u) {
@@ -50,9 +40,6 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable {
       logger.trace("Class {} found in cache", name);
       return l;
     }
-    if (ClassLoaderConstants.CLASS_DELEGATION_PATTERNS.stream().anyMatch(name::startsWith)) {
-      return polyglotClassLoader.loadClass(name);
-    }
     try {
       l = findClass(name);
       if (resolve) {
@@ -64,24 +51,6 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable {
     } catch (ClassNotFoundException ex) {
       logger.trace("Class {} not found, delegating to super", name);
       return super.loadClass(name, resolve);
-    }
-  }
-
-  @Override
-  public URL findResource(String name) {
-    if (ClassLoaderConstants.CLASS_DELEGATION_PATTERNS.stream().anyMatch(name::startsWith)) {
-      return polyglotClassLoader.getResource(name);
-    } else {
-      return super.findResource(name);
-    }
-  }
-
-  @Override
-  public Enumeration<URL> findResources(String name) throws IOException {
-    if (ClassLoaderConstants.CLASS_DELEGATION_PATTERNS.stream().anyMatch(name::startsWith)) {
-      return polyglotClassLoader.getResources(name);
-    } else {
-      return super.findResources(name);
     }
   }
 
