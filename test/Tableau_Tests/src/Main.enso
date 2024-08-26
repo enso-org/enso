@@ -7,7 +7,7 @@ import project.Structure_Spec
 
 polyglot java import java.lang.System as Java_System
 
-## Hyper DB support for Apple Slicon (aarch64) requires macOS 13 or newer.
+## Hyper DB support for Apple Silicon (aarch64) requires macOS 13 or newer.
 ## CI runner has macOS 12 and should be updated.
 skip_on_ci = is_on_ci && is_macos && is_aarch64
 is_on_ci = Java_System.getenv "CI" != Nothing
