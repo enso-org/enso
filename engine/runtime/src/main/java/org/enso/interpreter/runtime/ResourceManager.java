@@ -7,23 +7,35 @@ import java.lang.ref.PhantomReference;
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import org.enso.interpreter.runtime.data.ManagedResource;
 
 /** Allows the context to attach garbage collection hooks on the removal of certain objects. */
 public final class ResourceManager {
-  private final EnsoContext context;
-  private volatile boolean isClosed = false;
-  private volatile Thread workerThread;
-  private final ProcessItems worker = new ProcessItems();
+  /** how many milliseconds to wait for another resource when no is available */
+  private static final long KEEP_ALIVE = 1000;
+
+  /** Queue with resources eligible for finalization */
   private final ReferenceQueue<ManagedResource> referenceQueue = new ReferenceQueue<>();
-  private final ConcurrentMap<PhantomReference<ManagedResource>, Item> items =
-      new ConcurrentHashMap<>();
+
+  private final EnsoContext context;
+
+  /**
+   * @GuardedBy("this")
+   */
+  private ProcessItems processor;
+
+  /**
+   * @GuardedBy("this")
+   */
+  private boolean isClosed;
 
   /**
    * Creates a new instance of Resource Manager.
@@ -58,11 +70,6 @@ public final class ResourceManager {
         removeFromItems(it);
       }
     }
-  }
-
-  @CompilerDirectives.TruffleBoundary
-  private Item removeFromItems(PhantomReference<ManagedResource> it) {
-    return items.remove(it);
   }
 
   /**
@@ -100,20 +107,15 @@ public final class ResourceManager {
    * @return a wrapper object, containing the resource and serving as a reachability probe
    */
   @CompilerDirectives.TruffleBoundary
-  public ManagedResource register(Object object, Object function) {
+  public synchronized ManagedResource register(Object object, Object function) {
     if (isClosed) {
       throw EnsoContext.get(null)
           .raiseAssertionPanic(
               null, "Can't register new resources after resource manager is closed.", null);
     }
-    if (workerThread == null || !workerThread.isAlive()) {
-      worker.setKilled(false);
-      workerThread = context.createThread(true, worker);
-      workerThread.start();
-    }
     var resource = new ManagedResource(object, r -> new Item(r, object, function, referenceQueue));
     var ref = (Item) resource.getPhantomReference();
-    items.put(ref, ref);
+    addPendingItem(ref);
     return resource;
   }
 
@@ -125,24 +127,45 @@ public final class ResourceManager {
    * will be run in it.
    */
   public void shutdown() {
-    isClosed = true;
-    worker.setKilled(true);
-    if (workerThread != null) {
-      while (true) {
-        try {
-          workerThread.interrupt();
-          workerThread.join();
-          break;
-        } catch (InterruptedException ignored) {
-        }
+    Collection<Item> toFinalize;
+    synchronized (this) {
+      isClosed = true;
+      if (processor != null) {
+        toFinalize = processor.shutdown();
+      } else {
+        toFinalize = Collections.emptyList();
       }
     }
-    for (PhantomReference<ManagedResource> key : items.keySet()) {
-      Item it = removeFromItems(key);
-      if (it != null) {
-        // Finalize unconditionally – all other threads are dead by now.
-        it.finalizeNow(context);
-      }
+    for (var it : toFinalize) {
+      // Finalize unconditionally – all other threads are dead by now.
+      it.finalizeNow(context);
+    }
+  }
+
+  /**
+   * Adds pending item into the existing processor. If there is no processor, it allocates new and
+   * starts its processing thread.
+   */
+  @CompilerDirectives.TruffleBoundary
+  private synchronized void addPendingItem(Item item) {
+    if (processor == null) {
+      processor = new ProcessItems(r -> context.createThread(true, r));
+    }
+    processor.add(item);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private synchronized void removeFromItems(PhantomReference<ManagedResource> it) {
+    if (processor != null && it instanceof Item item) {
+      processor.remove(item);
+    }
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private synchronized void shutdownProcessorIfNoPending() {
+    if (processor != null && processor.isPendingEmpty()) {
+      processor.killed = true;
+      processor = null;
     }
   }
 
@@ -153,25 +176,56 @@ public final class ResourceManager {
    */
   private final class ProcessItems extends ThreadLocalAction implements Runnable {
     /**
-     * @GuardedBy("pendingItems")
+     * @GuardedBy("ResourceManager.this")
      */
     private final List<Item> pendingItems = new ArrayList<>();
 
     /**
-     * @GuardedBy("pendingItems")
+     * @GuardedBy("toFinalize")
      */
-    private Future<Void> request;
+    private final List<Item> toFinalize = new ArrayList<>();
 
-    private volatile boolean killed = false;
+    /**
+     * @GuardedBy("toFinalize")
+     */
+    private Future<Void> safepointRequest;
 
-    ProcessItems() {
+    private final Thread workerThread;
+
+    private volatile boolean killed;
+
+    ProcessItems(Function<Runnable, Thread> threadFactory) {
       super(false, false, true);
+      this.workerThread = threadFactory.apply(this);
+      this.workerThread.start();
+    }
+
+    /** Registers another Item for this processor. */
+    final void add(Item item) {
+      assert Thread.holdsLock(ResourceManager.this);
+      pendingItems.add(item);
+    }
+
+    /** Removes an Item from this processor. */
+    final void remove(Item item) {
+      assert Thread.holdsLock(ResourceManager.this);
+      pendingItems.remove(item);
+      if (pendingItems.isEmpty()) {
+        workerThread.interrupt();
+      }
+    }
+
+    /** Is pending list empty? */
+    final boolean isPendingEmpty() {
+      synchronized (ResourceManager.this) {
+        return pendingItems.isEmpty();
+      }
     }
 
     /**
      * Runs at a safe point in middle of regular Enso program execution. Gathers all available
-     * {@link #pendingItems} and runs their finalizers. Removes all processed items from {@link
-     * #pendingItems}. If there are any remaining, continues processing them. Otherwise finishes.
+     * {@link #toFinalize} and runs their finalizers. Removes all processed items from {@link
+     * #toFinalize}. If there are any remaining, continues processing them. Otherwise finishes.
      *
      * @param access not used for anything
      */
@@ -180,27 +234,27 @@ public final class ResourceManager {
       var isMyThreadChoosen = false;
       for (; ; ) {
         Item[] toProcess;
-        synchronized (pendingItems) {
+        synchronized (toFinalize) {
           if (!isMyThreadChoosen) {
-            if (request == null || request.isCancelled()) {
-              // some thread is already handing the request
+            if (safepointRequest == null || safepointRequest.isCancelled()) {
+              // some thread is already handing the safepointRequest
               return;
             } else {
-              // I am choosen and I will loop and process pendingItems
+              // I am choosen and I will loop and process toFinalize
               // until they are available
               isMyThreadChoosen = true;
-              // signal others this request has choosen thread
-              request.cancel(false);
+              // signal others this safepointRequest has choosen thread
+              safepointRequest.cancel(false);
             }
           }
-          if (pendingItems.isEmpty()) {
+          if (toFinalize.isEmpty()) {
             // nothing to process anymore,
-            // signal request is finished and new one shall be scheduled
-            request = null;
+            // signal safepointRequest is finished and new one shall be scheduled
+            safepointRequest = null;
             return;
           }
-          toProcess = pendingItems.toArray(Item[]::new);
-          pendingItems.clear();
+          toProcess = toFinalize.toArray(Item[]::new);
+          toFinalize.clear();
         }
         for (var it : toProcess) {
           it.finalizeNow(context);
@@ -212,21 +266,32 @@ public final class ResourceManager {
     /**
      * Running in its own thread. Waiting for {@link #referenceQueue} to be populated with GCed
      * items. Scheduling {@link #perform} action at safe points while passing the {@link Item}s to
-     * it via {@link #pendingItems}.
+     * it via {@link #toFinalize}.
      */
     @Override
     public void run() {
       while (true) {
         try {
-          Reference<? extends ManagedResource> ref = referenceQueue.remove();
+          Reference<? extends ManagedResource> ref;
+          if (isPendingEmpty()) {
+            ref = referenceQueue.remove(KEEP_ALIVE);
+            if (ref == null) {
+              shutdownProcessorIfNoPending();
+            }
+          } else {
+            ref = referenceQueue.remove();
+          }
           if (!killed) {
             if (ref instanceof Item it) {
               it.flaggedForFinalization.set(true);
-              synchronized (pendingItems) {
-                if (request == null) {
-                  request = context.submitThreadLocal(null, this);
+              synchronized (toFinalize) {
+                if (safepointRequest == null) {
+                  safepointRequest = context.submitThreadLocal(null, this);
                 }
-                pendingItems.add(it);
+                toFinalize.add(it);
+              }
+              synchronized (ResourceManager.this) {
+                remove(it);
               }
             }
           }
@@ -246,10 +311,21 @@ public final class ResourceManager {
      * stop execution at the soonest possible safe point. Other than setting this flag, the thread
      * should also be interrupted to read it, in case it is blocked on an interruptible operation.
      *
-     * @param killed whether the thread should stop execution upon reading the flag.
+     * @return the list of items that deserve to be finalized
      */
-    void setKilled(boolean killed) {
-      this.killed = killed;
+    Collection<Item> shutdown() {
+      this.killed = true;
+      workerThread.interrupt();
+      while (workerThread.isAlive()) {
+        try {
+          workerThread.join();
+        } catch (InterruptedException ex) {
+        }
+      }
+      var all = new HashSet<Item>();
+      all.addAll(toFinalize);
+      all.addAll(pendingItems);
+      return all;
     }
   }
 
