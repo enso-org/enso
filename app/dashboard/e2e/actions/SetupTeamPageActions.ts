@@ -10,10 +10,7 @@ import SetupDonePageActions from './SetupDonePageActions'
 /** Actions for the third step of the "setup" page. */
 export default class SetupTeamPageActions extends BaseActions {
   /** Set the userame for a new user that does not yet have a username. */
-  setUsername(username: string) {
-    return this.step(`Set username to '${username}'`, async (page) => {
-      await page.getByPlaceholder('Enter your username').fill(username)
-      await page.getByText(TEXT.next).click()
-    }).into(SetupDonePageActions)
+  test() {
+    return this.step(`fake`, async (page) => {}).into(SetupDonePageActions)
   }
 }

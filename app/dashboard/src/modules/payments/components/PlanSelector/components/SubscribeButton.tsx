@@ -8,7 +8,7 @@ import { useText } from '#/providers/TextProvider'
 
 import { Button, DialogTrigger, Text } from '#/components/AriaComponents'
 
-import { TRIAL_DURATION_DAYS } from '../../../constants'
+import { PLAN_TO_UPGRADE_LABEL_ID, TRIAL_DURATION_DAYS } from '../../../constants'
 import { PlanSelectorDialog, type PlanSelectorDialogProps } from './PlanSelectorDialog'
 
 /**
@@ -98,7 +98,15 @@ export function SubscribeButton(props: SubscribeButtonProps) {
   return (
     <div className="w-full text-center">
       <DialogTrigger defaultOpen={disabled ? false : defaultOpen}>
-        <Button fullWidth isDisabled={disabled} variant={variant} size="medium" rounded="full">
+        <Button
+          fullWidth
+          isDisabled={disabled}
+          variant={variant}
+          size="medium"
+          rounded="full"
+          aria-label={getText(PLAN_TO_UPGRADE_LABEL_ID[plan])}
+          tooltip={false}
+        >
           {buttonText}
         </Button>
 

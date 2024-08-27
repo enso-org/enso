@@ -32,6 +32,8 @@ const GLOB_DIRECTORY_ID = backend.DirectoryId('*')
 const GLOB_PROJECT_ID = backend.ProjectId('*')
 /** A tag ID that is a path glob. */
 const GLOB_TAG_ID = backend.TagId('*')
+/** A checkout session ID that is a path glob. */
+const GLOB_CHECKOUT_SESSION_ID = backend.CheckoutSessionId('*')
 /* eslint-enable no-restricted-syntax */
 const BASE_URL = 'https://mock/'
 
@@ -109,6 +111,13 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
   const users: backend.User[] = [defaultUser]
   const usersMap = new Map<backend.UserId, backend.User>()
   const userGroups: backend.UserGroupInfo[] = []
+  const checkoutSessionsMap = new Map<
+    backend.CheckoutSessionId,
+    {
+      readonly body: backend.CreateCheckoutSessionRequestBody
+      readonly status: backend.CheckoutSessionStatus
+    }
+  >()
 
   usersMap.set(defaultUser.userId, defaultUser)
 
@@ -249,6 +258,25 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         object.unsafeMutable(asset).labels = newLabels
       }
     }
+  }
+
+  const createCheckoutSession = (
+    body: backend.CreateCheckoutSessionRequestBody,
+    rest: Partial<backend.CheckoutSessionStatus> = {},
+  ) => {
+    const id = backend.CheckoutSessionId(`checkoutsession-${uniqueString.uniqueString()}`)
+    const status = rest.status ?? 'trialing'
+    const paymentStatus = status === 'trialing' ? 'no_payment_needed' : 'unpaid'
+    const checkoutSessionStatus = {
+      status,
+      paymentStatus,
+      ...rest,
+    } satisfies backend.CheckoutSessionStatus
+    checkoutSessionsMap.set(id, { body, status: checkoutSessionStatus })
+    return {
+      id,
+      clientSecret: '',
+    } satisfies backend.CheckoutSession
   }
 
   const addUser = (name: string, rest: Partial<backend.User> = {}) => {
@@ -426,7 +454,9 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     }
 
     await page.route(BASE_URL + '**', (_route, request) => {
-      throw new Error(`Missing route handler for '${request.url().replace(BASE_URL, '')}'.`)
+      throw new Error(
+        `Missing route handler for '${request.method()} ${request.url().replace(BASE_URL, '')}'.`,
+      )
     })
 
     // === Mock Cognito endpoints ===
@@ -709,6 +739,31 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
 
     // === Other endpoints ===
 
+    await post(remoteBackendPaths.CREATE_CHECKOUT_SESSION_PATH + '*', async (_route, request) => {
+      // The type of the body sent by this app is statically known.
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const body: backend.CreateCheckoutSessionRequestBody = await request.postDataJSON()
+      return createCheckoutSession(body)
+    })
+    await get(
+      remoteBackendPaths.getCheckoutSessionPath(GLOB_CHECKOUT_SESSION_ID) + '*',
+      (_route, request) => {
+        const checkoutSessionId = request.url().match(/[/]payments[/]subscriptions[/]([^/?]+)/)?.[1]
+        if (checkoutSessionId == null) {
+          throw new Error('GetCheckoutSession: Missing checkout session ID in path')
+        } else {
+          const result = checkoutSessionsMap.get(backend.CheckoutSessionId(checkoutSessionId))
+          if (result) {
+            if (currentUser) {
+              object.unsafeMutable(currentUser).plan = result.body.plan
+            }
+            return result.status
+          } else {
+            throw new Error('GetCheckoutSession: Unknown checkout session ID')
+          }
+        }
+      },
+    )
     await patch(remoteBackendPaths.updateAssetPath(GLOB_ASSET_ID), (_route, request) => {
       const assetId = request.url().match(/[/]assets[/]([^?]+)/)?.[1] ?? ''
       // The type of the body sent by this app is statically known.
@@ -960,6 +1015,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     createLabel,
     addLabel,
     setLabels,
+    createCheckoutSession,
     addUser,
     deleteUser,
     addUserGroup,
