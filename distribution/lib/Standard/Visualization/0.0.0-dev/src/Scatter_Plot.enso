@@ -83,8 +83,7 @@ type Point_Data
         Point_Data.Y_multi _ ->
             x_column = Point_Data.X.lookup_in table
             y_column = Point_Data.Y.lookup_in table
-            size_column = Point_Data.Size.lookup_in table
-            candidates_filtered = table.columns.filter (c-> c.is_numeric && c.name != x_column.name && c.name != y_column.name && c.name != size_column.name)
+            candidates_filtered = table.columns.filter (c-> c.is_numeric && c.name != x_column.name && c.name != y_column.name && c.name != Point_Data.Size.name)
             candidates = candidates_filtered.drop self.number
             is_good c = (self.is_recognized c).not
 
