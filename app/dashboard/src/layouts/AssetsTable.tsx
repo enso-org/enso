@@ -368,7 +368,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       : backend.rootDirectoryId(user, organization)
     invariant(id, 'Missing root directory')
     return id
-  }, [backend, user])
+  }, [backend, user, category, organization])
 
   const rootParentDirectoryId = backendModule.DirectoryId('')
   const rootDirectory = React.useMemo(
