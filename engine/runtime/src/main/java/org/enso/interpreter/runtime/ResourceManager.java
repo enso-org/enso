@@ -114,7 +114,7 @@ public final class ResourceManager {
 
   /**
    * Registers a new resource to the system. {@code function} will be called on {@code object} when
-   * the value returned by this removeNextQueuedItem becomes unreachable.
+   * the value returned by this method becomes unreachable.
    *
    * @param object the underlying resource
    * @param function the finalizer action to call on the underlying resource
@@ -159,7 +159,7 @@ public final class ResourceManager {
       }
     }
     for (var it : toFinalize) {
-      // Finalize unconditionally – all other threads are dead by now.
+      // Finalize unconditionally – these items weren't picked by any thread.
       it.finalizeNow(context);
     }
   }
@@ -180,6 +180,9 @@ public final class ResourceManager {
   private synchronized void removeFromItems(PhantomReference<ManagedResource> it) {
     if (it instanceof Item item) {
       pendingItems.remove(item);
+      if (pendingItems.isEmpty() && processor != null) {
+        processor.awake();
+      }
     }
   }
 
@@ -187,7 +190,7 @@ public final class ResourceManager {
    * Awaits next item in the queue, if any.
    *
    * @param p the processor that queries
-   * @return item from queue or {@code null} if {@code p} processor is eligible for shutdown
+   * @return item from queue or {@code null} if {@code p} processor may be eligible for a shutdown
    */
   @CompilerDirectives.TruffleBoundary
   private Reference<? extends ManagedResource> removeNextQueuedItem(ProcessItems p) {
@@ -228,8 +231,8 @@ public final class ResourceManager {
 
   /**
    * Processes {@link Item}s eligible for GC. Plays two roles. First of all cleans {@link
-   * #referenceQueue} in {@link #run()} removeNextQueuedItem running in its own thread. Then it
-   * invokes finalizers in {@link #perform} removeNextQueuedItem inside of Enso execution context.
+   * #referenceQueue} in {@link #run()} method running in its own thread. Then it invokes finalizers
+   * in {@link #perform} method inside of Enso execution context.
    */
   private final class ProcessItems extends ThreadLocalAction implements Runnable {
     private final Thread workerThread;
@@ -328,6 +331,13 @@ public final class ResourceManager {
       }
     }
 
+    /** Awakes the associated {@link #workerThread} by interrupting it. */
+    void awake() {
+      if (workerThread != null) {
+        workerThread.interrupt();
+      }
+    }
+
     /**
      * Awaits shutdown of the worker thread. Can only be called when this processor is no longer
      * active.
@@ -337,7 +347,7 @@ public final class ResourceManager {
     Collection<Item> awaitShutdown() {
       assert !isActive() : "Ready to shutdown";
       assert Thread.currentThread() != workerThread : "Cannot shutdown own thread";
-      workerThread.interrupt();
+      awake();
       while (workerThread.isAlive()) {
         try {
           workerThread.join();
