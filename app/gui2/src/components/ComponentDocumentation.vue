@@ -19,7 +19,11 @@ function docsForSelection() {
   if (suggestionId == null) return Err('No documentation available for selected component')
   return Ok(suggestionId)
 }
-watchEffect(() => (displayedSuggestionId.value = props.displayedSuggestionId != null ? Ok(props.displayedSuggestionId) : docsForSelection()))
+watchEffect(
+  () =>
+    (displayedSuggestionId.value =
+      props.displayedSuggestionId != null ? Ok(props.displayedSuggestionId) : docsForSelection()),
+)
 </script>
 
 <template>

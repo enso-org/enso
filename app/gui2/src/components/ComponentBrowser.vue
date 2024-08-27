@@ -26,7 +26,7 @@ import { Vec2 } from '@/util/data/vec2'
 import { DEFAULT_ICON, suggestionEntryToIcon } from '@/util/getIconName'
 import { iconOfNode } from '@/util/getIconName.ts'
 import { debouncedGetter } from '@/util/reactivity'
-import type { ComponentInstance, Ref } from 'vue'
+import type { ComponentInstance } from 'vue'
 import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue'
 import type { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
@@ -63,9 +63,9 @@ const emit = defineEmits<{
     requiredImports: RequiredImport[],
     firstAppliedReturnType: Typename | undefined,
   ]
-  canceled: [],
-  selectedSuggestionId: [id: SuggestionId | null],
-  isAiPrompt: [boolean],
+  canceled: []
+  selectedSuggestionId: [id: SuggestionId | null]
+  isAiPrompt: [boolean]
 }>()
 
 const cbRoot = ref<HTMLElement>()
@@ -275,7 +275,10 @@ const visualizationSelection = ref<Opt<VisualizationIdentifier>>(
 // === Documentation Panel ===
 
 watch(selectedSuggestionId, (id) => emit('selectedSuggestionId', id ?? null))
-watch(input.mode, (mode) => emit('isAiPrompt', mode.mode === 'aiPrompt'))
+watch(
+  () => input.mode,
+  (mode) => emit('isAiPrompt', mode.mode === 'aiPrompt'),
+)
 
 // === Accepting Entry ===
 

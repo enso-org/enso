@@ -31,9 +31,15 @@ function clampSize(size: number) {
   return Math.max(size, MIN_DOCK_SIZE_PX)
 }
 
-const style = computed(() => ({
-  width: size.value != null ? `${clampSize(size.value)}px` : 'var(--right-dock-default-width)',
-}))
+const style = computed(() => {
+  if (show.value) {
+    return {
+      width: size.value != null ? `${clampSize(size.value)}px` : 'var(--right-dock-default-width)',
+    }
+  } else {
+    return { width: `0px` }
+  }
+})
 
 const tabStyle = {
   clipPath: tabClipPath(TAB_SIZE_PX, TAB_RADIUS_PX, 'right'),
@@ -45,7 +51,7 @@ const tabStyle = {
 </script>
 
 <template>
-  <div ref="root" class="DockPanelRoot" data-testid="rightDockRoot">
+  <div ref="root" class="DockPanelRoot" :style="style" data-testid="rightDockRoot">
     <ToggleIcon
       v-model="show"
       :title="`Documentation Panel (${documentationEditorBindings.bindings.toggle.humanReadable})`"
@@ -53,7 +59,7 @@ const tabStyle = {
       class="toggleDock"
     />
     <SizeTransition width :duration="100">
-      <div v-if="show" ref="slideInPanel" :style="style" class="DockPanel" data-testid="rightDock">
+      <div v-if="show" ref="slideInPanel" class="DockPanel" data-testid="rightDock">
         <div class="content">
           <slot v-if="tab == 'docs'" name="docs" />
           <slot v-else-if="tab == 'help'" name="help" />
@@ -62,17 +68,17 @@ const tabStyle = {
           <div class="tab" :style="tabStyle">
             <ToggleIcon
               :modelValue="tab == 'docs'"
-              @update:modelValue="tab = 'docs'"
               title="Documentation Editor"
               icon="text"
+              @update:modelValue="tab = 'docs'"
             />
           </div>
           <div class="tab" :style="tabStyle">
             <ToggleIcon
               :modelValue="tab == 'help'"
-              @update:modelValue="tab = 'help'"
               title="Component Help"
               icon="help"
+              @update:modelValue="tab = 'help'"
             />
           </div>
         </div>
@@ -85,9 +91,11 @@ const tabStyle = {
 <style scoped>
 .DockPanelRoot {
   display: flex;
+  justify-content: flex-end;
 }
 
 .DockPanel {
+  width: 100%;
   position: relative;
   --icon-margin: 16px;
   --icon-size: 16px;

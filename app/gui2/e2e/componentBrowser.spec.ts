@@ -11,6 +11,15 @@ async function deselectAllNodes(page: Page) {
   await expect(locate.selectedNodes(page)).toHaveCount(0)
 }
 
+async function disableDockPanel(page: Page) {
+  await locate.addNewNodeButton(page).click()
+  await expect(locate.componentBrowser(page)).toExist()
+  await expect(locate.componentBrowserEntry(page)).toExist()
+  await locate.rightDockRoot(page).locator('.toggleDock').click()
+  await page.keyboard.press('Escape')
+  await expect(locate.componentBrowser(page)).toBeHidden()
+}
+
 async function expectAndCancelBrowser(
   page: Page,
   expectedText: string,
@@ -33,11 +42,15 @@ async function expectAndCancelBrowser(
 
 test('Different ways of opening Component Browser', async ({ page }) => {
   await actions.goToGraph(page)
+  await disableDockPanel(page)
 
   // Without source node
 
   // (+) button
   await locate.addNewNodeButton(page).click()
+  await expect(locate.componentBrowser(page)).toExist()
+  await expect(locate.componentBrowserEntry(page)).toExist()
+  await locate.rightDockRoot(page).locator('.toggleDock').click()
   await expectAndCancelBrowser(page, '')
   // (+) button with selection (ignored)
   await locate.graphNodeByBinding(page, 'final').click()
@@ -91,6 +104,7 @@ test('Opening Component Browser with small plus buttons', async ({ page }) => {
 
 test('Graph Editor pans to Component Browser', async ({ page }) => {
   await actions.goToGraph(page)
+  await disableDockPanel(page)
 
   // Select node, pan out of view of it, press Enter; should pan to show node and CB
   await locate.graphNodeByBinding(page, 'final').click()
@@ -246,6 +260,7 @@ test('Visualization preview: type-based visualization selection', async ({ page 
 
 test('Visualization preview: user visualization selection', async ({ page }) => {
   await actions.goToGraph(page)
+  await disableDockPanel(page)
   const nodeCount = await locate.graphNode(page).count()
   await locate.addNewNodeButton(page).click()
   await expect(locate.componentBrowser(page)).toExist()

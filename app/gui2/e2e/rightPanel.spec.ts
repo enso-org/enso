@@ -77,7 +77,7 @@ test('Show component help setting', async ({ page }) => {
   const openCB = async () => {
     await locate.addNewNodeButton(page).click()
     await expect(locate.componentBrowser(page)).toExist()
-  await expect(locate.componentBrowserEntry(page)).toExist()
+    await expect(locate.componentBrowserEntry(page)).toExist()
   }
   const closeCB = async () => {
     await page.keyboard.press('Escape')
@@ -92,7 +92,7 @@ test('Show component help setting', async ({ page }) => {
   const expectDocPanelShown = async () => {
     await expect(locate.rightDock(page)).toBeVisible()
   }
-  
+
   await page.keyboard.press('Escape')
   await expect(locate.selectedNodes(page)).toHaveCount(0)
 

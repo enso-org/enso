@@ -17,7 +17,6 @@ import DocumentationEditor from '@/components/DocumentationEditor.vue'
 import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
 import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
 import { useGraphEditorClipboard } from '@/components/GraphEditor/clipboard'
-import { useSettings } from '@/stores/settings'
 import { performCollapse, prepareCollapsedInfo } from '@/components/GraphEditor/collapsing'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import { useGraphEditorToasts } from '@/components/GraphEditor/toasts'
@@ -26,7 +25,6 @@ import GraphMouse from '@/components/GraphMouse.vue'
 import PlusButton from '@/components/PlusButton.vue'
 import SceneScroller from '@/components/SceneScroller.vue'
 import TopBar from '@/components/TopBar.vue'
-import { targetIsOutside } from '@/util/autoBlur'
 import { builtinWidgets } from '@/components/widgets'
 import { useAstDocumentation } from '@/composables/astDocumentation'
 import { useDoubleClick } from '@/composables/doubleClick'
@@ -38,7 +36,6 @@ import { provideGraphNavigator, type GraphNavigator } from '@/providers/graphNav
 import { provideNodeColors } from '@/providers/graphNodeColors'
 import { provideNodeCreation } from '@/providers/graphNodeCreation'
 import { provideGraphSelection } from '@/providers/graphSelection'
-import type { SuggestionId } from '@/stores/suggestionDatabase/entry'
 import { provideStackNavigator } from '@/providers/graphStackNavigator'
 import { provideInteractionHandler } from '@/providers/interactionHandler'
 import { provideKeyboard } from '@/providers/keyboard'
@@ -47,11 +44,14 @@ import { provideWidgetRegistry } from '@/providers/widgetRegistry'
 import { provideGraphStore, type NodeId } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
+import { useSettings } from '@/stores/settings'
 import { provideSuggestionDbStore } from '@/stores/suggestionDatabase'
+import type { SuggestionId } from '@/stores/suggestionDatabase/entry'
 import { suggestionDocumentationUrl, type Typename } from '@/stores/suggestionDatabase/entry'
 import { provideVisualizationStore } from '@/stores/visualization'
 import { bail } from '@/util/assert'
 import type { AstId } from '@/util/ast/abstract'
+import { targetIsOutside } from '@/util/autoBlur'
 import { colorFromString } from '@/util/colors'
 import { partition } from '@/util/data/array'
 import { every, filterDefined } from '@/util/data/iterable'
@@ -106,7 +106,6 @@ const graphNavigator: GraphNavigator = provideGraphNavigator(viewportNode, keybo
 
 const storedShowRightDock = ref()
 const storedRightDockTab = ref()
-const storedRightDocCB = ref()
 const rightDockWidth = ref<number>()
 
 /**
@@ -128,8 +127,6 @@ interface GraphStoredState {
   rtab: 'docs' | 'help'
   /** Width of the right dock. */
   rwidth: number | null
-  /** Whether to show or hide Component Browser help in the right panel. */
-  rcb: 'show' | 'hide'
 }
 
 const visibleAreasReady = computed(() => {
@@ -159,7 +156,6 @@ useSyncLocalStorage<GraphStoredState>({
       doc: storedShowRightDock.value,
       rtab: storedRightDockTab.value,
       rwidth: rightDockWidth.value ?? null,
-      rcb: storedRightDocCB.value,
     }
   },
   async restoreState(restored, abort) {
@@ -170,7 +166,6 @@ useSyncLocalStorage<GraphStoredState>({
       storedShowRightDock.value = restored.doc ?? undefined
       storedRightDockTab.value = restored.rtab ?? undefined
       rightDockWidth.value = restored.rwidth ?? undefined
-      storedRightDocCB.value = restored.rcb ?? undefined
     } else {
       await until(visibleAreasReady).toBe(true)
       await until(visible).toBe(true)
@@ -424,14 +419,14 @@ const showRightDock = computedFallback(
   () => !!documentation.state.value,
 )
 const rightDockTab = computedFallback(storedRightDockTab, () => 'docs')
-const showCBDocs = computedFallback(
-  storedRightDocCB,
-  () => 'show',
-)
+
+/* Separate Dock Panel state when Component Browser is opened. */
+const rightDockTabForCB = ref('help')
+const rightDockVisibleForCB = ref(true)
 
 const documentationEditorHandler = documentationEditorBindings.handler({
   toggle() {
-    currentVis.value = !currentVis.value
+    rightDockVisible.value = !rightDockVisible.value
   },
 })
 
@@ -457,99 +452,43 @@ function hideComponentBrowser() {
   displayedDocs.value = null
 }
 
-/* 
-showHelp
-tab
-show
-CB
-
-currentTab = CB ? (showHelp ? : 'help' : CBtab) : tab
-currentVis = CB ? (showHelp ? : true : CBshow) : show
-
-currentTab:update => update showHelp & tab/CBtab
-currentVis:update => update showHelp & show/CBshow
-
-Case 1: ✅
-Doc tab opened, CB closed, showHelp = true
-Open CB
-tab = 'help'
-Close CB
-tab = 'doc'
-
-Case 2: ✅
-Doc tab opened, CB closed, showHelp = true
-Open CB
-tab = 'help'
-Choose 'doc' tab
-tab = 'doc'
-showHelp = false
-Close CB
-tab = 'doc'
-
-Case 3: ✅
-Doc tab opened, CB closed, showHelp = true
-Open CB
-tab = 'help'
-Close doc panel
-showHelp = false
-hide panel
-Close CB
-tab = 'doc'
-show panel
-
-Case 4:
-Doc tab opened, CB closed, showHelp = true
-Close doc panel
-hide panel
-Open CB
-show panel
-tab = 'help'
-Close CB
-hide panel
-Open doc panel
-show panel
-tab = 'doc'
-
-CBtab = 'doc'
-showHelpForCB = false
-
-showHelpForCB -> false && !showRightDock => currentVis = false
-
-when choosing another tab, showHelpForCB goes false, and the panel closes because showRightDock is false
-
-CBvis || showRightDock.value => now you can’t close the panel because only CBvis gets changed.
-*/
-
-const CBtab = ref('help')
-const CBvis = ref(true)
-const currentTab = computed({
+const rightDockDisplayedTab = computed({
   get() {
-    return componentBrowserVisible.value ? (userSettings.value.showHelpForCB ? 'help' : CBtab.value) : rightDockTab.value
+    if (componentBrowserVisible.value) {
+      return userSettings.value.showHelpForCB ? 'help' : rightDockTabForCB.value
+    } else {
+      return rightDockTab.value
+    }
   },
   set(tab) {
     if (componentBrowserVisible.value) {
-      CBtab.value = tab
+      rightDockTabForCB.value = tab
       userSettings.value.showHelpForCB = tab === 'help'
     } else {
       rightDockTab.value = tab
     }
-  }
+  },
 })
-const currentVis = computed({
+const rightDockVisible = computed({
   get() {
-    return componentBrowserVisible.value ? (userSettings.value.showHelpForCB ? true : CBvis.value || showRightDock.value) : showRightDock.value
+    if (componentBrowserVisible.value) {
+      return userSettings.value.showHelpForCB ?
+          true
+        : rightDockVisibleForCB.value || showRightDock.value
+    } else {
+      return showRightDock.value
+    }
   },
   set(vis) {
     if (componentBrowserVisible.value) {
-      CBvis.value = vis
+      rightDockVisibleForCB.value = vis
       userSettings.value.showHelpForCB = vis
       if (!vis) showRightDock.value = false
     } else {
       showRightDock.value = vis
     }
-  }
+  },
 })
-
 
 function editWithComponentBrowser(node: NodeId, cursorPos: number) {
   openComponentBrowser(
@@ -809,17 +748,17 @@ const groupColors = computed(() => {
           :closeIfClicked="closeIfClicked"
           @accepted="commitComponentBrowser"
           @canceled="hideComponentBrowser"
-          @selectedSuggestionId="(displayedDocs = $event)"
-          @isAiPrompt="(aiMode = $event)"
+          @selectedSuggestionId="displayedDocs = $event"
+          @isAiPrompt="aiMode = $event"
         />
         <TopBar
           v-model:recordMode="projectStore.recordMode"
           v-model:showColorPicker="showColorPicker"
           v-model:showCodeEditor="showCodeEditor"
-          v-model:showDocumentationEditor="currentVis"
+          v-model:showDocumentationEditor="rightDockVisible"
           :zoomLevel="100.0 * graphNavigator.targetScale"
           :componentsSelected="nodeSelection.selected.size"
-          :class="{ extraRightSpace: !currentVis }"
+          :class="{ extraRightSpace: !rightDockVisible }"
           @fitToAllClicked="zoomToSelected"
           @zoomIn="graphNavigator.stepZoom(+1)"
           @zoomOut="graphNavigator.stepZoom(-1)"
@@ -841,9 +780,9 @@ const groupColors = computed(() => {
     </div>
     <DockPanel
       ref="docPanel"
-      v-model:show="currentVis"
+      v-model:show="rightDockVisible"
       v-model:size="rightDockWidth"
-      v-model:tab="currentTab"
+      v-model:tab="rightDockDisplayedTab"
     >
       <template #docs>
         <DocumentationEditor

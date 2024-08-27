@@ -63,7 +63,7 @@ export function endOnClickOutside(
   area: Ref<Opt<Element | VueInstance>>,
   interaction: Interaction,
 ): Interaction {
-  return endOnClick(isClickOutside(area), interaction) 
+  return endOnClick(isClickOutside(area), interaction)
 }
 
 /** Returns a new interaction based on the given `interaction`. The new interaction will be ended if a pointerdown event

@@ -1,5 +1,5 @@
-import { createContextStore } from '@/providers'
 import { useSyncLocalStorage } from '@/composables/syncLocalStorage'
+import { createContextStore } from '@/providers'
 import { ref } from 'vue'
 
 /** Global application settings. */
@@ -28,9 +28,9 @@ export const { injectFn: useSettings, provideFn: provideSettings } = createConte
         if (restored) {
           user.value = { ...defaultUserSettings, ...restored }
         }
-      }
+      },
     })
 
     return { user }
-  }
+  },
 )
