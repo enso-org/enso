@@ -1,6 +1,7 @@
 package org.enso.languageserver.boot
 
 import akka.actor.ActorSystem
+import akka.stream.Materializer
 import buildinfo.Info
 import com.typesafe.config.ConfigFactory
 import org.enso.distribution.locking.{
@@ -62,7 +63,6 @@ import java.io.{File, PrintStream}
 import java.net.URI
 import java.nio.charset.StandardCharsets
 import java.time.Clock
-
 import scala.concurrent.duration.DurationInt
 
 /** A main module containing all components of the server.
@@ -110,7 +110,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   )
   log.trace("Created Language Server config [{}]", languageServerConfig)
 
-  implicit val system: ActorSystem =
+  val system: ActorSystem =
     ActorSystem(
       serverConfig.name,
       None,
@@ -453,7 +453,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     profilingManager       = profilingManager,
     libraryConfig          = libraryConfig,
     config                 = languageServerConfig
-  )
+  )(system)
   log.trace(
     "Created JSON connection controller factory [{}]",
     jsonRpcControllerFactory
@@ -466,6 +466,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
       Some(_)
     )
 
+  val materializer: Materializer = Materializer.createMaterializer(system)
   val jsonRpcServer =
     new JsonRpcServer(
       jsonRpcProtocolFactory,
@@ -478,21 +479,21 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
         ),
       List(healthCheckEndpoint, idlenessEndpoint),
       messagesCallback
-    )
+    )(system, materializer)
   log.trace("Created JSON RPC Server [{}]", jsonRpcServer)
 
   val binaryServer =
     new BinaryWebSocketServer(
       InboundMessageDecoder,
       BinaryEncoder.empty,
-      new BinaryConnectionControllerFactory(fileManager),
+      new BinaryConnectionControllerFactory(fileManager)(system),
       BinaryWebSocketServer.Config(
         outgoingBufferSize = 100,
         lazyMessageTimeout = 10.seconds,
         secureConfig       = secureConfig
       ),
       messagesCallback
-    )
+    )(system, materializer)
   log.trace("Created Binary WebSocket Server [{}]", binaryServer)
 
   log.debug(

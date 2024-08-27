@@ -409,20 +409,15 @@ val logbackPkg = Seq(
 )
 val akkaActor        = akkaPkg("actor")
 val akkaStream       = akkaPkg("stream")
-val akkaTyped        = akkaPkg("actor-typed")
 val akkaTestkit      = akkaPkg("testkit")
 val akkaSLF4J        = akkaPkg("slf4j")
-val akkaTestkitTyped = akkaPkg("actor-testkit-typed") % Test
 val akkaHttp         = akkaHTTPPkg("http")
-val akkaSpray        = akkaHTTPPkg("http-spray-json")
 val logbackTest      = logbackPkg.map(_ % Test)
 val akka =
   Seq(
     akkaActor,
     akkaStream,
     akkaHttp,
-    akkaSpray,
-    akkaTyped
   )
 
 // === Cats ===================================================================
