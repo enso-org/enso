@@ -719,7 +719,7 @@ default_fetch_types_query dialect expression context where_filter_always_false_l
    Helper class for shortening the binder names generated for WITH clauses.
 
    Each time `rename` is called on an identifier it hasn't seen before, it
-   generates a new, short identifier. The short identifier consits of the `name`
+   generates a new, short identifier. The short identifier consists of the `name`
    string and a unique (serial) number. The short name is saved and returned the
    next time that same identifier is passed in.
 type Let_Binder_Renamer

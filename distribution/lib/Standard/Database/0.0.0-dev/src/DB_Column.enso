@@ -214,7 +214,7 @@ type DB_Column
 
        Arguments:
        - name: A prefix to use for the generated let binder.
-       - callback: A functiont that receives the let reference and returns a
+       - callback: A function that receives the let reference and returns a
          column value that refers to it.
 
        Calling `let` on a column wraps it as a CTE (common table
