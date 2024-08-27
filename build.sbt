@@ -457,8 +457,46 @@ val commons = Seq(
 
 // === Helidon ================================================================
 val jakartaVersion = "2.0.1"
-val helidonVersion = "4.0.8"
+val helidonVersion = "3.2.9"
 val helidon = Seq(
+  "io.helidon.common"    % "helidon-common"                     % helidonVersion,
+  "io.helidon.common"    % "helidon-common-configurable"        % helidonVersion,
+  "io.helidon.common"    % "helidon-common-context"             % helidonVersion,
+  "io.helidon.common"    % "helidon-common-http"                % helidonVersion,
+  "io.helidon.common"    % "helidon-common-key-util"            % helidonVersion,
+  "io.helidon.common"    % "helidon-common-mapper"              % helidonVersion,
+  "io.helidon.common"    % "helidon-common-media-type"          % helidonVersion,
+  "io.helidon.common"    % "helidon-common-reactive"            % helidonVersion,
+  "io.helidon.common"    % "helidon-common-service-loader"      % helidonVersion,
+  "io.helidon.config"    % "helidon-config"                     % helidonVersion,
+  "io.helidon.logging"   % "helidon-logging-common"             % helidonVersion,
+  "io.helidon.media"     % "helidon-media-common"               % helidonVersion,
+  "io.helidon.tracing"   % "helidon-tracing"                    % helidonVersion,
+  "io.helidon.tracing"   % "helidon-tracing-config"             % helidonVersion,
+  "io.helidon.webserver" % "helidon-webserver"                  % helidonVersion,
+  "io.helidon.webserver" % "helidon-webserver-websocket"        % helidonVersion,
+  "jakarta.activation"   % "jakarta.activation-api"             % "2.1.2",
+  "jakarta.annotation"   % "jakarta.annotation-api"             % "2.0.0",
+  "jakarta.websocket"    % "jakarta.websocket-api"              % "2.1.1",
+  "jakarta.websocket"    % "jakarta.websocket-client-api"       % "2.1.1",
+  "jakarta.xml.bind"     % "jakarta.xml.bind-api"               % "4.0.1",
+  "io.netty"             % "netty-buffer"                       % "4.1.108.Final",
+  "io.netty"             % "netty-codec"                        % "4.1.108.Final",
+  "io.netty"             % "netty-codec-http"                   % "4.1.108.Final",
+  "io.netty"             % "netty-common"                       % "4.1.108.Final",
+  "io.netty"             % "netty-handler"                      % "4.1.108.Final",
+  "io.netty"             % "netty-resolver"                     % "4.1.108.Final",
+  "io.netty"             % "netty-transport"                    % "4.1.108.Final",
+  "io.netty"             % "netty-transport-native-unix-common" % "4.1.108.Final",
+  "org.glassfish.tyrus"  % "tyrus-client"                       % "2.1.5",
+  "org.glassfish.tyrus"  % "tyrus-container-jdk-client"         % "2.1.5",
+  "org.glassfish.tyrus"  % "tyrus-core"                         % "2.1.5",
+  "org.glassfish.tyrus"  % "tyrus-server"                       % "2.1.5",
+  "org.glassfish.tyrus"  % "tyrus-spi"                          % "2.1.5"
+)
+
+val helidon4Version = "4.0.8"
+val helidon4 = Seq(
   "io.helidon"                 % "helidon"                     % helidonVersion,
   "io.helidon.builder"         % "helidon-builder-api"         % helidonVersion,
   "io.helidon.common"          % "helidon-common"              % helidonVersion,
@@ -1284,7 +1322,7 @@ lazy val `ydoc-server` = project
       "junit"                      % "junit"                       % junitVersion              % Test,
       "com.github.sbt"             % "junit-interface"             % junitIfVersion            % Test,
       "com.fasterxml.jackson.core" % "jackson-databind"            % jacksonVersion            % Test,
-      "io.helidon.webclient"       % "helidon-webclient-websocket" % helidonVersion            % Test
+      "io.helidon.webclient"       % "helidon-webclient-websocket" % helidon4Version           % Test
     )
   )
   // `Compile/run` settings are necessary for the `run` task to work.
