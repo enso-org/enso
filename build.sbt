@@ -16,6 +16,7 @@ import src.main.scala.licenses.{
 // This import is unnecessary, but bit adds a proper code completion features
 // to IntelliJ.
 import JPMSPlugin.autoImport._
+import PackageListPlugin.autoImport._
 
 import java.io.File
 import java.nio.file.Files
@@ -728,6 +729,7 @@ lazy val `text-buffer` = project
   .settings(
     frgaalJavaCompilerSetting,
     commands += WithDebugCommand.withDebug,
+    javaModuleName := "org.enso.text.buffer",
     libraryDependencies ++= Seq(
       "org.scalatest"  %% "scalatest"  % scalatestVersion  % Test,
       "org.scalacheck" %% "scalacheck" % scalacheckVersion % Test
@@ -1964,7 +1966,8 @@ lazy val `polyglot-api` = project
     internalModuleDependencies := Seq(
       (`scala-libs-wrapper` / exportedModule).value,
       (`engine-common` / exportedModule).value,
-      (`logging-utils` / exportedModule).value
+      (`logging-utils` / exportedModule).value,
+      (`text-buffer` / exportedModule).value
     ),
     GenerateFlatbuffers.flatcVersion := flatbuffersVersion,
     Compile / sourceGenerators += GenerateFlatbuffers.task
@@ -2371,6 +2374,7 @@ lazy val runtime = (project in file("engine/runtime"))
         GraalVM.toolsPkgs.map(_.withConfigurations(Some(Runtime.name)))
       necessaryModules ++ langs ++ tools
     },
+    javaModuleName := "org.enso.runtime",
     excludeFilter := excludeFilter.value || "module-info.java",
     moduleDependencies := Seq(
       "org.scala-lang"       % "scala-library"           % scalacVersion,
@@ -2444,6 +2448,7 @@ lazy val runtime = (project in file("engine/runtime"))
 lazy val `runtime-integration-tests` =
   (project in file("engine/runtime-integration-tests"))
     .enablePlugins(JPMSPlugin)
+    .enablePlugins(PackageListPlugin)
     .settings(
       frgaalJavaCompilerSetting,
       annotationProcSetting,
@@ -2453,16 +2458,18 @@ lazy val `runtime-integration-tests` =
         "org.graalvm.sdk"      % "polyglot-tck"          % graalMavenPackagesVersion % "provided",
         "org.graalvm.truffle"  % "truffle-api"           % graalMavenPackagesVersion % "provided",
         "org.graalvm.truffle"  % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided",
-        "org.graalvm.truffle"  % "truffle-tck"           % graalMavenPackagesVersion % Test,
-        "org.graalvm.truffle"  % "truffle-tck-common"    % graalMavenPackagesVersion % Test,
-        "org.graalvm.truffle"  % "truffle-tck-tests"     % graalMavenPackagesVersion % Test,
+        "org.graalvm.truffle"  % "truffle-tck"           % graalMavenPackagesVersion,
+        "org.graalvm.truffle"  % "truffle-tck-common"    % graalMavenPackagesVersion,
+        "org.graalvm.truffle"  % "truffle-tck-tests"     % graalMavenPackagesVersion,
+        "org.netbeans.api"    % "org-openide-util-lookup"      % netbeansApiVersion,
+        "org.netbeans.api"    % "org-netbeans-modules-sampler" % netbeansApiVersion,
         "org.scalacheck"      %% "scalacheck"            % scalacheckVersion         % Test,
         "org.scalactic"       %% "scalactic"             % scalacticVersion          % Test,
         "org.scalatest"       %% "scalatest"             % scalatestVersion          % Test,
         "junit"                % "junit"                 % junitVersion              % Test,
         "com.github.sbt"       % "junit-interface"       % junitIfVersion            % Test,
         "org.hamcrest"         % "hamcrest-all"          % hamcrestVersion           % Test,
-        "org.slf4j"            % "slf4j-api"             % slf4jVersion              % Test
+        "org.slf4j"            % "slf4j-api"             % slf4jVersion
       ),
       Test / fork := true,
       Test / parallelExecution := false,
@@ -2479,14 +2486,15 @@ lazy val `runtime-integration-tests` =
         "-Dpolyglot.engine.AllowExperimentalOptions=true"
       ),
       Test / javaOptions ++= testLogProviderOptions,
-      Test / addModules := Seq(
-        (`runtime-test-instruments` / javaModuleName).value,
-        (`syntax-rust-definition` / javaModuleName).value,
-        (`profiling-utils` / javaModuleName).value,
-        (`ydoc-server` / javaModuleName).value
-      ),
       Test / moduleDependencies := {
         GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ helidon ++ Seq(
+          "org.scala-lang"      % "scala-library"                % scalacVersion,
+          "org.scala-lang" % "scala-reflect"  % scalacVersion,
+          "org.scala-lang" % "scala-compiler" % scalacVersion,
+          "org.apache.commons"  % "commons-lang3"                % commonsLangVersion,
+          "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
+          "commons-io"     % "commons-io"        % commonsIoVersion,
+          "org.apache.tika"     % "tika-core"                    % tikaVersion,
           "org.slf4j"           % "slf4j-api"                    % slf4jVersion,
           "org.netbeans.api"    % "org-openide-util-lookup"      % netbeansApiVersion,
           "org.netbeans.api"    % "org-netbeans-modules-sampler" % netbeansApiVersion,
@@ -2494,15 +2502,113 @@ lazy val `runtime-integration-tests` =
           "org.graalvm.truffle" % "truffle-tck"                  % graalMavenPackagesVersion,
           "org.graalvm.truffle" % "truffle-tck-common"           % graalMavenPackagesVersion,
           "org.graalvm.truffle" % "truffle-tck-tests"            % graalMavenPackagesVersion,
-          (`runtime-test-instruments` / projectID).value,
-          (`ydoc-server` / projectID).value,
-          (`syntax-rust-definition` / projectID).value,
-          (`profiling-utils` / projectID).value
+          "com.ibm.icu"         % "icu4j"                        % icuVersion,
+          "org.jline"              % "jline"                        % jlineVersion,
+          "com.google.flatbuffers"                 % "flatbuffers-java"      % flatbuffersVersion,
+          "org.yaml"                    % "snakeyaml"     % snakeyamlVersion,
+          "com.typesafe" % "config"    % typesafeConfigVersion,
+          "io.sentry"        % "sentry-logback"          % "6.28.0",
+          "io.sentry"        % "sentry"                  % "6.28.0",
+          "ch.qos.logback"   % "logback-classic"         % logbackClassicVersion,
+          "ch.qos.logback"   % "logback-core"            % logbackClassicVersion
         )
+      },
+      Test / internalModuleDependencies := Seq(
+        (`runtime` / exportedModule).value,
+        (`runtime-test-instruments` / exportedModule).value,
+        (`runtime-instrument-common` / exportedModule).value,
+        (`ydoc-server` / exportedModule).value,
+        (`syntax-rust-definition` / exportedModule).value,
+        (`profiling-utils` / exportedModule).value,
+        (`logging-service-logback` / exportedModule).value,
+        (`version-output` / exportedModule).value,
+        (`scala-libs-wrapper` / exportedModule).value,
+        (`text-buffer` / exportedModule).value,
+        (`runtime-suggestions` / exportedModule).value,
+        (`runtime-parser` / exportedModule).value,
+        (`runtime-compiler` / exportedModule).value,
+        (`polyglot-api` / exportedModule).value,
+        (`pkg` / exportedModule).value,
+        (`logging-utils` / exportedModule).value,
+        (`connected-lock-manager` / exportedModule).value,
+        (`library-manager` / exportedModule).value,
+        (`persistance` / exportedModule).value,
+        (`interpreter-dsl` / exportedModule).value,
+        (`engine-common` / exportedModule).value,
+        (`edition-updater` / exportedModule).value,
+        (`editions` / exportedModule).value,
+        (`distribution-manager` / exportedModule).value,
+        (`common-polyglot-core-utils` / exportedModule).value,
+        (`cli` / exportedModule).value,
+        (`refactoring-utils` / exportedModule).value,
+        (`scala-yaml` / exportedModule).value,
+        (`semver` / exportedModule).value,
+        (`downloader` / exportedModule).value,
+        (`logging-config` / exportedModule).value,
+        (`logging-service` / exportedModule).value,
+      ),
+      Test / patchModules := {
+        // Patch test-classes into the runtime module. This is standard way to deal with the
+        // split package problem in unit tests. For example, Maven's surefire plugin does this.
+        val testClassesDir = (Test / productDirectories).value.head
+        // Patching with sources is useful for compilation, patching with compiled classes for runtime.
+        val javaSrcDir = (Test / javaSource).value
+        Map(
+          (`runtime` / javaModuleName).value -> Seq(javaSrcDir, testClassesDir)
+        )
+      },
+      // runtime-integration-tests does not have module descriptor on its own, so we have
+      // to explicitly add some modules to the resolution.
+      Test / addModules := Seq(
+        "scala.library",
+        (`runtime` / javaModuleName).value,
+        (`runtime-test-instruments` / javaModuleName).value,
+        (`ydoc-server` / javaModuleName).value,
+        (`runtime-instrument-common` / javaModuleName).value,
+        (`text-buffer` / javaModuleName).value,
+        "truffle.tck.tests"
+      ),
+      Test / addReads := {
+        val runtimeModName = (`runtime` / javaModuleName).value
+        val testInstrumentsModName =
+          (`runtime-test-instruments` / javaModuleName).value
+        Map(
+          // We patched the test-classes into the runtime module. These classes access some stuff from
+          // unnamed module. Thus, let's add ALL-UNNAMED.
+          runtimeModName -> Seq(
+            "ALL-UNNAMED",
+            testInstrumentsModName,
+            (`runtime-instrument-common` / javaModuleName).value,
+            (`text-buffer` / javaModuleName).value,
+            "truffle.tck.tests",
+            "org.openide.util.lookup.RELEASE180"
+          ),
+          testInstrumentsModName -> Seq(runtimeModName)
+        )
+      },
+      Test / addExports := {
+        val runtimeModName = (`runtime` / javaModuleName).value
+        val exports = Map(
+          (`runtime-instrument-common` / javaModuleName).value + "/org.enso.interpreter.instrument.job" -> Seq(
+            (`runtime` / javaModuleName).value
+          ),
+          (`runtime` / javaModuleName).value + "/org.enso.compiler.test" -> Seq(
+            "ALL-UNNAMED"
+          )
+        )
+        // Make sure that all the packages in test source directory are exported
+        // to all unnamed modules
+        val testPkgs = (Test / packages).value
+        val testPkgsExports = testPkgs.map { pkg =>
+          runtimeModName + "/" + pkg -> Seq("ALL-UNNAMED")
+        }
+          .toMap
+        exports ++ testPkgsExports
       }
     )
+    .dependsOn(`runtime`)
     .dependsOn(`runtime-test-instruments`)
-    .dependsOn(`logging-service-logback` % "test->test")
+    .dependsOn(`logging-service-logback`)
     .dependsOn(testkit % Test)
     .dependsOn(`connected-lock-manager-server`)
     .dependsOn(`test-utils`)
@@ -2702,6 +2808,7 @@ lazy val `runtime-instrument-common` =
         "com.github.sbt" % "junit-interface" % junitIfVersion   % Test,
         "org.scalatest" %% "scalatest"       % scalatestVersion % Test
       ),
+      javaModuleName := "org.enso.runtime.instrument.common",
       excludeFilter := excludeFilter.value || "module-info.java",
       moduleDependencies := Seq(
         "org.graalvm.truffle"  % "truffle-api"   % graalMavenPackagesVersion,
