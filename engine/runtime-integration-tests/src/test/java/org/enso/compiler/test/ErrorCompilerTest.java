@@ -1,4 +1,4 @@
-package org.enso.compiler;
+package org.enso.compiler.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -11,7 +11,7 @@ import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.junit.Test;
 import scala.collection.immutable.List;
 
-public class ErrorCompilerTest extends CompilerTest {
+public class ErrorCompilerTest extends CompilerTests {
 
   @Test
   public void unfinishedLiteral1() throws Exception {

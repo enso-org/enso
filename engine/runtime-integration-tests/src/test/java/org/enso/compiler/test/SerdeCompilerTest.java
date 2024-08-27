@@ -1,4 +1,4 @@
-package org.enso.compiler;
+package org.enso.compiler.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -107,7 +107,7 @@ public class SerdeCompilerTest {
 
       ctx.leave();
     }
-    CompilerTest.assertIR("Serialized and deserialized IR for " + projectName, old, now);
+    CompilerTests.assertIR("Serialized and deserialized IR for " + projectName, old, now);
   }
 
   private Context ensoContextForPackage(String name, File pkgFile, boolean disableIrCaching)

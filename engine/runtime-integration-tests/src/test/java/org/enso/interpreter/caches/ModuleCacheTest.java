@@ -9,7 +9,7 @@ import org.enso.common.CompilationStage;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
 import org.enso.common.RuntimeOptions;
-import org.enso.compiler.CompilerTest;
+import org.enso.compiler.test.CompilerTests;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
@@ -67,7 +67,7 @@ public class ModuleCacheTest {
     var meta = new ModuleCache.Metadata("hash", "code", CompilationStage.AFTER_CODEGEN.toString());
     var cachedIr = mc.deserialize(ensoCtx, ByteBuffer.wrap(arr), meta, null);
     assertNotNull("IR read", cachedIr);
-    CompilerTest.assertIR(name, ir, cachedIr.moduleIR());
+    CompilerTests.assertIR(name, ir, cachedIr.moduleIR());
   }
 
   @Test
@@ -97,6 +97,6 @@ public class ModuleCacheTest {
     var meta = new ModuleCache.Metadata("hash", "code", CompilationStage.AFTER_CODEGEN.toString());
     var cachedIr = mc.deserialize(ensoCtx, ByteBuffer.wrap(arr), meta, null);
     assertNotNull("IR read", cachedIr);
-    CompilerTest.assertIR(name, ir, cachedIr.moduleIR());
+    CompilerTests.assertIR(name, ir, cachedIr.moduleIR());
   }
 }

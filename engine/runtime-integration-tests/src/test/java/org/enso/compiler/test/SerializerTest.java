@@ -1,4 +1,4 @@
-package org.enso.compiler;
+package org.enso.compiler.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;

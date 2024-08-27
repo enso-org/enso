@@ -20,9 +20,9 @@ import org.enso.compiler.pass.analyse.alias.graph.Graph.Link
 import org.enso.compiler.pass.analyse.alias.AliasMetadata
 import org.enso.compiler.pass.analyse.alias.graph.{Graph, GraphOccurrence}
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
-import org.enso.compiler.test.CompilerTest
+import org.enso.compiler.test.CompilerTests
 
-class AliasAnalysisTest extends CompilerTest {
+class AliasAnalysisTest extends CompilerTests {
 
   // === Utilities ============================================================
 

@@ -1,4 +1,4 @@
-package org.enso.compiler;
+package org.enso.compiler.test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;

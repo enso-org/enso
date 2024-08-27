@@ -1,4 +1,4 @@
-package org.enso.compiler;
+package org.enso.compiler.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -9,7 +9,7 @@ import org.enso.compiler.core.ir.expression.errors.Syntax;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.junit.Test;
 
-public class AnnotationsCompilerTest extends CompilerTest {
+public class AnnotationsCompilerTest extends CompilerTests {
 
   @Test
   public void testModuleMethod() throws Exception {

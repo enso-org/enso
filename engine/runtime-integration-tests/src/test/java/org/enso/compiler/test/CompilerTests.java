@@ -1,4 +1,4 @@
-package org.enso.compiler;
+package org.enso.compiler.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -14,7 +14,7 @@ import org.enso.compiler.core.ir.Module;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
-public abstract class CompilerTest {
+public abstract class CompilerTests {
 
   protected static EnsoParser ensoCompiler;
 

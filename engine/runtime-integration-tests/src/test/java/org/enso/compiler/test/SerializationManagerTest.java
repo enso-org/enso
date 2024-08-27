@@ -1,4 +1,4 @@
-package org.enso.compiler;
+package org.enso.compiler.test;
 
 import com.oracle.truffle.api.TruffleFile;
 import java.nio.file.Path;
