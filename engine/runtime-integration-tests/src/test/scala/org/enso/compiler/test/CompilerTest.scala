@@ -3,7 +3,13 @@ package org.enso.compiler.test
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.{EnsoParser, IR, Identifier}
 import org.enso.compiler.core.Implicits.AsMetadata
-import org.enso.compiler.core.ir.{DefinitionArgument, Expression, Module, Name}
+import org.enso.compiler.core.ir.{
+  DefinitionArgument,
+  Diagnostic,
+  Expression,
+  Module,
+  Name
+}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
@@ -82,6 +88,21 @@ trait CompilerRunner {
     }
   }
 
+  /** Provides an extensions to work with diagnostic information attached to IR.
+    *
+    * @param ir the IR node
+    */
+  implicit class DiagnosticStorageExt(ir: IR) {
+
+    /** Get the list of diagnostics attached to the provided IR node without
+      * unnecessary allocations of [[org.enso.compiler.core.ir.DiagnosticStorage]].
+      *
+      * @return the list of attached diagnostics
+      */
+    def diagnosticsList: List[Diagnostic] =
+      if (ir.diagnostics() eq null) Nil else ir.diagnostics().toList
+  }
+
   /** Provides an extension method allowing the running of a specified list of
     * passes on the provided IR.
     *
@@ -151,23 +172,23 @@ trait CompilerRunner {
       */
     def asMethod: definition.Method = {
       new definition.Method.Explicit(
-        Name.MethodReference(
-          Some(
-            Name.Qualified(
-              List(
-                Name
-                  .Literal("TestType", isMethod = false, None)
-              ),
-              None
-            )
+        definition.Method.Binding(
+          Name.MethodReference(
+            Some(
+              Name.Qualified(
+                List(Name.Literal("TestType", isMethod = false, None)),
+                None
+              )
+            ),
+            Name.Literal("testMethod", isMethod = false, None),
+            None
           ),
-          Name
-            .Literal("testMethod", isMethod = false, None),
+          Nil,
+          false,
+          ir,
           None
         ),
-        ir,
-        false,
-        None
+        ir
       )
     }
 
@@ -190,6 +211,7 @@ trait CompilerRunner {
             )
         ),
         List(),
+        false,
         None
       )
     }

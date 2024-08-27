@@ -199,9 +199,9 @@ export function useProjectsStore() {
   return store
 }
 
-// =============================
-// === useAddLaunchedProject ===
-// =============================
+// ===========================
+// === useLaunchedProjects ===
+// ===========================
 
 /** A function to retrieve all launched projects. */
 export function useLaunchedProjects() {

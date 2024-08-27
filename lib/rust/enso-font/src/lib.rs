@@ -1,8 +1,6 @@
 //! The Enso Font. This crate supports downloading and unpacking the font family, as well as
 //! constructing a reduced font family from a subset of the fonts.
 
-// === Features ===
-#![feature(let_chains)]
 // === Non-Standard Linter Configuration ===
 #![deny(unconditional_recursion)]
 #![warn(missing_docs)]

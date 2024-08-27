@@ -79,7 +79,7 @@ export default function ManageLabelsModal<
   const associateTag = useMutation(backendMutationOptions(backend, 'associateTag')).mutateAsync
 
   const setLabels = React.useCallback(
-    (valueOrUpdater: React.SetStateAction<backendModule.LabelName[]>) => {
+    (valueOrUpdater: React.SetStateAction<readonly backendModule.LabelName[]>) => {
       setLabelsRaw(valueOrUpdater)
       setItem((oldItem) =>
         // This is SAFE, as the type of asset is not being changed.

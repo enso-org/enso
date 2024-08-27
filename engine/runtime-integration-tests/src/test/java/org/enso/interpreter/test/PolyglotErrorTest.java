@@ -67,7 +67,8 @@ public class PolyglotErrorTest {
         3 -> panic3
         4 -> panic4
         5 -> panic5
-        _ -> panic6
+        6 -> panic6
+        _ -> panic7
 
     panic1 = PolyglotErrorTest.bar (TypeCa.Ca 'x')
 
@@ -83,6 +84,12 @@ public class PolyglotErrorTest {
 
     panic5 = PolyglotErrorTest.bar (TypeCe.Ce "Foo")
     panic6 = PolyglotErrorTest.bar (TypeCe.Ce 44)
+    panic7 =
+        j = Error.throw 1
+        d = Error.throw 2
+        t = j + d
+        v = [j, d, t]
+        v
     """;
     var src = Source.newBuilder("enso", code, "test.enso").build();
     var module = ctx.eval(src);
@@ -143,5 +150,19 @@ public class PolyglotErrorTest {
     assertTrue("Is string", v.isString());
     assertEquals(
         "[[Error in method `to_text` of [Ce 44]: Expected Text but got 44]]", v.asString());
+  }
+
+  @Test
+  public void panic7() {
+    var r = panic.execute(7);
+    assertTrue("Got array back: " + r, r.hasArrayElements());
+    assertEquals("Got three elements", 3, r.getArraySize());
+    assertTrue("Error 1 at 0th" + r, r.getArrayElement(0).isException());
+    assertTrue("Error 2 at 1st" + r, r.getArrayElement(1).isException());
+    assertTrue("Error 1 at 2nd " + r, r.getArrayElement(2).isException());
+
+    assertEquals("(Error: 1)", r.getArrayElement(0).toString());
+    assertEquals("(Error: 2)", r.getArrayElement(1).toString());
+    assertEquals("(Error: 1)", r.getArrayElement(2).toString());
   }
 }

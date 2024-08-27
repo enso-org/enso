@@ -88,7 +88,9 @@ export const BUTTON_STYLES = twv.tv({
     'transition-[opacity,outline-offset,background,border-color] duration-150 ease-in-out',
   ],
   variants: {
-    isDisabled: { true: 'disabled:opacity-50 disabled:cursor-not-allowed' },
+    isDisabled: {
+      true: 'disabled:opacity-50 disabled:cursor-not-allowed aria-disabled:opacity-50 aria-disabled:cursor-not-allowed',
+    },
     isFocused: {
       true: 'focus:outline-none focus-visible:outline-2 focus-visible:outline-black focus-visible:outline-offset-[-2px]',
     },
@@ -214,7 +216,8 @@ export const BUTTON_STYLES = twv.tv({
     },
     extraClickZone: {
       true: {
-        extraClickZone: 'flex relative after:absolute after:cursor-pointer',
+        extraClickZone:
+          'flex relative after:absolute after:cursor-pointer group-disabled:after:cursor-not-allowed',
       },
       false: {
         extraClickZone: 'after:inset-0',
@@ -240,7 +243,8 @@ export const BUTTON_STYLES = twv.tv({
     },
   },
   slots: {
-    extraClickZone: 'flex relative after:absolute after:cursor-pointer',
+    extraClickZone:
+      'flex relative after:absolute after:cursor-pointer group-disabled:after:cursor-not-allowed',
     wrapper: 'relative block',
     loader: 'absolute inset-0 flex items-center justify-center',
     content: 'flex items-center gap-[0.5em]',
@@ -331,7 +335,7 @@ export const Button = React.forwardRef(function Button(
   const tooltipElement = shouldShowTooltip ? tooltip ?? ariaProps['aria-label'] : null
 
   const isLoading = loading || implicitlyLoading
-  const isDisabled = props.isDisabled == null ? isLoading : props.isDisabled
+  const isDisabled = props.isDisabled ?? isLoading
 
   React.useLayoutEffect(() => {
     const delay = 350
@@ -382,7 +386,7 @@ export const Button = React.forwardRef(function Button(
     icon: iconClasses,
     text: textClasses,
   } = BUTTON_STYLES({
-    isDisabled: isDisabled,
+    isDisabled,
     isActive,
     loading: isLoading,
     fullWidth,
@@ -443,7 +447,11 @@ export const Button = React.forwardRef(function Button(
         isDisabled,
         // we use onPressEnd instead of onPress because for some reason react-aria doesn't trigger
         // onPress on EXTRA_CLICK_ZONE, but onPress{start,end} are triggered
-        onPressEnd: handlePress,
+        onPressEnd: (e) => {
+          if (!isDisabled) {
+            handlePress(e)
+          }
+        },
         className: aria.composeRenderProps(className, (classNames, states) =>
           base({ className: classNames, ...states }),
         ),

@@ -4,20 +4,34 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.TruffleStackTrace;
 import com.oracle.truffle.api.debug.DebuggerTags;
+import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.EventContext;
 import com.oracle.truffle.api.instrumentation.ExecutionEventNode;
-import com.oracle.truffle.api.instrumentation.Instrumenter;
+import com.oracle.truffle.api.instrumentation.ExecutionEventNodeFactory;
 import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
+import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
+import com.oracle.truffle.api.interop.ExceptionType;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.InvalidArrayIndexException;
+import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.ExportLibrary;
+import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.RootNode;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URI;
-import java.util.Collections;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import org.enso.common.DebugServerInfo;
 import org.enso.compiler.context.FramePointer;
+import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.node.expression.debug.CaptureResultScopeNode;
@@ -25,9 +39,12 @@ import org.enso.interpreter.node.expression.debug.EvalNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.hash.HashMapToVectorNode;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
 import org.enso.interpreter.runtime.state.State;
-import org.enso.polyglot.debugger.DebugServerInfo;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.graalvm.options.OptionDescriptor;
 import org.graalvm.options.OptionDescriptors;
 import org.graalvm.options.OptionKey;
@@ -39,7 +56,13 @@ import scala.util.Right;
 
 /** The Instrument implementation for the interactive debugger REPL. */
 @TruffleInstrument.Registration(id = DebugServerInfo.INSTRUMENT_NAME)
-public class ReplDebuggerInstrument extends TruffleInstrument {
+public final class ReplDebuggerInstrument extends TruffleInstrument {
+  /** Option for {@link DebugServerInfo#ENABLE_OPTION} */
+  private static final OptionKey<Boolean> ENABLE_OPTION = new OptionKey<>(false);
+
+  /** * Option for {@link DebugServerInfo#METHOD_BREAKPOINT_OPTION} */
+  private static final OptionKey<String> METHOD_BREAKPOINT_OPTION = new OptionKey<>("");
+
   /**
    * Called by Truffle when this instrument is installed.
    *
@@ -47,41 +70,59 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
    */
   @Override
   protected void onCreate(Env env) {
-    SourceSectionFilter filter =
-        SourceSectionFilter.newBuilder().tagIs(DebuggerTags.AlwaysHalt.class).build();
-
     DebuggerMessageHandler handler = new DebuggerMessageHandler();
-    try {
-      MessageEndpoint client = env.startServer(URI.create(DebugServerInfo.URI), handler);
-      if (client != null) {
-        handler.setClient(client);
-        Instrumenter instrumenter = env.getInstrumenter();
-        instrumenter.attachExecutionEventFactory(
-            filter,
-            ctx ->
-                ctx.getInstrumentedNode() instanceof DebugBreakpointNode
-                    ? new ReplExecutionEventNodeImpl(
-                        ctx, handler, env.getLogger(ReplExecutionEventNodeImpl.class))
-                    : null);
-      } else {
+    SourceSectionFilter filter = null;
+    ExecutionEventNodeFactory factory = null;
+
+    if (env.getOptions().get(ENABLE_OPTION)) {
+      factory =
+          ctx ->
+              ctx.getInstrumentedNode() instanceof DebugBreakpointNode
+                  ? new ReplExecutionEventNodeImpl(
+                      null, ctx, handler, env.getLogger(ReplExecutionEventNodeImpl.class))
+                  : null;
+
+      filter = SourceSectionFilter.newBuilder().tagIs(DebuggerTags.AlwaysHalt.class).build();
+      env.getInstrumenter().attachExecutionEventFactory(filter, factory);
+    }
+    if (env.getOptions().get(METHOD_BREAKPOINT_OPTION) instanceof String replMethodName
+        && !replMethodName.isEmpty()) {
+      factory = new AtTheEndOfMethod(handler, env);
+
+      filter =
+          SourceSectionFilter.newBuilder()
+              .tagIs(StandardTags.RootBodyTag.class)
+              .rootNameIs(replMethodName::equals)
+              .build();
+      env.getInstrumenter().attachExecutionEventFactory(filter, factory);
+    }
+
+    if (factory != null || filter != null) {
+      try {
+        MessageEndpoint client = env.startServer(URI.create(DebugServerInfo.URI), handler);
+        if (client != null) {
+          handler.setClient(client);
+        }
+      } catch (MessageTransport.VetoException e) {
         env.getLogger(ReplDebuggerInstrument.class)
-            .warning("ReplDebuggerInstrument was initialized, " + "but no client connected");
+            .warning(
+                "ReplDebuggerInstrument was initialized, "
+                    + "but client connection has been vetoed");
+      } catch (IOException e) {
+        throw new RuntimeException(e);
       }
-    } catch (MessageTransport.VetoException e) {
-      env.getLogger(ReplDebuggerInstrument.class)
-          .warning(
-              "ReplDebuggerInstrument was initialized, " + "but client connection has been vetoed");
-    } catch (IOException e) {
-      throw new RuntimeException(e);
     }
   }
 
   @Override
   protected OptionDescriptors getOptionDescriptors() {
-    return OptionDescriptors.create(
-        Collections.singletonList(
-            OptionDescriptor.newBuilder(new OptionKey<>(""), DebugServerInfo.ENABLE_OPTION)
-                .build()));
+    var options = new ArrayList<OptionDescriptor>();
+    options.add(OptionDescriptor.newBuilder(ENABLE_OPTION, DebugServerInfo.ENABLE_OPTION).build());
+    options.add(
+        OptionDescriptor.newBuilder(
+                METHOD_BREAKPOINT_OPTION, DebugServerInfo.METHOD_BREAKPOINT_OPTION)
+            .build());
+    return OptionDescriptors.create(options);
   }
 
   /** The actual node that's installed as a probe on any node the instrument was launched for. */
@@ -96,16 +137,31 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     private EventContext eventContext;
     private DebuggerMessageHandler handler;
     private TruffleLogger logger;
+    private final OutputStream atExit;
 
     private ReplExecutionEventNodeImpl(
-        EventContext eventContext, DebuggerMessageHandler handler, TruffleLogger logger) {
+        OutputStream atExit,
+        EventContext eventContext,
+        DebuggerMessageHandler handler,
+        TruffleLogger logger) {
       this.eventContext = eventContext;
       this.handler = handler;
       this.logger = logger;
+      this.atExit = atExit;
     }
 
-    private Object getValue(MaterializedFrame frame, FramePointer ptr) {
-      return getProperFrame(frame, ptr).getValue(ptr.frameSlotIdx());
+    private Object readValue(
+        MaterializedFrame frame, FramePointer ptr, boolean onlyWarningsOrErrors) {
+      var raw = getProperFrame(frame, ptr).getValue(ptr.frameSlotIdx());
+      if (WarningsLibrary.getUncached().hasWarnings(raw)) {
+        return formatObject(raw);
+      }
+      if (onlyWarningsOrErrors) {
+        if (!InteropLibrary.getUncached().isException(raw)) {
+          return null;
+        }
+      }
+      return raw;
     }
 
     private MaterializedFrame getProperFrame(MaterializedFrame frame, FramePointer ptr) {
@@ -118,11 +174,19 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
 
     @Override
     public Map<String, Object> listBindings() {
+      return listBindings(false);
+    }
+
+    public Map<String, Object> listBindings(boolean onlyWarningsOrErrors) {
       Map<String, FramePointer> flatScope =
           nodeState.getLastScope().getLocalScope().flattenBindings();
       Map<String, Object> result = new HashMap<>();
       for (Map.Entry<String, FramePointer> entry : flatScope.entrySet()) {
-        result.put(entry.getKey(), getValue(nodeState.getLastScope().getFrame(), entry.getValue()));
+        var valueOrNull =
+            readValue(nodeState.getLastScope().getFrame(), entry.getValue(), onlyWarningsOrErrors);
+        if (valueOrNull != null) {
+          result.put(entry.getKey(), valueOrNull);
+        }
       }
       return result;
     }
@@ -155,12 +219,32 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
       }
     }
 
-    private Object formatObject(Object o) {
-      if (o instanceof Text) {
-        return toJavaStringNode.execute((Text) o);
-      } else {
-        return o;
+    private Object formatObject(Object raw) {
+      if (raw instanceof Text) {
+        return toJavaStringNode.execute((Text) raw);
       }
+      if (WarningsLibrary.getUncached().hasWarnings(raw)) {
+        try {
+          var sb = new StringBuilder();
+          sb.append(WarningsLibrary.getUncached().removeWarnings(raw));
+          var mappedWarnings = WarningsLibrary.getUncached().getWarnings(raw, true);
+          var pairs = HashMapToVectorNode.getUncached().execute(mappedWarnings);
+          var size = ArrayLikeLengthNode.getUncached().executeLength(pairs);
+          for (var i = 0L; i < size; i++) {
+            try {
+              var pair = ArrayLikeAtNode.getUncached().executeAt(pairs, i);
+              var value = ArrayLikeAtNode.getUncached().executeAt(pair, 1);
+              sb.append("\n  ! ").append(value);
+            } catch (InvalidArrayIndexException ex) {
+              // go on
+            }
+          }
+          return sb.toString();
+        } catch (UnsupportedMessageException e) {
+          // go on
+        }
+      }
+      return raw;
     }
 
     @Override
@@ -175,12 +259,21 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
      */
     @Override
     protected void onEnter(VirtualFrame frame) {
-      CallerInfo lastScope = Function.ArgumentsHelper.getCallerInfo(frame.getArguments());
-      Object lastReturn = EnsoContext.get(this).getNothing();
-      // Note [Safe Access to State in the Debugger Instrument]
-      monadicState = Function.ArgumentsHelper.getState(frame.getArguments());
-      nodeState = new ReplExecutionEventNodeState(lastReturn, lastScope);
-      startSession();
+      if (atExit == null) {
+        CallerInfo lastScope = Function.ArgumentsHelper.getCallerInfo(frame.getArguments());
+        Object lastReturn = EnsoContext.get(this).getNothing();
+        // Note [Safe Access to State in the Debugger Instrument]
+        monadicState = Function.ArgumentsHelper.getState(frame.getArguments());
+        nodeState = new ReplExecutionEventNodeState(lastReturn, lastScope);
+        startSessionImpl();
+      }
+    }
+
+    @Override
+    public void onReturnValue(VirtualFrame frame, Object result) {
+      if (atExit != null) {
+        startSession(getRootNode(), frame, result);
+      }
     }
 
     /* Note [Safe Access to State in the Debugger Instrument]
@@ -204,14 +297,43 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
       return nodeState.getLastReturn();
     }
 
+    private void startSession(RootNode root, VirtualFrame frame, Object toReturn) {
+      CallerInfo lastScope = Function.ArgumentsHelper.getCallerInfo(frame.getArguments());
+      if (lastScope == null && root instanceof EnsoRootNode enso) {
+        lastScope =
+            new CallerInfo(frame.materialize(), enso.getLocalScope(), enso.getModuleScope());
+      }
+      if (lastScope != null) {
+        // Note [Safe Access to State in the Debugger Instrument]
+        monadicState = Function.ArgumentsHelper.getState(frame.getArguments());
+        nodeState = new ReplExecutionEventNodeState(toReturn, lastScope);
+        startSessionImpl();
+      }
+    }
+
     @CompilerDirectives.TruffleBoundary
-    private void startSession() {
+    private void startSessionImpl() {
       if (handler.hasClient()) {
         handler.startSession(this);
       } else {
-        logger.warning(
-            "Debugger session starting, "
-                + "but no client connected, will terminate the session immediately");
+        if (atExit == null) {
+          logger.warning(
+              "Debugger session starting, "
+                  + "but no client connected, will terminate the session immediately");
+        } else {
+          for (var b : listBindings(true).entrySet()) {
+            var line = b.getKey() + " = " + b.getValue() + "\n";
+            try {
+              atExit.write(line.getBytes(StandardCharsets.UTF_8));
+            } catch (IOException ex) {
+              logger.log(Level.SEVERE, line, ex);
+            }
+            if (InteropLibrary.getUncached().isException(b.getValue())) {
+              var wrappingError = new ErrorDetected(nodeState.lastReturn);
+              nodeState = new ReplExecutionEventNodeState(wrappingError, nodeState.getLastScope());
+            }
+          }
+        }
         exit();
       }
     }
@@ -239,6 +361,51 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
       CallerInfo getLastScope() {
         return lastScope;
       }
+    }
+  }
+
+  private final class AtTheEndOfMethod implements ExecutionEventNodeFactory {
+    private final DebuggerMessageHandler handler;
+    private final TruffleInstrument.Env env;
+
+    AtTheEndOfMethod(DebuggerMessageHandler h, TruffleInstrument.Env env) {
+      this.handler = h;
+      this.env = env;
+    }
+
+    @Override
+    public ExecutionEventNode create(EventContext ctx) {
+      var log = env.getLogger(ReplExecutionEventNodeImpl.class);
+      return new ReplExecutionEventNodeImpl(env.err(), ctx, handler, log);
+    }
+  }
+
+  @ExportLibrary(delegateTo = "delegate", value = InteropLibrary.class)
+  static final class ErrorDetected extends AbstractTruffleException implements TruffleObject {
+    final Object delegate;
+
+    ErrorDetected(Object delegate) {
+      this.delegate = delegate;
+    }
+
+    @ExportMessage
+    boolean isException() {
+      return true;
+    }
+
+    @ExportMessage
+    ExceptionType getExceptionType() {
+      return ExceptionType.EXIT;
+    }
+
+    @ExportMessage
+    RuntimeException throwException() {
+      throw this;
+    }
+
+    @ExportMessage
+    int getExceptionExitStatus() {
+      return 173;
     }
   }
 }

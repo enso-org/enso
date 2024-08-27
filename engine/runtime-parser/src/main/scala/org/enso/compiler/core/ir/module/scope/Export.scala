@@ -8,6 +8,7 @@ import org.enso.compiler.core.ir.{
   Expression,
   IRKind,
   IdentifiedLocation,
+  LazyDiagnosticStorage,
   LazyId,
   MetadataStorage,
   Name
@@ -45,19 +46,18 @@ object Export {
     * @param location    the source location that the node corresponds to
     * @param isSynthetic is this export compiler-generated
     * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
     */
   sealed case class Module(
     name: Name.Qualified,
     rename: Option[Name.Literal],
     onlyNames: Option[List[Name.Literal]],
     override val location: Option[IdentifiedLocation],
-    isSynthetic: Boolean                        = false,
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    isSynthetic: Boolean                   = false,
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends IR
       with IRKind.Primitive
       with Export
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -76,23 +76,34 @@ object Export {
       name: Name.Qualified                  = name,
       rename: Option[Name.Literal]          = rename,
       onlyNames: Option[List[Name.Literal]] = onlyNames,
-      location: Option[IdentifiedLocation]  = location,
       isSynthetic: Boolean                  = isSynthetic,
+      location: Option[IdentifiedLocation]  = location,
       passData: MetadataStorage             = passData,
       diagnostics: DiagnosticStorage        = diagnostics,
       id: UUID @Identifier                  = id
     ): Module = {
-      val res = Module(
-        name,
-        rename,
-        onlyNames,
-        location,
-        isSynthetic,
-        passData,
-        diagnostics
-      )
-      res.id = id
-      res
+      if (
+        name != this.name
+        || rename != this.rename
+        || onlyNames != this.onlyNames
+        || isSynthetic != this.isSynthetic
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Module(
+          name,
+          rename,
+          onlyNames,
+          location,
+          isSynthetic,
+          passData
+        )
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -106,9 +117,8 @@ object Export {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */

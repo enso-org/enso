@@ -444,7 +444,7 @@ agg_count_distinct_include_null args =
    The columns are converted to VARIANT type because of that, which may incur some overhead.
    But there seems to be no other reliable way to handle this for columns like numeric where no non-NULL value exists that can be guaranteed to be unused.
 replace_null_with_marker expr =
-    SQL_Builder.code "COALESCE(" ++ expr ++ ", {'enso-null-replacement-marker':'" ++ Random.uuid ++ "'}::variant)"
+    SQL_Builder.code "COALESCE(" ++ expr ++ "::variant, {'enso-null-replacement-marker':'" ++ Random.uuid ++ "'}::variant)"
 
 ## PRIVATE
    A helper for `lookup_and_replace`, and perhaps other operation.

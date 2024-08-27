@@ -74,9 +74,22 @@ type Enso_File
     private Value (enso_path : Enso_Path)
 
     ## ICON folder
-       Represents the root folder of the current users.
+       Represents the current user's home directory.
+    home : Enso_File
+    home -> Enso_File =
+        Enso_File.root /  "Users" / Enso_User.current.name
+
+
+    ## ICON folder
+       Represents the root folder of the organization.
+
+       ? Organization Root Directory
+
+         The organization root directory cannot be directly written into.
+         You should put your files and projects in a subdirectory dedicated to a
+         given user or team in the `Users` or `Teams` subdirectories within it.
     root : Enso_File
-    root = Enso_File.Value (Enso_Path.root_for Enso_User.current.organization_name)
+    root = Enso_File.Value Enso_Path.root
 
     ## ICON folder
        Represents the current working directory.
@@ -88,7 +101,7 @@ type Enso_File
        directory.
     current_working_directory : Enso_File
     current_working_directory =
-        Enso_File.cloud_project_parent_directory . if_nothing Enso_File.root
+        Enso_File.cloud_project_parent_directory . if_nothing Enso_File.home
 
     ## PRIVATE
        The parent directory containing the currently open project if in the
@@ -403,10 +416,6 @@ type Enso_File
     / : Text -> Enso_File ! Not_Found
     / self (name : Text) -> Enso_File ! Not_Found =
         Enso_File.Value (self.enso_path.resolve name)
-
-    ## PRIVATE
-    is_current_user_root self -> Boolean =
-        self.enso_path.is_root && self.enso_path.organization_name == Enso_User.current.organization_name
 
     ## PRIVATE
        Returns the text representation of the file descriptor.

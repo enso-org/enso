@@ -39,8 +39,8 @@ pub async fn handle_error_response(response: Response) -> Result<Response> {
 
 pub async fn execute(request_builder: RequestBuilder) -> Result<Response> {
     let request_clone = request_builder.try_clone();
-    let inner = async move || handle_error_response(request_builder.send().await?).await;
-    inner().await.with_context(|| format!("Failed to execute request: {request_clone:#?}",))
+    let inner = handle_error_response(request_builder.send().await?).await;
+    inner.with_context(|| format!("Failed to execute request: {request_clone:#?}"))
 }
 
 /// Get the the response body as a byte stream.

@@ -4,6 +4,7 @@ import static org.enso.compiler.MetadataInteropHelpers.getMetadata;
 import static org.enso.compiler.MetadataInteropHelpers.getMetadataOrNull;
 
 import java.util.List;
+import org.enso.compiler.MetadataInteropHelpers;
 import org.enso.compiler.context.NameResolutionAlgorithm;
 import org.enso.compiler.core.CompilerError;
 import org.enso.compiler.core.IR;
@@ -159,7 +160,10 @@ abstract class TypePropagation {
   private TypeRepresentation processName(
       Name.Literal literalName, LocalBindingsTyping localBindingsTyping) {
     var resolver = new CompilerNameResolution(localBindingsTyping);
-    return resolver.resolveName(literalName);
+    var occMeta =
+        MetadataInteropHelpers.getMetadataOrNull(
+            literalName, AliasAnalysis$.MODULE$, AliasMetadata.Occurrence.class);
+    return resolver.resolveName(literalName, occMeta);
   }
 
   private TypeRepresentation processLiteral(Literal literal) {
@@ -333,7 +337,8 @@ abstract class TypePropagation {
   }
 
   private class CompilerNameResolution
-      extends NameResolutionAlgorithm<TypeRepresentation, CompilerNameResolution.LinkInfo> {
+      extends NameResolutionAlgorithm<
+          TypeRepresentation, CompilerNameResolution.LinkInfo, AliasMetadata.Occurrence> {
     private final LocalBindingsTyping localBindingsTyping;
 
     private CompilerNameResolution(LocalBindingsTyping localBindingsTyping) {

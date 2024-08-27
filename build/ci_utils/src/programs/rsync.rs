@@ -6,6 +6,9 @@ use crate::prelude::*;
 pub struct Rsync;
 
 impl Program for Rsync {
+    type Command = Command;
+    type Version = Version;
+
     fn executable_name(&self) -> &'static str {
         "rsync"
     }
