@@ -9,6 +9,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -51,6 +52,7 @@ class AuditLogApiAccess {
 
   private void enqueueJob(LogJob job) {
     ensureConfigSaved();
+    // If we ever make the queue size-constrained, this should become `put`.
     logQueue.add(job);
     if (logThread == null) {
       ensureLogThreadRunning();
@@ -66,6 +68,18 @@ class AuditLogApiAccess {
 
   private void logThreadEntryPoint() {
     // TODO should the thread auto-shutdown after a while? then start logic needs to be smarter
+    while (true) {
+      // drainTo is non-blocking, so we first call `take` to wait for a first element to appear, and only then use
+      // drain to get any other scheduled elements
+      try {
+        var pendingMessages = new ArrayList<>();
+        pendingMessages.add(logQueue.take());
+        logQueue.drainTo(pendingMessages, MAX_BATCH_SIZE - 1);
+      } catch (InterruptedException e) {
+        logger.warning("Log thread interrupted: " + e.getMessage());
+        return;
+      }
+    }
   }
 
   private HttpRequest buildRequest(List<LogMessage> messages) {
