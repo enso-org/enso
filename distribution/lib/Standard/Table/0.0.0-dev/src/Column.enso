@@ -1099,7 +1099,7 @@ type Column
         new_name = naming_helper.function_name "is_finite" [self]
         fallback x = case x of
             _ : Float   -> x.is_finite
-            _           -> False
+            _           -> True
         apply_unary_operation self IsFiniteOperation.INSTANCE new_name if_unsupported=(apply_unary_map self new_name fallback Value_Type.Boolean)
 
     ## PRIVATE
