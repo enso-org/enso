@@ -98,7 +98,7 @@ public class BenchProcessor extends AbstractProcessor {
                 + "' specified in the annotation does not exist or is not readable");
       }
       try (var ctx =
-          Context.newBuilder(LanguageInfo.ID)
+          Context.newBuilder()
               .allowExperimentalOptions(true)
               .allowIO(IOAccess.ALL)
               .allowAllAccess(true)
