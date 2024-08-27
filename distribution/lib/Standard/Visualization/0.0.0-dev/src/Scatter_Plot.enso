@@ -204,8 +204,8 @@ limit_data limit data = case limit of
 ## PRIVATE
 get_axes_field : Integer -> Vector
 get_axes_field number_of_numeric =
-    feilds_for_multiseries = ((0.up_to number_of_numeric).map idx-> Point_Data.Y_multi idx)
-    feilds_for_multiseries . insert item=Point_Data.X . insert item=Point_Data.Y
+    fields_for_multiseries = ((0.up_to number_of_numeric).map idx-> Point_Data.Y_multi idx)
+    fields_for_multiseries . insert item=Point_Data.X . insert item=Point_Data.Y
 
 ## PRIVATE
 json_from_table : Table -> Vector Integer | Nothing -> Integer | Nothing -> Text
