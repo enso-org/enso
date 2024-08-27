@@ -2902,7 +2902,8 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
     },
     addModules := {
       val runtimeModuleName = (`runtime-fat-jar` / javaModuleName).value
-      Seq(runtimeModuleName)
+      val arrowModName = (`runtime-language-arrow` / javaModuleName).value
+      Seq(runtimeModuleName, arrowModName)
     },
     addExports := {
       Map("org.slf4j.nop/org.slf4j.nop" -> Seq("org.slf4j"))
@@ -2937,6 +2938,10 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
   )
   .dependsOn(`bench-processor`)
   .dependsOn(`runtime-fat-jar`)
+  .dependsOn(`ydoc-server`)
+  .dependsOn(`runtime-language-arrow`)
+  .dependsOn(`syntax-rust-definition`)
+  .dependsOn(`profiling-utils`)
   .dependsOn(`std-table` % "provided")
   .dependsOn(`std-base` % "provided")
   .dependsOn(`benchmark-java-helpers` % "provided")
