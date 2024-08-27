@@ -139,14 +139,21 @@ object FrgaalJavaCompiler {
     val allSources = if (shouldCompileModuleInfo) {
       val moduleInfo = javaSourceDir.toPath.resolve("module-info.java").toFile
       if (!moduleInfo.exists()) {
-        log.error(
-          s"[FrgaalJavaCompiler] module-info.java not found in $javaSourceDir"
+        log.warn(
+          s"[FrgaalJavaCompiler] module-info.java not found in $javaSourceDir, but " +
+           "settings of the project require to compile it. Ensure that the setting of " +
+           "`shouldCompileModuleInfoManually` is correctly set."
         )
+        log.info(
+          s"[FrgaalJavaCompiler] compiling ${sources.size} Java sources to $out ..."
+        )
+        sources
+      } else {
+        log.info(
+          s"[FrgaalJavaCompiler] compiling ${sources.size + 1} Java sources with module-info.java to $out ..."
+        )
+        Seq(moduleInfo.getAbsolutePath) ++ sources
       }
-      log.info(
-        s"[FrgaalJavaCompiler] compiling ${sources.size + 1} Java sources with module-info.java to $out ..."
-      )
-      Seq(moduleInfo.getAbsolutePath) ++ sources
     } else {
       log.info(
         s"[FrgaalJavaCompiler] compiling ${sources.size} Java sources to $out ..."
@@ -191,7 +198,7 @@ object FrgaalJavaCompiler {
     } else {
       Some(
         findUnder(
-          3,
+          1,
           noTarget.tail.fold(asPath(noTarget.head))(asCommon).asInstanceOf[Path]
         )
       )
