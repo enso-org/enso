@@ -3,16 +3,17 @@ package org.enso.ydoc.polyfill.web;
 import io.helidon.common.buffers.BufferData;
 import io.helidon.http.Headers;
 import io.helidon.http.HttpPrologue;
-import io.helidon.webclient.websocket.WsClient;
-import io.helidon.webclient.websocket.WsClientProtocolConfig;
 import io.helidon.webserver.WebServer;
 import io.helidon.webserver.websocket.WsRouting;
 import io.helidon.websocket.WsListener;
 import io.helidon.websocket.WsSession;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.http.HttpClient;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import org.enso.ydoc.polyfill.Arguments;
@@ -69,7 +70,7 @@ final class WebSocket extends PolyfillBase implements ProxyExecutable {
         var handlePong = arguments[8];
         var handleUpgrade = arguments[9];
         var connection =
-            new WebSocketConnection(
+            new JavaHttpWebSocketConnection(
                 executor,
                 handleOpen,
                 handleClose,
@@ -86,13 +87,19 @@ final class WebSocket extends PolyfillBase implements ProxyExecutable {
           throw new IllegalStateException("Illegal URL", ex);
         }
 
-        var protocolConfig = WsClientProtocolConfig.builder();
+        var wsBuilder = HttpClient.newHttpClient().newWebSocketBuilder();
+
         if (protocols != null) {
-          protocolConfig.subProtocols(Arrays.asList(protocols));
+          if (protocols.length > 0) {
+            wsBuilder.subprotocols(protocols[0], Arrays.copyOfRange(protocols, 1, protocols.length));
+          }
         }
 
-        var wsClient = WsClient.builder().protocolConfig(protocolConfig.build()).build();
-        wsClient.connect(uri, connection);
+        try {
+          wsBuilder.buildAsync(uri, connection).get();
+        } catch (InterruptedException | ExecutionException e) {
+          throw new RuntimeException(e);
+        }
 
         yield connection;
       }
@@ -106,7 +113,7 @@ final class WebSocket extends PolyfillBase implements ProxyExecutable {
         var handlePong = arguments[6];
         var handleUpgrade = arguments[7];
 
-        yield new WebSocketConnection(
+        yield new HelidonWebSocketConnection(
             executor,
             handleOpen,
             handleClose,
@@ -129,9 +136,9 @@ final class WebSocket extends PolyfillBase implements ProxyExecutable {
                     () -> {
                       var connectionFuture =
                           executor.submit(
-                              () -> handleConnect.execute().as(WebSocketConnection.class));
+                              () -> handleConnect.execute().as(HelidonWebSocketConnection.class));
 
-                      WebSocketConnection connection;
+                      HelidonWebSocketConnection connection;
                       try {
                         connection = connectionFuture.get();
                       } catch (InterruptedException | ExecutionException e) {
@@ -166,7 +173,7 @@ final class WebSocket extends PolyfillBase implements ProxyExecutable {
 
         var byteArray = byteSequence.subSequence(byteOffset, byteOffset + byteLength).toByteArray();
 
-        yield connection.getSession().send(BufferData.create(byteArray), true);
+        yield connection.getSession().send(ByteBuffer.wrap(byteArray), true);
       }
 
       case WEB_SOCKET_TERMINATE -> {
@@ -202,7 +209,7 @@ final class WebSocket extends PolyfillBase implements ProxyExecutable {
 
         var byteArray = byteSequence.subSequence(byteOffset, byteOffset + byteLength).toByteArray();
 
-        yield connection.getSession().ping(BufferData.create(byteArray));
+        yield connection.getSession().ping(ByteBuffer.wrap(byteArray));
       }
 
       case WEB_SOCKET_PONG -> {
@@ -213,14 +220,165 @@ final class WebSocket extends PolyfillBase implements ProxyExecutable {
 
         var byteArray = byteSequence.subSequence(byteOffset, byteOffset + byteLength).toByteArray();
 
-        yield connection.getSession().pong(BufferData.create(byteArray));
+        yield connection.getSession().pong(ByteBuffer.wrap(byteArray));
       }
 
       default -> throw new IllegalStateException(command);
     };
   }
 
-  private static final class WebSocketConnection implements WsListener {
+  private interface WebSocketSession {
+
+    WebSocketSession send(CharSequence text, Boolean last);
+
+    WebSocketSession send(ByteBuffer buffer, Boolean last);
+
+    WebSocketSession ping(ByteBuffer buffer);
+
+    WebSocketSession pong(ByteBuffer buffer);
+
+    WebSocketSession close(int code, String reason);
+
+    WebSocketSession terminate();
+  }
+
+  private static final class HelidonWebSocketSession implements WebSocketSession {
+
+    private WsSession session;
+
+    private HelidonWebSocketSession(WsSession session) {
+      this.session = session;
+    }
+
+    @Override
+    public WebSocketSession send(CharSequence text, Boolean last) {
+      this.session = session.send(text.toString(), last);
+
+      return this;
+    }
+
+    @Override
+    public WebSocketSession send(ByteBuffer buffer, Boolean last) {
+      var bytesArray = new byte[buffer.remaining()];
+      buffer.get(bytesArray);
+      this.session = session.send(BufferData.create(bytesArray), last);
+
+      return this;
+    }
+
+    @Override
+    public WebSocketSession ping(ByteBuffer buffer) {
+      var bytesArray = new byte[buffer.remaining()];
+      buffer.get(bytesArray);
+      this.session = session.ping(BufferData.create(bytesArray));
+
+      return this;
+    }
+
+    @Override
+    public WebSocketSession pong(ByteBuffer buffer) {
+      var bytesArray = new byte[buffer.remaining()];
+      buffer.get(bytesArray);
+      this.session = session.pong(BufferData.create(bytesArray));
+
+      return this;
+    }
+
+    @Override
+    public WebSocketSession close(int code, String reason) {
+      this.session = session.close(code, reason);
+
+      return this;
+    }
+
+    @Override
+    public WebSocketSession terminate() {
+      this.session = session.terminate();
+
+      return this;
+    }
+  }
+
+  private static final class JavaHttpWebSocketSession implements WebSocketSession {
+
+    private java.net.http.WebSocket webSocket;
+
+    private JavaHttpWebSocketSession(java.net.http.WebSocket webSocket) {
+      this.webSocket = webSocket;
+    }
+
+    @Override
+    public WebSocketSession send(CharSequence text, Boolean last) {
+      try {
+        this.webSocket = webSocket.sendText(text, last).get();
+      } catch (InterruptedException | ExecutionException e) {
+        throw new RuntimeException(e);
+      }
+
+      return this;
+    }
+
+    @Override
+    public WebSocketSession send(ByteBuffer buffer, Boolean last) {
+      try {
+        this.webSocket = webSocket.sendBinary(buffer, last).get();
+      } catch (InterruptedException | ExecutionException e) {
+        throw new RuntimeException(e);
+      }
+
+      return this;
+    }
+
+    @Override
+    public WebSocketSession ping(ByteBuffer buffer) {
+      try {
+        this.webSocket = webSocket.sendPing(buffer).get();
+      } catch (InterruptedException | ExecutionException e) {
+        throw new RuntimeException(e);
+      }
+
+      return this;
+    }
+
+    @Override
+    public WebSocketSession pong(ByteBuffer buffer) {
+      try {
+        this.webSocket = webSocket.sendPong(buffer).get();
+      } catch (InterruptedException | ExecutionException e) {
+        throw new RuntimeException(e);
+      }
+      return this;
+    }
+
+    @Override
+    public WebSocketSession close(int code, String reason) {
+      try {
+        this.webSocket = webSocket.sendClose(code, reason).get();
+      } catch (InterruptedException | ExecutionException e) {
+        throw new RuntimeException(e);
+      }
+
+      return this;
+    }
+
+    @Override
+    public WebSocketSession terminate() {
+      try {
+        this.webSocket = webSocket.sendClose(java.net.http.WebSocket.NORMAL_CLOSURE, "").get();
+      } catch (InterruptedException | ExecutionException e) {
+        throw new RuntimeException(e);
+      }
+
+      return this;
+    }
+  }
+
+  private interface WebSocketConnection {
+
+    WebSocketSession getSession();
+  }
+
+  private static final class HelidonWebSocketConnection implements WsListener, WebSocketConnection {
 
     private final ExecutorService executor;
 
@@ -232,9 +390,9 @@ final class WebSocket extends PolyfillBase implements ProxyExecutable {
     private final Value handlePong;
     private final Value handleUpgrade;
 
-    private WsSession session;
+    private WebSocketSession session;
 
-    private WebSocketConnection(
+    private HelidonWebSocketConnection(
         ExecutorService executor,
         Value handleOpen,
         Value handleClose,
@@ -253,7 +411,8 @@ final class WebSocket extends PolyfillBase implements ProxyExecutable {
       this.handleUpgrade = handleUpgrade;
     }
 
-    public WsSession getSession() {
+    @Override
+    public WebSocketSession getSession() {
       return session;
     }
 
@@ -296,7 +455,7 @@ final class WebSocket extends PolyfillBase implements ProxyExecutable {
     public void onOpen(WsSession session) {
       log.debug("onOpen");
 
-      this.session = session;
+      this.session = new HelidonWebSocketSession(session);
 
       executor.execute(() -> handleOpen.executeVoid());
     }
@@ -324,6 +483,122 @@ final class WebSocket extends PolyfillBase implements ProxyExecutable {
       executor.execute(() -> handleUpgrade.executeVoid(url));
 
       return Optional.empty();
+    }
+  }
+
+  private static final class JavaHttpWebSocketConnection implements java.net.http.WebSocket.Listener, WebSocketConnection {
+
+    private final ExecutorService executor;
+
+    private final Value handleOpen;
+    private final Value handleClose;
+    private final Value handleError;
+    private final Value handleMessage;
+    private final Value handlePing;
+    private final Value handlePong;
+
+    private WebSocketSession session;
+
+    private JavaHttpWebSocketConnection(
+        ExecutorService executor,
+        Value handleOpen,
+        Value handleClose,
+        Value handleError,
+        Value handleMessage,
+        Value handlePing,
+        Value handlePong,
+        Value handleUpgrade) {
+      this.executor = executor;
+      this.handleOpen = handleOpen;
+      this.handleClose = handleClose;
+      this.handleError = handleError;
+      this.handleMessage = handleMessage;
+      this.handlePing = handlePing;
+      this.handlePong = handlePong;
+    }
+
+    @Override
+    public WebSocketSession getSession() {
+      return session;
+    }
+
+    /*
+     * Callbacks
+     */
+    @Override
+    public CompletionStage<?> onBinary(java.net.http.WebSocket webSocket, ByteBuffer buffer, boolean last) {
+      log.debug("onMessage [{}]", buffer);
+
+      // Passing byte sequence to JS requires `HostAccess.allowBufferAccess()`
+      var bytesArray = new byte[buffer.remaining()];
+      buffer.get(bytesArray);
+      var bytes = ByteSequence.create(bytesArray);
+      executor.execute(() -> handleMessage.executeVoid(bytes));
+      webSocket.request(1);
+
+      return null;
+    }
+
+    @Override
+    public CompletionStage<?> onText(java.net.http.WebSocket webSocket, CharSequence data, boolean last) {
+      log.debug("onMessage [{}]", data);
+
+      executor.execute(() -> handleMessage.executeVoid(data.toString()));
+      webSocket.request(1);
+
+      return null;
+    }
+
+    @Override
+    public CompletionStage<?> onPing(java.net.http.WebSocket webSocket, ByteBuffer buffer) {
+      log.debug("onPing [{}]", buffer);
+
+      var bytesArray = new byte[buffer.remaining()];
+      buffer.get(bytesArray);
+      var bytes = ByteSequence.create(bytesArray);
+      executor.execute(() -> handlePing.executeVoid(bytes));
+      webSocket.request(1);
+
+      return null;
+    }
+
+    @Override
+    public CompletionStage<?> onPong(java.net.http.WebSocket webSocket, ByteBuffer buffer) {
+      log.debug("onPong [{}]", buffer);
+
+      var bytesArray = new byte[buffer.remaining()];
+      buffer.get(bytesArray);
+      var bytes = ByteSequence.create(bytesArray);
+      executor.execute(() -> handlePong.executeVoid(bytes));
+      webSocket.request(1);
+
+      return null;
+    }
+
+    @Override
+    public void onOpen(java.net.http.WebSocket webSocket) {
+      log.debug("onOpen");
+
+      this.session = new JavaHttpWebSocketSession(webSocket);
+      executor.execute(() -> handleOpen.executeVoid());
+      webSocket.request(1);
+    }
+
+    @Override
+    public CompletionStage<?> onClose(java.net.http.WebSocket webSocket, int status, String reason) {
+      log.debug("onClose [{}] [{}]", status, reason);
+
+      executor.execute(() -> handleClose.executeVoid(status, reason));
+      this.session = null;
+
+      return null;
+    }
+
+    @Override
+    public void onError(java.net.http.WebSocket webSocket, Throwable t) {
+      log.error("onError ", t);
+
+      executor.execute(() -> handleError.executeVoid(t.getMessage()));
     }
   }
 }

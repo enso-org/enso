@@ -484,10 +484,6 @@ val helidon = Seq(
   "io.helidon.http"            % "helidon-http"                % helidonVersion,
   "io.helidon.http.encoding"   % "helidon-http-encoding"       % helidonVersion,
   "io.helidon.http.media"      % "helidon-http-media"          % helidonVersion,
-  "io.helidon.webclient"       % "helidon-webclient"           % helidonVersion,
-  "io.helidon.webclient"       % "helidon-webclient-api"       % helidonVersion,
-  "io.helidon.webclient"       % "helidon-webclient-http1"     % helidonVersion,
-  "io.helidon.webclient"       % "helidon-webclient-websocket" % helidonVersion,
   "io.helidon.webserver"       % "helidon-webserver"           % helidonVersion,
   "io.helidon.webserver"       % "helidon-webserver-websocket" % helidonVersion,
   "io.helidon.websocket"       % "helidon-websocket"           % helidonVersion,
@@ -1284,11 +1280,11 @@ lazy val `ydoc-server` = project
       "org.graalvm.polyglot"       % "inspect"                     % graalMavenPackagesVersion % "runtime",
       "org.graalvm.polyglot"       % "js"                          % graalMavenPackagesVersion % "runtime",
       "org.slf4j"                  % "slf4j-api"                   % slf4jVersion,
-      "io.helidon.webclient"       % "helidon-webclient-websocket" % helidonVersion,
       "io.helidon.webserver"       % "helidon-webserver-websocket" % helidonVersion,
       "junit"                      % "junit"                       % junitVersion              % Test,
       "com.github.sbt"             % "junit-interface"             % junitIfVersion            % Test,
-      "com.fasterxml.jackson.core" % "jackson-databind"            % jacksonVersion            % Test
+      "com.fasterxml.jackson.core" % "jackson-databind"            % jacksonVersion            % Test,
+      "io.helidon.webclient"       % "helidon-webclient-websocket" % helidonVersion            % Test
     )
   )
   // `Compile/run` settings are necessary for the `run` task to work.
@@ -1305,7 +1301,8 @@ lazy val `ydoc-server` = project
     // would result in an sbt caught in an infinite recursion.
     //
     Compile / run / javaOptions ++= {
-      val mp        = modulePath.value ++ (`profiling-utils` / modulePath).value
+      val mp =
+        (Runtime / modulePath).value ++ modulePath.value ++ (`profiling-utils` / modulePath).value
       val jar       = (Compile / exportedProductJars).value.head
       val modName   = javaModuleName.value
       val allMp     = mp ++ Seq(jar.data.absolutePath)
