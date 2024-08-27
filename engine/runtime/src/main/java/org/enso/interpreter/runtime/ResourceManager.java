@@ -100,7 +100,7 @@ public final class ResourceManager {
 
   /**
    * Registers a new resource to the system. {@code function} will be called on {@code object} when
-   * the value returned by this method becomes unreachable.
+   * the value returned by this removeNextQueuedItem becomes unreachable.
    *
    * @param object the underlying resource
    * @param function the finalizer action to call on the underlying resource
@@ -130,8 +130,10 @@ public final class ResourceManager {
     Collection<Item> toFinalize;
     synchronized (this) {
       isClosed = true;
-      if (processor != null) {
-        toFinalize = processor.shutdown();
+      var p = processor;
+      if (p != null) {
+        processor = null;
+        toFinalize = p.awaitShutdown();
       } else {
         toFinalize = Collections.emptyList();
       }
@@ -161,20 +163,54 @@ public final class ResourceManager {
     }
   }
 
+  /**
+   * Awaits next item in the queue, if any.
+   *
+   * @param p the processor that queries
+   * @return item from queue or {@code null} if {@code p} processor is eligible for shutdown
+   */
   @CompilerDirectives.TruffleBoundary
-  private synchronized void shutdownProcessorIfNoPending() {
-    if (processor != null && processor.isPendingEmpty()) {
-      processor.killed = true;
+  private Reference<? extends ManagedResource> removeNextQueuedItem(ProcessItems p)
+      throws InterruptedException {
+    boolean empty;
+    synchronized (this) {
+      if (processor != p) {
+        return null;
+      }
+      assert Thread.currentThread() == p.workerThread;
+      assert p.isActive();
+      empty = p.isEverythingProcessed();
+    }
+    if (empty) {
+      return referenceQueue.remove(KEEP_ALIVE);
+    } else {
+      return referenceQueue.remove();
+    }
+  }
+
+  /** If the current processor has no pending items, it deactivates it. */
+  @CompilerDirectives.TruffleBoundary
+  private synchronized void shutdownProcessorIfNoPending(ProcessItems p) {
+    assert Thread.currentThread() == p.workerThread;
+    if (processor == p && p.isEverythingProcessed()) {
       processor = null;
     }
   }
 
+  /** Verifies whether given processor is still active. */
+  @CompilerDirectives.TruffleBoundary
+  private synchronized boolean isActive(ProcessItems p) {
+    return processor == p;
+  }
+
   /**
    * Processes {@link Item}s eligible for GC. Plays two roles. First of all cleans {@link
-   * #referenceQueue} in {@link #run()} method running in its own thread. Then it invokes finalizers
-   * in {@link #perform} method inside of Enso execution context.
+   * #referenceQueue} in {@link #run()} removeNextQueuedItem running in its own thread. Then it
+   * invokes finalizers in {@link #perform} removeNextQueuedItem inside of Enso execution context.
    */
   private final class ProcessItems extends ThreadLocalAction implements Runnable {
+    private final Thread workerThread;
+
     /**
      * @GuardedBy("ResourceManager.this")
      */
@@ -189,10 +225,6 @@ public final class ResourceManager {
      * @GuardedBy("toFinalize")
      */
     private Future<Void> safepointRequest;
-
-    private final Thread workerThread;
-
-    private volatile boolean killed;
 
     ProcessItems(Function<Runnable, Thread> threadFactory) {
       super(false, false, true);
@@ -215,11 +247,15 @@ public final class ResourceManager {
       }
     }
 
-    /** Is pending list empty? */
-    final boolean isPendingEmpty() {
-      synchronized (ResourceManager.this) {
-        return pendingItems.isEmpty();
-      }
+    /** Check if everything is processed. */
+    final boolean isEverythingProcessed() {
+      assert Thread.holdsLock(ResourceManager.this);
+      return pendingItems.isEmpty();
+    }
+
+    /** Is this processor still active */
+    final boolean isActive() {
+      return ResourceManager.this.isActive(this);
     }
 
     /**
@@ -272,16 +308,11 @@ public final class ResourceManager {
     public void run() {
       while (true) {
         try {
-          Reference<? extends ManagedResource> ref;
-          if (isPendingEmpty()) {
-            ref = referenceQueue.remove(KEEP_ALIVE);
-            if (ref == null) {
-              shutdownProcessorIfNoPending();
-            }
-          } else {
-            ref = referenceQueue.remove();
+          var ref = removeNextQueuedItem(this);
+          if (ref == null) {
+            shutdownProcessorIfNoPending(this);
           }
-          if (!killed) {
+          if (isActive()) {
             if (ref instanceof Item it) {
               it.flaggedForFinalization.set(true);
               synchronized (toFinalize) {
@@ -295,11 +326,11 @@ public final class ResourceManager {
               }
             }
           }
-          if (killed) {
+          if (!isActive()) {
             return;
           }
         } catch (InterruptedException e) {
-          if (killed) {
+          if (!isActive()) {
             return;
           }
         }
@@ -307,14 +338,14 @@ public final class ResourceManager {
     }
 
     /**
-     * Sets the killed flag of this thread. This flag being set to {@code true} will force it to
-     * stop execution at the soonest possible safe point. Other than setting this flag, the thread
-     * should also be interrupted to read it, in case it is blocked on an interruptible operation.
+     * Awaits shutdown of the worker thread. Can only be called when this processor is no longer
+     * active.
      *
      * @return the list of items that deserve to be finalized
      */
-    Collection<Item> shutdown() {
-      this.killed = true;
+    Collection<Item> awaitShutdown() {
+      assert !isActive() : "Ready to shutdown";
+      assert Thread.currentThread() != workerThread : "Cannot shutdown own thread";
       workerThread.interrupt();
       while (workerThread.isAlive()) {
         try {
