@@ -8,7 +8,6 @@ import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.Future;
@@ -19,7 +18,7 @@ import org.enso.interpreter.runtime.data.ManagedResource;
 
 /** Allows the context to attach garbage collection hooks on the removal of certain objects. */
 public final class ResourceManager {
-  /** how many milliseconds to wait for another resource when no is available */
+  /** Amount of milliseconds to wait for another resource when none is pending. */
   private static final long KEEP_ALIVE = 1000;
 
   /** Queue with resources eligible for finalization */
@@ -28,14 +27,22 @@ public final class ResourceManager {
   private final EnsoContext context;
 
   /**
-   * @GuardedBy("this")
+   * Indicates this manager is closed. If assigned to {@code processor} field, this manager is
+   * considered closed.
    */
-  private ProcessItems processor;
+  private final ProcessItems CLOSED = new ProcessItems(null);
 
   /**
-   * @GuardedBy("this")
+   * The current processor (with own worker {@link Thread}) that is supposed to await {@link
+   * #removeNextQueuedItem(ProcessItems)} and process them by properly invoking their finalizers
+   * using a safepoint action.
+   *
+   * <p>If this field is set to {@link #CLOSED}, then this resource manager is considered to be
+   * closed.
+   *
+   * <p>@GuardedBy("this")
    */
-  private boolean isClosed;
+  private ProcessItems processor;
 
   /**
    * Creates a new instance of Resource Manager.
@@ -108,7 +115,7 @@ public final class ResourceManager {
    */
   @CompilerDirectives.TruffleBoundary
   public synchronized ManagedResource register(Object object, Object function) {
-    if (isClosed) {
+    if (CLOSED == processor) {
       throw EnsoContext.get(null)
           .raiseAssertionPanic(
               null, "Can't register new resources after resource manager is closed.", null);
@@ -127,18 +134,20 @@ public final class ResourceManager {
    * will be run in it.
    */
   public void shutdown() {
-    Collection<Item> toFinalize;
+    ProcessItems toFinalize;
     synchronized (this) {
-      isClosed = true;
-      var p = processor;
-      if (p != null) {
-        processor = null;
-        toFinalize = p.awaitShutdown();
-      } else {
-        toFinalize = Collections.emptyList();
+      if (processor == CLOSED) {
+        // already shut(-ting) down
+        return;
+      }
+      toFinalize = processor;
+      processor = CLOSED;
+      if (toFinalize == null) {
+        // nothing to shutdown
+        return;
       }
     }
-    for (var it : toFinalize) {
+    for (var it : toFinalize.awaitShutdown()) {
       // Finalize unconditionally – all other threads are dead by now.
       it.finalizeNow(context);
     }
@@ -228,8 +237,12 @@ public final class ResourceManager {
 
     ProcessItems(Function<Runnable, Thread> threadFactory) {
       super(false, false, true);
-      this.workerThread = threadFactory.apply(this);
-      this.workerThread.start();
+      if (threadFactory != null) {
+        this.workerThread = threadFactory.apply(this);
+        this.workerThread.start();
+      } else {
+        this.workerThread = null;
+      }
     }
 
     /** Registers another Item for this processor. */
@@ -240,6 +253,7 @@ public final class ResourceManager {
 
     /** Removes an Item from this processor. */
     final void remove(Item item) {
+      assert workerThread != null;
       assert Thread.holdsLock(ResourceManager.this);
       pendingItems.remove(item);
       if (pendingItems.isEmpty()) {
@@ -249,12 +263,14 @@ public final class ResourceManager {
 
     /** Check if everything is processed. */
     final boolean isEverythingProcessed() {
+      assert workerThread != null;
       assert Thread.holdsLock(ResourceManager.this);
       return pendingItems.isEmpty();
     }
 
     /** Is this processor still active */
     final boolean isActive() {
+      assert workerThread != null;
       return ResourceManager.this.isActive(this);
     }
 
