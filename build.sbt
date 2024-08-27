@@ -2608,7 +2608,7 @@ lazy val `runtime-integration-tests` =
     )
     .dependsOn(`runtime`)
     .dependsOn(`runtime-test-instruments`)
-    .dependsOn(`logging-service-logback`)
+    .dependsOn(`logging-service-logback` % "test->test")
     .dependsOn(testkit % Test)
     .dependsOn(`connected-lock-manager-server`)
     .dependsOn(`test-utils`)
