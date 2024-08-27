@@ -112,6 +112,7 @@ export function SetOrganizationNameForm(props: SetOrganizationNameFormProps) {
         inputMode="text"
         autoComplete="off"
         label={getText('organizationNameSettingsInput')}
+        placeholder={getText('organizationNamePlaceholder')}
         description={getText(
           'organizationNameSettingsInputDescription',
           ORGANIZATION_NAME_MAX_LENGTH,

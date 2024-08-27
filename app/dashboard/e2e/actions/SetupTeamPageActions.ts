@@ -10,7 +10,13 @@ import SetupDonePageActions from './SetupDonePageActions'
 /** Actions for the third step of the "setup" page. */
 export default class SetupTeamPageActions extends BaseActions {
   /** Set the userame for a new user that does not yet have a username. */
-  test() {
-    return this.step(`fake`, async (page) => {}).into(SetupDonePageActions)
+  setOrganizationName(organizationName: string) {
+    return this.step(`Set organization name to '${organizationName}'`, async (page) => {
+      await page
+        .getByLabel(TEXT.organizationNameSettingsInput)
+        .and(page.getByRole('textbox'))
+        .fill(organizationName)
+      await page.getByText(TEXT.next).click()
+    }).into(SetupDonePageActions)
   }
 }

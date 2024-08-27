@@ -17,7 +17,7 @@ test.test('setup (free plan)', ({ page }) =>
     .do(async (thePage) => {
       await actions.passTermsAndConditionsDialog({ page: thePage })
     })
-    .setUsername('test')
+    .setUsername('test user')
     .stayOnFreePlan()
     .goToPage.drive()
     .withDriveView(async (drive) => {
@@ -38,9 +38,30 @@ test.test('setup (solo plan)', ({ page }) =>
     .do(async (thePage) => {
       await actions.passTermsAndConditionsDialog({ page: thePage })
     })
-    .setUsername('test')
-    .selectPlan(Plan.solo)
-    .test()
+    .setUsername('test user')
+    .selectSoloPlan()
+    .goToPage.drive()
+    .withDriveView(async (drive) => {
+      await test.expect(drive).toBeVisible()
+    }),
+)
+
+test.test('setup (team plan)', ({ page }) =>
+  actions
+    .mockAll({
+      page,
+      setupAPI: (api) => {
+        api.setCurrentUser(null)
+        api.setPlan(Plan.free)
+      },
+    })
+    .loginAsNewUser()
+    .do(async (thePage) => {
+      await actions.passTermsAndConditionsDialog({ page: thePage })
+    })
+    .setUsername('test user')
+    .selectPlan(Plan.team)
+    .setOrganizationName('test organization')
     .goToPage.drive()
     .withDriveView(async (drive) => {
       await test.expect(drive).toBeVisible()
