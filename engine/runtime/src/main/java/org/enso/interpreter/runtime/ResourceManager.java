@@ -8,7 +8,6 @@ import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -23,6 +22,14 @@ public final class ResourceManager {
 
   /** Queue with resources eligible for finalization */
   private final ReferenceQueue<ManagedResource> referenceQueue = new ReferenceQueue<>();
+
+  /**
+   * All the items that were issued, but haven't yet arrived at {@link #referenceQueue} for
+   * finalization.
+   *
+   * <p>@GuardedBy("this")
+   */
+  private final List<Item> pendingItems = new ArrayList<>();
 
   private final EnsoContext context;
 
@@ -134,20 +141,24 @@ public final class ResourceManager {
    * will be run in it.
    */
   public void shutdown() {
-    ProcessItems toFinalize;
+    Item[] toFinalize;
+    ProcessItems lastProcessor;
     synchronized (this) {
       if (processor == CLOSED) {
         // already shut(-ting) down
         return;
       }
-      toFinalize = processor;
+      toFinalize = pendingItems.toArray(Item[]::new);
+      lastProcessor = processor;
       processor = CLOSED;
-      if (toFinalize == null) {
-        // nothing to shutdown
-        return;
+    }
+    if (lastProcessor != null) {
+      for (var it : lastProcessor.awaitShutdown()) {
+        // Finalize unconditionally – all other threads are dead by now.
+        it.finalizeNow(context);
       }
     }
-    for (var it : toFinalize.awaitShutdown()) {
+    for (var it : toFinalize) {
       // Finalize unconditionally – all other threads are dead by now.
       it.finalizeNow(context);
     }
@@ -162,13 +173,13 @@ public final class ResourceManager {
     if (processor == null) {
       processor = new ProcessItems(r -> context.createThread(true, r));
     }
-    processor.add(item);
+    pendingItems.add(item);
   }
 
   @CompilerDirectives.TruffleBoundary
   private synchronized void removeFromItems(PhantomReference<ManagedResource> it) {
-    if (processor != null && it instanceof Item item) {
-      processor.remove(item);
+    if (it instanceof Item item) {
+      pendingItems.remove(item);
     }
   }
 
@@ -188,7 +199,7 @@ public final class ResourceManager {
       }
       assert Thread.currentThread() == p.workerThread;
       assert p.isActive();
-      empty = p.isEverythingProcessed();
+      empty = pendingItems.isEmpty();
     }
     if (empty) {
       return referenceQueue.remove(KEEP_ALIVE);
@@ -201,7 +212,7 @@ public final class ResourceManager {
   @CompilerDirectives.TruffleBoundary
   private synchronized void shutdownProcessorIfNoPending(ProcessItems p) {
     assert Thread.currentThread() == p.workerThread;
-    if (processor == p && p.isEverythingProcessed()) {
+    if (processor == p && pendingItems.isEmpty()) {
       processor = null;
     }
   }
@@ -221,11 +232,6 @@ public final class ResourceManager {
     private final Thread workerThread;
 
     /**
-     * @GuardedBy("ResourceManager.this")
-     */
-    private final List<Item> pendingItems = new ArrayList<>();
-
-    /**
      * @GuardedBy("toFinalize")
      */
     private final List<Item> toFinalize = new ArrayList<>();
@@ -243,29 +249,6 @@ public final class ResourceManager {
       } else {
         this.workerThread = null;
       }
-    }
-
-    /** Registers another Item for this processor. */
-    final void add(Item item) {
-      assert Thread.holdsLock(ResourceManager.this);
-      pendingItems.add(item);
-    }
-
-    /** Removes an Item from this processor. */
-    final void remove(Item item) {
-      assert workerThread != null;
-      assert Thread.holdsLock(ResourceManager.this);
-      pendingItems.remove(item);
-      if (pendingItems.isEmpty()) {
-        workerThread.interrupt();
-      }
-    }
-
-    /** Check if everything is processed. */
-    final boolean isEverythingProcessed() {
-      assert workerThread != null;
-      assert Thread.holdsLock(ResourceManager.this);
-      return pendingItems.isEmpty();
     }
 
     /** Is this processor still active */
@@ -292,7 +275,7 @@ public final class ResourceManager {
               // some thread is already handing the safepointRequest
               return;
             } else {
-              // I am choosen and I will loop and process toFinalize
+              // I am choosen and I will loop and process lastProcessor
               // until they are available
               isMyThreadChoosen = true;
               // signal others this safepointRequest has choosen thread
@@ -337,9 +320,7 @@ public final class ResourceManager {
                 }
                 toFinalize.add(it);
               }
-              synchronized (ResourceManager.this) {
-                remove(it);
-              }
+              removeFromItems(it);
             }
           }
           if (!isActive()) {
@@ -369,10 +350,7 @@ public final class ResourceManager {
         } catch (InterruptedException ex) {
         }
       }
-      var all = new HashSet<Item>();
-      all.addAll(toFinalize);
-      all.addAll(pendingItems);
-      return all;
+      return toFinalize;
     }
   }
 
