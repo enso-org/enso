@@ -10,7 +10,7 @@ import org.eclipse.jgit.api.{Git => JGit}
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.eclipse.jgit.revwalk.RevCommit
-import org.enso.logger.ReportLogsOnFailure
+import org.enso.logging.service.logback.test.provider.ReportLogsOnFailure
 import org.enso.testkit.FlakySpec
 
 import scala.concurrent.duration._

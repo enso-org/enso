@@ -14,7 +14,7 @@ import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager._
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
-import org.enso.logger.ReportLogsOnFailure
+import org.enso.logging.service.logback.test.provider.ReportLogsOnFailure
 import org.enso.polyglot.data.{Tree, TypeGraph}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.{ExportedSymbol, ModuleExports, Suggestion}

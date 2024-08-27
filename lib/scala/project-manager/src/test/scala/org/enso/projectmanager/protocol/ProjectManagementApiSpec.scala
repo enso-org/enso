@@ -4,7 +4,7 @@ import akka.testkit.TestDuration
 import io.circe.literal._
 import org.enso.semver.SemVer
 import org.apache.commons.io.FileUtils
-import org.enso.logger.ReportLogsOnFailure
+import org.enso.logging.service.logback.test.provider.ReportLogsOnFailure
 import org.enso.pkg.validation.NameValidation
 import org.enso.projectmanager.boot.configuration.TimeoutConfig
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}

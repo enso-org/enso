@@ -11,7 +11,7 @@ import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.websocket.json.{
   ExecutionContextJsonMessages => json
 }
-import org.enso.logger.ReportLogsOnFailure
+import org.enso.logging.service.logback.test.provider.ReportLogsOnFailure
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID

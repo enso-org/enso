@@ -2,7 +2,7 @@ package org.enso.languageserver.websocket.json
 
 import io.circe.literal._
 import org.enso.distribution.FileSystem
-import org.enso.logger.ReportLogsOnFailure
+import org.enso.logging.service.logback.test.provider.ReportLogsOnFailure
 
 import java.nio.file.Files
 

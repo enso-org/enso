@@ -19,7 +19,7 @@ import org.enso.librarymanager.published.repository.{
   ExampleRepository,
   LibraryManifest
 }
-import org.enso.logger.ReportLogsOnFailure
+import org.enso.logging.service.logback.test.provider.ReportLogsOnFailure
 import org.enso.pkg.{Config, Contact, Package, PackageManager}
 import org.enso.testkit.FlakySpec
 import org.enso.yaml.YamlHelper

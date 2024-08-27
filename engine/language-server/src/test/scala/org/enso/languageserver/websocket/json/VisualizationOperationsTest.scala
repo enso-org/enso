@@ -5,7 +5,7 @@ import org.enso.languageserver.runtime.{
   MethodPointer,
   VisualizationConfiguration
 }
-import org.enso.logger.ReportLogsOnFailure
+import org.enso.logging.service.logback.test.provider.ReportLogsOnFailure
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.editing.model
 

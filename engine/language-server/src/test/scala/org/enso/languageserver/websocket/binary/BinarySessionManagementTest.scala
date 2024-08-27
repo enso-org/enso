@@ -12,7 +12,7 @@ import org.enso.languageserver.websocket.binary.factory.{
   InboundMessageFactory,
   SessionInitFactory
 }
-import org.enso.logger.ReportLogsOnFailure
+import org.enso.logging.service.logback.test.provider.ReportLogsOnFailure
 import org.enso.testkit.FlakySpec
 
 class BinarySessionManagementTest

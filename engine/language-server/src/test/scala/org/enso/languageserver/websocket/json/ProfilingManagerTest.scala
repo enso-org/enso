@@ -2,7 +2,7 @@ package org.enso.languageserver.websocket.json
 
 import org.enso.distribution.DistributionManager
 import org.enso.languageserver.profiling.ProfilingManager
-import org.enso.logger.ReportLogsOnFailure
+import org.enso.logging.service.logback.test.provider.ReportLogsOnFailure
 
 import java.nio.file.Files
 

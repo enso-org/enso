@@ -3,7 +3,7 @@ package org.enso.projectmanager.infrastructure.languageserver
 import akka.actor.ActorSystem
 import akka.testkit._
 import com.miguno.akka.testing.VirtualTime
-import org.enso.logger.ReportLogsOnFailure
+import org.enso.logging.service.logback.test.provider.ReportLogsOnFailure
 import org.enso.projectmanager.data.Socket
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol.{
   ProjectRenamed,

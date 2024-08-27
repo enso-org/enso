@@ -2,7 +2,7 @@ package org.enso.projectmanager.protocol
 
 import akka.testkit.TestDuration
 import io.circe.literal._
-import org.enso.logger.ReportLogsOnFailure
+import org.enso.logging.service.logback.test.provider.ReportLogsOnFailure
 import org.enso.projectmanager.BaseServerSpec
 import org.enso.testkit.FlakySpec
 

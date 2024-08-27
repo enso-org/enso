@@ -10,7 +10,7 @@ import org.enso.languageserver.filemanager.ContentRootManagerProtocol.{
   ContentRootsAddedNotification,
   SubscribeToNotifications
 }
-import org.enso.logger.ReportLogsOnFailure
+import org.enso.logging.service.logback.test.provider.ReportLogsOnFailure
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.{EitherValue, WithTemporaryDirectory}
 import org.scalatest.concurrent.Futures

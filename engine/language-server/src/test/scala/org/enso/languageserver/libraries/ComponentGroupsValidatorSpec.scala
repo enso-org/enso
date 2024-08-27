@@ -1,7 +1,7 @@
 package org.enso.languageserver.libraries
 
 import org.enso.editions.LibraryName
-import org.enso.logger.ReportLogsOnFailure
+import org.enso.logging.service.logback.test.provider.ReportLogsOnFailure
 import org.enso.pkg.{
   ComponentGroup,
   ComponentGroups,

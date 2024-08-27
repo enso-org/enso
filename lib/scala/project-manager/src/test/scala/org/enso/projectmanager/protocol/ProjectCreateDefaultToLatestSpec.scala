@@ -1,8 +1,8 @@
 package org.enso.projectmanager.protocol
 
 import io.circe.literal.JsonStringContext
+import org.enso.logging.service.logback.test.provider.ReportLogsOnFailure
 import org.enso.semver.SemVer
-import org.enso.logger.ReportLogsOnFailure
 import org.enso.projectmanager.BaseServerSpec
 import org.enso.runtimeversionmanager.test.OverrideTestVersionSuite
 

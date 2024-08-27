@@ -20,7 +20,7 @@ import org.enso.languageserver.session.SessionRouter.{
   DeliverToBinaryController,
   DeliverToJsonController
 }
-import org.enso.logger.ReportLogsOnFailure
+import org.enso.logging.service.logback.test.provider.ReportLogsOnFailure
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.RetrySpec
 import org.scalatest.BeforeAndAfterAll

@@ -2,7 +2,7 @@ package org.enso.languageserver.filemanager
 
 import org.apache.commons.io.FileUtils
 import org.enso.languageserver.effect.Effects
-import org.enso.logger.ReportLogsOnFailure
+import org.enso.logging.service.logback.test.provider.ReportLogsOnFailure
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 

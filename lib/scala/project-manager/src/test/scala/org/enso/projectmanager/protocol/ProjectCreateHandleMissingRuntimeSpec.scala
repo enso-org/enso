@@ -1,6 +1,6 @@
 package org.enso.projectmanager.protocol
 
-import org.enso.logger.ReportLogsOnFailure
+import org.enso.logging.service.logback.test.provider.ReportLogsOnFailure
 import org.enso.projectmanager.TestDistributionConfiguration
 import org.enso.runtimeversionmanager.runner.JVMSettings
 import org.enso.runtimeversionmanager.test.FakeReleases

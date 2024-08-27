@@ -4,7 +4,7 @@ import akka.actor.ActorRef
 import io.circe.literal._
 import org.enso.semver.SemVer
 import org.enso.jsonrpc.ClientControllerFactory
-import org.enso.logger.ReportLogsOnFailure
+import org.enso.logging.service.logback.test.provider.ReportLogsOnFailure
 import org.enso.projectmanager.boot.configuration.TimeoutConfig
 import org.enso.projectmanager.event.ClientEvent.ClientDisconnected
 import zio.{ZAny, ZIO}
