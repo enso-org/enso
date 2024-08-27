@@ -194,13 +194,14 @@ object JPMSPlugin extends AutoPlugin {
     patchModules := Map.empty,
     addExports := Map.empty,
     addReads := Map.empty,
-    // javacOptions only inject --module-path and --add-modules, not the rest of the
-    // options.
     Compile / javacOptions ++= {
       constructOptions(
         streams.value.log,
-        modulePath = (Compile / modulePath).value,
-        addModules = (Compile / addModules).value
+        (Compile / modulePath).value,
+        (Compile / addModules).value,
+        (Compile / patchModules).value,
+        (Compile / addExports).value,
+        (Compile / addReads).value
       )
     },
     Compile / javaOptions ++= {
@@ -225,8 +226,11 @@ object JPMSPlugin extends AutoPlugin {
     Test / javacOptions ++= {
       constructOptions(
         streams.value.log,
-        modulePath = (Test / modulePath).value,
-        addModules = (Test / addModules).value
+        (Test / modulePath).value,
+        (Test / addModules).value,
+        (Test / patchModules).value,
+        (Test / addExports).value,
+        (Test / addReads).value
       )
     },
     Test / javaOptions ++= {
