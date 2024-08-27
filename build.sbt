@@ -2066,6 +2066,7 @@ lazy val `runtime-integration-tests` =
     .dependsOn(testkit % Test)
     .dependsOn(`connected-lock-manager-server`)
     .dependsOn(`test-utils`)
+    .dependsOn(`runtime-instrument-common` % "test->test")
 
 /** A project that holds only benchmarks for `runtime`. Unlike `runtime-integration-tests`, its execution requires
   * the whole `runtime-fat-jar` assembly, as we want to be as close to the enso distribution as possible.
