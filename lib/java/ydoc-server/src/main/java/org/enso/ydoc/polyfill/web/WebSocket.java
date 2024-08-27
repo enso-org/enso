@@ -1,21 +1,30 @@
 package org.enso.ydoc.polyfill.web;
 
-import io.helidon.common.buffers.BufferData;
-import io.helidon.http.Headers;
-import io.helidon.http.HttpPrologue;
 import io.helidon.webserver.WebServer;
-import io.helidon.webserver.websocket.WsRouting;
-import io.helidon.websocket.WsListener;
-import io.helidon.websocket.WsSession;
+
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.Optional;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+
+import io.helidon.webserver.websocket.WebSocketRouting;
+import jakarta.websocket.CloseReason;
+import jakarta.websocket.Decoder;
+import jakarta.websocket.Encoder;
+import jakarta.websocket.Endpoint;
+import jakarta.websocket.EndpointConfig;
+import jakarta.websocket.Extension;
+import jakarta.websocket.MessageHandler;
+import jakarta.websocket.PongMessage;
+import jakarta.websocket.Session;
+import jakarta.websocket.server.ServerEndpointConfig;
 import org.enso.ydoc.polyfill.Arguments;
 import org.enso.ydoc.polyfill.PolyfillBase;
 import org.graalvm.polyglot.Value;
@@ -91,7 +100,8 @@ final class WebSocket extends PolyfillBase implements ProxyExecutable {
 
         if (protocols != null) {
           if (protocols.length > 0) {
-            wsBuilder.subprotocols(protocols[0], Arrays.copyOfRange(protocols, 1, protocols.length));
+            wsBuilder.subprotocols(
+                protocols[0], Arrays.copyOfRange(protocols, 1, protocols.length));
           }
         }
 
@@ -130,7 +140,9 @@ final class WebSocket extends PolyfillBase implements ProxyExecutable {
         var handleConnect = arguments[3];
 
         var routing =
-            WsRouting.builder()
+            WebSocketRouting.builder()
+                .endpoint("*", new HelidonServerEndpointConfig(executor, handleConnect));
+                /*
                 .endpoint(
                     "*",
                     () -> {
@@ -148,6 +160,7 @@ final class WebSocket extends PolyfillBase implements ProxyExecutable {
 
                       return connection;
                     });
+                 */
 
         yield WebServer.builder().host(host).port(port).addRouting(routing).build();
       }
@@ -244,59 +257,84 @@ final class WebSocket extends PolyfillBase implements ProxyExecutable {
 
   private static final class HelidonWebSocketSession implements WebSocketSession {
 
-    private WsSession session;
+    private final Session session;
 
-    private HelidonWebSocketSession(WsSession session) {
+    private HelidonWebSocketSession(Session session) {
       this.session = session;
     }
 
     @Override
     public WebSocketSession send(CharSequence text, Boolean last) {
-      this.session = session.send(text.toString(), last);
+      try {
+        session.getBasicRemote().sendText(text.toString(), last);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
 
       return this;
     }
 
     @Override
     public WebSocketSession send(ByteBuffer buffer, Boolean last) {
-      var bytesArray = new byte[buffer.remaining()];
-      buffer.get(bytesArray);
-      this.session = session.send(BufferData.create(bytesArray), last);
+      try {
+        session.getBasicRemote().sendBinary(buffer, last);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
 
       return this;
     }
 
     @Override
     public WebSocketSession ping(ByteBuffer buffer) {
-      var bytesArray = new byte[buffer.remaining()];
-      buffer.get(bytesArray);
-      this.session = session.ping(BufferData.create(bytesArray));
+      try {
+        session.getBasicRemote().sendPing(buffer);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
 
       return this;
     }
 
     @Override
     public WebSocketSession pong(ByteBuffer buffer) {
-      var bytesArray = new byte[buffer.remaining()];
-      buffer.get(bytesArray);
-      this.session = session.pong(BufferData.create(bytesArray));
+      try {
+        session.getBasicRemote().sendPong(buffer);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
 
       return this;
     }
 
     @Override
     public WebSocketSession close(int code, String reason) {
-      this.session = session.close(code, reason);
+      try {
+        session.close(new CloseReason(CloseReason.CloseCodes.getCloseCode(code), reason));
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
 
       return this;
     }
 
     @Override
     public WebSocketSession terminate() {
-      this.session = session.terminate();
+      try {
+        session.close();
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
 
       return this;
     }
+  }
+
+  private static ByteSequence readBytes(ByteBuffer buffer) {
+    var bytesArray = new byte[buffer.remaining()];
+    buffer.get(bytesArray);
+
+    return ByteSequence.create(bytesArray);
   }
 
   private static final class JavaHttpWebSocketSession implements WebSocketSession {
@@ -373,11 +411,182 @@ final class WebSocket extends PolyfillBase implements ProxyExecutable {
     }
   }
 
+  private static final class HelidonServerEndpointConfig implements ServerEndpointConfig {
+
+    private final ExecutorService executor;
+    private final Value handleConnect;
+
+    private HelidonServerEndpointConfig(ExecutorService executor, Value handleConnect) {
+      this.executor = executor;
+      this.handleConnect = handleConnect;
+    }
+
+    private static final class HelidonConfigurator extends Configurator {
+
+      private final ExecutorService executor;
+      private final Value handleConnect;
+
+      private HelidonConfigurator(ExecutorService executor, Value handleConnect) {
+        this.executor = executor;
+        this.handleConnect = handleConnect;
+      }
+
+      @Override
+      @SuppressWarnings("unchecked")
+      public <T> T getEndpointInstance(Class<T> endpointClass) {
+        //return this.getContainerDefaultConfigurator().getEndpointInstance(endpointClass);
+        var connectionFuture =
+            executor.submit(
+                () -> handleConnect.execute().as(HelidonWebSocketConnection.class));
+
+        HelidonWebSocketConnection connection;
+        try {
+          connection = connectionFuture.get();
+        } catch (InterruptedException | ExecutionException e) {
+          log.error("Connection error", e);
+          throw new RuntimeException(e);
+        }
+
+        return (T) connection;
+      }
+
+    }
+
+    @Override
+    public Class<?> getEndpointClass() {
+      return HelidonWebSocketConnection.class;
+    }
+
+    @Override
+    public String getPath() {
+      return "*";
+    }
+
+    @Override
+    public List<String> getSubprotocols() {
+      return List.of();
+    }
+
+    @Override
+    public List<Extension> getExtensions() {
+      return List.of();
+    }
+
+    @Override
+    public Configurator getConfigurator() {
+      return new HelidonConfigurator(executor, handleConnect);
+    }
+
+    @Override
+    public List<Class<? extends Encoder>> getEncoders() {
+      return List.of();
+    }
+
+    @Override
+    public List<Class<? extends Decoder>> getDecoders() {
+      return List.of();
+    }
+
+    @Override
+    public Map<String, Object> getUserProperties() {
+      return Map.of();
+    }
+  }
+
   private interface WebSocketConnection {
 
     WebSocketSession getSession();
   }
 
+  private static final class HelidonWebSocketConnection extends Endpoint implements WebSocketConnection {
+
+    private final ExecutorService executor;
+
+    private final Value handleOpen;
+    private final Value handleClose;
+    private final Value handleError;
+    private final Value handleMessage;
+    private final Value handlePing;
+    private final Value handlePong;
+    private final Value handleUpgrade;
+
+    private WebSocketSession session;
+
+    private HelidonWebSocketConnection(
+        ExecutorService executor,
+        Value handleOpen,
+        Value handleClose,
+        Value handleError,
+        Value handleMessage,
+        Value handlePing,
+        Value handlePong,
+        Value handleUpgrade) {
+      this.executor = executor;
+      this.handleOpen = handleOpen;
+      this.handleClose = handleClose;
+      this.handleError = handleError;
+      this.handleMessage = handleMessage;
+      this.handlePing = handlePing;
+      this.handlePong = handlePong;
+      this.handleUpgrade = handleUpgrade;
+    }
+
+    @Override
+    public WebSocketSession getSession() {
+      return session;
+    }
+
+    @Override
+    public void onOpen(Session session, EndpointConfig config) {
+      var uri = session.getRequestURI();
+      log.debug("onHttpUpgrade [{}]", uri);
+
+      var url = new URL(uri);
+      executor.execute(() -> handleUpgrade.executeVoid(url));
+
+      log.debug("onOpen");
+
+      session.addMessageHandler((MessageHandler.Whole<String>) text -> {
+        log.debug("onMessage [{}]", text);
+
+        executor.execute(() -> handleMessage.executeVoid(text));
+      });
+      session.addMessageHandler((MessageHandler.Whole<ByteBuffer>) buffer -> {
+        log.debug("onMessage [{}]", buffer);
+
+        var bytes = readBytes(buffer);
+        executor.execute(() -> handleMessage.executeVoid(bytes));
+      });
+      session.addMessageHandler((MessageHandler.Whole<PongMessage>) pongMessage -> {
+        var buffer = pongMessage.getApplicationData();
+        log.debug("onPong [{}]", buffer);
+
+        var bytes = readBytes(buffer);
+        executor.execute(() -> handlePong.executeVoid(bytes));
+      });
+
+      this.session = new HelidonWebSocketSession(session);
+
+      executor.execute(() -> handleOpen.executeVoid());
+    }
+
+    @Override
+    public void onClose(Session session, CloseReason closeReason) {
+      log.debug("onClose [{}] [{}]", closeReason.getCloseCode(), closeReason.getReasonPhrase());
+
+      executor.execute(() -> handleClose.executeVoid(closeReason.getCloseCode(), closeReason.getReasonPhrase()));
+      this.session = null;
+    }
+
+    @Override
+    public void onError(Session session, Throwable t) {
+      log.error("onError", t);
+
+      executor.execute(() -> handleError.executeVoid(t.getMessage()));
+    }
+  }
+
+  /*
   private static final class HelidonWebSocketConnection implements WsListener, WebSocketConnection {
 
     private final ExecutorService executor;
@@ -416,9 +625,6 @@ final class WebSocket extends PolyfillBase implements ProxyExecutable {
       return session;
     }
 
-    /*
-     * Callbacks
-     */
     @Override
     public void onMessage(WsSession session, BufferData buffer, boolean last) {
       log.debug("onMessage\n{}", buffer.debugDataHex(true));
@@ -485,6 +691,7 @@ final class WebSocket extends PolyfillBase implements ProxyExecutable {
       return Optional.empty();
     }
   }
+  */
 
   private static final class JavaHttpWebSocketConnection implements java.net.http.WebSocket.Listener, WebSocketConnection {
 

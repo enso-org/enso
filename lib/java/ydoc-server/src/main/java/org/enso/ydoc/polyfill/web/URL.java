@@ -1,8 +1,10 @@
 package org.enso.ydoc.polyfill.web;
 
-import io.helidon.common.uri.UriQuery;
-import io.helidon.http.HttpPrologue;
+import io.helidon.common.http.Parameters;
+import io.helidon.common.http.UriComponent;
 import org.graalvm.polyglot.HostAccess;
+
+import java.net.URI;
 
 /**
  * Implements the <a href="https://nodejs.org/api/url.html">URL</a> Node.js interface and can be
@@ -10,23 +12,22 @@ import org.graalvm.polyglot.HostAccess;
  */
 public final class URL {
 
-  private final HttpPrologue prologue;
+  private final URI uri;
 
   @HostAccess.Export public final String pathname;
 
   @HostAccess.Export public final URLSearchParams searchParams;
 
-  URL(HttpPrologue prologue) {
-    this.prologue = prologue;
-
-    this.pathname = prologue.uriPath().path();
-    this.searchParams = new URLSearchParams(prologue.query());
+  URL(URI uri) {
+    this.uri = uri;
+    this.pathname = uri.getRawPath();
+    this.searchParams = new URLSearchParams(UriComponent.decodeQuery(uri.getRawQuery(), true));
   }
 
   @Override
   @HostAccess.Export
   public String toString() {
-    return prologue.toString();
+    return uri.toString();
   }
 
   /**
@@ -36,21 +37,21 @@ public final class URL {
    */
   public static final class URLSearchParams {
 
-    private final UriQuery uriQuery;
+    private final Parameters parameters;
 
-    URLSearchParams(UriQuery uriQuery) {
-      this.uriQuery = uriQuery;
+    URLSearchParams(Parameters parameters) {
+      this.parameters = parameters;
     }
 
     @HostAccess.Export
     public String get(String name) {
-      return uriQuery.contains(name) ? uriQuery.get(name) : null;
+      return parameters.first(name).orElse(null);
     }
 
     @Override
     @HostAccess.Export
     public String toString() {
-      return uriQuery.rawValue();
+      return parameters.toString();
     }
   }
 }
