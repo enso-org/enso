@@ -1,7 +1,13 @@
 /** @file Table displaying a list of projects. */
 import * as React from 'react'
 
-import { queryOptions, useMutation, useQueries, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import {
+  queryOptions,
+  useMutation,
+  useQueries,
+  useQueryClient,
+  useSuspenseQuery,
+} from '@tanstack/react-query'
 import * as toast from 'react-toastify'
 import invariant from 'tiny-invariant'
 import * as z from 'zod'
@@ -11,12 +17,12 @@ import DropFilesImage from '#/assets/drop_files.svg'
 import * as mimeTypes from '#/data/mimeTypes'
 
 import * as autoScrollHooks from '#/hooks/autoScrollHooks'
-import { backendMutationOptions,
+import {
+  backendMutationOptions,
   useListTags,
   useListUserGroups,
   useListUsers,
 } from '#/hooks/backendHooks'
-import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as intersectionHooks from '#/hooks/intersectionHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -341,62 +347,28 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const users = useListUsers(backend)
   const userGroups = useListUserGroups(backend)
+
   const organizationQuery = useSuspenseQuery({
     queryKey: [backend.type, 'getOrganization'],
     queryFn: () => backend.getOrganization(),
   })
-  const organization = organizationQuery.data
-  const rootDirectoryId = React.useMemo(() => {
-    const id =
-      'homeDirectoryId' in category ?
-        category.homeDirectoryId
-        : backend.rootDirectoryId(user, organization)
-    invariant(id, 'Missing root directory')
-    return id
-  }, [backend, category, user, organization])
-  const [assetTree, setAssetTree] = React.useState<assetTreeNode.AnyAssetTreeNode>(() => {
-    const rootParentDirectoryId = backendModule.DirectoryId('')
-    const rootPath = 'rootPath' in category ? category.rootPath : backend.rootPath
-    return AssetTreeNode.fromAsset(
-      backendModule.createRootDirectoryAsset(rootDirectoryId),
-      rootParentDirectoryId,
-      rootParentDirectoryId,
-      -1,
-      rootPath,
-      null,
-    )
-  })
 
-  const [isDraggingFiles, setIsDraggingFiles] = React.useState(false)
-  const [droppedFilesCount, setDroppedFilesCount] = React.useState(0)
-  const isCloud = backend.type === backendModule.BackendType.remote
-  /** Events sent when the asset list was still loading. */
-  const queuedAssetListEventsRef = React.useRef<assetListEvent.AssetListEvent[]>([])
-  const rootRef = React.useRef<HTMLDivElement | null>(null)
-  const cleanupRootRef = React.useRef(() => {})
-  const mainDropzoneRef = React.useRef<HTMLButtonElement | null>(null)
-  const lastSelectedIdsRef = React.useRef<
-    backendModule.AssetId | ReadonlySet<backendModule.AssetId> | null
-  >(null)
-  const headerRowRef = React.useRef<HTMLTableRowElement>(null)
-  const assetTreeRef = React.useRef<assetTreeNode.AnyAssetTreeNode>(assetTree)
-  const pasteDataRef = React.useRef<pasteDataModule.PasteData<
-    ReadonlySet<backendModule.AssetId>
-  > | null>(null)
-  const nodeMapRef = React.useRef<
-    ReadonlyMap<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>
-  >(new Map<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>())
+  const organization = organizationQuery.data
+
   const isAssetContextMenuVisible =
     category.type !== categoryModule.CategoryType.cloud ||
     user.plan == null ||
     user.plan === backendModule.Plan.solo
 
-
   const nameOfProjectToImmediatelyOpenRef = React.useRef(initialProjectName)
-  const rootDirectoryId = React.useMemo(
-    () => backend.rootDirectoryId(user) ?? backendModule.DirectoryId(''),
-    [backend, user],
-  )
+  const rootDirectoryId = React.useMemo(() => {
+    const id =
+      'homeDirectoryId' in category ?
+        category.homeDirectoryId
+      : backend.rootDirectoryId(user, organization)
+    invariant(id, 'Missing root directory')
+    return id
+  }, [backend, user])
 
   const rootParentDirectoryId = backendModule.DirectoryId('')
   const rootDirectory = React.useMemo(
@@ -410,10 +382,17 @@ export default function AssetsTable(props: AssetsTableProps) {
   )
   /**
    * The expanded directories in the asset tree.
+   * We don't include the root directory as it might change when a user switches
+   * between items in sidebar and we don't want to reset the expanded state using useEffect.
    */
-  const [expandedDirectoryIds, setExpandedDirectoryIds] = React.useState<
+  const [privateExpandedDirectoryIds, setExpandedDirectoryIds] = React.useState<
     backendModule.DirectoryId[]
-  >(() => [rootDirectory.id])
+  >(() => [])
+
+  const expandedDirectoryIds = React.useMemo(
+    () => privateExpandedDirectoryIds.concat(rootDirectoryId),
+    [privateExpandedDirectoryIds, rootDirectoryId],
+  )
 
   const expandedDirectoryIdsSet = React.useMemo(
     () => new Set(expandedDirectoryIds),
@@ -472,8 +451,8 @@ export default function AssetsTable(props: AssetsTableProps) {
               {
                 parentId: directoryId,
                 labels: null,
-                filterBy: CATEGORY_TO_FILTER_BY[category],
-                recentProjects: category === Category.recent,
+                filterBy: CATEGORY_TO_FILTER_BY[category.type],
+                recentProjects: category.type === categoryModule.CategoryType.recent,
               },
             ] as const,
             queryFn: async ({ queryKey: [, , parentId, params] }) => ({
@@ -527,6 +506,8 @@ export default function AssetsTable(props: AssetsTableProps) {
   const isLoading = directories.rootDirectory.isLoading
 
   const assetTree = React.useMemo(() => {
+    const rootPath = 'rootPath' in category ? category.rootPath : backend.rootPath
+
     // If the root directory is not loaded, then we cannot render the tree.
     // Return null, and wait for the root directory to load.
     if (rootDirectoryContent == null) {
@@ -536,7 +517,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         rootParentDirectoryId,
         rootParentDirectoryId,
         -1,
-        backend.rootPath,
+        rootPath,
         null,
       )
     }
@@ -607,7 +588,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         rootId,
         rootId,
         0,
-        `${backend.rootPath}/${content.title}`,
+        `${rootPath}/${content.title}`,
         null,
         content.id,
       )
@@ -621,7 +602,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       rootParentDirectoryId,
       children,
       -1,
-      backend.rootPath,
+      rootPath,
       null,
       rootId,
     )
@@ -632,6 +613,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     rootParentDirectoryId,
     backend.rootPath,
     rootDirectoryId,
+    category,
   ])
 
   const filter = React.useMemo(() => {
