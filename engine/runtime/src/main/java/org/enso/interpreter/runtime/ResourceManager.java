@@ -190,8 +190,7 @@ public final class ResourceManager {
    * @return item from queue or {@code null} if {@code p} processor is eligible for shutdown
    */
   @CompilerDirectives.TruffleBoundary
-  private Reference<? extends ManagedResource> removeNextQueuedItem(ProcessItems p)
-      throws InterruptedException {
+  private Reference<? extends ManagedResource> removeNextQueuedItem(ProcessItems p) {
     boolean empty;
     synchronized (this) {
       if (processor != p) {
@@ -201,10 +200,14 @@ public final class ResourceManager {
       assert p.isActive();
       empty = pendingItems.isEmpty();
     }
-    if (empty) {
-      return referenceQueue.remove(KEEP_ALIVE);
-    } else {
-      return referenceQueue.remove();
+    try {
+      if (empty) {
+        return referenceQueue.remove(KEEP_ALIVE);
+      } else {
+        return referenceQueue.remove();
+      }
+    } catch (InterruptedException ex) {
+      return null;
     }
   }
 
@@ -306,30 +309,21 @@ public final class ResourceManager {
     @Override
     public void run() {
       while (true) {
-        try {
-          var ref = removeNextQueuedItem(this);
-          if (ref == null) {
-            shutdownProcessorIfNoPending(this);
-          }
-          if (isActive()) {
-            if (ref instanceof Item it) {
-              it.flaggedForFinalization.set(true);
-              synchronized (toFinalize) {
-                if (safepointRequest == null) {
-                  safepointRequest = context.submitThreadLocal(null, this);
-                }
-                toFinalize.add(it);
-              }
-              removeFromItems(it);
+        if (!isActive()) {
+          return;
+        }
+        var ref = removeNextQueuedItem(this);
+        if (ref instanceof Item it) {
+          it.flaggedForFinalization.set(true);
+          synchronized (toFinalize) {
+            if (safepointRequest == null) {
+              safepointRequest = context.submitThreadLocal(null, this);
             }
+            toFinalize.add(it);
           }
-          if (!isActive()) {
-            return;
-          }
-        } catch (InterruptedException e) {
-          if (!isActive()) {
-            return;
-          }
+          removeFromItems(it);
+        } else {
+          shutdownProcessorIfNoPending(this);
         }
       }
     }
