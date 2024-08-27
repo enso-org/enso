@@ -21,7 +21,7 @@ import org.enso.interpreter.runtime.util.CachingSupplier;
 public final class ModuleScope implements EnsoObject {
   private final Type associatedType;
   private final Module module;
-  private final Map<String, Object> polyglotSymbols;
+  private final Map<String, Supplier<Object>> polyglotSymbols;
   private final Map<String, Type> types;
   private final Map<Type, Map<String, Supplier<Function>>> methods;
 
@@ -43,7 +43,7 @@ public final class ModuleScope implements EnsoObject {
   public ModuleScope(
       Module module,
       Type associatedType,
-      Map<String, Object> polyglotSymbols,
+      Map<String, Supplier<Object>> polyglotSymbols,
       Map<String, Type> types,
       Map<Type, Map<String, Supplier<Function>>> methods,
       Map<Type, Map<Type, Function>> conversions,
@@ -257,10 +257,13 @@ public final class ModuleScope implements EnsoObject {
   }
 
   /**
+   * Finds a polyglot symbol.
+   *
+   * @param symbolName name of the symbol to search for
    * @return the polyglot symbol imported into this scope.
    */
   public Object getPolyglotSymbol(String symbolName) {
-    return polyglotSymbols.get(symbolName);
+    return polyglotSymbols.get(symbolName).get();
   }
 
   @ExportMessage
@@ -283,7 +286,7 @@ public final class ModuleScope implements EnsoObject {
     @CompilerDirectives.CompilationFinal private ModuleScope moduleScope = null;
     private final Module module;
     private final Type associatedType;
-    private final Map<String, Object> polyglotSymbols;
+    private final Map<String, Supplier<Object>> polyglotSymbols;
     private final Map<String, Type> types;
     private final Map<Type, Map<String, Supplier<Function>>> methods;
     private final Map<Type, Map<Type, Function>> conversions;
@@ -315,7 +318,7 @@ public final class ModuleScope implements EnsoObject {
     public Builder(
         Module module,
         Type associatedType,
-        Map<String, Object> polyglotSymbols,
+        Map<String, Supplier<Object>> polyglotSymbols,
         Map<String, Type> types,
         Map<Type, Map<String, Supplier<Function>>> methods,
         Map<Type, Map<Type, Function>> conversions,
@@ -409,11 +412,11 @@ public final class ModuleScope implements EnsoObject {
      * Registers a new symbol in the polyglot namespace.
      *
      * @param name the name of the symbol
-     * @param sym the value being exposed
+     * @param symbolFactory the value being exposed
      */
-    public void registerPolyglotSymbol(String name, Object sym) {
+    public void registerPolyglotSymbol(String name, Supplier<Object> symbolFactory) {
       assert moduleScope == null;
-      polyglotSymbols.put(name, sym);
+      polyglotSymbols.put(name, new CachingSupplier<>(symbolFactory));
     }
 
     /**
