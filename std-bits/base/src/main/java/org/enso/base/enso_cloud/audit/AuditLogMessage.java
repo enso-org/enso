@@ -8,7 +8,7 @@ import java.util.Objects;
 import org.enso.base.CurrentEnsoProject;
 import org.enso.base.enso_cloud.CloudAPI;
 
-public class AuditLogMessage implements AuditLogAPI.LogMessage {
+public class AuditLogMessage implements AuditLogApiAccess.LogMessage {
 
   /**
    * A reserved field that is currently added by the cloud backend. Duplicating it will lead to
