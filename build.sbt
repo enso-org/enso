@@ -2910,7 +2910,7 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
     },
     addModules := {
       val runtimeModuleName = (`runtime-fat-jar` / javaModuleName).value
-      val arrowModName = (`runtime-language-arrow` / javaModuleName).value
+      val arrowModName      = (`runtime-language-arrow` / javaModuleName).value
       Seq(runtimeModuleName, arrowModName)
     },
     addExports := {
