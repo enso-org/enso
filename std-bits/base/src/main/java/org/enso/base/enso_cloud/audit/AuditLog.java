@@ -19,7 +19,7 @@ public final class AuditLog {
    */
   public static void logAsync(String type, String message, ObjectNode metadata) {
     var event = new AuditLogMessage(type, message, metadata);
-    AuditLogApiAccess.INSTANCE.logAsync(event);
+    AuditLogApiAccess.INSTANCE.logWithoutConfirmation(event);
   }
 
   /**
@@ -27,7 +27,7 @@ public final class AuditLog {
    */
   public static void logSynchronously(String type, String message, ObjectNode metadata) {
     var event = new AuditLogMessage(type, message, metadata);
-    Future<Void> future = AuditLogApiAccess.INSTANCE.logSync(event);
+    Future<Void> future = AuditLogApiAccess.INSTANCE.logWithConfirmation(event);
     try {
       future.get();
     } catch (ExecutionException | InterruptedException e) {

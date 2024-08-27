@@ -10,23 +10,20 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
+import java.util.List;
 
 /**
- * Gives access to the low-level log event API in the Cloud and manages asynchronously submitting
- * the logs.
+ * Gives access to the low-level log event API in the Cloud and manages asynchronously submitting the logs.
  */
 class AuditLogApiAccess {
   private static final Logger logger = Logger.getLogger(AuditLogApiAccess.class.getName());
 
   /**
-   * We still want to limit the batch size to some reasonable number - sending too many logs in one request could also be problematic.
+   * We still want to limit the batch size to some reasonable number - sending too many logs in one request could also
+   * be problematic.
    */
   private static final int MAX_BATCH_SIZE = 100;
 
@@ -36,30 +33,46 @@ class AuditLogApiAccess {
 
   private HttpClient httpClient;
   private LinkedBlockingDeque<LogJob> logQueue = new LinkedBlockingDeque<>();
+  private RequestConfig requestConfig = null;
+  private Thread logThread;
 
   private AuditLogApiAccess() {
-
   }
 
-  public Future<Void> logSync(LogMessage message) {
+  public Future<Void> logWithConfirmation(LogMessage message) {
     CompletableFuture<Void> completionNotification = new CompletableFuture<>();
     enqueueJob(new LogJob(message, completionNotification));
     return completionNotification;
   }
 
-  public void logAsync(LogMessage message) {
+  public void logWithoutConfirmation(LogMessage message) {
     enqueueJob(new LogJob(message, null));
   }
 
   private void enqueueJob(LogJob job) {
-    // TODO
+    ensureConfigSaved();
+    logQueue.add(job);
+    if (logThread == null) {
+      ensureLogThreadRunning();
+    }
   }
 
-  private HttpRequest buildRequest(LogMessage message) {
-    String apiUri = CloudAPI.getAPIRootURI() + "logs";
+  private synchronized void ensureLogThreadRunning() {
+    if (logThread == null) {
+      logThread = new Thread(this::logThreadEntryPoint);
+      logThread.start();
+    }
+  }
+
+  private void logThreadEntryPoint() {
+    // TODO should the thread auto-shutdown after a while? then start logic needs to be smarter
+  }
+
+  private HttpRequest buildRequest(List<LogMessage> messages) {
+    assert requestConfig != null : "The request configuration must be set before building a request.";
     return HttpRequest.newBuilder()
-        .uri(URI.create(apiUri))
-        .header("Authorization", "Bearer " + AuthenticationProvider.getAccessToken())
+        .uri(requestConfig.apiUri)
+        .header("Authorization", "Bearer " + requestConfig.accessToken)
         .POST(HttpRequest.BodyPublishers.ofString(message.payload(), StandardCharsets.UTF_8))
         .build();
   }
@@ -67,8 +80,8 @@ class AuditLogApiAccess {
   /**
    * A record that represents a single log to be sent.
    * <p>
-   * It may contain the `completionNotification` future that will be completed when the log is sent.
-   * If no-one is listening for confirmation, that field will be `null`.
+   * It may contain the `completionNotification` future that will be completed when the log is sent. If no-one is
+   * listening for confirmation, that field will be `null`.
    */
   private record LogJob(LogMessage message, CompletableFuture<Void> completionNotification) {
   }
@@ -76,9 +89,24 @@ class AuditLogApiAccess {
   /**
    * Contains information needed to build a request to the Cloud Logs API.
    * <p>
-   * This information must be gathered on the main Enso thread, as only there we have access to the {@link AuthenticationProvider}.
+   * This information must be gathered on the main Enso thread, as only there we have access to the
+   * {@link AuthenticationProvider}.
    */
   private record RequestConfig(URI apiUri, String accessToken) {
+  }
+
+  /**
+   * Builds a request configuration based on runtime information. This method must be called from the main thread.
+   */
+  private RequestConfig getRequestConfig() {
+    var uri = URI.create(CloudAPI.getAPIRootURI() + "logs");
+    return new RequestConfig(uri, AuthenticationProvider.getAccessToken());
+  }
+
+  private void ensureConfigSaved() {
+    if (requestConfig == null) {
+      requestConfig = getRequestConfig();
+    }
   }
 
   private void sendLogRequest(HttpRequest request, int retryCount) throws RequestFailureException {
@@ -124,5 +152,16 @@ class AuditLogApiAccess {
 
   public int getFailedLogCount() {
     return failedLogCount;
+  }
+
+  /**
+   * A helper method to ensure that any changes to cloud environment configuration are reflected in the request
+   * configuration.
+   * <p>
+   * This is only used in tests when the environment is being overridden. Normally, the environment does not change
+   * during execution.
+   */
+  public static void refreshRequestConfig() {
+    INSTANCE.requestConfig = INSTANCE.getRequestConfig();
   }
 }
