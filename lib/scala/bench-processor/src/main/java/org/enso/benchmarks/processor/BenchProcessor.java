@@ -438,6 +438,8 @@ public class BenchProcessor extends AbstractProcessor {
   }
 
   private void failWithMessage(String msg) {
+    // Better have duplicated error message than none at all
+    System.out.println("[org.enso.benchmarks.processor.BenchProcessor]: ERROR: " + msg);
     processingEnv.getMessager().printMessage(Kind.ERROR, msg);
   }
 }
