@@ -79,13 +79,6 @@ impl OperatorProperties {
         Self { is_modifier: true, ..self }
     }
 
-    /// Return a copy of this operator, modified to have the specified LHS operator-section/
-    /// template-function behavior.
-    fn with_lhs_section_termination<T>(self, lhs_section_termination: T) -> Self
-    where T: Into<Option<SectionTermination>> {
-        Self { lhs_section_termination: lhs_section_termination.into(), ..self }
-    }
-
     /// Return this operator's binary infix precedence, if it has one.
     pub fn binary_infix_precedence(&self) -> Option<Precedence> {
         self.binary_infix_precedence

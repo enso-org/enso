@@ -111,7 +111,6 @@ function translateVisualizationToFile(
   }
   return {
     show: vis.visible,
-    fullscreen: vis.fullscreen,
     width: vis.width ?? undefined,
     height: vis.height ?? undefined,
     ...(project == null || vis.identifier == null ?
@@ -143,7 +142,6 @@ export function translateVisualizationFromFile(
   return {
     identifier: module && vis.name ? { name: vis.name, module } : null,
     visible: vis.show,
-    fullscreen: vis.fullscreen ?? false,
     width: vis.width ?? null,
     height: vis.height ?? null,
   }

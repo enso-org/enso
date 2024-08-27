@@ -32,6 +32,7 @@ import { keyboardBusy, keyboardBusyExceptIn, unrefElement, useEvent } from '@/co
 import { groupColorVar } from '@/composables/nodeColors'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
 import { useSyncLocalStorage } from '@/composables/syncLocalStorage'
+import { provideFullscreenContext } from '@/providers/fullscreenContext'
 import { provideGraphNavigator, type GraphNavigator } from '@/providers/graphNavigator'
 import { provideNodeColors } from '@/providers/graphNodeColors'
 import { provideNodeCreation } from '@/providers/graphNodeCreation'
@@ -76,6 +77,8 @@ import { encodeMethodPointer } from 'ydoc-shared/languageServerTypes'
 import * as iterable from 'ydoc-shared/util/data/iterable'
 import { isDevMode } from 'ydoc-shared/util/detect'
 
+const rootNode = ref<HTMLElement>()
+
 const keyboard = provideKeyboard()
 const projectStore = useProjectStore()
 const suggestionDb = provideSuggestionDbStore(projectStore)
@@ -83,6 +86,7 @@ const graphStore = provideGraphStore(projectStore, suggestionDb)
 const widgetRegistry = provideWidgetRegistry(graphStore.db)
 const _visualizationStore = provideVisualizationStore(projectStore)
 const visible = injectVisibility()
+provideFullscreenContext(rootNode)
 
 onMounted(() => {
   widgetRegistry.loadWidgets(Object.entries(builtinWidgets))
@@ -713,10 +717,13 @@ const groupColors = computed(() => {
   }
   return styles
 })
+
+const documentationEditorFullscreen = ref(false)
 </script>
 
 <template>
   <div
+    ref="rootNode"
     class="GraphEditor"
     :class="{ draggingEdge: graphStore.mouseEditedEdge != null }"
     :style="groupColors"
@@ -783,12 +790,14 @@ const groupColors = computed(() => {
       v-model:show="rightDockVisible"
       v-model:size="rightDockWidth"
       v-model:tab="rightDockDisplayedTab"
+      :contentFullscreen="documentationEditorFullscreen"
     >
       <template #docs>
         <DocumentationEditor
           ref="docEditor"
           :modelValue="documentation.state.value"
           @update:modelValue="documentation.set"
+          @update:fullscreen="documentationEditorFullscreen = $event"
         />
       </template>
       <template #help>

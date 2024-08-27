@@ -6,6 +6,9 @@ use crate::prelude::*;
 pub struct Npx;
 
 impl Program for Npx {
+    type Command = Command;
+    type Version = Version;
+
     fn executable_name(&self) -> &'static str {
         "npx"
     }

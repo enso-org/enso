@@ -27,6 +27,9 @@ pub const RUSTFLAGS: Separated = Separated { separator: " ", name: "RUSTFLAGS" }
 pub struct Cargo;
 
 impl Program for Cargo {
+    type Command = crate::program::Command;
+    type Version = Version;
+
     fn init_command<'a>(&self, cmd: &'a mut Self::Command) -> &'a mut Self::Command {
         Color::Always.apply(cmd);
         cmd

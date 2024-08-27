@@ -21,6 +21,8 @@ test('Load Fullscreen Visualisation', async ({ page }) => {
   const vis = locate.jsonVisualization(page)
   await expect(vis).toExist()
   await expect(locate.exitFullscreenButton(page)).toExist()
+  // Wait for entering-fullscreen animation.
+  await vis.elementHandle().then((el) => el!.waitForElementState('stable'))
   const visBoundingBox = await vis.boundingBox()
   expect(visBoundingBox?.height).toBeGreaterThan(600)
   expect(visBoundingBox?.width).toBe(1920)

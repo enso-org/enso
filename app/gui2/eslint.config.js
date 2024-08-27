@@ -11,12 +11,11 @@ const conf = [
   {
     ignores: [
       'dist',
-      'shared/ast/generated',
       'templates',
       '.histoire',
       'playwright-report',
       'test-results',
-      'vite.ydoc-server-polyglot.config.ts',
+      '**/*.timestamp-*.mjs',
     ],
   },
   ...compat.extends('plugin:vue/vue3-recommended'),

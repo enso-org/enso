@@ -52,7 +52,6 @@ object DefinitionArgument {
     * @param suspended    whether or not the argument has its execution suspended
     * @param location     the source location that the node corresponds to
     * @param passData     the pass metadata associated with this node
-    * @param diagnostics  compiler diagnostics for this node
     */
   sealed case class Specified(
     override val name: Name,
@@ -60,11 +59,41 @@ object DefinitionArgument {
     override val defaultValue: Option[Expression],
     override val suspended: Boolean,
     location: Option[IdentifiedLocation],
-    passData: MetadataStorage      = new MetadataStorage(),
-    diagnostics: DiagnosticStorage = DiagnosticStorage()
+    passData: MetadataStorage = new MetadataStorage()
   ) extends DefinitionArgument
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
+
+    /** Create a [[Specified]] object.
+      *
+      * @param name the name of the argument
+      * @param ascribedType the explicitly ascribed type of the argument, if present
+      * @param defaultValue the default value of the argument, if present
+      * @param suspended whether or not the argument has its execution suspended
+      * @param location the source location that the node corresponds to
+      * @param passData the pass metadata associated with this node
+      * @param diagnostics the compiler diagnostics
+      */
+    def this(
+      name: Name,
+      ascribedType: Option[Expression],
+      defaultValue: Option[Expression],
+      suspended: Boolean,
+      location: Option[IdentifiedLocation],
+      passData: MetadataStorage,
+      diagnostics: DiagnosticStorage
+    ) = {
+      this(
+        name,
+        ascribedType,
+        defaultValue,
+        suspended,
+        location,
+        passData
+      )
+      this.diagnostics = diagnostics
+    }
 
     /** Creates a copy of `this`.
       *
@@ -105,10 +134,10 @@ object DefinitionArgument {
           defaultValue,
           suspended,
           location,
-          passData,
-          diagnostics
+          passData
         )
-        res.id = id
+        res.diagnostics = diagnostics
+        res.id          = id
         res
       } else this
     }
@@ -148,9 +177,8 @@ object DefinitionArgument {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */

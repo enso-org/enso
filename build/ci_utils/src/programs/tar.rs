@@ -153,6 +153,9 @@ impl AsRef<OsStr> for Command {
 pub struct Tar;
 
 impl Program for Tar {
+    type Command = crate::program::Command;
+    type Version = Version;
+
     fn executable_name(&self) -> &'static str {
         "tar"
     }

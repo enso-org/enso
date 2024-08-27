@@ -85,7 +85,7 @@ case object ShadowedPatternFields extends IRPass {
     * @param expression the expression to lint
     * @return `expression`, with warnings for any shadowed pattern variables
     */
-  def lintExpression(
+  private def lintExpression(
     expression: Expression
   ): Expression = {
     expression.transformExpressions { case cse: Case =>
@@ -100,7 +100,7 @@ case object ShadowedPatternFields extends IRPass {
     */
   def lintCase(cse: Case): Case = {
     cse match {
-      case expr @ Case.Expr(scrutinee, branches, _, _, _, _) =>
+      case expr @ Case.Expr(scrutinee, branches, _, _, _) =>
         expr.copy(
           scrutinee = lintExpression(scrutinee),
           branches  = branches.map(lintCaseBranch)
@@ -139,7 +139,7 @@ case object ShadowedPatternFields extends IRPass {
 
     def go(pattern: Pattern, seenNames: mutable.Set[String]): Pattern = {
       pattern match {
-        case named @ Pattern.Name(name, location, _, _) =>
+        case named @ Pattern.Name(name, location, _) =>
           if (seenNames.contains(name.name)) {
             val warning = warnings.Shadowed
               .PatternBinding(name.name, lastSeen(name.name), location)
@@ -157,7 +157,7 @@ case object ShadowedPatternFields extends IRPass {
           } else {
             named
           }
-        case cons @ Pattern.Constructor(_, fields, _, _, _) =>
+        case cons @ Pattern.Constructor(_, fields, _, _) =>
           val newFields = fields.reverse.map(go(_, seenNames)).reverse
 
           cons.copy(
@@ -165,7 +165,7 @@ case object ShadowedPatternFields extends IRPass {
           )
         case literal: Pattern.Literal =>
           literal
-        case typed @ Pattern.Type(name, _, location, _, _) =>
+        case typed @ Pattern.Type(name, _, location, _) =>
           if (seenNames.contains(name.name)) {
             val warning = warnings.Shadowed
               .PatternBinding(name.name, lastSeen(name.name), location)

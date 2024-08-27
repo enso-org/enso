@@ -411,13 +411,13 @@ case object AliasAnalysis extends IRPass {
               alias.AliasMetadata.ChildScope(graph, currentScope)
             )
           )
-      case binding @ Expression.Binding(name, expression, _, _, _) =>
+      case binding @ Expression.Binding(name, expression, _, _) =>
         if (
           !parentScope.hasSymbolOccurrenceAs[GraphOccurrence.Def](name.name)
         ) {
           val isSuspended = expression match {
-            case Expression.Block(_, _, _, isSuspended, _, _) => isSuspended
-            case _                                            => false
+            case Expression.Block(_, _, _, isSuspended, _) => isSuspended
+            case _                                         => false
           }
           val occurrenceId = graph.nextId()
           val occurrence =
@@ -476,7 +476,7 @@ case object AliasAnalysis extends IRPass {
     parentScope: Scope
   ): Type = {
     value match {
-      case member @ `type`.Set.Member(label, memberType, value, _, _, _) =>
+      case member @ `type`.Set.Member(label, memberType, value, _, _) =>
         val memberTypeScope = memberType match {
           case _: Literal => parentScope
           case _          => parentScope.addChild()
@@ -537,8 +537,7 @@ case object AliasAnalysis extends IRPass {
   ): List[DefinitionArgument] = {
     args.map {
       case arg @ DefinitionArgument.Specified(
-            selfName @ Name.Self(_, true, _, _),
-            _,
+            selfName @ Name.Self(_, true, _),
             _,
             _,
             _,
@@ -572,7 +571,6 @@ case object AliasAnalysis extends IRPass {
             _,
             value,
             suspended,
-            _,
             _,
             _
           ) =>
@@ -685,7 +683,7 @@ case object AliasAnalysis extends IRPass {
     graph: Graph,
     parentScope: Graph.Scope
   ): List[CallArgument] = {
-    args.map { case arg @ CallArgument.Specified(_, expr, _, _, _) =>
+    args.map { case arg @ CallArgument.Specified(_, expr, _, _) =>
       val currentScope = expr match {
         case _: Literal => parentScope
         case _          => parentScope.addChild()

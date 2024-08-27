@@ -3,6 +3,7 @@ import { visualizationBindings } from '@/bindings'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import LoadingErrorVisualization from '@/components/visualizations/LoadingErrorVisualization.vue'
 import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
+import { SavedSize } from '@/components/WithFullscreenMode.vue'
 import { focusIsIn, useEvent } from '@/composables/events'
 import { provideVisualizationConfig } from '@/providers/visualizationConfig'
 import { useProjectStore } from '@/stores/project'
@@ -58,7 +59,6 @@ const props = defineProps<{
   height: Opt<number>
   scale: number
   isFocused: boolean
-  isFullscreen: boolean
   typename?: string | undefined
   dataSource: VisualizationDataSource | RawDataSource | undefined
 }>()
@@ -66,7 +66,6 @@ const emit = defineEmits<{
   'update:rect': [rect: Rect | undefined]
   'update:id': [id: VisualizationIdentifier]
   'update:enabled': [visible: boolean]
-  'update:fullscreen': [fullscreen: boolean]
   'update:width': [width: number]
   'update:height': [height: number]
   'update:nodePosition': [pos: Vec2]
@@ -257,15 +256,24 @@ onUnmounted(() => emit('update:rect', undefined))
 
 const allTypes = computed(() => Array.from(visualizationStore.types(props.typename)))
 
+const isFullscreen = ref(false)
+const currentSavedSize = ref<SavedSize>()
+
 provideVisualizationConfig({
   get isFocused() {
     return props.isFocused
   },
   get fullscreen() {
-    return props.isFullscreen
+    return isFullscreen.value
   },
   set fullscreen(value) {
-    emit('update:fullscreen', value)
+    isFullscreen.value = value
+  },
+  get savedSize() {
+    return currentSavedSize.value
+  },
+  set savedSize(value) {
+    currentSavedSize.value = value
   },
   get scale() {
     return props.scale
@@ -350,14 +358,14 @@ const keydownHandler = visualizationBindings.handler({
   },
   toggleFullscreen: () => {
     if (props.isFocused || focusIsIn(root.value)) {
-      emit('update:fullscreen', !props.isFullscreen)
+      isFullscreen.value = !isFullscreen.value
     } else {
       return false
     }
   },
   exitFullscreen: () => {
-    if (props.isFullscreen) {
-      emit('update:fullscreen', false)
+    if (isFullscreen.value) {
+      isFullscreen.value = false
     } else {
       return false
     }
@@ -367,7 +375,7 @@ const keydownHandler = visualizationBindings.handler({
 useEvent(window, 'keydown', keydownHandler)
 
 watch(
-  () => props.isFullscreen,
+  () => isFullscreen,
   (f) => {
     f && nextTick(() => root.value?.focus())
   },

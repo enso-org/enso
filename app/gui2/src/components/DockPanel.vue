@@ -19,6 +19,9 @@ type Tab = 'docs' | 'help'
 const show = defineModel<boolean>('show', { required: true })
 const size = defineModel<number | undefined>('size')
 const tab = defineModel<Tab>('tab')
+const _props = defineProps<{
+  contentFullscreen: boolean
+}>()
 
 const slideInPanel = ref<HTMLElement>()
 const root = ref<HTMLElement>()
@@ -57,6 +60,7 @@ const tabStyle = {
       :title="`Documentation Panel (${documentationEditorBindings.bindings.toggle.humanReadable})`"
       icon="right_panel"
       class="toggleDock"
+      :class="{ aboveFullscreen: contentFullscreen }"
     />
     <SizeTransition width :duration="100">
       <div v-if="show" ref="slideInPanel" class="DockPanel" data-testid="rightDock">
@@ -97,7 +101,7 @@ const tabStyle = {
 .DockPanel {
   width: 100%;
   position: relative;
-  --icon-margin: 16px;
+  --icon-margin: 16px; /* `--icon-margin` in `.toggleDock` must match this value. */
   --icon-size: 16px;
   display: flex;
   flex-direction: row;
@@ -136,5 +140,8 @@ const tabStyle = {
   position: absolute;
   right: var(--icon-margin);
   top: var(--icon-margin);
+  &.aboveFullscreen {
+    z-index: 2;
+  }
 }
 </style>

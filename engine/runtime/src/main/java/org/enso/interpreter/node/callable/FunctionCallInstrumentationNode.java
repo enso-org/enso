@@ -120,7 +120,12 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
     }
 
     /**
-     * @return the arguments passed to the function in this call.
+     * Get the arguments passed to the function in this call.
+     *
+     * <p>The {@code null} value in the arguments array indicates that the corresponding argument
+     * was not provided, and the default value should be used.
+     *
+     * @return the function arguments provided to this call
      */
     public Object[] getArguments() {
       return arguments;

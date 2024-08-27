@@ -169,7 +169,7 @@ fn types(graph: &meta::TypeGraph) -> Types {
     let mut ids = HashMap::new();
     let mut primitives = vec![];
     // Map struct types; gather primitive types.
-    for (key, ty) in &graph.types {
+    for (key, ty) in graph.types.iter() {
         match &ty.data {
             Data::Struct(_) => {
                 let id = next_type_id();

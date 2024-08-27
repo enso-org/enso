@@ -83,7 +83,6 @@ const graphNodeSelections = shallowRef<HTMLElement>()
       "
       @update:visualizationRect="graphStore.updateVizRect(id, $event)"
       @update:visualizationEnabled="graphStore.setNodeVisualization(id, { visible: $event })"
-      @update:visualizationFullscreen="graphStore.setNodeVisualization(id, { fullscreen: $event })"
       @update:visualizationWidth="graphStore.setNodeVisualization(id, { width: $event })"
       @update:visualizationHeight="graphStore.setNodeVisualization(id, { height: $event })"
     />
