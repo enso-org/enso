@@ -66,8 +66,7 @@ public abstract class EnsoRootNode extends RootNode {
     var descriptorBuilder = FrameDescriptor.newBuilder();
     descriptorBuilder.addSlot(FrameSlotKind.Object, LocalScope.monadicStateSlotName(), null);
 
-    var allDefs = ScalaConversions.asJava(localScope.allSymbols());
-    System.err.println("FRAME[" + name + "]: " + allDefs);
+    var allDefs = ScalaConversions.asJava(localScope.allSymbols("FRAME[" + name + "]"));
     for (var definition : allDefs) {
       descriptorBuilder.addSlot(FrameSlotKind.Illegal, definition, null);
     }
