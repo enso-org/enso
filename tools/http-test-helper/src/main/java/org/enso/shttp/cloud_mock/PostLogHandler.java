@@ -14,9 +14,25 @@ public class PostLogHandler implements CloudHandler {
   private final EventsService eventsService;
   private final ObjectMapper jsonMapper = new ObjectMapper();
 
-  public PostLogHandler(UsersService usersService, EventsService eventsService) {
+  /**
+   * Parameter indicating if manual batching test mode is enabled.
+   *
+   * <p>In this mode, the server will sleep during processing of log messages, delaying the
+   * processing, giving the Enso test process time to gather more messages that need to be sent. The
+   * process will also log how many log messages were received in each batch. Enabling this flag and
+   * inspecting these logs allow to manually test that messages are indeed sent in batches if the
+   * log processing is slower.
+   */
+  private final boolean batchingTestModeEnabled;
+
+  public PostLogHandler(
+      UsersService usersService, EventsService eventsService, boolean batchingTestModeEnabled) {
     this.usersService = usersService;
     this.eventsService = eventsService;
+    this.batchingTestModeEnabled = batchingTestModeEnabled;
+    if (batchingTestModeEnabled) {
+      System.out.println("Manual audit log batching test mode enabled.");
+    }
   }
 
   @Override
@@ -40,6 +56,14 @@ public class PostLogHandler implements CloudHandler {
 
     JsonNode root = jsonMapper.readTree(exchange.decodeBodyAsText());
     var incomingEvents = decodeLogEvents(root);
+    if (batchingTestModeEnabled) {
+      System.out.println("Received a batch of " + incomingEvents.size() + " audit log messages.");
+      try {
+        Thread.sleep(1000);
+      } catch (InterruptedException e) {
+        // ignore the interruption
+      }
+    }
     if (incomingEvents.isEmpty()) {
       exchange.sendResponse(400, "Empty array was sent.");
       return;

@@ -53,6 +53,18 @@ add_specs suite_builder =
         group_builder.specify "does not allow restricted fields in metadata" <| setup.with_prepared_environment <|
             Audit_Log.report_event "TestEventType" "Message" (JS_Object.from_pairs [["type", "my type override?"]]) . should_fail_with Illegal_Argument
 
+        group_builder.specify "should be able to send many messages quickly" <| setup.with_prepared_environment <|
+            random_payload = "payload-" + Random.uuid
+            0.up_to 120 . each ix->
+                Audit_Log.report_event "TestEvent" "Message" (JS_Object.from_pairs [["my_field", random_payload], ["seq", ix]]) async=True . should_succeed
+
+            # With the last log message we do `async=False`, so that we wait until this message (and all previous ones) are processed.
+            Audit_Log.report_event "TestEvent" "Message" (JS_Object.from_pairs [["my_field", random_payload]]) async=False . should_succeed
+
+            Test.with_retries <|
+                events = get_audit_log_events . filter ev-> (ev.metadata.get "my_field") == random_payload
+                events.length . should_equal 121
+
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
