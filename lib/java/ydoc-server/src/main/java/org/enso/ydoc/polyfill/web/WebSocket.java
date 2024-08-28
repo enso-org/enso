@@ -139,28 +139,7 @@ final class WebSocket extends PolyfillBase implements ProxyExecutable {
         var port = arguments[2].asInt();
         var handleConnect = arguments[3];
 
-        var routing =
-            WebSocketRouting.builder()
-                .endpoint("*", new HelidonServerEndpointConfig(executor, handleConnect));
-                /*
-                .endpoint(
-                    "*",
-                    () -> {
-                      var connectionFuture =
-                          executor.submit(
-                              () -> handleConnect.execute().as(HelidonWebSocketConnection.class));
-
-                      HelidonWebSocketConnection connection;
-                      try {
-                        connection = connectionFuture.get();
-                      } catch (InterruptedException | ExecutionException e) {
-                        log.error("Connection error", e);
-                        throw new RuntimeException(e);
-                      }
-
-                      return connection;
-                    });
-                 */
+        var routing = WebSocketRouting.builder().endpoint("*", new HelidonServerEndpointConfig(executor, handleConnect));
 
         yield WebServer.builder().host(host).port(port).addRouting(routing).build();
       }
@@ -585,113 +564,6 @@ final class WebSocket extends PolyfillBase implements ProxyExecutable {
       executor.execute(() -> handleError.executeVoid(t.getMessage()));
     }
   }
-
-  /*
-  private static final class HelidonWebSocketConnection implements WsListener, WebSocketConnection {
-
-    private final ExecutorService executor;
-
-    private final Value handleOpen;
-    private final Value handleClose;
-    private final Value handleError;
-    private final Value handleMessage;
-    private final Value handlePing;
-    private final Value handlePong;
-    private final Value handleUpgrade;
-
-    private WebSocketSession session;
-
-    private HelidonWebSocketConnection(
-        ExecutorService executor,
-        Value handleOpen,
-        Value handleClose,
-        Value handleError,
-        Value handleMessage,
-        Value handlePing,
-        Value handlePong,
-        Value handleUpgrade) {
-      this.executor = executor;
-      this.handleOpen = handleOpen;
-      this.handleClose = handleClose;
-      this.handleError = handleError;
-      this.handleMessage = handleMessage;
-      this.handlePing = handlePing;
-      this.handlePong = handlePong;
-      this.handleUpgrade = handleUpgrade;
-    }
-
-    @Override
-    public WebSocketSession getSession() {
-      return session;
-    }
-
-    @Override
-    public void onMessage(WsSession session, BufferData buffer, boolean last) {
-      log.debug("onMessage\n{}", buffer.debugDataHex(true));
-
-      // Passing byte sequence to JS requires `HostAccess.allowBufferAccess()`
-      var bytes = ByteSequence.create(buffer.readBytes());
-      executor.execute(() -> handleMessage.executeVoid(bytes));
-    }
-
-    @Override
-    public void onMessage(WsSession session, String text, boolean last) {
-      log.debug("onMessage [{}]", text);
-
-      executor.execute(() -> handleMessage.executeVoid(text));
-    }
-
-    @Override
-    public void onPing(WsSession session, BufferData buffer) {
-      log.debug("onPing [{}]", buffer);
-
-      var bytes = ByteSequence.create(buffer.readBytes());
-      executor.execute(() -> handlePing.executeVoid(bytes));
-    }
-
-    @Override
-    public void onPong(WsSession session, BufferData buffer) {
-      log.debug("onPong [{}]", buffer);
-
-      var bytes = ByteSequence.create(buffer.readBytes());
-      executor.execute(() -> handlePong.executeVoid(bytes));
-    }
-
-    @Override
-    public void onOpen(WsSession session) {
-      log.debug("onOpen");
-
-      this.session = new HelidonWebSocketSession(session);
-
-      executor.execute(() -> handleOpen.executeVoid());
-    }
-
-    @Override
-    public void onClose(WsSession session, int status, String reason) {
-      log.debug("onClose [{}] [{}]", status, reason);
-
-      executor.execute(() -> handleClose.executeVoid(status, reason));
-      this.session = null;
-    }
-
-    @Override
-    public void onError(WsSession session, Throwable t) {
-      log.error("onError ", t);
-
-      executor.execute(() -> handleError.executeVoid(t.getMessage()));
-    }
-
-    @Override
-    public Optional<Headers> onHttpUpgrade(HttpPrologue prologue, Headers headers) {
-      log.debug("onHttpUpgrade [{}]", prologue);
-
-      var url = new URL(prologue);
-      executor.execute(() -> handleUpgrade.executeVoid(url));
-
-      return Optional.empty();
-    }
-  }
-  */
 
   private static final class JavaHttpWebSocketConnection implements java.net.http.WebSocket.Listener, WebSocketConnection {
 
