@@ -141,6 +141,19 @@ class LocalScope(
   }
 }
 object LocalScope {
+  val empty: LocalScope = {
+    val graph = new AliasGraph
+    val info  = DataflowAnalysis.DependencyInfo()
+    val emptyVariableNames =
+      new FramePointerAnalysis.FramePointerMeta(null, Some(List()))
+    new LocalScope(
+      None,
+      () => graph,
+      () => graph.rootScope,
+      () => info,
+      () => emptyVariableNames
+    )
+  }
 
   /** Constructs a local scope for an [[EnsoRootNode]].
     *
