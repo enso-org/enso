@@ -7,9 +7,8 @@ import { useResizeObserver } from '@/composables/events'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { tabClipPath } from 'enso-common/src/utilities/style/tabBar'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
-const MIN_DOCK_SIZE_PX = 200
 const TAB_EDGE_MARGIN_PX = 4
 const TAB_SIZE_PX = { width: 48 - TAB_EDGE_MARGIN_PX, height: 48 }
 const TAB_RADIUS_PX = 8
@@ -30,19 +29,9 @@ defineExpose({ root })
 const computedSize = useResizeObserver(slideInPanel)
 const computedBounds = computed(() => new Rect(Vec2.Zero, computedSize.value))
 
-function clampSize(size: number) {
-  return Math.max(size, MIN_DOCK_SIZE_PX)
-}
-
-const style = computed(() => {
-  if (show.value) {
-    return {
-      width: size.value != null ? `${clampSize(size.value)}px` : 'var(--right-dock-default-width)',
-    }
-  } else {
-    return { width: `0px` }
-  }
-})
+const style = computed(() => ({
+  '--dock-panel-width': size.value != null ? `${size.value}px` : 'var(--right-dock-default-width)'
+}))
 
 const tabStyle = {
   clipPath: tabClipPath(TAB_SIZE_PX, TAB_RADIUS_PX, 'right'),
@@ -54,7 +43,7 @@ const tabStyle = {
 </script>
 
 <template>
-  <div ref="root" class="DockPanelRoot" :style="style" data-testid="rightDockRoot">
+  <div ref="root" class="DockPanelRoot" data-testid="rightDockRoot">
     <ToggleIcon
       v-model="show"
       :title="`Documentation Panel (${documentationEditorBindings.bindings.toggle.humanReadable})`"
@@ -63,7 +52,7 @@ const tabStyle = {
       :class="{ aboveFullscreen: contentFullscreen }"
     />
     <SizeTransition width :duration="100">
-      <div v-if="show" ref="slideInPanel" class="DockPanel" data-testid="rightDock">
+      <div v-if="show" ref="slideInPanel" :style="style" class="DockPanel" data-testid="rightDock">
         <div class="content">
           <slot v-if="tab == 'docs'" name="docs" />
           <slot v-else-if="tab == 'help'" name="help" />
@@ -94,12 +83,12 @@ const tabStyle = {
 
 <style scoped>
 .DockPanelRoot {
-  display: flex;
-  justify-content: flex-end;
+  display: contents;
 }
 
 .DockPanel {
-  width: 100%;
+  min-width: 200px;
+  width: var(--dock-panel-width);
   position: relative;
   --icon-margin: 16px; /* `--icon-margin` in `.toggleDock` must match this value. */
   --icon-size: 16px;
