@@ -481,8 +481,7 @@ const rightDockDisplayedTab = computed({
 const rightDockVisible = computed({
   get() {
     if (componentBrowserVisible.value) {
-      return userSettings.value.showHelpForCB ||
-        rightDockVisibleForCB.value || showRightDock.value
+      return userSettings.value.showHelpForCB || rightDockVisibleForCB.value || showRightDock.value
     } else {
       return showRightDock.value
     }

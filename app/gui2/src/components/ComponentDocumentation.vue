@@ -2,7 +2,7 @@
 import DocumentationPanel from '@/components/DocumentationPanel.vue'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore } from '@/stores/graph'
-import { ref, computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
 import { Err, Ok, type Result } from 'ydoc-shared/util/data/result'
 
@@ -18,8 +18,8 @@ function docsForSelection() {
   return Ok(suggestionId)
 }
 
-const displayedSuggestionId = computed(() => 
-  props.displayedSuggestionId != null ? Ok(props.displayedSuggestionId) : docsForSelection()
+const displayedSuggestionId = computed(() =>
+  props.displayedSuggestionId != null ? Ok(props.displayedSuggestionId) : docsForSelection(),
 )
 </script>
 

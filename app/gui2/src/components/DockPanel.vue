@@ -7,7 +7,7 @@ import { useResizeObserver } from '@/composables/events'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { tabClipPath } from 'enso-common/src/utilities/style/tabBar'
-import { computed,ref,watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 const TAB_EDGE_MARGIN_PX = 4
 const TAB_SIZE_PX = { width: 48 - TAB_EDGE_MARGIN_PX, height: 48 }
@@ -30,7 +30,7 @@ const computedSize = useResizeObserver(slideInPanel)
 const computedBounds = computed(() => new Rect(Vec2.Zero, computedSize.value))
 
 const style = computed(() => ({
-  '--dock-panel-width': size.value != null ? `${size.value}px` : 'var(--right-dock-default-width)'
+  '--dock-panel-width': size.value != null ? `${size.value}px` : 'var(--right-dock-default-width)',
 }))
 
 const tabStyle = {
@@ -52,7 +52,13 @@ const tabStyle = {
       :class="{ aboveFullscreen: contentFullscreen }"
     />
     <SizeTransition width :duration="100">
-      <div v-if="show" ref="slideInPanel" :style="style" class="DockPanelContent" data-testid="rightDock">
+      <div
+        v-if="show"
+        ref="slideInPanel"
+        :style="style"
+        class="DockPanelContent"
+        data-testid="rightDock"
+      >
         <div class="content">
           <slot v-if="tab == 'docs'" name="docs" />
           <slot v-else-if="tab == 'help'" name="help" />
