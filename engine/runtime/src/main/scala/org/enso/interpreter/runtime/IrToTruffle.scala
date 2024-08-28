@@ -346,7 +346,8 @@ class IrToTruffle(
         () => scopeInfo().graph,
         () => scopeInfo().graph.rootScope,
         dataflowInfo,
-        atomDefn.name.name
+        atomDefn.name.name,
+        frameInfo
       )
       val expressionNode =
         expressionProcessor.run(annotation.expression, true)
@@ -812,6 +813,10 @@ class IrToTruffle(
         DataflowAnalysis,
         "Method definition missing dataflow information."
       )
+      def frameInfo() = methodDef.unsafeGetMetadata(
+        FramePointerAnalysis,
+        "Method definition missing frame information."
+      )
 
       val toOpt =
         methodDef.methodReference.typePointer match {
@@ -827,7 +832,8 @@ class IrToTruffle(
           () => scopeInfo().graph,
           () => scopeInfo().graph.rootScope,
           dataflowInfo,
-          methodDef.methodName.name
+          methodDef.methodName.name,
+          frameInfo
         )
 
         val function = methodDef.body match {
