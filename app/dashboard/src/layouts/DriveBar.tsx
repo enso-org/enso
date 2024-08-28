@@ -26,8 +26,11 @@ import AssetEventType from '#/events/AssetEventType'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import AssetSearchBar from '#/layouts/AssetSearchBar'
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-import type Category from '#/layouts/CategorySwitcher/Category'
-import * as categoryModule from '#/layouts/CategorySwitcher/Category'
+import {
+  isCloudCategory,
+  isLocalCategory,
+  type Category,
+} from '#/layouts/CategorySwitcher/Category'
 import StartModal from '#/layouts/StartModal'
 
 import * as aria from '#/components/aria'
@@ -94,18 +97,17 @@ export default function DriveBar(props: DriveBarProps) {
   const targetDirectory = useTargetDirectory()
   const createAssetButtonsRef = React.useRef<HTMLDivElement>(null)
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)
-  const isCloud = categoryModule.isCloudCategory(category)
+  const isCloud = isCloudCategory(category)
   const { isOffline } = offlineHooks.useOffline()
   const canDownload = useCanDownload()
   const targetDirectorySelfPermission =
     targetDirectory == null ? null : tryFindSelfPermission(user, targetDirectory.item.permissions)
   const canCreateAssets =
     targetDirectory == null ?
-      category.type !== categoryModule.CategoryType.cloud ||
-      user.plan == null ||
-      user.plan === Plan.solo
-    : targetDirectorySelfPermission != null &&
-      canPermissionModifyDirectoryContents(targetDirectorySelfPermission.permission)
+      category.type !== 'cloud' || user.plan == null || user.plan === Plan.solo
+    : isLocalCategory(category) ||
+      (targetDirectorySelfPermission != null &&
+        canPermissionModifyDirectoryContents(targetDirectorySelfPermission.permission))
   const shouldBeDisabled = (isCloud && isOffline) || !canCreateAssets
   const error =
     !shouldBeDisabled ? null
@@ -199,7 +201,7 @@ export default function DriveBar(props: DriveBarProps) {
   )
 
   switch (category.type) {
-    case categoryModule.CategoryType.recent: {
+    case 'recent': {
       return (
         <ariaComponents.ButtonGroup className="my-0.5 grow-0">
           {searchBar}
@@ -207,7 +209,7 @@ export default function DriveBar(props: DriveBarProps) {
         </ariaComponents.ButtonGroup>
       )
     }
-    case categoryModule.CategoryType.trash: {
+    case 'trash': {
       return (
         <ariaComponents.ButtonGroup className="my-0.5 grow-0">
           <ariaComponents.Button
@@ -230,10 +232,11 @@ export default function DriveBar(props: DriveBarProps) {
         </ariaComponents.ButtonGroup>
       )
     }
-    case categoryModule.CategoryType.cloud:
-    case categoryModule.CategoryType.local:
-    case categoryModule.CategoryType.user:
-    case categoryModule.CategoryType.team: {
+    case 'cloud':
+    case 'local':
+    case 'user':
+    case 'team':
+    case 'local-directory': {
       return (
         <ariaComponents.ButtonGroup className="my-0.5 grow-0">
           <ariaComponents.ButtonGroup

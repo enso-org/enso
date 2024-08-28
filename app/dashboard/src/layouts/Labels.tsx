@@ -16,6 +16,7 @@ import Label from '#/components/dashboard/Label'
 import Button from '#/components/styled/Button'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
+import SvgMask from '#/components/SvgMask'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import DragModal from '#/modals/DragModal'
@@ -146,7 +147,7 @@ export default function Labels(props: LabelsProps) {
               variant="outline"
               className="pl-1 pr-2"
               /* eslint-disable-next-line no-restricted-syntax */
-              icon={<img src={PlusIcon} alt="" className="ml-auto mt-[1px] size-[8px]" />}
+              icon={<SvgMask src={PlusIcon} alt="" className="ml-auto size-[8px]" />}
               onPress={(event) => {
                 if (event.target instanceof HTMLElement) {
                   setModal(<NewLabelModal backend={backend} eventTarget={event.target} />)
