@@ -1,10 +1,10 @@
 package org.enso.ydoc.polyfill.web;
 
-import io.helidon.common.buffers.BufferData;
 import io.helidon.webserver.WebServer;
-import io.helidon.webserver.websocket.WsRouting;
-import io.helidon.websocket.WsListener;
-import io.helidon.websocket.WsSession;
+import io.helidon.webserver.websocket.WebSocketRouting;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -12,6 +12,12 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicReferenceArray;
+
+import jakarta.websocket.Endpoint;
+import jakarta.websocket.EndpointConfig;
+import jakarta.websocket.MessageHandler;
+import jakarta.websocket.PongMessage;
+import jakarta.websocket.Session;
 import org.enso.ydoc.polyfill.ExecutorSetup;
 import org.graalvm.polyglot.Context;
 import org.junit.After;
@@ -28,7 +34,7 @@ public class WebSocketTest extends ExecutorSetup {
   public WebSocketTest() {}
 
   private WebServer startWebSocketServer(ExecutorService executor) {
-    var routing = WsRouting.builder().endpoint("/", new TestWsListener());
+    var routing = WebSocketRouting.builder().endpoint("/", TestWsListener.class);
     var ws = WebServer.builder().host("localhost").port(22334).addRouting(routing).build();
 
     executor.submit(ws::start);
@@ -65,7 +71,7 @@ public class WebSocketTest extends ExecutorSetup {
 
   @After
   public void tearDown() throws InterruptedException {
-    ws.stop();
+    ws.shutdown();
     webServerExecutor.shutdown();
     super.tearDown();
     context.close();
@@ -236,22 +242,38 @@ public class WebSocketTest extends ExecutorSetup {
     Assert.assertTrue(res.get());
   }
 
-  private static final class TestWsListener implements WsListener {
+  private static final class TestWsListener extends Endpoint {
     TestWsListener() {}
 
     @Override
-    public void onMessage(WsSession session, String text, boolean last) {
-      session.send(text, last);
+    public void onOpen(Session session, EndpointConfig config) {
+      session.addMessageHandler((MessageHandler.Whole<String>) message -> onMessage(session, message));
+      session.addMessageHandler((MessageHandler.Whole<ByteBuffer>) message -> onMessage(session, message));
+      session.addMessageHandler((MessageHandler.Whole<PongMessage>) message -> onPing(session, message.getApplicationData()));
     }
 
-    @Override
-    public void onMessage(WsSession session, BufferData buffer, boolean last) {
-      session.send(buffer, last);
+    private static void onMessage(Session session, String text) {
+      try {
+        session.getBasicRemote().sendText(text);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
     }
 
-    @Override
-    public void onPing(WsSession session, BufferData buffer) {
-      session.pong(buffer);
+    private static void onMessage(Session session, ByteBuffer buffer) {
+      try {
+        session.getBasicRemote().sendBinary(buffer);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    private static void onPing(Session session, ByteBuffer buffer) {
+      try {
+        session.getBasicRemote().sendPong(buffer);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
     }
   }
 }

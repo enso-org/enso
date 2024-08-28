@@ -240,6 +240,13 @@ final class WebSocket extends PolyfillBase implements ProxyExecutable {
     };
   }
 
+  private static ByteSequence readBytes(ByteBuffer buffer) {
+    var bytesArray = new byte[buffer.remaining()];
+    buffer.get(bytesArray);
+
+    return ByteSequence.create(bytesArray);
+  }
+
   private interface WebSocketSession {
 
     WebSocketSession send(CharSequence text, Boolean last);
@@ -328,13 +335,6 @@ final class WebSocket extends PolyfillBase implements ProxyExecutable {
 
       return this;
     }
-  }
-
-  private static ByteSequence readBytes(ByteBuffer buffer) {
-    var bytesArray = new byte[buffer.remaining()];
-    buffer.get(bytesArray);
-
-    return ByteSequence.create(bytesArray);
   }
 
   private static final class JavaHttpWebSocketSession implements WebSocketSession {

@@ -1,7 +1,8 @@
 package org.enso.ydoc.polyfill.web;
 
-import io.helidon.webclient.websocket.WsClient;
-import io.helidon.websocket.WsListener;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.WebSocket;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicReferenceArray;
@@ -72,8 +73,9 @@ public class WebSocketServerTest extends ExecutorSetup {
 
     CompletableFuture.supplyAsync(() -> context.eval("js", code), executor).get();
 
-    var ws = WsClient.builder().build();
-    ws.connect("ws://localhost:33445/hello?foo=bar", new TestWsListener());
+    //var ws = WsClient.builder().build();
+    //ws.connect("ws://localhost:33445/hello?foo=bar", new TestWsListener());
+    HttpClient.newHttpClient().newWebSocketBuilder().buildAsync(URI.create("ws://localhost:33445/hello?foo=bar"), new TestWsListener()).get();
 
     lock.acquire();
 
@@ -82,7 +84,7 @@ public class WebSocketServerTest extends ExecutorSetup {
     Assert.assertEquals("foo=bar", res.get(2));
   }
 
-  private static final class TestWsListener implements WsListener {
+  private static final class TestWsListener implements WebSocket.Listener {
     TestWsListener() {}
   }
 }

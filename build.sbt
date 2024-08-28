@@ -1321,8 +1321,7 @@ lazy val `ydoc-server` = project
       "io.helidon.webserver"       % "helidon-webserver-websocket" % helidonVersion,
       "junit"                      % "junit"                       % junitVersion              % Test,
       "com.github.sbt"             % "junit-interface"             % junitIfVersion            % Test,
-      "com.fasterxml.jackson.core" % "jackson-databind"            % jacksonVersion            % Test,
-      "io.helidon.webclient"       % "helidon-webclient-websocket" % helidon4Version           % Test
+      "com.fasterxml.jackson.core" % "jackson-databind"            % jacksonVersion            % Test
     )
   )
   // `Compile/run` settings are necessary for the `run` task to work.

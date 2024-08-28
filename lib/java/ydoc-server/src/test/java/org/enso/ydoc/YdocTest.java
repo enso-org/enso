@@ -2,19 +2,27 @@ package org.enso.ydoc;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.helidon.common.buffers.BufferData;
-import io.helidon.webclient.websocket.WsClient;
 import io.helidon.webserver.WebServer;
-import io.helidon.webserver.websocket.WsRouting;
-import io.helidon.websocket.WsListener;
-import io.helidon.websocket.WsSession;
+import io.helidon.webserver.websocket.WebSocketRouting;
+
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.WebSocket;
+import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+
+import jakarta.websocket.Endpoint;
+import jakarta.websocket.EndpointConfig;
+import jakarta.websocket.MessageHandler;
+import jakarta.websocket.Session;
 import org.enso.ydoc.jsonrpc.JsonRpcRequest;
 import org.enso.ydoc.jsonrpc.JsonRpcResponse;
 import org.enso.ydoc.jsonrpc.model.ContentRoot;
@@ -44,7 +52,7 @@ public class YdocTest {
   private WebServer ls;
 
   private static WebServer startWebSocketServer(ExecutorService executor) {
-    var routing = WsRouting.builder().endpoint("/", new LanguageServerConnection());
+    var routing = WebSocketRouting.builder().endpoint("/", LanguageServerConnection.class);
     var ws =
         WebServer.builder().host("localhost").port(WEB_SERVER_PORT).addRouting(routing).build();
 
@@ -53,8 +61,8 @@ public class YdocTest {
     return ws;
   }
 
-  private static String ydocUrl(String doc) {
-    return YDOC_URL + doc + "?ls=" + WEB_SERVER_URL;
+  private static URI ydocUri(String doc) {
+    return URI.create(YDOC_URL + doc + "?ls=" + WEB_SERVER_URL);
   }
 
   @Before
@@ -66,7 +74,7 @@ public class YdocTest {
 
   @After
   public void tearDown() throws Exception {
-    ls.stop();
+    ls.shutdown();
     webServerExecutor.shutdown();
     var stopped = webServerExecutor.awaitTermination(3, TimeUnit.SECONDS);
     if (!stopped) {
@@ -78,69 +86,81 @@ public class YdocTest {
 
   @Test
   public void initialize() throws Exception {
-    var queue = new LinkedBlockingQueue<BufferData>();
+    var queue = new LinkedBlockingQueue<ByteBuffer>();
 
     ydoc.start();
 
-    var ws = WsClient.builder().build();
-    ws.connect(ydocUrl("index"), new DashboardConnection(queue));
+    //var ws = WsClient.builder().build();
+    //ws.connect(ydocUrl("index"), new DashboardConnection(queue));
+    HttpClient.newHttpClient().newWebSocketBuilder().buildAsync(ydocUri("index"), new DashboardConnection(queue)).get();
 
     var ok1 = queue.take();
-    Assert.assertTrue(ok1.debugDataHex(), BufferDataUtil.isOk(ok1));
+    Assert.assertTrue(ByteBufferUtil.isOk(ok1));
 
     var buffer = queue.take();
-    var uuid = BufferDataUtil.readUUID(buffer);
-    WsClient.builder().build().connect(ydocUrl(uuid.toString()), new DashboardConnection(queue));
+    var uuid = ByteBufferUtil.readUUID(buffer);
+    //WsClient.builder().build().connect(ydocUrl(uuid.toString()), new DashboardConnection(queue));
+    HttpClient.newHttpClient().newWebSocketBuilder().buildAsync(ydocUri(uuid.toString()), new DashboardConnection(queue)).get();
 
     var ok2 = queue.take();
-    Assert.assertTrue(ok2.debugDataHex(), BufferDataUtil.isOk(ok2));
+    Assert.assertTrue(ByteBufferUtil.isOk(ok2));
   }
 
-  private static final class BufferDataUtil {
+  private static final class ByteBufferUtil {
 
     private static final int UUID_BYTES = 36;
     private static final int SUFFIX_BYTES = 3;
 
-    private static boolean isOk(BufferData data) {
-      return data.readInt16() == 0;
+    private static boolean isOk(ByteBuffer data) {
+      //return data.readInt16() == 0;
+      return data.getLong() == 0;
     }
 
-    private static UUID readUUID(BufferData data) {
+    private static UUID readUUID(ByteBuffer data) {
       try {
-        data.skip(data.available() - UUID_BYTES - SUFFIX_BYTES);
-        var uuidString = data.readString(UUID_BYTES);
+        //data.skip(data.available() - UUID_BYTES - SUFFIX_BYTES);
+        data.position(data.remaining() - UUID_BYTES - SUFFIX_BYTES);
+        //var uuidString = data.readString(UUID_BYTES);
+        var bytes = new byte[UUID_BYTES];
+        data.get(bytes);
+        var uuidString = new String(bytes);
         return UUID.fromString(uuidString);
       } catch (Exception e) {
-        log.error("Failed to read UUID of\n{}", data.debugDataHex());
+        log.error("Failed to read UUID of\n{}", data);
         throw e;
       }
     }
   }
 
-  private static final class DashboardConnection implements WsListener {
+  private static final class DashboardConnection implements WebSocket.Listener {
 
     private static final Logger log = LoggerFactory.getLogger(DashboardConnection.class);
 
-    private final BlockingQueue<BufferData> messages;
+    private final BlockingQueue<ByteBuffer> messages;
 
-    private DashboardConnection(BlockingQueue<BufferData> messages) {
+    private DashboardConnection(BlockingQueue<ByteBuffer> messages) {
       this.messages = messages;
     }
 
     @Override
-    public void onMessage(WsSession session, BufferData buffer, boolean last) {
-      log.debug("Got message\n{}", buffer.debugDataHex());
+    public CompletionStage<?> onBinary(
+        java.net.http.WebSocket webSocket, ByteBuffer buffer, boolean last) {
+      log.debug("Got message\n{}", buffer);
 
       messages.add(buffer);
+
+      return null;
     }
 
     @Override
-    public void onMessage(WsSession session, String text, boolean last) {
-      log.error("Got unexpected message [{}].", text);
+    public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
+      log.error("Got unexpected message [{}].", data);
+
+      return null;
     }
   }
 
-  private static final class LanguageServerConnection implements WsListener {
+  private static final class LanguageServerConnection extends Endpoint {
 
     private static final String METHOD_INIT_PROTOCOL_CONNECTION = "session/initProtocolConnection";
     private static final String METHOD_CAPABILITY_ACQUIRE = "capability/acquire";
@@ -156,7 +176,11 @@ public class YdocTest {
     private LanguageServerConnection() {}
 
     @Override
-    public void onMessage(WsSession session, String text, boolean last) {
+    public void onOpen(Session session, EndpointConfig config) {
+      session.addMessageHandler((MessageHandler.Whole<String>) message -> onMessage(session, message));
+    }
+
+    private void onMessage(Session session, String text) {
       log.debug("Got message [{}].", text);
 
       try {
@@ -202,12 +226,15 @@ public class YdocTest {
           var response = objectMapper.writeValueAsString(jsonRpcResponse);
 
           log.debug("Sending [{}].", response);
-          session.send(response, true);
+          session.getBasicRemote().sendText(response, true);
         } else {
           log.error("Unknown request.");
         }
       } catch (JsonProcessingException e) {
         log.error("Failed to parse JSON.", e);
+        Assert.fail(e.getMessage());
+      } catch (IOException e) {
+        log.error("LS failed send reply.", e);
         Assert.fail(e.getMessage());
       }
     }
