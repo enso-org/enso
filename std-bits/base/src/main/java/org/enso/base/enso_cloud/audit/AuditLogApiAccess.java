@@ -1,8 +1,5 @@
 package org.enso.base.enso_cloud.audit;
 
-import org.enso.base.enso_cloud.AuthenticationProvider;
-import org.enso.base.enso_cloud.CloudAPI;
-
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -10,21 +7,24 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.logging.Logger;
-import java.util.List;
+import org.enso.base.enso_cloud.AuthenticationProvider;
+import org.enso.base.enso_cloud.CloudAPI;
 
 /**
- * Gives access to the low-level log event API in the Cloud and manages asynchronously submitting the logs.
+ * Gives access to the low-level log event API in the Cloud and manages asynchronously submitting
+ * the logs.
  */
 class AuditLogApiAccess {
   private static final Logger logger = Logger.getLogger(AuditLogApiAccess.class.getName());
 
   /**
-   * We still want to limit the batch size to some reasonable number - sending too many logs in one request could also
-   * be problematic.
+   * We still want to limit the batch size to some reasonable number - sending too many logs in one
+   * request could also be problematic.
    */
   private static final int MAX_BATCH_SIZE = 100;
 
@@ -37,8 +37,7 @@ class AuditLogApiAccess {
   private RequestConfig requestConfig = null;
   private Thread logThread;
 
-  private AuditLogApiAccess() {
-  }
+  private AuditLogApiAccess() {}
 
   public Future<Void> logWithConfirmation(LogMessage message) {
     CompletableFuture<Void> completionNotification = new CompletableFuture<>();
@@ -69,7 +68,8 @@ class AuditLogApiAccess {
   private void logThreadEntryPoint() {
     // TODO should the thread auto-shutdown after a while? then start logic needs to be smarter
     while (true) {
-      // drainTo is non-blocking, so we first call `take` to wait for a first element to appear, and only then use
+      // drainTo is non-blocking, so we first call `take` to wait for a first element to appear, and
+      // only then use
       // drain to get any other scheduled elements
       try {
         ArrayList<LogJob> pendingMessages = new ArrayList<>();
@@ -107,7 +107,8 @@ class AuditLogApiAccess {
   }
 
   private HttpRequest buildRequest(List<LogJob> messages) {
-    assert requestConfig != null : "The request configuration must be set before building a request.";
+    assert requestConfig != null
+        : "The request configuration must be set before building a request.";
     var payload = buildPayload(messages);
     return HttpRequest.newBuilder()
         .uri(requestConfig.apiUri)
@@ -130,24 +131,23 @@ class AuditLogApiAccess {
 
   /**
    * A record that represents a single log to be sent.
-   * <p>
-   * It may contain the `completionNotification` future that will be completed when the log is sent. If no-one is
-   * listening for confirmation, that field will be `null`.
+   *
+   * <p>It may contain the `completionNotification` future that will be completed when the log is
+   * sent. If no-one is listening for confirmation, that field will be `null`.
    */
-  private record LogJob(LogMessage message, CompletableFuture<Void> completionNotification) {
-  }
+  private record LogJob(LogMessage message, CompletableFuture<Void> completionNotification) {}
 
   /**
    * Contains information needed to build a request to the Cloud Logs API.
-   * <p>
-   * This information must be gathered on the main Enso thread, as only there we have access to the
-   * {@link AuthenticationProvider}.
+   *
+   * <p>This information must be gathered on the main Enso thread, as only there we have access to
+   * the {@link AuthenticationProvider}.
    */
-  private record RequestConfig(URI apiUri, String accessToken) {
-  }
+  private record RequestConfig(URI apiUri, String accessToken) {}
 
   /**
-   * Builds a request configuration based on runtime information. This method must be called from the main thread.
+   * Builds a request configuration based on runtime information. This method must be called from
+   * the main thread.
    */
   private RequestConfig getRequestConfig() {
     var uri = URI.create(CloudAPI.getAPIRootURI() + "logs");
@@ -206,11 +206,11 @@ class AuditLogApiAccess {
   }
 
   /**
-   * A helper method to ensure that any changes to cloud environment configuration are reflected in the request
-   * configuration.
-   * <p>
-   * This is only used in tests when the environment is being overridden. Normally, the environment does not change
-   * during execution.
+   * A helper method to ensure that any changes to cloud environment configuration are reflected in
+   * the request configuration.
+   *
+   * <p>This is only used in tests when the environment is being overridden. Normally, the
+   * environment does not change during execution.
    */
   public static void refreshRequestConfig() {
     INSTANCE.requestConfig = INSTANCE.getRequestConfig();

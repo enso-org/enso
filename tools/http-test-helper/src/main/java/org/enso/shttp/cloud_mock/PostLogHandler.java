@@ -2,13 +2,12 @@ package org.enso.shttp.cloud_mock;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.enso.shttp.HttpMethod;
-
 import java.io.IOException;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import org.enso.shttp.HttpMethod;
 
 public class PostLogHandler implements CloudHandler {
   private final UsersService usersService;
@@ -73,6 +72,6 @@ public class PostLogHandler implements CloudHandler {
     JsonNode metadata = json.get("metadata");
     String projectId = json.get("projectId").asText();
     return new EventsService.LogEvent(
-            organizationId, userEmail, timestamp, metadata, message, projectId);
+        organizationId, userEmail, timestamp, metadata, message, projectId);
   }
 }
