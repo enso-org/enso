@@ -37,8 +37,8 @@ class LocalScope(
   final private val dataflowInfoProvider: () => DataflowAnalysis.Metadata,
   final private val symbolsProvider: () => FramePointerAnalysis.FramePointerMeta =
     null,
-  final val flattenToParent: Boolean                       = false,
-  private val parentFrameSlotIdxs: Map[AliasGraph.Id, Int] = Map()
+  final val flattenToParent: Boolean                             = false,
+  private val parentFrameSlotIdxs: () => Map[AliasGraph.Id, Int] = () => Map()
 ) {
   lazy val scope: AliasGraph.Scope                 = scopeProvider()
   lazy val dataflowInfo: DataflowAnalysis.Metadata = dataflowInfoProvider()
@@ -61,7 +61,7 @@ class LocalScope(
     * Useful for quick searching for [[FramePointer]] of parent scopes.
     */
   private lazy val allFrameSlotIdxs: Map[AliasGraph.Id, Int] =
-    parentFrameSlotIdxs ++ localFrameSlotIdxs
+    parentFrameSlotIdxs() ++ localFrameSlotIdxs
 
   /** Creates a new child with a new aliasing scope.
     *
@@ -87,7 +87,7 @@ class LocalScope(
       () => dataflowInfo,
       if (flattenToParent) this.symbolsProvider else null,
       flattenToParent,
-      allFrameSlotIdxs
+      () => allFrameSlotIdxs
     )
   }
 
