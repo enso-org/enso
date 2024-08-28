@@ -260,10 +260,11 @@ public final class ModuleScope implements EnsoObject {
    * Finds a polyglot symbol.
    *
    * @param symbolName name of the symbol to search for
-   * @return the polyglot symbol imported into this scope.
+   * @return the polyglot symbol imported into this scope or {@code null} if it cannot be found
    */
   public Object getPolyglotSymbol(String symbolName) {
-    return polyglotSymbols.get(symbolName).get();
+    var supplier = polyglotSymbols.get(symbolName);
+    return supplier == null ? null : supplier.get();
   }
 
   @ExportMessage
