@@ -14,6 +14,7 @@ import {
 import { markRaw, proxyRefs, ref, type Ref } from 'vue'
 import { LanguageServer } from 'ydoc-shared/languageServer'
 import type { MethodPointer } from 'ydoc-shared/languageServerTypes'
+import * as lsTypes from 'ydoc-shared/languageServerTypes/suggestions'
 import { exponentialBackoff } from 'ydoc-shared/util/net'
 
 export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
@@ -154,6 +155,22 @@ export const { provideFn: provideSuggestionDbStore, injectFn: useSuggestionDbSto
     const entries = new SuggestionDb()
     const groups = ref<Group[]>([])
 
+    /** Add an entry to the suggestion database. */
+    function mockSuggestion(entry: lsTypes.SuggestionEntry) {
+      const id = Math.max(...entries.nameToId.reverse.keys()) + 1
+      applyUpdates(
+        entries,
+        [
+          {
+            type: 'Add',
+            id,
+            suggestion: entry,
+          },
+        ],
+        groups.value,
+      )
+    }
+
     const _synchronizer = new Synchronizer(projectStore, entries, groups)
-    return proxyRefs({ entries: markRaw(entries), groups, _synchronizer })
+    return proxyRefs({ entries: markRaw(entries), groups, _synchronizer, mockSuggestion })
   })
