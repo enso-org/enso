@@ -87,7 +87,7 @@ const tabStyle = {
 }
 
 .DockPanel {
-  min-width: 200px;
+  min-width: 258px;
   width: var(--dock-panel-width);
   position: relative;
   --icon-margin: 16px; /* `--icon-margin` in `.toggleDock` must match this value. */
