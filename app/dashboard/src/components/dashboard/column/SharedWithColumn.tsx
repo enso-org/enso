@@ -71,9 +71,9 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
 
   return (
     <div className="group flex items-center gap-column-items">
-      {(asset.permissions ?? []).map((other) => (
+      {(asset.permissions ?? []).map((other, idx) => (
         <PermissionDisplay
-          key={backendModule.getAssetPermissionId(other)}
+          key={backendModule.getAssetPermissionId(other) + idx}
           action={other.permission}
           onPress={
             setQuery == null ? null : (

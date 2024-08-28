@@ -274,6 +274,7 @@ export interface AssetsTableState {
     newParentKey: backendModule.DirectoryId,
     newParentId: backendModule.DirectoryId,
   ) => void
+  readonly doDelete: (forever: boolean, item: backendModule.AnyAsset) => void
 }
 
 /** Data associated with a {@link AssetRow}, used for rendering. */
@@ -436,6 +437,31 @@ export default function AssetsTable(props: AssetsTableProps) {
   )
   const getProjectDetailsMutation = useMutation(
     backendMutationOptions(backend, 'getProjectDetails'),
+  )
+  const copyAssetMutation = useMutation(
+    backendMutationOptions(backend, 'copyAsset', {
+      meta: { invalidates: [['assetVersions'], ['listDirectory', backend.type]] },
+    }),
+  )
+  const deleteAssetMutation = useMutation(
+    backendMutationOptions(backend, 'deleteAsset', {
+      meta: { invalidates: [['assetVersions'], ['listDirectory', backend.type]] },
+    }),
+  )
+  const undoDeleteAssetMutation = useMutation(
+    backendMutationOptions(backend, 'undoDeleteAsset', {
+      meta: { invalidates: [['assetVersions'], ['listDirectory', backend.type]] },
+    }),
+  )
+  const updateAssetMutation = useMutation(
+    backendMutationOptions(backend, 'updateAsset', {
+      meta: { invalidates: [['assetVersions'], ['listDirectory', backend.type]] },
+    }),
+  )
+  const closeProjectMutation = useMutation(
+    backendMutationOptions(backend, 'closeProject', {
+      meta: { invalidates: [['assetVersions'], ['listDirectory', backend.type]] },
+    }),
   )
 
   const directories = useQueries({
@@ -1203,6 +1229,65 @@ export default function AssetsTable(props: AssetsTableProps) {
     },
   )
 
+  const doCopyOnBackend = useEventCallback(
+    async (newParentId: backendModule.DirectoryId | null, asset: backendModule.AnyAsset) => {
+      try {
+        newParentId ??= rootDirectoryId
+
+        await copyAssetMutation.mutateAsync([
+          asset.id,
+          newParentId,
+          asset.title,
+          nodeMapRef.current.get(newParentId)?.item.title ?? '(unknown)',
+        ])
+      } catch (error) {
+        toastAndLog('copyAssetError', error, asset.title)
+      }
+    },
+  )
+
+  const doMove = useEventCallback(
+    async (newParentId: backendModule.DirectoryId | null, asset: backendModule.AnyAsset) => {
+      try {
+        await updateAssetMutation.mutateAsync([
+          asset.id,
+          { parentDirectoryId: newParentId ?? rootDirectoryId, description: null },
+          asset.title,
+        ])
+      } catch (error) {
+        toastAndLog('moveAssetError', error, asset.title)
+      }
+    },
+  )
+
+  const doDelete = useEventCallback(async (forever = false, asset: backendModule.AnyAsset) => {
+    if (asset.type === backendModule.AssetType.directory) {
+      dispatchAssetListEvent({
+        type: AssetListEventType.closeFolder,
+        id: asset.id,
+        // This is SAFE, as this asset is already known to be a directory.
+        // eslint-disable-next-line no-restricted-syntax
+        key: asset.id,
+      })
+    }
+    try {
+      dispatchAssetListEvent({ type: AssetListEventType.willDelete, key: asset.id })
+      if (
+        asset.type === backendModule.AssetType.project &&
+        backend.type === backendModule.BackendType.local
+      ) {
+        try {
+          await closeProjectMutation.mutateAsync([asset.id, asset.title])
+        } catch {
+          // Ignored. The project was already closed.
+        }
+      }
+      await deleteAssetMutation.mutateAsync([asset.id, { force: forever }, asset.title])
+    } catch (error) {
+      toastAndLog('deleteAssetError', error, asset.title)
+    }
+  })
+
   const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
   const [keyboardSelectedIndex, setKeyboardSelectedIndex] = React.useState<number | null>(null)
   const mostRecentlySelectedIndexRef = React.useRef<number | null>(null)
@@ -1878,6 +1963,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         break
       }
       case AssetListEventType.insertAssets: {
+        console.log('insertAssets', event)
         insertAssets(event.assets, event.parentId)
         break
       }
@@ -1946,15 +2032,26 @@ export default function AssetsTable(props: AssetsTableProps) {
       }
       case AssetListEventType.copy: {
         insertAssets(event.items, event.newParentId)
+
+        for (const item of event.items) {
+          void doCopyOnBackend(event.newParentId, item)
+        }
         break
       }
       case AssetListEventType.move: {
         deleteAsset(event.key)
         insertAssets([event.item], event.newParentId)
+
+        void doMove(event.newParentId, event.item)
+
         break
       }
       case AssetListEventType.delete: {
         deleteAsset(event.key)
+        const asset = nodeMapRef.current.get(event.key)?.item
+        if (asset) {
+          void doDelete(false, asset)
+        }
         break
       }
       case AssetListEventType.emptyTrash: {
@@ -2119,6 +2216,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       doCopy,
       doCut,
       doPaste,
+      doDelete,
     }),
     [
       backend,
@@ -2133,6 +2231,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       doCopy,
       doCut,
       doPaste,
+      doDelete,
       hideColumn,
       setAssetPanelProps,
       setIsAssetPanelTemporarilyVisible,
