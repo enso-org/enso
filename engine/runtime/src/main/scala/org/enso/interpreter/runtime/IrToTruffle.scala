@@ -286,11 +286,16 @@ class IrToTruffle(
       DataflowAnalysis,
       "No dataflow information associated with an atom."
     )
+    def frameInfo() = atomDefn.unsafeGetMetadata(
+      FramePointerAnalysis,
+      "Method definition missing frame information."
+    )
     val localScope = new LocalScope(
       None,
       () => scopeInfo().graph,
       () => scopeInfo().graph.rootScope,
-      dataflowInfo
+      dataflowInfo,
+      frameInfo
     )
 
     val argFactory =

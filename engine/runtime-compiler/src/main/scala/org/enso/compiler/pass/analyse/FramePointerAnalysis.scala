@@ -45,6 +45,28 @@ case object FramePointerAnalysis extends IRPass {
 
   override def runModule(ir: Module, moduleContext: ModuleContext): Module = {
     ir.bindings.foreach(processBinding)
+    ir.preorder()
+      .foreach {
+        case d: Definition.Data =>
+          val meta = getAliasAnalysisMeta(d)
+          if (meta.isDefined) {
+            val scope = meta.get
+            if (scope.isInstanceOf[AliasMetadata.RootScope]) {
+              val rootScope = meta.get.unsafeAs[AliasMetadata.RootScope]
+              val symbols =
+                rootScope.graph.rootScope.allDefinitions.map(_.symbol)
+              updateMeta(d, symbols)
+              System.err
+                .println("DATA " + symbols)
+
+            }
+            if (scope.isInstanceOf[AliasMetadata.ChildScope]) {
+              // val childScope = scope.asInstanceOf[AliasMetadata.ChildScope]
+              // System.err.println("child " + childScope.scope.allDefinitions)
+            }
+          }
+        case _ => ()
+      }
     ir
   }
 
