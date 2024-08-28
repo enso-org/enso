@@ -2208,9 +2208,11 @@ lazy val frgaalJavaCompilerSetting =
 def customFrgaalJavaCompilerSettings(targetJdk: String) = Seq(
   Compile / compile / compilers := {
     // True if there is module-info.java in the sources, and this is a mixed
-    // project, and module-info.java is excluded from the compilation
-    val shouldCompileModInfo = shouldCompileModuleInfoManually.?.value.isDefined
-
+    // project, and module-info.java is excluded from the compilation.
+    // shouldCompileModuleInfoManually is a settingKey defined only in projects
+    // with JPMSPlugin. That's why we have to check first for its existance.
+    val settingOpt = shouldCompileModuleInfoManually.?.value
+    val shouldCompileModInfo = settingOpt.isDefined && settingOpt.get
     FrgaalJavaCompiler.compilers(
       (Compile / dependencyClasspath).value,
       compilers.value,
