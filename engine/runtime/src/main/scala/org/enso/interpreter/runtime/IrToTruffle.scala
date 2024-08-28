@@ -233,16 +233,18 @@ class IrToTruffle(
   private def registerPolyglotImports(module: Module): Unit =
     module.imports.foreach {
       case poly @ imports.Polyglot(i: imports.Polyglot.Java, _, _, _) =>
-        var hostSymbol = context.lookupJavaClass(i.getJavaName)
-        if (hostSymbol == null) {
-          val err = Text.create(
-            s"Incorrect polyglot java import: ${i.getJavaName}"
-          )
-          hostSymbol = DataflowError.withDefaultTrace(err, null)
-        }
         this.scopeBuilder.registerPolyglotSymbol(
           poly.getVisibleName,
-          hostSymbol
+          () => {
+            var hostSymbol = context.lookupJavaClass(i.getJavaName)
+            if (hostSymbol == null) {
+              val err = Text.create(
+                s"Incorrect polyglot java import: ${i.getJavaName}"
+              )
+              hostSymbol = DataflowError.withDefaultTrace(err, null)
+            }
+            hostSymbol
+          }
         )
       case _: Import.Module =>
       case _: Error         =>
