@@ -34,17 +34,16 @@ object Redefined {
   /** An error representing the redefinition or incorrect positioning of
     * the `self` argument to methods.
     *
-    * @param location    the source location of the error
-    * @param passData    the pass metadata for this node
-    * @param diagnostics compiler diagnostics associated with the node
+    * @param location the source location of the error
+    * @param passData the pass metadata for this node
     */
   sealed case class SelfArg(
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Redefined
       with Diagnostic.Kind.Interactive
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `self`.
@@ -67,9 +66,9 @@ object Redefined {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-
-        val res = SelfArg(location, passData, diagnostics)
-        res.id = id
+        val res = SelfArg(location, passData)
+        res.diagnostics = diagnostics
+        res.id          = id
         res
       } else this
     }
@@ -85,9 +84,8 @@ object Redefined {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -124,18 +122,17 @@ object Redefined {
     * @param location    the location in the source to which this error
     *                    corresponds
     * @param passData    the pass metadata for the error
-    * @param diagnostics any diagnostics associated with this error.
     */
   sealed case class Conversion(
     targetType: Option[Name],
     sourceType: Name,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Redefined
       with Diagnostic.Kind.Interactive
       with module.scope.Definition
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -166,10 +163,9 @@ object Redefined {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-
-        val res =
-          Conversion(targetType, sourceType, location, passData, diagnostics)
-        res.id = id
+        val res = Conversion(targetType, sourceType, location, passData)
+        res.diagnostics = diagnostics
+        res.id          = id
         res
       } else this
     }
@@ -200,9 +196,8 @@ object Redefined {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -254,23 +249,21 @@ object Redefined {
   /** An error representing the redefinition of a method in a given module.
     * This is also known as a method overload.
     *
-    * @param typeName    the name of the type the method was being redefined on
-    * @param methodName  the method name being redefined on `atomName`
-    * @param location    the location in the source to which this error
-    *                    corresponds
-    * @param passData    the pass metadata for the error
-    * @param diagnostics any diagnostics associated with this error.
+    * @param typeName the name of the type the method was being redefined on
+    * @param methodName the method name being redefined on `atomName`
+    * @param location the location in the source to which this error corresponds
+    * @param passData the pass metadata for the error
     */
   sealed case class Method(
     typeName: Option[Name],
     methodName: Name,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Redefined
       with Diagnostic.Kind.Interactive
       with module.scope.Definition
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -300,10 +293,9 @@ object Redefined {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-
-        val res =
-          Method(typeName, methodName, location, passData, diagnostics)
-        res.id = id
+        val res = Method(typeName, methodName, location, passData)
+        res.diagnostics = diagnostics
+        res.id          = id
         res
       } else this
     }
@@ -334,9 +326,8 @@ object Redefined {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -388,23 +379,21 @@ object Redefined {
     * when the module defines a method with the same name as an atom.
     * This is also known as a name clash.
     *
-    * @param atomName    the name of the atom that clashes with the method
-    * @param methodName  the method name being redefined in the module
-    * @param location    the location in the source to which this error
-    *                    corresponds
-    * @param passData    the pass metadata for the error
-    * @param diagnostics any diagnostics associated with this error.
+    * @param atomName the name of the atom that clashes with the method
+    * @param methodName the method name being redefined in the module
+    * @param location the location in the source to which this error corresponds
+    * @param passData the pass metadata for the error
     */
   sealed case class MethodClashWithAtom(
     atomName: Name,
     methodName: Name,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Redefined
       with Diagnostic.Kind.Interactive
       with module.scope.Definition
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -434,15 +423,14 @@ object Redefined {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-
         val res = MethodClashWithAtom(
           atomName,
           methodName,
           location,
-          passData,
-          diagnostics
+          passData
         )
-        res.id = id
+        res.diagnostics = diagnostics
+        res.id          = id
         res
       } else this
     }
@@ -471,9 +459,8 @@ object Redefined {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -519,21 +506,19 @@ object Redefined {
 
   /** An error representing the redefinition of an atom in a given module.
     *
-    * @param typeName    the name of the atom being redefined
-    * @param location    the location in the source to which this error
-    *                    corresponds
-    * @param passData    the pass metadata for the error
-    * @param diagnostics any diagnostics associated with this error.
+    * @param typeName the name of the atom being redefined
+    * @param location the location in the source to which this error corresponds
+    * @param passData the pass metadata for the error
     */
   sealed case class Type(
     typeName: Name,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Redefined
       with Diagnostic.Kind.Interactive
       with module.scope.Definition
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -561,10 +546,9 @@ object Redefined {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-
-        val res =
-          Type(typeName, location, passData, diagnostics)
-        res.id = id
+        val res = Type(typeName, location, passData)
+        res.diagnostics = diagnostics
+        res.id          = id
         res
       } else this
     }
@@ -586,9 +570,8 @@ object Redefined {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -633,17 +616,16 @@ object Redefined {
     * @param location    the location in the source to which this error
     *                    corresponds
     * @param passData    the pass metadata for the error
-    * @param diagnostics any diagnostics associated with this error.
     */
   sealed case class Arg(
     name: Name,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Redefined
       with Diagnostic.Kind.Interactive
       with module.scope.Definition
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -671,10 +653,9 @@ object Redefined {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-
-        val res =
-          Arg(name, location, passData, diagnostics)
-        res.id = id
+        val res = Arg(name, location, passData)
+        res.diagnostics = diagnostics
+        res.id          = id
         res
       } else this
     }
@@ -696,9 +677,8 @@ object Redefined {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -744,15 +724,14 @@ object Redefined {
     *
     * @param invalidBinding the invalid binding
     * @param passData       the pass metadata for the error
-    * @param diagnostics    compiler diagnostics for this node
     */
   sealed case class Binding(
     invalidBinding: Expression.Binding,
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Redefined
       with Diagnostic.Kind.Interactive
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -775,9 +754,9 @@ object Redefined {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-
-        val res = Binding(invalidBinding, passData, diagnostics)
-        res.id = id
+        val res = Binding(invalidBinding, passData)
+        res.diagnostics = diagnostics
+        res.id          = id
         res
       } else this
     }
@@ -799,9 +778,8 @@ object Redefined {
           ),
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */

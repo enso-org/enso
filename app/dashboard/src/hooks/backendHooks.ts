@@ -90,6 +90,7 @@ type DefineBackendMethods<T extends keyof Backend> = T
 
 /** Names of methods corresponding to mutations. */
 export type MutationMethod = DefineBackendMethods<
+  | 'acceptInvitation'
   | 'associateTag'
   | 'changeUserGroup'
   | 'closeProject'
@@ -103,6 +104,7 @@ export type MutationMethod = DefineBackendMethods<
   | 'createTag'
   | 'createUser'
   | 'createUserGroup'
+  | 'declineInvitation'
   | 'deleteAsset'
   | 'deleteDatalink'
   | 'deleteInvitation'
@@ -182,7 +184,10 @@ export function useBackendQuery<Method extends backendQuery.BackendMethods>(
 // === useBackendMutation ===
 // ==========================
 
-const INVALIDATION_MAP: Partial<Record<MutationMethod, readonly backendQuery.BackendMethods[]>> = {
+const INVALIDATE_ALL_QUERIES = Symbol('invalidate all queries')
+const INVALIDATION_MAP: Partial<
+  Record<MutationMethod, readonly (backendQuery.BackendMethods | typeof INVALIDATE_ALL_QUERIES)[]>
+> = {
   updateUser: ['usersMe'],
   uploadUserPicture: ['usersMe'],
   updateOrganization: ['getOrganization'],
@@ -192,6 +197,8 @@ const INVALIDATION_MAP: Partial<Record<MutationMethod, readonly backendQuery.Bac
   changeUserGroup: ['listUsers'],
   createTag: ['listTags'],
   deleteTag: ['listTags'],
+  acceptInvitation: [INVALIDATE_ALL_QUERIES],
+  declineInvitation: ['usersMe'],
 }
 
 export function backendMutationOptions<Method extends MutationMethod>(
@@ -252,7 +259,11 @@ export function backendMutationOptions<Method extends MutationMethod>(
     meta: {
       invalidates: [
         ...(options?.meta?.invalidates ?? []),
-        ...(INVALIDATION_MAP[method]?.map((queryMethod) => [backend?.type, queryMethod]) ?? []),
+        ...(INVALIDATION_MAP[method]?.flatMap((queryMethod) =>
+          queryMethod === INVALIDATE_ALL_QUERIES ?
+            [[backend?.type]]
+          : [[backend?.type, queryMethod], ...(queryMethod === 'usersMe' ? [[queryMethod]] : [])],
+        ) ?? []),
       ],
       awaitInvalidates: options?.meta?.awaitInvalidates ?? true,
     },

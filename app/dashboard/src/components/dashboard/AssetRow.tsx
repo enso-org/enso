@@ -169,7 +169,7 @@ export default function AssetRow(props: AssetRowProps) {
     // This is SAFE, as `isOpened` is only true for projects.
     // eslint-disable-next-line no-restricted-syntax
     ...createGetProjectDetailsQuery.createPassiveListener(item.item.id as backendModule.ProjectId),
-    select: (data) => data.state.type,
+    select: (data) => data?.state.type,
     enabled: item.type === backendModule.AssetType.project,
   })
 

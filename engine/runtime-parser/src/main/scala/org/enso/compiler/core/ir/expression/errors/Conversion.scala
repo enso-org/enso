@@ -11,18 +11,18 @@ import java.util.UUID
   * @param storedIr    the IR that contains the error
   * @param reason      the explanation for the error
   * @param passData    the pass metadata associated with this node
-  * @param diagnostics compiler dianostics for this node
   */
 sealed case class Conversion(
   storedIr: IR,
   reason: Conversion.Reason,
-  override val passData: MetadataStorage      = new MetadataStorage(),
-  override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+  override val passData: MetadataStorage = new MetadataStorage()
 ) extends Error
     with Diagnostic.Kind.Interactive
     with IRKind.Primitive
     with Name
+    with LazyDiagnosticStorage
     with LazyId {
+
   override val name: String = "conversion_error"
 
   override def mapExpressions(
@@ -59,9 +59,9 @@ sealed case class Conversion(
       || diagnostics != this.diagnostics
       || id != this.id
     ) {
-
-      val res = Conversion(storedIr, reason, passData, diagnostics)
-      res.id = id
+      val res = Conversion(storedIr, reason, passData)
+      res.diagnostics = diagnostics
+      res.id          = id
       res
     } else this
   }
@@ -82,9 +82,8 @@ sealed case class Conversion(
       ),
       passData =
         if (keepMetadata) passData.duplicate else new MetadataStorage(),
-      diagnostics =
-        if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-      id = if (keepIdentifiers) id else null
+      diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+      id          = if (keepIdentifiers) id else null
     )
   }
 

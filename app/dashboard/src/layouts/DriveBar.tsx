@@ -149,7 +149,7 @@ export default function DriveBar(props: DriveBarProps) {
     })
   }, [isCloud, doCreateDirectory, doCreateProject, inputBindings])
 
-  const createdProjectQuery = useQuery<Project>(
+  const createdProjectQuery = useQuery<Project | null>(
     createdProjectId ?
       createGetProjectDetailsQuery.createPassiveListener(createdProjectId)
     : { queryKey: ['__IGNORE__'], queryFn: skipToken },

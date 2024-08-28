@@ -34,8 +34,6 @@
 //! assert_eq!(s_expr, Value::cons(field_expr, Value::Null));
 //! ```
 
-// === Features ===
-#![feature(let_chains)]
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]
@@ -166,10 +164,9 @@ impl<'g> ToSExpr<'g> {
         if self.skip.contains(&field.type_) {
             return None;
         }
-        if let Data::Primitive(Primitive::Option(t0)) = &self.graph[field.type_].data
-            && self.skip.contains(t0)
-        {
-            return None;
+        match &self.graph[field.type_].data {
+            Data::Primitive(Primitive::Option(t0)) if self.skip.contains(t0) => return None,
+            _ => {}
         }
         Some(if field.name.is_empty() {
             value

@@ -155,12 +155,12 @@ case object NestedPatternMatch extends IRPass {
     * @param freshNameSupply the compiler's supply of fresh names
     * @return `expr`, with any nested patterns desugared
     */
-  def desugarCase(
+  private def desugarCase(
     expr: Case,
     freshNameSupply: FreshNameSupply
   ): Expression = {
     expr match {
-      case expr @ Case.Expr(scrutinee, branches, _, _, _, _) =>
+      case expr @ Case.Expr(scrutinee, branches, _, _, _) =>
         val scrutineeBindingName = freshNameSupply.newName()
         val scrutineeExpression  = desugarExpression(scrutinee, freshNameSupply)
         val scrutineeBinding =
@@ -198,14 +198,14 @@ case object NestedPatternMatch extends IRPass {
     * @return `branch`, with any nested patterns desugared
     */
   @scala.annotation.tailrec
-  def desugarCaseBranch(
+  private def desugarCaseBranch(
     branch: Case.Branch,
     topBranchLocation: Option[IdentifiedLocation],
     freshNameSupply: FreshNameSupply
   ): Case.Branch = {
     if (containsNestedPatterns(branch.pattern)) {
       branch.pattern match {
-        case cons @ Pattern.Constructor(constrName, fields, _, _, _) =>
+        case cons @ Pattern.Constructor(constrName, fields, _, _) =>
           // Note [Unsafe Getting the Nested Field]
           val (lastNestedPattern, nestedPosition) =
             fields.zipWithIndex.findLast { case (pat, _) => isNested(pat) }.get
@@ -255,7 +255,7 @@ case object NestedPatternMatch extends IRPass {
           throw new CompilerError(
             "Type patterns cannot be nested. This should be unreachable."
           )
-        case Pattern.Documentation(_, _, _, _) =>
+        case Pattern.Documentation(_, _, _) =>
           throw new CompilerError(
             "Branch documentation should be desugared at an earlier stage."
           )
@@ -295,7 +295,7 @@ case object NestedPatternMatch extends IRPass {
     *                          a success
     * @return a nested case expression of the form above
     */
-  def generateNestedCase(
+  private def generateNestedCase(
     pattern: Pattern,
     nestedScrutinee: Expression,
     currentBranchExpr: Expression
@@ -326,7 +326,7 @@ case object NestedPatternMatch extends IRPass {
   def containsNestedPatterns(pattern: Pattern): Boolean =
     pattern match {
       case _: Pattern.Name => false
-      case Pattern.Constructor(_, fields, _, _, _) =>
+      case Pattern.Constructor(_, fields, _, _) =>
         fields.exists {
           case _: Pattern.Constructor => true
           case _: Pattern.Name        => false

@@ -229,10 +229,10 @@ impl<'s> Match<'s> {
                 fst.get_tokens(out);
                 snd.get_tokens(out);
             }
-            Self::Expected(_, box item)
-            | Self::Named(_, box item)
-            | Self::Or(box OrMatch::First(item) | box OrMatch::Second(item)) =>
-                item.get_tokens(out),
+            Self::Expected(_, item) | Self::Named(_, item) => item.get_tokens(out),
+            Self::Or(or) => match *or {
+                OrMatch::First(item) | OrMatch::Second(item) => item.get_tokens(out),
+            },
             Self::Many(matches) => matches.into_iter().for_each(|match_| match_.get_tokens(out)),
         }
     }
@@ -244,7 +244,6 @@ impl<'s> Match<'s> {
         out
     }
 }
-
 
 
 // ===================

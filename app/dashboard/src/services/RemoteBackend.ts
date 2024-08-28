@@ -279,11 +279,12 @@ export default class RemoteBackend extends Backend {
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'listInvitationsBackendError')
     } else {
-      return await response.json().then((data) => data.invitations)
+      const data = await response.json()
+      return data.invitations
     }
   }
 
-  /** Delete an invitation. */
+  /** Delete an outgoing invitation. */
   override async deleteInvitation(userEmail: backend.EmailAddress): Promise<void> {
     const response = await this.delete(remoteBackendPaths.INVITATION_PATH, { userEmail })
 
@@ -294,9 +295,24 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Resend an invitation to a user. */
+  /** Resend an outgoing invitation to a user. */
   override async resendInvitation(userEmail: backend.EmailAddress): Promise<void> {
     await this.inviteUser({ userEmail, resend: true })
+  }
+
+  /** Accept an invitation to a new organization. */
+  override async acceptInvitation(): Promise<void> {
+    const response = await this.patch(remoteBackendPaths.ACCEPT_INVITATION_PATH, {})
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'acceptInvitationBackendError')
+    } else {
+      return
+    }
+  }
+
+  /** Decline an invitation to a new organization. */
+  override async declineInvitation(userEmail: backend.EmailAddress): Promise<void> {
+    await this.deleteInvitation(userEmail)
   }
 
   /** Upload a new profile picture for the current user. */
@@ -652,8 +668,7 @@ export default class RemoteBackend extends Backend {
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'duplicateProjectBackendError', title)
     } else {
-      const json = await response.json()
-      return json
+      return await response.json()
     }
   }
 
