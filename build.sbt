@@ -2196,16 +2196,6 @@ lazy val javadocSettings = Seq(
   )
 )
 
-lazy val shouldCompileModuleInfo = taskKey[Boolean](
-  "Determines whether the module-info.java file should be compiled. " +
-  "Used in mixed Scala/Java projects where module-info.java compilation cannot be " +
-  "done by sbt automatically."
-)
-
-lazy val isJPMSModule = taskKey[Boolean](
-  "Determines whether the project is a JPMS module."
-)
-
 /** A setting to replace javac with Frgaal compiler, allowing to use latest Java features in the code
   * and still compile down to JDK 17
   */
