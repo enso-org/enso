@@ -14,8 +14,6 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import type Category from '#/layouts/CategorySwitcher/Category'
-
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
@@ -27,6 +25,7 @@ import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 
+import type { Category } from '#/layouts/CategorySwitcher/Category'
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'

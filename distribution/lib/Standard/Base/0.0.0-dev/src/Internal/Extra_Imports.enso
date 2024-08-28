@@ -4,10 +4,6 @@ private
 # building native image version of Enso with Standard
 # libraries included in
 
-# needed for Standard.Test.Test_Reporter
-# tracked as https://github.com/enso-org/enso/issues/10028
-polyglot java import java.io.PrintStream
-
 # needed by Util_Spec
 polyglot java import org.enso.base.text.CaseFoldedString as JCaseFoldedString
 polyglot java import org.enso.base.text.CaseFoldedString.Grapheme

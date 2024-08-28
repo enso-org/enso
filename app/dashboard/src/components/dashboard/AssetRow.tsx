@@ -23,7 +23,6 @@ import AssetListEventType from '#/events/AssetListEventType'
 import AssetContextMenu from '#/layouts/AssetContextMenu'
 import type * as assetsTable from '#/layouts/AssetsTable'
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
 import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
@@ -38,6 +37,7 @@ import * as backendModule from '#/services/Backend'
 import * as localBackend from '#/services/LocalBackend'
 
 import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
+import { isCloudCategory } from '#/layouts/CategorySwitcher/Category'
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
 import * as download from '#/utilities/download'
@@ -137,7 +137,7 @@ export default function AssetRow(props: AssetRowProps) {
     readonly nodeMap: WeakRef<ReadonlyMap<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>>
     readonly parentKeys: Map<backendModule.AssetId, backendModule.DirectoryId>
   } | null>(null)
-  const isCloud = categoryModule.isCloudCategory(category)
+  const isCloud = isCloudCategory(category)
   const outerVisibility = visibilities.get(item.key)
   const visibility =
     outerVisibility == null || outerVisibility === Visibility.visible ?
@@ -169,7 +169,7 @@ export default function AssetRow(props: AssetRowProps) {
     // This is SAFE, as `isOpened` is only true for projects.
     // eslint-disable-next-line no-restricted-syntax
     ...createGetProjectDetailsQuery.createPassiveListener(item.item.id as backendModule.ProjectId),
-    select: (data) => data.state.type,
+    select: (data) => data?.state.type,
     enabled: item.type === backendModule.AssetType.project,
   })
 
@@ -442,7 +442,7 @@ export default function AssetRow(props: AssetRowProps) {
   }, [setModal, asset.description, setAsset, backend, item.item.id, item.item.title])
 
   eventListProvider.useAssetEventListener(async (event) => {
-    if (state.category.type === categoryModule.CategoryType.trash) {
+    if (state.category.type === 'trash') {
       switch (event.type) {
         case AssetEventType.deleteForever: {
           if (event.ids.has(item.key)) {
@@ -755,10 +755,7 @@ export default function AssetRow(props: AssetRowProps) {
     })()
     if ((isPayloadMatch && canPaste) || event.dataTransfer.types.includes('Files')) {
       event.preventDefault()
-      if (
-        item.item.type === backendModule.AssetType.directory &&
-        state.category.type !== categoryModule.CategoryType.trash
-      ) {
+      if (item.item.type === backendModule.AssetType.directory && state.category.type !== 'trash') {
         setIsDraggedOver(true)
       }
     }
@@ -875,7 +872,7 @@ export default function AssetRow(props: AssetRowProps) {
                   onDragOver(event)
                 }}
                 onDragOver={(event) => {
-                  if (state.category.type === categoryModule.CategoryType.trash) {
+                  if (state.category.type === 'trash') {
                     event.dataTransfer.dropEffect = 'none'
                   }
                   props.onDragOver?.(event)
@@ -902,7 +899,7 @@ export default function AssetRow(props: AssetRowProps) {
                   props.onDragLeave?.(event)
                 }}
                 onDrop={(event) => {
-                  if (state.category.type !== categoryModule.CategoryType.trash) {
+                  if (state.category.type !== 'trash') {
                     props.onDrop?.(event)
                     clearDragState()
                     const [directoryKey, directoryId, directoryTitle] =
@@ -959,7 +956,7 @@ export default function AssetRow(props: AssetRowProps) {
                         state={state}
                         rowState={rowState}
                         setRowState={setRowState}
-                        isEditable={state.category.type !== categoryModule.CategoryType.trash}
+                        isEditable={state.category.type !== 'trash'}
                       />
                     </td>
                   )

@@ -18,8 +18,11 @@ import { useOffline } from '#/hooks/offlineHooks'
 import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
 import AssetSearchBar, { type Suggestion } from '#/layouts/AssetSearchBar'
 import { useDispatchAssetEvent } from '#/layouts/AssetsTable/EventListProvider'
-import type Category from '#/layouts/CategorySwitcher/Category'
-import { CategoryType, isCloudCategory } from '#/layouts/CategorySwitcher/Category'
+import {
+  isCloudCategory,
+  isLocalCategory,
+  type Category,
+} from '#/layouts/CategorySwitcher/Category'
 import StartModal from '#/layouts/StartModal'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
@@ -92,9 +95,10 @@ export default function DriveBar(props: DriveBarProps) {
     targetDirectory == null ? null : tryFindSelfPermission(user, targetDirectory.item.permissions)
   const canCreateAssets =
     targetDirectory == null ?
-      category.type !== CategoryType.cloud || user.plan == null || user.plan === Plan.solo
-    : targetDirectorySelfPermission != null &&
-      canPermissionModifyDirectoryContents(targetDirectorySelfPermission.permission)
+      category.type !== 'cloud' || user.plan == null || user.plan === Plan.solo
+    : isLocalCategory(category) ||
+      (targetDirectorySelfPermission != null &&
+        canPermissionModifyDirectoryContents(targetDirectorySelfPermission.permission))
   const shouldBeDisabled = (isCloud && isOffline) || !canCreateAssets
   const error =
     !shouldBeDisabled ? null
@@ -138,7 +142,7 @@ export default function DriveBar(props: DriveBarProps) {
     })
   }, [isCloud, doCreateDirectory, doCreateProject, inputBindings])
 
-  const createdProjectQuery = useQuery<Project>(
+  const createdProjectQuery = useQuery<Project | null>(
     createdProjectId ?
       createGetProjectDetailsQuery.createPassiveListener(createdProjectId)
     : { queryKey: ['__IGNORE__'], queryFn: skipToken },
@@ -188,7 +192,7 @@ export default function DriveBar(props: DriveBarProps) {
   )
 
   switch (category.type) {
-    case CategoryType.recent: {
+    case 'recent': {
       return (
         <ButtonGroup className="my-0.5 grow-0">
           {searchBar}
@@ -196,7 +200,7 @@ export default function DriveBar(props: DriveBarProps) {
         </ButtonGroup>
       )
     }
-    case CategoryType.trash: {
+    case 'trash': {
       return (
         <ButtonGroup className="my-0.5 grow-0">
           <DialogTrigger>
@@ -213,10 +217,11 @@ export default function DriveBar(props: DriveBarProps) {
         </ButtonGroup>
       )
     }
-    case CategoryType.cloud:
-    case CategoryType.local:
-    case CategoryType.user:
-    case CategoryType.team: {
+    case 'cloud':
+    case 'local':
+    case 'user':
+    case 'team':
+    case 'local-directory': {
       return (
         <ButtonGroup className="my-0.5 grow-0">
           <ButtonGroup

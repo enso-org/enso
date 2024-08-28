@@ -103,19 +103,33 @@ export default class LocalBackend extends Backend {
     this.projectManager = projectManagerInstance
   }
 
-  /** Get the root directory of this Backend as a path. */
+  /** Get the root directory of this Backend. */
   get rootPath() {
     return this.projectManager.rootDirectory
   }
 
-  /** Set the root directory of this Backend as a path. */
+  /** Set the root directory of this Backend. */
   set rootPath(value) {
     this.projectManager.rootDirectory = value
   }
 
+  /** Reset the root directory of this Backend. */
+  resetRootPath() {
+    this.projectManager.resetRootDirectory()
+  }
+
+  /** Tell the {@link ProjectManager} to reconnect. */
+  async reconnectProjectManager() {
+    await this.projectManager.reconnect()
+  }
+
   /** Return the ID of the root directory. */
-  override rootDirectoryId(): backend.DirectoryId {
-    return newDirectoryId(this.projectManager.rootDirectory)
+  override rootDirectoryId(
+    _user: backend.User | null,
+    _organization: backend.OrganizationInfo | null,
+    rootDirectory: backend.Path | null | undefined,
+  ): backend.DirectoryId {
+    return newDirectoryId(rootDirectory ?? this.projectManager.rootDirectory)
   }
 
   /** Return a list of assets in a directory.
@@ -794,6 +808,16 @@ export default class LocalBackend extends Backend {
 
   /** Invalid operation. */
   override resendInvitation() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override acceptInvitation() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override declineInvitation() {
     return this.invalidOperation()
   }
 

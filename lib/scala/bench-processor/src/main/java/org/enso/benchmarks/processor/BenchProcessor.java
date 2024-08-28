@@ -98,7 +98,7 @@ public class BenchProcessor extends AbstractProcessor {
                 + "' specified in the annotation does not exist or is not readable");
       }
       try (var ctx =
-          Context.newBuilder(LanguageInfo.ID)
+          Context.newBuilder()
               .allowExperimentalOptions(true)
               .allowIO(IOAccess.ALL)
               .allowAllAccess(true)
@@ -438,6 +438,8 @@ public class BenchProcessor extends AbstractProcessor {
   }
 
   private void failWithMessage(String msg) {
+    // Better have duplicated error message than none at all
+    System.out.println("[org.enso.benchmarks.processor.BenchProcessor]: ERROR: " + msg);
     processingEnv.getMessager().printMessage(Kind.ERROR, msg);
   }
 }

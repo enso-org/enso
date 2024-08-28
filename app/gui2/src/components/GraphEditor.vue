@@ -32,6 +32,7 @@ import { keyboardBusy, keyboardBusyExceptIn, unrefElement, useEvent } from '@/co
 import { groupColorVar } from '@/composables/nodeColors'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
 import { useSyncLocalStorage } from '@/composables/syncLocalStorage'
+import { provideFullscreenContext } from '@/providers/fullscreenContext'
 import { provideGraphNavigator, type GraphNavigator } from '@/providers/graphNavigator'
 import { provideNodeColors } from '@/providers/graphNodeColors'
 import { provideNodeCreation } from '@/providers/graphNodeCreation'
@@ -46,6 +47,7 @@ import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { provideSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { suggestionDocumentationUrl, type Typename } from '@/stores/suggestionDatabase/entry'
+import { applyUpdates } from '@/stores/suggestionDatabase/lsUpdate'
 import { provideVisualizationStore } from '@/stores/visualization'
 import { bail } from '@/util/assert'
 import type { AstId } from '@/util/ast/abstract'
@@ -70,8 +72,11 @@ import {
   type ComponentInstance,
 } from 'vue'
 import { encodeMethodPointer } from 'ydoc-shared/languageServerTypes'
+import * as lsTypes from 'ydoc-shared/languageServerTypes/suggestions'
 import * as iterable from 'ydoc-shared/util/data/iterable'
 import { isDevMode } from 'ydoc-shared/util/detect'
+
+const rootNode = ref<HTMLElement>()
 
 const keyboard = provideKeyboard()
 const projectStore = useProjectStore()
@@ -80,6 +85,8 @@ const graphStore = provideGraphStore(projectStore, suggestionDb)
 const widgetRegistry = provideWidgetRegistry(graphStore.db)
 const _visualizationStore = provideVisualizationStore(projectStore)
 const visible = injectVisibility()
+provideFullscreenContext(rootNode)
+;(window as any)._mockSuggestion = suggestionDb.mockSuggestion
 
 onMounted(() => {
   widgetRegistry.loadWidgets(Object.entries(builtinWidgets))
@@ -329,7 +336,7 @@ const graphBindingsHandler = graphBindings.handler({
       selected,
       (id) => graphStore.db.nodeIdToNode.get(id)?.vis?.visible === true,
     )
-    graphStore.transact(() => {
+    graphStore.batchEdits(() => {
       for (const nodeId of selected) {
         graphStore.setNodeVisualization(nodeId, { visible: !allVisible })
       }
@@ -651,10 +658,13 @@ const groupColors = computed(() => {
   }
   return styles
 })
+
+const documentationEditorFullscreen = ref(false)
 </script>
 
 <template>
   <div
+    ref="rootNode"
     class="GraphEditor"
     :class="{ draggingEdge: graphStore.mouseEditedEdge != null }"
     :style="groupColors"
@@ -717,12 +727,14 @@ const groupColors = computed(() => {
       v-model:show="showRightDock"
       v-model:size="rightDockWidth"
       v-model:tab="rightDockTab"
+      :contentFullscreen="documentationEditorFullscreen"
     >
       <template #docs>
         <DocumentationEditor
           ref="docEditor"
           :modelValue="documentation.state.value"
           @update:modelValue="documentation.set"
+          @update:fullscreen="documentationEditorFullscreen = $event"
         />
       </template>
       <template #help>

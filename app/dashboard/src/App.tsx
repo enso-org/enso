@@ -47,7 +47,7 @@ import * as appUtils from '#/appUtils'
 import * as inputBindingsModule from '#/configurations/inputBindings'
 
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
-import BackendProvider from '#/providers/BackendProvider'
+import BackendProvider, { useLocalBackend } from '#/providers/BackendProvider'
 import DriveProvider from '#/providers/DriveProvider'
 import DevtoolsProvider from '#/providers/EnsoDevtoolsProvider'
 import { useHttpClient } from '#/providers/HttpClientProvider'
@@ -93,6 +93,8 @@ import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 
 import { useInitAuthService } from '#/authentication/service'
+import { InvitedToOrganizationModal } from '#/modals/InvitedToOrganizationModal'
+import { Path } from '#/utilities/path'
 
 // ============================
 // === Global configuration ===
@@ -102,6 +104,7 @@ declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
     readonly inputBindings: Readonly<Record<string, readonly string[]>>
+    readonly localRootDirectory: string
   }
 }
 
@@ -117,6 +120,8 @@ LocalStorage.registerKey('inputBindings', {
     ),
   ),
 })
+
+LocalStorage.registerKey('localRootDirectory', { schema: z.string() })
 
 // ======================
 // === getMainPageUrl ===
@@ -347,6 +352,11 @@ function AppRouter(props: AppRouterProps) {
     }
   }, [localStorage, inputBindingsRaw])
   const mainPageUrl = getMainPageUrl()
+
+  // Subscribe to `termsOfService` updates to trigger a rerender when the terms of service
+  // has been accepted.
+  localStorageProvider.useLocalStorageState('termsOfService')
+
   const authService = useInitAuthService(props)
   const userSession = authService?.cognito.userSession.bind(authService.cognito) ?? null
   const refreshUserSession =
@@ -422,22 +432,24 @@ function AppRouter(props: AppRouterProps) {
         <router.Route element={<authProvider.ProtectedLayout />}>
           <router.Route element={<termsOfServiceModal.TermsOfServiceModal />}>
             <router.Route element={<setOrganizationNameModal.SetOrganizationNameModal />}>
-              <router.Route element={<openAppWatcher.OpenAppWatcher />}>
-                <router.Route
-                  path={appUtils.DASHBOARD_PATH}
-                  element={shouldShowDashboard && <Dashboard {...props} />}
-                />
+              <router.Route element={<InvitedToOrganizationModal />}>
+                <router.Route element={<openAppWatcher.OpenAppWatcher />}>
+                  <router.Route
+                    path={appUtils.DASHBOARD_PATH}
+                    element={shouldShowDashboard && <Dashboard {...props} />}
+                  />
 
-                <router.Route
-                  path={appUtils.SUBSCRIBE_PATH}
-                  element={
-                    <errorBoundary.ErrorBoundary>
-                      <suspense.Suspense>
-                        <subscribe.Subscribe />
-                      </suspense.Suspense>
-                    </errorBoundary.ErrorBoundary>
-                  }
-                />
+                  <router.Route
+                    path={appUtils.SUBSCRIBE_PATH}
+                    element={
+                      <errorBoundary.ErrorBoundary>
+                        <suspense.Suspense>
+                          <subscribe.Subscribe />
+                        </suspense.Suspense>
+                      </errorBoundary.ErrorBoundary>
+                    }
+                  />
+                </router.Route>
               </router.Route>
             </router.Route>
           </router.Route>
@@ -499,6 +511,7 @@ function AppRouter(props: AppRouterProps) {
                  * due to modals being in `TheModal`. */}
                 <DriveProvider>
                   <errorBoundary.ErrorBoundary>
+                    <LocalBackendPathSynchronizer />
                     <VersionChecker />
                     {routes}
                     {detect.IS_DEV_MODE && (
@@ -515,4 +528,22 @@ function AppRouter(props: AppRouterProps) {
       </RouterProvider>
     </DevtoolsProvider>
   )
+}
+
+// ====================================
+// === LocalBackendPathSynchronizer ===
+// ====================================
+
+/** Keep `localBackend.rootPath` in sync with the saved root path state. */
+function LocalBackendPathSynchronizer() {
+  const [localRootDirectory] = localStorageProvider.useLocalStorageState('localRootDirectory')
+  const localBackend = useLocalBackend()
+  if (localBackend) {
+    if (localRootDirectory != null) {
+      localBackend.rootPath = Path(localRootDirectory)
+    } else {
+      localBackend.resetRootPath()
+    }
+  }
+  return null
 }

@@ -145,8 +145,7 @@ case object MethodDefinitions extends IRPass {
     case lambda: Function.Lambda =>
       val newArguments = lambda.arguments match {
         case (selfArg @ DefinitionArgument.Specified(
-              Name.Self(_, _, _, _),
-              _,
+              Name.Self(_, _, _),
               _,
               _,
               _,

@@ -78,7 +78,7 @@ public final class TypeInference implements IRPass {
         protected void encounteredIncompatibleTypes(
             IR relatedIr, TypeRepresentation expected, TypeRepresentation provided) {
           relatedIr
-              .diagnostics()
+              .getDiagnostics()
               .add(
                   new Warning.TypeMismatch(
                       relatedIr.location(), expected.toString(), provided.toString()));
@@ -88,7 +88,7 @@ public final class TypeInference implements IRPass {
         protected void encounteredInvocationOfNonFunctionType(
             IR relatedIr, TypeRepresentation type) {
           relatedIr
-              .diagnostics()
+              .getDiagnostics()
               .add(new Warning.NotInvokable(relatedIr.location(), type.toString()));
         }
       };

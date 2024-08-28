@@ -162,6 +162,8 @@ export interface UserInfo {
   readonly userId: UserId
   readonly name: string
   readonly email: EmailAddress
+  readonly newOrganizationName?: string
+  readonly newOrganizationInvite?: 'error' | 'pending'
 }
 
 /** A user in the application. These are the primary owners of a project. */
@@ -1220,6 +1222,25 @@ export function getAssetId<Type extends AssetType>(asset: Asset<Type>) {
   return asset.id
 }
 
+// ================================
+// === userHasUserAndTeamSpaces ===
+// ================================
+
+/** Whether a user's root directory has the "Users" and "Teams" subdirectories. */
+export function userHasUserAndTeamSpaces(user: User | null) {
+  switch (user?.plan ?? null) {
+    case null:
+    case Plan.free:
+    case Plan.solo: {
+      return false
+    }
+    case Plan.team:
+    case Plan.enterprise: {
+      return true
+    }
+  }
+}
+
 // =====================
 // === fileIsProject ===
 // =====================
@@ -1294,6 +1315,7 @@ export default abstract class Backend {
   abstract rootDirectoryId(
     user: User | null,
     organization: OrganizationInfo | null,
+    localRootDirectory: Path | null | undefined,
   ): DirectoryId | null
   /** Return a list of all users in the same organization. */
   abstract listUsers(): Promise<readonly User[]>
@@ -1319,10 +1341,14 @@ export default abstract class Backend {
   abstract inviteUser(body: InviteUserRequestBody): Promise<void>
   /** Return a list of invitations to the organization. */
   abstract listInvitations(): Promise<readonly Invitation[]>
-  /** Delete an invitation. */
+  /** Delete an outgoing invitation. */
   abstract deleteInvitation(userEmail: EmailAddress): Promise<void>
-  /** Resend an invitation. */
+  /** Resend an outgoing invitation. */
   abstract resendInvitation(userEmail: EmailAddress): Promise<void>
+  /** Accept an incoming invitation to a new organization. */
+  abstract acceptInvitation(): Promise<void>
+  /** Decline an incoming invitation to a new organization. */
+  abstract declineInvitation(userEmail: string): Promise<void>
   /** Get the details of the current organization. */
   abstract getOrganization(): Promise<OrganizationInfo | null>
   /** Change the details of the current organization. */

@@ -55,7 +55,10 @@ interface ButtonGroupProps extends React.PropsWithChildren, twv.VariantProps<typ
 }
 
 /** A group of buttons. */
-function ButtonGroupInternal(props: ButtonGroupProps, ref: React.ForwardedRef<HTMLDivElement>) {
+export const ButtonGroup = React.forwardRef(function ButtonGroup(
+  props: ButtonGroupProps,
+  ref: React.ForwardedRef<HTMLDivElement>,
+) {
   const {
     children,
     className,
@@ -83,6 +86,4 @@ function ButtonGroupInternal(props: ButtonGroupProps, ref: React.ForwardedRef<HT
       {children}
     </div>
   )
-}
-
-export const ButtonGroup = React.forwardRef(ButtonGroupInternal)
+})

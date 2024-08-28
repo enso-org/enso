@@ -2,9 +2,9 @@
  * via the shared React context. */
 import * as React from 'react'
 
-import * as refreshHooks from '#/hooks/refreshHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 
-import LocalStorage from '#/utilities/LocalStorage'
+import LocalStorage, { type LocalStorageData, type LocalStorageKey } from '#/utilities/LocalStorage'
 
 // ===========================
 // === LocalStorageContext ===
@@ -29,15 +29,7 @@ export interface LocalStorageProviderProps extends Readonly<React.PropsWithChild
 /** A React Provider that lets components get the shortcut registry. */
 export default function LocalStorageProvider(props: LocalStorageProviderProps) {
   const { children } = props
-  const [, doRefresh] = refreshHooks.useRefresh()
-
-  const localStorage = React.useMemo(
-    () =>
-      new LocalStorage(() => {
-        doRefresh()
-      }),
-    [doRefresh],
-  )
+  const localStorage = React.useMemo(() => new LocalStorage(), [])
 
   return (
     <LocalStorageContext.Provider value={{ localStorage }}>{children}</LocalStorageContext.Provider>
@@ -47,4 +39,26 @@ export default function LocalStorageProvider(props: LocalStorageProviderProps) {
 /** Exposes a property to get the shortcut registry. */
 export function useLocalStorage() {
   return React.useContext(LocalStorageContext)
+}
+
+/** Subscribe to Local Storage updates for a specific key. */
+export function useLocalStorageState<K extends LocalStorageKey>(
+  key: K,
+): [
+  value: LocalStorageData[K] | undefined,
+  setValue: (newValue: LocalStorageData[K] | undefined) => void,
+] {
+  const { localStorage } = useLocalStorage()
+  const value = React.useSyncExternalStore(
+    (callback) => localStorage.subscribe(key, callback),
+    () => localStorage.get(key),
+  )
+  const setValue = useEventCallback((newValue: LocalStorageData[K] | undefined) => {
+    if (newValue === undefined) {
+      localStorage.delete(key)
+    } else {
+      localStorage.set(key, newValue)
+    }
+  })
+  return [value, setValue] as const
 }

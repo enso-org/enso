@@ -14,24 +14,51 @@ object Application {
 
   /** A standard prefix function application.
     *
-    * @param function             the function being called
-    * @param arguments            the arguments to the function being called
+    * @param function the function being called
+    * @param arguments the arguments to the function being called
     * @param hasDefaultsSuspended whether the function application has any
-    *                             argument defaults in `function` suspended
-    * @param location             the source location that the node corresponds to
-    * @param passData             the pass metadata associated with this node
-    * @param diagnostics          compiler diagnostics for this node
+    * argument defaults in `function` suspended
+    * @param location the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Prefix(
     function: Expression,
     arguments: List[CallArgument],
     hasDefaultsSuspended: Boolean,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Application
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
+
+    /** Create a prefix application.
+      *
+      * @param function the function being called
+      * @param arguments the arguments to the function being called
+      * @param hasDefaultsSuspended whether the function application has any
+      * argument defaults in `function` suspended
+      * @param location the source location that the node corresponds to
+      * @param passData the pass metadata associated with this node
+      * @param diagnostics the compiler diagnostics
+      */
+    def this(
+      function: Expression,
+      arguments: List[CallArgument],
+      hasDefaultsSuspended: Boolean,
+      location: Option[IdentifiedLocation],
+      passData: MetadataStorage,
+      diagnostics: DiagnosticStorage
+    ) = {
+      this(
+        function,
+        arguments,
+        hasDefaultsSuspended,
+        location,
+        passData
+      )
+      this.diagnostics = diagnostics
+    }
 
     /** Creates a copy of `this`.
       *
@@ -69,10 +96,10 @@ object Application {
             arguments,
             hasDefaultsSuspended,
             location,
-            passData,
-            diagnostics
+            passData
           )
-        res.id = id
+        res.diagnostics = diagnostics
+        res.id          = id
         res
       } else this
     }
@@ -102,9 +129,8 @@ object Application {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -145,18 +171,17 @@ object Application {
 
   /** A representation of a term that is explicitly forced.
     *
-    * @param target      the expression being forced
-    * @param location    the source location that the node corresponds to
-    * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
+    * @param target the expression being forced
+    * @param location the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Force(
     target: Expression,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Application
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -182,8 +207,9 @@ object Application {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-        val res = Force(target, location, passData, diagnostics)
-        res.id = id
+        val res = Force(target, location, passData)
+        res.diagnostics = diagnostics
+        res.id          = id
         res
       } else this
     }
@@ -205,9 +231,8 @@ object Application {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -265,18 +290,17 @@ object Application {
     *
     * These are necessary as they delimit pattern contexts.
     *
-    * @param expression  the expression of the typeset body
-    * @param location    the source location that the node corresponds to
-    * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
+    * @param expression the expression of the typeset body
+    * @param location the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Typeset(
     expression: Option[Expression],
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Literal
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
 
     override def mapExpressions(
@@ -307,9 +331,9 @@ object Application {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-
-        val res = Typeset(expression, location, passData, diagnostics)
-        res.id = id
+        val res = Typeset(expression, location, passData)
+        res.diagnostics = diagnostics
+        res.id          = id
         res
       } else this
     }
@@ -333,9 +357,8 @@ object Application {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -370,18 +393,17 @@ object Application {
 
   /** A representation of a vector literal.
     *
-    * @param items       the items being put in the vector
-    * @param location    the source location that the node corresponds to
-    * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
+    * @param items the items being put in the vector
+    * @param location the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Sequence(
     items: List[Expression],
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Literal
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
 
     override def mapExpressions(
@@ -412,9 +434,9 @@ object Application {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-
-        val res = Sequence(items, location, passData, diagnostics)
-        res.id = id
+        val res = Sequence(items, location, passData)
+        res.diagnostics = diagnostics
+        res.id          = id
         res
       } else this
     }
@@ -438,9 +460,8 @@ object Application {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */

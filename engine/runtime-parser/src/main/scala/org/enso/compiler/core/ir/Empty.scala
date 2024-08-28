@@ -7,17 +7,16 @@ import java.util.UUID
 
 /** A node representing an empty IR construct that can be used in any place.
   *
-  * @param location    the source location that the node corresponds to
-  * @param passData    the pass metadata associated with this node
-  * @param diagnostics compiler diagnostics for this node
+  * @param location the source location that the node corresponds to
+  * @param passData the pass metadata associated with this node
   */
 sealed case class Empty(
   override val location: Option[IdentifiedLocation],
-  passData: MetadataStorage      = new MetadataStorage(),
-  diagnostics: DiagnosticStorage = DiagnosticStorage()
+  passData: MetadataStorage = new MetadataStorage()
 ) extends IR
     with Expression
     with IRKind.Primitive
+    with LazyDiagnosticStorage
     with LazyId {
 
   /** Creates a copy of `this`
@@ -40,8 +39,9 @@ sealed case class Empty(
       || diagnostics != this.diagnostics
       || id != this.id
     ) {
-      val res = Empty(location, passData, diagnostics)
-      res.id = id
+      val res = Empty(location, passData)
+      res.diagnostics = diagnostics
+      res.id          = id
       res
     } else this
   }
@@ -57,9 +57,8 @@ sealed case class Empty(
       location = if (keepLocations) location else None,
       passData =
         if (keepMetadata) passData.duplicate else new MetadataStorage(),
-      diagnostics =
-        if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-      id = if (keepIdentifiers) id else null
+      diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+      id          = if (keepIdentifiers) id else null
     )
 
   /** @inheritdoc */

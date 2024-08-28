@@ -1044,12 +1044,12 @@ public class TypeInferenceTest extends CompilerTest {
   }
 
   private List<Diagnostic> getImmediateDiagnostics(IR ir) {
-    return CollectionConverters.asJava(ir.diagnostics().toList());
+    return CollectionConverters.asJava(ir.getDiagnostics().toList());
   }
 
   private List<Diagnostic> getDescendantsDiagnostics(IR ir) {
     return CollectionConverters.asJava(
-        ir.preorder().flatMap((node) -> node.diagnostics().toList()));
+        ir.preorder().flatMap(node -> node.getDiagnostics().toList()));
   }
 
   private Method findStaticMethod(Module module, String name) {
