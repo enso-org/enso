@@ -54,6 +54,7 @@ interface Data {
   focus: Focus | undefined
   points: PointsConfiguration
   data: Point[]
+  is_multi_series?: boolean
 }
 
 interface Focus {
@@ -69,6 +70,7 @@ interface Point {
   color?: string
   shape?: string
   size?: number
+  series?: string
 }
 
 interface PointsConfiguration {
@@ -155,7 +157,7 @@ const data = computed<Data>(() => {
   }
   const points = rawData.points ?? { labels: 'visible' }
   const focus: Focus | undefined = rawData.focus
-  return { axis, points, data, focus }
+  return { axis, points, data, focus, is_multi_series: rawData.is_multi_series }
 })
 
 const containerNode = ref<HTMLElement>()
@@ -447,14 +449,34 @@ watchPostEffect(() =>
     .call(d3.axisLeft(yScale.value).ticks(yTicks.value)),
 )
 
+function getPlotData(data: Data) {
+  const data2 = data.data
+  const axis = data.axis
+  if (data.is_multi_series) {
+    const series = Object.keys(axis).filter((s) => s != 'x')
+    const transformedData = series.flatMap((s) =>
+      data2.map((d) => ({
+        x: d.x,
+        y: d[s],
+        series: s,
+      })),
+    )
+    return transformedData
+  }
+  return data2
+}
+
 // === Update contents ===
 
 watchPostEffect(() => {
   const xScale_ = xScale.value
   const yScale_ = yScale.value
+  const plotData = getPlotData(data.value)
+  const series = Object.keys(data.value.axis).filter((s) => s != 'x')
+  const colorScale = d3.scaleOrdinal(d3.schemeCategory10).domain(series)
   d3Points.value
     .selectAll<SVGPathElement, unknown>('path')
-    .data(data.value.data)
+    .data(plotData)
     .join((enter) => enter.append('path'))
     .transition()
     .duration(animationDuration.value)
@@ -462,12 +484,12 @@ watchPostEffect(() => {
       'd',
       symbol.type(matchShape).size((d) => (d.size ?? 1.0) * SIZE_SCALE_MULTIPLER),
     )
-    .style('fill', (d) => d.color ?? FILL_COLOR)
+    .style('fill', (d) => colorScale(d.series))
     .attr('transform', (d) => `translate(${xScale_(d.x)}, ${yScale_(d.y)})`)
   if (data.value.points.labels === VISIBLE_POINTS) {
     d3Points.value
       .selectAll<SVGPathElement, unknown>('text')
-      .data(data.value.data)
+      .data(plotData)
       .join((enter) => enter.append('text').attr('class', 'label'))
       .transition()
       .duration(animationDuration.value)
