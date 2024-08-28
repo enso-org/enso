@@ -46,6 +46,7 @@ polyglot java import org.enso.table.data.column.operation.unary.IsNothingOperati
 polyglot java import org.enso.table.data.column.operation.unary.NotOperation
 polyglot java import org.enso.table.data.column.operation.unary.TextLengthOperation
 polyglot java import org.enso.table.data.column.operation.unary.TruncatedTimePartOperation
+polyglot java import org.enso.table.data.column.operation.unary.UnaryDecimalRoundOperation
 polyglot java import org.enso.table.data.column.operation.unary.UnaryRoundOperation
 polyglot java import org.enso.table.data.column.operation.UnaryOperation
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
@@ -929,8 +930,11 @@ type Column
                 case precise_value_type.is_integer of
                     True ->
                         self.rename new_name
-                    False ->
-                        apply_unary_operation self UnaryRoundOperation.TRUNCATE_INSTANCE
+                    False -> case precise_value_type.is_decimal of
+                        True ->
+                            apply_unary_operation self UnaryDecimalRoundOperation.TRUNCATE_INSTANCE
+                        False ->
+                            apply_unary_operation self UnaryRoundOperation.TRUNCATE_INSTANCE
             False -> case precise_value_type == Value_Type.Date_Time of
                 True ->
                     fun = _.date
@@ -955,7 +959,11 @@ type Column
                 new_name = naming_helper.function_name "ceil" [self]
                 self.rename new_name
             False ->
-                apply_unary_operation self UnaryRoundOperation.CEIL_INSTANCE
+                case self.inferred_precise_value_type.is_decimal of
+                    True ->
+                        apply_unary_operation self UnaryDecimalRoundOperation.CEIL_INSTANCE
+                    False ->
+                        apply_unary_operation self UnaryRoundOperation.CEIL_INSTANCE
 
     ## GROUP Standard.Base.Rounding
        ICON math
@@ -975,7 +983,11 @@ type Column
                 new_name = naming_helper.function_name "floor" [self]
                 self.rename new_name
             False ->
-                apply_unary_operation self UnaryRoundOperation.FLOOR_INSTANCE
+                case self.inferred_precise_value_type.is_decimal of
+                    True ->
+                        apply_unary_operation self UnaryDecimalRoundOperation.FLOOR_INSTANCE
+                    False ->
+                        apply_unary_operation self UnaryRoundOperation.FLOOR_INSTANCE
 
     ## GROUP Standard.Base.Logical
        ICON operators
@@ -2861,7 +2873,7 @@ Cleansable_Text.from (that:Column) = Cleansable_Text.Value (pattern->replace_wit
    - operation: The UnaryOperation to apply.
    - new_name: The name of the column created as the result of this operation.
    - if_unsupported: The result if the operation is not supported for the column.
-apply_unary_operation column:Column operation:UnaryOperation new_name:Text|Nothing=Nothing ~if_unsupported=(Panic.throw (Illegal_State.Error "Unsupported unary operation for column called. This is a bug in the Table library.")) =
+apply_unary_operation column:Column operation:UnaryOperation new_name:Text|Nothing=Nothing ~if_unsupported=(Panic.throw (Illegal_State.Error "Unsupported unary operation for column called "+column.name+". This is a bug in the Table library.")) =
     used_name = new_name.if_nothing (naming_helper.function_name operation.getName [column])
     Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning java_problem_aggregator->
         java_column = UnaryOperation.apply column.java_column operation used_name java_problem_aggregator
