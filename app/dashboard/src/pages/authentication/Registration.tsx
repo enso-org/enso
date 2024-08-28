@@ -130,13 +130,8 @@ export default function Registration() {
       }
       onSubmit={async ({ email, password }) => {
         await signUp(email, password, organizationId)
-        // Only the last one in the sequence should trigger a re-render.
-        localStorage.set('termsOfService', { versionHash: tosHash }, { triggerRerender: false })
-        localStorage.set(
-          'privacyPolicy',
-          { versionHash: privacyPolicyHash },
-          { triggerRerender: true },
-        )
+        localStorage.set('termsOfService', { versionHash: tosHash })
+        localStorage.set('privacyPolicy', { versionHash: privacyPolicyHash })
       }}
     >
       {({ register }) => (

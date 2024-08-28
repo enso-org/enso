@@ -33,16 +33,7 @@ export interface LocalStorageData {}
 // =======================
 
 /** All possible keys of a {@link LocalStorage}. */
-type LocalStorageKey = keyof LocalStorageData
-
-// =================================
-// === LocalStorageMutateOptions ===
-// =================================
-
-/** Options for methods that mutate `localStorage` state (set, delete, and save). */
-export interface LocalStorageMutateOptions {
-  readonly triggerRerender?: boolean
-}
+export type LocalStorageKey = keyof LocalStorageData
 
 // ====================
 // === LocalStorage ===
@@ -56,9 +47,10 @@ export default class LocalStorage {
   static keyMetadata = {} as Record<LocalStorageKey, LocalStorageKeyMetadata<LocalStorageKey>>
   localStorageKey = common.PRODUCT_NAME.toLowerCase()
   protected values: Partial<LocalStorageData>
+  private readonly eventTarget = new EventTarget()
 
   /** Create a {@link LocalStorage}. */
-  constructor(private readonly triggerRerender: () => void) {
+  constructor() {
     const savedValues: unknown = JSON.parse(localStorage.getItem(this.localStorageKey) ?? '{}')
     const newValues: Partial<Record<LocalStorageKey, LocalStorageData[LocalStorageKey]>> = {}
     if (typeof savedValues === 'object' && savedValues != null) {
@@ -91,22 +83,20 @@ export default class LocalStorage {
   }
 
   /** Write an entry to the stored data, and save. */
-  set<K extends LocalStorageKey>(
-    key: K,
-    value: LocalStorageData[K],
-    options?: LocalStorageMutateOptions,
-  ) {
+  set<K extends LocalStorageKey>(key: K, value: LocalStorageData[K]) {
     this.values[key] = value
-    this.save(options)
+    this.eventTarget.dispatchEvent(new Event(key))
+    this.save()
   }
 
   /** Delete an entry from the stored data, and save. */
-  delete<K extends LocalStorageKey>(key: K, options?: LocalStorageMutateOptions) {
+  delete<K extends LocalStorageKey>(key: K) {
     const oldValue = this.values[key]
     // The key being deleted is one of a statically known set of keys.
     // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete this.values[key]
-    this.save(options)
+    this.eventTarget.dispatchEvent(new Event(key))
+    this.save()
     return oldValue
   }
 
@@ -119,12 +109,23 @@ export default class LocalStorage {
     }
   }
 
-  /** Save the current value of the stored data.. */
-  protected save(options: LocalStorageMutateOptions = {}) {
-    const { triggerRerender = false } = options
-    localStorage.setItem(this.localStorageKey, JSON.stringify(this.values))
-    if (triggerRerender) {
-      this.triggerRerender()
+  /** Add an event listener to a specific key. */
+  subscribe<K extends LocalStorageKey>(
+    key: K,
+    callback: (value: LocalStorageData[K] | undefined) => void,
+  ) {
+    const wrapped = () => {
+      const value = this.values[key]
+      callback(value)
     }
+    this.eventTarget.addEventListener(key, wrapped)
+    return () => {
+      this.eventTarget.removeEventListener(key, wrapped)
+    }
+  }
+
+  /** Save the current value of the stored data.. */
+  protected save() {
+    localStorage.setItem(this.localStorageKey, JSON.stringify(this.values))
   }
 }

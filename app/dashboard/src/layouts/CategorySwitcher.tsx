@@ -2,11 +2,15 @@
 import * as React from 'react'
 
 import { useSearchParams } from 'react-router-dom'
+import * as z from 'zod'
 
 import CloudIcon from '#/assets/cloud.svg'
 import ComputerIcon from '#/assets/computer.svg'
+import FolderIcon from '#/assets/folder.svg'
+import Minus2Icon from '#/assets/minus2.svg'
 import PeopleIcon from '#/assets/people.svg'
 import PersonIcon from '#/assets/person.svg'
+import PlusIcon from '#/assets/plus.svg'
 import RecentIcon from '#/assets/recent.svg'
 import SettingsIcon from '#/assets/settings.svg'
 import Trash2Icon from '#/assets/trash2.svg'
@@ -18,22 +22,42 @@ import * as mimeTypes from '#/data/mimeTypes'
 import AssetEventType from '#/events/AssetEventType'
 import {
   useBackendQuery,
+  useGetOrganization,
   useListUserGroups,
   useListUsers,
   type WithPlaceholder,
 } from '#/hooks/backendHooks'
 import * as offlineHooks from '#/hooks/offlineHooks'
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-import type Category from '#/layouts/CategorySwitcher/Category'
-import * as categoryModule from '#/layouts/CategorySwitcher/Category'
+import { areCategoriesEqual, type Category } from '#/layouts/CategorySwitcher/Category'
+import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
+import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import { TabType, useSetPage } from '#/providers/ProjectsProvider'
 import * as textProvider from '#/providers/TextProvider'
 import * as backend from '#/services/Backend'
+import { newDirectoryId } from '#/services/LocalBackend'
 import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
+import { getFileName } from '#/utilities/fileInfo'
+import LocalStorage from '#/utilities/LocalStorage'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
+import { twMerge } from 'tailwind-merge'
+import invariant from 'tiny-invariant'
+
+// ============================
+// === Global configuration ===
+// ============================
+
+declare module '#/utilities/LocalStorage' {
+  /** */
+  interface LocalStorageData {
+    readonly localRootDirectories: readonly string[]
+  }
+}
+
+LocalStorage.registerKey('localRootDirectories', { schema: z.string().array().readonly() })
 
 // ========================
 // === CategoryMetadata ===
@@ -69,24 +93,27 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const { user } = authProvider.useFullUserSession()
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
+  const remoteBackend = backendProvider.useRemoteBackendStrict()
+  const organization = useGetOrganization(remoteBackend)
   const localBackend = backendProvider.useLocalBackend()
   const { isOffline } = offlineHooks.useOffline()
-  const isCurrent = categoryModule.areCategoriesEqual(currentCategory, category)
+  const isCurrent = areCategoriesEqual(currentCategory, category)
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const getCategoryError = (otherCategory: Category) => {
     switch (otherCategory.type) {
-      case categoryModule.CategoryType.local: {
+      case 'local':
+      case 'local-directory': {
         if (localBackend == null) {
           return getText('localBackendNotDetectedError')
         } else {
           return null
         }
       }
-      case categoryModule.CategoryType.cloud:
-      case categoryModule.CategoryType.recent:
-      case categoryModule.CategoryType.trash:
-      case categoryModule.CategoryType.user:
-      case categoryModule.CategoryType.team: {
+      case 'cloud':
+      case 'recent':
+      case 'trash':
+      case 'user':
+      case 'team': {
         if (isOffline) {
           return getText('unavailableOffline')
         } else if (!user.isEnabled) {
@@ -102,26 +129,35 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const tooltip = error ?? false
 
   const isDropTarget = (() => {
-    if (categoryModule.areCategoriesEqual(category, currentCategory)) {
+    if (areCategoriesEqual(category, currentCategory)) {
       return false
-    } else if (currentCategory.type === categoryModule.CategoryType.trash) {
-      switch (category.type) {
-        case categoryModule.CategoryType.trash:
-        case categoryModule.CategoryType.recent: {
-          return false
+    } else {
+      switch (currentCategory.type) {
+        case 'cloud':
+        case 'recent':
+        case 'team':
+        case 'user': {
+          return (
+            category.type === 'trash' ||
+            category.type === 'cloud' ||
+            category.type === 'team' ||
+            category.type === 'user'
+          )
         }
-        default: {
-          return true
+        case 'trash': {
+          return category.type === 'cloud'
+        }
+        case 'local':
+        case 'local-directory': {
+          return category.type === 'local' || category.type === 'local-directory'
         }
       }
-    } else {
-      return category.type !== categoryModule.CategoryType.recent
     }
   })()
   const acceptedDragTypes = isDropTarget ? [mimeTypes.ASSETS_MIME_TYPE] : []
 
   const onPress = () => {
-    if (error == null && !categoryModule.areCategoriesEqual(category, currentCategory)) {
+    if (error == null && !areCategoriesEqual(category, currentCategory)) {
       setCategory(category)
     }
   }
@@ -146,13 +182,52 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
         }
       }),
     ).then((keys) => {
-      dispatchAssetEvent({
-        type:
-          currentCategory.type === categoryModule.CategoryType.trash ?
-            AssetEventType.restore
-          : AssetEventType.delete,
-        ids: new Set(keys.flat(1)),
-      })
+      switch (currentCategory.type) {
+        case 'cloud':
+        case 'recent':
+        case 'team':
+        case 'user': {
+          if (category.type === 'trash') {
+            dispatchAssetEvent({ type: AssetEventType.delete, ids: new Set(keys.flat(1)) })
+          } else if (
+            category.type === 'cloud' ||
+            category.type === 'team' ||
+            category.type === 'user'
+          ) {
+            const newParentId =
+              category.type === 'cloud' ?
+                remoteBackend.rootDirectoryId(user, organization)
+              : category.homeDirectoryId
+            invariant(newParentId != null, 'The Cloud backend is missing a root directory.')
+            dispatchAssetEvent({
+              type: AssetEventType.move,
+              newParentKey: newParentId,
+              newParentId,
+              ids: new Set(keys.flat(1)),
+            })
+          }
+          break
+        }
+        case 'trash': {
+          dispatchAssetEvent({ type: AssetEventType.restore, ids: new Set(keys.flat(1)) })
+          break
+        }
+        case 'local':
+        case 'local-directory': {
+          if (category.type === 'local' || category.type === 'local-directory') {
+            const parentDirectory =
+              category.type === 'local' ? localBackend?.rootPath : category.rootPath
+            invariant(parentDirectory != null, 'The Local backend is missing a root directory.')
+            const newParentId = newDirectoryId(parentDirectory)
+            dispatchAssetEvent({
+              type: AssetEventType.move,
+              newParentKey: newParentId,
+              newParentId,
+              ids: new Set(keys.flat(1)),
+            })
+          }
+        }
+      }
     })
   }
 
@@ -162,7 +237,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
       getDropOperation={(types) =>
         acceptedDragTypes.some((type) => types.has(type)) ? 'move' : 'cancel'
       }
-      className="group relative flex items-center rounded-full drop-target-after"
+      className="group relative flex min-w-0 flex-auto items-center rounded-full drop-target-after"
       onDrop={onDrop}
     >
       <ariaComponents.Button
@@ -171,6 +246,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
         tooltip={tooltip}
         tooltipPlacement="right"
         className={tailwindMerge.twMerge(
+          'min-w-0 flex-auto grow-0',
           isCurrent && 'focus-default',
           isDisabled && 'cursor-not-allowed hover:bg-transparent',
         )}
@@ -179,13 +255,15 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
       >
         <div
           className={tailwindMerge.twMerge(
-            'group flex h-row items-center gap-icon-with-text rounded-full px-button-x selectable',
+            'group flex h-row min-w-0 flex-auto items-center gap-icon-with-text rounded-full px-button-x selectable',
             isCurrent && 'disabled active',
             !isCurrent && !isDisabled && 'hover:bg-selected-frame',
           )}
         >
-          <SvgMask src={icon} className={iconClassName} />
-          <aria.Text slot="description">{label}</aria.Text>
+          <SvgMask src={icon} className={twMerge('shrink-0', iconClassName)} />
+          <ariaComponents.Text slot="description" truncate="1" className="flex-auto">
+            {label}
+          </ariaComponents.Text>
         </div>
       </ariaComponents.Button>
       <div className="absolute left-full ml-2 hidden group-focus-visible:block">
@@ -195,7 +273,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   )
 
   return isNested ?
-      <div className="flex">
+      <div className="flex min-w-0 flex-auto">
         <div className="ml-[15px] mr-1 border-r border-primary/20" />
         {element}
       </div>
@@ -221,6 +299,10 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const setPage = useSetPage()
   const [, setSearchParams] = useSearchParams()
+  const [localRootDirectories, setLocalRootDirectories] =
+    useLocalStorageState('localRootDirectories')
+  const hasUserAndTeamSpaces = backend.userHasUserAndTeamSpaces(user)
+  const { setModal } = modalProvider.useSetModal()
 
   const localBackend = backendProvider.useLocalBackend()
   const itemProps = { currentCategory: category, setCategory, dispatchAssetEvent }
@@ -250,25 +332,34 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
       ),
     [teams],
   )
-  const usersDirectoryQuery = useBackendQuery(remoteBackend, 'listDirectory', [
-    {
-      parentId: backend.DirectoryId(USERS_DIRECTORY_ID),
-      filterBy: backend.FilterBy.active,
-      labels: [],
-      recentProjects: false,
-    },
-    'Users',
-  ])
-  const teamsDirectoryQuery = useBackendQuery(remoteBackend, 'listDirectory', [
-    {
-      parentId: backend.DirectoryId(TEAMS_DIRECTORY_ID),
-      filterBy: backend.FilterBy.active,
-      labels: [],
-      recentProjects: false,
-    },
-
-    'Teams',
-  ])
+  const usersDirectoryQuery = useBackendQuery(
+    remoteBackend,
+    'listDirectory',
+    [
+      {
+        parentId: backend.DirectoryId(USERS_DIRECTORY_ID),
+        filterBy: backend.FilterBy.active,
+        labels: [],
+        recentProjects: false,
+      },
+      'Users',
+    ],
+    { enabled: hasUserAndTeamSpaces },
+  )
+  const teamsDirectoryQuery = useBackendQuery(
+    remoteBackend,
+    'listDirectory',
+    [
+      {
+        parentId: backend.DirectoryId(TEAMS_DIRECTORY_ID),
+        filterBy: backend.FilterBy.active,
+        labels: [],
+        recentProjects: false,
+      },
+      'Teams',
+    ],
+    { enabled: hasUserAndTeamSpaces },
+  )
 
   return (
     <FocusArea direction="vertical">
@@ -285,7 +376,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
           >
             <CategorySwitcherItem
               {...itemProps}
-              category={{ type: categoryModule.CategoryType.cloud }}
+              category={{ type: 'cloud' }}
               icon={CloudIcon}
               label={getText('cloudCategory')}
               buttonLabel={getText('cloudCategoryButtonLabel')}
@@ -296,7 +387,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                 {...itemProps}
                 isNested
                 category={{
-                  type: categoryModule.CategoryType.user,
+                  type: 'user',
                   rootPath: backend.Path(`enso://Users/${user.name}`),
                   homeDirectoryId: selfDirectoryId,
                 }}
@@ -309,7 +400,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
             <CategorySwitcherItem
               {...itemProps}
               isNested
-              category={{ type: categoryModule.CategoryType.recent }}
+              category={{ type: 'recent' }}
               icon={RecentIcon}
               label={getText('recentCategory')}
               buttonLabel={getText('recentCategoryButtonLabel')}
@@ -319,7 +410,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
             <CategorySwitcherItem
               {...itemProps}
               isNested
-              category={{ type: categoryModule.CategoryType.trash }}
+              category={{ type: 'trash' }}
               icon={Trash2Icon}
               label={getText('trashCategory')}
               buttonLabel={getText('trashCategoryButtonLabel')}
@@ -337,7 +428,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                       {...itemProps}
                       isNested
                       category={{
-                        type: categoryModule.CategoryType.user,
+                        type: 'user',
                         rootPath: backend.Path(`enso://Users/${otherUser.name}`),
                         homeDirectoryId: userDirectory.id,
                       }}
@@ -359,7 +450,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                       {...itemProps}
                       isNested
                       category={{
-                        type: categoryModule.CategoryType.team,
+                        type: 'team',
                         team,
                         rootPath: backend.Path(`enso://Teams/${team.groupName}`),
                         homeDirectoryId: teamDirectory.id,
@@ -372,11 +463,11 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                   )
               }
             })}
-            {localBackend != null && (
+            {localBackend && (
               <div className="group flex items-center justify-between self-stretch">
                 <CategorySwitcherItem
                   {...itemProps}
-                  category={{ type: categoryModule.CategoryType.local }}
+                  category={{ type: 'local' }}
                   icon={ComputerIcon}
                   label={getText('localCategory')}
                   buttonLabel={getText('localCategoryButtonLabel')}
@@ -394,6 +485,71 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                     setPage(TabType.settings)
                   }}
                 />
+              </div>
+            )}
+            {localBackend &&
+              localRootDirectories?.map((directory) => (
+                <div key={directory} className="group flex items-center self-stretch">
+                  <CategorySwitcherItem
+                    {...itemProps}
+                    isNested
+                    category={{
+                      type: 'local-directory',
+                      rootPath: backend.Path(directory),
+                      homeDirectoryId: newDirectoryId(backend.Path(directory)),
+                    }}
+                    icon={FolderIcon}
+                    label={getFileName(directory)}
+                    buttonLabel={getText('localCategoryButtonLabel')}
+                    dropZoneLabel={getText('localCategoryDropZoneLabel')}
+                  />
+                  <div className="grow" />
+                  <ariaComponents.Button
+                    size="medium"
+                    variant="icon"
+                    icon={Minus2Icon}
+                    aria-label={getText('removeDirectoryFromFavorites')}
+                    className="hidden group-hover:block"
+                    onPress={() => {
+                      setModal(
+                        <ConfirmDeleteModal
+                          actionText={getText(
+                            'removeTheLocalDirectoryXFromFavorites',
+                            getFileName(directory),
+                          )}
+                          actionButtonLabel={getText('remove')}
+                          doDelete={() => {
+                            setLocalRootDirectories(
+                              localRootDirectories.filter(
+                                (otherDirectory) => otherDirectory !== directory,
+                              ),
+                            )
+                          }}
+                        />,
+                      )
+                    }}
+                  />
+                </div>
+              ))}
+            {localBackend && window.fileBrowserApi && (
+              <div className="flex">
+                <div className="ml-[15px] mr-1 border-r border-primary/20" />
+                <ariaComponents.Button
+                  size="xsmall"
+                  variant="outline"
+                  icon={PlusIcon}
+                  loaderPosition="icon"
+                  className="ml-0.5 rounded-full px-2 selectable"
+                  onPress={async () => {
+                    const [newDirectory] =
+                      (await window.fileBrowserApi?.openFileBrowser('directory')) ?? []
+                    if (newDirectory != null) {
+                      setLocalRootDirectories([...(localRootDirectories ?? []), newDirectory])
+                    }
+                  }}
+                >
+                  <div className="ml-1.5">{getText('addLocalDirectory')}</div>
+                </ariaComponents.Button>
               </div>
             )}
           </div>

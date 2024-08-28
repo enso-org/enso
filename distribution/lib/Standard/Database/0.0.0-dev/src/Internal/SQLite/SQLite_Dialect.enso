@@ -11,9 +11,12 @@ import project.Connection.Connection.Connection
 import project.DB_Column.DB_Column
 import project.DB_Table.DB_Table
 import project.Dialect
+import project.Internal.Aggregate_Helper
+import project.Internal.Aggregate_Helper.Aggregate_With_Helper_Expressions
 import project.Internal.Base_Generator
 import project.Internal.Common.Database_Distinct_Helper
 import project.Internal.Common.Database_Join_Helper
+import project.Internal.Common.Row_Number_Helpers
 import project.Internal.Error_Mapper.Error_Mapper
 import project.Internal.IR.Context.Context
 import project.Internal.IR.From_Spec.From_Spec
@@ -241,8 +244,14 @@ type SQLite_Dialect
         Count_Empty _ _ -> True
         Percentile _ _ _ -> unsupported "Percentile"
         Mode _ _ -> unsupported "Mode"
-        First _ _ _ _ -> unsupported "First"
-        Last _ _ _ _ -> unsupported "Last"
+        First _ _ ignore_nothing order_by ->
+            if ignore_nothing then unsupported "First with ignore_nothing=True" else
+                if Aggregate_Helper.is_non_empty_selector order_by . not then Aggregate_Helper.throw_ordering_required "First" else
+                    True
+        Last _ _ ignore_nothing order_by ->
+            if ignore_nothing then unsupported "Last with ignore_nothing=True" else
+                if Aggregate_Helper.is_non_empty_selector order_by . not then Aggregate_Helper.throw_ordering_required "Last" else
+                    True
         Maximum _ _ -> True
         Minimum _ _ -> True
         Shortest _ _ -> unsupported "Shortest"
@@ -311,6 +320,63 @@ type SQLite_Dialect
         _ = value_type
         False
 
+    ## PRIVATE
+       We need custom handling for First and Last, as SQLite does not support
+       such aggregation functions out of the box, so instead we create a row
+       number column in a subquery and compute the result based on that.
+    custom_build_aggregate self =
+        create_row_number_for orderings key_columns =
+            order_descriptors = orderings.map o-> self.prepare_order_descriptor o.column o.direction text_ordering=Nothing
+            key_expressions_for_orderings = key_columns.map .expression
+            expression = Row_Number_Helpers.make_row_number 1 1 order_descriptors key_expressions_for_orderings
+            Pair.new "row-number" expression
+
+        create_count_for key_columns =
+            key_expressions_for_orderings = key_columns.map .expression
+            ## Even if key_expressions_for_orderings is empty, we still use COUNT_OVER_PARTITION to make it a window
+               function and not an aggregate (we want to return all rows, not a single aggregated one).
+            expression = SQL_Expression.Operation "COUNT_OVER_PARTITION" key_expressions_for_orderings
+            Pair.new "group-count" expression
+
+        create_helper_expressions aggregate_column key_columns =
+            case aggregate_column of
+                Aggregate_Column.First _ _ _ order_by ->
+                    if self.check_aggregate_support aggregate_column . is_error then [] else
+                        [create_row_number_for order_by key_columns]
+                Aggregate_Column.Last _ _ _ order_by ->
+                    if self.check_aggregate_support aggregate_column . is_error then [] else
+                        [create_row_number_for order_by key_columns, create_count_for key_columns]
+                _ -> []
+
+        make_aggregate aggregate_column as helper_expressions base_table infer_return_type problem_builder =
+            case aggregate_column of
+                Aggregate_Column.First _ _ _ _ -> self.check_aggregate_support aggregate_column . if_not_error <|
+                    Runtime.assert (Aggregate_Helper.is_non_empty_selector aggregate_column.order_by)
+                    Runtime.assert (helper_expressions.length == 1)
+                    row_number = helper_expressions.first
+                    op = case aggregate_column.ignore_nothing of
+                        False -> "FIRST"
+                        True  -> Panic.throw (Illegal_State.Error "First with ignore_nothing=True is not supported by SQLite.")
+                    # We just inherit the type of the source column, as the FIRST/LAST element of a column should have the same type.
+                    sql_type_reference = aggregate_column.column.sql_type_reference
+                    Internal_Column.Value as sql_type_reference (SQL_Expression.Operation op [aggregate_column.column.expression, row_number.expression])
+                Aggregate_Column.Last _ _ _ _ -> self.check_aggregate_support aggregate_column . if_not_error <|
+                    Runtime.assert (Aggregate_Helper.is_non_empty_selector aggregate_column.order_by)
+                    Runtime.assert (helper_expressions.length == 2)
+                    row_number = helper_expressions.first
+                    count = helper_expressions.second
+                    op = case aggregate_column.ignore_nothing of
+                        False -> "LAST"
+                        True  -> Panic.throw (Illegal_State.Error "Last with ignore_nothing=True is not supported by SQLite.")
+                    # We just inherit the type of the source column, as the FIRST/LAST element of a column should have the same type.
+                    sql_type_reference = aggregate_column.column.sql_type_reference
+                    Internal_Column.Value as sql_type_reference (SQL_Expression.Operation op [aggregate_column.column.expression, row_number.expression, count.expression])
+                _ -> Aggregate_Helper.make_aggregate_column base_table aggregate_column as self infer_return_type problem_builder
+
+        setup = Aggregate_With_Helper_Expressions.Value create_helper_expressions make_aggregate
+        setup.build self
+
+
 ## PRIVATE
 make_dialect_operations =
     text = [starts_with, contains, ends_with, make_case_sensitive, ["REPLACE", replace], left, right]+concat_ops+trim_ops
@@ -320,7 +386,7 @@ make_dialect_operations =
     other = [["RUNTIME_ERROR", make_runtime_error_op]]
 
     bool = [bool_or]
-    my_mappings = text + counts + stats + arith_extensions + bool + other
+    my_mappings = text + counts + stats + arith_extensions + bool + other + first_last_aggregators
     Base_Generator.base_dialect_operations . extend_with my_mappings
 
 ## PRIVATE
@@ -359,24 +425,30 @@ agg_stddev_samp = Base_Generator.lift_unary_op "STDDEV_SAMP" arg->
    This is a prototype that doesn't work correctly. Left for reference for
    future implementation.
 first_last_aggregators =
-    first_value = "first_value"
-    first = window_aggregate first_value ignore_null=False
-    first_not_null = window_aggregate first_value ignore_null=True
-    last_value = "last_value"
-    last = window_aggregate last_value ignore_null=False
-    last_not_null = window_aggregate last_value ignore_null=True
-    [["FIRST", first], ["FIRST_NOT_NULL", first_not_null], ["LAST", last], ["LAST_NOT_NULL", last_not_null]]
+    count_over_partition args =
+        partition = if args.is_empty then SQL_Builder.code "" else
+            SQL_Builder.code "PARTITION BY " ++ SQL_Builder.join ", " args
+        SQL_Builder.code "COUNT(*) OVER (" ++ partition ++ ")"
 
-## PRIVATE
-window_aggregate window_type ignore_null args =
-    if args.length < 2 then Error.throw (Illegal_State.Error "Insufficient number of arguments for the operation.") else
-        result_expr = args.first
-        order_exprs = args.drop 1
+    first_agg args =
+        if args.length != 2 then
+            Panic.throw (Illegal_Argument.Error "FIRST requires exactly 2 arguments.")
+        column = args.first
+        row_number = args.second
+        # The MAX here is only used as an aggregating variant of COALESCE - it will select the single non-null value.
+        SQL_Builder.code "MAX(CASE WHEN " ++ row_number ++ " == 1 THEN " ++ column ++ " END)"
 
-        filter_clause = if ignore_null.not then SQL_Builder.code "" else
-            SQL_Builder.code " FILTER (WHERE " ++ result_expr.paren ++ " IS NOT NULL)"
+    last_agg args =
+        if args.length != 3 then
+            Panic.throw (Illegal_Argument.Error "LAST requires exactly 3 arguments.")
+        column = args.at 0
+        row_number = args.at 1
+        count = args.at 2
+        # The MAX here is only used as an aggregating variant of COALESCE - it will select the single non-null value.
+        SQL_Builder.code "MAX(CASE WHEN " ++ row_number ++ " == " ++ count ++ " THEN " ++ column ++ " END)"
 
-        SQL_Builder.code window_type+"(" ++ result_expr ++ ")" ++ filter_clause ++ " OVER (ORDER BY " ++ SQL_Builder.join "," order_exprs ++ ")"
+    # FIRST_NOT_NULL and LAST_NOT_NULL are currently not implemented.
+    [["COUNT_OVER_PARTITION", count_over_partition], ["FIRST", first_agg], ["LAST", last_agg]]
 
 ## PRIVATE
 concat_ops =

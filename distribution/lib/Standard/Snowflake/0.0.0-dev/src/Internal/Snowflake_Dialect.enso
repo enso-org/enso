@@ -17,9 +17,12 @@ import Standard.Database.Connection.Connection.Connection
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
 import Standard.Database.Dialect
+import Standard.Database.Internal.Aggregate_Helper
+import Standard.Database.Internal.Aggregate_Helper.Aggregate_With_Helper_Expressions
 import Standard.Database.Internal.Base_Generator
 import Standard.Database.Internal.Common.Database_Distinct_Helper
 import Standard.Database.Internal.Common.Database_Join_Helper
+import Standard.Database.Internal.Common.Row_Number_Helpers
 import Standard.Database.Internal.Error_Mapper.Error_Mapper
 import Standard.Database.Internal.Internals_Access
 import Standard.Database.Internal.IR.Context.Context
@@ -233,13 +236,9 @@ type Snowflake_Dialect
     ## PRIVATE
     check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation
     check_aggregate_support self aggregate =
-        unsupported name =
-            Error.throw (Unsupported_Database_Operation.Error name+" is currently not supported by Snowflake backend. You may need to materialize the table and perform the operation in-memory.")
-        case aggregate of
-            First _ _ _ _ -> unsupported "First"
-            Last _ _ _ _ -> unsupported "Last"
-            # All other aggregates are supported.
-            _ -> True
+        # All aggregates are currently supported.
+        _ = aggregate
+        True
 
     ## PRIVATE
        Checks if an operation is supported by the dialect.
@@ -310,6 +309,47 @@ type Snowflake_Dialect
     should_check_table_integrity_at_beginning_of_transaction self -> Boolean =
         False
 
+    ## PRIVATE
+       We need custom handling for First and Last aggregations, because in
+       Snowflake the `FIRST_VALUE` and `LAST_VALUE` functions in Snowflake are
+       purely window functions - they cannot be directly used in aggregate
+       queries.
+
+       If tried to be used inside of a group by, it yields an error:
+           Window function [FIRST_VALUE(T.A) OVER (PARTITION BY T.B ORDER BY T.C ASC NULLS LAST)] may not appear inside an aggregate function.
+    custom_build_aggregate self =
+        create_row_number_for orderings key_columns =
+            order_descriptors = orderings.map o-> self.prepare_order_descriptor o.column o.direction text_ordering=Nothing
+            key_expressions_for_orderings = key_columns.map .expression
+            expression = Row_Number_Helpers.make_row_number 1 1 order_descriptors key_expressions_for_orderings
+            Pair.new "row-number" expression
+
+        create_helper_expressions aggregate_column key_columns =
+            make_helper_for_first_last order_by =
+                if Aggregate_Helper.is_non_empty_selector order_by then [create_row_number_for order_by key_columns] else []
+            case aggregate_column of
+                Aggregate_Column.First _ _ _ order_by -> make_helper_for_first_last order_by
+                Aggregate_Column.Last _ _ _ order_by  -> make_helper_for_first_last order_by
+                _ -> []
+
+        make_aggregate aggregate_column as helper_expressions base_table infer_return_type problem_builder =
+            make_first_last op_kind = if Aggregate_Helper.is_non_empty_selector aggregate_column.order_by . not then Aggregate_Helper.throw_ordering_required (op_kind.to_case ..Title) else
+                Runtime.assert (helper_expressions.length == 1)
+                row_number = helper_expressions.first
+                op = case aggregate_column.ignore_nothing of
+                    False -> op_kind
+                    True  -> op_kind + "_NOT_NULL"
+                # We just inherit the type of the source column, as the FIRST/LAST element of a column should have the same type.
+                sql_type_reference = aggregate_column.column.sql_type_reference
+                Internal_Column.Value as sql_type_reference (SQL_Expression.Operation op [aggregate_column.column.expression, row_number.expression])
+            case aggregate_column of
+                Aggregate_Column.First _ _ _ _ -> make_first_last "FIRST"
+                Aggregate_Column.Last _ _ _ _ -> make_first_last "LAST"
+                _ -> Aggregate_Helper.make_aggregate_column base_table aggregate_column as self infer_return_type problem_builder
+
+        setup = Aggregate_With_Helper_Expressions.Value create_helper_expressions make_aggregate
+        setup.build self
+
 ## PRIVATE
 make_dialect_operations =
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
@@ -329,7 +369,7 @@ make_dialect_operations =
         operations = [["date_add", make_date_add], ["date_diff", make_date_diff], ["date_trunc_to_day", make_date_trunc_to_day]]
         trivial + fractional + other + operations
     other = [["IIF", make_iif], ["RUNTIME_ERROR", make_runtime_error_op], ["ROW_NUMBER_IN_GROUP", make_row_number_in_group]]
-    my_mappings = text + counts + stats + arith_extensions + bool + date_ops + other
+    my_mappings = text + counts + stats + arith_extensions + bool + date_ops + other + first_last_aggregators
     Base_Generator.base_dialect_operations . extend_with my_mappings
 
 ## PRIVATE
@@ -379,14 +419,16 @@ first_last_aggregators =
 
 ## PRIVATE
 make_first_aggregator reverse ignore_null args =
-    if args.length < 2 then Error.throw (Illegal_State.Error "Insufficient number of arguments for the operation.") else
+    if args.length != 2 then Panic.throw (Illegal_State.Error "Expected exactly 2 arguments.") else
         result_expr = args.first
-        order_bys = args.drop 1
+        row_number = args.second
 
-        method_name = if reverse then "LAST_VALUE" else "FIRST_VALUE"
-        filter_clause = if ignore_null then ") IGNORE NULLS" else ")"
-        order_clause = SQL_Builder.code " OVER (ORDER BY " ++ SQL_Builder.join "," order_bys ++ ")"
-        SQL_Builder.code (method_name + "(") ++ result_expr ++ filter_clause ++ order_clause
+        method_name = if reverse then "MAX_BY" else "MIN_BY"
+        # If we want to ignore null values, we replace the row number in such cases with NULL, so these rows are skipped to find a non-null one (if any).
+        order_expression = case ignore_null of
+            False -> row_number
+            True -> SQL_Builder.code "CASE WHEN " ++ result_expr ++ " IS NULL THEN NULL ELSE " ++ row_number ++ " END"
+        SQL_Builder.code (method_name + "(") ++ result_expr ++ ", " ++ order_expression ++ ")"
 
 ## PRIVATE
 agg_shortest = Base_Generator.lift_unary_op "SHORTEST" arg->
@@ -495,7 +537,8 @@ make_order_descriptor internal_column sort_direction text_ordering =
                     Case_Sensitivity.Default ->
                         Order_Descriptor.Value (Internals_Access.column_expression internal_column) sort_direction nulls_order=nulls collation=Nothing
                     Case_Sensitivity.Sensitive ->
-                        Order_Descriptor.Value (Internals_Access.column_expression internal_column) sort_direction nulls_order=nulls collation="ucs_basic"
+                        # Order_Descriptor.Value (Internals_Access.column_expression internal_column) sort_direction nulls_order=nulls collation="ucs_basic"
+                        Error.throw (Unsupported_Database_Operation.Error "Feature unsupported due to bug. Please use `..Default` until https://github.com/enso-org/enso/issues/10835 is fixed.")
                     Case_Sensitivity.Insensitive locale -> case locale == Locale.default of
                         False ->
                             Error.throw (Unsupported_Database_Operation.Error "Case insensitive ordering with custom locale is currently not supported. You may need to materialize the Table to perform this operation.")
