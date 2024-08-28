@@ -31,7 +31,8 @@
   attach warnings.][10725]
 - [Support for creating Atoms in expressions.][10820]
 - [IO.print without new line][10858]
-- [Added .floor, .ceil, .trunc to the in-memory Decimal column.][10887]
+- [Added .floor, .ceil, .trunc to the in-memory `Decimal` column.][10887]
+- [Added vectorized .round to the in-memory `Decimal` column.][10912]
 
 [10614]: https://github.com/enso-org/enso/pull/10614
 [10660]: https://github.com/enso-org/enso/pull/10660
@@ -41,6 +42,7 @@
 [10820]: https://github.com/enso-org/enso/pull/10820
 [10858]: https://github.com/enso-org/enso/pull/10858
 [10887]: https://github.com/enso-org/enso/pull/10887
+[10912]: https://github.com/enso-org/enso/pull/10912
 
 #### Enso Language & Runtime
 
