@@ -5,6 +5,7 @@ import sbt.internal.util.ManagedLogger
 import java.io.File
 import java.net.{URI, URL}
 import java.util.jar.JarFile
+import scala.collection.mutable
 
 /** An automatic plugin that handles everything related to JPMS modules. One needs to explicitly
   * enable this plugin in a project with `.enablePlugins(JPMSPlugin)`. The keys and tasks provided by this plugin
@@ -242,7 +243,10 @@ object JPMSPlugin extends AutoPlugin {
         (Test / addExports).value,
         (Test / addReads).value
       )
-    }
+    },
+    // Sanitize cmd line arguments
+    Test / javacOptions := joinModulePathOption((Test / javacOptions).value),
+    Test / javaOptions := joinModulePathOption((Test / javacOptions).value),
   )
 
   /** @param moduleDeps External module dependencies, fetched from `moduleDependencies` task.
@@ -379,5 +383,48 @@ object JPMSPlugin extends AutoPlugin {
     }.toSeq
 
     modulePathOpts ++ addModsOpts ++ patchOpts ++ addExportsOpts ++ addReadsOpts
+  }
+
+  /**
+   * Searches for multiple `--module-path` cmd line options and joins them into a single
+   * option.
+   * If there are multiple `--module-path` options passed to `java` or `javac`, only the
+   * last one specified is considered.
+   * Note that this is not an issue for other JPMS-related cmd line options, like
+   * `--add-modules`
+   * @param opts Current value of cmd line options
+   * @return
+   */
+  private def joinModulePathOption(
+    opts: Seq[String]
+  ): Seq[String] = {
+    val modulePathOpt = new StringBuilder()
+    val optIdxToRemove = mutable.HashSet[Int]()
+    // Find all `--module-path` options and join them into a single option
+    for ((opt, idx) <- opts.zipWithIndex) {
+      if (opt == "--module-path" || opt == "-p") {
+        optIdxToRemove += idx
+        optIdxToRemove += idx + 1
+        modulePathOpt.append(opts(idx + 1))
+        modulePathOpt.append(":")
+      }
+    }
+
+    if (modulePathOpt.nonEmpty) {
+      // Remove the last colon
+      modulePathOpt.deleteCharAt(modulePathOpt.length - 1)
+      val newOpts = mutable.ArrayBuffer[String]()
+      for ((opt, idx) <- opts.zipWithIndex) {
+        if (!optIdxToRemove.contains(idx)) {
+          newOpts += opt
+        }
+      }
+      Seq(
+        "--module-path",
+        modulePathOpt.toString
+      ) ++ newOpts
+    } else {
+      opts
+    }
   }
 }
