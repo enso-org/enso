@@ -81,7 +81,7 @@ Decimal.from (that:JS_Object) =
         True ->
             math_context = Math_Context.new (that.at "precision")
             raw_value = Decimal.from_text (that.at "value") math_context
-            raw_value.with_scale (that.at "scale")
+            raw_value.set_scale (that.at "scale")
         False -> Error.throw (Illegal_Argument.Error "Invalid JS_Object for Decimal.")
 
 ## PRIVATE
