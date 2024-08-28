@@ -157,7 +157,8 @@ const data = computed<Data>(() => {
   }
   const points = rawData.points ?? { labels: 'visible' }
   const focus: Focus | undefined = rawData.focus
-  return { axis, points, data, focus, is_multi_series: rawData.is_multi_series }
+  const is_multi_series: boolean = Boolean(rawData.is_multi_series)
+  return { axis, points, data, focus, is_multi_series }
 })
 
 const containerNode = ref<HTMLElement>()
@@ -166,12 +167,14 @@ const xAxisNode = ref<SVGGElement>()
 const yAxisNode = ref<SVGGElement>()
 const zoomNode = ref<SVGGElement>()
 const brushNode = ref<SVGGElement>()
+const legendNode = ref<SVGGElement>()
 
 const d3Points = computed(() => d3.select(pointsNode.value))
 const d3XAxis = computed(() => d3.select(xAxisNode.value))
 const d3YAxis = computed(() => d3.select(yAxisNode.value))
 const d3Zoom = computed(() => d3.select(zoomNode.value))
 const d3Brush = computed(() => d3.select(brushNode.value))
+const d3Legend = computed(() => d3.select(legendNode.value))
 
 const bounds = ref<[number, number, number, number]>()
 const brushExtent = ref<d3.BrushSelection>()
@@ -457,7 +460,7 @@ function getPlotData(data: Data) {
     const transformedData = series.flatMap((s) =>
       data2.map((d) => ({
         x: d.x,
-        y: d[s],
+        y: d[s as keyof Point],
         series: s,
       })),
     )
@@ -471,7 +474,7 @@ function getPlotData(data: Data) {
 watchPostEffect(() => {
   const xScale_ = xScale.value
   const yScale_ = yScale.value
-  const plotData = getPlotData(data.value)
+  const plotData = getPlotData(data.value) as Point[]
   const series = Object.keys(data.value.axis).filter((s) => s != 'x')
   const colorScale = d3.scaleOrdinal(d3.schemeCategory10).domain(series)
   d3Points.value
@@ -484,7 +487,7 @@ watchPostEffect(() => {
       'd',
       symbol.type(matchShape).size((d) => (d.size ?? 1.0) * SIZE_SCALE_MULTIPLER),
     )
-    .style('fill', (d) => colorScale(d.series))
+    .style('fill', (d) => colorScale(d.series || ''))
     .attr('transform', (d) => `translate(${xScale_(d.x)}, ${yScale_(d.y)})`)
   if (data.value.points.labels === VISIBLE_POINTS) {
     d3Points.value
@@ -497,6 +500,30 @@ watchPostEffect(() => {
       .attr('x', (d) => xScale_(d.x) + POINT_LABEL_PADDING_X_PX)
       .attr('y', (d) => yScale_(d.y) + POINT_LABEL_PADDING_Y_PX)
   }
+  if (data.value.is_multi_series) {
+    d3Legend.value
+      .selectAll('.legend')
+      .data(series)
+      .enter()
+      .append('g')
+      .attr('class', 'legend')
+      .attr('transform', (d, i) => `translate(0, ${i * 20})`)
+
+    d3Legend.value
+      .append('rect')
+      .attr('x', boxWidth.value - 18)
+      .attr('width', 18)
+      .attr('height', 18)
+
+    d3Legend.value
+      .append('text')
+      .attr('x', boxWidth.value)
+      .attr('y', 9)
+      .attr('dy', '.35em')
+      .style('text-anchor', 'end')
+      .text((d: any) => d)
+  }
+  console.log({ data: data.value })
 })
 
 // ======================
@@ -596,6 +623,7 @@ useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSel
             v-text="data.axis.y.label"
           ></text>
           <g ref="pointsNode" clip-path="url(#clip)"></g>
+          <g ref="legendNode"></g>
           <g ref="zoomNode" class="zoom" :width="boxWidth" :height="boxHeight" fill="none">
             <g ref="brushNode" class="brush"></g>
           </g>
