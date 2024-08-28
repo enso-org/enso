@@ -1,5 +1,5 @@
 /** @file `tailwind-variants` with a custom configuration. */
-import type { VariantProps as tvVariantProps } from 'tailwind-variants'
+import type { VariantProps as TvVariantProps } from 'tailwind-variants'
 import { createTV } from 'tailwind-variants'
 
 import { TAILWIND_MERGE_CONFIG } from '#/utilities/tailwindMerge'
@@ -25,6 +25,6 @@ export type TVWithoutExtends<T> = ExtractFunction<T> & Omit<T, 'extend'>
  * Props for a component that uses `tailwind-variants`.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type VariantProps<T extends (...args: any) => any> = tvVariantProps<T> & {
+export type VariantProps<T extends (...args: any) => any> = TvVariantProps<T> & {
   variants?: ExtractFunction<T> | undefined
 }

@@ -70,8 +70,8 @@ export function useStepperState(props: StepperStateProps): UseStepperStateResult
     direction: Direction
   }>(() => ({ current: defaultStep, direction: 'initial' }))
 
-  const onStepChangeEventCallback = eventCallbackHooks.useEventCallback(onStepChange)
-  const onCompletedEventCallback = eventCallbackHooks.useEventCallback(onCompleted)
+  const onStepChangeStableCallback = eventCallbackHooks.useEventCallback(onStepChange)
+  const onCompletedStableCallback = eventCallbackHooks.useEventCallback(onCompleted)
 
   const setCurrentStep = eventCallbackHooks.useEventCallback(
     (step: number | ((current: number) => number)) => {
@@ -85,14 +85,14 @@ export function useStepperState(props: StepperStateProps): UseStepperStateResult
             direction: 'back-none',
           }
         } else if (newStep > steps) {
-          onCompletedEventCallback()
+          onCompletedStableCallback()
 
           return {
             current: steps,
             direction: 'forward-none',
           }
         } else {
-          onStepChangeEventCallback(newStep, direction)
+          onStepChangeStableCallback(newStep, direction)
 
           return { current: newStep, direction }
         }

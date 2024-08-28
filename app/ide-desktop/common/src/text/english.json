@@ -566,6 +566,9 @@
   "billingPeriodOneMonth": "1 month",
   "billingPeriodOneYear": "1 year",
   "billingPeriodThreeYears": "3 years",
+  "SLSA": "Enso Software License And Services Agreement",
+  "slsaLicenseAgreementDescription1": "This Order is governed by the Software License and Service Agreement found at",
+  "slsaLicenseAgreementDescription2": ", (the “Agreement”). All capitalized terms used in this Customer Order but not otherwise defined herein shall have the meanings set forth in the Agreement.\n                      Except as expressly provided in the Agreement, Products and Services purchased under this Customer Order are non-cancelable and non-refundable.",
 
   "downgradeInfo": "Looking for downgrade options?",
 

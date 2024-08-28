@@ -8,9 +8,8 @@ import * as ariaComponents from '#/components/AriaComponents'
 import StatelessSpinner, * as spinnerModule from '#/components/StatelessSpinner'
 import SvgMask from '#/components/SvgMask'
 
-import * as twv from '#/utilities/tailwindVariants'
-
 import type { VariantProps } from '#/utilities/tailwindVariants'
+import { tv } from '#/utilities/tailwindVariants'
 import * as text from '../Text'
 
 // ==============
@@ -71,7 +70,7 @@ export interface BaseButtonProps<Render>
   readonly styles?: typeof BUTTON_STYLES
 }
 
-export const BUTTON_STYLES = twv.tv({
+export const BUTTON_STYLES = tv({
   base: [
     'group',
     // we need to set the height to max-content to prevent the button from growing in flex containers

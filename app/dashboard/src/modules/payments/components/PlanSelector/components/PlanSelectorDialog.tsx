@@ -11,6 +11,7 @@ import { useQuery } from '@tanstack/react-query'
 import { type GetText, useText } from '#/providers/TextProvider'
 
 import {
+  Button,
   Checkbox,
   Dialog,
   Form,
@@ -165,7 +166,15 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
                 <Checkbox.Group
                   form={form}
                   name="agree"
-                  description="This Order is governed by the Software License and Service Agreement found at https://www.ensoanalytics.com/SLSA, (the “Agreement”). All capitalized terms used in this Customer Order but not otherwise defined herein shall have the meanings set forth in the Agreement. Except as expressly provided in the Agreement, Products and Services purchased under this Customer Order are non-cancelable and non-refundable."
+                  description={
+                    <>
+                      {getText('slsaLicenseAgreementDescription1')}{' '}
+                      <Button variant="link" href="https://www.ensoanalytics.com/SLSA">
+                        {getText('SLSA')}
+                      </Button>
+                      {getText('slsaLicenseAgreementDescription2')}
+                    </>
+                  }
                 >
                   <Checkbox value="agree">{getText('licenseAgreementCheckbox')}</Checkbox>
                 </Checkbox.Group>
