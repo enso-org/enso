@@ -1,19 +1,21 @@
 package org.enso.base.enso_cloud.audit;
 
+import org.enso.base.enso_cloud.AuthenticationProvider;
+import org.enso.base.enso_cloud.CloudAPI;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
-import org.enso.base.enso_cloud.AuthenticationProvider;
-import org.enso.base.enso_cloud.CloudAPI;
 
 /**
  * Gives access to the low-level log event API in the Cloud and manages asynchronously submitting
@@ -33,11 +35,15 @@ class AuditLogApiAccess {
   public static AuditLogApiAccess INSTANCE = new AuditLogApiAccess();
 
   private HttpClient httpClient;
-  private LinkedBlockingDeque<LogJob> logQueue = new LinkedBlockingDeque<>();
+  private final LogJobsQueue logQueue = new LogJobsQueue();
   private RequestConfig requestConfig = null;
-  private Thread logThread;
+  private final ThreadPoolExecutor backgroundThreadService;
 
-  private AuditLogApiAccess() {}
+  private AuditLogApiAccess() {
+    // We set-up a thread 'pool' that will contain at most one thread.
+    // If the thread is idle for 60 seconds, it will be shut down.
+    backgroundThreadService = new ThreadPoolExecutor(0, 1, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
+  }
 
   public Future<Void> logWithConfirmation(LogMessage message) {
     CompletableFuture<Void> completionNotification = new CompletableFuture<>();
@@ -51,57 +57,46 @@ class AuditLogApiAccess {
 
   private void enqueueJob(LogJob job) {
     ensureConfigSaved();
-    // If we ever make the queue size-constrained, this should become `put`.
-    logQueue.add(job);
-    if (logThread == null) {
-      ensureLogThreadRunning();
+    int queuedJobs = logQueue.enqueue(job);
+    if (queuedJobs == 1) {
+      // If we are the first job in the queue, we need to start the background thread.
+      // The background thread will only stop when there are no more jobs to process
+      // TODO still not convinced this achieves liveness
+      backgroundThreadService.execute(this::logThreadEntryPoint);
     }
   }
 
-  private synchronized void ensureLogThreadRunning() {
-    if (logThread == null) {
-      logThread = new Thread(this::logThreadEntryPoint);
-      logThread.start();
-    }
-  }
-
+  /** Runs as long as there are any pending log messages queued and sends them in batches. */
   private void logThreadEntryPoint() {
-    // TODO should the thread auto-shutdown after a while? then start logic needs to be smarter
     while (true) {
-      // drainTo is non-blocking, so we first call `take` to wait for a first element to appear, and
-      // only then use
-      // drain to get any other scheduled elements
-      try {
-        ArrayList<LogJob> pendingMessages = new ArrayList<>();
-        pendingMessages.add(logQueue.take());
-        logQueue.drainTo(pendingMessages, MAX_BATCH_SIZE - 1);
-
-        try {
-          var request = buildRequest(pendingMessages);
-          sendLogRequest(request, MAX_RETRIES);
-          notifyJobsAboutSuccess(pendingMessages);
-        } catch (RequestFailureException e) {
-          notifyJobsAboutFailure(pendingMessages, e);
-        }
-      } catch (InterruptedException e) {
-        logger.warning("Log thread interrupted: " + e.getMessage());
+      List<LogJob> pendingMessages = logQueue.popEnqueuedJobs(MAX_BATCH_SIZE);
+      if (pendingMessages.isEmpty()) {
+        // If there are no more pending messages, we can stop the thread for now. It will be re-launched if needed.
         return;
+      }
+
+      try {
+        var request = buildRequest(pendingMessages);
+        sendLogRequest(request, MAX_RETRIES);
+        notifyJobsAboutSuccess(pendingMessages);
+      } catch (RequestFailureException e) {
+        notifyJobsAboutFailure(pendingMessages, e);
       }
     }
   }
 
   private void notifyJobsAboutSuccess(List<LogJob> jobs) {
     for (var job : jobs) {
-      if (job.completionNotification != null) {
-        job.completionNotification.complete(null);
+      if (job.completionNotification() != null) {
+        job.completionNotification().complete(null);
       }
     }
   }
 
   private void notifyJobsAboutFailure(List<LogJob> jobs, RequestFailureException e) {
     for (var job : jobs) {
-      if (job.completionNotification != null) {
-        job.completionNotification.completeExceptionally(e);
+      if (job.completionNotification() != null) {
+        job.completionNotification().completeExceptionally(e);
       }
     }
   }
@@ -129,13 +124,6 @@ class AuditLogApiAccess {
     return payload.toString();
   }
 
-  /**
-   * A record that represents a single log to be sent.
-   *
-   * <p>It may contain the `completionNotification` future that will be completed when the log is
-   * sent. If no-one is listening for confirmation, that field will be `null`.
-   */
-  private record LogJob(LogMessage message, CompletableFuture<Void> completionNotification) {}
 
   /**
    * Contains information needed to build a request to the Cloud Logs API.
@@ -175,15 +163,15 @@ class AuditLogApiAccess {
       } catch (IOException | InterruptedException e) {
         // Promote a checked exception to a runtime exception to simplify the code.
         var errorMessage = e.getMessage() != null ? e.getMessage() : e.toString();
-        throw new RequestFailureException("Failed to send log message: " + errorMessage, e);
+        throw new RequestFailureException("Failed to send log messages: " + errorMessage, e);
       }
     } catch (RequestFailureException e) {
       if (retryCount < 0) {
-        logger.severe("Failed to send log message after retrying: " + e.getMessage());
+        logger.severe("Failed to send log messages after retrying: " + e.getMessage());
         failedLogCount++;
         throw e;
       } else {
-        logger.warning("Exception when sending a log message: " + e.getMessage() + ". Retrying...");
+        logger.warning("Exception when sending log messages: " + e.getMessage() + ". Retrying...");
         sendLogRequest(request, retryCount - 1);
       }
     }

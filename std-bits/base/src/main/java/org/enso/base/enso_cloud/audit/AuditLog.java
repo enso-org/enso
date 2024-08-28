@@ -29,4 +29,8 @@ public final class AuditLog {
       throw new RuntimeException("Exception occurred when sending an audit log message: " + e, e);
     }
   }
+
+  public static void refreshCaches() {
+    AuditLogApiAccess.refreshRequestConfig();
+  }
 }
