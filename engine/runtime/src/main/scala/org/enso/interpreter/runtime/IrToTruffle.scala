@@ -393,9 +393,9 @@ class IrToTruffle(
           )
           .unsafeAs[AliasMetadata.RootScope]
 
-        new Exception(
+        System.err.println(
           "Method defintions[" + methodDef.methodReference.name + "]: " + s.graph.rootScope.allDefinitions
-        ).printStackTrace()
+        )
         s
       }
       def dataflowInfo() = methodDef.unsafeGetMetadata(

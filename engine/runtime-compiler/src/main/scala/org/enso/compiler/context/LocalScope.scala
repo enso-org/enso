@@ -43,17 +43,18 @@ class LocalScope(
   lazy val scope: AliasGraph.Scope                 = scopeProvider()
   lazy val dataflowInfo: DataflowAnalysis.Metadata = dataflowInfoProvider()
   def allSymbols(where: String): List[String] = {
-    if (symbolsProvider != null) {
-      val meta = symbolsProvider()
-      if (meta != null && meta.variableNames.isDefined) {
-        return meta.variableNames.get
-      }
+    def symbols() = scope.allDefinitions.map(_.symbol)
+    val meta      = if (symbolsProvider == null) null else symbolsProvider()
+    if (meta != null && meta.variableNames.isDefined) {
+      val cached = meta.variableNames.get
+      FramePointer.assertSame(where, cached, () => symbols())
+    } else {
+      val result = symbols()
+      System.err.println(
+        "BAD!!!! Computing from scope at " + where + " = " + result
+      )
+      result
     }
-    val symbols = scope.allDefinitions.map(_.symbol)
-    System.err.println(
-      "BAD!!!! Computing from scope at " + where + " = " + symbols
-    )
-    symbols
   }
 
   private lazy val localFrameSlotIdxs: Map[AliasGraph.Id, Int] =
