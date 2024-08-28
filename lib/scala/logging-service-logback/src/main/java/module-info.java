@@ -11,6 +11,8 @@ module org.enso.logging.service.logback {
   requires org.slf4j;
   requires org.openide.util.lookup.RELEASE180;
 
+  exports org.enso.logging.service.logback;
+
   provides LoggerSetup with
       LogbackSetup;
 }

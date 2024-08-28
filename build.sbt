@@ -1893,7 +1893,7 @@ val truffleRunOptionsSettings = Seq(
   * the potential conflicts with other *.conf files.
   */
 val testLogProviderOptions = Seq(
-  "-Dslf4j.provider=org.enso.logger.TestLogProvider",
+  "-Dslf4j.provider=org.enso.logging.service.logback.test.provider.TestLogProvider",
   "-Dconfig.resource=application-test.conf"
 )
 
@@ -2513,6 +2513,7 @@ lazy val `runtime-integration-tests` =
         (`syntax-rust-definition` / Compile / exportedModule).value,
         (`profiling-utils` / Compile / exportedModule).value,
         (`logging-service-logback` / Compile / exportedModule).value,
+        (`logging-service-logback` / Test / exportedModule).value,
         (`version-output` / Compile / exportedModule).value,
         (`scala-libs-wrapper` / Compile / exportedModule).value,
         (`text-buffer` / Compile / exportedModule).value,
