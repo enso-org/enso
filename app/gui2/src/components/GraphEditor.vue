@@ -468,6 +468,7 @@ const rightDockDisplayedTab = computed({
     if (componentBrowserVisible.value) {
       rightDockTabForCB.value = tab
       userSettings.value.showHelpForCB = tab === 'help'
+      if (tab !== 'help') rightDockTab.value = tab
     } else {
       rightDockTab.value = tab
     }
