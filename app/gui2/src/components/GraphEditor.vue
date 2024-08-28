@@ -459,7 +459,11 @@ function hideComponentBrowser() {
 const rightDockDisplayedTab = computed({
   get() {
     if (componentBrowserVisible.value) {
-      return userSettings.value.showHelpForCB ? 'help' : rightDockTabForCB.value
+      if (userSettings.value.showHelpForCB) {
+        return 'help'
+      } else {
+        return showRightDock.value ? rightDockTab.value : rightDockTabForCB.value
+      }
     } else {
       return rightDockTab.value
     }
@@ -468,7 +472,7 @@ const rightDockDisplayedTab = computed({
     if (componentBrowserVisible.value) {
       rightDockTabForCB.value = tab
       userSettings.value.showHelpForCB = tab === 'help'
-      if (tab !== 'help') rightDockTab.value = tab
+      if (showRightDock.value) rightDockTab.value = tab
     } else {
       rightDockTab.value = tab
     }
@@ -477,9 +481,8 @@ const rightDockDisplayedTab = computed({
 const rightDockVisible = computed({
   get() {
     if (componentBrowserVisible.value) {
-      return userSettings.value.showHelpForCB ?
-          true
-        : rightDockVisibleForCB.value || showRightDock.value
+      return userSettings.value.showHelpForCB ||
+        rightDockVisibleForCB.value || showRightDock.value
     } else {
       return showRightDock.value
     }
