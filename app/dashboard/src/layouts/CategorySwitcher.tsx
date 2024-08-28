@@ -16,12 +16,7 @@ import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
 import * as mimeTypes from '#/data/mimeTypes'
 import AssetEventType from '#/events/AssetEventType'
-import {
-  useBackendQuery,
-  useListUserGroups,
-  useListUsers,
-  type WithPlaceholder,
-} from '#/hooks/backendHooks'
+import { useBackendQuery } from '#/hooks/backendHooks'
 import * as offlineHooks from '#/hooks/offlineHooks'
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import type Category from '#/layouts/CategorySwitcher/Category'
@@ -226,9 +221,9 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   const itemProps = { currentCategory: category, setCategory, dispatchAssetEvent }
   const selfDirectoryId = backend.DirectoryId(`directory-${user.userId.replace(/^user-/, '')}`)
 
-  const users = useListUsers(remoteBackend)
-  const teams = useListUserGroups(remoteBackend)
-  const usersById = React.useMemo<ReadonlyMap<backend.DirectoryId, WithPlaceholder<backend.User>>>(
+  const { data: users } = useBackendQuery(remoteBackend, 'listUsers', [])
+  const { data: teams } = useBackendQuery(remoteBackend, 'listUserGroups', [])
+  const usersById = React.useMemo<ReadonlyMap<backend.DirectoryId, backend.User>>(
     () =>
       new Map(
         (users ?? []).map((otherUser) => [
@@ -238,9 +233,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
       ),
     [users],
   )
-  const teamsById = React.useMemo<
-    ReadonlyMap<backend.DirectoryId, WithPlaceholder<backend.UserGroupInfo>>
-  >(
+  const teamsById = React.useMemo<ReadonlyMap<backend.DirectoryId, backend.UserGroupInfo>>(
     () =>
       new Map(
         (teams ?? []).map((team) => [

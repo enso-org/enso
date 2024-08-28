@@ -6,7 +6,7 @@ import { useMutation } from '@tanstack/react-query'
 import PlusIcon from '#/assets/plus.svg'
 import Trash2Icon from '#/assets/trash2.svg'
 
-import { backendMutationOptions, useListTags } from '#/hooks/backendHooks'
+import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -49,7 +49,7 @@ export default function Labels(props: LabelsProps) {
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const dispatchAssetEvent = useDispatchAssetEvent()
-  const labels = useListTags(backend) ?? []
+  const labels = useBackendQuery(backend, 'listTags', []).data ?? []
   const deleteTag = useMutation(
     backendMutationOptions(backend, 'deleteTag', {
       onSuccess: (_data, [, labelName]) => {
@@ -118,26 +118,24 @@ export default function Labels(props: LabelsProps) {
                   >
                     {label.value}
                   </Label>
-                  {!label.isPlaceholder && (
-                    <FocusRing placement="after">
-                      <Button
-                        active
-                        image={Trash2Icon}
-                        alt={getText('delete')}
-                        className="relative flex size-4 text-delete opacity-0 transition-all after:absolute after:-inset-1 after:rounded-button-focus-ring group-has-[[data-focus-visible]]:active group-hover:active"
-                        onPress={() => {
-                          setModal(
-                            <ConfirmDeleteModal
-                              actionText={getText('deleteLabelActionText', label.value)}
-                              doDelete={() => {
-                                deleteTag([label.id, label.value])
-                              }}
-                            />,
-                          )
-                        }}
-                      />
-                    </FocusRing>
-                  )}
+                  <FocusRing placement="after">
+                    <Button
+                      active
+                      image={Trash2Icon}
+                      alt={getText('delete')}
+                      className="relative flex size-4 text-delete opacity-0 transition-all after:absolute after:-inset-1 after:rounded-button-focus-ring group-has-[[data-focus-visible]]:active group-hover:active"
+                      onPress={() => {
+                        setModal(
+                          <ConfirmDeleteModal
+                            actionText={getText('deleteLabelActionText', label.value)}
+                            doDelete={() => {
+                              deleteTag([label.id, label.value])
+                            }}
+                          />,
+                        )
+                      }}
+                    />
+                  </FocusRing>
                 </div>
               )
             })}

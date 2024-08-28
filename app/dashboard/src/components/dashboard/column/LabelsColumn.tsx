@@ -41,7 +41,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const labels = backendHooks.useListTags(backend)
+  const { data: labels } = backendHooks.useBackendQuery(backend, 'listTags', [])
   const labelsByName = React.useMemo(() => {
     return new Map(labels?.map((label) => [label.value, label]))
   }, [labels])

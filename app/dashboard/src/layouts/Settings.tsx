@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import BurgerMenuIcon from '#/assets/burger_menu.svg'
 
-import { backendMutationOptions, useGetOrganization } from '#/hooks/backendHooks'
+import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -55,7 +55,7 @@ export default function Settings() {
   const [query, setQuery] = React.useState('')
   const root = portal.useStrictPortalContext()
   const [isSidebarPopoverOpen, setIsSidebarPopoverOpen] = React.useState(false)
-  const organization = useGetOrganization(backend)
+  const { data: organization = null } = useBackendQuery(backend, 'getOrganization', [])
   const isQueryBlank = !/\S/.test(query)
 
   const updateUser = useMutation(backendMutationOptions(backend, 'updateUser')).mutateAsync
