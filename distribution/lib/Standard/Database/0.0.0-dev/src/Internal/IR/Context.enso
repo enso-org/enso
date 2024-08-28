@@ -172,6 +172,18 @@ type Context
 
         Subquery_Setup.Value new_from new_columns rewrite_internal_column
 
+    ## PRIVATE
+       A bottom-up, depth-first traversal of this IR node and its children. Each
+       node is passed to the provided function, and the return value of the
+       function replaces this node in the tree.
+    traverse : (Any -> Any) -> Context
+    traverse self f -> Context =
+        rec e = e.traverse f
+        new_context = case self of
+            Context.Value from_spec where_filters orders groups limit extensions ->
+                Context.Value (from_spec.traverse f) (where_filters.map rec) (orders.map rec) (groups.map rec) limit (extensions.map rec)
+        f new_context
+
 ## PRIVATE
 type Subquery_Setup
     ## PRIVATE
@@ -208,3 +220,15 @@ type Context_Extension
        - run_generator: A function that takes the generated expressions and
          returns the SQL code that will be inserted at the desired position.
     Value (position : Integer) (expressions : Vector SQL_Expression) (run_generator : Vector SQL_Builder -> SQL_Builder)
+
+    ## PRIVATE
+       A bottom-up, depth-first traversal of this IR node and its children. Each
+       node is passed to the provided function, and the return value of the
+       function replaces this node in the tree.
+    traverse : (Any -> Any) -> Context_Extension
+    traverse self f -> Context_Extension =
+        rec e = e.traverse f
+        new_context_extension = case self of
+            Context_Extension.Value position expressions run_generator ->
+                Context_Extension.Value position (expressions.map rec) run_generator
+        f new_context_extension

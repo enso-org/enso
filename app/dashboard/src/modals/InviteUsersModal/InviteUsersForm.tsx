@@ -172,7 +172,7 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
         />
       )}
 
-      <ariaComponents.Form.Submit variant="tertiary" rounded="medium" size="medium" fullWidth>
+      <ariaComponents.Form.Submit variant="accent" rounded="medium" size="medium" fullWidth>
         {getText('inviteSubmit')}
       </ariaComponents.Form.Submit>
 

@@ -23,6 +23,7 @@ import Standard.Test.Test_Environment
 
 import project.Database.Common.Audit_Spec
 import project.Database.Common.Common_Spec
+import project.Database.Common.IR_Spec
 import project.Database.Transaction_Spec
 import project.Database.Upload_Spec
 import project.Database.Helpers.Name_Generator
@@ -705,6 +706,7 @@ add_postgres_specs suite_builder create_connection_fn db_name =
     postgres_specific_spec suite_builder create_connection_fn db_name setup
     Common_Table_Operations.Main.add_specs suite_builder setup
     Upload_Spec.add_specs suite_builder setup create_connection_fn
+    IR_Spec.add_specs suite_builder setup prefix default_connection.get
 
 ## PRIVATE
 supported_replace_params : Hashset Replace_Params

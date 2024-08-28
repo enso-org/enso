@@ -101,7 +101,7 @@ export default function UpsertDatalinkModal(props: UpsertDatalinkModalProps) {
           >
             {getText('create')}
           </ariaComponents.Button>
-          <ariaComponents.Button size="medium" variant="cancel" onPress={unsetModal}>
+          <ariaComponents.Button size="medium" variant="outline" onPress={unsetModal}>
             {getText('cancel')}
           </ariaComponents.Button>
         </ariaComponents.ButtonGroup>
