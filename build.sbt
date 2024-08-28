@@ -704,13 +704,6 @@ lazy val componentModulesPaths =
  * - `assembly / assemblyExcludedJars`
  */
 lazy val modularFatJarWrapperSettings = frgaalJavaCompilerSetting ++ Seq(
-  Compile / javacOptions ++= {
-    JPMSPlugin.constructOptions(
-      streams.value.log,
-      modulePath   = (Compile / modulePath).value,
-      patchModules = (Compile / patchModules).value
-    )
-  },
   Compile / forceModuleInfoCompilation := true,
   Compile / exportedModuleBin := assembly
     .dependsOn(Compile / compileModuleInfo)
