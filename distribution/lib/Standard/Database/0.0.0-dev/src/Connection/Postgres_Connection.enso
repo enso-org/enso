@@ -1,52 +1,58 @@
-private
-
 from Standard.Base import all
 import Standard.Base.Metadata.Display
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
 
 import Standard.Table.Rows_To_Read.Rows_To_Read
-from Standard.Table import Table
+from Standard.Table import Table, Value_Type
 
-import Standard.Database.Column_Description.Column_Description
-import Standard.Database.Connection.Connection.Connection
-import Standard.Database.DB_Table.DB_Table
-import Standard.Database.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
-import Standard.Database.Internal.JDBC_Connection
-import Standard.Database.SQL_Query.SQL_Query
-import Standard.Database.SQL_Statement.SQL_Statement
-from Standard.Database.Connection.Connection import make_database_selector, make_schema_selector, make_structure_creator, make_table_name_selector, make_table_types_selector
-from Standard.Database.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
-from Standard.Database.Internal.Upload.Helpers.Default_Arguments import first_column_name_in_structure
+import project.Column_Description.Column_Description
+import project.Connection.Connection.Connection
+import project.DB_Table.DB_Table
+import project.Dialect
+import project.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
+import project.Internal.IR.Query.Query
+import project.Internal.JDBC_Connection
+import project.Internal.Postgres.Postgres_Data_Link_Setup.Postgres_Data_Link_Setup
+import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+import project.SQL_Query.SQL_Query
+import project.SQL_Statement.SQL_Statement
+import project.SQL_Type.SQL_Type
+from project.Connection.Connection import make_schema_selector, make_structure_creator, make_table_name_selector, make_table_types_selector
+from project.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
+from project.Internal.Postgres.Helpers import get_encoding_name, parse_postgres_encoding
+from project.Internal.Upload.Helpers.Default_Arguments import first_column_name_in_structure
 
-import project.Internal.Snowflake_Dialect
-
-type Snowflake_Connection
+type Postgres_Connection
     ## PRIVATE
 
-       Creates a Snowflake connection based on a URL and properties.
+       Creates a Postgres connection based on a URL and properties.
 
        Arguments:
        - url: The URL to connect to.
        - properties: A vector of properties for the connection.
        - make_new: A function that returns a new connection.
-    create : Text -> Vector -> (Text -> Text -> Snowflake_Connection) -> Snowflake_Connection
-    create url properties make_new =
+    create : Text -> Vector -> (Text -> Text -> Postgres_Connection) -> Postgres_Data_Link_Setup -> Postgres_Connection
+    create url properties make_new data_link_setup =
         jdbc_connection = JDBC_Connection.create url properties
-        ## As long as names are quoted, the Snowflake SQL dialect is case sensitive.
-           Our generator always quotes identifiers, so we can rely on the case sensitivity.
-           This is the same as in Postgres.
-        entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection is_case_sensitive=True
-        Snowflake_Connection.Value (Connection.new jdbc_connection Snowflake_Dialect.snowflake entity_naming_properties) make_new
+        encoding = parse_postgres_encoding (get_encoding_name jdbc_connection)
+
+        ## Postgres column/table names may be lower-cased if unquoted, but when
+           quoted we have full case sensitivity and can distinguish columns
+           `A` from `a` as different.
+           Our generator is supposed to always quote identifiers
+        entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection encoding is_case_sensitive=True
+
+        Postgres_Connection.Value (Connection.new jdbc_connection Dialect.postgres entity_naming_properties) make_new data_link_setup
 
     ## PRIVATE
 
-       A Snowflake database connection.
+       A Postgres database connection.
 
        Arguments:
        - connection: the underlying connection.
        - make_new: a function that returns a new connection.
-    Value connection make_new
+    private Value (connection:Connection) (make_new : Text -> Text -> Postgres_Connection) (data_link_setup : Postgres_Data_Link_Setup)
 
     ## ICON data_input
        Closes the connection releasing the underlying database resources
@@ -57,33 +63,10 @@ type Snowflake_Connection
     close self = self.connection.close
 
     ## ICON metadata
-       Returns the list of warehouses for the connection.
-    warehouses : Vector Text
-    warehouses self =
-        self.connection.read_single_column "show warehouses" "name"
-
-    ## ICON metadata
-       Returns the name of the current warehouse.
-    warehouse : Text
-    warehouse self =
-        vector = self.connection.read_single_column "SELECT current_warehouse() as name" "name"
-        vector.first
-
-    ## ICON data_input
-       Returns a new Connection with the specified database set as default.
-
-       Arguments:
-        - database: The name of the database to connect to.
-    @warehouse (self-> Single_Choice display=Display.Always values=(self.warehouses . map d-> Option d d.pretty))
-    set_warehouse : Text -> Connection ! SQL_Error
-    set_warehouse self warehouse =
-        if warehouse == self.warehouse then self else
-            self.make_new Nothing Nothing warehouse
-
-    ## ICON metadata
        Returns the list of databases (or catalogs) for the connection.
     databases : Vector Text
-    databases self = self.connection.databases
+    databases self =
+        self.connection.read_single_column "select datname from pg_database where datname not in ('template0', 'template1')" "datname"
 
     ## ICON metadata
        Returns the name of the current database (or catalog).
@@ -98,14 +81,13 @@ type Snowflake_Connection
     @database (self-> Single_Choice display=Display.Always values=(self.databases . map d-> Option d d.pretty))
     set_database : Text -> Connection ! SQL_Error
     set_database self database =
-        if database . equals_ignore_case self.database then self else
-            self.make_new database Nothing Nothing
+        if database == self.database then self else
+            self.make_new database Nothing
 
     ## ICON metadata
        Returns the list of schemas for the connection within the current database (or catalog).
     schemas : Vector Text
-    schemas self =
-        self.connection.read_single_column "show schemas in database" "name"
+    schemas self = self.connection.schemas
 
     ## ICON metadata
        Returns the name of the current schema.
@@ -120,8 +102,8 @@ type Snowflake_Connection
     @schema make_schema_selector
     set_schema : Text -> Connection ! SQL_Error
     set_schema self schema =
-        if schema . equals_ignore_case self.schema then self else
-            self.make_new Nothing schema Nothing
+        if schema == self.schema then self else
+            self.make_new Nothing schema
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -139,24 +121,20 @@ type Snowflake_Connection
          than the current one, so take this into account when filtering by schema.
 
        Arguments:
-       - name_like: The table name pattern to search for. Supports SQL
-         wildcards (`%`, `_`). Defaults to `""` which means all tables are
-         selected.
-       - database: The database name to search in (default is current).
-       - schema: The schema name to search in (defaults to current).
-         If "*" is provided, all schemas are searched.
+       - name_like: The table name pattern to search for. Supports SQL wildcards (`%`, `_`). Defaults to `Nothing` which
+         means all tables are selected.
+       - database: The database name to search in (default is current database).
+       - schema: The schema name to search in (defaults to `Nothing`, meaning all
+         schemas are searched).
        - types: The table types to search for. The list of possible values can
          be obtained using the `table_types` method. Defaults to a set of most
          commonly used table types, ignoring internal system tables or indices.
        - all_fields: Return all the fields in the metadata table.
     @types make_table_types_selector
-    @database (make_database_selector include_any=True)
     @schema (make_schema_selector include_any=True)
     tables : Text -> Text -> Text -> Vector -> Boolean -> Table
-    tables self name_like:Text="" database:Text=self.database schema:Text=self.schema types=["TABLE", "VIEW"] all_fields=False =
-        parsed_database = if database == "*" then Nothing else (if database == "" then self.database else database)
-        parsed_schema = if schema == "*" then Nothing else (if schema == "" then self.schema else schema)
-        self.connection.tables (if name_like == "" then Nothing else name_like) parsed_database parsed_schema types all_fields
+    tables self name_like=Nothing database=self.database schema=Nothing types=self.dialect.default_table_types all_fields=False =
+        self.connection.tables name_like database schema types all_fields
 
     ## GROUP Standard.Base.Input
        ICON data_input
@@ -314,3 +292,14 @@ type Snowflake_Connection
        on the 'subclasses'.
     base_connection : Connection
     base_connection self = self.connection
+
+    ## Creates a Data Link that will open the same connection.
+    @on_existing_file (Existing_File_Behavior.widget include_backup=False include_append=False)
+    save_as_data_link self destination (on_existing_file:Existing_File_Behavior = Existing_File_Behavior.Error) =
+        self.data_link_setup.save_as_data_link destination on_existing_file
+
+    ## PRIVATE
+       Converts this value to a JSON serializable object.
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "Postgres_Connection"], ["links", self.connection.tables.at "Name" . to_vector], ["get_child_node_action", "query"]]    

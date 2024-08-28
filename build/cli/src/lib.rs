@@ -1,5 +1,3 @@
-// === Features ===
-#![feature(future_join)]
 // === Non-Standard Linter Configuration ===
 #![warn(unused_qualifications)]
 
@@ -31,7 +29,6 @@ use crate::arg::WatchJob;
 use anyhow::Context;
 use arg::BuildDescription;
 use clap::Parser;
-use derivative::Derivative;
 use enso_build::config::Config;
 use enso_build::context::BuildContext;
 use enso_build::engine::context::EnginePackageProvider;
@@ -91,8 +88,7 @@ define_env_var! {
 }
 
 /// The basic, common information available in this application.
-#[derive(Clone, Derivative)]
-#[derivative(Debug)]
+#[derive(Clone, Debug)]
 pub struct Processor {
     pub context: BuildContext,
 }
@@ -192,12 +188,12 @@ impl Processor {
     ) -> BoxFuture<'static, Result<ReleaseSource>> {
         let repository = self.remote_repo.clone();
         let release = self.resolve_release_designator(designator);
-        release
-            .and_then_sync(move |release| {
-                let asset = target.find_asset(&release)?;
-                Ok(ReleaseSource { repository, asset_id: asset.id })
-            })
-            .boxed()
+        async move {
+            let release = release.await?;
+            let asset = target.find_asset(&release)?;
+            Ok(ReleaseSource { repository, asset_id: asset.id })
+        }
+        .boxed()
     }
 
     pub fn js_build_info(&self) -> BoxFuture<'static, Result<gui::BuildInfo>> {
@@ -640,22 +636,21 @@ impl Resolvable for Backend {
     ) -> BoxFuture<'static, Result<<Self as IsTarget>::BuildInput>> {
         let arg::backend::BuildInput { runtime } = from;
         let versions = ctx.triple.versions.clone();
-
         let context = ctx.context.inner.clone();
-
-        ctx.resolve(Runtime, runtime)
-            .and_then_sync(|runtime| {
-                let external_runtime = runtime.to_external().map(move |external| {
-                    Arc::new(move || {
-                        Runtime
-                            .get_external(context.clone(), external.clone())
-                            .map_ok(|artifact| artifact.into_inner())
-                            .boxed()
-                    }) as Arc<EnginePackageProvider>
-                });
-                Ok(backend::BuildInput { external_runtime, versions })
-            })
-            .boxed()
+        let runtime_future = ctx.resolve(Runtime, runtime);
+        async {
+            let runtime = runtime_future.await?;
+            let external_runtime = runtime.to_external().map(move |external| {
+                Arc::new(move || {
+                    Runtime
+                        .get_external(context.clone(), external.clone())
+                        .map_ok(|artifact| artifact.into_inner())
+                        .boxed()
+                }) as Arc<EnginePackageProvider>
+            });
+            Ok(backend::BuildInput { external_runtime, versions })
+        }
+        .boxed()
     }
 }
 

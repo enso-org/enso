@@ -328,7 +328,20 @@ class RuntimeInstrumentTest
         )
       ),
       TestMessages.update(contextId, zExpr, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, mainResExpr, ConstantsGen.NOTHING),
+      TestMessages.update(
+        contextId,
+        mainResExpr,
+        ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
+      ),
       TestMessages.update(contextId, mainBody, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
@@ -388,7 +401,20 @@ class RuntimeInstrumentTest
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, xExpr, ConstantsGen.DATE),
-      TestMessages.update(contextId, mainResExpr, ConstantsGen.NOTHING),
+      TestMessages.update(
+        contextId,
+        mainResExpr,
+        ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
+      ),
       TestMessages.update(contextId, mainBody, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
@@ -466,7 +492,20 @@ class RuntimeInstrumentTest
         )
       ),
       TestMessages.update(contextId, mainRes1Expr, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, mainResExpr, ConstantsGen.NOTHING),
+      TestMessages.update(
+        contextId,
+        mainResExpr,
+        ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
+      ),
       TestMessages.update(contextId, mainBody, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
@@ -722,7 +761,20 @@ class RuntimeInstrumentTest
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, aExpr, ConstantsGen.INTEGER),
       TestMessages.update(contextId, fApp, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING),
+      TestMessages.update(
+        contextId,
+        mainRes,
+        ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
+      ),
       TestMessages.update(contextId, mainExpr, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
@@ -786,7 +838,20 @@ class RuntimeInstrumentTest
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, aExpr, ConstantsGen.INTEGER),
       TestMessages.update(contextId, lamArg, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING),
+      TestMessages.update(
+        contextId,
+        mainRes,
+        ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
+      ),
       context.executionComplete(contextId)
     )
   }
@@ -847,7 +912,20 @@ class RuntimeInstrumentTest
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, aExpr, ConstantsGen.INTEGER),
       TestMessages.update(contextId, lamArg, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING),
+      TestMessages.update(
+        contextId,
+        mainRes,
+        ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("2")

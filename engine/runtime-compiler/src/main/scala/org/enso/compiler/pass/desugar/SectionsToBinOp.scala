@@ -101,7 +101,7 @@ case object SectionsToBinOp extends IRPass {
     inlineContext: InlineContext
   ): Expression = {
     section match {
-      case Section.Left(arg, op, loc, passData, diagnostics) =>
+      case sectionLeft @ Section.Left(arg, op, loc, passData) =>
         val rightArgName = freshNameSupply.newName()
         val rightCallArg =
           CallArgument.Specified(None, rightArgName, None)
@@ -124,13 +124,13 @@ case object SectionsToBinOp extends IRPass {
             suspended = false,
             None
           )
-          val opCall = Application.Prefix(
+          val opCall = new Application.Prefix(
             function             = op,
             arguments            = List(leftCallArg, rightCallArg),
             hasDefaultsSuspended = false,
             location             = None,
-            passData,
-            diagnostics
+            passData             = passData,
+            diagnostics          = sectionLeft.diagnostics
           )
 
           val rightLam = new Function.Lambda(
@@ -144,21 +144,20 @@ case object SectionsToBinOp extends IRPass {
             rightLam,
             loc
           )
-
         } else {
           val newArg = arg.mapExpressions(runExpression(_, inlineContext))
 
-          Application.Prefix(
+          new Application.Prefix(
             function             = op,
             arguments            = List(newArg),
             hasDefaultsSuspended = false,
             location             = loc,
-            passData,
-            diagnostics
+            passData             = passData,
+            diagnostics          = sectionLeft.diagnostics
           )
         }
 
-      case Section.Sides(op, loc, passData, diagnostics) =>
+      case sectionSides @ Section.Sides(op, loc, passData) =>
         val leftArgName = freshNameSupply.newName()
         val leftCallArg =
           CallArgument.Specified(None, leftArgName, None)
@@ -181,13 +180,13 @@ case object SectionsToBinOp extends IRPass {
           None
         )
 
-        val opCall = Application.Prefix(
+        val opCall = new Application.Prefix(
           function             = op,
           arguments            = List(leftCallArg, rightCallArg),
           hasDefaultsSuspended = false,
           location             = None,
-          passData,
-          diagnostics
+          passData             = passData,
+          diagnostics          = sectionSides.diagnostics
         )
 
         val rightLambda = new Function.Lambda(
@@ -221,7 +220,7 @@ case object SectionsToBinOp extends IRPass {
        * The same is true of left sections.
        */
 
-      case Section.Right(op, arg, loc, passData, diagnostics) =>
+      case sectionRight @ Section.Right(op, arg, loc, passData) =>
         val leftArgName = freshNameSupply.newName()
         val leftCallArg =
           CallArgument.Specified(None, leftArgName, None)
@@ -247,13 +246,13 @@ case object SectionsToBinOp extends IRPass {
             None
           )
 
-          val opCall = Application.Prefix(
+          val opCall = new Application.Prefix(
             function             = op,
             arguments            = List(leftCallArg, rightCallArg),
             hasDefaultsSuspended = false,
             location             = None,
-            passData,
-            diagnostics
+            passData             = passData,
+            diagnostics          = sectionRight.diagnostics
           )
 
           val leftLam = new Function.Lambda(
@@ -270,13 +269,13 @@ case object SectionsToBinOp extends IRPass {
         } else {
           val newArg = arg.mapExpressions(runExpression(_, inlineContext))
 
-          val opCall = Application.Prefix(
+          val opCall = new Application.Prefix(
             function             = op,
             arguments            = List(leftCallArg, newArg),
             hasDefaultsSuspended = false,
             location             = None,
-            passData,
-            diagnostics
+            passData             = passData,
+            diagnostics          = sectionRight.diagnostics
           )
 
           new Function.Lambda(

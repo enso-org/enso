@@ -55,18 +55,43 @@ export function isNodeOutside(element: any, area: Opt<Node>): boolean {
 }
 
 /** Returns a new interaction based on the given `interaction`. The new interaction will be ended if a pointerdown event
- *  occurs outside the given `area` element. */
+ *  occurs outside the given `area` element.
+ *
+ * See also {@link cancelOnClickOutside}.
+ */
 export function endOnClickOutside(
-  area: Ref<Element | VueInstance | null | undefined>,
+  area: Ref<Opt<Element | VueInstance>>,
   interaction: Interaction,
 ): Interaction {
-  const chainedPointerdown = interaction.pointerdown
   const handler = injectInteractionHandler()
+  return handleClickOutside(area, interaction, handler.end.bind(handler))
+}
+
+/** Returns a new interaction based on the given `interaction`. The new interaction will be canceled if a pointerdown event
+ *  occurs outside the given `area` element.
+ *
+ * See also {@link endOnClickOutside}.
+ */
+export function cancelOnClickOutside(
+  area: Ref<Opt<Element | VueInstance>>,
+  interaction: Interaction,
+) {
+  const handler = injectInteractionHandler()
+  return handleClickOutside(area, interaction, handler.cancel.bind(handler))
+}
+
+/** Common part of {@link cancelOnClickOutside} and {@link endOnClickOutside}. */
+function handleClickOutside(
+  area: Ref<Opt<Element | VueInstance>>,
+  interaction: Interaction,
+  handler: (interaction: Interaction) => void,
+) {
+  const chainedPointerdown = interaction.pointerdown
   const wrappedInteraction: Interaction = {
     ...interaction,
     pointerdown: (e: PointerEvent, ...args) => {
       if (targetIsOutside(e, unrefElement(area))) {
-        handler.end(wrappedInteraction)
+        handler(wrappedInteraction)
         return false
       }
       return chainedPointerdown ? chainedPointerdown(e, ...args) : false

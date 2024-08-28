@@ -75,13 +75,8 @@
 //! processed by the operator precedence resolver as well. In the end, a single [`syntax::Tree`] is
 //! produced, containing the parsed expression.
 
-#![recursion_limit = "256"]
 // === Features ===
-#![feature(let_chains)]
 #![feature(test)]
-#![feature(if_let_guard)]
-#![feature(box_patterns)]
-#![feature(option_get_or_insert_default)]
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]
@@ -99,6 +94,7 @@ use crate::syntax::token;
 use crate::syntax::tree::SyntaxError;
 use crate::syntax::Finish;
 
+mod im_list;
 
 // ==============
 // === Export ===
@@ -191,9 +187,12 @@ fn is_qualified_name(tree: &syntax::Tree) -> bool {
     use syntax::tree::*;
     match &tree.variant {
         Variant::Ident(_) => true,
-        Variant::OprApp(box OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) })
-            if matches!(rhs.variant, Variant::Ident(_)) && opr.code.repr.0 == "." =>
-            is_qualified_name(lhs),
+        Variant::OprApp(app) => match &**app {
+            OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) }
+                if matches!(rhs.variant, Variant::Ident(_)) && opr.code.repr.0 == "." =>
+                is_qualified_name(lhs),
+            _ => false,
+        },
         _ => false,
     }
 }
@@ -218,28 +217,32 @@ fn expression_to_pattern(mut input: syntax::Tree<'_>) -> syntax::Tree<'_> {
     }
     let mut error = None;
     match input.variant {
-        // === Special-case errors ===
-        Variant::App(box App { func: Tree { variant: Variant::Ident(ref ident), .. }, .. })
-            if !ident.token.is_type =>
-            error = Some(SyntaxError::PatternUnexpectedExpression),
-
         // === Recursions ===
-        Variant::Group(box Group { body: Some(ref mut body), .. }) =>
-            transform_tree(body, expression_to_pattern),
-        Variant::App(box App { ref mut func, ref mut arg }) => {
-            transform_tree(func, expression_to_pattern);
-            transform_tree(arg, expression_to_pattern);
-        }
-        Variant::TypeAnnotated(box TypeAnnotated { ref mut expression, .. }) =>
-            transform_tree(expression, expression_to_pattern),
-        Variant::OprApp(box OprApp { opr: Ok(ref opr), .. }) if opr.code == "." =>
+        Variant::Group(ref mut group) =>
+            if let Group { body: Some(ref mut body), .. } = &mut **group {
+                transform_tree(body, expression_to_pattern)
+            },
+        Variant::App(ref mut app) => match &mut **app {
+            // === Special-case error ===
+            App { func: Tree { variant: Variant::Ident(ref ident), .. }, .. }
+                if !ident.token.is_type =>
+                error = Some(SyntaxError::PatternUnexpectedExpression),
+            App { ref mut func, ref mut arg } => {
+                transform_tree(func, expression_to_pattern);
+                transform_tree(arg, expression_to_pattern);
+            }
+        },
+        Variant::TypeAnnotated(ref mut inner) =>
+            transform_tree(&mut inner.expression, expression_to_pattern),
+        Variant::OprApp(ref opr_app)
+            if opr_app.opr.as_ref().ok().map_or(false, |o| o.code == ".") =>
             if !is_qualified_name(&input) {
                 error = Some(SyntaxError::PatternUnexpectedDot);
             },
 
         // === Transformations ===
-        Variant::TemplateFunction(box TemplateFunction { ast, .. }) => {
-            let mut out = expression_to_pattern(ast);
+        Variant::TemplateFunction(func) => {
+            let mut out = expression_to_pattern(func.ast);
             out.span.left_offset += input.span.left_offset;
             return out;
         }

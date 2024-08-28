@@ -73,11 +73,11 @@ class ShadowedPatternFieldsTest extends CompilerTest {
     }
 
     "attach a shadowing warning to each shadowed field" in {
-      atLeast(1, pattern.fields.head.diagnostics.toList) shouldBe a[
+      atLeast(1, pattern.fields.head.diagnosticsList) shouldBe a[
         warnings.Shadowed.PatternBinding
       ]
 
-      val warning = pattern.fields.head.diagnostics.collect {
+      val warning = pattern.fields.head.diagnosticsList.collect {
         case w: warnings.Shadowed.PatternBinding => w
       }.head
 

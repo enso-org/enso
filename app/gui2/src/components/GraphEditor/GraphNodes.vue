@@ -19,7 +19,6 @@ const emit = defineEmits<{
   nodeOutputPortDoubleClick: [portId: AstId]
   nodeDoubleClick: [nodeId: NodeId]
   createNodes: [source: NodeId, options: NodeCreationOptions[]]
-  setNodeColor: [color: string | undefined]
 }>()
 
 const projectStore = useProjectStore()
@@ -75,7 +74,7 @@ const graphNodeSelections = shallowRef<HTMLElement>()
       @outputPortDoubleClick="(_event, port) => emit('nodeOutputPortDoubleClick', port)"
       @doubleClick="emit('nodeDoubleClick', id)"
       @createNodes="emit('createNodes', id, $event)"
-      @setNodeColor="emit('setNodeColor', $event)"
+      @setNodeColor="graphStore.overrideNodeColor(id, $event)"
       @update:edited="graphStore.setEditedNode(id, $event)"
       @update:rect="graphStore.updateNodeRect(id, $event)"
       @update:hoverAnim="graphStore.updateNodeHoverAnim(id, $event)"
@@ -84,7 +83,6 @@ const graphNodeSelections = shallowRef<HTMLElement>()
       "
       @update:visualizationRect="graphStore.updateVizRect(id, $event)"
       @update:visualizationEnabled="graphStore.setNodeVisualization(id, { visible: $event })"
-      @update:visualizationFullscreen="graphStore.setNodeVisualization(id, { fullscreen: $event })"
       @update:visualizationWidth="graphStore.setNodeVisualization(id, { width: $event })"
       @update:visualizationHeight="graphStore.setNodeVisualization(id, { height: $event })"
     />

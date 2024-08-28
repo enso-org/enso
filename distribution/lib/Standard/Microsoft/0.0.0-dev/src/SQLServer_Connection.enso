@@ -1,5 +1,3 @@
-private
-
 from Standard.Base import all
 import Standard.Base.Metadata.Display
 from Standard.Base.Metadata.Choice import Option

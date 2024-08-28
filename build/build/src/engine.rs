@@ -74,7 +74,7 @@ pub async fn download_project_templates(client: reqwest::Client, enso_root: Path
         }
     }
 
-    let _result = ide_ci::future::try_join_all(futures, AsyncPolicy::FutureParallelism).await?;
+    let _result = futures::future::try_join_all(futures).await?;
     debug!("Completed downloading templates");
     Ok(())
 }
@@ -318,10 +318,10 @@ impl BuiltArtifacts {
     pub fn artifacts(&self) -> Vec<&dyn IsArtifact> {
         let mut artifacts = Vec::<&dyn IsArtifact>::new();
         for package in self.packages() {
-            artifacts.push(package);
+            artifacts.push(package.as_dyn_artifact());
         }
         for bundle in self.bundles() {
-            artifacts.push(bundle);
+            artifacts.push(bundle.as_dyn_artifact());
         }
         artifacts
     }

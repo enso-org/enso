@@ -1,14 +1,13 @@
 /** @file This module defines the Project Manager endpoint.
  * @see
  * https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-project-manager.md */
-import * as detect from 'enso-common/src/detect'
+import invariant from 'tiny-invariant'
 
 import * as backend from '#/services/Backend'
-
 import * as appBaseUrl from '#/utilities/appBaseUrl'
 import * as dateTime from '#/utilities/dateTime'
 import * as newtype from '#/utilities/newtype'
-import invariant from 'tiny-invariant'
+import { getDirectoryAndName, normalizeSlashes } from '#/utilities/path'
 
 // =================
 // === Constants ===
@@ -256,38 +255,6 @@ export interface DuplicateProjectParams {
 export interface DeleteProjectParams {
   readonly projectId: UUID
   readonly projectsDirectory?: Path
-}
-
-// ================
-// === joinPath ===
-// ================
-
-/** Construct a {@link Path} from an existing {@link Path} of the parent directory. */
-export function joinPath(directoryPath: Path, fileName: string) {
-  return Path(`${directoryPath}/${fileName}`)
-}
-
-// ========================
-// === normalizeSlashes ===
-// ========================
-
-/** Return the path, with backslashes (on Windows only) normalized to forward slashes. */
-function normalizeSlashes(path: string): Path {
-  if (detect.isOnWindows()) {
-    return Path(path.replace(/\\/g, '/'))
-  } else {
-    return Path(path)
-  }
-}
-
-// ===========================
-// === getDirectoryAndName ===
-// ===========================
-
-/** Split a {@link Path} inito the path of its parent directory, and its file name. */
-export function getDirectoryAndName(path: Path) {
-  const [, directoryPath = '', fileName = ''] = path.match(/^(.+)[/]([^/]+)$/) ?? []
-  return { directoryPath: Path(directoryPath), fileName }
 }
 
 // =======================

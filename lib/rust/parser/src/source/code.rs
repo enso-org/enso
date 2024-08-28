@@ -71,7 +71,7 @@ pub struct Code<'s> {
     /// The borrowed string data.
     #[serde(serialize_with = "crate::serialization::serialize_cow")]
     #[serde(deserialize_with = "crate::serialization::deserialize_cow")]
-    #[reflect(as = "crate::serialization::Code", flatten, hide)]
+    #[reflect(as = crate::serialization::Code, flatten, hide)]
     #[deref]
     pub repr:  StrRef<'s>,
     #[reflect(flatten)]

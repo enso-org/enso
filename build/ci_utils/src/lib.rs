@@ -1,23 +1,3 @@
-// === Features ===
-#![allow(incomplete_features)]
-#![feature(try_blocks)]
-#![feature(result_flattening)]
-#![feature(const_fmt_arguments_new)]
-#![feature(hash_set_entry)]
-#![feature(let_chains)]
-#![feature(min_specialization)]
-#![feature(exit_status_error)]
-#![feature(associated_type_defaults)]
-#![feature(associated_type_bounds)]
-#![feature(exact_size_is_empty)]
-#![feature(async_closure)]
-#![feature(type_alias_impl_trait)]
-#![feature(trait_alias)]
-#![feature(string_remove_matches)]
-#![feature(duration_constants)]
-#![feature(const_trait_impl)]
-#![feature(extend_one)]
-#![feature(lazy_cell)]
 // === Non-Standard Linter Configuration ===
 #![warn(unused_qualifications)]
 
@@ -60,14 +40,12 @@ pub mod prelude {
 
     pub use async_trait::async_trait;
     pub use bytes::Bytes;
-    pub use derivative::Derivative;
     pub use derive_more::Display;
+    pub use derive_where::derive_where;
     pub use itertools::Itertools;
     pub use lazy_static::lazy_static;
     pub use octocrab::Octocrab;
     pub use path_absolutize::*;
-    pub use platforms::target::Arch;
-    pub use platforms::target::OS;
     pub use semver::Version;
     pub use tokio::io::AsyncWriteExt as _;
     pub use url::Url;
@@ -79,8 +57,11 @@ pub mod prelude {
     pub use crate::github::release::IsRelease;
     pub use crate::github::repo::IsRepo;
     pub use crate::log::setup_logging;
+    pub use crate::os::target::Arch;
+    pub use crate::os::target::OS;
     pub use crate::os::target::TARGET_ARCH;
     pub use crate::os::target::TARGET_OS;
+    pub use crate::program::command::default_status_checker;
     pub use crate::program::command::provider::CommandProvider;
     pub use crate::program::command::Command;
     pub use crate::program::command::IsCommandWrapper;

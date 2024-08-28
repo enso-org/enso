@@ -69,7 +69,6 @@ const emit = defineEmits<{
   'update:visualizationId': [id: Opt<VisualizationIdentifier>]
   'update:visualizationRect': [rect: Rect | undefined]
   'update:visualizationEnabled': [enabled: boolean]
-  'update:visualizationFullscreen': [fullscreen: boolean]
   'update:visualizationWidth': [width: number]
   'update:visualizationHeight': [height: number]
 }>()
@@ -209,10 +208,13 @@ watch(menuVisible, (visible) => {
 
 function openFullMenu() {
   menuFull.value = true
+  setSelected()
+}
+
+function setSelected() {
   nodeSelection?.setSelection(new Set([nodeId.value]))
 }
 
-const isDocsVisible = ref(false)
 const outputHovered = ref(false)
 const keyboard = injectKeyboard()
 const visualizationWidth = computed(() => props.node.vis?.width ?? null)
@@ -229,8 +231,6 @@ watch(isVisualizationPreviewed, (newVal, oldVal) => {
     graph.db.moveNodeToTop(nodeId.value)
   }
 })
-
-const isVisualizationFullscreen = computed(() => props.node.vis?.fullscreen ?? false)
 
 const transform = computed(() => {
   const { x, y } = props.node.position
@@ -437,14 +437,13 @@ watchEffect(() => {
       v-if="!menuVisible && isRecordingOverridden"
       class="overrideRecordButton clickable"
       data-testid="recordingOverriddenButton"
-      @click="isRecordingOverridden = false"
+      @click="(isRecordingOverridden = false), setSelected()"
     >
       <SvgIcon name="record" />
     </button>
     <CircularMenu
       v-if="menuVisible"
       v-model:isRecordingOverridden="isRecordingOverridden"
-      v-model:isDocsVisible="isDocsVisible"
       :isRecordingEnabledGlobally="projectStore.isRecordingEnabled"
       :isVisualizationEnabled="isVisualizationEnabled"
       :isFullMenuVisible="menuVisible && menuFull"
@@ -457,10 +456,10 @@ watchEffect(() => {
       @startEditingComment="editingComment = true"
       @openFullMenu="openFullMenu"
       @delete="emit('delete')"
-      @createNodes="emit('createNodes', $event)"
       @pointerenter="menuHovered = true"
       @pointerleave="menuHovered = false"
       @update:nodeColor="emit('setNodeColor', $event)"
+      @click.capture="setSelected"
     />
     <GraphVisualization
       v-if="isVisualizationVisible"
@@ -469,7 +468,6 @@ watchEffect(() => {
       :nodePosition="props.node.position"
       :isCircularMenuVisible="menuVisible"
       :currentType="props.node.vis?.identifier"
-      :isFullscreen="isVisualizationFullscreen"
       :dataSource="{ type: 'node', nodeId: props.node.rootExpr.externalId }"
       :typename="expressionInfo?.typename"
       :width="visualizationWidth"
@@ -479,13 +477,18 @@ watchEffect(() => {
       @update:rect="updateVisualizationRect"
       @update:id="emit('update:visualizationId', $event)"
       @update:enabled="emit('update:visualizationEnabled', $event)"
-      @update:fullscreen="emit('update:visualizationFullscreen', $event)"
       @update:width="emit('update:visualizationWidth', $event)"
       @update:height="emit('update:visualizationHeight', $event)"
       @update:nodePosition="graph.setNodePosition(nodeId, $event)"
       @createNodes="emit('createNodes', $event)"
+      @click.capture="setSelected"
     />
-    <GraphNodeComment v-model:editing="editingComment" :node="node" class="beforeNode" />
+    <GraphNodeComment
+      v-model:editing="editingComment"
+      :node="node"
+      class="beforeNode"
+      @click.capture="setSelected"
+    />
     <div
       ref="contentNode"
       :class="{ content: true, dragged: isDragged }"
@@ -532,9 +535,9 @@ watchEffect(() => {
       />
     </svg>
     <SmallPlusButton
-      v-if="menuVisible && isVisualizationVisible"
-      class="afterNode"
-      @createNodes="emit('createNodes', $event)"
+      v-if="menuVisible"
+      :class="isVisualizationVisible ? 'afterNode' : 'belowMenu'"
+      @createNodes="setSelected(), emit('createNodes', $event)"
     />
   </div>
 </template>
@@ -617,10 +620,9 @@ watchEffect(() => {
 
 .CircularMenu {
   z-index: 25;
-}
-
-.CircularMenu.partial {
-  z-index: 1;
+  &.partial {
+    z-index: 1;
+  }
 }
 
 .beforeNode {
@@ -636,6 +638,11 @@ watchEffect(() => {
   top: 100%;
   margin-top: 4px;
   transform: translateY(var(--viz-below-node));
+}
+
+.belowMenu {
+  position: absolute;
+  top: calc(100% + 40px);
 }
 
 .messageWithMenu {

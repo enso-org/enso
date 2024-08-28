@@ -4,7 +4,8 @@ use crate::prelude::*;
 
 use crate::env::accessor::RawVariable;
 
-use heck::ToKebabCase;
+use convert_case::Case;
+use convert_case::Casing;
 use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 use std::convert::identity;
@@ -237,7 +238,7 @@ impl Workflow {
 
 impl Workflow {
     pub fn add_job(&mut self, job: Job) -> String {
-        let key = job.name.to_kebab_case();
+        let key = job.name.to_case(Case::Kebab);
         if self.jobs.insert(key.clone(), job).is_some() {
             warn!("Job with name {key} already exists.");
         }
@@ -803,7 +804,7 @@ impl Strategy {
         name: impl Into<String>,
         values: impl IntoIterator<Item: Serialize>,
     ) -> Result<&mut Self> {
-        let values = values.into_iter().map(serde_json::to_value).try_collect_vec()?;
+        let values = values.into_iter().map(serde_json::to_value).try_collect()?;
         self.matrix.insert(name.into(), serde_json::Value::Array(values));
         Ok(self)
     }
@@ -1060,7 +1061,7 @@ pub fn checkout_repo_step() -> impl IntoIterator<Item = Step> {
 
 pub trait JobArchetype {
     fn id_key_base(&self) -> String {
-        std::any::type_name::<Self>().to_kebab_case()
+        std::any::type_name::<Self>().to_case(Case::Kebab)
     }
 
     fn key(&self, (os, arch): Target) -> String {
