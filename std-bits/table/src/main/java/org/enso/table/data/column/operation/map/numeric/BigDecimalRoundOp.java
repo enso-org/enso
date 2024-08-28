@@ -1,7 +1,6 @@
 package org.enso.table.data.column.operation.map.numeric;
 
 import java.math.BigDecimal;
-
 import org.enso.base.numeric.Decimal_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
@@ -13,9 +12,10 @@ import org.enso.table.error.UnexpectedTypeException;
 import org.graalvm.polyglot.Context;
 
 /** An operation rounding floating-point numbers. */
-public class BigDecimalRoundOp extends TernaryMapOperation<BigDecimal, SpecializedStorage<BigDecimal>> {
+public class BigDecimalRoundOp
+    extends TernaryMapOperation<BigDecimal, SpecializedStorage<BigDecimal>> {
 
-  public BigDecimalRoundOp () {
+  public BigDecimalRoundOp() {
     super(Storage.Maps.ROUND);
   }
 
@@ -33,19 +33,20 @@ public class BigDecimalRoundOp extends TernaryMapOperation<BigDecimal, Specializ
       throw new UnexpectedTypeException("a boolean.");
     }
 
-    Builder builder = Builder.getForType(BigDecimalType.INSTANCE, storage.size(), problemAggregator);
+    Builder builder =
+        Builder.getForType(BigDecimalType.INSTANCE, storage.size(), problemAggregator);
 
     Context context = Context.getCurrent();
 
     for (int i = 0; i < storage.size(); i++) {
-        if (!storage.isNothing(i)) {
-            BigDecimal value = storage.getItem(i);
-            BigDecimal result = Decimal_Utils.round(value, (int) decimalPlaces.longValue(), useBankers);
-            builder.appendNoGrow(result);
-        } else {
-            builder.appendNulls(1);
-        }
-        context.safepoint();
+      if (!storage.isNothing(i)) {
+        BigDecimal value = storage.getItem(i);
+        BigDecimal result = Decimal_Utils.round(value, (int) decimalPlaces.longValue(), useBankers);
+        builder.appendNoGrow(result);
+      } else {
+        builder.appendNulls(1);
+      }
+      context.safepoint();
     }
 
     return builder.seal();

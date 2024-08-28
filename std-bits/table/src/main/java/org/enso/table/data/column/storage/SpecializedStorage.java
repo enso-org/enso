@@ -69,7 +69,6 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   @Override
   public boolean isTernaryOpVectorized(String op) {
     return ops.isSupportedTernary(op);
-
   }
 
   @Override
