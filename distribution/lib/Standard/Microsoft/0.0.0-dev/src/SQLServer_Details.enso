@@ -5,7 +5,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Database.Connection.Connection_Options.Connection_Options
 import Standard.Database.Connection.Credentials.Credentials
 
-import project.Internal.SQLServer_Connection.SQLServer_Connection
+import project.SQLServer_Connection.SQLServer_Connection
 
 type SQLServer_Details
     ## Connect to a SQLServer database.

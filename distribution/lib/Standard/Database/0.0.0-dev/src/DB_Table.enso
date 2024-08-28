@@ -23,7 +23,6 @@ import Standard.Table.Columns_To_Keep.Columns_To_Keep
 import Standard.Table.Expression.Expression
 import Standard.Table.Expression.Expression_Error
 import Standard.Table.Internal.Add_Row_Number
-import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
 import Standard.Table.Internal.Constant_Column.Constant_Column
 import Standard.Table.Internal.Display_Helpers
@@ -52,12 +51,11 @@ import project.Internal.Aggregate_Helper
 import project.Internal.Base_Generator
 import project.Internal.Common.Database_Join_Helper
 import project.Internal.Common.Lookup_Query_Helper
-import project.Internal.DB_Wrapped_Error.DB_Wrapped_Error
+import project.Internal.Common.Row_Number_Helpers
 import project.Internal.Helpers
 import project.Internal.IR.Context.Context
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
-import project.Internal.IR.Operation_Metadata
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
@@ -875,11 +873,7 @@ type DB_Table
                     descriptors -> descriptors
             grouping_expressions = (grouping_columns.map _.as_internal).map .expression
 
-            # The SQL row_number() counts from 1, so we adjust the offset.
-            offset = from - step
-            params = [SQL_Expression.Constant offset, SQL_Expression.Constant step] + order_descriptors + grouping_expressions
-            metadata = Operation_Metadata.Row_Number_Metadata.Value grouping_expressions.length
-            new_expr = SQL_Expression.Operation "ROW_NUMBER" params metadata
+            new_expr = Row_Number_Helpers.make_row_number from step order_descriptors grouping_expressions
 
             type_mapping = self.connection.dialect.get_type_mapping
             infer_from_database_callback expression =
@@ -1998,65 +1992,8 @@ type DB_Table
     @group_by Widget_Helpers.make_column_name_multi_selector
     @columns Widget_Helpers.make_aggregate_column_vector_selector
     aggregate : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> Vector Aggregate_Column -> Boolean -> Problem_Behavior -> DB_Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
-    aggregate self group_by=[] columns=[] (error_on_missing_columns:Boolean=False) (on_problems:Problem_Behavior=..Report_Warning) =
-        normalized_group_by = Vector.unify_vector_or_element group_by
-        if normalized_group_by.is_empty && columns.is_empty then Error.throw (No_Output_Columns.Error "No columns specified in aggregate.") else
-            ## This is a workaround for #10321 - if the source query contains an ORDER BY,
-               we need to push it into a subquery to not interfere with aggregations.
-            base_table = if self.context.orders.not_empty then self.as_subquery else self
-
-            validated = Aggregate_Column_Helper.prepare_aggregate_columns base_table.column_naming_helper normalized_group_by columns base_table error_on_missing_columns=error_on_missing_columns
-
-            key_columns = validated.key_columns
-            key_problems = key_columns.flat_map internal_column->
-                column = base_table.make_column internal_column
-                case column.value_type.is_floating_point of
-                    True -> [Floating_Point_Equality.Error column.name]
-                    False -> []
-            on_problems.attach_problems_before validated.problems+key_problems <|
-                resolved_aggregates = validated.valid_columns
-                key_expressions = key_columns.map .expression
-                new_ctx = base_table.context.set_groups key_expressions
-                problem_builder = Problem_Builder.new
-                ## TODO [RW] here we will perform as many fetches as there are
-                   aggregate columns, but technically we could perform just one
-                   fetch fetching all column types - TODO we should do that. We can
-                   do it here by creating a builder that will gather all requests
-                   from the executed callbacks and create Lazy references that all
-                   point to a single query.
-                   See #6118.
-                infer_from_database_callback expression =
-                    SQL_Type_Reference.new base_table.connection base_table.context expression
-                dialect = base_table.connection.dialect
-                type_mapping = dialect.get_type_mapping
-                infer_return_type op_kind columns expression =
-                    type_mapping.infer_return_type infer_from_database_callback op_kind columns expression
-                results = resolved_aggregates.map p->
-                    agg = p.second
-                    as = p.first
-                    result = Aggregate_Helper.make_aggregate_column base_table agg as dialect infer_return_type problem_builder
-                    ## If the `result` did contain an error, we catch it to be
-                       able to store it in a vector and then we will partition the
-                       created columns and failures.
-                    result.catch Any error->(DB_Wrapped_Error.Value error)
-
-                partitioned = results.partition (_.is_a DB_Wrapped_Error)
-
-                ## When working on join we may encounter further issues with having
-                   aggregate columns exposed directly, it may be useful to re-use
-                   the `lift_aggregate` method to push the aggregates into a
-                   subquery.
-                new_columns = partitioned.second
-                problem_builder.attach_problems_before on_problems <|
-                    problems = partitioned.first.map .value
-                    on_problems.attach_problems_before problems <|
-                        handle_no_output_columns =
-                            first_problem = if problems.is_empty then Nothing else problems.first
-                            Error.throw (No_Output_Columns.Error first_problem)
-                        if new_columns.is_empty then handle_no_output_columns else
-                            result = base_table.updated_context_and_columns new_ctx new_columns subquery=True
-                            if validated.old_style.not then result else
-                                Warning.attach (Deprecated.Warning "Standard.Table.Aggregate_Column.Aggregate_Column" "Group_By" "Deprecated: `Group_By` constructor has been deprecated, use the `group_by` argument instead.") result
+    aggregate self (group_by : Vector | Text | Integer | Regex = []) (columns : Vector = []) (error_on_missing_columns : Boolean = False) (on_problems : Problem_Behavior = ..Report_Warning) =
+        Aggregate_Helper.aggregate self group_by columns error_on_missing_columns on_problems
 
     ## ALIAS pivot, unpivot
        GROUP Standard.Base.Calculations

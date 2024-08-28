@@ -2224,6 +2224,10 @@ export class Ident extends Ast {
     return this.module.getToken(this.fields.get('token').node) as IdentifierToken
   }
 
+  isTypeOrConstructor(): boolean {
+    return /^[A-Z]/.test(this.token.code())
+  }
+
   static concrete(module: MutableModule, token: NodeChild<Token>) {
     const base = module.baseObject('Ident')
     const fields = composeFieldData(base, { token })
