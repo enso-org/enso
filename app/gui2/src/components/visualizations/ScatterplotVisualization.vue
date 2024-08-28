@@ -116,7 +116,7 @@ const ANIMATION_DURATION_MS = 400
 const VISIBLE_POINTS = 'visible'
 const ACCENT_COLOR: Color = { red: 78, green: 165, blue: 253 }
 const SIZE_SCALE_MULTIPLER = 100
-const FILL_COLOR = `rgba(${ACCENT_COLOR.red},${ACCENT_COLOR.green},${ACCENT_COLOR.blue},0.8)`
+const DEFAULT_FILL_COLOR = `rgba(${ACCENT_COLOR.red},${ACCENT_COLOR.green},${ACCENT_COLOR.blue},0.8)`
 
 const ZOOM_EXTENT = [0.5, 20] satisfies d3.BrushSelection
 const RIGHT_BUTTON = 2
@@ -167,14 +167,12 @@ const xAxisNode = ref<SVGGElement>()
 const yAxisNode = ref<SVGGElement>()
 const zoomNode = ref<SVGGElement>()
 const brushNode = ref<SVGGElement>()
-const legendNode = ref<SVGGElement>()
 
 const d3Points = computed(() => d3.select(pointsNode.value))
 const d3XAxis = computed(() => d3.select(xAxisNode.value))
 const d3YAxis = computed(() => d3.select(yAxisNode.value))
 const d3Zoom = computed(() => d3.select(zoomNode.value))
 const d3Brush = computed(() => d3.select(brushNode.value))
-const d3Legend = computed(() => d3.select(legendNode.value))
 
 const bounds = ref<[number, number, number, number]>()
 const brushExtent = ref<d3.BrushSelection>()
@@ -260,8 +258,22 @@ watchEffect(() => (focus.value = data.value.focus))
  * than the container.
  */
 const extremesAndDeltas = computed(() => {
+  let yMin = 0
+  let yMax = 0
+  if (data.value.is_multi_series) {
+    const axis = data.value.axis
+    const series = Object.keys(axis).filter((s) => s != 'x')
+    const allYValues = series.flatMap((s) =>
+      data.value.data.map((d) => d[s as keyof Point]),
+    ) as number[]
+
+    yMin = Math.min(...allYValues)
+    yMax = Math.max(...allYValues)
+  } else {
+    ;[yMin = 0, yMax = 0] = d3.extent(data.value.data, (point) => point.y)
+  }
+
   const [xMin = 0, xMax = 0] = d3.extent(data.value.data, (point) => point.x)
-  const [yMin = 0, yMax = 0] = d3.extent(data.value.data, (point) => point.y)
   const dx = xMax - xMin
   const dy = yMax - yMin
   const paddingX = 0.1 * dx
@@ -501,27 +513,7 @@ watchPostEffect(() => {
       .attr('y', (d) => yScale_(d.y) + POINT_LABEL_PADDING_Y_PX)
   }
   if (data.value.is_multi_series) {
-    d3Legend.value
-      .selectAll('.legend')
-      .data(series)
-      .enter()
-      .append('g')
-      .attr('class', 'legend')
-      .attr('transform', (d, i) => `translate(0, ${i * 20})`)
-
-    d3Legend.value
-      .append('rect')
-      .attr('x', boxWidth.value - 18)
-      .attr('width', 18)
-      .attr('height', 18)
-
-    d3Legend.value
-      .append('text')
-      .attr('x', boxWidth.value)
-      .attr('y', 9)
-      .attr('dy', '.35em')
-      .style('text-anchor', 'end')
-      .text((d: any) => d)
+    // set legend
   }
   console.log({ data: data.value })
 })
@@ -623,7 +615,6 @@ useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSel
             v-text="data.axis.y.label"
           ></text>
           <g ref="pointsNode" clip-path="url(#clip)"></g>
-          <g ref="legendNode"></g>
           <g ref="zoomNode" class="zoom" :width="boxWidth" :height="boxHeight" fill="none">
             <g ref="brushNode" class="brush"></g>
           </g>
