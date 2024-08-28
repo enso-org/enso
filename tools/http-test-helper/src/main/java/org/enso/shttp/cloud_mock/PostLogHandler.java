@@ -2,19 +2,22 @@ package org.enso.shttp.cloud_mock;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.enso.shttp.HttpMethod;
+
 import java.io.IOException;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import org.enso.shttp.HttpMethod;
+import java.util.ArrayList;
+import java.util.List;
 
 public class PostLogHandler implements CloudHandler {
-  private final UsersService users;
-  private final EventsService events;
+  private final UsersService usersService;
+  private final EventsService eventsService;
   private final ObjectMapper jsonMapper = new ObjectMapper();
 
-  public PostLogHandler(UsersService users, EventsService events) {
-    this.users = users;
-    this.events = events;
+  public PostLogHandler(UsersService usersService, EventsService eventsService) {
+    this.usersService = usersService;
+    this.eventsService = eventsService;
   }
 
   @Override
@@ -37,16 +40,39 @@ public class PostLogHandler implements CloudHandler {
     }
 
     JsonNode root = jsonMapper.readTree(exchange.decodeBodyAsText());
-    String message = root.get("message").asText();
-    String organizationId = users.currentUserOrganizationId();
-    String userEmail = users.currentUserEmail();
-    String timestamp = ZonedDateTime.now().withZoneSameInstant(ZoneId.of("UTC")).toString();
-    JsonNode metadata = root.get("metadata");
-    String projectId = root.get("projectId").asText();
-    EventsService.LogEvent event =
-        new EventsService.LogEvent(
-            organizationId, userEmail, timestamp, metadata, message, projectId);
-    events.recordEvent(event);
+    var incomingEvents = decodeLogEvents(root);
+    if (incomingEvents.isEmpty()) {
+      exchange.sendResponse(400, "Empty array was sent.");
+      return;
+    }
+    for (var event : incomingEvents) {
+      eventsService.recordEvent(event);
+    }
     exchange.sendEmptyResponse(204);
+  }
+
+  private List<EventsService.LogEvent> decodeLogEvents(JsonNode root) {
+    if (root.isArray()) {
+      List<EventsService.LogEvent> events = new ArrayList<>(root.size());
+      for (JsonNode event : root) {
+        events.add(parseLogEvent(event));
+      }
+      return events;
+    } else if (root.isObject()) {
+      return List.of(parseLogEvent(root));
+    } else {
+      throw new IllegalArgumentException("Invalid JSON structure: " + root);
+    }
+  }
+
+  private EventsService.LogEvent parseLogEvent(JsonNode json) {
+    String message = json.get("message").asText();
+    String organizationId = usersService.currentUserOrganizationId();
+    String userEmail = usersService.currentUserEmail();
+    String timestamp = ZonedDateTime.now().withZoneSameInstant(ZoneId.of("UTC")).toString();
+    JsonNode metadata = json.get("metadata");
+    String projectId = json.get("projectId").asText();
+    return new EventsService.LogEvent(
+            organizationId, userEmail, timestamp, metadata, message, projectId);
   }
 }
