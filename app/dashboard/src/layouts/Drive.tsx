@@ -9,7 +9,6 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
-import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import AssetListEventType from '#/events/AssetListEventType'
@@ -32,6 +31,7 @@ import * as result from '#/components/Result'
 import * as backendModule from '#/services/Backend'
 import * as projectManager from '#/services/ProjectManager'
 
+import { useSetIsAssetPanelTemporarilyVisible } from '#/providers/DriveProvider'
 import AssetQuery from '#/utilities/AssetQuery'
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as download from '#/utilities/download'
@@ -74,7 +74,6 @@ export default function Drive(props: DriveProps) {
   const { category, setCategory, hidden, initialProjectName, assetsManagementApiRef } = props
 
   const { isOffline } = offlineHooks.useOffline()
-  const { localStorage } = localStorageProvider.useLocalStorage()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { user } = authProvider.useFullUserSession()
   const localBackend = backendProvider.useLocalBackend()
@@ -88,10 +87,7 @@ export default function Drive(props: DriveProps) {
     React.useState<assetPanel.AssetPanelRequiredProps | null>(null)
   const assetPanelProps =
     backend.type === assetPanelPropsRaw?.backend?.type ? assetPanelPropsRaw : null
-  const [isAssetPanelEnabled, setIsAssetPanelEnabled] = React.useState(
-    () => localStorage.get('isAssetPanelVisible') ?? false,
-  )
-  const [isAssetPanelTemporarilyVisible, setIsAssetPanelTemporarilyVisible] = React.useState(false)
+  const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
   const organizationQuery = backendHooks.useBackendQuery(backend, 'getOrganization', [])
   const organization = organizationQuery.data ?? null
   const rootDirectoryId = React.useMemo(() => {
@@ -116,12 +112,6 @@ export default function Drive(props: DriveProps) {
     : isCloud && isOffline ? DriveStatus.offline
     : isCloud && !user.isEnabled ? DriveStatus.notEnabled
     : DriveStatus.ok
-
-  const isAssetPanelVisible = isAssetPanelEnabled || isAssetPanelTemporarilyVisible
-
-  React.useEffect(() => {
-    localStorage.set('isAssetPanelVisible', isAssetPanelEnabled)
-  }, [isAssetPanelEnabled, /* should never change */ localStorage])
 
   React.useEffect(() => {
     const onProjectManagerLoadingFailed = () => {
@@ -273,15 +263,6 @@ export default function Drive(props: DriveProps) {
               setQuery={setQuery}
               suggestions={suggestions}
               category={category}
-              isAssetPanelOpen={isAssetPanelVisible}
-              setIsAssetPanelOpen={(valueOrUpdater) => {
-                const newValue =
-                  typeof valueOrUpdater === 'function' ?
-                    valueOrUpdater(isAssetPanelVisible)
-                  : valueOrUpdater
-                setIsAssetPanelTemporarilyVisible(false)
-                setIsAssetPanelEnabled(newValue)
-              }}
               doEmptyTrash={doEmptyTrash}
               doCreateProject={doCreateProject}
               doUploadFiles={doUploadFiles}
@@ -338,22 +319,14 @@ export default function Drive(props: DriveProps) {
               }
             </div>
           </div>
-          <div
-            className={tailwindMerge.twMerge(
-              'flex flex-col overflow-hidden transition-min-width duration-side-panel ease-in-out',
-              isAssetPanelVisible ? 'min-w-side-panel' : 'min-w',
-            )}
-          >
-            <AssetPanel
-              isVisible={isAssetPanelVisible}
-              key={assetPanelProps?.item?.item.id}
-              backend={assetPanelProps?.backend ?? null}
-              item={assetPanelProps?.item ?? null}
-              setItem={assetPanelProps?.setItem ?? null}
-              category={category}
-              isReadonly={category.type === categoryModule.CategoryType.trash}
-            />
-          </div>
+          <AssetPanel
+            key={assetPanelProps?.item?.item.id}
+            backend={assetPanelProps?.backend ?? null}
+            item={assetPanelProps?.item ?? null}
+            setItem={assetPanelProps?.setItem ?? null}
+            category={category}
+            isReadonly={category.type === categoryModule.CategoryType.trash}
+          />
         </div>
       )
     }

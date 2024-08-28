@@ -16,7 +16,12 @@ import * as offlineHooks from '#/hooks/offlineHooks'
 import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import { useCanDownload, useTargetDirectory } from '#/providers/DriveProvider'
+import {
+  useCanDownload,
+  useIsAssetPanelVisible,
+  useSetIsAssetPanelPermanentlyVisible,
+  useTargetDirectory,
+} from '#/providers/DriveProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -64,8 +69,6 @@ export interface DriveBarProps {
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly suggestions: readonly assetSearchBar.Suggestion[]
   readonly category: Category
-  readonly isAssetPanelOpen: boolean
-  readonly setIsAssetPanelOpen: React.Dispatch<React.SetStateAction<boolean>>
   readonly doEmptyTrash: () => void
   readonly doCreateProject: (
     templateId?: string | null,
@@ -85,12 +88,13 @@ export default function DriveBar(props: DriveBarProps) {
   const { backend, query, setQuery, suggestions, category } = props
   const { doEmptyTrash, doCreateProject, doCreateDirectory } = props
   const { doCreateSecret, doCreateDatalink, doUploadFiles } = props
-  const { isAssetPanelOpen, setIsAssetPanelOpen } = props
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const { user } = authProvider.useFullUserSession()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
+  const isAssetPanelVisible = useIsAssetPanelVisible()
+  const setIsAssetPanelPermanentlyVisible = useSetIsAssetPanelPermanentlyVisible()
   const targetDirectory = useTargetDirectory()
   const createAssetButtonsRef = React.useRef<HTMLDivElement>(null)
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)
@@ -182,16 +186,16 @@ export default function DriveBar(props: DriveBarProps) {
   const assetPanelToggle = (
     <>
       {/* Spacing. */}
-      <div className={!isAssetPanelOpen ? 'w-5' : 'hidden'} />
+      <div className={!isAssetPanelVisible ? 'w-5' : 'hidden'} />
       <div className="absolute right-[15px] top-[27px] z-1">
         <ariaComponents.Button
           size="medium"
           variant="custom"
-          isActive={isAssetPanelOpen}
+          isActive={isAssetPanelVisible}
           icon={RightPanelIcon}
-          aria-label={isAssetPanelOpen ? getText('openAssetPanel') : getText('closeAssetPanel')}
+          aria-label={isAssetPanelVisible ? getText('openAssetPanel') : getText('closeAssetPanel')}
           onPress={() => {
-            setIsAssetPanelOpen((isOpen) => !isOpen)
+            setIsAssetPanelPermanentlyVisible(!isAssetPanelVisible)
           }}
         />
       </div>
