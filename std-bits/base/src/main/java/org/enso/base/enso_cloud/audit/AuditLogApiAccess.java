@@ -72,9 +72,17 @@ class AuditLogApiAccess {
       // drainTo is non-blocking, so we first call `take` to wait for a first element to appear, and only then use
       // drain to get any other scheduled elements
       try {
-        var pendingMessages = new ArrayList<>();
+        ArrayList<LogJob> pendingMessages = new ArrayList<>();
         pendingMessages.add(logQueue.take());
         logQueue.drainTo(pendingMessages, MAX_BATCH_SIZE - 1);
+
+        try {
+          var request = buildRequest(pendingMessages);
+          sendLogRequest(request, MAX_RETRIES);
+          notifyJobsAboutSuccess(pendingMessages);
+        } catch (RequestFailureException e) {
+          notifyJobsAboutFailure(pendingMessages, e);
+        }
       } catch (InterruptedException e) {
         logger.warning("Log thread interrupted: " + e.getMessage());
         return;
@@ -82,13 +90,42 @@ class AuditLogApiAccess {
     }
   }
 
-  private HttpRequest buildRequest(List<LogMessage> messages) {
+  private void notifyJobsAboutSuccess(List<LogJob> jobs) {
+    for (var job : jobs) {
+      if (job.completionNotification != null) {
+        job.completionNotification.complete(null);
+      }
+    }
+  }
+
+  private void notifyJobsAboutFailure(List<LogJob> jobs, RequestFailureException e) {
+    for (var job : jobs) {
+      if (job.completionNotification != null) {
+        job.completionNotification.completeExceptionally(e);
+      }
+    }
+  }
+
+  private HttpRequest buildRequest(List<LogJob> messages) {
     assert requestConfig != null : "The request configuration must be set before building a request.";
+    var payload = buildPayload(messages);
     return HttpRequest.newBuilder()
         .uri(requestConfig.apiUri)
         .header("Authorization", "Bearer " + requestConfig.accessToken)
-        .POST(HttpRequest.BodyPublishers.ofString(message.payload(), StandardCharsets.UTF_8))
+        .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
         .build();
+  }
+
+  private String buildPayload(List<LogJob> messages) {
+    var payload = new StringBuilder();
+    payload.append("[");
+    for (var message : messages) {
+      payload.append(message.message().payload()).append(",");
+    }
+
+    // replace the last comma with a closing bracket
+    payload.replace(payload.length() - 1, payload.length(), "]");
+    return payload.toString();
   }
 
   /**
