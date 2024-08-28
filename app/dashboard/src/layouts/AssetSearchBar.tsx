@@ -368,47 +368,52 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                   )}
                   {/* Suggestions */}
                   <div className="flex max-h-search-suggestions-list flex-col overflow-y-auto overflow-x-hidden pb-0.5 pl-0.5">
-                    {suggestions.map((suggestion, index) => (
-                      // This should not be a `<button>`, since `render()` may output a
-                      // tree containing a button.
-                      <aria.Button
-                        data-testid="asset-search-suggestion"
-                        key={index}
-                        ref={(el) => {
-                          if (index === selectedIndex) {
-                            el?.focus()
-                          }
-                        }}
-                        className={tailwindMerge.twMerge(
-                          'flex cursor-pointer rounded-l-default rounded-r-sm px-[7px] py-0.5 text-left transition-[background-color] hover:bg-primary/5',
-                          selectedIndices.has(index) && 'bg-primary/10',
-                          index === selectedIndex && 'bg-selected-frame',
-                        )}
-                        onPress={(event) => {
-                          querySource.current = QuerySource.internal
-                          setQuery(
-                            selectedIndices.has(index) ?
-                              suggestion.deleteFromQuery(event.shiftKey ? query : baseQuery.current)
-                            : suggestion.addToQuery(event.shiftKey ? query : baseQuery.current),
-                          )
-                          if (event.shiftKey) {
-                            setSelectedIndices(
-                              new Set(
-                                selectedIndices.has(index) ?
-                                  [...selectedIndices].filter((otherIndex) => otherIndex !== index)
-                                : [...selectedIndices, index],
-                              ),
+                    {areSuggestionsVisible &&
+                      suggestions.map((suggestion, index) => (
+                        // This should not be a `<button>`, since `render()` may output a
+                        // tree containing a button.
+                        <aria.Button
+                          data-testid="asset-search-suggestion"
+                          key={index}
+                          ref={(el) => {
+                            if (index === selectedIndex) {
+                              el?.focus()
+                            }
+                          }}
+                          className={tailwindMerge.twMerge(
+                            'flex cursor-pointer rounded-l-default rounded-r-sm px-[7px] py-0.5 text-left transition-[background-color] hover:bg-primary/5',
+                            selectedIndices.has(index) && 'bg-primary/10',
+                            index === selectedIndex && 'bg-selected-frame',
+                          )}
+                          onPress={(event) => {
+                            querySource.current = QuerySource.internal
+                            setQuery(
+                              selectedIndices.has(index) ?
+                                suggestion.deleteFromQuery(
+                                  event.shiftKey ? query : baseQuery.current,
+                                )
+                              : suggestion.addToQuery(event.shiftKey ? query : baseQuery.current),
                             )
-                          } else {
-                            setAreSuggestionsVisible(false)
-                          }
-                        }}
-                      >
-                        <ariaComponents.Text variant="body" truncate="1" className="w-full">
-                          {suggestion.render()}
-                        </ariaComponents.Text>
-                      </aria.Button>
-                    ))}
+                            if (event.shiftKey) {
+                              setSelectedIndices(
+                                new Set(
+                                  selectedIndices.has(index) ?
+                                    [...selectedIndices].filter(
+                                      (otherIndex) => otherIndex !== index,
+                                    )
+                                  : [...selectedIndices, index],
+                                ),
+                              )
+                            } else {
+                              setAreSuggestionsVisible(false)
+                            }
+                          }}
+                        >
+                          <ariaComponents.Text variant="body" truncate="1" className="w-full">
+                            {suggestion.render()}
+                          </ariaComponents.Text>
+                        </aria.Button>
+                      ))}
                   </div>
                 </div>
               </div>
