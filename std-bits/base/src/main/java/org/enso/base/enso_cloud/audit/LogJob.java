@@ -8,5 +8,5 @@ import java.util.concurrent.CompletableFuture;
  * <p>It may contain the `completionNotification` future that will be completed when the log is
  * sent. If no-one is listening for confirmation, that field will be `null`.
  */
-record LogJob(AuditLogApiAccess.LogMessage message, CompletableFuture<Void> completionNotification) {
-}
+record LogJob(
+    AuditLogApiAccess.LogMessage message, CompletableFuture<Void> completionNotification) {}

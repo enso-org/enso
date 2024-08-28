@@ -71,7 +71,11 @@ public class HTTPTestHelperServer {
    * @return The created server
    */
   public static HybridHTTPServer createServer(
-      String host, int port, Executor executor, boolean withSSLServer, CloudMockSetup cloudMockSetup)
+      String host,
+      int port,
+      Executor executor,
+      boolean withSSLServer,
+      CloudMockSetup cloudMockSetup)
       throws URISyntaxException, IOException {
     Path projectRoot = findProjectRoot();
     Path keyStorePath = projectRoot.resolve("tools/http-test-helper/target/keystore.jks");
@@ -80,7 +84,8 @@ public class HTTPTestHelperServer {
     return server;
   }
 
-  private static void setupEndpoints(HybridHTTPServer server, Path projectRoot, CloudMockSetup cloudMockSetup) {
+  private static void setupEndpoints(
+      HybridHTTPServer server, Path projectRoot, CloudMockSetup cloudMockSetup) {
     for (HttpMethod method : HttpMethod.values()) {
       String path = "/" + method.toString().toLowerCase();
       server.addHandler(path, new TestHandler(method));

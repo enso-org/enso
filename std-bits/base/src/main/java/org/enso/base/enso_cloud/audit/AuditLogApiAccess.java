@@ -1,8 +1,5 @@
 package org.enso.base.enso_cloud.audit;
 
-import org.enso.base.enso_cloud.AuthenticationProvider;
-import org.enso.base.enso_cloud.CloudAPI;
-
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -16,6 +13,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
+import org.enso.base.enso_cloud.AuthenticationProvider;
+import org.enso.base.enso_cloud.CloudAPI;
 
 /**
  * Gives access to the low-level log event API in the Cloud and manages asynchronously submitting
@@ -42,7 +41,8 @@ class AuditLogApiAccess {
   private AuditLogApiAccess() {
     // We set-up a thread 'pool' that will contain at most one thread.
     // If the thread is idle for 60 seconds, it will be shut down.
-    backgroundThreadService = new ThreadPoolExecutor(0, 1, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
+    backgroundThreadService =
+        new ThreadPoolExecutor(0, 1, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
   }
 
   public Future<Void> logWithConfirmation(LogMessage message) {
@@ -60,10 +60,18 @@ class AuditLogApiAccess {
     int queuedJobs = logQueue.enqueue(job);
     if (queuedJobs == 1) {
       // If we are the first job in the queue, we need to start the background thread.
-      // The background thread will only stop when there are no more jobs to process
-      // TODO still not convinced this achieves liveness
+      // It is possible that a job was already running, but adding a new one will not hurt - once
+      // the queue is empty, the currently running job will finish and any additional jobs will also
+      // terminate immediately.
       backgroundThreadService.execute(this::logThreadEntryPoint);
     }
+
+    /*
+     * Liveness is guaranteed, because the queue size always increments exactly by 1, so we `enqueue` returns 1 if and only if the queue was empty beforehand.
+     * If the queue was empty before adding a job, we always schedule a `logThreadEntryPoint` to run.
+     * Any running `logThreadEntryPoint` will not finish until the queue is empty.
+     * So after every append, either the thread is surely running or it is started.
+     */
   }
 
   /** Runs as long as there are any pending log messages queued and sends them in batches. */
@@ -71,7 +79,8 @@ class AuditLogApiAccess {
     while (true) {
       List<LogJob> pendingMessages = logQueue.popEnqueuedJobs(MAX_BATCH_SIZE);
       if (pendingMessages.isEmpty()) {
-        // If there are no more pending messages, we can stop the thread for now. It will be re-launched if needed.
+        // If there are no more pending messages, we can stop the thread for now. It will be
+        // re-launched if needed.
         return;
       }
 
@@ -123,7 +132,6 @@ class AuditLogApiAccess {
     payload.replace(payload.length() - 1, payload.length(), "]");
     return payload.toString();
   }
-
 
   /**
    * Contains information needed to build a request to the Cloud Logs API.
