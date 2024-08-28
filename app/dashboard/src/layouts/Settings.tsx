@@ -6,11 +6,13 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import BurgerMenuIcon from '#/assets/burger_menu.svg'
 
 import { backendMutationOptions, useGetOrganization } from '#/hooks/backendHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
+import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import SearchBar from '#/layouts/SearchBar'
@@ -63,16 +65,17 @@ export default function Settings() {
     backendMutationOptions(backend, 'updateOrganization'),
   ).mutateAsync
 
-  const updateLocalRootPath = useMutation({
-    mutationKey: [localBackend?.type, 'updateRootPath'],
-    mutationFn: (value: string) => {
-      if (localBackend) {
-        localBackend.rootPath = projectManager.Path(value)
-      }
-      return Promise.resolve()
-    },
-    meta: { invalidates: [[localBackend?.type, 'listDirectory']], awaitInvalidates: true },
-  }).mutateAsync
+  const [, setLocalRootDirectory] = useLocalStorageState('localRootDirectory')
+  const updateLocalRootPath = useEventCallback((value: string) => {
+    setLocalRootDirectory(value)
+    if (localBackend) {
+      localBackend.rootPath = projectManager.Path(value)
+    }
+  })
+  const resetLocalRootPath = useEventCallback(() => {
+    setLocalRootDirectory(undefined)
+    localBackend?.resetRootPath()
+  })
 
   const context = React.useMemo<settingsData.SettingsContext>(
     () => ({
@@ -84,6 +87,7 @@ export default function Settings() {
       updateUser,
       updateOrganization,
       updateLocalRootPath,
+      resetLocalRootPath,
       toastAndLog,
       getText,
       queryClient,
@@ -96,6 +100,7 @@ export default function Settings() {
       organization,
       toastAndLog,
       updateLocalRootPath,
+      resetLocalRootPath,
       updateOrganization,
       updateUser,
       user,

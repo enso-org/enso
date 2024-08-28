@@ -71,7 +71,7 @@ export function InvitedToOrganizationModal() {
                     >
                       {getText('decline')}
                     </Button>
-                    <Form.Submit variant="tertiary">{getText('accept')}</Form.Submit>
+                    <Form.Submit variant="accent">{getText('accept')}</Form.Submit>
                   </ButtonGroup>
                 </Form>
               )}

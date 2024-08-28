@@ -78,7 +78,7 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
           </ariaComponents.Button>
           <ariaComponents.Button
             size="medium"
-            variant="cancel"
+            variant="outline"
             autoFocus
             className="relative"
             onPress={unsetModal}
