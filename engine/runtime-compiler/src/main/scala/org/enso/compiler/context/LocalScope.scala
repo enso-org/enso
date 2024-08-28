@@ -7,6 +7,7 @@ import org.enso.compiler.pass.analyse.alias.graph.{
 }
 
 import scala.jdk.CollectionConverters._
+import org.enso.compiler.pass.analyse.FramePointerAnalysis
 
 /** A representation of an Enso local scope.
   *
@@ -34,11 +35,24 @@ class LocalScope(
   final val aliasingGraph: () => AliasGraph,
   final private val scopeProvider: () => AliasGraph.Scope,
   final private val dataflowInfoProvider: () => DataflowAnalysis.Metadata,
+  final private val symbolsProvider: () => FramePointerAnalysis.FramePointerMeta =
+    null,
   final val flattenToParent: Boolean                       = false,
   private val parentFrameSlotIdxs: Map[AliasGraph.Id, Int] = Map()
 ) {
   lazy val scope: AliasGraph.Scope                 = scopeProvider()
   lazy val dataflowInfo: DataflowAnalysis.Metadata = dataflowInfoProvider()
+  def allSymbols(): List[String] = {
+    if (symbolsProvider != null) {
+      val meta = symbolsProvider()
+      if (meta != null && meta.variableNames.isDefined) {
+        System.err.println("GOOD, found variableNames meta!")
+        return meta.variableNames.get
+      }
+    }
+    System.err.println("BAD!!!! Computing from scope")
+    scope.allDefinitions.map(_.symbol)
+  }
 
   private lazy val localFrameSlotIdxs: Map[AliasGraph.Id, Int] =
     gatherLocalFrameSlotIdxs()
@@ -71,6 +85,7 @@ class LocalScope(
       aliasingGraph,
       childScope,
       () => dataflowInfo,
+      if (flattenToParent) this.symbolsProvider else null,
       flattenToParent,
       allFrameSlotIdxs
     )

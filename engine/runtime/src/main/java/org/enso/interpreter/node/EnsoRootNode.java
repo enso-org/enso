@@ -39,7 +39,7 @@ public abstract class EnsoRootNode extends RootNode {
       ModuleScope moduleScope,
       String name,
       SourceSection sourceSection) {
-    super(language, buildFrameDescriptor(localScope));
+    super(language, buildFrameDescriptor(name, localScope));
     Objects.requireNonNull(language);
     Objects.requireNonNull(localScope);
     Objects.requireNonNull(moduleScope);
@@ -62,11 +62,14 @@ public abstract class EnsoRootNode extends RootNode {
    *
    * @return {@link FrameDescriptor} built from the variable definitions in the local localScope.
    */
-  private static FrameDescriptor buildFrameDescriptor(LocalScope localScope) {
+  private static FrameDescriptor buildFrameDescriptor(String name, LocalScope localScope) {
     var descriptorBuilder = FrameDescriptor.newBuilder();
     descriptorBuilder.addSlot(FrameSlotKind.Object, LocalScope.monadicStateSlotName(), null);
-    for (var definition : ScalaConversions.asJava(localScope.scope().allDefinitions())) {
-      descriptorBuilder.addSlot(FrameSlotKind.Illegal, definition.symbol(), null);
+
+    var allDefs = ScalaConversions.asJava(localScope.allSymbols());
+    System.err.println("FRAME[" + name + "]: " + allDefs);
+    for (var definition : allDefs) {
+      descriptorBuilder.addSlot(FrameSlotKind.Illegal, definition, null);
     }
     descriptorBuilder.defaultValue(DataflowError.UNINITIALIZED);
     var frameDescriptor = descriptorBuilder.build();

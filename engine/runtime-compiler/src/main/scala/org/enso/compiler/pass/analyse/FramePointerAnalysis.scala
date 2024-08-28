@@ -53,6 +53,7 @@ case object FramePointerAnalysis extends IRPass {
   ): Unit = {
     ir match {
       case m: Method.Explicit =>
+        System.err.println("BINDING for " + m.methodReference.name)
         getAliasAnalysisGraph(m) match {
           case Some(graph) =>
             processExpression(m.body, graph)
@@ -92,6 +93,25 @@ case object FramePointerAnalysis extends IRPass {
         }
       case _ => ()
     }
+    ir.preorder()
+      .foreach(e => {
+        val meta = getAliasAnalysisMeta(e)
+        if (meta.isDefined) {
+          val scope = meta.get
+          if (scope.isInstanceOf[AliasMetadata.RootScope]) {
+            val rootScope = meta.get.unsafeAs[AliasMetadata.RootScope]
+            val symbols   = rootScope.graph.rootScope.allDefinitions.map(_.symbol)
+            updateMeta(e, symbols)
+            System.err
+              .println("Updating " + symbols)
+
+          }
+          if (scope.isInstanceOf[AliasMetadata.ChildScope]) {
+            // val childScope = scope.asInstanceOf[AliasMetadata.ChildScope]
+            // System.err.println("child " + childScope.scope.allDefinitions)
+          }
+        }
+      })
   }
 
   private def processAnnotation(
@@ -291,6 +311,13 @@ case object FramePointerAnalysis extends IRPass {
     ir.passData().update(this, new FramePointerMeta(framePointer))
   }
 
+  private def updateMeta(
+    ir: IR,
+    variableNames: List[String]
+  ): Unit = {
+    ir.passData().update(this, new FramePointerMeta(null, Some(variableNames)))
+  }
+
   /** Returns the index of the given `defOcc` definition in the given `scope`
     * @param scope This scope must contain the given `defOcc`
     * @param defOcc This occurrence must be in the given `scope`
@@ -384,7 +411,8 @@ case object FramePointerAnalysis extends IRPass {
   // === Pass Configuration ===================================================
 
   class FramePointerMeta(
-    val framePointer: FramePointer
+    val framePointer: FramePointer,
+    val variableNames: Option[List[String]] = None
   ) extends IRMetadata {
     override val metadataName: String = "FramePointer"
 
