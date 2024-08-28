@@ -1,7 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Errors.Encoding_Error.Encoding_Error
-import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Metadata.Display
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
@@ -22,7 +19,8 @@ import project.SQL_Query.SQL_Query
 import project.SQL_Statement.SQL_Statement
 import project.SQL_Type.SQL_Type
 from project.Connection.Connection import make_schema_selector, make_structure_creator, make_table_name_selector, make_table_types_selector
-from project.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found, Unsupported_Database_Encoding
+from project.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
+from project.Internal.Postgres.Helpers import get_encoding_name, parse_postgres_encoding
 from project.Internal.Upload.Helpers.Default_Arguments import first_column_name_in_structure
 
 type Postgres_Connection
@@ -305,43 +303,3 @@ type Postgres_Connection
     to_js_object : JS_Object
     to_js_object self =
         JS_Object.from_pairs [["type", "Postgres_Connection"], ["links", self.connection.tables.at "Name" . to_vector], ["get_child_node_action", "query"]]    
-
-## PRIVATE
-get_encoding_name : JDBC_Connection.JDBC_Connection -> Text
-get_encoding_name jdbc_connection =
-    server_encoding = JDBC_Connection.get_pragma_value jdbc_connection "SHOW server_encoding"
-    if server_encoding != "SQL_ASCII" then server_encoding else
-        JDBC_Connection.get_pragma_value jdbc_connection "SHOW client_encoding"
-
-## PRIVATE
-   Translates names of encodings from https://www.postgresql.org/docs/current/multibyte.html#CHARSET-TABLE
-   into their Java counterparts.
-parse_postgres_encoding : Text -> Encoding
-parse_postgres_encoding encoding_name =
-    resolved_by_jvm = Encoding.from_name encoding_name
-    # If the JVM did not resolve the encoding immediately, we try a few workarounds.
-    resolved_by_jvm.catch Illegal_Argument _->
-        fallback = case encoding_name of
-            "EUC_JIS_2004" ->
-                ## Currently, I was unable to find a JVM supported encoding for
-                   JIS X 0213-2004, so I'm falling back to the closest one and
-                   adding a warning.
-                warning = Unsupported_Database_Encoding.Warning "The database is using the JIS X 0213-2004 encoding, which is currently not supported in Enso. Falling back to JIS X 0212. Column/table names may not be mapped correctly if they contain unsupported characters."
-                Warning.attach warning (Encoding.from_name "JIS_X0212-1990")
-            "KOI8R" -> Encoding.from_name "KOI8-R"
-            "KOI8U" -> Encoding.from_name "KOI8-U"
-            "LATIN7" -> Encoding.from_name "ISO-8859-13"
-            "SHIFT_JIS_2004" ->
-                ## Same issue as with EUC_JIS_2004.
-                warning = Unsupported_Database_Encoding.Warning "The database is using the Shift JIS 2004 encoding, which is currently not supported in Enso. Falling back to older Shift JIS. Column/table names may not be mapped correctly if they contain unsupported characters."
-                Warning.attach warning (Encoding.from_name "SJIS")
-            "UHC" -> Encoding.from_name "Windows949"
-            _ ->
-                if encoding_name.starts_with "ISO_" then Encoding.from_name (encoding_name.replace "_" "-") else
-                    if encoding_name.starts_with "WIN" then Encoding.from_name (encoding_name.replace "WIN" "CP") else
-                        resolved_by_jvm
-
-        # If the workaround failed, we fallback to UTF-8 and log a warning.
-        fallback.catch Any _->
-            warning = Unsupported_Database_Encoding.Warning "The database is using an encoding ("+encoding_name.to_display_text+") that is currently not supported by Enso. Falling back to UTF-8. Column/table names may not be mapped correctly if they contain unsupported characters."
-            Warning.attach warning Encoding.utf_8
