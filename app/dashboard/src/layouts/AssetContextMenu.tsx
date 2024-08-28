@@ -83,11 +83,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const self = permissions.tryFindSelfPermission(user, asset.permissions)
   const isCloud = categoryModule.isCloudCategory(category)
   const path =
-    (
-      category.type === categoryModule.CategoryType.recent ||
-      category.type === categoryModule.CategoryType.trash
-    ) ?
-      null
+    category.type === 'recent' || category.type === 'trash' ? null
     : isCloud ? `${item.path}${item.type === backendModule.AssetType.datalink ? '.datalink' : ''}`
     : asset.type === backendModule.AssetType.project ?
       localBackend?.getProjectPath(asset.id) ?? null
@@ -103,7 +99,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const canEditThisAsset =
     managesThisAsset || self?.permission === permissions.PermissionAction.edit
   const canAddToThisDirectory =
-    category.type !== categoryModule.CategoryType.recent &&
+    category.type !== 'recent' &&
     asset.type === backendModule.AssetType.directory &&
     canEditThisAsset
   const pasteDataParentKeys =
@@ -151,7 +147,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
   return (
-    category.type === categoryModule.CategoryType.trash ?
+    category.type === 'trash' ?
       !ownsThisAsset ? null
       : <ContextMenus hidden={hidden} key={asset.id} event={event}>
           <ContextMenu aria-label={getText('assetContextMenuLabel')} hidden={hidden}>
