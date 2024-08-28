@@ -914,10 +914,12 @@ class CollaborativeBuffer(
     autoSave: Map[ClientId, (ContentVersion, Cancellable)]
   ): Unit = {
     val writeCapability =
-      if (lockHolder.isEmpty)
-        Some(CapabilityRegistration(CanEdit(bufferPath)))
-      else
-        None
+      lockHolder match {
+        case Some(session) if session.clientId != rpcSession.clientId =>
+          None
+        case _ =>
+          Some(CapabilityRegistration(CanEdit(bufferPath)))
+      }
     sender() ! OpenFileResponse(Right(OpenFileResult(buffer, writeCapability)))
     context.become(
       collaborativeEditing(

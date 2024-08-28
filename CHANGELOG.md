@@ -3,10 +3,21 @@
 #### Enso IDE
 
 - [Table Editor Widget][10774] displayed in `Table.new` component.
+- [New design of Component Browser][10814] - the component list is under the
+  input and shown only in the initial "component browsing" mode - in this mode
+  the entire input is a filtering pattern (it is not interpreted as parts of
+  code). After picking any suggestion with Tab or new button the mode is
+  switched to "code editing", where visualization preview is displayed instead.
 - [Drilldown for XML][10824]
+- [Fixed issue where switching edited widget with <kbd>tab</kbd> key did not
+  updated actual code][10857]
+- [Added fullscreen modes to documentation editor and code editor][10876]
 
 [10774]: https://github.com/enso-org/enso/pull/10774
+[10814]: https://github.com/enso-org/enso/pull/10814
 [10824]: https://github.com/enso-org/enso/pull/10824
+[10857]: https://github.com/enso-org/enso/pull/10857
+[10876]: https://github.com/enso-org/enso/pull/10876
 
 #### Enso Standard Library
 
@@ -19,6 +30,7 @@
 - [Mixed Decimal/Float arithmetic now throws an error; mixed comparisons now
   attach warnings.][10725]
 - [Support for creating Atoms in expressions.][10820]
+- [IO.print without new line][10858]
 
 [10614]: https://github.com/enso-org/enso/pull/10614
 [10660]: https://github.com/enso-org/enso/pull/10660
@@ -26,8 +38,15 @@
 [10733]: https://github.com/enso-org/enso/pull/10733
 [10725]: https://github.com/enso-org/enso/pull/10725
 [10820]: https://github.com/enso-org/enso/pull/10820
+[10858]: https://github.com/enso-org/enso/pull/10858
 
-# Enso 2023.3
+#### Enso Language & Runtime
+
+- [Print out warnings associated with local variables][10842]
+
+[10842]: https://github.com/enso-org/enso/pull/10842
+
+# Enso 2024.3
 
 #### Enso Language & Runtime
 

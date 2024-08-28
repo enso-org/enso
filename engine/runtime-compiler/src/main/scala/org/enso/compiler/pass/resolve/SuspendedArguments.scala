@@ -212,7 +212,7 @@ case object SuspendedArguments extends IRPass {
     */
   private def resolveExpression(expression: Expression): Expression = {
     expression.transformExpressions {
-      case bind @ Expression.Binding(_, expr, _, _, _) =>
+      case bind @ Expression.Binding(_, expr, _, _) =>
         val newExpr = bind.getMetadata(TypeSignatures) match {
           case Some(Signature(signature, _)) =>
             expr match {
@@ -250,8 +250,8 @@ case object SuspendedArguments extends IRPass {
     */
   private def toSegments(signature: Expression): List[Expression] = {
     signature match {
-      case Type.Function(args, ret, _, _, _) => args :+ ret
-      case _                                 => List(signature)
+      case Type.Function(args, ret, _, _) => args :+ ret
+      case _                              => List(signature)
     }
   }
 
@@ -263,8 +263,8 @@ case object SuspendedArguments extends IRPass {
     */
   def representsSuspended(value: Expression): Boolean = {
     value match {
-      case Name.Literal("Suspended", _, _, _, _, _) => true
-      case _                                        => false
+      case Name.Literal("Suspended", _, _, _, _) => true
+      case _                                     => false
     }
   }
 

@@ -55,7 +55,7 @@ object Implicits {
       * @return [[ir]] with added diagnostics
       */
     def addDiagnostic(diagnostic: Diagnostic): T = {
-      ir.diagnostics.add(diagnostic)
+      ir.getDiagnostics.add(diagnostic)
       ir
     }
   }

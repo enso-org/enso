@@ -3,6 +3,7 @@ package org.enso.interpreter.test.instrument;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import com.oracle.truffle.api.nodes.Node;
 import java.io.File;
@@ -279,7 +280,7 @@ public class IncrementalUpdatesTest {
     Assert.assertEquals(List.newBuilder().addOne(originalOutput), context.consumeOut());
 
     var allNodesAfterException =
-        nodeCountingInstrument.assertNewNodes("Execution creates some nodes", 20, 35);
+        nodeCountingInstrument.assertNewNodes("Execution creates some nodes", 30, 40);
 
     // push foo call
     context.send(
@@ -354,7 +355,14 @@ public class IncrementalUpdatesTest {
       Class<T> type, Map<Class, java.util.List<Node>> nodes) {
     var intNodes = nodes.get(type);
     assertNotNull("Found LiteralNode in " + nodes, intNodes);
-    assertEquals("Expecting one node: " + intNodes, 1, intNodes.size());
+    assertEquals("Expecting two nodes: " + intNodes, 2, intNodes.size());
+    if (intNodes.get(1) instanceof LiteralNode ln) {
+      var text = ln.executeGeneric(null);
+      assertEquals("The second node is ends_with from IO.println", "\n", text.toString());
+    } else {
+      fail("Expecting literal two nodes: " + intNodes);
+    }
+
     return type.cast(intNodes.get(0));
   }
 

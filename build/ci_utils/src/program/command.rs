@@ -295,10 +295,18 @@ impl Debug for Command {
     }
 }
 
+pub fn default_status_checker(status: ExitStatus) -> Result {
+    if status.success() {
+        Ok(())
+    } else {
+        bail!("process exited unsuccessfully: {status}")
+    }
+}
+
 impl Command {
     pub fn new<S: AsRef<OsStr>>(program: S) -> Command {
         let inner = tokio::process::Command::new(program);
-        let status_checker = Arc::new(|status: ExitStatus| Ok(status.exit_ok()?));
+        let status_checker = Arc::new(default_status_checker);
         Self { inner, status_checker, pretty_name: None }
     }
 

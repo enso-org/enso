@@ -232,7 +232,7 @@ class IrToTruffle(
 
   private def registerPolyglotImports(module: Module): Unit =
     module.imports.foreach {
-      case poly @ imports.Polyglot(i: imports.Polyglot.Java, _, _, _, _) =>
+      case poly @ imports.Polyglot(i: imports.Polyglot.Java, _, _, _) =>
         var hostSymbol = context.lookupJavaClass(i.getJavaName)
         if (hostSymbol == null) {
           val err = Text.create(
@@ -1296,7 +1296,7 @@ class IrToTruffle(
             "Comments should not be present during codegen."
           )
         case err: Error => processError(err)
-        case Foreign.Definition(_, _, _, _, _) =>
+        case Foreign.Definition(_, _, _, _) =>
           throw new CompilerError(
             s"Foreign expressions not yet implemented: $ir."
           )
@@ -1375,7 +1375,7 @@ class IrToTruffle(
         val statementExprs = block.expressions.map(this.run(_, true)).toArray
         val retExpr        = this.run(block.returnValue, true)
 
-        val blockNode = BlockNode.build(statementExprs, retExpr)
+        val blockNode = BlockNode.buildSilent(statementExprs, retExpr)
         setLocation(blockNode, block.location)
       }
     }
@@ -1410,7 +1410,7 @@ class IrToTruffle(
       subjectToInstrumentation: Boolean
     ): RuntimeExpression =
       caseExpr match {
-        case Case.Expr(scrutinee, branches, isNested, location, _, _) =>
+        case Case.Expr(scrutinee, branches, isNested, location, _) =>
           val scrutineeNode = this.run(scrutinee, subjectToInstrumentation)
 
           val maybeCases    = branches.map(processCaseBranch)
@@ -1473,7 +1473,7 @@ class IrToTruffle(
         )
 
       branch.pattern match {
-        case named @ Pattern.Name(_, _, _, _) =>
+        case named: Pattern.Name =>
           val arg = List(genArgFromMatchField(named))
 
           val branchCodeNode = childProcessor.processFunctionBody(
@@ -1486,7 +1486,7 @@ class IrToTruffle(
             CatchAllBranchNode.build(branchCodeNode.getCallTarget, true)
 
           Right(branchNode)
-        case cons @ Pattern.Constructor(constructor, _, _, _, _) =>
+        case cons @ Pattern.Constructor(constructor, _, _, _) =>
           if (!cons.isDesugared) {
             throw new CompilerError(
               "Nested patterns desugaring must have taken place by the " +
@@ -1705,7 +1705,7 @@ class IrToTruffle(
                 )
               )
           }
-        case Pattern.Type(varName, tpeName, location, _, _) =>
+        case Pattern.Type(varName, tpeName, location, _) =>
           tpeName.getMetadata(Patterns) match {
             case None =>
               Left(BadPatternMatch.NonVisibleType(tpeName.name))
@@ -1720,7 +1720,7 @@ class IrToTruffle(
               ) match {
                 case Some(tpe) =>
                   val argOfType = List(
-                    DefinitionArgument.Specified(
+                    new DefinitionArgument.Specified(
                       varName,
                       None,
                       None,
@@ -1754,7 +1754,7 @@ class IrToTruffle(
                 asScope(mod.unsafeAsModule()).getPolyglotSymbol(symbol.name)
               if (polySymbol != null) {
                 val argOfType = List(
-                  DefinitionArgument.Specified(
+                  new DefinitionArgument.Specified(
                     varName,
                     None,
                     None,
@@ -1792,7 +1792,6 @@ class IrToTruffle(
         case errors.Pattern(
               _,
               errors.Pattern.WrongArity(name, expected, actual),
-              _,
               _
             ) =>
           Left(BadPatternMatch.WrongArgCount(name, expected, actual))
@@ -1814,8 +1813,8 @@ class IrToTruffle(
       * @param name the pattern field to generate from
       * @return `name` as a function definition argument.
       */
-    def genArgFromMatchField(name: Pattern.Name): DefinitionArgument = {
-      DefinitionArgument.Specified(
+    private def genArgFromMatchField(name: Pattern.Name): DefinitionArgument = {
+      new DefinitionArgument.Specified(
         name.name,
         None,
         None,
@@ -1909,13 +1908,12 @@ class IrToTruffle(
           resolver.resolveName(literalName, fpMeta)
         case Name.MethodReference(
               None,
-              Name.Literal(nameStr, _, _, _, _, _),
-              _,
+              Name.Literal(nameStr, _, _, _, _),
               _,
               _
             ) =>
           DynamicSymbolNode.buildUnresolvedConstructor(nameStr)
-        case Name.Self(location, _, passData, _) =>
+        case Name.Self(location, _, passData) =>
           processName(
             Name.Literal(
               ConstantsNames.SELF_ARGUMENT,
@@ -1932,7 +1930,7 @@ class IrToTruffle(
               "a Self occurence must be resolved"
             ).target
           )
-        case Name.Special(name, _, _, _) =>
+        case Name.Special(name, _, _) =>
           val fun = name match {
             case Special.NewRef    => context.getBuiltins.special().getNewRef
             case Special.ReadRef   => context.getBuiltins.special().getReadRef
@@ -2061,14 +2059,14 @@ class IrToTruffle(
     @throws[CompilerError]
     private def processLiteral(literal: Literal): RuntimeExpression =
       literal match {
-        case lit @ Literal.Number(_, _, location, _, _) =>
+        case lit: Literal.Number =>
           val node = lit.numericValue match {
             case l: Long       => LiteralNode.build(l)
             case d: Double     => LiteralNode.build(d)
             case b: BigInteger => LiteralNode.build(b)
           }
-          setLocation(node, location)
-        case Literal.Text(text, location, _, _) =>
+          setLocation(node, lit.location)
+        case Literal.Text(text, location, _) =>
           setLocation(LiteralNode.build(text), location)
       }
 
@@ -2088,7 +2086,7 @@ class IrToTruffle(
       */
     private def processError(error: Error): RuntimeExpression = {
       val payload: Atom = error match {
-        case Error.InvalidIR(_, _, _) =>
+        case Error.InvalidIR(_, _) =>
           throw new CompilerError("Unexpected Invalid IR during codegen.")
         case err: errors.Syntax =>
           context.getBuiltins
@@ -2177,15 +2175,19 @@ class IrToTruffle(
       lazy val argsExpr      = computeArgsAndExpression()
 
       def args(): Array[ArgumentDefinition] = slots._2
-      def bodyNode(): RuntimeExpression =
-        BlockNode.build(argsExpr._1.toArray, argsExpr._2)
+      def bodyNode(): RuntimeExpression = {
+        val body = BlockNode.buildRoot(Array(), argsExpr._2)
+        val initVariablesAndThenBody =
+          BlockNode.buildSilent(argsExpr._1.toArray, body)
+        initVariablesAndThenBody
+      }
 
       private def computeArgsAndExpression()
         : (Array[RuntimeExpression], RuntimeExpression) = {
         val (argSlotIdxs, _, argExpressions) = slots
 
         val bodyExpr = body match {
-          case Foreign.Definition(lang, code, _, _, _) =>
+          case Foreign.Definition(lang, code, _, _) =>
             buildForeignBody(
               lang,
               body.location,
@@ -2342,16 +2344,16 @@ class IrToTruffle(
       subjectToInstrumentation: Boolean
     ): RuntimeExpression =
       application match {
-        case Application.Prefix(fn, Nil, true, _, _, _) =>
+        case Application.Prefix(fn, Nil, true, _, _) =>
           run(fn, subjectToInstrumentation)
         case app: Application.Prefix =>
           processApplicationWithArgs(app, subjectToInstrumentation)
-        case Application.Force(expr, location, _, _) =>
+        case Application.Force(expr, location, _) =>
           setLocation(
             ForceNode.build(this.run(expr, subjectToInstrumentation)),
             location
           )
-        case Application.Sequence(items, location, _, _) =>
+        case Application.Sequence(items, location, _) =>
           val itemNodes = items.map(run(_, subjectToInstrumentation)).toArray
           setLocation(SequenceLiteralNode.build(itemNodes), location)
         case _: Application.Typeset =>
@@ -2382,7 +2384,7 @@ class IrToTruffle(
       application: Application.Prefix,
       subjectToInstrumentation: Boolean
     ): RuntimeExpression = {
-      val Application.Prefix(fn, args, hasDefaultsSuspended, loc, _, _) =
+      val Application.Prefix(fn, args, hasDefaultsSuspended, loc, _) =
         application
       val callArgFactory =
         new CallArgumentProcessor(scope, scopeName, currentVarName)
@@ -2444,13 +2446,7 @@ class IrToTruffle(
       subjectToInstrumentation: Boolean
     ): callable.argument.CallArgument =
       arg match {
-        case CallArgument.Specified(
-              name,
-              value,
-              _,
-              _,
-              _
-            ) =>
+        case CallArgument.Specified(name, value, _, _) =>
           def scopeInfo() = {
             arg
               .unsafeGetMetadata(

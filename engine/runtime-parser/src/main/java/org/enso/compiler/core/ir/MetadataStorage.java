@@ -214,7 +214,7 @@ public final class MetadataStorage {
       return true;
     }
     if (obj instanceof MetadataStorage other) {
-      return Objects.equals(this.metadata, other.metadata);
+      return this.metadata == other.metadata;
     }
     return false;
   }
