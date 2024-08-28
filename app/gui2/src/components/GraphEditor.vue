@@ -547,7 +547,7 @@ watch(
 const componentBrowser = ref()
 const docPanel = ref()
 
-const closeIfClicked = computed(() => {
+const closeCBIf = computed(() => {
   return (e: PointerEvent) => {
     const cbRoot = componentBrowser.value?.cbRoot
     const docPanelRoot = docPanel.value?.root
@@ -756,7 +756,7 @@ const documentationEditorFullscreen = ref(false)
           :navigator="graphNavigator"
           :nodePosition="componentBrowserNodePosition"
           :usage="componentBrowserUsage"
-          :closeIfClicked="closeIfClicked"
+          :closeIfClicked="closeCBIf"
           @accepted="commitComponentBrowser"
           @canceled="hideComponentBrowser"
           @selectedSuggestionId="displayedDocs = $event"

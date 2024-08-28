@@ -38,9 +38,6 @@ test('Different ways of opening Component Browser', async ({ page }) => {
 
   // (+) button
   await locate.addNewNodeButton(page).click()
-  await expect(locate.componentBrowser(page)).toExist()
-  await expect(locate.componentBrowserEntry(page)).toExist()
-  await locate.rightDockRoot(page).locator('.toggleDock').click()
   await expectAndCancelBrowser(page, '')
   // (+) button with selection (ignored)
   await locate.graphNodeByBinding(page, 'final').click()

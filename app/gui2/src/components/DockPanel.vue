@@ -7,7 +7,7 @@ import { useResizeObserver } from '@/composables/events'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { tabClipPath } from 'enso-common/src/utilities/style/tabBar'
-import { computed, ref, watch } from 'vue'
+import { computed,ref,watch } from 'vue'
 
 const TAB_EDGE_MARGIN_PX = 4
 const TAB_SIZE_PX = { width: 48 - TAB_EDGE_MARGIN_PX, height: 48 }
@@ -43,7 +43,7 @@ const tabStyle = {
 </script>
 
 <template>
-  <div ref="root" class="DockPanelRoot" data-testid="rightDockRoot">
+  <div ref="root" class="DockPanel" data-testid="rightDockRoot">
     <ToggleIcon
       v-model="show"
       :title="`Documentation Panel (${documentationEditorBindings.bindings.toggle.humanReadable})`"
@@ -52,7 +52,7 @@ const tabStyle = {
       :class="{ aboveFullscreen: contentFullscreen }"
     />
     <SizeTransition width :duration="100">
-      <div v-if="show" ref="slideInPanel" :style="style" class="DockPanel" data-testid="rightDock">
+      <div v-if="show" ref="slideInPanel" :style="style" class="DockPanelContent" data-testid="rightDock">
         <div class="content">
           <slot v-if="tab == 'docs'" name="docs" />
           <slot v-else-if="tab == 'help'" name="help" />
@@ -82,11 +82,11 @@ const tabStyle = {
 </template>
 
 <style scoped>
-.DockPanelRoot {
+.DockPanel {
   display: contents;
 }
 
-.DockPanel {
+.DockPanelContent {
   min-width: 258px;
   width: var(--dock-panel-width);
   position: relative;
