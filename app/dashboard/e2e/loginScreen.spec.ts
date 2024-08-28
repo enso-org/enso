@@ -4,7 +4,7 @@ import * as test from '@playwright/test'
 import {
   INVALID_PASSWORD,
   mockAll,
-  passTermsAndConditionsDialog,
+  passAgreementsDialog,
   TEXT,
   VALID_EMAIL,
   VALID_PASSWORD,
@@ -26,7 +26,7 @@ test.test('login screen', ({ page }) =>
     // Technically it should not be allowed, but
     .login(VALID_EMAIL, INVALID_PASSWORD)
     .do(async (thePage) => {
-      await passTermsAndConditionsDialog({ page: thePage })
+      await passAgreementsDialog({ page: thePage })
     })
     .withDriveView(async (driveView) => {
       await test.expect(driveView).toBeVisible()
