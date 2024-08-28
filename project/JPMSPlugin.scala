@@ -246,7 +246,7 @@ object JPMSPlugin extends AutoPlugin {
     },
     // Sanitize cmd line arguments
     Test / javacOptions := joinModulePathOption((Test / javacOptions).value),
-    Test / javaOptions := joinModulePathOption((Test / javacOptions).value),
+    Test / javaOptions := joinModulePathOption((Test / javaOptions).value),
   )
 
   /** @param moduleDeps External module dependencies, fetched from `moduleDependencies` task.
