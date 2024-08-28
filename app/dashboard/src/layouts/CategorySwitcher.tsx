@@ -236,7 +236,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
       getDropOperation={(types) =>
         acceptedDragTypes.some((type) => types.has(type)) ? 'move' : 'cancel'
       }
-      className="group relative flex items-center rounded-full drop-target-after"
+      className="group relative flex max-w-full items-center rounded-full drop-target-after"
       onDrop={onDrop}
     >
       <ariaComponents.Button
@@ -245,6 +245,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
         tooltip={tooltip}
         tooltipPlacement="right"
         className={tailwindMerge.twMerge(
+          'max-w-full',
           isCurrent && 'focus-default',
           isDisabled && 'cursor-not-allowed hover:bg-transparent',
         )}
@@ -253,13 +254,15 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
       >
         <div
           className={tailwindMerge.twMerge(
-            'group flex h-row items-center gap-icon-with-text rounded-full px-button-x selectable',
+            'group flex h-row max-w-full items-center gap-icon-with-text rounded-full px-button-x selectable',
             isCurrent && 'disabled active',
             !isCurrent && !isDisabled && 'hover:bg-selected-frame',
           )}
         >
           <SvgMask src={icon} className={iconClassName} />
-          <aria.Text slot="description">{label}</aria.Text>
+          <ariaComponents.Text slot="description" truncate="1" className="flex-1">
+            {label}
+          </ariaComponents.Text>
         </div>
       </ariaComponents.Button>
       <div className="absolute left-full ml-2 hidden group-focus-visible:block">
@@ -269,7 +272,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   )
 
   return isNested ?
-      <div className="flex">
+      <div className="flex max-w-full">
         <div className="ml-[15px] mr-1 border-r border-primary/20" />
         {element}
       </div>
