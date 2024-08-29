@@ -55,7 +55,7 @@ export default function KeyboardShortcutsSettingsSection() {
     <>
       <ariaComponents.ButtonGroup>
         <ariaComponents.DialogTrigger>
-          <ariaComponents.Button size="medium" variant="bar">
+          <ariaComponents.Button size="medium" variant="outline">
             {getText('resetAll')}
           </ariaComponents.Button>
           <ConfirmDeleteModal

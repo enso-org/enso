@@ -91,7 +91,7 @@ export default function EditAssetDescriptionModal(props: EditAssetDescriptionMod
             {actionButtonLabel}
           </ariaComponents.Button>
           <ariaComponents.Button
-            variant="cancel"
+            variant="outline"
             type="button"
             onPress={unsetModal}
             isDisabled={isPending}

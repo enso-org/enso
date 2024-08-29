@@ -7,3 +7,16 @@ import project.Internal.IR.SQL_Expression.SQL_Expression
 type Order_Descriptor
     ## PRIVATE
     Value (expression : SQL_Expression) (direction : Sort_Direction) (nulls_order : Nothing | Nulls_Order = Nothing) (collation : Nothing | Text = Nothing)
+
+    ## PRIVATE
+       A bottom-up, depth-first traversal of this IR node and its children. Each
+       node is passed to the provided function, and the return value of the
+       function replaces this node in the tree.
+    traverse : (Any -> Any) -> Order_Descriptor
+    traverse self f -> Order_Descriptor =
+        rec e = e.traverse f
+
+        new_order_descriptor = case self of
+            Order_Descriptor.Value expression direction nulls_order collation ->
+                Order_Descriptor.Value (rec expression) direction nulls_order collation
+        f new_order_descriptor

@@ -755,7 +755,7 @@ export async function login(
     await locateLoginButton(page).click()
     await test.expect(page.getByText('Logging in to Enso...')).not.toBeVisible()
     if (first) {
-      await passTermsAndConditionsDialog({ page, setupAPI })
+      await passAgreementsDialog({ page, setupAPI })
       await test.expect(page.getByText('Logging in to Enso...')).not.toBeVisible()
     }
   })
@@ -830,11 +830,12 @@ async function mockDate({ page }: MockParams) {
   })
 }
 
-/** Pass the Terms and conditions dialog. */
-export async function passTermsAndConditionsDialog({ page }: MockParams) {
+/** Pass the Agreements dialog. */
+export async function passAgreementsDialog({ page }: MockParams) {
   await test.test.step('Accept Terms and Conditions', async () => {
-    await page.waitForSelector('#terms-of-service-modal')
-    await page.getByRole('checkbox').click()
+    await page.waitForSelector('#agreements-modal')
+    await page.getByRole('checkbox').and(page.getByTestId('terms-of-service-checkbox')).click()
+    await page.getByRole('checkbox').and(page.getByTestId('privacy-policy-checkbox')).click()
     await page.getByRole('button', { name: 'Accept' }).click()
   })
 }

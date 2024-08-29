@@ -60,7 +60,7 @@ export default function UpsertDatalinkModal(props: UpsertDatalinkModalProps) {
               </div>
               <ButtonGroup className="relative">
                 <Form.Submit>{getText('create')}</Form.Submit>
-                <Button size="medium" variant="cancel" onPress={close}>
+                <Button size="medium" variant="outline" onPress={close}>
                   {getText('cancel')}
                 </Button>
               </ButtonGroup>

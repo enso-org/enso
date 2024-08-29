@@ -38,7 +38,7 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
             <Form.Submit variant="delete" className="relative">
               {actionButtonLabel}
             </Form.Submit>
-            <Button size="medium" variant="cancel" autoFocus className="relative" onPress={close}>
+            <Button size="medium" variant="outline" autoFocus className="relative" onPress={close}>
               {getText('cancel')}
             </Button>
           </ButtonGroup>
