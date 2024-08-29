@@ -652,6 +652,7 @@ lazy val componentModulesPaths =
     (`engine-runner` / Compile / exportedModuleBin).value,
     (`engine-runner-common` / Compile / exportedModuleBin).value,
     (`polyglot-api` / Compile / exportedModuleBin).value,
+    (`polyglot-api-macros` / Compile / exportedModuleBin).value,
     (`runtime` / Compile / exportedModuleBin).value,
     (`syntax-rust-definition` / Compile / exportedModuleBin).value,
     (`runtime-compiler` / Compile / exportedModuleBin).value,
@@ -1967,7 +1968,8 @@ lazy val `polyglot-api` = project
       (`scala-libs-wrapper` / Compile / exportedModule).value,
       (`engine-common` / Compile / exportedModule).value,
       (`logging-utils` / Compile / exportedModule).value,
-      (`text-buffer` / Compile / exportedModule).value
+      (`text-buffer` / Compile / exportedModule).value,
+      (`polyglot-api-macros` / Compile / exportedModule).value,
     ),
     GenerateFlatbuffers.flatcVersion := flatbuffersVersion,
     Compile / sourceGenerators += GenerateFlatbuffers.task
@@ -1981,11 +1983,19 @@ lazy val `polyglot-api` = project
 
 lazy val `polyglot-api-macros` = project
   .in(file("engine/polyglot-api-macros"))
+  .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
       "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"   % jsoniterVersion % "provided",
       "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion % "provided"
+    ),
+    compileOrder := CompileOrder.ScalaThenJava,
+    Compile / moduleDependencies := Seq(
+      "org.scala-lang" % "scala-library" % scalacVersion
+    ),
+    Compile / internalModuleDependencies := Seq(
+      (`scala-libs-wrapper` / Compile / exportedModule).value
     )
   )
 
@@ -2509,6 +2519,7 @@ lazy val `runtime-integration-tests` =
         (`runtime` / Compile / exportedModule).value,
         (`runtime-test-instruments` / Compile / exportedModule).value,
         (`runtime-instrument-common` / Compile / exportedModule).value,
+        (`runtime-instrument-runtime-server` / Compile / exportedModule).value,
         (`ydoc-server` / Compile / exportedModule).value,
         (`syntax-rust-definition` / Compile / exportedModule).value,
         (`profiling-utils` / Compile / exportedModule).value,
@@ -2521,6 +2532,7 @@ lazy val `runtime-integration-tests` =
         (`runtime-parser` / Compile / exportedModule).value,
         (`runtime-compiler` / Compile / exportedModule).value,
         (`polyglot-api` / Compile / exportedModule).value,
+        (`polyglot-api-macros` / Compile / exportedModule).value,
         (`pkg` / Compile / exportedModule).value,
         (`logging-utils` / Compile / exportedModule).value,
         (`connected-lock-manager` / Compile / exportedModule).value,
