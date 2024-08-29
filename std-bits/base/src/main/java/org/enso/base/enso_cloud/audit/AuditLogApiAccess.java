@@ -35,7 +35,7 @@ class AuditLogApiAccess {
 
   private HttpClient httpClient;
   private final LogJobsQueue logQueue = new LogJobsQueue();
-  private RequestConfig requestConfig = null;
+  private volatile RequestConfig requestConfig = null;
   private final ThreadPoolExecutor backgroundThreadService;
 
   private AuditLogApiAccess() {
