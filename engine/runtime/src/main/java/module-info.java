@@ -1,4 +1,4 @@
-module org.enso.runtime {
+open module org.enso.runtime {
   requires java.logging;
   requires scala.library;
 
@@ -51,6 +51,7 @@ module org.enso.runtime {
   exports org.enso.interpreter.node.expression.builtin;
   exports org.enso.interpreter.node.expression.builtin.debug;
   exports org.enso.interpreter.node.expression.builtin.text.util;
+  exports org.enso.interpreter.node.expression.builtin.runtime;
   exports org.enso.interpreter.node.expression.debug;
   exports org.enso.interpreter.util;
   exports org.enso.interpreter.service.error;
