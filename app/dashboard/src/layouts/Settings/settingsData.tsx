@@ -152,6 +152,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     settingsTab: SettingsTabType.organization,
     icon: PeopleSettingsIcon,
     organizationOnly: true,
+    visible: ({ user }) => backend.isUserInOrganization(user),
     sections: [
       {
         nameId: 'organizationSettingsSection',
@@ -285,7 +286,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     settingsTab: SettingsTabType.billingAndPlans,
     icon: CreditCardIcon,
     organizationOnly: true,
-    visible: (context) => context.organization?.subscription != null,
+    visible: ({ organization }) => organization?.subscription != null,
     sections: [],
     onPress: (context) =>
       context.queryClient
@@ -312,6 +313,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     settingsTab: SettingsTabType.members,
     icon: PeopleIcon,
     organizationOnly: true,
+    visible: ({ user }) => backend.isUserInOrganization(user),
     feature: 'inviteUser',
     sections: [
       {
@@ -325,6 +327,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     settingsTab: SettingsTabType.userGroups,
     icon: PeopleSettingsIcon,
     organizationOnly: true,
+    visible: ({ user }) => backend.isUserInOrganization(user),
     feature: 'userGroups',
     sections: [
       {
@@ -391,6 +394,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     settingsTab: SettingsTabType.activityLog,
     icon: LogIcon,
     organizationOnly: true,
+    visible: ({ user }) => backend.isUserInOrganization(user),
     sections: [
       {
         nameId: 'activityLogSettingsSection',

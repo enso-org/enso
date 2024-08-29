@@ -1,6 +1,4 @@
 /** @file Settings tab for viewing and editing organization members. */
-import * as React from 'react'
-
 import { useMutation, useSuspenseQueries } from '@tanstack/react-query'
 
 import { backendMutationOptions } from '#/hooks/backendHooks'

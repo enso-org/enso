@@ -505,6 +505,21 @@ export interface CreateCustomerPortalSessionResponse {
   readonly url: string | null
 }
 
+/** Whether the user is in an organization. */
+export function isUserInOrganization(user: User) {
+  switch (user.plan) {
+    case undefined:
+    case Plan.free:
+    case Plan.solo: {
+      return false
+    }
+    case Plan.team:
+    case Plan.enterprise: {
+      return true
+    }
+  }
+}
+
 /** Whether an {@link AssetPermission} is a {@link UserPermission}. */
 export function isUserPermission(permission: AssetPermission): permission is UserPermission {
   return 'user' in permission
