@@ -219,7 +219,7 @@ export default function Registration() {
             )}
           </Form.Field>
 
-          <Form.Submit size="large" icon={CreateAccountIcon} className="w-full">
+          <Form.Submit size="large" icon={CreateAccountIcon} fullWidth>
             {getText('register')}
           </Form.Submit>
 

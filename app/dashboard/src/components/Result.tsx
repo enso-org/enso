@@ -20,6 +20,18 @@ const STATUS_ICON_MAP: Readonly<Record<Status, StatusIcon>> = {
     colorClassName: 'text-primary',
     bgClassName: 'bg-transparent',
   },
+  // pending is the same as loading. Used for mutations.
+  pending: {
+    icon: <loader.Loader minHeight="h8" />,
+    colorClassName: 'text-primary',
+    bgClassName: 'bg-transparent',
+  },
+  // Not yet implemented.
+  idle: {
+    icon: <></>,
+    colorClassName: 'text-primary',
+    bgClassName: 'bg-transparent',
+  },
   error: { icon: Error, colorClassName: 'text-red-500', bgClassName: 'bg-red-500' },
   success: { icon: Success, colorClassName: 'text-green-500', bgClassName: 'bg-green' },
   info: {
@@ -60,7 +72,7 @@ const RESULT_STYLES = twv.tv({
 // ==============
 
 /** Possible statuses for a result. */
-export type Status = 'error' | 'info' | 'loading' | 'success'
+export type Status = 'error' | 'idle' | 'info' | 'loading' | 'pending' | 'success'
 
 // ==================
 // === StatusIcon ===

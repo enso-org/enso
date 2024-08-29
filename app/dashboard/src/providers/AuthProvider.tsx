@@ -88,7 +88,7 @@ export type UserSession = FullUserSession | PartialUserSession
 interface AuthContextType {
   readonly signUp: (email: string, password: string, organizationId: string | null) => Promise<void>
   readonly authQueryKey: reactQuery.QueryKey
-  readonly confirmSignUp: (email: string, code: string) => Promise<boolean>
+  readonly confirmSignUp: (email: string, code: string) => Promise<void>
   readonly setUsername: (username: string) => Promise<boolean>
   readonly signInWithGoogle: () => Promise<boolean>
   readonly signInWithGitHub: () => Promise<boolean>
@@ -304,28 +304,24 @@ export default function AuthProvider(props: AuthProviderProps) {
 
   const confirmSignUp = useEventCallback(async (email: string, code: string) => {
     if (cognito == null) {
-      return false
+      throw new Error(getText('confirmSignUpError'))
     } else {
       gtagEvent('cloud_confirm_sign_up')
       const result = await cognito.confirmSignUp(email, code)
+
       if (result.err) {
         switch (result.val.type) {
           case cognitoModule.CognitoErrorType.userAlreadyConfirmed: {
             break
           }
           case cognitoModule.CognitoErrorType.userNotFound: {
-            toastError(getText('confirmSignUpError'))
-            navigate(appUtils.LOGIN_PATH)
-            return false
+            throw new Error(getText('confirmSignUpError'))
           }
           default: {
             throw new errorModule.UnreachableCaseError(result.val.type)
           }
         }
       }
-      toastSuccess(getText('confirmSignUpSuccess'))
-      navigate(appUtils.LOGIN_PATH)
-      return result.ok
     }
   })
 
@@ -502,7 +498,7 @@ export default function AuthProvider(props: AuthProviderProps) {
 
   const value: AuthContextType = {
     signUp,
-    confirmSignUp: withLoadingToast(confirmSignUp),
+    confirmSignUp,
     setUsername,
     isUserMarkedForDeletion,
     isUserDeleted,
