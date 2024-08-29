@@ -133,7 +133,8 @@ Table.point_data self all_fields =
    Returns the number of numeric columns for the plot.
 Table.numeric_column_count : Number
 Table.numeric_column_count self =
-    columns = self.columns . filter (c-> c.is_numeric && c.name != Point_Data.Size.name)
+    check_for_size c = c.name.equals_ignore_case Point_Data.Size.name != True
+    columns = self.columns . filter (c-> c.is_numeric && check_for_size c)
     columns.length
 
 ## PRIVATE
