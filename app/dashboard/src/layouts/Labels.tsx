@@ -61,11 +61,7 @@ export default function Labels(props: LabelsProps) {
   return (
     <FocusArea direction="vertical">
       {(innerProps) => (
-        <div
-          data-testid="labels"
-          className="flex w-full flex-col items-start gap-4"
-          {...innerProps}
-        >
+        <div data-testid="labels" className="flex flex-col items-start gap-4" {...innerProps}>
           <ariaComponents.Text variant="subtitle" className="px-2 font-bold">
             {getText('labels')}
           </ariaComponents.Text>
