@@ -1012,7 +1012,7 @@ add_specs suite_builder =
             workbook.close . should_equal Nothing
             workbook.read "Sheet1" . should_fail_with Illegal_State
 
-        ci_pending = if Environment.get "CI" != Nothing then "This test takes a lot of time so it is disabled on CI."
+        ci_pending = "This test takes a lot of time so it is disabled on CI."
         group_builder.specify "should be able to write and read a big XLSX file (>110MB)" pending=ci_pending <|
             n = 10^6
             IO.println "Generating big XLSX file "+Time_Of_Day.now.to_text

@@ -168,25 +168,39 @@ public class XSSFReaderSheetXMLHandler extends DefaultHandler {
   }
 
   public record CellValue(XSSDataType dataType, String strValue, int formatIndex, String format) {
-    static final LocalDate EPOC_1900 = LocalDate.of(1899, 12, 31);
+    static final LocalDate EPOC_1900 = LocalDate.of(1899, 12, 30);
     static final long MILLIS_PER_DAY = 24 * 60 * 60 * 1000;
 
     static Temporal fromExcelDate(String text) {
       var idx = text.indexOf('.');
 
-      // Get the date part
-      long date = Long.parseLong(idx == -1 ? text : text.substring(0, idx));
-      var adjustedEpoch = EPOC_1900.plusDays((date < 61 ? 1 : 0) + date);
-
+      // Get the date and time part part
+      long date;
+      double fraction;
       if (idx == -1) {
-        return adjustedEpoch;
+        date = Long.parseLong(text);
+        fraction = 0;
+      } else {
+        var dbl = Double.parseDouble(text.substring(idx));
+        date = (long)Math.floor(dbl);
+        fraction = dbl - date;
+      }
+
+      // Excel treats 1900-02-29 as a valid date, which it isn't
+      if (date == 60) {
+        return null;
+      }
+
+      var localDate = date == 0 ? EPOC_1900 : EPOC_1900.plusDays((date < 61 ? 1 : 0) + date);
+      // Return as a LocalDate unless 0 then Midnight
+      if (fraction == 0) {
+        return date == 0 ? LocalTime.MIDNIGHT : localDate;
       }
 
       // Get the time part (fractional part)
-      var fraction = Double.parseDouble(text.substring(idx));
       var millis = (long) (fraction * MILLIS_PER_DAY + 0.5);
       var time = LocalTime.ofNanoOfDay(millis * 1_000_000);
-      return adjustedEpoch.atTime(time);
+      return date == 0 ? time : localDate.atTime(time);
     }
 
     public boolean getBooleanValue() {
@@ -194,7 +208,13 @@ public class XSSFReaderSheetXMLHandler extends DefaultHandler {
     }
 
     public boolean isInteger() {
-      return strValue.indexOf('.') == -1;
+      for (int i = 0; i < strValue.length(); i++) {
+        var c = strValue.charAt(i);
+        if (c == '.' || c == 'E' || c == 'e') {
+          return false;
+        }
+      }
+      return false;
     }
 
     public long getLongValue() {
@@ -213,11 +233,11 @@ public class XSSFReaderSheetXMLHandler extends DefaultHandler {
         default -> {
           if (resolveDates && DateUtil.isADateFormat(formatIndex, format)) {
             var datetime = fromExcelDate(strValue());
-            yield datetime instanceof LocalDate
-                ? datetime
-                : ((LocalDateTime) datetime).atZone(ZoneId.systemDefault());
+            yield datetime instanceof LocalDateTime
+                ? ((LocalDateTime) datetime).atZone(ZoneId.systemDefault())
+                : datetime;
           }
-          yield getNumberValue();
+          yield isInteger() ? getLongValue() : getNumberValue();
         }
       };
     }
