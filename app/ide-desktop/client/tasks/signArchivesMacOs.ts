@@ -83,8 +83,8 @@ async function ensoPackageSignables(resourcesDir: string): Promise<Signable[]> {
     [
       'component/python-resources-*.jar',
       [
-        'META-INF/resources/darwin/*/lib/graalpy23.1/*.dylib',
-        'META-INF/resources/darwin/*/lib/graalpy23.1/modules/*.so',
+        'META-INF/resources/darwin/*/lib/graalpy*/*.dylib',
+        'META-INF/resources/darwin/*/lib/graalpy*/modules/*.so',
       ],
     ],
     [
@@ -119,6 +119,14 @@ async function ensoPackageSignables(resourcesDir: string): Promise<Signable[]> {
     [
       `lib/Standard/Google_Api/*/polyglot/java/conscrypt-openjdk-uber-*.jar`,
       ['META-INF/native/libconscrypt_openjdk_jni-osx-*.dylib'],
+    ],
+    [
+      `lib/Standard/Tableau/*/polyglot/java/jna-*.jar`,
+      ['com/sun/jna/*/libjnidispatch.jnilib'],
+    ],
+    [
+      `lib/Standard/Image/*/polyglot/java/opencv-*.jar`,
+      ['nu/pattern/opencv*/libopencv_*.dylib'],
     ],
   ]
   return ArchiveToSign.lookupMany(engineDir, archivePatterns)
