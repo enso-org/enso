@@ -108,7 +108,13 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
   const labelMap = new Map<backend.TagId, backend.Label>()
   const users: backend.User[] = [defaultUser]
   const usersMap = new Map<backend.UserId, backend.User>()
-  const userGroups: backend.UserGroupInfo[] = []
+  const userGroups: backend.UserGroupInfo[] = [
+    {
+      id: backend.UserGroupId('usergroup-1'),
+      groupName: 'User Group 1',
+      organizationId: currentOrganization.id,
+    },
+  ]
 
   usersMap.set(defaultUser.userId, defaultUser)
 
