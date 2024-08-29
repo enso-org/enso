@@ -100,16 +100,6 @@ export function locateSetUsernameButton(page: test.Locator | test.Page) {
   return page.getByRole('button', { name: 'Set Username' }).getByText('Set Username')
 }
 
-/** Find a "delete" button (if any) on the current page. */
-export function locateDeleteButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Delete' }).getByText('Delete')
-}
-
-/** Find a button to delete something (if any) on the current page. */
-export function locateDeleteIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('Delete')
-}
-
 /** Find a "create" button (if any) on the current page. */
 export function locateCreateButton(page: test.Locator | test.Page) {
   return page.getByRole('button', { name: 'Create' }).getByText('Create')
