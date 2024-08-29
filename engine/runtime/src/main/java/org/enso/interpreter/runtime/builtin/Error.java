@@ -110,16 +110,16 @@ public final class Error {
     mapError = builtins.getBuiltinType(MapError.class);
   }
 
-  public Atom makeSyntaxError(Object message) {
-    return syntaxError.newInstance(message);
+  public Atom makeSyntaxError(String message) {
+    return syntaxError.newInstance(Text.create(message));
   }
 
-  public Atom makeCompileError(Object message) {
-    return compileError.newInstance(message);
+  public Atom makeCompileError(String message) {
+    return compileError.newInstance(Text.create(message));
   }
 
-  public Atom makeAssertionError(Text text) {
-    return assertionError.newInstance(text);
+  public Atom makeAssertionError(String text) {
+    return assertionError.newInstance(Text.create(text));
   }
 
   public Atom makeIndexOutOfBounds(long index, long length) {

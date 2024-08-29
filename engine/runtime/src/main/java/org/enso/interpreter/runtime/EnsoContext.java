@@ -52,7 +52,6 @@ import org.enso.interpreter.OptionsHelper;
 import org.enso.interpreter.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
@@ -972,8 +971,7 @@ public final class EnsoContext {
     if (message != null) {
       msg = msg + sep + message;
     }
-    var txt = Text.create(msg);
-    var err = getBuiltins().error().makeAssertionError(txt);
+    var err = getBuiltins().error().makeAssertionError(msg);
     throw new PanicException(err, e, node);
   }
 

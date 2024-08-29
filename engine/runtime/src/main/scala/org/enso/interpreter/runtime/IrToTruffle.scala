@@ -102,7 +102,6 @@ import org.enso.interpreter.runtime.callable.{
   Annotation => RuntimeAnnotation
 }
 import org.enso.interpreter.runtime.data.Type
-import org.enso.interpreter.runtime.data.text.Text
 import org.enso.interpreter.runtime.scope.{ImportExportScope, ModuleScope}
 import org.enso.interpreter.{Constants, EnsoLanguage}
 
@@ -238,9 +237,9 @@ class IrToTruffle(
           () => {
             var hostSymbol = context.lookupJavaClass(i.getJavaName)
             if (hostSymbol == null) {
-              val err = Text.create(
+              val msg =
                 s"Incorrect polyglot java import: ${i.getJavaName}"
-              )
+              val err = context.getBuiltins.error.makeCompileError(msg)
               hostSymbol = DataflowError.withDefaultTrace(err, null)
             }
             hostSymbol
@@ -1393,9 +1392,7 @@ class IrToTruffle(
           context.getBuiltins
             .error()
             .makeSyntaxError(
-              Text.create(
-                "Type operators are not currently supported at runtime"
-              )
+              "Type operators are not currently supported at runtime"
             )
         ),
         value.location
@@ -1441,7 +1438,7 @@ class IrToTruffle(
 
             val error = context.getBuiltins
               .error()
-              .makeCompileError(Text.create(message))
+              .makeCompileError(message)
 
             setLocation(ErrorNode.build(error), caseExpr.location)
           }
@@ -2088,47 +2085,47 @@ class IrToTruffle(
         case err: errors.Syntax =>
           context.getBuiltins
             .error()
-            .makeSyntaxError(Text.create(err.message(fileLocationFromSection)))
+            .makeSyntaxError(err.message(fileLocationFromSection))
         case err: errors.Redefined.Binding =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
+            .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Redefined.Method =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
+            .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Redefined.MethodClashWithAtom =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
+            .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Redefined.Conversion =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
+            .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Redefined.Type =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
+            .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Redefined.SelfArg =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
+            .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Redefined.Arg =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
+            .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Unexpected.TypeSignature =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
+            .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Resolution =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
+            .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Conversion =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
+            .makeCompileError(err.message(fileLocationFromSection))
         case _: errors.Pattern =>
           throw new CompilerError(
             "Impossible here, should be handled in the pattern match."
@@ -2359,9 +2356,7 @@ class IrToTruffle(
               context.getBuiltins
                 .error()
                 .makeSyntaxError(
-                  Text.create(
-                    "Typeset literals are not yet supported at runtime"
-                  )
+                  "Typeset literals are not yet supported at runtime"
                 )
             ),
             application.location
