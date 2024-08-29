@@ -58,8 +58,8 @@ class AuditLogApiAccess {
   private void enqueueJob(LogJob job) {
     ensureConfigSaved();
     int queuedJobs = logQueue.enqueue(job);
-    if (queuedJobs == 1) {
-      // If we are the first job in the queue, we need to start the background thread.
+    if (queuedJobs == 1 && backgroundThreadService.getQueue().isEmpty()) {
+      // If we are the first message in the queue, we need to start the background thread.
       // It is possible that a job was already running, but adding a new one will not hurt - once
       // the queue is empty, the currently running job will finish and any additional jobs will also
       // terminate immediately.
@@ -67,10 +67,14 @@ class AuditLogApiAccess {
     }
 
     /*
-     * Liveness is guaranteed, because the queue size always increments exactly by 1, so we `enqueue` returns 1 if and only if the queue was empty beforehand.
-     * If the queue was empty before adding a job, we always schedule a `logThreadEntryPoint` to run.
+     * Liveness is guaranteed, because the queue size always increments exactly by 1,
+     * so `enqueue` returns 1 if and only if the queue was empty beforehand.
+     *
+     * If the queue was empty before adding a message, we always schedule a `logThreadEntryPoint` to run,
+     * unless it was already pending on the job queue.
+     *
      * Any running `logThreadEntryPoint` will not finish until the queue is empty.
-     * So after every append, either the thread is surely running or it is started.
+     * So after every append, either a job is already running or scheduled to be run.
      */
   }
 
@@ -79,8 +83,9 @@ class AuditLogApiAccess {
     while (true) {
       List<LogJob> pendingMessages = logQueue.popEnqueuedJobs(MAX_BATCH_SIZE);
       if (pendingMessages.isEmpty()) {
-        // If there are no more pending messages, we can stop the thread for now. It will be
-        // re-launched if needed.
+        // If there are no more pending messages, we can stop the thread for now.
+        // If during this teardown a new message is added, it will see no elements on `logQueue` and thus,
+        // `logQueue.enqueue` will return 1, thus ensuring that at least one new job is scheduled.
         return;
       }
 
