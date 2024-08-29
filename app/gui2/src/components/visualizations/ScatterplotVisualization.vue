@@ -512,10 +512,6 @@ watchPostEffect(() => {
       .attr('x', (d) => xScale_(d.x) + POINT_LABEL_PADDING_X_PX)
       .attr('y', (d) => yScale_(d.y) + POINT_LABEL_PADDING_Y_PX)
   }
-  if (data.value.is_multi_series) {
-    // set legend
-  }
-  console.log({ data: data.value })
 })
 
 // ======================
@@ -574,6 +570,35 @@ function zoomToSelected(override?: boolean) {
   endBrushing()
 }
 
+var svg = d3.select('#plot_legend')
+
+svg
+  .append('circle')
+  .attr('cx', 90)
+  .attr('cy', height.value - boxHeight.value + 20)
+  .attr('r', 6)
+  .style('fill', '#69b3a2')
+svg
+  .append('circle')
+  .attr('cx', 240)
+  .attr('cy', height.value - boxHeight.value - 20)
+  .attr('r', 6)
+  .style('fill', '#404080')
+svg
+  .append('text')
+  .attr('x', 110)
+  .attr('y', height.value - boxHeight.value - 20)
+  .text('variable A')
+  .style('font-size', '15px')
+  .attr('alignment-baseline', 'middle')
+svg
+  .append('text')
+  .attr('x', 250)
+  .attr('y', height.value - boxHeight.value - 20)
+  .text('variable B')
+  .style('font-size', '15px')
+  .attr('alignment-baseline', 'middle')
+
 useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSelected() }))
 </script>
 
@@ -588,8 +613,8 @@ useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSel
         @click.stop="zoomToSelected"
       />
     </template>
-    <div ref="containerNode" class="ScatterplotVisualization" @pointerdown.stop>
-      <svg :width="width" :height="height">
+    <div ref="containerNode" class="ScatterplotVisualization">
+      <svg id="plot_legend" :width="width" :height="height">
         <g :transform="`translate(${margin.left}, ${margin.top})`">
           <defs>
             <clipPath id="clip">
@@ -628,6 +653,7 @@ useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSel
 .ScatterplotVisualization {
   user-select: none;
   display: flex;
+  flex-direction: column;
 }
 
 .ScatterplotVisualization .selection {
