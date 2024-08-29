@@ -26,11 +26,17 @@ public final class AuditLog {
     try {
       future.get();
     } catch (ExecutionException | InterruptedException e) {
-      throw new RuntimeException("Exception occurred when sending an audit log message: " + e, e);
+      throw new AuditLogError("Failed to send log message: " + e, e);
     }
   }
 
   public static void refreshCaches() {
     AuditLogApiAccess.refreshRequestConfig();
+  }
+
+  public static class AuditLogError extends RuntimeException {
+    public AuditLogError(String message, Throwable cause) {
+      super(message, cause);
+    }
   }
 }
