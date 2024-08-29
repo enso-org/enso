@@ -49,8 +49,8 @@ export interface ProjectsProviderProps extends Readonly<React.PropsWithChildren>
 export default function DriveProvider(props: ProjectsProviderProps) {
   const { children } = props
   const { localStorage } = useLocalStorage()
-  const [store] = React.useState(() => {
-    return zustand.createStore<DriveStore>((set) => ({
+  const [store] = React.useState(() =>
+    zustand.createStore<DriveStore>((set) => ({
       targetDirectory: null,
       setTargetDirectory: (targetDirectory) => {
         set({ targetDirectory })
@@ -76,8 +76,8 @@ export default function DriveProvider(props: ProjectsProviderProps) {
       setIsAssetPanelTemporarilyVisible: (isAssetPanelTemporarilyVisible) => {
         set({ isAssetPanelTemporarilyVisible })
       },
-    }))
-  })
+    })),
+  )
 
   return <DriveContext.Provider value={store}>{children}</DriveContext.Provider>
 }
