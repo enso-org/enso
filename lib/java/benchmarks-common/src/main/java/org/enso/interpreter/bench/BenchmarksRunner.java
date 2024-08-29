@@ -5,9 +5,16 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import org.openjdk.jmh.infra.BenchmarkParams;
+import org.openjdk.jmh.infra.IterationParams;
+import org.openjdk.jmh.results.BenchmarkResult;
+import org.openjdk.jmh.results.IterationResult;
 import org.openjdk.jmh.results.RunResult;
+import org.openjdk.jmh.runner.Defaults;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
+import org.openjdk.jmh.runner.format.OutputFormat;
+import org.openjdk.jmh.runner.format.OutputFormatFactory;
 import org.openjdk.jmh.runner.options.CommandLineOptionException;
 import org.openjdk.jmh.runner.options.CommandLineOptions;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
@@ -31,7 +38,10 @@ public class BenchmarksRunner {
       // Do not report results from `compileOnly` mode
       runCompileOnly(cmdOpts.getIncludes());
     } else {
-      Runner jmhRunner = new Runner(cmdOpts);
+      var output =
+          OutputFormatFactory.createFormatInstance(
+              System.out, cmdOpts.verbosity().orElse(Defaults.VERBOSITY));
+      Runner jmhRunner = new Runner(cmdOpts, new GitHubActionsFormat(output));
 
       if (cmdOpts.shouldHelp()) {
         System.err.println("Enso benchmark runner: A modified JMH runner for Enso benchmarks.");
@@ -106,5 +116,77 @@ public class BenchmarksRunner {
 
     Report.writeToFile(report, REPORT_FILE);
     return benchItem;
+  }
+
+  private static final class GitHubActionsFormat implements OutputFormat {
+    private final OutputFormat output;
+
+    GitHubActionsFormat(OutputFormat output) {
+      this.output = output;
+    }
+
+    @Override
+    public void iteration(BenchmarkParams benchParams, IterationParams params, int iteration) {
+      output.iteration(benchParams, params, iteration);
+    }
+
+    @Override
+    public void iterationResult(
+        BenchmarkParams benchParams, IterationParams params, int iteration, IterationResult data) {
+      output.iterationResult(benchParams, params, iteration, data);
+    }
+
+    @Override
+    public void startBenchmark(BenchmarkParams benchParams) {
+      output.println("::group::" + benchParams.getBenchmark());
+    }
+
+    @Override
+    public void endBenchmark(BenchmarkResult result) {
+      output.println("::endgroup::");
+    }
+
+    @Override
+    public void startRun() {
+      output.startRun();
+    }
+
+    @Override
+    public void endRun(Collection<RunResult> result) {
+      output.endRun(result);
+    }
+
+    @Override
+    public void print(String s) {
+      output.print(s);
+    }
+
+    @Override
+    public void println(String s) {
+      output.println(s);
+    }
+
+    @Override
+    public void flush() {
+      output.flush();
+    }
+
+    @Override
+    public void close() {}
+
+    @Override
+    public void verbosePrintln(String s) {
+      output.verbosePrintln(s);
+    }
+
+    @Override
+    public void write(int b) {
+      output.write(b);
+    }
+
+    @Override
+    public void write(byte[] b) throws IOException {
+      output.write(b);
+    }
   }
 }
