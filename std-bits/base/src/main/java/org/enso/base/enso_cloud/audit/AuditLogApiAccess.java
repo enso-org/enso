@@ -191,11 +191,11 @@ class AuditLogApiAccess {
     }
   }
 
-  public interface LogMessage {
+  interface LogMessage {
     String payload();
   }
 
-  public static class RequestFailureException extends RuntimeException {
+  static class RequestFailureException extends RuntimeException {
     public RequestFailureException(String message, Throwable cause) {
       super(message, cause);
     }
@@ -203,7 +203,7 @@ class AuditLogApiAccess {
 
   private int failedLogCount = 0;
 
-  public int getFailedLogCount() {
+  int getFailedLogCount() {
     return failedLogCount;
   }
 
@@ -214,7 +214,7 @@ class AuditLogApiAccess {
    * <p>This is only used in tests when the environment is being overridden. Normally, the
    * environment does not change during execution.
    */
-  public static void refreshRequestConfig() {
+  static void refreshRequestConfig() {
     INSTANCE.requestConfig = INSTANCE.getRequestConfig();
   }
 }
