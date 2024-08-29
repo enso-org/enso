@@ -4,7 +4,6 @@ import {
   INPUT_STYLES,
   Input,
   type FieldPath,
-  type FieldValues,
   type InputProps,
   type TSchema,
 } from '#/components/AriaComponents'
@@ -35,21 +34,14 @@ const SETTINGS_FIELD_STYLES = tv({
 /** Props for a {@link SettingsAriaInput}. */
 export interface SettingsAriaInputProps<
   Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TFieldName extends FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
-> extends Omit<
-    InputProps<Schema, TFieldValues, TFieldName, TTransformedValues>,
-    'fieldVariants' | 'size' | 'variant' | 'variants'
-  > {}
+  TFieldName extends FieldPath<Schema>,
+> extends Omit<InputProps<Schema, TFieldName>, 'fieldVariants' | 'size' | 'variant' | 'variants'> {}
 
 /** A styled input for settings pages. */
 export default function SettingsAriaInput<
   Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TFieldName extends FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
->(props: SettingsAriaInputProps<Schema, TFieldValues, TFieldName, TTransformedValues>) {
+  TFieldName extends FieldPath<Schema>,
+>(props: SettingsAriaInputProps<Schema, TFieldName>) {
   return (
     <Input
       {...props}

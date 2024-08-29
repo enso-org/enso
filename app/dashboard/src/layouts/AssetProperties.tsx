@@ -279,7 +279,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                 readOnly={!canEditThisAsset}
                 dropdownTitle="Type"
                 value={editedDatalinkValue}
-                setValue={setEditedDatalinkValue}
+                onChange={setEditedDatalinkValue}
               />
               {canEditThisAsset && (
                 <ariaComponents.ButtonGroup>

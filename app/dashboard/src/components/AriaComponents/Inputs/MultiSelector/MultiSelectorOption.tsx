@@ -1,19 +1,19 @@
 /** @file An option in a selector. */
-import { Radio, type RadioProps } from '#/components/aria'
+import { ListBoxItem, type ListBoxItemProps } from '#/components/aria'
 import { forwardRef } from '#/utilities/react'
 import { tv } from '#/utilities/tailwindVariants'
 import * as React from 'react'
 import type { VariantProps } from 'tailwind-variants'
 import { TEXT_STYLE } from '../../Text'
 
-/** Props for a {@link SelectorOption}. */
-export interface SelectorOptionProps
-  extends RadioProps,
-    VariantProps<typeof SELECTOR_OPTION_STYLES> {
+/** Props for a {@link MultiSelectorOption}. */
+export interface MultiSelectorOptionProps
+  extends ListBoxItemProps,
+    VariantProps<typeof MULTI_SELECTOR_OPTION_STYLES> {
   readonly label: string
 }
 
-export const SELECTOR_OPTION_STYLES = tv({
+export const MULTI_SELECTOR_OPTION_STYLES = tv({
   base: TEXT_STYLE({
     className:
       'flex flex-1 items-center justify-center min-h-8 relative overflow-clip cursor-pointer transition-[background-color,color,outline-offset] duration-200',
@@ -46,24 +46,24 @@ export const SELECTOR_OPTION_STYLES = tv({
   },
 })
 
-export const SelectorOption = forwardRef(function SelectorOption(
-  props: SelectorOptionProps,
-  ref: React.ForwardedRef<HTMLLabelElement>,
+export const MultiSelectorOption = forwardRef(function MultiSelectorOption(
+  props: MultiSelectorOptionProps,
+  ref: React.ForwardedRef<HTMLDivElement>,
 ) {
   const { label, ...radioProps } = props
   const { className } = props
 
   return (
-    <Radio
+    <ListBoxItem
       ref={ref}
       {...radioProps}
       className={(renderProps) =>
-        SELECTOR_OPTION_STYLES({
+        MULTI_SELECTOR_OPTION_STYLES({
           className: typeof className === 'function' ? className(renderProps) : className,
         })
       }
     >
       {label}
-    </Radio>
+    </ListBoxItem>
   )
 })
