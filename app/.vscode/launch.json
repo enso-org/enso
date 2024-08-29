@@ -6,49 +6,80 @@
       "request": "launch",
       "name": "Dashboard",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["run", "--filter", "enso-dashboard", "dev"]
+      "runtimeArgs": ["run", "--filter", "enso-dashboard", "dev"],
+      "outputCapture": "std"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Dashboard (Electron, Linux)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["run", "--filter", "enso", "watch:linux"],
+      "outputCapture": "std"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Dashboard (Electron, macOS)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["run", "--filter", "enso", "watch:macos"],
+      "outputCapture": "std"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Dashboard (Electron, Windows)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["run", "--filter", "enso", "watch:windows"],
+      "outputCapture": "std"
     },
     {
       "type": "node",
       "request": "launch",
       "name": "GUI",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["dev:gui"]
+      "runtimeArgs": ["dev:gui"],
+      "outputCapture": "std"
     },
     {
       "type": "node",
       "request": "launch",
       "name": "GUI (Storybook)",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["run", "--filter", "enso-gui2", "story:dev"]
+      "runtimeArgs": ["run", "--filter", "enso-gui2", "story:dev"],
+      "outputCapture": "std"
     },
     {
       "type": "node",
       "request": "launch",
       "name": "Dashboard (Build)",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["build:gui"]
+      "runtimeArgs": ["build:gui"],
+      "outputCapture": "std"
     },
     {
       "type": "node",
       "request": "launch",
       "name": "Dashboard (E2E UI)",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["run", "--filter", "enso-dashboard", "test:e2e:debug"]
+      "runtimeArgs": ["run", "--filter", "enso-dashboard", "test:e2e:debug"],
+      "outputCapture": "std"
     },
     {
       "type": "node",
       "request": "launch",
       "name": "GUI (E2E UI)",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["run", "--filter", "enso-gui2", "test:e2e", "--", "--ui"]
+      "runtimeArgs": ["run", "--filter", "enso-gui2", "test:e2e", "--", "--ui"],
+      "outputCapture": "std"
     },
     {
       "type": "node",
       "request": "launch",
       "name": "Dashboard (All tests)",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["run", "--filter", "enso-dashboard", "test"]
+      "runtimeArgs": ["run", "--filter", "enso-dashboard", "test"],
+      "outputCapture": "std"
     },
     {
       "type": "node",
