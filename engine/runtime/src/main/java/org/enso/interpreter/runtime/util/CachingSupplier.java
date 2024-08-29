@@ -49,6 +49,7 @@ public final class CachingSupplier<T> implements Supplier<T> {
     synchronized (this) {
       if (!memoComputed) {
         memo = v;
+        memoComputed = true;
       }
       return memo;
     }
