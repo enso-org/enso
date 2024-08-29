@@ -1,5 +1,6 @@
 from Standard.Base import all
 
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Runtime.Ref.Ref
 
 from Standard.Test import all
@@ -18,8 +19,36 @@ add_specs suite_builder = suite_builder.group "Refs" group_builder->
         vec.at 0 . put 123
         vec.at 1 . get . should_equal 123
 
-    group_builder.specify "Example" <|
+    group_builder.specify "should be able to modify a value for the duration of an action" <|
+        r = Ref.new "old"
+        action_value = r.with_value "new" <|
+            r.get
+        r.get . should_equal "old"
+        action_value . should_equal "new"
+
+    group_builder.specify "should be able to modify a value for the duration of an action, even if the action throws an Error" <|
+        r = Ref.new "old"
+        action_value = r.with_value "new" <|
+            Error.throw (Illegal_Argument.Error "err")
+        r.get . should_equal "old"
+        action_value . should_fail_with Illegal_Argument
+
+    group_builder.specify "modify example" <|
         (Ref.new 10) . modify (_+1) . should_equal 10
+
+    group_builder.specify "with_value example" <|
+        r = Ref.new 10
+        is_eleven = r.with_value 11 <|
+            r.get == 11
+        is_eleven.should_be_true
+        r.get . should_equal 10
+
+    group_builder.specify "with_modification example" <|
+        r = Ref.new 10
+        is_eleven = r.with_modification (_+1) <|
+            r.get == 11
+        is_eleven.should_be_true
+        r.get . should_equal 10
 
 main filter=Nothing =
     suite = Test.build suite_builder->

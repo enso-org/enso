@@ -5,6 +5,7 @@
  */
 import * as React from 'react'
 
+import { forwardRef } from '#/utilities/react'
 import * as twv from '#/utilities/tailwindVariants'
 
 /**
@@ -17,9 +18,11 @@ export const VISUALLY_HIDDEN_STYLES = twv.tv({ base: 'sr-only' })
 /**
  * A component visually hides its children from the screen, but keeps them accessible to screen readers.
  */
-export const VisuallyHidden = React.forwardRef<HTMLSpanElement, VisuallyHiddenProps>(
-  function VisuallyHidden(props, ref) {
-    const { className } = props
-    return <span ref={ref} className={VISUALLY_HIDDEN_STYLES({ className })} {...props} />
-  },
-)
+// eslint-disable-next-line no-restricted-syntax
+export const VisuallyHidden = forwardRef(function VisuallyHidden(
+  props: VisuallyHiddenProps,
+  ref: React.ForwardedRef<HTMLSpanElement>,
+) {
+  const { className } = props
+  return <span ref={ref} className={VISUALLY_HIDDEN_STYLES({ className })} {...props} />
+})

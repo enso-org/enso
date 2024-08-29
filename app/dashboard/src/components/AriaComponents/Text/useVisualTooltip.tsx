@@ -35,6 +35,12 @@ export interface VisualTooltipProps
   readonly testId?: string
 }
 
+/** The return value of the {@link useVisualTooltip} hook. */
+export interface VisualTooltipReturn {
+  readonly targetProps: aria.DOMAttributes<aria.FocusableElement> & { readonly id: string }
+  readonly tooltip: JSX.Element | null
+}
+
 /**
  * The display strategy for the tooltip.
  */
@@ -50,7 +56,7 @@ const DEFAULT_DELAY = 250
  * Common use case is to show a tooltip when the content of an element is overflowing,
  * Or show a description of the element when hovered over.
  */
-export function useVisualTooltip(props: VisualTooltipProps) {
+export function useVisualTooltip(props: VisualTooltipProps): VisualTooltipReturn {
   const {
     children,
     targetRef,
@@ -137,11 +143,15 @@ export function useVisualTooltip(props: VisualTooltipProps) {
             }),
             // eslint-disable-next-line @typescript-eslint/naming-convention
             'aria-hidden': true,
+            // Note that this is a `@ts-expect-error` so that an update to the outdated type
+            // definitions will notify that this `@ts-expect-error` can be safely removed.
+            // @ts-expect-error This is a new DOM property.
             popover: '',
             role: 'presentation',
             'data-testid': testId,
-            // Remove z-index from the overlay style
-            // because it's not needed(we show latest element on top) and can cause issues with stacking context
+            // Remove z-index from the overlay style because it is not needed.
+            // We show the latest element on top, and z-index can cause issues with
+            // the stacking context.
             style: { zIndex: '' },
           },
         )}

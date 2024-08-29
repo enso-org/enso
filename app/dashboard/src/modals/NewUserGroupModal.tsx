@@ -119,7 +119,7 @@ export default function NewUserGroupModal(props: NewUserGroupModalProps) {
           >
             {getText('create')}
           </ariaComponents.Button>
-          <ariaComponents.Button variant="cancel" onPress={unsetModal}>
+          <ariaComponents.Button variant="outline" onPress={unsetModal}>
             {getText('cancel')}
           </ariaComponents.Button>
         </ariaComponents.ButtonGroup>

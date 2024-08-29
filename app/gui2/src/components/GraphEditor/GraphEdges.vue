@@ -54,7 +54,7 @@ function edgeInteractionClick(graphNavigator: GraphNavigator) {
   }
   const target = graph.mouseEditedEdge.target ?? selection?.hoveredPort
   const targetNode = target && graph.getPortNodeId(target)
-  graph.transact(() => {
+  graph.batchEdits(() => {
     if (source != null && sourceNode != targetNode) {
       if (target == null) {
         if (graph.mouseEditedEdge?.disconnectedEdgeTarget != null)

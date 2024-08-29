@@ -408,16 +408,15 @@ public class ExecCompilerTest {
           polyglot java import java.util.Random
 
           run seed =
-              operator1 = Random.new_generator seed
+              Random.new_generator seed
           """);
     var run = module.invokeMember("eval_expression", "run");
     try {
       var err = run.execute(1L);
-      fail("Not expecting any result: " + err);
+      assertTrue("Returned value represents exception: " + err, err.isException());
+      throw err.throwException();
     } catch (PolyglotException ex) {
-      assertEquals(
-          "Compile error: Compiler Internal Error: No polyglot symbol for Random.",
-          ex.getMessage());
+      assertEquals("Compile error: No polyglot symbol for Random.", ex.getMessage());
     }
   }
 

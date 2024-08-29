@@ -31,6 +31,8 @@
   attach warnings.][10725]
 - [Support for creating Atoms in expressions.][10820]
 - [IO.print without new line][10858]
+- [Add `Text.to_decimal`.][10874]
+- [Added .floor, .ceil, .trunc to the in-memory Decimal column.][10887]
 
 [10614]: https://github.com/enso-org/enso/pull/10614
 [10660]: https://github.com/enso-org/enso/pull/10660
@@ -39,6 +41,8 @@
 [10725]: https://github.com/enso-org/enso/pull/10725
 [10820]: https://github.com/enso-org/enso/pull/10820
 [10858]: https://github.com/enso-org/enso/pull/10858
+[10874]: https://github.com/enso-org/enso/pull/10874
+[10887]: https://github.com/enso-org/enso/pull/10887
 
 #### Enso Language & Runtime
 
