@@ -37,7 +37,6 @@ import AssetListEventType from '#/events/AssetListEventType'
 
 import type * as assetTable from '#/layouts/AssetsTable'
 import EventListProvider, * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-import type Category from '#/layouts/CategorySwitcher/Category'
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
@@ -57,7 +56,6 @@ import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
 
-import * as array from '#/utilities/array'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
@@ -121,57 +119,16 @@ function DashboardInner(props: DashboardProps) {
     : null
   const initialProjectName = initialLocalProjectId ?? initialProjectNameRaw
 
-  const [category, setCategory] = searchParamsState.useSearchParamsState<Category>(
+  const [category, setCategory] = searchParamsState.useSearchParamsState<categoryModule.Category>(
     'driveCategory',
     () => {
       const shouldDefaultToCloud =
         initialLocalProjectId == null && (user.isEnabled || localBackend == null)
-      const type =
-        shouldDefaultToCloud ? categoryModule.CategoryType.cloud : categoryModule.CategoryType.local
+      const type = shouldDefaultToCloud ? 'cloud' : 'local'
       return { type }
     },
-    (value): value is Category => {
-      if (typeof value !== 'object' || value == null) {
-        return false
-      } else if (!('type' in value) || typeof value.type !== 'string') {
-        return false
-      } else if (array.includes(Object.values(categoryModule.CategoryType), value.type)) {
-        switch (value.type) {
-          case categoryModule.CategoryType.user:
-          case categoryModule.CategoryType.team: {
-            if (!('homeDirectoryId' in value) || typeof value.homeDirectoryId !== 'string') {
-              return false
-            } else if (!('rootPath' in value) || typeof value.rootPath !== 'string') {
-              return false
-            } else {
-              if (value.type === categoryModule.CategoryType.user) {
-                const narrowedValue = {
-                  type: value.type,
-                  rootPath: backendModule.Path(value.rootPath),
-                  homeDirectoryId: backendModule.DirectoryId(value.homeDirectoryId),
-                } as const
-                return categoryModule.isLocalCategory(narrowedValue) ? localBackend != null : true
-              } else {
-                const narrowedValue = {
-                  type: value.type,
-                  rootPath: backendModule.Path(value.rootPath),
-                  homeDirectoryId: backendModule.DirectoryId(value.homeDirectoryId),
-                  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any, no-restricted-syntax, @typescript-eslint/no-unsafe-member-access
-                  team: (value as any).team,
-                } as const
-                return categoryModule.isLocalCategory(narrowedValue) ? localBackend != null : true
-              }
-            }
-          }
-          default: {
-            const narrowedValue = { type: value.type } as const
-            return categoryModule.isLocalCategory(narrowedValue) ? localBackend != null : true
-          }
-        }
-      } else {
-        return false
-      }
-    },
+    (value): value is categoryModule.Category =>
+      categoryModule.CATEGORY_SCHEMA.safeParse(value).success,
   )
 
   const projectsStore = useProjectsStore()
@@ -190,7 +147,7 @@ function DashboardInner(props: DashboardProps) {
 
   React.useEffect(() => {
     window.projectManagementApi?.setOpenProjectHandler((project) => {
-      setCategory({ type: categoryModule.CategoryType.local })
+      setCategory({ type: 'local' })
       const projectId = localBackendModule.newProjectId(projectManager.UUID(project.id))
       openProject({
         type: backendModule.BackendType.local,

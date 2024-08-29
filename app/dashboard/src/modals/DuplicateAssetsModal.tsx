@@ -182,7 +182,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                 </aria.Text>
               )}
               <ariaComponents.Button
-                variant="cancel"
+                variant="outline"
                 isDisabled={didUploadNonConflicting}
                 onPress={() => {
                   doUploadNonConflicting()
@@ -211,7 +211,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
             {count > 1 && (
               <ariaComponents.ButtonGroup>
                 <ariaComponents.Button
-                  variant="cancel"
+                  variant="outline"
                   onPress={() => {
                     doUpdateConflicting([firstConflict])
                     switch (firstConflict.new.type) {
@@ -229,7 +229,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                   {getText('update')}
                 </ariaComponents.Button>
                 <ariaComponents.Button
-                  variant="cancel"
+                  variant="outline"
                   onPress={() => {
                     doRename([firstConflict])
                     switch (firstConflict.new.type) {
@@ -293,7 +293,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
               getText('renameNewFiles')
             : getText('renameNewProjects')}
           </ariaComponents.Button>
-          <ariaComponents.Button variant="cancel" onPress={unsetModal}>
+          <ariaComponents.Button variant="outline" onPress={unsetModal}>
             {getText('cancel')}
           </ariaComponents.Button>
         </ariaComponents.ButtonGroup>

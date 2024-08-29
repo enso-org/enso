@@ -19,7 +19,6 @@ import AssetListEventType from '#/events/AssetListEventType'
 import AssetContextMenu from '#/layouts/AssetContextMenu'
 import type * as assetsTable from '#/layouts/AssetsTable'
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
 import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
@@ -33,6 +32,7 @@ import EditAssetDescriptionModal from '#/modals/EditAssetDescriptionModal'
 import * as backendModule from '#/services/Backend'
 
 import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
+import { isCloudCategory } from '#/layouts/CategorySwitcher/Category'
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import * as drag from '#/utilities/drag'
 import * as eventModule from '#/utilities/event'
@@ -144,7 +144,7 @@ export default function AssetRow(props: AssetRowProps) {
     // This is SAFE, as `isOpened` is only true for projects.
     // eslint-disable-next-line no-restricted-syntax
     ...createGetProjectDetailsQuery.createPassiveListener(item.item.id as backendModule.ProjectId),
-    select: (data) => data.state.type,
+    select: (data) => data?.state.type,
     enabled: item.type === backendModule.AssetType.project,
   })
 
@@ -252,10 +252,7 @@ export default function AssetRow(props: AssetRowProps) {
     })()
     if ((isPayloadMatch && canPaste) || event.dataTransfer.types.includes('Files')) {
       event.preventDefault()
-      if (
-        item.item.type === backendModule.AssetType.directory &&
-        state.category.type !== categoryModule.CategoryType.trash
-      ) {
+      if (item.item.type === backendModule.AssetType.directory && state.category.type !== 'trash') {
         setIsDraggedOver(true)
       }
     }
@@ -377,7 +374,7 @@ export default function AssetRow(props: AssetRowProps) {
                   onDragOver(event)
                 }}
                 onDragOver={(event) => {
-                  if (state.category.type === categoryModule.CategoryType.trash) {
+                  if (state.category.type === 'trash') {
                     event.dataTransfer.dropEffect = 'none'
                   }
                   props.onDragOver?.(event)
@@ -404,7 +401,7 @@ export default function AssetRow(props: AssetRowProps) {
                   props.onDragLeave?.(event)
                 }}
                 onDrop={(event) => {
-                  if (state.category.type !== categoryModule.CategoryType.trash) {
+                  if (state.category.type !== 'trash') {
                     props.onDrop?.(event)
                     clearDragState()
                     const [directoryKey, directoryId] =
@@ -461,7 +458,7 @@ export default function AssetRow(props: AssetRowProps) {
                         state={state}
                         rowState={rowState}
                         setRowState={setRowState}
-                        isEditable={state.category.type !== categoryModule.CategoryType.trash}
+                        isEditable={state.category.type !== 'trash'}
                       />
                     </td>
                   )

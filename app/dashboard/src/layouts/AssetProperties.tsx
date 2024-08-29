@@ -14,8 +14,6 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import type Category from '#/layouts/CategorySwitcher/Category'
-
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
@@ -27,6 +25,7 @@ import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 
+import type { Category } from '#/layouts/CategorySwitcher/Category'
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
@@ -188,7 +187,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                 }}
               />
               <ariaComponents.ButtonGroup>
-                <ariaComponents.Button size="medium" variant="bar" onPress={doEditDescription}>
+                <ariaComponents.Button size="medium" variant="outline" onPress={doEditDescription}>
                   {getText('update')}
                 </ariaComponents.Button>
               </ariaComponents.ButtonGroup>
@@ -318,7 +317,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                   </ariaComponents.Button>
                   <ariaComponents.Button
                     size="medium"
-                    variant="bar"
+                    variant="outline"
                     isDisabled={isDatalinkDisabled}
                     onPress={() => {
                       setEditedDatalinkValue(datalinkValue)

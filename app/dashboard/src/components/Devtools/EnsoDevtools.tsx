@@ -32,7 +32,11 @@ import {
   useFeatureFlags,
   useSetFeatureFlags,
 } from '#/providers/FeatureFlagsProvider'
+import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import * as backend from '#/services/Backend'
+import LocalStorage from '#/utilities/LocalStorage'
+import { unsafeEntries } from 'enso-common/src/utilities/data/object'
+import { Button, ButtonGroup, Form, Popover, Radio, RadioGroup, Separator, Text } from '#/components/AriaComponents'
 
 /**
  * A component that provides a UI for toggling paywall features.
@@ -45,6 +49,7 @@ export function EnsoDevtools() {
   const { features, setFeature } = usePaywallDevtools()
   const enableVersionChecker = useEnableVersionChecker()
   const setEnableVersionChecker = useSetEnableVersionChecker()
+  const { localStorage } = useLocalStorage()
 
   const featureFlags = useFeatureFlags()
   const setFeatureFlags = useSetFeatureFlags()
@@ -62,27 +67,27 @@ export function EnsoDevtools() {
           data-ignore-click-outside
         />
 
-        <ariaComponents.Popover>
-          <ariaComponents.Text.Heading disableLineHeightCompensation>
+        <Popover>
+          <Text.Heading disableLineHeightCompensation>
             {getText('ensoDevtoolsPopoverHeading')}
-          </ariaComponents.Text.Heading>
+          </Text.Heading>
 
-          <ariaComponents.Separator orientation="horizontal" className="my-3" />
+          <Separator orientation="horizontal" className="my-3" />
 
           {session?.type === UserSessionType.full && (
             <>
-              <ariaComponents.Text variant="subtitle">
+              <Text variant="subtitle">
                 {getText('ensoDevtoolsPlanSelectSubtitle')}
-              </ariaComponents.Text>
+              </Text>
 
-              <ariaComponents.Form
+              <Form
                 gap="small"
                 schema={(schema) => schema.object({ plan: schema.nativeEnum(backend.Plan) })}
                 defaultValues={{ plan: session.user.plan ?? backend.Plan.free }}
               >
                 {({ form }) => (
                   <>
-                    <ariaComponents.RadioGroup
+                    <RadioGroup
                       name="plan"
                       onChange={(value) => {
                         queryClient.setQueryData(authQueryKey, {
@@ -91,16 +96,15 @@ export function EnsoDevtools() {
                         })
                       }}
                     >
-                      <ariaComponents.Radio label={getText('free')} value={backend.Plan.free} />
-                      <ariaComponents.Radio label={getText('solo')} value={backend.Plan.solo} />
-                      <ariaComponents.Radio label={getText('team')} value={backend.Plan.team} />
-                      <ariaComponents.Radio
+                      <Radio label={getText('free')} value={backend.Plan.free} />
+                      <Radio label={getText('solo')} value={backend.Plan.solo} />
+                      <Radio label={getText('team')} value={backend.Plan.team} />
+                      <Radio
                         label={getText('enterprise')}
-                        value={backend.Plan.enterprise}
-                      />
-                    </ariaComponents.RadioGroup>
+                        value={backend.Plan.enterprise}/>
+                      </RadioGroup>
 
-                    <ariaComponents.Button
+                    <Button
                       size="small"
                       variant="outline"
                       onPress={() =>
@@ -110,19 +114,19 @@ export function EnsoDevtools() {
                       }
                     >
                       {getText('reset')}
-                    </ariaComponents.Button>
+                    </Button>
                   </>
                 )}
-              </ariaComponents.Form>
+              </Form>
 
-              <ariaComponents.Separator orientation="horizontal" className="my-3" />
+              <Separator orientation="horizontal" className="my-3" />
 
               {/* eslint-disable-next-line no-restricted-syntax */}
-              <ariaComponents.Button variant="link" href={SETUP_PATH + '?__qd-debg__=true'}>
+              <Button variant="link" href={SETUP_PATH + '?__qd-debg__=true'}>
                 Open setup page
-              </ariaComponents.Button>
+              </Button>
 
-              <ariaComponents.Separator orientation="horizontal" className="my-3" />
+              <Separator orientation="horizontal" className="my-3" />
             </>
           )}
 
@@ -146,6 +150,34 @@ export function EnsoDevtools() {
               />
             )}
           </ariaComponents.Form>
+
+          <Separator orientation="horizontal" className="my-3" />
+
+          <Text variant="subtitle" className="mb-2">
+            {getText('localStorage')}
+          </Text>
+
+          {unsafeEntries(LocalStorage.keyMetadata).map(([key]) => (
+            <div className="flex gap-1">
+              <ButtonGroup className="grow-0">
+                <Button
+                  size="small"
+                  variant="outline"
+                  onPress={() => {
+                    localStorage.delete(key)
+                  }}
+                >
+                  {getText('delete')}
+                </Button>
+              </ButtonGroup>
+              <Text variant="body">
+                {key
+                  .replace(/[A-Z]/g, (m) => ' ' + m.toLowerCase())
+                  .replace(/^./, (m) => m.toUpperCase())}
+              </Text>
+            </div>
+          ))}
+
 
           <ariaComponents.Separator orientation="horizontal" className="my-3" />
 
@@ -242,7 +274,7 @@ export function EnsoDevtools() {
               )
             })}
           </ariaComponents.Form>
-        </ariaComponents.Popover>
+        </Popover>
       </ariaComponents.DialogTrigger>
     </Portal>
   )
