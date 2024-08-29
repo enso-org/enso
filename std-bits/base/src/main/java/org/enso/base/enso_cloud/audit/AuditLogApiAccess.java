@@ -84,7 +84,8 @@ class AuditLogApiAccess {
       List<LogJob> pendingMessages = logQueue.popEnqueuedJobs(MAX_BATCH_SIZE);
       if (pendingMessages.isEmpty()) {
         // If there are no more pending messages, we can stop the thread for now.
-        // If during this teardown a new message is added, it will see no elements on `logQueue` and thus,
+        // If during this teardown a new message is added, it will see no elements on `logQueue` and
+        // thus,
         // `logQueue.enqueue` will return 1, thus ensuring that at least one new job is scheduled.
         return;
       }
