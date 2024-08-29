@@ -2520,6 +2520,9 @@ lazy val `runtime-integration-tests` =
         (`runtime-test-instruments` / Compile / exportedModule).value,
         (`runtime-instrument-common` / Compile / exportedModule).value,
         (`runtime-instrument-runtime-server` / Compile / exportedModule).value,
+        (`runtime-instrument-repl-debugger` / Compile / exportedModule).value,
+        (`runtime-instrument-id-execution` / Compile / exportedModule).value,
+        (`runtime-language-epb` / Compile / exportedModule).value,
         (`ydoc-server` / Compile / exportedModule).value,
         (`syntax-rust-definition` / Compile / exportedModule).value,
         (`profiling-utils` / Compile / exportedModule).value,
@@ -2586,6 +2589,7 @@ lazy val `runtime-integration-tests` =
             testInstrumentsModName,
             (`runtime-instrument-common` / javaModuleName).value,
             (`text-buffer` / javaModuleName).value,
+            (`semver` / javaModuleName).value,
             "truffle.tck.tests",
             "org.openide.util.lookup.RELEASE180"
           ),
@@ -3503,6 +3507,7 @@ lazy val semver = project
     frgaalJavaCompilerSetting,
     // Note [JPMS Compile order]
     compileOrder := CompileOrder.JavaThenScala,
+    javaModuleName := "org.enso.semver",
     libraryDependencies ++= Seq(
       "io.circe"      %% "circe-core"      % circeVersion     % "provided",
       "org.yaml"       % "snakeyaml"       % snakeyamlVersion % "provided",
