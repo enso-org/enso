@@ -6,8 +6,7 @@ import * as zustand from 'zustand'
 
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
-import type { AssetId } from 'enso-common/src/services/Backend'
-import { type DirectoryAsset } from 'enso-common/src/services/Backend'
+import type { AssetId, DirectoryAsset } from 'enso-common/src/services/Backend'
 
 // ==================
 // === DriveStore ===

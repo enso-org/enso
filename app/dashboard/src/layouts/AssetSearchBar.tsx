@@ -93,7 +93,7 @@ function Tags(props: InternalTagsProps) {
           : [
               <FocusRing key={key}>
                 <ariaComponents.Button
-                  variant="bar"
+                  variant="outline"
                   size="xsmall"
                   className="min-w-12"
                   onPress={() => {
