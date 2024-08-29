@@ -575,7 +575,7 @@ var svg = d3.select('#plot_legend')
 svg
   .append('circle')
   .attr('cx', 90)
-  .attr('cy', height.value - boxHeight.value + 20)
+  .attr('cy', height.value - boxHeight.value - 20)
   .attr('r', 6)
   .style('fill', '#69b3a2')
 svg
