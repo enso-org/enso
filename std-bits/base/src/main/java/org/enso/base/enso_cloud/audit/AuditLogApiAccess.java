@@ -123,13 +123,14 @@ class AuditLogApiAccess {
 
   private String buildPayload(List<LogJob> messages) {
     var payload = new StringBuilder();
-    payload.append("[");
+    payload.append("{\"logs\": [");
     for (var message : messages) {
       payload.append(message.message().payload()).append(",");
     }
 
-    // replace the last comma with a closing bracket
-    payload.replace(payload.length() - 1, payload.length(), "]");
+    // Remove the trailing comma.
+    payload.deleteCharAt(payload.length() - 1);
+    payload.append("]}");
     return payload.toString();
   }
 

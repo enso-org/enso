@@ -7,6 +7,8 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
+
 import org.enso.shttp.HttpMethod;
 
 public class PostLogHandler implements CloudHandler {
@@ -75,16 +77,23 @@ public class PostLogHandler implements CloudHandler {
   }
 
   private List<EventsService.LogEvent> decodeLogEvents(JsonNode root) {
-    if (root.isArray()) {
-      List<EventsService.LogEvent> events = new ArrayList<>(root.size());
-      for (JsonNode event : root) {
+    if (!root.isObject()) {
+      throw new IllegalArgumentException("Invalid JSON structure: " + root);
+    }
+
+    if (root.has("logs") && root.size() == 1) {
+      var array = root.get("logs");
+      if (!array.isArray()) {
+        throw new IllegalArgumentException("Invalid JSON structure: " + root);
+      }
+
+      List<EventsService.LogEvent> events = new ArrayList<>(array.size());
+      for (JsonNode event : array) {
         events.add(parseLogEvent(event));
       }
       return events;
-    } else if (root.isObject()) {
-      return List.of(parseLogEvent(root));
     } else {
-      throw new IllegalArgumentException("Invalid JSON structure: " + root);
+      return List.of(parseLogEvent(root));
     }
   }
 
