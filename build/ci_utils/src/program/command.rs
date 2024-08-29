@@ -469,7 +469,11 @@ pub fn spawn_log_processor(
                 match String::from_utf8(line_bytes) {
                     Ok(line) => {
                         let line = line.trim_end_matches('\r');
-                        info!("{prefix} {line}");
+                        if line.starts_with("::") {
+                            println!("{line}");
+                        } else {
+                            info!("{prefix} {line}");
+                        }
                     }
                     Err(e) => {
                         error!("{prefix} Failed to decode a line from output: {e}");
