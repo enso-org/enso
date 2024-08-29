@@ -46,6 +46,7 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.util.CachingSupplier;
 import org.graalvm.collections.Pair;
 
 public abstract class ReadArgumentCheckNode extends Node {
@@ -165,7 +166,8 @@ public abstract class ReadArgumentCheckNode extends Node {
 
   public static ReadArgumentCheckNode meta(
       String comment, Supplier<? extends Object> metaObjectSupplier) {
-    return ReadArgumentCheckNodeFactory.MetaCheckNodeGen.create(comment, metaObjectSupplier);
+    var cachingSupplier = CachingSupplier.wrap(metaObjectSupplier);
+    return ReadArgumentCheckNodeFactory.MetaCheckNodeGen.create(comment, cachingSupplier);
   }
 
   public static boolean isWrappedThunk(Function fn) {
@@ -477,10 +479,10 @@ public abstract class ReadArgumentCheckNode extends Node {
   }
 
   abstract static class MetaCheckNode extends ReadArgumentCheckNode {
-    private final Supplier<? extends Object> expectedSupplier;
+    private final CachingSupplier<? extends Object> expectedSupplier;
     @CompilerDirectives.CompilationFinal private String expectedTypeMessage;
 
-    MetaCheckNode(String name, Supplier<? extends Object> expectedMetaSupplier) {
+    MetaCheckNode(String name, CachingSupplier<? extends Object> expectedMetaSupplier) {
       super(name);
       this.expectedSupplier = expectedMetaSupplier;
     }

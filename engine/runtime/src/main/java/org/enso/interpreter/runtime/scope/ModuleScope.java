@@ -370,7 +370,7 @@ public final class ModuleScope implements EnsoObject {
       if (methodMap.containsKey(method) && !type.isBuiltin()) {
         throw new RedefinedMethodException(type.getName(), method);
       } else {
-        methodMap.put(method, new CachingSupplier<>(function));
+        methodMap.put(method, CachingSupplier.forValue(function));
       }
     }
 
@@ -390,7 +390,7 @@ public final class ModuleScope implements EnsoObject {
       if (methodMap.containsKey(method) && !type.isBuiltin()) {
         throw new RedefinedMethodException(type.getName(), method);
       } else {
-        methodMap.put(method, new CachingSupplier<>(supply));
+        methodMap.put(method, CachingSupplier.wrap(supply));
       }
     }
 
@@ -419,7 +419,7 @@ public final class ModuleScope implements EnsoObject {
      */
     public void registerPolyglotSymbol(String name, Supplier<TruffleObject> symbolFactory) {
       assert moduleScope == null;
-      polyglotSymbols.put(name, new CachingSupplier<>(symbolFactory));
+      polyglotSymbols.put(name, CachingSupplier.wrap(symbolFactory));
     }
 
     /**

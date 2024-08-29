@@ -11,13 +11,26 @@ public final class CachingSupplier<T> implements Supplier<T> {
   @CompilerDirectives.CompilationFinal private boolean memoComputed;
   @CompilerDirectives.CompilationFinal private T memo;
 
-  public CachingSupplier(Supplier<T> supply) {
+  private CachingSupplier(Supplier<T> supply) {
     this.supply = supply;
   }
 
-  public CachingSupplier(T memo) {
+  private CachingSupplier(T memo) {
     this.supply = null;
     this.memo = memo;
+    this.memoComputed = true;
+  }
+
+  public static <V> CachingSupplier<V> wrap(Supplier<V> supply) {
+    if (supply instanceof CachingSupplier<V> cs) {
+      return cs;
+    } else {
+      return new CachingSupplier<>(supply);
+    }
+  }
+
+  public static <V> CachingSupplier<V> forValue(V value) {
+    return new CachingSupplier<>(value);
   }
 
   @Override
@@ -45,6 +58,7 @@ public final class CachingSupplier<T> implements Supplier<T> {
    * Returns a supplier that always returns {@code null} when its {@link Supplier#get()} method is
    * called.
    *
+   * @param <V> type of value returned by the supplier
    * @return non-{@code null} instance of supplier
    */
   @SuppressWarnings("unchecked")

@@ -15,11 +15,11 @@ import org.enso.interpreter.runtime.util.CachingSupplier;
 public final class LazyObjectNode extends ExpressionNode {
 
   private final String error;
-  private final Supplier<? extends Object> supply;
+  private final CachingSupplier<? extends Object> supply;
 
   private LazyObjectNode(String error, Supplier<? extends Object> supply) {
     this.error = error;
-    this.supply = supply;
+    this.supply = CachingSupplier.wrap(supply);
   }
 
   /**
@@ -30,7 +30,7 @@ public final class LazyObjectNode extends ExpressionNode {
    *     errorMessage} error is created
    */
   public static ExpressionNode build(String errorMessage, Supplier<TruffleObject> supplier) {
-    return new LazyObjectNode(errorMessage, new CachingSupplier<>(supplier));
+    return new LazyObjectNode(errorMessage, supplier);
   }
 
   @Override
