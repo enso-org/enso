@@ -209,6 +209,11 @@ class AuditLogApiAccess {
    * environment does not change during execution.
    */
   static void refreshRequestConfig() {
-    INSTANCE.requestConfig = INSTANCE.getRequestConfig();
+    // We only do the refresh if the request config was set before. It may not be set if the user is
+    // not logged in to the cloud, and trying to refresh it then will fail with `Not_Logged_In`
+    // error.
+    if (INSTANCE.requestConfig != null) {
+      INSTANCE.requestConfig = INSTANCE.getRequestConfig();
+    }
   }
 }
