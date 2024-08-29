@@ -182,7 +182,6 @@ class AuditLogApiAccess {
     } catch (RequestFailureException e) {
       if (retryCount < 0) {
         logger.severe("Failed to send log messages after retrying: " + e.getMessage());
-        failedLogCount++;
         throw e;
       } else {
         logger.warning("Exception when sending log messages: " + e.getMessage() + ". Retrying...");
@@ -199,12 +198,6 @@ class AuditLogApiAccess {
     public RequestFailureException(String message, Throwable cause) {
       super(message, cause);
     }
-  }
-
-  private int failedLogCount = 0;
-
-  int getFailedLogCount() {
-    return failedLogCount;
   }
 
   /**
