@@ -206,36 +206,6 @@ export function EnsoDevtools(props: EnsoDevtoolsProps) {
             <Separator orientation="horizontal" className="my-3" />
 
             <Text variant="subtitle" className="mb-2">
-              {getText('localStorage')}
-            </Text>
-            {unsafeEntries(LocalStorage.keyMetadata).map(([key]) => (
-              <div className="my-1 flex items-center gap-1">
-                <ButtonGroup className="grow-0">
-                  <Button
-                    size="small"
-                    variant="outline"
-                    isDisabled={localStorageState[key] == null}
-                    onPress={() => {
-                      localStorage.delete(key)
-                    }}
-                  >
-                    {getText('delete')}
-                  </Button>
-                </ButtonGroup>
-                <Text
-                  variant="body"
-                  className={twJoin(localStorageState[key] == null && 'opacity-50')}
-                >
-                  {key
-                    .replace(/[A-Z]/g, (m) => ' ' + m.toLowerCase())
-                    .replace(/^./, (m) => m.toUpperCase())}
-                </Text>
-              </div>
-            ))}
-
-            <Separator orientation="horizontal" className="my-3" />
-
-            <Text variant="subtitle" className="mb-2">
               {getText('paywallDevtoolsPaywallFeaturesToggles')}
             </Text>
 
@@ -270,6 +240,36 @@ export function EnsoDevtools(props: EnsoDevtoolsProps) {
                 )
               })}
             </div>
+
+            <Separator orientation="horizontal" className="my-3" />
+
+            <Text variant="subtitle" className="mb-2">
+              {getText('localStorage')}
+            </Text>
+            {unsafeEntries(LocalStorage.keyMetadata).map(([key]) => (
+              <div className="my-1 flex items-center gap-1">
+                <ButtonGroup className="grow-0">
+                  <Button
+                    size="small"
+                    variant="outline"
+                    isDisabled={localStorageState[key] == null}
+                    onPress={() => {
+                      localStorage.delete(key)
+                    }}
+                  >
+                    {getText('delete')}
+                  </Button>
+                </ButtonGroup>
+                <Text
+                  variant="body"
+                  className={twJoin(localStorageState[key] == null && 'opacity-50')}
+                >
+                  {key
+                    .replace(/[A-Z]/g, (m) => ' ' + m.toLowerCase())
+                    .replace(/^./, (m) => m.toUpperCase())}
+                </Text>
+              </div>
+            ))}
           </Popover>
         </DialogTrigger>
       </Portal>
