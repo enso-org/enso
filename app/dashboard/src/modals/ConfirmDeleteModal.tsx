@@ -20,11 +20,11 @@ export interface ConfirmDeleteModalProps {
 
 /** A modal for confirming the deletion of an asset. */
 export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
-  const { defaultOpen = false, actionText, actionButtonLabel = 'Delete', doDelete } = props
+  const { defaultOpen, actionText, actionButtonLabel = 'Delete', doDelete } = props
   const { getText } = useText()
 
   return (
-    <Dialog title={getText('areYouSure')} modalProps={{ defaultOpen }}>
+    <Dialog title={getText('areYouSure')} modalProps={defaultOpen == null ? {} : { defaultOpen }}>
       {({ close }) => (
         <Form
           schema={z.object({})}
