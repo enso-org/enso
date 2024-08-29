@@ -38,6 +38,7 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
+import org.enso.interpreter.runtime.error.DataflowError;
 
 /** Container for builtin Error types */
 public final class Error {
@@ -349,5 +350,17 @@ public final class Error {
    */
   public Atom makeMapError(long index, Object innerError) {
     return mapError.newInstance(index, innerError);
+  }
+
+  /**
+   * Creates error on missing polyglot java import class.
+   *
+   * @param className the name of the class that is missing
+   * @return data flow error representing the missing value
+   */
+  public DataflowError makeMissingPolyglotImportError(String className) {
+    var msg = "No polyglot symbol for " + className;
+    var err = makeCompileError(msg);
+    return DataflowError.withDefaultTrace(err, null);
   }
 }

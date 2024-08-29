@@ -8,6 +8,7 @@ import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.enso.compiler.context.CompilerContext;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoObject;
@@ -266,7 +267,12 @@ public final class ModuleScope implements EnsoObject {
    */
   public Supplier<TruffleObject> getPolyglotSymbolSupplier(String symbolName) {
     var supplier = polyglotSymbols.get(symbolName);
-    return supplier != null ? supplier : CachingSupplier.nullSupplier();
+    if (supplier != null) {
+      return supplier;
+    }
+    var ctx = EnsoContext.get(null);
+    var err = ctx.getBuiltins().error().makeMissingPolyglotImportError(symbolName);
+    return CachingSupplier.forValue(err);
   }
 
   @ExportMessage

@@ -52,6 +52,7 @@ import org.enso.interpreter.OptionsHelper;
 import org.enso.interpreter.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
@@ -553,7 +554,7 @@ public final class EnsoContext {
    * is looked up by iterating the members of the outer class via Truffle's interop protocol.
    *
    * @param className Fully qualified class name, can also be nested static inner class.
-   * @return If the java class is found, return it, otherwise return null.
+   * @return If the java class is found, return it, otherwise return {@link DataflowError}.
    */
   @TruffleBoundary
   public TruffleObject lookupJavaClass(String className) {
@@ -581,7 +582,7 @@ public final class EnsoContext {
       level = Level.FINE;
       logger.log(Level.FINE, null, ex);
     }
-    return null;
+    return getBuiltins().error().makeMissingPolyglotImportError(className);
   }
 
   private Object lookupHostSymbol(String fqn)

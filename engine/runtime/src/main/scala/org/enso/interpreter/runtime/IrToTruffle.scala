@@ -111,7 +111,6 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
-import org.enso.interpreter.runtime.error.DataflowError
 
 /** This is an implementation of a codegeneration pass that lowers the Enso
   * [[IR]] into the truffle structures that are actually executed.
@@ -235,13 +234,7 @@ class IrToTruffle(
         this.scopeBuilder.registerPolyglotSymbol(
           poly.getVisibleName,
           () => {
-            var hostSymbol = context.lookupJavaClass(i.getJavaName)
-            if (hostSymbol == null) {
-              val msg =
-                s"Incorrect polyglot java import: ${i.getJavaName}"
-              val err = context.getBuiltins.error.makeCompileError(msg)
-              hostSymbol = DataflowError.withDefaultTrace(err, null)
-            }
+            val hostSymbol = context.lookupJavaClass(i.getJavaName)
             hostSymbol
           }
         )
