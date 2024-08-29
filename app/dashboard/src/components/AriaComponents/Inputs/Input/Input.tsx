@@ -81,6 +81,8 @@ export const Input = React.forwardRef(function Input<
     ...inputProps
   } = props
 
+  const testId = props.testId ?? props['data-testid']
+
   const privateInputRef = React.useRef<HTMLInputElement>(null)
 
   const { fieldState, formInstance } = ariaComponents.Form.useField({
@@ -126,7 +128,7 @@ export const Input = React.forwardRef(function Input<
 
   return (
     <ariaComponents.Form.Field
-      data-testid={props['data-testid']}
+      data-testid={testId}
       form={formInstance}
       name={name}
       fullWidth
