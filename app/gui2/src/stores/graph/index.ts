@@ -147,9 +147,20 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
 
     const watchContext = useWatchContext()
 
+    const afterUpdate: (() => void)[] = []
+
+    /** `func` callback will be executed once after next call to `updateNodes`. */
+    function doAfterUpdate(func: () => void) {
+      afterUpdate.push(func)
+    }
+
     watchEffect(() => {
       if (!methodAst.value.ok) return
       db.updateNodes(methodAst.value.value, watchContext)
+      for (const cb of afterUpdate) {
+        cb()
+      }
+      afterUpdate.length = 0
     })
 
     watchEffect(() => {
@@ -690,6 +701,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     return proxyRefs({
       db: markRaw(db),
       mockExpressionUpdate,
+      doAfterUpdate,
       editedNodeInfo,
       moduleSource,
       nodeRects,
