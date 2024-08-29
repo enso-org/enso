@@ -3,6 +3,7 @@ package org.enso.languageserver.websocket.json
 import io.circe.literal._
 import org.enso.distribution.FileSystem
 import org.enso.logging.service.logback.test.provider.ReportLogsOnFailure
+import org.enso.version.BuildVersion
 
 import java.nio.file.Files
 
@@ -40,7 +41,7 @@ class ProjectSettingsManagerTest
           { "jsonrpc": "2.0",
             "id": 0,
             "result": {
-              "parentEdition": ${buildinfo.Info.currentEdition},
+              "parentEdition": ${BuildVersion.currentEdition},
               "preferLocalLibraries": true
             }
           }
