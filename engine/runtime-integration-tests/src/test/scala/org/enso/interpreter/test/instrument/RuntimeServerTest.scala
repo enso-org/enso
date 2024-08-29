@@ -9,6 +9,7 @@ import org.enso.common.MethodNames
 import org.enso.polyglot.data.TypeGraph
 import org.enso.common.RuntimeOptions
 import org.enso.polyglot.RuntimeServerInfo
+import org.enso.polyglot.debugger.IdExecutionService
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
@@ -74,6 +75,23 @@ class RuntimeServerTest
       .getBindings(LanguageInfo.ID)
       .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
       .asHostObject[EnsoContext]
+
+
+    private def ensureInstrumentsAvailable() = {
+      val instruments = context.getEngine.getInstruments
+      if (instruments.get(IdExecutionService.INSTRUMENT_ID) == null) {
+        throw new IllegalStateException(
+          "RuntimeServerTest cannot be initialized: IdExecutionService instrument must be available on module-path"
+        )
+      }
+      if (instruments.get(RuntimeServerInfo.INSTRUMENT_NAME) == null) {
+        throw new IllegalStateException(
+          "RuntimeServerTest cannot be initialized: RuntimeServer instrument must be available on module-path"
+        )
+      }
+    }
+
+    ensureInstrumentsAvailable()
 
     def writeMain(contents: String): File =
       Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
