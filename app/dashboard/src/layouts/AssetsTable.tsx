@@ -274,7 +274,7 @@ export interface AssetsTableState {
     newParentKey: backendModule.DirectoryId,
     newParentId: backendModule.DirectoryId,
   ) => void
-  readonly doDelete: (forever: boolean, item: backendModule.AnyAsset) => void
+  readonly doDelete: (forever: boolean, item: backendModule.AnyAsset) => Promise<void>
 }
 
 /** Data associated with a {@link AssetRow}, used for rendering. */
@@ -445,11 +445,6 @@ export default function AssetsTable(props: AssetsTableProps) {
   )
   const deleteAssetMutation = useMutation(
     backendMutationOptions(backend, 'deleteAsset', {
-      meta: { invalidates: [['assetVersions'], ['listDirectory', backend.type]] },
-    }),
-  )
-  const undoDeleteAssetMutation = useMutation(
-    backendMutationOptions(backend, 'undoDeleteAsset', {
       meta: { invalidates: [['assetVersions'], ['listDirectory', backend.type]] },
     }),
   )
@@ -1963,7 +1958,6 @@ export default function AssetsTable(props: AssetsTableProps) {
         break
       }
       case AssetListEventType.insertAssets: {
-        console.log('insertAssets', event)
         insertAssets(event.assets, event.parentId)
         break
       }

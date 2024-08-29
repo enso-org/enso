@@ -187,8 +187,8 @@ export default function AssetRow(props: AssetRowProps) {
   }, [item, isSoleSelected, backend, setAssetPanelProps, setIsAssetPanelTemporarilyVisible])
 
   const doDelete = React.useCallback(
-    async (forever = false) => {
-      doDeleteRaw(forever, item.item)
+    (forever = false) => {
+      void doDeleteRaw(forever, item.item)
     },
     [doDeleteRaw, item.item],
   )
