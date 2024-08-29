@@ -20,7 +20,7 @@ fc.test.prop({
 })('converting between constant value and schema', ({ value }) => {
   const schema = jsonSchema.constantValueToSchema(value)
   if (schema != null) {
-    const extractedValue = jsonSchema.constantValue({}, schema)[0]
+    const extractedValue = jsonSchema.constantValueOfSchema({}, schema)[0]
     v.expect(
       extractedValue,
       `\`${JSON.stringify(value)}\` should round trip to schema and back`,
@@ -38,7 +38,7 @@ v.test.each([{ value: JSON.parse('{"__proto__":{}}') }])(
   ({ value }) => {
     const schema = jsonSchema.constantValueToSchema(value)
     if (schema != null) {
-      const extractedValue = jsonSchema.constantValue({}, schema)[0]
+      const extractedValue = jsonSchema.constantValueOfSchema({}, schema)[0]
       v.expect(
         extractedValue,
         `\`${JSON.stringify(value)}\` should round trip to schema and back`,
@@ -56,7 +56,7 @@ fc.test.prop({ value: fc.fc.string() })('string schema', ({ value }) => {
   const constSchema = { const: value, type: 'string' }
   v.expect(AJV.validate(STRING_SCHEMA, value)).toBe(true)
   v.expect(AJV.validate(constSchema, value)).toBe(true)
-  v.expect(jsonSchema.constantValue({}, constSchema)[0]).toBe(value)
+  v.expect(jsonSchema.constantValueOfSchema({}, constSchema)[0]).toBe(value)
 })
 
 const NUMBER_SCHEMA = { type: 'number' } as const
@@ -65,7 +65,7 @@ fc.test.prop({ value: fc.fc.float() })('number schema', ({ value }) => {
     const constSchema = { const: value, type: 'number' }
     v.expect(AJV.validate(NUMBER_SCHEMA, value)).toBe(true)
     v.expect(AJV.validate(constSchema, value)).toBe(true)
-    v.expect(jsonSchema.constantValue({}, constSchema)[0]).toBe(value)
+    v.expect(jsonSchema.constantValueOfSchema({}, constSchema)[0]).toBe(value)
   }
 })
 
@@ -94,7 +94,7 @@ fc.test.prop({ value: fc.fc.integer() })('integer schema', ({ value }) => {
   const constSchema = { const: value, type: 'integer' }
   v.expect(AJV.validate(INTEGER_SCHEMA, value)).toBe(true)
   v.expect(AJV.validate(constSchema, value)).toBe(true)
-  v.expect(jsonSchema.constantValue({}, constSchema)[0]).toBe(value)
+  v.expect(jsonSchema.constantValueOfSchema({}, constSchema)[0]).toBe(value)
 })
 
 fc.test.prop({

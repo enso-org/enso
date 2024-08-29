@@ -66,6 +66,19 @@ export function unsafeEntries<T extends object>(
   return Object.entries(object)
 }
 
+// =============================
+// === unsafeRemoveUndefined ===
+// =============================
+
+/** A the object with `undefined` unsafely removed from the value types of all of its keys. */
+export function unsafeRemoveUndefined<T extends object>(
+  object: T,
+): { [K in keyof T]: Exclude<T[K], undefined> } {
+  // This function intentionally performs an mostly safe, but ultimately unsafe cast.
+  // eslint-disable-next-line no-restricted-syntax
+  return object as never
+}
+
 // ==================
 // === mapEntries ===
 // ==================

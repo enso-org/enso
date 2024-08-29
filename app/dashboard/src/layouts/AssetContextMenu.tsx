@@ -167,6 +167,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               doAction={() => {
                 setModal(
                   <ConfirmDeleteModal
+                    defaultOpen
                     actionText={`delete the ${asset.type} '${asset.title}' forever`}
                     doDelete={() => {
                       const ids = new Set([asset.id])
@@ -293,22 +294,21 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               }}
             />
           )}
-          {canExecute && !isRunningProject && !isOtherUserUsingProject && (
-            <ContextMenuEntry
-              hidden={hidden}
-              isDisabled={
-                isCloud ?
-                  asset.type !== backendModule.AssetType.project &&
-                  asset.type !== backendModule.AssetType.directory
-                : false
-              }
-              action="rename"
-              doAction={() => {
-                setRowState(object.merger({ isEditingName: true }))
-                unsetModal()
-              }}
-            />
-          )}
+          {canExecute &&
+            !isRunningProject &&
+            !isOtherUserUsingProject &&
+            (!isCloud ||
+              asset.type === backendModule.AssetType.project ||
+              asset.type === backendModule.AssetType.directory) && (
+              <ContextMenuEntry
+                hidden={hidden}
+                action="rename"
+                doAction={() => {
+                  setRowState(object.merger({ isEditingName: true }))
+                  unsetModal()
+                }}
+              />
+            )}
           {asset.type === backendModule.AssetType.secret &&
             canEditThisAsset &&
             remoteBackend != null && (
@@ -364,6 +364,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 } else {
                   setModal(
                     <ConfirmDeleteModal
+                      defaultOpen
                       actionText={getText('deleteTheAssetTypeTitle', asset.type, asset.title)}
                       doDelete={doDelete}
                     />,
