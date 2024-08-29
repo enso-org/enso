@@ -63,6 +63,16 @@ object JPMSPlugin extends AutoPlugin {
         |""".stripMargin
     )
 
+    val addOpens = taskKey[Map[String, Seq[String]]] (
+      """
+        |A map of module names with packages to modules that will be put into --add-opens option to java.
+        |Note that this option is not added to `javac`, only to `java`.
+        |For example `org.enso.runtime/org.enso.my.package=ALL-UNNAMED` will open the package
+        |`org.enso.my.package` in the module `org.enso.runtime` to all unnamed modules.
+        |Specify it as `addOpens := Map("org.enso.runtime/org.enso.my.package" -> List("ALL-UNNAMED"))`.
+        |""".stripMargin
+    )
+
     val exportedModule = taskKey[File](
       """
         |Similarly to `exportedProducts` task, this task returns a file that can be
@@ -198,9 +208,12 @@ object JPMSPlugin extends AutoPlugin {
         config / patchModules := Map.empty,
         config / addExports := Map.empty,
         config / addReads := Map.empty,
+        config / addOpens := Map.empty,
+        // No --add-opens option to javac
         config / javacOptions ++= {
           constructOptions(
             streams.value.log,
+            moduleName.value,
             (config / modulePath).value,
             (config / addModules).value,
             (config / patchModules).value,
@@ -211,11 +224,13 @@ object JPMSPlugin extends AutoPlugin {
         config / javaOptions ++= {
           constructOptions(
             streams.value.log,
+            moduleName.value,
             (config / modulePath).value,
             (config / addModules).value,
             (config / patchModules).value,
             (config / addExports).value,
-            (config / addReads).value
+            (config / addReads).value,
+            (config / addOpens).value
           )
         },
         // Sanitize cmd line arguments
@@ -303,13 +318,15 @@ object JPMSPlugin extends AutoPlugin {
     }
   }
 
-  def constructOptions(
+  private def constructOptions(
     log: Logger,
+    curProjName: String,
     modulePath: Seq[File],
     addModules: Seq[String]              = Seq.empty,
     patchModules: Map[String, Seq[File]] = Map.empty,
     addExports: Map[String, Seq[String]] = Map.empty,
-    addReads: Map[String, Seq[String]]   = Map.empty
+    addReads: Map[String, Seq[String]]   = Map.empty,
+    addOpens: Map[String, Seq[String]]   = Map.empty
   ): Seq[String] = {
     val patchOpts: Seq[String] = patchModules.flatMap {
       case (moduleName, dirsToPatch) =>
@@ -325,7 +342,10 @@ object JPMSPlugin extends AutoPlugin {
     val addExportsOpts: Seq[String] = addExports.flatMap {
       case (modPkgName, targetModules) =>
         if (!modPkgName.contains("/")) {
-          log.error(s"JPMSPlugin: Invalid module/package name: $modPkgName")
+          log.error(
+            s"[JPMSPlugin/$curProjName] Invalid module/package name: $modPkgName " +
+            "in `addExports` task."
+          )
         }
         Seq(
           "--add-exports",
@@ -358,7 +378,20 @@ object JPMSPlugin extends AutoPlugin {
       )
     }.toSeq
 
-    modulePathOpts ++ addModsOpts ++ patchOpts ++ addExportsOpts ++ addReadsOpts
+    val addOpensOpts = addOpens.flatMap { case (modPkgName, targetModules) =>
+      if (!modPkgName.contains("/")) {
+        log.error(
+          s"[JPMSPlugin/$curProjName] Invalid module/package name: $modPkgName " +
+          "in `addOpens` task."
+        )
+      }
+      Seq(
+        "--add-opens",
+        modPkgName + "=" + targetModules.mkString(",")
+      )
+    }.toSeq
+
+    modulePathOpts ++ addModsOpts ++ patchOpts ++ addExportsOpts ++ addReadsOpts ++ addOpensOpts
   }
 
   /**
