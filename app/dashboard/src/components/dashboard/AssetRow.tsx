@@ -32,7 +32,6 @@ import EditAssetDescriptionModal from '#/modals/EditAssetDescriptionModal'
 import * as backendModule from '#/services/Backend'
 
 import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
-import { isCloudCategory } from '#/layouts/CategorySwitcher/Category'
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import * as drag from '#/utilities/drag'
 import * as eventModule from '#/utilities/event'
@@ -188,7 +187,7 @@ export default function AssetRow(props: AssetRowProps) {
 
   const doDelete = React.useCallback(
     (forever = false) => {
-      void doDeleteRaw(forever, item.item)
+      void doDeleteRaw(item.item, forever)
     },
     [doDeleteRaw, item.item],
   )

@@ -80,7 +80,6 @@ import * as projectManager from '#/services/ProjectManager'
 import { isSpecialReadonlyDirectoryId } from '#/services/RemoteBackend'
 
 import { ErrorDisplay } from '#/components/ErrorBoundary'
-import * as array from '#/utilities/array'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import type * as assetQuery from '#/utilities/AssetQuery'
@@ -275,7 +274,7 @@ export interface AssetsTableState {
     newParentKey: backendModule.DirectoryId,
     newParentId: backendModule.DirectoryId,
   ) => void
-  readonly doDelete: (forever: boolean, item: backendModule.AnyAsset) => Promise<void>
+  readonly doDelete: (item: backendModule.AnyAsset, forever: boolean) => Promise<void>
 }
 
 /** Data associated with a {@link AssetRow}, used for rendering. */
@@ -360,9 +359,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const organization = organizationQuery.data
 
   const isAssetContextMenuVisible =
-    category.type !== 'cloud' ||
-    user.plan == null ||
-    user.plan === backendModule.Plan.solo
+    category.type !== 'cloud' || user.plan == null || user.plan === backendModule.Plan.solo
 
   const nameOfProjectToImmediatelyOpenRef = React.useRef(initialProjectName)
   const [localRootDirectory] = localStorageProvider.useLocalStorageState('localRootDirectory')
@@ -371,7 +368,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const id =
       'homeDirectoryId' in category ?
         category.homeDirectoryId
-        : backend.rootDirectoryId(user, organization, localRootPath)
+      : backend.rootDirectoryId(user, organization, localRootPath)
     invariant(id, 'Missing root directory')
     return id
   }, [category, backend, user, organization, localRootDirectory])
@@ -478,7 +475,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 parentId: directoryId,
                 labels: null,
                 filterBy: CATEGORY_TO_FILTER_BY[category.type],
-                recentProjects: category.type === categoryModule.CategoryType.recent,
+                recentProjects: category.type === 'recent',
               },
             ] as const,
             queryFn: async ({ queryKey: [, , parentId, params] }) => ({
@@ -1260,33 +1257,35 @@ export default function AssetsTable(props: AssetsTableProps) {
     },
   )
 
-  const doDelete = useEventCallback(async (forever = false, asset: backendModule.AnyAsset) => {
-    if (asset.type === backendModule.AssetType.directory) {
-      dispatchAssetListEvent({
-        type: AssetListEventType.closeFolder,
-        id: asset.id,
-        // This is SAFE, as this asset is already known to be a directory.
-        // eslint-disable-next-line no-restricted-syntax
-        key: asset.id,
-      })
-    }
-    try {
-      dispatchAssetListEvent({ type: AssetListEventType.willDelete, key: asset.id })
-      if (
-        asset.type === backendModule.AssetType.project &&
-        backend.type === backendModule.BackendType.local
-      ) {
-        try {
-          await closeProjectMutation.mutateAsync([asset.id, asset.title])
-        } catch {
-          // Ignored. The project was already closed.
-        }
+  const doDelete = useEventCallback(
+    async (asset: backendModule.AnyAsset, forever: boolean = false) => {
+      if (asset.type === backendModule.AssetType.directory) {
+        dispatchAssetListEvent({
+          type: AssetListEventType.closeFolder,
+          id: asset.id,
+          // This is SAFE, as this asset is already known to be a directory.
+          // eslint-disable-next-line no-restricted-syntax
+          key: asset.id,
+        })
       }
-      await deleteAssetMutation.mutateAsync([asset.id, { force: forever }, asset.title])
-    } catch (error) {
-      toastAndLog('deleteAssetError', error, asset.title)
-    }
-  })
+      try {
+        dispatchAssetListEvent({ type: AssetListEventType.willDelete, key: asset.id })
+        if (
+          asset.type === backendModule.AssetType.project &&
+          backend.type === backendModule.BackendType.local
+        ) {
+          try {
+            await closeProjectMutation.mutateAsync([asset.id, asset.title])
+          } catch {
+            // Ignored. The project was already closed.
+          }
+        }
+        await deleteAssetMutation.mutateAsync([asset.id, { force: forever }, asset.title])
+      } catch (error) {
+        toastAndLog('deleteAssetError', error, asset.title)
+      }
+    },
+  )
 
   const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
   const [keyboardSelectedIndex, setKeyboardSelectedIndex] = React.useState<number | null>(null)
@@ -2049,7 +2048,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         deleteAsset(event.key)
         const asset = nodeMapRef.current.get(event.key)?.item
         if (asset) {
-          void doDelete(false, asset)
+          void doDelete(asset, false)
         }
         break
       }
