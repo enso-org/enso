@@ -7,8 +7,6 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Stream;
-
 import org.enso.shttp.HttpMethod;
 
 public class PostLogHandler implements CloudHandler {
