@@ -86,6 +86,7 @@ export default class LocalStorage {
   set<K extends LocalStorageKey>(key: K, value: LocalStorageData[K]) {
     this.values[key] = value
     this.eventTarget.dispatchEvent(new Event(key))
+    this.eventTarget.dispatchEvent(new Event('_change'))
     this.save()
   }
 
@@ -96,6 +97,7 @@ export default class LocalStorage {
     // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete this.values[key]
     this.eventTarget.dispatchEvent(new Event(key))
+    this.eventTarget.dispatchEvent(new Event('_change'))
     this.save()
     return oldValue
   }
@@ -114,13 +116,23 @@ export default class LocalStorage {
     key: K,
     callback: (value: LocalStorageData[K] | undefined) => void,
   ) {
-    const wrapped = () => {
-      const value = this.values[key]
-      callback(value)
+    const onChange = () => {
+      callback(this.values[key])
     }
-    this.eventTarget.addEventListener(key, wrapped)
+    this.eventTarget.addEventListener(key, onChange)
     return () => {
-      this.eventTarget.removeEventListener(key, wrapped)
+      this.eventTarget.removeEventListener(key, onChange)
+    }
+  }
+
+  /** Add an event listener to all keys. */
+  subscribeAll(callback: (value: Partial<LocalStorageData>) => void) {
+    const onChange = () => {
+      callback(this.values)
+    }
+    this.eventTarget.addEventListener('_change', onChange)
+    return () => {
+      this.eventTarget.removeEventListener('_change', onChange)
     }
   }
 

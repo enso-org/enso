@@ -39,7 +39,8 @@ import Portal from '#/components/Portal'
 
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import * as backend from '#/services/Backend'
-import LocalStorage from '#/utilities/LocalStorage'
+import LocalStorage, { type LocalStorageData } from '#/utilities/LocalStorage'
+import { twJoin } from '#/utilities/tailwindMerge'
 import { unsafeEntries } from 'enso-common/src/utilities/data/object'
 
 /**
@@ -78,6 +79,10 @@ export function EnsoDevtools(props: EnsoDevtoolsProps) {
   const enableVersionChecker = useEnableVersionChecker()
   const setEnableVersionChecker = useSetEnableVersionChecker()
   const { localStorage } = useLocalStorage()
+  const [localStorageState, setLocalStorageState] = React.useState<Partial<LocalStorageData>>({})
+
+  // Re-render when localStorage changes.
+  React.useEffect(() => localStorage.subscribeAll(setLocalStorageState), [localStorage])
 
   const [features, setFeatures] = React.useState<
     Record<billing.PaywallFeatureName, PaywallDevtoolsFeatureConfiguration>
@@ -204,11 +209,12 @@ export function EnsoDevtools(props: EnsoDevtoolsProps) {
               {getText('localStorage')}
             </Text>
             {unsafeEntries(LocalStorage.keyMetadata).map(([key]) => (
-              <div className="flex gap-1">
+              <div className="my-1 flex items-center gap-1">
                 <ButtonGroup className="grow-0">
                   <Button
                     size="small"
                     variant="outline"
+                    isDisabled={localStorageState[key] == null}
                     onPress={() => {
                       localStorage.delete(key)
                     }}
@@ -216,7 +222,10 @@ export function EnsoDevtools(props: EnsoDevtoolsProps) {
                     {getText('delete')}
                   </Button>
                 </ButtonGroup>
-                <Text variant="body">
+                <Text
+                  variant="body"
+                  className={twJoin(localStorageState[key] == null && 'opacity-50')}
+                >
                   {key
                     .replace(/[A-Z]/g, (m) => ' ' + m.toLowerCase())
                     .replace(/^./, (m) => m.toUpperCase())}
