@@ -17,6 +17,7 @@ import org.openjdk.jmh.runner.format.OutputFormat;
 import org.openjdk.jmh.runner.format.OutputFormatFactory;
 import org.openjdk.jmh.runner.options.CommandLineOptionException;
 import org.openjdk.jmh.runner.options.CommandLineOptions;
+import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.openjdk.jmh.runner.options.TimeValue;
 
@@ -38,10 +39,7 @@ public class BenchmarksRunner {
       // Do not report results from `compileOnly` mode
       runCompileOnly(cmdOpts.getIncludes());
     } else {
-      var output =
-          OutputFormatFactory.createFormatInstance(
-              System.out, cmdOpts.verbosity().orElse(Defaults.VERBOSITY));
-      Runner jmhRunner = new Runner(cmdOpts, new GitHubActionsFormat(output));
+      var jmhRunner = createRunner(cmdOpts);
 
       if (cmdOpts.shouldHelp()) {
         System.err.println("Enso benchmark runner: A modified JMH runner for Enso benchmarks.");
@@ -92,7 +90,7 @@ public class BenchmarksRunner {
             .forks(0);
     includes.forEach(optsBuilder::include);
     var opts = optsBuilder.build();
-    var runner = new Runner(opts);
+    var runner = createRunner(opts);
     try {
       runner.run();
       System.out.println(
@@ -116,6 +114,14 @@ public class BenchmarksRunner {
 
     Report.writeToFile(report, REPORT_FILE);
     return benchItem;
+  }
+
+  private static Runner createRunner(Options cmdOpts) {
+    var output =
+        OutputFormatFactory.createFormatInstance(
+            System.out, cmdOpts.verbosity().orElse(Defaults.VERBOSITY));
+    Runner jmhRunner = new Runner(cmdOpts, new GitHubActionsFormat(output));
+    return jmhRunner;
   }
 
   private static final class GitHubActionsFormat implements OutputFormat {

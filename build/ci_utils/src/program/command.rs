@@ -469,8 +469,9 @@ pub fn spawn_log_processor(
                 match String::from_utf8(line_bytes) {
                     Ok(line) => {
                         let line = line.trim_end_matches('\r');
-                        if line.starts_with("::") {
-                            println!("{line}");
+                        if line.starts_with("[info] ::") {
+                            let line_without_prefix = &line[7..];
+                            println!("{line_without_prefix}");
                         } else {
                             info!("{prefix} {line}");
                         }
