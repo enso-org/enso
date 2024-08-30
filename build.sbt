@@ -1709,10 +1709,13 @@ lazy val `json-rpc-server-test` = project
   )
   .dependsOn(`json-rpc-server`)
 
+// An automatic JPMS module
 lazy val testkit = project
   .in(file("lib/scala/testkit"))
+  .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
+    javaModuleName := "org.enso.testkit",
     libraryDependencies ++= logbackPkg ++ Seq(
       "org.apache.commons" % "commons-lang3"   % commonsLangVersion,
       "commons-io"         % "commons-io"      % commonsIoVersion,
@@ -1720,7 +1723,17 @@ lazy val testkit = project
       "junit"              % "junit"           % junitVersion,
       "com.github.sbt"     % "junit-interface" % junitIfVersion,
       "org.slf4j" % "slf4j-api" % slf4jVersion,
-    )
+    ),
+    compileOrder := CompileOrder.ScalaThenJava,
+    packageOptions := Seq(
+      Package.ManifestAttributes(
+        (
+          "Automatic-Module-Name", javaModuleName.value
+        )
+      )
+    ),
+    Compile / exportedModule := (Compile / exportedModuleBin).value,
+    Compile / exportedModuleBin := (Compile / packageBin).value,
   )
   .dependsOn(`logging-service-logback`)
 
@@ -3828,16 +3841,34 @@ lazy val `library-manager` = project
 
 lazy val `library-manager-test` = project
   .in(file("lib/scala/library-manager-test"))
+  .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
     Test / fork := true,
     commands += WithDebugCommand.withDebug,
+    compileOrder := CompileOrder.ScalaThenJava,
     Test / javaOptions ++= testLogProviderOptions,
     Test / test := (Test / test).tag(simpleLibraryServerTag).value,
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
+    ),
+    Compile / moduleDependencies := Seq(
+      "org.scala-lang" % "scala-library" % scalacVersion
+    ),
+    Compile / internalModuleDependencies := Seq(
+      (`library-manager` / Compile / exportedModule).value,
+      (`cli` / Compile / exportedModule).value,
+      (`distribution-manager` / Compile / exportedModule).value,
+      (`library-manager` / Compile / exportedModule).value,
+      (`process-utils` / Compile / exportedModule).value,
+      (`pkg` / Compile / exportedModule).value,
+      (`semver` / Compile / exportedModule).value,
+      (`downloader` / Compile / exportedModule).value,
+      (`editions` / Compile / exportedModule).value,
+      (`version-output` / Compile / exportedModule).value,
+      (`testkit` / Compile / exportedModule).value,
     )
   )
   .dependsOn(`library-manager`)
