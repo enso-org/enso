@@ -2203,7 +2203,8 @@ lazy val `language-server` = (project in file("engine/language-server"))
         "io.sentry"        % "sentry-logback"          % "6.28.0",
         "io.sentry"        % "sentry"                  % "6.28.0",
         "ch.qos.logback"   % "logback-classic"         % logbackClassicVersion,
-        "ch.qos.logback"   % "logback-core"            % logbackClassicVersion
+        "ch.qos.logback"   % "logback-core"            % logbackClassicVersion,
+        "net.java.dev.jna"          % "jna"             % "5.13.0"
       )
     },
     Test / internalModuleDependencies := Seq(
@@ -2264,6 +2265,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       (`syntax-rust-definition` / javaModuleName).value,
       (`profiling-utils` / javaModuleName).value,
       (`ydoc-server` / javaModuleName).value,
+      (`library-manager` / javaModuleName).value,
     ),
     Test / addReads := {
       // We patched the test-classes into the runtime module. These classes access some stuff from
@@ -3817,6 +3819,7 @@ lazy val `library-manager` = project
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
     ),
+    javaModuleName := "org.enso.librarymanager",
     Compile / moduleDependencies := Seq(
       "org.scala-lang" % "scala-library" % scalacVersion,
       "org.yaml"       % "snakeyaml"     % snakeyamlVersion,
