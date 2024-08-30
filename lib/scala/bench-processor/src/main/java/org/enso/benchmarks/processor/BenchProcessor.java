@@ -347,7 +347,13 @@ public class BenchProcessor extends AbstractProcessor {
                   @TearDown
                   public void checkNoTruffleCompilation(BenchmarkParams params) {
                     if (compilationMessagesFound) {
-                      System.out.println(compilationLog.toString());
+                      for (var l : compilationLog.toString().split("\\n")) {
+                        var pipe = l.indexOf('|');
+                        if (pipe > 0) {
+                          l = l.substring(0, pipe);
+                        }
+                        System.out.println(l);
+                      }
                     }
                   }
 
