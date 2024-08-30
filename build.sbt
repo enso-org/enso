@@ -2212,7 +2212,10 @@ lazy val `language-server` = (project in file("engine/language-server"))
         "io.sentry"        % "sentry"                  % "6.28.0",
         "ch.qos.logback"   % "logback-classic"         % logbackClassicVersion,
         "ch.qos.logback"   % "logback-core"            % logbackClassicVersion,
-        "net.java.dev.jna"          % "jna"             % "5.13.0"
+        "net.java.dev.jna"          % "jna"             % "5.13.0",
+        "org.bouncycastle"            % "bcutil-jdk18on"          % "1.76",
+        "org.bouncycastle"            % "bcpkix-jdk18on"          % "1.76",
+        "org.bouncycastle"            % "bcprov-jdk18on"          % "1.76",
       )
     },
     Test / internalModuleDependencies := Seq(
@@ -2281,6 +2284,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       Map(
         javaModuleName.value -> Seq(
           "ALL-UNNAMED",
+          "org.bouncycastle.provider"
         )
       )
     },
