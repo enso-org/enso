@@ -292,11 +292,11 @@ export default function AuthProvider(props: AuthProviderProps) {
       if (cognito != null) {
         gtagEvent('cloud_sign_up')
         const result = await cognito.signUp(username, password, organizationId)
-        if (result.ok) {
-          navigate(appUtils.LOGIN_PATH)
-        } else {
-          // eslint-disable-next-line no-restricted-syntax
+
+        if (result.err) {
           throw new Error(result.val.message)
+        } else {
+          return
         }
       }
     },
@@ -311,11 +311,9 @@ export default function AuthProvider(props: AuthProviderProps) {
 
       if (result.err) {
         switch (result.val.type) {
-          case cognitoModule.CognitoErrorType.userAlreadyConfirmed: {
-            break
-          }
+          case cognitoModule.CognitoErrorType.userAlreadyConfirmed:
           case cognitoModule.CognitoErrorType.userNotFound: {
-            throw new Error(getText('confirmSignUpError'))
+            return
           }
           default: {
             throw new errorModule.UnreachableCaseError(result.val.type)

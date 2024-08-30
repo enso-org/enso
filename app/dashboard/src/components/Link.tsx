@@ -16,8 +16,9 @@ import { twMerge } from 'tailwind-merge'
 
 /** Props for a {@link Link}. */
 export interface LinkProps {
+  readonly onPress?: () => void
   readonly openInBrowser?: boolean
-  readonly to: string
+  readonly to?: string
   readonly icon: string
   readonly text: string
 }
@@ -26,7 +27,7 @@ export default forwardRef(Link)
 
 /** A styled colored link with an icon. */
 function Link(props: LinkProps, ref: React.ForwardedRef<HTMLAnchorElement>) {
-  const { openInBrowser = false, to, icon, text } = props
+  const { openInBrowser = false, to, icon, text, onPress } = props
   const { getText } = useText()
   const { className: focusChildClassName, ...focusChildProps } = useFocusChild()
 
@@ -45,6 +46,7 @@ function Link(props: LinkProps, ref: React.ForwardedRef<HTMLAnchorElement>) {
           if (openInBrowser) {
             toastify.toast.success(getText('openedLinkInBrowser'))
           }
+          onPress?.()
         }}
         {...focusChildProps}
       >

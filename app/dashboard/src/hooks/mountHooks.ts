@@ -39,10 +39,13 @@ export function useMounted(callback: () => void) {
  */
 export function useIsFirstRender() {
   const isFirstMount = useRef(true)
+  const stableCallbackTrue = useEventCallback(() => true)
+  const stableCallbackFalse = useEventCallback(() => false)
 
-  useLayoutEffect(() => {
+  if (isFirstMount.current) {
     isFirstMount.current = false
-  }, [])
-
-  return useEventCallback(() => isFirstMount.current)
+    return stableCallbackTrue
+  } else {
+    return stableCallbackFalse
+  }
 }

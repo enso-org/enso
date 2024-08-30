@@ -8,7 +8,7 @@ import * as appUtils from '#/appUtils'
 import { Result } from '#/components/Result'
 
 import { Button, ButtonGroup } from '#/components/AriaComponents'
-import { useMount } from '#/hooks/mountHooks'
+import { useMounted } from '#/hooks/mountHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import { useText } from '#/providers/TextProvider'
 import { useMutation } from '@tanstack/react-query'
@@ -31,22 +31,27 @@ export default function ConfirmRegistration() {
   const redirectUrl = searchParams.get('redirect_url')
 
   const confirmRegistrationMutation = useMutation({
+    mutationKey: ['confirmRegistration'],
     mutationFn: (params: { email: string; verificationCode: string }) =>
       auth.confirmSignUp(params.email, params.verificationCode),
-
     onSuccess: () => {
       if (redirectUrl != null) {
         window.location.href = redirectUrl
       } else {
+        searchParams.delete('verification_code')
+        searchParams.delete('email')
+        searchParams.delete('redirect_url')
         navigate(appUtils.LOGIN_PATH + '?' + searchParams.toString())
       }
     },
   })
 
-  useMount(() => {
-    if (email == null || verificationCode == null) {
-      navigate(appUtils.LOGIN_PATH)
-    } else {
+  useMounted(() => {
+    if (
+      email != null &&
+      verificationCode != null &&
+      confirmRegistrationMutation.status === 'idle'
+    ) {
       confirmRegistrationMutation.mutate({ email, verificationCode })
     }
   })
@@ -56,24 +61,25 @@ export default function ConfirmRegistration() {
     { title: string; subtitle: string }
   > = {
     pending: {
-      title: getText('confirmRegistrationTitle'),
-      subtitle: getText('confirmRegistrationSubtitle'),
+      title: getText('confirmRegistrationTitlePending'),
+      subtitle: getText('confirmRegistrationSubtitlePending'),
     },
     error: {
-      title: getText('confirmRegistrationTitle'),
-      subtitle: getText('confirmRegistrationSubtitle'),
+      title: getText('confirmRegistrationTitleError'),
+      subtitle: getText('confirmRegistrationSubtitleError'),
     },
     success: {
-      title: getText('confirmRegistrationTitle'),
-      subtitle: getText('confirmRegistrationSubtitle'),
+      title: getText('confirmRegistrationTitleSuccess'),
+      subtitle: getText('confirmRegistrationSubtitleSuccess'),
     },
     idle: {
-      title: getText('confirmRegistrationTitle'),
-      subtitle: getText('confirmRegistrationSubtitle'),
+      title: getText('confirmRegistrationTitleIdle'),
+      subtitle: getText('confirmRegistrationSubtitleIdle'),
     },
   }
+
   if (email == null || verificationCode == null) {
-    return null
+    return <router.Navigate to={appUtils.LOGIN_PATH} replace />
   } else {
     return (
       <AuthenticationPage title={''}>
@@ -82,6 +88,15 @@ export default function ConfirmRegistration() {
           title={textsByStatus[confirmRegistrationMutation.status].title}
           subtitle={textsByStatus[confirmRegistrationMutation.status].subtitle}
         >
+          {confirmRegistrationMutation.isIdle && (
+            <ButtonGroup align="center">
+              <Button
+                onPress={() => confirmRegistrationMutation.mutateAsync({ email, verificationCode })}
+              >
+                {getText('confirm')}
+              </Button>
+            </ButtonGroup>
+          )}
           {confirmRegistrationMutation.isError && (
             <ButtonGroup align="center">
               <Button

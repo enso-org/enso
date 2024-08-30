@@ -1,6 +1,6 @@
 /** @file Registration container responsible for rendering and interactions in sign up flow. */
 import { useEffect, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 import * as z from 'zod'
 
@@ -10,23 +10,25 @@ import CreateAccountIcon from '#/assets/create_account.svg'
 import GoBackIcon from '#/assets/go_back.svg'
 import LockIcon from '#/assets/lock.svg'
 import { Input as AriaInput } from '#/components/aria'
-import { Button, Form, Input, Password, Text } from '#/components/AriaComponents'
+import { Alert, Button, Form, Input, Password, Text } from '#/components/AriaComponents'
 import Link from '#/components/Link'
 import {
   latestPrivacyPolicyQueryOptions,
   latestTermsOfServiceQueryOptions,
 } from '#/modals/AgreementsModal'
+import { Stepper, useStepperState } from '#/components/Stepper'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
 import { useAuth } from '#/providers/AuthProvider'
 import { useLocalBackend } from '#/providers/BackendProvider'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
-import { type GetText, useText } from '#/providers/TextProvider'
+import { useText } from '#/providers/TextProvider'
 import LocalStorage from '#/utilities/LocalStorage'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { PASSWORD_REGEX } from '#/utilities/validation'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { omit } from 'enso-common/src/utilities/data/object'
+import { useEventCallback } from '../../hooks/eventCallbackHooks'
 
 // ============================
 // === Global configuration ===
@@ -44,28 +46,7 @@ LocalStorage.registerKey('loginRedirect', {
   schema: z.string(),
 })
 
-/** Create the schema for this form. */
-function createRegistrationFormSchema(getText: GetText) {
-  return z
-    .object({
-      email: z.string().email(getText('invalidEmailValidationError')),
-      password: passwordWithPatternSchema(getText),
-      confirmPassword: z.string(),
-      agreedToTos: z.boolean().refine((value) => value, getText('licenseAgreementCheckboxError')),
-      agreedToPrivacyPolicy: z
-        .boolean()
-        .refine((value) => value, getText('privacyPolicyCheckboxError')),
-    })
-    .superRefine((object, context) => {
-      if (PASSWORD_REGEX.test(object.password) && object.password !== object.confirmPassword) {
-        context.addIssue({
-          path: ['confirmPassword'],
-          code: 'custom',
-          message: getText('passwordMismatchError'),
-        })
-      }
-    })
-}
+const CONFIRM_SIGN_IN_INTERVAL = 5_000
 
 // ====================
 // === Registration ===
@@ -73,8 +54,10 @@ function createRegistrationFormSchema(getText: GetText) {
 
 /** A form for users to register an account. */
 export default function Registration() {
-  const { signUp } = useAuth()
+  const { signUp, confirmSignUp, signInWithPassword } = useAuth()
+
   const location = useLocation()
+  const navigate = useNavigate()
   const { localStorage } = useLocalStorage()
   const { getText } = useText()
   const localBackend = useLocalBackend()
@@ -84,7 +67,32 @@ export default function Registration() {
   const initialEmail = query.get('email')
   const organizationId = query.get('organization_id')
   const redirectTo = query.get('redirect_to')
-  const [emailInput, setEmailInput] = useState(initialEmail ?? '')
+  const [isManualCodeEntry, setIsManualCodeEntry] = useState(false)
+
+  const signupForm = Form.useForm({
+    schema: (schema) =>
+      schema
+        .object({
+          email: Form.schema.string().email(getText('invalidEmailValidationError')),
+          password: passwordWithPatternSchema(getText),
+          confirmPassword: Form.schema.string(),
+          agreedToTos: z.boolean().refine((value) => value, getText('licenseAgreementCheckboxError')),
+          agreedToPrivacyPolicy: z
+            .boolean()
+            .refine((value) => value, getText('privacyPolicyCheckboxError')),
+        })
+        .superRefine((object, context) => {
+          if (PASSWORD_REGEX.test(object.password) && object.password !== object.confirmPassword) {
+            context.addIssue({
+              path: ['confirmPassword'],
+              code: 'custom',
+              message: getText('passwordMismatchError'),
+            })
+          }
+        }),
+  })
+
+  const { stepperState } = useStepperState({ steps: 2, defaultStep: 0 })
 
   const cachedTosHash = localStorage.get('termsOfService')?.versionHash
   const { data: tosHash } = useSuspenseQuery({
@@ -115,63 +123,96 @@ export default function Registration() {
     }
   }, [localStorage, redirectTo])
 
+  const trySignIn = useEventCallback(() => {
+    const email = signupForm.getValues('email')
+    const password = signupForm.getValues('password')
+
+    return signInWithPassword(email, password)
+  })
+
+  useEffect(() => {
+    if (stepperState.currentStep === 1) {
+      const interval = setInterval(() => {
+        void trySignIn().catch(() => {})
+      }, CONFIRM_SIGN_IN_INTERVAL)
+
+      return () => {
+        clearInterval(interval)
+      }
+    } else {
+      return
+    }
+  }, [stepperState.currentStep, trySignIn])
+
   return (
     <AuthenticationPage
-      schema={createRegistrationFormSchema(getText)}
-      defaultValues={{ agreedToTos: false, agreedToPrivacyPolicy: false }}
       title={getText('createANewAccount')}
       supportsOffline={supportsOffline}
       footer={
         <Link
-          to={`${LOGIN_PATH}?${new URLSearchParams({ email: emailInput }).toString()}`}
+          to={LOGIN_PATH}
+          onPress={() => {
+            navigate(
+              LOGIN_PATH +
+                `?${new URLSearchParams({ email: signupForm.getValues('email') }).toString()}`,
+            )
+          }}
           icon={GoBackIcon}
           text={getText('alreadyHaveAnAccount')}
         />
       }
-      onSubmit={async ({ email, password }) => {
-        await signUp(email, password, organizationId)
-        localStorage.set('termsOfService', { versionHash: tosHash })
-        localStorage.set('privacyPolicy', { versionHash: privacyPolicyHash })
-      }}
     >
-      {({ register }) => (
-        <>
-          <Input
-            autoFocus
-            required
-            data-testid="email-input"
-            name="email"
-            label={getText('emailLabel')}
-            type="email"
-            autoComplete="email"
-            icon={AtIcon}
-            placeholder={getText('emailPlaceholder')}
-            defaultValue={initialEmail ?? undefined}
-            onChange={(event) => {
-              setEmailInput(event.currentTarget.value)
-            }}
-          />
-          <Password
-            required
-            data-testid="password-input"
-            name="password"
-            label={getText('passwordLabel')}
-            autoComplete="new-password"
-            icon={LockIcon}
-            placeholder={getText('passwordPlaceholder')}
-            description={getText('passwordValidationMessage')}
-          />
-          <Password
-            required
-            data-testid="confirm-password-input"
-            name="confirmPassword"
-            label={getText('confirmPasswordLabel')}
-            autoComplete="new-password"
-            icon={LockIcon}
-            placeholder={getText('confirmPasswordPlaceholder')}
-          />
+      <Stepper state={stepperState} renderStep={() => null}>
+        {stepperState.currentStep === 0 && (
+          <>
+            <Text.Heading level={1} balance className="mb-4 text-center">
+              {getText('createANewAccount')}
+            </Text.Heading>
 
-          <Form.Field name="agreedToTos">
+            <Form
+              form={signupForm}
+              onSubmit={({ email, password }) => {
+                localStorage.set('termsOfService', { versionHash: tosHash })
+                localStorage.set('privacyPolicy', { versionHash: privacyPolicyHash })
+
+                return signUp(email, password, organizationId).then(() => {
+                  stepperState.nextStep()
+                })
+              }}
+            >
+              <Input
+                autoFocus
+                required
+                data-testid="email-input"
+                name="email"
+                label={getText('emailLabel')}
+                type="email"
+                autoComplete="email"
+                icon={AtIcon}
+                placeholder={getText('emailPlaceholder')}
+                defaultValue={initialEmail ?? undefined}
+              />
+              <Password
+                required
+                data-testid="password-input"
+                name="password"
+                label={getText('passwordLabel')}
+                autoComplete="new-password"
+                icon={LockIcon}
+                placeholder={getText('passwordPlaceholder')}
+                description={getText('passwordValidationMessage')}
+              />
+              <Password
+                required
+                data-testid="confirm-password-input"
+                name="confirmPassword"
+                label={getText('confirmPasswordLabel')}
+                autoComplete="new-password"
+                icon={LockIcon}
+                placeholder={getText('confirmPasswordPlaceholder')}
+              />
+
+              <Form.Field name="agreedToTos">
             {({ isInvalid }) => (
               <>
                 <label className="flex w-full items-center gap-1">
@@ -220,12 +261,81 @@ export default function Registration() {
           </Form.Field>
 
           <Form.Submit size="large" icon={CreateAccountIcon} fullWidth>
-            {getText('register')}
-          </Form.Submit>
+                {getText('register')}
+              </Form.Submit>
 
-          <Form.FormError />
-        </>
-      )}
+              <Form.FormError />
+            </Form>
+          </>
+        )}
+        {stepperState.currentStep === 1 && (
+          <>
+            <Text.Heading level={1} balance className="mb-4 text-center">
+              {getText('confirmRegistration')}
+            </Text.Heading>
+
+            <div className="flex flex-col gap-4 text-start">
+              <div className="flex flex-col">
+                <Text disableLineHeightCompensation>
+                  {getText('confirmRegistrationInstruction')}
+                </Text>
+                <ul>
+                  <li>
+                    <Text disableLineHeightCompensation>
+                      {getText('confirmRegistrationMethod1')}
+                    </Text>
+                  </li>
+                  <li>
+                    <Text disableLineHeightCompensation>
+                      {getText('confirmRegistrationMethod2')}
+                    </Text>
+                  </li>
+                </ul>
+              </div>
+
+              <Alert variant="neutral">
+                <Text>{getText('confirmRegistrationSpam')}</Text>
+              </Alert>
+
+              {!isManualCodeEntry && (
+                <Button
+                  variant="outline"
+                  onPress={() => {
+                    setIsManualCodeEntry(true)
+                  }}
+                >
+                  {getText('enterCodeManually')}
+                </Button>
+              )}
+
+              {isManualCodeEntry && (
+                <Form
+                  schema={(schema) =>
+                    schema.object({ verificationCode: Form.schema.string().min(1) })
+                  }
+                  onSubmit={async ({ verificationCode }) => {
+                    const email = signupForm.getValues('email')
+                    const password = signupForm.getValues('password')
+
+                    return confirmSignUp(email, verificationCode).then(() =>
+                      signInWithPassword(email, password),
+                    )
+                  }}
+                >
+                  <Input
+                    name="verificationCode"
+                    label={getText('confirmRegistrationVerificationCodeLabel')}
+                  />
+
+                  <Form.Submit fullWidth />
+
+                  <Form.FormError />
+                </Form>
+              )}
+            </div>
+          </>
+        )}
+      </Stepper>
     </AuthenticationPage>
   )
 }
