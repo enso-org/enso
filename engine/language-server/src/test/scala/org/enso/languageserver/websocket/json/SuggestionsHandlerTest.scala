@@ -1,8 +1,7 @@
 package org.enso.languageserver.websocket.json
 import io.circe.literal._
 import org.enso.languageserver.websocket.json.{SearchJsonMessages => json}
-import org.enso.logging.service.logback.test.provider.ReportLogsOnFailure
-import org.enso.testkit.{FlakySpec, RetrySpec}
+import org.enso.testkit.{FlakySpec, ReportLogsOnFailure, RetrySpec}
 
 class SuggestionsHandlerTest
     extends BaseServerTest

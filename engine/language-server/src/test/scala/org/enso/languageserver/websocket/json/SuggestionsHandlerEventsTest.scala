@@ -3,11 +3,10 @@ package org.enso.languageserver.websocket.json
 import io.circe.literal._
 import org.enso.languageserver.search.Suggestions
 import org.enso.languageserver.websocket.json.{SearchJsonMessages => json}
-import org.enso.logging.service.logback.test.provider.ReportLogsOnFailure
 import org.enso.polyglot.{ExportedSymbol, ModuleExports}
 import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.testkit.FlakySpec
+import org.enso.testkit.{FlakySpec, ReportLogsOnFailure}
 
 import scala.collection.immutable.ListSet
 

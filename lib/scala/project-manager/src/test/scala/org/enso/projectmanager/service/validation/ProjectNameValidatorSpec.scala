@@ -1,7 +1,7 @@
 package org.enso.projectmanager.service.validation
 
-import org.enso.logging.service.logback.test.provider.ReportLogsOnFailure
 import org.enso.projectmanager.control.effect.Effects
+import org.enso.testkit.ReportLogsOnFailure
 import org.scalatest.EitherValues
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec

@@ -3,7 +3,6 @@ package org.enso.projectmanager.infrastructure.languageserver
 import akka.actor.ActorSystem
 import akka.testkit._
 import com.miguno.akka.testing.VirtualTime
-import org.enso.logging.service.logback.test.provider.ReportLogsOnFailure
 import org.enso.projectmanager.data.Socket
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol.{
   ProjectRenamed,
@@ -12,7 +11,7 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProto
 }
 import org.enso.projectmanager.infrastructure.languageserver.ProgrammableWebSocketServer.ReplyWith
 import org.enso.projectmanager.infrastructure.net.Tcp
-import org.enso.testkit.FlakySpec
+import org.enso.testkit.{FlakySpec, ReportLogsOnFailure}
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpecLike

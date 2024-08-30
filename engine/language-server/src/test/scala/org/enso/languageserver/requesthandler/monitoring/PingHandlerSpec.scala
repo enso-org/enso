@@ -6,8 +6,7 @@ import org.enso.jsonrpc.Id.Number
 import org.enso.jsonrpc.{Request, ResponseResult, Unused}
 import org.enso.languageserver.monitoring.MonitoringApi
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
-import org.enso.logging.service.logback.test.provider.ReportLogsOnFailure
-import org.enso.testkit.FlakySpec
+import org.enso.testkit.{FlakySpec, ReportLogsOnFailure}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.must.Matchers

@@ -14,13 +14,12 @@ import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager._
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
-import org.enso.logging.service.logback.test.provider.ReportLogsOnFailure
 import org.enso.polyglot.data.{Tree, TypeGraph}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.{ExportedSymbol, ModuleExports, Suggestion}
 import org.enso.searcher.SuggestionsRepo
 import org.enso.searcher.memory.InMemorySuggestionsRepo
-import org.enso.testkit.RetrySpec
+import org.enso.testkit.{ReportLogsOnFailure, RetrySpec}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike

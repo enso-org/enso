@@ -2,8 +2,7 @@ package org.enso.languageserver.websocket.json
 
 import io.circe.literal.JsonStringContext
 import org.enso.languageserver.data.Config
-import org.enso.logging.service.logback.test.provider.ReportLogsOnFailure
-import org.enso.testkit.FlakySpec
+import org.enso.testkit.{FlakySpec, ReportLogsOnFailure}
 import org.enso.version.BuildVersion
 
 import java.io.{File, FileOutputStream}

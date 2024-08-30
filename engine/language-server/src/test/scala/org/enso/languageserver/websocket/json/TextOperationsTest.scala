@@ -5,9 +5,8 @@ import io.circe.literal._
 import org.enso.languageserver.event.{BufferClosed, JsonSessionTerminated}
 import org.enso.languageserver.filemanager.Path
 import org.enso.languageserver.session.JsonSession
-import org.enso.logging.service.logback.test.provider.ReportLogsOnFailure
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.testkit.FlakySpec
+import org.enso.testkit.{FlakySpec, ReportLogsOnFailure}
 import org.enso.text.editing.model
 
 import java.io.File

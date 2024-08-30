@@ -11,8 +11,7 @@ import org.enso.runner.common.ProfilingConfig
 import org.enso.languageserver.boot.StartupConfig
 import org.enso.languageserver.data._
 import org.enso.languageserver.vcsmanager.VcsApi
-import org.enso.logging.service.logback.test.provider.ReportLogsOnFailure
-import org.enso.testkit.FlakySpec
+import org.enso.testkit.{FlakySpec, ReportLogsOnFailure}
 
 import java.io.File
 import java.nio.charset.StandardCharsets

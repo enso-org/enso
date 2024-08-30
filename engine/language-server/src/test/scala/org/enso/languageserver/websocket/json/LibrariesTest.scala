@@ -11,9 +11,8 @@ import org.enso.languageserver.libraries.{LibraryComponentGroup, LibraryComponen
 import org.enso.languageserver.runtime.TestComponentGroups
 import org.enso.librarymanager.published.bundles.LocalReadOnlyRepository
 import org.enso.librarymanager.published.repository.{EmptyRepository, ExampleRepository, LibraryManifest}
-import org.enso.logging.service.logback.test.provider.ReportLogsOnFailure
 import org.enso.pkg.{Config, Contact, Package, PackageManager}
-import org.enso.testkit.FlakySpec
+import org.enso.testkit.{FlakySpec, ReportLogsOnFailure}
 import org.enso.version.BuildVersion
 import org.enso.yaml.YamlHelper
 

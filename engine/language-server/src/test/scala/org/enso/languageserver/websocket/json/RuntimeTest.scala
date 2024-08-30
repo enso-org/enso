@@ -2,8 +2,8 @@ package org.enso.languageserver.websocket.json
 
 import io.circe.literal._
 import org.enso.languageserver.runtime.TestComponentGroups
-import org.enso.logging.service.logback.test.provider.ReportLogsOnFailure
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.testkit.ReportLogsOnFailure
 
 class RuntimeTest extends BaseServerTest with ReportLogsOnFailure {
 

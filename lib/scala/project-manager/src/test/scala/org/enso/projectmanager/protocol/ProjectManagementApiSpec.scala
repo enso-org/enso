@@ -4,13 +4,12 @@ import akka.testkit.TestDuration
 import io.circe.literal._
 import org.enso.semver.SemVer
 import org.apache.commons.io.FileUtils
-import org.enso.logging.service.logback.test.provider.ReportLogsOnFailure
 import org.enso.pkg.validation.NameValidation
 import org.enso.projectmanager.boot.configuration.TimeoutConfig
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 import org.enso.runtimeversionmanager.CurrentVersion
 import org.enso.runtimeversionmanager.test.OverrideTestVersionSuite
-import org.enso.testkit.FlakySpec
+import org.enso.testkit.{FlakySpec, ReportLogsOnFailure}
 import org.scalactic.source.Position
 
 import java.io.File

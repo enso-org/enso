@@ -2,9 +2,8 @@ package org.enso.projectmanager.protocol
 
 import akka.testkit.TestDuration
 import io.circe.literal._
-import org.enso.logging.service.logback.test.provider.ReportLogsOnFailure
 import org.enso.projectmanager.BaseServerSpec
-import org.enso.testkit.FlakySpec
+import org.enso.testkit.{FlakySpec, ReportLogsOnFailure}
 
 import scala.concurrent.duration.DurationInt
 

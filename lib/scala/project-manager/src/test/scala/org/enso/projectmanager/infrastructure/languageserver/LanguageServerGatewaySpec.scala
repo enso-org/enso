@@ -2,11 +2,11 @@ package org.enso.projectmanager.infrastructure.languageserver
 
 import akka.testkit.TestDuration
 import io.circe.literal._
-import org.enso.logging.service.logback.test.provider.ReportLogsOnFailure
 import org.enso.semver.SemVer
 import org.enso.projectmanager.test.Net._
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 import org.enso.runtimeversionmanager.test.OverrideTestVersionSuite
+import org.enso.testkit.ReportLogsOnFailure
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
