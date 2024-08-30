@@ -28,6 +28,16 @@ import * as ariaComponents from '#/components/AriaComponents'
 import Portal from '#/components/Portal'
 
 import {
+  Button,
+  ButtonGroup,
+  Form,
+  Popover,
+  Radio,
+  RadioGroup,
+  Separator,
+  Text,
+} from '#/components/AriaComponents'
+import {
   FEATURE_FLAGS_SCHEMA,
   useFeatureFlags,
   useSetFeatureFlags,
@@ -36,7 +46,6 @@ import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import * as backend from '#/services/Backend'
 import LocalStorage from '#/utilities/LocalStorage'
 import { unsafeEntries } from 'enso-common/src/utilities/data/object'
-import { Button, ButtonGroup, Form, Popover, Radio, RadioGroup, Separator, Text } from '#/components/AriaComponents'
 
 /**
  * A component that provides a UI for toggling paywall features.
@@ -76,9 +85,7 @@ export function EnsoDevtools() {
 
           {session?.type === UserSessionType.full && (
             <>
-              <Text variant="subtitle">
-                {getText('ensoDevtoolsPlanSelectSubtitle')}
-              </Text>
+              <Text variant="subtitle">{getText('ensoDevtoolsPlanSelectSubtitle')}</Text>
 
               <Form
                 gap="small"
@@ -99,10 +106,8 @@ export function EnsoDevtools() {
                       <Radio label={getText('free')} value={backend.Plan.free} />
                       <Radio label={getText('solo')} value={backend.Plan.solo} />
                       <Radio label={getText('team')} value={backend.Plan.team} />
-                      <Radio
-                        label={getText('enterprise')}
-                        value={backend.Plan.enterprise}/>
-                      </RadioGroup>
+                      <Radio label={getText('enterprise')} value={backend.Plan.enterprise} />
+                    </RadioGroup>
 
                     <Button
                       size="small"
@@ -177,7 +182,6 @@ export function EnsoDevtools() {
               </Text>
             </div>
           ))}
-
 
           <ariaComponents.Separator orientation="horizontal" className="my-3" />
 
