@@ -45,28 +45,6 @@ case object FramePointerAnalysis extends IRPass {
 
   override def runModule(ir: Module, moduleContext: ModuleContext): Module = {
     ir.bindings.foreach(processBinding)
-    ir.preorder()
-      .foreach {
-        case d: Definition.Data =>
-          val meta = getAliasAnalysisMeta(d)
-          if (meta.isDefined) {
-            val scope = meta.get
-            if (scope.isInstanceOf[AliasMetadata.RootScope]) {
-              val rootScope = meta.get.unsafeAs[AliasMetadata.RootScope]
-              val symbols =
-                rootScope.graph.rootScope.allDefinitions.map(_.symbol)
-              updateMeta(d, symbols)
-              System.err
-                .println("DATA " + symbols)
-
-            }
-            if (scope.isInstanceOf[AliasMetadata.ChildScope]) {
-              // val childScope = scope.asInstanceOf[AliasMetadata.ChildScope]
-              // System.err.println("child " + childScope.scope.allDefinitions)
-            }
-          }
-        case _ => ()
-      }
     ir
   }
 
@@ -75,16 +53,19 @@ case object FramePointerAnalysis extends IRPass {
   ): Unit = {
     ir match {
       case m: Method.Explicit =>
-        System.err.println("BINDING for " + m.methodReference.name)
         getAliasAnalysisGraph(m) match {
-          case Some(graph) =>
+          case Some(
+                graph
+              ) => // tam kde je Some(graph) tam chceme dát seznam proměnných
             processExpression(m.body, graph)
+            updateSymbolNames(m, graph)
           case _ => ()
         }
       case m: Method.Conversion =>
         getAliasAnalysisGraph(m) match {
           case Some(graph) =>
             processExpression(m.body, graph)
+            updateSymbolNames(m, graph)
           case _ => ()
         }
       case t: Definition.Type =>
@@ -101,7 +82,9 @@ case object FramePointerAnalysis extends IRPass {
               member.annotations.foreach { annotation =>
                 processAnnotation(annotation, memberGraph)
               }
+              updateSymbolNames(member, memberGraph)
             }
+            updateSymbolNames(t, graph)
           case _ => ()
         }
       case annot: GenericAnnotation =>
@@ -115,25 +98,11 @@ case object FramePointerAnalysis extends IRPass {
         }
       case _ => ()
     }
-    ir.preorder()
-      .foreach(e => {
-        val meta = getAliasAnalysisMeta(e)
-        if (meta.isDefined) {
-          val scope = meta.get
-          if (scope.isInstanceOf[AliasMetadata.RootScope]) {
-            val rootScope = meta.get.unsafeAs[AliasMetadata.RootScope]
-            val symbols   = rootScope.graph.rootScope.allDefinitions.map(_.symbol)
-            updateMeta(e, symbols)
-            System.err
-              .println("Updating " + symbols)
+  }
 
-          }
-          if (scope.isInstanceOf[AliasMetadata.ChildScope]) {
-            // val childScope = scope.asInstanceOf[AliasMetadata.ChildScope]
-            // System.err.println("child " + childScope.scope.allDefinitions)
-          }
-        }
-      })
+  private def updateSymbolNames(e: IR, g: Graph) = {
+    val symbols = g.rootScope.allDefinitions.map(_.symbol)
+    updateMeta(e, null, Some(symbols))
   }
 
   private def processAnnotation(
@@ -145,6 +114,7 @@ case object FramePointerAnalysis extends IRPass {
         rootScope.graph
       case None => graph
     }
+    updateSymbolNames(annot, annotGraph)
     processExpression(annot.expression, annotGraph)
   }
 
@@ -157,7 +127,7 @@ case object FramePointerAnalysis extends IRPass {
         case Name.Self(loc, synthetic, _) if loc.isEmpty && synthetic =>
           // synthetic self argument has occurrence attached, but there is no Occurence.Def for it.
           // So we have to handle it specially.
-          updateMeta(arg, new FramePointer(0, 1))
+          updateMeta(arg, new FramePointer(0, 1), None)
         case _ =>
           maybeAttachFramePointer(arg, graph)
       }
@@ -201,6 +171,11 @@ case object FramePointerAnalysis extends IRPass {
         }
       case _ => ()
     }
+    getAliasAnalysisGraph(exprIr) match {
+      case Some(graph) =>
+        updateSymbolNames(exprIr, graph)
+      case _ => ()
+    }
   }
 
   private def processCaseBranch(
@@ -212,6 +187,7 @@ case object FramePointerAnalysis extends IRPass {
           "An alias analysis graph is expected on " + branch
         )
       case Some(graph) =>
+        updateSymbolNames(branch, graph)
         processExpression(branch.expression, graph)
         processCasePattern(branch.pattern, graph)
     }
@@ -239,6 +215,7 @@ case object FramePointerAnalysis extends IRPass {
       case _: Pattern.Documentation => ()
       case _                        => ()
     }
+    updateSymbolNames(pattern, graph)
   }
 
   private def processApplication(
@@ -263,6 +240,7 @@ case object FramePointerAnalysis extends IRPass {
           "Unexpected type of Application: " + application
         )
     }
+    updateSymbolNames(application, graph)
   }
 
   private def processCallArguments(
@@ -273,6 +251,7 @@ case object FramePointerAnalysis extends IRPass {
       maybeAttachFramePointer(arg, graph)
       name.foreach(maybeAttachFramePointer(_, graph))
       processExpression(value, graph)
+      updateSymbolNames(arg, graph)
     }
   }
 
@@ -305,7 +284,11 @@ case object FramePointerAnalysis extends IRPass {
                     val parentLevel = getScopeDistance(defScope, scope)
                     val frameSlotIdx =
                       getFrameSlotIdxInScope(graph, defScope, defOcc)
-                    updateMeta(ir, new FramePointer(parentLevel, frameSlotIdx))
+                    updateMeta(
+                      ir,
+                      new FramePointer(parentLevel, frameSlotIdx),
+                      None
+                    )
                   case None =>
                     // It is possible that there is no Def for this Use. It can, for example, be
                     // Use for some global symbol. In `IrToTruffle`, an UnresolvedSymbol will be
@@ -317,7 +300,11 @@ case object FramePointerAnalysis extends IRPass {
                 // The definition cannot write to parent's frame slots.
                 val parentLevel  = 0
                 val frameSlotIdx = getFrameSlotIdxInScope(graph, scope, defn)
-                updateMeta(ir, new FramePointer(parentLevel, frameSlotIdx))
+                updateMeta(
+                  ir,
+                  new FramePointer(parentLevel, frameSlotIdx),
+                  None
+                )
               case _ => ()
             }
           case _ => ()
@@ -328,16 +315,33 @@ case object FramePointerAnalysis extends IRPass {
 
   private def updateMeta(
     ir: IR,
-    framePointer: FramePointer
+    framePointer: FramePointer,
+    variableNames: Option[List[String]]
   ): Unit = {
-    ir.passData().update(this, new FramePointerMeta(framePointer))
-  }
-
-  private def updateMeta(
-    ir: IR,
-    variableNames: List[String]
-  ): Unit = {
-    ir.passData().update(this, new FramePointerMeta(null, Some(variableNames)))
+    ir.passData().get(this) match {
+      case None =>
+        ir.passData()
+          .update(this, new FramePointerMeta(framePointer, variableNames))
+      case Some(meta: FramePointerMeta) =>
+        val fp = if (framePointer != null) {
+          assert(meta.framePointer == null || meta.framePointer == framePointer)
+          framePointer
+        } else {
+          meta.framePointer;
+        }
+        val vn = if (variableNames.isDefined) {
+          assert(
+            meta.variableNames.isEmpty || meta.variableNames == variableNames
+          )
+          variableNames
+        } else {
+          meta.variableNames
+        }
+        ir.passData()
+          .update(this, new FramePointerMeta(fp, vn))
+      case x =>
+        throw new IllegalStateException("" + x)
+    }
   }
 
   /** Returns the index of the given `defOcc` definition in the given `scope`
