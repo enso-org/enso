@@ -1,10 +1,7 @@
 package org.enso.table.parsing.problems;
 
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
-
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Value;
 
@@ -50,7 +47,11 @@ public final class CommonParseProblemAggregator extends ProblemAggregator
 
     if (!invalidFormatCells.isEmpty()) {
       baseSummary.add(
-          new InvalidFormat(relatedColumnName, expectedEnsoValueType, invalidFormatCount, invalidFormatCells.stream().toList()));
+          new InvalidFormat(
+              relatedColumnName,
+              expectedEnsoValueType,
+              invalidFormatCount,
+              invalidFormatCells.stream().toList()));
     }
 
     return baseSummary;
