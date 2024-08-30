@@ -558,12 +558,17 @@ class IrToTruffle(
               scopeElements.init
                 .mkString(Constants.SCOPE_SEPARATOR)
             )
+            def frameInfo() = annotation.unsafeGetMetadata(
+              FramePointerAnalysis,
+              "Method definition missing frame information."
+            )
             val expressionProcessor = new ExpressionProcessor(
               scopeName,
               () => scopeInfo().graph,
               () => scopeInfo().graph.rootScope,
               dataflowInfo,
-              methodDef.methodName.name
+              methodDef.methodName.name,
+              frameInfo
             )
             val expressionNode =
               expressionProcessor.run(annotation.expression, true)
@@ -1244,9 +1249,12 @@ class IrToTruffle(
     def createChild(
       name: String,
       scope: () => AliasScope,
-      initialName: String
+      initialName: String,
+      symbolsProvider: () => FramePointerAnalysis.FramePointerMeta = null
     ): ExpressionProcessor = {
-      new ExpressionProcessor(this.scope.createChild(scope), name, initialName)
+      val childScope =
+        this.scope.createChild(scope, symbolsProvider = symbolsProvider)
+      new ExpressionProcessor(childScope, name, initialName)
     }
 
     // === Runner =============================================================
@@ -1840,6 +1848,10 @@ class IrToTruffle(
           "Consolidation hasn't run."
         )
       }
+      def frameInfo() = function.unsafeGetMetadata(
+        FramePointerAnalysis,
+        "Method definition missing frame information."
+      )
 
       val scopeName = if (function.canBeTCO) {
         this.scopeName + "." + currentVarName
@@ -1851,7 +1863,8 @@ class IrToTruffle(
         this.createChild(
           scopeName,
           () => scopeInfo().scope,
-          "case " + currentVarName
+          "case " + currentVarName,
+          frameInfo
         )
 
       val fn = child.processFunctionBody(

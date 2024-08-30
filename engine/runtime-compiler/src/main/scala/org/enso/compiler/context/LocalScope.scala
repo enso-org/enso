@@ -81,14 +81,21 @@ class LocalScope(
     */
   def createChild(
     childScope: () => AliasGraph.Scope,
-    flattenToParent: Boolean = false
+    flattenToParent: Boolean                                     = false,
+    symbolsProvider: () => FramePointerAnalysis.FramePointerMeta = null
   ): LocalScope = {
+    val sp = if (flattenToParent) {
+      assert(symbolsProvider == null)
+      this.symbolsProvider
+    } else {
+      symbolsProvider
+    }
     new LocalScope(
       Some(this),
       aliasingGraph,
       childScope,
       () => dataflowInfo,
-      if (flattenToParent) this.symbolsProvider else null,
+      sp,
       flattenToParent,
       () => allFrameSlotIdxs
     )
