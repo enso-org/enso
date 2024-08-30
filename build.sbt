@@ -1083,6 +1083,7 @@ lazy val `logging-utils-akka` = project
 
 lazy val filewatcher = project
   .in(file("lib/scala/filewatcher"))
+  .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
@@ -1092,11 +1093,19 @@ lazy val filewatcher = project
       "commons-io"     % "commons-io"        % commonsIoVersion,
       "org.scalatest" %% "scalatest"         % scalatestVersion % Test
     ),
+    compileOrder := CompileOrder.ScalaThenJava,
+    Compile / moduleDependencies := Seq(
+      "org.scala-lang" % "scala-library" % scalacVersion,
+    ),
+    Compile / internalModuleDependencies := Seq(
+      (`jpms-wrapper-methvin-directory-watcher` / Compile / exportedModule).value
+    ),
     Test / fork := true,
     Test / javaOptions ++= testLogProviderOptions
   )
   .dependsOn(testkit % Test)
   .dependsOn(`logging-service-logback` % "test->test")
+  .dependsOn(`jpms-wrapper-methvin-directory-watcher`)
 
 lazy val `logging-truffle-connector` = project
   .in(file("lib/scala/logging-truffle-connector"))
@@ -1235,6 +1244,51 @@ lazy val `language-server-deps-wrapper` = project
         javaModuleName.value -> scalaLibs
       )
     }
+  )
+
+lazy val `jpms-wrapper-methvin-directory-watcher` = project
+  .in(file("lib/java/jpms-wrapper-methvin-directory-watcher"))
+  .enablePlugins(JPMSPlugin)
+  .settings(
+    modularFatJarWrapperSettings,
+    libraryDependencies ++= Seq(
+      "io.methvin"     % "directory-watcher" % directoryWatcherVersion,
+      "org.slf4j" % "slf4j-api" % "1.7.36",
+    ),
+    javaModuleName := "org.enso.jpms.wrapper.methvin.directory.watcher",
+    assembly / assemblyExcludedJars := {
+      val scalaVer = scalaBinaryVersion.value
+      JPMSUtils.filterModulesFromClasspath(
+        (Compile / dependencyClasspath).value,
+        Seq(
+          "org.scala-lang"            % "scala-library"                          % scalacVersion,
+          "org.slf4j" % "slf4j-api" % "1.7.36",
+        ),
+        streams.value.log,
+        moduleName.value,
+        shouldContainAll = true
+      )
+    },
+    Compile / moduleDependencies := Seq(
+      "org.scala-lang" % "scala-library" % scalacVersion
+    ),
+    Compile / patchModules := {
+      val scalaVer = scalaBinaryVersion.value
+      val scalaLibs = JPMSUtils.filterModulesFromUpdate(
+        update.value,
+        Seq(
+          "org.scala-lang" % "scala-library"     % scalacVersion,
+          "io.methvin"     % "directory-watcher" % directoryWatcherVersion,
+        ),
+        streams.value.log,
+        moduleName.value,
+        shouldContainAll = true
+      )
+      Map(
+        javaModuleName.value -> scalaLibs
+      )
+    }
+
   )
 
 /** JPMS module wrapper for Akka.
