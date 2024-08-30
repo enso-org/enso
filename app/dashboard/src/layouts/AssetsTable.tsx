@@ -1292,6 +1292,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       const asset = nodeMapRef.current.get(assetId)?.item
 
       if (asset != null) {
+        // eslint-disable-next-line no-restricted-syntax
         return doDelete(asset, forever)
       }
     },
@@ -2171,7 +2172,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         doDelete={doDeleteById}
       />
     ),
-    [backend, rootDirectoryId, category, pasteData, doCopy, doCut, doPaste],
+    [backend, category, pasteData, rootDirectoryId, doCopy, doCut, doPaste, doDeleteById],
   )
 
   const onDropzoneDragOver = (event: React.DragEvent<Element>) => {
