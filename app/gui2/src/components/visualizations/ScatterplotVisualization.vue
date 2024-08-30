@@ -577,9 +577,6 @@ const series = Object.keys(data.value.axis)
   })
 
 var svg = d3.select('#plot_legend')
-
-const textWidth = Math.max(...series.map((el) => el.length)) * 4
-
 var color = d3.scaleOrdinal().domain(series).range(d3.schemeCategory10).domain(series)
 
 svg
