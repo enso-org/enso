@@ -40,6 +40,7 @@ export const POPOVER_STYLES = twv.tv({
       true: 'animate-out fade-out placement-bottom:slide-out-to-top-1 placement-top:slide-out-to-bottom-1 placement-left:slide-out-to-right-1 placement-right:slide-out-to-left-1 ease-in duration-150',
     },
     size: {
+      auto: { base: 'w-[unset]', dialog: 'p-2.5' },
       xsmall: { base: 'max-w-xs', dialog: 'p-2.5' },
       small: { base: 'max-w-sm', dialog: 'p-3.5' },
       medium: { base: 'max-w-md', dialog: 'p-3.5' },

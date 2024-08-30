@@ -38,15 +38,9 @@ function mapValueOnEvent(value: unknown) {
  * But be careful, You should not switch between the two types of arguments.
  * Otherwise you'll be fired
  */
-export function useForm<
-  Schema extends types.TSchema,
-  TFieldValues extends types.FieldValues<Schema> = types.FieldValues<Schema>,
-  TTransformedValues extends types.FieldValues<Schema> | undefined = undefined,
->(
-  optionsOrFormInstance:
-    | types.UseFormProps<Schema, TFieldValues>
-    | types.UseFormReturn<Schema, TFieldValues, TTransformedValues>,
-): types.UseFormReturn<Schema, TFieldValues, TTransformedValues> {
+export function useForm<Schema extends types.TSchema>(
+  optionsOrFormInstance: types.UseFormProps<Schema> | types.UseFormReturn<Schema>,
+): types.UseFormReturn<Schema> {
   const initialTypePassed = React.useRef(getArgsType(optionsOrFormInstance))
 
   const argsType = getArgsType(optionsOrFormInstance)
@@ -59,28 +53,32 @@ export function useForm<
     `,
   )
 
-  if ('formState' in optionsOrFormInstance) {
-    return optionsOrFormInstance
-  } else {
-    const { schema, ...options } = optionsOrFormInstance
+  const form =
+    'formState' in optionsOrFormInstance ? optionsOrFormInstance : (
+      (() => {
+        const { schema, ...options } = optionsOrFormInstance
 
-    const computedSchema = typeof schema === 'function' ? schema(schemaModule.schema) : schema
+        const computedSchema = typeof schema === 'function' ? schema(schemaModule.schema) : schema
 
-    const formInstance = reactHookForm.useForm<TFieldValues, unknown, TTransformedValues>({
+    const formInstance = reactHookForm.useForm<
+      types.FieldValues<Schema>
+      , unknown,
+      types.TransformedValues<Schema>
+    >({
       ...options,
       resolver: zodResolver.zodResolver(computedSchema),
     })
 
-    const register: types.UseFormRegister<Schema, TFieldValues> = (name, opts) => {
+    const register: types.UseFormRegister<Schema,            types.FieldValues<Schema>> = (name, opts) => {
       const registered = formInstance.register(name, opts)
 
-      const onChange: types.UseFormRegisterReturn<Schema, TFieldValues>['onChange'] = (value) =>
+      const onChange: types.UseFormRegisterReturn<Schema,           types.FieldValues<Schema>>['onChange'] = (value) =>
         registered.onChange(mapValueOnEvent(value))
 
-      const onBlur: types.UseFormRegisterReturn<Schema, TFieldValues>['onBlur'] = (value) =>
+      const onBlur: types.UseFormRegisterReturn<Schema,           types.FieldValues<Schema>>['onBlur'] = (value) =>
         registered.onBlur(mapValueOnEvent(value))
 
-      const result: types.UseFormRegisterReturn<Schema, TFieldValues, typeof name> = {
+      const result: types.UseFormRegisterReturn<Schema,           types.FieldValues<Schema>, typeof name> = {
         ...registered,
         ...(registered.disabled != null ? { isDisabled: registered.disabled } : {}),
         ...(registered.required != null ? { isRequired: registered.required } : {}),
@@ -96,21 +94,15 @@ export function useForm<
       ...formInstance,
       control: { ...formInstance.control, register },
       register,
-    } satisfies types.UseFormReturn<Schema, TFieldValues, TTransformedValues>
+    } satisfies types.UseFormReturn<Schema,           types.FieldValues<Schema>, types.TransformedValues<Schema>>
   }
 }
 
 /**
  * Get the type of arguments passed to the useForm hook
  */
-function getArgsType<
-  Schema extends types.TSchema,
-  TFieldValues extends types.FieldValues<Schema>,
-  TTransformedValues extends types.FieldValues<Schema> | undefined = undefined,
->(
-  args:
-    | types.UseFormProps<Schema, TFieldValues>
-    | types.UseFormReturn<Schema, TFieldValues, TTransformedValues>,
+function getArgsType<Schema extends types.TSchema>(
+  args: types.UseFormProps<Schema> | types.UseFormReturn<Schema>,
 ) {
   return 'formState' in args ? 'formInstance' : 'formOptions'
 }
