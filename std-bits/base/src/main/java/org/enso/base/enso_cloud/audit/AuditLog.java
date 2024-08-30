@@ -30,10 +30,6 @@ public final class AuditLog {
     }
   }
 
-  public static void refreshCaches() {
-    AuditLogApiAccess.refreshRequestConfig();
-  }
-
   public static class AuditLogError extends RuntimeException {
     public AuditLogError(String message, Throwable cause) {
       super(message, cause);

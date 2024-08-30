@@ -35,7 +35,6 @@ class AuditLogApiAccess {
 
   private HttpClient httpClient;
   private final LogJobsQueue logQueue = new LogJobsQueue();
-  private volatile RequestConfig requestConfig = null;
   private final ThreadPoolExecutor backgroundThreadService;
 
   private AuditLogApiAccess() {
@@ -46,17 +45,18 @@ class AuditLogApiAccess {
   }
 
   public Future<Void> logWithConfirmation(LogMessage message) {
+    var currentRequestConfig = getRequestConfig();
     CompletableFuture<Void> completionNotification = new CompletableFuture<>();
-    enqueueJob(new LogJob(message, completionNotification));
+    enqueueJob(new LogJob(message, completionNotification, currentRequestConfig));
     return completionNotification;
   }
 
   public void logWithoutConfirmation(LogMessage message) {
-    enqueueJob(new LogJob(message, null));
+    var currentRequestConfig = getRequestConfig();
+    enqueueJob(new LogJob(message, null, currentRequestConfig));
   }
 
   private void enqueueJob(LogJob job) {
-    ensureConfigSaved();
     int queuedJobs = logQueue.enqueue(job);
     if (queuedJobs == 1 && backgroundThreadService.getQueue().isEmpty()) {
       // If we are the first message in the queue, we need to start the background thread.
@@ -91,7 +91,11 @@ class AuditLogApiAccess {
       }
 
       try {
-        var request = buildRequest(pendingMessages);
+        // We use the request config from the first message.
+        // The request config may only change in test scenarios which just must take this into
+        // account.
+        var requestConfig = pendingMessages.get(0).requestConfig();
+        var request = buildRequest(requestConfig, pendingMessages);
         sendLogRequest(request, MAX_RETRIES);
         notifyJobsAboutSuccess(pendingMessages);
       } catch (RequestFailureException e) {
@@ -116,7 +120,7 @@ class AuditLogApiAccess {
     }
   }
 
-  private HttpRequest buildRequest(List<LogJob> messages) {
+  private HttpRequest buildRequest(RequestConfig requestConfig, List<LogJob> messages) {
     assert requestConfig != null
         : "The request configuration must be set before building a request.";
     var payload = buildPayload(messages);
@@ -141,27 +145,27 @@ class AuditLogApiAccess {
   }
 
   /**
-   * Contains information needed to build a request to the Cloud Logs API.
+   * Builds a request configuration based on runtime information.
    *
-   * <p>This information must be gathered on the main Enso thread, as only there we have access to
-   * the {@link AuthenticationProvider}.
-   */
-  private record RequestConfig(URI apiUri, String accessToken) {}
-
-  /**
-   * Builds a request configuration based on runtime information. This method must be called from
-   * the main thread.
+   * <p>This method must be called from the main thread.
    */
   private RequestConfig getRequestConfig() {
     var uri = URI.create(CloudAPI.getAPIRootURI() + "logs");
     return new RequestConfig(uri, AuthenticationProvider.getAccessToken());
   }
 
-  private void ensureConfigSaved() {
-    if (requestConfig == null) {
-      requestConfig = getRequestConfig();
-    }
-  }
+  /**
+   * Contains information needed to build a request to the Cloud Logs API.
+   *
+   * <p>This information must be gathered on the main Enso thread, as only there we have access to
+   * the {@link AuthenticationProvider}.
+   *
+   * <p>We associate an instance with every message to be sent. When sending multiple messages in a
+   * batch, we will use the config from one of them. This should not matter as in normal operations
+   * the configs will be the same, they only change during testing. Tests should this into account,
+   * by sending the last message in synchronous mode.
+   */
+  private record RequestConfig(URI apiUri, String accessToken) {}
 
   private void sendLogRequest(HttpRequest request, int retryCount) throws RequestFailureException {
     try {
@@ -202,18 +206,13 @@ class AuditLogApiAccess {
   }
 
   /**
-   * A helper method to ensure that any changes to cloud environment configuration are reflected in
-   * the request configuration.
+   * A record that represents a single log to be sent.
    *
-   * <p>This is only used in tests when the environment is being overridden. Normally, the
-   * environment does not change during execution.
+   * <p>It may contain the `completionNotification` future that will be completed when the log is
+   * sent. If no-one is listening for confirmation, that field will be `null`.
    */
-  static void refreshRequestConfig() {
-    // We only do the refresh if the request config was set before. It may not be set if the user is
-    // not logged in to the cloud, and trying to refresh it then will fail with `Not_Logged_In`
-    // error.
-    if (INSTANCE.requestConfig != null) {
-      INSTANCE.requestConfig = INSTANCE.getRequestConfig();
-    }
-  }
+  record LogJob(
+      LogMessage message,
+      CompletableFuture<Void> completionNotification,
+      RequestConfig requestConfig) {}
 }

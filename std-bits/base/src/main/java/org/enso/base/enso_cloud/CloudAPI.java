@@ -1,7 +1,6 @@
 package org.enso.base.enso_cloud;
 
 import org.enso.base.Environment_Utils;
-import org.enso.base.enso_cloud.audit.AuditLog;
 
 public final class CloudAPI {
   /**
@@ -39,6 +38,5 @@ public final class CloudAPI {
     CloudRequestCache.clear();
     AuthenticationProvider.reset();
     EnsoSecretReader.flushCache();
-    AuditLog.refreshCaches();
   }
 }
