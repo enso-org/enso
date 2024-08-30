@@ -1,6 +1,10 @@
 package org.enso.testkit
 
-import org.scalatest._
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.Appender
+import org.enso.logging.service.logback.MemoryAppender
+import org.scalatest.{Args, Failed, Outcome, Status, TestSuite}
+import org.slf4j.{Logger, LoggerFactory}
 
 trait ReportLogsOnFailure extends TestSuite {
 
