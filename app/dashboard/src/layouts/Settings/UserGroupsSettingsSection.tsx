@@ -210,7 +210,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
               <aria.Row className="h-row">
                 <aria.Cell
                   ref={(element) => {
-                    if (element != null) {
+                    if (element instanceof HTMLTableCellElement) {
                       element.colSpan = 2
                     }
                   }}

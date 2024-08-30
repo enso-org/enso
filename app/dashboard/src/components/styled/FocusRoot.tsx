@@ -62,7 +62,11 @@ function FocusRoot(props: FocusRootProps) {
             }
           }
         },
-        ...(active ? { onKeyDown: navigator2D.onKeyDown.bind(navigator2D) } : {}),
+        ...(active && {
+          onKeyDown: (event) => {
+            navigator2D.onKeyDown(event)
+          },
+        }),
       }),
     [active, children, navigator2D],
   )
