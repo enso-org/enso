@@ -49,7 +49,7 @@ export interface FeatureFlags {
 const flagsStore = createStore<FeatureFlags>((set) => ({
   featureFlags: {
     enableMultitabs: false,
-    enableAssetsTableBackgroundRefresh: false,
+    enableAssetsTableBackgroundRefresh: true,
     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     assetsTableBackgroundRefreshInterval: 3_000,
   },
