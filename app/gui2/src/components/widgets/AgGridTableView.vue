@@ -29,7 +29,8 @@ import type {
   GridApi,
   RowHeightParams,
 } from 'ag-grid-enterprise'
-import { type ComponentInstance, reactive, ref, shallowRef } from 'vue'
+import { type ComponentInstance, reactive, ref, shallowRef, watch } from 'vue'
+import { TextFormatOptions } from '../visualizations/TableVisualization.vue'
 
 const DEFAULT_ROW_HEIGHT = 22
 
@@ -41,6 +42,7 @@ const _props = defineProps<{
   components?: Record<string, unknown>
   singleClickEdit?: boolean
   stopEditingWhenCellsLoseFocus?: boolean
+  textFormatOption?: TextFormatOptions
 }>()
 const emit = defineEmits<{
   cellEditingStarted: [event: CellEditingStartedEvent]
@@ -79,6 +81,13 @@ function getRowHeight(params: RowHeightParams): number {
   const maxReturnCharsCount = Math.max(...returnCharsCount)
   return (maxReturnCharsCount + 1) * DEFAULT_ROW_HEIGHT
 }
+
+watch(
+  () => _props.textFormatOption,
+  () => {
+    gridApi.value?.redrawRows()
+  },
+)
 
 function updateColumnWidths(event: FirstDataRenderedEvent | RowDataUpdatedEvent) {
   if (event.columnApi == null) {
