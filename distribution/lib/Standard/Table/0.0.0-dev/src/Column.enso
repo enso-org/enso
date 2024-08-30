@@ -2460,7 +2460,7 @@ type Column
              column = table.get "Name"
              ## The take returns "Charlie"
              last_row = column.take (..Last 1)
-    @range Index_Sub_Range.default_widget
+    @range (self-> Index_Sub_Range.default_widget self.length)
     take : (Index_Sub_Range | Range | Integer) -> Column
     take self range:(Index_Sub_Range | Range | Integer)=..First =
         take_helper self.length (self.at _) self.slice (slice_ranges self) range
@@ -2473,7 +2473,7 @@ type Column
 
        Arguments:
        - range: The selection of rows from the table to remove.
-    @range Index_Sub_Range.default_widget
+    @range (self-> Index_Sub_Range.default_widget self.length)
     drop : (Index_Sub_Range | Range | Integer) -> Column
     drop self range:(Index_Sub_Range | Range | Integer)=..First =
         drop_helper self.length (self.at _) self.slice (slice_ranges self) range
