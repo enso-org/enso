@@ -14,6 +14,7 @@ module org.enso.language.server {
   requires org.enso.zio.wrapper;
   requires org.enso.runner.common;
   requires org.enso.engine.common;
+  requires org.enso.filewatcher;
   requires org.enso.json.rpc.server;
   requires org.enso.logging.utils;
   requires org.enso.logging.utils.akka;

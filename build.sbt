@@ -1087,6 +1087,7 @@ lazy val filewatcher = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    javaModuleName := "org.enso.filewatcher",
     version := "0.1",
     libraryDependencies ++= Seq(
       "io.methvin"     % "directory-watcher" % directoryWatcherVersion,
@@ -2057,6 +2058,7 @@ lazy val `polyglot-api-macros` = project
 
 lazy val `language-server` = (project in file("engine/language-server"))
   .enablePlugins(JPMSPlugin)
+  .enablePlugins(PackageListPlugin)
   .settings(
     commands += WithDebugCommand.withDebug,
     frgaalJavaCompilerSetting,
@@ -2080,9 +2082,10 @@ lazy val `language-server` = (project in file("engine/language-server"))
       "org.bouncycastle"            % "bcutil-jdk18on"          % "1.76"                    % Test,
       "org.bouncycastle"            % "bcpkix-jdk18on"          % "1.76"                    % Test,
       "org.bouncycastle"            % "bcprov-jdk18on"          % "1.76"                    % Test,
-      "org.apache.tika"             % "tika-core"               % tikaVersion               % Test
+      "org.apache.tika"             % "tika-core"               % tikaVersion               % Test,
     ),
     excludeFilter := excludeFilter.value || "module-info.java",
+    javaModuleName := "org.enso.language.server",
     Compile / moduleDependencies := {
       val scalaVer = scalaBinaryVersion.value
       Seq(
@@ -2112,6 +2115,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       (`profiling-utils` / Compile / exportedModule).value,
       (`searcher` / Compile / exportedModule).value,
       (`text-buffer` / Compile / exportedModule).value,
+      (`filewatcher` / Compile / exportedModule).value,
       (`version-output` / Compile / exportedModule).value
     ),
     Test / testOptions += Tests
@@ -2139,26 +2143,130 @@ lazy val `language-server` = (project in file("engine/language-server"))
         GraalVM.langsPkgs.map(_.withConfigurations(Some(Test.name)))
       necessaryModules
     },
-    Test / addModules := Seq(
-      (`syntax-rust-definition` / javaModuleName).value,
-      (`profiling-utils` / javaModuleName).value,
-      (`ydoc-server` / javaModuleName).value
+    // More dependencies needed for modules for testing
+    libraryDependencies ++= Seq(
+      "com.google.protobuf" % "protobuf-java"    % "3.25.1" % Test,
+      "org.reactivestreams" % "reactive-streams" % "1.0.3" % Test,
+      "org.jline"              % "jline"              % jlineVersion % Test,
+      "io.sentry"        % "sentry-logback"          % "6.28.0" % Test,
+      "io.sentry"        % "sentry"                  % "6.28.0" % Test,
+      "ch.qos.logback"   % "logback-classic"         % logbackClassicVersion % Test,
+      "ch.qos.logback"   % "logback-core"            % logbackClassicVersion % Test,
+      "org.apache.tika"     % "tika-core"                    % tikaVersion % Test,
+      "com.google.flatbuffers"                 % "flatbuffers-java"      % flatbuffersVersion % Test,
+      "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion % Test,
+      "org.apache.commons"  % "commons-lang3"                % commonsLangVersion % Test,
+      "org.apache.commons"          % "commons-compress" % commonsCompressVersion % Test,
+      "org.yaml"                    % "snakeyaml"     % snakeyamlVersion % Test,
+      "com.ibm.icu"         % "icu4j"                        % icuVersion % Test,
     ),
     Test / moduleDependencies := {
       GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ helidon ++ Seq(
+        "org.scala-lang"      % "scala-library"                % scalacVersion,
+        "org.scala-lang" % "scala-reflect"  % scalacVersion,
+        "org.scala-lang" % "scala-compiler" % scalacVersion,
         "org.slf4j"        % "slf4j-api"                    % slf4jVersion,
         "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion,
-        (`syntax-rust-definition` / projectID).value,
-        (`ydoc-server` / projectID).value,
-        (`profiling-utils` / projectID).value
+        "com.google.flatbuffers"                 % "flatbuffers-java"      % flatbuffersVersion,
+        "org.yaml"                    % "snakeyaml"     % snakeyamlVersion,
+        "com.typesafe" % "config"    % typesafeConfigVersion,
+        "org.apache.commons"  % "commons-lang3"                % commonsLangVersion,
+        "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
+        "commons-io"     % "commons-io"        % commonsIoVersion,
+        "com.google.protobuf" % "protobuf-java"    % "3.25.1",
+        "org.reactivestreams" % "reactive-streams" % "1.0.3",
+        "org.jline"              % "jline"              % jlineVersion,
+        "org.apache.tika"     % "tika-core"                    % tikaVersion,
+        "com.ibm.icu"         % "icu4j"                        % icuVersion,
+        "io.sentry"        % "sentry-logback"          % "6.28.0",
+        "io.sentry"        % "sentry"                  % "6.28.0",
+        "ch.qos.logback"   % "logback-classic"         % logbackClassicVersion,
+        "ch.qos.logback"   % "logback-core"            % logbackClassicVersion
       )
     },
+    Test / internalModuleDependencies := Seq(
+      (Compile / exportedModule).value,
+      (`runtime` / Compile / exportedModule).value,
+      (`runtime-instrument-common` / Compile / exportedModule).value,
+      (`runtime-instrument-runtime-server` / Compile / exportedModule).value,
+      (`runtime-instrument-repl-debugger` / Compile / exportedModule).value,
+      (`runtime-instrument-id-execution` / Compile / exportedModule).value,
+      (`runtime-language-epb` / Compile / exportedModule).value,
+      (`ydoc-server` / Compile / exportedModule).value,
+      (`syntax-rust-definition` / Compile / exportedModule).value,
+      (`profiling-utils` / Compile / exportedModule).value,
+      (`logging-service-logback` / Compile / exportedModule).value,
+      (`logging-service-logback` / Test / exportedModule).value,
+      (`version-output` / Compile / exportedModule).value,
+      (`scala-libs-wrapper` / Compile / exportedModule).value,
+      (`akka-wrapper` / Compile / exportedModule).value,
+      (`language-server-deps-wrapper` / Compile / exportedModule).value,
+      (`jpms-wrapper-methvin-directory-watcher` / Compile / exportedModule).value,
+      (`text-buffer` / Compile / exportedModule).value,
+      (`runtime-suggestions` / Compile / exportedModule).value,
+      (`runtime-parser` / Compile / exportedModule).value,
+      (`runtime-compiler` / Compile / exportedModule).value,
+      (`polyglot-api` / Compile / exportedModule).value,
+      (`polyglot-api-macros` / Compile / exportedModule).value,
+      (`pkg` / Compile / exportedModule).value,
+      (`logging-utils` / Compile / exportedModule).value,
+      (`connected-lock-manager` / Compile / exportedModule).value,
+      (`library-manager` / Compile / exportedModule).value,
+      (`persistance` / Compile / exportedModule).value,
+      (`interpreter-dsl` / Compile / exportedModule).value,
+      (`engine-common` / Compile / exportedModule).value,
+      (`edition-updater` / Compile / exportedModule).value,
+      (`editions` / Compile / exportedModule).value,
+      (`distribution-manager` / Compile / exportedModule).value,
+      (`common-polyglot-core-utils` / Compile / exportedModule).value,
+      (`cli` / Compile / exportedModule).value,
+      (`refactoring-utils` / Compile / exportedModule).value,
+      (`scala-yaml` / Compile / exportedModule).value,
+      (`semver` / Compile / exportedModule).value,
+      (`downloader` / Compile / exportedModule).value,
+      (`logging-config` / Compile / exportedModule).value,
+      (`logging-service` / Compile / exportedModule).value,
+    ),
     Test / javaOptions ++= testLogProviderOptions,
+    Test / patchModules := {
+      // Patch test-classes into the runtime module. This is standard way to deal with the
+      // split package problem in unit tests. For example, Maven's surefire plugin does this.
+      val testClassesDir = (Test / productDirectories).value.head
+      // Patching with sources is useful for compilation, patching with compiled classes for runtime.
+      val javaSrcDir = (Test / javaSource).value
+      Map(
+        javaModuleName.value -> Seq(javaSrcDir, testClassesDir)
+      )
+    },
+    Test / addModules := Seq(
+      javaModuleName.value,
+      (`syntax-rust-definition` / javaModuleName).value,
+      (`profiling-utils` / javaModuleName).value,
+      (`ydoc-server` / javaModuleName).value,
+    ),
+    Test / addReads := {
+      // We patched the test-classes into the runtime module. These classes access some stuff from
+      // unnamed module. Thus, let's add ALL-UNNAMED.
+      Map(
+        javaModuleName.value -> Seq(
+          "ALL-UNNAMED",
+        )
+      )
+    },
     Test / addExports := {
       val profModName = (`profiling-utils` / javaModuleName).value
-      Map(
+      val exports = Map(
         profModName + "/org.enso.profiling.snapshot" -> Seq("ALL-UNNAMED")
       )
+
+      // Make sure that all the packages in test source directory are exported
+      // to all unnamed modules
+      val testPkgs = (Test / packages).value
+      val testPkgsExports = testPkgs.map { pkg =>
+          javaModuleName.value + "/" + pkg -> Seq("ALL-UNNAMED")
+        }
+        .toMap
+      exports ++ testPkgsExports
     }
   )
   .settings(
