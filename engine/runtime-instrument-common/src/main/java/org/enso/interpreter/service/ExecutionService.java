@@ -203,6 +203,7 @@ public final class ExecutionService {
     Object p = context.getThreadManager().enter();
     try {
       execute.getCallTarget().call(substituteMissingArguments(call));
+      syncState.setExecuted();
     } finally {
       context.getThreadManager().leave(p);
       eventNodeFactory.ifPresent(EventBinding::dispose);

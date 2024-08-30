@@ -43,6 +43,7 @@ public class UpdatesSynchronizationState {
   private final Set<UUID> expressionsState = new HashSet<>();
   private final Set<UUID> visualizationsState = new HashSet<>();
   private final Set<UUID> methodPointersState = new HashSet<>();
+  private boolean executionRequired = false;
 
   @Override
   public String toString() {
@@ -66,6 +67,7 @@ public class UpdatesSynchronizationState {
       expressionsState.remove(key);
       visualizationsState.remove(key);
       methodPointersState.remove(key);
+      executionRequired = true;
     }
   }
 
@@ -93,6 +95,7 @@ public class UpdatesSynchronizationState {
     synchronized (expressionsState) {
       expressionsState.remove(key);
     }
+    setExecutionRequired();
   }
 
   /**
@@ -130,6 +133,7 @@ public class UpdatesSynchronizationState {
     synchronized (visualizationsState) {
       visualizationsState.remove(key);
     }
+    setExecutionRequired();
   }
 
   /**
@@ -173,5 +177,27 @@ public class UpdatesSynchronizationState {
     synchronized (methodPointersState) {
       methodPointersState.clear();
     }
+    setExecutionRequired();
+  }
+
+  /**
+   * Check whether this state was marked for an execution.
+   */
+  public boolean isExecutionRequired() {
+    return executionRequired;
+  }
+
+  /**
+   *  Mark this state as an executed.
+   */
+  public synchronized void setExecuted() {
+    executionRequired = false;
+  }
+
+  /**
+   * Mark that the execution of this state is required.
+   */
+  private synchronized void setExecutionRequired() {
+    executionRequired = true;
   }
 }

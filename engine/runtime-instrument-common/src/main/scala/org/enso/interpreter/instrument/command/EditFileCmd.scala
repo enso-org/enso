@@ -1,5 +1,6 @@
 package org.enso.interpreter.instrument.command
 
+import org.enso.interpreter.instrument.InstrumentFrame
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.instrument.execution.model.PendingEdit
 import org.enso.interpreter.instrument.job.{EnsureCompiledJob, ExecuteJob}
@@ -8,6 +9,7 @@ import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.logging.Level
 
+import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 
 /** A command that performs edition of a file.
@@ -54,21 +56,31 @@ class EditFileCmd(request: Api.EditFileNotification)
               ctx.jobControlPlane.abortAllJobs()
               ctx.jobProcessor
                 .run(new EnsureCompiledJob(Seq(request.path)))
-                .foreach(_ => executeJobs.foreach(ctx.jobProcessor.run))
+                .foreach(_ =>
+                  executeJobs(_.nonEmpty).foreach(ctx.jobProcessor.run)
+                )
             } else if (request.idMap.isDefined) {
-              ctx.jobProcessor.run(new EnsureCompiledJob(Seq(request.path)))
+              val isExecutionRequired = {
+                stack: mutable.Stack[InstrumentFrame] =>
+                  stack.exists(_.syncState.isExecutionRequired)
+              }
+              ctx.jobProcessor
+                .run(new EnsureCompiledJob(Seq(request.path)))
+                .foreach(_ =>
+                  executeJobs(isExecutionRequired).foreach(ctx.jobProcessor.run)
+                )
             }
           }
         )
     )
   }
 
-  private def executeJobs(implicit
-    ctx: RuntimeContext
-  ): Iterable[ExecuteJob] = {
+  private def executeJobs(
+    isExecutionRequired: mutable.Stack[InstrumentFrame] => Boolean
+  )(implicit ctx: RuntimeContext): Iterable[ExecuteJob] = {
     ctx.contextManager.getAllContexts
       .collect {
-        case (contextId, stack) if stack.nonEmpty =>
+        case (contextId, stack) if isExecutionRequired(stack) =>
           ExecuteJob(contextId, stack.toList)
       }
   }
