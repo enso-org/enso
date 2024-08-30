@@ -570,33 +570,38 @@ function zoomToSelected(override?: boolean) {
   endBrushing()
 }
 
+const series = Object.keys(data.value.axis).filter((s) => s != 'x')
 var svg = d3.select('#plot_legend')
 
+var color = d3.scaleOrdinal().domain(series).range(d3.schemeCategory10).domain(series)
+
 svg
+  .selectAll('dots')
+  .data(series)
+  .enter()
   .append('circle')
-  .attr('cx', 90)
+  .attr('cx', function (d, i) {
+    return 90 + i * 120
+  })
   .attr('cy', height.value - boxHeight.value - 20)
   .attr('r', 6)
-  .style('fill', '#69b3a2')
+  .style('fill', function (d) {
+    return color(d)
+  })
+
 svg
-  .append('circle')
-  .attr('cx', 240)
-  .attr('cy', height.value - boxHeight.value - 20)
-  .attr('r', 6)
-  .style('fill', '#404080')
-svg
+  .selectAll('labels')
+  .data(series)
+  .enter()
   .append('text')
-  .attr('x', 110)
+  .attr('x', function (d, i) {
+    return 100 + i * 120
+  })
   .attr('y', height.value - boxHeight.value - 20)
-  .text('variable A')
   .style('font-size', '15px')
-  .attr('alignment-baseline', 'middle')
-svg
-  .append('text')
-  .attr('x', 250)
-  .attr('y', height.value - boxHeight.value - 20)
-  .text('variable B')
-  .style('font-size', '15px')
+  .text(function (d) {
+    return d
+  })
   .attr('alignment-baseline', 'middle')
 
 useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSelected() }))
