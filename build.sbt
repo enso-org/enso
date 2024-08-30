@@ -1144,14 +1144,16 @@ lazy val `scala-libs-wrapper` = project
       "org.typelevel"                         %% "cats-core"             % "2.10.0",
       "org.scala-lang"                         % "scala-compiler"        % scalacVersion,
       "org.jline"                              % "jline"                 % jlineVersion,
-      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion
+      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion,
+      "net.java.dev.jna"          % "jna"               % "5.13.0"
     ),
     Compile / moduleDependencies := Seq(
       "org.scala-lang" % "scala-library"  % scalacVersion,
       "org.scala-lang" % "scala-reflect"  % scalacVersion,
       "org.scala-lang" % "scala-compiler" % scalacVersion,
       "org.jline"      % "jline"          % jlineVersion,
-      "org.slf4j"      % "slf4j-api"      % slf4jVersion
+      "org.slf4j"      % "slf4j-api"      % slf4jVersion,
+      "net.java.dev.jna"          % "jna"   % "5.13.0"
     ),
     assembly / assemblyExcludedJars := {
       JPMSUtils.filterModulesFromClasspath(
@@ -1162,7 +1164,8 @@ lazy val `scala-libs-wrapper` = project
           "org.scala-lang"            % "scala-reflect"   % scalacVersion,
           "org.scala-lang"            % "scala-compiler"  % scalacVersion,
           "io.github.java-diff-utils" % "java-diff-utils" % "4.12",
-          "org.jline"                 % "jline"           % jlineVersion
+          "org.jline"                 % "jline"           % jlineVersion,
+          "net.java.dev.jna"          % "jna"   % "5.13.0"
         ),
         streams.value.log,
         moduleName.value,
@@ -1255,6 +1258,7 @@ lazy val `jpms-wrapper-methvin-directory-watcher` = project
     libraryDependencies ++= Seq(
       "io.methvin"     % "directory-watcher" % directoryWatcherVersion,
       "org.slf4j" % "slf4j-api" % "1.7.36",
+      "net.java.dev.jna"          % "jna"    % "5.13.0"
     ),
     javaModuleName := "org.enso.jpms.wrapper.methvin.directory.watcher",
     assembly / assemblyExcludedJars := {
@@ -1264,6 +1268,7 @@ lazy val `jpms-wrapper-methvin-directory-watcher` = project
         Seq(
           "org.scala-lang"            % "scala-library"                          % scalacVersion,
           "org.slf4j" % "slf4j-api" % "1.7.36",
+          "net.java.dev.jna"          % "jna"      % "5.13.0"
         ),
         streams.value.log,
         moduleName.value,
@@ -1271,7 +1276,8 @@ lazy val `jpms-wrapper-methvin-directory-watcher` = project
       )
     },
     Compile / moduleDependencies := Seq(
-      "org.scala-lang" % "scala-library" % scalacVersion
+      "org.scala-lang" % "scala-library" % scalacVersion,
+      "net.java.dev.jna"          % "jna"    % "5.13.0"
     ),
     Compile / patchModules := {
       val scalaVer = scalaBinaryVersion.value
@@ -2104,6 +2110,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       (`zio-wrapper` / Compile / exportedModule).value,
       (`scala-libs-wrapper` / Compile / exportedModule).value,
       (`language-server-deps-wrapper` / Compile / exportedModule).value,
+      (`jpms-wrapper-methvin-directory-watcher` / Compile / exportedModule).value,
       (`engine-runner-common` / Compile / exportedModule).value,
       (`ydoc-server` / Compile / exportedModule).value,
       (`logging-utils` / Compile / exportedModule).value,
@@ -2201,7 +2208,6 @@ lazy val `language-server` = (project in file("engine/language-server"))
       (`scala-libs-wrapper` / Compile / exportedModule).value,
       (`akka-wrapper` / Compile / exportedModule).value,
       (`language-server-deps-wrapper` / Compile / exportedModule).value,
-      (`jpms-wrapper-methvin-directory-watcher` / Compile / exportedModule).value,
       (`text-buffer` / Compile / exportedModule).value,
       (`runtime-suggestions` / Compile / exportedModule).value,
       (`runtime-parser` / Compile / exportedModule).value,
