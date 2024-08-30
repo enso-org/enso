@@ -3945,8 +3945,13 @@ lazy val `runtime-version-manager` = project
   */
 lazy val `process-utils` = project
   .in(file("lib/scala/process-utils"))
+  .enablePlugins(JPMSPlugin)
   .settings(
-    frgaalJavaCompilerSetting
+    frgaalJavaCompilerSetting,
+    compileOrder := CompileOrder.ScalaThenJava,
+    Compile / moduleDependencies := Seq(
+      "org.scala-lang" % "scala-library" % scalacVersion
+    ),
   )
 
 lazy val `runtime-version-manager-test` = project
