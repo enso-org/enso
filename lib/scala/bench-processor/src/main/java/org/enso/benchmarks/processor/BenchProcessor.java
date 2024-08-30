@@ -347,7 +347,7 @@ public class BenchProcessor extends AbstractProcessor {
                   @TearDown
                   public void checkNoTruffleCompilation(BenchmarkParams params) {
                     if (compilationMessagesFound) {
-                      System.err.println(compilationLog.toString());
+                      System.out.println(compilationLog.toString());
                     }
                   }
 
