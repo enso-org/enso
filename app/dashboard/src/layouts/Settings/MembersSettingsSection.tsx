@@ -90,10 +90,10 @@ export default function MembersSettingsSection() {
       <table className="table-fixed self-start rounded-rows">
         <thead>
           <tr className="h-row">
-            <th className="w-members-name-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
+            <th className="w-48 border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
               {getText('name')}
             </th>
-            <th className="w-members-email-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
+            <th className="w-48 border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
               {getText('status')}
             </th>
           </tr>
@@ -101,9 +101,13 @@ export default function MembersSettingsSection() {
         <tbody className="select-text">
           {members.map((member) => (
             <tr key={member.email} className="group h-row rounded-rows-child">
-              <td className="border-x-2 border-transparent bg-clip-padding px-4 py-1 first:rounded-l-full last:rounded-r-full last:border-r-0">
-                <span className="block text-sm">{member.email}</span>
-                <span className="block text-xs text-primary/50">{member.name}</span>
+              <td className="max-w-48 border-x-2 border-transparent bg-clip-padding px-4 py-1 first:rounded-l-full last:rounded-r-full last:border-r-0">
+                <ariaComponents.Text truncate="1" className="block">
+                  {member.email}
+                </ariaComponents.Text>
+                <ariaComponents.Text truncate="1" className="block text-2xs text-primary/40">
+                  {member.name}
+                </ariaComponents.Text>
               </td>
               <td className="border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
                 <div className="flex flex-col">
