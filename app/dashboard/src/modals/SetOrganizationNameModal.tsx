@@ -38,7 +38,7 @@ export function SetOrganizationNameModal() {
   const userPlan = user?.plan ?? null
 
   const { data: organizationName } = useSuspenseQuery({
-    queryKey: ['organization', userId],
+    queryKey: [backend.type, 'getOrganization', userId],
     queryFn: () => backend.getOrganization().catch(() => null),
     staleTime: Infinity,
     select: (data) => data?.name ?? '',
