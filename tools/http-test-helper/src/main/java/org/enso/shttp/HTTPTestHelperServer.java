@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Semaphore;
@@ -12,6 +13,7 @@ import java.util.stream.Stream;
 import org.enso.shttp.auth.BasicAuthTestHandler;
 import org.enso.shttp.auth.TokenAuthTestHandler;
 import org.enso.shttp.cloud_mock.CloudAuthRenew;
+import org.enso.shttp.cloud_mock.CloudMockSetup;
 import org.enso.shttp.cloud_mock.CloudRoot;
 import org.enso.shttp.cloud_mock.ExpiredTokensCounter;
 import org.enso.shttp.test_helpers.*;
@@ -21,16 +23,18 @@ import sun.misc.SignalHandler;
 public class HTTPTestHelperServer {
 
   public static void main(String[] args) {
-    if (args.length != 2) {
-      System.err.println("Usage: http-test-helper <host> <port>");
+    if (args.length < 2) {
+      System.err.println("Usage: http-test-helper <host> <port> [additional test options]");
       System.exit(1);
     }
     String host = args[0];
     int port = Integer.parseInt(args[1]);
+    String[] remainingArgs = Arrays.copyOfRange(args, 2, args.length);
     final Semaphore stopNotification = new Semaphore(0, false);
     HybridHTTPServer server = null;
     try {
-      server = createServer(host, port, null, true);
+      CloudMockSetup cloudMockSetup = CloudMockSetup.fromArgs(remainingArgs);
+      server = createServer(host, port, null, true, cloudMockSetup);
     } catch (URISyntaxException | IOException e) {
       e.printStackTrace();
       System.exit(1);
@@ -67,16 +71,21 @@ public class HTTPTestHelperServer {
    * @return The created server
    */
   public static HybridHTTPServer createServer(
-      String host, int port, Executor executor, boolean withSSLServer)
+      String host,
+      int port,
+      Executor executor,
+      boolean withSSLServer,
+      CloudMockSetup cloudMockSetup)
       throws URISyntaxException, IOException {
     Path projectRoot = findProjectRoot();
     Path keyStorePath = projectRoot.resolve("tools/http-test-helper/target/keystore.jks");
     var server = new HybridHTTPServer(host, port, port + 1, keyStorePath, executor, withSSLServer);
-    setupEndpoints(server, projectRoot);
+    setupEndpoints(server, projectRoot, cloudMockSetup);
     return server;
   }
 
-  private static void setupEndpoints(HybridHTTPServer server, Path projectRoot) {
+  private static void setupEndpoints(
+      HybridHTTPServer server, Path projectRoot, CloudMockSetup cloudMockSetup) {
     for (HttpMethod method : HttpMethod.values()) {
       String path = "/" + method.toString().toLowerCase();
       server.addHandler(path, new TestHandler(method));
@@ -91,11 +100,13 @@ public class HTTPTestHelperServer {
     server.addHandler("/test_redirect", new RedirectTestHandler("/testfiles/js.txt"));
 
     // Cloud mock
-    var expiredTokensCounter = new ExpiredTokensCounter();
-    server.addHandler("/COUNT-EXPIRED-TOKEN-FAILURES", expiredTokensCounter);
-    CloudRoot cloudRoot = new CloudRoot(expiredTokensCounter);
-    server.addHandler(cloudRoot.prefix, cloudRoot);
-    server.addHandler("/enso-cloud-auth-renew", new CloudAuthRenew());
+    if (cloudMockSetup != null) {
+      var expiredTokensCounter = new ExpiredTokensCounter();
+      server.addHandler("/COUNT-EXPIRED-TOKEN-FAILURES", expiredTokensCounter);
+      CloudRoot cloudRoot = new CloudRoot(expiredTokensCounter, cloudMockSetup);
+      server.addHandler(cloudRoot.prefix, cloudRoot);
+      server.addHandler("/enso-cloud-auth-renew", new CloudAuthRenew());
+    }
 
     // Data link helpers
     server.addHandler("/dynamic-datalink", new GenerateDataLinkHandler(true));
