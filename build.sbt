@@ -1675,6 +1675,7 @@ lazy val `json-rpc-server` = project
     libraryDependencies ++= Seq(
       "io.circe"                   %% "circe-literal"   % circeVersion,
       "com.typesafe.scala-logging" %% "scala-logging"   % scalaLoggingVersion,
+      "org.slf4j"      % "slf4j-api"       % slf4jVersion,
       akkaTestkit                   % Test,
       "org.scalatest"              %% "scalatest"       % scalatestVersion      % Test,
       "junit"                       % "junit"           % junitVersion          % Test,
@@ -1688,6 +1689,7 @@ lazy val `json-rpc-server` = project
       val scalaVer = scalaBinaryVersion.value
       Seq(
         "org.scala-lang" % "scala-library"   % scalacVersion,
+        "org.slf4j"      % "slf4j-api"       % slf4jVersion,
       )
     },
     Compile / internalModuleDependencies := Seq(
