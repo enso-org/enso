@@ -1238,7 +1238,7 @@ lazy val `language-server-deps-wrapper` = project
       val scalaLibs = JPMSUtils.filterModulesFromUpdate(
         update.value,
         Seq(
-          "com.github.pureconfig" % ("pureconfig_" + scalaVer) % pureconfigVersion
+          "com.github.pureconfig" % ("pureconfig-core_" + scalaVer) % pureconfigVersion
         ),
         streams.value.log,
         moduleName.value,
