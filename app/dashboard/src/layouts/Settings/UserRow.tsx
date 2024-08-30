@@ -88,7 +88,9 @@ export default function UserRow(props: UserRowProps) {
         </div>
       </aria.Cell>
       <aria.Cell className="text whitespace-nowrap rounded-r-full border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:border-r-0 group-selected:bg-selected-frame">
-        {user.email}
+        <ariaComponents.Text nowrap truncate="1" className="block">
+          {user.email}
+        </ariaComponents.Text>
       </aria.Cell>
       {doDeleteUserRaw == null ?
         null
