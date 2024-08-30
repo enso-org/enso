@@ -84,6 +84,26 @@ module org.enso.akka.wrapper {
   exports akka.http.scaladsl.util;
   exports akka.http.shaded.com.twitter.hpack;
 
+  // akka-http
+  exports akka.http.javadsl.coding;
+  exports akka.http.javadsl.common;
+  exports akka.http.javadsl.marshalling;
+  exports akka.http.javadsl.marshalling.sse;
+  exports akka.http.javadsl.server;
+  exports akka.http.javadsl.server.directives;
+  exports akka.http.javadsl.unmarshalling;
+  exports akka.http.javadsl.unmarshalling.sse;
+  exports akka.http.scaladsl.client;
+  exports akka.http.scaladsl.coding;
+  exports akka.http.scaladsl.common;
+  exports akka.http.scaladsl.marshalling;
+  exports akka.http.scaladsl.marshalling.sse;
+  exports akka.http.scaladsl.server;
+  exports akka.http.scaladsl.server.directives;
+  exports akka.http.scaladsl.server.util;
+  exports akka.http.scaladsl.unmarshalling;
+  exports akka.http.scaladsl.unmarshalling.sse;
+
   // akka-http-spray-json_2.13:10.2.10
   exports akka.http.scaladsl.marshallers.sprayjson;
 
