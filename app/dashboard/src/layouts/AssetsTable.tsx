@@ -1287,6 +1287,16 @@ export default function AssetsTable(props: AssetsTableProps) {
     },
   )
 
+  const doDeleteById = useEventCallback(
+    async (assetId: backendModule.AssetId, forever: boolean = false) => {
+      const asset = nodeMapRef.current.get(assetId)?.item
+
+      if (asset != null) {
+        return doDelete(asset, forever)
+      }
+    },
+  )
+
   const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
   const [keyboardSelectedIndex, setKeyboardSelectedIndex] = React.useState<number | null>(null)
   const mostRecentlySelectedIndexRef = React.useRef<number | null>(null)
@@ -2026,6 +2036,9 @@ export default function AssetsTable(props: AssetsTableProps) {
           newSelectedKeys.delete(event.key)
           setSelectedKeys(newSelectedKeys)
         }
+
+        deleteAsset(event.key)
+
         break
       }
       case AssetListEventType.copy: {
@@ -2155,6 +2168,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         doCopy={doCopy}
         doCut={doCut}
         doPaste={doPaste}
+        doDelete={doDeleteById}
       />
     ),
     [backend, rootDirectoryId, category, pasteData, doCopy, doCut, doPaste],
@@ -2694,6 +2708,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               doCopy={doCopy}
               doCut={doCut}
               doPaste={doPaste}
+              doDelete={doDeleteById}
             />,
           )
         }
