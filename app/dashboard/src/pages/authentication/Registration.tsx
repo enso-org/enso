@@ -12,11 +12,11 @@ import LockIcon from '#/assets/lock.svg'
 import { Input as AriaInput } from '#/components/aria'
 import { Alert, Button, Form, Input, Password, Text } from '#/components/AriaComponents'
 import Link from '#/components/Link'
+import { Stepper, useStepperState } from '#/components/Stepper'
 import {
   latestPrivacyPolicyQueryOptions,
   latestTermsOfServiceQueryOptions,
 } from '#/modals/AgreementsModal'
-import { Stepper, useStepperState } from '#/components/Stepper'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
 import { useAuth } from '#/providers/AuthProvider'
@@ -76,7 +76,9 @@ export default function Registration() {
           email: Form.schema.string().email(getText('invalidEmailValidationError')),
           password: passwordWithPatternSchema(getText),
           confirmPassword: Form.schema.string(),
-          agreedToTos: z.boolean().refine((value) => value, getText('licenseAgreementCheckboxError')),
+          agreedToTos: z
+            .boolean()
+            .refine((value) => value, getText('licenseAgreementCheckboxError')),
           agreedToPrivacyPolicy: z
             .boolean()
             .refine((value) => value, getText('privacyPolicyCheckboxError')),
@@ -146,7 +148,6 @@ export default function Registration() {
 
   return (
     <AuthenticationPage
-      title={getText('createANewAccount')}
       supportsOffline={supportsOffline}
       footer={
         <Link
@@ -180,91 +181,103 @@ export default function Registration() {
                 })
               }}
             >
-              <Input
-                autoFocus
-                required
-                data-testid="email-input"
-                name="email"
-                label={getText('emailLabel')}
-                type="email"
-                autoComplete="email"
-                icon={AtIcon}
-                placeholder={getText('emailPlaceholder')}
-                defaultValue={initialEmail ?? undefined}
-              />
-              <Password
-                required
-                data-testid="password-input"
-                name="password"
-                label={getText('passwordLabel')}
-                autoComplete="new-password"
-                icon={LockIcon}
-                placeholder={getText('passwordPlaceholder')}
-                description={getText('passwordValidationMessage')}
-              />
-              <Password
-                required
-                data-testid="confirm-password-input"
-                name="confirmPassword"
-                label={getText('confirmPasswordLabel')}
-                autoComplete="new-password"
-                icon={LockIcon}
-                placeholder={getText('confirmPasswordPlaceholder')}
-              />
-
-              <Form.Field name="agreedToTos">
-            {({ isInvalid }) => (
-              <>
-                <label className="flex w-full items-center gap-1">
-                  <AriaInput
-                    type="checkbox"
-                    className={twMerge(
-                      'flex size-4 cursor-pointer overflow-clip rounded-lg border border-primary outline-primary focus-visible:outline focus-visible:outline-2',
-                      isInvalid && 'border-red-700 text-red-500 outline-red-500',
-                    )}
-                    data-testid="terms-of-service-checkbox"
-                    {...omit(register('agreedToTos'), 'isInvalid')}
+              {({ register }) => (
+                <>
+                  <Input
+                    autoFocus
+                    required
+                    data-testid="email-input"
+                    name="email"
+                    label={getText('emailLabel')}
+                    type="email"
+                    autoComplete="email"
+                    icon={AtIcon}
+                    placeholder={getText('emailPlaceholder')}
+                    defaultValue={initialEmail ?? undefined}
+                  />
+                  <Password
+                    required
+                    data-testid="password-input"
+                    name="password"
+                    label={getText('passwordLabel')}
+                    autoComplete="new-password"
+                    icon={LockIcon}
+                    placeholder={getText('passwordPlaceholder')}
+                    description={getText('passwordValidationMessage')}
+                  />
+                  <Password
+                    required
+                    data-testid="confirm-password-input"
+                    name="confirmPassword"
+                    label={getText('confirmPasswordLabel')}
+                    autoComplete="new-password"
+                    icon={LockIcon}
+                    placeholder={getText('confirmPasswordPlaceholder')}
                   />
 
-                  <Text>{getText('licenseAgreementCheckbox')}</Text>
-                </label>
+                  <Form.Field name="agreedToTos">
+                    {({ isInvalid }) => (
+                      <>
+                        <label className="flex w-full items-center gap-1">
+                          <AriaInput
+                            type="checkbox"
+                            className={twMerge(
+                              'flex size-4 cursor-pointer overflow-clip rounded-lg border border-primary outline-primary focus-visible:outline focus-visible:outline-2',
+                              isInvalid && 'border-red-700 text-red-500 outline-red-500',
+                            )}
+                            data-testid="terms-of-service-checkbox"
+                            {...omit(register('agreedToTos'), 'isInvalid')}
+                          />
 
-                <Button variant="link" target="_blank" href="https://ensoanalytics.com/eula">
-                  {getText('viewLicenseAgreement')}
-                </Button>
-              </>
-            )}
-          </Form.Field>
+                          <Text>{getText('licenseAgreementCheckbox')}</Text>
+                        </label>
 
-          <Form.Field name="agreedToPrivacyPolicy">
-            {({ isInvalid }) => (
-              <>
-                <label className="flex w-full items-center gap-1">
-                  <AriaInput
-                    type="checkbox"
-                    className={twMerge(
-                      'flex size-4 cursor-pointer overflow-clip rounded-lg border border-primary outline-primary focus-visible:outline focus-visible:outline-2',
-                      isInvalid && 'border-red-700 text-red-500 outline-red-500',
+                        <Button
+                          variant="link"
+                          target="_blank"
+                          href="https://ensoanalytics.com/eula"
+                        >
+                          {getText('viewLicenseAgreement')}
+                        </Button>
+                      </>
                     )}
-                    data-testid="privacy-policy-checkbox"
-                    {...omit(register('agreedToPrivacyPolicy'), 'isInvalid')}
-                  />
+                  </Form.Field>
 
-                  <Text>{getText('privacyPolicyCheckbox')}</Text>
-                </label>
+                  <Form.Field name="agreedToPrivacyPolicy">
+                    {({ isInvalid }) => (
+                      <>
+                        <label className="flex w-full items-center gap-1">
+                          <AriaInput
+                            type="checkbox"
+                            className={twMerge(
+                              'flex size-4 cursor-pointer overflow-clip rounded-lg border border-primary outline-primary focus-visible:outline focus-visible:outline-2',
+                              isInvalid && 'border-red-700 text-red-500 outline-red-500',
+                            )}
+                            data-testid="privacy-policy-checkbox"
+                            {...omit(register('agreedToPrivacyPolicy'), 'isInvalid')}
+                          />
 
-                <Button variant="link" target="_blank" href="https://ensoanalytics.com/privacy">
-                  {getText('viewPrivacyPolicy')}
-                </Button>
-              </>
-            )}
-          </Form.Field>
+                          <Text>{getText('privacyPolicyCheckbox')}</Text>
+                        </label>
 
-          <Form.Submit size="large" icon={CreateAccountIcon} fullWidth>
-                {getText('register')}
-              </Form.Submit>
+                        <Button
+                          variant="link"
+                          target="_blank"
+                          href="https://ensoanalytics.com/privacy"
+                        >
+                          {getText('viewPrivacyPolicy')}
+                        </Button>
+                      </>
+                    )}
+                  </Form.Field>
 
-              <Form.FormError />
+                  <Form.Submit size="large" icon={CreateAccountIcon} fullWidth>
+                    {getText('register')}
+                  </Form.Submit>
+
+                  <Form.FormError />
+                </>
+              )}
             </Form>
           </>
         )}

@@ -14,33 +14,35 @@ import SvgMask from '#/components/SvgMask'
 // === Constants ===
 // =================
 
+const INFO_ICON = (
+  // eslint-disable-next-line no-restricted-syntax
+  <ariaComponents.Text variant="custom" className="pb-0.5 text-xl leading-[0]" aria-hidden>
+    !
+  </ariaComponents.Text>
+)
+
 const STATUS_ICON_MAP: Readonly<Record<Status, StatusIcon>> = {
   loading: {
     icon: <loader.Loader minHeight="h8" />,
     colorClassName: 'text-primary',
     bgClassName: 'bg-transparent',
   },
+  info: {
+    icon: INFO_ICON,
+    colorClassName: 'text-primary',
+    bgClassName: 'bg-primary/30',
+  },
+  error: { icon: Error, colorClassName: 'text-red-500', bgClassName: 'bg-red-500' },
+  success: { icon: Success, colorClassName: 'text-green-500', bgClassName: 'bg-green' },
   // pending is the same as loading. Used for mutations.
   pending: {
     icon: <loader.Loader minHeight="h8" />,
     colorClassName: 'text-primary',
     bgClassName: 'bg-transparent',
   },
-  // Not yet implemented.
+  // idle is the same as info. Used for mutations.
   idle: {
-    icon: <></>,
-    colorClassName: 'text-primary',
-    bgClassName: 'bg-transparent',
-  },
-  error: { icon: Error, colorClassName: 'text-red-500', bgClassName: 'bg-red-500' },
-  success: { icon: Success, colorClassName: 'text-green-500', bgClassName: 'bg-green' },
-  info: {
-    icon: (
-      // eslint-disable-next-line no-restricted-syntax
-      <ariaComponents.Text variant="custom" className="pb-0.5 text-xl leading-[0]" aria-hidden>
-        !
-      </ariaComponents.Text>
-    ),
+    icon: INFO_ICON,
     colorClassName: 'text-primary',
     bgClassName: 'bg-primary/30',
   },
