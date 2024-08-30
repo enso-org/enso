@@ -13,8 +13,6 @@ use crate::engine::env;
 use crate::ide::web::env::VITE_ENSO_AG_GRID_LICENSE_KEY;
 use crate::ide::web::env::VITE_ENSO_MAPBOX_API_TOKEN;
 
-use convert_case::Case;
-use convert_case::Casing;
 use ide_ci::actions::workflow::definition::cancel_workflow_action;
 use ide_ci::actions::workflow::definition::Access;
 use ide_ci::actions::workflow::definition::Job;
@@ -25,6 +23,7 @@ use ide_ci::actions::workflow::definition::Step;
 use ide_ci::actions::workflow::definition::Strategy;
 use ide_ci::actions::workflow::definition::Target;
 use ide_ci::cache::goodie::graalvm;
+use ide_ci::convert_case::ToKebabCase;
 
 
 
@@ -207,7 +206,7 @@ impl JobArchetype for JvmTests {
         format!(
             "{}-{}-{os}-{arch}",
             self.id_key_base(),
-            self.graal_edition.to_string().to_case(Case::Kebab)
+            self.graal_edition.to_string().to_kebab_case()
         )
     }
 }
@@ -252,7 +251,7 @@ impl JobArchetype for StandardLibraryTests {
         format!(
             "{}-{}-{os}-{arch}",
             self.id_key_base(),
-            self.graal_edition.to_string().to_case(Case::Kebab)
+            self.graal_edition.to_string().to_kebab_case()
         )
     }
 }
@@ -492,7 +491,7 @@ impl JobArchetype for CiCheckBackend {
         format!(
             "{}-{}-{os}-{arch}",
             self.id_key_base(),
-            self.graal_edition.to_string().to_case(Case::Kebab)
+            self.graal_edition.to_string().to_kebab_case()
         )
     }
 }
