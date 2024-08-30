@@ -167,12 +167,14 @@ const xAxisNode = ref<SVGGElement>()
 const yAxisNode = ref<SVGGElement>()
 const zoomNode = ref<SVGGElement>()
 const brushNode = ref<SVGGElement>()
+const legendNode = ref<SVGGElement>()
 
 const d3Points = computed(() => d3.select(pointsNode.value))
 const d3XAxis = computed(() => d3.select(xAxisNode.value))
 const d3YAxis = computed(() => d3.select(yAxisNode.value))
 const d3Zoom = computed(() => d3.select(zoomNode.value))
 const d3Brush = computed(() => d3.select(brushNode.value))
+const d3Legend = computed(() => d3.select(legendNode.value))
 
 const bounds = ref<[number, number, number, number]>()
 const brushExtent = ref<d3.BrushSelection>()
@@ -512,6 +514,45 @@ watchPostEffect(() => {
       .attr('x', (d) => xScale_(d.x) + POINT_LABEL_PADDING_X_PX)
       .attr('y', (d) => yScale_(d.y) + POINT_LABEL_PADDING_Y_PX)
   }
+
+  const series2 = Object.keys(data.value.axis)
+    .filter((s) => s != 'x')
+    .map((s) => {
+      return data.value.axis[s].label
+    })
+
+  const legend = d3Legend.value
+  const color = d3.scaleOrdinal().domain(series2).range(d3.schemeCategory10).domain(series2)
+
+  legend
+    .selectAll('dots')
+    .data(series2)
+    .enter()
+    .append('circle')
+    .attr('cx', function (d, i) {
+      return 90 + i * 120
+    })
+    .attr('cy', height.value - boxHeight.value - 20)
+    .attr('r', 6)
+    .style('fill', function (d) {
+      return color(d)
+    })
+
+  legend
+    .selectAll('labels')
+    .data(series2)
+    .enter()
+    .append('text')
+    .attr('x', function (d, i) {
+      return 100 + i * 120
+    })
+    .attr('y', height.value - boxHeight.value - 20)
+    .style('font-size', '15px')
+    .text(function (d) {
+      return `${d.substr(0, 10)}...`
+    })
+    .attr('alignment-baseline', 'middle')
+    .call((labels) => labels.append('title').text((d) => d))
 })
 
 // ======================
@@ -570,45 +611,6 @@ function zoomToSelected(override?: boolean) {
   endBrushing()
 }
 
-const series = Object.keys(data.value.axis)
-  .filter((s) => s != 'x')
-  .map((s) => {
-    return data.value.axis[s].label
-  })
-
-var svg = d3.select('#plot_legend')
-var color = d3.scaleOrdinal().domain(series).range(d3.schemeCategory10).domain(series)
-
-svg
-  .selectAll('dots')
-  .data(series)
-  .enter()
-  .append('circle')
-  .attr('cx', function (d, i) {
-    return 90 + i * 120
-  })
-  .attr('cy', height.value - boxHeight.value - 20)
-  .attr('r', 6)
-  .style('fill', function (d) {
-    return color(d)
-  })
-
-svg
-  .selectAll('labels')
-  .data(series)
-  .enter()
-  .append('text')
-  .attr('x', function (d, i) {
-    return 100 + i * 120
-  })
-  .attr('y', height.value - boxHeight.value - 20)
-  .style('font-size', '15px')
-  .text(function (d) {
-    return `${d.substr(0, 10)}...`
-  })
-  .attr('alignment-baseline', 'middle')
-  .call((labels) => labels.append('title').text((d) => d))
-
 useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSelected() }))
 </script>
 
@@ -624,7 +626,8 @@ useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSel
       />
     </template>
     <div ref="containerNode" class="ScatterplotVisualization">
-      <svg id="plot_legend" :width="width" :height="height">
+      <svg :width="width" :height="height">
+        <g ref="legendNode"></g>
         <g :transform="`translate(${margin.left}, ${margin.top})`">
           <defs>
             <clipPath id="clip">
