@@ -2147,6 +2147,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       (`filewatcher` / Compile / exportedModule).value,
       (`version-output` / Compile / exportedModule).value,
       (`semver` / Compile / exportedModule).value,
+      (`cli` / Compile / exportedModule).value,
     ),
     Test / testOptions += Tests
       .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000"),

@@ -10,6 +10,7 @@ module org.enso.language.server {
   requires org.openide.util.lookup.RELEASE180;
   requires org.slf4j;
 
+  requires org.enso.cli;
   requires org.enso.akka.wrapper;
   requires org.enso.zio.wrapper;
   requires org.enso.distribution;
