@@ -1,3 +1,4 @@
+use crate::cloud_tests;
 use crate::prelude::*;
 
 use crate::engine::StandardLibraryTestsSelection;
@@ -13,6 +14,8 @@ use crate::sqlserver;
 use crate::sqlserver::EndpointConfiguration as SQLServerEndpointConfiguration;
 use crate::sqlserver::SQLServer;
 
+use ide_ci::ci::env;
+use ide_ci::env::accessor::TypedVariable;
 use ide_ci::future::AsyncPolicy;
 use ide_ci::programs::docker::ContainerId;
 
@@ -96,7 +99,7 @@ impl BuiltEnso {
         benchmarks
     }
 
-    pub fn run_test(&self, test_path: impl AsRef<Path>, ir_caches: IrCaches) -> Result<Command> {
+    pub fn run_test(&self, test_path: impl AsRef<Path>, ir_caches: IrCaches, environment_overrides: Vec<(String, String)>) -> Result<Command> {
         let mut command = self.cmd()?;
         let base_working_directory = test_path.try_parent()?;
         command
@@ -107,6 +110,11 @@ impl BuiltEnso {
             // This flag enables assertions in the JVM. Some of our stdlib tests had in the past
             // failed on Graal/Truffle assertions, so we want to have them triggered.
             .set_env(JAVA_OPTS, &ide_ci::programs::java::Option::EnableAssertions.as_ref())?;
+
+        for (k, v) in environment_overrides {
+            command.env(k, &v);
+        }
+
         if test_path.as_str().contains("_Internal_") {
             command.arg("--disable-private-check");
         }
@@ -160,6 +168,8 @@ impl BuiltEnso {
                 only.iter().any(|test| test.contains("Microsoft_Tests")),
         };
 
+        let cloud_credentials_file = cloud_tests::prepare_credentials_file().await?;
+
         let _httpbin = crate::httpbin::get_and_spawn_httpbin_on_free_port(sbt).await?;
 
         let _postgres = match TARGET_OS {
@@ -210,8 +220,17 @@ impl BuiltEnso {
             _ => None,
         };
 
+        let mut environment_overrides: Vec<(String, String)> = vec![];
+        if let Some(credentials_file) = cloud_credentials_file {
+            let path_as_str = credentials_file.path().to_str();
+            let path = path_as_str.ok_or_else(|| anyhow!("Path to credentials file is not valid UTF-8"))?;
+            environment_overrides.push((cloud_tests::env::test_controls::ENSO_CLOUD_CREDENTIALS_FILE.name().to_string(), path.to_string()));
+            // We do not set ENSO_CLOUD_API_URI - we rely on the default, or any existing overrides.
+            environment_overrides.push((cloud_tests::env::test_controls::ENSO_RUN_REAL_CLOUD_TEST.name().to_string(), "1".to_string()));
+        };
+        
         let futures = std_tests.into_iter().map(|test_path| {
-            let command = self.run_test(test_path, ir_caches);
+            let command: std::result::Result<Command, anyhow::Error> = self.run_test(test_path, ir_caches, environment_overrides.clone());
             async move { command?.run_ok().await }
         });
 
