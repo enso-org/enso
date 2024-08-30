@@ -1237,6 +1237,86 @@ lazy val `language-server-deps-wrapper` = project
     }
   )
 
+lazy val `jpms-wrapper-scalatest` = project
+  .in(file("lib/java/jpms-wrapper-scalatest"))
+  .enablePlugins(JPMSPlugin)
+  .settings(
+    modularFatJarWrapperSettings,
+    libraryDependencies ++= scalaCompiler ++ Seq(
+      "org.scala-lang" % "scala-library" % scalacVersion,
+      "org.scala-lang.modules" %% "scala-xml" % "2.1.0",
+      "org.scalatest" %% "scalatest" % scalatestVersion,
+      "org.scalatest" %% "scalatest-core" % scalatestVersion,
+      "org.scalatest" % "scalatest-compatible" % scalatestVersion,
+      "org.scalatest" %% "scalatest-diagrams" % scalatestVersion,
+      "org.scalatest" %% "scalatest-featurespec" % scalatestVersion,
+      "org.scalatest" %% "scalatest-flatspec" % scalatestVersion,
+      "org.scalatest" %% "scalatest-freespec" % scalatestVersion,
+      "org.scalatest" %% "scalatest-funspec" % scalatestVersion,
+      "org.scalatest" %% "scalatest-funsuite" % scalatestVersion,
+      "org.scalatest" %% "scalatest-matchers-core" % scalatestVersion,
+      "org.scalatest" %% "scalatest-propspec" % scalatestVersion,
+      "org.scalatest" %% "scalatest-refspec" % scalatestVersion,
+      "org.scalatest" %% "scalatest-wordspec" % scalatestVersion,
+      "org.scalactic"  %% "scalactic"       % scalacticVersion,
+      "org.jline"                 % "jline"                                  % jlineVersion,
+    ),
+    javaModuleName := "org.enso.jpms.wrapper.scalatest",
+    Compile / moduleDependencies := Seq(
+      "org.scala-lang"      % "scala-library"    % scalacVersion,
+    ),
+    assembly / assemblyExcludedJars := {
+      val scalaVer = scalaBinaryVersion.value
+      JPMSUtils.filterModulesFromClasspath(
+        (Compile / dependencyClasspath).value,
+        Seq(
+          "org.scala-lang"            % "scala-library"                          % scalacVersion,
+          "org.scala-lang"            % "scala-reflect"                          % scalacVersion,
+          "org.scala-lang"            % "scala-compiler"                         % scalacVersion,
+          "org.scala-lang.modules" % ("scala-xml_" + scalaVer) % "2.1.0",
+          "org.scalactic" % ("scalactic_" + scalaVer) % scalacticVersion,
+          "org.jline"                 % "jline"                                  % jlineVersion,
+          "io.github.java-diff-utils" % "java-diff-utils"                        % "4.12",
+          "net.java.dev.jna"          % "jna"                                    % "5.13.0"
+        ),
+        streams.value.log,
+        moduleName.value,
+        shouldContainAll = true
+      )
+    },
+    Compile / patchModules := {
+      val scalaVer = scalaBinaryVersion.value
+      val scalaLibs = JPMSUtils.filterModulesFromUpdate(
+        update.value,
+        Seq(
+          "org.scala-lang" % "scala-library"                      % scalacVersion,
+          "org.scala-lang" % "scala-reflect"                      % scalacVersion,
+          "org.scala-lang" % "scala-compiler"                     % scalacVersion,
+          "org.scalactic" % ("scalactic_" + scalaVer) % scalacticVersion,
+          "org.scala-lang.modules" % ("scala-xml_" + scalaVer) % "2.1.0",
+          "org.scalatest" % ("scalatest-core_" + scalaVer) % scalatestVersion,
+          "org.scalatest" % "scalatest-compatible" % scalatestVersion,
+          "org.scalatest" % ("scalatest-diagrams_" + scalaVer) % scalatestVersion,
+          "org.scalatest" % ("scalatest-featurespec_" + scalaVer) % scalatestVersion,
+          "org.scalatest" % ("scalatest-flatspec_" + scalaVer) % scalatestVersion,
+          "org.scalatest" % ("scalatest-freespec_" + scalaVer) % scalatestVersion,
+          "org.scalatest" % ("scalatest-funspec_" + scalaVer) % scalatestVersion,
+          "org.scalatest" % ("scalatest-funsuite_" + scalaVer) % scalatestVersion,
+          "org.scalatest" % ("scalatest-matchers-core_" + scalaVer) % scalatestVersion,
+          "org.scalatest" % ("scalatest-propspec_" + scalaVer) % scalatestVersion,
+          "org.scalatest" % ("scalatest-refspec_" + scalaVer) % scalatestVersion,
+          "org.scalatest" % ("scalatest-wordspec_" + scalaVer) % scalatestVersion,
+        ),
+        streams.value.log,
+        moduleName.value,
+        shouldContainAll = true
+      )
+      Map(
+        javaModuleName.value -> scalaLibs
+      )
+    }
+  )
+
 /** JPMS module wrapper for Akka.
   */
 lazy val `akka-wrapper` = project
