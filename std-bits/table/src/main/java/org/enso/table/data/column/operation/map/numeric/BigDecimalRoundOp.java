@@ -11,9 +11,12 @@ import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.error.UnexpectedTypeException;
 import org.graalvm.polyglot.Context;
 
-/** An operation rounding floating-point numbers. */
+/** An operation rounding BigDecimals. */
 public class BigDecimalRoundOp
     extends TernaryMapOperation<BigDecimal, SpecializedStorage<BigDecimal>> {
+
+  static final int ROUND_MIN_DECIMAL_PLACES = -15;
+  static final int ROUND_MAX_DECIMAL_PLACES = 15;
 
   public BigDecimalRoundOp() {
     super(Storage.Maps.ROUND);
@@ -32,6 +35,8 @@ public class BigDecimalRoundOp
     if (!(useBankersObject instanceof Boolean useBankers)) {
       throw new UnexpectedTypeException("a boolean.");
     }
+
+    assert decimalPlaces >= ROUND_MIN_DECIMAL_PLACES && decimalPlaces <= ROUND_MAX_DECIMAL_PLACES;
 
     Builder builder =
         Builder.getForType(BigDecimalType.INSTANCE, storage.size(), problemAggregator);
