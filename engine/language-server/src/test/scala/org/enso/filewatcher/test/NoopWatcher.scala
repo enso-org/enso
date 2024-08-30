@@ -1,4 +1,6 @@
-package org.enso.filewatcher
+package org.enso.filewatcher.test
+
+import org.enso.filewatcher.Watcher
 
 import java.util.concurrent.Executor
 
