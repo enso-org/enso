@@ -474,6 +474,7 @@ export interface SettingsInputEntryData {
   readonly setValue: (context: SettingsContext, value: string) => Promise<void>
   readonly validate?: (value: string, context: SettingsContext) => string | true
   readonly getEditable: (context: SettingsContext) => boolean
+  readonly getVisible?: (context: SettingsContext) => boolean
 }
 
 // ===============================
