@@ -1946,8 +1946,9 @@ class IrToTruffle(
         case literalName: Name.Literal =>
           val resolver = new RuntimeNameResolution()
           val fpMeta = literalName.passData.get(FramePointerAnalysis) match {
-            case Some(meta: FramePointerAnalysis.FramePointerMeta) => meta
-            case _                                                 => null
+            case Some(meta: FramePointerAnalysis.FramePointerMeta) =>
+              if (meta.framePointer != null) meta else null
+            case _ => null
           }
           resolver.resolveName(literalName, fpMeta)
         case Name.MethodReference(
