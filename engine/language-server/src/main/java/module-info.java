@@ -12,18 +12,23 @@ module org.enso.language.server {
 
   requires org.enso.akka.wrapper;
   requires org.enso.zio.wrapper;
+  requires org.enso.distribution;
   requires org.enso.runner.common;
   requires org.enso.engine.common;
+  requires org.enso.editions;
+  requires org.enso.editions.updater;
   requires org.enso.filewatcher;
   requires org.enso.json.rpc.server;
   requires org.enso.logging.utils;
   requires org.enso.logging.utils.akka;
   requires org.enso.librarymanager;
   requires org.enso.polyglot.api;
+  requires org.enso.pkg;
   requires org.enso.profiling;
   requires org.enso.scala.wrapper;
   requires org.enso.language.server.deps.wrapper;
   requires org.enso.searcher;
+  requires org.enso.semver;
   requires org.enso.version.output;
   requires org.enso.text.buffer;
   requires org.enso.ydoc;

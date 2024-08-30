@@ -2138,9 +2138,14 @@ lazy val `language-server` = (project in file("engine/language-server"))
       (`json-rpc-server` / Compile / exportedModule).value,
       (`profiling-utils` / Compile / exportedModule).value,
       (`searcher` / Compile / exportedModule).value,
+      (`pkg` / Compile / exportedModule).value,
+      (`distribution-manager` / Compile / exportedModule).value,
+      (`edition-updater` / Compile / exportedModule).value,
+      (`editions` / Compile / exportedModule).value,
       (`text-buffer` / Compile / exportedModule).value,
       (`filewatcher` / Compile / exportedModule).value,
-      (`version-output` / Compile / exportedModule).value
+      (`version-output` / Compile / exportedModule).value,
+      (`semver` / Compile / exportedModule).value,
     ),
     Test / testOptions += Tests
       .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000"),
