@@ -144,14 +144,25 @@ class AuditLogApiAccess {
     return payload.toString();
   }
 
+  private RequestConfig cachedRequestConfig = null;
+
   /**
    * Builds a request configuration based on runtime information.
    *
    * <p>This method must be called from the main thread.
+   *
+   * <p>The same instance is returned every time after the first call, unless the caches were
+   * flushed (which is mostly used in tests).
    */
   private RequestConfig getRequestConfig() {
+    if (cachedRequestConfig != null) {
+      return cachedRequestConfig;
+    }
+
     var uri = URI.create(CloudAPI.getAPIRootURI() + "logs");
-    return new RequestConfig(uri, AuthenticationProvider.getAccessToken());
+    var config = new RequestConfig(uri, AuthenticationProvider.getAccessToken());
+    cachedRequestConfig = config;
+    return config;
   }
 
   /**
@@ -215,4 +226,8 @@ class AuditLogApiAccess {
       LogMessage message,
       CompletableFuture<Void> completionNotification,
       RequestConfig requestConfig) {}
+
+  void resetCache() {
+    cachedRequestConfig = null;
+  }
 }

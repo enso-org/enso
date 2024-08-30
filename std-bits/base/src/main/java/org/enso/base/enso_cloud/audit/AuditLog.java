@@ -35,4 +35,8 @@ public final class AuditLog {
       super(message, cause);
     }
   }
+
+  public static void resetCache() {
+    AuditLogApiAccess.INSTANCE.resetCache();
+  }
 }
