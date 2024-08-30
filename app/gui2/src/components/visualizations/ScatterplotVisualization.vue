@@ -570,8 +570,15 @@ function zoomToSelected(override?: boolean) {
   endBrushing()
 }
 
-const series = Object.keys(data.value.axis).filter((s) => s != 'x')
+const series = Object.keys(data.value.axis)
+  .filter((s) => s != 'x')
+  .map((s) => {
+    return data.value.axis[s].label
+  })
+
 var svg = d3.select('#plot_legend')
+
+const textWidth = Math.max(...series.map((el) => el.length)) * 4
 
 var color = d3.scaleOrdinal().domain(series).range(d3.schemeCategory10).domain(series)
 
@@ -600,9 +607,10 @@ svg
   .attr('y', height.value - boxHeight.value - 20)
   .style('font-size', '15px')
   .text(function (d) {
-    return d
+    return `${d.substr(0, 10)}...`
   })
   .attr('alignment-baseline', 'middle')
+  .call((labels) => labels.append('title').text((d) => d))
 
 useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSelected() }))
 </script>
