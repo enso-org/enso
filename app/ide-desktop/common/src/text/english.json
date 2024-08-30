@@ -63,7 +63,7 @@
   "missingVerificationCodeError": "Missing verification code",
   "passwordMismatchError": "Passwords do not match.",
   "passwordLengthError": "Your password must be between 6 and 256 characters long.",
-  "passwordValidationMessage": "Your password must include numbers, letters (both lowercase and uppercase) and symbols.",
+  "passwordValidationMessage": "Your password must include numbers, letters (both lowercase and uppercase) and symbols ( ^$*.[]{}()?\"!@#%&/,><':;|_~`=+-).",
   "passwordValidationError": "Your password does not meet the security requirements.",
 
   "confirmSignUpError": "Incorrect email or confirmation code.",
