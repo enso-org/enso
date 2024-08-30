@@ -1,4 +1,5 @@
-package org.enso.librarymanager.published.repository
+package org.enso.librarymanager.test.published.repository
+
 import org.enso.editions.Editions.RawEdition
 
 import java.nio.file.Path

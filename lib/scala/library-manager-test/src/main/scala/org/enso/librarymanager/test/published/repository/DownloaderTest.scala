@@ -1,4 +1,4 @@
-package org.enso.librarymanager.published.repository
+package org.enso.librarymanager.test.published.repository
 
 import org.enso.cli.task.{ProgressReporter, TaskProgress}
 import org.enso.distribution.TemporaryDirectoryManager

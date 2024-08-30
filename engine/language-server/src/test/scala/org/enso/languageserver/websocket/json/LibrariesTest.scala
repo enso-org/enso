@@ -10,7 +10,8 @@ import org.enso.languageserver.libraries.LibraryEntry.PublishedLibraryVersion
 import org.enso.languageserver.libraries.{LibraryComponentGroup, LibraryComponentGroups, LibraryEntry}
 import org.enso.languageserver.runtime.TestComponentGroups
 import org.enso.librarymanager.published.bundles.LocalReadOnlyRepository
-import org.enso.librarymanager.published.repository.{EmptyRepository, ExampleRepository, LibraryManifest}
+import org.enso.librarymanager.published.repository.LibraryManifest
+import org.enso.librarymanager.test.published.repository.{EmptyRepository, ExampleRepository}
 import org.enso.pkg.{Config, Contact, Package, PackageManager}
 import org.enso.testkit.{FlakySpec, ReportLogsOnFailure}
 import org.enso.version.BuildVersion

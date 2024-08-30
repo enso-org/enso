@@ -1,8 +1,8 @@
-package org.enso.librarymanager.published.repository
+package org.enso.librarymanager.test.published.repository
 
-import org.enso.semver.SemVer
 import org.enso.editions.Editions.RawEdition
 import org.enso.editions.{Editions, LibraryName}
+import org.enso.semver.SemVer
 
 import java.nio.file.Path
 
