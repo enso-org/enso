@@ -1,7 +1,5 @@
 /** @file Alert component. */
 import { type ForwardedRef, type HTMLAttributes, type PropsWithChildren } from 'react'
-
-import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 
@@ -57,6 +55,7 @@ export interface AlertProps
     HTMLAttributes<HTMLDivElement> {}
 
 /** Alert component. */
+// eslint-disable-next-line no-restricted-syntax
 export const Alert = forwardRef(function Alert(
   props: AlertProps,
   ref: ForwardedRef<HTMLDivElement>,
@@ -71,11 +70,7 @@ export const Alert = forwardRef(function Alert(
   return (
     <div
       className={ALERT_STYLES({ variant, size, className, rounded, fullWidth })}
-      ref={mergeRefs(ref, (e) => {
-        if (variant === 'error') {
-          e?.focus()
-        }
-      })}
+      ref={ref}
       {...containerProps}
     >
       {children}
