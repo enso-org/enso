@@ -64,6 +64,9 @@ function onGridReady(event: GridReadyEvent) {
 }
 
 function getRowHeight(params: RowHeightParams): number {
+  if (_props.textFormatOption === TextFormatOptions.Off) {
+    return DEFAULT_ROW_HEIGHT
+  }
   const rowData = Object.values(params.data)
   const textValues = rowData.filter((r): r is string => typeof r === 'string')
 
@@ -86,6 +89,7 @@ watch(
   () => _props.textFormatOption,
   () => {
     gridApi.value?.redrawRows()
+    gridApi.value?.resetRowHeights()
   },
 )
 
