@@ -1330,7 +1330,8 @@ lazy val `akka-wrapper` = project
     Compile / moduleDependencies := Seq(
       "org.scala-lang"      % "scala-library"    % scalacVersion,
       "com.google.protobuf" % "protobuf-java"    % "3.25.1",
-      "org.reactivestreams" % "reactive-streams" % "1.0.3"
+      "org.reactivestreams" % "reactive-streams" % "1.0.3",
+      "org.slf4j"                 % "slf4j-api"                     % slf4jVersion,
     ),
     assembly / assemblyExcludedJars := {
       val scalaVer = scalaBinaryVersion.value
@@ -1366,7 +1367,6 @@ lazy val `akka-wrapper` = project
           "org.scala-lang" % "scala-compiler"                     % scalacVersion,
           "org.scala-lang.modules"    % ("scala-parser-combinators_" + scalaVer) % "1.1.2",
           "com.typesafe"   % "config"                             % typesafeConfigVersion,
-          "org.slf4j"      % "slf4j-api"                          % slf4jVersion,
           "io.spray"       % ("spray-json_" + scalaVer)           % "1.3.6",
           akkaURL          % ("akka-actor_" + scalaVer)           % akkaVersion,
           akkaURL          % ("akka-actor-typed_" + scalaVer)     % akkaVersion,

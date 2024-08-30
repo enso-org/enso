@@ -2,6 +2,9 @@ module org.enso.akka.wrapper {
   requires protobuf.java;
   requires scala.library;
   requires org.reactivestreams;
+  // For sun.misc.Unsafe - from akka.util.Unsafe
+  requires jdk.unsupported;
+  requires org.slf4j;
 
   // akka-actor
   exports akka;
