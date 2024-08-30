@@ -53,32 +53,32 @@ export function useForm<Schema extends types.TSchema>(
     `,
   )
 
-  const form =
-    'formState' in optionsOrFormInstance ? optionsOrFormInstance : (
-      (() => {
-        const { schema, ...options } = optionsOrFormInstance
+  if ('formState' in optionsOrFormInstance) {
+    return optionsOrFormInstance
+  } else {
+    const { schema, ...options } = optionsOrFormInstance
 
-        const computedSchema = typeof schema === 'function' ? schema(schemaModule.schema) : schema
+    const computedSchema = typeof schema === 'function' ? schema(schemaModule.schema) : schema
 
     const formInstance = reactHookForm.useForm<
-      types.FieldValues<Schema>
-      , unknown,
+      types.FieldValues<Schema>,
+      unknown,
       types.TransformedValues<Schema>
     >({
       ...options,
       resolver: zodResolver.zodResolver(computedSchema),
     })
 
-    const register: types.UseFormRegister<Schema,            types.FieldValues<Schema>> = (name, opts) => {
+    const register: types.UseFormRegister<Schema> = (name, opts) => {
       const registered = formInstance.register(name, opts)
 
-      const onChange: types.UseFormRegisterReturn<Schema,           types.FieldValues<Schema>>['onChange'] = (value) =>
+      const onChange: types.UseFormRegisterReturn<Schema>['onChange'] = (value) =>
         registered.onChange(mapValueOnEvent(value))
 
-      const onBlur: types.UseFormRegisterReturn<Schema,           types.FieldValues<Schema>>['onBlur'] = (value) =>
+      const onBlur: types.UseFormRegisterReturn<Schema>['onBlur'] = (value) =>
         registered.onBlur(mapValueOnEvent(value))
 
-      const result: types.UseFormRegisterReturn<Schema,           types.FieldValues<Schema>, typeof name> = {
+      const result: types.UseFormRegisterReturn<Schema, typeof name> = {
         ...registered,
         ...(registered.disabled != null ? { isDisabled: registered.disabled } : {}),
         ...(registered.required != null ? { isRequired: registered.required } : {}),
@@ -94,7 +94,7 @@ export function useForm<Schema extends types.TSchema>(
       ...formInstance,
       control: { ...formInstance.control, register },
       register,
-    } satisfies types.UseFormReturn<Schema,           types.FieldValues<Schema>, types.TransformedValues<Schema>>
+    } satisfies types.UseFormReturn<Schema>
   }
 }
 

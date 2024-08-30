@@ -45,11 +45,11 @@ export interface UseFormProps<Schema extends TSchema>
 /**
  * Register function for a form field.
  */
-export type UseFormRegister<Schema extends TSchema, TFieldValues extends FieldValues<Schema>> = <
+export type UseFormRegister<Schema extends TSchema> = <
   TFieldName extends FieldPath<Schema> = FieldPath<Schema>,
 >(
   name: TFieldName,
-  options?: reactHookForm.RegisterOptions<TFieldValues, TFieldName>,
+  options?: reactHookForm.RegisterOptions<FieldValues<Schema>, TFieldName>,
   // eslint-disable-next-line no-restricted-syntax
 ) => UseFormRegisterReturn<Schema, TFieldName>
 
@@ -75,7 +75,7 @@ export interface UseFormRegisterReturn<
  */
 export interface UseFormReturn<Schema extends TSchema>
   extends reactHookForm.UseFormReturn<FieldValues<Schema>, unknown, TransformedValues<Schema>> {
-  readonly register: UseFormRegister<Schema, FieldValues<Schema>>
+  readonly register: UseFormRegister<Schema>
 }
 
 /**

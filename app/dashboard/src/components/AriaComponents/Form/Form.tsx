@@ -163,11 +163,8 @@ export const Form = forwardRef(function Form<Schema extends components.TSchema>(
       </aria.FormValidationContext.Provider>
     </form>
   )
-}) as unknown as (<
-  Schema extends components.TSchema
->(
-  props: React.RefAttributes<HTMLFormElement> &
-    types.FormProps<Schema>,
+}) as unknown as (<Schema extends components.TSchema>(
+  props: React.RefAttributes<HTMLFormElement> & types.FormProps<Schema>,
 ) => React.JSX.Element) & {
   /* eslint-disable @typescript-eslint/naming-convention */
   schema: typeof components.schema
