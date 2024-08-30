@@ -1,11 +1,9 @@
 /** @file Rendering for a settings section. */
-import * as textProvider from '#/providers/TextProvider'
-
-import type * as settingsData from '#/layouts/Settings/settingsData'
-import SettingsEntry from '#/layouts/Settings/SettingsEntry'
-
-import * as aria from '#/components/aria'
+import { Text } from '#/components/AriaComponents'
 import FocusArea from '#/components/styled/FocusArea'
+import type { SettingsContext, SettingsSectionData } from '#/layouts/Settings/settingsData'
+import SettingsEntry from '#/layouts/Settings/SettingsEntry'
+import { useText } from '#/providers/TextProvider'
 
 // =======================
 // === SettingsSection ===
@@ -13,15 +11,15 @@ import FocusArea from '#/components/styled/FocusArea'
 
 /** Props for a {@link SettingsSection}. */
 export interface SettingsSectionProps {
-  readonly context: settingsData.SettingsContext
-  readonly data: settingsData.SettingsSectionData
+  readonly context: SettingsContext
+  readonly data: SettingsSectionData
 }
 
 /** Rendering for a settings section. */
 export default function SettingsSection(props: SettingsSectionProps) {
   const { context, data } = props
   const { nameId, focusArea = true, heading = true, entries } = data
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
   const isVisible = entries.some((entry) => entry.getVisible?.(context) ?? true)
 
   return !isVisible ? null : (
@@ -29,9 +27,9 @@ export default function SettingsSection(props: SettingsSectionProps) {
         {(innerProps) => (
           <div className="flex w-full flex-col gap-settings-section-header" {...innerProps}>
             {!heading ? null : (
-              <aria.Heading level={2} className="h-[2.375rem] py-0.5 text-xl font-bold">
+              <Text.Heading level={2} weight="bold">
                 {getText(nameId)}
-              </aria.Heading>
+              </Text.Heading>
             )}
             <div className="flex flex-col">
               {entries.map((entry, i) => (
