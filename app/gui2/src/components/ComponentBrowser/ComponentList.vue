@@ -109,7 +109,6 @@ const listContentHeight = computed(() =>
   Math.max(components.value.length * ITEM_SIZE, scrollerSize.value.y),
 )
 const scrolling = useScrolling(() => animatedHighlightPosition.value)
-watch(scrolling.scrollPosition, (pos) => console.log(`Scrolling pos: `, pos))
 
 const listContentHeightPx = computed(() => `${listContentHeight.value}px`)
 
