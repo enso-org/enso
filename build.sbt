@@ -2369,33 +2369,40 @@ lazy val javadocSettings = Seq(
 lazy val frgaalJavaCompilerSetting =
   customFrgaalJavaCompilerSettings(targetJavaVersion)
 
-def customFrgaalJavaCompilerSettings(targetJdk: String) = Seq(
-  Compile / compile / compilers := {
-    // True if there is module-info.java in the sources, and this is a mixed
-    // project, and module-info.java is excluded from the compilation.
-    // shouldCompileModuleInfoManually is a settingKey defined only in projects
-    // with JPMSPlugin. That's why we have to check first for its existance.
-    val settingOpt = (Compile / shouldCompileModuleInfoManually).?.value
-    val shouldCompileModInfo = settingOpt.isDefined && settingOpt.get
-    FrgaalJavaCompiler.compilers(
-      (Compile / dependencyClasspath).value,
-      compilers.value,
-      targetJdk,
-      shouldCompileModInfo,
-      (Compile / javaSource).value
+def customFrgaalJavaCompilerSettings(targetJdk: String) = {
+  // There might be slightly different Frgaal compiler configuration for
+  // both Compile and Test configurations
+  Seq(Compile, Test).flatMap { config =>
+    Seq(
+      config / compile / compilers := {
+        // True if there is module-info.java in the sources, and this is a mixed
+        // project, and module-info.java is excluded from the compilation.
+        // shouldCompileModuleInfoManually is a settingKey defined only in projects
+        // with JPMSPlugin. That's why we have to check first for its existance.
+        val settingOpt = (config / shouldCompileModuleInfoManually).?.value
+        val shouldCompileModInfo = settingOpt.isDefined && settingOpt.get
+        FrgaalJavaCompiler.compilers(
+          (config / dependencyClasspath).value,
+          compilers.value,
+          targetJdk,
+          shouldCompileModInfo,
+          (config / javaSource).value
+        )
+      }
     )
-  },
-  // This dependency is needed only so that developers don't download Frgaal manually.
-  // Sadly it cannot be placed under plugins either because meta dependencies are not easily
-  // accessible from the non-meta build definition.
-  libraryDependencies += FrgaalJavaCompiler.frgaal,
-  // Ensure that our tooling uses the right Java version for checking the code.
-  Compile / javacOptions ++= Seq(
-    "-source",
-    frgaalSourceLevel,
-    "--enable-preview"
+  } ++ Seq(
+    // This dependency is needed only so that developers don't download Frgaal manually.
+    // Sadly it cannot be placed under plugins either because meta dependencies are not easily
+    // accessible from the non-meta build definition.
+    libraryDependencies += FrgaalJavaCompiler.frgaal,
+    // Ensure that our tooling uses the right Java version for checking the code.
+    Compile / javacOptions ++= Seq(
+      "-source",
+      frgaalSourceLevel,
+      "--enable-preview"
+    )
   )
-)
+}
 
 lazy val instrumentationSettings =
   frgaalJavaCompilerSetting ++ annotationProcSetting ++ Seq(
