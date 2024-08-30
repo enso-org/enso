@@ -81,6 +81,7 @@ module org.enso.scala.wrapper {
   exports org.typelevel.jawn;
 
   // "com.chuusai" % ("shapeless_" + scalaVer) % "2.3.10",
+  exports shapeless;
   exports shapeless.ops;
   exports shapeless.ops.record;
   exports shapeless.test;
