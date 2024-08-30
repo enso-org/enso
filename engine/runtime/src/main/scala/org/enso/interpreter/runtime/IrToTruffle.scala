@@ -102,7 +102,6 @@ import org.enso.interpreter.runtime.callable.{
   Annotation => RuntimeAnnotation
 }
 import org.enso.interpreter.runtime.data.Type
-import org.enso.interpreter.runtime.data.text.Text
 import org.enso.interpreter.runtime.scope.{ImportExportScope, ModuleScope}
 import org.enso.interpreter.{Constants, EnsoLanguage}
 
@@ -112,7 +111,6 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
-import org.enso.interpreter.runtime.error.DataflowError
 
 /** This is an implementation of a codegeneration pass that lowers the Enso
   * [[IR]] into the truffle structures that are actually executed.
@@ -233,16 +231,12 @@ class IrToTruffle(
   private def registerPolyglotImports(module: Module): Unit =
     module.imports.foreach {
       case poly @ imports.Polyglot(i: imports.Polyglot.Java, _, _, _) =>
-        var hostSymbol = context.lookupJavaClass(i.getJavaName)
-        if (hostSymbol == null) {
-          val err = Text.create(
-            s"Incorrect polyglot java import: ${i.getJavaName}"
-          )
-          hostSymbol = DataflowError.withDefaultTrace(err, null)
-        }
         this.scopeBuilder.registerPolyglotSymbol(
           poly.getVisibleName,
-          hostSymbol
+          () => {
+            val hostSymbol = context.lookupJavaClass(i.getJavaName)
+            hostSymbol
+          }
         )
       case _: Import.Module =>
       case _: Error         =>
@@ -902,7 +896,7 @@ class IrToTruffle(
             comment,
             asScope(
               mod.unsafeAsModule().asInstanceOf[TruffleCompilerContext.Module]
-            ).getPolyglotSymbol(symbol.name)
+            ).getPolyglotSymbolSupplier(symbol.name)
           )
         case _ => null
       }
@@ -1391,9 +1385,7 @@ class IrToTruffle(
           context.getBuiltins
             .error()
             .makeSyntaxError(
-              Text.create(
-                "Type operators are not currently supported at runtime"
-              )
+              "Type operators are not currently supported at runtime"
             )
         ),
         value.location
@@ -1439,7 +1431,7 @@ class IrToTruffle(
 
             val error = context.getBuiltins
               .error()
-              .makeCompileError(Text.create(message))
+              .makeCompileError(message)
 
             setLocation(ErrorNode.build(error), caseExpr.location)
           }
@@ -1516,7 +1508,7 @@ class IrToTruffle(
                   Right(
                     ObjectEqualityBranchNode.build(
                       branchCodeNode.getCallTarget,
-                      asAssociatedType(mod.unsafeAsModule()),
+                      LiteralNode.build(asAssociatedType(mod.unsafeAsModule())),
                       branch.terminalBranch
                     )
                   )
@@ -1564,7 +1556,7 @@ class IrToTruffle(
                   } else {
                     ObjectEqualityBranchNode.build(
                       branchCodeNode.getCallTarget,
-                      tpe,
+                      LiteralNode.build(tpe),
                       branch.terminalBranch
                     )
                   }
@@ -1575,13 +1567,14 @@ class IrToTruffle(
                       )
                     ) =>
                   val polyglotSymbol =
-                    asScope(mod.unsafeAsModule()).getPolyglotSymbol(symbol.name)
+                    asScope(mod.unsafeAsModule())
+                      .getPolyglotSymbolSupplier(symbol.name)
                   Either.cond(
                     polyglotSymbol != null,
                     ObjectEqualityBranchNode
                       .build(
                         branchCodeNode.getCallTarget,
-                        polyglotSymbol,
+                        LazyObjectNode.build(symbol.name, polyglotSymbol),
                         branch.terminalBranch
                       ),
                     BadPatternMatch.NonVisiblePolyglotSymbol(symbol.name)
@@ -1593,7 +1586,8 @@ class IrToTruffle(
                     ) =>
                   val mod = typ.module
                   val polyClass = asScope(mod.unsafeAsModule())
-                    .getPolyglotSymbol(typ.symbol.name)
+                    .getPolyglotSymbolSupplier(typ.symbol.name)
+                    .get()
 
                   val polyValueOrError =
                     if (polyClass == null)
@@ -1627,7 +1621,7 @@ class IrToTruffle(
                     ObjectEqualityBranchNode
                       .build(
                         branchCodeNode.getCallTarget,
-                        polyValue,
+                        ConstantObjectNode.build(polyValue),
                         branch.terminalBranch
                       )
                   })
@@ -1751,7 +1745,9 @@ class IrToTruffle(
                   )
                 ) =>
               val polySymbol =
-                asScope(mod.unsafeAsModule()).getPolyglotSymbol(symbol.name)
+                asScope(mod.unsafeAsModule())
+                  .getPolyglotSymbolSupplier(symbol.name)
+                  .get()
               if (polySymbol != null) {
                 val argOfType = List(
                   new DefinitionArgument.Specified(
@@ -2019,23 +2015,14 @@ class IrToTruffle(
           )
         case BindingsMap.ResolvedPolyglotSymbol(module, symbol) =>
           val s =
-            asScope(module.unsafeAsModule()).getPolyglotSymbol(symbol.name)
-          if (s == null) {
-            throw new CompilerError(
-              s"No polyglot symbol for ${symbol.name}"
-            )
-          }
-          ConstantObjectNode.build(s)
+            asScope(module.unsafeAsModule())
+              .getPolyglotSymbolSupplier(symbol.name)
+          LazyObjectNode.build(symbol.name, s)
         case BindingsMap.ResolvedPolyglotField(symbol, name) =>
           val s =
-            asScope(symbol.module.unsafeAsModule()).getPolyglotSymbol(name)
-          if (s == null) {
-            throw new CompilerError(
-              s"No polyglot field for ${name}"
-            )
-          }
-
-          ConstantObjectNode.build(s)
+            asScope(symbol.module.unsafeAsModule())
+              .getPolyglotSymbolSupplier(name)
+          LazyObjectNode.build(name, s)
         case BindingsMap.ResolvedModuleMethod(_, method) =>
           throw new CompilerError(
             s"Impossible here, module method ${method.name} should be caught when translating application"
@@ -2091,47 +2078,47 @@ class IrToTruffle(
         case err: errors.Syntax =>
           context.getBuiltins
             .error()
-            .makeSyntaxError(Text.create(err.message(fileLocationFromSection)))
+            .makeSyntaxError(err.message(fileLocationFromSection))
         case err: errors.Redefined.Binding =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
+            .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Redefined.Method =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
+            .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Redefined.MethodClashWithAtom =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
+            .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Redefined.Conversion =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
+            .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Redefined.Type =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
+            .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Redefined.SelfArg =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
+            .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Redefined.Arg =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
+            .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Unexpected.TypeSignature =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
+            .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Resolution =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
+            .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Conversion =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
+            .makeCompileError(err.message(fileLocationFromSection))
         case _: errors.Pattern =>
           throw new CompilerError(
             "Impossible here, should be handled in the pattern match."
@@ -2149,7 +2136,7 @@ class IrToTruffle(
       * @return the Nothing builtin
       */
     private def processEmpty(): RuntimeExpression = {
-      ConstantObjectNode.build(context.getBuiltins.nothing())
+      LiteralNode.build(context.getBuiltins.nothing())
     }
 
     /** Processes function arguments, generates arguments reads and creates
@@ -2362,9 +2349,7 @@ class IrToTruffle(
               context.getBuiltins
                 .error()
                 .makeSyntaxError(
-                  Text.create(
-                    "Typeset literals are not yet supported at runtime"
-                  )
+                  "Typeset literals are not yet supported at runtime"
                 )
             ),
             application.location
