@@ -469,10 +469,20 @@ pub fn spawn_log_processor(
                 match String::from_utf8(line_bytes) {
                     Ok(line) => {
                         let line = line.trim_end_matches('\r');
-                        if line.starts_with("[info] ::") {
-                            let line_without_prefix = &line[7..];
-                            println!("{line_without_prefix}");
-                        } else {
+                        let mut command = false;
+                        if let Some(command_at) = line.find("::") {
+                            if let Some(group_at) = line.find("group") {
+                                // we support:
+                                // ::group
+                                // ::endgroup
+                                if command_at < group_at && group_at < command_at + 10 {
+                                    let line_without_prefix = &line[command_at..];
+                                    println!("{line_without_prefix}");
+                                    command = true;
+                                }
+                            }
+                        }
+                        if !command {
                             info!("{prefix} {line}");
                         }
                     }
