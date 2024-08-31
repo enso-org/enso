@@ -32,39 +32,3 @@ Range.to_column self name="Range" =
 Date_Range.to_column : Text -> Column
 Date_Range.to_column self name="Date_Range" =
     Column.from_vector name self.to_vector
-
-## ALIAS count, kurtosis, maximum, mean, median, minimum, mode, skew, standard_deviation, statistic, sum, variance
-   GROUP Standard.Base.Statistics
-   ICON transform4
-   Compute a single statistic on the column.
-
-   Arguments:
-   - statistic: Statistic to calculate.
-Column.compute : Statistic -> Any
-Column.compute self statistic=Statistic.Count =
-    Statistic.compute_bulk self.to_vector [statistic] . first
-
-## ALIAS count, kurtosis, maximum, mean, median, minimum, mode, skew, standard_deviation, statistic, sum, variance
-   ICON transform4
-   Compute statistics on the column.
-
-   Arguments:
-   - statistics: Set of statistics to calculate.
-Column.compute_bulk : Vector Statistic -> Table
-Column.compute_bulk self statistics=[Statistic.Count, Statistic.Sum] =
-    values = Statistic.compute_bulk self.to_vector statistics
-    names = statistics.map _.to_text
-    Table.from_rows names [values]
-
-## ALIAS count, kurtosis, maximum, mean, median, minimum, mode, skew, standard_deviation, statistic, sum, variance
-   GROUP Standard.Base.Statistics
-   ICON transform4
-   Compute a single running statistic on the column.
-
-   Arguments:
-   - statistic: Statistic to calculate.
-   - name: Name of the new column.
-Column.running : Statistic -> Text -> Column
-Column.running self statistic=Statistic.Count name=statistic.to_text+" "+self.name =
-    data = Statistic.running self.to_vector statistic
-    Column.from_vector name data
