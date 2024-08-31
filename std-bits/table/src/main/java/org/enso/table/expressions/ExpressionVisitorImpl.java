@@ -1,7 +1,9 @@
 package org.enso.table.expressions;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -386,6 +388,11 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   public Value visitFunction(ExpressionParser.FunctionContext ctx) {
     var name = ctx.IDENTIFIER().getText().toLowerCase();
     var args = ctx.expr().stream().map(this::visit).toArray(Value[]::new);
-    return executeMethod(name, args);
+    return switch(name) {
+      case "today" -> Value.asValue(LocalDate.now());
+      case "now" -> Value.asValue(LocalDateTime.now().atZone(ZoneId.systemDefault()));
+      case "time" -> Value.asValue(LocalTime.now());
+      default -> executeMethod(name, args);
+    };
   }
 }
