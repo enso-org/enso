@@ -1,7 +1,6 @@
 from Standard.Base import all
 
 import project.Column.Column
-import project.Table.Table
 
 ## GROUP Standard.Base.Conversions
    ICON convert
