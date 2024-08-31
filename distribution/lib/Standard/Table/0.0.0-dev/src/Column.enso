@@ -1190,7 +1190,7 @@ type Column
              import Standard.Examples
 
              example_fill_nothing = Examples.decimal_column.fill_nothing 20.5
-    @default (self-> Widget_Helpers.make_fill_default_value_selector value_type=self.value_type)
+    @default (self-> Widget_Helpers.make_fill_default_value_selector value_types=self.value_type)
     fill_nothing : Column | Previous_Value | Any -> Column
     fill_nothing self default =
         if Previous_Value == default then fill_previous self Nothing else
@@ -1227,7 +1227,7 @@ type Column
              import Standard.Examples
 
              example_fill_empty = Examples.text_column_1.fill_empty "hello"
-    @default (self-> Widget_Helpers.make_fill_default_value_selector value_type=Value_Type.Char add_nothing=True)
+    @default (self-> Widget_Helpers.make_fill_default_value_selector value_types=Value_Type.Char add_nothing=True)
     fill_empty : Column | Previous_Value | Any -> Column
     fill_empty self default =
         Value_Type.expect_text self <|
@@ -2460,7 +2460,7 @@ type Column
              column = table.get "Name"
              ## The take returns "Charlie"
              last_row = column.take (..Last 1)
-    @range Index_Sub_Range.default_widget
+    @range (self-> Index_Sub_Range.default_widget self.length)
     take : (Index_Sub_Range | Range | Integer) -> Column
     take self range:(Index_Sub_Range | Range | Integer)=..First =
         take_helper self.length (self.at _) self.slice (slice_ranges self) range
@@ -2473,7 +2473,7 @@ type Column
 
        Arguments:
        - range: The selection of rows from the table to remove.
-    @range Index_Sub_Range.default_widget
+    @range (self-> Index_Sub_Range.default_widget self.length)
     drop : (Index_Sub_Range | Range | Integer) -> Column
     drop self range:(Index_Sub_Range | Range | Integer)=..First =
         drop_helper self.length (self.at _) self.slice (slice_ranges self) range
