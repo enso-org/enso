@@ -135,7 +135,7 @@ case object FramePointerAnalysis extends IRPass {
         case Some(defaultValue) =>
           getAliasAnalysisGraph(defaultValue) match {
             case Some(defaultValueGraph) =>
-              processExpression(defaultValue, defaultValueGraph)
+              processExpression(defaultValue, defaultValueGraph, false)
             case None =>
               processExpression(defaultValue, graph)
           }
@@ -146,7 +146,8 @@ case object FramePointerAnalysis extends IRPass {
 
   private def processExpression(
     exprIr: Expression,
-    graph: Graph
+    graph: Graph,
+    updateSymbols: Boolean = true
   ): Unit = {
     exprIr match {
       case name: Name => maybeAttachFramePointer(name, graph)
@@ -171,10 +172,12 @@ case object FramePointerAnalysis extends IRPass {
         }
       case _ => ()
     }
-    getAliasAnalysisGraph(exprIr) match {
-      case Some(graph) =>
-        updateSymbolNames(exprIr, graph)
-      case _ => ()
+    if (updateSymbols) {
+      getAliasAnalysisGraph(exprIr) match {
+        case Some(graph) =>
+          updateSymbolNames(exprIr, graph)
+        case _ => ()
+      }
     }
   }
 
