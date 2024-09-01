@@ -100,8 +100,12 @@ case object FramePointerAnalysis extends IRPass {
     }
   }
 
-  private def updateSymbolNames(e: IR, g: Graph) = {
-    val symbols = g.rootScope.allDefinitions.map(_.symbol)
+  private def updateSymbolNames(e: IR, g: Graph): Unit = {
+    updateSymbolNames(e, g.rootScope)
+  }
+
+  private def updateSymbolNames(e: IR, s: Graph.Scope): Unit = {
+    val symbols = s.allDefinitions.map(_.symbol)
     updateMeta(e, null, Some(symbols))
   }
 
@@ -136,6 +140,12 @@ case object FramePointerAnalysis extends IRPass {
           getAliasAnalysisGraph(defaultValue) match {
             case Some(defaultValueGraph) =>
               processExpression(defaultValue, defaultValueGraph, false)
+              getAliasChildScope(defaultValue) match {
+                case Some(child) =>
+                  updateSymbolNames(defaultValue, child.scope)
+                case _ =>
+                  updateSymbolNames(defaultValue, defaultValueGraph)
+              }
             case None =>
               processExpression(defaultValue, graph)
           }
@@ -253,8 +263,13 @@ case object FramePointerAnalysis extends IRPass {
     arguments.foreach { case arg @ CallArgument.Specified(name, value, _, _) =>
       maybeAttachFramePointer(arg, graph)
       name.foreach(maybeAttachFramePointer(_, graph))
-      processExpression(value, graph)
-      updateSymbolNames(arg, graph)
+      processExpression(value, graph, false)
+      getAliasChildScope(value) match {
+        case Some(child) =>
+          updateSymbolNames(value, child.scope)
+        case _ =>
+          updateSymbolNames(value, graph)
+      }
     }
   }
 
@@ -410,6 +425,15 @@ case object FramePointerAnalysis extends IRPass {
     ir.passData().get(AliasAnalysis) match {
       case Some(root: AliasMetadata.RootScope) => Some(root)
       case _                                   => None
+    }
+  }
+
+  private def getAliasChildScope(
+    ir: IR
+  ): Option[AliasMetadata.ChildScope] = {
+    ir.passData().get(AliasAnalysis) match {
+      case Some(ch: AliasMetadata.ChildScope) => Some(ch)
+      case _                                  => None
     }
   }
 
