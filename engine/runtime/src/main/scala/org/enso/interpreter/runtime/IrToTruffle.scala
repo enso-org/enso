@@ -286,7 +286,7 @@ class IrToTruffle(
     val argFactory =
       new DefinitionArgumentProcessor(
         scope       = localScope,
-        initialName = "Type " + tpDef.name
+        initialName = "Type " + tpDef.name.name
       )
     val argDefs =
       new Array[ArgumentDefinition](atomDefn.arguments.size)
