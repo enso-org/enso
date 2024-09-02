@@ -1338,11 +1338,16 @@ class IrToTruffle(
     private def processBlock(block: Expression.Block): RuntimeExpression = {
       if (block.suspended) {
         val scopeInfo = childScopeInfo("block", block)
+        def frameInfo() = block.unsafeGetMetadata(
+          FramePointerAnalysis,
+          "Method definition missing frame information."
+        )
 
         val childFactory = this.createChild(
           "suspended-block",
           () => scopeInfo().scope,
-          "suspended " + currentVarName
+          "suspended " + currentVarName,
+          frameInfo
         )
         val childScope = childFactory.scope
 
@@ -1445,11 +1450,16 @@ class IrToTruffle(
       branch: Case.Branch
     ): Either[BadPatternMatch, BranchNode] = {
       val scopeInfo = childScopeInfo("case branch", branch)
+      def frameInfo() = branch.unsafeGetMetadata(
+        FramePointerAnalysis,
+        "Method definition missing frame information."
+      )
       val childProcessor =
         this.createChild(
           "case_branch",
           () => scopeInfo().scope,
-          "case " + currentVarName
+          "case " + currentVarName,
+          frameInfo
         )
 
       branch.pattern match {
@@ -2436,7 +2446,14 @@ class IrToTruffle(
           }
 
           val childScope = if (shouldCreateClosureRootNode) {
-            scope.createChild(() => scopeInfo().scope)
+            def frameInfo() = arg.unsafeGetMetadata(
+              FramePointerAnalysis,
+              "Method definition missing frame information."
+            )
+            scope.createChild(
+              () => scopeInfo().scope,
+              symbolsProvider = frameInfo
+            )
           } else {
             // Note [Scope Flattening]
             scope.createChild(() => scopeInfo().scope, flattenToParent = true)

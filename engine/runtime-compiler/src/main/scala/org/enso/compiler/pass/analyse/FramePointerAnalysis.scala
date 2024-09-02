@@ -205,7 +205,12 @@ case object FramePointerAnalysis extends IRPass {
           "An alias analysis graph is expected on " + branch
         )
       case Some(graph) =>
-        updateSymbolNames(branch, graph)
+        getAliasChildScope(branch) match {
+          case Some(child) =>
+            updateSymbolNames(branch, child.scope)
+          case _ =>
+            updateSymbolNames(branch, graph)
+        }
         processExpression(branch.expression, graph)
         processCasePattern(branch.pattern, graph)
     }
@@ -274,6 +279,12 @@ case object FramePointerAnalysis extends IRPass {
           updateSymbolNames(value, child.scope)
         case _ =>
           updateSymbolNames(value, graph)
+      }
+      getAliasChildScope(arg) match {
+        case Some(child) =>
+          updateSymbolNames(arg, child.scope)
+        case _ =>
+          updateSymbolNames(arg, graph)
       }
     }
   }
@@ -503,6 +514,7 @@ case object FramePointerAnalysis extends IRPass {
       compiler: CompilerContext
     ): Option[ProcessingPass.Metadata] = Some(this)
 
-    override def toString: String = s"FramePointerMeta($framePointer)"
+    override def toString: String =
+      s"FramePointerMeta($framePointer, $variableNames)"
   }
 }
