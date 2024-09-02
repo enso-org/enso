@@ -163,7 +163,12 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
         />
       )}
 
-      <ariaComponents.Form.Submit variant="accent" size="medium" fullWidth>
+      <ariaComponents.Form.Submit
+        variant="accent"
+        size="medium"
+        fullWidth
+        isDisabled={seatsLeft <= 0}
+      >
         {getText('inviteSubmit')}
       </ariaComponents.Form.Submit>
 

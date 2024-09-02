@@ -14,7 +14,7 @@ import ArrowRight from '#/assets/arrow_right.svg'
 
 import { DASHBOARD_PATH, LOGIN_PATH } from '#/appUtils'
 
-import { useIsFirstRender } from '#/hooks/mountHooks'
+import { useIsFirstRender, useMounted } from '#/hooks/mountHooks'
 
 import { useAuth, UserSessionType } from '#/providers/AuthProvider'
 import { useRemoteBackendStrict } from '#/providers/BackendProvider'
@@ -217,6 +217,22 @@ const BASE_STEPS: Step[] = [
      */
     component: function InviteUsersStep({ goToNextStep, goToPreviousStep }) {
       const { getText } = textProvider.useText()
+      const backend = useRemoteBackendStrict()
+
+      const listInvitationsQuery = useSuspenseQuery({
+        queryKey: ['invitations'],
+        queryFn: () => backend.listInvitations(),
+        select: (data) => ({
+          count: data.invitations.length,
+          availableLicenses: data.availableLicenses,
+        }),
+      })
+
+      useMounted(() => {
+        if (listInvitationsQuery.data.availableLicenses === 0) {
+          goToNextStep()
+        }
+      })
 
       return (
         <div className="max-w-96">
@@ -265,6 +281,10 @@ const BASE_STEPS: Step[] = [
         queryKey: ['users'],
         queryFn: () => remoteBackend.listUsers(),
       })
+      const listUserGroupsQuery = useSuspenseQuery({
+        queryKey: ['userGroups'],
+        queryFn: () => remoteBackend.listUserGroups(),
+      })
 
       const createUserGroupMutation = useMutation(
         backendMutationOptions(remoteBackend, 'createUserGroup', {
@@ -279,6 +299,12 @@ const BASE_STEPS: Step[] = [
           },
         }),
       )
+
+      useMounted(() => {
+        if (listUserGroupsQuery.data.length > 0) {
+          goToNextStep()
+        }
+      })
 
       return (
         <ariaComponents.Form
