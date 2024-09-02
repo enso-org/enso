@@ -43,8 +43,7 @@ export function useForm<Schema extends types.TSchema>(
     `,
   )
 
-  const form =
-    'formState' in optionsOrFormInstance ? optionsOrFormInstance : (
+  return 'formState' in optionsOrFormInstance ? optionsOrFormInstance : (
       (() => {
         const { schema, ...options } = optionsOrFormInstance
 
@@ -57,39 +56,37 @@ export function useForm<Schema extends types.TSchema>(
         >({
           ...options,
           resolver: zodResolver.zodResolver(computedSchema, {
-        async: true,
-        errorMap: (issue) => {
-          switch (issue.code) {
-            case 'too_small':
-              if (issue.minimum === 0) {
-                return {
-                  message: getText('arbitraryFieldRequired'),
-                }
-              } else {
-                return {
-                  message: getText('arbitraryFieldTooSmall', issue.minimum.toString()),
-                }
+            async: true,
+            errorMap: (issue) => {
+              switch (issue.code) {
+                case 'too_small':
+                  if (issue.minimum === 0) {
+                    return {
+                      message: getText('arbitraryFieldRequired'),
+                    }
+                  } else {
+                    return {
+                      message: getText('arbitraryFieldTooSmall', issue.minimum.toString()),
+                    }
+                  }
+                case 'too_big':
+                  return {
+                    message: getText('arbitraryFieldTooLarge', issue.maximum.toString()),
+                  }
+                case 'invalid_type':
+                  return {
+                    message: getText('arbitraryFieldInvalid'),
+                  }
+                default:
+                  return {
+                    message: getText('arbitraryFieldInvalid'),
+                  }
               }
-            case 'too_big':
-              return {
-                message: getText('arbitraryFieldTooLarge', issue.maximum.toString()),
-              }
-            case 'invalid_type':
-              return {
-                message: getText('arbitraryFieldInvalid'),
-              }
-            default:
-              return {
-                message: getText('arbitraryFieldInvalid'),
-              }
-          }
-        },
-      }),
+            },
+          }),
         })
       })()
     )
-
-  return form
 }
 
 /**

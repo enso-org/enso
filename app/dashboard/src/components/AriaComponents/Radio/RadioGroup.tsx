@@ -11,8 +11,8 @@ import * as mergeRefs from '#/utilities/mergeRefs'
 import * as twv from '#/utilities/tailwindVariants'
 
 import { omit } from '#/utilities/object'
-import type { FieldVariantProps } from '../Form'
 import { forwardRef } from '#/utilities/react'
+import type { FieldVariantProps } from '../Form'
 import * as formComponent from '../Form'
 import * as radioGroupContext from './RadioGroupContext'
 

@@ -8,9 +8,9 @@ import * as ariaComponents from '#/components/AriaComponents'
 import StatelessSpinner, * as spinnerModule from '#/components/StatelessSpinner'
 import SvgMask from '#/components/SvgMask'
 
+import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
-import { forwardRef } from '#/utilities/react'
 import { TEXT_STYLE } from '../Text'
 
 // ==============
