@@ -519,7 +519,7 @@ watchEffect(() => {
     </div>
     <GraphNodeMessage
       v-if="visibleMessage"
-      class="afterNode"
+      class="afterNode shiftWhenMenuVisible"
       :message="visibleMessage.text"
       :type="visibleMessage.type"
     />
@@ -645,10 +645,12 @@ watchEffect(() => {
   top: 100%;
   margin-top: var(--node-vertical-gap);
   transform: translateY(var(--viz-below-node));
+}
+.shiftWhenMenuVisible {
   left: 0;
   transition: left 0.1s ease-out;
 }
-.menuVisible .afterNode {
+.menuVisible .shiftWhenMenuVisible {
   left: 40px;
 }
 
