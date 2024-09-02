@@ -23,7 +23,7 @@ import invariant from 'tiny-invariant'
 interface AuthenticationPagePropsBase {
   readonly supportsOffline?: boolean
   readonly 'data-testid'?: string
-  readonly title: string
+  readonly title?: string
   readonly footer?: ReactNode
 }
 
@@ -42,11 +42,12 @@ export default function AuthenticationPage<Schema extends TSchema>(
   const { getText } = useText()
   const { isOffline } = useOffline()
 
-  const heading = (
-    <Text.Heading level={1} className="self-center" weight="medium">
-      {title}
-    </Text.Heading>
-  )
+  const heading =
+    title ?
+      <Text.Heading level={1} className="self-center" weight="medium">
+        {title}
+      </Text.Heading>
+    : null
 
   const containerClasses = DIALOG_BACKGROUND({
     className: 'flex w-full flex-col gap-4 rounded-4xl p-12',
