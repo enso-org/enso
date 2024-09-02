@@ -629,7 +629,10 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     })
     await get(remoteBackendPaths.INVITATION_PATH + '*', async (route) => {
       await route.fulfill({
-        json: { invitations: [] } satisfies backend.ListInvitationsResponseBody,
+        json: {
+          invitations: [],
+          availableLicenses: 0,
+        } satisfies backend.ListInvitationsResponseBody,
       })
     })
     await post(remoteBackendPaths.INVITE_USER_PATH + '*', async (route) => {

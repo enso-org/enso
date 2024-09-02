@@ -2,10 +2,12 @@
 import type * as React from 'react'
 
 /** Merge multiple refs into a single ref callback. */
-export function mergeRefs<T>(...refs: (React.Ref<T> | null | undefined)[]): React.RefCallback<T> {
+export function mergeRefs<T>(
+  ...refs: (React.Ref<T> | false | null | undefined)[]
+): React.RefCallback<T> {
   return (value) => {
     for (const ref of refs) {
-      if (ref != null) {
+      if (ref != null && ref !== false) {
         if (typeof ref === 'function') {
           ref(value)
         } else {

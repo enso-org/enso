@@ -3,6 +3,7 @@
  */
 import { useRef, type ClipboardEvent, type ForwardedRef, type HTMLAttributes } from 'react'
 
+import type { FieldVariantProps } from '#/components/AriaComponents'
 import {
   Form,
   Text,
@@ -30,12 +31,16 @@ export interface ResizableContentEditableInputProps<
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema>,
 > extends FieldStateProps<HTMLAttributes<HTMLDivElement> & { value: string }, Schema, TFieldName>,
-  Pick<VariantProps<typeof INPUT_STYLES>, 'rounded' | 'size' | 'variant' | 'disabled' | 'invalid'>,
-  Omit<FieldProps, 'variant'>,
-  Omit<
-    VariantProps<typeof CONTENT_EDITABLE_STYLES>,
-    'disabled' | 'invalid' | 'rounded' | 'size' | 'variant'
-  > {
+    Pick<
+      VariantProps<typeof INPUT_STYLES>,
+      'disabled' | 'invalid' | 'rounded' | 'size' | 'variant'
+    >,
+    Omit<FieldProps, 'variant'>,
+    FieldVariantProps,
+    Omit<
+      VariantProps<typeof CONTENT_EDITABLE_STYLES>,
+      'disabled' | 'invalid' | 'rounded' | 'size' | 'variant'
+    > {
   /**
    * onChange is called when the content of the input changes.
    * There is no way to prevent the change, so the value is always the new value.
@@ -68,9 +73,9 @@ export const ResizableContentEditableInput = forwardRef(function ResizableConten
     rounded,
     variant,
     variants = CONTENT_EDITABLE_STYLES,
-      fieldVariants,
-      ...textFieldProps
-    } = props
+    fieldVariants,
+    ...textFieldProps
+  } = props
 
   const inputRef = useRef<HTMLDivElement>(null)
 
@@ -100,21 +105,21 @@ export const ResizableContentEditableInput = forwardRef(function ResizableConten
     textArea,
     placeholder: placeholderClass,
   } = variants({
-      invalid: fieldState.invalid,
-      disabled: isDisabled || formInstance.formState.isSubmitting,
-      variant,
+    invalid: fieldState.invalid,
+    disabled: isDisabled || formInstance.formState.isSubmitting,
+    variant,
     rounded,
     size,
   })
 
   return (
     <Form.Field
-        form={formInstance}
-        name={name}
-        fullWidth
-        variants={fieldVariants}
-        {...textFieldProps}
-      >
+      form={formInstance}
+      name={name}
+      fullWidth
+      variants={fieldVariants}
+      {...textFieldProps}
+    >
       <div
         className={base()}
         onClick={() => {

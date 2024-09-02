@@ -13,8 +13,6 @@ import {
   type TSchema,
 } from '#/components/AriaComponents'
 
-import { mergeRefs } from '#/utilities/mergeRefs'
-
 import { AnimatedBackground } from '#/components/AnimatedBackground'
 import RadioGroup from '#/components/styled/RadioGroup'
 import { mergeRefs } from '#/utilities/mergeRefs'

@@ -8,37 +8,20 @@ import { CheckboxGroup as AriaCheckboxGroup, mergeProps } from '#/components/ari
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { omit } from '#/utilities/object'
+import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
-import type { CSSProperties, ForwardedRef, ReactElement, RefAttributes } from 'react'
-import { forwardRef } from 'react'
+import type { CSSProperties, ForwardedRef, ReactElement } from 'react'
 import type { FieldVariantProps } from '../Form'
-import {
-  Form,
-  type FieldPath,
-  type FieldProps,
-  type FieldStateProps,
-  type FieldValues,
-  type TSchema,
-} from '../Form'
+import { Form, type FieldPath, type FieldProps, type FieldStateProps, type TSchema } from '../Form'
 import type { TestIdProps } from '../types'
 import { CheckboxGroupProvider } from './CheckboxContext'
 
 /**
  * Props for the {@link CheckboxGroupProps} component.
  */
-export interface CheckboxGroupProps<
-  Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TFieldName extends FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
-> extends FieldStateProps<
-      AriaCheckboxGroupProps,
-      Schema,
-      TFieldValues,
-      TFieldName,
-      TTransformedValues
-    >,
+export interface CheckboxGroupProps<Schema extends TSchema, TFieldName extends FieldPath<Schema>>
+  extends FieldStateProps<AriaCheckboxGroupProps, Schema, TFieldName>,
     FieldProps,
     FieldVariantProps,
     Omit<VariantProps<typeof CHECKBOX_GROUP_STYLES>, 'disabled' | 'invalid'>,
@@ -46,6 +29,7 @@ export interface CheckboxGroupProps<
   readonly className?: string
   readonly style?: CSSProperties
   readonly checkboxRef?: ForwardedRef<HTMLInputElement>
+  readonly children: ReactElement | ((props: AriaCheckboxGroupProps) => ReactElement)
 }
 
 const CHECKBOX_GROUP_STYLES = tv({
@@ -58,13 +42,8 @@ const CHECKBOX_GROUP_STYLES = tv({
  */
 // eslint-disable-next-line no-restricted-syntax
 export const CheckboxGroup = forwardRef(
-  <
-    Schema extends TSchema,
-    TFieldValues extends FieldValues<Schema>,
-    TFieldName extends FieldPath<Schema, TFieldValues>,
-    TTransformedValues extends FieldValues<Schema> | undefined = undefined,
-  >(
-    props: CheckboxGroupProps<Schema, TFieldValues, TFieldName, TTransformedValues>,
+  <Schema extends TSchema, TFieldName extends FieldPath<Schema>>(
+    props: CheckboxGroupProps<Schema, TFieldName>,
     ref: ForwardedRef<HTMLFieldSetElement>,
   ): ReactElement => {
     const {
@@ -81,7 +60,6 @@ export const CheckboxGroup = forwardRef(
       name,
       description,
       fullWidth = false,
-      testId,
       fieldVariants,
       ...checkboxGroupProps
     } = props
@@ -98,6 +76,7 @@ export const CheckboxGroup = forwardRef(
     const invalid = isInvalid || fieldState.invalid
 
     const styles = variants({ fullWidth, className })
+    const testId = props['data-testid'] ?? props.testId ?? 'CheckboxGroup'
 
     return (
       <CheckboxGroupProvider
@@ -117,9 +96,9 @@ export const CheckboxGroup = forwardRef(
             isDisabled,
             isReadOnly,
             name,
-            testId,
           })}
           ref={mergeRefs(ref, field.ref)}
+          data-testid={testId}
         >
           {(renderProps) => (
             <Form.Field
@@ -140,12 +119,4 @@ export const CheckboxGroup = forwardRef(
       </CheckboxGroupProvider>
     )
   },
-) as <
-  Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TFieldName extends FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
->(
-  props: CheckboxGroupProps<Schema, TFieldValues, TFieldName, TTransformedValues> &
-    RefAttributes<HTMLDivElement>,
-) => ReactElement
+)

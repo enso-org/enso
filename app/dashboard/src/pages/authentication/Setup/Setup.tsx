@@ -231,7 +231,7 @@ const BASE_STEPS: Step[] = [
               {getText('back')}
             </ariaComponents.Button>
 
-            <ariaComponents.Button variant="cancel" onPress={goToNextStep}>
+            <ariaComponents.Button variant="ghost-fading" onPress={goToNextStep}>
               {getText('skip')}
             </ariaComponents.Button>
           </ariaComponents.ButtonGroup>
