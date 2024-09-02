@@ -2452,6 +2452,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               }
             }}
             onDragEnd={() => {
+              setIsDraggingFiles(false)
               endAutoScroll()
               lastSelectedIdsRef.current = null
               const { selectedKeys } = driveStore.getState()
@@ -2740,8 +2741,10 @@ export default function AssetsTable(props: AssetsTableProps) {
               className="flex items-center justify-center gap-3 rounded-default bg-selected-frame px-8 py-6 text-primary/50 backdrop-blur-3xl transition-all"
               onDragEnter={onDropzoneDragOver}
               onDragOver={onDropzoneDragOver}
-              onDrop={(event) => {
+              onDragEnd={() => {
                 setIsDraggingFiles(false)
+              }}
+              onDrop={(event) => {
                 handleFileDrop(event)
               }}
             >
