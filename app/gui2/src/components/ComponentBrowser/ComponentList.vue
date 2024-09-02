@@ -31,17 +31,10 @@ const components = computed(() => makeComponentList(suggestionDbStore.entries, p
 const visibleComponents = computed(() => {
   if (scroller.value == null) return []
   const scrollPos = scrolling.scrollPosition.value
-  const allItems = components.value.length
-  const maxItemsVisible = Math.ceil(scrollerSize.value.y / ITEM_SIZE)
-  const selected = componentAtY(scrollPos)
-  const bottommostVisible = Math.min(
-    allItems - 1,
-    Math.max(0, componentAtY(scrollPos + scrollerSize.value.y)),
-  )
-  const topmostVisible = Math.max(0, bottommostVisible - maxItemsVisible)
-  const visible = components.value.slice(topmostVisible, topmostVisible + maxItemsVisible + 1)
-  return visible.map((component, i) => {
-    return { component, index: topmostVisible + i }
+  const topmostVisible = componentAtY(scrollPos)
+  const bottommostVisible = Math.max(0, componentAtY(scrollPos + scrollerSize.value.y))
+  return components.value.slice(topmostVisible, bottommostVisible + 1).map((component, i) => {
+    return { component, index: i + topmostVisible }
   })
 })
 
@@ -108,7 +101,9 @@ const scrollerSize = useResizeObserver(scroller)
 const listContentHeight = computed(() =>
   Math.max(components.value.length * ITEM_SIZE, scrollerSize.value.y),
 )
-const scrolling = useScrolling(() => animatedHighlightPosition.value)
+const scrolling = useScrolling(() =>
+  Math.min(animatedHighlightPosition.value, listContentHeight.value - scrollerSize.value.y),
+)
 
 const listContentHeightPx = computed(() => `${listContentHeight.value}px`)
 
