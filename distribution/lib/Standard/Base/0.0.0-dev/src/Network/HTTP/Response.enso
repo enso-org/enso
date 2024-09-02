@@ -85,6 +85,30 @@ type Response
             values = p.second
             values.map v-> Header.new key v
 
+    ## GROUP Metadata
+       ICON metadata
+       Get the response headers for a specific name.
+       If not present, an empty vector is returned.
+
+       Arguments:
+       - name: The name of the header to get. Note this is case insensitive.
+
+       Returns:
+       A vector of Text values representing the header values.
+
+       > Example
+         Getting the link headers from a response.
+         Note: This example will make a network request.
+
+             import Standard.Examples
+
+             example_headers = Examples.get_response.headers_by_name "link"
+    headers_by_name : Text -> Vector Text
+    headers_by_name self name:Text =
+        # This is a mapping that maps a header name to a list of values (since headers may be duplicated).
+        multi_map = self.internal_http_response.headers.map
+        if multi_map.containsKey name then Vector.from_polyglot_array (multi_map.get) name else []
+
     ## ICON metadata
        Get the response content type.
     content_type : Text | Nothing
@@ -219,6 +243,7 @@ type Response
     get_header self name:Text ~if_missing=Nothing =
         java_optional = self.internal_http_response.headers.firstValue name
         if java_optional.isPresent then java_optional.get else if_missing
+
 
 ## PRIVATE
 resolve_file_metadata_for_response : Response -> File_Format_Metadata

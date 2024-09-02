@@ -196,8 +196,8 @@ list (directory:(Text | File)=enso_project.root) (name_filter:Text="") recursive
          Data.fetch URL . body . write file
 @uri Text_Input
 @format Data_Read_Helpers.format_widget_with_raw_response
-fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> File_Format -> Any ! Request_Error | HTTP_Error
-fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) (format = Auto_Detect) =
+fetch : URI -> HTTP_Method -> Vector (Header | Pair Text Text) -> File_Format -> Any ! Request_Error | HTTP_Error
+fetch (uri:URI) (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) (format = Auto_Detect) =
     Data_Read_Helpers.fetch_following_data_links uri method headers (Data_Read_Helpers.handle_legacy_format "fetch" "format" format)
 
 ## ALIAS http post, upload
