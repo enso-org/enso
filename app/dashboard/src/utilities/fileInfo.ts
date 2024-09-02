@@ -19,6 +19,11 @@ export function baseName(fileNameOrPath: string) {
   return fileNameOrPath.match(/(?:[\\/]|^)([^./\\]+)(?:[.][^/\\]*)?$/)?.[1] ?? fileNameOrPath
 }
 
+/** Normalize a path to use `/` instead of `\`. */
+export function normalizePath(path: string) {
+  return path.replace(/\\/g, '/')
+}
+
 /** Extract the file extension from a file name. */
 export function fileExtension(fileNameOrPath: string) {
   return fileNameOrPath.match(/[.]([^.]+?)$/)?.[1] ?? ''
