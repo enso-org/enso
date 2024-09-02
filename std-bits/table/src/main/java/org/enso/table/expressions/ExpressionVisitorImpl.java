@@ -388,7 +388,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   public Value visitFunction(ExpressionParser.FunctionContext ctx) {
     var name = ctx.IDENTIFIER().getText().toLowerCase();
     var args = ctx.expr().stream().map(this::visit).toArray(Value[]::new);
-    return switch(name) {
+    return switch (name) {
       case "today" -> Value.asValue(LocalDate.now());
       case "now" -> Value.asValue(LocalDateTime.now().atZone(ZoneId.systemDefault()));
       case "time" -> Value.asValue(LocalTime.now());
