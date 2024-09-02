@@ -43,6 +43,7 @@ export default function MembersSettingsSection() {
         queryFn: () => backend.listUsers(),
         staleTime: LIST_USERS_STALE_TIME_MS,
       },
+
       {
         queryKey: ['listInvitations'],
         queryFn: () => backend.listInvitations(),
@@ -54,8 +55,7 @@ export default function MembersSettingsSection() {
   const isUnderPaywall = isFeatureUnderPaywall('inviteUserFull')
   const feature = getFeature('inviteUser')
 
-  const seatsLeft =
-    isUnderPaywall ? feature.meta.maxSeats - (members.length + invitations.length) : null
+  const seatsLeft = isUnderPaywall ? invitations.availableLicenses : null
   const seatsTotal = feature.meta.maxSeats
   const isAdmin = user.isOrganizationAdmin
 
@@ -119,7 +119,7 @@ export default function MembersSettingsSection() {
               </td>
             </tr>
           ))}
-          {invitations.map((invitation) => (
+          {invitations.invitations.map((invitation) => (
             <tr key={invitation.userEmail} className="group h-row rounded-rows-child">
               <td className="border-x-2 border-transparent bg-clip-padding px-4 py-1 first:rounded-l-full last:rounded-r-full last:border-r-0">
                 <span className="block text-sm">{invitation.userEmail}</span>
