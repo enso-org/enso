@@ -55,6 +55,17 @@ export const CLOUD_COLUMNS = Object.freeze([
   Column.docs,
 ] as const)
 
+/** The list of all possible columns for the cloud backend for free or solo users, in order. */
+// This MUST be `as const`, to generate the `ExtraColumn` type above.
+export const CLOUD_SOLO_COLUMNS = Object.freeze([
+  Column.name,
+  Column.modified,
+  Column.labels,
+  Column.accessedByProjects,
+  Column.accessedData,
+  Column.docs,
+] as const)
+
 export const COLUMN_ICONS: Readonly<Record<Column, string>> = {
   /* The file column does not have an icon, however this does not matter as it is not
    * collapsible. */
@@ -98,6 +109,7 @@ export const COLUMN_CSS_CLASS: Readonly<Record<Column, string>> = {
 
 /** Return the full list of columns given the relevant current state. */
 export function getColumnList(
+  user: backend.User,
   backendType: backend.BackendType,
   enabledColumns: ReadonlySet<Column>,
 ) {
@@ -108,7 +120,10 @@ export function getColumnList(
       break
     }
     case backend.BackendType.remote: {
-      columns = CLOUD_COLUMNS
+      columns =
+        user.plan === backend.Plan.enterprise || user.plan === backend.Plan.team ?
+          CLOUD_COLUMNS
+        : CLOUD_SOLO_COLUMNS
       break
     }
   }
