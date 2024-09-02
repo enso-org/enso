@@ -472,6 +472,13 @@ case object FramePointerAnalysis extends IRPass {
     val framePointer: FramePointer,
     val variableNames: Option[List[String]] = None
   ) extends IRMetadata {
+    {
+      assert(
+        framePointer != null || variableNames.nonEmpty,
+        "Either framePointer or variableNames must be present"
+      )
+    }
+
     override val metadataName: String = "FramePointer"
 
     def parentLevel(): Int = framePointer.parentLevel
@@ -481,7 +488,7 @@ case object FramePointerAnalysis extends IRPass {
     /** @inheritdoc
       */
     override def duplicate(): Option[Metadata] = {
-      Some(new FramePointerMeta(framePointer))
+      Some(new FramePointerMeta(framePointer, variableNames))
     }
 
     /** @inheritdoc
