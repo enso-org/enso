@@ -32,7 +32,7 @@ interface InternalBaseAutocompleteProps<T> {
   /** This may change as the user types in the input. */
   readonly items: readonly T[]
   readonly itemToKey: (item: T) => string
-  readonly itemToString: (item: T) => string
+  readonly children: (item: T) => string
   readonly itemsToString?: (items: T[]) => string
   readonly matches: (item: T, text: string) => boolean
   readonly text?: string | null
@@ -80,7 +80,7 @@ export type AutocompleteProps<T> = (
 /** A select menu with a dropdown. */
 export default function Autocomplete<T>(props: AutocompleteProps<T>) {
   const { multiple, type = 'text', inputRef: rawInputRef, placeholder, values, setValues } = props
-  const { text, setText, autoFocus = false, items, itemToKey, itemToString, itemsToString } = props
+  const { text, setText, autoFocus = false, items, itemToKey, children, itemsToString } = props
   const { matches } = props
   const [isDropdownVisible, setIsDropdownVisible] = React.useState(false)
   const [selectedIndex, setSelectedIndex] = React.useState<number | null>(null)
@@ -233,7 +233,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
                   })
                 }}
               >
-                {itemsToString?.(values) ?? (values[0] != null ? itemToString(values[0]) : ZWSP)}
+                {itemsToString?.(values) ?? (values[0] != null ? children(values[0]) : ZWSP)}
               </div>
             }
             <Button
@@ -275,7 +275,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
                 }}
               >
                 <Text truncate="1" className="w-full" tooltipPlacement="left">
-                  {itemToString(item)}
+                  {children(item)}
                 </Text>
               </div>
             ))}

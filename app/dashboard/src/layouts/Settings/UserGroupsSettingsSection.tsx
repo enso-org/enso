@@ -145,7 +145,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
           {shouldDisplayPaywall && (
             <paywallComponents.PaywallDialogButton
               feature="userGroupsFull"
-              variant="bar"
+              variant="outline"
               size="medium"
               rounded="full"
               iconPosition="end"
@@ -157,7 +157,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
           {!shouldDisplayPaywall && (
             <ariaComponents.Button
               size="medium"
-              variant="bar"
+              variant="outline"
               onPress={(event) => {
                 const rect = event.target.getBoundingClientRect()
                 const position = { pageX: rect.left, pageY: rect.top }
@@ -210,7 +210,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
               <aria.Row className="h-row">
                 <aria.Cell
                   ref={(element) => {
-                    if (element != null) {
+                    if (element instanceof HTMLTableCellElement) {
                       element.colSpan = 2
                     }
                   }}

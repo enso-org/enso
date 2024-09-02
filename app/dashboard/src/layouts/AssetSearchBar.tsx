@@ -93,7 +93,7 @@ function Tags(props: InternalTagsProps) {
           : [
               <FocusRing key={key}>
                 <ariaComponents.Button
-                  variant="bar"
+                  variant="outline"
                   size="xsmall"
                   className="min-w-12"
                   onPress={() => {
@@ -282,22 +282,25 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
       {(innerProps) => (
         <aria.Label
           data-testid="asset-search-bar"
-          {...aria.mergeProps<aria.LabelProps>()(innerProps, {
-            className:
-              'z-1 group relative flex grow max-w-[60em] items-center gap-asset-search-bar rounded-full px-1.5 py-1 text-primary',
-            ref: rootRef,
-            onFocus: () => {
-              setAreSuggestionsVisible(true)
-            },
-            onBlur: (event) => {
-              if (!event.currentTarget.contains(event.relatedTarget)) {
-                if (querySource.current === QuerySource.tabbing) {
-                  querySource.current = QuerySource.external
+          {...aria.mergeProps<aria.LabelProps & React.RefAttributes<HTMLLabelElement>>()(
+            innerProps,
+            {
+              className:
+                'z-1 group relative flex grow max-w-[60em] items-center gap-asset-search-bar rounded-full px-1.5 py-1 text-primary',
+              ref: rootRef,
+              onFocus: () => {
+                setAreSuggestionsVisible(true)
+              },
+              onBlur: (event) => {
+                if (!event.currentTarget.contains(event.relatedTarget)) {
+                  if (querySource.current === QuerySource.tabbing) {
+                    querySource.current = QuerySource.external
+                  }
+                  setAreSuggestionsVisible(false)
                 }
-                setAreSuggestionsVisible(false)
-              }
+              },
             },
-          })}
+          )}
         >
           <div className="relative size-4 placeholder" />
           <div

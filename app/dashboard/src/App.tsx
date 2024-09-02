@@ -80,8 +80,8 @@ import * as errorBoundary from '#/components/ErrorBoundary'
 import * as suspense from '#/components/Suspense'
 
 import AboutModal from '#/modals/AboutModal'
+import { AgreementsModal } from '#/modals/AgreementsModal'
 import * as setOrganizationNameModal from '#/modals/SetOrganizationNameModal'
-import * as termsOfServiceModal from '#/modals/TermsOfServiceModal'
 
 import LocalBackend from '#/services/LocalBackend'
 import ProjectManager, * as projectManager from '#/services/ProjectManager'
@@ -353,9 +353,10 @@ function AppRouter(props: AppRouterProps) {
   }, [localStorage, inputBindingsRaw])
   const mainPageUrl = getMainPageUrl()
 
-  // Subscribe to `termsOfService` updates to trigger a rerender when the terms of service
-  // has been accepted.
+  // Subscribe to `localStorage` updates to trigger a rerender when the terms of service
+  // or privacy policy have been accepted.
   localStorageProvider.useLocalStorageState('termsOfService')
+  localStorageProvider.useLocalStorageState('privacyPolicy')
 
   const authService = useInitAuthService(props)
   const userSession = authService?.cognito.userSession.bind(authService.cognito) ?? null
@@ -430,7 +431,7 @@ function AppRouter(props: AppRouterProps) {
       {/* Protected pages are visible to authenticated users. */}
       <router.Route element={<authProvider.NotDeletedUserLayout />}>
         <router.Route element={<authProvider.ProtectedLayout />}>
-          <router.Route element={<termsOfServiceModal.TermsOfServiceModal />}>
+          <router.Route element={<AgreementsModal />}>
             <router.Route element={<setOrganizationNameModal.SetOrganizationNameModal />}>
               <router.Route element={<InvitedToOrganizationModal />}>
                 <router.Route element={<openAppWatcher.OpenAppWatcher />}>
@@ -467,7 +468,7 @@ function AppRouter(props: AppRouterProps) {
         </router.Route>
       </router.Route>
 
-      <router.Route element={<termsOfServiceModal.TermsOfServiceModal />}>
+      <router.Route element={<AgreementsModal />}>
         <router.Route element={<authProvider.NotDeletedUserLayout />}>
           <router.Route path={appUtils.SETUP_PATH} element={<setup.Setup />} />
         </router.Route>

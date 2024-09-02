@@ -205,7 +205,7 @@ export default function Drive(props: DriveProps) {
               <ariaComponents.Button
                 data-testid="download-free-edition"
                 size="medium"
-                variant="tertiary"
+                variant="accent"
                 onPress={async () => {
                   const downloadUrl = await github.getDownloadUrl()
                   if (downloadUrl == null) {
@@ -254,7 +254,7 @@ export default function Drive(props: DriveProps) {
             />
 
             <div className="flex flex-1 gap-drive overflow-hidden">
-              <div className="flex w-drive-sidebar flex-col gap-drive-sidebar py-drive-sidebar-y">
+              <div className="flex w-36 flex-col gap-drive-sidebar overflow-y-auto py-drive-sidebar-y">
                 <CategorySwitcher category={category} setCategory={setCategory} />
                 {isCloud && (
                   <Labels

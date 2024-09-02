@@ -356,7 +356,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   return (
     <FocusArea direction="vertical">
       {(innerProps) => (
-        <div className="flex w-full flex-col gap-2 py-1" {...innerProps}>
+        <div className="flex flex-col gap-2 py-1" {...innerProps}>
           <ariaComponents.Text variant="subtitle" className="px-2 font-bold">
             {getText('category')}
           </ariaComponents.Text>

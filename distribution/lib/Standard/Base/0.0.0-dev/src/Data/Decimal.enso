@@ -38,7 +38,7 @@ polyglot java import org.enso.base.numeric.Decimal_Utils
    A `Decimal` value is represented internally by a Java `BigInteger` "unscaled
    value" and a "scale value". The numerical value of the `Decimal` is
    `(unscaledValue * 10^(-scale))`. Scale values are maintained automatically by
-   the constructors and numerical operations.
+   the constructors and numerical operations, but can also be set explicitly.
 
    Scale values can allow distinctions between values that would be identical as
    `Float`s. For example, the following values have different internal
@@ -1158,11 +1158,52 @@ type Decimal
     scale : Integer
     scale self -> Integer = self.big_decimal.scale
 
-    ## PRIVATE
-    with_scale : Integer -> Decimal
-    private with_scale self new_scale:Integer -> Decimal =
-        if self.scale == new_scale then self else
-            Decimal.Value (self.big_decimal.setScale new_scale)
+    ## ADVANCED
+       GROUP Math
+       ICON math
+       Change the scale of a Decimal.
+
+       A `Decimal` value is represented internally by a Java `BigInteger` "unscaled
+       value" and a "scale value". The numerical value of the `Decimal` is
+       `(unscaledValue * 10^(-scale))`. Scale values are maintained automatically by
+       the constructors and numerical operations, but can also be set explicitly.
+
+       Scale values can allow distinctions between values that would be identical as
+       `Float`s. For example, the following values have different internal
+       representations:
+
+           a = Decimal.new "2.0"
+           b = Decimal.new "2.00"
+           a == b
+           # => True
+
+       These two values have different internal representations, but they are still
+       considered the same value by `==`.
+
+       ! Error Conditions
+
+           - If an explicit `scale` parameter is passed, and the scale is not
+             large enough to represent the number exactly, an `Arithmetic_Error`
+             is thrown.
+
+       > Example
+         Set the scale of a `Decimal`
+
+             d = dec "23.456" set_scale 4
+             d.internal_representation
+             # => [234560, 6, 4]
+
+       > Example
+         Get an error when using a scale that is too small.
+         (A scale of 2 is not enough to represent three decimal places.)
+
+             dec "23.456" set_scale 2
+             # => Arithmetic_Error
+    set_scale : Integer -> Decimal
+    set_scale self new_scale:Integer -> Decimal =
+        handle_java_exception <|
+            if self.scale == new_scale then self else
+                Decimal.Value (self.big_decimal.setScale new_scale)
 
     ## PRIVATE
     unscaled_value : Integer
