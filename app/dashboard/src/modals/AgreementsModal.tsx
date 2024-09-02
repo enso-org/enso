@@ -151,7 +151,9 @@ export function AgreementsModal() {
                   </Button>
                 }
               >
-                <Checkbox value="agree">{getText('licenseAgreementCheckbox')}</Checkbox>
+                <Checkbox testId="terms-of-service-checkbox" value="agree">
+                  {getText('licenseAgreementCheckbox')}
+                </Checkbox>
               </Checkbox.Group>
 
               <Checkbox.Group
@@ -163,7 +165,9 @@ export function AgreementsModal() {
                   </Button>
                 }
               >
-                <Checkbox value="agree">{getText('privacyPolicyCheckbox')}</Checkbox>
+                <Checkbox testId="privacy-policy-checkbox" value="agree">
+                  {getText('privacyPolicyCheckbox')}
+                </Checkbox>
               </Checkbox.Group>
 
               <Form.Submit fullWidth>{getText('accept')}</Form.Submit>

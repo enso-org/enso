@@ -203,6 +203,8 @@ export const Checkbox = forwardRef(function Checkbox<
     size,
   })
 
+  const testId = props['data-testid'] ?? props['testId'] ?? 'Checkbox'
+
   return (
     <AriaCheckbox
       ref={mergeRefs(ref, field.ref)}
@@ -218,6 +220,7 @@ export const Checkbox = forwardRef(function Checkbox<
       isDisabled={isDisabled || (field.disabled ?? false)}
       isReadOnly={isReadOnly}
       isRequired={field.required ?? false}
+      data-testid={testId}
     >
       {(renderProps) => (
         <>
