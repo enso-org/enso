@@ -3,7 +3,7 @@
  *
  * Contains hooks that are called when the component mounts.
  */
-import { useEffect, useLayoutEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 
 import { useEventCallback } from './eventCallbackHooks'
 
