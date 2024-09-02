@@ -14,8 +14,16 @@ public record FramePointer(int parentLevel, int frameSlotIdx) {
   }
 
   static <V> V assertSame(String msg, V actual, Supplier<V> expectedSupplier) {
-    assert Objects.equals(expectedSupplier.get(), actual)
+    assert checkEquality(actual, expectedSupplier)
         : msg + "\nexpected: " + expectedSupplier.get() + "\nactual: " + actual;
     return actual;
+  }
+
+  private static <V> boolean checkEquality(V actual, Supplier<V> expectedSupplier) {
+    if (!Objects.equals(expectedSupplier.get(), actual)) {
+      return false;
+    } else {
+      return true;
+    }
   }
 }
