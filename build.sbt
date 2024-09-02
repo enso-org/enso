@@ -1221,6 +1221,9 @@ lazy val `language-server-deps-wrapper` = project
     Compile / moduleDependencies := Seq(
       "org.scala-lang" % "scala-library" % scalacVersion
     ),
+    Compile / internalModuleDependencies := Seq(
+      (`scala-libs-wrapper` / Compile / exportedModule).value
+    ),
     assembly / assemblyExcludedJars := {
       val scalaVer = scalaBinaryVersion.value
       JPMSUtils.filterModulesFromClasspath(
