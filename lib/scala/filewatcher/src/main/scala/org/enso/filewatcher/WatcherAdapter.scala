@@ -38,7 +38,12 @@ final class WatcherAdapter(
 
   /** @inheritdoc */
   override def start(executor: Executor): Unit = {
-    watcher.watchAsync(executor)
+    val fut = watcher.watchAsync(executor)
+    fut.exceptionally(e => {
+      val error = Watcher.WatcherError(e)
+      errorCallback(error)
+      null
+    })
   }
 
   /** @inheritdoc */
