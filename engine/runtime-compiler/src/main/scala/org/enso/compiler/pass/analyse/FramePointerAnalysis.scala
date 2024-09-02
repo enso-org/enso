@@ -185,7 +185,12 @@ case object FramePointerAnalysis extends IRPass {
     if (updateSymbols) {
       getAliasAnalysisGraph(exprIr) match {
         case Some(graph) =>
-          updateSymbolNames(exprIr, graph)
+          getAliasChildScope(exprIr) match {
+            case Some(child) =>
+              updateSymbolNames(exprIr, child.scope)
+            case _ =>
+              updateSymbolNames(exprIr, graph)
+          }
         case _ => ()
       }
     }

@@ -466,6 +466,25 @@ public class ExecCompilerTest {
   }
 
   @Test
+  public void testTemporaryFileSpecProblem() throws Exception {
+    var code =
+        """
+    from Standard.Base.Errors.Common import all
+
+    run t = F.app f->
+      f.read t
+
+    type F
+      read self r = r
+      app fn = fn F
+    """;
+    var module = ctx.eval(LanguageInfo.ID, code);
+    var run = module.invokeMember("eval_expression", "run");
+    var real = run.execute(1L);
+    assertEquals("Should be the same", 1, real.asInt());
+  }
+
+  @Test
   public void testPropertlyIdentifyNameOfJavaClassInError() throws Exception {
     var module =
         ctx.eval(
