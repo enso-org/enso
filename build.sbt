@@ -1092,11 +1092,13 @@ lazy val filewatcher = project
     libraryDependencies ++= Seq(
       "io.methvin"     % "directory-watcher" % directoryWatcherVersion,
       "commons-io"     % "commons-io"        % commonsIoVersion,
+      "org.slf4j"      % "slf4j-api"         % slf4jVersion,
       "org.scalatest" %% "scalatest"         % scalatestVersion % Test
     ),
     compileOrder := CompileOrder.ScalaThenJava,
     Compile / moduleDependencies := Seq(
       "org.scala-lang" % "scala-library" % scalacVersion,
+      "org.slf4j"      % "slf4j-api"     % slf4jVersion
     ),
     Compile / internalModuleDependencies := Seq(
       (`jpms-wrapper-methvin-directory-watcher` / Compile / exportedModule).value

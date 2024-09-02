@@ -1,10 +1,7 @@
 package org.enso.filewatcher
 
-import io.methvin.watcher.{
-  DirectoryChangeEvent,
-  DirectoryChangeListener,
-  DirectoryWatcher
-}
+import io.methvin.watcher.{DirectoryChangeEvent, DirectoryChangeListener, DirectoryWatcher}
+import org.slf4j.LoggerFactory
 
 import java.util.concurrent.Executor
 import java.nio.file.Path
@@ -22,11 +19,22 @@ final class WatcherAdapter(
 ) extends Watcher
     with DirectoryChangeListener {
 
-  private val watcher: DirectoryWatcher = DirectoryWatcher
-    .builder()
-    .path(root)
-    .listener(this)
-    .build()
+  private val logger =
+    LoggerFactory.getLogger(classOf[WatcherAdapter])
+
+
+  private val watcher: DirectoryWatcher =
+    try {
+      DirectoryWatcher
+        .builder()
+        .path(root)
+        .listener(this)
+        .build()
+    } catch {
+      case t: Throwable =>
+        logger.error("Failed to create DirectoryWatcher", t)
+        throw t
+    }
 
   /** @inheritdoc */
   override def start(executor: Executor): Unit = {
