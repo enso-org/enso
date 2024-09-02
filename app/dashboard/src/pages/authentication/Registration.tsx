@@ -1,6 +1,6 @@
 /** @file Registration container responsible for rendering and interactions in sign up flow. */
 import { useEffect, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 
 import * as z from 'zod'
 
@@ -57,17 +57,17 @@ export default function Registration() {
   const { signUp, confirmSignUp, signInWithPassword } = useAuth()
 
   const location = useLocation()
-  const navigate = useNavigate()
   const { localStorage } = useLocalStorage()
   const { getText } = useText()
   const localBackend = useLocalBackend()
   const supportsOffline = localBackend != null
 
   const query = new URLSearchParams(location.search)
-  const initialEmail = query.get('email')
+  const initialEmail = query.get('email') ?? ''
   const organizationId = query.get('organization_id')
   const redirectTo = query.get('redirect_to')
   const [isManualCodeEntry, setIsManualCodeEntry] = useState(false)
+  const [emailInput, setEmailInput] = useState(initialEmail)
 
   const signupForm = Form.useForm({
     schema: (schema) =>
@@ -151,13 +151,7 @@ export default function Registration() {
       supportsOffline={supportsOffline}
       footer={
         <Link
-          to={LOGIN_PATH}
-          onPress={() => {
-            navigate(
-              LOGIN_PATH +
-                `?${new URLSearchParams({ email: signupForm.getValues('email') }).toString()}`,
-            )
-          }}
+          to={LOGIN_PATH + `?${new URLSearchParams({ email: emailInput }).toString()}`}
           icon={GoBackIcon}
           text={getText('alreadyHaveAnAccount')}
         />
@@ -172,6 +166,7 @@ export default function Registration() {
 
             <Form
               form={signupForm}
+              defaultValues={{ email: initialEmail }}
               onSubmit={({ email, password }) => {
                 localStorage.set('termsOfService', { versionHash: tosHash })
                 localStorage.set('privacyPolicy', { versionHash: privacyPolicyHash })
@@ -193,7 +188,9 @@ export default function Registration() {
                     autoComplete="email"
                     icon={AtIcon}
                     placeholder={getText('emailPlaceholder')}
-                    defaultValue={initialEmail ?? undefined}
+                    onChange={(event) => {
+                      setEmailInput(event.target.value)
+                    }}
                   />
                   <Password
                     required

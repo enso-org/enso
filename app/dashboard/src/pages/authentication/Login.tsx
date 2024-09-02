@@ -29,8 +29,8 @@ export default function Login() {
   const { signInWithGoogle, signInWithGitHub, signInWithPassword } = useAuth()
   const { getText } = useText()
   const query = new URLSearchParams(location.search)
-  const initialEmail = query.get('email')
-  const [emailInput, setEmailInput] = useState(initialEmail ?? '')
+  const initialEmail = query.get('email') ?? ''
+  const [emailInput, setEmailInput] = useState(initialEmail)
   const localBackend = useLocalBackend()
   const supportsOffline = localBackend != null
 
@@ -86,7 +86,7 @@ export default function Login() {
           })
         }
         gap="medium"
-        defaultValues={{ email: initialEmail ?? '' }}
+        defaultValues={{ email: initialEmail }}
         onSubmit={({ email, password }) => signInWithPassword(email, password)}
       >
         <Input
@@ -98,7 +98,6 @@ export default function Login() {
           type="email"
           autoComplete="email"
           icon={AtIcon}
-          defaultValue={initialEmail ?? undefined}
           placeholder={getText('emailPlaceholder')}
           onChange={(event) => {
             setEmailInput(event.currentTarget.value)

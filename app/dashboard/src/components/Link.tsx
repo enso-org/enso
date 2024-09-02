@@ -7,6 +7,7 @@ import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 import { useFocusChild } from '#/hooks/focusHooks'
 import { useText } from '#/providers/TextProvider'
+import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
 import { twMerge } from 'tailwind-merge'
 
@@ -30,11 +31,12 @@ function Link(props: LinkProps, ref: React.ForwardedRef<HTMLAnchorElement>) {
   const { openInBrowser = false, to, icon, text, onPress } = props
   const { getText } = useText()
   const { className: focusChildClassName, ...focusChildProps } = useFocusChild()
+  const linkRef = React.useRef<HTMLAnchorElement>(null)
 
   return (
     <FocusRing>
       <aria.Link
-        ref={ref}
+        ref={mergeRefs(linkRef, ref)}
         href={to}
         {...(openInBrowser && { target: '_blank' })}
         rel="noopener noreferrer"
