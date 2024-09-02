@@ -5,7 +5,7 @@
  */
 import type { CheckboxProps as AriaCheckboxProps } from '#/components/aria'
 import { Checkbox as AriaCheckbox } from '#/components/aria'
-import { mergeRefs } from '#/utilities/mergeRefs'
+import { mergeRefs, useMergedRef } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
@@ -209,8 +209,14 @@ export const Checkbox = forwardRef(function Checkbox<
     <AriaCheckbox
       ref={mergeRefs(ref, field.ref)}
       {...props}
-      /* eslint-disable-next-line no-restricted-syntax */
-      inputRef={checkboxRef as MutableRefObject<HTMLInputElement>}
+      inputRef={useMergedRef(checkboxRef, (input) => {
+        // Hack to remove the `data-testid` attribute from the input element
+        // react-aria-components adds this attribute, but it is a duplicate of the label's `data-testid`
+        // which messes up the test selectors
+        if (input != null) {
+          delete input.dataset.testid
+        }
+      })}
       className={(renderProps) => classes.base({ className, isSelected: renderProps.isSelected })}
       isSelected={isSelected}
       onChange={onChange}
@@ -231,6 +237,7 @@ export const Checkbox = forwardRef(function Checkbox<
             initial={false}
             animate={renderProps.isSelected ? 'checked' : 'unchecked'}
             role="presentation"
+            pointerEvents="none"
           >
             <motion.path
               strokeLinecap="round"

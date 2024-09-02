@@ -834,8 +834,8 @@ async function mockDate({ page }: MockParams) {
 export async function passAgreementsDialog({ page }: MockParams) {
   await test.test.step('Accept Terms and Conditions', async () => {
     await page.waitForSelector('#agreements-modal')
-    await page.getByRole('checkbox').and(page.getByTestId('terms-of-service-checkbox')).click()
-    await page.getByRole('checkbox').and(page.getByTestId('privacy-policy-checkbox')).click()
+    await page.getByTestId('terms-of-service-checkbox').click()
+    await page.getByTestId('privacy-policy-checkbox').click()
     await page.getByRole('button', { name: 'Accept' }).click()
   })
 }
