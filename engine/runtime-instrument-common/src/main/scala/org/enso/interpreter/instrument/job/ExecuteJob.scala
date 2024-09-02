@@ -35,6 +35,7 @@ class ExecuteJob(
           this.getClass,
           () => {
             try {
+              ctx.state.executionHooks.run()
               val context = ctx.executionService.getContext
               val originalExecutionEnvironment =
                 executionEnvironment.map(_ => context.getExecutionEnvironment)
