@@ -169,7 +169,11 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
                   description={
                     <>
                       {getText('slsaLicenseAgreementDescription1')}{' '}
-                      <Button variant="link" href="https://www.ensoanalytics.com/SLSA">
+                      <Button
+                        variant="link"
+                        href="https://www.ensoanalytics.com/SLSA"
+                        target="_blank"
+                      >
                         {getText('SLSA')}
                       </Button>
                       {getText('slsaLicenseAgreementDescription2')}
