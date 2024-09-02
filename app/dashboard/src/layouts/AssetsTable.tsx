@@ -2362,6 +2362,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             onDragStart={(event) => {
               startAutoScroll()
               onMouseEvent(event)
+              event.dataTransfer.effectAllowed = 'move'
               let newSelectedKeys = driveStore.getState().selectedKeys
               if (!newSelectedKeys.has(item.key)) {
                 setMostRecentlySelectedIndex(visibleItems.indexOf(item))
