@@ -1278,7 +1278,8 @@ lazy val `jpms-wrapper-methvin-directory-watcher` = project
     },
     Compile / moduleDependencies := Seq(
       "org.scala-lang" % "scala-library" % scalacVersion,
-      "net.java.dev.jna"          % "jna"    % "5.13.0"
+      "net.java.dev.jna"          % "jna"    % "5.13.0",
+      "org.slf4j" % "slf4j-api" % "1.7.36",
     ),
     Compile / patchModules := {
       val scalaVer = scalaBinaryVersion.value
