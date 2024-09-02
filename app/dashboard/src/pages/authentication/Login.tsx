@@ -86,6 +86,7 @@ export default function Login() {
           })
         }
         gap="medium"
+        defaultValues={{ email: initialEmail ?? '' }}
         onSubmit={({ email, password }) => signInWithPassword(email, password)}
       >
         <Input
