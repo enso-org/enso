@@ -631,6 +631,7 @@ onMounted(() => {
           :columnDefs="columnDefs"
           :rowData="rowData"
           :defaultColDef="defaultColDef"
+          :textFormatOption="textFormatterSelected"
           @sortOrFilterUpdated="(e) => checkSortAndFilter(e)"
         />
       </Suspense>

@@ -83,11 +83,11 @@ export interface StepperProps {
 }
 
 const STEPPER_STYLES = tvw.tv({
-  base: 'flex flex-col items-center w-full',
+  base: 'flex flex-col items-center w-full gap-4',
   slots: {
     steps: 'flex items-center justify-between w-full',
     step: 'flex-1 last:flex-none',
-    content: 'relative w-full mt-4',
+    content: 'relative w-full',
   },
 })
 

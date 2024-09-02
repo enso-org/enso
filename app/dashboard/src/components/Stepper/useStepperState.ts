@@ -18,7 +18,13 @@ type Direction = 'back-none' | 'back' | 'forward-none' | 'forward' | 'initial'
  * Props for {@link useStepperState}
  */
 export interface StepperStateProps {
+  /**
+   * The default step to start on (0-indexed)
+   */
   readonly defaultStep?: number
+  /**
+   * The number of steps in the stepper (amount of steps is 1-indexed)
+   */
   readonly steps: number
   readonly onStepChange?: (step: number, direction: 'back' | 'forward') => void
   readonly onCompleted?: () => void
