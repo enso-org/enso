@@ -27,15 +27,9 @@ import type * as types from './types'
  * But be careful, You should not switch between the two types of arguments.
  * Otherwise you'll be fired
  */
-export function useForm<
-  Schema extends types.TSchema,
-  TFieldValues extends types.FieldValues<Schema> = types.FieldValues<Schema>,
-  TTransformedValues extends types.FieldValues<Schema> | undefined = undefined,
->(
-  optionsOrFormInstance:
-    | types.UseFormProps<Schema, TFieldValues>
-    | types.UseFormReturn<Schema, TFieldValues, TTransformedValues>,
-): types.UseFormReturn<Schema, TFieldValues, TTransformedValues> {
+export function useForm<Schema extends types.TSchema>(
+  optionsOrFormInstance: types.UseFormProps<Schema> | types.UseFormReturn<Schema>,
+): types.UseFormReturn<Schema> {
   const { getText } = useText()
   const initialTypePassed = React.useRef(getArgsType(optionsOrFormInstance))
 
@@ -49,16 +43,20 @@ export function useForm<
     `,
   )
 
-  if ('formState' in optionsOrFormInstance) {
-    return optionsOrFormInstance
-  } else {
-    const { schema, ...options } = optionsOrFormInstance
+  const form =
+    'formState' in optionsOrFormInstance ? optionsOrFormInstance : (
+      (() => {
+        const { schema, ...options } = optionsOrFormInstance
 
-    const computedSchema = typeof schema === 'function' ? schema(schemaModule.schema) : schema
+        const computedSchema = typeof schema === 'function' ? schema(schemaModule.schema) : schema
 
-    return reactHookForm.useForm<TFieldValues, unknown, TTransformedValues>({
-      ...options,
-      resolver: zodResolver.zodResolver(computedSchema, {
+        return reactHookForm.useForm<
+          types.FieldValues<Schema>,
+          unknown,
+          types.TransformedValues<Schema>
+        >({
+          ...options,
+          resolver: zodResolver.zodResolver(computedSchema, {
         async: true,
         errorMap: (issue) => {
           switch (issue.code) {
@@ -87,21 +85,18 @@ export function useForm<
           }
         },
       }),
-    })
-  }
+        })
+      })()
+    )
+
+  return form
 }
 
 /**
  * Get the type of arguments passed to the useForm hook
  */
-function getArgsType<
-  Schema extends types.TSchema,
-  TFieldValues extends types.FieldValues<Schema>,
-  TTransformedValues extends types.FieldValues<Schema> | undefined = undefined,
->(
-  args:
-    | types.UseFormProps<Schema, TFieldValues>
-    | types.UseFormReturn<Schema, TFieldValues, TTransformedValues>,
+function getArgsType<Schema extends types.TSchema>(
+  args: types.UseFormProps<Schema> | types.UseFormReturn<Schema>,
 ) {
   return 'formState' in args ? 'formInstance' : 'formOptions'
 }

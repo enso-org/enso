@@ -91,6 +91,27 @@ type From_Spec
          referred to in other parts of the query.
     Sub_Query (columns : Vector (Pair Text SQL_Expression)) (context : Context) (alias : Text)
 
+    ## PRIVATE
+       A bottom-up, depth-first traversal of this IR node and its children. Each
+       node is passed to the provided function, and the return value of the
+       function replaces this node in the tree.
+    traverse : (Any -> Any) -> From_Spec
+    traverse self f -> From_Spec =
+        rec e = e.traverse f
+        do_name_exps pairs = pairs.if_not_nothing (pairs.map pair-> [pair.first, rec pair.second])
+
+        new_from_spec = case self of
+            From_Spec.Table _ _ _ -> self
+            From_Spec.Query _ _ -> self
+            From_Spec.Literal_Values _ _ _ -> self
+            From_Spec.Join kind left_spec right_spec on ->
+                From_Spec.Join kind (rec left_spec) (rec right_spec) (on.map rec)
+            From_Spec.Union queries alias ->
+                From_Spec.Union (queries.map rec) alias
+            From_Spec.Sub_Query columns context alias ->
+                From_Spec.Sub_Query (do_name_exps columns) (rec context) alias
+        f new_from_spec
+
 ## PRIVATE
 type From_Spec_Comparator
     ## PRIVATE

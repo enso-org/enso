@@ -61,6 +61,7 @@ interface PlaceholderOverrides {
   readonly compareVersionXWithLatest: [versionNumber: number]
   readonly onDateX: [dateString: string]
   readonly xUsersAndGroupsSelected: [usersAndGroupsCount: number]
+  readonly removeTheLocalDirectoryXFromFavorites: [directoryName: string]
   readonly upgradeTo: [planName: string]
   readonly enterTheNewKeyboardShortcutFor: [actionName: string]
   readonly downloadProjectError: [projectName: string]

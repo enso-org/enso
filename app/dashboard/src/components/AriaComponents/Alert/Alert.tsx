@@ -1,14 +1,15 @@
 /** @file Alert component. */
-import * as React from 'react'
+import { type ForwardedRef, type HTMLAttributes, type PropsWithChildren } from 'react'
 
-import * as mergeRefs from '#/utilities/mergeRefs'
-import * as twv from '#/utilities/tailwindVariants'
+import { mergeRefs } from '#/utilities/mergeRefs'
+import { forwardRef } from '#/utilities/react'
+import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 
 // =================
 // === Constants ===
 // =================
 
-export const ALERT_STYLES = twv.tv({
+export const ALERT_STYLES = tv({
   base: 'flex flex-col items-stretch',
   variants: {
     fullWidth: { true: 'w-full' },
@@ -51,14 +52,14 @@ export const ALERT_STYLES = twv.tv({
 
 /** Props for an {@link Alert}. */
 export interface AlertProps
-  extends React.PropsWithChildren,
-    twv.VariantProps<typeof ALERT_STYLES>,
-    React.HTMLAttributes<HTMLDivElement> {}
+  extends PropsWithChildren,
+    VariantProps<typeof ALERT_STYLES>,
+    HTMLAttributes<HTMLDivElement> {}
 
 /** Alert component. */
-export const Alert = React.forwardRef(function Alert(
+export const Alert = forwardRef(function Alert(
   props: AlertProps,
-  ref: React.ForwardedRef<HTMLDivElement>,
+  ref: ForwardedRef<HTMLDivElement>,
 ) {
   const { children, className, variant, size, rounded, fullWidth, ...containerProps } = props
 
@@ -70,7 +71,7 @@ export const Alert = React.forwardRef(function Alert(
   return (
     <div
       className={ALERT_STYLES({ variant, size, className, rounded, fullWidth })}
-      ref={mergeRefs.mergeRefs(ref, (e) => {
+      ref={mergeRefs(ref, (e) => {
         if (variant === 'error') {
           e?.focus()
         }

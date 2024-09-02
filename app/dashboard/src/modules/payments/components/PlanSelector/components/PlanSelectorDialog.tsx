@@ -146,9 +146,10 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
                   name="period"
                   // eslint-disable-next-line @typescript-eslint/no-magic-numbers
                   items={[12, 36]}
-                  itemToString={(item) => billingPeriodToString(getText, item)}
                   label={getText('billingPeriod')}
-                />
+                >
+                  {(item) => billingPeriodToString(getText, item)}
+                </Selector>
 
                 <Input
                   isRequired

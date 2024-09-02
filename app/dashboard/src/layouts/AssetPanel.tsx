@@ -9,13 +9,13 @@ import * as textProvider from '#/providers/TextProvider'
 import AssetProjectSessions from '#/layouts/AssetProjectSessions'
 import AssetProperties from '#/layouts/AssetProperties'
 import AssetVersions from '#/layouts/AssetVersions/AssetVersions'
-import type Category from '#/layouts/CategorySwitcher/Category'
 
 import * as ariaComponents from '#/components/AriaComponents'
 
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 
+import type { Category } from '#/layouts/CategorySwitcher/Category'
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
@@ -126,7 +126,7 @@ export default function AssetPanel(props: AssetPanelProps) {
           item.item.type !== backendModule.AssetType.directory && (
             <ariaComponents.Button
               size="medium"
-              variant="bar"
+              variant="outline"
               className={tailwindMerge.twMerge(
                 'pointer-events-auto disabled:opacity-100',
                 tab === AssetPanelTab.versions && 'bg-primary/[8%] opacity-100',
@@ -145,7 +145,7 @@ export default function AssetPanel(props: AssetPanelProps) {
         {isCloud && item != null && item.item.type === backendModule.AssetType.project && (
           <ariaComponents.Button
             size="medium"
-            variant="bar"
+            variant="outline"
             isDisabled={tab === AssetPanelTab.projectSessions}
             className={tailwindMerge.twMerge(
               'pointer-events-auto disabled:opacity-100',

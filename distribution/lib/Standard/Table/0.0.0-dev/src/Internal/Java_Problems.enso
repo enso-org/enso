@@ -77,7 +77,7 @@ translate_problem p = case p of
     _ : InvalidNames ->
         Invalid_Column_Names.Error (Vector.from_polyglot_array p.invalidNames)
     _ : InvalidFormat ->
-        Invalid_Format.Error p.column p.expectedEnsoValueType (Vector.from_polyglot_array p.cells)
+        Invalid_Format.Error p.column p.expectedEnsoValueType p.count (Vector.from_polyglot_array p.cells)
     _ ->
         Panic.throw (Illegal_Argument.Error "Encountered an unknown problem type when converting Java problems into Enso. This is a bug in the Table library. The unexpected problem was: "+p.to_text)
 

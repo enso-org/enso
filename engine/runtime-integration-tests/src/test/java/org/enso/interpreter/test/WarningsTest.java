@@ -148,16 +148,27 @@ public class WarningsTest {
     assertEquals("Types without and with warnings are the same", type, warningType);
     assertTrue("It is an exception. Type: " + type, warning2.isException());
     try {
-      warning2.throwException();
+      throw warning2.throwException();
     } catch (PolyglotException ex) {
       if (ex.getMessage() == null) {
         assertEquals(generator.typeError(), type);
         assertEquals(generator.typeError(), warningType);
       } else {
-        assertThat(
-            "Warning found for " + type,
-            ex.getMessage(),
-            AllOf.allOf(containsString("warn:once"), containsString("warn:twice")));
+        try {
+          assertThat(
+              "Warning found for " + type,
+              ex.getMessage(),
+              AllOf.allOf(containsString("warn:once"), containsString("warn:twice")));
+        } catch (AssertionError err) {
+          if (type != null && v.equals(warning1) && v.equals(warning2)) {
+            assertEquals(
+                "Cannot attach warnings to Error - check it is an error",
+                "Standard.Base.Error.Error",
+                type.getMetaQualifiedName());
+            return;
+          }
+          throw err;
+        }
       }
     }
   }

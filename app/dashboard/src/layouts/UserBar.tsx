@@ -79,14 +79,14 @@ export default function UserBar(props: UserBarProps) {
             )}
 
             {shouldShowPaywallButton && (
-              <paywall.PaywallDialogButton feature="inviteUser" size="medium" variant="tertiary">
+              <paywall.PaywallDialogButton feature="inviteUser" size="medium" variant="accent">
                 {getText('invite')}
               </paywall.PaywallDialogButton>
             )}
 
             {shouldShowInviteButton && (
               <ariaComponents.DialogTrigger>
-                <ariaComponents.Button size="medium" variant="tertiary">
+                <ariaComponents.Button size="medium" variant="accent">
                   {getText('invite')}
                 </ariaComponents.Button>
 
@@ -103,7 +103,7 @@ export default function UserBar(props: UserBarProps) {
             {shouldShowShareButton && (
               <ariaComponents.Button
                 size="medium"
-                variant="tertiary"
+                variant="accent"
                 aria-label={getText('shareButtonAltText')}
                 onPress={onShareClick}
               >
