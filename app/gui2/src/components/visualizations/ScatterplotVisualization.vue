@@ -399,18 +399,18 @@ function startZoom(event: d3.D3ZoomEvent<Element, unknown>) {
   actionStartYScale = yScale.value.copy()
 }
 
-const brush = computed(() =>
-  d3
-    .brush()
-    .extent([
-      [0, 0],
-      [boxWidth.value, boxHeight.value],
-    ])
-    .on('start brush', (event: d3.D3BrushEvent<unknown>) => {
-      brushExtent.value = event.selection ?? undefined
-    }),
-)
-watchEffect(() => d3Brush.value.call(brush.value))
+// const brush = computed(() =>
+//   d3
+//     .brush()
+//     .extent([
+//       [0, 0],
+//       [boxWidth.value, boxHeight.value],
+//     ])
+//     .on('start brush', (event: d3.D3BrushEvent<unknown>) => {
+//       brushExtent.value = event.selection ?? undefined
+//     }),
+// )
+// watchEffect(() => d3Brush.value.call(brush.value))
 
 watch([boxWidth, boxHeight], () => (shouldAnimate.value = false))
 
@@ -483,6 +483,15 @@ function getPlotData(data: Data) {
   return data2
 }
 
+function getTooltipMessage(point: Point) {
+  if (data.value.is_multi_series) {
+    const axis = data.value.axis
+    const label = point.series ? axis[point.series].label : ''
+    return `${point.x}, ${point.y}, ${label}`
+  }
+  return `${point.x}, ${point.y}`
+}
+
 // === Update contents ===
 
 watchPostEffect(() => {
@@ -495,6 +504,9 @@ watchPostEffect(() => {
     .selectAll<SVGPathElement, unknown>('path')
     .data(plotData)
     .join((enter) => enter.append('path'))
+    .call((data) => {
+      return data.append('title').text((d) => getTooltipMessage(d))
+    })
     .transition()
     .duration(animationDuration.value)
     .attr(
@@ -532,7 +544,7 @@ watchPostEffect(() => {
     .attr('cx', function (d, i) {
       return 90 + i * 120
     })
-    .attr('cy', height.value - boxHeight.value - 20)
+    .attr('cy', height.value - boxHeight.value - 30)
     .attr('r', 6)
     .style('fill', function (d) {
       return color(d)
@@ -546,7 +558,7 @@ watchPostEffect(() => {
     .attr('x', function (d, i) {
       return 100 + i * 120
     })
-    .attr('y', height.value - boxHeight.value - 20)
+    .attr('y', height.value - boxHeight.value - 30)
     .style('font-size', '15px')
     .text(function (d) {
       return `${d.substr(0, 10)}...`
