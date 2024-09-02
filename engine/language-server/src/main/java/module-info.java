@@ -22,6 +22,7 @@ module org.enso.language.server {
   requires org.enso.json.rpc.server;
   requires org.enso.logging.utils;
   requires org.enso.logging.utils.akka;
+  requires org.enso.logging.service;
   requires org.enso.librarymanager;
   requires org.enso.polyglot.api;
   requires org.enso.pkg;
@@ -33,4 +34,6 @@ module org.enso.language.server {
   requires org.enso.version.output;
   requires org.enso.text.buffer;
   requires org.enso.ydoc;
+
+  exports org.enso.languageserver.filemanager to scala.library;
 }

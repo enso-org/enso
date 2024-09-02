@@ -2136,6 +2136,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       (`ydoc-server` / Compile / exportedModule).value,
       (`logging-utils` / Compile / exportedModule).value,
       (`logging-utils-akka` / Compile / exportedModule).value,
+      (`logging-service` / Compile / exportedModule).value,
       (`engine-common` / Compile / exportedModule).value,
       (`library-manager` / Compile / exportedModule).value,
       (`polyglot-api` / Compile / exportedModule).value,
@@ -2294,8 +2295,10 @@ lazy val `language-server` = (project in file("engine/language-server"))
     },
     Test / addExports := {
       val profModName = (`profiling-utils` / javaModuleName).value
+      val downloaderModName = (`downloader` / javaModuleName).value
       val exports = Map(
-        profModName + "/org.enso.profiling.snapshot" -> Seq("ALL-UNNAMED")
+        profModName + "/org.enso.profiling.snapshot" -> Seq("ALL-UNNAMED"),
+        downloaderModName + "/org.enso.downloader.archive" -> Seq("ALL-UNNAMED")
       )
 
       // Make sure that all the packages in test source directory are exported
@@ -3772,6 +3775,7 @@ lazy val downloader = (project in file("lib/scala/downloader"))
       "com.github.sbt"              % "junit-interface"  % junitIfVersion   % Test,
       "org.hamcrest"                % "hamcrest-all"     % hamcrestVersion  % Test
     ),
+    javaModuleName := "org.enso.downloader",
     Compile / moduleDependencies := Seq(
       "org.scala-lang"     % "scala-library"    % scalacVersion,
       "commons-io"         % "commons-io"       % commonsIoVersion,
