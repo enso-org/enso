@@ -1,18 +1,13 @@
 /** @file Modal for accepting the terms of service. */
-import { useId } from 'react'
-
 import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
 import { Outlet } from 'react-router'
 import * as z from 'zod'
 
-import { Input } from '#/components/aria'
-import { Button, Dialog, Form, Text } from '#/components/AriaComponents'
+import { Button, Checkbox, Dialog, Form, Text } from '#/components/AriaComponents'
 import { useAuth } from '#/providers/AuthProvider'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
 import LocalStorage from '#/utilities/LocalStorage'
-import { omit } from '#/utilities/object'
-import { twMerge } from '#/utilities/tailwindMerge'
 
 // =================
 // === Constants ===
@@ -77,7 +72,6 @@ LocalStorage.registerKey('privacyPolicy', { schema: PRIVACY_POLICY_SCHEMA })
 export function AgreementsModal() {
   const { getText } = useText()
   const { localStorage } = useLocalStorage()
-  const checkboxId = useId()
   const { session } = useAuth()
 
   const cachedTosHash = localStorage.get('termsOfService')?.versionHash
@@ -109,12 +103,11 @@ export function AgreementsModal() {
     schema.object({
       // The user must agree to the ToS to proceed.
       agreedToTos: schema
-        .boolean()
-        // The user must agree to the ToS to proceed.
-        .refine((value) => value, getText('licenseAgreementCheckboxError')),
+        .array(schema.string())
+        .min(1, { message: getText('licenseAgreementCheckboxError') }),
       agreedToPrivacyPolicy: schema
-        .boolean()
-        .refine((value) => value, getText('privacyPolicyCheckboxError')),
+        .array(schema.string())
+        .min(1, { message: getText('privacyPolicyCheckboxError') }),
     }),
   )
 
@@ -135,8 +128,8 @@ export function AgreementsModal() {
         <Form
           schema={formSchema}
           defaultValues={{
-            agreedToTos: tosHash === cachedTosHash,
-            agreedToPrivacyPolicy: privacyPolicyHash === cachedPrivacyPolicyHash,
+            agreedToTos: tosHash === cachedTosHash ? ['agree'] : [],
+            agreedToPrivacyPolicy: privacyPolicyHash === cachedPrivacyPolicyHash ? ['agree'] : [],
           }}
           testId="agreements-form"
           method="dialog"
@@ -145,64 +138,37 @@ export function AgreementsModal() {
             localStorage.set('privacyPolicy', { versionHash: privacyPolicyHash })
           }}
         >
-          {({ register }) => (
+          {({ form }) => (
             <>
               <Text>{getText('someAgreementsHaveBeenUpdated')}</Text>
 
-              <Form.Field name="agreedToTos">
-                {({ isInvalid }) => (
-                  <>
-                    <div className="flex w-full items-center gap-1">
-                      <Input
-                        type="checkbox"
-                        className={twMerge(
-                          'flex size-4 cursor-pointer overflow-clip rounded-lg border border-primary outline-primary focus-visible:outline focus-visible:outline-2',
-                          isInvalid && 'border-red-700 text-red-500 outline-red-500',
-                        )}
-                        id={checkboxId}
-                        data-testid="terms-of-service-checkbox"
-                        {...omit(register('agreedToTos'), 'isInvalid')}
-                      />
+              <Checkbox.Group
+                form={form}
+                name="agreedToTos"
+                description={
+                  <Button variant="link" target="_blank" href="https://ensoanalytics.com/eula">
+                    {getText('viewLicenseAgreement')}
+                  </Button>
+                }
+              >
+                <Checkbox value="agree">{getText('licenseAgreementCheckbox')}</Checkbox>
+              </Checkbox.Group>
 
-                      <label htmlFor={checkboxId}>
-                        <Text>{getText('licenseAgreementCheckbox')}</Text>
-                      </label>
-                    </div>
-
-                    <Button variant="link" target="_blank" href="https://ensoanalytics.com/eula">
-                      {getText('viewLicenseAgreement')}
-                    </Button>
-                  </>
-                )}
-              </Form.Field>
-
-              <Form.Field name="agreedToPrivacyPolicy">
-                {({ isInvalid }) => (
-                  <>
-                    <label className="flex w-full items-center gap-1">
-                      <Input
-                        type="checkbox"
-                        className={twMerge(
-                          'flex size-4 cursor-pointer overflow-clip rounded-lg border border-primary outline-primary focus-visible:outline focus-visible:outline-2',
-                          isInvalid && 'border-red-700 text-red-500 outline-red-500',
-                        )}
-                        data-testid="privacy-policy-checkbox"
-                        {...omit(register('agreedToPrivacyPolicy'), 'isInvalid')}
-                      />
-
-                      <Text>{getText('privacyPolicyCheckbox')}</Text>
-                    </label>
-
-                    <Button variant="link" target="_blank" href="https://ensoanalytics.com/privacy">
-                      {getText('viewPrivacyPolicy')}
-                    </Button>
-                  </>
-                )}
-              </Form.Field>
-
-              <Form.FormError />
+              <Checkbox.Group
+                form={form}
+                name="agreedToPrivacyPolicy"
+                description={
+                  <Button variant="link" target="_blank" href="https://ensoanalytics.com/privacy">
+                    {getText('viewPrivacyPolicy')}
+                  </Button>
+                }
+              >
+                <Checkbox value="agree">{getText('privacyPolicyCheckbox')}</Checkbox>
+              </Checkbox.Group>
 
               <Form.Submit fullWidth>{getText('accept')}</Form.Submit>
+
+              <Form.FormError />
             </>
           )}
         </Form>
