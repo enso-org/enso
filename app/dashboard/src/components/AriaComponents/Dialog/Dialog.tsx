@@ -230,23 +230,25 @@ export function Dialog(props: DialogProps) {
                 {(opts) => {
                   return (
                     <dialogProvider.DialogProvider value={{ close: opts.close, dialogId }}>
-                      <aria.Header className={styles.header({ scrolledToTop: isScrolledToTop })}>
-                        <ariaComponents.CloseButton
-                          className={styles.closeButton()}
-                          onPress={opts.close}
-                        />
+                      {((!hideCloseButton && closeButton !== 'floating') || title != null) && (
+                        <aria.Header className={styles.header({ scrolledToTop: isScrolledToTop })}>
+                          <ariaComponents.CloseButton
+                            className={styles.closeButton()}
+                            onPress={opts.close}
+                          />
 
-                        {title != null && (
-                          <ariaComponents.Text.Heading
-                            slot="title"
-                            level={2}
-                            className={styles.heading()}
-                            weight="semibold"
-                          >
-                            {title}
-                          </ariaComponents.Text.Heading>
-                        )}
-                      </aria.Header>
+                          {title != null && (
+                            <ariaComponents.Text.Heading
+                              slot="title"
+                              level={2}
+                              className={styles.heading()}
+                              weight="semibold"
+                            >
+                              {title}
+                            </ariaComponents.Text.Heading>
+                          )}
+                        </aria.Header>
+                      )}
 
                       <div
                         ref={(ref) => {
