@@ -7,7 +7,7 @@ import org.enso.interpreter.node.ExpressionNode;
 
 /** Represents a compile-time constant. */
 @NodeInfo(shortName = "const", description = "Represents an arbitrary compile-time constant.")
-public class ConstantObjectNode extends ExpressionNode {
+public final class ConstantObjectNode extends ExpressionNode {
   private final Object object;
 
   private ConstantObjectNode(Object object) {

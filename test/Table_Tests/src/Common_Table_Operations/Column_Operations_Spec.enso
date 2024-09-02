@@ -1071,7 +1071,7 @@ add_specs suite_builder setup =
             table = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]]
             table.at "x" . round . name . should_equal "round([x])"
 
-        test_round_floatlike typ =
+        test_floatlike typ =
             group_builder.specify "should allow round on a "+typ.to_text+" column" <|
                 table = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]]
                 result = table.at "x" . cast typ . round
@@ -1090,7 +1090,6 @@ add_specs suite_builder setup =
                 result.to_vector.should_equal [50.0, 60.0, 350.0, 360.0, -50.0, -60.0, -350.0, -360.0]
                 result.name . should_equal "round([x])"
 
-        test_truncate_ceiling_floor_floatlike typ =
             group_builder.specify "should allow truncate on a "+typ.to_text+" column" <|
                 table = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]]
                 result = table.at "x" . cast typ . truncate
@@ -1109,13 +1108,15 @@ add_specs suite_builder setup =
                 result.to_vector.should_equal [0, 0, 3, 3, -1, -1, -4, -4]
                 result.name . should_equal "floor([x])"
 
-        test_round_floatlike Value_Type.Float
-        test_truncate_ceiling_floor_floatlike Value_Type.Float
+            group_builder.specify "should handle Nothing in rounding on a "+typ.to_text+" column" <|
+                table = table_builder [["x", [0.1, 0.9, 3.1, Nothing, Nothing, -0.9, -3.1, -3.9]]]
+                result = table.at "x" . cast typ . round
+                result.to_vector.should_equal [0, 1, 3, Nothing, Nothing, -1, -3, -4]
+                result.name . should_equal "round([x])"
+
+        test_floatlike Value_Type.Float
         if setup.test_selection.supports_decimal_type then
-            test_truncate_ceiling_floor_floatlike Value_Type.Decimal
-        group_builder.specify "should allow round on a Decimal column" pending="https://github.com/enso-org/enso/issues/10344" <|
-            if setup.test_selection.supports_decimal_type then
-                test_round_floatlike Value_Type.Decimal
+            test_floatlike Value_Type.Decimal
 
         group_builder.specify "should allow round on an int column" <|
             table = table_builder [["x", [1, 9, 31, 39, -1, -9, -31, -39]]]
@@ -1154,8 +1155,7 @@ add_specs suite_builder setup =
                 c.ceil.to_vector.should_equal [Decimal.new "123492233720368547758075679.0", Decimal.new "15250331789246130610154663179243023788662739454197524.0", Decimal.new "-123492233720368547758075678.0", Decimal.new "-15250331789246130610154663179243023788662739454197523.0"]
                 c.truncate.to_vector.should_equal [Decimal.new "123492233720368547758075678.0", Decimal.new "15250331789246130610154663179243023788662739454197523.0", Decimal.new "-123492233720368547758075678.0", Decimal.new "-15250331789246130610154663179243023788662739454197523.0"]
 
-            pending = if setup.is_database.not then "https://github.com/enso-org/enso/issues/10644"
-            group_builder.specify "round should work correctly on Decimals" pending=pending <|
+            group_builder.specify "round should work correctly on Decimals" <|
                 c = table_builder [["X", [Decimal.new "1.3", Decimal.new "1.5", Decimal.new "1.7", Decimal.new "-1.3", Decimal.new "-1.5", Decimal.new "-1.7"]]] . at "X"
                 c.value_type.is_decimal . should_be_true
                 c.round 0 . to_vector . should_equal [Decimal.new "1.0", Decimal.new "2.0", Decimal.new "2.0", Decimal.new "-1.0", Decimal.new "-2.0", Decimal.new "-2.0"]

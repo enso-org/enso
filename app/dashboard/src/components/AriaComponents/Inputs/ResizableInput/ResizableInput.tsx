@@ -9,6 +9,7 @@ import * as aria from '#/components/aria'
 
 import * as mergeRefs from '#/utilities/mergeRefs'
 
+import { forwardRef } from '#/utilities/react'
 import * as variants from '../variants'
 
 /**
@@ -22,7 +23,7 @@ export interface ResizableInputProps extends aria.TextFieldProps {
 /**
  * A resizable input field.
  */
-export const ResizableInput = React.forwardRef(function ResizableInput(
+export const ResizableInput = forwardRef(function ResizableInput(
   props: ResizableInputProps,
   ref: React.ForwardedRef<HTMLTextAreaElement>,
 ) {

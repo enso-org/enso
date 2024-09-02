@@ -128,6 +128,15 @@ public final class PanicException extends AbstractTruffleException implements En
           UnresolvedSymbol toDisplayText,
       @CachedLibrary(limit = "3") InteropLibrary strings,
       @Cached TypeToDisplayTextNode typeToDisplayTextNode) {
+    return handleExceptionMessage(payload, payloads, toDisplayText, strings, typeToDisplayTextNode);
+  }
+
+  static Object handleExceptionMessage(
+      Object payload,
+      IndirectInvokeMethodNode payloads,
+      UnresolvedSymbol toDisplayText,
+      InteropLibrary strings,
+      TypeToDisplayTextNode typeToDisplayTextNode) {
     var ctx = EnsoContext.get(payloads);
     var text =
         payloads.execute(
