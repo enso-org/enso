@@ -187,31 +187,33 @@ export const Form = forwardRef(function Form<Schema extends components.TSchema>(
   ) as Record<keyof FieldValues, string>
 
   return (
-    <form
-      id={id}
-      ref={ref}
-      onSubmit={(event) => {
-        event.preventDefault()
-        event.stopPropagation()
+    <>
+      <form
+        id={id}
+        ref={ref}
+        onSubmit={(event) => {
+          event.preventDefault()
+          event.stopPropagation()
 
-        if (isOffline && !canSubmitOffline) {
-          setError('root.offline', { message: getText('unavailableOffline') })
-        } else {
-          void formOnSubmit(event)
-        }
-      }}
-      className={base}
-      style={typeof style === 'function' ? style(formStateRenderProps) : style}
-      noValidate
-      data-testid={testId}
-      {...formProps}
-    >
-      <aria.FormValidationContext.Provider value={errors}>
-        <reactHookForm.FormProvider {...innerForm}>
-          {typeof children === 'function' ? children(formStateRenderProps) : children}
-        </reactHookForm.FormProvider>
-      </aria.FormValidationContext.Provider>
-    </form>
+          if (isOffline && !canSubmitOffline) {
+            setError('root.offline', { message: getText('unavailableOffline') })
+          } else {
+            void formOnSubmit(event)
+          }
+        }}
+        className={base}
+        style={typeof style === 'function' ? style(formStateRenderProps) : style}
+        noValidate
+        data-testid={testId}
+        {...formProps}
+      >
+        <aria.FormValidationContext.Provider value={errors}>
+          <reactHookForm.FormProvider {...innerForm}>
+            {typeof children === 'function' ? children(formStateRenderProps) : children}
+          </reactHookForm.FormProvider>
+        </aria.FormValidationContext.Provider>
+      </form>
+    </>
   )
 }) as unknown as Mutable<
   Pick<

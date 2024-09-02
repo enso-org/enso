@@ -82,12 +82,9 @@ export const CheckboxGroup = forwardRef(
       <CheckboxGroupProvider
         name={name}
         field={field}
-        onChange={useEventCallback(
-          (selected) =>
-            void field
-              .onChange({ target: { name, value: selected } })
-              .then(() => formInstance.trigger(name)),
-        )}
+        onChange={useEventCallback((value) => {
+          void field.onChange({ target: { value } }).then(() => formInstance.trigger(name))
+        })}
       >
         <AriaCheckboxGroup
           {...mergeProps<AriaCheckboxGroupProps>()(omit(checkboxGroupProps, 'validate'), {

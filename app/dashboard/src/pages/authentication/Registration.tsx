@@ -24,7 +24,6 @@ import { useLocalBackend } from '#/providers/BackendProvider'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
 import LocalStorage from '#/utilities/LocalStorage'
-import { PASSWORD_REGEX } from '#/utilities/validation'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
 // ============================
@@ -67,21 +66,22 @@ export default function Registration() {
   const [emailInput, setEmailInput] = useState(initialEmail)
 
   const signupForm = Form.useForm({
+    defaultValues: { email: initialEmail, agreedToTos: [], agreedToPrivacyPolicy: [] },
     schema: (schema) =>
       schema
         .object({
-          email: Form.schema.string().email(getText('invalidEmailValidationError')),
+          email: schema.string().email(getText('invalidEmailValidationError')),
           password: passwordWithPatternSchema(getText),
-          confirmPassword: Form.schema.string(),
-          agreedToTos: z
-            .array(z.string())
+          confirmPassword: schema.string(),
+          agreedToTos: schema
+            .array(schema.string())
             .min(1, { message: getText('licenseAgreementCheckboxError') }),
-          agreedToPrivacyPolicy: z
-            .array(z.string())
+          agreedToPrivacyPolicy: schema
+            .array(schema.string())
             .min(1, { message: getText('privacyPolicyCheckboxError') }),
         })
         .superRefine((object, context) => {
-          if (PASSWORD_REGEX.test(object.password) && object.password !== object.confirmPassword) {
+          if (object.password !== object.confirmPassword) {
             context.addIssue({
               path: ['confirmPassword'],
               code: 'custom',
@@ -163,7 +163,6 @@ export default function Registration() {
 
             <Form
               form={signupForm}
-              defaultValues={{ email: initialEmail, agreedToTos: [], agreedToPrivacyPolicy: [] }}
               onSubmit={async ({ email, password }) => {
                 localStorage.set('termsOfService', { versionHash: tosHash })
                 localStorage.set('privacyPolicy', { versionHash: privacyPolicyHash })
@@ -176,6 +175,7 @@ export default function Registration() {
               {({ form }) => (
                 <>
                   <Input
+                    form={form}
                     autoFocus
                     required
                     data-testid="email-input"
@@ -189,7 +189,9 @@ export default function Registration() {
                       setEmailInput(event.target.value)
                     }}
                   />
+
                   <Password
+                    form={form}
                     required
                     data-testid="password-input"
                     name="password"
@@ -199,7 +201,9 @@ export default function Registration() {
                     placeholder={getText('passwordPlaceholder')}
                     description={getText('passwordValidationMessage')}
                   />
+
                   <Password
+                    form={form}
                     required
                     data-testid="confirm-password-input"
                     name="confirmPassword"

@@ -152,7 +152,7 @@ export const Checkbox = forwardRef(function Checkbox<
     if (insideGroup) {
       const value = props.value
 
-      invariant(value != null, 'Checkbox must have a value when inside a group')
+      invariant(value != null, 'Checkbox must have a value when placed inside a group')
 
       return {
         isSelected: state.selected.has(value),
@@ -183,8 +183,9 @@ export const Checkbox = forwardRef(function Checkbox<
         name: props.name,
         isSelected: props.isSelected ?? false,
         onChange: (checked: boolean) => {
-          void fieldInstance.onChange({ target: { value: checked } })
-          void formInstanceTyped.trigger(props.name)
+          void fieldInstance
+            .onChange({ target: { value: checked } })
+            .then(() => formInstanceTyped.trigger(props.name))
         },
       }
     }
