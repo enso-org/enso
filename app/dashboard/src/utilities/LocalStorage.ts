@@ -4,6 +4,7 @@ import type * as z from 'zod'
 import * as common from 'enso-common'
 
 import * as object from '#/utilities/object'
+import invariant from 'tiny-invariant'
 
 // ===============================
 // === LocalStorageKeyMetadata ===
@@ -74,7 +75,22 @@ export default class LocalStorage {
 
   /** Register runtime behavior associated with a {@link LocalStorageKey}. */
   static registerKey<K extends LocalStorageKey>(key: K, metadata: LocalStorageKeyMetadata<K>) {
+    invariant(
+      !(key in LocalStorage.keyMetadata),
+      `Local storage key '${key}' has already been registered.`,
+    )
     LocalStorage.keyMetadata[key] = metadata
+  }
+
+  /** Register runtime behavior associated with a {@link LocalStorageKey}. */
+  static register<K extends LocalStorageKey>(metadata: { [K_ in K]: LocalStorageKeyMetadata<K_> }) {
+    for (const key in metadata) {
+      invariant(
+        !(key in LocalStorage.keyMetadata),
+        `Local storage key '${key}' has already been registered.`,
+      )
+    }
+    Object.assign(LocalStorage.keyMetadata, metadata)
   }
 
   /** Retrieve an entry from the stored data. */
