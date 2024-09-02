@@ -388,7 +388,7 @@
   "organizationProfilePictureWarning": "Your organization’s profile picture is visible to everyone in your organization.",
   "noFilesMatchTheCurrentFilters": "No files match the current filters.",
   "youHaveNoRecentProjects": "You have no recent projects. Switch to another category to create a project.",
-  "youHaveNoFiles": "This folder is empty. Go ahead and create one using the buttons above, or open a template from the home screen.",
+  "youHaveNoFiles": "This folder is empty. You can create a project using the buttons above.",
   "placeholderChatPrompt": "Login or register to access live chat with our support team.",
   "confirmPrompt": "Are you sure you want to $0?",
   "couldNotInviteUser": "Could not invite user $0",
