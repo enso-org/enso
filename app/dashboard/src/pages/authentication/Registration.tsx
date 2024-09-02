@@ -13,6 +13,7 @@ import { Input as AriaInput } from '#/components/aria'
 import { Alert, Button, Form, Input, Password, Text } from '#/components/AriaComponents'
 import Link from '#/components/Link'
 import { Stepper, useStepperState } from '#/components/Stepper'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import {
   latestPrivacyPolicyQueryOptions,
   latestTermsOfServiceQueryOptions,
@@ -28,7 +29,6 @@ import { twMerge } from '#/utilities/tailwindMerge'
 import { PASSWORD_REGEX } from '#/utilities/validation'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { omit } from 'enso-common/src/utilities/data/object'
-import { useEventCallback } from '../../hooks/eventCallbackHooks'
 
 // ============================
 // === Global configuration ===

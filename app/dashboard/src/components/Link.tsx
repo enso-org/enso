@@ -18,7 +18,7 @@ import { twMerge } from 'tailwind-merge'
 export interface LinkProps {
   readonly onPress?: () => void
   readonly openInBrowser?: boolean
-  readonly to?: string
+  readonly to: string
   readonly icon: string
   readonly text: string
 }
