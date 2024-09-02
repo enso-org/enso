@@ -440,6 +440,8 @@
   "organizationInviteSuffix": "' is inviting you. Would you like to accept? All your assets will be moved with you to your personal space.",
   "organizationInviteErrorSuffix": "' is inviting you.",
   "organizationInviteErrorMessage": "Something went wrong. Please contact the administrators at",
+  "youHaveNoUserGroupsAdmin": "This organization has no user groups. You can create one using the button above.",
+  "youHaveNoUserGroupsNonAdmin": "This organization has no user groups. You can create one using the button above.",
 
   "deleteLabelActionText": "delete the label '$0'",
   "deleteSelectedAssetActionText": "delete '$0'",
