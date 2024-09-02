@@ -157,7 +157,9 @@ const data = computed<Data>(() => {
   }
   const points = rawData.points ?? { labels: 'visible' }
   const focus: Focus | undefined = rawData.focus
+  // eslint-disable-next-line camelcase
   const is_multi_series: boolean = Boolean(rawData.is_multi_series)
+  // eslint-disable-next-line camelcase
   return { axis, points, data, focus, is_multi_series }
 })
 
@@ -183,6 +185,11 @@ const focus = ref<Focus>()
 const shouldAnimate = ref(false)
 const xDomain = ref([0, 1])
 const yDomain = ref([0, 1])
+const selectionEnabled = ref(false)
+const enableSelection = () => {
+  console.log('TOGGLED')
+  selectionEnabled.value = !selectionEnabled.value
+}
 
 const isBrushing = computed(() => brushExtent.value != null)
 const xScale = computed(() =>
@@ -399,18 +406,42 @@ function startZoom(event: d3.D3ZoomEvent<Element, unknown>) {
   actionStartYScale = yScale.value.copy()
 }
 
-// const brush = computed(() =>
-//   d3
-//     .brush()
-//     .extent([
-//       [0, 0],
-//       [boxWidth.value, boxHeight.value],
-//     ])
-//     .on('start brush', (event: d3.D3BrushEvent<unknown>) => {
-//       brushExtent.value = event.selection ?? undefined
-//     }),
-// )
-// watchEffect(() => d3Brush.value.call(brush.value))
+const brush = computed(() => {
+  selectionEnabled.value
+
+  if (!selectionEnabled.value) {
+    return d3.brush().extent([
+      [0, 0],
+      [0, 0],
+    ])
+  }
+
+  return d3
+    .brush()
+    .extent([
+      [0, 0],
+      [boxWidth.value, boxHeight.value],
+    ])
+    .on('start brush', (event: d3.D3BrushEvent<unknown>) => {
+      brushExtent.value = event.selection ?? undefined
+    })
+})
+
+watchEffect(() => {
+  if (selectionEnabled.value && brush.value) {
+    d3Brush.value.call(brush.value)
+  } else {
+    d3Brush.value.on('.brush', null)
+    d3Brush.value.style('cursor', 'default')
+    if (brush.value) {
+      d3Brush.value.call(brush.value)
+    }
+  }
+})
+
+watch([selectionEnabled], () => {
+  brush.effect.trigger()
+})
 
 watch([boxWidth, boxHeight], () => (shouldAnimate.value = false))
 
@@ -486,7 +517,7 @@ function getPlotData(data: Data) {
 function getTooltipMessage(point: Point) {
   if (data.value.is_multi_series) {
     const axis = data.value.axis
-    const label = point.series ? axis[point.series].label : ''
+    const label = point.series && point.series in axis ? axis[point.series].label : ''
     return `${point.x}, ${point.y}, ${label}`
   }
   return `${point.x}, ${point.y}`
@@ -544,7 +575,7 @@ watchPostEffect(() => {
     .attr('cx', function (d, i) {
       return 90 + i * 120
     })
-    .attr('cy', height.value - boxHeight.value - 30)
+    .attr('cy', 10)
     .attr('r', 6)
     .style('fill', function (d) {
       return color(d)
@@ -558,7 +589,7 @@ watchPostEffect(() => {
     .attr('x', function (d, i) {
       return 100 + i * 120
     })
-    .attr('y', height.value - boxHeight.value - 30)
+    .attr('y', 10)
     .style('font-size', '15px')
     .text(function (d) {
       return `${d.substr(0, 10)}...`
@@ -629,9 +660,10 @@ useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSel
 <template>
   <VisualizationContainer :belowToolbar="true">
     <template #toolbar>
+      <SvgButton name="add" title="Enable Selection" @click="enableSelection()" />
       <SvgButton name="show_all" title="Fit All" @click.stop="zoomToSelected(false)" />
       <SvgButton
-        name="find"
+        name="zoom"
         title="Zoom to Selected"
         :disabled="brushExtent == null"
         @click.stop="zoomToSelected"
