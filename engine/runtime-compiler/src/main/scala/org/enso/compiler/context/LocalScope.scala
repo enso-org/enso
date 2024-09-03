@@ -149,6 +149,9 @@ class LocalScope(
   }
 }
 object LocalScope {
+
+  /** Empty and immutable singleton scope.
+    */
   val empty: LocalScope = {
     val graph = new AliasGraph
     graph.freeze()
@@ -164,11 +167,11 @@ object LocalScope {
     )
   }
 
-  /** Constructs a local scope for an [[EnsoRootNode]].
+  /** Constructs a new local scope for an [[EnsoRootNode]] that can then be modified.
     *
-    * @return a defaulted local scope
+    * @return a new empty scope ready for additional modifications.
     */
-  def root: LocalScope = {
+  def createEmpty: LocalScope = {
     val graph = new AliasGraph
     val info  = DataflowAnalysis.DependencyInfo()
     new LocalScope(

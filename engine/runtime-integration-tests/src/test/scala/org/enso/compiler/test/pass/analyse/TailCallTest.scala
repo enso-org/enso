@@ -31,14 +31,14 @@ class TailCallTest extends CompilerTest {
 
   def mkTailContext: InlineContext =
     buildInlineContext(
-      localScope       = Some(LocalScope.root),
+      localScope       = Some(LocalScope.createEmpty),
       isInTailPosition = Some(true),
       freshNameSupply  = Some(new FreshNameSupply)
     )
 
   def mkNoTailContext: InlineContext =
     buildInlineContext(
-      localScope       = Some(LocalScope.root),
+      localScope       = Some(LocalScope.createEmpty),
       isInTailPosition = Some(false),
       freshNameSupply  = Some(new FreshNameSupply)
     )
