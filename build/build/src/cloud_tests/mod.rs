@@ -57,7 +57,6 @@ async fn build_credentials(config: AuthConfig) -> Result<Credentials> {
         .args(["--client-id", &config.client_id]);
 
     let stdout = command.run_stdout().await?;
-    println!("stdout: {}", stdout);
     parse_cognito_response(config, &stdout)
 }
 
@@ -73,7 +72,6 @@ fn aws_command() -> Command {
 
 fn parse_cognito_response(config: AuthConfig, response: &str) -> Result<Credentials> {
     let json: serde_json::Value = serde_json::from_str(response)?;
-    println!("json: {:?}", json);
     let root_mapping = unpack_object(&json)?;
     let authentication_result_mapping =
         unpack_object(get_or_fail(root_mapping, "AuthenticationResult")?)?;
