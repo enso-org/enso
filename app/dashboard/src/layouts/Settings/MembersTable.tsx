@@ -44,11 +44,11 @@ export default function MembersTable(props: MembersTableProps) {
   const bodyRef = React.useRef<HTMLTableSectionElement>(null)
   const userWithPlaceholder = React.useMemo(() => ({ isPlaceholder: false, ...user }), [user])
 
-  const backendListUsers = backendHooks.useListUsers(backend)
+  const { data: allUsers } = backendHooks.useBackendQuery(backend, 'listUsers', [])
 
   const users = React.useMemo(
-    () => backendListUsers ?? (populateWithSelf ? [userWithPlaceholder] : null),
-    [backendListUsers, populateWithSelf, userWithPlaceholder],
+    () => allUsers ?? (populateWithSelf ? [userWithPlaceholder] : null),
+    [allUsers, populateWithSelf, userWithPlaceholder],
   )
   const usersMap = React.useMemo(
     () => new Map((users ?? []).map((member) => [member.userId, member])),

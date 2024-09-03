@@ -6,7 +6,7 @@ import { useStore } from 'zustand'
 
 import BlankIcon from '#/assets/blank.svg'
 
-import { backendMutationOptions, useListUserGroups, useListUsers } from '#/hooks/backendHooks'
+import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 import * as dragAndDropHooks from '#/hooks/dragAndDropHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
@@ -121,8 +121,8 @@ export default function AssetRow(props: AssetRowProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
-  const users = useListUsers(backend)
-  const userGroups = useListUserGroups(backend)
+  const { data: users } = useBackendQuery(backend, 'listUsers', [])
+  const { data: userGroups } = useBackendQuery(backend, 'listUserGroups', [])
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
   const rootRef = React.useRef<HTMLElement | null>(null)
   const dragOverTimeoutHandle = React.useRef<number | null>(null)

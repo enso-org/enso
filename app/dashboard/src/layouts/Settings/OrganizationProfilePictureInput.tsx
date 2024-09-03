@@ -5,7 +5,7 @@ import { useMutation } from '@tanstack/react-query'
 
 import DefaultUserIcon from '#/assets/default_user.svg'
 
-import { backendMutationOptions, useGetOrganization } from '#/hooks/backendHooks'
+import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as textProvider from '#/providers/TextProvider'
@@ -31,7 +31,7 @@ export default function OrganizationProfilePictureInput(
   const { backend } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
-  const organization = useGetOrganization(backend)
+  const { data: organization } = useBackendQuery(backend, 'getOrganization', [])
 
   const uploadOrganizationPicture = useMutation(
     backendMutationOptions(backend, 'uploadOrganizationPicture'),
