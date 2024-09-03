@@ -494,7 +494,12 @@ object UpsertVisualizationJob {
         callback,
         arguments
       )
-    ctx.state.executionHooks.add(() => invalidateCaches(visualization))
+    ctx.state.executionHooks.add(() => {
+      ctx.locking.withWriteCompilationLock(
+        this.getClass,
+        () => invalidateCaches(visualization)
+      )
+    })
     ctx.contextManager.upsertVisualization(
       visualizationConfig.executionContextId,
       visualization
