@@ -3,9 +3,10 @@ package org.enso.interpreter.runtime
 import java.util.logging.Level
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import com.oracle.truffle.api.interop.InteropLibrary
+import org.enso.compiler.pass.analyse.FramePointer
+import org.enso.compiler.pass.analyse.FrameVariableNames
 import org.enso.compiler.context.{
   CompilerContext,
-  FramePointer,
   LocalScope,
   NameResolutionAlgorithm
 }
@@ -302,6 +303,7 @@ class IrToTruffle(
           FramePointerAnalysis,
           "No frame pointer on an argument definition."
         )
+        .asInstanceOf[FramePointer]
       val slotIdx = fp.frameSlotIdx()
       argDefs(idx) = arg
       val readArg =
@@ -1250,7 +1252,7 @@ class IrToTruffle(
       name: String,
       scope: () => AliasScope,
       initialName: String,
-      symbolsProvider: () => FramePointerAnalysis.FramePointerMeta = null
+      symbolsProvider: () => FrameVariableNames = null
     ): ExpressionProcessor = {
       val childScope =
         this.scope.createChild(scope, symbolsProvider = symbolsProvider)
@@ -1338,10 +1340,12 @@ class IrToTruffle(
     private def processBlock(block: Expression.Block): RuntimeExpression = {
       if (block.suspended) {
         val scopeInfo = childScopeInfo("block", block)
-        def frameInfo() = block.unsafeGetMetadata(
-          FramePointerAnalysis,
-          "Method definition missing frame information."
-        )
+        def frameInfo() = block
+          .unsafeGetMetadata(
+            FramePointerAnalysis,
+            "Method definition missing frame information."
+          )
+          .asInstanceOf[FrameVariableNames]
 
         val childFactory = this.createChild(
           "suspended-block",
@@ -1450,10 +1454,12 @@ class IrToTruffle(
       branch: Case.Branch
     ): Either[BadPatternMatch, BranchNode] = {
       val scopeInfo = childScopeInfo("case branch", branch)
-      def frameInfo() = branch.unsafeGetMetadata(
-        FramePointerAnalysis,
-        "Method definition missing frame information."
-      )
+      def frameInfo() = branch
+        .unsafeGetMetadata(
+          FramePointerAnalysis,
+          "Method definition missing frame information."
+        )
+        .asInstanceOf[FrameVariableNames]
       val childProcessor =
         this.createChild(
           "case_branch",
@@ -1832,6 +1838,7 @@ class IrToTruffle(
           FramePointerAnalysis,
           "Binding with missing frame pointer."
         )
+        .asInstanceOf[FramePointer]
 
       currentVarName = binding.name.name
       val slotIdx = fp.frameSlotIdx()
@@ -1859,10 +1866,12 @@ class IrToTruffle(
         )
       }
       val frameInfoOption = function.passData().get(FramePointerAnalysis)
-      def frameInfo() = function.unsafeGetMetadata(
-        FramePointerAnalysis,
-        "Method definition missing frame information."
-      )
+      def frameInfo() = function
+        .unsafeGetMetadata(
+          FramePointerAnalysis,
+          "Method definition missing frame information."
+        )
+        .asInstanceOf[FrameVariableNames]
 
       val scopeName = if (function.canBeTCO) {
         this.scopeName + "." + currentVarName
@@ -1898,9 +1907,8 @@ class IrToTruffle(
         case literalName: Name.Literal =>
           val resolver = new RuntimeNameResolution()
           val fpMeta = literalName.passData.get(FramePointerAnalysis) match {
-            case Some(meta: FramePointerAnalysis.FramePointerMeta) =>
-              if (meta.framePointer != null) meta else null
-            case _ => null
+            case Some(meta: FramePointer) => meta
+            case _                        => null
           }
           resolver.resolveName(literalName, fpMeta)
         case Name.MethodReference(
@@ -1960,17 +1968,17 @@ class IrToTruffle(
         extends NameResolutionAlgorithm[
           RuntimeExpression,
           FramePointer,
-          FramePointerAnalysis.FramePointerMeta
+          FramePointer
         ] {
       override protected def findLocalLink(
-        fpMeta: FramePointerAnalysis.FramePointerMeta
+        fpMeta: FramePointer
       ): Option[FramePointer] = {
         if (scope.flattenToParent && fpMeta.parentLevel() > 0) {
           Some(
             new FramePointer(fpMeta.parentLevel() - 1, fpMeta.frameSlotIdx())
           )
         } else {
-          Some(fpMeta.framePointer)
+          Some(fpMeta)
         }
       }
 
@@ -2214,6 +2222,7 @@ class IrToTruffle(
                 FramePointerAnalysis,
                 "No frame pointer on an argument definition."
               )
+              .asInstanceOf[FramePointer]
             val slotIdx = fp.frameSlotIdx()
             val readArg =
               ReadArgumentNode.build(
@@ -2446,10 +2455,13 @@ class IrToTruffle(
           }
 
           val childScope = if (shouldCreateClosureRootNode) {
-            def frameInfo() = arg.unsafeGetMetadata(
-              FramePointerAnalysis,
-              "Method definition missing frame information."
-            )
+            def frameInfo() = arg
+              .unsafeGetMetadata(
+                FramePointerAnalysis,
+                "Method definition missing frame information."
+              )
+              .asInstanceOf[FrameVariableNames]
+
             scope.createChild(
               () => scopeInfo().scope,
               symbolsProvider = frameInfo

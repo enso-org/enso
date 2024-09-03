@@ -16,7 +16,6 @@ import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.scope.ModuleScope;
-import org.enso.interpreter.util.ScalaConversions;
 
 /** A common base class for all kinds of root node in Enso. */
 @NodeInfo(shortName = "Root", description = "A root node for Enso computations")
@@ -80,7 +79,7 @@ public abstract class EnsoRootNode extends RootNode {
               return null;
             }
             : null;
-    var allDefs = ScalaConversions.asJava(localScope.allSymbols(name, logFnOrNull));
+    var allDefs = localScope.allSymbols(name, logFnOrNull);
     for (var definition : allDefs) {
       descriptorBuilder.addSlot(FrameSlotKind.Illegal, definition, null);
     }

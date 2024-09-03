@@ -1,7 +1,9 @@
 package org.enso.compiler.test.pass.analyse
 
 import org.enso.compiler.Passes
-import org.enso.compiler.context.{FramePointer, FreshNameSupply, ModuleContext}
+import org.enso.compiler.pass.analyse.FramePointer
+import org.enso.compiler.pass.analyse.FrameAnalysisMeta
+import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{
   CallArgument,
@@ -87,10 +89,10 @@ class FramePointerAnalysisTest extends CompilerTest {
       withClue("Expression.Binding must have FramePointer associated") {
         allOcc.head._1
           .unsafeGetMetadata(FramePointerAnalysis, "should exist")
-          .framePointer shouldEqual new FramePointer(0, 1)
+          .asInstanceOf[FramePointer] shouldEqual new FramePointer(0, 1)
         allOcc.last._1
           .unsafeGetMetadata(FramePointerAnalysis, "should exist")
-          .framePointer shouldEqual new FramePointer(0, 2)
+          .asInstanceOf[FramePointer] shouldEqual new FramePointer(0, 2)
       }
     }
 
@@ -468,10 +470,7 @@ class FramePointerAnalysisTest extends CompilerTest {
 
   private def findFP(ir: IR) = ir.passData
     .get(FramePointerAnalysis)
-    .filter(meta =>
-      meta
-        .asInstanceOf[FramePointerAnalysis.FramePointerMeta]
-        .framePointer != null
+    .filter(meta => meta.isInstanceOf[FramePointer]
     )
 
   /** Find the first IR element of the given `T` type by the given `filterCondition`.
@@ -521,7 +520,7 @@ class FramePointerAnalysisTest extends CompilerTest {
     }
     ir
       .unsafeGetMetadata(FramePointerAnalysis, "should exist")
-      .framePointer shouldEqual framePointer
+      .asInstanceOf[FramePointer] shouldEqual framePointer
   }
 
   private def findAssociatedIr(
@@ -556,11 +555,11 @@ class FramePointerAnalysisTest extends CompilerTest {
 
   private def collectAllFramePointers(
     ir: IR
-  ): List[(IR, FramePointerAnalysis.Metadata)] = {
+  ): List[(IR, FrameAnalysisMeta)] = {
     ir.preorder().flatMap { childIr =>
       childIr.getMetadata(FramePointerAnalysis) match {
-        case Some(framePointerMeta: FramePointerAnalysis.Metadata) =>
-          if (framePointerMeta.framePointer != null) {
+        case Some(framePointerMeta: FrameAnalysisMeta) =>
+          if (framePointerMeta.isInstanceOf[FramePointer]) {
             Some((childIr, framePointerMeta))
           } else {
             None

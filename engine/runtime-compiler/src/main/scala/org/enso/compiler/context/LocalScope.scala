@@ -1,5 +1,8 @@
 package org.enso.compiler.context
 
+import org.enso.compiler.pass.analyse.FrameAnalysisMeta
+import org.enso.compiler.pass.analyse.FramePointer
+import org.enso.compiler.pass.analyse.FrameVariableNames
 import org.enso.compiler.pass.analyse.DataflowAnalysis
 import org.enso.compiler.pass.analyse.alias.graph.{
   GraphOccurrence,
@@ -7,7 +10,6 @@ import org.enso.compiler.pass.analyse.alias.graph.{
 }
 
 import scala.jdk.CollectionConverters._
-import org.enso.compiler.pass.analyse.FramePointerAnalysis
 import java.util.function.BiFunction
 
 /** A representation of an Enso local scope.
@@ -36,8 +38,7 @@ class LocalScope(
   final val aliasingGraph: () => AliasGraph,
   final private val scopeProvider: () => AliasGraph.Scope,
   final private val dataflowInfoProvider: () => DataflowAnalysis.Metadata,
-  final private val symbolsProvider: () => FramePointerAnalysis.FramePointerMeta =
-    null,
+  final private val symbolsProvider: () => FrameAnalysisMeta     = null,
   final val flattenToParent: Boolean                             = false,
   private val parentFrameSlotIdxs: () => Map[AliasGraph.Id, Int] = () => Map()
 ) {
@@ -54,13 +55,16 @@ class LocalScope(
   def allSymbols(
     where: String,
     log: BiFunction[String, Array[Object], Void]
-  ): List[String] = {
-    def symbols() = scope.allDefinitions.map(_.symbol)
-    val meta      = if (symbolsProvider == null) null else symbolsProvider()
-    if (meta != null && meta.variableNames.isDefined) {
-      val cached = meta.variableNames.get
+  ): java.util.List[String] = {
+    def symbols(): java.util.List[String] = {
+      val r = scope.allDefinitions.map(_.symbol)
+      r.asJava
+    }
+    val meta = if (symbolsProvider == null) null else symbolsProvider()
+    if (meta.isInstanceOf[FrameVariableNames]) {
+      val cached = meta.asInstanceOf[FrameVariableNames].variableNames()
       if (log != null) {
-        FramePointer.assertSame(where, cached, () => symbols())
+        ContextUtils.assertSame(where, cached, () => symbols())
       }
       cached
     } else {
@@ -99,8 +103,8 @@ class LocalScope(
     */
   def createChild(
     childScope: () => AliasGraph.Scope,
-    flattenToParent: Boolean                                     = false,
-    symbolsProvider: () => FramePointerAnalysis.FramePointerMeta = null
+    flattenToParent: Boolean                  = false,
+    symbolsProvider: () => FrameVariableNames = null
   ): LocalScope = {
     val sp = if (flattenToParent) {
       assert(symbolsProvider == null)
@@ -173,9 +177,8 @@ object LocalScope {
   val empty: LocalScope = {
     val graph = new AliasGraph
     graph.freeze()
-    val info = DataflowAnalysis.DependencyInfo()
-    val emptyVariableNames =
-      new FramePointerAnalysis.FramePointerMeta(null, Some(List()))
+    val info               = DataflowAnalysis.DependencyInfo()
+    val emptyVariableNames = FrameVariableNames.create(List())
     new LocalScope(
       None,
       () => graph,

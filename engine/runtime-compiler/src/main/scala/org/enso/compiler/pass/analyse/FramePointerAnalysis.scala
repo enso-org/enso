@@ -1,12 +1,7 @@
 package org.enso.compiler.pass.analyse
 
-import org.enso.compiler.context.{
-  CompilerContext,
-  FramePointer,
-  InlineContext,
-  LocalScope,
-  ModuleContext
-}
+import org.enso.compiler.pass.analyse.FramePointer
+import org.enso.compiler.context.{InlineContext, LocalScope, ModuleContext}
 import org.enso.compiler.core.ir.Name.GenericAnnotation
 import org.enso.compiler.core.{CompilerError, IR}
 import org.enso.compiler.core.ir.expression.{Application, Case}
@@ -17,13 +12,11 @@ import org.enso.compiler.core.ir.{
   Function,
   Module,
   Name,
-  Pattern,
-  ProcessingPass
+  Pattern
 }
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition.Method
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.IRPass.IRMetadata
 import org.enso.compiler.pass.analyse.alias.AliasMetadata
 import org.enso.compiler.pass.analyse.alias.graph.{Graph, GraphOccurrence}
 
@@ -33,7 +26,7 @@ import org.enso.compiler.pass.analyse.alias.graph.{Graph, GraphOccurrence}
   */
 case object FramePointerAnalysis extends IRPass {
 
-  override type Metadata = FramePointerMeta
+  override type Metadata = FrameAnalysisMeta
 
   override type Config = IRPass.Configuration.Default
 
@@ -106,7 +99,7 @@ case object FramePointerAnalysis extends IRPass {
 
   private def updateSymbolNames(e: IR, s: Graph.Scope): Unit = {
     val symbols = s.allDefinitions.map(_.symbol)
-    updateMeta(e, null, Some(symbols))
+    updateMeta(e, FrameVariableNames.create(symbols))
   }
 
   private def processAnnotation(
@@ -131,7 +124,7 @@ case object FramePointerAnalysis extends IRPass {
         case Name.Self(loc, synthetic, _) if loc.isEmpty && synthetic =>
           // synthetic self argument has occurrence attached, but there is no Occurence.Def for it.
           // So we have to handle it specially.
-          updateMeta(arg, new FramePointer(0, 1), None)
+          updateMeta(arg, new FramePointer(0, 1))
         case _ =>
           maybeAttachFramePointer(arg, graph)
       }
@@ -318,8 +311,7 @@ case object FramePointerAnalysis extends IRPass {
                       getFrameSlotIdxInScope(graph, defScope, defOcc)
                     updateMeta(
                       ir,
-                      new FramePointer(parentLevel, frameSlotIdx),
-                      None
+                      new FramePointer(parentLevel, frameSlotIdx)
                     )
                   case None =>
                     // It is possible that there is no Def for this Use. It can, for example, be
@@ -334,8 +326,7 @@ case object FramePointerAnalysis extends IRPass {
                 val frameSlotIdx = getFrameSlotIdxInScope(graph, scope, defn)
                 updateMeta(
                   ir,
-                  new FramePointer(parentLevel, frameSlotIdx),
-                  None
+                  new FramePointer(parentLevel, frameSlotIdx)
                 )
               case _ => ()
             }
@@ -347,16 +338,15 @@ case object FramePointerAnalysis extends IRPass {
 
   private def updateMeta(
     ir: IR,
-    framePointer: FramePointer,
-    variableNames: Option[List[String]]
+    newMeta: FrameAnalysisMeta
   ): Unit = {
     ir.passData().get(this) match {
       case None =>
         ir.passData()
-          .update(this, new FramePointerMeta(framePointer, variableNames))
+          .update(this, newMeta)
       case Some(meta) =>
         val ex = new IllegalStateException(
-          "Old: " + meta + " new " + framePointer + " newVar: " + variableNames
+          "Old: " + meta + " new " + newMeta
         )
         ex.setStackTrace(ex.getStackTrace().slice(0, 10))
         throw ex
@@ -460,45 +450,5 @@ case object FramePointerAnalysis extends IRPass {
         processExpression(exprIr, graph)
         exprIr
     }
-  }
-
-  // === Pass Configuration ===================================================
-
-  class FramePointerMeta(
-    val framePointer: FramePointer,
-    val variableNames: Option[List[String]] = None
-  ) extends IRMetadata {
-    {
-      assert(
-        framePointer != null || variableNames.nonEmpty,
-        "Either framePointer or variableNames must be present"
-      )
-    }
-    override val metadataName: String = "FramePointer"
-
-    def parentLevel(): Int = framePointer.parentLevel
-
-    def frameSlotIdx(): Int = framePointer.frameSlotIdx
-
-    /** @inheritdoc
-      */
-    override def duplicate(): Option[Metadata] = {
-      Some(new FramePointerMeta(framePointer, variableNames))
-    }
-
-    /** @inheritdoc
-      */
-    override def prepareForSerialization(
-      compiler: CompilerContext
-    ): ProcessingPass.Metadata = this
-
-    /** @inheritdoc
-      */
-    override def restoreFromSerialization(
-      compiler: CompilerContext
-    ): Option[ProcessingPass.Metadata] = Some(this)
-
-    override def toString: String =
-      s"FramePointerMeta($framePointer, $variableNames)"
   }
 }

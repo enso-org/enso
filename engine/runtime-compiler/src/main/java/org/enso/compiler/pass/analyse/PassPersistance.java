@@ -1,7 +1,6 @@
 package org.enso.compiler.pass.analyse;
 
 import java.io.IOException;
-import org.enso.compiler.context.FramePointer;
 import org.enso.compiler.pass.analyse.alias.AliasMetadata;
 import org.enso.compiler.pass.analyse.alias.graph.Graph;
 import org.enso.compiler.pass.analyse.alias.graph.GraphOccurrence;
@@ -67,8 +66,6 @@ import scala.Tuple2$;
 @Persistable(clazz = Graph.Link.class, id = 1266, allowInlining = false)
 @Persistable(clazz = TypeInference.class, id = 1280)
 @Persistable(clazz = FramePointerAnalysis$.class, id = 1281)
-@Persistable(clazz = FramePointer.class, id = 1283)
-@Persistable(clazz = FramePointerAnalysis.FramePointerMeta.class, id = 1285, allowInlining = false)
 public final class PassPersistance {
   private PassPersistance() {}
 
