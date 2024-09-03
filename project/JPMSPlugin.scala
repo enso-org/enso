@@ -272,18 +272,18 @@ object JPMSPlugin extends AutoPlugin {
         val modInfo =
           internalModuleDep.toPath.resolve("module-info.class").toFile
         if (!modInfo.exists()) {
-          logger.error(
+          logger.warn(
             s"[JPMSPlugin/$currProjName] Internal module dependency $internalModuleDep does not contain " +
-            "module-info.class file. This is required for JPMS modules."
+            "module-info.class file. Ensure it is an automatic module."
           )
         }
       } else if (internalModuleDep.getName.endsWith(".jar")) {
         val jarFile      = new JarFile(internalModuleDep)
         val modInfoEntry = jarFile.getJarEntry("module-info.class")
         if (modInfoEntry == null) {
-          logger.error(
+          logger.warn(
             s"[JPMSPlugin/$currProjName] Internal module dependency (JAR) $internalModuleDep does not contain " +
-            "module-info.class file. This is required for JPMS modules."
+            "module-info.class file. Ensure it is an automatic module."
           )
         }
       } else {
