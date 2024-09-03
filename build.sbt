@@ -2846,6 +2846,7 @@ lazy val `runtime-integration-tests` =
 lazy val `runtime-benchmarks` =
   (project in file("engine/runtime-benchmarks"))
     .enablePlugins(JPMSPlugin)
+    .enablePlugins(PackageListPlugin)
     .settings(
       frgaalJavaCompilerSetting,
       annotationProcSetting,
@@ -2859,7 +2860,12 @@ lazy val `runtime-benchmarks` =
         "org.graalvm.truffle" % "truffle-api"              % graalMavenPackagesVersion,
         "org.graalvm.truffle" % "truffle-dsl-processor"    % graalMavenPackagesVersion % "provided",
         "org.slf4j"           % "slf4j-api"                % slf4jVersion,
-        "org.slf4j"           % "slf4j-nop"                % slf4jVersion
+        "org.slf4j"           % "slf4j-nop"                % slf4jVersion,
+        "io.sentry"        % "sentry"                  % "6.28.0",
+        "io.sentry"        % "sentry-logback"          % "6.28.0",
+        "ch.qos.logback"   % "logback-classic"         % logbackClassicVersion,
+        "ch.qos.logback"   % "logback-core"            % logbackClassicVersion,
+        "org.netbeans.api"    % "org-netbeans-modules-sampler" % netbeansApiVersion,
       ),
       mainClass :=
         Some("org.enso.interpreter.bench.benchmarks.RuntimeBenchmarksRunner"),
@@ -2870,17 +2876,100 @@ lazy val `runtime-benchmarks` =
       ),
       parallelExecution := false,
       Compile / moduleDependencies := {
-        GraalVM.modules ++ GraalVM.langsPkgs ++ helidon ++ Seq(
-          "org.slf4j"        % "slf4j-api"                    % slf4jVersion,
-          "org.slf4j"        % "slf4j-nop"                    % slf4jVersion,
-          "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion,
-          (`ydoc-server` / projectID).value,
-          (`syntax-rust-definition` / projectID).value,
-          (`profiling-utils` / projectID).value
+        GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ helidon ++ Seq(
+          "org.scala-lang"      % "scala-library"                % scalacVersion,
+          "org.scala-lang" % "scala-reflect"  % scalacVersion,
+          "org.scala-lang" % "scala-compiler" % scalacVersion,
+          "org.apache.commons"  % "commons-lang3"                % commonsLangVersion,
+          "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
+          "commons-io"     % "commons-io"        % commonsIoVersion,
+          "org.apache.tika"     % "tika-core"                    % tikaVersion,
+          "org.slf4j"           % "slf4j-api"                    % slf4jVersion,
+          "org.netbeans.api"    % "org-openide-util-lookup"      % netbeansApiVersion,
+          "org.netbeans.api"    % "org-netbeans-modules-sampler" % netbeansApiVersion,
+          "com.ibm.icu"         % "icu4j"                        % icuVersion,
+          "org.jline"              % "jline"                        % jlineVersion,
+          "com.google.flatbuffers"                 % "flatbuffers-java"      % flatbuffersVersion,
+          "org.yaml"                    % "snakeyaml"     % snakeyamlVersion,
+          "com.typesafe" % "config"    % typesafeConfigVersion,
+          "io.sentry"        % "sentry-logback"          % "6.28.0",
+          "io.sentry"        % "sentry"                  % "6.28.0",
+          "ch.qos.logback"   % "logback-classic"         % logbackClassicVersion,
+          "ch.qos.logback"   % "logback-core"            % logbackClassicVersion
         )
       },
-      addExports := {
-        Map("org.slf4j.nop/org.slf4j.nop" -> Seq("org.slf4j"))
+      Compile / internalModuleDependencies := Seq(
+        (`runtime` / Compile / exportedModule).value,
+        (`runtime-instrument-common` / Compile / exportedModule).value,
+        (`runtime-instrument-runtime-server` / Compile / exportedModule).value,
+        (`runtime-instrument-repl-debugger` / Compile / exportedModule).value,
+        (`runtime-instrument-id-execution` / Compile / exportedModule).value,
+        (`runtime-language-epb` / Compile / exportedModule).value,
+        (`ydoc-server` / Compile / exportedModule).value,
+        (`syntax-rust-definition` / Compile / exportedModule).value,
+        (`profiling-utils` / Compile / exportedModule).value,
+        (`logging-service-logback` / Compile / exportedModule).value,
+        (`logging-service-logback` / Test / exportedModule).value,
+        (`version-output` / Compile / exportedModule).value,
+        (`scala-libs-wrapper` / Compile / exportedModule).value,
+        (`text-buffer` / Compile / exportedModule).value,
+        (`runtime-suggestions` / Compile / exportedModule).value,
+        (`runtime-parser` / Compile / exportedModule).value,
+        (`runtime-compiler` / Compile / exportedModule).value,
+        (`polyglot-api` / Compile / exportedModule).value,
+        (`polyglot-api-macros` / Compile / exportedModule).value,
+        (`pkg` / Compile / exportedModule).value,
+        (`logging-utils` / Compile / exportedModule).value,
+        (`connected-lock-manager` / Compile / exportedModule).value,
+        (`library-manager` / Compile / exportedModule).value,
+        (`persistance` / Compile / exportedModule).value,
+        (`interpreter-dsl` / Compile / exportedModule).value,
+        (`engine-common` / Compile / exportedModule).value,
+        (`edition-updater` / Compile / exportedModule).value,
+        (`editions` / Compile / exportedModule).value,
+        (`distribution-manager` / Compile / exportedModule).value,
+        (`common-polyglot-core-utils` / Compile / exportedModule).value,
+        (`cli` / Compile / exportedModule).value,
+        (`refactoring-utils` / Compile / exportedModule).value,
+        (`scala-yaml` / Compile / exportedModule).value,
+        (`semver` / Compile / exportedModule).value,
+        (`downloader` / Compile / exportedModule).value,
+        (`logging-config` / Compile / exportedModule).value,
+        (`logging-service` / Compile / exportedModule).value,
+      ),
+      // Benchmark sources are patched into the `org.enso.runtime` module
+      Compile / patchModules := {
+        val runtimeModName = (`runtime` / javaModuleName).value
+        val javaSrcDir = (Compile / javaSource).value
+        val classesDir = (Compile / productDirectories).value.head
+        val testUtilsClasses = (`test-utils` / Compile / productDirectories).value.head
+        val benchCommonClasses = (`benchmarks-common` / Compile / productDirectories).value.head
+        Map (
+          runtimeModName -> Seq(
+            javaSrcDir,
+            classesDir,
+            testUtilsClasses,
+            benchCommonClasses
+          )
+        )
+      },
+      // jmh is in unnamed modules
+      Compile / addReads := {
+        val runtimeModName = (`runtime` / javaModuleName).value
+        Map(
+          runtimeModName -> Seq("ALL-UNNAMED")
+        )
+      },
+      Compile / addExports := {
+        val runtimeModName = (`runtime` / javaModuleName).value
+        val pkgs = (Compile / packages).value
+        val pkgsExports = pkgs.map { pkg =>
+          runtimeModName + "/" + pkg -> Seq("ALL-UNNAMED")
+        }.toMap
+
+        pkgsExports ++ Map(
+          "org.slf4j.nop/org.slf4j.nop" -> Seq("org.slf4j")
+        )
       },
       javaOptions ++= {
         Seq(
@@ -2913,6 +3002,7 @@ lazy val `runtime-benchmarks` =
     )
     .dependsOn(`benchmarks-common`)
     .dependsOn(`test-utils`)
+    .dependsOn(`runtime`)
 
 lazy val `runtime-parser` =
   (project in file("engine/runtime-parser"))
