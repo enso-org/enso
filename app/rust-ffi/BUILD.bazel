@@ -1,11 +1,11 @@
 load("@rules_rust//rust:defs.bzl", "rust_shared_library")
-# load("@rules_rust//wasm_bindgen/rules_nodejs:defs.bzl", "nodejs_rust_wasm_bindgen")
+load("@aspect_rules_js//js:defs.bzl", "js_library")
+load("@aspect_rules_js//npm:defs.bzl", "npm_package")
+load("@rules_rust//wasm_bindgen:defs.bzl", "rust_wasm_bindgen")
 load("@crates//:defs.bzl", "aliases", "all_crate_deps")
 
-package(default_visibility = ["//visibility:public"])
-
 rust_shared_library(
-    name = "rust-ffi",
+    name = "rust_lib",
     srcs = glob(["src/**/*.rs"]),
     aliases = aliases(),
     edition = "2021",
@@ -13,6 +13,26 @@ rust_shared_library(
     deps = all_crate_deps(normal = True) + [
         "//lib/rust/parser:enso-parser",
         "//lib/rust/parser/doc-parser:enso-doc-parser",
-        # "@rules_rust//wasm_bindgen/3rdparty:wasm_bindgen",
     ],
+)
+
+rust_wasm_bindgen(
+    name = "rust-ffi-bindgen",
+    target = "bundler",
+    wasm_file = ":rust_lib",
+)
+
+js_library(
+    name = "rust-ffi",
+    srcs = [
+        ":rust-ffi-bindgen",
+        "package.json"
+    ],
+)
+
+npm_package(
+    name = "pkg",
+    srcs = [":rust-ffi"],
+    include_runfiles = False,
+    visibility = ["//visibility:public"],
 )

@@ -9,7 +9,7 @@ js_library(
 )
 
 npm_package(
-    name = "package",
+    name = "pkg",
     srcs = [":lib"],
     include_runfiles = False,
     visibility = ["//visibility:public"],

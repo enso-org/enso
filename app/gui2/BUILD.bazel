@@ -1,29 +1,46 @@
-load("@npm//:defs.bzl", "npm_link_all_packages")
-npm_link_all_packages()
-
-# load("@bazel_skylib//rules:build_test.bzl", "build_test")
+load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
 load("@npm//app/gui2:vite/package_json.bzl", vite_bin = "bin")
-# load("@aspect_rules_js//npm:vitest/package_json.bzl", vitest_bin = "bin")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
+load("@aspect_rules_js//js:defs.bzl", "js_library")
 
+npm_link_all_packages(name = "node_modules")
+
+ts_config(name = "tsconfig", src = "tsconfig.json", deps = ["//app:tsconfig"])
+ts_config(name = "tsconfig_node", src = "tsconfig.node.json", deps = [":tsconfig"])
+ts_config(name = "tsconfig_app", src = "tsconfig.app.json", deps = [":tsconfig"])
+ts_config(name = "tsconfig_app_vitest", src = "tsconfig.app.vitest.json", deps = [":tsconfig_app"])
 
 SRCS = [
-    "package.json",
+    "//app:tsconfig",
+    ":tsconfig_app",
+    ":tsconfig_node",
     "vite.config.ts",
-    "tsconfig.app.json",
-    "tsconfig.json",
-] + glob(["src/**", "shared/**", "public/**", "ydoc-server/**"])
+    "package.json",
+] + glob(["src/**", "shared/**", "public/**", "project-manager-shim-middleware/**"])
 
-# BUILD_DEPS = []
+# BUILD_DEPS = [":node_modules/" + d for d in [
+#     "@vitejs/plugin-vue",
+#     "@vue/tsconfig",
+#     "vite",
+#     "vue",
+#     "vue-router",
+# ]]
 
-# BUILD_DEPS = npm_link_targets()
+BUILD_DEPS = npm_link_targets()
 # print(BUILD_DEPS)
+
+js_library(
+    name = "vite.config",
+    srcs = ["vite.config.ts"],
+    deps = BUILD_DEPS,
+)
 
 vite_bin.vite(
     name = "build",
-    srcs = SRCS,
+    srcs = SRCS + [":vite.config"],
     args = ["build"],
     chdir = package_name(),
-    out_dirs = ["dist"],
+    out_dirs = ["dist"]
 )
 
 # vue_tsc_bin.vue_tsc_test(

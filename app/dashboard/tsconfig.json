@@ -8,12 +8,12 @@
     "./e2e/**/*.json",
     "../../utils.ts",
     ".prettierrc.cjs",
-    "*.js",
     "*.ts"
   ],
-  "exclude": ["./dist"],
+  "exclude": ["./dist", "vitest.config.ts"],
   "compilerOptions": {
     "composite": true,
+    "resolveJsonModule": true,
     "noEmit": false,
     "outDir": "../../node_modules/.cache/tsc",
     "paths": { "#/*": ["./src/*"] },
