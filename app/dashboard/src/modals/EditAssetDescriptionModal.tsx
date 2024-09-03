@@ -74,7 +74,7 @@ export default function EditAssetDescriptionModal(props: EditAssetDescriptionMod
         </div>
         <textarea
           ref={textareaRef}
-          className="relative h-16 resize-none rounded-default bg-selected-frame px-4 py-2"
+          className="relative h-16 resize-none rounded-default border-0.5 border-primary/20 px-4 py-2"
           placeholder={getText('editAssetDescriptionModalPlaceholder')}
           onChange={(event) => {
             setDescription(event.target.value)
@@ -91,7 +91,7 @@ export default function EditAssetDescriptionModal(props: EditAssetDescriptionMod
             {actionButtonLabel}
           </ariaComponents.Button>
           <ariaComponents.Button
-            variant="cancel"
+            variant="outline"
             type="button"
             onPress={unsetModal}
             isDisabled={isPending}

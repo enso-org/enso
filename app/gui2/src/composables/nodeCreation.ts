@@ -144,7 +144,7 @@ export function useNodeCreation(
       }
       insertNodeStatements(edit.getVersion(methodAst.value).bodyAsBlock(), statements)
     })
-    onCreated(created)
+    graphStore.doAfterUpdate(() => onCreated(created))
   }
 
   /** We resolve import conflicts and substitute identifiers if needed. */

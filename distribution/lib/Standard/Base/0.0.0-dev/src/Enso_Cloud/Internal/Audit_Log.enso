@@ -1,10 +1,13 @@
+import project.Any.Any
 import project.Data.Json.JS_Object
 import project.Data.Text.Text
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Nothing.Nothing
+import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 
 polyglot java import org.enso.base.enso_cloud.audit.AuditLog
+polyglot java import org.enso.base.enso_cloud.audit.AuditLog.AuditLogError
 
 ## PRIVATE
 type Audit_Log
@@ -21,6 +24,10 @@ type Audit_Log
          automatically.
        - async: Whether to submit the event asynchronously.
          Defaults to True.
+         If `async` is True, the operation returns immediately. There is no way
+         to know if the log message was successfully submitted.
+         If `async` is False, the operation blocks until the log message is
+         successfully submitted, and will raise a panic if submitting fails.
 
        ? Restricted Fields
 
@@ -32,7 +39,19 @@ type Audit_Log
          - `projectName`
          - `projectSessionId`
     report_event event_type:Text message:Text (metadata:JS_Object = JS_Object.from_pairs []) (async : Boolean = True) -> Nothing =
-        Illegal_Argument.handle_java_exception <|
+        Illegal_Argument.handle_java_exception <| Audit_Log_Error.handle_java_exception <|
             case async of
                 True -> AuditLog.logAsync event_type message metadata.object_node
                 False -> AuditLog.logSynchronously event_type message metadata.object_node
+
+## PRIVATE
+type Audit_Log_Error
+    ## PRIVATE
+    Error message:Text cause:Any
+
+    ## PRIVATE
+    handle_java_exception =
+        on_error caught_panic =
+            cause = caught_panic.payload
+            Panic.throw (Audit_Log_Error.Error cause.getMessage cause)
+        Panic.catch AuditLogError handler=on_error

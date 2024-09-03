@@ -263,7 +263,8 @@ test('Visualization preview: user visualization selection', async ({ page }) => 
   await expect(locate.graphNode(page)).toHaveCount(nodeCount)
 })
 
-test('Component browser handling of overridden record-mode', async ({ page }) => {
+// TODO[#10949]: the record button on node is disabled.
+test.skip('Component browser handling of overridden record-mode', async ({ page }) => {
   await actions.goToGraph(page)
   const node = locate.graphNodeByBinding(page, 'data')
   const ADDED_PATH = '"/home/enso/Input.txt"'

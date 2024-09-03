@@ -1,6 +1,5 @@
 /** @file Utilities for working with permissions. */
-import type Category from '#/layouts/CategorySwitcher/Category'
-import { CategoryType } from '#/layouts/CategorySwitcher/Category'
+import type { Category } from '#/layouts/CategorySwitcher/Category'
 import * as backend from '#/services/Backend'
 import {
   type AssetPermission,
@@ -40,7 +39,7 @@ export function tryCreateOwnerPermission(
   userGroups: readonly backend.UserGroupInfo[],
 ): readonly backend.AssetPermission[] {
   switch (category.type) {
-    case CategoryType.team: {
+    case 'team': {
       return [{ userGroup: category.team, permission: PermissionAction.own }]
     }
     default: {

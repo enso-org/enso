@@ -409,6 +409,8 @@ watchEffect(() => {
       selectionVisible,
       ['executionState-' + executionState]: true,
       outputNode: props.node.type === 'output',
+      menuVisible,
+      menuFull,
     }"
     :data-node-id="nodeId"
     @pointerenter="(nodeHovered = true), updateNodeHover($event)"
@@ -518,7 +520,6 @@ watchEffect(() => {
     <GraphNodeMessage
       v-if="visibleMessage"
       class="afterNode"
-      :class="{ messageWithMenu: menuVisible }"
       :message="visibleMessage.text"
       :type="visibleMessage.type"
     />
@@ -569,6 +570,8 @@ watchEffect(() => {
   border-radius: var(--node-border-radius);
   transition: box-shadow 0.2s ease-in-out;
   box-sizing: border-box;
+  /** Space between node and component above and below, such as comments and errors. */
+  --node-vertical-gap: 4px;
 
   --node-color-primary: color-mix(
     in oklab,
@@ -628,25 +631,30 @@ watchEffect(() => {
 .beforeNode {
   position: absolute;
   bottom: 100%;
-  left: 60px;
-  width: calc(max(100% - 60px, 800px));
-  margin-bottom: 2px;
+  width: calc(max(100%, 800px));
+  margin-bottom: var(--node-vertical-gap);
+  left: 0;
+  transition: left 0.1s ease-out;
+}
+.menuFull .beforeNode {
+  left: 64px;
 }
 
 .afterNode {
   position: absolute;
   top: 100%;
-  margin-top: 4px;
+  margin-top: var(--node-vertical-gap);
   transform: translateY(var(--viz-below-node));
+  left: 0;
+  transition: left 0.1s ease-out;
+}
+.menuVisible .afterNode {
+  left: 40px;
 }
 
 .belowMenu {
   position: absolute;
   top: calc(100% + 40px);
-}
-
-.messageWithMenu {
-  left: 40px;
 }
 
 .statuses {

@@ -24,7 +24,7 @@ const editedNodeInitialColors = new Map<NodeId, string | undefined>()
 
 function setColor(color: string | undefined) {
   currentColor.value = color
-  graphStore.transact(() => {
+  graphStore.batchEdits(() => {
     if (color) {
       for (const node of selection.selected) {
         if (!editedNodeInitialColors.has(node))

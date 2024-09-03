@@ -170,12 +170,32 @@ type Context
             columns.map column-> [column.name, column.expression]
         new_from = From_Spec.Sub_Query encapsulated_columns self alias
 
-        Subquery_Setup.Value new_from new_columns
+        Subquery_Setup.Value new_from new_columns rewrite_internal_column
+
+    ## PRIVATE
+       A bottom-up, depth-first traversal of this IR node and its children. Each
+       node is passed to the provided function, and the return value of the
+       function replaces this node in the tree.
+    traverse : (Any -> Any) -> Context
+    traverse self f -> Context =
+        rec e = e.traverse f
+        new_context = case self of
+            Context.Value from_spec where_filters orders groups limit extensions ->
+                Context.Value (from_spec.traverse f) (where_filters.map rec) (orders.map rec) (groups.map rec) limit (extensions.map rec)
+        f new_context
 
 ## PRIVATE
 type Subquery_Setup
     ## PRIVATE
-    Value (subquery : From_Spec) (new_columns : Vector (Vector Internal_Column))
+       Arguments:
+       - subquery: The From_Spec for the created subquery.
+       - new_columns: All columns that are available in the subquery, remapped
+         to be accessible from a context that uses `subquery` as its from spec.
+       - remap_column: A function that remaps an internal column to be accessible
+         from a context that uses `subquery` as its from spec.
+         The behaviour is undefined if this method is called with a column that
+         was not part of the subquery.
+    Value (subquery : From_Spec) (new_columns : Vector (Vector Internal_Column)) (remap_column : Internal_Column -> Internal_Column)
 
 ## PRIVATE
    Describes an extension to a Context that can be used to add additional custom
@@ -200,3 +220,15 @@ type Context_Extension
        - run_generator: A function that takes the generated expressions and
          returns the SQL code that will be inserted at the desired position.
     Value (position : Integer) (expressions : Vector SQL_Expression) (run_generator : Vector SQL_Builder -> SQL_Builder)
+
+    ## PRIVATE
+       A bottom-up, depth-first traversal of this IR node and its children. Each
+       node is passed to the provided function, and the return value of the
+       function replaces this node in the tree.
+    traverse : (Any -> Any) -> Context_Extension
+    traverse self f -> Context_Extension =
+        rec e = e.traverse f
+        new_context_extension = case self of
+            Context_Extension.Value position expressions run_generator ->
+                Context_Extension.Value position (expressions.map rec) run_generator
+        f new_context_extension

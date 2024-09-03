@@ -11,13 +11,7 @@ import DropFilesImage from '#/assets/drop_files.svg'
 import * as mimeTypes from '#/data/mimeTypes'
 
 import * as autoScrollHooks from '#/hooks/autoScrollHooks'
-import {
-  backendMutationOptions,
-  useBackendQuery,
-  useListTags,
-  useListUserGroups,
-  useListUsers,
-} from '#/hooks/backendHooks'
+import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as intersectionHooks from '#/hooks/intersectionHooks'
 import * as projectHooks from '#/hooks/projectHooks'
@@ -49,8 +43,7 @@ import type * as assetPanel from '#/layouts/AssetPanel'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
-import type Category from '#/layouts/CategorySwitcher/Category'
-import * as categoryModule from '#/layouts/CategorySwitcher/Category'
+import type { Category } from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
 import type * as assetRow from '#/components/dashboard/AssetRow'
@@ -76,6 +69,7 @@ import * as backendModule from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
 import { isSpecialReadonlyDirectoryId } from '#/services/RemoteBackend'
 
+import { ErrorDisplay } from '#/components/ErrorBoundary'
 import * as array from '#/utilities/array'
 import type * as assetQuery from '#/utilities/AssetQuery'
 import AssetQuery from '#/utilities/AssetQuery'
@@ -310,15 +304,15 @@ interface DragSelectionInfo {
 // === Category to filter by ===
 // =============================
 
-const CATEGORY_TO_FILTER_BY: Readonly<
-  Record<categoryModule.CategoryType, backendModule.FilterBy | null>
-> = {
-  [categoryModule.CategoryType.cloud]: backendModule.FilterBy.active,
-  [categoryModule.CategoryType.local]: backendModule.FilterBy.active,
-  [categoryModule.CategoryType.recent]: null,
-  [categoryModule.CategoryType.trash]: backendModule.FilterBy.trashed,
-  [categoryModule.CategoryType.user]: backendModule.FilterBy.active,
-  [categoryModule.CategoryType.team]: backendModule.FilterBy.active,
+const CATEGORY_TO_FILTER_BY: Readonly<Record<Category['type'], backendModule.FilterBy | null>> = {
+  cloud: backendModule.FilterBy.active,
+  local: backendModule.FilterBy.active,
+  recent: null,
+  trash: backendModule.FilterBy.trashed,
+  user: backendModule.FilterBy.active,
+  team: backendModule.FilterBy.active,
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  'local-directory': backendModule.FilterBy.active,
 }
 
 // ===================
@@ -405,7 +399,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const { user } = authProvider.useFullUserSession()
   const backend = backendProvider.useBackend(category)
-  const labels = useListTags(backend)
+  const { data: labels } = useBackendQuery(backend, 'listTags', [])
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
@@ -416,6 +410,8 @@ export default function AssetsTable(props: AssetsTableProps) {
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const setTargetDirectoryRaw = useSetTargetDirectory()
+  const didLoadingProjectManagerFail = backendProvider.useDidLoadingProjectManagerFail()
+  const reconnectToProjectManager = backendProvider.useReconnectToProjectManager()
   const [enabledColumns, setEnabledColumns] = React.useState(columnUtils.DEFAULT_ENABLED_COLUMNS)
   const [sortInfo, setSortInfo] =
     React.useState<sorting.SortInfo<columnUtils.SortableColumn> | null>(null)
@@ -430,21 +426,23 @@ export default function AssetsTable(props: AssetsTableProps) {
   > | null>(null)
   const [, setQueuedAssetEvents] = React.useState<assetEvent.AssetEvent[]>([])
   const nameOfProjectToImmediatelyOpenRef = React.useRef(initialProjectName)
-  const users = useListUsers(backend)
-  const userGroups = useListUserGroups(backend)
+  const { data: users } = useBackendQuery(backend, 'listUsers', [])
+  const { data: userGroups } = useBackendQuery(backend, 'listUserGroups', [])
   const organizationQuery = useSuspenseQuery({
     queryKey: [backend.type, 'getOrganization'],
     queryFn: () => backend.getOrganization(),
   })
   const organization = organizationQuery.data
+  const [localRootDirectory] = localStorageProvider.useLocalStorageState('localRootDirectory')
   const rootDirectoryId = React.useMemo(() => {
+    const localRootPath = localRootDirectory != null ? backendModule.Path(localRootDirectory) : null
     const id =
       'homeDirectoryId' in category ?
         category.homeDirectoryId
-      : backend.rootDirectoryId(user, organization)
+      : backend.rootDirectoryId(user, organization, localRootPath)
     invariant(id, 'Missing root directory')
     return id
-  }, [backend, category, user, organization])
+  }, [category, backend, user, organization, localRootDirectory])
   const [assetTree, setAssetTree] = React.useState<assetTreeNode.AnyAssetTreeNode>(() => {
     const rootParentDirectoryId = backendModule.DirectoryId('')
     const rootPath = 'rootPath' in category ? category.rootPath : backend.rootPath
@@ -477,9 +475,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     ReadonlyMap<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>
   >(new Map<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>())
   const isAssetContextMenuVisible =
-    category.type !== categoryModule.CategoryType.cloud ||
-    user.plan == null ||
-    user.plan === backendModule.Plan.solo
+    category.type !== 'cloud' || user.plan == null || user.plan === backendModule.Plan.solo
   const filter = React.useMemo(() => {
     const globCache: Record<string, RegExp> = {}
     if (/^\s*$/.test(query.query)) {
@@ -963,67 +959,59 @@ export default function AssetsTable(props: AssetsTableProps) {
     [driveStore, isCloud, setCanDownload],
   )
 
-  const overwriteNodes = React.useCallback(
-    (newAssets: readonly backendModule.AnyAsset[]) => {
-      mostRecentlySelectedIndexRef.current = null
-      selectionStartIndexRef.current = null
-      const rootPath = 'rootPath' in category ? category.rootPath : backend.rootPath
-      // This is required, otherwise we are using an outdated
-      // `nameOfProjectToImmediatelyOpen`.
-      const nameOfProjectToImmediatelyOpen = nameOfProjectToImmediatelyOpenRef.current
-      const rootParentDirectoryId = backendModule.DirectoryId('')
-      const rootDirectory = backendModule.createRootDirectoryAsset(rootDirectoryId)
-      const rootId = rootDirectory.id
-      const children = newAssets.map((asset) =>
-        AssetTreeNode.fromAsset(asset, rootId, rootId, 0, `${rootPath}/${asset.title}`, null),
-      )
-      const newRootNode = new AssetTreeNode(
-        rootDirectory,
-        rootParentDirectoryId,
-        rootParentDirectoryId,
-        children,
-        -1,
-        rootPath,
-        null,
-        rootId,
-        true,
-      )
-      setAssetTree(newRootNode)
-      // The project name here might also be a string with project id, e.g.
-      // when opening a project file from explorer on Windows.
-      const isInitialProject = (asset: backendModule.AnyAsset) =>
-        asset.title === nameOfProjectToImmediatelyOpen ||
-        asset.id === nameOfProjectToImmediatelyOpen
-      if (nameOfProjectToImmediatelyOpen != null) {
-        const projectToLoad = newAssets.filter(backendModule.assetIsProject).find(isInitialProject)
-        if (projectToLoad != null) {
-          const backendType = backendModule.BackendType.local
-          const { id, title, parentId } = projectToLoad
-          doOpenProject({ type: backendType, id, title, parentId })
-        } else {
-          toastAndLog('findProjectError', null, nameOfProjectToImmediatelyOpen)
-        }
+  const overwriteNodes = useEventCallback((newAssets: readonly backendModule.AnyAsset[]) => {
+    mostRecentlySelectedIndexRef.current = null
+    selectionStartIndexRef.current = null
+    const rootPath = 'rootPath' in category ? category.rootPath : backend.rootPath
+    // This is required, otherwise we are using an outdated
+    // `nameOfProjectToImmediatelyOpen`.
+    const nameOfProjectToImmediatelyOpen = nameOfProjectToImmediatelyOpenRef.current
+    const rootParentDirectoryId = backendModule.DirectoryId('')
+    const rootDirectory = backendModule.createRootDirectoryAsset(rootDirectoryId)
+    const rootId = rootDirectory.id
+    const children = newAssets.map((asset) =>
+      AssetTreeNode.fromAsset(asset, rootId, rootId, 0, `${rootPath}/${asset.title}`, null),
+    )
+    const newRootNode = new AssetTreeNode(
+      rootDirectory,
+      rootParentDirectoryId,
+      rootParentDirectoryId,
+      children,
+      -1,
+      rootPath,
+      null,
+      rootId,
+      true,
+    )
+    setAssetTree(newRootNode)
+    // The project name here might also be a string with project id, e.g.
+    // when opening a project file from explorer on Windows.
+    const isInitialProject = (asset: backendModule.AnyAsset) =>
+      asset.title === nameOfProjectToImmediatelyOpen || asset.id === nameOfProjectToImmediatelyOpen
+    if (nameOfProjectToImmediatelyOpen != null) {
+      const projectToLoad = newAssets.filter(backendModule.assetIsProject).find(isInitialProject)
+      if (projectToLoad != null) {
+        const backendType = backendModule.BackendType.local
+        const { id, title, parentId } = projectToLoad
+        doOpenProject({ type: backendType, id, title, parentId })
+      } else {
+        toastAndLog('findProjectError', null, nameOfProjectToImmediatelyOpen)
       }
-      setQueuedAssetEvents((oldQueuedAssetEvents) => {
-        if (oldQueuedAssetEvents.length !== 0) {
-          queueMicrotask(() => {
-            for (const event of oldQueuedAssetEvents) {
-              dispatchAssetEvent(event)
-            }
-          })
-        }
-        return []
-      })
-      nameOfProjectToImmediatelyOpenRef.current = null
-    },
-    [doOpenProject, rootDirectoryId, backend.rootPath, category, dispatchAssetEvent, toastAndLog],
-  )
+    }
+    setQueuedAssetEvents((oldQueuedAssetEvents) => {
+      if (oldQueuedAssetEvents.length !== 0) {
+        queueMicrotask(() => {
+          for (const event of oldQueuedAssetEvents) {
+            dispatchAssetEvent(event)
+          }
+        })
+      }
+      return []
+    })
+    nameOfProjectToImmediatelyOpenRef.current = null
+  })
   const overwriteNodesRef = React.useRef(overwriteNodes)
   overwriteNodesRef.current = overwriteNodes
-
-  React.useEffect(() => {
-    overwriteNodesRef.current([])
-  }, [backend, category])
 
   const rootDirectoryQuery = useBackendQuery(
     backend,
@@ -1032,7 +1020,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       {
         parentId: rootDirectoryId,
         filterBy: CATEGORY_TO_FILTER_BY[category.type],
-        recentProjects: category.type === categoryModule.CategoryType.recent,
+        recentProjects: category.type === 'recent',
         labels: null,
       },
       // The root directory has no name. This is also SAFE, as there is a different error
@@ -1155,7 +1143,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               {
                 parentId: directoryId,
                 filterBy: CATEGORY_TO_FILTER_BY[category.type],
-                recentProjects: category.type === categoryModule.CategoryType.recent,
+                recentProjects: category.type === 'recent',
                 labels: null,
               },
               displayedTitle,
@@ -1898,7 +1886,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         break
       }
       case AssetListEventType.emptyTrash: {
-        if (category.type !== categoryModule.CategoryType.trash) {
+        if (category.type !== 'trash') {
           toastAndLog('canOnlyEmptyTrashWhenInTrash')
         } else if (assetTree.children != null) {
           const ids = new Set(
@@ -2555,13 +2543,13 @@ export default function AssetsTable(props: AssetsTableProps) {
           {itemRows}
           <tr className="hidden h-row first:table-row">
             <td colSpan={columns.length} className="bg-transparent">
-              {category.type === categoryModule.CategoryType.trash ?
+              {category.type === 'trash' ?
                 <aria.Text className="px-cell-x placeholder">
                   {query.query !== '' ?
                     getText('noFilesMatchTheCurrentFilters')
                   : getText('yourTrashIsEmpty')}
                 </aria.Text>
-              : category.type === categoryModule.CategoryType.recent ?
+              : category.type === 'recent' ?
                 <aria.Text className="px-cell-x placeholder">
                   {query.query !== '' ?
                     getText('noFilesMatchTheCurrentFilters')
@@ -2581,9 +2569,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         data-testid="root-directory-dropzone"
         className={tailwindMerge.twMerge(
           'sticky left-0 grid max-w-container grow place-items-center',
-          (category.type === categoryModule.CategoryType.recent ||
-            category.type === categoryModule.CategoryType.trash) &&
-            'hidden',
+          (category.type === 'recent' || category.type === 'trash') && 'hidden',
         )}
         onDragEnter={onDropzoneDragOver}
         onDragOver={onDropzoneDragOver}
@@ -2638,121 +2624,124 @@ export default function AssetsTable(props: AssetsTableProps) {
     </div>
   )
 
-  return (
-    <div className="relative grow">
-      <FocusArea direction="vertical">
-        {(innerProps) => (
-          <div
-            {...aria.mergeProps<JSX.IntrinsicElements['div']>()(innerProps, {
-              ref: (value) => {
-                rootRef.current = value
-                cleanupRootRef.current()
-                if (value) {
-                  updateClipPathObserver.observe(value)
-                  cleanupRootRef.current = () => {
-                    updateClipPathObserver.unobserve(value)
+  return !isCloud && didLoadingProjectManagerFail ?
+      <ErrorDisplay
+        error={getText('couldNotConnectToPM')}
+        resetErrorBoundary={reconnectToProjectManager}
+      />
+    : <div className="relative grow">
+        <FocusArea direction="vertical">
+          {(innerProps) => (
+            <div
+              {...aria.mergeProps<JSX.IntrinsicElements['div']>()(innerProps, {
+                ref: (value) => {
+                  rootRef.current = value
+                  cleanupRootRef.current()
+                  if (value) {
+                    updateClipPathObserver.observe(value)
+                    cleanupRootRef.current = () => {
+                      updateClipPathObserver.unobserve(value)
+                    }
+                  } else {
+                    cleanupRootRef.current = () => {}
                   }
-                } else {
-                  cleanupRootRef.current = () => {}
-                }
-              },
-              className: 'flex-1 overflow-auto container-size w-full h-full',
-              onKeyDown,
-              onScroll: updateClipPath,
-              onBlur: (event) => {
-                if (
-                  event.relatedTarget instanceof HTMLElement &&
-                  !event.currentTarget.contains(event.relatedTarget)
-                ) {
-                  setKeyboardSelectedIndex(null)
-                }
-              },
-              onDragEnter: updateIsDraggingFiles,
-              onDragOver: updateIsDraggingFiles,
-              onDragLeave: (event) => {
-                if (
-                  !(event.relatedTarget instanceof Node) ||
-                  !event.currentTarget.contains(event.relatedTarget)
-                ) {
-                  lastSelectedIdsRef.current = null
-                  setIsDraggingFiles(false)
-                }
-              },
-            })}
-          >
-            {!hidden && hiddenContextMenu}
-            {!hidden && (
-              <SelectionBrush
-                targetRef={rootRef}
-                margin={8}
-                onDrag={onSelectionDrag}
-                onDragEnd={onSelectionDragEnd}
-                onDragCancel={onSelectionDragCancel}
-              />
-            )}
-            <div className="flex h-max min-h-full w-max min-w-full flex-col">
-              {isCloud && (
-                <div className="flex-0 sticky top-0 flex h-0 flex-col">
-                  <div
-                    data-testid="extra-columns"
-                    className="sticky right-0 flex self-end px-2 py-3"
-                  >
-                    <FocusArea direction="horizontal">
-                      {(columnsBarProps) => (
-                        <div
-                          {...aria.mergeProps<JSX.IntrinsicElements['div']>()(columnsBarProps, {
-                            className: 'inline-flex gap-icons',
-                            onFocus: () => {
-                              setKeyboardSelectedIndex(null)
-                            },
-                          })}
-                        >
-                          {columnUtils.CLOUD_COLUMNS.filter(
-                            (column) => !enabledColumns.has(column),
-                          ).map((column) => (
-                            <Button
-                              key={column}
-                              light
-                              image={columnUtils.COLUMN_ICONS[column]}
-                              alt={getText(columnUtils.COLUMN_SHOW_TEXT_ID[column])}
-                              onPress={() => {
-                                const newExtraColumns = new Set(enabledColumns)
-                                if (enabledColumns.has(column)) {
-                                  newExtraColumns.delete(column)
-                                } else {
-                                  newExtraColumns.add(column)
-                                }
-                                setEnabledColumns(newExtraColumns)
-                              }}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </FocusArea>
-                  </div>
-                </div>
+                },
+                className: 'flex-1 overflow-auto container-size w-full h-full',
+                onKeyDown,
+                onScroll: updateClipPath,
+                onBlur: (event) => {
+                  if (
+                    event.relatedTarget instanceof HTMLElement &&
+                    !event.currentTarget.contains(event.relatedTarget)
+                  ) {
+                    setKeyboardSelectedIndex(null)
+                  }
+                },
+                onDragEnter: updateIsDraggingFiles,
+                onDragOver: updateIsDraggingFiles,
+                onDragLeave: (event) => {
+                  if (
+                    !(event.relatedTarget instanceof Node) ||
+                    !event.currentTarget.contains(event.relatedTarget)
+                  ) {
+                    lastSelectedIdsRef.current = null
+                    setIsDraggingFiles(false)
+                  }
+                },
+              })}
+            >
+              {!hidden && hiddenContextMenu}
+              {!hidden && (
+                <SelectionBrush
+                  targetRef={rootRef}
+                  margin={8}
+                  onDrag={onSelectionDrag}
+                  onDragEnd={onSelectionDragEnd}
+                  onDragCancel={onSelectionDragCancel}
+                />
               )}
-              <div className="flex h-full w-min min-w-full grow flex-col">{table}</div>
+              <div className="flex h-max min-h-full w-max min-w-full flex-col">
+                {isCloud && (
+                  <div className="flex-0 sticky top-0 flex h-0 flex-col">
+                    <div
+                      data-testid="extra-columns"
+                      className="sticky right-0 flex self-end px-2 py-3"
+                    >
+                      <FocusArea direction="horizontal">
+                        {(columnsBarProps) => (
+                          <div
+                            {...aria.mergeProps<JSX.IntrinsicElements['div']>()(columnsBarProps, {
+                              className: 'inline-flex gap-icons',
+                              onFocus: () => {
+                                setKeyboardSelectedIndex(null)
+                              },
+                            })}
+                          >
+                            {columnUtils.CLOUD_COLUMNS.filter(
+                              (column) => !enabledColumns.has(column),
+                            ).map((column) => (
+                              <Button
+                                key={column}
+                                light
+                                image={columnUtils.COLUMN_ICONS[column]}
+                                alt={getText(columnUtils.COLUMN_SHOW_TEXT_ID[column])}
+                                onPress={() => {
+                                  const newExtraColumns = new Set(enabledColumns)
+                                  if (enabledColumns.has(column)) {
+                                    newExtraColumns.delete(column)
+                                  } else {
+                                    newExtraColumns.add(column)
+                                  }
+                                  setEnabledColumns(newExtraColumns)
+                                }}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </FocusArea>
+                    </div>
+                  </div>
+                )}
+                <div className="flex h-full w-min min-w-full grow flex-col">{table}</div>
+              </div>
+            </div>
+          )}
+        </FocusArea>
+        {isDraggingFiles && !isMainDropzoneVisible && (
+          <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2">
+            <div
+              className="flex items-center justify-center gap-3 rounded-default bg-selected-frame px-8 py-6 text-primary/50 backdrop-blur-3xl transition-all"
+              onDragEnter={onDropzoneDragOver}
+              onDragOver={onDropzoneDragOver}
+              onDrop={(event) => {
+                setIsDraggingFiles(false)
+                handleFileDrop(event)
+              }}
+            >
+              <SvgMask src={DropFilesImage} className="size-8" />
+              {dropzoneText}
             </div>
           </div>
         )}
-      </FocusArea>
-      {isDraggingFiles && !isMainDropzoneVisible && (
-        <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2">
-          <div
-            className="flex items-center justify-center gap-3 rounded-default bg-selected-frame px-8 py-6 text-primary/50 backdrop-blur-3xl transition-all"
-            onDragEnter={onDropzoneDragOver}
-            onDragOver={onDropzoneDragOver}
-            onDrop={(event) => {
-              setIsDraggingFiles(false)
-              handleFileDrop(event)
-            }}
-          >
-            <SvgMask src={DropFilesImage} className="size-8" />
-            {dropzoneText}
-          </div>
-        </div>
-      )}
-    </div>
-  )
+      </div>
 }
