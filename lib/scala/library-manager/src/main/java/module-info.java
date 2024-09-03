@@ -18,6 +18,7 @@ module org.enso.librarymanager {
   exports org.enso.librarymanager.dependencies;
   exports org.enso.librarymanager.local;
   exports org.enso.librarymanager.published;
+  exports org.enso.librarymanager.published.bundles;
   exports org.enso.librarymanager.published.repository;
   exports org.enso.librarymanager.resolved;
   exports org.enso.libraryupload;

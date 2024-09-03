@@ -36,4 +36,6 @@ module org.enso.language.server {
   requires org.enso.ydoc;
 
   exports org.enso.languageserver.filemanager to scala.library;
+  exports org.enso.languageserver.runtime to scala.library;
+  exports org.enso.languageserver.search to scala.library;
 }

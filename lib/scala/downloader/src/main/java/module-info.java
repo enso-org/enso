@@ -11,4 +11,7 @@ module org.enso.downloader {
 
   requires org.slf4j;
 
+  exports org.enso.downloader.http;
+  exports org.enso.downloader.archive;
+
 }
