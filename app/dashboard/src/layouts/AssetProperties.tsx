@@ -7,7 +7,7 @@ import PenIcon from '#/assets/pen.svg'
 
 import * as datalinkValidator from '#/data/datalinkValidator'
 
-import { backendMutationOptions, useListTags } from '#/hooks/backendHooks'
+import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -72,7 +72,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     },
     [setItemRaw],
   )
-  const labels = useListTags(backend) ?? []
+  const labels = useBackendQuery(backend, 'listTags', []).data ?? []
   const self = item.item.permissions?.find(
     backendModule.isUserPermissionAnd((permission) => permission.user.userId === user.userId),
   )
