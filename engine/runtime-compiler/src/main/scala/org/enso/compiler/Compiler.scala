@@ -573,7 +573,6 @@ class Compiler(
           context.updateModule(
             module,
             u => {
-              u.resetScope()
               u.ir(updatedIr)
             }
           )
