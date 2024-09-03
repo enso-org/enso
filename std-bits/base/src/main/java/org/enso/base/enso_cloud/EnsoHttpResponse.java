@@ -5,4 +5,8 @@ import java.net.URI;
 import java.net.http.HttpHeaders;
 
 /** A subset of the HttpResponse to avoid leaking the decrypted Enso secrets. */
-public record EnsoHttpResponse(URI uri, HttpHeaders headers, InputStream body, int statusCode) {}
+public record EnsoHttpResponse(URI uri, HttpHeaders headers, InputStream body, int statusCode) {
+  public String[] headerValues(String name) {
+    return headers.allValues(name).toArray(String[]::new);
+  }
+}

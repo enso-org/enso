@@ -106,8 +106,8 @@ type Response
     headers_by_name : Text -> Vector Text
     headers_by_name self name:Text =
         # This is a mapping that maps a header name to a list of values (since headers may be duplicated).
-        multi_map = self.internal_http_response.headers.map
-        if multi_map.containsKey name then Vector.from_polyglot_array (multi_map.get) name else []
+        headers = self.internal_http_response.headerValues name
+        Vector.from_polyglot_array headers
 
     ## ICON metadata
        Get the response content type.
