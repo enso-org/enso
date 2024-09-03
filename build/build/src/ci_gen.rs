@@ -114,7 +114,7 @@ pub mod secret {
     // === Enso Cloud Test Account ===
     pub const ENSO_CLOUD_COGNITO_POOL_ID: &str = "ENSO_CLOUD_COGNITO_POOL_ID";
     pub const ENSO_CLOUD_TEST_ACCOUNT_USERNAME: &str = "ENSO_CLOUD_TEST_ACCOUNT_USERNAME";
-    pub const ENSO_CLOUD_TEST_ACCOUNT_PASSWORD: &str = "ENSO_CLOUD_TEST_ACCOUNT_PASSWORD"; 
+    pub const ENSO_CLOUD_TEST_ACCOUNT_PASSWORD: &str = "ENSO_CLOUD_TEST_ACCOUNT_PASSWORD";
 
     // === Apple Code Signing & Notarization ===
     pub const APPLE_CODE_SIGNING_CERT: &str = "APPLE_CODE_SIGNING_CERT";
@@ -706,7 +706,10 @@ pub fn extra_nightly_tests() -> Result<Workflow> {
     // behavior.
     let target = (OS::Linux, Arch::X86_64);
     workflow.add(target, job::SnowflakeTests {});
-    workflow.add(target, job::StandardLibraryTests { graal_edition: graalvm::Edition::Community, cloud_tests_enabled: true });
+    workflow.add(target, job::StandardLibraryTests {
+        graal_edition:       graalvm::Edition::Community,
+        cloud_tests_enabled: true,
+    });
     Ok(workflow)
 }
 

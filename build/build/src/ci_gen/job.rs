@@ -212,24 +212,23 @@ impl JobArchetype for JvmTests {
 }
 
 fn enable_cloud_tests(step: Step) -> Step {
-    step
-        .with_secret_exposed_as(
-            secret::ENSO_CLOUD_COGNITO_POOL_ID, 
-            crate::cloud_tests::env::ci_config::ENSO_CLOUD_COGNITO_CLIENT_ID
-        )
-        .with_secret_exposed_as(
-            secret::ENSO_CLOUD_TEST_ACCOUNT_USERNAME, 
-            crate::cloud_tests::env::ci_config::ENSO_CLOUD_TEST_ACCOUNT_USERNAME
-        )
-        .with_secret_exposed_as(
-            secret::ENSO_CLOUD_TEST_ACCOUNT_PASSWORD, 
-            crate::cloud_tests::env::ci_config::ENSO_CLOUD_TEST_ACCOUNT_PASSWORD
-        )
+    step.with_secret_exposed_as(
+        secret::ENSO_CLOUD_COGNITO_POOL_ID,
+        crate::cloud_tests::env::ci_config::ENSO_CLOUD_COGNITO_CLIENT_ID,
+    )
+    .with_secret_exposed_as(
+        secret::ENSO_CLOUD_TEST_ACCOUNT_USERNAME,
+        crate::cloud_tests::env::ci_config::ENSO_CLOUD_TEST_ACCOUNT_USERNAME,
+    )
+    .with_secret_exposed_as(
+        secret::ENSO_CLOUD_TEST_ACCOUNT_PASSWORD,
+        crate::cloud_tests::env::ci_config::ENSO_CLOUD_TEST_ACCOUNT_PASSWORD,
+    )
 }
 
 #[derive(Clone, Copy, Debug)]
 pub struct StandardLibraryTests {
-    pub graal_edition: graalvm::Edition,
+    pub graal_edition:       graalvm::Edition,
     pub cloud_tests_enabled: bool,
 }
 
