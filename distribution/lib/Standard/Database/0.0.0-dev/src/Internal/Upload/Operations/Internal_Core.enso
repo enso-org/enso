@@ -31,7 +31,7 @@ internal_create_table_structure connection table_name structure primary_key temp
     validate_structure connection.base_connection.column_naming_helper aligned_structure <|
         create_table_statement = prepare_create_table_statement connection table_name aligned_structure resolved_primary_key temporary on_problems
         update_result = create_table_statement.if_not_error <|
-            log_sql_if_enabled connection.jdbc_connection create_table_statement
+            log_sql_if_enabled connection.jdbc_connection create_table_statement.to_text
             connection.execute create_table_statement
         final_result = update_result.if_not_error table_name
         final_result.catch SQL_Error sql_error->
