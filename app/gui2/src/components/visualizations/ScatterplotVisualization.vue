@@ -566,7 +566,17 @@ watchPostEffect(() => {
     .map((s) => {
       return data.value.axis[s as keyof AxesConfiguration].label
     })
-
+  const colorLegendScale = (d: string) => {
+    const color = d3
+      .scaleOrdinal()
+      .domain(seriesLabels)
+      .range(d3.schemeCategory10)
+      .domain(seriesLabels)
+    if (data.value.is_multi_series) {
+      return color(d)
+    }
+    return DEFAULT_FILL_COLOR
+  }
   const legend = d3Legend.value
 
   legend
@@ -579,7 +589,7 @@ watchPostEffect(() => {
     })
     .attr('cy', 10)
     .attr('r', 6)
-    .style('fill', (d) => colorScale(d))
+    .style('fill', (d) => colorLegendScale(d))
 
   legend
     .selectAll('labels')
