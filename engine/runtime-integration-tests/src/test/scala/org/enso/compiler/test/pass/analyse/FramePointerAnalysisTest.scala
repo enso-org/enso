@@ -470,8 +470,7 @@ class FramePointerAnalysisTest extends CompilerTest {
 
   private def findFP(ir: IR) = ir.passData
     .get(FramePointerAnalysis)
-    .filter(meta => meta.isInstanceOf[FramePointer]
-    )
+    .filter(meta => meta.isInstanceOf[FramePointer])
 
   /** Find the first IR element of the given `T` type by the given `filterCondition`.
     * @param filterCondition Filter condition will be applied to all the elements of the desired type.
