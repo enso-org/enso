@@ -225,7 +225,7 @@ impl BuiltEnso {
         };
 
         let mut environment_overrides: Vec<(String, String)> = vec![];
-        if let Some(credentials_file) = cloud_credentials_file {
+        if let Some(credentials_file) = cloud_credentials_file.as_ref() {
             let path_as_str = credentials_file.path().to_str();
             let path = path_as_str
                 .ok_or_else(|| anyhow!("Path to credentials file is not valid UTF-8"))?;
@@ -250,6 +250,8 @@ impl BuiltEnso {
         // Could share them with Arc but then scenario of multiple test runs being run in parallel
         // should be handled, e.g. avoiding port collisions.
         let results = ide_ci::future::join_all(futures, async_policy).await;
+        // Only drop the credentials file after all tests have finished.
+        drop(cloud_credentials_file);
         let errors = results.into_iter().filter_map(Result::err).collect::<Vec<_>>();
         if errors.is_empty() {
             Ok(())
