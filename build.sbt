@@ -1101,14 +1101,14 @@ lazy val filewatcher = project
       "org.slf4j"      % "slf4j-api"     % slf4jVersion
     ),
     Compile / internalModuleDependencies := Seq(
-      (`jpms-wrapper-methvin-directory-watcher` / Compile / exportedModule).value
+      (`directory-watcher-wrapper` / Compile / exportedModule).value
     ),
     Test / fork := true,
     Test / javaOptions ++= testLogProviderOptions
   )
   .dependsOn(testkit % Test)
   .dependsOn(`logging-service-logback` % "test->test")
-  .dependsOn(`jpms-wrapper-methvin-directory-watcher`)
+  .dependsOn(`directory-watcher-wrapper`)
 
 lazy val `logging-truffle-connector` = project
   .in(file("lib/scala/logging-truffle-connector"))
@@ -1256,8 +1256,8 @@ lazy val `language-server-deps-wrapper` = project
     }
   )
 
-lazy val `jpms-wrapper-methvin-directory-watcher` = project
-  .in(file("lib/java/jpms-wrapper-methvin-directory-watcher"))
+lazy val `directory-watcher-wrapper` = project
+  .in(file("lib/java/directory-watcher-wrapper"))
   .enablePlugins(JPMSPlugin)
   .settings(
     modularFatJarWrapperSettings,
@@ -1266,7 +1266,7 @@ lazy val `jpms-wrapper-methvin-directory-watcher` = project
       "org.slf4j" % "slf4j-api" % "1.7.36",
       "net.java.dev.jna"          % "jna"    % "5.13.0"
     ),
-    javaModuleName := "org.enso.jpms.wrapper.methvin.directory.watcher",
+    javaModuleName := "org.enso.directory.watcher.wrapper",
     assembly / assemblyExcludedJars := {
       val scalaVer = scalaBinaryVersion.value
       JPMSUtils.filterModulesFromClasspath(
@@ -2134,7 +2134,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       (`zio-wrapper` / Compile / exportedModule).value,
       (`scala-libs-wrapper` / Compile / exportedModule).value,
       (`language-server-deps-wrapper` / Compile / exportedModule).value,
-      (`jpms-wrapper-methvin-directory-watcher` / Compile / exportedModule).value,
+      (`directory-watcher-wrapper` / Compile / exportedModule).value,
       (`engine-runner-common` / Compile / exportedModule).value,
       (`ydoc-server` / Compile / exportedModule).value,
       (`logging-utils` / Compile / exportedModule).value,

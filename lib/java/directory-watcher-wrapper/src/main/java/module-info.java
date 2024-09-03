@@ -1,4 +1,4 @@
-module org.enso.jpms.wrapper.methvin.directory.watcher {
+module org.enso.directory.watcher.wrapper {
   requires scala.library;
   requires com.sun.jna;
   requires jdk.unsupported;
