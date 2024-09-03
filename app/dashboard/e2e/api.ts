@@ -537,7 +537,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       }
     })
     await get(remoteBackendPaths.LIST_USER_GROUPS_PATH + '*', async (route) => {
-      await route.fulfill({ json: [] })
+      await route.fulfill({ json: userGroups })
     })
     await get(remoteBackendPaths.LIST_VERSIONS_PATH + '*', (_route, request) => ({
       versions: [

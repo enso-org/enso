@@ -48,7 +48,7 @@ export function SetupOrganizationAfterSubscribe() {
     select: (data) => data?.name ?? '',
   })
 
-  const { data: hasUserGroups } = useSuspenseQuery({
+  const { data: userGroupsCount } = useSuspenseQuery({
     queryKey: ['userGroups', userId],
     queryFn: () => backend.listUserGroups().catch(() => null),
     staleTime: Infinity,
@@ -68,7 +68,7 @@ export function SetupOrganizationAfterSubscribe() {
 
   const shouldSetOrgName = PLANS_TO_SPECIFY_ORG_NAME.includes(userPlan) && organizationName === ''
   const shouldSetDefaultUserGroup =
-    PLANS_TO_SPECIFY_ORG_NAME.includes(userPlan) && hasUserGroups === 0
+    PLANS_TO_SPECIFY_ORG_NAME.includes(userPlan) && userGroupsCount === 0
   const shouldShowModal = userIsAdmin && (shouldSetOrgName || shouldSetDefaultUserGroup)
 
   const { stepperState } = Stepper.useStepperState({
@@ -154,7 +154,6 @@ export const SET_ORGANIZATION_NAME_FORM_SCHEMA = (getText: GetText) =>
     name: ariaComponents.Form.schema
       .string()
       .min(1, getText('arbitraryFieldRequired'))
-      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
       .max(ORGANIZATION_NAME_MAX_LENGTH, getText('arbitraryFieldTooLong')),
   })
 
