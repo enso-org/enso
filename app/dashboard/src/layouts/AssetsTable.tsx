@@ -110,7 +110,7 @@ declare module '#/utilities/LocalStorage' {
 }
 
 LocalStorage.registerKey('enabledColumns', {
-  schema: z.enum(columnUtils.CLOUD_COLUMNS).array().readonly(),
+  schema: z.enum(columnUtils.CLOUD_ENTERPRISE_COLUMNS).array().readonly(),
 })
 
 // =================
@@ -2083,7 +2083,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       rootRef.current != null &&
       headerRowRef.current != null
     ) {
-      const hiddenColumnsCount = columnUtils.CLOUD_COLUMNS.length - enabledColumns.size
+      const hiddenColumnsCount = columnUtils.CLOUD_ENTERPRISE_COLUMNS.length - enabledColumns.size
       const shrinkBy =
         COLUMNS_SELECTOR_BASE_WIDTH_PX + COLUMNS_SELECTOR_ICON_WIDTH_PX * hiddenColumnsCount
       const rightOffset = rootRef.current.clientWidth + rootRef.current.scrollLeft - shrinkBy
@@ -2703,7 +2703,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                               },
                             })}
                           >
-                            {columnUtils.CLOUD_COLUMNS.filter(
+                            {columnUtils.CLOUD_ENTERPRISE_COLUMNS.filter(
                               (column) => !enabledColumns.has(column),
                             ).map((column) => (
                               <Button
