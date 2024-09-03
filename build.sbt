@@ -2073,7 +2073,8 @@ lazy val `polyglot-api-macros` = project
   .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
-    compileOrder := CompileOrder.ScalaThenJava,
+    // Note [Compile module-info]
+    excludeFilter := excludeFilter.value || "module-info.java",
     libraryDependencies ++= Seq(
       "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"   % jsoniterVersion % "provided",
       "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion % "provided"
