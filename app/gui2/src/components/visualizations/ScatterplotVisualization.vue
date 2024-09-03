@@ -158,7 +158,7 @@ const data = computed<Data>(() => {
   const points = rawData.points ?? { labels: 'visible' }
   const focus: Focus | undefined = rawData.focus
   // eslint-disable-next-line camelcase
-  const is_multi_series: boolean = Boolean(rawData.is_multi_series)
+  const is_multi_series: boolean = !!rawData.is_multi_series
   // eslint-disable-next-line camelcase
   return { axis, points, data, focus, is_multi_series }
 })
@@ -186,9 +186,6 @@ const shouldAnimate = ref(false)
 const xDomain = ref([0, 1])
 const yDomain = ref([0, 1])
 const selectionEnabled = ref(false)
-const enableSelection = () => {
-  selectionEnabled.value = !selectionEnabled.value
-}
 
 const isBrushing = computed(() => brushExtent.value != null)
 const xScale = computed(() =>
@@ -407,8 +404,6 @@ function startZoom(event: d3.D3ZoomEvent<Element, unknown>) {
 }
 
 const brush = computed(() => {
-  selectionEnabled.value
-
   if (!selectionEnabled.value) {
     return d3.brush().extent([
       [0, 0],
@@ -672,7 +667,11 @@ useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSel
 <template>
   <VisualizationContainer :belowToolbar="true">
     <template #toolbar>
-      <SvgButton name="add" title="Enable Selection" @click="enableSelection()" />
+      <SvgButton
+        name="add"
+        title="Enable Selection"
+        @click="selectionEnabled = !selectionEnabled"
+      />
       <SvgButton name="show_all" title="Fit All" @click.stop="zoomToSelected(false)" />
       <SvgButton
         name="zoom"
