@@ -26,6 +26,7 @@ import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
+import { isOnMacOS } from 'enso-common/src/detect'
 
 // ====================
 // === DatalinkName ===
@@ -144,7 +145,7 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
       onClick={(event) => {
         if (handleClick(event)) {
           // Already handled.
-        } else if (eventModule.isSingleClick(event) && selected) {
+        } else if (eventModule.isSingleClick(event) && isOnMacOS() && selected) {
           setIsEditing(true)
         } else if (eventModule.isDoubleClick(event)) {
           event.stopPropagation()

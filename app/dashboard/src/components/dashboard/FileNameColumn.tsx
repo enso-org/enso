@@ -27,6 +27,7 @@ import * as object from '#/utilities/object'
 import * as string from '#/utilities/string'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
+import { isOnMacOS } from 'enso-common/src/detect'
 
 // ================
 // === FileName ===
@@ -171,7 +172,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
       onClick={(event) => {
         if (handleClick(event)) {
           // Already handled.
-        } else if (eventModule.isSingleClick(event) && selected) {
+        } else if (eventModule.isSingleClick(event) && isOnMacOS() && selected) {
           if (!isCloud) {
             setIsEditing(true)
           }

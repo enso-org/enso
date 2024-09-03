@@ -31,6 +31,7 @@ import * as string from '#/utilities/string'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import * as validation from '#/utilities/validation'
 import Visibility from '#/utilities/Visibility'
+import { isOnMacOS } from 'enso-common/src/detect'
 
 // =====================
 // === DirectoryName ===
@@ -166,6 +167,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
           // Already handled.
         } else if (
           eventModule.isSingleClick(event) &&
+          isOnMacOS() &&
           selected &&
           driveStore.getState().selectedKeys.size === 1
         ) {

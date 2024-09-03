@@ -37,6 +37,7 @@ import * as string from '#/utilities/string'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import * as validation from '#/utilities/validation'
 import Visibility from '#/utilities/Visibility'
+import { isOnMacOS } from 'enso-common/src/detect'
 
 // ===================
 // === ProjectName ===
@@ -314,7 +315,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         indent.indentClass(item.depth),
       )}
       onKeyDown={(event) => {
-        if (rowState.isEditingName && event.key === 'Enter') {
+        if (rowState.isEditingName && isOnMacOS() && event.key === 'Enter') {
           event.stopPropagation()
         }
       }}
