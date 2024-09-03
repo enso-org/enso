@@ -517,7 +517,10 @@ function getPlotData(data: Data) {
 function getTooltipMessage(point: Point) {
   if (data.value.is_multi_series) {
     const axis = data.value.axis
-    const label = point.series && point.series in axis ? axis[point.series].label : ''
+    const label =
+      point.series && point.series in axis ?
+        axis[point.series as keyof AxesConfiguration].label
+      : ''
     return `${point.x}, ${point.y}, ${label}`
   }
   return `${point.x}, ${point.y}`
@@ -561,7 +564,7 @@ watchPostEffect(() => {
   const series2 = Object.keys(data.value.axis)
     .filter((s) => s != 'x')
     .map((s) => {
-      return data.value.axis[s].label
+      return data.value.axis[s as keyof AxesConfiguration].label
     })
 
   const legend = d3Legend.value
