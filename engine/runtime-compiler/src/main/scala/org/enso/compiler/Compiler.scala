@@ -575,7 +575,6 @@ class Compiler(
             u => {
               u.resetScope()
               u.ir(updatedIr)
-              u.compilationStage(CompilationStage.AFTER_PARSING)
             }
           )
         }
