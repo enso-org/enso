@@ -67,7 +67,7 @@ const BASE_STEPS: Step[] = [
       const { getText } = textProvider.useText()
 
       const defaultName =
-        session && 'user' in session ? session.user.name : userSession?.email.split('@')[0] ?? ''
+        session && 'user' in session ? session.user.name : userSession?.email ?? ''
 
       return (
         <ariaComponents.Form
