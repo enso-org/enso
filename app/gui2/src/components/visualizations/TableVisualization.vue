@@ -222,7 +222,7 @@ function formatText(params: ICellRendererParams) {
   const partialMappings = {
     '\r': '<span style="color: #df8800">␍</span> <br>',
     '\n': '<span style="color: #df8800;">␊</span> <br>',
-    '\t': '<span style="white-space: break-spaces;">    </span>',
+    '\t': '<span style="color: #df8800; white-space: break-spaces;">&#8594;  |</span>',
   }
   const fullMappings = {
     '\r': '<span style="color: #df8800">␍</span> <br>',
@@ -233,11 +233,9 @@ function formatText(params: ICellRendererParams) {
   const replaceSpaces =
     textFormatterSelected.value === TextFormatOptions.On ?
       htmlEscaped.replaceAll(' ', '<span style="color: #df8800">&#183;</span>')
-    : htmlEscaped
-        .replace(/ {2,}|^ +| +$/g, function (match: string) {
-          return `<span style="color: #df8800">${'&#183;'.repeat(match.length)}</span>`
-        })
-        .replace(/^\t|\t$/g, '<span style="color: #df8800">&#8594;  |</span>')
+    : htmlEscaped.replace(/ \s+|^ +| +$/g, function (match: string) {
+        return `<span style="color: #df8800">${match.replaceAll(' ', '&#183;')}</span>`
+      })
 
   const replaceReturns = replaceSpaces.replace(
     /\r\n/g,
