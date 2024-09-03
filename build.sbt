@@ -1026,7 +1026,7 @@ lazy val `logging-service-logback` = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
-    compileOrder := CompileOrder.ScalaThenJava,
+    excludeFilter := excludeFilter.value || "module-info.java",
     version := "0.1",
     libraryDependencies ++= Seq(
       "org.slf4j"        % "slf4j-api"               % slf4jVersion,
@@ -1043,6 +1043,7 @@ lazy val `logging-service-logback` = project
       "ch.qos.logback"   % "logback-classic"         % logbackClassicVersion,
       "ch.qos.logback"   % "logback-core"            % logbackClassicVersion
     ),
+    Compile / shouldCompileModuleInfoManually := true,
     Compile / internalModuleDependencies := Seq(
       (`logging-service` / Compile / exportedModule).value,
       (`logging-config` / Compile / exportedModule).value
