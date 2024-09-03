@@ -174,7 +174,8 @@ function updateState(data: Data) {
     latitude: center.latitude,
     zoom: DEFAULT_MAP_ZOOM,
     pitch: 0,
-  }).fitBounds([
+  }).fitBounds(
+    [
       [center.minX, center.minY],
       [center.maxX, center.maxY],
     ],
