@@ -24,9 +24,6 @@ export project.Excel.Excel_Workbook.Excel_Workbook
 
 export project.Expression.expr
 
-export project.Extensions.Column_Vector_Extensions.compute
-export project.Extensions.Column_Vector_Extensions.compute_bulk
-export project.Extensions.Column_Vector_Extensions.running
 export project.Extensions.Column_Vector_Extensions.to_column
 export project.Extensions.Table_Conversions.from_objects
 export project.Extensions.Table_Conversions.parse_to_table
