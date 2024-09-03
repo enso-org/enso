@@ -187,7 +187,6 @@ const xDomain = ref([0, 1])
 const yDomain = ref([0, 1])
 const selectionEnabled = ref(false)
 const enableSelection = () => {
-  console.log('TOGGLED')
   selectionEnabled.value = !selectionEnabled.value
 }
 
@@ -533,7 +532,13 @@ watchPostEffect(() => {
   const yScale_ = yScale.value
   const plotData = getPlotData(data.value) as Point[]
   const series = Object.keys(data.value.axis).filter((s) => s != 'x')
-  const colorScale = d3.scaleOrdinal(d3.schemeCategory10).domain(series)
+  const colorScale = (d: string) => {
+    const color = d3.scaleOrdinal(d3.schemeCategory10).domain(series)
+    if (data.value.is_multi_series) {
+      return color(d)
+    }
+    return DEFAULT_FILL_COLOR
+  }
   d3Points.value
     .selectAll<SVGPathElement, unknown>('path')
     .data(plotData)
