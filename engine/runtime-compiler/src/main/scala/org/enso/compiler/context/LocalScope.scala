@@ -8,6 +8,7 @@ import org.enso.compiler.pass.analyse.alias.graph.{
 
 import scala.jdk.CollectionConverters._
 import org.enso.compiler.pass.analyse.FramePointerAnalysis
+import java.util.function.BiFunction
 
 /** A representation of an Enso local scope.
   *
@@ -42,17 +43,34 @@ class LocalScope(
 ) {
   lazy val scope: AliasGraph.Scope                 = scopeProvider()
   lazy val dataflowInfo: DataflowAnalysis.Metadata = dataflowInfoProvider()
-  def allSymbols(where: String): List[String] = {
+
+  /** Computes allSymbols needed by this scope. Either the value is obtained
+    * from symbolsProvider or (as a fallback) a computation from aliasingGraph
+    * is performed - the latter situation is logged, when log is not null.
+    *
+    * @param where human "friendly" identification of the caller
+    * @param log function to log or null if no logging is needed
+    */
+  def allSymbols(
+    where: String,
+    log: BiFunction[String, Array[Object], Void]
+  ): List[String] = {
     def symbols() = scope.allDefinitions.map(_.symbol)
     val meta      = if (symbolsProvider == null) null else symbolsProvider()
     if (meta != null && meta.variableNames.isDefined) {
       val cached = meta.variableNames.get
-      FramePointer.assertSame(where, cached, () => symbols())
+      if (log != null) {
+        FramePointer.assertSame(where, cached, () => symbols())
+      }
+      cached
     } else {
       val result = symbols()
-      System.err.println(
-        "BAD!!!! Computing from scope at " + where + " = " + result
-      )
+      if (log != null) {
+        log(
+          "Scope computed from AliasAnalysis at {0} = {1}",
+          Array(where, result)
+        )
+      }
       result
     }
   }

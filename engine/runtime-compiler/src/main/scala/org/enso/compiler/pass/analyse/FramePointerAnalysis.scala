@@ -349,7 +349,7 @@ case object FramePointerAnalysis extends IRPass {
     ir: IR,
     framePointer: FramePointer,
     variableNames: Option[List[String]]
-  ):  Unit = {
+  ): Unit = {
     ir.passData().get(this) match {
       case None =>
         ir.passData()
