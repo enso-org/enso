@@ -95,7 +95,7 @@ export class Server {
 
   /** Create a simple HTTP server. */
   constructor(public config: Config) {
-    this.projectsRootDirectory = projectManagement.getProjectsDirectory()
+    this.projectsRootDirectory = projectManagement.getProjectsDirectory().replace(/\\/g, '/')
   }
 
   /** Server constructor. */
