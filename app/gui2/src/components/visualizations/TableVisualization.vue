@@ -214,6 +214,10 @@ function formatText(params: ICellRendererParams) {
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
+    .replace(
+      /https?:\/\/([-()_.!~*';/?:@&=+$,A-Za-z0-9])+/g,
+      (url: string) => `<a href="${url}" target="_blank" class="link">${url}</a>`,
+    )
 
   if (textFormatterSelected.value === TextFormatOptions.Off) {
     return htmlEscaped.replace(/^\s+|\s+$/g, '&nbsp;')
