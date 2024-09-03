@@ -155,19 +155,16 @@ public final class PassPersistance {
 
     @SuppressWarnings("unchecked")
     protected Graph readObject(Input in) throws IOException {
-      var g = new Graph();
 
       var rootScope = (Graph.Scope) in.readObject();
       assignParents(rootScope);
-      g.rootScope_$eq(rootScope);
 
       var links =
           (scala.collection.immutable.Set) in.readInline(scala.collection.immutable.Set.class);
-      g.initLinks(links);
 
       var nextIdCounter = in.readInt();
-      g.nextIdCounter_$eq(nextIdCounter);
-
+      var g = new Graph(rootScope, nextIdCounter, links);
+      g.freeze();
       return g;
     }
 

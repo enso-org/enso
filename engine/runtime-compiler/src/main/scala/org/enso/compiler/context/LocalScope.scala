@@ -151,7 +151,8 @@ class LocalScope(
 object LocalScope {
   val empty: LocalScope = {
     val graph = new AliasGraph
-    val info  = DataflowAnalysis.DependencyInfo()
+    graph.freeze()
+    val info = DataflowAnalysis.DependencyInfo()
     val emptyVariableNames =
       new FramePointerAnalysis.FramePointerMeta(null, Some(List()))
     new LocalScope(
