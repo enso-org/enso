@@ -1,10 +1,6 @@
 package org.enso.interpreter.instrument.command
 
 import org.enso.interpreter.instrument.execution.RuntimeContext
-import org.enso.interpreter.instrument.job.{
-  EnsureCompiledJob,
-  SlowEnsureCompiledJob
-}
 import org.enso.polyglot.runtime.Runtime.Api
 
 import scala.concurrent.ExecutionContext
@@ -26,9 +22,5 @@ class SlowEditFileCmd(request: Api.EditFileNotification, delay: Boolean)
       }
     }
     super.executeSynchronously(ctx, ec)
-  }
-
-  override protected def compileJob(): EnsureCompiledJob = {
-    new SlowEnsureCompiledJob(Seq(request.path))
   }
 }

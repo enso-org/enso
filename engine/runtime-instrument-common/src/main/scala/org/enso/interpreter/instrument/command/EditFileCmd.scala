@@ -7,6 +7,7 @@ import org.enso.logger.masking.MaskedPath
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.logging.Level
+
 import scala.concurrent.ExecutionContext
 
 /** A command that performs edition of a file.
@@ -52,21 +53,17 @@ class EditFileCmd(request: Api.EditFileNotification)
             if (request.execute) {
               ctx.jobControlPlane.abortAllJobs()
               ctx.jobProcessor
-                .run(compileJob())
+                .run(new EnsureCompiledJob(Seq(request.path)))
                 .foreach(_ => executeJobs.foreach(ctx.jobProcessor.run))
             } else if (request.idMap.isDefined) {
-              ctx.jobProcessor.run(compileJob())
+              ctx.jobProcessor.run(new EnsureCompiledJob(Seq(request.path)))
             }
           }
         )
     )
   }
 
-  protected def compileJob(): EnsureCompiledJob = {
-    new EnsureCompiledJob(Seq(request.path))
-  }
-
-  protected def executeJobs(implicit
+  private def executeJobs(implicit
     ctx: RuntimeContext
   ): Iterable[ExecuteJob] = {
     ctx.contextManager.getAllContexts
