@@ -884,10 +884,10 @@ lazy val `scala-yaml` = (project in file("lib/scala/yaml"))
 lazy val pkg = (project in file("lib/scala/pkg"))
   .enablePlugins(JPMSPlugin)
   .settings(
-    Compile / run / mainClass := Some("org.enso.pkg.Main"),
     frgaalJavaCompilerSetting,
     compileOrder := CompileOrder.ScalaThenJava,
     version := "0.1",
+    Compile / run / mainClass := Some("org.enso.pkg.Main"),
     libraryDependencies ++= Seq(
       "io.circe"          %% "circe-core"       % circeVersion     % "provided",
       "org.yaml"           % "snakeyaml"        % snakeyamlVersion % "provided",
@@ -965,12 +965,12 @@ lazy val `logging-utils` = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    compileOrder := CompileOrder.ScalaThenJava, // Note [JPMS Compile order]
     version := "0.1",
     libraryDependencies ++= Seq(
       "org.scalatest" %% "scalatest" % scalatestVersion % Test,
       "org.slf4j"      % "slf4j-api" % slf4jVersion
     ) ++ logbackTest,
-    compileOrder := CompileOrder.ScalaThenJava, // Note [JPMS Compile order]
     Compile / moduleDependencies := {
       Seq(
         "org.scala-lang" % "scala-library" % scalacVersion,
@@ -1026,6 +1026,7 @@ lazy val `logging-service-logback` = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    compileOrder := CompileOrder.ScalaThenJava,
     version := "0.1",
     libraryDependencies ++= Seq(
       "org.slf4j"        % "slf4j-api"               % slf4jVersion,
@@ -1042,7 +1043,6 @@ lazy val `logging-service-logback` = project
       "ch.qos.logback"   % "logback-classic"         % logbackClassicVersion,
       "ch.qos.logback"   % "logback-core"            % logbackClassicVersion
     ),
-    compileOrder := CompileOrder.ScalaThenJava,
     Compile / internalModuleDependencies := Seq(
       (`logging-service` / Compile / exportedModule).value,
       (`logging-config` / Compile / exportedModule).value
@@ -1087,6 +1087,7 @@ lazy val filewatcher = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    compileOrder := CompileOrder.ScalaThenJava,
     javaModuleName := "org.enso.filewatcher",
     version := "0.1",
     libraryDependencies ++= Seq(
@@ -1095,7 +1096,6 @@ lazy val filewatcher = project
       "org.slf4j"      % "slf4j-api"         % slf4jVersion,
       "org.scalatest" %% "scalatest"         % scalatestVersion % Test
     ),
-    compileOrder := CompileOrder.ScalaThenJava,
     Compile / moduleDependencies := Seq(
       "org.scala-lang" % "scala-library" % scalacVersion,
       "org.slf4j"      % "slf4j-api"     % slf4jVersion
@@ -1677,6 +1677,7 @@ lazy val `json-rpc-server` = project
   .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
+    compileOrder := CompileOrder.ScalaThenJava,
     libraryDependencies ++= akka ++ logbackTest,
     libraryDependencies ++= circe,
     libraryDependencies ++= Seq(
@@ -1691,7 +1692,6 @@ lazy val `json-rpc-server` = project
       "org.apache.httpcomponents"   % "httpcore"        % httpComponentsVersion % Test,
       "commons-io"                  % "commons-io"      % commonsIoVersion      % Test
     ),
-    compileOrder := CompileOrder.ScalaThenJava,
     Compile / moduleDependencies := {
       val scalaVer = scalaBinaryVersion.value
       Seq(
@@ -1726,6 +1726,7 @@ lazy val testkit = project
   .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
+    compileOrder := CompileOrder.ScalaThenJava,
     javaModuleName := "org.enso.testkit",
     libraryDependencies ++= logbackPkg ++ Seq(
       "org.apache.commons" % "commons-lang3"   % commonsLangVersion,
@@ -1735,7 +1736,6 @@ lazy val testkit = project
       "com.github.sbt"     % "junit-interface" % junitIfVersion,
       "org.slf4j" % "slf4j-api" % slf4jVersion,
     ),
-    compileOrder := CompileOrder.ScalaThenJava,
     packageOptions := Seq(
       Package.ManifestAttributes(
         (
@@ -1754,11 +1754,11 @@ lazy val searcher = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    compileOrder := CompileOrder.ScalaThenJava,
     annotationProcSetting,
     libraryDependencies ++= jmh ++ Seq(
       "org.scalatest" %% "scalatest" % scalatestVersion % Test
     ) ++ logbackTest,
-    compileOrder := CompileOrder.ScalaThenJava,
     Compile / moduleDependencies := Seq(
       "org.scala-lang" % "scala-library" % scalacVersion
     ),
@@ -2073,11 +2073,11 @@ lazy val `polyglot-api-macros` = project
   .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
+    compileOrder := CompileOrder.ScalaThenJava,
     libraryDependencies ++= Seq(
       "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"   % jsoniterVersion % "provided",
       "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion % "provided"
     ),
-    compileOrder := CompileOrder.ScalaThenJava,
     Compile / moduleDependencies := Seq(
       "org.scala-lang" % "scala-library" % scalacVersion
     ),
@@ -2426,6 +2426,8 @@ def customFrgaalJavaCompilerSettings(targetJdk: String) = {
         // with JPMSPlugin. That's why we have to check first for its existance.
         val settingOpt = (config / shouldCompileModuleInfoManually).?.value
         val shouldCompileModInfo = settingOpt.isDefined && settingOpt.get
+        val projName = projectID.value.name
+        println(s"[customFrgaalOpts/$projName] shouldCompileModInfo=$shouldCompileModInfo")
         FrgaalJavaCompiler.compilers(
           (config / dependencyClasspath).value,
           compilers.value,
@@ -3209,6 +3211,7 @@ lazy val `engine-runner` = project
   .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
+    compileOrder := CompileOrder.JavaThenScala,
     truffleDslSuppressWarnsSetting,
     packageOptions := Seq(
       // The `Multi-Release: true` comes from the `org.xerial/sqlite-jdbc` dependency.
@@ -3217,7 +3220,6 @@ lazy val `engine-runner` = project
       Package.ManifestAttributes(("Multi-Release", "true"))
     ),
     Compile / run / mainClass := Some("org.enso.runner.Main"),
-    compileOrder := CompileOrder.JavaThenScala,
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
     libraryDependencies ++= Seq(
@@ -3873,9 +3875,9 @@ lazy val `library-manager-test` = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    compileOrder := CompileOrder.ScalaThenJava,
     Test / fork := true,
     commands += WithDebugCommand.withDebug,
-    compileOrder := CompileOrder.ScalaThenJava,
     Test / javaOptions ++= testLogProviderOptions,
     Test / test := (Test / test).tag(simpleLibraryServerTag).value,
     libraryDependencies ++= Seq(

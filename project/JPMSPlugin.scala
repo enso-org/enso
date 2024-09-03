@@ -16,6 +16,8 @@ import scala.collection.mutable
   *
   * If this plugin is enabled, and no settings/tasks from this plugin are used, then the plugin will
   * not inject anything into `javaOptions` or `javacOptions`.
+ *
+ * - `compileOrder` has to be specified before `libraryDependencies`
   */
 object JPMSPlugin extends AutoPlugin {
   object autoImport {
