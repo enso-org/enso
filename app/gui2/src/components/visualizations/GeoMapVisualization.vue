@@ -175,8 +175,8 @@ function updateState(data: Data) {
     zoom: DEFAULT_MAP_ZOOM,
     pitch: 0,
   }).fitBounds([
-    [center.minX, center.maxY],
-    [center.maxX, center.minY],
+      [center.minX, center.minY],
+      [center.maxX, center.maxY],
     ],
     { padding: 10, maxZoom: DEFAULT_MAX_MAP_ZOOM },
   )
