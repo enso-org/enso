@@ -40,8 +40,8 @@ import * as backend from '#/services/Backend'
 import type LocalBackend from '#/services/LocalBackend'
 import type RemoteBackend from '#/services/RemoteBackend'
 
-import * as object from '#/utilities/object'
 import { normalizePath } from '#/utilities/fileInfo'
+import * as object from '#/utilities/object'
 
 // =========================
 // === SettingsEntryType ===
