@@ -64,7 +64,7 @@ export const mockApi: (params: MockParams) => Promise<MockApi> = mockApiInternal
  * Wait for a given number of milliseconds.
  */
 // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-function wait(ms: number = 5_000) {
+function wait(ms: number = 0) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
