@@ -9,8 +9,6 @@ public interface ExecutionHooks {
    */
   void add(Runnable hook);
 
-  /**
-   * Consume and run all the stored execution hooks.
-   */
+  /** Consume and run all the stored execution hooks. */
   void run();
 }
