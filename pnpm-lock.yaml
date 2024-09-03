@@ -618,7 +618,7 @@ importers:
     devDependencies:
       '@babel/plugin-syntax-import-attributes':
         specifier: ^7.24.7
-        version: 7.24.7(@babel/core@7.24.7)
+        version: 7.24.7(@babel/core@7.25.2)
       '@electron/notarize':
         specifier: 2.1.0
         version: 2.1.0
@@ -640,6 +640,9 @@ importers:
       '@types/yargs':
         specifier: ^17.0.30
         version: 17.0.32
+      cross-env:
+        specifier: ^7.0.3
+        version: 7.0.3
       electron:
         specifier: 31.2.0
         version: 31.2.0
@@ -8122,8 +8125,7 @@ snapshots:
 
   '@babel/compat-data@7.24.7': {}
 
-  '@babel/compat-data@7.25.2':
-    optional: true
+  '@babel/compat-data@7.25.2': {}
 
   '@babel/core@7.24.7':
     dependencies:
@@ -8164,7 +8166,6 @@ snapshots:
       semver: 6.3.1
     transitivePeerDependencies:
       - supports-color
-    optional: true
 
   '@babel/generator@7.24.7':
     dependencies:
@@ -8179,7 +8180,6 @@ snapshots:
       '@jridgewell/gen-mapping': 0.3.5
       '@jridgewell/trace-mapping': 0.3.25
       jsesc: 2.5.2
-    optional: true
 
   '@babel/helper-annotate-as-pure@7.24.7':
     dependencies:
@@ -8200,7 +8200,6 @@ snapshots:
       browserslist: 4.23.3
       lru-cache: 5.1.1
       semver: 6.3.1
-    optional: true
 
   '@babel/helper-create-class-features-plugin@7.24.7(@babel/core@7.24.7)':
     dependencies:
@@ -8268,7 +8267,6 @@ snapshots:
       '@babel/traverse': 7.25.3
     transitivePeerDependencies:
       - supports-color
-    optional: true
 
   '@babel/helper-optimise-call-expression@7.24.7':
     dependencies:
@@ -8305,15 +8303,13 @@ snapshots:
 
   '@babel/helper-string-parser@7.24.7': {}
 
-  '@babel/helper-string-parser@7.24.8':
-    optional: true
+  '@babel/helper-string-parser@7.24.8': {}
 
   '@babel/helper-validator-identifier@7.24.7': {}
 
   '@babel/helper-validator-option@7.24.7': {}
 
-  '@babel/helper-validator-option@7.24.8':
-    optional: true
+  '@babel/helper-validator-option@7.24.8': {}
 
   '@babel/helpers@7.24.7':
     dependencies:
@@ -8324,7 +8320,6 @@ snapshots:
     dependencies:
       '@babel/template': 7.25.0
       '@babel/types': 7.25.2
-    optional: true
 
   '@babel/highlight@7.24.7':
     dependencies:
@@ -8340,7 +8335,6 @@ snapshots:
   '@babel/parser@7.25.3':
     dependencies:
       '@babel/types': 7.25.2
-    optional: true
 
   '@babel/plugin-proposal-decorators@7.24.7(@babel/core@7.24.7)':
     dependencies:
@@ -8359,6 +8353,11 @@ snapshots:
   '@babel/plugin-syntax-import-attributes@7.24.7(@babel/core@7.24.7)':
     dependencies:
       '@babel/core': 7.24.7
+      '@babel/helper-plugin-utils': 7.24.7
+
+  '@babel/plugin-syntax-import-attributes@7.24.7(@babel/core@7.25.2)':
+    dependencies:
+      '@babel/core': 7.25.2
       '@babel/helper-plugin-utils': 7.24.7
 
   '@babel/plugin-syntax-import-meta@7.10.4(@babel/core@7.24.7)':
@@ -8411,7 +8410,6 @@ snapshots:
       '@babel/code-frame': 7.24.7
       '@babel/parser': 7.25.3
       '@babel/types': 7.25.2
-    optional: true
 
   '@babel/traverse@7.24.7':
     dependencies:
@@ -8439,7 +8437,6 @@ snapshots:
       globals: 11.12.0
     transitivePeerDependencies:
       - supports-color
-    optional: true
 
   '@babel/types@7.24.7':
     dependencies:
@@ -8452,7 +8449,6 @@ snapshots:
       '@babel/helper-string-parser': 7.24.8
       '@babel/helper-validator-identifier': 7.24.7
       to-fast-properties: 2.0.0
-    optional: true
 
   '@bcoe/v8-coverage@0.2.3': {}
 
@@ -11458,7 +11454,6 @@ snapshots:
       electron-to-chromium: 1.5.12
       node-releases: 2.0.18
       update-browserslist-db: 1.1.0(browserslist@4.23.3)
-    optional: true
 
   buffer-alloc-unsafe@1.1.0: {}
 
@@ -11561,8 +11556,7 @@ snapshots:
 
   caniuse-lite@1.0.30001639: {}
 
-  caniuse-lite@1.0.30001651:
-    optional: true
+  caniuse-lite@1.0.30001651: {}
 
   capital-case@1.0.4:
     dependencies:
@@ -12253,8 +12247,7 @@ snapshots:
 
   electron-to-chromium@1.4.815: {}
 
-  electron-to-chromium@1.5.12:
-    optional: true
+  electron-to-chromium@1.5.12: {}
 
   electron@31.2.0:
     dependencies:
@@ -14071,8 +14064,7 @@ snapshots:
 
   node-releases@2.0.14: {}
 
-  node-releases@2.0.18:
-    optional: true
+  node-releases@2.0.18: {}
 
   nopt@7.2.1:
     dependencies:
@@ -15517,7 +15509,6 @@ snapshots:
       browserslist: 4.23.3
       escalade: 3.1.2
       picocolors: 1.0.1
-    optional: true
 
   upper-case-first@2.0.2:
     dependencies:
