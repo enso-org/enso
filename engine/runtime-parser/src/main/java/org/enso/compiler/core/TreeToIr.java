@@ -1019,20 +1019,21 @@ final class TreeToIr {
           }
           last = translateExpression(expr, false);
         }
-        // If the block ended in a documentation node without an expression, last may be null;
-        // the return value of the block is a doc comment.
-        // (This is to match the behavior of AstToIr; after the parser transition, we should probably
-        // ignore the orphaned documentation and return the last actual expression in the block.)
-        if (last == null && expressions.size() > 0) {
-          last = expressions.get(expressions.size() - 1);
-          expressions.remove(expressions.size() - 1);
+        var locationWithANewLine = getIdentifiedLocation(body, 0, 0, null);
+        if (last == null) {
+          if (expressions.isEmpty()) {
+            last = new Empty(locationWithANewLine, meta());
+          } else {
+            last = expressions.get(expressions.size() - 1);
+            expressions.remove(expressions.size() - 1);
+          }
         }
         var list = CollectionConverters.asScala(expressions.iterator()).toList();
-        var locationWithANewLine = getIdentifiedLocation(body, 0, 0, null);
-        if (last != null && last.location().isDefined()
+        if (last != null
+            && last.location().isDefined()
             && last.location().get().end() != locationWithANewLine.get().end()) {
-          var patched = new Location(last.location().get().start(),
-              locationWithANewLine.get().end() - 1);
+          var patched =
+              new Location(last.location().get().start(), locationWithANewLine.get().end() - 1);
           var id = IdentifiedLocation.create(patched, last.location().get().id());
           last = last.setLocation(Option.apply(id));
         }
