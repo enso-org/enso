@@ -144,7 +144,7 @@ case object FramePointerAnalysis extends IRPass {
                 case Some(child) =>
                   updateSymbolNames(defaultValue, child.scope)
                 case _ =>
-                  updateSymbolNames(defaultValue, defaultValueGraph)
+                  ()
               }
             case None =>
               processExpression(defaultValue, graph)
@@ -170,7 +170,6 @@ case object FramePointerAnalysis extends IRPass {
         processArgumentDefs(args, graph)
         processExpression(body, graph)
       case binding @ Expression.Binding(name, expr, _, _) =>
-        maybeAttachFramePointer(binding, graph)
         maybeAttachFramePointer(name, graph)
         processExpression(expr, graph)
         maybeAttachFramePointer(binding, graph)
@@ -184,12 +183,12 @@ case object FramePointerAnalysis extends IRPass {
     }
     if (updateSymbols) {
       getAliasAnalysisGraph(exprIr) match {
-        case Some(graph) =>
+        case Some(_) =>
           getAliasChildScope(exprIr) match {
             case Some(child) =>
               updateSymbolNames(exprIr, child.scope)
             case _ =>
-              updateSymbolNames(exprIr, graph)
+              ()
           }
         case _ => ()
       }
@@ -263,7 +262,6 @@ case object FramePointerAnalysis extends IRPass {
           "Unexpected type of Application: " + application
         )
     }
-    updateSymbolNames(application, graph)
   }
 
   private def processCallArguments(
@@ -278,13 +276,13 @@ case object FramePointerAnalysis extends IRPass {
         case Some(child) =>
           updateSymbolNames(value, child.scope)
         case _ =>
-          updateSymbolNames(value, graph)
+          ()
       }
       getAliasChildScope(arg) match {
         case Some(child) =>
           updateSymbolNames(arg, child.scope)
         case _ =>
-          updateSymbolNames(arg, graph)
+          ()
       }
     }
   }
@@ -351,30 +349,17 @@ case object FramePointerAnalysis extends IRPass {
     ir: IR,
     framePointer: FramePointer,
     variableNames: Option[List[String]]
-  ): Unit = {
+  ):  Unit = {
     ir.passData().get(this) match {
       case None =>
         ir.passData()
           .update(this, new FramePointerMeta(framePointer, variableNames))
-      case Some(meta: FramePointerMeta) =>
-        val fp = if (framePointer != null) {
-          assert(meta.framePointer == null || meta.framePointer == framePointer)
-          framePointer
-        } else {
-          meta.framePointer;
-        }
-        val vn = if (variableNames.isDefined) {
-          assert(
-            meta.variableNames.isEmpty || meta.variableNames == variableNames
-          )
-          variableNames
-        } else {
-          meta.variableNames
-        }
-        ir.passData()
-          .update(this, new FramePointerMeta(fp, vn))
-      case x =>
-        throw new IllegalStateException("" + x)
+      case Some(meta) =>
+        val ex = new IllegalStateException(
+          "Old: " + meta + " new " + framePointer + " newVar: " + variableNames
+        )
+        ex.setStackTrace(ex.getStackTrace().slice(0, 10))
+        throw ex
     }
   }
 
@@ -489,7 +474,6 @@ case object FramePointerAnalysis extends IRPass {
         "Either framePointer or variableNames must be present"
       )
     }
-
     override val metadataName: String = "FramePointer"
 
     def parentLevel(): Int = framePointer.parentLevel
