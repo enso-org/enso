@@ -51,14 +51,14 @@ case object FramePointerAnalysis extends IRPass {
                 graph
               ) => // tam kde je Some(graph) tam chceme dát seznam proměnných
             processExpression(m.body, graph)
-            updateSymbolNames(m, graph)
+            updateSymbolNames(m, graph.rootScope)
           case _ => ()
         }
       case m: Method.Conversion =>
         getAliasAnalysisGraph(m) match {
           case Some(graph) =>
             processExpression(m.body, graph)
-            updateSymbolNames(m, graph)
+            updateSymbolNames(m, graph.rootScope)
           case _ => ()
         }
       case t: Definition.Type =>
@@ -75,9 +75,9 @@ case object FramePointerAnalysis extends IRPass {
               member.annotations.foreach { annotation =>
                 processAnnotation(annotation, memberGraph)
               }
-              updateSymbolNames(member, memberGraph)
+              updateSymbolNames(member, memberGraph.rootScope)
             }
-            updateSymbolNames(t, graph)
+            updateSymbolNames(t, graph.rootScope)
           case _ => ()
         }
       case annot: GenericAnnotation =>
@@ -91,10 +91,6 @@ case object FramePointerAnalysis extends IRPass {
         }
       case _ => ()
     }
-  }
-
-  private def updateSymbolNames(e: IR, g: Graph): Unit = {
-    updateSymbolNames(e, g.rootScope)
   }
 
   private def updateSymbolNames(e: IR, s: Graph.Scope): Unit = {
@@ -111,7 +107,7 @@ case object FramePointerAnalysis extends IRPass {
         rootScope.graph
       case None => graph
     }
-    updateSymbolNames(annot, annotGraph)
+    updateSymbolNames(annot, annotGraph.rootScope)
     processExpression(annot.expression, annotGraph)
   }
 
@@ -133,12 +129,7 @@ case object FramePointerAnalysis extends IRPass {
           getAliasAnalysisGraph(defaultValue) match {
             case Some(defaultValueGraph) =>
               processExpression(defaultValue, defaultValueGraph, false)
-              getAliasChildScope(defaultValue) match {
-                case Some(child) =>
-                  updateSymbolNames(defaultValue, child.scope)
-                case _ =>
-                  ()
-              }
+              maybAttachFrameVariableNames(defaultValue)
             case None =>
               processExpression(defaultValue, graph)
           }
@@ -175,16 +166,7 @@ case object FramePointerAnalysis extends IRPass {
       case _ => ()
     }
     if (updateSymbols) {
-      getAliasAnalysisGraph(exprIr) match {
-        case Some(_) =>
-          getAliasChildScope(exprIr) match {
-            case Some(child) =>
-              updateSymbolNames(exprIr, child.scope)
-            case _ =>
-              ()
-          }
-        case _ => ()
-      }
+      maybAttachFrameVariableNames(exprIr)
     }
   }
 
@@ -197,12 +179,7 @@ case object FramePointerAnalysis extends IRPass {
           "An alias analysis graph is expected on " + branch
         )
       case Some(graph) =>
-        getAliasChildScope(branch) match {
-          case Some(child) =>
-            updateSymbolNames(branch, child.scope)
-          case _ =>
-            updateSymbolNames(branch, graph)
-        }
+        maybAttachFrameVariableNames(branch)
         processExpression(branch.expression, graph)
         processCasePattern(branch.pattern, graph)
     }
@@ -230,7 +207,7 @@ case object FramePointerAnalysis extends IRPass {
       case _: Pattern.Documentation => ()
       case _                        => ()
     }
-    updateSymbolNames(pattern, graph)
+    updateSymbolNames(pattern, graph.rootScope)
   }
 
   private def processApplication(
@@ -265,18 +242,21 @@ case object FramePointerAnalysis extends IRPass {
       maybeAttachFramePointer(arg, graph)
       name.foreach(maybeAttachFramePointer(_, graph))
       processExpression(value, graph, false)
-      getAliasChildScope(value) match {
-        case Some(child) =>
-          updateSymbolNames(value, child.scope)
-        case _ =>
-          ()
-      }
-      getAliasChildScope(arg) match {
-        case Some(child) =>
-          updateSymbolNames(arg, child.scope)
-        case _ =>
-          ()
-      }
+      maybAttachFrameVariableNames(value)
+      maybAttachFrameVariableNames(arg)
+    }
+  }
+
+  private def maybAttachFrameVariableNames(ir: IR): Unit = {
+    getAliasRootScope(ir) match {
+      case Some(root) =>
+        updateSymbolNames(ir, root.graph.rootScope)
+      case _ => ()
+    }
+    getAliasChildScope(ir) match {
+      case Some(child) =>
+        updateSymbolNames(ir, child.scope)
+      case _ => ()
     }
   }
 
