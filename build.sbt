@@ -2885,6 +2885,7 @@ lazy val `runtime-benchmarks` =
           "commons-io"     % "commons-io"        % commonsIoVersion,
           "org.apache.tika"     % "tika-core"                    % tikaVersion,
           "org.slf4j"           % "slf4j-api"                    % slf4jVersion,
+          "org.slf4j"        % "slf4j-nop"                    % slf4jVersion,
           "org.netbeans.api"    % "org-openide-util-lookup"      % netbeansApiVersion,
           "org.netbeans.api"    % "org-netbeans-modules-sampler" % netbeansApiVersion,
           "com.ibm.icu"         % "icu4j"                        % icuVersion,
@@ -2936,6 +2937,10 @@ lazy val `runtime-benchmarks` =
         (`downloader` / Compile / exportedModule).value,
         (`logging-config` / Compile / exportedModule).value,
         (`logging-service` / Compile / exportedModule).value,
+      ),
+      Compile / addModules := Seq(
+        (`runtime` / javaModuleName).value,
+        "org.slf4j.nop"
       ),
       // Benchmark sources are patched into the `org.enso.runtime` module
       Compile / patchModules := {
