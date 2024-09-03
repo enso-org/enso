@@ -243,6 +243,7 @@ const yLabelLeft = computed(
     getTextWidthBySizeAndFamily(data.value.axis.y.label, LABEL_FONT_STYLE) / 2,
 )
 const yLabelTop = computed(() => -margin.value.left + 15)
+const showYLabelText = computed(() => !data.value.is_multi_series)
 
 watchEffect(() => {
   const boundsExpression =
@@ -560,52 +561,53 @@ watchPostEffect(() => {
       .attr('x', (d) => xScale_(d.x) + POINT_LABEL_PADDING_X_PX)
       .attr('y', (d) => yScale_(d.y) + POINT_LABEL_PADDING_Y_PX)
   }
-
-  const seriesLabels = Object.keys(data.value.axis)
-    .filter((s) => s != 'x')
-    .map((s) => {
-      return data.value.axis[s as keyof AxesConfiguration].label
-    })
-  const formatLabel = (string: string) =>
-    string.length > 10 ? `${string.substr(0, 10)}...` : string
-  const colorLegendScale = (d: string) => {
-    const color = d3
-      .scaleOrdinal()
-      .domain(seriesLabels)
-      .range(d3.schemeCategory10)
-      .domain(seriesLabels)
-    if (data.value.is_multi_series) {
-      return color(d)
+  if (data.value.is_multi_series) {
+    const seriesLabels = Object.keys(data.value.axis)
+      .filter((s) => s != 'x')
+      .map((s) => {
+        return data.value.axis[s as keyof AxesConfiguration].label
+      })
+    const formatLabel = (string: string) =>
+      string.length > 10 ? `${string.substr(0, 10)}...` : string
+    const colorLegendScale = (d: string) => {
+      const color = d3
+        .scaleOrdinal()
+        .domain(seriesLabels)
+        .range(d3.schemeCategory10)
+        .domain(seriesLabels)
+      if (data.value.is_multi_series) {
+        return color(d)
+      }
+      return DEFAULT_FILL_COLOR
     }
-    return DEFAULT_FILL_COLOR
+    const legend = d3Legend.value
+
+    legend
+      .selectAll('dots')
+      .data(seriesLabels)
+      .enter()
+      .append('circle')
+      .attr('cx', function (d, i) {
+        return 90 + i * 120
+      })
+      .attr('cy', 10)
+      .attr('r', 6)
+      .style('fill', (d) => colorLegendScale(d))
+
+    legend
+      .selectAll('labels')
+      .data(seriesLabels)
+      .enter()
+      .append('text')
+      .attr('x', function (d, i) {
+        return 100 + i * 120
+      })
+      .attr('y', 10)
+      .style('font-size', '15px')
+      .text((d) => formatLabel(d))
+      .attr('alignment-baseline', 'middle')
+      .call((labels) => labels.append('title').text((d) => d))
   }
-  const legend = d3Legend.value
-
-  legend
-    .selectAll('dots')
-    .data(seriesLabels)
-    .enter()
-    .append('circle')
-    .attr('cx', function (d, i) {
-      return 90 + i * 120
-    })
-    .attr('cy', 10)
-    .attr('r', 6)
-    .style('fill', (d) => colorLegendScale(d))
-
-  legend
-    .selectAll('labels')
-    .data(seriesLabels)
-    .enter()
-    .append('text')
-    .attr('x', function (d, i) {
-      return 100 + i * 120
-    })
-    .attr('y', 10)
-    .style('font-size', '15px')
-    .text((d) => formatLabel(d))
-    .attr('alignment-baseline', 'middle')
-    .call((labels) => labels.append('title').text((d) => d))
 })
 
 // ======================
@@ -699,7 +701,7 @@ useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSel
             v-text="data.axis.x.label"
           ></text>
           <text
-            v-if="data.axis.y.label"
+            v-if="showYLabelText"
             class="label label-y"
             text-anchor="end"
             :x="yLabelLeft"
