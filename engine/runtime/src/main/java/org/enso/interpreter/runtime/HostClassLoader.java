@@ -4,6 +4,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.graalvm.polyglot.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,9 +18,27 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable {
 
   private final Map<String, Class<?>> loadedClasses = new ConcurrentHashMap<>();
   private static final Logger logger = LoggerFactory.getLogger(HostClassLoader.class);
+  // Classes from "org.graalvm" packages are loaded either by a class loader for the boot
+  // module layer, or by a specific class loader, depending on how enso is run. For example,
+  // if enso is run via `org.graalvm.polyglot.Context.eval` from `javac`, then the graalvm
+  // classes are loaded via a class loader somehow created by `javac` and not by the boot
+  // module layer's class loader.
+  private static final ClassLoader polyglotClassLoader = Context.class.getClassLoader();
+
+  // polyglotClassLoader will be used only iff `org.enso.runtime` module is not in the
+  // boot module layer.
+  private static final boolean isRuntimeModInBootLayer;
 
   public HostClassLoader() {
     super(new URL[0]);
+  }
+
+  static {
+    var bootModules = ModuleLayer.boot().modules();
+    var hasRuntimeMod = bootModules
+        .stream()
+        .anyMatch(module -> module.getName().equals("org.enso.runtime"));
+    isRuntimeModInBootLayer = hasRuntimeMod;
   }
 
   void add(URL u) {
@@ -39,6 +58,9 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable {
     if (l != null) {
       logger.trace("Class {} found in cache", name);
       return l;
+    }
+    if (!isRuntimeModInBootLayer && name.startsWith("org.graalvm")) {
+      return polyglotClassLoader.loadClass(name);
     }
     try {
       l = findClass(name);
