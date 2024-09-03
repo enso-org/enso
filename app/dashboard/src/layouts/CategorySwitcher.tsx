@@ -20,13 +20,7 @@ import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
 import * as mimeTypes from '#/data/mimeTypes'
 import AssetEventType from '#/events/AssetEventType'
-import {
-  useBackendQuery,
-  useGetOrganization,
-  useListUserGroups,
-  useListUsers,
-  type WithPlaceholder,
-} from '#/hooks/backendHooks'
+import { useBackendQuery } from '#/hooks/backendHooks'
 import * as offlineHooks from '#/hooks/offlineHooks'
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import { areCategoriesEqual, type Category } from '#/layouts/CategorySwitcher/Category'
@@ -94,7 +88,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const remoteBackend = backendProvider.useRemoteBackendStrict()
-  const organization = useGetOrganization(remoteBackend)
+  const { data: organization = null } = useBackendQuery(remoteBackend, 'getOrganization', [])
   const localBackend = backendProvider.useLocalBackend()
   const { isOffline } = offlineHooks.useOffline()
   const isCurrent = areCategoriesEqual(currentCategory, category)
@@ -308,9 +302,9 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   const itemProps = { currentCategory: category, setCategory, dispatchAssetEvent }
   const selfDirectoryId = backend.DirectoryId(`directory-${user.userId.replace(/^user-/, '')}`)
 
-  const users = useListUsers(remoteBackend)
-  const teams = useListUserGroups(remoteBackend)
-  const usersById = React.useMemo<ReadonlyMap<backend.DirectoryId, WithPlaceholder<backend.User>>>(
+  const { data: users } = useBackendQuery(remoteBackend, 'listUsers', [])
+  const { data: teams } = useBackendQuery(remoteBackend, 'listUserGroups', [])
+  const usersById = React.useMemo<ReadonlyMap<backend.DirectoryId, backend.User>>(
     () =>
       new Map(
         (users ?? []).map((otherUser) => [
@@ -320,9 +314,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
       ),
     [users],
   )
-  const teamsById = React.useMemo<
-    ReadonlyMap<backend.DirectoryId, WithPlaceholder<backend.UserGroupInfo>>
-  >(
+  const teamsById = React.useMemo<ReadonlyMap<backend.DirectoryId, backend.UserGroupInfo>>(
     () =>
       new Map(
         (teams ?? []).map((team) => [
@@ -364,7 +356,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   return (
     <FocusArea direction="vertical">
       {(innerProps) => (
-        <div className="flex w-full flex-col gap-2 py-1" {...innerProps}>
+        <div className="flex flex-col gap-2 py-1" {...innerProps}>
           <ariaComponents.Text variant="subtitle" className="px-2 font-bold">
             {getText('category')}
           </ariaComponents.Text>

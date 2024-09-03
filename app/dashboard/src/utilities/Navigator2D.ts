@@ -256,6 +256,10 @@ export default class Navigator2D {
   /** Keydown handler. Should only be declared once per focus root (including the global one on
    * `document`). MUST be bound to this `Navigator2D` first using `.bind(navigator)`. */
   onKeyDown(event: KeyboardEvent | React.KeyboardEvent) {
+    if (event.defaultPrevented) {
+      // eslint-disable-next-line no-restricted-syntax
+      return
+    }
     let nearestFocusedParent = event.target instanceof Element ? event.target : null
     while (nearestFocusedParent != null && !this.focusedElements.has(nearestFocusedParent)) {
       nearestFocusedParent = nearestFocusedParent.parentElement

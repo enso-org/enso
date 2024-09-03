@@ -6,13 +6,16 @@ polyglot java import java.lang.System as Java_System
 polyglot java import java.io.File as Java_File
 
 type Data
-    Value ~enso_bin:File ~empty_world:File ~hello_world:File
+    Value ~enso_bin:File ~empty_world:File ~hello_world:File ~import_world:File
 
     bench_empty self =
         self.startup [ "--run", self.empty_world.to_text ]
 
     bench_hello self =
         self.startup [ "--run", self.hello_world.to_text ]
+
+    bench_import self =
+        self.startup [ "--run", self.import_world.to_text ]
 
     startup self  args =
         exe = self.enso_bin
@@ -34,11 +37,12 @@ collect_benches = Bench.build builder->
 
 
     data =
-        Data.Value enso_bin (find_sibling "Empty_World.enso") (find_sibling "Hello_World.enso")
+        Data.Value enso_bin (find_sibling "Empty_World.enso") (find_sibling "Hello_World.enso") (find_sibling "Import_World.enso")
 
     builder.group "Startup" options group_builder->
         group_builder.specify "empty_startup" data.bench_empty
         group_builder.specify "hello_world_startup" data.bench_hello
+        group_builder.specify "import_world_startup" data.bench_import
 
 find_sibling name =
     f = enso_project.root / "src" / "Startup" / name

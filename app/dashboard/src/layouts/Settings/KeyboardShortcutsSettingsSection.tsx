@@ -54,27 +54,22 @@ export default function KeyboardShortcutsSettingsSection() {
   return (
     <>
       <ariaComponents.ButtonGroup>
-        <ariaComponents.Button
-          size="medium"
-          variant="outline"
-          onPress={() => {
-            setModal(
-              <ConfirmDeleteModal
-                actionText={getText('resetAllKeyboardShortcuts')}
-                actionButtonLabel={getText('resetAll')}
-                doDelete={() => {
-                  for (const k in inputBindings.metadata) {
-                    // eslint-disable-next-line no-restricted-syntax
-                    inputBindings.reset(k as inputBindings.DashboardBindingKey)
-                  }
-                  doRefresh()
-                }}
-              />,
-            )
-          }}
-        >
-          {getText('resetAll')}
-        </ariaComponents.Button>
+        <ariaComponents.DialogTrigger>
+          <ariaComponents.Button size="medium" variant="outline">
+            {getText('resetAll')}
+          </ariaComponents.Button>
+          <ConfirmDeleteModal
+            actionText={getText('resetAllKeyboardShortcuts')}
+            actionButtonLabel={getText('resetAll')}
+            doDelete={() => {
+              for (const k in inputBindings.metadata) {
+                // eslint-disable-next-line no-restricted-syntax
+                inputBindings.reset(k as inputBindings.DashboardBindingKey)
+              }
+              doRefresh()
+            }}
+          />
+        </ariaComponents.DialogTrigger>
       </ariaComponents.ButtonGroup>
       <FocusArea direction="vertical" focusChildClass="focus-default" focusDefaultClass="">
         {(innerProps) => (

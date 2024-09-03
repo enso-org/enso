@@ -5,6 +5,7 @@ import * as detect from 'enso-common/src/detect'
 
 import Modal from '#/components/Modal'
 
+import { forwardRef } from '#/utilities/react'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
@@ -27,6 +28,8 @@ export interface ContextMenusProps extends Readonly<React.PropsWithChildren> {
   readonly key: string
   readonly event: Pick<React.MouseEvent, 'pageX' | 'pageY'>
 }
+
+export default forwardRef(ContextMenus)
 
 /** A context menu that opens at the current mouse position. */
 function ContextMenus(props: ContextMenusProps, ref: React.ForwardedRef<HTMLDivElement>) {
@@ -55,5 +58,3 @@ function ContextMenus(props: ContextMenusProps, ref: React.ForwardedRef<HTMLDivE
         </div>
       </Modal>
 }
-
-export default React.forwardRef(ContextMenus)

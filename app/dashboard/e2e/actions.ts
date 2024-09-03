@@ -65,12 +65,12 @@ export function locateNewLabelModalColorButtons(page: test.Page) {
 
 /** Find a "name" input for an "upsert secret" modal (if any) on the current page. */
 export function locateSecretNameInput(page: test.Page) {
-  return locateUpsertSecretModal(page).getByPlaceholder('Enter the name of the secret')
+  return locateUpsertSecretModal(page).getByPlaceholder(TEXT.secretNamePlaceholder)
 }
 
 /** Find a "value" input for an "upsert secret" modal (if any) on the current page. */
 export function locateSecretValueInput(page: test.Page) {
-  return locateUpsertSecretModal(page).getByPlaceholder('Enter the value of the secret')
+  return locateUpsertSecretModal(page).getByPlaceholder(TEXT.secretValuePlaceholder)
 }
 
 /** Find a search bar input (if any) on the current page. */
@@ -98,16 +98,6 @@ export function locateRegisterButton(page: test.Locator | test.Page) {
 /** Find a "set username" button (if any) on the current page. */
 export function locateSetUsernameButton(page: test.Locator | test.Page) {
   return page.getByRole('button', { name: 'Set Username' }).getByText('Set Username')
-}
-
-/** Find a "delete" button (if any) on the current page. */
-export function locateDeleteButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Delete' }).getByText('Delete')
-}
-
-/** Find a button to delete something (if any) on the current page. */
-export function locateDeleteIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('Delete')
 }
 
 /** Find a "create" button (if any) on the current page. */

@@ -101,7 +101,9 @@ const scrollerSize = useResizeObserver(scroller)
 const listContentHeight = computed(() =>
   Math.max(components.value.length * ITEM_SIZE, scrollerSize.value.y),
 )
-const scrolling = useScrolling(() => animatedHighlightPosition.value)
+const scrolling = useScrolling(() =>
+  Math.min(animatedHighlightPosition.value, listContentHeight.value - scrollerSize.value.y),
+)
 
 const listContentHeightPx = computed(() => `${listContentHeight.value}px`)
 

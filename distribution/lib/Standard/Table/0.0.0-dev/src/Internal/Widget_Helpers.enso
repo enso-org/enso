@@ -182,14 +182,23 @@ make_order_by_selector table display=Display.Always name_only:Boolean=False =
 
 ## PRIVATE
    Make a column rename name selector.
-make_rename_name_vector_selector : Table -> Display -> Widget
-make_rename_name_vector_selector table display=Display.Always =
+make_rename_name_vector_selector : Table -> Display -> Any -> Widget
+make_rename_name_vector_selector table display=Display.Always cache=Nothing =
     col_names = table.column_names
+
+    ## Resolved Used Names
+    col_map  = cache.if_not_nothing <| cache "column_map"
+    used_names = col_map.if_not_nothing <| case col_map of
+        _ : Dictionary -> col_map.keys
+        _ : Vector -> col_map.map_with_index i-> p-> if p.is_a Text then col_names.get i else p.first
+        _ -> []
+    first_name = if used_names.is_nothing then col_names.first else col_names.find n->(used_names.contains n . not) if_missing=col_names.first
+
     names = [Option "<Regular Expression>" "(regex '^.*$')"] + (col_names.map n-> Option n n.pretty)
     fqn = Meta.get_qualified_type_name Pair
     name = Option "Name" fqn+".Value" [["first", Single_Choice values=names display=Display.Always]]
     item_editor = Single_Choice display=Display.Always values=[name]
-    Vector_Editor item_editor=item_editor item_default="(Pair.Value "+col_names.first.pretty+" 'New Name')" display=display
+    Vector_Editor item_editor=item_editor item_default="(Pair.Value "+first_name.pretty+" 'New Name')" display=display
 
 ## PRIVATE
    Selector for type argument on `Column.parse`.

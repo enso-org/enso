@@ -1,25 +1,26 @@
 /** @file Alert component. */
-import * as React from 'react'
+import { type ForwardedRef, type HTMLAttributes, type PropsWithChildren } from 'react'
 
-import * as mergeRefs from '#/utilities/mergeRefs'
-import * as twv from '#/utilities/tailwindVariants'
+import { mergeRefs } from '#/utilities/mergeRefs'
+import { forwardRef } from '#/utilities/react'
+import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 
 // =================
 // === Constants ===
 // =================
 
-export const ALERT_STYLES = twv.tv({
+export const ALERT_STYLES = tv({
   base: 'flex flex-col items-stretch',
   variants: {
     fullWidth: { true: 'w-full' },
     variant: {
       custom: '',
-      outline: 'border border-2 bg-transparent border-primary/30 text-primary',
-      neutral: 'border border-2 bg-gray-100 border-gray-800 text-primary',
-      error: 'border border-2 bg-red-100 border-danger text-primary',
-      info: 'border border-2 bg-blue-100 border-blue-800 text-blue-800',
-      success: 'border border-2 bg-green-100 border-green-800 text-green-800',
-      warning: 'border border-2 bg-yellow-100 border-yellow-800 text-yellow-800',
+      outline: 'border border-0.5 bg-transparent border-primary/20 text-primary',
+      neutral: 'border border-0.5 bg-gray-100 border-gray-800 text-primary',
+      error: 'border border-0.5 bg-red-100 border-danger text-primary',
+      info: 'border border-0.5 bg-blue-100 border-blue-800 text-blue-800',
+      success: 'border border-0.5 bg-green-100 border-green-800 text-green-800',
+      warning: 'border border-0.5 bg-yellow-100 border-yellow-800 text-yellow-800',
     },
     rounded: {
       none: 'rounded-none',
@@ -51,14 +52,14 @@ export const ALERT_STYLES = twv.tv({
 
 /** Props for an {@link Alert}. */
 export interface AlertProps
-  extends React.PropsWithChildren,
-    twv.VariantProps<typeof ALERT_STYLES>,
-    React.HTMLAttributes<HTMLDivElement> {}
+  extends PropsWithChildren,
+    VariantProps<typeof ALERT_STYLES>,
+    HTMLAttributes<HTMLDivElement> {}
 
 /** Alert component. */
-export const Alert = React.forwardRef(function Alert(
+export const Alert = forwardRef(function Alert(
   props: AlertProps,
-  ref: React.ForwardedRef<HTMLDivElement>,
+  ref: ForwardedRef<HTMLDivElement>,
 ) {
   const { children, className, variant, size, rounded, fullWidth, ...containerProps } = props
 
@@ -70,7 +71,7 @@ export const Alert = React.forwardRef(function Alert(
   return (
     <div
       className={ALERT_STYLES({ variant, size, className, rounded, fullWidth })}
-      ref={mergeRefs.mergeRefs(ref, (e) => {
+      ref={mergeRefs(ref, (e) => {
         if (variant === 'error') {
           e?.focus()
         }

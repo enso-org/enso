@@ -68,7 +68,8 @@ type Simple_Expression
        Create a widget for operation
     default_widget : Table_Ref -> Display -> Widget
     default_widget table:Table_Ref display=Display.Always =
-        with_all_types = Widget_Helpers.make_column_ref_by_name_selector table add_text=True add_number=True add_boolean=True
+        with_everything = Widget_Helpers.make_column_ref_by_name_selector table add_text=True add_number=True add_boolean=True add_date=True add_time=True add_date_time=True add_nothing=True
+        with_all_types = Widget_Helpers.make_column_ref_by_name_selector table add_text=True add_number=True add_boolean=True add_date=True add_time=True add_date_time=True
         with_number_text = Widget_Helpers.make_column_ref_by_name_selector table add_text=True add_number=True
         filter_cond = Widget_Helpers.make_filter_condition_selector table
 
@@ -76,7 +77,7 @@ type Simple_Expression
             builder.append (Option "copy" "..Copy")
             builder.append (Option "add" "..Add" [["rhs", with_number_text]])
             builder.append (Option "format" "..Format" [["format", make_format_chooser include_number=True]])
-            builder.append (Option "if" "..If" [["condition", filter_cond], ["true_value", with_all_types], ["false_value", with_all_types]])
+            builder.append (Option "if" "..If" [["condition", filter_cond], ["true_value", with_everything], ["false_value", with_everything]])
             builder.append (Option "min" "..Min" [["rhs", with_number_text]])
             builder.append (Option "max" "..Max" [["rhs", with_number_text]])
             builder.append (Option "Text" "..Text" [["operation", Text_Operation.create_widget table]])

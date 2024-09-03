@@ -14,21 +14,11 @@ import * as formContext from './useFormContext'
 export interface UseFieldOptions<
   BaseValueType,
   Schema extends types.TSchema,
-  TFieldValues extends types.FieldValues<Schema>,
-  TFieldName extends types.FieldPath<Schema, TFieldValues>,
-  // eslint-disable-next-line no-restricted-syntax
-  TTransformedValues extends types.FieldValues<Schema> | undefined = undefined,
-> extends types.FormWithValueValidation<
-    BaseValueType,
-    Schema,
-    TFieldValues,
-    TFieldName,
-    TTransformedValues
-  > {
+  TFieldName extends types.FieldPath<Schema>,
+> extends types.FormWithValueValidation<BaseValueType, Schema, TFieldName> {
   readonly name: TFieldName
   readonly isDisabled?: boolean | undefined
-  // eslint-disable-next-line no-restricted-syntax
-  readonly defaultValue?: TFieldValues[TFieldName] | undefined
+  readonly defaultValue?: types.FieldValues<Schema>[TFieldName] | undefined
 }
 
 /**
@@ -37,18 +27,15 @@ export interface UseFieldOptions<
 export function useField<
   BaseValueType,
   Schema extends types.TSchema,
-  TFieldValues extends types.FieldValues<Schema>,
-  TFieldName extends types.FieldPath<Schema, TFieldValues>,
-  // eslint-disable-next-line no-restricted-syntax
-  TTransformedValues extends types.FieldValues<Schema> | undefined = undefined,
->(options: UseFieldOptions<BaseValueType, Schema, TFieldValues, TFieldName, TTransformedValues>) {
+  TFieldName extends types.FieldPath<Schema>,
+>(options: UseFieldOptions<BaseValueType, Schema, TFieldName>) {
   const { form = formContext.useFormContext(), name, defaultValue, isDisabled = false } = options
 
   // This is safe, because the form is always passed either via the options or via the context.
   // The assertion is needed because we use additional type validation for form instance and throw
   // ts error if form does not pass the validation.
   // eslint-disable-next-line no-restricted-syntax
-  const formInstance = form as types.FormInstance<Schema, TFieldValues, TTransformedValues>
+  const formInstance = form as types.FormInstance<Schema>
 
   const { field, fieldState, formState } = reactHookForm.useController({
     name,

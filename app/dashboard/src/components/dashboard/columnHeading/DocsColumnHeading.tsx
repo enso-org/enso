@@ -1,33 +1,28 @@
 /** @file A heading for the "Docs" column. */
-import * as React from 'react'
-
 import DocsIcon from '#/assets/docs.svg'
-
-import * as textProvider from '#/providers/TextProvider'
-
-import * as aria from '#/components/aria'
-import type * as column from '#/components/dashboard/column'
-import * as columnUtils from '#/components/dashboard/column/columnUtils'
-import Button from '#/components/styled/Button'
+import { Button, Text } from '#/components/AriaComponents'
+import type { AssetColumnHeadingProps } from '#/components/dashboard/column'
+import { Column } from '#/components/dashboard/column/columnUtils'
+import { useText } from '#/providers/TextProvider'
 
 /** A heading for the "Docs" column. */
-export default function DocsColumnHeading(props: column.AssetColumnHeadingProps) {
+export default function DocsColumnHeading(props: AssetColumnHeadingProps) {
   const { state } = props
   const { hideColumn } = state
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
 
   return (
     <div className="flex h-table-row w-full items-center gap-icon-with-text">
       <Button
-        active
-        image={DocsIcon}
-        className="size-4"
-        alt={getText('docsColumnHide')}
+        variant="icon"
+        icon={DocsIcon}
+        aria-label={getText('docsColumnHide')}
+        tooltip={false}
         onPress={() => {
-          hideColumn(columnUtils.Column.docs)
+          hideColumn(Column.docs)
         }}
       />
-      <aria.Text className="text-header">{getText('docsColumnName')}</aria.Text>
+      <Text className="text-sm font-semibold">{getText('docsColumnName')}</Text>
     </div>
   )
 }
