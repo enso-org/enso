@@ -110,7 +110,7 @@ declare module '#/utilities/LocalStorage' {
 }
 
 LocalStorage.registerKey('enabledColumns', {
-  schema: z.enum(columnUtils.CLOUD_ENTERPRISE_COLUMNS).array().readonly(),
+  schema: z.nativeEnum(columnUtils.Column).array().readonly(),
 })
 
 // =================
@@ -419,6 +419,9 @@ export default function AssetsTable(props: AssetsTableProps) {
   const didLoadingProjectManagerFail = backendProvider.useDidLoadingProjectManagerFail()
   const reconnectToProjectManager = backendProvider.useReconnectToProjectManager()
   const [enabledColumns, setEnabledColumns] = React.useState(columnUtils.DEFAULT_ENABLED_COLUMNS)
+  const hiddenColumns = columnUtils
+    .getColumnList(user, backend.type)
+    .filter((column) => !enabledColumns.has(column))
   const [sortInfo, setSortInfo] =
     React.useState<sorting.SortInfo<columnUtils.SortableColumn> | null>(null)
   const driveStore = useDriveStore()
@@ -2083,13 +2086,12 @@ export default function AssetsTable(props: AssetsTableProps) {
       rootRef.current != null &&
       headerRowRef.current != null
     ) {
-      const hiddenColumnsCount = columnUtils.CLOUD_ENTERPRISE_COLUMNS.length - enabledColumns.size
       const shrinkBy =
-        COLUMNS_SELECTOR_BASE_WIDTH_PX + COLUMNS_SELECTOR_ICON_WIDTH_PX * hiddenColumnsCount
+        COLUMNS_SELECTOR_BASE_WIDTH_PX + COLUMNS_SELECTOR_ICON_WIDTH_PX * hiddenColumns.length
       const rightOffset = rootRef.current.clientWidth + rootRef.current.scrollLeft - shrinkBy
       headerRowRef.current.style.clipPath = `polygon(0 0, ${rightOffset}px 0, ${rightOffset}px 100%, 0 100%)`
     }
-  }, [backend.type, enabledColumns.size])
+  }, [backend.type, hiddenColumns.length])
 
   const updateClipPathObserver = React.useMemo(
     () => new ResizeObserver(updateClipPath),
@@ -2703,9 +2705,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                               },
                             })}
                           >
-                            {columnUtils.CLOUD_ENTERPRISE_COLUMNS.filter(
-                              (column) => !enabledColumns.has(column),
-                            ).map((column) => (
+                            {hiddenColumns.map((column) => (
                               <Button
                                 key={column}
                                 light
