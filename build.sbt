@@ -1033,7 +1033,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     (Test / fork) := true,
     (Compile / run / connectInput) := true,
     commands += WithDebugCommand.withDebug,
-    libraryDependencies ++= akka ++ Seq(akkaTestkit % Test),
+    libraryDependencies ++= akka ++ Seq(akkaSLF4J, akkaTestkit % Test),
     libraryDependencies ++= circe ++ helidon,
     libraryDependencies ++= Seq(
       "com.typesafe"                % "config"                       % typesafeConfigVersion,
@@ -1049,7 +1049,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       "junit"                       % "junit"                        % junitVersion             % Test,
       "com.github.sbt"              % "junit-interface"              % junitIfVersion           % Test,
       "org.hamcrest"                % "hamcrest-all"                 % hamcrestVersion          % Test,
-      "org.netbeans.api"            % "org-netbeans-modules-sampler" % netbeansApiVersion       % Test
+      "org.netbeans.api"            % "org-netbeans-modules-sampler" % netbeansApiVersion       % Test,
     ),
     addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full
@@ -1529,6 +1529,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       "com.google.flatbuffers"      % "flatbuffers-java"        % flatbuffersVersion,
       "commons-io"                  % "commons-io"              % commonsIoVersion,
       "com.github.pureconfig"      %% "pureconfig"              % pureconfigVersion,
+      akkaSLF4J,
       akkaTestkit                   % Test,
       "com.typesafe.akka"          %% "akka-http-testkit"       % akkaHTTPVersion           % Test,
       "org.scalatest"              %% "scalatest"               % scalatestVersion          % Test,
