@@ -2427,8 +2427,6 @@ def customFrgaalJavaCompilerSettings(targetJdk: String) = {
         // with JPMSPlugin. That's why we have to check first for its existance.
         val settingOpt = (config / shouldCompileModuleInfoManually).?.value
         val shouldCompileModInfo = settingOpt.isDefined && settingOpt.get
-        val projName = projectID.value.name
-        println(s"[customFrgaalOpts/$projName] shouldCompileModInfo=$shouldCompileModInfo")
         FrgaalJavaCompiler.compilers(
           (config / dependencyClasspath).value,
           compilers.value,
