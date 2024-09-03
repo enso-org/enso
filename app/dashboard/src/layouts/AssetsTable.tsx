@@ -2451,6 +2451,9 @@ export default function AssetsTable(props: AssetsTableProps) {
                 }
               }
             }}
+            onDragLeave={() => {
+              setIsDraggingFiles(false)
+            }}
             onDragEnd={() => {
               setIsDraggingFiles(false)
               endAutoScroll()
@@ -2463,6 +2466,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               })
             }}
             onDrop={(event) => {
+              setIsDraggingFiles(false)
               endAutoScroll()
               const { selectedKeys } = driveStore.getState()
               const ids = new Set(selectedKeys.has(item.key) ? selectedKeys : [item.key])
@@ -2741,6 +2745,9 @@ export default function AssetsTable(props: AssetsTableProps) {
               className="flex items-center justify-center gap-3 rounded-default bg-selected-frame px-8 py-6 text-primary/50 backdrop-blur-3xl transition-all"
               onDragEnter={onDropzoneDragOver}
               onDragOver={onDropzoneDragOver}
+              onDragLeave={() => {
+                setIsDraggingFiles(false)
+              }}
               onDragEnd={() => {
                 setIsDraggingFiles(false)
               }}
