@@ -8,12 +8,15 @@ pub mod ci_config {
     define_env_var! {
         /// Username for an Enso Cloud account used for running Cloud integration tests.
         ENSO_CLOUD_TEST_ACCOUNT_USERNAME, String;
-    
+
         /// Password for an Enso Cloud account used for running Cloud integration tests.
         ENSO_CLOUD_TEST_ACCOUNT_PASSWORD, String;
-    
+
         // The Client ID for Enso Cloud Cognito auth flow.
         ENSO_CLOUD_COGNITO_CLIENT_ID, String;
+
+        // The Client ID for Enso Cloud Cognito auth flow.
+        ENSO_CLOUD_COGNITO_POOL_ID, String;
     }
 }
 

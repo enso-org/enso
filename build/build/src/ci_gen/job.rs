@@ -214,6 +214,10 @@ impl JobArchetype for JvmTests {
 fn enable_cloud_tests(step: Step) -> Step {
     step.with_secret_exposed_as(
         secret::ENSO_CLOUD_COGNITO_POOL_ID,
+        crate::cloud_tests::env::ci_config::ENSO_CLOUD_COGNITO_POOL_ID,
+    )
+    .with_secret_exposed_as(
+        secret::ENSO_CLOUD_COGNITO_CLIENT_ID,
         crate::cloud_tests::env::ci_config::ENSO_CLOUD_COGNITO_CLIENT_ID,
     )
     .with_secret_exposed_as(
@@ -235,6 +239,7 @@ pub struct StandardLibraryTests {
 impl JobArchetype for StandardLibraryTests {
     fn job(&self, target: Target) -> Job {
         let graal_edition = self.graal_edition;
+        let should_enable_cloud_tests = self.cloud_tests_enabled;
         let job_name = format!("Standard Library Tests ({graal_edition})");
         let mut job = RunStepsBuilder::new("backend test standard-library")
             .customize(move |step| {
@@ -251,7 +256,14 @@ impl JobArchetype for StandardLibraryTests {
                         secret::ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY,
                         crate::libraries_tests::s3::env::ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY,
                     );
-                vec![main_step, step::stdlib_test_reporter(target, graal_edition)]
+
+                let updated_main_step = if should_enable_cloud_tests {
+                    enable_cloud_tests(main_step)
+                } else {
+                    main_step
+                };
+
+                vec![updated_main_step, step::stdlib_test_reporter(target, graal_edition)]
             })
             .build_job(job_name, target)
             .with_permission(Permission::Checks, Access::Write);
@@ -307,8 +319,11 @@ impl JobArchetype for SnowflakeTests {
                         secret::ENSO_SNOWFLAKE_WAREHOUSE,
                         crate::libraries_tests::snowflake::env::ENSO_SNOWFLAKE_WAREHOUSE,
                     );
+
+                let updated_main_step = enable_cloud_tests(main_step);
+
                 vec![
-                    main_step,
+                    updated_main_step,
                     step::extra_stdlib_test_reporter(target, GRAAL_EDITION_FOR_EXTRA_TESTS),
                 ]
             })
