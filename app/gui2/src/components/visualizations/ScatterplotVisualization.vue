@@ -565,7 +565,6 @@ watchPostEffect(() => {
     })
 
   const legend = d3Legend.value
-  const color = d3.scaleOrdinal().domain(series2).range(d3.schemeCategory10).domain(series2)
 
   legend
     .selectAll('dots')
@@ -577,9 +576,7 @@ watchPostEffect(() => {
     })
     .attr('cy', 10)
     .attr('r', 6)
-    .style('fill', function (d) {
-      return color(d)
-    })
+    .style('fill', (d) => colorScale(d))
 
   legend
     .selectAll('labels')
