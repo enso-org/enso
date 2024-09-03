@@ -438,10 +438,6 @@ watchEffect(() => {
   }
 })
 
-watch([selectionEnabled], () => {
-  brush.effect.trigger()
-})
-
 watch([boxWidth, boxHeight], () => (shouldAnimate.value = false))
 
 /** Helper function to match a d3 shape from its name. */
@@ -497,12 +493,11 @@ watchPostEffect(() =>
 )
 
 function getPlotData(data: Data) {
-  const data2 = data.data
   const axis = data.axis
   if (data.is_multi_series) {
     const series = Object.keys(axis).filter((s) => s != 'x')
     const transformedData = series.flatMap((s) =>
-      data2.map((d) => ({
+      data.data.map((d) => ({
         x: d.x,
         y: d[s as keyof Point],
         series: s,
@@ -510,7 +505,7 @@ function getPlotData(data: Data) {
     )
     return transformedData
   }
-  return data2
+  return data.data
 }
 
 function getTooltipMessage(point: Point) {
@@ -566,7 +561,7 @@ watchPostEffect(() => {
       .attr('y', (d) => yScale_(d.y) + POINT_LABEL_PADDING_Y_PX)
   }
 
-  const series2 = Object.keys(data.value.axis)
+  const seriesLabels = Object.keys(data.value.axis)
     .filter((s) => s != 'x')
     .map((s) => {
       return data.value.axis[s as keyof AxesConfiguration].label
@@ -576,7 +571,7 @@ watchPostEffect(() => {
 
   legend
     .selectAll('dots')
-    .data(series2)
+    .data(seriesLabels)
     .enter()
     .append('circle')
     .attr('cx', function (d, i) {
@@ -588,7 +583,7 @@ watchPostEffect(() => {
 
   legend
     .selectAll('labels')
-    .data(series2)
+    .data(seriesLabels)
     .enter()
     .append('text')
     .attr('x', function (d, i) {
