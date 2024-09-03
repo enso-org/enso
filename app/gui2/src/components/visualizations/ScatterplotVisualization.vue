@@ -566,6 +566,8 @@ watchPostEffect(() => {
     .map((s) => {
       return data.value.axis[s as keyof AxesConfiguration].label
     })
+  const formatLabel = (string: string) =>
+    string.length > 10 ? `${string.substr(0, 10)}...` : string
   const colorLegendScale = (d: string) => {
     const color = d3
       .scaleOrdinal()
@@ -601,9 +603,7 @@ watchPostEffect(() => {
     })
     .attr('y', 10)
     .style('font-size', '15px')
-    .text(function (d) {
-      return `${d.substr(0, 10)}...`
-    })
+    .text((d) => formatLabel(d))
     .attr('alignment-baseline', 'middle')
     .call((labels) => labels.append('title').text((d) => d))
 })
