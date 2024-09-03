@@ -1,4 +1,4 @@
-module org.enso.runtime.language.epb {
+open module org.enso.runtime.language.epb {
   requires java.logging;
   requires org.graalvm.truffle;
 
