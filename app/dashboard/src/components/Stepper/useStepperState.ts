@@ -94,7 +94,7 @@ export function useStepperState(props: StepperStateProps): UseStepperStateResult
           onCompletedStableCallback()
 
           return {
-            current: steps,
+            current: steps - 1,
             direction: 'forward-none',
           }
         } else {

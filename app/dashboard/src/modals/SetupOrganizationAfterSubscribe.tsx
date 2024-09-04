@@ -69,10 +69,56 @@ export function SetupOrganizationAfterSubscribe() {
   const shouldSetOrgName = PLANS_TO_SPECIFY_ORG_NAME.includes(userPlan) && organizationName === ''
   const shouldSetDefaultUserGroup =
     PLANS_TO_SPECIFY_ORG_NAME.includes(userPlan) && userGroupsCount === 0
-  const shouldShowModal = userIsAdmin && (shouldSetOrgName || shouldSetDefaultUserGroup)
+
+  const steps = [
+    {
+      title: getText('intro'),
+      component: ({ nextStep }: { readonly nextStep: () => void }) => (
+        <Result
+          status="info"
+          title={getText('setupOrganization')}
+          subtitle={getText('setupOrganizationDescription')}
+        >
+          <Button onPress={nextStep} className="mx-auto">
+            {getText('next')}
+          </Button>
+        </Result>
+      ),
+    } as const,
+  ]
+
+  if (shouldSetOrgName) {
+    steps.push({
+      title: getText('setOrgNameTitle'),
+      component: ({ nextStep }) => (
+        <SetOrganizationNameForm
+          onSubmit={async (name) => {
+            await updateOrganization.mutateAsync([{ name }])
+            nextStep()
+          }}
+        />
+      ),
+    })
+  }
+
+  if (shouldSetDefaultUserGroup) {
+    steps.push({
+      title: getText('setDefaultUserGroup'),
+      component: ({ nextStep }) => (
+        <CreateUserGroupForm
+          onSubmit={async (name) => {
+            await createDefaultUserGroup.mutateAsync([{ name }])
+            nextStep()
+          }}
+        />
+      ),
+    })
+  }
+
+  const shouldShowModal = steps.length > 1 && userIsAdmin
 
   const { stepperState } = Stepper.useStepperState({
-    steps: 3,
+    steps: steps.length,
     defaultStep: 0,
   })
 
@@ -85,52 +131,15 @@ export function SetupOrganizationAfterSubscribe() {
         hideCloseButton
         size="xxxlarge"
         padding="xlarge"
-        modalProps={{ isOpen: shouldShowModal }}
+        modalProps={{ defaultOpen: shouldShowModal }}
       >
         <Stepper
           state={stepperState}
           renderStep={(props) => (
-            <>
-              {props.index === 0 && <Stepper.Step {...props} title={getText('intro')} />}
-              {props.index === 1 && <Stepper.Step {...props} title={getText('setOrgNameTitle')} />}
-              {props.index === 2 && (
-                <Stepper.Step {...props} title={getText('setDefaultUserGroup')} />
-              )}
-            </>
+            <Stepper.Step {...props} title={steps[props.index]?.title ?? ''} />
           )}
         >
-          {({ currentStep, nextStep }) => (
-            <>
-              {currentStep === 0 && (
-                <Result
-                  status="info"
-                  title={getText('setupOrganization')}
-                  subtitle={getText('setupOrganizationDescription')}
-                >
-                  <Button onPress={nextStep} className="mx-auto">
-                    {getText('next')}
-                  </Button>
-                </Result>
-              )}
-
-              {currentStep === 1 && (
-                <SetOrganizationNameForm
-                  onSubmit={async (name) => {
-                    await updateOrganization.mutateAsync([{ name }])
-                    nextStep()
-                  }}
-                />
-              )}
-
-              {currentStep === 2 && (
-                <CreateUserGroupForm
-                  onSubmit={async (name) => {
-                    await createDefaultUserGroup.mutateAsync([{ name }])
-                  }}
-                />
-              )}
-            </>
-          )}
+          {({ currentStep, nextStep }) => <>{steps[currentStep]?.component({ nextStep })}</>}
         </Stepper>
       </ariaComponents.Dialog>
 
@@ -192,7 +201,7 @@ export function SetOrganizationNameForm(props: SetOrganizationNameFormProps) {
 }
 
 /**
- *
+ * Props for the CreateUserGroupForm component.
  */
 export interface CreateUserGroupFormProps {
   readonly onSubmit: (name: string) => Promise<void>
