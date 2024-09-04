@@ -10,7 +10,6 @@ module org.enso.librarymanager {
   // For com.typesafe.scalalogging.Logger
   requires org.enso.scala.wrapper;
   requires org.enso.scala.yaml;
-
   requires org.yaml.snakeyaml;
   requires org.slf4j;
 

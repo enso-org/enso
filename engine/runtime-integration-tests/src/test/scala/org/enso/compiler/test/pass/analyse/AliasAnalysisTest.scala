@@ -3,8 +3,15 @@ package org.enso.compiler.test.pass.analyse
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.Implicits.AsMetadata
-import org.enso.compiler.core.ir.{CallArgument, Expression, Function, Module, Name, Pattern}
-import org.enso.compiler.core.ir.expression.{Application, Case, errors}
+import org.enso.compiler.core.ir.{
+  CallArgument,
+  Expression,
+  Function,
+  Module,
+  Name,
+  Pattern
+}
+import org.enso.compiler.core.ir.expression.{errors, Application, Case}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.pass.PassConfiguration._

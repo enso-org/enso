@@ -16,8 +16,8 @@ import scala.collection.mutable
   *
   * If this plugin is enabled, and no settings/tasks from this plugin are used, then the plugin will
   * not inject anything into `javaOptions` or `javacOptions`.
- *
- * - `compileOrder` has to be specified before `libraryDependencies`
+  *
+  * - `compileOrder` has to be specified before `libraryDependencies`
   */
 object JPMSPlugin extends AutoPlugin {
   object autoImport {
@@ -65,7 +65,7 @@ object JPMSPlugin extends AutoPlugin {
         |""".stripMargin
     )
 
-    val addOpens = taskKey[Map[String, Seq[String]]] (
+    val addOpens = taskKey[Map[String, Seq[String]]](
       """
         |A map of module names with packages to modules that will be put into --add-opens option to java.
         |Note that this option is not added to `javac`, only to `java`.
@@ -122,28 +122,28 @@ object JPMSPlugin extends AutoPlugin {
           val javaSrcDir = (config / javaSource).value
           val modInfo =
             javaSrcDir.toPath.resolve("module-info.java").toFile
-          val hasModInfo = modInfo.exists
-          val projName = moduleName.value
-          val logger = streams.value.log
+          val hasModInfo      = modInfo.exists
+          val projName        = moduleName.value
+          val logger          = streams.value.log
           val hasScalaSources = (config / scalaSource).value.exists()
-          val _compileOrder = (config / compileOrder).value
+          val _compileOrder   = (config / compileOrder).value
           val res =
             _compileOrder == CompileOrder.Mixed &&
-              hasModInfo &&
-              hasScalaSources
+            hasModInfo &&
+            hasScalaSources
           if (res) {
             logger.debug(
               s"[JPMSPlugin] Project '$projName' will have `module-info.java` compiled " +
-                "manually. If this is not the intended behavior, consult the documentation " +
-                "of JPMSPlugin."
+              "manually. If this is not the intended behavior, consult the documentation " +
+              "of JPMSPlugin."
             )
           }
           // Check excludeFilter - there should be module-info.java specified
           if (res && !excludeFilter.value.accept(modInfo)) {
             logger.error(
               s"[JPMSPlugin/$projName] `module-info.java` is not in `excludeFilter`. " +
-                "You should add module-info.java to " +
-                "`excludedFilter` so that sbt does not handle the compilation. Check docs of JPMSPlugin."
+              "You should add module-info.java to " +
+              "`excludedFilter` so that sbt does not handle the compilation. Check docs of JPMSPlugin."
             )
           }
           res
@@ -188,13 +188,13 @@ object JPMSPlugin extends AutoPlugin {
             val targetClassDir = (config / exportedProducts).value
               .map(_.data)
               .head
-            val logger = streams.value.log
+            val logger   = streams.value.log
             val projName = moduleName.value
             if (!isModule(targetClassDir)) {
               logger.error(
                 s"[JPMSPlugin/$projName] The target classes directory ${targetClassDir.getAbsolutePath} is not " +
-                  "a module - it does not contain module-info.class. Make sure the `compileModuleInfo` task " +
-                  "is set correctly."
+                "a module - it does not contain module-info.class. Make sure the `compileModuleInfo` task " +
+                "is set correctly."
               )
             }
             targetClassDir
@@ -236,8 +236,12 @@ object JPMSPlugin extends AutoPlugin {
           )
         },
         // Sanitize cmd line arguments
-        config / javacOptions := joinModulePathOption((config / javacOptions).value),
-        config / javaOptions := joinModulePathOption((config / javaOptions).value)
+        config / javacOptions := joinModulePathOption(
+          (config / javacOptions).value
+        ),
+        config / javaOptions := joinModulePathOption(
+          (config / javaOptions).value
+        )
       )
     }
   }
@@ -396,20 +400,19 @@ object JPMSPlugin extends AutoPlugin {
     modulePathOpts ++ addModsOpts ++ patchOpts ++ addExportsOpts ++ addReadsOpts ++ addOpensOpts
   }
 
-  /**
-   * Searches for multiple `--module-path` cmd line options and joins them into a single
-   * option.
-   * If there are multiple `--module-path` options passed to `java` or `javac`, only the
-   * last one specified is considered.
-   * Note that this is not an issue for other JPMS-related cmd line options, like
-   * `--add-modules`
-   * @param opts Current value of cmd line options
-   * @return
-   */
+  /** Searches for multiple `--module-path` cmd line options and joins them into a single
+    * option.
+    * If there are multiple `--module-path` options passed to `java` or `javac`, only the
+    * last one specified is considered.
+    * Note that this is not an issue for other JPMS-related cmd line options, like
+    * `--add-modules`
+    * @param opts Current value of cmd line options
+    * @return
+    */
   private def joinModulePathOption(
     opts: Seq[String]
   ): Seq[String] = {
-    val modulePathOpt = new StringBuilder()
+    val modulePathOpt  = new StringBuilder()
     val optIdxToRemove = mutable.HashSet[Int]()
     // Find all `--module-path` options and join them into a single option
     for ((opt, idx) <- opts.zipWithIndex) {

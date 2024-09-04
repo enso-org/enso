@@ -76,7 +76,6 @@ class RuntimeServerTest
       .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
       .asHostObject[EnsoContext]
 
-
     private def ensureInstrumentsAvailable() = {
       val instruments = context.getEngine.getInstruments
       if (instruments.get(IdExecutionService.INSTRUMENT_ID) == null) {

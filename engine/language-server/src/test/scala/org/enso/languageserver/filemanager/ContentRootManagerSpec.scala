@@ -11,7 +11,11 @@ import org.enso.languageserver.filemanager.ContentRootManagerProtocol.{
   SubscribeToNotifications
 }
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.testkit.{EitherValue, ReportLogsOnFailure, WithTemporaryDirectory}
+import org.enso.testkit.{
+  EitherValue,
+  ReportLogsOnFailure,
+  WithTemporaryDirectory
+}
 import org.scalatest.concurrent.Futures
 import org.scalatest.concurrent.ScalaFutures.convertScalaFuture
 import org.scalatest.matchers.should.Matchers

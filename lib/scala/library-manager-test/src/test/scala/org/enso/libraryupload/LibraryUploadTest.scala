@@ -3,7 +3,10 @@ package org.enso.libraryupload
 import org.enso.semver.SemVer
 import org.enso.cli.task.{ProgressReporter, TaskProgress}
 import org.enso.editions.{Editions, LibraryName}
-import org.enso.librarymanager.test.published.repository.{DownloaderTest, EmptyRepository}
+import org.enso.librarymanager.test.published.repository.{
+  DownloaderTest,
+  EmptyRepository
+}
 import org.enso.libraryupload.auth.SimpleHeaderToken
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.testkit.WithTemporaryDirectory

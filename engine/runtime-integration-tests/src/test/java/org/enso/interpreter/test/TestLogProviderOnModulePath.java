@@ -7,8 +7,8 @@ import org.enso.logging.service.logback.test.provider.TestLogProvider;
 import org.junit.Test;
 
 /**
- * In the `runtime/Test` testing suite, {@link TestLogProvider} should be among the
- * logging providers, because it is explicitly chosen as the logging provider for the tests.
+ * In the `runtime/Test` testing suite, {@link TestLogProvider} should be among the logging
+ * providers, because it is explicitly chosen as the logging provider for the tests.
  */
 public class TestLogProviderOnModulePath {
   @Test

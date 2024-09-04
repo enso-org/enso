@@ -1,6 +1,10 @@
 package org.enso.filewatcher
 
-import io.methvin.watcher.{DirectoryChangeEvent, DirectoryChangeListener, DirectoryWatcher}
+import io.methvin.watcher.{
+  DirectoryChangeEvent,
+  DirectoryChangeListener,
+  DirectoryWatcher
+}
 import org.slf4j.LoggerFactory
 
 import java.util.concurrent.Executor
@@ -21,7 +25,6 @@ final class WatcherAdapter(
 
   private val logger =
     LoggerFactory.getLogger(classOf[WatcherAdapter])
-
 
   private val watcher: DirectoryWatcher =
     try {

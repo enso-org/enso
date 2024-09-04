@@ -1,6 +1,5 @@
 module org.enso.librarymanager.test {
   requires scala.library;
-
   requires org.enso.cli;
   requires org.enso.distribution;
   requires org.enso.downloader;

@@ -2,7 +2,10 @@ package org.enso.librarymanager.published.repository
 
 import org.enso.editions.Editions
 import org.enso.librarymanager.published.cache.DownloadingLibraryCache
-import org.enso.librarymanager.test.published.repository.{DownloaderTest, ExampleRepository}
+import org.enso.librarymanager.test.published.repository.{
+  DownloaderTest,
+  ExampleRepository
+}
 import org.enso.logger.TestLogMessage
 import org.enso.pkg.PackageManager
 import org.enso.testkit.{RetrySpec, WithTemporaryDirectory}

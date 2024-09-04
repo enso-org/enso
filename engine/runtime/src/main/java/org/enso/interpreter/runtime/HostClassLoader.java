@@ -35,9 +35,8 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable {
 
   static {
     var bootModules = ModuleLayer.boot().modules();
-    var hasRuntimeMod = bootModules
-        .stream()
-        .anyMatch(module -> module.getName().equals("org.enso.runtime"));
+    var hasRuntimeMod =
+        bootModules.stream().anyMatch(module -> module.getName().equals("org.enso.runtime"));
     isRuntimeModInBootLayer = hasRuntimeMod;
   }
 

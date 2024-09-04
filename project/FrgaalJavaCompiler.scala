@@ -141,8 +141,8 @@ object FrgaalJavaCompiler {
       if (!moduleInfo.exists()) {
         log.warn(
           s"[FrgaalJavaCompiler] module-info.java not found in $javaSourceDir, but " +
-           "settings of the project require to compile it. Ensure that the setting of " +
-           "`shouldCompileModuleInfoManually` is correctly set."
+          "settings of the project require to compile it. Ensure that the setting of " +
+          "`shouldCompileModuleInfoManually` is correctly set."
         )
         log.info(
           s"[FrgaalJavaCompiler] compiling ${sources.size} Java sources to $out ..."

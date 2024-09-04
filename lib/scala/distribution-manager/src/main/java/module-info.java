@@ -5,7 +5,6 @@ module org.enso.distribution {
   requires org.enso.scala.wrapper;
   requires org.enso.scala.yaml;
   requires org.enso.semver;
-
   requires org.yaml.snakeyaml;
   requires org.slf4j;
 
