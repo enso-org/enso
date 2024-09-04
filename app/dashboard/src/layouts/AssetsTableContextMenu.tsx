@@ -49,6 +49,7 @@ export interface AssetsTableContextMenuProps {
     newParentKey: backendModule.DirectoryId,
     newParentId: backendModule.DirectoryId,
   ) => void
+  readonly doDelete: (assetId: backendModule.AssetId, forever?: boolean) => Promise<void>
 }
 
 /** A context menu for an `AssetsTable`, when no row is selected, or multiple rows
@@ -56,7 +57,7 @@ export interface AssetsTableContextMenuProps {
 export default function AssetsTableContextMenu(props: AssetsTableContextMenuProps) {
   const { hidden = false, backend, category, pasteData } = props
   const { nodeMapRef, event, rootDirectoryId } = props
-  const { doCopy, doCut, doPaste } = props
+  const { doCopy, doCut, doPaste, doDelete } = props
   const { user } = authProvider.useFullUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
@@ -82,7 +83,10 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const doDeleteAll = () => {
     if (isCloud) {
       unsetModal()
-      dispatchAssetEvent({ type: AssetEventType.delete, ids: selectedKeys })
+
+      for (const key of selectedKeys) {
+        void doDelete(key, false)
+      }
     } else {
       const [firstKey] = selectedKeys
       const soleAssetName =
@@ -97,7 +101,10 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
           }
           doDelete={() => {
             setSelectedKeys(EMPTY_SET)
-            dispatchAssetEvent({ type: AssetEventType.delete, ids: selectedKeys })
+
+            for (const key of selectedKeys) {
+              void doDelete(key, false)
+            }
           }}
         />,
       )

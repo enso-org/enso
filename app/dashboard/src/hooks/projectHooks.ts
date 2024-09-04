@@ -21,6 +21,7 @@ import {
   type LaunchedProjectId,
 } from '#/providers/ProjectsProvider'
 
+import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import * as backendModule from '#/services/Backend'
 import type LocalBackend from '#/services/LocalBackend'
 import type RemoteBackend from '#/services/RemoteBackend'
@@ -231,11 +232,17 @@ export function useOpenProject() {
   const addLaunchedProject = useAddLaunchedProject()
   const closeAllProjects = useCloseAllProjects()
   const openProjectMutation = useOpenProjectMutation()
+
+  const enableMultitabs = useFeatureFlag('enableMultitabs')
+
   return eventCallbacks.useEventCallback((project: LaunchedProject) => {
-    // Since multiple tabs cannot be opened at the sametime, the opened projects need to be closed first.
-    if (projectsStore.getState().launchedProjects.length > 0) {
-      closeAllProjects()
+    if (!enableMultitabs) {
+      // Since multiple tabs cannot be opened at the same time, the opened projects need to be closed first.
+      if (projectsStore.getState().launchedProjects.length > 0) {
+        closeAllProjects()
+      }
     }
+
     const existingMutation = client.getMutationCache().find({
       mutationKey: ['openProject'],
       predicate: (mutation) => mutation.options.scope?.id === project.id,
