@@ -724,6 +724,7 @@ default_fetch_types_query dialect expression context where_filter_always_false_l
    string and a unique (serial) number. The short name is saved and returned the
    next time that same identifier is passed in.
 type Let_Binder_Renamer
+    ## PRIVATE
     Value (existing_tables : Hashset Text) (binders_ref : Ref Dictionary) (serial_ref : Ref Integer)
 
     ## PRIVATE
