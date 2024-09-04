@@ -81,6 +81,11 @@ The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `com.typesafe.akka.akka-protobuf-v3_2.13-2.6.20`.
 
 
+'akka-slf4j_2.13', licensed under the Apache-2.0, is distributed with the project-manager.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.typesafe.akka.akka-slf4j_2.13-2.6.20`.
+
+
 'akka-stream_2.13', licensed under the Apache-2.0, is distributed with the project-manager.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.typesafe.akka.akka-stream_2.13-2.6.20`.
