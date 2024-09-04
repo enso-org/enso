@@ -3,6 +3,7 @@
  *
  * Barrel file for form components.
  */
+export { Controller } from 'react-hook-form'
 export * from './Field'
 export * from './FormError'
 export * from './Reset'
