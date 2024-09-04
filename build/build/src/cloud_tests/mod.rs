@@ -43,8 +43,6 @@ struct Credentials {
     expire_at:     String,
 }
 
-const AWS_REGION: &str = "eu-west-1";
-
 async fn build_credentials(config: AuthConfig) -> Result<Credentials> {
     if !is_aws_cli_installed().await {
         return Err(anyhow!("AWS CLI is not installed. If you want the build script to generate the Enso Cloud credentials file, you must install the AWS CLI."));
@@ -57,7 +55,7 @@ async fn build_credentials(config: AuthConfig) -> Result<Credentials> {
     let mut command = aws_command();
     command
         .args(["cognito-idp", "initiate-auth"])
-        .args(["--region", AWS_REGION])
+        .args(["--region", &config.region])
         .args(["--auth-flow", "USER_PASSWORD_AUTH"])
         .args([
             "--auth-parameters",
