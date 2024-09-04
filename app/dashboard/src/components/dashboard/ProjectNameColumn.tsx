@@ -237,7 +237,12 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                   'path' in file &&
                   typeof file.path === 'string'
                 ) {
-                  id = await window.backendApi.importProjectFromPath(file.path, directory, title)
+                  const projectInfo = await window.backendApi.importProjectFromPath(
+                    file.path,
+                    directory,
+                    title,
+                  )
+                  id = projectInfo.id
                 } else {
                   const searchParams = new URLSearchParams({ directory, name: title }).toString()
                   // Ideally this would use `file.stream()`, to minimize RAM

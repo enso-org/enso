@@ -1,3 +1,4 @@
+/** @file Utilities related to the `react-query` library. */
 import type { DefinedInitialDataOptions } from '@tanstack/react-query'
 
 export const STATIC_QUERY_OPTIONS = {
