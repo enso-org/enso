@@ -124,6 +124,7 @@ public class BenchProcessor extends AbstractProcessor {
         return true;
       } catch (Exception e) {
         failWithMessage("Uncaught exception in " + getClass().getName() + ": " + e.getMessage());
+        e.printStackTrace(System.out);
         return false;
       }
     }
