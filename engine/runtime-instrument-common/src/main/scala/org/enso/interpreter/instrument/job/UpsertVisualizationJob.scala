@@ -165,7 +165,10 @@ object UpsertVisualizationJob {
       extends Runnable {
 
     override def run(): Unit = {
-      invalidateCaches(expressionId)
+      ctx.locking.withWriteCompilationLock(
+        classOf[UpsertVisualizationJob],
+        () => invalidateCaches(expressionId)
+      )
     }
   }
 
@@ -507,7 +510,7 @@ object UpsertVisualizationJob {
         arguments
       )
     setCacheWeights(visualization)
-    ctx.state.executionHooks.add(() => new InvalidateCaches(expressionId))
+    ctx.state.executionHooks.add(InvalidateCaches(expressionId))
     ctx.contextManager.upsertVisualization(
       visualizationConfig.executionContextId,
       visualization
