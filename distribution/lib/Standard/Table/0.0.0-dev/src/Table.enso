@@ -582,23 +582,37 @@ type Table
        GROUP Standard.Base.Selections
        ICON select_column
 
-       Select columns which are either all blank or contain blank values. If no
+       Selects columns which are either all blank or contain blank values. If no
        rows are present, all columns are considered blank.
 
        Arguments:
-       - when: By default, only columns consisting of all blank cells are
-         selected. If set to Blank_Selector.Any_Cell, columns with one or
-         more blank values are selected.
-       - treat_nans_as_blank: specifies whether `Number.nan` is considered as
+       - when: specifies whether to remove is all cells are blank or if any ones
+         are chosen. By default, only columns consisting of all blank cells are
+         selected.
+       - treat_nans_as_blank: specified whether `Number.nan` is considered as
          blank. By default, it is not.
 
-       ? Blank values
-         Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
+       Returns:
+       - A new table of the blank columns.
 
        > Example
-         Select completely blank columns from a table.
+       Select completely blank columns from a table.
 
-             table.select_blank_columns
+          table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", 25,"abc",""]]
+          output = table.select_blank_columns
+
+          ## Returns a Table
+             | bar  | foo | buzz |
+             |------|-----|------|
+             | John | 25  | abc  |
+
+       ! Error Conditions
+         - If there are no columns in the output table, a `No_Output_Columns` is
+           raised as an error regardless of the problem behavior, because it is
+           not possible to create a table without any columns.
+
+       ? What is a blank value?
+         Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
     select_blank_columns : Blank_Selector -> Boolean -> Table ! No_Output_Columns
     select_blank_columns self (when : Blank_Selector = ..All_Cells) (treat_nans_as_blank : Boolean = False) =
         new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank
@@ -612,19 +626,33 @@ type Table
        rows are present, all columns are considered blank.
 
        Arguments:
-       - when By default, only columns consisting of all blank cells are
-         selected. If set to Blank_Selector.Any_Cell, columns with one or more blank values are
+       - when: specifies whether to remove is all cells are blank or if any ones
+         are chosen. By default, only columns consisting of all blank cells are
          selected.
        - treat_nans_as_blank: specified whether `Number.nan` is considered as
          blank. By default, it is not.
 
-       ? Blank values
-         Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
+       Returns:
+       - A new table with the blank columns removed.
 
        > Example
-         Remove completely blank columns from a table.
+       Remove completely blank columns from a table.
 
-             table.remove_blank_columns
+          table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", 25,"abc",""]]
+          output = table.remove_blank_columns
+
+          ## Returns a Table
+             | bar  | foo | buzz |
+             |------|-----|------|
+             | John | 25  | abc  |
+
+       ! Error Conditions
+         - If there are no columns in the output table, a `No_Output_Columns` is
+           raised as an error regardless of the problem behavior, because it is
+           not possible to create a table without any columns.
+
+       ? What is a blank value?
+         Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
     remove_blank_columns : Blank_Selector -> Boolean -> Table ! No_Output_Columns
     remove_blank_columns self (when : Blank_Selector = ..All_Cells) (treat_nans_as_blank : Boolean = False) =
         new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank invert_selection=True
@@ -687,28 +715,52 @@ type Table
 
     ## GROUP Standard.Base.Selections
        ICON select_column
-       Returns a new table with the columns sorted by name according to the
-       specified sort method. By default, sorting will be according to
-       case-sensitive ascending order based on the normalized Unicode ordering.
+       Reorders the columns sorted by name in the specified order and the text
+       ordering method. By default, sorting will be according to case-sensitive
+       ascending order.
 
        Arguments:
        - order: Whether sorting should be in ascending or descending order.
-       - text_ordering: The sort methodology to use.
+       - text_ordering: Specifies whether to use dictionary, case-insensitive or
+         case-sensitive ordering. By default, case-sensitive ordering is used.
 
        > Example
          Sort columns according to the default ordering.
 
-             table.sort_columns
+             table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", "25","abc","123"]]
+             output = table.sort_columns
+
+             ## Returns a Table
+                | bar  | bizz | buzz | foo  |
+                |------|------|------|------|
+                | John | 123  | abc  | 25   |
 
        > Example
          Sort columns according to the natural case-insensitive ordering.
 
-             table.sort_columns text_ordering=(Text_Ordering.Case_Insensitive sort_digits_as_numbers=True)
+             table = Table.from_rows ["Bar","foo","buzz","Bizz"] [["John", "25","abc","123"]]
+             output = table.sort_columns (..Case_Insensitive sort_digits_as_numbers=True)
+
+             ## Returns a Table
+                | Bar  | Bizz | buzz | foo  |
+                |------|------|------|------|
+                | John | 123  | abc  | 25   |
 
        > Example
          Sort columns in descending order.
 
-             table.reorder_columns Sort_Direction.Descending
+             table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", "25","abc","123"]]
+             output = table.sort_columns ..Descending
+
+             ## Returns a Table
+                | foo  | buzz | bizz | bar  |
+                |------|------|------|------|
+                | 25   | abc  | 123  | John |
+
+       ? Unicode Normalization
+         The text ordering method uses Unicode normalization to ensure that the
+         text is sorted correctly. This means that text that looks the same but
+         is represented differently will be sorted in the same way.
     sort_columns : Sort_Direction -> Text_Ordering -> Table
     sort_columns self order:Sort_Direction=..Ascending text_ordering:Text_Ordering=..Default =
         new_columns = Table_Helpers.sort_columns self.columns order text_ordering
@@ -795,22 +847,31 @@ type Table
        GROUP Standard.Base.Metadata
        ICON table_edit
        Returns a new table with the columns renamed based on entries in the
-       first row.
+       first row, and then the first row is removed.
 
        Arguments:
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
-         The following problems can occur:
-         - If any of the new names are invalid, an
+       Returns:
+       - A new table with the columns renamed based on the first row.
+
+       ! Error Conditions
+       - If any of the new names are invalid (e.g. `Nothing` or ``""`), an
            `Invalid_Column_Names`.
-         - If any of the new names clash either with existing names or each
-           other, a Duplicate_Output_Column_Names.
+       - If any of the new names clash either with existing names or each
+         other, a `Duplicate_Output_Column_Names`.
 
        > Example
          Rename the column based on the first row
 
-             table.use_first_row_as_names
+            table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", "25","abc","123"]]
+            output = table.use_first_row_as_names
+
+            ## Returns a Table
+               | bar | foo | buzz | bizz |
+               |-----|-----|------|------|
+               | John| 25  | abc  | 123  |
     use_first_row_as_names : Problem_Behavior -> Table
     use_first_row_as_names self (on_problems:Problem_Behavior=..Report_Warning) =
         new_names = self.first_row.to_vector.map c->
@@ -1032,6 +1093,7 @@ type Table
 
        Arguments:
        - columns: The columns of the table to use for distinguishing the rows.
+         Defaults to all columns.
        - case_sensitivity: Specifies if the text values should be compared case
          sensitively.
        - error_on_missing_columns: Specifies if a missing input column should
@@ -1039,6 +1101,33 @@ type Table
          to `True`.
        - on_problems: Specifies how to handle if a problem occurs, raising as a
          warning by default.
+
+       Returns
+       - A new table with the distinct rows.
+
+       > Example
+         Select distinct by name
+
+             table = Table.from_rows ["Name","Location"] [["John", "Massachusetts"],["Paul","London"]]
+             distinct = table.distinct ["Name"]
+
+             ## Returns a Table
+                | Name |
+                |------|
+                | John |
+                | Paul |
+
+       > Example
+         Select distinct by name and location
+
+             table = Table.from_rows ["Name","Location"] [["John", "Massachusetts"],["Paul","London"]]
+             distinct = table.distinct ["Name", "Location"]
+
+             ## Returns a Table
+                | Name | Location      |
+                |------|---------------|
+                | John | Massachusetts |
+                | Paul | London        |
 
        ! Error Conditions
 
@@ -1323,8 +1412,7 @@ type Table
        ICON convert
        Cast the selected columns to a specific type.
 
-       Returns a new table in which the selected columns are replaced with
-       columns having the new types.
+       Change the value type of the selected columns with the specified type.
 
        Arguments:
        - columns: The selection of columns to cast.
@@ -1335,9 +1423,22 @@ type Table
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
+       Returns:
+       - A new table with the specified columns cast to the desired type.
+
+       ! Error Conditions
+       - If the target type cannot fit some of the values (for example due to
+         too small range), a `Conversion_Failure` may be reported according to
+         the `on_problems` rules.
+       - The Database backends may fail with `SQL_Error` instead.
+
+       ? Casting Rules
+
        In the Database backend, this will boil down to a CAST operation.
+
        In the in-memory backend, a conversion will be performed according to
        the following rules:
+
        - Anything can be cast into the `Mixed` type.
        - Converting to a `Char` type, the elements of the column will be
          converted to text. If it is fixed length, the texts will be trimmed or
@@ -1358,18 +1459,13 @@ type Table
        - For a `Mixed` column being converted into a specific type, each row is
          converted individually.
 
-        If the target type cannot fit some of the values (for example due to too
-        small range), a `Conversion_Failure` may be reported according to the
-        `on_problems` rules. The Database backends may fail with `SQL_Error`
-        instead.
-
        ? Inexact Target Type
 
          If the backend does not support the requested target type, the closest
          supported type is chosen and a `Inexact_Type_Coercion` problem is
          reported.
 
-       ! Casting Text values
+       ? Casting Text values
 
          The `parse` method should be used to convert text values into other
          types. Due to this, a Mixed column containing values `[2, "3"]` will
