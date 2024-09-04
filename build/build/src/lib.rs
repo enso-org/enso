@@ -21,6 +21,7 @@ pub mod aws;
 pub mod changelog;
 pub mod ci;
 pub mod ci_gen;
+pub mod cloud_tests;
 pub mod config;
 pub mod context;
 pub mod engine;
