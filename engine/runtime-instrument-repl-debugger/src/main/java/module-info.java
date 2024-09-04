@@ -1,5 +1,6 @@
 module org.enso.runtime.instrument.repl.debugger {
   requires scala.library;
+  requires org.enso.engine.common;
   requires org.enso.runtime.instrument.common;
   requires org.enso.runtime;
   requires org.enso.polyglot.api;

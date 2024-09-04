@@ -3200,6 +3200,7 @@ lazy val `runtime-instrument-repl-debugger` =
       ),
       Compile / internalModuleDependencies := Seq(
         (`runtime-instrument-common` / Compile / exportedModule).value,
+        (`engine-common` / Compile / exportedModule).value,
         (`runtime` / Compile / exportedModule).value,
         (`polyglot-api` / Compile / exportedModule).value,
         (`runtime-compiler` / Compile / exportedModule).value
@@ -3700,6 +3701,7 @@ lazy val `bench-processor` = (project in file("lib/scala/bench-processor"))
 
 lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
   .enablePlugins(JPMSPlugin)
+  .enablePlugins(PackageListPlugin)
   .settings(
     frgaalJavaCompilerSetting,
     annotationProcSetting,
