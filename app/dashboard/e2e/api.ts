@@ -504,24 +504,21 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         (a, b) => backend.ASSET_TYPE_ORDER[a.type] - backend.ASSET_TYPE_ORDER[b.type],
       )
       const json: remoteBackend.ListDirectoryResponseBody = { assets: filteredAssets }
+
       return json
     })
-    await get(
-      remoteBackendPaths.LIST_FILES_PATH + '*',
-      () => ({ files: [] }) satisfies remoteBackend.ListFilesResponseBody,
-    )
-    await get(
-      remoteBackendPaths.LIST_PROJECTS_PATH + '*',
-      () => ({ projects: [] }) satisfies remoteBackend.ListProjectsResponseBody,
-    )
-    await get(
-      remoteBackendPaths.LIST_SECRETS_PATH + '*',
-      () => ({ secrets: [] }) satisfies remoteBackend.ListSecretsResponseBody,
-    )
-    await get(
-      remoteBackendPaths.LIST_TAGS_PATH + '*',
-      () => ({ tags: labels }) satisfies remoteBackend.ListTagsResponseBody,
-    )
+    await get(remoteBackendPaths.LIST_FILES_PATH + '*', () => {
+      return { files: [] } satisfies remoteBackend.ListFilesResponseBody
+    })
+    await get(remoteBackendPaths.LIST_PROJECTS_PATH + '*', () => {
+      return { projects: [] } satisfies remoteBackend.ListProjectsResponseBody
+    })
+    await get(remoteBackendPaths.LIST_SECRETS_PATH + '*', () => {
+      return { secrets: [] } satisfies remoteBackend.ListSecretsResponseBody
+    })
+    await get(remoteBackendPaths.LIST_TAGS_PATH + '*', () => {
+      return { tags: labels } satisfies remoteBackend.ListTagsResponseBody
+    })
     await get(remoteBackendPaths.LIST_USERS_PATH + '*', async (route) => {
       if (currentUser != null) {
         return { users } satisfies remoteBackend.ListUsersResponseBody
@@ -584,6 +581,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       interface Body {
         readonly parentDirectoryId: backend.DirectoryId
       }
+
       const assetId = request.url().match(/[/]assets[/]([^?/]+)/)?.[1]
       // eslint-disable-next-line no-restricted-syntax
       const asset = assetId != null ? assetMap.get(assetId as backend.AssetId) : null
@@ -605,7 +603,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         const body: Body = await request.postDataJSON()
         const parentId = body.parentDirectoryId
         // Can be any asset ID.
-        const id = backend.DirectoryId(uniqueString.uniqueString())
+        const id = backend.DirectoryId(`directory-${uniqueString.uniqueString()}`)
         const json: backend.CopyAssetResponse = {
           asset: {
             id,
@@ -621,6 +619,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         await route.fulfill({ json })
       }
     })
+
     await get(remoteBackendPaths.INVITATION_PATH + '*', async (route) => {
       await route.fulfill({
         json: { invitations: [] } satisfies backend.ListInvitationsResponseBody,
@@ -695,7 +694,9 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       const searchParams: SearchParams = Object.fromEntries(
         new URL(request.url()).searchParams.entries(),
       ) as never
-      const file = createFile(searchParams.file_name)
+
+      const file = addFile(searchParams.file_name)
+
       return { path: '', id: file.id, project: null } satisfies backend.FileInfo
     })
 
@@ -703,7 +704,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       // The type of the body sent by this app is statically known.
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const body: backend.CreateSecretRequestBody = await request.postDataJSON()
-      const secret = createSecret(body.name)
+      const secret = addSecret(body.name)
       return secret.id
     })
 
@@ -720,6 +721,10 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       if (asset != null) {
         if (body.description != null) {
           object.unsafeMutable(asset).description = body.description
+        }
+
+        if (body.parentDirectoryId != null) {
+          object.unsafeMutable(asset).parentId = body.parentDirectoryId
         }
       }
     })
@@ -813,7 +818,9 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         currentUser = { ...currentUser, name: body.username }
       }
     })
-    await get(remoteBackendPaths.USERS_ME_PATH + '*', () => currentUser)
+    await get(remoteBackendPaths.USERS_ME_PATH + '*', () => {
+      return currentUser
+    })
     await patch(remoteBackendPaths.UPDATE_ORGANIZATION_PATH + '*', async (route, request) => {
       // The type of the body sent by this app is statically known.
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment

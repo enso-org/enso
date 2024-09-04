@@ -44,11 +44,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run backend test std-snowflake
         env:
-          ENSO_CLOUD_COGNITO_REGION: ${{ secrets.ENSO_CLOUD_COGNITO_REGION }}
-          ENSO_CLOUD_COGNITO_USER_POOL_ID: ${{ secrets.ENSO_CLOUD_COGNITO_USER_POOL_ID }}
-          ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID: ${{ secrets.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID }}
-          ENSO_CLOUD_TEST_ACCOUNT_PASSWORD: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_PASSWORD }}
-          ENSO_CLOUD_TEST_ACCOUNT_USERNAME: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_USERNAME }}
           ENSO_SNOWFLAKE_ACCOUNT: ${{ secrets.ENSO_SNOWFLAKE_ACCOUNT }}
           ENSO_SNOWFLAKE_DATABASE: ${{ secrets.ENSO_SNOWFLAKE_DATABASE }}
           ENSO_SNOWFLAKE_PASSWORD: ${{ secrets.ENSO_SNOWFLAKE_PASSWORD }}
@@ -81,10 +76,9 @@ jobs:
     permissions:
       checks: write
   enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-linux-amd64:
-    name: Standard Library Tests (GraalVM CE) (linux, amd64)
+    name: Standard Library Tests (GraalVM CE) (LinuxLatest)
     runs-on:
-      - self-hosted
-      - Linux
+      - ubuntu-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
