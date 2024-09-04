@@ -60,14 +60,6 @@ export interface MockApi extends Awaited<ReturnType<typeof mockApiInternal>> {}
 // eslint-disable-next-line no-restricted-syntax
 export const mockApi: (params: MockParams) => Promise<MockApi> = mockApiInternal
 
-/**
- * Wait for a given number of milliseconds.
- */
-// eslint-disable-next-line @typescript-eslint/no-magic-numbers
-function wait(ms: number = 0) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
 /** Add route handlers for the mock API to a page. */
 // This syntax is required for Playwright to work properly.
 // eslint-disable-next-line no-restricted-syntax
@@ -462,7 +454,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
 
     // === Endpoints returning arrays ===
 
-    await get(remoteBackendPaths.LIST_DIRECTORY_PATH + '*', async (_route, request) => {
+    await get(remoteBackendPaths.LIST_DIRECTORY_PATH + '*', (_route, request) => {
       /** The type for the search query for this endpoint. */
       interface Query {
         /* eslint-disable @typescript-eslint/naming-convention */
@@ -513,29 +505,22 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       )
       const json: remoteBackend.ListDirectoryResponseBody = { assets: filteredAssets }
 
-      await wait()
-
       return json
     })
-    await get(remoteBackendPaths.LIST_FILES_PATH + '*', async () => {
-      await wait()
+    await get(remoteBackendPaths.LIST_FILES_PATH + '*', () => {
       return { files: [] } satisfies remoteBackend.ListFilesResponseBody
     })
-    await get(remoteBackendPaths.LIST_PROJECTS_PATH + '*', async () => {
-      await wait()
+    await get(remoteBackendPaths.LIST_PROJECTS_PATH + '*', () => {
       return { projects: [] } satisfies remoteBackend.ListProjectsResponseBody
     })
-    await get(remoteBackendPaths.LIST_SECRETS_PATH + '*', async () => {
-      await wait()
+    await get(remoteBackendPaths.LIST_SECRETS_PATH + '*', () => {
       return { secrets: [] } satisfies remoteBackend.ListSecretsResponseBody
     })
-    await get(remoteBackendPaths.LIST_TAGS_PATH + '*', async () => {
-      await wait()
+    await get(remoteBackendPaths.LIST_TAGS_PATH + '*', () => {
       return { tags: labels } satisfies remoteBackend.ListTagsResponseBody
     })
     await get(remoteBackendPaths.LIST_USERS_PATH + '*', async (route) => {
       if (currentUser != null) {
-        await wait()
         return { users } satisfies remoteBackend.ListUsersResponseBody
       } else {
         await route.fulfill({ status: HTTP_STATUS_BAD_REQUEST })
@@ -543,8 +528,6 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       }
     })
     await get(remoteBackendPaths.LIST_USER_GROUPS_PATH + '*', async (route) => {
-      await wait()
-
       await route.fulfill({ json: [] })
     })
     await get(remoteBackendPaths.LIST_VERSIONS_PATH + '*', (_route, request) => ({
@@ -567,35 +550,29 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
 
     // === Endpoints with dummy implementations ===
 
-    await get(
-      remoteBackendPaths.getProjectDetailsPath(GLOB_PROJECT_ID),
-      async (_route, request) => {
-        const projectId = backend.ProjectId(
-          request.url().match(/[/]projects[/]([^?/]+)/)?.[1] ?? '',
-        )
-        const project = assetMap.get(projectId)
-        await wait()
-        if (!project?.projectState) {
-          throw new Error('Attempting to get a project that does not exist.')
-        } else {
-          return {
-            organizationId: defaultOrganizationId,
-            projectId: projectId,
-            name: 'example project name',
-            state: project.projectState,
-            packageName: 'Project_root',
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            ide_version: null,
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            engine_version: {
-              value: '2023.2.1-nightly.2023.9.29',
-              lifecycle: backend.VersionLifecycle.development,
-            },
-            address: backend.Address('ws://localhost/'),
-          } satisfies backend.ProjectRaw
-        }
-      },
-    )
+    await get(remoteBackendPaths.getProjectDetailsPath(GLOB_PROJECT_ID), (_route, request) => {
+      const projectId = backend.ProjectId(request.url().match(/[/]projects[/]([^?/]+)/)?.[1] ?? '')
+      const project = assetMap.get(projectId)
+      if (!project?.projectState) {
+        throw new Error('Attempting to get a project that does not exist.')
+      } else {
+        return {
+          organizationId: defaultOrganizationId,
+          projectId: projectId,
+          name: 'example project name',
+          state: project.projectState,
+          packageName: 'Project_root',
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          ide_version: null,
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          engine_version: {
+            value: '2023.2.1-nightly.2023.9.29',
+            lifecycle: backend.VersionLifecycle.development,
+          },
+          address: backend.Address('ws://localhost/'),
+        } satisfies backend.ProjectRaw
+      }
+    })
 
     // === Endpoints returning `void` ===
 
@@ -642,26 +619,22 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         await route.fulfill({ json })
       }
     })
+
     await get(remoteBackendPaths.INVITATION_PATH + '*', async (route) => {
-      await wait()
       await route.fulfill({
         json: { invitations: [] } satisfies backend.ListInvitationsResponseBody,
       })
     })
     await post(remoteBackendPaths.INVITE_USER_PATH + '*', async (route) => {
-      await wait()
       await route.fulfill()
     })
     await post(remoteBackendPaths.CREATE_PERMISSION_PATH + '*', async (route) => {
-      await wait()
       await route.fulfill()
     })
     await delete_(remoteBackendPaths.deleteAssetPath(GLOB_ASSET_ID), async (route) => {
-      await wait()
       await route.fulfill()
     })
     await post(remoteBackendPaths.closeProjectPath(GLOB_PROJECT_ID), async (route, request) => {
-      await wait()
       const projectId = backend.ProjectId(request.url().match(/[/]projects[/]([^?/]+)/)?.[1] ?? '')
       const project = assetMap.get(projectId)
       if (project?.projectState) {
@@ -670,7 +643,6 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       await route.fulfill()
     })
     await post(remoteBackendPaths.openProjectPath(GLOB_PROJECT_ID), async (route, request) => {
-      await wait()
       const projectId = backend.ProjectId(request.url().match(/[/]projects[/]([^?/]+)/)?.[1] ?? '')
       const project = assetMap.get(projectId)
       if (project?.projectState) {
@@ -679,18 +651,15 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       await route.fulfill()
     })
     await delete_(remoteBackendPaths.deleteTagPath(GLOB_TAG_ID), async (route) => {
-      await wait()
       await route.fulfill()
     })
     await post(remoteBackendPaths.POST_LOG_EVENT_PATH, async (route) => {
-      await wait()
       await route.fulfill()
     })
 
     // === Entity creation endpoints ===
 
     await put(remoteBackendPaths.UPLOAD_USER_PICTURE_PATH + '*', async (route, request) => {
-      await wait()
       const content = request.postData()
       if (content != null) {
         currentProfilePicture = content
@@ -701,7 +670,6 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       }
     })
     await put(remoteBackendPaths.UPLOAD_ORGANIZATION_PICTURE_PATH + '*', async (route, request) => {
-      await wait()
       const content = request.postData()
       if (content != null) {
         currentOrganizationProfilePicture = content
@@ -711,8 +679,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         return
       }
     })
-    await post(remoteBackendPaths.UPLOAD_FILE_PATH + '*', async (_route, request) => {
-      await wait()
+    await post(remoteBackendPaths.UPLOAD_FILE_PATH + '*', (_route, request) => {
       /** The type for the JSON request payload for this endpoint. */
       interface SearchParams {
         // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -743,7 +710,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
 
     // === Other endpoints ===
 
-    await patch(remoteBackendPaths.updateAssetPath(GLOB_ASSET_ID), async (_route, request) => {
+    await patch(remoteBackendPaths.updateAssetPath(GLOB_ASSET_ID), (_route, request) => {
       const assetId = request.url().match(/[/]assets[/]([^?]+)/)?.[1] ?? ''
       // The type of the body sent by this app is statically known.
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -762,7 +729,6 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       }
     })
     await patch(remoteBackendPaths.associateTagPath(GLOB_ASSET_ID), async (_route, request) => {
-      await wait()
       const assetId = request.url().match(/[/]assets[/]([^/?]+)/)?.[1] ?? ''
       /** The type for the JSON request payload for this endpoint. */
       interface Body {
@@ -806,7 +772,6 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       }
     })
     await delete_(remoteBackendPaths.deleteAssetPath(GLOB_ASSET_ID), async (route, request) => {
-      await wait()
       const assetId = request.url().match(/[/]assets[/]([^?]+)/)?.[1] ?? ''
       // This could be an id for an arbitrary asset, but pretend it's a
       // `DirectoryId` to make TypeScript happy.
@@ -814,7 +779,6 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       await route.fulfill({ status: HTTP_STATUS_NO_CONTENT })
     })
     await patch(remoteBackendPaths.UNDO_DELETE_ASSET_PATH, async (route, request) => {
-      await wait()
       /** The type for the JSON request payload for this endpoint. */
       interface Body {
         readonly assetId: backend.AssetId
@@ -826,7 +790,6 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       await route.fulfill({ status: HTTP_STATUS_NO_CONTENT })
     })
     await post(remoteBackendPaths.CREATE_USER_PATH + '*', async (route, request) => {
-      await wait()
       // The type of the body sent by this app is statically known.
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const body: backend.CreateUserRequestBody = await request.postDataJSON()
@@ -848,7 +811,6 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       await route.fulfill({ json: currentUser })
     })
     await put(remoteBackendPaths.UPDATE_CURRENT_USER_PATH + '*', async (_route, request) => {
-      await wait()
       // The type of the body sent by this app is statically known.
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const body: backend.UpdateUserRequestBody = await request.postDataJSON()
@@ -856,12 +818,10 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         currentUser = { ...currentUser, name: body.username }
       }
     })
-    await get(remoteBackendPaths.USERS_ME_PATH + '*', async () => {
-      await wait()
+    await get(remoteBackendPaths.USERS_ME_PATH + '*', () => {
       return currentUser
     })
     await patch(remoteBackendPaths.UPDATE_ORGANIZATION_PATH + '*', async (route, request) => {
-      await wait()
       // The type of the body sent by this app is statically known.
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const body: backend.UpdateOrganizationRequestBody = await request.postDataJSON()
@@ -880,21 +840,18 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       }
     })
     await get(remoteBackendPaths.GET_ORGANIZATION_PATH + '*', async (route) => {
-      await wait()
       await route.fulfill({
         json: currentOrganization,
         // eslint-disable-next-line @typescript-eslint/no-magic-numbers
         status: currentOrganization == null ? 404 : 200,
       })
     })
-    await post(remoteBackendPaths.CREATE_TAG_PATH + '*', async (route) => {
-      await wait()
+    await post(remoteBackendPaths.CREATE_TAG_PATH + '*', (route) => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const body: backend.CreateTagRequestBody = route.request().postDataJSON()
       return addLabel(body.value, body.color)
     })
-    await post(remoteBackendPaths.CREATE_PROJECT_PATH + '*', async (_route, request) => {
-      await wait()
+    await post(remoteBackendPaths.CREATE_PROJECT_PATH + '*', (_route, request) => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const body: backend.CreateProjectRequestBody = request.postDataJSON()
       const title = body.projectName
@@ -929,8 +886,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       })
       return json
     })
-    await post(remoteBackendPaths.CREATE_DIRECTORY_PATH + '*', async (_route, request) => {
-      await wait()
+    await post(remoteBackendPaths.CREATE_DIRECTORY_PATH + '*', (_route, request) => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const body: backend.CreateDirectoryRequestBody = request.postDataJSON()
       const title = body.title
@@ -961,7 +917,6 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     })
 
     await page.route('*', async (route) => {
-      await wait()
       if (!isOnline) {
         await route.abort('connectionfailed')
       }
