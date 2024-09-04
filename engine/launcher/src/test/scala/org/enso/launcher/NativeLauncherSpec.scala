@@ -1,7 +1,7 @@
 package org.enso.launcher
 
-import buildinfo.Info
 import io.circe.parser
+import org.enso.version.BuildVersion
 
 class NativeLauncherSpec extends NativeTest {
   "native launcher" should {
@@ -20,7 +20,7 @@ class NativeLauncherSpec extends NativeTest {
         .apply("version")
         .get
         .asString
-        .get shouldEqual Info.ensoVersion
+        .get shouldEqual BuildVersion.ensoVersion
     }
   }
 }

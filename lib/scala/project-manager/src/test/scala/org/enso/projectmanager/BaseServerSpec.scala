@@ -50,6 +50,7 @@ import org.enso.projectmanager.test.{
 import org.enso.runtimeversionmanager.CurrentVersion
 import org.enso.runtimeversionmanager.components.GraalVMVersion
 import org.enso.runtimeversionmanager.test.FakeReleases
+import org.enso.version.BuildVersion
 import org.scalatest.BeforeAndAfterAll
 import org.slf4j.event.Level
 import pureconfig.ConfigSource
@@ -58,7 +59,6 @@ import zio.interop.catz.core._
 import zio.{Runtime, Semaphore, ZAny, ZIO}
 
 import java.net.URISyntaxException
-
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
@@ -262,7 +262,7 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
     val engineVersion = engineToInstall.getOrElse(CurrentVersion.version)
     val editionsDir   = testDistributionRoot.toPath / "test_data" / "editions"
     Files.createDirectories(editionsDir)
-    val editionName = buildinfo.Info.currentEdition + ".yaml"
+    val editionName = BuildVersion.currentEdition + ".yaml"
     val editionConfig =
       s"""engine-version: $engineVersion
          |""".stripMargin
