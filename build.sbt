@@ -992,7 +992,8 @@ lazy val `version-output` = (project in file("lib/scala/version-output"))
   .settings(
     frgaalJavaCompilerSetting,
     Compile / sourceGenerators += Def.task {
-      val file = (Compile / sourceManaged).value / "buildinfo" / "Info.scala"
+      val file =
+        (Compile / sourceManaged).value / "org" / "enso" / "version" / "GeneratedVersion.java"
       BuildInfo
         .writeBuildInfoFile(
           file                  = file,
@@ -2977,6 +2978,7 @@ lazy val editions = project
     cleanFiles += baseDirectory.value / ".." / ".." / "distribution" / "editions"
   )
   .dependsOn(semver)
+  .dependsOn(`version-output`)
   .dependsOn(testkit % Test)
 
 lazy val semver = project

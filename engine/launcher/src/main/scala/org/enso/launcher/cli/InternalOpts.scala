@@ -14,6 +14,7 @@ import org.enso.distribution.config.DefaultVersion._
 import org.enso.launcher.distribution.LauncherEnvironment
 import org.enso.launcher.upgrade.LauncherUpgrader
 import org.enso.launcher.releases.LauncherRepository
+import org.enso.version.BuildVersion
 
 /** Implements internal options that the launcher may use when running another
   * instance of itself.
@@ -84,7 +85,7 @@ object InternalOpts {
     * In release mode, this is an identity function, since these internal options are not permitted anyway.
     */
   def removeInternalTestOptions(args: Seq[String]): Seq[String] =
-    if (buildinfo.Info.isRelease) args
+    if (BuildVersion.isRelease) args
     else {
       (removeOption(EMULATE_VERSION) andThen removeOption(EMULATE_LOCATION))(
         args
@@ -193,7 +194,7 @@ object InternalOpts {
     * Disabled in release mode.
     */
   private def testingOptions: Opts[Unit] =
-    if (buildinfo.Info.isRelease) Opts.pure(())
+    if (BuildVersion.isRelease) Opts.pure(())
     else {
       val emulateVersion =
         Opts.optionalParameter[SemVer](EMULATE_VERSION, "VERSION", "").hidden

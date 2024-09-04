@@ -26,6 +26,8 @@ import org.enso.launcher.upgrade.LauncherUpgrader
 import org.slf4j.event.Level
 import org.enso.version.{VersionDescription, VersionDescriptionParameter}
 
+import scala.jdk.CollectionConverters.SeqHasAsJava
+
 /** Implements launcher commands that are run from CLI and can be affected by
   * the global CLI options.
   *
@@ -510,10 +512,10 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
 
     val versionDescription = VersionDescription.make(
       "Enso Launcher",
-      includeRuntimeJVMInfo         = false,
-      enableNativeImageOSWorkaround = true,
-      additionalParameters          = runtimeVersionParameter.toSeq,
-      customVersion                 = Some(CurrentVersion.version.toString)
+      false,
+      true,
+      runtimeVersionParameter.toSeq.asJava,
+      CurrentVersion.version.toString
     )
 
     println(versionDescription.asString(useJSON))
@@ -547,14 +549,16 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       else "Not installed."
     }
 
-    VersionDescriptionParameter(
-      humanReadableName = whichEngine match {
-        case WhichEngine.FromProject(name) =>
-          s"Enso engine from project $name"
-        case WhichEngine.Default => "Current default Enso engine"
-      },
-      jsonName = "runtime",
-      value    = runtimeVersionString
+    val humanReadableName = whichEngine match {
+      case WhichEngine.FromProject(name) =>
+        s"Enso engine from project $name"
+      case WhichEngine.Default => "Current default Enso engine"
+    }
+    val jsonName = "runtime"
+    new VersionDescriptionParameter(
+      humanReadableName,
+      jsonName,
+      runtimeVersionString
     )
   }
 
