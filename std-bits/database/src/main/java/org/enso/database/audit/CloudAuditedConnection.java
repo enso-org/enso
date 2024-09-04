@@ -25,7 +25,7 @@ public final class CloudAuditedConnection extends AuditedConnection {
       metadata.put("asset_id", relatedAssetId);
     }
     try {
-      metadata.put("connection_uri", underlying.getMetaData().getURL());
+      metadata.put("connectionUri", underlying.getMetaData().getURL());
     } catch (SQLException e) {
       // We ignore the exception, only logging it
       logger.warning("Failed to get connection URI for " + underlying + ": " + e.getMessage());
@@ -34,7 +34,7 @@ public final class CloudAuditedConnection extends AuditedConnection {
 
   private void audit(String operationType, String message) {
     var metadataCopy = metadata.deepCopy();
-    metadataCopy.put("sequence_number", sequenceNumber++);
+    metadataCopy.put("sequenceNumber", sequenceNumber++);
     AuditLog.logAsync(operationType, message, metadataCopy);
   }
 

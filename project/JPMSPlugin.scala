@@ -1,9 +1,8 @@
-import sbt.*
-import sbt.Keys.*
+import sbt._
+import sbt.Keys._
 import sbt.internal.util.ManagedLogger
 
 import java.io.File
-import java.net.{URI, URL}
 import java.util.jar.JarFile
 import scala.collection.mutable
 
@@ -17,7 +16,22 @@ import scala.collection.mutable
   * If this plugin is enabled, and no settings/tasks from this plugin are used, then the plugin will
   * not inject anything into `javaOptions` or `javacOptions`.
   *
-  * - `compileOrder` has to be specified before `libraryDependencies`
+  * == How to work with this plugin ==
+  * - Specify `moduleDependencies` with something like:
+  *  {{{
+  *  moduleDependencies := Seq(
+  *    "org.apache.commons" % "commons-lang3" % "3.11",
+  *  )
+  *  }}}
+  *  - Ensure that all the module dependencies were gathered by the plugin correctly by
+  *    `print modulePath`.
+  *    - If not, make sure that these dependencies are in `libraryDependencies`.
+  *      Debug this with `print dependencyClasspath`.
+  *
+  * == Caveats ==
+  * - This plugin cannot determine transitive dependencies of modules in `moduleDependencies`.
+  *   As opposed to `libraryDependencies` which automatically gatheres all the transitive dependencies.
+  * - `compileOrder` has to be specified before `libraryDependencies`.
   */
 object JPMSPlugin extends AutoPlugin {
   object autoImport {

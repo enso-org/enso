@@ -20,10 +20,10 @@ type Cloud_Tests_Setup
 
     with_prepared_environment self ~action = case self of
         Cloud_Tests_Setup.Mock _ _ ->
-            Cloud_Tests_Setup.reset
             Panic.with_finalizer Cloud_Tests_Setup.reset <|
                 Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_API_URI" self.api_url.to_text <|
                     Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_CREDENTIALS_FILE" self.credentials_location.absolute.normalize.path <|
+                        Cloud_Tests_Setup.reset
                         action
         _ -> action
 
@@ -184,7 +184,7 @@ type Temporary_Directory
         was_initialized = Ref.new False
         Temporary_Directory.Value was_initialized <|
             directory_name = "test-run-"+name+"-"+Temporary_Directory.timestamp_text
-            test_root = (Enso_File.root / directory_name).create_directory
+            test_root = (Enso_File.home / directory_name).create_directory
             test_root.if_not_error <|
                 was_initialized.put True
                 with_initializer test_root . if_not_error test_root

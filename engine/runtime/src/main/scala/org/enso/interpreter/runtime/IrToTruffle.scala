@@ -47,10 +47,10 @@ import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.exception.BadPatternMatch
 import org.enso.compiler.pass.analyse.alias.graph.Graph.{Scope => AliasScope}
 import org.enso.compiler.pass.analyse.{
-  alias,
   AliasAnalysis,
   BindingAnalysis,
   DataflowAnalysis,
+  FramePointerAnalysis,
   TailCall
 }
 import org.enso.compiler.pass.analyse.alias.AliasMetadata
@@ -102,7 +102,6 @@ import org.enso.interpreter.runtime.callable.{
   Annotation => RuntimeAnnotation
 }
 import org.enso.interpreter.runtime.data.Type
-import org.enso.interpreter.runtime.data.text.Text
 import org.enso.interpreter.runtime.scope.{ImportExportScope, ModuleScope}
 import org.enso.interpreter.{Constants, EnsoLanguage}
 
@@ -112,7 +111,6 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
-import org.enso.interpreter.runtime.error.DataflowError
 
 /** This is an implementation of a codegeneration pass that lowers the Enso
   * [[IR]] into the truffle structures that are actually executed.
@@ -232,17 +230,13 @@ class IrToTruffle(
 
   private def registerPolyglotImports(module: Module): Unit =
     module.imports.foreach {
-      case poly @ imports.Polyglot(i: imports.Polyglot.Java, _, _, _, _) =>
-        var hostSymbol = context.lookupJavaClass(i.getJavaName)
-        if (hostSymbol == null) {
-          val err = Text.create(
-            s"Incorrect polyglot java import: ${i.getJavaName}"
-          )
-          hostSymbol = DataflowError.withDefaultTrace(err, null)
-        }
+      case poly @ imports.Polyglot(i: imports.Polyglot.Java, _, _, _) =>
         this.scopeBuilder.registerPolyglotSymbol(
           poly.getVisibleName,
-          hostSymbol
+          () => {
+            val hostSymbol = context.lookupJavaClass(i.getJavaName)
+            hostSymbol
+          }
         )
       case _: Import.Module =>
       case _: Error         =>
@@ -270,21 +264,23 @@ class IrToTruffle(
     atomCons: AtomConstructor,
     atomDefn: Definition.Data
   ): Unit = {
-    val scopeInfo = atomDefn
-      .unsafeGetMetadata(
-        AliasAnalysis,
-        "No root scope on an atom definition."
-      )
-      .unsafeAs[AliasMetadata.RootScope]
+    def scopeInfo() = {
+      atomDefn
+        .unsafeGetMetadata(
+          AliasAnalysis,
+          "No root scope on an atom definition."
+        )
+        .unsafeAs[AliasMetadata.RootScope]
+    }
 
-    val dataflowInfo = atomDefn.unsafeGetMetadata(
+    def dataflowInfo() = atomDefn.unsafeGetMetadata(
       DataflowAnalysis,
       "No dataflow information associated with an atom."
     )
     val localScope = new LocalScope(
       None,
-      scopeInfo.graph,
-      scopeInfo.graph.rootScope,
+      () => scopeInfo().graph,
+      () => scopeInfo().graph.rootScope,
       dataflowInfo
     )
 
@@ -302,13 +298,12 @@ class IrToTruffle(
       val unprocessedArg = atomDefn.arguments(idx)
       val checkNode      = checkAsTypes(unprocessedArg)
       val arg            = argFactory.run(unprocessedArg, idx, checkNode)
-      val occInfo = unprocessedArg
+      val fp = unprocessedArg
         .unsafeGetMetadata(
-          AliasAnalysis,
-          "No occurrence on an argument definition."
+          FramePointerAnalysis,
+          "No frame pointer on an argument definition."
         )
-        .unsafeAs[alias.AliasMetadata.Occurrence]
-      val slotIdx = localScope.getVarSlotIdx(occInfo.id)
+      val slotIdx = fp.frameSlotIdx()
       argDefs(idx) = arg
       val readArg =
         ReadArgumentNode.build(
@@ -334,8 +329,8 @@ class IrToTruffle(
         scopeElements.mkString(Constants.SCOPE_SEPARATOR)
       val expressionProcessor = new ExpressionProcessor(
         scopeName,
-        scopeInfo.graph,
-        scopeInfo.graph.rootScope,
+        () => scopeInfo().graph,
+        () => scopeInfo().graph.rootScope,
         dataflowInfo,
         atomDefn.name.name
       )
@@ -374,14 +369,16 @@ class IrToTruffle(
     }
 
     methodDefs.foreach(methodDef => {
-      val scopeInfo = methodDef
-        .unsafeGetMetadata(
-          AliasAnalysis,
-          s"Missing scope information for method " +
-          s"`${methodDef.typeName.map(_.name + ".").getOrElse("")}${methodDef.methodName.name}`."
-        )
-        .unsafeAs[AliasMetadata.RootScope]
-      val dataflowInfo = methodDef.unsafeGetMetadata(
+      def scopeInfo() = {
+        methodDef
+          .unsafeGetMetadata(
+            AliasAnalysis,
+            s"Missing scope information for method " +
+            s"`${methodDef.typeName.map(_.name + ".").getOrElse("")}${methodDef.methodName.name}`."
+          )
+          .unsafeAs[AliasMetadata.RootScope]
+      }
+      def dataflowInfo() = methodDef.unsafeGetMetadata(
         DataflowAnalysis,
         "Method definition missing dataflow information."
       )
@@ -415,8 +412,8 @@ class IrToTruffle(
           cons.getName ++ Constants.SCOPE_SEPARATOR ++ methodDef.methodName.name
         val expressionProcessor = new ExpressionProcessor(
           fullMethodDefName,
-          scopeInfo.graph,
-          scopeInfo.graph.rootScope,
+          () => scopeInfo().graph,
+          () => scopeInfo().graph.rootScope,
           dataflowInfo,
           fullMethodDefName
         )
@@ -549,16 +546,18 @@ class IrToTruffle(
             )
             val scopeName =
               scopeElements.mkString(Constants.SCOPE_SEPARATOR)
-            val scopeInfo = annotation
-              .unsafeGetMetadata(
-                AliasAnalysis,
-                s"Missing scope information for annotation " +
-                s"${annotation.name} of method " +
-                scopeElements.init
-                  .mkString(Constants.SCOPE_SEPARATOR)
-              )
-              .unsafeAs[AliasMetadata.RootScope]
-            val dataflowInfo = annotation.unsafeGetMetadata(
+            def scopeInfo() = {
+              annotation
+                .unsafeGetMetadata(
+                  AliasAnalysis,
+                  s"Missing scope information for annotation " +
+                  s"${annotation.name} of method " +
+                  scopeElements.init
+                    .mkString(Constants.SCOPE_SEPARATOR)
+                )
+                .unsafeAs[AliasMetadata.RootScope]
+            }
+            def dataflowInfo() = annotation.unsafeGetMetadata(
               DataflowAnalysis,
               "Missing dataflow information for annotation " +
               s"${annotation.name} of method " +
@@ -567,8 +566,8 @@ class IrToTruffle(
             )
             val expressionProcessor = new ExpressionProcessor(
               scopeName,
-              scopeInfo.graph,
-              scopeInfo.graph.rootScope,
+              () => scopeInfo().graph,
+              () => scopeInfo().graph.rootScope,
               dataflowInfo,
               methodDef.methodName.name
             )
@@ -768,14 +767,16 @@ class IrToTruffle(
 
     // Register the conversion definitions in scope
     conversionDefs.foreach(methodDef => {
-      val scopeInfo = methodDef
-        .unsafeGetMetadata(
-          AliasAnalysis,
-          s"Missing scope information for conversion " +
-          s"`${methodDef.typeName.map(_.name + ".").getOrElse("")}${methodDef.methodName.name}`."
-        )
-        .unsafeAs[AliasMetadata.RootScope]
-      val dataflowInfo = methodDef.unsafeGetMetadata(
+      def scopeInfo() = {
+        methodDef
+          .unsafeGetMetadata(
+            AliasAnalysis,
+            s"Missing scope information for conversion " +
+            s"`${methodDef.typeName.map(_.name + ".").getOrElse("")}${methodDef.methodName.name}`."
+          )
+          .unsafeAs[AliasMetadata.RootScope]
+      }
+      def dataflowInfo() = methodDef.unsafeGetMetadata(
         DataflowAnalysis,
         "Method definition missing dataflow information."
       )
@@ -791,8 +792,8 @@ class IrToTruffle(
       toOpt.zip(fromOpt).foreach { case (toType, fromType) =>
         val expressionProcessor = new ExpressionProcessor(
           toType.getName ++ Constants.SCOPE_SEPARATOR ++ methodDef.methodName.name,
-          scopeInfo.graph,
-          scopeInfo.graph.rootScope,
+          () => scopeInfo().graph,
+          () => scopeInfo().graph.rootScope,
           dataflowInfo,
           methodDef.methodName.name
         )
@@ -895,7 +896,7 @@ class IrToTruffle(
             comment,
             asScope(
               mod.unsafeAsModule().asInstanceOf[TruffleCompilerContext.Module]
-            ).getPolyglotSymbol(symbol.name)
+            ).getPolyglotSymbolSupplier(symbol.name)
           )
         case _ => null
       }
@@ -1226,9 +1227,9 @@ class IrToTruffle(
       */
     def this(
       scopeName: String,
-      graph: AliasGraph,
-      scope: AliasScope,
-      dataflowInfo: DataflowAnalysis.Metadata,
+      graph: () => AliasGraph,
+      scope: () => AliasScope,
+      dataflowInfo: () => DataflowAnalysis.Metadata,
       initialName: String
     ) = {
       this(
@@ -1247,7 +1248,7 @@ class IrToTruffle(
       */
     def createChild(
       name: String,
-      scope: AliasScope,
+      scope: () => AliasScope,
       initialName: String
     ): ExpressionProcessor = {
       new ExpressionProcessor(this.scope.createChild(scope), name, initialName)
@@ -1289,7 +1290,7 @@ class IrToTruffle(
             "Comments should not be present during codegen."
           )
         case err: Error => processError(err)
-        case Foreign.Definition(_, _, _, _, _) =>
+        case Foreign.Definition(_, _, _, _) =>
           throw new CompilerError(
             s"Foreign expressions not yet implemented: $ir."
           )
@@ -1333,16 +1334,18 @@ class IrToTruffle(
       */
     private def processBlock(block: Expression.Block): RuntimeExpression = {
       if (block.suspended) {
-        val scopeInfo = block
-          .unsafeGetMetadata(
-            AliasAnalysis,
-            "Missing scope information on block."
-          )
-          .unsafeAs[AliasMetadata.ChildScope]
+        def scopeInfo() = {
+          block
+            .unsafeGetMetadata(
+              AliasAnalysis,
+              "Missing scope information on block."
+            )
+            .unsafeAs[AliasMetadata.ChildScope]
+        }
 
         val childFactory = this.createChild(
           "suspended-block",
-          scopeInfo.scope,
+          () => scopeInfo().scope,
           "suspended " + currentVarName
         )
         val childScope = childFactory.scope
@@ -1366,7 +1369,7 @@ class IrToTruffle(
         val statementExprs = block.expressions.map(this.run(_, true)).toArray
         val retExpr        = this.run(block.returnValue, true)
 
-        val blockNode = BlockNode.build(statementExprs, retExpr)
+        val blockNode = BlockNode.buildSilent(statementExprs, retExpr)
         setLocation(blockNode, block.location)
       }
     }
@@ -1382,9 +1385,7 @@ class IrToTruffle(
           context.getBuiltins
             .error()
             .makeSyntaxError(
-              Text.create(
-                "Type operators are not currently supported at runtime"
-              )
+              "Type operators are not currently supported at runtime"
             )
         ),
         value.location
@@ -1401,7 +1402,7 @@ class IrToTruffle(
       subjectToInstrumentation: Boolean
     ): RuntimeExpression =
       caseExpr match {
-        case Case.Expr(scrutinee, branches, isNested, location, _, _) =>
+        case Case.Expr(scrutinee, branches, isNested, location, _) =>
           val scrutineeNode = this.run(scrutinee, subjectToInstrumentation)
 
           val maybeCases    = branches.map(processCaseBranch)
@@ -1430,7 +1431,7 @@ class IrToTruffle(
 
             val error = context.getBuiltins
               .error()
-              .makeCompileError(Text.create(message))
+              .makeCompileError(message)
 
             setLocation(ErrorNode.build(error), caseExpr.location)
           }
@@ -1447,22 +1448,24 @@ class IrToTruffle(
     def processCaseBranch(
       branch: Case.Branch
     ): Either[BadPatternMatch, BranchNode] = {
-      val scopeInfo = branch
-        .unsafeGetMetadata(
-          AliasAnalysis,
-          "No scope information on a case branch."
-        )
-        .unsafeAs[AliasMetadata.ChildScope]
+      def scopeInfo() = {
+        branch
+          .unsafeGetMetadata(
+            AliasAnalysis,
+            "No scope information on a case branch."
+          )
+          .unsafeAs[AliasMetadata.ChildScope]
+      }
 
       val childProcessor =
         this.createChild(
           "case_branch",
-          scopeInfo.scope,
+          () => scopeInfo().scope,
           "case " + currentVarName
         )
 
       branch.pattern match {
-        case named @ Pattern.Name(_, _, _, _) =>
+        case named: Pattern.Name =>
           val arg = List(genArgFromMatchField(named))
 
           val branchCodeNode = childProcessor.processFunctionBody(
@@ -1475,7 +1478,7 @@ class IrToTruffle(
             CatchAllBranchNode.build(branchCodeNode.getCallTarget, true)
 
           Right(branchNode)
-        case cons @ Pattern.Constructor(constructor, _, _, _, _) =>
+        case cons @ Pattern.Constructor(constructor, _, _, _) =>
           if (!cons.isDesugared) {
             throw new CompilerError(
               "Nested patterns desugaring must have taken place by the " +
@@ -1505,7 +1508,7 @@ class IrToTruffle(
                   Right(
                     ObjectEqualityBranchNode.build(
                       branchCodeNode.getCallTarget,
-                      asAssociatedType(mod.unsafeAsModule()),
+                      LiteralNode.build(asAssociatedType(mod.unsafeAsModule())),
                       branch.terminalBranch
                     )
                   )
@@ -1553,7 +1556,7 @@ class IrToTruffle(
                   } else {
                     ObjectEqualityBranchNode.build(
                       branchCodeNode.getCallTarget,
-                      tpe,
+                      LiteralNode.build(tpe),
                       branch.terminalBranch
                     )
                   }
@@ -1564,13 +1567,14 @@ class IrToTruffle(
                       )
                     ) =>
                   val polyglotSymbol =
-                    asScope(mod.unsafeAsModule()).getPolyglotSymbol(symbol.name)
+                    asScope(mod.unsafeAsModule())
+                      .getPolyglotSymbolSupplier(symbol.name)
                   Either.cond(
                     polyglotSymbol != null,
                     ObjectEqualityBranchNode
                       .build(
                         branchCodeNode.getCallTarget,
-                        polyglotSymbol,
+                        LazyObjectNode.build(symbol.name, polyglotSymbol),
                         branch.terminalBranch
                       ),
                     BadPatternMatch.NonVisiblePolyglotSymbol(symbol.name)
@@ -1582,7 +1586,8 @@ class IrToTruffle(
                     ) =>
                   val mod = typ.module
                   val polyClass = asScope(mod.unsafeAsModule())
-                    .getPolyglotSymbol(typ.symbol.name)
+                    .getPolyglotSymbolSupplier(typ.symbol.name)
+                    .get()
 
                   val polyValueOrError =
                     if (polyClass == null)
@@ -1616,7 +1621,7 @@ class IrToTruffle(
                     ObjectEqualityBranchNode
                       .build(
                         branchCodeNode.getCallTarget,
-                        polyValue,
+                        ConstantObjectNode.build(polyValue),
                         branch.terminalBranch
                       )
                   })
@@ -1694,7 +1699,7 @@ class IrToTruffle(
                 )
               )
           }
-        case Pattern.Type(varName, tpeName, location, _, _) =>
+        case Pattern.Type(varName, tpeName, location, _) =>
           tpeName.getMetadata(Patterns) match {
             case None =>
               Left(BadPatternMatch.NonVisibleType(tpeName.name))
@@ -1709,7 +1714,7 @@ class IrToTruffle(
               ) match {
                 case Some(tpe) =>
                   val argOfType = List(
-                    DefinitionArgument.Specified(
+                    new DefinitionArgument.Specified(
                       varName,
                       None,
                       None,
@@ -1740,10 +1745,12 @@ class IrToTruffle(
                   )
                 ) =>
               val polySymbol =
-                asScope(mod.unsafeAsModule()).getPolyglotSymbol(symbol.name)
+                asScope(mod.unsafeAsModule())
+                  .getPolyglotSymbolSupplier(symbol.name)
+                  .get()
               if (polySymbol != null) {
                 val argOfType = List(
-                  DefinitionArgument.Specified(
+                  new DefinitionArgument.Specified(
                     varName,
                     None,
                     None,
@@ -1781,7 +1788,6 @@ class IrToTruffle(
         case errors.Pattern(
               _,
               errors.Pattern.WrongArity(name, expected, actual),
-              _,
               _
             ) =>
           Left(BadPatternMatch.WrongArgCount(name, expected, actual))
@@ -1803,8 +1809,8 @@ class IrToTruffle(
       * @param name the pattern field to generate from
       * @return `name` as a function definition argument.
       */
-    def genArgFromMatchField(name: Pattern.Name): DefinitionArgument = {
-      DefinitionArgument.Specified(
+    private def genArgFromMatchField(name: Pattern.Name): DefinitionArgument = {
+      new DefinitionArgument.Specified(
         name.name,
         None,
         None,
@@ -1823,17 +1829,14 @@ class IrToTruffle(
     private def processBinding(
       binding: Expression.Binding
     ): RuntimeExpression = {
-      val occInfo = binding
+      val fp = binding
         .unsafeGetMetadata(
-          AliasAnalysis,
-          "Binding with missing occurrence information."
+          FramePointerAnalysis,
+          "Binding with missing frame pointer."
         )
-        .unsafeAs[AliasMetadata.Occurrence]
 
       currentVarName = binding.name.name
-
-      val slotIdx = scope.getVarSlotIdx(occInfo.id)
-
+      val slotIdx = fp.frameSlotIdx()
       setLocation(
         AssignmentNode.build(this.run(binding.expression, true, true), slotIdx),
         binding.location
@@ -1850,10 +1853,11 @@ class IrToTruffle(
       function: Function,
       binding: Boolean
     ): RuntimeExpression = {
-      val scopeInfo = function
-        .unsafeGetMetadata(AliasAnalysis, "No scope info on a function.")
-        .unsafeAs[AliasMetadata.ChildScope]
-
+      def scopeInfo() = {
+        function
+          .unsafeGetMetadata(AliasAnalysis, "No scope info on a function.")
+          .unsafeAs[AliasMetadata.ChildScope]
+      }
       if (function.body.isInstanceOf[Function]) {
         throw new CompilerError(
           "Lambda found directly as function body. It looks like Lambda " +
@@ -1868,7 +1872,11 @@ class IrToTruffle(
       }
 
       val child =
-        this.createChild(scopeName, scopeInfo.scope, "case " + currentVarName)
+        this.createChild(
+          scopeName,
+          () => scopeInfo().scope,
+          "case " + currentVarName
+        )
 
       val fn = child.processFunctionBody(
         function.arguments,
@@ -1889,16 +1897,19 @@ class IrToTruffle(
       val nameExpr = name match {
         case literalName: Name.Literal =>
           val resolver = new RuntimeNameResolution()
-          resolver.resolveName(literalName)
+          val fpMeta = literalName.passData.get(FramePointerAnalysis) match {
+            case Some(meta: FramePointerAnalysis.FramePointerMeta) => meta
+            case _                                                 => null
+          }
+          resolver.resolveName(literalName, fpMeta)
         case Name.MethodReference(
               None,
-              Name.Literal(nameStr, _, _, _, _, _),
-              _,
+              Name.Literal(nameStr, _, _, _, _),
               _,
               _
             ) =>
           DynamicSymbolNode.buildUnresolvedConstructor(nameStr)
-        case Name.Self(location, _, passData, _) =>
+        case Name.Self(location, _, passData) =>
           processName(
             Name.Literal(
               ConstantsNames.SELF_ARGUMENT,
@@ -1915,7 +1926,7 @@ class IrToTruffle(
               "a Self occurence must be resolved"
             ).target
           )
-        case Name.Special(name, _, _, _) =>
+        case Name.Special(name, _, _) =>
           val fun = name match {
             case Special.NewRef    => context.getBuiltins.special().getNewRef
             case Special.ReadRef   => context.getBuiltins.special().getReadRef
@@ -1945,11 +1956,22 @@ class IrToTruffle(
     }
 
     private class RuntimeNameResolution
-        extends NameResolutionAlgorithm[RuntimeExpression, FramePointer] {
+        extends NameResolutionAlgorithm[
+          RuntimeExpression,
+          FramePointer,
+          FramePointerAnalysis.FramePointerMeta
+        ] {
       override protected def findLocalLink(
-        occurrenceMetadata: org.enso.compiler.pass.analyse.alias.AliasMetadata.Occurrence
-      ): Option[FramePointer] =
-        scope.getFramePointer(occurrenceMetadata.id)
+        fpMeta: FramePointerAnalysis.FramePointerMeta
+      ): Option[FramePointer] = {
+        if (scope.flattenToParent && fpMeta.parentLevel() > 0) {
+          Some(
+            new FramePointer(fpMeta.parentLevel() - 1, fpMeta.frameSlotIdx())
+          )
+        } else {
+          Some(fpMeta.framePointer)
+        }
+      }
 
       override protected def resolveLocalName(
         localLink: FramePointer
@@ -1993,23 +2015,14 @@ class IrToTruffle(
           )
         case BindingsMap.ResolvedPolyglotSymbol(module, symbol) =>
           val s =
-            asScope(module.unsafeAsModule()).getPolyglotSymbol(symbol.name)
-          if (s == null) {
-            throw new CompilerError(
-              s"No polyglot symbol for ${symbol.name}"
-            )
-          }
-          ConstantObjectNode.build(s)
+            asScope(module.unsafeAsModule())
+              .getPolyglotSymbolSupplier(symbol.name)
+          LazyObjectNode.build(symbol.name, s)
         case BindingsMap.ResolvedPolyglotField(symbol, name) =>
           val s =
-            asScope(symbol.module.unsafeAsModule()).getPolyglotSymbol(name)
-          if (s == null) {
-            throw new CompilerError(
-              s"No polyglot field for ${name}"
-            )
-          }
-
-          ConstantObjectNode.build(s)
+            asScope(symbol.module.unsafeAsModule())
+              .getPolyglotSymbolSupplier(name)
+          LazyObjectNode.build(name, s)
         case BindingsMap.ResolvedModuleMethod(_, method) =>
           throw new CompilerError(
             s"Impossible here, module method ${method.name} should be caught when translating application"
@@ -2033,14 +2046,14 @@ class IrToTruffle(
     @throws[CompilerError]
     private def processLiteral(literal: Literal): RuntimeExpression =
       literal match {
-        case lit @ Literal.Number(_, _, location, _, _) =>
+        case lit: Literal.Number =>
           val node = lit.numericValue match {
             case l: Long       => LiteralNode.build(l)
             case d: Double     => LiteralNode.build(d)
             case b: BigInteger => LiteralNode.build(b)
           }
-          setLocation(node, location)
-        case Literal.Text(text, location, _, _) =>
+          setLocation(node, lit.location)
+        case Literal.Text(text, location, _) =>
           setLocation(LiteralNode.build(text), location)
       }
 
@@ -2060,52 +2073,52 @@ class IrToTruffle(
       */
     private def processError(error: Error): RuntimeExpression = {
       val payload: Atom = error match {
-        case Error.InvalidIR(_, _, _) =>
+        case Error.InvalidIR(_, _) =>
           throw new CompilerError("Unexpected Invalid IR during codegen.")
         case err: errors.Syntax =>
           context.getBuiltins
             .error()
-            .makeSyntaxError(Text.create(err.message(fileLocationFromSection)))
+            .makeSyntaxError(err.message(fileLocationFromSection))
         case err: errors.Redefined.Binding =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
+            .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Redefined.Method =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
+            .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Redefined.MethodClashWithAtom =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
+            .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Redefined.Conversion =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
+            .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Redefined.Type =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
+            .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Redefined.SelfArg =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
+            .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Redefined.Arg =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
+            .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Unexpected.TypeSignature =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
+            .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Resolution =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
+            .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Conversion =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
+            .makeCompileError(err.message(fileLocationFromSection))
         case _: errors.Pattern =>
           throw new CompilerError(
             "Impossible here, should be handled in the pattern match."
@@ -2123,7 +2136,7 @@ class IrToTruffle(
       * @return the Nothing builtin
       */
     private def processEmpty(): RuntimeExpression = {
-      ConstantObjectNode.build(context.getBuiltins.nothing())
+      LiteralNode.build(context.getBuiltins.nothing())
     }
 
     /** Processes function arguments, generates arguments reads and creates
@@ -2149,15 +2162,19 @@ class IrToTruffle(
       lazy val argsExpr      = computeArgsAndExpression()
 
       def args(): Array[ArgumentDefinition] = slots._2
-      def bodyNode(): RuntimeExpression =
-        BlockNode.build(argsExpr._1.toArray, argsExpr._2)
+      def bodyNode(): RuntimeExpression = {
+        val body = BlockNode.buildRoot(Array(), argsExpr._2)
+        val initVariablesAndThenBody =
+          BlockNode.buildSilent(argsExpr._1.toArray, body)
+        initVariablesAndThenBody
+      }
 
       private def computeArgsAndExpression()
         : (Array[RuntimeExpression], RuntimeExpression) = {
         val (argSlotIdxs, _, argExpressions) = slots
 
         val bodyExpr = body match {
-          case Foreign.Definition(lang, code, _, _, _) =>
+          case Foreign.Definition(lang, code, _, _) =>
             buildForeignBody(
               lang,
               body.location,
@@ -2191,14 +2208,12 @@ class IrToTruffle(
             val checkNode = checkAsTypes(unprocessedArg)
             val arg       = argFactory.run(unprocessedArg, idx, checkNode)
             argDefinitions(idx) = arg
-            val occInfo = unprocessedArg
+            val fp = unprocessedArg
               .unsafeGetMetadata(
-                AliasAnalysis,
-                "No occurrence on an argument definition."
+                FramePointerAnalysis,
+                "No frame pointer on an argument definition."
               )
-              .unsafeAs[AliasMetadata.Occurrence]
-
-            val slotIdx = scope.getVarSlotIdx(occInfo.id)
+            val slotIdx = fp.frameSlotIdx()
             val readArg =
               ReadArgumentNode.build(
                 idx,
@@ -2316,16 +2331,16 @@ class IrToTruffle(
       subjectToInstrumentation: Boolean
     ): RuntimeExpression =
       application match {
-        case Application.Prefix(fn, Nil, true, _, _, _) =>
+        case Application.Prefix(fn, Nil, true, _, _) =>
           run(fn, subjectToInstrumentation)
         case app: Application.Prefix =>
           processApplicationWithArgs(app, subjectToInstrumentation)
-        case Application.Force(expr, location, _, _) =>
+        case Application.Force(expr, location, _) =>
           setLocation(
             ForceNode.build(this.run(expr, subjectToInstrumentation)),
             location
           )
-        case Application.Sequence(items, location, _, _) =>
+        case Application.Sequence(items, location, _) =>
           val itemNodes = items.map(run(_, subjectToInstrumentation)).toArray
           setLocation(SequenceLiteralNode.build(itemNodes), location)
         case _: Application.Typeset =>
@@ -2334,9 +2349,7 @@ class IrToTruffle(
               context.getBuiltins
                 .error()
                 .makeSyntaxError(
-                  Text.create(
-                    "Typeset literals are not yet supported at runtime"
-                  )
+                  "Typeset literals are not yet supported at runtime"
                 )
             ),
             application.location
@@ -2356,7 +2369,7 @@ class IrToTruffle(
       application: Application.Prefix,
       subjectToInstrumentation: Boolean
     ): RuntimeExpression = {
-      val Application.Prefix(fn, args, hasDefaultsSuspended, loc, _, _) =
+      val Application.Prefix(fn, args, hasDefaultsSuspended, loc, _) =
         application
       val callArgFactory =
         new CallArgumentProcessor(scope, scopeName, currentVarName)
@@ -2418,19 +2431,15 @@ class IrToTruffle(
       subjectToInstrumentation: Boolean
     ): callable.argument.CallArgument =
       arg match {
-        case CallArgument.Specified(
-              name,
-              value,
-              _,
-              _,
-              _
-            ) =>
-          val scopeInfo = arg
-            .unsafeGetMetadata(
-              AliasAnalysis,
-              "No scope attached to a call argument."
-            )
-            .unsafeAs[AliasMetadata.ChildScope]
+        case CallArgument.Specified(name, value, _, _) =>
+          def scopeInfo() = {
+            arg
+              .unsafeGetMetadata(
+                AliasAnalysis,
+                "No scope attached to a call argument."
+              )
+              .unsafeAs[AliasMetadata.ChildScope]
+          }
 
           def valueHasSomeTypeCheck() =
             value.getMetadata(TypeSignatures).isDefined
@@ -2443,10 +2452,10 @@ class IrToTruffle(
           }
 
           val childScope = if (shouldCreateClosureRootNode) {
-            scope.createChild(scopeInfo.scope)
+            scope.createChild(() => scopeInfo().scope)
           } else {
             // Note [Scope Flattening]
-            scope.createChild(scopeInfo.scope, flattenToParent = true)
+            scope.createChild(() => scopeInfo().scope, flattenToParent = true)
           }
           val argumentExpression =
             new ExpressionProcessor(childScope, scopeName, initialName)

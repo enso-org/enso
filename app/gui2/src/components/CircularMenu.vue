@@ -36,12 +36,14 @@ function readableBinding(binding: keyof (typeof graphBindings)['bindings']) {
 </script>
 
 <template>
-  <div class="CircularMenu">
-    <div
-      v-if="!showColorPicker"
-      class="circle menu"
-      :class="`${props.isFullMenuVisible ? 'full' : 'partial'}`"
-    >
+  <div
+    class="CircularMenu"
+    :class="{
+      partial: !props.isFullMenuVisible,
+      menu: !showColorPicker,
+    }"
+  >
+    <template v-if="!showColorPicker">
       <template v-if="isFullMenuVisible">
         <SvgButton
           v-if="documentationUrl"
@@ -90,28 +92,29 @@ function readableBinding(binding: keyof (typeof graphBindings)['bindings']) {
         icon="record"
         class="slot7 record"
         data-testid="toggleRecord"
-        title="Write Always"
+        title="Coming soon…"
+        :disabled="true"
         :modelValue="props.isRecordingOverridden"
         @update:modelValue="emit('update:isRecordingOverridden', $event)"
       />
-    </div>
-    <div v-if="showColorPicker" class="circle">
-      <ColorRing
-        v-model="nodeColor"
-        :matchableColors="matchableNodeColors"
-        :initialColorAngle="90"
-        @close="showColorPicker = false"
-      />
-    </div>
+    </template>
+    <ColorRing
+      v-else
+      v-model="nodeColor"
+      :matchableColors="matchableNodeColors"
+      :initialColorAngle="90"
+      @close="showColorPicker = false"
+    />
   </div>
 </template>
 
 <style scoped>
 .CircularMenu {
   position: absolute;
-  bottom: 0;
-  width: 0;
-  height: 0;
+  left: -36px;
+  bottom: -36px;
+  width: var(--outer-diameter);
+  height: var(--outer-diameter);
   user-select: none;
   pointer-events: none;
   /* This is a variable so that it can be referenced in computations,
@@ -123,15 +126,7 @@ function readableBinding(binding: keyof (typeof graphBindings)['bindings']) {
   );
 }
 
-.circle {
-  position: relative;
-  left: -36px;
-  top: -68px;
-  width: var(--outer-diameter);
-  height: var(--outer-diameter);
-}
-
-.circle.menu {
+.menu {
   > * {
     pointer-events: all;
   }
@@ -144,6 +139,7 @@ function readableBinding(binding: keyof (typeof graphBindings)['bindings']) {
     width: 100%;
     height: 100%;
     pointer-events: all;
+    clip-path: var(--full-ring-path);
   }
 
   &.partial {
@@ -152,11 +148,6 @@ function readableBinding(binding: keyof (typeof graphBindings)['bindings']) {
       clip-path: path(
         'm0 16a52 52 0 0 0 52 52a16 16 0 0 0 0 -32a20 20 0 0 1-20-20a16 16 0 0 0-32 0'
       );
-    }
-  }
-  &.full {
-    &:before {
-      clip-path: var(--full-ring-path);
     }
   }
 }
@@ -190,11 +181,6 @@ function readableBinding(binding: keyof (typeof graphBindings)['bindings']) {
 
 :deep(.ColorRing .gradient) {
   clip-path: var(--full-ring-path);
-}
-
-.inactive {
-  pointer-events: none;
-  opacity: 10%;
 }
 
 /**

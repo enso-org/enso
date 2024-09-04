@@ -17,8 +17,9 @@ import * as formContext from './useFormContext'
  * Props for the FormError component.
  */
 export interface FormErrorProps extends Omit<reactAriaComponents.AlertProps, 'children'> {
+  // We do not need to know the form fields.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly form?: types.FormInstance<any, any>
+  readonly form?: types.FormInstance<any>
 }
 
 /**

@@ -63,11 +63,8 @@ const nodeMetadataKeys = allKeys<NodeMetadataFields>({
   visualization: null,
   colorOverride: null,
 })
-export type NodeMetadata = FixedMapView<NodeMetadataFields>
-export type MutableNodeMetadata = FixedMap<NodeMetadataFields>
-export function asNodeMetadata(map: Map<string, unknown>): NodeMetadata {
-  return map as unknown as NodeMetadata
-}
+export type NodeMetadata = FixedMapView<NodeMetadataFields & MetadataFields>
+export type MutableNodeMetadata = FixedMap<NodeMetadataFields & MetadataFields>
 /** @internal */
 interface RawAstFields {
   id: AstId
@@ -100,7 +97,7 @@ export abstract class Ast {
 
   get nodeMetadata(): NodeMetadata {
     const metadata = this.fields.get('metadata')
-    return metadata as FixedMapView<NodeMetadataFields>
+    return metadata as FixedMapView<NodeMetadataFields & MetadataFields>
   }
 
   /** Returns a JSON-compatible object containing all metadata properties. */
@@ -232,7 +229,7 @@ export abstract class MutableAst extends Ast {
 
   mutableNodeMetadata(): MutableNodeMetadata {
     const metadata = this.fields.get('metadata')
-    return metadata as FixedMap<NodeMetadataFields>
+    return metadata as FixedMap<NodeMetadataFields & MetadataFields>
   }
 
   setNodeMetadata(nodeMeta: NodeMetadataFields) {
@@ -2225,6 +2222,10 @@ export class Ident extends Ast {
 
   get token(): IdentifierToken {
     return this.module.getToken(this.fields.get('token').node) as IdentifierToken
+  }
+
+  isTypeOrConstructor(): boolean {
+    return /^[A-Z]/.test(this.token.code())
   }
 
   static concrete(module: MutableModule, token: NodeChild<Token>) {

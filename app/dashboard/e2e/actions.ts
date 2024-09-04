@@ -65,12 +65,12 @@ export function locateNewLabelModalColorButtons(page: test.Page) {
 
 /** Find a "name" input for an "upsert secret" modal (if any) on the current page. */
 export function locateSecretNameInput(page: test.Page) {
-  return locateUpsertSecretModal(page).getByPlaceholder('Enter the name of the secret')
+  return locateUpsertSecretModal(page).getByPlaceholder(TEXT.secretNamePlaceholder)
 }
 
 /** Find a "value" input for an "upsert secret" modal (if any) on the current page. */
 export function locateSecretValueInput(page: test.Page) {
-  return locateUpsertSecretModal(page).getByPlaceholder('Enter the value of the secret')
+  return locateUpsertSecretModal(page).getByPlaceholder(TEXT.secretValuePlaceholder)
 }
 
 /** Find a search bar input (if any) on the current page. */
@@ -98,16 +98,6 @@ export function locateRegisterButton(page: test.Locator | test.Page) {
 /** Find a "set username" button (if any) on the current page. */
 export function locateSetUsernameButton(page: test.Locator | test.Page) {
   return page.getByRole('button', { name: 'Set Username' }).getByText('Set Username')
-}
-
-/** Find a "delete" button (if any) on the current page. */
-export function locateDeleteButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Delete' }).getByText('Delete')
-}
-
-/** Find a button to delete something (if any) on the current page. */
-export function locateDeleteIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('Delete')
 }
 
 /** Find a "create" button (if any) on the current page. */
@@ -765,7 +755,7 @@ export async function login(
     await locateLoginButton(page).click()
     await test.expect(page.getByText('Logging in to Enso...')).not.toBeVisible()
     if (first) {
-      await passTermsAndConditionsDialog({ page, setupAPI })
+      await passAgreementsDialog({ page, setupAPI })
       await test.expect(page.getByText('Logging in to Enso...')).not.toBeVisible()
     }
   })
@@ -840,11 +830,12 @@ async function mockDate({ page }: MockParams) {
   })
 }
 
-/** Pass the Terms and conditions dialog. */
-export async function passTermsAndConditionsDialog({ page }: MockParams) {
+/** Pass the Agreements dialog. */
+export async function passAgreementsDialog({ page }: MockParams) {
   await test.test.step('Accept Terms and Conditions', async () => {
-    await page.waitForSelector('#terms-of-service-modal')
-    await page.getByRole('checkbox').click()
+    await page.waitForSelector('#agreements-modal')
+    await page.getByRole('checkbox').and(page.getByTestId('terms-of-service-checkbox')).click()
+    await page.getByRole('checkbox').and(page.getByTestId('privacy-policy-checkbox')).click()
     await page.getByRole('button', { name: 'Accept' }).click()
   })
 }

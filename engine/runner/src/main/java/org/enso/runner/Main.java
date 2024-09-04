@@ -24,6 +24,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.enso.common.ContextFactory;
+import org.enso.common.DebugServerInfo;
 import org.enso.common.HostEnsoUtils;
 import org.enso.common.LanguageInfo;
 import org.enso.distribution.DistributionManager;
@@ -36,7 +37,6 @@ import org.enso.pkg.PackageManager$;
 import org.enso.pkg.Template;
 import org.enso.polyglot.Module;
 import org.enso.polyglot.PolyglotContext;
-import org.enso.polyglot.debugger.DebugServerInfo;
 import org.enso.polyglot.debugger.DebuggerSessionManagerEndpoint;
 import org.enso.profiling.sampler.NoopSampler;
 import org.enso.profiling.sampler.OutputStreamSampler;
@@ -688,6 +688,24 @@ public class Main {
     }
     var projectMode = fileAndProject._1();
     var file = fileAndProject._2();
+    var mainFile = file;
+    if (projectMode) {
+      var result = PackageManager$.MODULE$.Default().loadPackage(file);
+      if (result.isSuccess()) {
+        @SuppressWarnings("unchecked")
+        var pkg = (org.enso.pkg.Package<java.io.File>) result.get();
+
+        mainFile = pkg.mainFile();
+        if (!mainFile.exists()) {
+          println("Main file does not exist.");
+          throw exitFail();
+        }
+      } else {
+        println(result.failed().get().getMessage());
+        throw exitFail();
+      }
+    }
+
     var projectRoot = fileAndProject._3();
     var options = new HashMap<String, String>();
 
@@ -714,7 +732,9 @@ public class Main {
     }
     if (enableDebugServer) {
       factory.messageTransport(replTransport());
-      options.put(DebugServerInfo.ENABLE_OPTION, "true");
+      factory.enableDebugServer(true);
+    } else {
+      factory.checkForWarnings(mainFile.getName().replace(".enso", "") + ".main");
     }
     var context = new PolyglotContext(factory.build());
 
@@ -724,12 +744,6 @@ public class Main {
         var s = (scala.util.Success) result;
         @SuppressWarnings("unchecked")
         var pkg = (org.enso.pkg.Package<java.io.File>) s.get();
-        var main = pkg.mainFile();
-        if (!main.exists()) {
-          println("Main file does not exist.");
-          context.context().close();
-          throw exitFail();
-        }
         var mainModuleName = pkg.moduleNameForFile(pkg.mainFile()).toString();
         runPackage(context, mainModuleName, file, additionalArgs);
       } else {
@@ -879,11 +893,20 @@ public class Main {
         if (!res.isNull()) {
           var textRes = res.isString() ? res.asString() : res.toString();
           println(textRes);
+          if (res.isException()) {
+            try {
+              throw res.throwException();
+            } catch (PolyglotException e) {
+              if (e.isExit()) {
+                throw doExit(e.getExitStatus());
+              }
+            }
+          }
         }
       }
     } catch (PolyglotException e) {
       if (e.isExit()) {
-        doExit(e.getExitStatus());
+        throw doExit(e.getExitStatus());
       } else {
         printPolyglotException(e, rootPkgPath);
         throw exitFail();
@@ -917,14 +940,13 @@ public class Main {
             .replace("$mainMethodName", mainMethodName);
     var replModuleName = "Internal_Repl_Module___";
     var projectRoot = projectPath != null ? projectPath : "";
-    var options = Collections.singletonMap(DebugServerInfo.ENABLE_OPTION, "true");
 
     var context =
         new PolyglotContext(
             ContextFactory.create()
                 .projectRoot(projectRoot)
                 .messageTransport(replTransport())
-                .options(options)
+                .enableDebugServer(true)
                 .logLevel(logLevel)
                 .logMasking(logMasking)
                 .enableIrCaches(enableIrCaches)
@@ -1274,6 +1296,12 @@ public class Main {
     var logLevel = setupLogging(line, logMasking);
     var props = parseSystemProperties(line);
 
+    var loc = Main.class.getProtectionDomain().getCodeSource().getLocation();
+    var component = new File(loc.toURI().resolve("..")).getAbsoluteFile();
+    if (!component.getName().equals("component")) {
+      component = new File(component, "component");
+    }
+    assert checkOutdatedLauncher(new File(loc.toURI()), component) || true;
     if (line.hasOption(JVM_OPTION)) {
       var jvm = line.getOptionValue(JVM_OPTION);
       var current = System.getProperty("java.home");
@@ -1284,7 +1312,6 @@ public class Main {
       if (!shouldLaunchJvm) {
         println(JVM_OPTION + " option has no effect - already running in JVM " + current);
       } else {
-        var loc = Main.class.getProtectionDomain().getCodeSource().getLocation();
         var commandAndArgs = new ArrayList<String>();
         JVM_FOUND:
         if (jvm == null) {
@@ -1314,18 +1341,18 @@ public class Main {
             commandAndArgs.add(op);
           }
         }
+        var assertsOn = false;
+        assert assertsOn = true;
+        if (assertsOn) {
+          commandAndArgs.add("-ea");
+        }
         if (props != null) {
           for (var e : props.entrySet()) {
             commandAndArgs.add("-D" + e.getKey() + "=" + e.getValue());
           }
         }
-
         commandAndArgs.add("--add-opens=java.base/java.nio=ALL-UNNAMED");
         commandAndArgs.add("--module-path");
-        var component = new File(loc.toURI().resolve("..")).getAbsoluteFile();
-        if (!component.getName().equals("component")) {
-          component = new File(component, "component");
-        }
         if (!component.isDirectory()) {
           throw new IOException("Cannot find " + component + " directory");
         }
@@ -1443,5 +1470,30 @@ public class Main {
 
   protected String getLanguageId() {
     return LanguageInfo.ID;
+  }
+
+  /**
+   * Check if native image based launcher is up-to-date. Prints a warning when it is outdated.
+   *
+   * @param base the base file to check
+   * @param dir directory with other files that should be older than base
+   * @return
+   */
+  private static boolean checkOutdatedLauncher(File base, File dir) {
+    var needsCheck = base.canExecute();
+    if (needsCheck) {
+      var files = dir.listFiles();
+      if (files != null) {
+        var baseTime = base.lastModified();
+        for (var f : files) {
+          if (baseTime < f.lastModified()) {
+            System.err.println(
+                "File " + base + " is older than " + f + " consider running in --jvm mode");
+            return false;
+          }
+        }
+      }
+    }
+    return true;
   }
 }

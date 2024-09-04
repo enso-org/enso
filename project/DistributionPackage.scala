@@ -9,6 +9,8 @@ import scala.sys.process._
 
 import org.enso.build.WithDebugCommand
 
+import scala.util.Try
+
 object DistributionPackage {
 
   /** File extensions. */
@@ -261,26 +263,36 @@ object DistributionPackage {
   ): Boolean = {
     import scala.collection.JavaConverters._
 
-    val enso = distributionRoot / "bin" / batName("enso")
-    log.info(s"Executing $enso ${args.mkString(" ")}")
-    val pb  = new java.lang.ProcessBuilder()
-    val all = new java.util.ArrayList[String]()
-    val disablePrivateCheck = {
-      val findRun = args.indexOf("--run")
-      if (findRun >= 0 && findRun + 1 < args.size) {
-        val whatToRun = args(findRun + 1)
+    val enso             = distributionRoot / "bin" / batName("enso")
+    val pb               = new java.lang.ProcessBuilder()
+    val all              = new java.util.ArrayList[String]()
+    val runArgumentIndex = locateRunArgument(args)
+    val runArgument      = runArgumentIndex.map(args)
+    val disablePrivateCheck = runArgument match {
+      case Some(whatToRun) =>
         if (whatToRun.startsWith("test/") && whatToRun.endsWith("_Tests")) {
           whatToRun.contains("_Internal_")
         } else {
           false
         }
-      } else {
-        false
-      }
+      case None => false
     }
-    all.add(enso.getAbsolutePath())
+
+    val runArgumentAsFile = runArgument.flatMap(createFileIfValidPath)
+    val projectDirectory  = runArgumentAsFile.flatMap(findProjectRoot)
+    val cwdOverride: Option[File] =
+      projectDirectory.flatMap(findParentFile).map(_.getAbsoluteFile)
+
+    all.add(enso.getAbsolutePath)
     all.addAll(args.asJava)
-    pb.command(all)
+    // Override the working directory of new process to be the parent of the project directory.
+    cwdOverride.foreach { c =>
+      pb.directory(c)
+    }
+    if (cwdOverride.isDefined) {
+      // If the working directory is changed, we need to translate the path - make it absolute.
+      all.set(runArgumentIndex.get + 1, runArgumentAsFile.get.getAbsolutePath)
+    }
     if (args.contains("--debug")) {
       all.remove("--debug")
       pb.environment().put("JAVA_OPTS", "-ea " + WithDebugCommand.DEBUG_OPTION)
@@ -290,7 +302,9 @@ object DistributionPackage {
     if (disablePrivateCheck) {
       all.add("--disable-private-check")
     }
+    pb.command(all)
     pb.inheritIO()
+    log.info(s"Executing ${all.asScala.mkString(" ")}")
     val p        = pb.start()
     val exitCode = p.waitFor()
     if (exitCode != 0) {
@@ -298,6 +312,31 @@ object DistributionPackage {
     }
     exitCode == 0
   }
+
+  /** Returns the index of the next argument after `--run`, if it exists. */
+  private def locateRunArgument(args: Seq[String]): Option[Int] = {
+    val findRun = args.indexOf("--run")
+    if (findRun >= 0 && findRun + 1 < args.size) {
+      Some(findRun + 1)
+    } else {
+      None
+    }
+  }
+
+  /** Returns a file, only if the provided string represented a valid path. */
+  private def createFileIfValidPath(path: String): Option[File] =
+    Try(new File(path)).toOption
+
+  /** Looks for a parent directory that contains `package.yaml`. */
+  private def findProjectRoot(file: File): Option[File] =
+    if (file.isDirectory && (file / "package.yaml").exists()) {
+      Some(file)
+    } else {
+      findParentFile(file).flatMap(findProjectRoot)
+    }
+
+  private def findParentFile(file: File): Option[File] =
+    Option(file.getParentFile)
 
   def runProjectManagerPackage(
     engineRoot: File,

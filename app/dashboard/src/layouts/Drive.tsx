@@ -1,6 +1,8 @@
 /** @file The directory header bar and directory item listing. */
 import * as React from 'react'
 
+import invariant from 'tiny-invariant'
+
 import * as appUtils from '#/appUtils'
 
 import * as offlineHooks from '#/hooks/offlineHooks'
@@ -20,7 +22,7 @@ import type * as assetsTable from '#/layouts/AssetsTable'
 import AssetsTable from '#/layouts/AssetsTable'
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
-import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
+import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import DriveBar from '#/layouts/DriveBar'
 import Labels from '#/layouts/Labels'
 
@@ -28,31 +30,13 @@ import * as ariaComponents from '#/components/AriaComponents'
 import * as result from '#/components/Result'
 
 import * as backendModule from '#/services/Backend'
-import * as projectManager from '#/services/ProjectManager'
 
 import AssetQuery from '#/utilities/AssetQuery'
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
-
-// ===================
-// === DriveStatus ===
-// ===================
-
-/** The predicted status of project listing. This is used to avoid sending requests to the backend
- * if it is already known that the request will fail. */
-enum DriveStatus {
-  /** No errors predicted. The request may still error because of an issue in the backend. */
-  ok = 'ok',
-  /** Trying to use the remote backend when offline. The network request will fail. */
-  offline = 'offline',
-  /** The user does not have an active plan, and therefore has no access to the remote backend. */
-  notEnabled = 'not-enabled',
-  /** The connection to the Project Manager timed out. This may happen if the Project Manager
-   * crashed, or was never run in the first place. */
-  noProjectManager = 'no-project-manager',
-}
+import { useSuspenseQuery } from '@tanstack/react-query'
 
 // =============
 // === Drive ===
@@ -60,8 +44,8 @@ enum DriveStatus {
 
 /** Props for a {@link Drive}. */
 export interface DriveProps {
-  readonly category: Category
-  readonly setCategory: (category: Category) => void
+  readonly category: categoryModule.Category
+  readonly setCategory: (category: categoryModule.Category) => void
   readonly hidden: boolean
   readonly initialProjectName: string | null
   readonly assetsManagementApiRef: React.Ref<assetsTable.AssetManagementApi>
@@ -74,14 +58,13 @@ export default function Drive(props: DriveProps) {
   const { isOffline } = offlineHooks.useOffline()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useFullUserSession()
   const localBackend = backendProvider.useLocalBackend()
   const backend = backendProvider.useBackend(category)
   const { getText } = textProvider.useText()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
   const [suggestions, setSuggestions] = React.useState<readonly assetSearchBar.Suggestion[]>([])
-  const [didLoadingProjectManagerFail, setDidLoadingProjectManagerFail] = React.useState(false)
   const [assetPanelPropsRaw, setAssetPanelProps] =
     React.useState<assetPanel.AssetPanelRequiredProps | null>(null)
   const assetPanelProps =
@@ -90,43 +73,43 @@ export default function Drive(props: DriveProps) {
     () => localStorage.get('isAssetPanelVisible') ?? false,
   )
   const [isAssetPanelTemporarilyVisible, setIsAssetPanelTemporarilyVisible] = React.useState(false)
-  const rootDirectoryId = React.useMemo(
-    () => backend.rootDirectoryId(user) ?? backendModule.DirectoryId(''),
-    [backend, user],
-  )
+  const organizationQuery = useSuspenseQuery({
+    queryKey: [backend.type, 'getOrganization'],
+    queryFn: () => backend.getOrganization(),
+  })
+  const organization = organizationQuery.data ?? null
+  const [localRootDirectory] = localStorageProvider.useLocalStorageState('localRootDirectory')
+  const rootDirectoryId = React.useMemo(() => {
+    switch (category.type) {
+      case 'user':
+      case 'team': {
+        return category.homeDirectoryId
+      }
+      default: {
+        const localRootPath =
+          localRootDirectory != null ? backendModule.Path(localRootDirectory) : null
+        const id = backend.rootDirectoryId(user, organization, localRootPath)
+        invariant(id, 'Missing root directory')
+        return id
+      }
+    }
+  }, [category, backend, user, organization, localRootDirectory])
   const targetDirectoryNodeRef = React.useRef<AssetTreeNode<backendModule.DirectoryAsset> | null>(
     null,
   )
-  const isCloud = categoryModule.isCloud(category)
+  const isCloud = categoryModule.isCloudCategory(category)
   const supportLocalBackend = localBackend != null
 
   const status =
-    !isCloud && didLoadingProjectManagerFail ? DriveStatus.noProjectManager
-    : isCloud && isOffline ? DriveStatus.offline
-    : isCloud && !user.isEnabled ? DriveStatus.notEnabled
-    : DriveStatus.ok
+    isCloud && isOffline ? 'offline'
+    : isCloud && !user.isEnabled ? 'not-enabled'
+    : 'ok'
 
   const isAssetPanelVisible = isAssetPanelEnabled || isAssetPanelTemporarilyVisible
 
   React.useEffect(() => {
     localStorage.set('isAssetPanelVisible', isAssetPanelEnabled)
   }, [isAssetPanelEnabled, /* should never change */ localStorage])
-
-  React.useEffect(() => {
-    const onProjectManagerLoadingFailed = () => {
-      setDidLoadingProjectManagerFail(true)
-    }
-    document.addEventListener(
-      projectManager.ProjectManagerEvents.loadingFailed,
-      onProjectManagerLoadingFailed,
-    )
-    return () => {
-      document.removeEventListener(
-        projectManager.ProjectManagerEvents.loadingFailed,
-        onProjectManagerLoadingFailed,
-      )
-    }
-  }, [])
 
   const doUploadFiles = React.useCallback(
     (files: File[]) => {
@@ -205,16 +188,7 @@ export default function Drive(props: DriveProps) {
   )
 
   switch (status) {
-    case DriveStatus.noProjectManager: {
-      return (
-        <div className={tailwindMerge.twMerge('grid grow place-items-center', hidden && 'hidden')}>
-          <div className="flex flex-col gap-status-page text-center text-base">
-            {getText('couldNotConnectToPM')}
-          </div>
-        </div>
-      )
-    }
-    case DriveStatus.notEnabled: {
+    case 'not-enabled': {
       return (
         <result.Result
           status="error"
@@ -231,7 +205,7 @@ export default function Drive(props: DriveProps) {
               <ariaComponents.Button
                 data-testid="download-free-edition"
                 size="medium"
-                variant="tertiary"
+                variant="accent"
                 onPress={async () => {
                   const downloadUrl = await github.getDownloadUrl()
                   if (downloadUrl == null) {
@@ -248,8 +222,8 @@ export default function Drive(props: DriveProps) {
         </result.Result>
       )
     }
-    case DriveStatus.offline:
-    case DriveStatus.ok: {
+    case 'offline':
+    case 'ok': {
       return (
         <div className={tailwindMerge.twMerge('relative flex grow', hidden && 'hidden')}>
           <div
@@ -280,18 +254,18 @@ export default function Drive(props: DriveProps) {
             />
 
             <div className="flex flex-1 gap-drive overflow-hidden">
-              <div className="flex w-drive-sidebar flex-col gap-drive-sidebar py-drive-sidebar-y">
+              <div className="flex w-36 flex-col gap-drive-sidebar overflow-y-auto py-drive-sidebar-y">
                 <CategorySwitcher category={category} setCategory={setCategory} />
                 {isCloud && (
                   <Labels
                     backend={backend}
-                    draggable={category !== Category.trash}
+                    draggable={category.type !== 'trash'}
                     query={query}
                     setQuery={setQuery}
                   />
                 )}
               </div>
-              {status === DriveStatus.offline ?
+              {status === 'offline' ?
                 <result.Result
                   status="info"
                   className="my-12"
@@ -305,7 +279,7 @@ export default function Drive(props: DriveProps) {
                       size="small"
                       className="mx-auto"
                       onPress={() => {
-                        setCategory(Category.local)
+                        setCategory({ type: 'local' })
                       }}
                     >
                       {getText('switchToLocal')}
@@ -340,7 +314,7 @@ export default function Drive(props: DriveProps) {
               item={assetPanelProps?.item ?? null}
               setItem={assetPanelProps?.setItem ?? null}
               category={category}
-              isReadonly={category === Category.trash}
+              isReadonly={category.type === 'trash'}
             />
           </div>
         </div>

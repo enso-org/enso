@@ -19,7 +19,7 @@ import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
 
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
+import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import GlobalContextMenu from '#/layouts/GlobalContextMenu'
 
 import ContextMenu from '#/components/ContextMenu'
@@ -66,9 +66,9 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { innerProps, rootDirectoryId, event, eventTarget, hidden = false } = props
   const { doTriggerDescriptionEdit, doCopy, doCut, doPaste, doDelete } = props
   const { item, setItem, state, setRowState } = innerProps
-  const { backend, category, hasPasteData } = state
+  const { backend, category, hasPasteData, pasteData, nodeMap } = state
 
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useFullUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const remoteBackend = backendProvider.useRemoteBackend()
   const localBackend = backendProvider.useLocalBackend()
@@ -80,12 +80,10 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const closeProject = projectHooks.useCloseProject()
   const openProjectMutation = projectHooks.useOpenProjectMutation()
   const asset = item.item
-  const self = asset.permissions?.find(
-    backendModule.isUserPermissionAnd((permission) => permission.user.userId === user.userId),
-  )
-  const isCloud = categoryModule.isCloud(category)
+  const self = permissions.tryFindSelfPermission(user, asset.permissions)
+  const isCloud = categoryModule.isCloudCategory(category)
   const path =
-    category !== Category.cloud && category !== Category.local ? null
+    category.type === 'recent' || category.type === 'trash' ? null
     : isCloud ? `${item.path}${item.type === backendModule.AssetType.datalink ? '.datalink' : ''}`
     : asset.type === backendModule.AssetType.project ?
       localBackend?.getProjectPath(asset.id) ?? null
@@ -98,9 +96,31 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const systemApi = window.systemApi
   const ownsThisAsset = !isCloud || self?.permission === permissions.PermissionAction.own
   const managesThisAsset = ownsThisAsset || self?.permission === permissions.PermissionAction.admin
-
   const canEditThisAsset =
     managesThisAsset || self?.permission === permissions.PermissionAction.edit
+  const canAddToThisDirectory =
+    category.type !== 'recent' &&
+    asset.type === backendModule.AssetType.directory &&
+    canEditThisAsset
+  const pasteDataParentKeys =
+    !pasteData.current ? null : (
+      new Map(
+        Array.from(nodeMap.current.entries()).map(([id, otherAsset]) => [
+          id,
+          otherAsset.directoryKey,
+        ]),
+      )
+    )
+  const canPaste =
+    !pasteData.current || !pasteDataParentKeys || !isCloud ?
+      true
+    : !Array.from(pasteData.current.data).some((assetId) => {
+        const parentKey = pasteDataParentKeys.get(assetId)
+        const parent = parentKey == null ? null : nodeMap.current.get(parentKey)
+        return !parent ? true : (
+            permissions.isTeamPath(parent.path) && permissions.isUserPath(item.path)
+          )
+      })
 
   const { data } = reactQuery.useQuery(
     item.item.type === backendModule.AssetType.project ?
@@ -127,7 +147,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
   return (
-    category === Category.trash ?
+    category.type === 'trash' ?
       !ownsThisAsset ? null
       : <ContextMenus hidden={hidden} key={asset.id} event={event}>
           <ContextMenu aria-label={getText('assetContextMenuLabel')} hidden={hidden}>
@@ -147,6 +167,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               doAction={() => {
                 setModal(
                   <ConfirmDeleteModal
+                    defaultOpen
                     actionText={`delete the ${asset.type} '${asset.title}' forever`}
                     doDelete={() => {
                       const ids = new Set([asset.id])
@@ -273,22 +294,21 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               }}
             />
           )}
-          {canExecute && !isRunningProject && !isOtherUserUsingProject && (
-            <ContextMenuEntry
-              hidden={hidden}
-              isDisabled={
-                isCloud ?
-                  asset.type !== backendModule.AssetType.project &&
-                  asset.type !== backendModule.AssetType.directory
-                : false
-              }
-              action="rename"
-              doAction={() => {
-                setRowState(object.merger({ isEditingName: true }))
-                unsetModal()
-              }}
-            />
-          )}
+          {canExecute &&
+            !isRunningProject &&
+            !isOtherUserUsingProject &&
+            (!isCloud ||
+              asset.type === backendModule.AssetType.project ||
+              asset.type === backendModule.AssetType.directory) && (
+              <ContextMenuEntry
+                hidden={hidden}
+                action="rename"
+                doAction={() => {
+                  setRowState(object.merger({ isEditingName: true }))
+                  unsetModal()
+                }}
+              />
+            )}
           {asset.type === backendModule.AssetType.secret &&
             canEditThisAsset &&
             remoteBackend != null && (
@@ -344,6 +364,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 } else {
                   setModal(
                     <ConfirmDeleteModal
+                      defaultOpen
                       actionText={getText('deleteTheAssetTypeTitle', asset.type, asset.title)}
                       doDelete={doDelete}
                     />,
@@ -447,7 +468,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               }}
             />
           )}
-          {hasPasteData && (
+          {hasPasteData && canPaste && (
             <ContextMenuEntry
               hidden={hidden}
               action="paste"
@@ -461,22 +482,21 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             />
           )}
         </ContextMenu>
-        {(category === Category.cloud || category === Category.local) &&
-          asset.type === backendModule.AssetType.directory && (
-            <GlobalContextMenu
-              hidden={hidden}
-              backend={backend}
-              hasPasteData={hasPasteData}
-              rootDirectoryId={rootDirectoryId}
-              directoryKey={
-                // This is SAFE, as both branches are guaranteed to be `DirectoryId`s
-                // eslint-disable-next-line no-restricted-syntax
-                item.key as backendModule.DirectoryId
-              }
-              directoryId={asset.id}
-              doPaste={doPaste}
-            />
-          )}
+        {canAddToThisDirectory && (
+          <GlobalContextMenu
+            hidden={hidden}
+            backend={backend}
+            hasPasteData={hasPasteData}
+            rootDirectoryId={rootDirectoryId}
+            directoryKey={
+              // This is SAFE, as both branches are guaranteed to be `DirectoryId`s
+              // eslint-disable-next-line no-restricted-syntax
+              item.key as backendModule.DirectoryId
+            }
+            directoryId={asset.id}
+            doPaste={doPaste}
+          />
+        )}
       </ContextMenus>
   )
 }

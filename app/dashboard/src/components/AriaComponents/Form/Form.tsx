@@ -13,6 +13,7 @@ import * as aria from '#/components/aria'
 
 import * as errorUtils from '#/utilities/error'
 
+import { forwardRef } from '#/utilities/react'
 import type { Mutable } from 'enso-common/src/utilities/data/object'
 import * as dialog from '../Dialog'
 import * as components from './components'
@@ -35,14 +36,12 @@ function mapValueOnEvent(value: unknown) {
  * Provides better error handling and form state management and better UX out of the box. */
 // There is no way to avoid type casting here
 // eslint-disable-next-line no-restricted-syntax
-export const Form = React.forwardRef(function Form<
-  Schema extends components.TSchema,
-  TFieldValues extends components.FieldValues<Schema>,
-  TTransformedValues extends components.FieldValues<Schema> | undefined = undefined,
->(
-  props: types.FormProps<Schema, TFieldValues, TTransformedValues>,
+export const Form = forwardRef(function Form<Schema extends components.TSchema>(
+  props: types.FormProps<Schema>,
   ref: React.Ref<HTMLFormElement>,
 ) {
+  /** Input values for this form. */
+  type FieldValues = components.FieldValues<Schema>
   const formId = React.useId()
 
   const {
@@ -78,6 +77,7 @@ export const Form = React.forwardRef(function Form<
       schema,
       ...formOptions,
     },
+    defaultValues,
   )
 
   const dialogContext = dialog.useDialogContext()
@@ -90,7 +90,7 @@ export const Form = React.forwardRef(function Form<
     // the result, and the variables(form fields).
     // In general, prefer using object literals for the mutation key.
     mutationKey: ['Form submission', `testId: ${testId}`, `id: ${id}`],
-    mutationFn: async (fieldValues: TFieldValues) => {
+    mutationFn: async (fieldValues: FieldValues) => {
       try {
         await onSubmit?.(fieldValues, innerForm)
 
@@ -153,33 +153,32 @@ export const Form = React.forwardRef(function Form<
     control,
   } = innerForm
 
-  const formStateRenderProps: types.FormStateRenderProps<Schema, TFieldValues, TTransformedValues> =
-    {
-      formState,
-      register: (name, options) => {
-        const registered = register(name, options)
+  const formStateRenderProps: types.FormStateRenderProps<Schema> = {
+    formState,
+    register: (name, options) => {
+      const registered = register(name, options)
 
-        const result: types.UseFormRegisterReturn<Schema, TFieldValues, typeof name> = {
-          ...registered,
-          isDisabled: registered.disabled ?? false,
-          isRequired: registered.required ?? false,
-          isInvalid: Boolean(formState.errors[name]),
-          onChange: (value) => registered.onChange(mapValueOnEvent(value)),
-          onBlur: (value) => registered.onBlur(mapValueOnEvent(value)),
-        }
+      const result: types.UseFormRegisterReturn<Schema, typeof name> = {
+        ...registered,
+        isDisabled: registered.disabled ?? false,
+        isRequired: registered.required ?? false,
+        isInvalid: Boolean(formState.errors[name]),
+        onChange: (value) => registered.onChange(mapValueOnEvent(value)),
+        onBlur: (value) => registered.onBlur(mapValueOnEvent(value)),
+      }
 
-        return result
-      },
-      unregister,
-      setError,
-      clearErrors,
-      getValues,
-      setValue,
-      setFocus,
-      reset,
-      control,
-      form: innerForm,
-    }
+      return result
+    },
+    unregister,
+    setError,
+    clearErrors,
+    getValues,
+    setValue,
+    setFocus,
+    reset,
+    control,
+    form: innerForm,
+  }
 
   const base = styles.FORM_STYLES({
     className: typeof className === 'function' ? className(formStateRenderProps) : className,
@@ -192,7 +191,7 @@ export const Form = React.forwardRef(function Form<
       const message = error?.message ?? getText('arbitraryFormErrorMessage')
       return [key, message]
     }),
-  ) as Record<keyof TFieldValues, string>
+  ) as Record<keyof FieldValues, string>
 
   return (
     <form
@@ -235,14 +234,8 @@ export const Form = React.forwardRef(function Form<
     | 'useFormSchema'
   >
 > &
-  (<
-    Schema extends components.TSchema,
-    TFieldValues extends components.FieldValues<Schema>,
-    TTransformedValues extends components.FieldValues<Schema> | undefined = undefined,
-  >(
-    props: React.RefAttributes<HTMLFormElement> &
-      types.FormProps<Schema, TFieldValues, TTransformedValues>,
-    // eslint-disable-next-line no-restricted-syntax
+  (<Schema extends components.TSchema>(
+    props: React.RefAttributes<HTMLFormElement> & types.FormProps<Schema>,
   ) => React.JSX.Element)
 
 Form.schema = components.schema

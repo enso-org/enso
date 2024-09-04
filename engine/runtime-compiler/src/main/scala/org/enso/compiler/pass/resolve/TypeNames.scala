@@ -183,7 +183,8 @@ case object TypeNames extends IRPass {
         )
       case selfRef: Name.SelfType =>
         val resolvedSelfType = selfTypeInfo.selfType match {
-          case None => Left(BindingsMap.SelfTypeOutsideOfTypeDefinition)
+          case None =>
+            Left(BindingsMap.SelfTypeOutsideOfTypeDefinition)
           case Some(selfType) =>
             Right(List(selfType))
         }

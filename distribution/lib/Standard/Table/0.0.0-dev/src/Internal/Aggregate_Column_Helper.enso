@@ -168,7 +168,7 @@ resolve_aggregate table problem_builder aggregate_column:Aggregate_Column =
         resolved = columns_helper.select_columns_helper selector Case_Sensitivity.Default True problem_builder
         if resolved.is_empty then Error.throw Internal_Missing_Column_Error else resolved
 
-    resolve_order_by selector = case selector of
+    resolve_order_by selector -> Nothing | Vector Internal_Order_By_Column_Reference = case selector of
         Nothing -> Nothing
         _ -> if selector == [] then Nothing else
             columns_for_ordering = Table_Helpers.prepare_order_by table_columns selector problem_builder

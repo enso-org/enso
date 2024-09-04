@@ -66,7 +66,7 @@ export default function VersionChecker() {
         <ButtonGroup className="justify-center">
           <Button
             size="medium"
-            variant="tertiary"
+            variant="accent"
             onPress={async () => {
               const downloadUrl = await getDownloadUrl()
               if (downloadUrl == null) {

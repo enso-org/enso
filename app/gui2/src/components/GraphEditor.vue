@@ -32,6 +32,7 @@ import { keyboardBusy, keyboardBusyExceptIn, unrefElement, useEvent } from '@/co
 import { groupColorVar } from '@/composables/nodeColors'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
 import { useSyncLocalStorage } from '@/composables/syncLocalStorage'
+import { provideFullscreenContext } from '@/providers/fullscreenContext'
 import { provideGraphNavigator, type GraphNavigator } from '@/providers/graphNavigator'
 import { provideNodeColors } from '@/providers/graphNodeColors'
 import { provideNodeCreation } from '@/providers/graphNodeCreation'
@@ -53,7 +54,7 @@ import { colorFromString } from '@/util/colors'
 import { partition } from '@/util/data/array'
 import { every, filterDefined } from '@/util/data/iterable'
 import { Rect } from '@/util/data/rect'
-import { Err, Ok, unwrapOr, type Result } from '@/util/data/result'
+import { Err, Ok, unwrapOr } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import { computedFallback } from '@/util/reactivity'
 import { until } from '@vueuse/core'
@@ -73,6 +74,8 @@ import { encodeMethodPointer } from 'ydoc-shared/languageServerTypes'
 import * as iterable from 'ydoc-shared/util/data/iterable'
 import { isDevMode } from 'ydoc-shared/util/detect'
 
+const rootNode = ref<HTMLElement>()
+
 const keyboard = provideKeyboard()
 const projectStore = useProjectStore()
 const suggestionDb = provideSuggestionDbStore(projectStore)
@@ -80,6 +83,8 @@ const graphStore = provideGraphStore(projectStore, suggestionDb)
 const widgetRegistry = provideWidgetRegistry(graphStore.db)
 const _visualizationStore = provideVisualizationStore(projectStore)
 const visible = injectVisibility()
+provideFullscreenContext(rootNode)
+;(window as any)._mockSuggestion = suggestionDb.mockSuggestion
 
 onMounted(() => {
   widgetRegistry.loadWidgets(Object.entries(builtinWidgets))
@@ -180,7 +185,7 @@ function nodesBounds(nodeIds: Iterable<NodeId>) {
 
 function selectionBounds() {
   const selected = nodeSelection.selected
-  const nodesToCenter = selected.size === 0 ? graphStore.db.nodeIdToNode.keys() : selected
+  const nodesToCenter = selected.size === 0 ? graphStore.db.nodeIds() : selected
   return nodesBounds(nodesToCenter)
 }
 
@@ -191,7 +196,7 @@ function zoomToSelected(skipAnimation: boolean = false) {
 }
 
 function zoomToAll(skipAnimation: boolean = false) {
-  const bounds = nodesBounds(graphStore.db.nodeIdToNode.keys())
+  const bounds = nodesBounds(graphStore.db.nodeIds())
   if (bounds)
     graphNavigator.panAndZoomTo(bounds, 0.1, Math.max(1, graphNavigator.targetScale), skipAnimation)
 }
@@ -217,7 +222,7 @@ const nodeSelection = provideGraphSelection(
   graphStore.nodeRects,
   graphStore.isPortEnabled,
   {
-    isValid: (id) => graphStore.db.nodeIdToNode.has(id),
+    isValid: (id) => graphStore.db.isNodeId(id),
     onSelected: (id) => graphStore.db.moveNodeToTop(id),
   },
 )
@@ -329,7 +334,7 @@ const graphBindingsHandler = graphBindings.handler({
       selected,
       (id) => graphStore.db.nodeIdToNode.get(id)?.vis?.visible === true,
     )
-    graphStore.transact(() => {
+    graphStore.batchEdits(() => {
       for (const nodeId of selected) {
         graphStore.setNodeVisualization(nodeId, { visible: !allVisible })
       }
@@ -565,7 +570,7 @@ function collapseNodes() {
     if (currentMethodName == null) {
       bail(`Cannot get the method name for the current execution stack item. ${currentMethod}`)
     }
-    const topLevel = graphStore.topLevel
+    const topLevel = graphStore.moduleRoot
     if (!topLevel) {
       bail('BUG: no top level, collapsing not possible.')
     }
@@ -651,10 +656,13 @@ const groupColors = computed(() => {
   }
   return styles
 })
+
+const documentationEditorFullscreen = ref(false)
 </script>
 
 <template>
   <div
+    ref="rootNode"
     class="GraphEditor"
     :class="{ draggingEdge: graphStore.mouseEditedEdge != null }"
     :style="groupColors"
@@ -717,12 +725,14 @@ const groupColors = computed(() => {
       v-model:show="showRightDock"
       v-model:size="rightDockWidth"
       v-model:tab="rightDockTab"
+      :contentFullscreen="documentationEditorFullscreen"
     >
       <template #docs>
         <DocumentationEditor
           ref="docEditor"
           :modelValue="documentation.state.value"
           @update:modelValue="documentation.set"
+          @update:fullscreen="documentationEditorFullscreen = $event"
         />
       </template>
       <template #help>

@@ -51,8 +51,8 @@ type Regex
        ! Error Conditions
 
        - If an empty regex is used, `find` throws an `Illegal_Argument` error.
-    compile : Text -> Boolean -> Regex ! Regex_Syntax_Error | Illegal_Argument
-    compile expression:(Regex|Text) case_insensitive:Boolean=False = case expression of
+    compile : (Regex | Text) -> Boolean -> Regex ! Regex_Syntax_Error | Illegal_Argument
+    compile expression:(Regex | Text) case_insensitive:Boolean=False = case expression of
         _ : Regex -> if case_insensitive == expression.case_insensitive then expression else
             expression.recompile (if case_insensitive then Case_Sensitivity.In_Sensitive else Case_Sensitivity.Sensitive)
         _ : Text ->

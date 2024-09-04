@@ -132,11 +132,25 @@ type Names_Data
 type Lazy_Ref
     Value ~get
 
+type Connection_Data
+    Value ~data
+
+    connection self = self.data.at 0
+
+    setup create_connection_fn = Connection_Data.Value <|
+        connection = create_connection_fn Nothing
+        [connection]
+
+    teardown self =
+        self.connection.close
+
 add_specs suite_builder setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
+    create_connection_fn = setup.create_connection_func
     light_table_builder = setup.light_table_builder
     pending_datetime = if setup.test_selection.date_time.not then "Date/Time operations are not supported by this backend."
+
     suite_builder.group prefix+"(Column_Operations_Spec) Rounding numeric tests" group_builder->
         round_one n dp=0 use_bankers=False =
             table = light_table_builder [["x", [n]]]
@@ -924,6 +938,13 @@ add_specs suite_builder setup =
                     t.at "X" . is_infinite . to_vector . should_equal [False, False, True, True, False, Nothing]
                     t.at "Y" . is_infinite . to_vector . should_equal [False, False, False, False, False, Nothing]
                     t.at "Z" . is_infinite . to_vector . should_fail_with Invalid_Value_Type
+
+                group_builder.specify "should support is_finite" <|
+                    t = table.get
+                    t.at "X" . is_finite . to_vector . should_equal [True, True, False, False, False, Nothing]
+                    t.at "Y" . is_finite . to_vector . should_equal [True, True, True, True, True, Nothing]
+                    t.at "Z" . is_finite . to_vector . should_fail_with Invalid_Value_Type
+
             False ->
                 group_builder.specify "should report that is_nan is not supported" <|
                     t = table_builder [["X", [1.5]]]
@@ -934,6 +955,12 @@ add_specs suite_builder setup =
                     t.at "X" . is_infinite . to_vector . should_equal [False, False, True, True, Nothing]
                     t.at "Y" . is_infinite . to_vector . should_equal [False, False, False, False, Nothing]
                     t.at "Z" . is_infinite . to_vector . should_fail_with Invalid_Value_Type
+
+                group_builder.specify "should support is_finite" <|
+                    t = build_sorted_table [["X", [1.5, 3.0, Number.positive_infinity, Number.negative_infinity, Nothing]], ["Y", [1, 2, 3, 4, Nothing]], ["Z", ["1", "2", "3", "4", Nothing]]]
+                    t.at "X" . is_finite . to_vector . should_equal [True, True, False, False, Nothing]
+                    t.at "Y" . is_finite . to_vector . should_equal [True, True, True, True, Nothing]
+                    t.at "Z" . is_finite . to_vector . should_fail_with Invalid_Value_Type
 
         group_builder.specify "should support is_blank" <|
             t = build_sorted_table [["X", [1.5, 2, Number.nan, Nothing]], ["Y", [1, Nothing, 3, 4]]]
@@ -1044,47 +1071,52 @@ add_specs suite_builder setup =
             table = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]]
             table.at "x" . round . name . should_equal "round([x])"
 
-        test_floatlike type =
-            group_builder.specify "should allow round on a "+type.to_text+" column" <|
+        test_floatlike typ =
+            group_builder.specify "should allow round on a "+typ.to_text+" column" <|
                 table = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]]
-                result = table.at "x" . cast type . round
+                result = table.at "x" . cast typ . round
                 result.to_vector.should_equal [0, 1, 3, 4, 0, -1, -3, -4]
                 result.name . should_equal "round([x])"
 
-            group_builder.specify "should allow round on a "+type.to_text+" column (to >0 decimal places)" <|
+            group_builder.specify "should allow round on a "+typ.to_text+" column (to >0 decimal places)" <|
                 table = table_builder [["x", [0.51, 0.59, 3.51, 3.59, -0.51, -0.59, -3.51, -3.59]]]
-                result = table.at "x" . cast type . round 1
+                result = table.at "x" . cast typ . round 1
                 result.to_vector.should_equal [0.5, 0.6, 3.5, 3.6, -0.5, -0.6, -3.5, -3.6]
                 result.name . should_equal "round([x])"
 
-            group_builder.specify "should allow round on a "+type.to_text+" column (to <0 decimal places)" <|
+            group_builder.specify "should allow round on a "+typ.to_text+" column (to <0 decimal places)" <|
                 table = table_builder [["x", [51.2, 59.3, 351.45, 359.11, -51.2, -59.3, -351.23, -359.69]]]
-                result = table.at "x" . cast type . round -1
+                result = table.at "x" . cast typ . round -1
                 result.to_vector.should_equal [50.0, 60.0, 350.0, 360.0, -50.0, -60.0, -350.0, -360.0]
                 result.name . should_equal "round([x])"
 
-            group_builder.specify "should allow truncate on a "+type.to_text+" column" <|
+            group_builder.specify "should allow truncate on a "+typ.to_text+" column" <|
                 table = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]]
-                result = table.at "x" . cast type . truncate
+                result = table.at "x" . cast typ . truncate
                 result.to_vector.should_equal [0, 0, 3, 3, 0, 0, -3, -3]
                 result.name . should_equal "truncate([x])"
 
-            group_builder.specify "should allow ceil on a "+type.to_text+" column" <|
+            group_builder.specify "should allow ceil on a "+typ.to_text+" column" <|
                 table = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]]
-                result = table.at "x" . cast type . ceil
+                result = table.at "x" . cast typ . ceil
                 result.to_vector.should_equal [1, 1, 4, 4, 0, 0, -3, -3]
                 result.name . should_equal "ceil([x])"
 
-            group_builder.specify "should allow floor on a "+type.to_text+" column" <|
+            group_builder.specify "should allow floor on a "+typ.to_text+" column" <|
                 table = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]]
-                result = table.at "x" . cast type . floor
+                result = table.at "x" . cast typ . floor
                 result.to_vector.should_equal [0, 0, 3, 3, -1, -1, -4, -4]
                 result.name . should_equal "floor([x])"
 
+            group_builder.specify "should handle Nothing in rounding on a "+typ.to_text+" column" <|
+                table = table_builder [["x", [0.1, 0.9, 3.1, Nothing, Nothing, -0.9, -3.1, -3.9]]]
+                result = table.at "x" . cast typ . round
+                result.to_vector.should_equal [0, 1, 3, Nothing, Nothing, -1, -3, -4]
+                result.name . should_equal "round([x])"
+
         test_floatlike Value_Type.Float
-        group_builder.specify "should allow round on a Decimal column" pending="https://github.com/enso-org/enso/issues/10344" <|
-            if setup.test_selection.supports_decimal_type then
-              test_floatlike Value_Type.Decimal
+        if setup.test_selection.supports_decimal_type then
+            test_floatlike Value_Type.Decimal
 
         group_builder.specify "should allow round on an int column" <|
             table = table_builder [["x", [1, 9, 31, 39, -1, -9, -31, -39]]]
@@ -1115,15 +1147,22 @@ add_specs suite_builder setup =
             table.at "x" . round 16 . should_fail_with Illegal_Argument
 
         if setup.test_selection.supports_decimal_type then
-            pending = if setup.is_database.not then "https://github.com/enso-org/enso/issues/10644"
-            group_builder.specify "should return decimals when rounding decimals" pending=pending <|
-                i1 = 9223372036854775807 - 1
-                c = table_builder [["X", [i1]]] . at "X"
-                decimal_col = c.cast Value_Type.Decimal
-                decimal_col.value_type.is_decimal . should_be_true
-                decimal_col2 = decimal_col + decimal_col*decimal_col
-                [(.floor), (.ceil), (.truncate), (x-> x.round 0), (x-> x.round 2)].each op->
-                    op decimal_col2 . to_vector . should_equal [i1 + i1*i1]
+            group_builder.specify "ceil, floor and truncate should work correctly on Decimals" <|
+                c = table_builder [["X", [Decimal.new "123492233720368547758075678.25", Decimal.new "15250331789246130610154663179243023788662739454197523.625", Decimal.new "-123492233720368547758075678.25", Decimal.new "-15250331789246130610154663179243023788662739454197523.625"]]] . at "X"
+                c.value_type.is_decimal . should_be_true
+
+                c.floor.to_vector.should_equal [Decimal.new "123492233720368547758075678.0", Decimal.new "15250331789246130610154663179243023788662739454197523.0", Decimal.new "-123492233720368547758075679.0", Decimal.new "-15250331789246130610154663179243023788662739454197524.0"]
+                c.ceil.to_vector.should_equal [Decimal.new "123492233720368547758075679.0", Decimal.new "15250331789246130610154663179243023788662739454197524.0", Decimal.new "-123492233720368547758075678.0", Decimal.new "-15250331789246130610154663179243023788662739454197523.0"]
+                c.truncate.to_vector.should_equal [Decimal.new "123492233720368547758075678.0", Decimal.new "15250331789246130610154663179243023788662739454197523.0", Decimal.new "-123492233720368547758075678.0", Decimal.new "-15250331789246130610154663179243023788662739454197523.0"]
+
+            group_builder.specify "round should work correctly on Decimals" <|
+                c = table_builder [["X", [Decimal.new "1.3", Decimal.new "1.5", Decimal.new "1.7", Decimal.new "-1.3", Decimal.new "-1.5", Decimal.new "-1.7"]]] . at "X"
+                c.value_type.is_decimal . should_be_true
+                c.round 0 . to_vector . should_equal [Decimal.new "1.0", Decimal.new "2.0", Decimal.new "2.0", Decimal.new "-1.0", Decimal.new "-2.0", Decimal.new "-2.0"]
+
+                c2 = table_builder [["X", [Decimal.new "130", Decimal.new "150", Decimal.new "170", Decimal.new "-130", Decimal.new "-150", Decimal.new "-170"]]] . at "X"
+                c2.value_type.is_decimal . should_be_true
+                c2.round -2 . to_vector . should_equal [Decimal.new "100", Decimal.new "200", Decimal.new "200", Decimal.new "-100", Decimal.new "-200", Decimal.new "-200"]
 
         group_builder.specify "should allow Nothing/NULL" <|
             table = table_builder [["x", [Nothing, 0.51, 0.59, 3.51, Nothing, 3.59, -0.51, -0.59, -3.51, -3.59]]]
@@ -1733,6 +1772,36 @@ add_specs suite_builder setup =
         group_builder.specify "Should not allow the creation of a constant column of columns" <|
             t = table_builder [["x", ["1", "2", "3"]]]
             t.at "x" . const (t.at "x") . should_fail_with Illegal_Argument
+
+    if setup.is_database then
+        suite_builder.group prefix+"(Column_Operations_Spec) Column.let" group_builder->
+            connection_data = Connection_Data.setup create_connection_fn
+
+            group_builder.teardown <|
+                connection_data.teardown
+
+            if connection_data.connection.dialect.supports_nested_with_clause then
+                group_builder.specify "Should allow the use of let-style CTEs" <|
+                    t = table_builder [["X", [1, 2, 3, 4]], ["Y", [4, 3, 100, 200]], ["Z", [12.1, 23.4, -4.5, 44.33]]]
+                    x = t.at "X"
+                    y = t.at "Y"
+                    z = t.at "Z"
+                    a = ((x - 2.3) * (y + 1)) + z
+                    b = (x - 2.3).let "xx" xx-> (xx * (y + 1)) + z
+                    c = (x - 2.3).let "xx" xx-> (y + 1).let "yy" yy-> (xx * yy) + z
+                    d = ((x - 2.3) * (y + 1)).let "xxyy" xxyy-> xxyy + z
+
+                    r = t . set a "a" . set b "b" . set c "c" . set d "d" . order_by ["X"] . read
+                    r.at "a" . to_vector . should_equal [5.6000000000000005, 22.2, 66.20000000000002, 386.03000000000003]
+                    r.at "a" . to_vector . should_equal (r.at "b" . to_vector)
+                    r.at "a" . to_vector . should_equal (r.at "c" . to_vector)
+                    r.at "a" . to_vector . should_equal (r.at "d" . to_vector)
+
+                    a.to_table.to_sql . prepare . at 0 . should_not_contain "WITH"
+                    b.to_table.to_sql . prepare . at 0 . should_contain 'xx_0'
+                    c.to_table.to_sql . prepare . at 0 . should_contain 'xx_0'
+                    c.to_table.to_sql . prepare . at 0 . should_contain 'yy_1'
+                    d.to_table.to_sql . prepare . at 0 . should_contain 'xxyy_0'
 
     suite_builder.group prefix+"(Column_Operations_Spec) Table.make_constant_column" group_builder->
         group_builder.specify "Should allow the creation of constant columns" <|

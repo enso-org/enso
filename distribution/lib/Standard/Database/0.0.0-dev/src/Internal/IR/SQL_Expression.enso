@@ -64,3 +64,61 @@ type SQL_Expression
          parametrized by additional settings can use this field to pass that
          information to the code generator.
     Operation (kind : Text) (expressions : Vector SQL_Expression) (metadata : Any | Nothing = Nothing)
+
+    ## PRIVATE
+       The internal representation of a `WITH ... AS` CTE expression. A `Let`
+       value contains the "binding" of the CTE expression to a lexically scoped
+       table name, as well as the body expression that refers to the binding.
+
+       A `Let` value's body always contains at least one `Let_Ref` value with
+       the same `binder` identifier, unless the callback passed to the `let`
+       method ignored its argument.
+
+       Arguments:
+       - name: the optional user-provided name describing the expression bound
+         by the WITH ... AS clause
+       - binder: the lexically-scoped name of the CTE expression.
+       - bindee: the CTE expression.
+       - body: the larger expression that contains references to the CTE.
+    Let (name : Text) (binder : Text) (bindee : SQL_Expression) (body : SQL_Expression)
+
+    ## PRIVATE
+       The internal representation of a "reference" to a CTE expression.
+
+       A `Let_Ref` value always occurs within the `body` expression of an
+       enclosing `Let` value.
+
+       Database backends often evaluate sub-expressions of `DB_Table` and
+       `DB_Column` values, for example when querying the datanbase for an
+       expression type. `Let_Ref` values are sometimes evaluated in the
+       database without their enclosing `Let` values, in which case the
+       `binder` field refers to an unbound identifier. In these cases, the
+       original CTE expression in `standalone_expression` is used instead.
+
+       Arguments:
+       - name: the optional user-provided name describing the expression bound
+         by the WITH ... AS clause
+       - binder: the lexically-scoped name of the CTE expression.
+       - standalone_expression: the full, original expression bound in the
+         enclosing `Let` value.
+    Let_Ref (name : Text) (binder : Text) (standalone_expression : SQL_Expression)
+
+    ## PRIVATE
+       A bottom-up, depth-first traversal of this IR node and its children. Each
+       node is passed to the provided function, and the return value of the
+       function replaces this node in the tree.
+    traverse : (Any -> Any) -> SQL_Expression
+    traverse self f -> SQL_Expression =
+        rec e = e.traverse f
+        new_sql_expression = case self of
+            SQL_Expression.Column _ _ -> self
+            SQL_Expression.Constant _ -> self
+            SQL_Expression.Literal _ -> self
+            SQL_Expression.Text_Literal _ -> self
+            SQL_Expression.Operation kind expressions metadata ->
+                SQL_Expression.Operation kind (expressions.map rec) metadata
+            SQL_Expression.Let name binder bindee body ->
+                SQL_Expression.Let name binder (rec bindee) (rec body)
+            SQL_Expression.Let_Ref name binder standalone_expression ->
+                SQL_Expression.Let_Ref name binder (rec standalone_expression)
+        f new_sql_expression

@@ -174,7 +174,7 @@ export default class DrivePageActions extends PageActions {
           await test.expect(locateAssetRows(page)).toHaveCount(0)
           const nonAssetRows = locateNonAssetRows(page)
           await test.expect(nonAssetRows).toHaveCount(1)
-          await test.expect(nonAssetRows).toHaveText(/You have no files/)
+          await test.expect(nonAssetRows).toHaveText(/This folder is empty/)
         })
       },
       /** A test assertion to confirm that there is only one row visible, and that row is the

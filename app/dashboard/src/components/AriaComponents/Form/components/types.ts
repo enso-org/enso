@@ -9,33 +9,34 @@ import type * as z from 'zod'
 
 import type * as schemaModule from './schema'
 
-/**
- * Field values type.
- */
-// eslint-disable-next-line no-restricted-syntax
+/** The type of the inputs to the form, used for UI inputs. */
 export type FieldValues<Schema extends TSchema | undefined> =
-  Schema extends TSchema ? z.infer<Schema> : reactHookForm.FieldValues
+  Schema extends TSchema ? z.input<Schema> : reactHookForm.FieldValues
+
+/** The type of the outputs of the form, used for the callback. */
+export type TransformedValues<Schema extends TSchema | undefined> =
+  Schema extends TSchema ? z.output<Schema> : reactHookForm.FieldValues
 
 /**
  * Field path type.
  * @alias reactHookForm.FieldPath
  */
-export type FieldPath<
-  Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-> = reactHookForm.FieldPath<TFieldValues>
+export type FieldPath<Schema extends TSchema> = reactHookForm.FieldPath<FieldValues<Schema>>
 
 /**
  * Schema type
  */
-export type TSchema = z.AnyZodObject | z.ZodEffects<z.AnyZodObject>
+export type TSchema =
+  | z.AnyZodObject
+  | z.ZodEffects<z.AnyZodObject>
+  | z.ZodEffects<z.ZodEffects<z.AnyZodObject>>
 
 /**
  * Props for the useForm hook.
  */
-export interface UseFormProps<Schema extends TSchema, TFieldValues extends FieldValues<Schema>>
+export interface UseFormProps<Schema extends TSchema>
   extends Omit<
-    reactHookForm.UseFormProps<TFieldValues>,
+    reactHookForm.UseFormProps<FieldValues<Schema>>,
     'handleSubmit' | 'resetOptions' | 'resolver'
   > {
   readonly schema: Schema | ((schema: typeof schemaModule.schema) => Schema)
@@ -45,30 +46,20 @@ export interface UseFormProps<Schema extends TSchema, TFieldValues extends Field
  * Return type of the useForm hook.
  * @alias reactHookForm.UseFormReturn
  */
-export interface UseFormReturn<
-  Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TTransformedValues extends Record<string, unknown> | undefined = undefined,
-> extends reactHookForm.UseFormReturn<TFieldValues, unknown, TTransformedValues> {}
+export interface UseFormReturn<Schema extends TSchema>
+  extends reactHookForm.UseFormReturn<FieldValues<Schema>, unknown, TransformedValues<Schema>> {}
 
 /**
  * Form state type.
  * @alias reactHookForm.FormState
  */
-export type FormState<
-  Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-> = reactHookForm.FormState<TFieldValues>
+export type FormState<Schema extends TSchema> = reactHookForm.FormState<FieldValues<Schema>>
 
 /**
  * Form instance type
  * @alias UseFormReturn
  */
-export type FormInstance<
-  Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema> = FieldValues<Schema>,
-  TTransformedValues extends Record<string, unknown> | undefined = undefined,
-> = UseFormReturn<Schema, TFieldValues, TTransformedValues>
+export type FormInstance<Schema extends TSchema> = UseFormReturn<Schema>
 
 /**
  * Form type interface that check if FieldValues type is compatible with the value type from component
@@ -76,21 +67,20 @@ export type FormInstance<
 export interface FormWithValueValidation<
   BaseValueType,
   Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TFieldName extends FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
+  TFieldName extends FieldPath<Schema>,
+  // It is not ideal to have this as a parameter as it can be edited, but this is the simplest way
+  // to avoid distributive conditional types to affect the error message. We want distributivity
+  // to happen, just not for the error message itself.
   ErrorType = [
     'Type mismatch: Expected',
-    TFieldValues[TFieldName],
+    FieldValues<Schema>[TFieldName],
     'got',
     BaseValueType,
     'instead.',
   ],
 > {
   readonly form?:
-    | (BaseValueType extends TFieldValues[TFieldName] ?
-        FormInstance<Schema, TFieldValues, TTransformedValues>
-      : ErrorType)
+    | (BaseValueType extends FieldValues<Schema>[TFieldName] ? FormInstance<Schema> : ErrorType)
     | undefined
 }
 

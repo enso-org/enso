@@ -1,14 +1,13 @@
 /** @file This module defines the Project Manager endpoint.
  * @see
  * https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-project-manager.md */
-import * as detect from 'enso-common/src/detect'
+import invariant from 'tiny-invariant'
 
 import * as backend from '#/services/Backend'
-
 import * as appBaseUrl from '#/utilities/appBaseUrl'
 import * as dateTime from '#/utilities/dateTime'
 import * as newtype from '#/utilities/newtype'
-import invariant from 'tiny-invariant'
+import { getDirectoryAndName, normalizeSlashes } from '#/utilities/path'
 
 // =================
 // === Constants ===
@@ -258,38 +257,6 @@ export interface DeleteProjectParams {
   readonly projectsDirectory?: Path
 }
 
-// ================
-// === joinPath ===
-// ================
-
-/** Construct a {@link Path} from an existing {@link Path} of the parent directory. */
-export function joinPath(directoryPath: Path, fileName: string) {
-  return Path(`${directoryPath}/${fileName}`)
-}
-
-// ========================
-// === normalizeSlashes ===
-// ========================
-
-/** Return the path, with backslashes (on Windows only) normalized to forward slashes. */
-function normalizeSlashes(path: string): Path {
-  if (detect.isOnWindows()) {
-    return Path(path.replace(/\\/g, '/'))
-  } else {
-    return Path(path)
-  }
-}
-
-// ===========================
-// === getDirectoryAndName ===
-// ===========================
-
-/** Split a {@link Path} inito the path of its parent directory, and its file name. */
-export function getDirectoryAndName(path: Path) {
-  const [, directoryPath = '', fileName = ''] = path.match(/^(.+)[/]([^/]+)$/) ?? []
-  return { directoryPath: Path(directoryPath), fileName }
-}
-
 // =======================
 // === Project Manager ===
 // =======================
@@ -306,6 +273,7 @@ export enum ProjectManagerEvents {
  * It should always be in sync with the Rust interface at
  * `app/gui/controller/engine-protocol/src/project_manager.rs`. */
 export default class ProjectManager {
+  private readonly initialRootDirectory: Path
   // This is required so that projects get recursively updated (deleted, renamed or moved).
   private readonly internalDirectories = new Map<Path, readonly FileSystemEntry[]>()
   private readonly internalProjects = new Map<UUID, ProjectState>()
@@ -320,6 +288,7 @@ export default class ProjectManager {
   // eslint-disable-next-line @typescript-eslint/member-ordering
   readonly projectPaths: ReadonlyMap<UUID, Path> = this.internalProjectPaths
   private id = 0
+  private reconnecting = false
   private resolvers = new Map<number, (value: never) => void>()
   private rejecters = new Map<number, (reason?: JSONRPCError) => void>()
   private socketPromise: Promise<WebSocket>
@@ -329,10 +298,21 @@ export default class ProjectManager {
     private readonly connectionUrl: string,
     public rootDirectory: Path,
   ) {
+    this.initialRootDirectory = this.rootDirectory
+    this.socketPromise = this.reconnect()
+  }
+
+  /** Begin reconnecting the {@link WebSocket}. */
+  reconnect() {
+    if (this.reconnecting) {
+      // eslint-disable-next-line no-restricted-syntax
+      return this.socketPromise
+    }
+    this.reconnecting = true
     const firstConnectionStartMs = Number(new Date())
     let lastConnectionStartMs = 0
     let justErrored = false
-    const createSocket = () => {
+    const reconnect = () => {
       lastConnectionStartMs = Number(new Date())
       this.resolvers = new Map()
       const oldRejecters = this.rejecters
@@ -353,6 +333,7 @@ export default class ProjectManager {
           }
         }
         socket.onopen = () => {
+          this.reconnecting = false
           resolve(socket)
         }
         socket.onerror = (event) => {
@@ -365,7 +346,7 @@ export default class ProjectManager {
             const delay = RETRY_INTERVAL_MS - (Number(new Date()) - lastConnectionStartMs)
             window.setTimeout(
               () => {
-                void createSocket().then(resolve)
+                void reconnect().then(resolve)
               },
               Math.max(0, delay),
             )
@@ -373,13 +354,19 @@ export default class ProjectManager {
         }
         socket.onclose = () => {
           if (!justErrored) {
-            this.socketPromise = createSocket()
+            this.socketPromise = reconnect()
           }
           justErrored = false
         }
       })
     }
-    this.socketPromise = createSocket()
+    this.socketPromise = reconnect()
+    return this.socketPromise
+  }
+
+  /** Set the root directory to the initial root directory. */
+  resetRootDirectory() {
+    this.rootDirectory = this.initialRootDirectory
   }
 
   /**

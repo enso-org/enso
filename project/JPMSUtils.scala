@@ -3,15 +3,11 @@ import sbt._
 import sbt.Keys._
 import sbt.internal.inc.{CompileOutput, PlainVirtualFile}
 import sbt.util.CacheStore
-import sbtassembly.Assembly.{Dependency, JarEntry, Project}
-import sbtassembly.{CustomMergeStrategy, MergeStrategy}
-import xsbti.VirtualFile
 import xsbti.compile.IncToolOptionsUtil
 
 import java.io.File
 import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.{
-  FileVisitOption,
   FileVisitResult,
   Files,
   Path,

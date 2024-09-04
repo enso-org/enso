@@ -39,12 +39,14 @@ polyglot java import org.enso.table.data.column.operation.cast.CastProblemAggreg
 polyglot java import org.enso.table.data.column.operation.CountNothing
 polyglot java import org.enso.table.data.column.operation.unary.DatePartOperation
 polyglot java import org.enso.table.data.column.operation.unary.IsEmptyOperation
+polyglot java import org.enso.table.data.column.operation.unary.IsFiniteOperation
 polyglot java import org.enso.table.data.column.operation.unary.IsInfiniteOperation
 polyglot java import org.enso.table.data.column.operation.unary.IsNaNOperation
 polyglot java import org.enso.table.data.column.operation.unary.IsNothingOperation
 polyglot java import org.enso.table.data.column.operation.unary.NotOperation
 polyglot java import org.enso.table.data.column.operation.unary.TextLengthOperation
 polyglot java import org.enso.table.data.column.operation.unary.TruncatedTimePartOperation
+polyglot java import org.enso.table.data.column.operation.unary.UnaryDecimalRoundOperation
 polyglot java import org.enso.table.data.column.operation.unary.UnaryRoundOperation
 polyglot java import org.enso.table.data.column.operation.UnaryOperation
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
@@ -928,8 +930,11 @@ type Column
                 case precise_value_type.is_integer of
                     True ->
                         self.rename new_name
-                    False ->
-                        apply_unary_operation self UnaryRoundOperation.TRUNCATE_INSTANCE
+                    False -> case precise_value_type.is_decimal of
+                        True ->
+                            apply_unary_operation self UnaryDecimalRoundOperation.TRUNCATE_INSTANCE
+                        False ->
+                            apply_unary_operation self UnaryRoundOperation.TRUNCATE_INSTANCE
             False -> case precise_value_type == Value_Type.Date_Time of
                 True ->
                     fun = _.date
@@ -954,7 +959,11 @@ type Column
                 new_name = naming_helper.function_name "ceil" [self]
                 self.rename new_name
             False ->
-                apply_unary_operation self UnaryRoundOperation.CEIL_INSTANCE
+                case self.inferred_precise_value_type.is_decimal of
+                    True ->
+                        apply_unary_operation self UnaryDecimalRoundOperation.CEIL_INSTANCE
+                    False ->
+                        apply_unary_operation self UnaryRoundOperation.CEIL_INSTANCE
 
     ## GROUP Standard.Base.Rounding
        ICON math
@@ -974,7 +983,11 @@ type Column
                 new_name = naming_helper.function_name "floor" [self]
                 self.rename new_name
             False ->
-                apply_unary_operation self UnaryRoundOperation.FLOOR_INSTANCE
+                case self.inferred_precise_value_type.is_decimal of
+                    True ->
+                        apply_unary_operation self UnaryDecimalRoundOperation.FLOOR_INSTANCE
+                    False ->
+                        apply_unary_operation self UnaryRoundOperation.FLOOR_INSTANCE
 
     ## GROUP Standard.Base.Logical
        ICON operators
@@ -1088,6 +1101,19 @@ type Column
             _           -> False
         apply_unary_operation self IsInfiniteOperation.INSTANCE new_name if_unsupported=(apply_unary_map self new_name fallback Value_Type.Boolean)
 
+    ## GROUP Standard.Base.Math
+       ICON math
+       Returns a column of booleans, with `True` items at the positions where
+       this column contains a non-infinite, non-NaN floating point value. This
+       is only applicable to double columns.
+    is_finite : Column
+    is_finite self = Value_Type.expect_numeric self <|
+        new_name = naming_helper.function_name "is_finite" [self]
+        fallback x = case x of
+            _ : Float   -> x.is_finite
+            _           -> True
+        apply_unary_operation self IsFiniteOperation.INSTANCE new_name if_unsupported=(apply_unary_map self new_name fallback Value_Type.Boolean)
+
     ## PRIVATE
        Returns a column of booleans, with `True` items at the positions where
        this column contains an empty string or `Nothing`.
@@ -1164,7 +1190,7 @@ type Column
              import Standard.Examples
 
              example_fill_nothing = Examples.decimal_column.fill_nothing 20.5
-    @default (self-> Widget_Helpers.make_fill_default_value_selector value_type=self.value_type)
+    @default (self-> Widget_Helpers.make_fill_default_value_selector value_types=self.value_type)
     fill_nothing : Column | Previous_Value | Any -> Column
     fill_nothing self default =
         if Previous_Value == default then fill_previous self Nothing else
@@ -1201,7 +1227,7 @@ type Column
              import Standard.Examples
 
              example_fill_empty = Examples.text_column_1.fill_empty "hello"
-    @default (self-> Widget_Helpers.make_fill_default_value_selector value_type=Value_Type.Char add_nothing=True)
+    @default (self-> Widget_Helpers.make_fill_default_value_selector value_types=Value_Type.Char add_nothing=True)
     fill_empty : Column | Previous_Value | Any -> Column
     fill_empty self default =
         Value_Type.expect_text self <|
@@ -2434,7 +2460,7 @@ type Column
              column = table.get "Name"
              ## The take returns "Charlie"
              last_row = column.take (..Last 1)
-    @range Index_Sub_Range.default_widget
+    @range (self-> Index_Sub_Range.default_widget self.length)
     take : (Index_Sub_Range | Range | Integer) -> Column
     take self range:(Index_Sub_Range | Range | Integer)=..First =
         take_helper self.length (self.at _) self.slice (slice_ranges self) range
@@ -2447,7 +2473,7 @@ type Column
 
        Arguments:
        - range: The selection of rows from the table to remove.
-    @range Index_Sub_Range.default_widget
+    @range (self-> Index_Sub_Range.default_widget self.length)
     drop : (Index_Sub_Range | Range | Integer) -> Column
     drop self range:(Index_Sub_Range | Range | Integer)=..First =
         drop_helper self.length (self.at _) self.slice (slice_ranges self) range
@@ -2537,6 +2563,42 @@ type Column
        This is a shortcut for API compatibility.
     naming_helper : Column_Naming_Helper
     naming_helper self = naming_helper
+
+    ## ALIAS count, kurtosis, maximum, mean, median, minimum, mode, skew, standard_deviation, statistic, sum, variance
+       GROUP Standard.Base.Statistics
+       ICON transform4
+       Compute a single statistic on the column.
+
+       Arguments:
+       - statistic: Statistic to calculate.
+    compute : Statistic -> Any
+    compute self statistic:Statistic=..Count =
+        Statistic.compute_bulk self.to_vector [statistic] . first
+
+    ## ALIAS count, kurtosis, maximum, mean, median, minimum, mode, skew, standard_deviation, statistic, sum, variance
+       ICON transform4
+       Compute statistics on the column.
+
+       Arguments:
+       - statistics: Set of statistics to calculate.
+    compute_bulk : Vector Statistic -> Table
+    compute_bulk self statistics=[Statistic.Count, Statistic.Sum] =
+        values = Statistic.compute_bulk self.to_vector statistics
+        names = statistics.map _.to_text
+        Table.from_rows names [values]
+
+    ## ALIAS count, kurtosis, maximum, mean, median, minimum, mode, skew, standard_deviation, statistic, sum, variance
+       GROUP Standard.Base.Statistics
+       ICON transform4
+       Compute a single running statistic on the column.
+
+       Arguments:
+       - statistic: Statistic to calculate.
+       - name: Name of the new column.
+    running : Statistic -> Text -> Column
+    running self statistic:Statistic=..Count name=statistic.to_text+" "+self.name =
+        data = Statistic.running self.to_vector statistic
+        Column.from_vector name data
 
 ## PRIVATE
 
@@ -2847,7 +2909,7 @@ Cleansable_Text.from (that:Column) = Cleansable_Text.Value (pattern->replace_wit
    - operation: The UnaryOperation to apply.
    - new_name: The name of the column created as the result of this operation.
    - if_unsupported: The result if the operation is not supported for the column.
-apply_unary_operation column:Column operation:UnaryOperation new_name:Text|Nothing=Nothing ~if_unsupported=(Panic.throw (Illegal_State.Error "Unsupported unary operation for column called. This is a bug in the Table library.")) =
+apply_unary_operation column:Column operation:UnaryOperation new_name:Text|Nothing=Nothing ~if_unsupported=(Panic.throw (Illegal_State.Error "Unsupported unary operation for column called "+column.name+". This is a bug in the Table library.")) =
     used_name = new_name.if_nothing (naming_helper.function_name operation.getName [column])
     Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning java_problem_aggregator->
         java_column = UnaryOperation.apply column.java_column operation used_name java_problem_aggregator

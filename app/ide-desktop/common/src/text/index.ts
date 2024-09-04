@@ -61,6 +61,7 @@ interface PlaceholderOverrides {
   readonly compareVersionXWithLatest: [versionNumber: number]
   readonly onDateX: [dateString: string]
   readonly xUsersAndGroupsSelected: [usersAndGroupsCount: number]
+  readonly removeTheLocalDirectoryXFromFavorites: [directoryName: string]
   readonly upgradeTo: [planName: string]
   readonly enterTheNewKeyboardShortcutFor: [actionName: string]
   readonly downloadProjectError: [projectName: string]
@@ -120,6 +121,14 @@ interface PlaceholderOverrides {
   readonly inviteFormSeatsLeftError: [exceedBy: number]
   readonly inviteFormSeatsLeft: [seatsLeft: number]
   readonly seatsLeft: [seatsLeft: number, seatsTotal: number]
+
+  readonly userCategory: [userName: string]
+  readonly teamCategory: [teamName: string]
+  readonly userCategoryButtonLabel: [userName: string]
+  readonly teamCategoryButtonLabel: [teamName: string]
+  readonly userCategoryDropZoneLabel: [userName: string]
+  readonly teamCategoryDropZoneLabel: [teamName: string]
+
   readonly upgradeCTA: [plan: string]
   readonly priceTemplate: [price: string, interval: string]
   readonly months: [months: number]
