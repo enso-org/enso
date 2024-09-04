@@ -328,11 +328,11 @@ function DashboardInner(props: DashboardProps) {
             launchedProjects.map((project) => (
               <aria.TabPanel
                 shouldForceMount
+                key={project.id}
                 id={project.id}
                 className="flex min-h-0 grow [&[data-inert]]:hidden"
               >
                 <Editor
-                  key={project.id}
                   hidden={page !== project.id}
                   ydocUrl={ydocUrl}
                   project={project}
