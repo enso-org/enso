@@ -23,7 +23,7 @@ export interface FieldComponentProps<Schema extends types.TSchema>
     types.FieldProps {
   readonly 'data-testid'?: string | undefined
   readonly name: Path<types.FieldValues<Schema>>
-  readonly form?: types.FormInstance<Schema>
+  readonly form?: types.FormInstance<Schema> | undefined
   readonly isInvalid?: boolean | undefined
   readonly className?: string | undefined
   readonly children?: React.ReactNode | ((props: FieldChildrenRenderProps) => React.ReactNode)

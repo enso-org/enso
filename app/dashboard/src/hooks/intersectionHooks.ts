@@ -48,7 +48,9 @@ export function useIntersectionRatio<T>(
       const intersectionObserver = new IntersectionObserver(
         (entries) => {
           for (const entry of entries) {
-            setValue(transformRef.current(entry.intersectionRatio))
+            React.startTransition(() => {
+              setValue(transformRef.current(entry.intersectionRatio))
+            })
           }
         },
         { root, threshold },
@@ -69,7 +71,9 @@ export function useIntersectionRatio<T>(
         const dropzoneArea = dropzoneRect.width * dropzoneRect.height
         const intersectionArea = intersectionRect.width * intersectionRect.height
         const intersectionRatio = Math.max(0, dropzoneArea / intersectionArea)
-        setValue(transformRef.current(intersectionRatio))
+        React.startTransition(() => {
+          setValue(transformRef.current(intersectionRatio))
+        })
       }
       recomputeIntersectionRatio()
       const resizeObserver = new ResizeObserver(() => {
