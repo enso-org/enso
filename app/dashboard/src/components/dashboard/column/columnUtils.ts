@@ -82,11 +82,7 @@ export const COLUMN_CSS_CLASS: Readonly<Record<Column, string>> = {
 // =====================
 
 /** Return the full list of columns given the relevant current state. */
-export function getColumnList(
-  user: backend.User,
-  backendType: backend.BackendType,
-  enabledColumns?: ReadonlySet<Column>,
-) {
+export function getColumnList(user: backend.User, backendType: backend.BackendType) {
   const isCloud = backendType === backend.BackendType.remote
   const isEnterprise = user.plan === backend.Plan.enterprise
   const columns = [
@@ -98,7 +94,5 @@ export function getColumnList(
     isCloud && Column.accessedData,
     isCloud && Column.docs,
   ]
-  return columns.flatMap((column) =>
-    column !== false && (enabledColumns?.has(column) ?? true) ? [column] : [],
-  )
+  return columns.flatMap((column) => (column !== false ? [column] : []))
 }

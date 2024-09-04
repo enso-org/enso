@@ -2303,7 +2303,9 @@ export default function AssetsTable(props: AssetsTableProps) {
     setAsset,
   }))
 
-  const columns = columnUtils.getColumnList(user, backend.type, enabledColumns)
+  const columns = columnUtils
+    .getColumnList(user, backend.type)
+    .filter((column) => enabledColumns.has(column))
 
   const headerRow = (
     <tr ref={headerRowRef} className="sticky top-[1px] text-sm font-semibold">
@@ -2689,45 +2691,43 @@ export default function AssetsTable(props: AssetsTableProps) {
                 />
               )}
               <div className="flex h-max min-h-full w-max min-w-full flex-col">
-                {isCloud && (
-                  <div className="flex-0 sticky top-0 flex h-0 flex-col">
-                    <div
-                      data-testid="extra-columns"
-                      className="sticky right-0 flex self-end px-2 py-3"
-                    >
-                      <FocusArea direction="horizontal">
-                        {(columnsBarProps) => (
-                          <div
-                            {...aria.mergeProps<JSX.IntrinsicElements['div']>()(columnsBarProps, {
-                              className: 'inline-flex gap-icons',
-                              onFocus: () => {
-                                setKeyboardSelectedIndex(null)
-                              },
-                            })}
-                          >
-                            {hiddenColumns.map((column) => (
-                              <Button
-                                key={column}
-                                light
-                                image={columnUtils.COLUMN_ICONS[column]}
-                                alt={getText(columnUtils.COLUMN_SHOW_TEXT_ID[column])}
-                                onPress={() => {
-                                  const newExtraColumns = new Set(enabledColumns)
-                                  if (enabledColumns.has(column)) {
-                                    newExtraColumns.delete(column)
-                                  } else {
-                                    newExtraColumns.add(column)
-                                  }
-                                  setEnabledColumns(newExtraColumns)
-                                }}
-                              />
-                            ))}
-                          </div>
-                        )}
-                      </FocusArea>
-                    </div>
+                <div className="flex-0 sticky top-0 flex h-0 flex-col">
+                  <div
+                    data-testid="extra-columns"
+                    className="sticky right-0 flex self-end px-2 py-3"
+                  >
+                    <FocusArea direction="horizontal">
+                      {(columnsBarProps) => (
+                        <div
+                          {...aria.mergeProps<JSX.IntrinsicElements['div']>()(columnsBarProps, {
+                            className: 'inline-flex gap-icons',
+                            onFocus: () => {
+                              setKeyboardSelectedIndex(null)
+                            },
+                          })}
+                        >
+                          {hiddenColumns.map((column) => (
+                            <Button
+                              key={column}
+                              light
+                              image={columnUtils.COLUMN_ICONS[column]}
+                              alt={getText(columnUtils.COLUMN_SHOW_TEXT_ID[column])}
+                              onPress={() => {
+                                const newExtraColumns = new Set(enabledColumns)
+                                if (enabledColumns.has(column)) {
+                                  newExtraColumns.delete(column)
+                                } else {
+                                  newExtraColumns.add(column)
+                                }
+                                setEnabledColumns(newExtraColumns)
+                              }}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </FocusArea>
                   </div>
-                )}
+                </div>
                 <div className="flex h-full w-min min-w-full grow flex-col">{table}</div>
               </div>
             </div>
