@@ -366,12 +366,12 @@ add_specs suite_builder =
 
         current_project_root = enso_project.root
         base_directory = current_project_root.parent
-        is_correct_working_directory = (File.current_directory . normalize . path) == current_project_root.absolute.normalize.path
+        is_correct_working_directory = File.current_directory.absolute.normalize.path == base_directory.absolute.normalize.path
         group_builder.specify "will resolve relative paths relative to the currently running project" pending=(if is_correct_working_directory.not then "The working directory is not set-up as expected, so this test cannot run. Please run the tests using `ensoup` to ensure the working directory is correct.") <|
-            root = File.new "."
-            root.should_be_a File
+            dot = File.new "."
+            dot.should_be_a File
             # The `.` path should resolve to the base path
-            root.absolute.normalize.path . should_equal base_directory.absolute.normalize.path
+            dot.absolute.normalize.path . should_equal base_directory.absolute.normalize.path
 
             expected_file = base_directory / "abc" / "def.txt"
             f = File.new "abc/def.txt"
