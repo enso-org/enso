@@ -149,15 +149,25 @@ const BASE_STEPS: Step[] = [
     /**
      * Step component
      */
-    component: function SetOrganizatioNameStep({ goToNextStep, goToPreviousStep }) {
+    component: function SetOrganizatioNameStep({ goToNextStep, goToPreviousStep, session }) {
       const { getText } = textProvider.useText()
       const remoteBackend = useRemoteBackendStrict()
+      const userId = session && 'user' in session ? session.user.userId : null
 
       const { data: defaultOrgName } = useSuspenseQuery({
-        queryKey: ['organization'],
+        queryKey: ['organization', userId],
         queryFn: () => remoteBackend.getOrganization(),
         select: (data) => data?.name ?? '',
       })
+
+      const updateOrganizationMutation = useMutation(
+        backendMutationOptions(remoteBackend, 'updateOrganization', {
+          onSuccess: () => {
+            goToNextStep()
+          },
+          meta: { invalidates: [['organization', userId]] },
+        }),
+      )
 
       return (
         <ariaComponents.Form
@@ -169,10 +179,9 @@ const BASE_STEPS: Step[] = [
           onSubmit={({ organizationName }) => {
             if (organizationName !== defaultOrgName) {
               // eslint-disable-next-line no-restricted-syntax
-              return remoteBackend.updateOrganization({ name: organizationName })
+              return updateOrganizationMutation.mutateAsync([{ name: organizationName }])
             }
           }}
-          onSubmitSuccess={goToNextStep}
         >
           <ariaComponents.Input
             name="organizationName"
@@ -255,23 +264,36 @@ const BASE_STEPS: Step[] = [
     /**
      * Step component
      */
-    component: function CreateUserGroupStep({ goToNextStep, goToPreviousStep }) {
+    component: function CreateUserGroupStep({ goToNextStep, goToPreviousStep, session }) {
       const { getText } = textProvider.useText()
+      const { authQueryKey } = useAuth()
       const remoteBackend = useRemoteBackendStrict()
 
       const defaultUserGroupMaxLength = 64
+      const userId = session && 'user' in session ? session.user.userId : null
 
       const listUsersQuery = useSuspenseQuery({
         queryKey: ['users'],
         queryFn: () => remoteBackend.listUsers(),
       })
 
+      const changeUserGroupMutation = useMutation(
+        backendMutationOptions(remoteBackend, 'changeUserGroup', {
+          meta: { invalidates: [authQueryKey] },
+        }),
+      )
+
       const createUserGroupMutation = useMutation(
         backendMutationOptions(remoteBackend, 'createUserGroup', {
+          meta: { invalidates: [['userGroups', userId]] },
           onSuccess: async (result) => {
             await Promise.all([
               listUsersQuery.data.map((user) =>
-                remoteBackend.changeUserGroup(user.userId, { userGroups: [result.id] }, user.name),
+                changeUserGroupMutation.mutateAsync([
+                  user.userId,
+                  { userGroups: [result.id] },
+                  user.name,
+                ]),
               ),
             ])
 
