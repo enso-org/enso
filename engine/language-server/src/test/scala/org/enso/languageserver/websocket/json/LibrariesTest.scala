@@ -14,14 +14,13 @@ import org.enso.languageserver.libraries.{
 }
 import org.enso.languageserver.runtime.TestComponentGroups
 import org.enso.librarymanager.published.bundles.LocalReadOnlyRepository
-import org.enso.librarymanager.published.repository.{
+import org.enso.librarymanager.published.repository.LibraryManifest
+import org.enso.librarymanager.test.published.repository.{
   EmptyRepository,
-  ExampleRepository,
-  LibraryManifest
+  ExampleRepository
 }
-import org.enso.logger.ReportLogsOnFailure
 import org.enso.pkg.{Config, Contact, Package, PackageManager}
-import org.enso.testkit.FlakySpec
+import org.enso.testkit.{FlakySpec, ReportLogsOnFailure}
 import org.enso.version.BuildVersion
 import org.enso.yaml.YamlHelper
 

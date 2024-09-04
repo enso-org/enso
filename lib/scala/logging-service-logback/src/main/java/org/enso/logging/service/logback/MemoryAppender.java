@@ -1,4 +1,4 @@
-package org.enso.logger;
+package org.enso.logging.service.logback;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.Appender;

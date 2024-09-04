@@ -7,7 +7,7 @@ import java.util.Map;
 
 import org.enso.logger.Converter;
 import org.enso.logger.JulHandler;
-import org.enso.logger.LoggerSetup;
+import org.enso.logging.config.LoggerSetup;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.HostAccess;
 import org.graalvm.polyglot.io.MessageTransport;

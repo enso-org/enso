@@ -1,4 +1,4 @@
-package org.enso.logger;
+package org.enso.logging.service.logback;
 
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
@@ -22,7 +22,12 @@ import java.io.File;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import org.enso.logger.config.*;
+import org.enso.logging.config.Appender;
+import org.enso.logging.config.BaseConfig;
+import org.enso.logging.config.LoggerSetup;
+import org.enso.logging.config.LoggersLevels;
+import org.enso.logging.config.LoggingServiceConfig;
+import org.enso.logging.config.MissingConfigurationField;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 
@@ -126,7 +131,7 @@ public final class LogbackSetup extends LoggerSetup {
     }
     LoggerAndContext env = contextInit(targetLogLevel, config, true);
 
-    org.enso.logger.config.SocketAppender appenderConfig = config.getSocketAppender();
+    org.enso.logging.config.SocketAppender appenderConfig = config.getSocketAppender();
 
     SocketAppender socketAppender = new SocketAppender();
     socketAppender.setName("enso-socket");
@@ -145,9 +150,9 @@ public final class LogbackSetup extends LoggerSetup {
   public boolean setupFileAppender(Level logLevel, Path logRoot, String logPrefix) {
     try {
       LoggerAndContext env = contextInit(logLevel, config, true);
-      org.enso.logger.config.FileAppender appenderConfig = config.getFileAppender();
+      org.enso.logging.config.FileAppender appenderConfig = config.getFileAppender();
       if (appenderConfig == null) {
-        throw new MissingConfigurationField(org.enso.logger.config.FileAppender.appenderName);
+        throw new MissingConfigurationField(org.enso.logging.config.FileAppender.appenderName);
       }
       final PatternLayoutEncoder encoder = new PatternLayoutEncoder();
       encoder.setPattern(appenderConfig.getPattern());
@@ -169,7 +174,7 @@ public final class LogbackSetup extends LoggerSetup {
               logRoot.toAbsolutePath() + File.separator + logPrefix + "-" + "%d{yyyy-MM-dd}";
         }
 
-        org.enso.logger.config.FileAppender.RollingPolicy rollingPolicy =
+        org.enso.logging.config.FileAppender.RollingPolicy rollingPolicy =
             appenderConfig.getRollingPolicy();
         SizeAndTimeBasedRollingPolicy logbackRollingPolicy = new SizeAndTimeBasedRollingPolicy();
         logbackRollingPolicy.setContext(env.ctx);
@@ -218,7 +223,7 @@ public final class LogbackSetup extends LoggerSetup {
 
   private ch.qos.logback.core.Appender<ILoggingEvent> getConsoleAppender(
       LoggerContext ctx, LoggingServiceConfig config) {
-    org.enso.logger.config.ConsoleAppender appenderConfig = config.getConsoleAppender();
+    org.enso.logging.config.ConsoleAppender appenderConfig = config.getConsoleAppender();
     final PatternLayoutEncoder encoder = new PatternLayoutEncoder();
     try {
       if (appenderConfig != null) {
@@ -242,10 +247,10 @@ public final class LogbackSetup extends LoggerSetup {
   @Override
   public boolean setupMemoryAppender(Level logLevel) {
     LoggerAndContext env = contextInit(logLevel, config, !logToFileEnabled());
-    org.enso.logger.config.MemoryAppender appenderConfig = config.getMemoryAppender();
+    org.enso.logging.config.MemoryAppender appenderConfig = config.getMemoryAppender();
     ch.qos.logback.core.Appender<ILoggingEvent> target;
     switch (appenderConfig.getTarget()) {
-      case org.enso.logger.config.ConsoleAppender.appenderName:
+      case org.enso.logging.config.ConsoleAppender.appenderName:
         target = getConsoleAppender(env.ctx, config);
         break;
       default:
@@ -268,9 +273,9 @@ public final class LogbackSetup extends LoggerSetup {
     try {
       LoggerAndContext env = contextInit(logLevel, config, !logToFileEnabled());
 
-      org.enso.logger.config.SentryAppender appenderConfig = config.getSentryAppender();
+      org.enso.logging.config.SentryAppender appenderConfig = config.getSentryAppender();
       if (appenderConfig == null) {
-        throw new MissingConfigurationField(org.enso.logger.config.SentryAppender.appenderName);
+        throw new MissingConfigurationField(org.enso.logging.config.SentryAppender.appenderName);
       }
       SentryAppender appender = new SentryAppender();
       SentryOptions opts = new SentryOptions();

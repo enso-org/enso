@@ -1,4 +1,4 @@
-package org.enso.logger.config;
+package org.enso.logging.config;
 
 import com.typesafe.config.Config;
 import org.slf4j.event.Level;

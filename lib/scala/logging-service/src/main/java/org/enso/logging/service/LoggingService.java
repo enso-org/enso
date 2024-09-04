@@ -1,7 +1,7 @@
-package org.enso.logging;
+package org.enso.logging.service;
 
 import java.nio.file.Path;
-import org.enso.logger.config.BaseConfig;
+import org.enso.logging.config.BaseConfig;
 import org.slf4j.event.Level;
 
 /**

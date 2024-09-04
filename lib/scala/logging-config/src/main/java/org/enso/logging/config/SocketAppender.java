@@ -1,7 +1,6 @@
-package org.enso.logger.config;
+package org.enso.logging.config;
 
 import com.typesafe.config.Config;
-import org.enso.logger.LoggerSetup;
 import org.slf4j.event.Level;
 
 /** Config for log configuration that forwards logs to the network socket as-is. */
