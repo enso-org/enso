@@ -312,16 +312,24 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
 
     function deleteNodes(ids: Iterable<NodeId>) {
       edit((edit) => {
+        const deletedNodes = new Set()
         for (const id of ids) {
           const node = db.nodeIdToNode.get(id)
           if (!node) continue
           if (node.type !== 'component') continue
           const usages = db.getNodeUsages(id)
-          for (const usage of usages) updatePortValue(edit, usage, undefined)
+          for (const usage of usages) {
+            const nodeId = getPortPrimaryInstance(usage)?.nodeId
+            // Skip ports on already deleted nodes.
+            if (nodeId && deletedNodes.has(nodeId)) continue
+
+            updatePortValue(edit, usage, undefined)
+          }
           const outerExpr = edit.getVersion(node.outerExpr)
           if (outerExpr) Ast.deleteFromParentBlock(outerExpr)
           nodeRects.delete(id)
           nodeHoverAnimations.delete(id)
+          deletedNodes.add(id)
         }
       })
     }

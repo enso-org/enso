@@ -75,5 +75,68 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
+  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-linux-amd64:
+    name: Standard Library Tests (GraalVM CE) (LinuxLatest)
+    runs-on:
+      - ubuntu-latest
+    steps:
+      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+        name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: v0.10.2
+      - name: Expose Artifact API and context information.
+        uses: actions/github-script@v7
+        with:
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+      - name: Checking out the repository
+        uses: actions/checkout@v4
+        with:
+          clean: false
+          submodules: recursive
+      - name: Build Script Setup
+        run: ./run --help || (git clean -ffdx && ./run --help)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+        name: Clean before
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: ./run backend test standard-library
+        env:
+          ENSO_CLOUD_COGNITO_REGION: ${{ secrets.ENSO_CLOUD_COGNITO_REGION }}
+          ENSO_CLOUD_COGNITO_USER_POOL_ID: ${{ secrets.ENSO_CLOUD_COGNITO_USER_POOL_ID }}
+          ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID: ${{ secrets.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID }}
+          ENSO_CLOUD_TEST_ACCOUNT_PASSWORD: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_PASSWORD }}
+          ENSO_CLOUD_TEST_ACCOUNT_USERNAME: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_USERNAME }}
+          ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
+          ENSO_LIB_S3_AWS_REGION: ${{ secrets.ENSO_LIB_S3_AWS_REGION }}
+          ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY: ${{ secrets.ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - if: (success() || failure()) && github.event.pull_request.head.repo.full_name == github.repository
+        name: Standard Library Test Reporter
+        uses: dorny/test-reporter@v1
+        with:
+          max-annotations: 50
+          name: Standard Library Tests Report (GraalVM CE, linux, amd64)
+          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
+          path-replace-backslashes: true
+          reporter: java-junit
+      - if: failure() && runner.os == 'Windows'
+        name: List files if failed (Windows)
+        run: Get-ChildItem -Force -Recurse
+      - if: failure() && runner.os != 'Windows'
+        name: List files if failed (non-Windows)
+        run: ls -lAR
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+        name: Clean after
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      GRAAL_EDITION: GraalVM CE
+    permissions:
+      checks: write
 env:
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"
