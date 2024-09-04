@@ -707,7 +707,7 @@ pub fn extra_nightly_tests() -> Result<Workflow> {
 
     // We run the extra tests only on Linux, as they should not contain any platform-specific
     // behavior.
-    let target = (OS::Linux, Arch::X86_64);
+    let target = PRIMARY_TARGET;
     workflow.add(target, job::SnowflakeTests {});
     workflow.add(target, job::StandardLibraryTests {
         graal_edition:       graalvm::Edition::Community,
