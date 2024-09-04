@@ -396,7 +396,8 @@ add_specs suite_builder =
                 Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_PROJECT_DIRECTORY_PATH" subdir.path <|
                     # Flush caches to ensure fresh dir is used
                     Enso_User.flush_caches
-                    action
+                    Test.with_clue "(running with ENSO_CLOUD_PROJECT_DIRECTORY_PATH set to "+subdir.path+") " <|
+                        action
 
         group_builder.specify "will resolve relative paths as Cloud paths if running in the Cloud" pending=cloud_setup.real_cloud_pending <|
             with_temporary_cloud_root <|
