@@ -18,38 +18,23 @@ import { useOffline } from '#/hooks/offlineHooks'
 import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
 import AssetSearchBar, { type Suggestion } from '#/layouts/AssetSearchBar'
 import { useDispatchAssetEvent } from '#/layouts/AssetsTable/EventListProvider'
-import {
-  isCloudCategory,
-  isLocalCategory,
-  type Category,
-} from '#/layouts/CategorySwitcher/Category'
+import { isCloudCategory, type Category } from '#/layouts/CategorySwitcher/Category'
 import StartModal from '#/layouts/StartModal'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
-import { useFullUserSession } from '#/providers/AuthProvider'
 import {
+  useCanCreateAssets,
   useCanDownload,
   useIsAssetPanelVisible,
   useSetIsAssetPanelPermanentlyVisible,
-  useTargetDirectory,
 } from '#/providers/DriveProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import {
-  Plan,
-  ProjectState,
-  type CreatedProject,
-  type Project,
-  type ProjectId,
-} from '#/services/Backend'
+import { ProjectState, type CreatedProject, type Project, type ProjectId } from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
-import {
-  canPermissionModifyDirectoryContents,
-  tryFindSelfPermission,
-} from '#/utilities/permissions'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 
 // ================
@@ -84,10 +69,9 @@ export default function DriveBar(props: DriveBarProps) {
   const { doCreateSecret, doCreateDatalink, doUploadFiles } = props
   const { unsetModal } = useSetModal()
   const { getText } = useText()
-  const { user } = useFullUserSession()
   const inputBindings = useInputBindings()
   const dispatchAssetEvent = useDispatchAssetEvent()
-  const targetDirectory = useTargetDirectory()
+  const canCreateAssets = useCanCreateAssets()
   const isAssetPanelVisible = useIsAssetPanelVisible()
   const setIsAssetPanelPermanentlyVisible = useSetIsAssetPanelPermanentlyVisible()
   const createAssetButtonsRef = React.useRef<HTMLDivElement>(null)
@@ -95,14 +79,6 @@ export default function DriveBar(props: DriveBarProps) {
   const isCloud = isCloudCategory(category)
   const { isOffline } = useOffline()
   const canDownload = useCanDownload()
-  const targetDirectorySelfPermission =
-    targetDirectory == null ? null : tryFindSelfPermission(user, targetDirectory.item.permissions)
-  const canCreateAssets =
-    targetDirectory == null ?
-      category.type !== 'cloud' || user.plan == null || user.plan === Plan.solo
-    : isLocalCategory(category) ||
-      (targetDirectorySelfPermission != null &&
-        canPermissionModifyDirectoryContents(targetDirectorySelfPermission.permission))
   const shouldBeDisabled = (isCloud && isOffline) || !canCreateAssets
   const error =
     !shouldBeDisabled ? null

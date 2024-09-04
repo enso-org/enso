@@ -22,9 +22,9 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import {
   useDriveStore,
+  useSetCanCreateAssets,
   useSetCanDownload,
   useSetSelectedKeys,
-  useSetTargetDirectory,
   useSetVisuallySelectedKeys,
 } from '#/providers/DriveProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
@@ -43,7 +43,7 @@ import type * as assetPanel from '#/layouts/AssetPanel'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
-import type { Category } from '#/layouts/CategorySwitcher/Category'
+import { isLocalCategory, type Category } from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
 import type * as assetRow from '#/components/dashboard/AssetRow'
@@ -409,7 +409,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const previousCategoryRef = React.useRef(category)
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
-  const setTargetDirectoryRaw = useSetTargetDirectory()
+  const setCanCreateAssets = useSetCanCreateAssets()
   const didLoadingProjectManagerFail = backendProvider.useDidLoadingProjectManagerFail()
   const reconnectToProjectManager = backendProvider.useReconnectToProjectManager()
   const [enabledColumns, setEnabledColumns] = React.useState(columnUtils.DEFAULT_ENABLED_COLUMNS)
@@ -667,9 +667,21 @@ export default function AssetsTable(props: AssetsTableProps) {
   })
 
   const setTargetDirectory = useEventCallback(
-    (page: AssetTreeNode<backendModule.DirectoryAsset> | null) => {
-      setTargetDirectoryRaw(page)
-      targetDirectoryNodeRef.current = page
+    (targetDirectory: AssetTreeNode<backendModule.DirectoryAsset> | null) => {
+      const targetDirectorySelfPermission =
+        targetDirectory == null ? null : (
+          permissions.tryFindSelfPermission(user, targetDirectory.item.permissions)
+        )
+      const canCreateAssets =
+        targetDirectory == null ?
+          category.type !== 'cloud' || user.plan == null || user.plan === backendModule.Plan.solo
+        : isLocalCategory(category) ||
+          (targetDirectorySelfPermission != null &&
+            permissions.canPermissionModifyDirectoryContents(
+              targetDirectorySelfPermission.permission,
+            ))
+      setCanCreateAssets(canCreateAssets)
+      targetDirectoryNodeRef.current = targetDirectory
     },
   )
 
