@@ -223,7 +223,12 @@ export const Dropdown = forwardRef(function Dropdown<T>(
                 }}
               >
                 {({ item, i }) => (
-                  <ListBoxItem key={i} id={i} className={styles.optionsItem()}>
+                  <ListBoxItem
+                    key={i}
+                    id={i}
+                    textValue={typeof item === 'string' ? item : `${i}`}
+                    className={styles.optionsItem()}
+                  >
                     <SvgMask
                       src={CheckMarkIcon}
                       className={selectedIndices.includes(i) ? '' : 'invisible'}
