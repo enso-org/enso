@@ -10,6 +10,9 @@ type My_Type
     Value foo bar baz
 
 add_specs suite_builder = suite_builder.group "Meta-Value Inspection" group_builder->
+    pending_js_missing = if Polyglot.is_language_installed "js" then Nothing else
+        "Can't run JavaScript tests, language `js` is not installed."
+
     location_pending = case Platform.os of
         Platform.OS.Windows -> "This test is disabled on Windows until issue 1561 is fixed."
         _ -> Nothing
@@ -34,7 +37,7 @@ add_specs suite_builder = suite_builder.group "Meta-Value Inspection" group_buil
     group_builder.specify "should allow to fetch enso project description from a module" <|
         (Project_Description.new Standard.Base.Data.Vector).name.should_equal "Base"
 
-    group_builder.specify "enso_project can be called from polyglot code" <|
+    group_builder.specify "enso_project can be called from polyglot code" pending=pending_js_missing <|
         proj_name = js_proj_name (_ -> enso_project.name)
         proj_name . should_equal "Base_Tests"
 
