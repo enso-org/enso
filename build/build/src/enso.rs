@@ -172,7 +172,17 @@ impl BuiltEnso {
                 only.iter().any(|test| test.contains("Microsoft_Tests")),
         };
 
-        let cloud_credentials_file = cloud_tests::prepare_credentials_file().await?;
+        let cloud_credentials_file = match cloud_tests::build_auth_config_from_environment() {
+            Ok(config) => {
+                let file = cloud_tests::prepare_credentials_file(config).await?;
+                info!("Enso Cloud authentication (for cloud integration tests) is enabled.");
+                Some(file)
+            }
+            Err(err) => {
+                info!("Enso Cloud authentication (for cloud integration tests) is skipped, because of: {}", err);
+                None
+            }
+        };
 
         let _httpbin = crate::httpbin::get_and_spawn_httpbin_on_free_port(sbt).await?;
 

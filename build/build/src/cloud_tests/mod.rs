@@ -10,7 +10,24 @@ use crate::prelude::*;
 use std::fs::File;
 use std::io::Write;
 
-struct AuthConfig {
+pub fn build_auth_config_from_environment() -> Result<AuthConfig> {
+    let web_client_id = env::ci_config::ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID.get()?;
+    let pool_id = env::ci_config::ENSO_CLOUD_COGNITO_USER_POOL_ID.get()?;
+    let region = env::ci_config::ENSO_CLOUD_COGNITO_REGION.get()?;
+    let username = env::ci_config::ENSO_CLOUD_TEST_ACCOUNT_USERNAME.get()?;
+    let password = env::ci_config::ENSO_CLOUD_TEST_ACCOUNT_PASSWORD.get()?;
+    Ok(AuthConfig { web_client_id, user_pool_id: pool_id, region, username, password })
+}
+
+pub async fn prepare_credentials_file(auth_config: AuthConfig) -> Result<NamedTempFile> {
+    let credentials = build_credentials(auth_config).await?;
+    let credentials_temp_file = NamedTempFile::with_prefix("enso-cloud-credentials")?;
+    save_credentials(&credentials, credentials_temp_file.path())?;
+    Ok(credentials_temp_file)
+}
+
+#[derive(Debug)]
+pub struct AuthConfig {
     web_client_id: String,
     user_pool_id:  String,
     region:        String,
@@ -24,19 +41,6 @@ struct Credentials {
     refresh_token: String,
     refresh_url:   String,
     expire_at:     String,
-}
-
-fn auth_config_from_environment() -> Option<AuthConfig> {
-    build_auth_config_from_environment().ok()
-}
-
-fn build_auth_config_from_environment() -> Result<AuthConfig> {
-    let web_client_id = env::ci_config::ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID.get()?;
-    let pool_id = env::ci_config::ENSO_CLOUD_COGNITO_USER_POOL_ID.get()?;
-    let region = env::ci_config::ENSO_CLOUD_COGNITO_REGION.get()?;
-    let username = env::ci_config::ENSO_CLOUD_TEST_ACCOUNT_USERNAME.get()?;
-    let password = env::ci_config::ENSO_CLOUD_TEST_ACCOUNT_PASSWORD.get()?;
-    Ok(AuthConfig { web_client_id, user_pool_id: pool_id, region, username, password })
 }
 
 const AWS_REGION: &str = "eu-west-1";
@@ -161,16 +165,4 @@ fn save_credentials(credentials: &Credentials, path: &Path) -> Result<()> {
     let mut file = File::create(path)?;
     file.write_all(json.to_string().as_bytes())?;
     Ok(())
-}
-
-pub async fn prepare_credentials_file() -> Result<Option<NamedTempFile>> {
-    let config = match auth_config_from_environment() {
-        Some(config) => config,
-        None => return Ok(None),
-    };
-
-    let credentials = build_credentials(config).await?;
-    let credentials_temp_file = NamedTempFile::with_prefix("enso-cloud-credentials")?;
-    save_credentials(&credentials, credentials_temp_file.path())?;
-    Ok(Some(credentials_temp_file))
 }
