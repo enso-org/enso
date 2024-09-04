@@ -398,10 +398,7 @@ case object FramePointerAnalysis extends IRPass {
   private def getAliasChildScope(
     ir: IR
   ): Option[AliasMetadata.ChildScope] = {
-    ir.passData().get(AliasAnalysis) match {
-      case Some(ch: AliasMetadata.ChildScope) => Some(ch)
-      case _                                  => None
-    }
+    ir.passData().get(AliasAnalysis).filter(_.isInstanceOf[AliasMetadata.ChildScope])
   }
 
   private def getAliasAnalysisGraph(
