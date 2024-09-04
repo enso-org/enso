@@ -1447,7 +1447,7 @@ val truffleRunOptionsSettings = Seq(
   * the potential conflicts with other *.conf files.
   */
 val testLogProviderOptions = Seq(
-  "-Dslf4j.provider=org.enso.logger.TestLogProvider",
+  "-Dslf4j.provider=org.enso.logging.service.logback.test.provider.TestLogProvider",
   "-Dconfig.resource=application-test.conf"
 )
 
