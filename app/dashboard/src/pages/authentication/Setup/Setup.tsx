@@ -263,13 +263,11 @@ const BASE_STEPS: Step[] = [
     /**
      * Step component
      */
-    component: function CreateUserGroupStep({ goToNextStep, goToPreviousStep, session }) {
+    component: function CreateUserGroupStep({ goToNextStep, goToPreviousStep }) {
       const { getText } = textProvider.useText()
-      const { authQueryKey } = useAuth()
       const remoteBackend = useRemoteBackendStrict()
 
       const defaultUserGroupMaxLength = 64
-      const userId = session && 'user' in session ? session.user.userId : null
 
       const listUsersQuery = useSuspenseQuery({
         queryKey: ['users'],
