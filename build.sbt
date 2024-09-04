@@ -1223,14 +1223,16 @@ lazy val testkit = project
   .in(file("lib/scala/testkit"))
   .settings(
     frgaalJavaCompilerSetting,
-    libraryDependencies ++= Seq(
+    libraryDependencies ++= logbackPkg ++ Seq(
       "org.apache.commons" % "commons-lang3"   % commonsLangVersion,
       "commons-io"         % "commons-io"      % commonsIoVersion,
       "org.scalatest"     %% "scalatest"       % scalatestVersion,
       "junit"              % "junit"           % junitVersion,
-      "com.github.sbt"     % "junit-interface" % junitIfVersion
+      "com.github.sbt"     % "junit-interface" % junitIfVersion,
+      "org.slf4j"          % "slf4j-api"       % slf4jVersion
     )
   )
+  .dependsOn(`logging-service-logback`)
 
 lazy val searcher = project
   .in(file("lib/scala/searcher"))
