@@ -10,9 +10,9 @@ import scala.reflect.ClassTag
 
 /** A graph containing aliasing information for a given root scope in Enso. */
 sealed class Graph(
-  private var _rootScope: Graph.Scope = new Graph.Scope(),
-  private var _nextIdCounter: Int     = 0,
-  private var links: Set[Graph.Link]  = Set()
+  val rootScope: Graph.Scope         = new Graph.Scope(),
+  private var _nextIdCounter: Int    = 0,
+  private var links: Set[Graph.Link] = Set()
 ) extends Serializable {
   private var sourceLinks: Map[Graph.Id, Set[Graph.Link]] = new HashMap()
   private var targetLinks: Map[Graph.Id, Set[Graph.Link]] = new HashMap()
@@ -24,9 +24,6 @@ sealed class Graph(
 
   private var globalSymbols: Map[Graph.Symbol, GraphOccurrence.Global] =
     Map()
-
-  /** @return the root scope associated with this graph */
-  def rootScope: Graph.Scope = _rootScope
 
   /** @return the next counter value
     */
