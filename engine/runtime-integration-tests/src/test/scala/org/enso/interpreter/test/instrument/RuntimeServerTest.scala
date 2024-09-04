@@ -7463,6 +7463,54 @@ class RuntimeServerTest
     )
   }
 
+  it should "run methods with empty body ending with comment" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+    val code =
+      """foo =
+        |    # TODO
+        |
+        |main =
+        |    foo
+        |""".stripMargin.linesIterator.mkString("\n")
+
+    val mainFile = context.writeMain(code)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Set sources for the module
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, code))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.executionComplete(contextId)
+    )
+  }
+
   it should "support file edit notification with IdMap" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
