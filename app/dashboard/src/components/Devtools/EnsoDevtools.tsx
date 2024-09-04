@@ -204,7 +204,7 @@ export function EnsoDevtools(props: EnsoDevtoolsProps) {
               {getText('localStorage')}
             </Text>
             {unsafeEntries(LocalStorage.keyMetadata).map(([key]) => (
-              <div className="flex gap-1">
+              <div key={key} className="flex gap-1">
                 <ButtonGroup className="grow-0">
                   <Button
                     size="small"

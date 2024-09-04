@@ -2,7 +2,6 @@
  * interactive components. */
 import * as React from 'react'
 
-import * as validator from 'validator'
 import * as z from 'zod'
 
 import * as detect from 'enso-common/src/detect'
@@ -56,9 +55,12 @@ import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
 
+import { baseName } from '#/utilities/fileInfo'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
+import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
+import { useQuery } from '@tanstack/react-query'
 
 // ============================
 // === Global configuration ===
@@ -113,17 +115,17 @@ function DashboardInner(props: DashboardProps) {
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const assetManagementApiRef = React.useRef<assetTable.AssetManagementApi | null>(null)
 
-  const initialLocalProjectId =
-    initialProjectNameRaw != null && validator.isUUID(initialProjectNameRaw) ?
-      localBackendModule.newProjectId(projectManager.UUID(initialProjectNameRaw))
+  const initialLocalProjectPath =
+    initialProjectNameRaw != null && initialProjectNameRaw.startsWith('file://') ?
+      projectManager.Path(decodeURI(new URL(initialProjectNameRaw).pathname))
     : null
-  const initialProjectName = initialLocalProjectId ?? initialProjectNameRaw
+  const initialProjectName = initialLocalProjectPath != null ? null : initialProjectNameRaw
 
   const [category, setCategory] = searchParamsState.useSearchParamsState<categoryModule.Category>(
     'driveCategory',
     () => {
       const shouldDefaultToCloud =
-        initialLocalProjectId == null && (user.isEnabled || localBackend == null)
+        initialLocalProjectPath == null && (user.isEnabled || localBackend == null)
       const type = shouldDefaultToCloud ? 'cloud' : 'local'
       return { type }
     },
@@ -144,6 +146,30 @@ function DashboardInner(props: DashboardProps) {
   const clearLaunchedProjects = useClearLaunchedProjects()
   const openProjectMutation = projectHooks.useOpenProjectMutation()
   const renameProjectMutation = projectHooks.useRenameProjectMutation()
+
+  useQuery({
+    queryKey: ['loadInitialLocalProject'],
+    networkMode: 'always',
+    ...STATIC_QUERY_OPTIONS,
+    queryFn: async () => {
+      if (initialLocalProjectPath != null && window.backendApi && localBackend) {
+        const projectName = baseName(initialLocalProjectPath)
+        const { id } = await window.backendApi.importProjectFromPath(
+          initialLocalProjectPath,
+          localBackend.rootPath,
+          projectName,
+        )
+        openProject({
+          type: backendModule.BackendType.local,
+          id: localBackendModule.newProjectId(projectManager.UUID(id)),
+          title: projectName,
+          parentId: localBackendModule.newDirectoryId(localBackend.rootPath),
+        })
+      }
+      return null
+    },
+    staleTime: Infinity,
+  })
 
   React.useEffect(() => {
     window.projectManagementApi?.setOpenProjectHandler((project) => {

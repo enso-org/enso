@@ -149,8 +149,6 @@ export default function AssetRow(props: AssetRowProps) {
   const updateAssetMutation = useMutation(backendMutationOptions(backend, 'updateAsset'))
   const deleteAssetMutation = useMutation(backendMutationOptions(backend, 'deleteAsset'))
   const undoDeleteAssetMutation = useMutation(backendMutationOptions(backend, 'undoDeleteAsset'))
-  const openProjectMutation = useMutation(backendMutationOptions(backend, 'openProject'))
-  const closeProjectMutation = useMutation(backendMutationOptions(backend, 'closeProject'))
   const getProjectDetailsMutation = useMutation(
     backendMutationOptions(backend, 'getProjectDetails'),
   )
@@ -162,8 +160,6 @@ export default function AssetRow(props: AssetRowProps) {
   const updateAsset = updateAssetMutation.mutateAsync
   const deleteAsset = deleteAssetMutation.mutateAsync
   const undoDeleteAsset = undoDeleteAssetMutation.mutateAsync
-  const openProject = openProjectMutation.mutateAsync
-  const closeProject = closeProjectMutation.mutateAsync
 
   const { data: projectState } = useQuery({
     // This is SAFE, as `isOpened` is only true for projects.
@@ -374,22 +370,6 @@ export default function AssetRow(props: AssetRowProps) {
       }
       try {
         dispatchAssetListEvent({ type: AssetListEventType.willDelete, key: item.key })
-        if (
-          asset.type === backendModule.AssetType.project &&
-          backend.type === backendModule.BackendType.local
-        ) {
-          if (
-            asset.projectState.type !== backendModule.ProjectState.placeholder &&
-            asset.projectState.type !== backendModule.ProjectState.closed
-          ) {
-            await openProject([asset.id, null, asset.title])
-          }
-          try {
-            await closeProject([asset.id, asset.title])
-          } catch {
-            // Ignored. The project was already closed.
-          }
-        }
         await deleteAsset([asset.id, { force: forever }, asset.title])
         dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
       } catch (error) {
@@ -397,16 +377,7 @@ export default function AssetRow(props: AssetRowProps) {
         toastAndLog('deleteAssetError', error, asset.title)
       }
     },
-    [
-      backend,
-      dispatchAssetListEvent,
-      asset,
-      openProject,
-      closeProject,
-      deleteAsset,
-      item.key,
-      toastAndLog,
-    ],
+    [dispatchAssetListEvent, asset, deleteAsset, item.key, toastAndLog],
   )
 
   const doRestore = React.useCallback(async () => {

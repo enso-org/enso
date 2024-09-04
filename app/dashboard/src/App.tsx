@@ -95,6 +95,7 @@ import * as object from '#/utilities/object'
 import { useInitAuthService } from '#/authentication/service'
 import { InvitedToOrganizationModal } from '#/modals/InvitedToOrganizationModal'
 import { Path } from '#/utilities/path'
+import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 
 // ============================
 // === Global configuration ===
@@ -178,14 +179,8 @@ export default function App(props: AppProps) {
         supportsLocalBackend: props.supportsLocalBackend,
       },
     ] as const,
-    meta: { persist: false },
     networkMode: 'always',
-    staleTime: Infinity,
-    gcTime: Infinity,
-    refetchOnMount: false,
-    refetchInterval: false,
-    refetchOnReconnect: false,
-    refetchIntervalInBackground: false,
+    ...STATIC_QUERY_OPTIONS,
     behavior: {
       onFetch: ({ state }) => {
         const instance = state.data?.projectManagerInstance ?? null
