@@ -94,8 +94,8 @@ polyglot java import org.enso.table.parsing.problems.ParseProblemAggregator
 
 ## Represents a column-oriented table data structure.
 type Table
-    ## GROUP Standard.Base.Input
-       ICON data_input
+    ## GROUP Standard.Base.Constants
+       ICON table_edit
        Creates a new table from a vector of `[name, items]` pairs.
 
        Arguments:

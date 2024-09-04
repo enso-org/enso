@@ -13,7 +13,7 @@ type Faker
        Set of lower case letters.
     lower_case_letters = "abcdefghijklmnopqrstuvwxyz".char_vector
 
-    ## ICON input_number
+    ## ICON text
        Set of numerical digits.
     digits = "0123456789".char_vector
 
@@ -120,6 +120,7 @@ type Faker
         minimum + self.generator.nextDouble * (maximum - minimum)
 
     ## GROUP Standard.Base.Random
+       ICON random
        Create a random Float value in full range of allowed values,
        exponentially distributed (exponents are uniformly distributed).
     float_full_range_exp : Float

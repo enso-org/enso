@@ -46,7 +46,7 @@ type Snowflake_Connection
        - make_new: a function that returns a new connection.
     Value connection make_new
 
-    ## ICON data_input
+    ## ICON close
        Closes the connection releasing the underlying database resources
        immediately instead of waiting for them to be automatically released.
 
