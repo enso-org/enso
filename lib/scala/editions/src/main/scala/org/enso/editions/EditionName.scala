@@ -1,8 +1,8 @@
 package org.enso.editions
 
+import org.enso.scala.yaml.{YamlDecoder, YamlEncoder}
 import org.yaml.snakeyaml.error.YAMLException
 import org.yaml.snakeyaml.nodes.{Node, ScalarNode, Tag}
-import org.enso.yaml.{YamlDecoder, YamlEncoder}
 
 /** A helper type to handle special parsing logic of edition names.
   *
