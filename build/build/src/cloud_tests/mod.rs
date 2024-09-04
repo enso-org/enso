@@ -6,7 +6,6 @@ pub mod env;
 use anyhow::Ok;
 use tempfile::NamedTempFile;
 
-use crate::aws::ecr::runtime::REGION;
 use crate::prelude::*;
 use std::fs::File;
 use std::io::Write;
@@ -45,6 +44,10 @@ async fn build_credentials(config: AuthConfig) -> Result<Credentials> {
         return Err(anyhow!("AWS CLI is not installed. If you want the build script to generate the Enso Cloud credentials file, you must install the AWS CLI."));
     }
 
+    // We save the timestamp before the authentication, as it's better to say the token expires a
+    // bit earlier than to make it expire later than in reality and make downstream user mistakenly
+    // use an expired token.
+    let now_before_auth = chrono::Utc::now();
     let mut command = aws_command();
     command
         .args(["cognito-idp", "initiate-auth"])
@@ -57,7 +60,21 @@ async fn build_credentials(config: AuthConfig) -> Result<Credentials> {
         .args(["--client-id", &config.client_id]);
 
     let stdout = command.run_stdout().await?;
-    parse_cognito_response(config, &stdout)
+    let cognito_response = parse_cognito_response(&stdout)?;
+
+    let expire_at = now_before_auth + chrono::Duration::seconds(cognito_response.expires_in);
+    let expire_at_str = expire_at.to_rfc3339();
+    let refresh_url = format!(
+        "https://cognito-idp.{}.amazonaws.com/{}_{}",
+        AWS_REGION, AWS_REGION, config.pool_id
+    );
+    Ok(Credentials {
+        client_id: config.client_id.to_string(),
+        access_token: cognito_response.access_token,
+        refresh_token: cognito_response.refresh_token,
+        expire_at: expire_at_str,
+        refresh_url,
+    })
 }
 
 async fn is_aws_cli_installed() -> bool {
@@ -70,7 +87,13 @@ fn aws_command() -> Command {
     Command::new("aws")
 }
 
-fn parse_cognito_response(config: AuthConfig, response: &str) -> Result<Credentials> {
+struct CognitoResponse {
+    access_token:  String,
+    refresh_token: String,
+    expires_in:    i64,
+}
+
+fn parse_cognito_response(response: &str) -> Result<CognitoResponse> {
     let json: serde_json::Value = serde_json::from_str(response)?;
     let root_mapping = unpack_object(&json)?;
     let authentication_result_mapping =
@@ -83,18 +106,11 @@ fn parse_cognito_response(config: AuthConfig, response: &str) -> Result<Credenti
     let access_token = unpack_string(get_or_fail(authentication_result_mapping, "AccessToken")?)?;
     let refresh_token = unpack_string(get_or_fail(authentication_result_mapping, "RefreshToken")?)?;
     let expires_in = unpack_integer(get_or_fail(authentication_result_mapping, "ExpiresIn")?)?;
-    let expire_at = chrono::Utc::now() + chrono::Duration::seconds(expires_in);
-    let expire_at_str = expire_at.to_rfc3339();
 
-    let refresh_url =
-        format!("https://cognito-idp.{}.amazonaws.com/{}_{}", REGION, REGION, config.pool_id);
-
-    Ok(Credentials {
-        client_id: config.client_id.to_string(),
-        access_token: access_token.clone(),
-        refresh_token: refresh_token.clone(),
-        expire_at: expire_at_str,
-        refresh_url,
+    Ok(CognitoResponse {
+        access_token: access_token.to_string(),
+        refresh_token: refresh_token.to_string(),
+        expires_in,
     })
 }
 
