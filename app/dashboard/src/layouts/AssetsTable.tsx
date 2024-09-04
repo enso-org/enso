@@ -17,12 +17,7 @@ import DropFilesImage from '#/assets/drop_files.svg'
 import * as mimeTypes from '#/data/mimeTypes'
 
 import * as autoScrollHooks from '#/hooks/autoScrollHooks'
-import {
-  backendMutationOptions,
-  useListTags,
-  useListUserGroups,
-  useListUsers,
-} from '#/hooks/backendHooks'
+import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 import * as intersectionHooks from '#/hooks/intersectionHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -326,7 +321,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const { user } = authProvider.useFullUserSession()
   const backend = backendProvider.useBackend(category)
-  const labels = useListTags(backend)
+  const { data: labels } = useBackendQuery(backend, 'listTags', [])
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
@@ -353,9 +348,8 @@ export default function AssetsTable(props: AssetsTableProps) {
     ReadonlySet<backendModule.AssetId>
   > | null>(null)
 
-  const users = useListUsers(backend)
-  const userGroups = useListUserGroups(backend)
-
+  const { data: users } = useBackendQuery(backend, 'listUsers', [])
+  const { data: userGroups } = useBackendQuery(backend, 'listUserGroups', [])
   const organizationQuery = useSuspenseQuery({
     queryKey: [backend.type, 'getOrganization'],
     queryFn: () => backend.getOrganization(),
