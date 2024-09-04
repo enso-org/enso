@@ -11,10 +11,11 @@ use std::fs::File;
 use std::io::Write;
 
 struct AuthConfig {
-    client_id: String,
-    pool_id:   String,
-    username:  String,
-    password:  String,
+    web_client_id: String,
+    user_pool_id:  String,
+    region:        String,
+    username:      String,
+    password:      String,
 }
 
 struct Credentials {
@@ -30,11 +31,12 @@ fn auth_config_from_environment() -> Option<AuthConfig> {
 }
 
 fn build_auth_config_from_environment() -> Result<AuthConfig> {
-    let client_id = env::ci_config::ENSO_CLOUD_COGNITO_CLIENT_ID.get()?;
-    let pool_id = env::ci_config::ENSO_CLOUD_COGNITO_POOL_ID.get()?;
+    let web_client_id = env::ci_config::ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID.get()?;
+    let pool_id = env::ci_config::ENSO_CLOUD_COGNITO_USER_POOL_ID.get()?;
+    let region = env::ci_config::ENSO_CLOUD_COGNITO_REGION.get()?;
     let username = env::ci_config::ENSO_CLOUD_TEST_ACCOUNT_USERNAME.get()?;
     let password = env::ci_config::ENSO_CLOUD_TEST_ACCOUNT_PASSWORD.get()?;
-    Ok(AuthConfig { client_id, pool_id, username, password })
+    Ok(AuthConfig { web_client_id, user_pool_id: pool_id, region, username, password })
 }
 
 const AWS_REGION: &str = "eu-west-1";
@@ -57,19 +59,17 @@ async fn build_credentials(config: AuthConfig) -> Result<Credentials> {
             "--auth-parameters",
             &format!("USERNAME={},PASSWORD={}", config.username, config.password),
         ])
-        .args(["--client-id", &config.client_id]);
+        .args(["--client-id", &config.web_client_id]);
 
     let stdout = command.run_stdout().await?;
     let cognito_response = parse_cognito_response(&stdout)?;
 
     let expire_at = now_before_auth + chrono::Duration::seconds(cognito_response.expires_in);
     let expire_at_str = expire_at.to_rfc3339();
-    let refresh_url = format!(
-        "https://cognito-idp.{}.amazonaws.com/{}_{}",
-        AWS_REGION, AWS_REGION, config.pool_id
-    );
+    let refresh_url =
+        format!("https://cognito-idp.{}.amazonaws.com/{}", config.region, config.user_pool_id);
     Ok(Credentials {
-        client_id: config.client_id.to_string(),
+        client_id: config.web_client_id.to_string(),
         access_token: cognito_response.access_token,
         refresh_token: cognito_response.refresh_token,
         expire_at: expire_at_str,

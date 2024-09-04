@@ -213,12 +213,16 @@ impl JobArchetype for JvmTests {
 
 fn enable_cloud_tests(step: Step) -> Step {
     step.with_secret_exposed_as(
-        secret::ENSO_CLOUD_COGNITO_POOL_ID,
-        crate::cloud_tests::env::ci_config::ENSO_CLOUD_COGNITO_POOL_ID,
+        secret::ENSO_CLOUD_COGNITO_USER_POOL_ID,
+        crate::cloud_tests::env::ci_config::ENSO_CLOUD_COGNITO_USER_POOL_ID,
     )
     .with_secret_exposed_as(
-        secret::ENSO_CLOUD_COGNITO_CLIENT_ID,
-        crate::cloud_tests::env::ci_config::ENSO_CLOUD_COGNITO_CLIENT_ID,
+        secret::ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID,
+        crate::cloud_tests::env::ci_config::ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID,
+    )
+    .with_secret_exposed_as(
+        secret::ENSO_CLOUD_COGNITO_REGION,
+        crate::cloud_tests::env::ci_config::ENSO_CLOUD_COGNITO_REGION,
     )
     .with_secret_exposed_as(
         secret::ENSO_CLOUD_TEST_ACCOUNT_USERNAME,

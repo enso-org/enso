@@ -12,11 +12,14 @@ pub mod ci_config {
         /// Password for an Enso Cloud account used for running Cloud integration tests.
         ENSO_CLOUD_TEST_ACCOUNT_PASSWORD, String;
 
-        // The Client ID for Enso Cloud Cognito auth flow.
-        ENSO_CLOUD_COGNITO_CLIENT_ID, String;
+        // The Client ID of the User Pool for Enso Cloud Cognito auth flow.
+        ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID, String;
 
-        // The Client ID for Enso Cloud Cognito auth flow.
-        ENSO_CLOUD_COGNITO_POOL_ID, String;
+        // The User Pool ID for Enso Cloud Cognito auth flow.
+        ENSO_CLOUD_COGNITO_USER_POOL_ID, String;
+
+        // The Region used for Cognito auth flow.
+        ENSO_CLOUD_COGNITO_REGION, String;
     }
 }
 
