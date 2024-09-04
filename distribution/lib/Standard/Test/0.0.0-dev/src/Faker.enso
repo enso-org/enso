@@ -15,7 +15,7 @@ type Faker
 
     ## ICON input_number
        Set of numerical digits.
-    numbers = "0123456789".char_vector
+    digits = "0123456789".char_vector
 
     ## ICON random
        Creates a new Faker which can be used for creating test values.
@@ -37,7 +37,7 @@ type Faker
        Arguments:
        - template: Vector of vectors that represent the possible characters for each
          letter, as UTF-16 code units or a Text value made up of `A` for upper case,
-         `a` for lower case, `0` for numbers, and any other character for itself.
+         `a` for lower case, `0` for digits, and any other character for itself.
 
        > Example
          Creates a fake UK National Insurance number:
@@ -54,7 +54,7 @@ type Faker
                  char_vector = template.characters.map c-> case c of
                     "A" -> Faker.upper_case_letters
                     "a" -> Faker.lower_case_letters
-                    "0" -> Faker.numbers
+                    "0" -> Faker.digits
                     _ -> [c]
                  self.text_value char_vector
             _ ->
@@ -84,7 +84,7 @@ type Faker
        - upper_case: use upper_case letters
     alpha_numeric : Integer -> Boolean -> Text
     alpha_numeric self length=1 upper_case=False =
-        alphabet = (if upper_case then Faker.upper_case_letters else Faker.lower_case_letters) + Faker.numbers
+        alphabet = (if upper_case then Faker.upper_case_letters else Faker.lower_case_letters) + Faker.digits
         self.text_value <| 0.up_to length . map _->alphabet
 
     ## GROUP Standard.Base.Random

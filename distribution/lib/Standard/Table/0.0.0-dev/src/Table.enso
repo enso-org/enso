@@ -1355,7 +1355,8 @@ type Table
             new_column = column_to_cast.auto_cast shrink_types
             table.set new_column as=column_to_cast.name set_mode=Set_Mode.Update
 
-    ## GROUP Standard.Base.Conversions
+    ## PRIVATE
+       GROUP Standard.Base.Conversions
        ICON convert
 
        Deprecated: Use `auto_cast` instead.

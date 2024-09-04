@@ -114,7 +114,8 @@ type Comparable
     ## PRIVATE
     private By value:Any comparator:Any
 
-    ## Creates new opaque `Comparable` instance for given `value` and
+    ## PRIVATE
+       Creates new opaque `Comparable` instance for given `value` and
        a `Comparator` with two static methods what work on the
        type `T` of the provided `value`:
 
