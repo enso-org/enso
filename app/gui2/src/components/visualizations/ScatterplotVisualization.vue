@@ -564,17 +564,13 @@ watchPostEffect(() => {
       })
     const formatLabel = (string: string) =>
       string.length > 10 ? `${string.substr(0, 10)}...` : string
-    const colorLegendScale = (d: string) => {
-      const color = d3
-        .scaleOrdinal()
-        .domain(seriesLabels)
-        .range(d3.schemeCategory10)
-        .domain(seriesLabels)
-      if (data.value.is_multi_series) {
-        return color(d)
-      }
-      return DEFAULT_FILL_COLOR
-    }
+
+    const color = d3
+      .scaleOrdinal<string>()
+      .domain(seriesLabels)
+      .range(d3.schemeCategory10)
+      .domain(seriesLabels)
+
     const legend = d3Legend.value
 
     legend
@@ -587,7 +583,7 @@ watchPostEffect(() => {
       })
       .attr('cy', 10)
       .attr('r', 6)
-      .style('fill', (d) => colorLegendScale(d))
+      .style('fill', (d) => color(d) || DEFAULT_FILL_COLOR)
 
     legend
       .selectAll('labels')
