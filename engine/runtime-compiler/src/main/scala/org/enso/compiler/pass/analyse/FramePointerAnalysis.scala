@@ -248,16 +248,12 @@ case object FramePointerAnalysis extends IRPass {
   }
 
   private def maybAttachFrameVariableNames(ir: IR): Unit = {
-    getAliasRootScope(ir) match {
-      case Some(root) =>
-        updateSymbolNames(ir, root.graph.rootScope)
-      case _ => ()
-    }
-    getAliasChildScope(ir) match {
-      case Some(child) =>
-        updateSymbolNames(ir, child.scope)
-      case _ => ()
-    }
+    getAliasRootScope(ir).foreach(root =>
+      updateSymbolNames(ir, root.graph.rootScope)
+    )
+    getAliasChildScope(ir).foreach(child =>
+      updateSymbolNames(ir, child.scope)
+    )
   }
 
   /** Attaches [[FramePointerMeta]] metadata to the given `ir` if there is an
