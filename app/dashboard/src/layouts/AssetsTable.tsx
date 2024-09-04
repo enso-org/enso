@@ -275,6 +275,11 @@ export interface AssetsTableState {
     newParentId: backendModule.DirectoryId,
   ) => void
   readonly doDelete: (item: backendModule.AnyAsset, forever: boolean) => Promise<void>
+  readonly doRestore: (item: backendModule.AnyAsset) => Promise<void>
+  readonly doMove: (
+    newParentKey: backendModule.DirectoryId,
+    item: backendModule.AnyAsset,
+  ) => Promise<void>
 }
 
 /** Data associated with a {@link AssetRow}, used for rendering. */
@@ -448,6 +453,11 @@ export default function AssetsTable(props: AssetsTableProps) {
   const deleteAssetMutation = useMutation(
     backendMutationOptions(backend, 'deleteAsset', {
       meta: { invalidates: [['assetVersions'], ['listDirectory', backend.type]] },
+    }),
+  )
+  const undoDeleteAssetMutation = useMutation(
+    backendMutationOptions(backend, 'undoDeleteAsset', {
+      meta: { invalidates: [['listDirectory', backend.type]] },
     }),
   )
   const updateAssetMutation = useMutation(
@@ -2052,9 +2062,11 @@ export default function AssetsTable(props: AssetsTableProps) {
       }
       case AssetListEventType.move: {
         deleteAsset(event.key)
-        insertAssets([event.item], event.newParentId)
+        insertAssets(event.items, event.newParentId)
 
-        void doMove(event.newParentId, event.item)
+        for (const item of event.items) {
+          void doMove(event.newParentId, item)
+        }
 
         break
       }
@@ -2152,6 +2164,14 @@ export default function AssetsTable(props: AssetsTableProps) {
     [pasteData, doToggleDirectoryExpansion, unsetModal, dispatchAssetEvent, dispatchAssetListEvent],
   )
 
+  const doRestore = useEventCallback(async (asset: backendModule.AnyAsset) => {
+    try {
+      await undoDeleteAssetMutation.mutateAsync([asset.id, asset.title])
+    } catch (error) {
+      toastAndLog('restoreAssetError', error, asset.title)
+    }
+  })
+
   const hideColumn = React.useCallback((column: columnUtils.Column) => {
     setEnabledColumns((columns) => set.withPresence(columns, column, false))
   }, [])
@@ -2230,6 +2250,8 @@ export default function AssetsTable(props: AssetsTableProps) {
       doCut,
       doPaste,
       doDelete,
+      doRestore,
+      doMove,
     }),
     [
       backend,
@@ -2245,6 +2267,8 @@ export default function AssetsTable(props: AssetsTableProps) {
       doCut,
       doPaste,
       doDelete,
+      doRestore,
+      doMove,
       hideColumn,
       setAssetPanelProps,
       setIsAssetPanelTemporarilyVisible,
@@ -2780,6 +2804,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             event.preventDefault()
             event.stopPropagation()
             unsetModal()
+
             dispatchAssetEvent({
               type: AssetEventType.move,
               newParentKey: rootDirectoryId,

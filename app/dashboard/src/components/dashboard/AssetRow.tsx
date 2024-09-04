@@ -13,26 +13,30 @@ import { useDriveStore, useSetSelectedKeys } from '#/providers/DriveProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import AssetEventType from '#/events/AssetEventType'
-import AssetListEventType from '#/events/AssetListEventType'
-
-import AssetContextMenu from '#/layouts/AssetContextMenu'
-import type * as assetsTable from '#/layouts/AssetsTable'
-import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-
 import * as aria from '#/components/aria'
 import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
 import * as columnModule from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 import FocusRing from '#/components/styled/FocusRing'
+import AssetEventType from '#/events/AssetEventType'
+import AssetListEventType from '#/events/AssetListEventType'
+import AssetContextMenu from '#/layouts/AssetContextMenu'
+import type * as assetsTable from '#/layouts/AssetsTable'
+import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
+import { isCloudCategory } from '#/layouts/CategorySwitcher/Category'
+import * as localBackend from '#/services/LocalBackend'
 
 import EditAssetDescriptionModal from '#/modals/EditAssetDescriptionModal'
 
 import * as backendModule from '#/services/Backend'
 
+import { backendMutationOptions } from '#/hooks/backendHooks'
 import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
+import { useToastAndLog } from '#/hooks/toastAndLogHooks'
+import { useFullUserSession } from '#/providers/AuthProvider'
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
+import { download } from '#/utilities/download'
 import * as drag from '#/utilities/drag'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
@@ -41,7 +45,7 @@ import * as permissions from '#/utilities/permissions'
 import * as set from '#/utilities/set'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 
 // =================
 // === Constants ===
@@ -94,12 +98,16 @@ export default function AssetRow(props: AssetRowProps) {
     doCut,
     doPaste,
     doDelete: doDeleteRaw,
+    doRestore,
+    doMove,
+    category,
   } = state
   const { setIsAssetPanelTemporarilyVisible, scrollContainerRef, rootDirectoryId, backend } = state
   const { visibilities } = state
 
   const [item, setItem] = React.useState(rawItem)
   const driveStore = useDriveStore()
+  const { user } = useFullUserSession()
   const setSelectedKeys = useSetSelectedKeys()
   const selected = useStore(driveStore, ({ visuallySelectedKeys, selectedKeys }) =>
     (visuallySelectedKeys ?? selectedKeys).has(item.key),
@@ -138,6 +146,7 @@ export default function AssetRow(props: AssetRowProps) {
       insertionVisibility
     : outerVisibility
   const hidden = hiddenRaw || visibility === Visibility.hidden
+  const isCloud = isCloudCategory(category)
 
   const { data: projectState } = useQuery({
     // This is SAFE, as `isOpened` is only true for projects.
@@ -146,6 +155,16 @@ export default function AssetRow(props: AssetRowProps) {
     select: (data) => data?.state.type,
     enabled: item.type === backendModule.AssetType.project,
   })
+
+  const toastAndLog = useToastAndLog()
+
+  const getProjectDetailsMutation = useMutation(
+    backendMutationOptions(backend, 'getProjectDetails'),
+  )
+  const getFileDetailsMutation = useMutation(backendMutationOptions(backend, 'getFileDetails'))
+  const getDatalinkMutation = useMutation(backendMutationOptions(backend, 'getDatalink'))
+  const createPermissionMutation = useMutation(backendMutationOptions(backend, 'createPermission'))
+  const associateTagMutation = useMutation(backendMutationOptions(backend, 'associateTag'))
 
   const setSelected = useEventCallback((newSelected: boolean) => {
     const { selectedKeys } = driveStore.getState()
@@ -256,6 +275,268 @@ export default function AssetRow(props: AssetRowProps) {
       }
     }
   }
+
+  eventListProvider.useAssetEventListener(async (event) => {
+    if (state.category.type === 'trash') {
+      switch (event.type) {
+        case AssetEventType.deleteForever: {
+          if (event.ids.has(item.key)) {
+            doDelete(true)
+          }
+          break
+        }
+        case AssetEventType.restore: {
+          if (event.ids.has(item.key)) {
+            await doRestore(item.item)
+          }
+          break
+        }
+        default: {
+          return
+        }
+      }
+    } else {
+      switch (event.type) {
+        case AssetEventType.cut: {
+          if (event.ids.has(item.key)) {
+            setInsertionVisibility(Visibility.faded)
+          }
+          break
+        }
+        case AssetEventType.cancelCut: {
+          if (event.ids.has(item.key)) {
+            setInsertionVisibility(Visibility.visible)
+          }
+          break
+        }
+        case AssetEventType.move: {
+          if (event.ids.has(item.key)) {
+            setInsertionVisibility(Visibility.visible)
+            await doMove(event.newParentKey, item.item)
+          }
+          break
+        }
+        case AssetEventType.delete: {
+          if (event.ids.has(item.key)) {
+            doDelete(false)
+          }
+          break
+        }
+        case AssetEventType.deleteForever: {
+          if (event.ids.has(item.key)) {
+            doDelete(true)
+          }
+          break
+        }
+        case AssetEventType.restore: {
+          if (event.ids.has(item.key)) {
+            await doRestore(item.item)
+          }
+          break
+        }
+        case AssetEventType.download:
+        case AssetEventType.downloadSelected: {
+          if (event.type === AssetEventType.downloadSelected ? selected : event.ids.has(asset.id)) {
+            if (isCloud) {
+              switch (asset.type) {
+                case backendModule.AssetType.project: {
+                  try {
+                    const details = await getProjectDetailsMutation.mutateAsync([
+                      asset.id,
+                      asset.parentId,
+                      asset.title,
+                    ])
+                    if (details.url != null) {
+                      await backend.download(details.url, `${asset.title}.enso-project`)
+                    } else {
+                      const error: unknown = getText('projectHasNoSourceFilesPhrase')
+                      toastAndLog('downloadProjectError', error, asset.title)
+                    }
+                  } catch (error) {
+                    toastAndLog('downloadProjectError', error, asset.title)
+                  }
+                  break
+                }
+                case backendModule.AssetType.file: {
+                  try {
+                    const details = await getFileDetailsMutation.mutateAsync([
+                      asset.id,
+                      asset.title,
+                    ])
+                    if (details.url != null) {
+                      await backend.download(details.url, asset.title)
+                    } else {
+                      const error: unknown = getText('fileNotFoundPhrase')
+                      toastAndLog('downloadFileError', error, asset.title)
+                    }
+                  } catch (error) {
+                    toastAndLog('downloadFileError', error, asset.title)
+                  }
+                  break
+                }
+                case backendModule.AssetType.datalink: {
+                  try {
+                    const value = await getDatalinkMutation.mutateAsync([asset.id, asset.title])
+                    const fileName = `${asset.title}.datalink`
+                    download(
+                      URL.createObjectURL(
+                        new File([JSON.stringify(value)], fileName, {
+                          type: 'application/json+x-enso-data-link',
+                        }),
+                      ),
+                      fileName,
+                    )
+                  } catch (error) {
+                    toastAndLog('downloadDatalinkError', error, asset.title)
+                  }
+                  break
+                }
+                default: {
+                  toastAndLog('downloadInvalidTypeError')
+                  break
+                }
+              }
+            } else {
+              if (asset.type === backendModule.AssetType.project) {
+                const projectsDirectory = localBackend.extractTypeAndId(asset.parentId).id
+                const uuid = localBackend.extractTypeAndId(asset.id).id
+                const queryString = new URLSearchParams({ projectsDirectory }).toString()
+                await backend.download(
+                  `./api/project-manager/projects/${uuid}/enso-project?${queryString}`,
+                  `${asset.title}.enso-project`,
+                )
+              }
+            }
+          }
+          break
+        }
+        case AssetEventType.removeSelf: {
+          // This is not triggered from the asset list, so it uses `item.id` instead of `key`.
+          if (event.id === asset.id && user.isEnabled) {
+            setInsertionVisibility(Visibility.hidden)
+            try {
+              await createPermissionMutation.mutateAsync([
+                {
+                  action: null,
+                  resourceId: asset.id,
+                  actorsIds: [user.userId],
+                },
+              ])
+              dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
+            } catch (error) {
+              setInsertionVisibility(Visibility.visible)
+              toastAndLog(null, error)
+            }
+          }
+          break
+        }
+        case AssetEventType.temporarilyAddLabels: {
+          const labels = event.ids.has(item.key) ? event.labelNames : set.EMPTY_SET
+          setRowState((oldRowState) =>
+            (
+              oldRowState.temporarilyAddedLabels === labels &&
+              oldRowState.temporarilyRemovedLabels === set.EMPTY_SET
+            ) ?
+              oldRowState
+            : object.merge(oldRowState, {
+                temporarilyAddedLabels: labels,
+                temporarilyRemovedLabels: set.EMPTY_SET,
+              }),
+          )
+          break
+        }
+        case AssetEventType.temporarilyRemoveLabels: {
+          const labels = event.ids.has(item.key) ? event.labelNames : set.EMPTY_SET
+          setRowState((oldRowState) =>
+            (
+              oldRowState.temporarilyAddedLabels === set.EMPTY_SET &&
+              oldRowState.temporarilyRemovedLabels === labels
+            ) ?
+              oldRowState
+            : object.merge(oldRowState, {
+                temporarilyAddedLabels: set.EMPTY_SET,
+                temporarilyRemovedLabels: labels,
+              }),
+          )
+          break
+        }
+        case AssetEventType.addLabels: {
+          setRowState((oldRowState) =>
+            oldRowState.temporarilyAddedLabels === set.EMPTY_SET ?
+              oldRowState
+            : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY_SET }),
+          )
+          const labels = asset.labels
+          if (
+            event.ids.has(item.key) &&
+            (labels == null || [...event.labelNames].some((label) => !labels.includes(label)))
+          ) {
+            const newLabels = [
+              ...(labels ?? []),
+              ...[...event.labelNames].filter((label) => labels?.includes(label) !== true),
+            ]
+            setAsset(object.merger({ labels: newLabels }))
+            try {
+              await associateTagMutation.mutateAsync([asset.id, newLabels, asset.title])
+            } catch (error) {
+              setAsset(object.merger({ labels }))
+              toastAndLog(null, error)
+            }
+          }
+          break
+        }
+        case AssetEventType.removeLabels: {
+          setRowState((oldRowState) =>
+            oldRowState.temporarilyAddedLabels === set.EMPTY_SET ?
+              oldRowState
+            : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY_SET }),
+          )
+          const labels = asset.labels
+          if (
+            event.ids.has(item.key) &&
+            labels != null &&
+            [...event.labelNames].some((label) => labels.includes(label))
+          ) {
+            const newLabels = labels.filter((label) => !event.labelNames.has(label))
+            setAsset(object.merger({ labels: newLabels }))
+            try {
+              await associateTagMutation.mutateAsync([asset.id, newLabels, asset.title])
+            } catch (error) {
+              setAsset(object.merger({ labels }))
+              toastAndLog(null, error)
+            }
+          }
+          break
+        }
+        case AssetEventType.deleteLabel: {
+          setAsset((oldAsset) => {
+            // The IIFE is required to prevent TypeScript from narrowing this value.
+            let found = (() => false)()
+            const labels =
+              oldAsset.labels?.filter((label) => {
+                if (label === event.labelName) {
+                  found = true
+                  return false
+                } else {
+                  return true
+                }
+              }) ?? null
+            return found ? object.merge(oldAsset, { labels }) : oldAsset
+          })
+          break
+        }
+        case AssetEventType.setItem: {
+          if (asset.id === event.id) {
+            setAsset(event.valueOrUpdater)
+          }
+          break
+        }
+        default: {
+          return
+        }
+      }
+    }
+  }, item.initialAssetEvents)
 
   switch (asset.type) {
     case backendModule.AssetType.directory:
