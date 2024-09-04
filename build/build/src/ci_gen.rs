@@ -111,6 +111,13 @@ pub mod secret {
     /// Static token for admin requests on our Lambdas.
     pub const ENSO_ADMIN_TOKEN: &str = "ENSO_ADMIN_TOKEN";
 
+    // === Enso Cloud Test Account ===
+    pub const ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID: &str =
+        "ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID";
+    pub const ENSO_CLOUD_COGNITO_USER_POOL_ID: &str = "ENSO_CLOUD_COGNITO_USER_POOL_ID";
+    pub const ENSO_CLOUD_COGNITO_REGION: &str = "ENSO_CLOUD_COGNITO_REGION";
+    pub const ENSO_CLOUD_TEST_ACCOUNT_USERNAME: &str = "ENSO_CLOUD_TEST_ACCOUNT_USERNAME";
+    pub const ENSO_CLOUD_TEST_ACCOUNT_PASSWORD: &str = "ENSO_CLOUD_TEST_ACCOUNT_PASSWORD";
 
     // === Apple Code Signing & Notarization ===
     pub const APPLE_CODE_SIGNING_CERT: &str = "APPLE_CODE_SIGNING_CERT";
@@ -538,7 +545,7 @@ pub fn add_backend_checks(
 ) {
     workflow.add(target, job::CiCheckBackend { graal_edition });
     workflow.add(target, job::JvmTests { graal_edition });
-    workflow.add(target, job::StandardLibraryTests { graal_edition });
+    workflow.add(target, job::StandardLibraryTests { graal_edition, cloud_tests_enabled: false });
 }
 
 pub fn workflow_call_job(name: impl Into<String>, path: impl Into<String>) -> Job {
@@ -702,6 +709,10 @@ pub fn extra_nightly_tests() -> Result<Workflow> {
     // behavior.
     let target = (OS::Linux, Arch::X86_64);
     workflow.add(target, job::SnowflakeTests {});
+    workflow.add(target, job::StandardLibraryTests {
+        graal_edition:       graalvm::Edition::Community,
+        cloud_tests_enabled: true,
+    });
     Ok(workflow)
 }
 
