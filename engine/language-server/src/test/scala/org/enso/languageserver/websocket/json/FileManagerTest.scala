@@ -7,9 +7,8 @@ import org.bouncycastle.util.encoders.Hex
 import org.enso.runner.common.ProfilingConfig
 import org.enso.languageserver.boot.StartupConfig
 import org.enso.languageserver.data._
-import org.enso.logger.ReportLogsOnFailure
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.testkit.RetrySpec
+import org.enso.testkit.{ReportLogsOnFailure, RetrySpec}
 
 import java.io.File
 import java.nio.file.attribute.BasicFileAttributes

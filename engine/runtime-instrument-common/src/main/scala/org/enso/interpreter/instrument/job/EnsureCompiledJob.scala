@@ -20,6 +20,8 @@ import org.enso.interpreter.instrument.execution.{
 }
 import org.enso.interpreter.instrument.{
   CacheInvalidation,
+  Changeset,
+  ChangesetBuilder,
   InstrumentFrame,
   Visualization
 }
@@ -36,7 +38,6 @@ import java.io.File
 import java.util
 import java.util.UUID
 import java.util.logging.Level
-
 import scala.jdk.OptionConverters._
 
 /** A job that ensures that specified files are compiled.
