@@ -1104,7 +1104,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const directoryListAbortControllersRef = React.useRef(
     new Map<backendModule.DirectoryId, AbortController>(),
   )
-  const doToggleDirectoryExpansion = React.useCallback(
+  const doToggleDirectoryExpansion = useEventCallback(
     (
       directoryId: backendModule.DirectoryId,
       key: backendModule.DirectoryId,
@@ -1222,7 +1222,6 @@ export default function AssetsTable(props: AssetsTableProps) {
         })()
       }
     },
-    [category, backend, toastAndLog],
   )
 
   const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
@@ -1231,12 +1230,11 @@ export default function AssetsTable(props: AssetsTableProps) {
   const selectionStartIndexRef = React.useRef<number | null>(null)
   const bodyRef = React.useRef<HTMLTableSectionElement>(null)
 
-  const setMostRecentlySelectedIndex = React.useCallback(
-    (index: number | null, isKeyboard = false) => {
+  const setMostRecentlySelectedIndex = useEventCallback(
+    (index: number | null, isKeyboard: boolean = false) => {
       mostRecentlySelectedIndexRef.current = index
       setKeyboardSelectedIndex(isKeyboard ? index : null)
     },
-    [],
   )
 
   React.useEffect(() => {
@@ -1441,7 +1439,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     }
   }, [setMostRecentlySelectedIndex])
 
-  const getNewProjectName = React.useCallback(
+  const getNewProjectName = useEventCallback(
     (templateName: string | null, parentKey: backendModule.DirectoryId | null) => {
       const prefix = `${templateName ?? 'New Project'} `
       const projectNameTemplate = new RegExp(`^${prefix}(?<projectIndex>\\d+)$`)
@@ -1456,15 +1454,14 @@ export default function AssetsTable(props: AssetsTableProps) {
         .map((maybeIndex) => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
       return `${prefix}${Math.max(0, ...projectIndices) + 1}`
     },
-    [assetTree, nodeMapRef],
   )
 
-  const deleteAsset = React.useCallback((key: backendModule.AssetId) => {
+  const deleteAsset = useEventCallback((key: backendModule.AssetId) => {
     setAssetTree((oldAssetTree) => oldAssetTree.filter((item) => item.key !== key))
-  }, [])
+  })
 
   /** All items must have the same type. */
-  const insertAssets = React.useCallback(
+  const insertAssets = useEventCallback(
     (
       assets: readonly backendModule.AnyAsset[],
       parentKey: backendModule.DirectoryId | null,
@@ -1487,10 +1484,9 @@ export default function AssetsTable(props: AssetsTableProps) {
         ),
       )
     },
-    [rootDirectoryId],
   )
 
-  const insertArbitraryAssets = React.useCallback(
+  const insertArbitraryAssets = useEventCallback(
     (
       assets: backendModule.AnyAsset[],
       parentKey: backendModule.DirectoryId | null,
@@ -1517,12 +1513,11 @@ export default function AssetsTable(props: AssetsTableProps) {
         )
       })
     },
-    [rootDirectoryId],
   )
 
   // This is not a React component, even though it contains JSX.
   // eslint-disable-next-line no-restricted-syntax
-  const onAssetListEvent = (event: assetListEvent.AssetListEvent) => {
+  const onAssetListEvent = useEventCallback((event: assetListEvent.AssetListEvent) => {
     switch (event.type) {
       case AssetListEventType.newFolder: {
         const parent = nodeMapRef.current.get(event.parentKey)
@@ -1924,9 +1919,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         break
       }
     }
-  }
-  const onAssetListEventRef = React.useRef(onAssetListEvent)
-  onAssetListEventRef.current = onAssetListEvent
+  })
   eventListProvider.useAssetListEventListener((event) => {
     if (!isLoading) {
       onAssetListEvent(event)
@@ -1935,13 +1928,13 @@ export default function AssetsTable(props: AssetsTableProps) {
     }
   })
 
-  const doCopy = React.useCallback(() => {
+  const doCopy = useEventCallback(() => {
     unsetModal()
     const { selectedKeys } = driveStore.getState()
     setPasteData({ type: PasteType.copy, data: selectedKeys })
-  }, [driveStore, unsetModal])
+  })
 
-  const doCut = React.useCallback(() => {
+  const doCut = useEventCallback(() => {
     unsetModal()
     if (pasteData != null) {
       dispatchAssetEvent({ type: AssetEventType.cancelCut, ids: pasteData.data })
@@ -1950,9 +1943,9 @@ export default function AssetsTable(props: AssetsTableProps) {
     setPasteData({ type: PasteType.move, data: selectedKeys })
     dispatchAssetEvent({ type: AssetEventType.cut, ids: selectedKeys })
     setSelectedKeys(new Set())
-  }, [unsetModal, pasteData, driveStore, dispatchAssetEvent, setSelectedKeys])
+  })
 
-  const doPaste = React.useCallback(
+  const doPaste = useEventCallback(
     (newParentKey: backendModule.DirectoryId, newParentId: backendModule.DirectoryId) => {
       unsetModal()
       if (pasteData != null) {
@@ -1982,12 +1975,11 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
       }
     },
-    [pasteData, doToggleDirectoryExpansion, unsetModal, dispatchAssetEvent, dispatchAssetListEvent],
   )
 
-  const hideColumn = React.useCallback((column: columnUtils.Column) => {
+  const hideColumn = useEventCallback((column: columnUtils.Column) => {
     setEnabledColumns((columns) => set.withPresence(columns, column, false))
-  }, [])
+  })
 
   const hiddenContextMenu = React.useMemo(
     () => (
@@ -2137,14 +2129,14 @@ export default function AssetsTable(props: AssetsTableProps) {
       if (queuedAssetEvents.length !== 0) {
         queuedAssetListEventsRef.current = []
         for (const event of queuedAssetEvents) {
-          onAssetListEventRef.current(event)
+          onAssetListEvent(event)
         }
       }
       setSpinnerState(spinner.SpinnerState.initial)
     }
-  }, [isLoading])
+  }, [isLoading, onAssetListEvent])
 
-  const calculateNewKeys = React.useCallback(
+  const calculateNewKeys = useEventCallback(
     (
       event: MouseEvent | React.MouseEvent,
       keys: backendModule.AssetId[],
@@ -2181,14 +2173,13 @@ export default function AssetsTable(props: AssetsTableProps) {
       })(event, false)
       return result
     },
-    [driveStore, inputBindings],
   )
 
   const { startAutoScroll, endAutoScroll, onMouseEvent } = autoScrollHooks.useAutoScroll(rootRef)
 
   const dragSelectionChangeLoopHandle = React.useRef(0)
   const dragSelectionRangeRef = React.useRef<DragSelectionInfo | null>(null)
-  const onSelectionDrag = React.useCallback(
+  const onSelectionDrag = useEventCallback(
     (rectangle: geometry.DetailedRectangle, event: MouseEvent) => {
       startAutoScroll()
       onMouseEvent(event)
@@ -2234,37 +2225,26 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
       }
     },
-    [startAutoScroll, onMouseEvent, setVisuallySelectedKeys, displayItems, calculateNewKeys],
   )
 
-  const onSelectionDragEnd = React.useCallback(
-    (event: MouseEvent) => {
-      endAutoScroll()
-      onMouseEvent(event)
-      const range = dragSelectionRangeRef.current
-      if (range != null) {
-        const keys = displayItems.slice(range.start, range.end).map((node) => node.key)
-        setSelectedKeys(calculateNewKeys(event, keys, () => []))
-      }
-      setVisuallySelectedKeys(null)
-      dragSelectionRangeRef.current = null
-    },
-    [
-      endAutoScroll,
-      onMouseEvent,
-      setVisuallySelectedKeys,
-      displayItems,
-      setSelectedKeys,
-      calculateNewKeys,
-    ],
-  )
-
-  const onSelectionDragCancel = React.useCallback(() => {
+  const onSelectionDragEnd = useEventCallback((event: MouseEvent) => {
+    endAutoScroll()
+    onMouseEvent(event)
+    const range = dragSelectionRangeRef.current
+    if (range != null) {
+      const keys = displayItems.slice(range.start, range.end).map((node) => node.key)
+      setSelectedKeys(calculateNewKeys(event, keys, () => []))
+    }
     setVisuallySelectedKeys(null)
     dragSelectionRangeRef.current = null
-  }, [setVisuallySelectedKeys])
+  })
 
-  const onRowClick = React.useCallback(
+  const onSelectionDragCancel = useEventCallback(() => {
+    setVisuallySelectedKeys(null)
+    dragSelectionRangeRef.current = null
+  })
+
+  const onRowClick = useEventCallback(
     (innerRowProps: assetRow.AssetRowInnerProps, event: React.MouseEvent) => {
       const { key } = innerRowProps
       event.stopPropagation()
@@ -2286,23 +2266,18 @@ export default function AssetsTable(props: AssetsTableProps) {
         selectionStartIndexRef.current = null
       }
     },
-    [visibleItems, calculateNewKeys, setSelectedKeys, setMostRecentlySelectedIndex],
   )
 
-  const getAsset = React.useCallback(
+  const getAsset = useEventCallback(
     (key: backendModule.AssetId) => nodeMapRef.current.get(key)?.item ?? null,
-    [nodeMapRef],
   )
 
-  const setAsset = React.useCallback(
-    (key: backendModule.AssetId, asset: backendModule.AnyAsset) => {
-      setAssetTree((oldAssetTree) =>
-        oldAssetTree.map((item) => (item.key === key ? item.with({ item: asset }) : item)),
-      )
-      updateAssetRef.current[asset.id]?.(asset)
-    },
-    [],
-  )
+  const setAsset = useEventCallback((key: backendModule.AssetId, asset: backendModule.AnyAsset) => {
+    setAssetTree((oldAssetTree) =>
+      oldAssetTree.map((item) => (item.key === key ? item.with({ item: asset }) : item)),
+    )
+    updateAssetRef.current[asset.id]?.(asset)
+  })
 
   React.useImperativeHandle(assetManagementApiRef, () => ({
     getAsset,
