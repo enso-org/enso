@@ -253,24 +253,44 @@ type Table
 
     ## GROUP Standard.Base.Selections
        ICON select_column
-       Returns the column with the given name.
+       Returns the column with the given name or index.
 
        Arguments:
        - selector: The name or index of the column being looked up.
 
+       Returns:
+       - The column with the given name or index, or the `if_missing` value if
+         the column is not found.
+
+       ! Error Conditions
+
+         - If the column name is not found, a `No_Such_Column` error is raised.
+         - If the column index is out of bounds, an `Index_Out_Of_Bounds` error
+           is raised.
+
        > Example
          Get the names of all of the items from the shop inventory.
 
-             import Standard.Examples
+            table1 = Table.new [['Name', ['John', 'Paul']], ['Age', [25, 35]]]
+            column1 = table1.get 'Name'
 
-             example_at = Examples.inventory_table.at "item_name"
+            ## Returns a Column
+               | Name |
+               |------|
+               | John |
+               | Paul |
 
        > Example
          Get the last column.
 
-             import Standard.Examples
+            table1 = Table.new [['Name', ['John', 'Paul']], ['Age', [25, 35]]]
+            column1 = table1.get -1
 
-             example_at = Examples.inventory_table.at -1
+            ## Returns a Column
+               | Age |
+               |-----|
+               | 25  |
+               | 35  |
     @selector Widget_Helpers.make_column_name_selector
     at : Integer | Text -> Column ! No_Such_Column | Index_Out_Of_Bounds
     at self (selector:(Integer | Text)=0) = case selector of
@@ -790,7 +810,7 @@ type Table
        > Example
          Rename the column based on the first row
 
-              table.use_first_row_as_names
+             table.use_first_row_as_names
     use_first_row_as_names : Problem_Behavior -> Table
     use_first_row_as_names self (on_problems:Problem_Behavior=..Report_Warning) =
         new_names = self.first_row.to_vector.map c->
@@ -811,17 +831,16 @@ type Table
        and to return.
 
        Arguments:
-       - group_by: Vector of column identifiers to group by. These will be
-         included at the start of the resulting table. If no columns are
-         specified a single row will be returned with the aggregate columns.
-       - columns: Vector of `Aggregate_Column` specifying the aggregated table.
-         Expressions can be used within the aggregate column to perform more
-         complicated calculations.
+       - group_by: A list of columns to group by. These will be included at the
+         start of the resulting table. If no columns are specified a single row
+         will be returned with the aggregate columns.
+       - columns: The aggregate operations being performed specifying the
+         aggregated table. Expressions can be used within the aggregate column
+         to perform more complicated calculations.
        - error_on_missing_columns: Specifies if a missing columns in aggregates
          should result in an error regardless of the `on_problems` settings.
-         Defaults to `False`, meaning that problematic aggregate will not be
-         included in the result and the problem reported according to the
-         `on_problems` setting.
+         Defaults to `False`, meaning that problematic aggregations will not be
+         included in the result and a problem reported.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
@@ -859,15 +878,31 @@ type Table
            - If there are more than 10 issues with a single column,
              an `Additional_Warnings`.
 
+       Returns
+       - A new table with the group_by columns as well as any aggregate columns.
+
        > Example
          Count all the rows
 
-              table.aggregate columns=[Aggregate_Column.Count]
+             table = Table.from_rows ["Name","Location"] [["John", "Massachusetts"],["Paul","London"]]
+             grouped = table.aggregate columns=[Aggregate_Column.Count]
+
+             ## Returns a Table
+                | Count |
+                |-------|
+                | 2     |
 
        > Example
          Group by the Key column, count the rows
 
-              table.aggregate ["Key"] [Aggregate_Column.Count]
+             table = Table.from_rows ["Name","Location"] [["John", "Massachusetts"],["Paul","London"]]
+             grouped = table.aggregate ["Name"] [Aggregate_Column.Count]
+
+             ## Returns a Table
+                | Name | Count |
+                |------|-------|
+                | John | 1     |
+                | Paul | 1     |
     @group_by Widget_Helpers.make_column_name_multi_selector
     @columns Widget_Helpers.make_aggregate_column_vector_selector
     aggregate : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> Vector Aggregate_Column -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
@@ -1350,21 +1385,26 @@ type Table
     ## ALIAS auto_value_types
        GROUP Standard.Base.Conversions
        ICON convert
-       Change the value type of table columns to a more specific one, based on
-       their contents.
+       Automatically detect the appropriate data type and size for specified
+       columns and change them, based on the contents.
 
-       This is most useful for `Mixed` type columns and will allow to narrow
-       down the type if all values in the column fit a more specific type.
+       This is most useful for Mixed types to narrow down the type if all values
+       could fit into one type.
 
        Arguments:
-       - columns: The selection of columns to convert.
+       - columns: The selection of columns to convert. Defaults to all columns.
        - shrink_types: If set `True`, smaller types will be chosen if possible,
-         according to the rules below. Defaults to `False`.
+         according to the rules below. Defaults to `False`. For example, from a
+         64-bit integer to a 32-bit integer if all fit.
        - error_on_missing_columns: Specifies if a missing input column should
          result in an error regardless of the `on_problems` settings. Defaults
          to `True`.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
+
+       Returns
+       - A new table with the specified columns converted to the most
+         appropriate type.
 
        ? Auto Type Selection Rules
 
@@ -1446,8 +1486,10 @@ type Table
 
     ## GROUP Standard.Base.Conversions
        ICON split
-       Splits a column of text into a set of new columns.
-       The original column will be removed from the table.
+       Creates a new table by splitting the chosen column of text, by the
+       specified delimiter into a set of new columns. The original column will
+       be removed from the table.
+
        The new columns will be named with the name of the input column with a
        incrementing number after.
 
@@ -1456,10 +1498,14 @@ type Table
        - delimiter: The term or terms used to split the text.
        - column_count: The number of columns to split to.
          If `All_Columns` then columns will be added to fit all data.
-       - on_problems: Specifies the behavior when a problem occurs.
+       - on_problems: Specifies the behavior when a problem occurs, reporting
+         them as warnings by default.
+
+       Returns
+       - Returns a Table with the newly split columns and the original removed.
 
        ! Error Conditions
-         If the data exceeds the `column_count`, a `Column_Count_Exceeded` will
+       - If the data exceeds the `column_count`, a `Column_Count_Exceeded` will
          be reported according to the `on_problems` behavior.
     @column Widget_Helpers.make_column_name_selector
     @delimiter make_delimiter_selector
@@ -1470,12 +1516,17 @@ type Table
 
     ## GROUP Standard.Base.Conversions
        ICON split
-       Splits a column of text into a set of new rows.
+       Creates a new table by splitting the chosen column of text, by the
+       specified delimiter into a set of new rows.
+
        The values of other columns are repeated for the new rows.
 
        Arguments:
        - column: The name or index of the column to split the text of.
        - delimiter: The term or terms used to split the text.
+
+       Returns
+       - Returns a Table with the newly generated rows.
     @column Widget_Helpers.make_column_name_selector
     @delimiter make_delimiter_selector
     split_to_rows : Text | Integer -> Text -> Table
