@@ -164,38 +164,38 @@ export function EnsoDevtools() {
 
             <Button
               aria-label={getText('deleteAll')}
-                size="small"
-                variant="icon"
-                icon={trash}
-                onPress={() => {
-                  for (const [key] of unsafeEntries(LocalStorage.keyMetadata)) {
-                    localStorage.delete(key)
-                  }
-                }}
-              />
-            </div>
+              size="small"
+              variant="icon"
+              icon={trash}
+              onPress={() => {
+                for (const [key] of unsafeEntries(LocalStorage.keyMetadata)) {
+                  localStorage.delete(key)
+                }
+              }}
+            />
+          </div>
 
-            <div className="flex flex-col gap-0.5">
-              {unsafeEntries(LocalStorage.keyMetadata).map(([key]) => (
+          <div className="flex flex-col gap-0.5">
+            {unsafeEntries(LocalStorage.keyMetadata).map(([key]) => (
               <div key={key} className="flex w-full items-center justify-between gap-1">
-                  <Text variant="body">
-                    {key
-                      .replace(/[A-Z]/g, (m) => ' ' + m.toLowerCase())
-                      .replace(/^./, (m) => m.toUpperCase())}
-                  </Text>
+                <Text variant="body">
+                  {key
+                    .replace(/[A-Z]/g, (m) => ' ' + m.toLowerCase())
+                    .replace(/^./, (m) => m.toUpperCase())}
+                </Text>
 
-                  <Button
-                    variant="icon"
-                    size="small"
-                    aria-label={getText('delete')}
-                    icon={cross}
-                    onPress={() => {
-                      localStorage.delete(key)
-                    }}
-                  />
-                </div>
-              ))}
-            </div>
+                <Button
+                  variant="icon"
+                  size="small"
+                  aria-label={getText('delete')}
+                  icon={cross}
+                  onPress={() => {
+                    localStorage.delete(key)
+                  }}
+                />
+              </div>
+            ))}
+          </div>
 
           <ariaComponents.Separator orientation="horizontal" className="my-3" />
 

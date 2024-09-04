@@ -61,7 +61,6 @@ export const Form = forwardRef(function Form<Schema extends components.TSchema>(
 
   const innerForm = components.useForm(form ?? { shouldFocusError: true, schema, ...formOptions })
 
-
   React.useImperativeHandle(formRef, () => innerForm, [innerForm])
 
   const dialogContext = dialog.useDialogContext()
@@ -160,7 +159,9 @@ export const Form = forwardRef(function Form<Schema extends components.TSchema>(
       >
         <aria.FormValidationContext.Provider value={errors}>
           <reactHookForm.FormProvider {...innerForm}>
-            {typeof children === 'function' ? children({ ...innerForm, form: innerForm }) : children}
+            {typeof children === 'function' ?
+              children({ ...innerForm, form: innerForm })
+            : children}
           </reactHookForm.FormProvider>
         </aria.FormValidationContext.Provider>
       </form>
