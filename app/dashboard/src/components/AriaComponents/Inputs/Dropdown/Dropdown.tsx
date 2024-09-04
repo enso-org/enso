@@ -81,6 +81,8 @@ interface InternalChildrenProps<T> {
 interface InternalBaseDropdownProps<T> extends InternalChildrenProps<T> {
   readonly readOnly?: boolean
   readonly className?: string
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  readonly 'aria-label': string
 }
 
 /** Props for a {@link Dropdown}, when `multiple` is `false` or absent. */
@@ -190,6 +192,7 @@ export const Dropdown = forwardRef(function Dropdown<T>(
             <div className={styles.optionsSpacing()} />
             <div className={styles.optionsContainer()}>
               <ListBox
+                aria-label={props['aria-label']}
                 selectionMode={multiple ? 'multiple' : 'single'}
                 selectionBehavior={multiple ? 'toggle' : 'replace'}
                 items={listBoxItems}

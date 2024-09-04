@@ -302,6 +302,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
       }
       const dropdown = (
         <Dropdown
+          aria-label={getText('options')}
           readOnly={readOnly}
           items={childSchemas}
           selectedIndex={selectedChildIndex}
