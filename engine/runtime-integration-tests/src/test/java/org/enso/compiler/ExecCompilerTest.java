@@ -461,7 +461,7 @@ public class ExecCompilerTest {
     var real = run.execute(1L);
     var realN = real.invokeMember("v");
     var defaulted = run.execute(0L);
-    var defaultedN = real.invokeMember("v");
+    var defaultedN = defaulted.invokeMember("v");
     assertEquals("Should be the same", realN, defaultedN);
   }
 
