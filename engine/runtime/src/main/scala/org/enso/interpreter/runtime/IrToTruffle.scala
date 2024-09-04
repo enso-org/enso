@@ -1865,7 +1865,6 @@ class IrToTruffle(
           "Consolidation hasn't run."
         )
       }
-      val frameInfoOption = function.passData().get(FramePointerAnalysis)
       def frameInfo() = function
         .unsafeGetMetadata(
           FramePointerAnalysis,
@@ -1884,7 +1883,7 @@ class IrToTruffle(
           scopeName,
           () => scopeInfo().scope,
           "case " + currentVarName,
-          if (frameInfoOption.isDefined) frameInfo else null
+          frameInfo
         )
 
       val fn = child.processFunctionBody(
