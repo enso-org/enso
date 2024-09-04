@@ -322,7 +322,7 @@ case object FramePointerAnalysis extends IRPass {
           .update(this, newMeta)
       case Some(meta) =>
         val ex = new IllegalStateException(
-          "Old: " + meta + " new " + newMeta
+          "Unexpected FrameAnalysisMeta associated with IR " + ir + "\nOld: " + meta + " new " + newMeta
         )
         ex.setStackTrace(ex.getStackTrace().slice(0, 10))
         throw ex
