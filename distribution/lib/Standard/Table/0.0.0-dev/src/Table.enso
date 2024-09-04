@@ -96,20 +96,46 @@ polyglot java import org.enso.table.parsing.problems.ParseProblemAggregator
 type Table
     ## GROUP Standard.Base.Constants
        ICON table_edit
-       Creates a new table from a vector of `[name, items]` pairs.
+       Creates a new table from a set of columns. This can either be provided as
+       a set of pairs of names and data, or existing Column objects.
 
        Arguments:
-       - columns: The `[name, items]` pairs to construct a new table from.
+       - columns: A set of either Column objects or pairs of name and data to
+         construct a column from from. If passing name and data, the items can
+         be passed as a Vector, Range or a Date_Range.
+
+       Returns:
+       - A Table of all of the input data.
+
+       ! Error Conditions
+
+         - If the vector is improperly defined, an error is returned.
+         - If there are no columns, an error is returned.
+         - If column names are not distinct, an error is returned.
+         - If any columns have an inconsistent number of records, an error is returned.
 
        > Example
-         Create a new table with the given columns.
+         Create a new table with the specified columns.
 
-             from Standard.Table import Table
+             first_column = ["count", [1, 2, 3]]
+             second_column = ["is_valid", [True, False, True]]
+             Table.new [first_column, second_column]
 
-             example_new =
-                 first_column = ["count", [1, 2, 3]]
-                 second_column = ["is_valid", [True, False, True]]
-                 Table.new [first_column, second_column]
+             ## Returns a table like:
+
+                | count | is_valid |
+                |-------|----------|
+                | 1     | True     |
+                | 2     | False    |
+                | 3     | True     |
+
+        ? Unique Names
+        Column names must be unique. If a column name is repeated, an error is
+        thrown.
+
+        ? Consistent Row Count
+        All columns must have the same number of rows. If a column has a
+        different number of entries, an error is thrown.
     new : Vector (Vector | Column) -> Table
     new columns =
         invalid_input_shape =
@@ -260,19 +286,33 @@ type Table
        - selector: The name or index of the column being looked up.
        - if_missing: The value to use if the selector isn't present.
 
+       Returns:
+       - The column with the given name or index, or the `if_missing` value if
+         the column is not found.
+
        > Example
          Get the names of all of the items from the shop inventory.
 
-             import Standard.Examples
+            table1 = Table.new [['Name', ['John', 'Paul']], ['Age', [25, 35]]]
+            column1 = table1.get 'Name'
 
-             example_at = Examples.inventory_table.get "item_name"
+            ## Returns a Column
+               | Name |
+               |------|
+               | John |
+               | Paul |
 
        > Example
          Get the last column.
 
-             import Standard.Examples
+            table1 = Table.new [['Name', ['John', 'Paul']], ['Age', [25, 35]]]
+            column1 = table1.get -1
 
-             example_at = Examples.inventory_table.get -1
+            ## Returns a Column
+               | Age |
+               |-----|
+               | 25  |
+               | 35  |
     @selector Widget_Helpers.make_column_name_selector
     get : Integer | Text -> Any -> Column | Any
     get self (selector:(Integer | Text)=0) ~if_missing=Nothing =
@@ -1444,13 +1484,13 @@ type Table
 
     ## GROUP Standard.Base.Conversions
        ICON split
-       Tokenizes a column of text into a set of new columns using a regular
-       expression.
-       If the pattern contains marked groups, the values are concatenated
-       together; otherwise the whole match is returned.
-       The original column will be removed from the table.
-       The new columns will be named with the name of the input column with a
-       incrementing number after.
+
+       Creates a new Table with the chosen column of Text split by the `pattern`
+       regular expression into a set of new columns. If the pattern contains
+       marked groups, the values are concatenated together; otherwise the whole
+       match is returned.
+
+       The values of other columns are repeated for the new rows.
 
        For details on Enso's Regex syntax, see the [Help Documentation](https://help.enso.org/docs/using-enso/regular-expressions).
 
@@ -1463,8 +1503,11 @@ type Table
          If `Nothing` then columns will be added to fit all data.
        - on_problems: Specifies the behavior when a problem occurs.
 
+       Returns
+       - Returns a Table with the newly split columns.
+
        ! Error Conditions
-         If the data exceeds the `column_count`, a `Column_Count_Exceeded` will
+       - If the data exceeds the `column_count`, a `Column_Count_Exceeded` will
          be reported according to the `on_problems` behavior.
     @column Widget_Helpers.make_column_name_selector
     tokenize_to_columns : Text | Integer -> Text -> Case_Sensitivity -> Columns_To_Add -> Problem_Behavior -> Table
@@ -1473,10 +1516,12 @@ type Table
 
     ## GROUP Standard.Base.Conversions
        ICON split
-       Tokenizes a column of text into a set of new rows using a regular
-       expression.
-       If the pattern contains marked groups, the values are concatenated
-       together; otherwise the whole match is returned.
+
+       Creates a new Table with the chosen column of Text split by the `pattern`
+       regular expression into a set of new rows. If the pattern contains marked
+       groups, the values are concatenated together; otherwise the whole match
+       is returned.
+
        The values of other columns are repeated for the new rows.
 
        For details on Enso's Regex syntax, see the [Help Documentation](https://help.enso.org/docs/using-enso/regular-expressions).
@@ -1489,6 +1534,9 @@ type Table
        - at_least_one_row: If True, a tokenization that returns no values will still
          produce at least one row, with `Nothing` for the output column values.
          Equivalent to converting a tokenization output of [] to [Nothing].
+
+       Returns
+       - Returns a Table with the newly split rows.
     @column Widget_Helpers.make_column_name_selector
     tokenize_to_rows : Text | Integer -> Text -> Case_Sensitivity -> Boolean -> Table
     tokenize_to_rows self column pattern="." case_sensitivity:Case_Sensitivity=..Sensitive at_least_one_row:Boolean=False =
@@ -1584,51 +1632,97 @@ type Table
        GROUP Standard.Base.Selections
        ICON preparation
 
-       Selects only the rows of this table that correspond to `True` values of
-       `filter`.
+       Filter is used to select data from a table using a condition. The rows
+       that meet the condition will remain after the filter. Filters can compare
+       columns, compare against static values, or compare against an argument
+       from another component.
 
        Arguments:
-       - column: The column to use for filtering. Can be a column name, index or
-         the `Column` object itself.
-       - filter: The filter to apply to the column. It can either be an instance
-         of `Filter_Condition` or a predicate taking a cell value and returning
-         a boolean value indicating whether the corresponding row should be kept
-         or not.
-       - on_problems: Specifies how to handle if a non-fatal problem occurs,
-         attaching a warning by default.
+       - `column`: The column our condition is tested against.
+         This can be a column name, the column's index or an expression.
+       - `filter`: The filter to apply to the column. It can either be an
+         instance of `Filter_Condition` or a predicate taking a cell value and
+         returning a boolean value indicating whether the corresponding row
+         should be kept or not.
+
+         - `action`:
+           This can be set to `Keep`, which keeps all rows which meet the
+           condition. It can also be set to `Remove`, which will instead only
+           keep the rows that do not meet the condition.
+           For example, `[people] Is Null` would keep all the rows where the
+           column `people` had a Null value. Changing this to `Remove` would
+           remove all of the rows where `people` had a Null value, leaving only
+           the records that are not null.
+
+       - `on_problems`: specified how to report any issues encountered during
+          the operation.
+
+       Returns:
+       - Returns a Table of all of the rows that met the specified condition.
 
        ! Error Conditions
-
-         - If a column name cannot be found, a `No_Such_Column` dataflow error
-           is raised.
-         - If a column index is invalid, an `Index_Out_Of_Bounds` dataflow error
-           is raised.
-         - If the column is an invalid type for the filter, an
-           `Invalid_Value_Type` dataflow error is raised.
-         - Additionally, the following problems may be reported according to the
-           `on_problems` setting:
-           - If filtering by equality on a floating-point column,
-             a `Floating_Point_Equality`.
-
-       > Example
-         Get people older than 30.
-
-             people.filter "Age" (Greater 30)
+       - If a column name cannot be found, a `No_Such_Column` dataflow error
+         is raised.
+       - If a column index is invalid, an `Index_Out_Of_Bounds` dataflow error
+         is raised.
+       - If the column is an invalid type for the filter, an
+         `Invalid_Value_Type` dataflow error is raised.
+       - Additionally, the following problems may be reported according to the
+         `on_problems` setting:
+         - If filtering by equality on a floating-point column, a
+           `Floating_Point_Equality` will warn the user that comparing floats is
+           imprecise, so results may be inconsistent.
 
        > Example
-         Filter people between 30 and 40.
+         Filter where an Age is Greater than 30.
 
-             people.filter "Age" (Between 30 40)
+             table1 = Table.new [['Name', ['John', 'Paul', 'Ringo']], ['Age', [25, 35, 40]]]
+             filter1 = table1.filter 'Age' (..Greater 30)
+
+             ## Returns a Table
+                | Name  | Age |
+                |-------|-----|
+                | Paul  | 35  |
+                | Ringo | 40  |
+
+       > Example
+         Filter where an Age is Between 30 and 39.
+
+             table1 = Table.new [['Name', ['John', 'Paul', 'Ringo']], ['Age', [25, 35, 40]]]
+             filter1 = table1.filter 'Age' (..Between 30 39)
+
+             ## Returns a Table
+                | Name | Age |
+                |------|-----|
+                | Paul | 35  |
 
        > Example
          Select rows where more than 50% of the stock is sold.
 
-             table.filter "sold_stock" (Greater (table.at "total_stock" / 2))
+             table2 = Table.new [['Name', ['John', 'Paul']], ['sold_stock', [20, 30]], ['total_stock', [50, 50]]]
+             filter3= table2.filter 'sold_stock' (..Greater (expr '[total_stock]/2'))
+
+             ## Returns a Table
+                | Name | sold_stock | total_stock |
+                |------|------------|-------------|
+                | Paul | 30         | 50          |
 
        > Example
          Select people celebrating a jubilee.
 
-             people.filter "age" (age -> (age%10 == 0))
+             table3 = Table.new [['Name', ['John', 'Paul', 'Ringo']], ['Age', [25, 35, 40]]]
+             filter4 = table3.filter (expr '[Age] % 10 = 0') ..Is_True
+
+             ## Returns a Table
+                | Name  | Age |
+                |-------|-----|
+                | Ringo | 40  |
+
+       ? Nothing Equality
+       When comparing `Nothing` values, filter follows the ANSI SQL conventions
+       that `Nothing ==  Nothing` results in a `Nothing`. This includes both
+       `Equal` and `Is_In` conditions. If you want to filter out `Nothing` use
+       `Is_Not_Nothing` condition (or `Is_Nothing` to filter out non-`Nothing`).
     @column (Widget_Helpers.make_column_name_selector add_expression=True)
     @filter Widget_Helpers.make_filter_condition_selector
     filter : (Column | Expression | Text | Integer) -> (Filter_Condition | (Any -> Boolean)) -> Problem_Behavior -> Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type
@@ -1695,14 +1789,18 @@ type Table
        Arguments:
        - range: The selection of rows from the table to return.
 
-       For the purposes of the `Index_Sub_Range.While` predicate a single
-       "element" of the table is represented by the `Row` type.
+       Returns:
+       - Returns a Table with the selected rows.
 
        ? Supported Range Types
 
          Database backends support all range types except `While` and `Sample`
-
          In-memory tables support all range types.
+
+       ? While
+
+         For the purposes of the `Index_Sub_Range.While` predicate a single
+         "element" of the table is represented by the `Row` type.
 
        > Example
          Take first 10 rows of the table.
@@ -3008,31 +3106,48 @@ type Table
 
     ## GROUP Standard.Base.Text
        ICON column_add
-       Applies the specified cleansings to the text in each row of the specified columns
+       Applies the specified cleansing operations to text values in each column
+       specified in `from`.
 
        Arguments:
        - from: The column(s) to cleanse.
-       - remove: A vector of the text cleanings to remove from the text. The text cleansings are
-           applied in the order they are provided. The same text cleansing can be used multiple
-           times. The text cleansings are:
-             - ..Leading_Whitespace: Removes all whitespace from the start of the string.
-             - ..Trailing_Whitespace: Removes all whitespace from the end of the string.
-             - ..Duplicate_Whitespace: Removes all duplicate whitespace from the string replacing it with the first whitespace character of the duplicated block.
-             - ..All_Whitespace: Removes all whitespace from the string.
-             - ..Newlines: Removes all newline characters from the string. Line Feed and Carriage Return characters are considered newlines.
-             - ..Leading_Numbers: Removes all numbers from the start of the string.
-             - ..Trailing_Numbers: Removes all numbers from the end of the string.
-             - ..Non_ASCII: Removes all non-ascii characters from the string.
-             - ..Tabs: Removes all tab characters from the string.
-             - ..Letters: Removes all letters from the string.
-             - ..Numbers: Removes all numbers characters from the string.
-             - ..Punctuation: Removes all characters in the set ,.!?():;'" from the string.
-             - ..Symbols: Removes anything that isn't letters, numbers or whitespace from the string.
+       - remove: The list of operations being performed - which elements to
+         remove. These are performed in the order specified. The same operation
+         can be performed multiple times.
+         The operations are:
+         - ..Leading_Whitespace: Removes all whitespace from the start.
+         - ..Trailing_Whitespace: Removes all whitespace from the end.
+         - ..Duplicate_Whitespace: Removes all duplicate whitespace replacing it
+           with the first whitespace character of the duplicated block.
+         - ..All_Whitespace: Removes all whitespace.
+         - ..Newlines: Removes all newline characters. Line Feed and Carriage
+           Return characters are considered newlines.
+         - ..Leading_Numbers: Removes all numbers from the start.
+         - ..Trailing_Numbers: Removes all numbers from the end.
+         - ..Non_ASCII: Removes all non-ascii characters.
+         - ..Tabs: Removes all tab characters.
+         - ..Letters: Removes all letters.
+         - ..Numbers: Removes all numbers.
+         - ..Punctuation: Removes all characters in the set ``,.!?():;'"`.
+         - ..Symbols: Removes anything that isn't letters, numbers or whitespace
+           from the string.
+
+       Returns:
+       - A Table of all records, with the cleansing operations performed on the
+         specified columns. Original columns are removed and replaced with the
+         cleansed columns.
 
        > Example
          Remove leading and trailing spaces from cells.
 
-             table.text_cleanse ["Input"] [..Leading_Whitespace, ..Trailing_Whitespace]
+            table = Table.new [["Input"], ["  Hello  "], ["  World  "]]
+            cleansed = table.text_cleanse ["Input"] [..Leading_Whitespace, ..Trailing_Whitespace]
+
+            ## Returns a Table
+               | Input |
+               |-------|
+               | Hello |
+               | World |
     @from (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @remove make_data_cleanse_vector_selector
     text_cleanse : Vector (Integer | Text | Regex | By_Type) -> Vector Named_Pattern -> Table
