@@ -31,8 +31,8 @@ test.test('organization settings', async ({ page }) => {
   await test.test.step('Unset name (should fail)', async () => {
     await nameInput.fill('')
     await nameInput.press('Enter')
+    await test.expect(nameInput).toHaveValue('')
     test.expect(api.currentOrganization()?.name).toBe(newName)
-    await test.expect(nameInput).toHaveValue(newName)
   })
 
   const invalidEmail = 'invalid@email'
