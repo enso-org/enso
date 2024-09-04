@@ -183,8 +183,9 @@ const newNodeSelectorValues = computed(() => {
   }
 })
 
-const isFilterSortNodeEnabled =
-  config.nodeType === TABLE_NODE_TYPE || config.nodeType === DB_TABLE_NODE_TYPE
+const isFilterSortNodeEnabled = computed(
+  () => config.nodeType === TABLE_NODE_TYPE || config.nodeType === DB_TABLE_NODE_TYPE,
+)
 
 const numberFormatGroupped = new Intl.NumberFormat(undefined, {
   style: 'decimal',
