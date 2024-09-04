@@ -1,7 +1,7 @@
 /** @file Modal for setting the organization name. */
 import * as React from 'react'
 
-import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import * as router from 'react-router'
 
 import { backendMutationOptions } from '#/hooks/backendHooks'
@@ -55,16 +55,11 @@ export function SetupOrganizationAfterSubscribe() {
     select: (data) => data?.length ?? 0,
   })
 
-  const updateOrganization = useMutation(
-    backendMutationOptions(backend, 'updateOrganization', {
-      meta: { invalidates: [['organization', userId]] },
-    }),
-  )
-  const createDefaultUserGroup = useMutation(
-    backendMutationOptions(backend, 'createUserGroup', {
-      meta: { invalidates: [['userGroups', userId]] },
-    }),
-  )
+  const [hideModal, setHideModal] = React.useState(false)
+
+  const queryClient = useQueryClient()
+  const updateOrganization = useMutation(backendMutationOptions(backend, 'updateOrganization'))
+  const createDefaultUserGroup = useMutation(backendMutationOptions(backend, 'createUserGroup'))
 
   const shouldSetOrgName = PLANS_TO_SPECIFY_ORG_NAME.includes(userPlan) && organizationName === ''
   const shouldSetDefaultUserGroup =
@@ -115,11 +110,16 @@ export function SetupOrganizationAfterSubscribe() {
     })
   }
 
-  const shouldShowModal = steps.length > 1 && userIsAdmin
+  const shouldShowModal = steps.length > 1 && userIsAdmin && !hideModal
 
   const { stepperState } = Stepper.useStepperState({
     steps: steps.length,
     defaultStep: 0,
+    onCompleted: () => {
+      void queryClient.invalidateQueries({ queryKey: ['organization'] })
+      void queryClient.invalidateQueries({ queryKey: ['userGroups'] })
+      setHideModal(true)
+    },
   })
 
   return (
@@ -131,7 +131,7 @@ export function SetupOrganizationAfterSubscribe() {
         hideCloseButton
         size="xxxlarge"
         padding="xlarge"
-        modalProps={{ defaultOpen: shouldShowModal }}
+        modalProps={{ isOpen: shouldShowModal }}
       >
         <Stepper
           state={stepperState}

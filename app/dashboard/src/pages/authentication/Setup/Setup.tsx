@@ -489,18 +489,6 @@ export function Setup() {
                       {getText('next')}
                     </ariaComponents.Button>
                   )}
-
-                  {isLast && (
-                    <ariaComponents.Button
-                      href={DASHBOARD_PATH}
-                      variant="primary"
-                      size="medium"
-                      icon={ArrowRight}
-                      iconPosition="end"
-                    >
-                      {getText('goToDashboard')}
-                    </ariaComponents.Button>
-                  )}
                 </ariaComponents.ButtonGroup>
               </div>
             )}
