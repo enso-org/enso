@@ -49,7 +49,7 @@ case object FramePointerAnalysis extends IRPass {
         getAliasAnalysisGraph(m) match {
           case Some(
                 graph
-              ) => // tam kde je Some(graph) tam chceme dát seznam proměnných
+              ) =>
             processExpression(m.body, graph)
             updateSymbolNames(m, graph.rootScope)
           case _ => ()
