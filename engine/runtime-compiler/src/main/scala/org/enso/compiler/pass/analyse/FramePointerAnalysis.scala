@@ -251,9 +251,7 @@ case object FramePointerAnalysis extends IRPass {
     getAliasRootScope(ir).foreach(root =>
       updateSymbolNames(ir, root.graph.rootScope)
     )
-    getAliasChildScope(ir).foreach(child =>
-      updateSymbolNames(ir, child.scope)
-    )
+    getAliasChildScope(ir).foreach(child => updateSymbolNames(ir, child.scope))
   }
 
   /** Attaches [[FramePointerMeta]] metadata to the given `ir` if there is an
@@ -398,7 +396,10 @@ case object FramePointerAnalysis extends IRPass {
   private def getAliasChildScope(
     ir: IR
   ): Option[AliasMetadata.ChildScope] = {
-    ir.passData().get(AliasAnalysis).filter(_.isInstanceOf[AliasMetadata.ChildScope])
+    ir.passData()
+      .get(AliasAnalysis)
+      .filter(_.isInstanceOf[AliasMetadata.ChildScope])
+      .map(_.asInstanceOf[AliasMetadata.ChildScope])
   }
 
   private def getAliasAnalysisGraph(

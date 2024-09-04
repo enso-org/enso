@@ -557,12 +557,9 @@ class FramePointerAnalysisTest extends CompilerTest {
   ): List[(IR, FrameAnalysisMeta)] = {
     ir.preorder().flatMap { childIr =>
       childIr.getMetadata(FramePointerAnalysis) match {
-        case Some(framePointerMeta: FrameAnalysisMeta) =>
-          if (framePointerMeta.isInstanceOf[FramePointer]) {
-            Some((childIr, framePointerMeta))
-          } else {
-            None
-          }
+        case Some(framePointerMeta: FrameAnalysisMeta)
+            if (framePointerMeta.isInstanceOf[FramePointer]) =>
+          Some((childIr, framePointerMeta))
         case _ => None
       }
     }
