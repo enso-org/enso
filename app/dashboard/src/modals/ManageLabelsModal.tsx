@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import { useMutation } from '@tanstack/react-query'
 
-import { backendMutationOptions, useListTags } from '#/hooks/backendHooks'
+import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
@@ -58,7 +58,7 @@ export default function ManageLabelsModal<
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const allLabels = useListTags(backend)
+  const { data: allLabels } = useBackendQuery(backend, 'listTags', [])
   const [labels, setLabelsRaw] = React.useState(item.labels ?? [])
   const [query, setQuery] = React.useState('')
   const [color, setColor] = React.useState<backendModule.LChColor | null>(null)

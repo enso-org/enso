@@ -1,9 +1,6 @@
 /** @file A row of the user groups table representing a user. */
-import * as React from 'react'
-
 import Cross2 from '#/assets/cross2.svg'
 
-import type * as backendHooks from '#/hooks/backendHooks'
 import * as contextMenuHooks from '#/hooks/contextMenuHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
@@ -18,7 +15,6 @@ import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import type * as backend from '#/services/Backend'
 
 import { useFullUserSession } from '#/providers/AuthProvider'
-import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ========================
 // === UserGroupUserRow ===
@@ -26,7 +22,7 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 /** Props for a {@link UserGroupUserRow}. */
 export interface UserGroupUserRowProps {
-  readonly user: backendHooks.WithPlaceholder<backend.User>
+  readonly user: backend.User
   readonly userGroup: backend.UserGroupInfo
   readonly doRemoveUserFromUserGroup: (user: backend.User, userGroup: backend.UserGroupInfo) => void
 }
@@ -67,10 +63,7 @@ export default function UserGroupUserRow(props: UserGroupUserRowProps) {
   return (
     <aria.Row
       id={`_key-${userGroup.id}-${user.userId}`}
-      className={tailwindMerge.twMerge(
-        'group h-row select-none rounded-rows-child',
-        user.isPlaceholder && 'pointer-events-none placeholder',
-      )}
+      className="group h-row select-none rounded-rows-child"
       ref={contextMenuRef}
     >
       <aria.Cell className="border-x-2 border-transparent bg-clip-padding py-0 rounded-rows-skip-level last:border-r-0">

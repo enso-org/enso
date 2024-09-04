@@ -92,7 +92,8 @@ function readableBinding(binding: keyof (typeof graphBindings)['bindings']) {
         icon="record"
         class="slot7 record"
         data-testid="toggleRecord"
-        title="Write Always"
+        title="Coming soon…"
+        :disabled="true"
         :modelValue="props.isRecordingOverridden"
         @update:modelValue="emit('update:isRecordingOverridden', $event)"
       />
@@ -180,11 +181,6 @@ function readableBinding(binding: keyof (typeof graphBindings)['bindings']) {
 
 :deep(.ColorRing .gradient) {
   clip-path: var(--full-ring-path);
-}
-
-.inactive {
-  pointer-events: none;
-  opacity: 10%;
 }
 
 /**
