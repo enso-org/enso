@@ -13,11 +13,23 @@ import * as schemaModule from './schema'
 import type * as types from './types'
 
 /**
+ * Maps the value to the event object.
+ */
+function mapValueOnEvent(value: unknown) {
+  if (typeof value === 'object' && value != null && 'target' in value && 'type' in value) {
+    return value
+  } else {
+    return { target: { value } }
+  }
+}
+
+/**
  * A hook that returns a form instance.
  * @param optionsOrFormInstance - Either form options or a form instance
  *
- * If form instance is passed, it will be returned as is
- * If form options are passed, a form instance will be created and returned
+ * If form instance is passed, it will be returned as is.
+ *
+ * If form options are passed, a form instance will be created and returned.
  *
  * ***Note:*** This hook accepts either a form instance(If form is created outside)
  * or form options(and creates a form instance).
@@ -28,9 +40,6 @@ import type * as types from './types'
  */
 export function useForm<Schema extends types.TSchema>(
   optionsOrFormInstance: types.UseFormProps<Schema> | types.UseFormReturn<Schema>,
-  defaultValues?:
-    | reactHookForm.DefaultValues<types.FieldValues<Schema>>
-    | ((payload?: unknown) => Promise<types.FieldValues<Schema>>),
 ): types.UseFormReturn<Schema> {
   const initialTypePassed = React.useRef(getArgsType(optionsOrFormInstance))
 
@@ -44,38 +53,49 @@ export function useForm<Schema extends types.TSchema>(
     `,
   )
 
-  const form =
-    'formState' in optionsOrFormInstance ? optionsOrFormInstance : (
-      (() => {
-        const { schema, ...options } = optionsOrFormInstance
+  if ('formState' in optionsOrFormInstance) {
+    return optionsOrFormInstance
+  } else {
+    const { schema, ...options } = optionsOrFormInstance
 
-        const computedSchema = typeof schema === 'function' ? schema(schemaModule.schema) : schema
+    const computedSchema = typeof schema === 'function' ? schema(schemaModule.schema) : schema
 
-        return reactHookForm.useForm<
-          types.FieldValues<Schema>,
-          unknown,
-          types.TransformedValues<Schema>
-        >({
-          ...options,
-          resolver: zodResolver.zodResolver(computedSchema, { async: true }),
-        })
-      })()
-    )
+    const formInstance = reactHookForm.useForm<
+      types.FieldValues<Schema>,
+      unknown,
+      types.TransformedValues<Schema>
+    >({
+      ...options,
+      resolver: zodResolver.zodResolver(computedSchema),
+    })
 
-  const initialDefaultValues = React.useRef(defaultValues)
+    const register: types.UseFormRegister<Schema> = (name, opts) => {
+      const registered = formInstance.register(name, opts)
 
-  React.useEffect(() => {
-    // Expose default values to controlled inputs like `Selector` and `MultiSelector`.
-    // Using `defaultValues` is not sufficient as the value needs to be manually set at least once.
-    const defaults = initialDefaultValues.current
-    if (defaults) {
-      if (typeof defaults !== 'function') {
-        form.reset(defaults)
+      const onChange: types.UseFormRegisterReturn<Schema>['onChange'] = (value) =>
+        registered.onChange(mapValueOnEvent(value))
+
+      const onBlur: types.UseFormRegisterReturn<Schema>['onBlur'] = (value) =>
+        registered.onBlur(mapValueOnEvent(value))
+
+      const result: types.UseFormRegisterReturn<Schema, typeof name> = {
+        ...registered,
+        ...(registered.disabled != null ? { isDisabled: registered.disabled } : {}),
+        ...(registered.required != null ? { isRequired: registered.required } : {}),
+        isInvalid: !!formInstance.formState.errors[name],
+        onChange,
+        onBlur,
       }
-    }
-  }, [form])
 
-  return form
+      return result
+    }
+
+    return {
+      ...formInstance,
+      control: { ...formInstance.control, register },
+      register,
+    } satisfies types.UseFormReturn<Schema>
+  }
 }
 
 /**

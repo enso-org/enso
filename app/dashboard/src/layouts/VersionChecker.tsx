@@ -7,8 +7,8 @@ import { IS_DEV_MODE } from 'enso-common/src/detect'
 
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 
+import { useEnableVersionChecker } from '#/components/Devtools'
 import { useLocalBackend } from '#/providers/BackendProvider'
-import { useEnableVersionChecker } from '#/providers/EnsoDevtoolsProvider'
 import { useText } from '#/providers/TextProvider'
 
 import { Button, ButtonGroup, Dialog, Text } from '#/components/AriaComponents'
