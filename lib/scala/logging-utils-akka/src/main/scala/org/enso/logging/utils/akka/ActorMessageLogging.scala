@@ -1,7 +1,6 @@
-package org.enso.logger.akka
+package org.enso.logging.utils.akka
 
-import akka.actor.Actor
-import akka.actor.ActorContext
+import akka.actor.{Actor, ActorContext}
 import org.slf4j.LoggerFactory
 
 /** A trait providing functions for logging received actor messages. */
