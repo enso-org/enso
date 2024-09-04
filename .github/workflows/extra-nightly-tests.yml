@@ -76,10 +76,9 @@ jobs:
     permissions:
       checks: write
   enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-linux-amd64:
-    name: Standard Library Tests (GraalVM CE) (linux, amd64)
+    name: Standard Library Tests (GraalVM CE) (LinuxLatest)
     runs-on:
-      - self-hosted
-      - Linux
+      - ubuntu-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
