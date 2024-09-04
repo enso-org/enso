@@ -4,8 +4,8 @@
  */
 import * as React from 'react'
 
-import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
-import { Navigate, useSearchParams } from 'react-router-dom'
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import invariant from 'tiny-invariant'
 
 import type * as text from 'enso-common/src/text'
@@ -165,7 +165,6 @@ const BASE_STEPS: Step[] = [
           onSuccess: () => {
             goToNextStep()
           },
-          meta: { invalidates: [['organization', userId]] },
         }),
       )
 
@@ -278,14 +277,11 @@ const BASE_STEPS: Step[] = [
       })
 
       const changeUserGroupMutation = useMutation(
-        backendMutationOptions(remoteBackend, 'changeUserGroup', {
-          meta: { invalidates: [authQueryKey] },
-        }),
+        backendMutationOptions(remoteBackend, 'changeUserGroup'),
       )
 
       const createUserGroupMutation = useMutation(
         backendMutationOptions(remoteBackend, 'createUserGroup', {
-          meta: { invalidates: [['userGroups', userId]] },
           onSuccess: async (result) => {
             await Promise.all([
               listUsersQuery.data.map((user) =>
@@ -333,6 +329,38 @@ const BASE_STEPS: Step[] = [
   {
     title: 'allSet',
     text: 'allSetDescription',
+    hideNext: true,
+    hidePrevious: true,
+    /**
+     * Step component
+     */
+    component: function AllSetStep({ goToPreviousStep }) {
+      const { getText } = textProvider.useText()
+      const navigate = useNavigate()
+      const queryClient = useQueryClient()
+
+      return (
+        <ariaComponents.ButtonGroup align="start">
+          <ariaComponents.Button variant="outline" onPress={goToPreviousStep}>
+            {getText('back')}
+          </ariaComponents.Button>
+
+          <ariaComponents.Button
+            variant="primary"
+            size="medium"
+            icon={ArrowRight}
+            iconPosition="end"
+            onPress={() =>
+              queryClient.invalidateQueries().then(() => {
+                navigate(DASHBOARD_PATH)
+              })
+            }
+          >
+            {getText('goToDashboard')}
+          </ariaComponents.Button>
+        </ariaComponents.ButtonGroup>
+      )
+    },
   },
 ]
 
