@@ -22,6 +22,7 @@ import org.enso.librarymanager.published.repository.{
 import org.enso.logger.ReportLogsOnFailure
 import org.enso.pkg.{Config, Contact, Package, PackageManager}
 import org.enso.testkit.FlakySpec
+import org.enso.version.BuildVersion
 import org.enso.yaml.YamlHelper
 
 import java.nio.file.Files
@@ -698,7 +699,7 @@ class LibrariesTest
             "id": 0,
             "result": {
               "editionNames": [
-                ${buildinfo.Info.currentEdition}
+                ${BuildVersion.currentEdition}
               ]
             }
           }
@@ -729,7 +730,7 @@ class LibrariesTest
             "id": 0,
             "result": {
               "editionNames": [
-                ${buildinfo.Info.currentEdition},
+                ${BuildVersion.currentEdition},
                 "testlocal"
               ]
             }
@@ -789,7 +790,7 @@ class LibrariesTest
         PublishedLibrary("Foo", "Bar", isCached = false)
       )
 
-      val currentEditionName = buildinfo.Info.currentEdition
+      val currentEditionName = BuildVersion.currentEdition
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "editions/listDefinedLibraries",
@@ -837,7 +838,7 @@ class LibrariesTest
         LibraryName("Standard", "Base")
       )
 
-      val currentEditionName = buildinfo.Info.currentEdition
+      val currentEditionName = BuildVersion.currentEdition
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "editions/listDefinedComponents",
@@ -868,7 +869,7 @@ class LibrariesTest
 
   "editions/resolve" should {
     "resolve the engine version associated with an edition" in {
-      val currentVersion = buildinfo.Info.ensoVersion
+      val currentVersion = BuildVersion.ensoVersion
 
       val client = getInitialisedWsClient()
       client.send(json"""
@@ -901,7 +902,7 @@ class LibrariesTest
             "params": {
               "edition": {
                 "type": "NamedEdition",
-                "editionName": ${buildinfo.Info.currentEdition}
+                "editionName": ${BuildVersion.currentEdition}
               }
             }
           }
