@@ -574,6 +574,7 @@ class Compiler(
             module,
             u => {
               u.ir(updatedIr)
+              u.compilationStage(CompilationStage.AFTER_STATIC_PASSES)
             }
           )
         }
