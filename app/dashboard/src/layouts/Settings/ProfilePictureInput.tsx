@@ -5,7 +5,7 @@ import { useMutation } from '@tanstack/react-query'
 
 import DefaultUserIcon from '#/assets/default_user.svg'
 
-import { backendMutationOptions, useUsersMe } from '#/hooks/backendHooks'
+import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as textProvider from '#/providers/TextProvider'
@@ -28,7 +28,7 @@ export interface ProfilePictureInputProps {
 export default function ProfilePictureInput(props: ProfilePictureInputProps) {
   const { backend } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const user = useUsersMe(backend)
+  const { data: user } = useBackendQuery(backend, 'usersMe', [])
   const { getText } = textProvider.useText()
 
   const uploadUserPicture = useMutation(backendMutationOptions(backend, 'uploadUserPicture')).mutate
