@@ -9,7 +9,11 @@ import * as dragAndDropHooks from '#/hooks/dragAndDropHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 
-import { useDriveStore, useSetSelectedKeys } from '#/providers/DriveProvider'
+import {
+  useDriveStore,
+  useSetIsAssetPanelTemporarilyVisible,
+  useSetSelectedKeys,
+} from '#/providers/DriveProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -33,6 +37,7 @@ import * as backendModule from '#/services/Backend'
 
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
+import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
@@ -123,7 +128,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
     doMove,
     category,
   } = state
-  const { setIsAssetPanelTemporarilyVisible, scrollContainerRef, rootDirectoryId, backend } = state
+  const { scrollContainerRef, rootDirectoryId, backend } = state
   const { visibilities } = state
 
   const [item, setItem] = React.useState(rawItem)
@@ -149,8 +154,8 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
   const rootRef = React.useRef<HTMLElement | null>(null)
   const dragOverTimeoutHandle = React.useRef<number | null>(null)
-  const grabKeyboardFocusRef = React.useRef(grabKeyboardFocus)
-  grabKeyboardFocusRef.current = grabKeyboardFocus
+  const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
+  const grabKeyboardFocusRef = useSyncRef(grabKeyboardFocus)
   const asset = item.item
   const [insertionVisibility, setInsertionVisibility] = React.useState(Visibility.visible)
   const [rowState, setRowState] = React.useState<assetsTable.AssetRowState>(() =>

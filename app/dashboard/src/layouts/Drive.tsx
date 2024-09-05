@@ -30,7 +30,6 @@ import * as result from '#/components/Result'
 
 import * as backendModule from '#/services/Backend'
 
-import { useSetIsAssetPanelTemporarilyVisible } from '#/providers/DriveProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import AssetQuery from '#/utilities/AssetQuery'
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
@@ -69,7 +68,6 @@ export default function Drive(props: DriveProps) {
     React.useState<assetPanel.AssetPanelRequiredProps | null>(null)
   const assetPanelProps =
     backend.type === assetPanelPropsRaw?.backend?.type ? assetPanelPropsRaw : null
-  const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
   const organizationQuery = useSuspenseQuery({
     queryKey: [backend.type, 'getOrganization'],
     queryFn: () => backend.getOrganization(),
@@ -277,7 +275,6 @@ export default function Drive(props: DriveProps) {
                   setSuggestions={setSuggestions}
                   initialProjectName={initialProjectName}
                   setAssetPanelProps={setAssetPanelProps}
-                  setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
                   targetDirectoryNodeRef={targetDirectoryNodeRef}
                 />
               }

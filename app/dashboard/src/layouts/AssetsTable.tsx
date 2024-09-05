@@ -29,6 +29,7 @@ import {
   useDriveStore,
   useSetCanCreateAssets,
   useSetCanDownload,
+  useSetIsAssetPanelTemporarilyVisible,
   useSetSelectedKeys,
   useSetVisuallySelectedKeys,
 } from '#/providers/DriveProvider'
@@ -250,7 +251,6 @@ export interface AssetsTableState {
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
-  readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
   readonly nodeMap: Readonly<
     React.MutableRefObject<ReadonlyMap<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>>
   >
@@ -296,7 +296,6 @@ export interface AssetsTableProps {
   readonly category: Category
   readonly initialProjectName: string | null
   readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
-  readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
   readonly targetDirectoryNodeRef: React.MutableRefObject<assetTreeNode.AnyAssetTreeNode<backendModule.DirectoryAsset> | null>
   readonly assetManagementApiRef: React.Ref<AssetManagementApi>
 }
@@ -313,7 +312,7 @@ export interface AssetManagementApi {
 export default function AssetsTable(props: AssetsTableProps) {
   const { hidden, query, setQuery, category, assetManagementApiRef } = props
   const { setSuggestions, initialProjectName } = props
-  const { setAssetPanelProps, targetDirectoryNodeRef, setIsAssetPanelTemporarilyVisible } = props
+  const { setAssetPanelProps, targetDirectoryNodeRef } = props
 
   const openedProjects = projectsProvider.useLaunchedProjects()
   const doOpenProject = projectHooks.useOpenProject()
@@ -335,6 +334,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const didLoadingProjectManagerFail = backendProvider.useDidLoadingProjectManagerFail()
   const reconnectToProjectManager = backendProvider.useReconnectToProjectManager()
   const [enabledColumns, setEnabledColumns] = React.useState(columnUtils.DEFAULT_ENABLED_COLUMNS)
+  const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
 
   const [sortInfo, setSortInfo] =
     React.useState<sorting.SortInfo<columnUtils.SortableColumn> | null>(null)
@@ -2245,7 +2245,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       query,
       setQuery,
       setAssetPanelProps,
-      setIsAssetPanelTemporarilyVisible,
       nodeMap: nodeMapRef,
       pasteData: pasteDataRef,
       hideColumn,
@@ -2275,7 +2274,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       doMove,
       hideColumn,
       setAssetPanelProps,
-      setIsAssetPanelTemporarilyVisible,
       setQuery,
     ],
   )

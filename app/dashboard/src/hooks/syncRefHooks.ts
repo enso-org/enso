@@ -1,16 +1,9 @@
-/**
- * @file useSyncRef.ts
- *
- * A hook that returns a ref object whose `current` property is always in sync with the provided value.
- */
+/** * @file A hook that returns a ref object whose `current` property is always in sync with the provided value. */
+import { type MutableRefObject, useRef } from 'react'
 
-import * as React from 'react'
-
-/**
- * A hook that returns a ref object whose `current` property is always in sync with the provided value.
- */
-export function useSyncRef<T>(value: T): Readonly<React.MutableRefObject<T>> {
-  const ref = React.useRef(value)
+/** A hook that returns a ref object whose `current` property is always in sync with the provided value. */
+export function useSyncRef<T>(value: T): Readonly<MutableRefObject<T>> {
+  const ref = useRef(value)
 
   /*
   Even though the react core team doesn't recommend setting ref values during the render (it might lead to deoptimizations), the reasoning behind this is:

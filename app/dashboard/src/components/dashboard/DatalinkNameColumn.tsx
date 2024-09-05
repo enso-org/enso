@@ -1,6 +1,4 @@
 /** @file The icon and name of a {@link backendModule.SecretAsset}. */
-import * as React from 'react'
-
 import DatalinkIcon from '#/assets/datalink.svg'
 
 import * as setAssetHooks from '#/hooks/setAssetHooks'
@@ -16,6 +14,7 @@ import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
+import { useSetIsAssetPanelTemporarilyVisible } from '#/providers/DriveProvider'
 
 // ====================
 // === DatalinkName ===
@@ -29,7 +28,7 @@ export interface DatalinkNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
   const { item, setItem, selected, state, rowState, setRowState, isEditable } = props
-  const { setIsAssetPanelTemporarilyVisible } = state
+  const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
   const inputBindings = inputBindingsProvider.useInputBindings()
   if (item.type !== backendModule.AssetType.datalink) {
     // eslint-disable-next-line no-restricted-syntax
