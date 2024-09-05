@@ -11,6 +11,7 @@ import * as setAssetHooks from '#/hooks/setAssetHooks'
 
 import {
   useDriveStore,
+  useSetAssetPanelProps,
   useSetIsAssetPanelTemporarilyVisible,
   useSetSelectedKeys,
 } from '#/providers/DriveProvider'
@@ -118,7 +119,6 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   const { item: rawItem, hidden: hiddenRaw, updateAssetRef, grabKeyboardFocus } = props
   const {
     nodeMap,
-    setAssetPanelProps,
     doToggleDirectoryExpansion,
     doCopy,
     doCut,
@@ -135,6 +135,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   const driveStore = useDriveStore()
   const { user } = useFullUserSession()
   const setSelectedKeys = useSetSelectedKeys()
+  const setAssetPanelProps = useSetAssetPanelProps()
   const selected = useStore(driveStore, ({ visuallySelectedKeys, selectedKeys }) =>
     (visuallySelectedKeys ?? selectedKeys).has(item.key),
   )

@@ -16,7 +16,7 @@ import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 
 import type { Category } from '#/layouts/CategorySwitcher/Category'
-import { useIsAssetPanelVisible } from '#/providers/DriveProvider'
+import { useAssetPanelProps, useIsAssetPanelVisible } from '#/providers/DriveProvider'
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
@@ -51,22 +51,26 @@ LocalStorage.registerKey('assetPanelTab', {
 // === AssetPanel ===
 // ==================
 
-/** The subset of {@link AssetPanelProps} that are required to be supplied by the row. */
-export interface AssetPanelRequiredProps {
+/** Props supplied by the row. */
+export interface AssetPanelContextProps {
   readonly backend: Backend | null
   readonly item: assetTreeNode.AnyAssetTreeNode | null
   readonly setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AnyAssetTreeNode>> | null
 }
 
 /** Props for an {@link AssetPanel}. */
-export interface AssetPanelProps extends AssetPanelRequiredProps {
-  readonly isReadonly?: boolean
+export interface AssetPanelProps {
+  readonly backendType: backendModule.BackendType
   readonly category: Category
 }
 
 /** A panel containing the description and settings for an asset. */
 export default function AssetPanel(props: AssetPanelProps) {
-  const { backend, isReadonly = false, item, setItem, category } = props
+  const { backendType, category } = props
+  const contextPropsRaw = useAssetPanelProps()
+  const contextProps = backendType === contextPropsRaw?.backend?.type ? contextPropsRaw : null
+  const { backend, item, setItem } = contextProps ?? {}
+  const isReadonly = category.type === 'trash'
   const isCloud = backend?.type === backendModule.BackendType.remote
   const isVisible = useIsAssetPanelVisible()
 

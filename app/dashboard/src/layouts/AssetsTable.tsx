@@ -27,6 +27,7 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import {
   useDriveStore,
+  useSetAssetPanelProps,
   useSetCanCreateAssets,
   useSetCanDownload,
   useSetIsAssetPanelTemporarilyVisible,
@@ -44,7 +45,6 @@ import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 
-import type * as assetPanel from '#/layouts/AssetPanel'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
@@ -250,7 +250,6 @@ export interface AssetsTableState {
   readonly setSortInfo: (sortInfo: sorting.SortInfo<columnUtils.SortableColumn> | null) => void
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
   readonly nodeMap: Readonly<
     React.MutableRefObject<ReadonlyMap<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>>
   >
@@ -295,7 +294,6 @@ export interface AssetsTableProps {
   >
   readonly category: Category
   readonly initialProjectName: string | null
-  readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
   readonly targetDirectoryNodeRef: React.MutableRefObject<assetTreeNode.AnyAssetTreeNode<backendModule.DirectoryAsset> | null>
   readonly assetManagementApiRef: React.Ref<AssetManagementApi>
 }
@@ -310,9 +308,8 @@ export interface AssetManagementApi {
 
 /** The table of project assets. */
 export default function AssetsTable(props: AssetsTableProps) {
-  const { hidden, query, setQuery, category, assetManagementApiRef } = props
-  const { setSuggestions, initialProjectName } = props
-  const { setAssetPanelProps, targetDirectoryNodeRef } = props
+  const { hidden, query, setQuery, category, assetManagementApiRef, setSuggestions } = props
+  const { initialProjectName, targetDirectoryNodeRef } = props
 
   const openedProjects = projectsProvider.useLaunchedProjects()
   const doOpenProject = projectHooks.useOpenProject()
@@ -335,6 +332,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const reconnectToProjectManager = backendProvider.useReconnectToProjectManager()
   const [enabledColumns, setEnabledColumns] = React.useState(columnUtils.DEFAULT_ENABLED_COLUMNS)
   const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
+  const setAssetPanelProps = useSetAssetPanelProps()
 
   const [sortInfo, setSortInfo] =
     React.useState<sorting.SortInfo<columnUtils.SortableColumn> | null>(null)
@@ -2244,7 +2242,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       setSortInfo,
       query,
       setQuery,
-      setAssetPanelProps,
       nodeMap: nodeMapRef,
       pasteData: pasteDataRef,
       hideColumn,
@@ -2273,7 +2270,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       doRestore,
       doMove,
       hideColumn,
-      setAssetPanelProps,
       setQuery,
     ],
   )

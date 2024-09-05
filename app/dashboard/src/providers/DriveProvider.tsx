@@ -4,6 +4,7 @@ import * as React from 'react'
 import invariant from 'tiny-invariant'
 import * as zustand from 'zustand'
 
+import type { AssetPanelContextProps } from '#/layouts/AssetPanel'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import type { AssetId } from 'enso-common/src/services/Backend'
 
@@ -25,6 +26,8 @@ interface DriveStore {
   readonly setIsAssetPanelPermanentlyVisible: (isAssetPanelTemporarilyVisible: boolean) => void
   readonly isAssetPanelTemporarilyVisible: boolean
   readonly setIsAssetPanelTemporarilyVisible: (isAssetPanelTemporarilyVisible: boolean) => void
+  readonly assetPanelProps: AssetPanelContextProps | null
+  readonly setAssetPanelProps: (assetPanelProps: AssetPanelContextProps | null) => void
 }
 
 // =======================
@@ -74,6 +77,10 @@ export default function DriveProvider(props: ProjectsProviderProps) {
       isAssetPanelTemporarilyVisible: false,
       setIsAssetPanelTemporarilyVisible: (isAssetPanelTemporarilyVisible) => {
         set({ isAssetPanelTemporarilyVisible })
+      },
+      assetPanelProps: null,
+      setAssetPanelProps: (assetPanelProps) => {
+        set({ assetPanelProps })
       },
     })),
   )
@@ -167,4 +174,16 @@ export function useIsAssetPanelVisible() {
   const isAssetPanelPermanentlyVisible = useIsAssetPanelPermanentlyVisible()
   const isAssetPanelTemporarilyVisible = useIsAssetPanelTemporarilyVisible()
   return isAssetPanelPermanentlyVisible || isAssetPanelTemporarilyVisible
+}
+
+/** Props for the Asset Panel. */
+export function useAssetPanelProps() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.assetPanelProps)
+}
+
+/** A function to set props for the Asset Panel. */
+export function useSetAssetPanelProps() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.setAssetPanelProps)
 }

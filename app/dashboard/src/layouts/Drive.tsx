@@ -14,7 +14,6 @@ import * as textProvider from '#/providers/TextProvider'
 
 import AssetListEventType from '#/events/AssetListEventType'
 
-import type * as assetPanel from '#/layouts/AssetPanel'
 import AssetPanel from '#/layouts/AssetPanel'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import type * as assetsTable from '#/layouts/AssetsTable'
@@ -64,10 +63,6 @@ export default function Drive(props: DriveProps) {
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
   const [suggestions, setSuggestions] = React.useState<readonly assetSearchBar.Suggestion[]>([])
-  const [assetPanelPropsRaw, setAssetPanelProps] =
-    React.useState<assetPanel.AssetPanelRequiredProps | null>(null)
-  const assetPanelProps =
-    backend.type === assetPanelPropsRaw?.backend?.type ? assetPanelPropsRaw : null
   const organizationQuery = useSuspenseQuery({
     queryKey: [backend.type, 'getOrganization'],
     queryFn: () => backend.getOrganization(),
@@ -274,20 +269,12 @@ export default function Drive(props: DriveProps) {
                   category={category}
                   setSuggestions={setSuggestions}
                   initialProjectName={initialProjectName}
-                  setAssetPanelProps={setAssetPanelProps}
                   targetDirectoryNodeRef={targetDirectoryNodeRef}
                 />
               }
             </div>
           </div>
-          <AssetPanel
-            key={assetPanelProps?.item?.item.id}
-            backend={assetPanelProps?.backend ?? null}
-            item={assetPanelProps?.item ?? null}
-            setItem={assetPanelProps?.setItem ?? null}
-            category={category}
-            isReadonly={category.type === 'trash'}
-          />
+          <AssetPanel backendType={backend.type} category={category} />
         </div>
       )
     }
