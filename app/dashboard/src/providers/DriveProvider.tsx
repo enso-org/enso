@@ -8,6 +8,7 @@ import type { AssetPanelContextProps } from '#/layouts/AssetPanel'
 import type { Suggestion } from '#/layouts/AssetSearchBar'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import type { AssetId } from 'enso-common/src/services/Backend'
+import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
 
 // ==================
 // === DriveStore ===
@@ -55,39 +56,64 @@ export default function DriveProvider(props: ProjectsProviderProps) {
   const { children } = props
   const { localStorage } = useLocalStorage()
   const [store] = React.useState(() =>
-    zustand.createStore<DriveStore>((set) => ({
+    zustand.createStore<DriveStore>((set, get) => ({
       canCreateAssets: true,
       setCanCreateAssets: (canCreateAssets) => {
-        set({ canCreateAssets })
+        if (get().canCreateAssets !== canCreateAssets) {
+          set({ canCreateAssets })
+        }
       },
       canDownload: false,
       setCanDownload: (canDownload) => {
-        set({ canDownload })
+        if (get().canDownload !== canDownload) {
+          set({ canDownload })
+        }
       },
       selectedKeys: new Set(),
       setSelectedKeys: (selectedKeys) => {
-        set({ selectedKeys })
+        if (
+          get().selectedKeys !== selectedKeys &&
+          (selectedKeys.size !== 0 || get().selectedKeys.size !== 0)
+        ) {
+          set({ selectedKeys })
+        }
       },
       visuallySelectedKeys: null,
       setVisuallySelectedKeys: (visuallySelectedKeys) => {
-        set({ visuallySelectedKeys })
+        if (
+          get().visuallySelectedKeys !== visuallySelectedKeys &&
+          (visuallySelectedKeys?.size !== 0 || get().visuallySelectedKeys?.size !== 0)
+        ) {
+          set({ visuallySelectedKeys })
+        }
       },
       isAssetPanelPermanentlyVisible: localStorage.get('isAssetPanelVisible') ?? false,
       setIsAssetPanelPermanentlyVisible: (isAssetPanelPermanentlyVisible) => {
-        set({ isAssetPanelPermanentlyVisible })
-        localStorage.set('isAssetPanelVisible', isAssetPanelPermanentlyVisible)
+        if (get().isAssetPanelPermanentlyVisible !== isAssetPanelPermanentlyVisible) {
+          set({ isAssetPanelPermanentlyVisible })
+          localStorage.set('isAssetPanelVisible', isAssetPanelPermanentlyVisible)
+        }
       },
       isAssetPanelTemporarilyVisible: false,
       setIsAssetPanelTemporarilyVisible: (isAssetPanelTemporarilyVisible) => {
-        set({ isAssetPanelTemporarilyVisible })
+        if (get().isAssetPanelTemporarilyVisible !== isAssetPanelTemporarilyVisible) {
+          set({ isAssetPanelTemporarilyVisible })
+        }
       },
       assetPanelProps: null,
       setAssetPanelProps: (assetPanelProps) => {
-        set({ assetPanelProps })
+        if (get().assetPanelProps !== assetPanelProps) {
+          set({ assetPanelProps })
+        }
       },
-      suggestions: [],
+      suggestions: EMPTY_ARRAY,
       setSuggestions: (suggestions) => {
-        set({ suggestions })
+        if (
+          get().suggestions !== suggestions &&
+          (suggestions.length !== 0 || get().suggestions.length !== 0)
+        ) {
+          set({ suggestions })
+        }
       },
     })),
   )

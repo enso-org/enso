@@ -1204,12 +1204,10 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   React.useEffect(
     () =>
-      driveStore.subscribe(({ selectedKeys, isAssetPanelTemporarilyVisible }) => {
+      driveStore.subscribe(({ selectedKeys }) => {
         if (selectedKeys.size !== 1) {
           setAssetPanelProps(null)
-          if (isAssetPanelTemporarilyVisible) {
-            setIsAssetPanelTemporarilyVisible(false)
-          }
+          setIsAssetPanelTemporarilyVisible(false)
         }
       }),
     [driveStore, setAssetPanelProps, setIsAssetPanelTemporarilyVisible],
