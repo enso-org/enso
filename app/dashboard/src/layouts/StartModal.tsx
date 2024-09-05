@@ -19,7 +19,7 @@ export interface StartModalProps {
 
 /** A modal containing project templates and news. */
 export default function StartModal(props: StartModalProps) {
-  const { createProject: createProjectRaw } = props
+  const { createProject } = props
   const { getText } = textProvider.useText()
 
   return (
@@ -39,7 +39,7 @@ export default function StartModal(props: StartModalProps) {
 
           <Samples
             createProject={(templateId, templateName) => {
-              createProjectRaw(templateId, templateName)
+              createProject(templateId, templateName)
               opts.close()
             }}
           />

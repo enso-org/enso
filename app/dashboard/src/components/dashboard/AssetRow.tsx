@@ -1,28 +1,17 @@
 /** @file A table row for an arbitrary asset. */
 import * as React from 'react'
 
-import { useMutation } from '@tanstack/react-query'
 import { useStore } from 'zustand'
 
 import BlankIcon from '#/assets/blank.svg'
 
-import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 import * as dragAndDropHooks from '#/hooks/dragAndDropHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as authProvider from '#/providers/AuthProvider'
 import { useDriveStore, useSetSelectedKeys } from '#/providers/DriveProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
-
-import AssetEventType from '#/events/AssetEventType'
-import AssetListEventType from '#/events/AssetListEventType'
-
-import AssetContextMenu from '#/layouts/AssetContextMenu'
-import type * as assetsTable from '#/layouts/AssetsTable'
-import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 
 import * as aria from '#/components/aria'
 import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
@@ -30,35 +19,40 @@ import * as columnModule from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 import FocusRing from '#/components/styled/FocusRing'
+import AssetEventType from '#/events/AssetEventType'
+import AssetListEventType from '#/events/AssetListEventType'
+import AssetContextMenu from '#/layouts/AssetContextMenu'
+import type * as assetsTable from '#/layouts/AssetsTable'
+import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
+import { isCloudCategory } from '#/layouts/CategorySwitcher/Category'
+import * as localBackend from '#/services/LocalBackend'
 
 import EditAssetDescriptionModal from '#/modals/EditAssetDescriptionModal'
 
 import * as backendModule from '#/services/Backend'
-import * as localBackend from '#/services/LocalBackend'
 
+import { backendMutationOptions } from '#/hooks/backendHooks'
 import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
-import { isCloudCategory } from '#/layouts/CategorySwitcher/Category'
+import { useToastAndLog } from '#/hooks/toastAndLogHooks'
+import { useFullUserSession } from '#/providers/AuthProvider'
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
-import * as dateTime from '#/utilities/dateTime'
-import * as download from '#/utilities/download'
+import { download } from '#/utilities/download'
 import * as drag from '#/utilities/drag'
 import * as eventModule from '#/utilities/event'
-import * as fileInfo from '#/utilities/fileInfo'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
-import * as path from '#/utilities/path'
 import * as permissions from '#/utilities/permissions'
 import * as set from '#/utilities/set'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 
 // =================
 // === Constants ===
 // =================
 
 /** The height of the header row. */
-const HEADER_HEIGHT_PX = 34
+const HEADER_HEIGHT_PX = 40
 /** The amount of time (in milliseconds) the drag item must be held over this component
  * to make a directory row expand. */
 const DRAG_EXPAND_DELAY_MS = 500
@@ -117,12 +111,24 @@ export interface AssetRowProps {
 export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   const { isKeyboardSelected, isOpened, select, state, columns, onClick } = props
   const { item: rawItem, hidden: hiddenRaw, updateAssetRef, grabKeyboardFocus } = props
-  const { nodeMap, setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
+  const {
+    nodeMap,
+    setAssetPanelProps,
+    doToggleDirectoryExpansion,
+    doCopy,
+    doCut,
+    doPaste,
+    doDelete: doDeleteRaw,
+    doRestore,
+    doMove,
+    category,
+  } = state
   const { setIsAssetPanelTemporarilyVisible, scrollContainerRef, rootDirectoryId, backend } = state
-  const { visibilities, category } = state
+  const { visibilities } = state
 
   const [item, setItem] = React.useState(rawItem)
   const driveStore = useDriveStore()
+  const { user } = useFullUserSession()
   const setSelectedKeys = useSetSelectedKeys()
   const selected = useStore(driveStore, ({ visuallySelectedKeys, selectedKeys }) =>
     (visuallySelectedKeys ?? selectedKeys).has(item.key),
@@ -136,14 +142,10 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
     ({ selectedKeys }) => selectedKeys.size === 0 || !selected || isSoleSelected,
   )
   const draggableProps = dragAndDropHooks.useDraggable()
-  const { user } = authProvider.useFullUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
-  const { data: users } = useBackendQuery(backend, 'listUsers', [])
-  const { data: userGroups } = useBackendQuery(backend, 'listUserGroups', [])
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
   const rootRef = React.useRef<HTMLElement | null>(null)
   const dragOverTimeoutHandle = React.useRef<number | null>(null)
@@ -158,33 +160,14 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
     readonly nodeMap: WeakRef<ReadonlyMap<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>>
     readonly parentKeys: Map<backendModule.AssetId, backendModule.DirectoryId>
   } | null>(null)
-  const isCloud = isCloudCategory(category)
+
   const outerVisibility = visibilities.get(item.key)
   const visibility =
     outerVisibility == null || outerVisibility === Visibility.visible ?
       insertionVisibility
     : outerVisibility
   const hidden = hiddenRaw || visibility === Visibility.hidden
-
-  const copyAssetMutation = useMutation(backendMutationOptions(backend, 'copyAsset'))
-  const updateAssetMutation = useMutation(backendMutationOptions(backend, 'updateAsset'))
-  const deleteAssetMutation = useMutation(backendMutationOptions(backend, 'deleteAsset'))
-  const undoDeleteAssetMutation = useMutation(backendMutationOptions(backend, 'undoDeleteAsset'))
-  const openProjectMutation = useMutation(backendMutationOptions(backend, 'openProject'))
-  const closeProjectMutation = useMutation(backendMutationOptions(backend, 'closeProject'))
-  const getProjectDetailsMutation = useMutation(
-    backendMutationOptions(backend, 'getProjectDetails'),
-  )
-  const getFileDetailsMutation = useMutation(backendMutationOptions(backend, 'getFileDetails'))
-  const getDatalinkMutation = useMutation(backendMutationOptions(backend, 'getDatalink'))
-  const createPermissionMutation = useMutation(backendMutationOptions(backend, 'createPermission'))
-  const associateTagMutation = useMutation(backendMutationOptions(backend, 'associateTag'))
-  const copyAsset = copyAssetMutation.mutateAsync
-  const updateAsset = updateAssetMutation.mutateAsync
-  const deleteAsset = deleteAssetMutation.mutateAsync
-  const undoDeleteAsset = undoDeleteAssetMutation.mutateAsync
-  const openProject = openProjectMutation.mutateAsync
-  const closeProject = closeProjectMutation.mutateAsync
+  const isCloud = isCloudCategory(category)
 
   const { data: projectState } = useQuery({
     // This is SAFE, as `isOpened` is only true for projects.
@@ -193,6 +176,16 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
     select: (data) => data?.state.type,
     enabled: item.type === backendModule.AssetType.project,
   })
+
+  const toastAndLog = useToastAndLog()
+
+  const getProjectDetailsMutation = useMutation(
+    backendMutationOptions(backend, 'getProjectDetails'),
+  )
+  const getFileDetailsMutation = useMutation(backendMutationOptions(backend, 'getFileDetails'))
+  const getDatalinkMutation = useMutation(backendMutationOptions(backend, 'getDatalink'))
+  const createPermissionMutation = useMutation(backendMutationOptions(backend, 'createPermission'))
+  const associateTagMutation = useMutation(backendMutationOptions(backend, 'associateTag'))
 
   const setSelected = useEventCallback((newSelected: boolean) => {
     const { selectedKeys } = driveStore.getState()
@@ -236,155 +229,6 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
     }
   }, [item.item.id, updateAssetRef])
 
-  const doCopyOnBackend = React.useCallback(
-    async (newParentId: backendModule.DirectoryId | null) => {
-      try {
-        setAsset((oldAsset) =>
-          object.merge(oldAsset, {
-            title: oldAsset.title + ' (copy)',
-            labels: [],
-            permissions: permissions.tryCreateOwnerPermission(
-              `${item.path} (copy)`,
-              category,
-              user,
-              users ?? [],
-              userGroups ?? [],
-            ),
-            modifiedAt: dateTime.toRfc3339(new Date()),
-          }),
-        )
-        newParentId ??= rootDirectoryId
-        const copiedAsset = await copyAsset([
-          asset.id,
-          newParentId,
-          asset.title,
-          nodeMap.current.get(newParentId)?.item.title ?? '(unknown)',
-        ])
-        setAsset(
-          // This is SAFE, as the type of the copied asset is guaranteed to be the same
-          // as the type of the original asset.
-          // eslint-disable-next-line no-restricted-syntax
-          object.merger({
-            ...copiedAsset.asset,
-            state: { type: backendModule.ProjectState.new },
-          } as Partial<backendModule.AnyAsset>),
-        )
-      } catch (error) {
-        toastAndLog('copyAssetError', error, asset.title)
-        // Delete the new component representing the asset that failed to insert.
-        dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
-      }
-    },
-    [
-      setAsset,
-      rootDirectoryId,
-      copyAsset,
-      asset.id,
-      asset.title,
-      nodeMap,
-      item.path,
-      item.key,
-      category,
-      user,
-      users,
-      userGroups,
-      toastAndLog,
-      dispatchAssetListEvent,
-    ],
-  )
-
-  const doMove = React.useCallback(
-    async (
-      newParentKey: backendModule.DirectoryId | null,
-      newParentId: backendModule.DirectoryId | null,
-    ) => {
-      const nonNullNewParentKey = newParentKey ?? rootDirectoryId
-      const nonNullNewParentId = newParentId ?? rootDirectoryId
-      try {
-        setItem((oldItem) =>
-          oldItem.with({ directoryKey: nonNullNewParentKey, directoryId: nonNullNewParentId }),
-        )
-        const newParentPath = localBackend.extractTypeAndId(nonNullNewParentId).id
-        let newId = asset.id
-        if (!isCloud) {
-          const oldPath = localBackend.extractTypeAndId(asset.id).id
-          const newPath = path.joinPath(newParentPath, fileInfo.getFileName(oldPath))
-          switch (asset.type) {
-            case backendModule.AssetType.file: {
-              newId = localBackend.newFileId(newPath)
-              break
-            }
-            case backendModule.AssetType.directory: {
-              newId = localBackend.newDirectoryId(newPath)
-              break
-            }
-            case backendModule.AssetType.project:
-            case backendModule.AssetType.secret:
-            case backendModule.AssetType.datalink:
-            case backendModule.AssetType.specialLoading:
-            case backendModule.AssetType.specialEmpty: {
-              // Ignored.
-              // Project paths are not stored in their `id`;
-              // The other asset types either do not exist on the Local backend,
-              // or do not have a path.
-              break
-            }
-          }
-        }
-        // This is SAFE as the type of `newId` is not changed from its original type.
-        // eslint-disable-next-line no-restricted-syntax
-        const newAsset = object.merge(asset, { id: newId as never, parentId: nonNullNewParentId })
-        dispatchAssetListEvent({
-          type: AssetListEventType.move,
-          newParentKey: nonNullNewParentKey,
-          newParentId: nonNullNewParentId,
-          key: item.key,
-          item: newAsset,
-        })
-        setAsset(newAsset)
-        await updateAsset([
-          asset.id,
-          { parentDirectoryId: newParentId ?? rootDirectoryId, description: null },
-          asset.title,
-        ])
-      } catch (error) {
-        toastAndLog('moveAssetError', error, asset.title)
-        setAsset(
-          object.merger({
-            // This is SAFE as the type of `newId` is not changed from its original type.
-            // eslint-disable-next-line no-restricted-syntax
-            id: asset.id as never,
-            parentId: asset.parentId,
-            projectState: asset.projectState,
-          }),
-        )
-        setItem((oldItem) =>
-          oldItem.with({ directoryKey: item.directoryKey, directoryId: item.directoryId }),
-        )
-        // Move the asset back to its original position.
-        dispatchAssetListEvent({
-          type: AssetListEventType.move,
-          newParentKey: item.directoryKey,
-          newParentId: item.directoryId,
-          key: item.key,
-          item: asset,
-        })
-      }
-    },
-    [
-      isCloud,
-      asset,
-      rootDirectoryId,
-      item.directoryId,
-      item.directoryKey,
-      item.key,
-      toastAndLog,
-      updateAsset,
-      setAsset,
-      dispatchAssetListEvent,
-    ],
-  )
-
   React.useEffect(() => {
     if (isSoleSelected) {
       setAssetPanelProps({ backend, item, setItem })
@@ -393,65 +237,11 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   }, [item, isSoleSelected, backend, setAssetPanelProps, setIsAssetPanelTemporarilyVisible])
 
   const doDelete = React.useCallback(
-    async (forever = false) => {
-      setInsertionVisibility(Visibility.hidden)
-      if (asset.type === backendModule.AssetType.directory) {
-        dispatchAssetListEvent({
-          type: AssetListEventType.closeFolder,
-          id: asset.id,
-          // This is SAFE, as this asset is already known to be a directory.
-          // eslint-disable-next-line no-restricted-syntax
-          key: item.key as backendModule.DirectoryId,
-        })
-      }
-      try {
-        dispatchAssetListEvent({ type: AssetListEventType.willDelete, key: item.key })
-        if (
-          asset.type === backendModule.AssetType.project &&
-          backend.type === backendModule.BackendType.local
-        ) {
-          if (
-            asset.projectState.type !== backendModule.ProjectState.placeholder &&
-            asset.projectState.type !== backendModule.ProjectState.closed
-          ) {
-            await openProject([asset.id, null, asset.title])
-          }
-          try {
-            await closeProject([asset.id, asset.title])
-          } catch {
-            // Ignored. The project was already closed.
-          }
-        }
-        await deleteAsset([asset.id, { force: forever }, asset.title])
-        dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
-      } catch (error) {
-        setInsertionVisibility(Visibility.visible)
-        toastAndLog('deleteAssetError', error, asset.title)
-      }
+    (forever = false) => {
+      void doDeleteRaw(item.item, forever)
     },
-    [
-      backend,
-      dispatchAssetListEvent,
-      asset,
-      openProject,
-      closeProject,
-      deleteAsset,
-      item.key,
-      toastAndLog,
-    ],
+    [doDeleteRaw, item.item],
   )
-
-  const doRestore = React.useCallback(async () => {
-    // Visually, the asset is deleted from the Trash view.
-    setInsertionVisibility(Visibility.hidden)
-    try {
-      await undoDeleteAsset([asset.id, asset.title])
-      dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
-    } catch (error) {
-      setInsertionVisibility(Visibility.visible)
-      toastAndLog('restoreAssetError', error, asset.title)
-    }
-  }, [dispatchAssetListEvent, asset, toastAndLog, undoDeleteAsset, item.key])
 
   const doTriggerDescriptionEdit = React.useCallback(() => {
     setModal(
@@ -473,18 +263,63 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
     )
   }, [setModal, asset.description, setAsset, backend, item.item.id, item.item.title])
 
+  const clearDragState = React.useCallback(() => {
+    setIsDraggedOver(false)
+    setRowState((oldRowState) =>
+      oldRowState.temporarilyAddedLabels === set.EMPTY_SET ?
+        oldRowState
+      : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY_SET }),
+    )
+  }, [])
+
+  const onDragOver = (event: React.DragEvent<Element>) => {
+    const directoryKey =
+      item.item.type === backendModule.AssetType.directory ? item.key : item.directoryKey
+    const payload = drag.ASSET_ROWS.lookup(event)
+    const isPayloadMatch =
+      payload != null && payload.every((innerItem) => innerItem.key !== directoryKey)
+    const canPaste = (() => {
+      if (!isPayloadMatch) {
+        return true
+      } else {
+        if (nodeMap.current !== nodeParentKeysRef.current?.nodeMap.deref()) {
+          const parentKeys = new Map(
+            Array.from(nodeMap.current.entries()).map(([id, otherAsset]) => [
+              id,
+              otherAsset.directoryKey,
+            ]),
+          )
+          nodeParentKeysRef.current = { nodeMap: new WeakRef(nodeMap.current), parentKeys }
+        }
+        return !payload.some((payloadItem) => {
+          const parentKey = nodeParentKeysRef.current?.parentKeys.get(payloadItem.key)
+          const parent = parentKey == null ? null : nodeMap.current.get(parentKey)
+          return !parent ? true : (
+              permissions.isTeamPath(parent.path) && permissions.isUserPath(item.path)
+            )
+        })
+      }
+    })()
+    if ((isPayloadMatch && canPaste) || event.dataTransfer.types.includes('Files')) {
+      event.preventDefault()
+      if (item.item.type === backendModule.AssetType.directory && state.category.type !== 'trash') {
+        setIsDraggedOver(true)
+      }
+    }
+  }
+
   eventListProvider.useAssetEventListener(async (event) => {
     if (state.category.type === 'trash') {
       switch (event.type) {
         case AssetEventType.deleteForever: {
           if (event.ids.has(item.key)) {
-            await doDelete(true)
+            doDelete(true)
           }
           break
         }
         case AssetEventType.restore: {
           if (event.ids.has(item.key)) {
-            await doRestore()
+            await doRestore(item.item)
           }
           break
         }
@@ -494,22 +329,6 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
       }
     } else {
       switch (event.type) {
-        // These events are handled in the specific `NameColumn` files.
-        case AssetEventType.newProject:
-        case AssetEventType.newFolder:
-        case AssetEventType.uploadFiles:
-        case AssetEventType.newDatalink:
-        case AssetEventType.newSecret:
-        case AssetEventType.updateFiles:
-        case AssetEventType.projectClosed: {
-          break
-        }
-        case AssetEventType.copy: {
-          if (event.ids.has(item.key)) {
-            await doCopyOnBackend(event.newParentId)
-          }
-          break
-        }
         case AssetEventType.cut: {
           if (event.ids.has(item.key)) {
             setInsertionVisibility(Visibility.faded)
@@ -525,25 +344,25 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
         case AssetEventType.move: {
           if (event.ids.has(item.key)) {
             setInsertionVisibility(Visibility.visible)
-            await doMove(event.newParentKey, event.newParentId)
+            await doMove(event.newParentKey, item.item)
           }
           break
         }
         case AssetEventType.delete: {
           if (event.ids.has(item.key)) {
-            await doDelete(false)
+            doDelete(false)
           }
           break
         }
         case AssetEventType.deleteForever: {
           if (event.ids.has(item.key)) {
-            await doDelete(true)
+            doDelete(true)
           }
           break
         }
         case AssetEventType.restore: {
           if (event.ids.has(item.key)) {
-            await doRestore()
+            await doRestore(item.item)
           }
           break
         }
@@ -591,7 +410,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
                   try {
                     const value = await getDatalinkMutation.mutateAsync([asset.id, asset.title])
                     const fileName = `${asset.title}.datalink`
-                    download.download(
+                    download(
                       URL.createObjectURL(
                         new File([JSON.stringify(value)], fileName, {
                           type: 'application/json+x-enso-data-link',
@@ -744,54 +563,12 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
           }
           break
         }
+        default: {
+          return
+        }
       }
     }
   }, item.initialAssetEvents)
-
-  const clearDragState = React.useCallback(() => {
-    setIsDraggedOver(false)
-    setRowState((oldRowState) =>
-      oldRowState.temporarilyAddedLabels === set.EMPTY_SET ?
-        oldRowState
-      : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY_SET }),
-    )
-  }, [])
-
-  const onDragOver = (event: React.DragEvent<Element>) => {
-    const directoryKey =
-      item.item.type === backendModule.AssetType.directory ? item.key : item.directoryKey
-    const payload = drag.ASSET_ROWS.lookup(event)
-    const isPayloadMatch =
-      payload != null && payload.every((innerItem) => innerItem.key !== directoryKey)
-    const canPaste = (() => {
-      if (!isPayloadMatch) {
-        return true
-      } else {
-        if (nodeMap.current !== nodeParentKeysRef.current?.nodeMap.deref()) {
-          const parentKeys = new Map(
-            Array.from(nodeMap.current.entries()).map(([id, otherAsset]) => [
-              id,
-              otherAsset.directoryKey,
-            ]),
-          )
-          nodeParentKeysRef.current = { nodeMap: new WeakRef(nodeMap.current), parentKeys }
-        }
-        return !payload.some((payloadItem) => {
-          const parentKey = nodeParentKeysRef.current?.parentKeys.get(payloadItem.key)
-          const parent = parentKey == null ? null : nodeMap.current.get(parentKey)
-          return !parent ? true : (
-              permissions.isTeamPath(parent.path) && permissions.isUserPath(item.path)
-            )
-        })
-      }
-    })()
-    if ((isPayloadMatch && canPaste) || event.dataTransfer.types.includes('Files')) {
-      event.preventDefault()
-      if (item.item.type === backendModule.AssetType.directory && state.category.type !== 'trash') {
-        setIsDraggedOver(true)
-      }
-    }
-  }
 
   switch (asset.type) {
     case backendModule.AssetType.directory:
@@ -816,18 +593,23 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
                 tabIndex={0}
                 ref={(element) => {
                   rootRef.current = element
-                  if (isSoleSelected && element != null && scrollContainerRef.current != null) {
-                    const rect = element.getBoundingClientRect()
-                    const scrollRect = scrollContainerRef.current.getBoundingClientRect()
-                    const scrollUp = rect.top - (scrollRect.top + HEADER_HEIGHT_PX)
-                    const scrollDown = rect.bottom - scrollRect.bottom
-                    if (scrollUp < 0 || scrollDown > 0) {
-                      scrollContainerRef.current.scrollBy({
-                        top: scrollUp < 0 ? scrollUp : scrollDown,
-                        behavior: 'smooth',
-                      })
+
+                  requestAnimationFrame(() => {
+                    if (isSoleSelected && element != null && scrollContainerRef.current != null) {
+                      const rect = element.getBoundingClientRect()
+                      const scrollRect = scrollContainerRef.current.getBoundingClientRect()
+                      const scrollUp = rect.top - (scrollRect.top + HEADER_HEIGHT_PX)
+                      const scrollDown = rect.bottom - scrollRect.bottom
+
+                      if (scrollUp < 0 || scrollDown > 0) {
+                        scrollContainerRef.current.scrollBy({
+                          top: scrollUp < 0 ? scrollUp : scrollDown,
+                          behavior: 'smooth',
+                        })
+                      }
                     }
-                  }
+                  })
+
                   if (isKeyboardSelected && element?.contains(document.activeElement) === false) {
                     element.focus()
                   }
@@ -851,7 +633,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
                     window.setTimeout(() => {
                       setSelected(false)
                     })
-                    doToggleDirectoryExpansion(item.item.id, item.key, asset.title)
+                    doToggleDirectoryExpansion(item.item.id, item.key)
                   }
                 }}
                 onContextMenu={(event) => {
@@ -896,7 +678,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
                   }
                   if (item.type === backendModule.AssetType.directory) {
                     dragOverTimeoutHandle.current = window.setTimeout(() => {
-                      doToggleDirectoryExpansion(item.item.id, item.key, asset.title, true)
+                      doToggleDirectoryExpansion(item.item.id, item.key, true)
                     }, DRAG_EXPAND_DELAY_MS)
                   }
                   // Required because `dragover` does not fire on `mouseenter`.
@@ -934,10 +716,10 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
                   if (state.category.type !== 'trash') {
                     props.onDrop?.(event, item)
                     clearDragState()
-                    const [directoryKey, directoryId, directoryTitle] =
+                    const [directoryKey, directoryId] =
                       item.type === backendModule.AssetType.directory ?
-                        [item.key, item.item.id, asset.title]
-                      : [item.directoryKey, item.directoryId, null]
+                        [item.key, item.item.id]
+                      : [item.directoryKey, item.directoryId]
                     const payload = drag.ASSET_ROWS.lookup(event)
                     if (
                       payload != null &&
@@ -946,7 +728,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
                       event.preventDefault()
                       event.stopPropagation()
                       unsetModal()
-                      doToggleDirectoryExpansion(directoryId, directoryKey, directoryTitle, true)
+                      doToggleDirectoryExpansion(directoryId, directoryKey, true)
                       const ids = payload
                         .filter((payloadItem) => payloadItem.asset.parentId !== directoryId)
                         .map((dragItem) => dragItem.key)
@@ -959,7 +741,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
                     } else if (event.dataTransfer.types.includes('Files')) {
                       event.preventDefault()
                       event.stopPropagation()
-                      doToggleDirectoryExpansion(directoryId, directoryKey, directoryTitle, true)
+                      doToggleDirectoryExpansion(directoryId, directoryKey, true)
                       dispatchAssetListEvent({
                         type: AssetListEventType.uploadFiles,
                         parentKey: directoryKey,
