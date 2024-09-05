@@ -52,14 +52,13 @@ import { suggestionDocumentationUrl, type Typename } from '@/stores/suggestionDa
 import { provideVisualizationStore } from '@/stores/visualization'
 import { bail } from '@/util/assert'
 import type { AstId } from '@/util/ast/abstract'
-import { targetIsOutside } from '@/util/autoBlur'
 import { colorFromString } from '@/util/colors'
 import { partition } from '@/util/data/array'
 import { every, filterDefined } from '@/util/data/iterable'
 import { Rect } from '@/util/data/rect'
 import { Err, Ok, unwrapOr } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
-import { computedFallback } from '@/util/reactivity'
+import { computedFallback, useSelectRef } from '@/util/reactivity'
 import { until } from '@vueuse/core'
 import { encoding, set } from 'lib0'
 import {
@@ -457,46 +456,39 @@ function hideComponentBrowser() {
   displayedDocs.value = null
 }
 
-const rightDockDisplayedTab = computed({
-  get() {
-    if (componentBrowserVisible.value) {
+const rightDockDisplayedTab = useSelectRef(
+  componentBrowserVisible,
+  computed({
+    get() {
       if (userSettings.value.showHelpForCB) {
         return 'help'
       } else {
         return showRightDock.value ? rightDockTab.value : rightDockTabForCB.value
       }
-    } else {
-      return rightDockTab.value
-    }
-  },
-  set(tab) {
-    if (componentBrowserVisible.value) {
+    },
+    set(tab) {
       rightDockTabForCB.value = tab
       userSettings.value.showHelpForCB = tab === 'help'
       if (showRightDock.value) rightDockTab.value = tab
-    } else {
-      rightDockTab.value = tab
-    }
-  },
-})
-const rightDockVisible = computed({
-  get() {
-    if (componentBrowserVisible.value) {
+    },
+  }),
+  rightDockTab,
+)
+
+const rightDockVisible = useSelectRef(
+  componentBrowserVisible,
+  computed({
+    get() {
       return userSettings.value.showHelpForCB || rightDockVisibleForCB.value || showRightDock.value
-    } else {
-      return showRightDock.value
-    }
-  },
-  set(vis) {
-    if (componentBrowserVisible.value) {
+    },
+    set(vis) {
       rightDockVisibleForCB.value = vis
       userSettings.value.showHelpForCB = vis
       if (!vis) showRightDock.value = false
-    } else {
-      showRightDock.value = vis
-    }
-  },
-})
+    },
+  }),
+  showRightDock,
+)
 
 function editWithComponentBrowser(node: NodeId, cursorPos: number) {
   openComponentBrowser(

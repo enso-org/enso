@@ -2,9 +2,9 @@
 import DocumentationPanel from '@/components/DocumentationPanel.vue'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore } from '@/stores/graph'
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import type { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
-import { Err, Ok, type Result } from 'ydoc-shared/util/data/result'
+import { Err, Ok } from 'ydoc-shared/util/data/result'
 
 const props = defineProps<{ displayedSuggestionId: SuggestionId | null }>()
 const emit = defineEmits<{ 'update:displayedSuggestionId': [SuggestionId] }>()
