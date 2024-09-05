@@ -14,6 +14,8 @@ test('Adding new node', async ({ page }) => {
   await page.keyboard.press(`${CONTROL_KEY}+Enter`)
   await expect(locate.graphNode(page)).toHaveCount(nodesCount + 1)
   await expect(locate.graphNode(page).last().locator('.WidgetToken')).toHaveText(['foo'])
+  await expect(locate.rightDock(page)).toBeHidden()
+  await expect(page.locator('[data-transitioning]')).toHaveCount(0)
   const newNodeBBox = await locate.graphNode(page).last().boundingBox()
 
   await page.keyboard.press(`${CONTROL_KEY}+Z`)
