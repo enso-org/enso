@@ -109,7 +109,7 @@ function panIntoView() {
     new Vec2(screenRect.width, screenRect.height).scale(clientToSceneFactor.value),
   )
   const margins = scaleValues(PAN_MARGINS, clientToSceneFactor.value)
-  props.navigator.panTo([
+  props.navigator.panToThenFollow([
     // Always include the top-left of the input area.
     { x: area.left, y: area.top },
     // Try to reach the bottom-right corner of the panels.
