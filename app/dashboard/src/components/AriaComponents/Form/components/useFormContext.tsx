@@ -11,3 +11,14 @@ import * as reactHookForm from 'react-hook-form'
 export function useFormContext() {
   return reactHookForm.useFormContext()
 }
+
+/**
+ * Returns the form instance from the context, or null if the context is not available.
+ */
+export function useOptionalFormContext() {
+  try {
+    return useFormContext()
+  } catch {
+    return null
+  }
+}

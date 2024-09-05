@@ -43,7 +43,7 @@ export function PaywallAlert(props: PaywallAlertProps) {
     <ariaComponents.Alert
       variant="outline"
       size="small"
-      rounded="large"
+      rounded="xlarge"
       className={clsx('border border-primary/20', className)}
       {...alertProps}
     >
