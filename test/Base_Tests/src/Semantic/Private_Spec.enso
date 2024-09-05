@@ -13,6 +13,9 @@ private My_Priv_Type.ext_method self = self.data
 
 
 add_specs spec_builder =
+    pending_js_missing = if Polyglot.is_language_installed "js" then Nothing else
+        "Can't run JavaScript tests, language `js` is not installed."
+
     spec_builder.group "Private constructors" group_builder->
         group_builder.specify "cannot directly call private constructor" <|
             Test.expect_panic Private_Access <| Priv_Type.Cons 42
@@ -38,19 +41,19 @@ add_specs spec_builder =
             obj = Priv_Type.create 42
             obj.get_data . should_equal 42
 
-        group_builder.specify "cannot get private field from JS" <|
+        group_builder.specify "cannot get private field from JS" pending=pending_js_missing <|
             obj = Priv_Type.create 42
             # When JS tries to access a private field, it does not throw a panic, as it does not
             # see the field. It returns undefined.
             ret = js_access_field obj
             ret.is_nothing . should_be_true
 
-        group_builder.specify "can call private constructor via public factory method from JS" <|
+        group_builder.specify "can call private constructor via public factory method from JS" pending=pending_js_missing <|
             create_fn x = Priv_Type.create x
             obj = js_create_obj create_fn
             obj.is_nothing . should_be_false
 
-        group_builder.specify "can get private field via public accessor from JS" <|
+        group_builder.specify "can get private field via public accessor from JS" pending=pending_js_missing <|
             obj = Priv_Type.create 42
             js_access_field_via_getter obj . should_equal 42
 

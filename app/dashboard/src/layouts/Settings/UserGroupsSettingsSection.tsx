@@ -7,8 +7,8 @@ import * as mimeTypes from '#/data/mimeTypes'
 
 import {
   backendMutationOptions,
+  useBackendQuery,
   useListUserGroupsWithUsers,
-  useListUsers,
 } from '#/hooks/backendHooks'
 import * as billingHooks from '#/hooks/billing'
 import * as scrollHooks from '#/hooks/scrollHooks'
@@ -49,7 +49,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
   const { getText } = textProvider.useText()
   const { user } = authProvider.useFullUserSession()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const users = useListUsers(backend)
+  const { data: users } = useBackendQuery(backend, 'listUsers', [])
   const userGroups = useListUserGroupsWithUsers(backend)
   const rootRef = React.useRef<HTMLDivElement>(null)
   const bodyRef = React.useRef<HTMLTableSectionElement>(null)

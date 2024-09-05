@@ -5,4 +5,5 @@
  */
 
 export * from './EnsoDevtools'
+export * from './EnsoDevtoolsProvider'
 export * from './ReactQueryDevtools'

@@ -13,7 +13,7 @@ import { Button, DatePicker, Dropdown, Form, Text } from '#/components/AriaCompo
 import StatelessSpinner, { SpinnerState } from '#/components/StatelessSpinner'
 import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
-import { useBackendQuery, useListUsers } from '#/hooks/backendHooks'
+import { useBackendQuery } from '#/hooks/backendHooks'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { EVENT_TYPES, EventType, type Event } from '#/services/Backend'
@@ -78,7 +78,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
   const [emails, setEmails] = React.useState<readonly string[]>([])
   const [emailIndices, setEmailIndices] = React.useState<readonly number[]>(() => [])
   const [sortInfo, setSortInfo] = React.useState<SortInfo<ActivityLogSortableColumn> | null>(null)
-  const users = useListUsers(backend)
+  const { data: users } = useBackendQuery(backend, 'listUsers', [])
   const allEmails = React.useMemo(() => (users ?? []).map((user) => user.email), [users])
   const logsQuery = useBackendQuery(backend, 'getLogEvents', [])
   const logs = logsQuery.data

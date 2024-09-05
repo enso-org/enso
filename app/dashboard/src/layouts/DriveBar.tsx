@@ -271,6 +271,7 @@ export default function DriveBar(props: DriveBarProps) {
                   null,
                   (project) => {
                     setCreatedProjectId(project.projectId)
+                    setIsCreatingProject(false)
                   },
                   () => {
                     setIsCreatingProject(false)

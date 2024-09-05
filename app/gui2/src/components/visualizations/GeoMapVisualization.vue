@@ -119,6 +119,7 @@ const LABEL_COLOR = `rgba(0, 0, 0, 0.8)`
 const DEFAULT_MAP_STYLE = 'mapbox://styles/mapbox/light-v9'
 
 const DEFAULT_MAP_ZOOM = 11
+const DEFAULT_MAX_MAP_ZOOM = 18
 const ACCENT_COLOR: Color = [78, 165, 253]
 
 const dataPoints = ref<LocationWithPosition[]>([])
@@ -166,9 +167,24 @@ function updateState(data: Data) {
   }
   const center = centerPoint()
 
+  const viewPort = new deck.WebMercatorViewport({
+    width: mapNode.value?.clientWidth ?? 600,
+    height: mapNode.value?.clientHeight ?? 400,
+    longitude: center.longitude,
+    latitude: center.latitude,
+    zoom: DEFAULT_MAP_ZOOM,
+    pitch: 0,
+  }).fitBounds(
+    [
+      [center.minX, center.minY],
+      [center.maxX, center.maxY],
+    ],
+    { padding: 10, maxZoom: DEFAULT_MAX_MAP_ZOOM },
+  )
+
   latitude.value = center.latitude
   longitude.value = center.longitude
-  zoom.value = DEFAULT_MAP_ZOOM
+  zoom.value = viewPort.zoom
   mapStyle.value = DEFAULT_MAP_STYLE
   pitch.value = 0
   controller.value = true
@@ -303,16 +319,16 @@ function centerPoint() {
   {
     const xs = dataPoints.value.map((p) => p.position[0])
     minX = Math.min(...xs)
-    maxX = Math.min(...xs)
+    maxX = Math.max(...xs)
   }
   {
     const ys = dataPoints.value.map((p) => p.position[1])
     minY = Math.min(...ys)
-    maxY = Math.min(...ys)
+    maxY = Math.max(...ys)
   }
   let longitude = (minX + maxX) / 2
   let latitude = (minY + maxY) / 2
-  return { latitude, longitude }
+  return { latitude, longitude, minX, maxX, minY, maxY }
 }
 
 /**

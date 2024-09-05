@@ -2828,7 +2828,7 @@ type DB_Table
 
              fill_empty = table.fill_empty ["col0", "col1"] "hello"
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
-    @default (self-> Widget_Helpers.make_fill_default_value_selector value_type=Value_Type.Char add_nothing=True)
+    @default (self-> Widget_Helpers.make_fill_default_value_selector (self.select_columns (..By_Type ..Char)) value_types=Value_Type.Char add_nothing=True)
     fill_empty : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> DB_Column | Column_Ref | Expression | Previous_Value | Any -> DB_Table
     fill_empty self (columns : Vector | Text | Integer | Regex | By_Type) default =
         resolved_default = (self:Table_Ref).resolve default
