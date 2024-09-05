@@ -24,7 +24,7 @@ final class GetFieldNode extends EnsoRootNode {
    * @param index the index this node should use for field lookup.
    */
   GetFieldNode(EnsoLanguage language, int index, Type type, String name, ModuleScope moduleScope) {
-    super(language, LocalScope.root(), moduleScope, name, null);
+    super(language, LocalScope.empty(), moduleScope, name, null);
     this.index = index;
     this.type = type;
     this.name = name;

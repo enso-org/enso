@@ -42,11 +42,17 @@ interface BaseFormProps<Schema extends components.TSchema>
   ) => unknown
   readonly style?:
     | React.CSSProperties
-    | ((props: FormStateRenderProps<Schema>) => React.CSSProperties)
-  readonly children: React.ReactNode | ((props: FormStateRenderProps<Schema>) => React.ReactNode)
+    | ((props: components.UseFormReturn<Schema>) => React.CSSProperties)
+  readonly children:
+    | React.ReactNode
+    | ((
+        props: components.UseFormReturn<Schema> & {
+          readonly form: components.UseFormReturn<Schema>
+        },
+      ) => React.ReactNode)
   readonly formRef?: React.MutableRefObject<components.UseFormReturn<Schema>>
 
-  readonly className?: string | ((props: FormStateRenderProps<Schema>) => string)
+  readonly className?: string | ((props: components.UseFormReturn<Schema>) => string)
 
   readonly onSubmitFailed?: (error: unknown) => Promise<void> | void
   readonly onSubmitSuccess?: () => Promise<void> | void

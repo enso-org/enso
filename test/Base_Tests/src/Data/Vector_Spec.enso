@@ -79,6 +79,8 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         if a == 30 then Error.throw (My_Error.Error a) else a+1
     zip_fun a b = if a == 30 then Error.throw (My_Error.Error a) else a+b+1
 
+    pending_js_missing = if Polyglot.is_language_installed "js" then Nothing else
+        "Can't run JavaScript tests, language `js` is not installed."
     pending_python_missing = if Polyglot.is_language_installed "python" then Nothing else
         "Can't run Python tests, Python is not installed."
 
@@ -103,7 +105,7 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         const = Vector.fill 4 next
         const.should_equal [0, 0, 0, 0]
 
-    group_builder.specify "should allow creation from arrays without mutability" <|
+    group_builder.specify "should allow creation from arrays without mutability" pending=pending_js_missing <|
         built_from_js = Vector.from_polyglot_array generate_js_array
         built_from_js . should_equal (alter [1, 2, 3, 4, 5])
 
@@ -111,7 +113,7 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         built_from_py = Vector.from_polyglot_array generate_py_array
         built_from_py . should_equal (alter [1, 2, 3, 4, Nothing])
 
-    group_builder.specify "should allow creation from nested arrays from JavaScript" <|
+    group_builder.specify "should allow creation from nested arrays from JavaScript" pending=pending_js_missing <|
         built_from_js = Vector.from_polyglot_array generate_nested_js_array
         built_from_js . should_equal (alter [[1, 2, 3], [4, 5]])
 
