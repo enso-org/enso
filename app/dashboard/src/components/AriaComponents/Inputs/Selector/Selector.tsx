@@ -12,6 +12,8 @@ import {
   Form,
   type TSchema,
 } from '#/components/AriaComponents'
+
+import { AnimatedBackground } from '#/components/AnimatedBackground'
 import RadioGroup from '#/components/styled/RadioGroup'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
@@ -161,9 +163,11 @@ export const Selector = forwardRef(function Selector<
                   onChange(items[Number(newValue)])
                 }}
               >
-                {items.map((item, i) => (
-                  <SelectorOption key={i} value={String(i)} label={children(item)} />
-                ))}
+                <AnimatedBackground value={String(items.indexOf(value))}>
+                  {items.map((item, i) => (
+                    <SelectorOption key={i} value={String(i)} label={children(item)} />
+                  ))}
+                </AnimatedBackground>
               </RadioGroup>
             )
           }}
