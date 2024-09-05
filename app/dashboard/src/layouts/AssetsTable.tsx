@@ -533,7 +533,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const isLoading = directories.rootDirectory.isLoading
 
   const assetTree = React.useMemo(() => {
-    const rootPath = 'rootPath' in category ? category.rootPath : backend.rootPath
+    const rootPath = 'rootPath' in category ? category.rootPath : backend.rootPath(user)
 
     // If the root directory is not loaded, then we cannot render the tree.
     // Return null, and wait for the root directory to load.
@@ -634,13 +634,14 @@ export default function AssetsTable(props: AssetsTableProps) {
       rootId,
     )
   }, [
-    directories,
+    category,
+    backend,
+    user,
     rootDirectoryContent,
     rootDirectory,
     rootParentDirectoryId,
-    backend.rootPath,
     rootDirectoryId,
-    category,
+    directories.directories,
   ])
 
   const filter = React.useMemo(() => {

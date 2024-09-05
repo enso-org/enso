@@ -210,7 +210,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
         case 'local-directory': {
           if (category.type === 'local' || category.type === 'local-directory') {
             const parentDirectory =
-              category.type === 'local' ? localBackend?.rootPath : category.rootPath
+              category.type === 'local' ? localBackend?.rootPath() : category.rootPath
             invariant(parentDirectory != null, 'The Local backend is missing a root directory.')
             const newParentId = newDirectoryId(parentDirectory)
             dispatchAssetEvent({

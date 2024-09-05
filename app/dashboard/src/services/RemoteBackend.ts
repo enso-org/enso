@@ -127,7 +127,6 @@ interface RemoteBackendPostOptions {
 /** Class for sending requests to the Cloud backend API endpoints. */
 export default class RemoteBackend extends Backend {
   readonly type = backend.BackendType.remote
-  readonly rootPath = 'enso://'
   private defaultVersions: Partial<Record<backend.VersionType, DefaultVersionInfo>> = {}
   private user: object.Mutable<backend.User> | null = null
 
@@ -171,6 +170,21 @@ export default class RemoteBackend extends Backend {
       const status = response?.status
 
       throw new backend.NetworkError(message, status)
+    }
+  }
+
+  /** The path to the root directory of this {@link Backend}. */
+  override rootPath(user: backend.User | null) {
+    switch (user?.plan ?? null) {
+      case null:
+      case backend.Plan.free:
+      case backend.Plan.solo: {
+        return `enso://Users/${user?.name ?? ''}`
+      }
+      case backend.Plan.team:
+      case backend.Plan.enterprise: {
+        return 'enso://'
+      }
     }
   }
 
