@@ -11,6 +11,11 @@ import { tv } from '#/utilities/tailwindVariants'
 
 const SETTINGS_INPUT_STYLES = tv({
   extend: INPUT_STYLES,
+  variants: {
+    disabled: {
+      true: { base: 'opacity-100', textArea: 'border-transparent' },
+    },
+  },
   slots: {
     base: 'p-0',
     textArea: 'rounded-2xl border-0.5 border-primary/20 px-1',

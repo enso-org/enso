@@ -82,7 +82,7 @@ export const Input = forwardRef(function Input<
 
   const privateInputRef = useRef<HTMLInputElement>(null)
 
-  const { fieldState, formInstance } = Form.useField({
+  const { fieldState, formInstance, formState } = Form.useField({
     name,
     isDisabled,
     form,
@@ -155,7 +155,14 @@ export const Input = forwardRef(function Input<
             <aria.Input
               ref={mergeRefs(inputRef, privateInputRef, fieldRef)}
               {...aria.mergeProps<aria.InputProps>()(
-                { className: classes.textArea(), type, name, min, max },
+                {
+                  className: classes.textArea(),
+                  type,
+                  name,
+                  min,
+                  max,
+                  defaultValue: defaultValue ?? formState.defaultValues?.[name],
+                },
                 inputProps,
                 field,
               )}

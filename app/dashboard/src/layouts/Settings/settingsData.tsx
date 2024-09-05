@@ -76,28 +76,19 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           settingsFormEntryData({
             type: 'form',
             schema: z.object({
-              username: z.string().regex(/.*\S.*/),
+              name: z.string().regex(/.*\S.*/),
               email: z.string().email(),
             }),
-            onSubmit: async (context, { username }) => {
+            getValue: (context) => context.user,
+            onSubmit: async (context, { name }) => {
               const oldName = context.user.name
-              if (username !== oldName) {
-                await context.updateUser([{ username }])
+              if (name !== oldName) {
+                await context.updateUser([{ username: name }])
               }
             },
             inputs: [
-              {
-                nameId: 'userNameSettingsInput',
-                name: 'username',
-                getValue: (context) => context.user.name,
-                getEditable: () => true,
-              },
-              {
-                nameId: 'userEmailSettingsInput',
-                name: 'email',
-                getValue: (context) => context.user.email,
-                getEditable: () => false,
-              },
+              { nameId: 'userNameSettingsInput', name: 'name' },
+              { nameId: 'userEmailSettingsInput', name: 'email', editable: false },
             ],
           }),
         ],
@@ -161,6 +152,15 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
               website: z.string(),
               address: z.string(),
             }),
+            getValue: (context) => {
+              const { name, email, website, address } = context.organization ?? {}
+              return {
+                name: name ?? '',
+                email: String(email ?? ''),
+                website: String(website ?? ''),
+                address: address ?? '',
+              }
+            },
             onSubmit: async (context, { name, email, website, address }) => {
               await context.updateOrganization([
                 {
@@ -175,26 +175,22 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
               {
                 nameId: 'organizationNameSettingsInput',
                 name: 'name',
-                getValue: (context) => context.organization?.name ?? '',
-                getEditable: (context) => context.user.isOrganizationAdmin,
+                editable: (context) => context.user.isOrganizationAdmin,
               },
               {
                 nameId: 'organizationEmailSettingsInput',
                 name: 'email',
-                getValue: (context) => context.organization?.email ?? '',
-                getEditable: (context) => context.user.isOrganizationAdmin,
+                editable: (context) => context.user.isOrganizationAdmin,
               },
               {
                 nameId: 'organizationWebsiteSettingsInput',
                 name: 'website',
-                getValue: (context) => context.organization?.website ?? '',
-                getEditable: (context) => context.user.isOrganizationAdmin,
+                editable: (context) => context.user.isOrganizationAdmin,
               },
               {
                 nameId: 'organizationLocationSettingsInput',
                 name: 'address',
-                getValue: (context) => context.organization?.address ?? '',
-                getEditable: (context) => context.user.isOrganizationAdmin,
+                editable: (context) => context.user.isOrganizationAdmin,
               },
             ],
           }),
@@ -227,6 +223,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             schema: z.object({
               localRootPath: z.string(),
             }),
+            getValue: (context) => ({ localRootPath: context.localBackend?.rootPath ?? '' }),
             onSubmit: (context, { localRootPath }) => {
               context.updateLocalRootPath(localRootPath)
             },
@@ -234,8 +231,6 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
               {
                 nameId: 'localRootPathSettingsInput',
                 name: 'localRootPath',
-                getValue: (context) => context.localBackend?.rootPath ?? '',
-                getEditable: () => true,
               },
             ],
           }),
@@ -460,13 +455,14 @@ export interface SettingsContext {
 export interface SettingsInputData<T extends Record<keyof T, string>> {
   readonly nameId: text.TextId & `${string}SettingsInput`
   readonly name: keyof T & string
-  readonly getValue: (context: SettingsContext) => string
-  readonly getEditable: (context: SettingsContext) => boolean
+  /** Defaults to true. */
+  readonly editable?: boolean | ((context: SettingsContext) => boolean)
 }
 
 export interface SettingsFormEntryData<T extends Record<keyof T, string>> {
   readonly type: 'form'
   readonly schema: z.ZodType<T> | ((context: SettingsContext) => z.ZodType<T>)
+  readonly getValue: (context: SettingsContext) => T
   readonly onSubmit: (context: SettingsContext, value: T) => void | Promise<void>
   readonly inputs: readonly SettingsInputData<NoInfer<T>>[]
 }

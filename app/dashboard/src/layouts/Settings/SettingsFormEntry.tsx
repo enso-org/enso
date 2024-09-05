@@ -20,16 +20,23 @@ export function SettingsFormEntry<T extends Record<keyof T, string>>(
   props: SettingsFormEntryProps<T>,
 ) {
   const { context, data } = props
-  const { inputs, onSubmit, schema: schemaRaw } = data
+  const { schema: schemaRaw, getValue, inputs, onSubmit } = data
   const { getText } = useText()
+  const value = getValue(context)
   const schema = useMemo(
     () => (typeof schemaRaw === 'function' ? schemaRaw(context) : schemaRaw),
     [],
   )
 
   return (
-    // @ts-expect-error This is SAFE, as the type `T` is statically known.
-    <Form schema={schema} gap="none" onSubmit={(value) => onSubmit(context, value)}>
+    <Form
+      gap="none"
+      // @ts-expect-error This is SAFE, as the type `T` is statically known.
+      schema={schema}
+      defaultValues={value}
+      // @ts-expect-error This is SAFE, as the type `T` is statically known.
+      onSubmit={(value) => onSubmit(context, value)}
+    >
       {inputs.map((input) => (
         <SettingsInput key={input.name} context={context} data={input} />
       ))}
