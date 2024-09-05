@@ -183,6 +183,7 @@ export const Form = forwardRef(function Form<Schema extends components.TSchema>(
   FIELD_STYLES: typeof components.FIELD_STYLES
   useFormContext: typeof components.useFormContext
   useOptionalFormContext: typeof components.useOptionalFormContext
+  useWatch: typeof reactHookForm.useWatch
   /* eslint-enable @typescript-eslint/naming-convention */
 }
 
@@ -197,4 +198,5 @@ Form.useFormContext = components.useFormContext
 Form.useOptionalFormContext = components.useOptionalFormContext
 Form.Field = components.Field
 Form.Controller = components.Controller
+Form.useWatch = reactHookForm.useWatch
 Form.FIELD_STYLES = components.FIELD_STYLES

@@ -163,6 +163,8 @@ export function Dialog(props: DialogProps) {
   }
 
   const dialogId = aria.useId()
+  const titleId = `${dialogId}-title`
+
   const dialogRef = React.useRef<HTMLDivElement>(null)
   const overlayState = React.useRef<aria.OverlayTriggerState | null>(null)
   const root = portal.useStrictPortalContext()
@@ -244,6 +246,7 @@ export function Dialog(props: DialogProps) {
                   }
                 })}
                 className={styles.base()}
+                aria-labelledby={titleId}
                 {...ariaDialogProps}
               >
                 {(opts) => {
@@ -257,7 +260,7 @@ export function Dialog(props: DialogProps) {
 
                         {title != null && (
                           <ariaComponents.Text.Heading
-                            slot="title"
+                            id={titleId}
                             level={2}
                             className={styles.heading()}
                             weight="semibold"

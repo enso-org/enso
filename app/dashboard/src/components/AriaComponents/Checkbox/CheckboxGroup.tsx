@@ -5,14 +5,13 @@
  */
 import type { CheckboxGroupProps as AriaCheckboxGroupProps } from '#/components/aria'
 import { CheckboxGroup as AriaCheckboxGroup, mergeProps } from '#/components/aria'
-import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { omit } from '#/utilities/object'
 import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
 import type { CSSProperties, ForwardedRef, ReactElement } from 'react'
-import type { FieldVariantProps } from '../Form'
+import type { FieldVariantProps, FormInstance } from '../Form'
 import { Form, type FieldPath, type FieldProps, type FieldStateProps, type TSchema } from '../Form'
 import type { TestIdProps } from '../types'
 import { CheckboxGroupProvider } from './CheckboxContext'
@@ -51,7 +50,7 @@ export const CheckboxGroup = forwardRef(
       className,
       variants = CHECKBOX_GROUP_STYLES,
       form,
-      defaultValue,
+      defaultValue: defaultValueOverride,
       isDisabled = false,
       isRequired = false,
       isInvalid = false,
@@ -64,56 +63,62 @@ export const CheckboxGroup = forwardRef(
       ...checkboxGroupProps
     } = props
 
-    const { fieldState, formInstance } = Form.useField({
-      name,
-      isDisabled,
-      form,
-      defaultValue,
-    })
-
-    const field = formInstance.register(name, { disabled: isDisabled, required: isRequired })
-
-    const invalid = isInvalid || fieldState.invalid
+    // eslint-disable-next-line react-hooks/rules-of-hooks,no-restricted-syntax
+    const formInstance = (form ?? Form.useFormContext()) as FormInstance<Schema>
 
     const styles = variants({ fullWidth, className })
     const testId = props['data-testid'] ?? props.testId ?? 'CheckboxGroup'
 
     return (
-      <CheckboxGroupProvider
+      <Form.Controller
         name={name}
-        field={field}
-        onChange={useEventCallback((value) => {
-          void field.onChange({ target: { value } }).then(() => formInstance.trigger(name))
-        })}
-      >
-        <AriaCheckboxGroup
-          {...mergeProps<AriaCheckboxGroupProps>()(omit(checkboxGroupProps, 'validate'), {
-            className: styles,
-            isInvalid,
-            isDisabled,
-            isReadOnly,
-            name,
-          })}
-          ref={mergeRefs(ref, field.ref)}
-          data-testid={testId}
-        >
-          {(renderProps) => (
-            <Form.Field
-              name={name}
-              form={formInstance}
-              label={label}
-              description={description}
-              isRequired={isRequired}
-              fullWidth={fullWidth}
-              isInvalid={invalid}
-              variants={fieldVariants}
-              {...checkboxGroupProps}
-            >
-              {typeof children === 'function' ? children(renderProps) : children}
-            </Form.Field>
-          )}
-        </AriaCheckboxGroup>
-      </CheckboxGroupProvider>
+        {...(defaultValueOverride != null && { defaultValue: defaultValueOverride })}
+        render={({ field, fieldState }) => {
+          const defaultValue = defaultValueOverride ?? formInstance.control._defaultValues[name]
+          return (
+            <>
+              <CheckboxGroupProvider
+                name={name}
+                field={field}
+                defaultValue={defaultValue}
+                onChange={(value) => {
+                  field.onChange({ target: { value } })
+                  void formInstance.trigger(name)
+                }}
+              >
+                <AriaCheckboxGroup
+                  {...mergeProps<AriaCheckboxGroupProps>()(omit(checkboxGroupProps, 'validate'), {
+                    className: styles,
+                    isInvalid,
+                    isDisabled,
+                    isReadOnly,
+                    name,
+                    defaultValue: defaultValue ?? [],
+                  })}
+                  ref={mergeRefs(ref, field.ref)}
+                  data-testid={testId}
+                >
+                  {(renderProps) => (
+                    <Form.Field
+                      name={name}
+                      form={formInstance}
+                      label={label}
+                      description={description}
+                      isRequired={isRequired}
+                      fullWidth={fullWidth}
+                      isInvalid={isInvalid || fieldState.invalid}
+                      variants={fieldVariants}
+                      {...checkboxGroupProps}
+                    >
+                      {typeof children === 'function' ? children(renderProps) : children}
+                    </Form.Field>
+                  )}
+                </AriaCheckboxGroup>
+              </CheckboxGroupProvider>
+            </>
+          )
+        }}
+      />
     )
   },
 )

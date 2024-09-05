@@ -7,7 +7,6 @@ import * as React from 'react'
 
 import * as aria from '#/components/aria'
 
-import { useText } from '#/providers/TextProvider'
 import { forwardRef } from '#/utilities/react'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import type { Path } from 'react-hook-form'
@@ -88,7 +87,6 @@ export const Field = forwardRef(function Field<Schema extends types.TSchema>(
     isRequired = false,
     variants = FIELD_STYLES,
   } = props
-  const { getText } = useText()
 
   const fieldState = form.getFieldState(name)
 
@@ -153,7 +151,7 @@ export const Field = forwardRef(function Field<Schema extends types.TSchema>(
       )}
 
       {hasError && (
-        <span aria-label={getText('fieldErrorLabel')} id={errorId} className={classes.error()}>
+        <span id={errorId} className={classes.error()}>
           {error ?? fieldState.error?.message}
         </span>
       )}
