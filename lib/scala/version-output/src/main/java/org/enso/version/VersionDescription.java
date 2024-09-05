@@ -137,7 +137,7 @@ public class VersionDescription {
               """
           "osName": "%s",
           "osVersion": "%s",
-          "osArch": "%s",
+          "osArch": "%s"
           """,
               osName, osVersion, osArch);
     } else {
@@ -149,27 +149,41 @@ public class VersionDescription {
           "jreVersion": "%s",
           "osName": "%s",
           "osVersion": "%s",
-          "osArch": "%s",
+          "osArch": "%s"
           """,
               vmName, vmVendor, jreVersion, osName, osVersion, osArch);
     }
     var parameters = formatParameters(VersionDescription::formatParameterAsJSONString, ",\n");
-    return String.format(
-        """
-        {
-          "version": "%s",
-          "ref": "%s",
-          "dirty": "%s",
-          "commit": "%s",
-          %s%s
-        }
-        """,
-        version,
-        BuildVersion.ref(),
-        BuildVersion.isDirty(),
-        BuildVersion.commit(),
-        runtimeDescription,
-        parameters);
+    var sb = new StringBuilder();
+    sb.append("{").append(System.lineSeparator());
+    sb.append("  \"version\": ")
+        .append("\"")
+        .append(version)
+        .append("\",")
+        .append(System.lineSeparator());
+    sb.append("  \"ref\": ")
+        .append("\"")
+        .append(BuildVersion.ref())
+        .append("\",")
+        .append(System.lineSeparator());
+    sb.append("  \"dirty\": ")
+        .append("\"")
+        .append(BuildVersion.isDirty())
+        .append("\",")
+        .append(System.lineSeparator());
+    sb.append("  \"commit\": ")
+        .append("\"")
+        .append(BuildVersion.commit())
+        .append("\",")
+        .append(System.lineSeparator());
+    sb.append(runtimeDescription);
+    if (!parameters.isEmpty()) {
+      sb.append(",").append(System.lineSeparator());
+      sb.append(parameters);
+    }
+    sb.append(System.lineSeparator());
+    sb.append("}");
+    return sb.toString();
   }
 
   public String asString(boolean useJson) {
