@@ -26,8 +26,6 @@ import org.enso.launcher.upgrade.LauncherUpgrader
 import org.slf4j.event.Level
 import org.enso.version.{VersionDescription, VersionDescriptionParameter}
 
-import scala.jdk.CollectionConverters.SeqHasAsJava
-
 /** Implements launcher commands that are run from CLI and can be affected by
   * the global CLI options.
   *
@@ -507,14 +505,14 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     hideEngineVersion: Boolean = false
   ): Int = {
     val useJSON = cliOptions.useJSON
-    val runtimeVersionParameter =
-      if (hideEngineVersion) None else Some(getEngineVersion(useJSON))
+    val runtimeVersionParameter: java.util.List[VersionDescriptionParameter] =
+      if (hideEngineVersion) java.util.List.of() else java.util.List.of(getEngineVersion(useJSON))
 
     val versionDescription = VersionDescription.make(
       "Enso Launcher",
       false,
       true,
-      runtimeVersionParameter.toSeq.asJava,
+      runtimeVersionParameter,
       CurrentVersion.version.toString
     )
 
