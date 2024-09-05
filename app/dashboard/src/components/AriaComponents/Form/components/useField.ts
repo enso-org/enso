@@ -39,7 +39,6 @@ export function useField<
 
   const { field, fieldState, formState } = reactHookForm.useController({
     name,
-    control: formInstance.control,
     disabled: isDisabled,
     ...(defaultValue != null ? { defaultValue } : {}),
   })

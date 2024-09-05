@@ -245,7 +245,7 @@ const { place: nodePlacement, collapse: collapsedNodePlacement } = usePlacement(
   toRef(graphNavigator, 'viewport'),
 )
 
-const { createNode, createNodes, placeNode } = provideNodeCreation(
+const { scheduleCreateNode, createNodes, placeNode } = provideNodeCreation(
   graphStore,
   toRef(graphNavigator, 'viewport'),
   toRef(graphNavigator, 'sceneMousePos'),
@@ -522,7 +522,7 @@ function commitComponentBrowser(
     graphStore.setNodeContent(graphStore.editedNodeInfo.id, content, requiredImports)
   } else if (content != '') {
     // We finish creating a new node.
-    createNode({
+    scheduleCreateNode({
       placement: { type: 'fixed', position: componentBrowserNodePosition.value },
       expression: content,
       type,
@@ -695,7 +695,7 @@ async function handleFileDrop(event: DragEvent) {
       )
       const uploadResult = await uploader.upload()
       if (uploadResult.ok) {
-        createNode({
+        scheduleCreateNode({
           placement: { type: 'mouseEvent', position: pos },
           expression: uploadedExpression(uploadResult.value),
         })

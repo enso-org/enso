@@ -179,7 +179,9 @@ public final class TopLevelScope implements EnsoObject {
       } catch (InterruptedException e) {
         throw new RuntimeException(e);
       } catch (ExecutionException e) {
-        throw new RuntimeException(e);
+        var re = new RuntimeException(e);
+        re.setStackTrace(e.getStackTrace());
+        throw re;
       }
     }
 
