@@ -82,6 +82,7 @@ foreign python py_wrapper obj = """
     return MyClass(obj)
 
 pending_python_missing = if Polyglot.is_language_installed "python" then Nothing else "Can't run Python tests, Python is not installed."
+pending_js_missing = if Polyglot.is_language_installed "js" then Nothing else "Can't run JavaScript tests, language `js` is not installed."
 
 def_comp = Standard.Base.Internal.Ordering_Helpers.Default_Comparator
 
@@ -98,7 +99,7 @@ add_specs suite_builder =
     languages = Vector.build builder->
         builder . append ["Enso", _-> Dictionary.empty, Nothing]
         builder . append ["Java", _-> JavaMap.of, Nothing]
-        builder . append ["JavaScript", _-> js_empty_dict, Nothing]
+        builder . append ["JavaScript", _-> js_empty_dict, pending_js_missing]
         builder . append ["Python", _-> py_empty_dict, pending_python_missing]
     languages.each entry->
         lang = entry.get 0
@@ -269,7 +270,7 @@ add_specs suite_builder =
             m.at Nothing . should_equal 1
 
     suite_builder.group "Polyglot keys and values" group_builder->
-        group_builder.specify "should support polyglot keys" <|
+        group_builder.specify "should support polyglot keys" pending=pending_js_missing <|
             dict = Dictionary.singleton (js_str "A") 42
             dict.size.should_equal 1
             dict.get "A" . should_equal 42
@@ -405,7 +406,7 @@ add_specs suite_builder =
             Test.expect_panic_with (py_update_dict dict "A" 2) Any
             dict.get "A" . should_equal 1
 
-        group_builder.specify "should treat JavaScript maps as Enso Dictionaries" <|
+        group_builder.specify "should treat JavaScript maps as Enso Dictionaries" pending=pending_js_missing <|
             js_dict = js_dict_from_vec ["A", 1, "B", 2]
             dict = js_dict.insert "C" 3
             js_dict.to_vector.should_equal [["A", 1], ["B", 2]]
@@ -555,7 +556,7 @@ add_common_specs suite_builder prefix:Text (pending : (Text | Nothing)) (empty_d
             empty_dict.insert Nothing 1 . should_equal (empty_dict.insert Nothing 1)
             empty_dict.insert Nothing 1 . insert Nothing 2 . at Nothing . should_equal 2
 
-        group_builder.specify "should handle JavaScript null as keys" <|
+        group_builder.specify "should handle JavaScript null as keys" pending=pending_js_missing <|
             empty_dict.insert js_null 1 . at Nothing . should_equal 1
 
         group_builder.specify "should handle Python None as keys" pending=pending_python_missing <|

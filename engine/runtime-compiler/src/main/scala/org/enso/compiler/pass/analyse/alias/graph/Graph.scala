@@ -9,44 +9,53 @@ import scala.collection.mutable
 import scala.reflect.ClassTag
 
 /** A graph containing aliasing information for a given root scope in Enso. */
-sealed class Graph extends Serializable {
-  var rootScope: Graph.Scope                              = new Graph.Scope()
-  private var links: Set[Graph.Link]                      = Set()
+sealed class Graph(
+  val rootScope: Graph.Scope         = new Graph.Scope(),
+  private var _nextIdCounter: Int    = 0,
+  private var links: Set[Graph.Link] = Set()
+) extends Serializable {
   private var sourceLinks: Map[Graph.Id, Set[Graph.Link]] = new HashMap()
   private var targetLinks: Map[Graph.Id, Set[Graph.Link]] = new HashMap()
-  var nextIdCounter                                       = 0
+  private var frozen: Boolean                             = false
+
+  {
+    links.foreach(addSourceTargetLink)
+  }
 
   private var globalSymbols: Map[Graph.Symbol, GraphOccurrence.Global] =
     Map()
+
+  /** @return the next counter value
+    */
+  def nextIdCounter: Int = _nextIdCounter
 
   /** @return a deep structural copy of `this` */
   def deepCopy(
     scope_mapping: mutable.Map[Scope, Scope] = mutable.Map()
   ): Graph = {
-    val copy = new Graph
-    copy.rootScope     = this.rootScope.deepCopy(scope_mapping)
+    val copy = new Graph(
+      this.rootScope.deepCopy(scope_mapping),
+      this.nextIdCounter
+    )
     copy.links         = this.links
     copy.sourceLinks   = this.sourceLinks
     copy.targetLinks   = this.targetLinks
     copy.globalSymbols = this.globalSymbols
-    copy.nextIdCounter = this.nextIdCounter
     copy
   }
 
-  def initLinks(links: Set[Graph.Link]): Unit = {
-    sourceLinks = new HashMap()
-    targetLinks = new HashMap()
-    links.foreach(addSourceTargetLink)
-    this.links = links
-  }
-
   def getLinks(): Set[Graph.Link] = links
+
+  def freeze(): Unit = {
+    frozen = true
+  }
 
   /** Registers a requested global symbol in the aliasing scope.
     *
     * @param sym the symbol occurrence
     */
   def addGlobalSymbol(sym: GraphOccurrence.Global): Unit = {
+    assert(!frozen)
     if (!globalSymbols.contains(sym.symbol)) {
       globalSymbols = globalSymbols + (sym.symbol -> sym)
     }
@@ -57,12 +66,13 @@ sealed class Graph extends Serializable {
     * @return a copy of the graph structure
     */
   def copy: Graph = {
-    val graph = new Graph
-    graph.links         = links
-    graph.sourceLinks   = sourceLinks
-    graph.targetLinks   = targetLinks
-    graph.rootScope     = rootScope.deepCopy(mutable.Map())
-    graph.nextIdCounter = nextIdCounter
+    val graph = new Graph(
+      rootScope.deepCopy(mutable.Map()),
+      nextIdCounter
+    )
+    graph.links       = links
+    graph.sourceLinks = sourceLinks
+    graph.targetLinks = targetLinks
 
     graph
   }
@@ -84,8 +94,8 @@ sealed class Graph extends Serializable {
     * @return a unique identifier for this graph
     */
   def nextId(): Graph.Id = {
-    val nextId = nextIdCounter
-    nextIdCounter += 1
+    val nextId = _nextIdCounter
+    _nextIdCounter += 1
     nextId
   }
 
@@ -99,13 +109,14 @@ sealed class Graph extends Serializable {
     occurrence: GraphOccurrence.Use
   ): Option[Graph.Link] = {
     scopeFor(occurrence.id).flatMap(_.resolveUsage(occurrence).map { link =>
-      links += link
       addSourceTargetLink(link)
+      links += link
       link
     })
   }
 
   private def addSourceTargetLink(link: Graph.Link): Unit = {
+    assert(!frozen)
     sourceLinks = sourceLinks.updatedWith(link.source)(v =>
       v.map(s => s + link).orElse(Some(Set(link)))
     )

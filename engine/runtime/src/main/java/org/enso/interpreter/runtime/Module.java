@@ -660,7 +660,7 @@ public final class Module implements EnsoObject {
               .getBuiltinFunction(
                   builtins.debug(), Builtins.MethodNames.Debug.EVAL, context.getLanguage())
               .orElseThrow();
-      CallerInfo callerInfo = new CallerInfo(null, LocalScope.root(), scope);
+      CallerInfo callerInfo = new CallerInfo(null, LocalScope.empty(), scope);
       return callOptimiserNode.executeDispatch(
           null,
           eval.getFunction(),
