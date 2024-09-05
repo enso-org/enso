@@ -3578,14 +3578,23 @@ lazy val `std-tableau` = project
         val unmanagedPath = unmanagedDirectory.toPath
         IO.withTemporaryDirectory(
           tmp => {
-            val files = IO.unzipURL(
-              unmanagedExternalZip.value,
-              tmp,
-              f =>
-                f.endsWith(".jar") && !f.contains("gradle") && !f.contains(
-                  "javadoc"
-                ) && !f.contains("jna")
-            )
+            import scala.concurrent.ExecutionContext.Implicits.global
+            implicit val filesNotEmptySuccess: retry.Success[Set[File]] =
+              retry.Success(!_.isEmpty)
+            val future = retry.Directly(4) { () =>
+              scala.concurrent.Future {
+                IO.unzipURL(
+                  unmanagedExternalZip.value,
+                  tmp,
+                  f =>
+                    f.endsWith(".jar") && !f.contains("gradle") && !f.contains(
+                      "javadoc"
+                    ) && !f.contains("jna")
+                )
+              }
+            }
+            import scala.concurrent.duration._
+            val files = scala.concurrent.Await.result(future, 30.seconds)
             files.map { f =>
               IO.move(f, unmanagedPath.resolve(f.getName).toFile)
               Attributed.blank(unmanagedPath.resolve(f.getName).toFile)
