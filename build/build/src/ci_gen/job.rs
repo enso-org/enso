@@ -245,8 +245,8 @@ impl JobArchetype for StandardLibraryTests {
         let graal_edition = self.graal_edition;
         let should_enable_cloud_tests = self.cloud_tests_enabled;
         let job_name = format!("Standard Library Tests ({graal_edition})");
-        let mut job = RunStepsBuilder::new("backend test standard-library")
-            .customize(move |step| {
+        let run_steps_builder =
+            RunStepsBuilder::new("backend test standard-library").customize(move |step| {
                 let main_step = step
                     .with_secret_exposed_as(
                         secret::ENSO_LIB_S3_AWS_REGION,
@@ -268,9 +268,14 @@ impl JobArchetype for StandardLibraryTests {
                 };
 
                 vec![updated_main_step, step::stdlib_test_reporter(target, graal_edition)]
-            })
-            .build_job(job_name, target)
-            .with_permission(Permission::Checks, Access::Write);
+            });
+        let mut job = build_job_ensuring_cloud_tests_run_on_github(
+            run_steps_builder,
+            target,
+            &job_name,
+            should_enable_cloud_tests,
+        )
+        .with_permission(Permission::Checks, Access::Write);
         match graal_edition {
             graalvm::Edition::Community => job.env(env::GRAAL_EDITION, graalvm::Edition::Community),
             graalvm::Edition::Enterprise =>
@@ -285,6 +290,26 @@ impl JobArchetype for StandardLibraryTests {
             self.id_key_base(),
             self.graal_edition.to_string().to_kebab_case()
         )
+    }
+}
+
+/** This is a temporary workaround.
+ *
+ * The Cloud tests preparation requires `aws` CLI to be installed on the machine.
+ * The GitHub hosted runners have it, but our self-hosted runners do not.
+ * To fix this we either need to modify self-hosted runners to provide the AWS CLI or change the
+ * way we prepare the Cloud tests to not require it.
+ */
+fn build_job_ensuring_cloud_tests_run_on_github(
+    run_steps_builder: RunStepsBuilder,
+    target: Target,
+    job_name: &str,
+    cloud_tests_enabled: bool,
+) -> Job {
+    if cloud_tests_enabled {
+        run_steps_builder.build_job(job_name, RunnerLabel::LinuxLatest)
+    } else {
+        run_steps_builder.build_job(job_name, target)
     }
 }
 
@@ -324,10 +349,13 @@ impl JobArchetype for SnowflakeTests {
                         crate::libraries_tests::snowflake::env::ENSO_SNOWFLAKE_WAREHOUSE,
                     );
 
-                let updated_main_step = enable_cloud_tests(main_step);
+                // Temporarily disabled until we can get the Cloud auth fixed.
+                // Snowflake does not rely on cloud anyway, so it can be disabled.
+                // But it will rely once we add datalink tests, so this should be fixed soon.
+                // let updated_main_step = enable_cloud_tests(main_step);
 
                 vec![
-                    updated_main_step,
+                    main_step,
                     step::extra_stdlib_test_reporter(target, GRAAL_EDITION_FOR_EXTRA_TESTS),
                 ]
             })

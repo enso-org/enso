@@ -1,7 +1,9 @@
 package org.enso.compiler.test.pass.analyse
 
 import org.enso.compiler.Passes
-import org.enso.compiler.context.{FramePointer, FreshNameSupply, ModuleContext}
+import org.enso.compiler.pass.analyse.FramePointer
+import org.enso.compiler.pass.analyse.FrameAnalysisMeta
+import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{
   CallArgument,
@@ -87,10 +89,10 @@ class FramePointerAnalysisTest extends CompilerTest {
       withClue("Expression.Binding must have FramePointer associated") {
         allOcc.head._1
           .unsafeGetMetadata(FramePointerAnalysis, "should exist")
-          .framePointer shouldEqual new FramePointer(0, 1)
+          .asInstanceOf[FramePointer] shouldEqual new FramePointer(0, 1)
         allOcc.last._1
           .unsafeGetMetadata(FramePointerAnalysis, "should exist")
-          .framePointer shouldEqual new FramePointer(0, 2)
+          .asInstanceOf[FramePointer] shouldEqual new FramePointer(0, 2)
       }
     }
 
@@ -129,7 +131,7 @@ class FramePointerAnalysisTest extends CompilerTest {
         "There should be no associated FramePointer with usage of `+`, because it is not defined " +
         "in any scope"
       ) {
-        plusUseIr.passData().get(FramePointerAnalysis) shouldNot be(defined)
+        findFP(plusUseIr) shouldNot be(defined)
       }
       val framePointers = collectAllFramePointers(ir)
       framePointers.size shouldBe 4
@@ -429,7 +431,7 @@ class FramePointerAnalysisTest extends CompilerTest {
         lit => lit.name == "My_Type"
       ).last
       withClue("No frame pointer attached to a symbol with global occurence") {
-        myTypeLit.passData.get(FramePointerAnalysis) shouldNot be(defined)
+        findFP(myTypeLit) shouldNot be(defined)
       }
       withClue("There is a Use occurence") {
         myTypeLit.passData.get(AliasAnalysis) shouldBe defined
@@ -455,7 +457,7 @@ class FramePointerAnalysisTest extends CompilerTest {
         lit => lit.name == "My_Type"
       ).apply(1)
       withClue("No frame pointer attached to a symbol with global occurence") {
-        myTypeLit.passData.get(FramePointerAnalysis) shouldNot be(defined)
+        findFP(myTypeLit) shouldNot be(defined)
       }
       withClue("There is a Use occurence") {
         myTypeLit.passData.get(AliasAnalysis) shouldBe defined
@@ -465,6 +467,10 @@ class FramePointerAnalysisTest extends CompilerTest {
       }
     }
   }
+
+  private def findFP(ir: IR) = ir.passData
+    .get(FramePointerAnalysis)
+    .filter(meta => meta.isInstanceOf[FramePointer])
 
   /** Find the first IR element of the given `T` type by the given `filterCondition`.
     * @param filterCondition Filter condition will be applied to all the elements of the desired type.
@@ -513,7 +519,7 @@ class FramePointerAnalysisTest extends CompilerTest {
     }
     ir
       .unsafeGetMetadata(FramePointerAnalysis, "should exist")
-      .framePointer shouldEqual framePointer
+      .asInstanceOf[FramePointer] shouldEqual framePointer
   }
 
   private def findAssociatedIr(
@@ -548,10 +554,11 @@ class FramePointerAnalysisTest extends CompilerTest {
 
   private def collectAllFramePointers(
     ir: IR
-  ): List[(IR, FramePointerAnalysis.Metadata)] = {
+  ): List[(IR, FrameAnalysisMeta)] = {
     ir.preorder().flatMap { childIr =>
       childIr.getMetadata(FramePointerAnalysis) match {
-        case Some(framePointerMeta: FramePointerAnalysis.Metadata) =>
+        case Some(framePointerMeta: FrameAnalysisMeta)
+            if (framePointerMeta.isInstanceOf[FramePointer]) =>
           Some((childIr, framePointerMeta))
         case _ => None
       }
