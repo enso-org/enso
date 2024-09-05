@@ -2435,7 +2435,10 @@ export default function AssetsTable(props: AssetsTableProps) {
     setAsset,
   }))
 
-  const columns = columnUtils.getColumnList(backend.type, enabledColumns)
+  const columns = React.useMemo(
+    () => columnUtils.getColumnList(backend.type, enabledColumns),
+    [backend.type, enabledColumns],
+  )
 
   const headerRow = (
     <tr ref={headerRowRef} className="sticky top-[1px] text-sm font-semibold">
