@@ -28,9 +28,7 @@ const RADIO_STYLES = twv.tv({
     isHovered: { true: { radio: 'border-primary/50' } },
     isInvalid: { true: { radio: 'border-danger' } },
     isDisabled: { true: { base: 'cursor-not-allowed', radio: 'border-gray-200' } },
-    isPressed: {
-      true: { radio: 'border-[3px] border-primary' },
-    },
+    isPressed: { true: { radio: 'border-[3px] border-primary' } },
     isSiblingPressed: { true: '' },
   },
   slots: {

@@ -4,6 +4,7 @@
  */
 export * from './Alert'
 export * from './Button'
+export * from './Checkbox'
 export * from './CopyBlock'
 export * from './Dialog'
 export * from './Form'
@@ -13,4 +14,5 @@ export * from './Separator'
 export * from './Switch'
 export * from './Text'
 export * from './Tooltip'
+export * from './types'
 export * from './VisuallyHidden'

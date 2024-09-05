@@ -50,6 +50,7 @@ export function Subscribe() {
           plan={chosenPlan}
           showFreePlan={false}
           userPlan={user.plan}
+          isOrganizationAdmin={user.isOrganizationAdmin}
           onSubscribeSuccess={(plan) => {
             navigate({
               pathname: SUBSCRIBE_SUCCESS_PATH,
