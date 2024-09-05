@@ -34,7 +34,7 @@ const usage: Usage = { type: 'newNode' }
             :usage="usage"
             :sourcePort="null"
             :initialCaretPosition="[0, 0]"
-            :closeIfClicked="() => false"
+            :associatedElements="[]"
             @finished="logEvent('finished', [])"
           />
         </GroupColorsWrapper>

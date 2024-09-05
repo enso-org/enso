@@ -74,7 +74,9 @@ const componentList = ref<ComponentInstance<typeof ComponentList>>()
 defineExpose({ cbRoot })
 
 const clickOutsideAssociatedElements = (e: PointerEvent) => {
-  return props.associatedElements.every((element) => targetIsOutside(e, element))
+  return props.associatedElements.length === 0 ?
+      false
+    : props.associatedElements.every((element) => targetIsOutside(e, element))
 }
 const cbOpen: Interaction = cancelOnClick(clickOutsideAssociatedElements, {
   cancel: () => emit('canceled'),
