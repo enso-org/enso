@@ -47,7 +47,7 @@ import { isLocalCategory, type Category } from '#/layouts/CategorySwitcher/Categ
 
 import * as aria from '#/components/aria'
 import type * as assetRow from '#/components/dashboard/AssetRow'
-import AssetRow from '#/components/dashboard/AssetRow'
+import { AssetRow } from '#/components/dashboard/AssetRow'
 import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import NameColumn from '#/components/dashboard/column/NameColumn'

@@ -114,7 +114,7 @@ export interface AssetRowProps {
 }
 
 /** A row containing an {@link backendModule.AnyAsset}. */
-export default function AssetRow(props: AssetRowProps) {
+export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   const { isKeyboardSelected, isOpened, select, state, columns, onClick } = props
   const { item: rawItem, hidden: hiddenRaw, updateAssetRef, grabKeyboardFocus } = props
   const { nodeMap, setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
@@ -1059,4 +1059,4 @@ export default function AssetRow(props: AssetRowProps) {
         )
     }
   }
-}
+})
