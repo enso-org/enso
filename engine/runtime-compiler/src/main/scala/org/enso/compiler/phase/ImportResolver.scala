@@ -11,6 +11,7 @@ import org.enso.common.CompilationStage
 
 import scala.collection.mutable
 import java.io.IOException
+import java.util.logging.Level
 
 /** Runs imports resolution. Starts from a given module and then recursively
   * collects all modules that are reachable from it.
@@ -46,7 +47,12 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
           )
           (ir, currentLocal)
         } catch {
-          case _: IOException =>
+          case ex: IOException =>
+            context.logSerializationManager(
+              Level.WARNING,
+              "Deserialization of " + module.getName() + " failed",
+              ex
+            )
             context.updateModule(
               current,
               u => {
@@ -83,8 +89,9 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
         val newImportIRs =
           importedModules.map(_._1) ++ syntheticImports.map(_._1)
 
-        currentLocal.resolvedImports =
+        currentLocal.resolvedImports_(
           resolvedImports ++ resolvedSyntheticImports
+        )
         val newIr = ir.copy(imports = newImportIRs)
         context.updateModule(
           current,

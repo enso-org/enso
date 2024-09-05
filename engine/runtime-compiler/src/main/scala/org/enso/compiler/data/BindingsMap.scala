@@ -26,8 +26,8 @@ import scala.collection.mutable.ArrayBuffer
   * @param currentModule the module holding these bindings
   */
 case class BindingsMap(
-  definedEntities: List[DefinedEntity],
-  currentModule: ModuleReference
+  private val _definedEntities: List[DefinedEntity],
+  private val _currentModule: ModuleReference
 ) extends IRPass.IRMetadata {
   import BindingsMap._
 
@@ -37,11 +37,23 @@ case class BindingsMap(
 
   /** Other modules, imported by [[currentModule]].
     */
-  var resolvedImports: List[ResolvedImport] = List()
+  private var _resolvedImports: List[ResolvedImport] = List()
+
+  def definedEntities: List[DefinedEntity]  = _definedEntities
+  def currentModule: ModuleReference        = _currentModule
+  def resolvedImports: List[ResolvedImport] = _resolvedImports
+  def resolvedImports_(v: List[ResolvedImport]): Unit = {
+    _resolvedImports = v
+  }
 
   /** Symbols exported by [[currentModule]].
     */
-  var exportedSymbols: Map[String, List[ResolvedName]] = Map()
+  private var _exportedSymbols: Map[String, List[ResolvedName]] = Map()
+
+  def exportedSymbols: Map[String, List[ResolvedName]] = _exportedSymbols
+  def exportedSymbols_(v: Map[String, List[ResolvedName]]): Unit = {
+    _exportedSymbols = v
+  }
 
   /** @inheritdoc */
   override def prepareForSerialization(
@@ -63,9 +75,9 @@ case class BindingsMap(
     * @return `this` with module references converted to abstract
     */
   def toAbstract: BindingsMap = {
-    val copy = this.copy(currentModule = currentModule.toAbstract)
-    copy.resolvedImports = this.resolvedImports.map(_.toAbstract)
-    copy.exportedSymbols = this.exportedSymbols.map { case (key, value) =>
+    val copy = this.copy(_currentModule = _currentModule.toAbstract)
+    copy._resolvedImports = this._resolvedImports.map(_.toAbstract)
+    copy._exportedSymbols = this._exportedSymbols.map { case (key, value) =>
       key -> value.map(name => name.toAbstract)
     }
     copy
@@ -77,23 +89,25 @@ case class BindingsMap(
     *                  instances
     * @return `this` with module references converted to concrete
     */
-  def toConcrete(moduleMap: ModuleMap): Option[BindingsMap] = {
+  private def toConcrete(moduleMap: ModuleMap): Option[BindingsMap] = {
     val newMap = this.currentModule.toConcrete(moduleMap).map { module =>
-      this.copy(currentModule = module)
+      this.copy(_currentModule = module)
     }
 
     val withImports: Option[BindingsMap] = newMap.flatMap { bindings =>
-      val newImports = this.resolvedImports.map(_.toConcrete(moduleMap))
+      val newImports = this._resolvedImports.map(
+        _.toConcrete(moduleMap)
+      )
       if (newImports.exists(_.isEmpty)) {
         None
       } else {
-        bindings.resolvedImports = newImports.map(_.get)
+        bindings._resolvedImports = newImports.map(_.get)
         Some(bindings)
       }
     }
 
     val withSymbols: Option[BindingsMap] = withImports.flatMap { bindings =>
-      val newSymbols = this.exportedSymbols.map { case (key, value) =>
+      val newSymbols = this._exportedSymbols.map { case (key, value) =>
         val newValue = value.map(_.toConcrete(moduleMap))
         if (newValue.exists(_.isEmpty)) {
           key -> None
@@ -105,7 +119,7 @@ case class BindingsMap(
       if (newSymbols.exists { case (_, v) => v.isEmpty }) {
         None
       } else {
-        bindings.exportedSymbols = newSymbols.map { case (k, v) =>
+        bindings._exportedSymbols = newSymbols.map { case (k, v) =>
           k -> v.get
         }
         Some(bindings)
