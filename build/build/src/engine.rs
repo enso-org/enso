@@ -56,7 +56,7 @@ pub async fn download_project_templates(client: reqwest::Client, enso_root: Path
             "data/mapcolors.json",
             "data/restaurants.csv",
             "src/eaep.png",
-            "src/Main.enso"
+            "src/Main.enso",
             "src/map1.png",
             "src/map2.png",
             "src/table1.png",

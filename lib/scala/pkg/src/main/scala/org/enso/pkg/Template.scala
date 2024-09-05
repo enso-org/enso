@@ -45,6 +45,14 @@ object Template {
     override val name = "stargazers"
   }
 
+  case object MonthlySales extends Template {
+    override val name = "monthly_sales"
+  }
+
+  case object BankHolidayRain extends Template {
+    override val name = "bank_holiday_rain"
+  }
+
   val allTemplates = Seq(
     Default,
     Orders,
@@ -52,6 +60,8 @@ object Template {
     Stargazers,
     ColoradoCovid,
     Kmeans,
-    NasdaqReturns
+    NasdaqReturns,
+    MonthlySales,
+    BankHolidayRain
   )
 }
