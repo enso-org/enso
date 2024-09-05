@@ -808,9 +808,9 @@ type Table
 
        Arguments:
        - column_map: Mapping from old column names to new or a vector of new
-         column names to apply by position. `Regex` objects can be used
-         within the mapping to do pattern based renaming.
-         Can also be supplied as a `Table` either with a single column of new
+         column names to apply by position. The mapping can be provided as a
+         `Dictionary` or a `Vector` of pairs of old and new names.
+         A `Table` can also be used either with a single column of new
          names or two columns with old (first column) and new names (second
          column).
        - case_sensitivity: Controls whether to be case sensitive when matching
@@ -820,6 +820,9 @@ type Table
          to `True`.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
+
+       Returns:
+       - A new table with the columns renamed based on the column_map.
 
        ! Error Conditions
 
@@ -837,35 +840,80 @@ type Table
              - If any of the new names clash either with existing names or each
                other, a `Duplicate_Output_Column_Names`.
 
-       > Example
-         Rename the "Alpha" column to "Beta"
+       ? Pattern based renaming
 
-              table.rename_columns (Dictionary.from_vector [["Alpha", "Beta"]])
+       `Regex` objects can be used within the column_map to do pattern based
+       renaming. Marked groups can be used in the new name by using `$1`, `$2`,
+       etc.
+
+       > Example
+         Rename the "Alpha" column to "Delta"
+
+             table = Table.from_rows ["Alpha", "Beta"] [["John", "25"]]
+             output = table.rename_columns [Pair.Value "Alpha" "Delta"]
+
+             ## Returns a Table
+                | Delta | Beta |
+                |-------|------|
+                | John  | 25   |
 
        > Example
          Rename the last column to "LastColumn"
 
-              table.rename_columns (Dictionary.from_vector [[-1, "LastColumn"]])
+             table = Table.from_rows ["Alpha", "Beta"] [["John", "25"]]
+             output = table.rename_columns [Pair.Value -1 "LastColumn"]
+
+             ## Returns a Table
+                | Alpha | LastColumn |
+                |-------|------------|
+                | John  | 25         |
 
        > Example
          Rename the "Alpha" column to "Beta" and last column to "LastColumn"
 
-              table.rename_columns (Dictionary.from_vector [["Alpha", "Beta"], [-1, "LastColumn"]])
+             table = Table.from_rows ["Alpha", "Age", "State"] [["John", 25, "NY"], ["Paul", 35, "CA"]]
+             output = table.rename_columns [Pair.Value "Alpha" "Beta", Pair.Value -1 "LastColumn"]
+
+             ## Returns a Table
+                | Beta | Age | LastColumn |
+                |------|-----|------------|
+                | John | 25  | NY         |
+                | Paul | 35  | CA         |
 
        > Example
-         Rename the first column to "FirstColumn"
+         Rename the first column to "FirstColumn" and second to "SecondColumn" using a positional list.
 
-              table.rename_columns ["FirstColumn"]
+             table = Table.from_rows ["Alpha", "Age", "State"] [["John", 25, "NY"], ["Paul", 35, "CA"]]
+             output = table.rename_columns ["FirstColumn", "SecondColumn"]
+
+             ## Returns a Table
+                | FirstColumn | SecondColumn | State |
+                |-------------|--------------|-------|
+                | John        | 25           | NY    |
+                | Paul        | 35           | CA    |
 
        > Example
          Add a prefix to all column names.
 
-              table.rename_columns (table.columns.map c-> "prefix_" + c.name)
+              table = Table.from_rows ["Alpha", "Age", "State"] [["John", 25, "NY"], ["Paul", 35, "CA"]]
+              output = table.rename_columns [Pair.Value (regex "(.*)"), "prefix:$1"]
+
+              ## Returns a Table
+                 | prefix:Alpha | prefix:Age | prefix:State |
+                 |--------------|------------|--------------|
+                 | John         | 25         | NY           |
+                 | Paul         | 35         | CA           |
 
        > Example
          For all columns starting with the prefix `name=`, replace it with `key:`.
 
-              table.rename_columns (Dictionary.from_vector [["name=(.*)".to_regex, "key:$1"]])
+             table = Table.from_rows ["name=Alpha", "name=Beta", "name=Gamma"] [["John", "25", "abc"]]
+             output = table.rename_columns [Pair.Value (regex "name=(.*)"), "key:$1"]
+
+             ## Returns a Table
+                | key:Alpha | key:Beta | key:Gamma |
+                |-----------|----------|-----------|
+                | John      | 25       | abc       |
     @column_map Widget_Helpers.make_rename_name_vector_selector
     rename_columns : Table | Dictionary (Text | Integer | Regex) Text | Vector Text | Vector Vector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Column_Names | Duplicate_Output_Column_Names
     rename_columns self (column_map:(Table | Dictionary | Vector)=["Column"]) (case_sensitivity:Case_Sensitivity=..Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=..Report_Warning) = case column_map of
