@@ -2244,6 +2244,10 @@ export default function AssetsTable(props: AssetsTableProps) {
     dragSelectionRangeRef.current = null
   })
 
+  const grabRowKeyboardFocus = useEventCallback((item: assetTreeNode.AnyAssetTreeNode) => {
+    setSelectedKeys(new Set([item.key]))
+  })
+
   const onRowClick = useEventCallback(
     (innerRowProps: assetRow.AssetRowInnerProps, event: React.MouseEvent) => {
       const { key } = innerRowProps
@@ -2264,6 +2268,153 @@ export default function AssetsTable(props: AssetsTableProps) {
       setMostRecentlySelectedIndex(newIndex)
       if (!event.shiftKey) {
         selectionStartIndexRef.current = null
+      }
+    },
+  )
+
+  const selectRow = useEventCallback((item: assetTreeNode.AnyAssetTreeNode) => {
+    setMostRecentlySelectedIndex(visibleItems.indexOf(item))
+    selectionStartIndexRef.current = null
+    setSelectedKeys(new Set([item.key]))
+  })
+
+  const onRowDragStart = useEventCallback(
+    (event: React.DragEvent<HTMLTableRowElement>, item: assetTreeNode.AnyAssetTreeNode) => {
+      startAutoScroll()
+      onMouseEvent(event)
+      let newSelectedKeys = driveStore.getState().selectedKeys
+      if (!newSelectedKeys.has(item.key)) {
+        setMostRecentlySelectedIndex(visibleItems.indexOf(item))
+        selectionStartIndexRef.current = null
+        newSelectedKeys = new Set([item.key])
+        setSelectedKeys(newSelectedKeys)
+      }
+      const nodes = assetTree.preorderTraversal().filter((node) => newSelectedKeys.has(node.key))
+      const payload: drag.AssetRowsDragPayload = nodes.map((node) => ({
+        key: node.key,
+        asset: node.item,
+      }))
+      event.dataTransfer.setData(
+        mimeTypes.ASSETS_MIME_TYPE,
+        JSON.stringify(nodes.map((node) => node.key)),
+      )
+      drag.setDragImageToBlank(event)
+      drag.ASSET_ROWS.bind(event, payload)
+      setModal(
+        <DragModal
+          event={event}
+          className="flex flex-col rounded-default bg-selected-frame backdrop-blur-default"
+          onDragEnd={() => {
+            drag.ASSET_ROWS.unbind(payload)
+          }}
+        >
+          {nodes.map((node) => (
+            <NameColumn
+              key={node.key}
+              isOpened={false}
+              keyProp={node.key}
+              item={node.with({ depth: 0 })}
+              backendType={backend.type}
+              state={state}
+              // Default states.
+              isSoleSelected={false}
+              selected={false}
+              rowState={assetRowUtils.INITIAL_ROW_STATE}
+              // The drag placeholder cannot be interacted with.
+              setSelected={() => {}}
+              setItem={() => {}}
+              setRowState={() => {}}
+              isEditable={false}
+            />
+          ))}
+        </DragModal>,
+      )
+    },
+  )
+
+  const onRowDragOver = useEventCallback(
+    (event: React.DragEvent<HTMLTableRowElement>, item: assetTreeNode.AnyAssetTreeNode) => {
+      onMouseEvent(event)
+      const payload = drag.LABELS.lookup(event)
+      if (payload != null) {
+        event.preventDefault()
+        event.stopPropagation()
+        const { selectedKeys } = driveStore.getState()
+        const idsReference = selectedKeys.has(item.key) ? selectedKeys : item.key
+        // This optimization is required in order to avoid severe lag on Firefox.
+        if (idsReference !== lastSelectedIdsRef.current) {
+          lastSelectedIdsRef.current = idsReference
+          const ids = typeof idsReference === 'string' ? new Set([idsReference]) : idsReference
+          let labelsPresent = 0
+          for (const selectedKey of ids) {
+            const nodeLabels = nodeMapRef.current.get(selectedKey)?.item.labels
+            if (nodeLabels != null) {
+              for (const label of nodeLabels) {
+                if (payload.has(label)) {
+                  labelsPresent += 1
+                }
+              }
+            }
+          }
+          const shouldAdd = labelsPresent * 2 < ids.size * payload.size
+          window.setTimeout(() => {
+            dispatchAssetEvent({
+              type:
+                shouldAdd ?
+                  AssetEventType.temporarilyAddLabels
+                : AssetEventType.temporarilyRemoveLabels,
+              ids,
+              labelNames: payload,
+            })
+          })
+        }
+      }
+    },
+  )
+
+  const onRowDragEnd = useEventCallback(() => {
+    endAutoScroll()
+    lastSelectedIdsRef.current = null
+    const { selectedKeys } = driveStore.getState()
+    dispatchAssetEvent({
+      type: AssetEventType.temporarilyAddLabels,
+      ids: selectedKeys,
+      labelNames: set.EMPTY_SET,
+    })
+  })
+
+  const onRowDrop = useEventCallback(
+    (event: React.DragEvent<HTMLTableRowElement>, item: assetTreeNode.AnyAssetTreeNode) => {
+      endAutoScroll()
+      const { selectedKeys } = driveStore.getState()
+      const ids = new Set(selectedKeys.has(item.key) ? selectedKeys : [item.key])
+      const payload = drag.LABELS.lookup(event)
+      if (payload != null) {
+        event.preventDefault()
+        event.stopPropagation()
+        let labelsPresent = 0
+        for (const selectedKey of ids) {
+          const nodeLabels = nodeMapRef.current.get(selectedKey)?.item.labels
+          if (nodeLabels != null) {
+            for (const label of nodeLabels) {
+              if (payload.has(label)) {
+                labelsPresent += 1
+              }
+            }
+          }
+        }
+        const shouldAdd = labelsPresent * 2 < ids.size * payload.size
+        dispatchAssetEvent({
+          type: shouldAdd ? AssetEventType.addLabels : AssetEventType.removeLabels,
+          ids,
+          labelNames: payload,
+        })
+      } else {
+        dispatchAssetEvent({
+          type: AssetEventType.temporarilyAddLabels,
+          ids,
+          labelNames: set.EMPTY_SET,
+        })
       }
     },
   )
@@ -2310,20 +2461,11 @@ export default function AssetsTable(props: AssetsTableProps) {
           </div>
         </td>
       </tr>
-    : displayItems.map((item, i) => {
+    : displayItems.map((item) => {
         return (
           <AssetRow
             key={item.key}
-            updateAssetRef={(instance) => {
-              if (instance != null) {
-                updateAssetRef.current[item.item.id] = instance
-              } else {
-                // Hacky way to clear the reference to the asset on unmount.
-                // eventually once we pull the assets up in the tree, we can remove this.
-                // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-                delete updateAssetRef.current[item.item.id]
-              }
-            }}
+            updateAssetRef={updateAssetRef}
             isOpened={openedProjects.some(({ id }) => item.item.id === id)}
             columns={columns}
             item={item}
@@ -2332,150 +2474,13 @@ export default function AssetsTable(props: AssetsTableProps) {
             isKeyboardSelected={
               keyboardSelectedIndex != null && item === visibleItems[keyboardSelectedIndex]
             }
-            grabKeyboardFocus={() => {
-              setSelectedKeys(new Set([item.key]))
-              setMostRecentlySelectedIndex(i, true)
-            }}
+            grabKeyboardFocus={grabRowKeyboardFocus}
             onClick={onRowClick}
-            select={() => {
-              setMostRecentlySelectedIndex(visibleItems.indexOf(item))
-              selectionStartIndexRef.current = null
-              setSelectedKeys(new Set([item.key]))
-            }}
-            onDragStart={(event) => {
-              startAutoScroll()
-              onMouseEvent(event)
-              let newSelectedKeys = driveStore.getState().selectedKeys
-              if (!newSelectedKeys.has(item.key)) {
-                setMostRecentlySelectedIndex(visibleItems.indexOf(item))
-                selectionStartIndexRef.current = null
-                newSelectedKeys = new Set([item.key])
-                setSelectedKeys(newSelectedKeys)
-              }
-              const nodes = assetTree
-                .preorderTraversal()
-                .filter((node) => newSelectedKeys.has(node.key))
-              const payload: drag.AssetRowsDragPayload = nodes.map((node) => ({
-                key: node.key,
-                asset: node.item,
-              }))
-              event.dataTransfer.setData(
-                mimeTypes.ASSETS_MIME_TYPE,
-                JSON.stringify(nodes.map((node) => node.key)),
-              )
-              drag.setDragImageToBlank(event)
-              drag.ASSET_ROWS.bind(event, payload)
-              setModal(
-                <DragModal
-                  event={event}
-                  className="flex flex-col rounded-default bg-selected-frame backdrop-blur-default"
-                  onDragEnd={() => {
-                    drag.ASSET_ROWS.unbind(payload)
-                  }}
-                >
-                  {nodes.map((node) => (
-                    <NameColumn
-                      key={node.key}
-                      isOpened={false}
-                      keyProp={node.key}
-                      item={node.with({ depth: 0 })}
-                      backendType={backend.type}
-                      state={state}
-                      // Default states.
-                      isSoleSelected={false}
-                      selected={false}
-                      rowState={assetRowUtils.INITIAL_ROW_STATE}
-                      // The drag placeholder cannot be interacted with.
-                      setSelected={() => {}}
-                      setItem={() => {}}
-                      setRowState={() => {}}
-                      isEditable={false}
-                    />
-                  ))}
-                </DragModal>,
-              )
-            }}
-            onDragOver={(event) => {
-              onMouseEvent(event)
-              const payload = drag.LABELS.lookup(event)
-              if (payload != null) {
-                event.preventDefault()
-                event.stopPropagation()
-                const { selectedKeys } = driveStore.getState()
-                const idsReference = selectedKeys.has(item.key) ? selectedKeys : item.key
-                // This optimization is required in order to avoid severe lag on Firefox.
-                if (idsReference !== lastSelectedIdsRef.current) {
-                  lastSelectedIdsRef.current = idsReference
-                  const ids =
-                    typeof idsReference === 'string' ? new Set([idsReference]) : idsReference
-                  let labelsPresent = 0
-                  for (const selectedKey of ids) {
-                    const nodeLabels = nodeMapRef.current.get(selectedKey)?.item.labels
-                    if (nodeLabels != null) {
-                      for (const label of nodeLabels) {
-                        if (payload.has(label)) {
-                          labelsPresent += 1
-                        }
-                      }
-                    }
-                  }
-                  const shouldAdd = labelsPresent * 2 < ids.size * payload.size
-                  window.setTimeout(() => {
-                    dispatchAssetEvent({
-                      type:
-                        shouldAdd ?
-                          AssetEventType.temporarilyAddLabels
-                        : AssetEventType.temporarilyRemoveLabels,
-                      ids,
-                      labelNames: payload,
-                    })
-                  })
-                }
-              }
-            }}
-            onDragEnd={() => {
-              endAutoScroll()
-              lastSelectedIdsRef.current = null
-              const { selectedKeys } = driveStore.getState()
-              dispatchAssetEvent({
-                type: AssetEventType.temporarilyAddLabels,
-                ids: selectedKeys,
-                labelNames: set.EMPTY_SET,
-              })
-            }}
-            onDrop={(event) => {
-              endAutoScroll()
-              const { selectedKeys } = driveStore.getState()
-              const ids = new Set(selectedKeys.has(item.key) ? selectedKeys : [item.key])
-              const payload = drag.LABELS.lookup(event)
-              if (payload != null) {
-                event.preventDefault()
-                event.stopPropagation()
-                let labelsPresent = 0
-                for (const selectedKey of ids) {
-                  const nodeLabels = nodeMapRef.current.get(selectedKey)?.item.labels
-                  if (nodeLabels != null) {
-                    for (const label of nodeLabels) {
-                      if (payload.has(label)) {
-                        labelsPresent += 1
-                      }
-                    }
-                  }
-                }
-                const shouldAdd = labelsPresent * 2 < ids.size * payload.size
-                dispatchAssetEvent({
-                  type: shouldAdd ? AssetEventType.addLabels : AssetEventType.removeLabels,
-                  ids,
-                  labelNames: payload,
-                })
-              } else {
-                dispatchAssetEvent({
-                  type: AssetEventType.temporarilyAddLabels,
-                  ids,
-                  labelNames: set.EMPTY_SET,
-                })
-              }
-            }}
+            select={selectRow}
+            onDragStart={onRowDragStart}
+            onDragOver={onRowDragOver}
+            onDragEnd={onRowDragEnd}
+            onDrop={onRowDrop}
           />
         )
       })

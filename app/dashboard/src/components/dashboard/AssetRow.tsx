@@ -78,18 +78,39 @@ export interface AssetRowInnerProps {
 }
 
 /** Props for an {@link AssetRow}. */
-export interface AssetRowProps
-  extends Readonly<Omit<JSX.IntrinsicElements['tr'], 'onClick' | 'onContextMenu'>> {
+export interface AssetRowProps {
   readonly isOpened: boolean
   readonly item: assetTreeNode.AnyAssetTreeNode
   readonly state: assetsTable.AssetsTableState
   readonly hidden: boolean
   readonly columns: columnUtils.Column[]
   readonly isKeyboardSelected: boolean
-  readonly grabKeyboardFocus: () => void
+  readonly grabKeyboardFocus: (item: assetTreeNode.AnyAssetTreeNode) => void
   readonly onClick: (props: AssetRowInnerProps, event: React.MouseEvent) => void
-  readonly select: () => void
-  readonly updateAssetRef: React.Ref<(asset: backendModule.AnyAsset) => void>
+  readonly select: (item: assetTreeNode.AnyAssetTreeNode) => void
+  readonly onDragStart?: (
+    event: React.DragEvent<HTMLTableRowElement>,
+    item: assetTreeNode.AnyAssetTreeNode,
+  ) => void
+  readonly onDragOver?: (
+    event: React.DragEvent<HTMLTableRowElement>,
+    item: assetTreeNode.AnyAssetTreeNode,
+  ) => void
+  readonly onDragLeave?: (
+    event: React.DragEvent<HTMLTableRowElement>,
+    item: assetTreeNode.AnyAssetTreeNode,
+  ) => void
+  readonly onDragEnd?: (
+    event: React.DragEvent<HTMLTableRowElement>,
+    item: assetTreeNode.AnyAssetTreeNode,
+  ) => void
+  readonly onDrop?: (
+    event: React.DragEvent<HTMLTableRowElement>,
+    item: assetTreeNode.AnyAssetTreeNode,
+  ) => void
+  readonly updateAssetRef: React.RefObject<
+    Record<backendModule.AssetId, (asset: backendModule.AnyAsset) => void>
+  >
 }
 
 /** A row containing an {@link backendModule.AnyAsset}. */
@@ -198,11 +219,22 @@ export default function AssetRow(props: AssetRowProps) {
   React.useEffect(() => {
     if (isKeyboardSelected) {
       rootRef.current?.focus()
-      grabKeyboardFocusRef.current()
+      grabKeyboardFocusRef.current(item)
     }
-  }, [isKeyboardSelected])
+  }, [isKeyboardSelected, item])
 
-  React.useImperativeHandle(updateAssetRef, () => setAsset)
+  React.useImperativeHandle(updateAssetRef, () => ({ setAsset, item }))
+  if (updateAssetRef.current) {
+    updateAssetRef.current[item.item.id] = setAsset
+  }
+  React.useEffect(() => {
+    return () => {
+      if (updateAssetRef.current) {
+        // eslint-disable-next-line react-hooks/exhaustive-deps, @typescript-eslint/no-dynamic-delete
+        delete updateAssetRef.current[item.item.id]
+      }
+    }
+  }, [item.item.id, updateAssetRef])
 
   const doCopyOnBackend = React.useCallback(
     async (newParentId: backendModule.DirectoryId | null) => {
@@ -827,7 +859,7 @@ export default function AssetRow(props: AssetRowProps) {
                     event.preventDefault()
                     event.stopPropagation()
                     if (!selected) {
-                      select()
+                      select(item)
                     }
                     setModal(
                       <AssetContextMenu
@@ -855,7 +887,7 @@ export default function AssetRow(props: AssetRowProps) {
                   ) {
                     event.preventDefault()
                   } else {
-                    props.onDragStart?.(event)
+                    props.onDragStart?.(event, item)
                   }
                 }}
                 onDragEnter={(event) => {
@@ -868,19 +900,19 @@ export default function AssetRow(props: AssetRowProps) {
                     }, DRAG_EXPAND_DELAY_MS)
                   }
                   // Required because `dragover` does not fire on `mouseenter`.
-                  props.onDragOver?.(event)
+                  props.onDragOver?.(event, item)
                   onDragOver(event)
                 }}
                 onDragOver={(event) => {
                   if (state.category.type === 'trash') {
                     event.dataTransfer.dropEffect = 'none'
                   }
-                  props.onDragOver?.(event)
+                  props.onDragOver?.(event, item)
                   onDragOver(event)
                 }}
                 onDragEnd={(event) => {
                   clearDragState()
-                  props.onDragEnd?.(event)
+                  props.onDragEnd?.(event, item)
                 }}
                 onDragLeave={(event) => {
                   if (
@@ -896,11 +928,11 @@ export default function AssetRow(props: AssetRowProps) {
                   ) {
                     clearDragState()
                   }
-                  props.onDragLeave?.(event)
+                  props.onDragLeave?.(event, item)
                 }}
                 onDrop={(event) => {
                   if (state.category.type !== 'trash') {
-                    props.onDrop?.(event)
+                    props.onDrop?.(event, item)
                     clearDragState()
                     const [directoryKey, directoryId, directoryTitle] =
                       item.type === backendModule.AssetType.directory ?
