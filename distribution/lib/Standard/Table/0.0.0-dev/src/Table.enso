@@ -2534,10 +2534,10 @@ type Table
              join_table = left_table.join right_table ..Left_Outer [..Equals Name]
 
              ## Returns a Table
-                | Name  | Location      | Right Name | Age |
-                |-------|---------------|------------|-----|
-                | John  | Massachusetts | John       | 20  |
-                | Paul  | London        | Paul       | 30  |
+                | Name  | Location      | Right Name | Age       |
+                |-------|---------------|------------|-----------|
+                | John  | Massachusetts | John       | 20        |
+                | Paul  | London        | Paul       | 30        |
                 | Ringo | Paris         | _Nothing_  | _Nothing_ |
 
        ! Error Conditions
