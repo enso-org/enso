@@ -2029,6 +2029,7 @@ type Table
                 | Ringo | 40  |
 
        ? Nothing Equality
+
        When comparing `Nothing` values, filter follows the ANSI SQL conventions
        that `Nothing ==  Nothing` results in a `Nothing`. This includes both
        `Equal` and `Is_In` conditions. If you want to filter out `Nothing` use
@@ -2428,17 +2429,50 @@ type Table
        - right: The table to join with.
        - join_kind: The `Join_Kind` for the joining the two tables. It defaults
          to `Left_Outer`.
-       - on: A single condition or a common column name, or a list thereof, on
-         which to correlate rows from the two tables. If multiple conditions
-         are supplied, rows are correlated only if all are true.
-         If common column names are provided, these columns should be present
-         in both tables and an equality condition is added for each of them.
-         By default, the join is performed on the first column of the left table
-         correlated with a column in the right table with the same name.
+       - on: A set of conditions on which to correlate rows from the two tables.
+         If multiple conditions are supplied, rows are correlated only if all
+         are true. By default, the join is performed on the first column of the
+         left table correlated with a column in the right table with the same
+         name.
        - right_prefix: The prefix added to right table column names in case of
          name conflict.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
+
+       Returns:
+       - Returns a new table with the rows from the two tables joined according
+         to the specified conditions.
+
+       > Example
+         Inner Join on Name from a table with Name and Location to a table with
+         Name and Age.
+
+             left_table = Table.from_rows ["Name","Location"] [["John", "Massachusetts"],["Paul","London"]]
+             right_table = Table.from_rows ["Name","Age"] [["John", 20],["Paul",30]]
+             join_table = left_table.join right_table ..Inner [..Equals Name]
+
+             ## Returns a Table
+                | Name | Location      | Right Name | Age |
+                |------|---------------|------------|-----|
+                | John | Massachusetts | John       | 20  |
+                | Paul | London        | Paul       | 30  |
+
+       > Example
+         Left Outer Join on Name from a table with Name and Location to a table
+         with Name and Age.
+
+             left_table = Table.from_rows ["Name","Location"] [["John", "Massachusetts"],["Paul","London"],["Ringo","Paris"]]
+             right_table = Table.from_rows ["Name","Age"] [["John", 20],["Paul",30]]
+             join_table = left_table.join right_table ..Left_Outer [..Equals Name]
+
+             ## Returns a Table
+                | Name  | Location      | Right Name | Age |
+                |-------|---------------|------------|-----|
+                | John  | Massachusetts | John       | 20  |
+                | Paul  | London        | Paul       | 30  |
+                | Ringo | Paris         | _Nothing_  | _Nothing_ |
+
+       ! Error Conditions
 
          - If a column name cannot be found, a `No_Such_Column` is reported
            and an empty result is reported.
@@ -2453,9 +2487,25 @@ type Table
          - If decimal columns are joined on equality, a
            `Floating_Point_Equality` is reported.
 
-         In any of the above cases, if a problem occurs, the resulting table
-         will have the desired structure, but it will be empty to indicate that
-         the join has failed due to an erroneous join condition.
+       ? Join Kind
+
+         Enso supports the following join kinds:
+
+          - `..Inner` - Only the records that matched from the left and right
+            tables.
+          - `..Left_Outer` - all records from the left table, and the matched
+            values from the right.
+          - `..Right_Outer` - all records from the right table, and the matched
+            values from the left.
+          - `..Full` - all records, matched or unmatched.
+          - `..Left_Exclusive` - only the records that did not match from the
+            left table.
+          - `..Right_Exclusive` - only the records that did not match from the
+            right table.
+
+         It is possible to do a cartesian join (where every row from the left
+         table is paired with every row from the right table) as well, by using
+         the `cross_join` function.
 
        ? Column Renaming
 
@@ -2464,6 +2514,12 @@ type Table
          table. The left column remains unchanged. It is possible that the new
          name will be in use, in this case it will be resolved using the normal
          renaming strategy - adding subsequent `_1`, `_2` etc.
+
+       ? Nothing Equality
+
+         When comparing `Nothing` values, filter follows the ANSI SQL
+         conventions that `Nothing ==  Nothing` results in a `Nothing`. This
+         means that in a join this `Nothing` values will not match each other.
 
        ? Result Ordering
 
@@ -2480,8 +2536,11 @@ type Table
 
          As a shorthand, providing a column name or a list of column names
          allows to join the two tables on equality of corresponding columns with
-         the same name. So `table.join other on=["A", "B"]` is a shorthand for:
-             table.join other on=[Join_Condition.Equals "A" "A", Join_Condition.Equals "B" "B"]
+         the same name.
+
+         So `table.join other on=["A", "B"]` is a shorthand for:
+
+             `table.join other on=[..Equals "A" "A", ..Equals "B" "B"]`
     @join_kind Widget_Helpers.make_join_kind_selector
     @on Widget_Helpers.make_join_condition_selector
     join : Table -> Join_Kind -> Vector (Join_Condition | Text) | Text -> Text -> Problem_Behavior -> Table
