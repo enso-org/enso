@@ -17,7 +17,7 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
 import type { ToValue } from '@/util/reactivity'
-import { toValue } from 'vue'
+import { nextTick, toValue } from 'vue'
 import { assert, assertNever } from 'ydoc-shared/util/assert'
 import { mustExtend } from 'ydoc-shared/util/types'
 
@@ -173,8 +173,19 @@ export function useNodeCreation(
     }
   }
 
-  function createNode(options: NodeCreationOptions) {
-    createNodes([options])
+  let delayedNodesToCreate: NodeCreationOptions[] = []
+
+  function scheduleCreateNode(options: NodeCreationOptions) {
+    delayedNodesToCreate.push(options)
+    // Delay node creation to next tick, batch multiple synchronous createNode calls together
+    // to avoid node name collisions.
+    if (delayedNodesToCreate.length === 1) {
+      nextTick(() => {
+        const toCreate = delayedNodesToCreate
+        delayedNodesToCreate = []
+        createNodes(toCreate)
+      })
+    }
   }
 
   function newAssignmentNode(
@@ -208,7 +219,7 @@ export function useNodeCreation(
     return ident
   }
 
-  return { createNode, createNodes, placeNode }
+  return { scheduleCreateNode, createNodes, placeNode }
 }
 
 const operatorCodeToName: Record<string, string> = {
