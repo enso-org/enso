@@ -3,6 +3,7 @@ package org.enso.compiler.benchmarks.module;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -14,6 +15,7 @@ import org.enso.compiler.Compiler;
 import org.enso.compiler.benchmarks.Utils;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.profiling.snapshot.HeapDumpSnapshot;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -87,13 +89,13 @@ from Standard.Visualization import all
   private OutputStream out;
 
   @Setup
-  public void setup(BenchmarkParams params) throws IOException {
+  public void setup() throws IOException {
     this.out = new ByteArrayOutputStream();
     this.context =
         Utils.createDefaultContextBuilder()
             // Enable IR caches - we don't want to compile the imported modules from the standard
             // libraries
-            .option(RuntimeOptions.DISABLE_IR_CACHES, "false")
+            .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
             .logHandler(out)
             .out(out)
             .err(out)
@@ -135,5 +137,21 @@ from Standard.Visualization import all
   public void importStandardLibraries(Blackhole blackhole) {
     var compilerResult = compiler.run(module.asCompilerModule());
     blackhole.consume(compilerResult);
+  }
+
+  void run() throws IOException {
+    setup();
+    var snapshot = new HeapDumpSnapshot();
+    try {
+      compiler.run(module.asCompilerModule());
+      snapshot.generateSnapshot(Paths.get("/tmp/compiler.hprof"));
+    } finally {
+      teardown();
+    }
+  }
+
+  private static void main(String[] args) throws IOException {
+    var benchmark = new ImportStandardLibrariesBenchmark();
+    benchmark.run();
   }
 }
