@@ -660,8 +660,9 @@ type Table
 
     ## GROUP Standard.Base.Selections
        ICON select_column
-       Returns a new table with the specified selection of columns moved to
-       either the start or the end in the specified order.
+       Reorders the columns by moving the selected columns to the start (or end)
+       of the Table. By default, the selected columns are moved to the front.
+       Other columns are left in their original order.
 
        Arguments:
        - columns: Specifies columns by a name, type, index or regular expression to
@@ -676,37 +677,70 @@ type Table
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
+       Returns:
+       - A new table with the columns reordered.
+
+       > Example
+         Move a column with a specified name to back.
+
+             table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", "25","abc","123"]]
+             output = table.reorder_columns ["foo"] position=..After_Other_Columns
+
+             ## Returns a Table
+                | bar  | buzz | bizz | foo  |
+                |------|------|------|------|
+                | John | abc  | 123  | 25   |
+
+       > Example
+         Move columns using names passed as a Vector.
+
+             table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", "25","abc","123"]]
+             output = table.reorder_columns ["bizz", "foo"]
+
+             ## Returns a Table
+                | bizz | foo  | bar  | buzz |
+                |------|------|------|------|
+                | 123  | 25   | John | abc  |
+
+       > Example
+         Move columns matching a regular expression to front, keeping columns matching "f.+" before columns matching "ba.*".
+
+             table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", "25","abc","123"]]
+             output = table.reorder_columns [(regex "f.+"), (regex "ba.*")] case_sensitivity=..Insensitive
+
+             ## Returns a Table
+                | foo  | bar  | buzz | bizz  |
+                |------|------|------|-------|
+                | 25   | John | abc  | 123   |
+
+       > Example
+         Swap the first two columns.
+
+             table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", "25","abc","123"]]
+             output = table.reorder_columns [1, 0] position=..Before_Other_Columns
+
+             ## Returns a Table
+                | foo  | bar  | buzz | bizz  |
+                |------|------|------|-------|
+                | 25   | John | abc  | 123   |
+
+       > Example
+         Move the first column to back.
+
+             table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", "25","abc","123"]]
+             output = table.reorder_columns [0] position=..After_Other_Columns
+
+             ## Returns a Table
+                | foo  | buzz | bizz | bar  |
+                |------|------|------|------|
+                | 25   | abc  | 123  | John |
+
        ! Error Conditions
 
          - If a column in `columns` is not in the input table, a
            `Missing_Input_Columns` is reported according to the `on_problems`
            setting, unless `error_on_missing_columns` is set to `True`, in which
            case it is raised as an error.
-
-       > Example
-         Move a column with a specified name to back.
-
-             table.reorder_columns ["foo"] position=Position.After_Other_Columns
-
-       > Example
-         Move columns using names passed as a Vector.
-
-             table.reorder_columns ["bar", "foo"] position=Position.After_Other_Columns
-
-       > Example
-         Move columns matching a regular expression to front, keeping columns matching "foo.+" before columns matching "b.*".
-
-             table.reorder_columns "foo.+".to_regex case_sensitivity=Case_Sensitivity.Insensitive
-
-       > Example
-         Swap the first two columns.
-
-             table.reorder_columns [1, 0] position=Position.Before_Other_Columns
-
-       > Example
-         Move the first column to back.
-
-             table.reorder_columns [0] position=Position.After_Other_Columns
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     reorder_columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> Position -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns
     reorder_columns self (columns : (Vector | Text | Integer | Regex | By_Type) = [self.columns.first.name]) (position:Position=..Before_Other_Columns) (case_sensitivity:Case_Sensitivity=..Default) (error_on_missing_columns:Boolean=False) (on_problems:Problem_Behavior=..Report_Warning) =
@@ -984,7 +1018,9 @@ type Table
     ## ALIAS order_by
        GROUP Standard.Base.Selections
        ICON order
-       Sorts the rows of the table according to the specified columns and order.
+       Reorders the table by sorting them based on the specified columns.
+       Optionally, the method of ordering text values can be specified allowing
+       for case-insensitively or dictionary ordering.
 
        Arguments:
        - columns: The columns and order to sort the table.
@@ -994,6 +1030,9 @@ type Table
          to `True`.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
+
+       Returns:
+       - A new table with the rows sorted as specified.
 
        ! Error Conditions
 
@@ -1014,37 +1053,53 @@ type Table
        > Example
          Sorting `table` in ascending order by the value in column `'Quantity'`.
 
-             table.sort ['Quantity']
+             table = Table.from_rows ["Name","Quantity"] [["John", 5],["Paul", 3]]
+             sorted = table.sort ['Quantity']
+
+             ## Returns a Table
+                | Name | Quantity |
+                |------|----------|
+                | Paul | 3        |
+                | John | 5        |
 
        > Example
-         Sorting `table` in descending order by the value in column `'Quantity'`.
+         Sorting `table` in descending order by the value in column `'Name'`.
 
-             table.sort [Sort_Column.Name 'Quantity' Sort_Direction.Descending]
+             table = Table.from_rows ["Name","Quantity"] [["John", 5],["Paul", 3]]
+             sorted = table.sort [..Name 'Name' ..Descending]
+
+             ## Returns a Table
+                | Name | Quantity |
+                |------|----------|
+                | Paul | 3        |
+                | John | 5        |
 
        > Example
          Sorting `table` in ascending order by the value in column `'Quantity'`,
          using the value in column `'Rating'` for breaking ties.
 
-             table.sort ['Quantity', 'Rating']
+             table = Table.from_rows ["Name","Quantity","Rating"] [["John", 5, 3],["Paul", 3, 5]]
+             sorted = table.sort ['Quantity', 'Rating']
+
+             ## Returns a Table
+                | Name | Quantity | Rating |
+                |------|----------|--------|
+                | Paul | 3        | 5      |
+                | John | 5        | 3      |
 
        > Example
          Sorting `table` in ascending order by the value in column `'Quantity'`,
          using the value in column `'Rating'` in descending order for breaking
          ties.
 
-             table.sort [..Name 'Quantity', ..Name 'Rating' ..Descending]
+             table = Table.from_rows ["Name","Quantity","Rating"] [["John", 5, 3],["Paul", 3, 5]]
+             sorted = table.sort ['Quantity', ..Name 'Rating' ..Descending]
 
-       > Example
-         Order the table by the second column in ascending order. In case of any
-         ties, break them based on the 7th column from the end of the table in
-         descending order.
-
-             table.sort [1, ..Index -7 ..Descending]
-
-       > Example
-         Sort the table by columns whose names start with letter `a`.
-
-              table.sort [(..Select_By_Name "a.*".to_regex case_sensitivity=..Insensitive)]
+             ## Returns a Table
+                | Name | Quantity | Rating |
+                |------|----------|--------|
+                | John | 5        | 3      |
+                | Paul | 3        | 5      |
     @columns Widget_Helpers.make_order_by_selector
     sort : Vector (Text | Sort_Column) | Text -> Text_Ordering -> Boolean -> Problem_Behavior -> Table ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns
     sort self (columns = [self.columns.first.name]) text_ordering:Text_Ordering=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
@@ -1194,24 +1249,16 @@ type Table
 
     ## GROUP Standard.Base.Conversions
        ICON convert
-       Parses columns within a `Table` to a specific value type.
+
+       Parses columns within a `Table` into a more specific value type.
        By default, it looks at all `Text` columns and attempts to deduce the
        type (columns with other types are not affected).
-
-       In the Database backends, the default formatting settings of the
-       particular database are used.
-
-       In the in-memory backend, the default parser options only parse values
-       where the process is reversible (e.g., 0123 would not be converted to an
-       integer as there is a leading 0). However, settings in the
-       `Data_Formatter` can control this.
 
        Arguments:
        - columns: The columns to parse. If not specified, all text columns
          will be parsed.
        - type: The type to parse the columns to. Defaults to `Auto` meaning that
-         the type will be inferred from the data. In the Database backends,
-         `Auto` is not supported, so a specific type must be selected.
+         the type will be inferred from the data.
        - format: The formatting settings to use when parsing the columns.
          For `Date`, `Time_Of_Day` and `Date_Time`, a Java date time style
          can be used. For `Boolean`, it should be two values that represent true
@@ -1225,6 +1272,9 @@ type Table
          to `True`.
        - on_problems: Specifies how to handle if a problem occurs, raising as a
          warning by default.
+
+       Returns:
+       - A new table with the parsed columns replacing the original text ones.
 
        ! Error Conditions
 
@@ -1240,20 +1290,34 @@ type Table
            format, an `Invalid_Format` problem is reported. The problematic
            cells are replaced with `Nothing`.
 
-       ? Number Formats
+       ? Auto type detection
 
-         If parsing a column to a number, by default, the parser will attempt
+         In the in-memory backend, if the `type` is `Auto, the process will
+         attempt to work out the type of the column.
+
+         The default parser only parse values where the process is reversible
+         (e.g., 0123 would not be converted to an integer as there is a leading
+         0). However, this can be overriden by providing a `Data_Formatter`.
+
+       ? In Database Support
+
+         In the Database backends, the default formatting settings of the
+         particular database are used. Custom formats are not currently
+         supported.
+
+         The target type must be specified explicitly, the `Auto` option is not
+         currently support there.
+
+       ? Default Number Parsing
+
+         If the type is set to a number, the default parser will attempt
          to find the most appropriate format for the column. This is done by
          finding the format that parses the longest set without an issue from
          the first record.
 
          It will try the following separators in British, German, French and
-         Swiss order.
-
-         - Thousand separators must be followed by groups of 3 numbers.
-         - Scientific notation is only allowed on decimals and must be on a
-           value between -10 and 10. The notation is an `E` followed by an
-           integer and must be enabled on the `Data_Formatter`,
+         Swiss order. Thousand separators must be followed by groups of 3
+         numbers.
 
          The following formats are supported:
          - Sign (+/-) followed by Number (e.g. +1,234.56)
@@ -1263,25 +1327,53 @@ type Table
          - If using brackets, the currency symbol must be placed after the
            opening bracket.
 
-       > Example
-         Parse the first and last columns containing Yes/No values as booleans.
+         Scientific notation is only allowed on decimals and must be on a value
+         between -10 and 10. The notation is an `E` followed by an integer and
+         must be enabled on a `Data_Formatter`.
 
-             table.parse columns=[0, -1] type=Value_Type.Boolean format="Yes|No"
+       > Example
+         Parse the last columns containing Yes/No values as booleans.
+
+             table = Table.from_rows ["foo","bar","buzz","bizz"] [["25", "John","abc","Yes"]]
+             output = table.parse columns=[-1] type=Value_Type.Boolean format="Yes|No"
+
+             ## Returns a Table
+                | foo | bar  | buzz | bizz |
+                |-----|------|------|------|
+                | 25  | John | abc  | true |
 
        > Example
          Parse dates in a column in the format `yyyy-MM-dd` (the default format).
 
-             table.parse "birthday" Value_Type.Date
+             table = Table.from_rows ["Name","Location","Active","Date"] [["John", "Massachusetts", True, "2021-01-01"]]
+             output = table.parse ["Date"] ..Date
+
+             ## Returns a Table
+                | Name | Location      | Active | Date       |
+                |------|---------------|--------|------------|
+                | John | Massachusetts | true   | 2021-01-01 |
 
        > Example
          Parse dates in a column in the format `dd/MM/yyyy`.
 
-             table.parse "birthday" Value_Type.Date 'dd/MM/yyyy'
+             table = Table.from_rows ["Name","Location","Active","Date"] [["John", "Massachusetts", True, "21/12/2021"]]
+             output = table.parse ["Date"] ..Date format="dd/MM/yyyy"
+
+             ## Returns a Table
+                | Name | Location      | Active | Date       |
+                |------|---------------|--------|------------|
+                | John | Massachusetts | true   | 2021-12-21 |
 
        > Example
          Parse all columns inferring their types, using `,` as the decimal point for numbers.
 
-             table.parse format=(Data_Formatter.Value.with_number_formatting decimal_point=',')
+             table = Table.from_rows ["Name","Location","Active","Value"] [["John", "Massachusetts", "True", "1.234,56"]]
+             output = table.parse ["Value"] ..Float
+
+             ## Returns a Table
+                | Name | Location      | Active | Value   |
+                |------|---------------|--------|---------|
+                | John | Massachusetts | True   | 1234.56 |
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True)
     @type Widget_Helpers.parse_type_selector
     @format (make_format_chooser include_number=False)
@@ -1316,26 +1408,28 @@ type Table
 
     ## GROUP Standard.Base.Conversions
        ICON convert
-       Formats `Column`s within a `Table` using a format string,
-       `Date_Time_Formatter`, or `Column` of format strings.
+       Formats specified columns to text, optionally using a specified format.
+       The original columns are replaced by the formatted columns.
 
        Arguments:
        - columns: The columns to format. The columns can have different types,
          but all columns must be compatible with any provided `format` value.
        - format: The type-dependent format string to use to format the values.
-         If `format` is `""` or `Nothing`, .to_text is used to format the value.
+         If `format` is `""` or `Nothing`, default value format is used.
          In case of date/time columns, the format can also be a
          `Date_Time_Formatter`. If `format` is a `Column`, it must be a text
-         column.
+         column and each record is treat row by row.
        - locale: The locale in which the format should be interpreted.
-         If a `Date_Time_Formatter` is provided for `format` and the `locale` is
-         set to anything else than `Locale.default`, then that locale will
-         override the formatters locale.
+         If a `Date_Time_Formatter` is provided for `format`, then this locale
+         will override the locale in the formatter (unless it is `default`).
        - error_on_missing_columns: Specifies if a missing input column should
          result in an error regardless of the `on_problems` settings. Defaults
          to `True`.
        - on_problems: Specifies how to handle if a problem occurs, raising as a
          warning by default.
+
+       Returns:
+       - A new table with the specified columns formatted.
 
        ! Error Conditions
 
@@ -1358,11 +1452,11 @@ type Table
          - `Value_Type.Float`
          - `Value_Type.Boolean`
 
-       ? `Value_Type.Date`, `Value_Type.Date_Time`, `Value_Type.Time` format strings
+       ? `Value_Type.Date`, `Value_Type.Date_Time`, `Value_Type.Time` formats
 
-          See `Date_Time_Formatter` for more details.
+          See https://help.enso.org/docs/using-enso/custom-formats for details.
 
-       ? `Value_Type.Integer`, `Value_Type.Float` format strings
+       ? `Value_Type.Integer`, `Value_Type.Float` formats
 
          Numeric format strings are specified by the Java DecimalFormat class.
          See https://docs.oracle.com/javase/8/docs/api/java/text/DecimalFormat.html
@@ -1374,19 +1468,40 @@ type Table
          and false, separated by a `|`.
 
        > Example
-         Format the first and last boolean columns as 'Yes'/'No'.
+         Format Active and Date columns in the table using the default formatter.
 
-             table.format columns=[0, -1] format="Yes|No"
+             table = Table.from_rows ["Name","Location","Active","Date"] [["John", "Massachusetts", True, Date.new 2020 1 1],["Paul","London", False, Date.new 2020 1 2]]
+             output = table.format columns=["Active", "Date"]
+
+             ## Returns a Table
+                | Name | Location      | Active | Date       |
+                |------|---------------|--------|------------|
+                | John | Massachusetts | True   | 2020-01-01 |
+                | Paul | London        | False  | 2020-01-02 |
+
+       > Example
+         Format the last boolean columns as 'Yes'/'No'.
+
+             table = Table.from_rows ["Name","Location","Active"] [["John", "Massachusetts", True],["Paul","London", False]]
+             output = table.format columns=[-1] format="Yes|No"
+
+             ## Returns a Table
+                | Name | Location      | Active |
+                |------|---------------|--------|
+                | John | Massachusetts | Yes    |
+                | Paul | London        | No     |
 
        > Example
          Format dates in a column using the format `yyyyMMdd`.
 
-             table.format "birthday" "yyyyMMdd"
+             table = Table.from_rows ["Name","Location","Date"] [["John", "Massachusetts", Date.new 2020 1 1],["Paul","London", Date.new 2020 1 2]]
+             output = table.format columns=["Date"] format="yyyyMMdd"
 
-       > Example
-         Format all columns in the table using the default formatter.
-
-             table.format
+             ## Returns a Table
+                | Name | Location      | Date     |
+                |------|---------------|----------|
+                | John | Massachusetts | 20200101 |
+                | Paul | London        | 20200102 |
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @locale Locale.default_widget
     @format (make_format_chooser include_number=True)
