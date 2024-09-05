@@ -49,7 +49,6 @@ import * as inputBindingsModule from '#/configurations/inputBindings'
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
 import BackendProvider, { useLocalBackend } from '#/providers/BackendProvider'
 import DriveProvider from '#/providers/DriveProvider'
-import DevtoolsProvider from '#/providers/EnsoDevtoolsProvider'
 import { useHttpClient } from '#/providers/HttpClientProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
 import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
@@ -87,15 +86,16 @@ import LocalBackend from '#/services/LocalBackend'
 import ProjectManager, * as projectManager from '#/services/ProjectManager'
 import RemoteBackend from '#/services/RemoteBackend'
 
+import { FeatureFlagsProvider } from '#/providers/FeatureFlagsProvider'
 import * as appBaseUrl from '#/utilities/appBaseUrl'
 import * as eventModule from '#/utilities/event'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
+import { Path } from '#/utilities/path'
+import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 
 import { useInitAuthService } from '#/authentication/service'
 import { InvitedToOrganizationModal } from '#/modals/InvitedToOrganizationModal'
-import { Path } from '#/utilities/path'
-import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 
 // ============================
 // === Global configuration ===
@@ -487,7 +487,7 @@ function AppRouter(props: AppRouterProps) {
   )
 
   return (
-    <DevtoolsProvider>
+    <FeatureFlagsProvider>
       <RouterProvider navigate={navigate}>
         <SessionProvider
           saveAccessToken={authService?.cognito.saveAccessToken.bind(authService.cognito) ?? null}
@@ -512,7 +512,9 @@ function AppRouter(props: AppRouterProps) {
                     {routes}
                     {detect.IS_DEV_MODE && (
                       <suspense.Suspense>
-                        <devtools.EnsoDevtools />
+                        <errorBoundary.ErrorBoundary>
+                          <devtools.EnsoDevtools />
+                        </errorBoundary.ErrorBoundary>
                       </suspense.Suspense>
                     )}
                   </errorBoundary.ErrorBoundary>
@@ -522,7 +524,7 @@ function AppRouter(props: AppRouterProps) {
           </BackendProvider>
         </SessionProvider>
       </RouterProvider>
-    </DevtoolsProvider>
+    </FeatureFlagsProvider>
   )
 }
 

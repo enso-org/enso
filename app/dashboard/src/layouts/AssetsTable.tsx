@@ -1,7 +1,13 @@
 /** @file Table displaying a list of projects. */
 import * as React from 'react'
 
-import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
+import {
+  queryOptions,
+  useMutation,
+  useQueries,
+  useQueryClient,
+  useSuspenseQuery,
+} from '@tanstack/react-query'
 import * as toast from 'react-toastify'
 import invariant from 'tiny-invariant'
 import * as z from 'zod'
@@ -11,14 +17,7 @@ import DropFilesImage from '#/assets/drop_files.svg'
 import * as mimeTypes from '#/data/mimeTypes'
 
 import * as autoScrollHooks from '#/hooks/autoScrollHooks'
-import {
-  backendMutationOptions,
-  useBackendQuery,
-  useListTags,
-  useListUserGroups,
-  useListUsers,
-} from '#/hooks/backendHooks'
-import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 import * as intersectionHooks from '#/hooks/intersectionHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -40,7 +39,6 @@ import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 import * as projectsProvider from '#/providers/ProjectsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
@@ -72,11 +70,13 @@ import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
-import LocalBackend from '#/services/LocalBackend'
+import LocalBackend, * as localBackendModule from '#/services/LocalBackend'
+import * as projectManager from '#/services/ProjectManager'
 import { isSpecialReadonlyDirectoryId } from '#/services/RemoteBackend'
 
 import { ErrorDisplay } from '#/components/ErrorBoundary'
-import * as array from '#/utilities/array'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import type * as assetQuery from '#/utilities/AssetQuery'
 import AssetQuery from '#/utilities/AssetQuery'
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
@@ -205,96 +205,6 @@ const SUGGESTIONS_FOR_NEGATIVE_TYPE: assetSearchBar.Suggestion[] = [
   },
 ]
 
-// ===================================
-// === insertAssetTreeNodeChildren ===
-// ===================================
-
-/** Return a directory, with new children added into its list of children.
- * All children MUST have the same asset type. */
-function insertAssetTreeNodeChildren(
-  item: assetTreeNode.AnyAssetTreeNode,
-  children: readonly backendModule.AnyAsset[],
-  directoryKey: backendModule.DirectoryId,
-  directoryId: backendModule.DirectoryId,
-  getInitialAssetEvents: (id: backendModule.AssetId) => readonly assetEvent.AssetEvent[] | null,
-): assetTreeNode.AnyAssetTreeNode {
-  const depth = item.depth + 1
-  const typeOrder = children[0] != null ? backendModule.ASSET_TYPE_ORDER[children[0].type] : 0
-  const nodes = (item.children ?? []).filter(
-    (node) => node.item.type !== backendModule.AssetType.specialEmpty,
-  )
-  const nodesToInsert = children.map((asset) =>
-    AssetTreeNode.fromAsset(
-      asset,
-      directoryKey,
-      directoryId,
-      depth,
-      `${item.path}/${asset.title}`,
-      getInitialAssetEvents(asset.id),
-    ),
-  )
-  const newNodes = array.splicedBefore(
-    nodes,
-    nodesToInsert,
-    (innerItem) => backendModule.ASSET_TYPE_ORDER[innerItem.item.type] >= typeOrder,
-  )
-  return item.with({ children: newNodes })
-}
-
-/** Return a directory, with new children added into its list of children.
- * The children MAY be of different asset types. */
-function insertArbitraryAssetTreeNodeChildren(
-  item: assetTreeNode.AnyAssetTreeNode,
-  children: backendModule.AnyAsset[],
-  directoryKey: backendModule.DirectoryId,
-  directoryId: backendModule.DirectoryId,
-  getKey: ((asset: backendModule.AnyAsset) => backendModule.AssetId) | null = null,
-  getInitialAssetEvents: (
-    id: backendModule.AssetId,
-  ) => readonly assetEvent.AssetEvent[] | null = () => null,
-): assetTreeNode.AnyAssetTreeNode {
-  const depth = item.depth + 1
-  const nodes = (item.children ?? []).filter(
-    (node) => node.item.type !== backendModule.AssetType.specialEmpty,
-  )
-  const byType: Readonly<Record<backendModule.AssetType, backendModule.AnyAsset[]>> = {
-    [backendModule.AssetType.directory]: [],
-    [backendModule.AssetType.project]: [],
-    [backendModule.AssetType.file]: [],
-    [backendModule.AssetType.datalink]: [],
-    [backendModule.AssetType.secret]: [],
-    [backendModule.AssetType.specialLoading]: [],
-    [backendModule.AssetType.specialEmpty]: [],
-  }
-  for (const child of children) {
-    byType[child.type].push(child)
-  }
-  let newNodes = nodes
-  for (const childrenOfSpecificType of Object.values(byType)) {
-    const firstChild = childrenOfSpecificType[0]
-    if (firstChild) {
-      const typeOrder = backendModule.ASSET_TYPE_ORDER[firstChild.type]
-      const nodesToInsert = childrenOfSpecificType.map((asset) =>
-        AssetTreeNode.fromAsset(
-          asset,
-          directoryKey,
-          directoryId,
-          depth,
-          `${item.path}/${asset.title}`,
-          getInitialAssetEvents(asset.id),
-          getKey?.(asset) ?? asset.id,
-        ),
-      )
-      newNodes = array.splicedBefore(
-        newNodes,
-        nodesToInsert,
-        (innerItem) => backendModule.ASSET_TYPE_ORDER[innerItem.item.type] >= typeOrder,
-      )
-    }
-  }
-  return newNodes === nodes ? item : item.with({ children: newNodes })
-}
-
 // =========================
 // === DragSelectionInfo ===
 // =========================
@@ -329,6 +239,7 @@ const CATEGORY_TO_FILTER_BY: Readonly<Record<Category['type'], backendModule.Fil
 export interface AssetsTableState {
   readonly backend: Backend
   readonly rootDirectoryId: backendModule.DirectoryId
+  readonly expandedDirectoryIds: readonly backendModule.DirectoryId[]
   readonly scrollContainerRef: React.RefObject<HTMLElement>
   readonly visibilities: ReadonlyMap<backendModule.AssetId, Visibility>
   readonly category: Category
@@ -350,7 +261,6 @@ export interface AssetsTableState {
   readonly doToggleDirectoryExpansion: (
     directoryId: backendModule.DirectoryId,
     key: backendModule.DirectoryId,
-    title?: string | null,
     override?: boolean,
   ) => void
   readonly doCopy: () => void
@@ -359,6 +269,12 @@ export interface AssetsTableState {
     newParentKey: backendModule.DirectoryId,
     newParentId: backendModule.DirectoryId,
   ) => void
+  readonly doDelete: (item: backendModule.AnyAsset, forever: boolean) => Promise<void>
+  readonly doRestore: (item: backendModule.AnyAsset) => Promise<void>
+  readonly doMove: (
+    newParentKey: backendModule.DirectoryId,
+    item: backendModule.AnyAsset,
+  ) => Promise<void>
 }
 
 /** Data associated with a {@link AssetRow}, used for rendering. */
@@ -405,7 +321,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const { user } = authProvider.useFullUserSession()
   const backend = backendProvider.useBackend(category)
-  const labels = useListTags(backend)
+  const { data: labels } = useBackendQuery(backend, 'listTags', [])
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
@@ -419,6 +335,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const didLoadingProjectManagerFail = backendProvider.useDidLoadingProjectManagerFail()
   const reconnectToProjectManager = backendProvider.useReconnectToProjectManager()
   const [enabledColumns, setEnabledColumns] = React.useState(columnUtils.DEFAULT_ENABLED_COLUMNS)
+
   const [sortInfo, setSortInfo] =
     React.useState<sorting.SortInfo<columnUtils.SortableColumn> | null>(null)
   const driveStore = useDriveStore()
@@ -430,15 +347,20 @@ export default function AssetsTable(props: AssetsTableProps) {
   const [pasteData, setPasteData] = React.useState<pasteDataModule.PasteData<
     ReadonlySet<backendModule.AssetId>
   > | null>(null)
-  const [, setQueuedAssetEvents] = React.useState<assetEvent.AssetEvent[]>([])
-  const nameOfProjectToImmediatelyOpenRef = React.useRef(initialProjectName)
-  const users = useListUsers(backend)
-  const userGroups = useListUserGroups(backend)
+
+  const { data: users } = useBackendQuery(backend, 'listUsers', [])
+  const { data: userGroups } = useBackendQuery(backend, 'listUserGroups', [])
   const organizationQuery = useSuspenseQuery({
     queryKey: [backend.type, 'getOrganization'],
     queryFn: () => backend.getOrganization(),
   })
+
   const organization = organizationQuery.data
+
+  const isAssetContextMenuVisible =
+    category.type !== 'cloud' || user.plan == null || user.plan === backendModule.Plan.solo
+
+  const nameOfProjectToImmediatelyOpenRef = React.useRef(initialProjectName)
   const [localRootDirectory] = localStorageProvider.useLocalStorageState('localRootDirectory')
   const rootDirectoryId = React.useMemo(() => {
     const localRootPath = localRootDirectory != null ? backendModule.Path(localRootDirectory) : null
@@ -449,39 +371,278 @@ export default function AssetsTable(props: AssetsTableProps) {
     invariant(id, 'Missing root directory')
     return id
   }, [category, backend, user, organization, localRootDirectory])
-  const [assetTree, setAssetTree] = React.useState<assetTreeNode.AnyAssetTreeNode>(() => {
-    const rootParentDirectoryId = backendModule.DirectoryId('')
+
+  const rootParentDirectoryId = backendModule.DirectoryId('')
+  const rootDirectory = React.useMemo(
+    () => backendModule.createRootDirectoryAsset(rootDirectoryId),
+    [rootDirectoryId],
+  )
+
+  const enableAssetsTableBackgroundRefresh = useFeatureFlag('enableAssetsTableBackgroundRefresh')
+  const assetsTableBackgroundRefreshInterval = useFeatureFlag(
+    'assetsTableBackgroundRefreshInterval',
+  )
+  /**
+   * The expanded directories in the asset tree.
+   * We don't include the root directory as it might change when a user switches
+   * between items in sidebar and we don't want to reset the expanded state using useEffect.
+   */
+  const [privateExpandedDirectoryIds, setExpandedDirectoryIds] = React.useState<
+    backendModule.DirectoryId[]
+  >(() => [])
+
+  const expandedDirectoryIds = React.useMemo(
+    () => privateExpandedDirectoryIds.concat(rootDirectoryId),
+    [privateExpandedDirectoryIds, rootDirectoryId],
+  )
+
+  const expandedDirectoryIdsSet = React.useMemo(
+    () => new Set(expandedDirectoryIds),
+    [expandedDirectoryIds],
+  )
+
+  const createProjectMutation = useMutation(
+    backendMutationOptions(backend, 'createProject', {
+      meta: { invalidates: [['listDirectory', backend.type]] },
+    }),
+  )
+  const duplicateProjectMutation = useMutation(
+    backendMutationOptions(backend, 'duplicateProject', {
+      meta: { invalidates: [['listDirectory', backend.type]] },
+    }),
+  )
+  const createDirectoryMutation = useMutation(
+    backendMutationOptions(backend, 'createDirectory', {
+      meta: { invalidates: [['listDirectory', backend.type]] },
+    }),
+  )
+  const createSecretMutation = useMutation(
+    backendMutationOptions(backend, 'createSecret', {
+      meta: { invalidates: [['listDirectory', backend.type]] },
+    }),
+  )
+  const updateSecretMutation = useMutation(
+    backendMutationOptions(backend, 'updateSecret', {
+      meta: { invalidates: [['listDirectory', backend.type]] },
+    }),
+  )
+  const createDatalinkMutation = useMutation(
+    backendMutationOptions(backend, 'createDatalink', {
+      meta: { invalidates: [['listDirectory', backend.type]] },
+    }),
+  )
+  const uploadFileMutation = useMutation(
+    backendMutationOptions(backend, 'uploadFile', {
+      meta: { invalidates: [['assetVersions'], ['listDirectory', backend.type]] },
+    }),
+  )
+  const getProjectDetailsMutation = useMutation(
+    backendMutationOptions(backend, 'getProjectDetails'),
+  )
+  const copyAssetMutation = useMutation(
+    backendMutationOptions(backend, 'copyAsset', {
+      meta: { invalidates: [['assetVersions'], ['listDirectory', backend.type]] },
+    }),
+  )
+  const deleteAssetMutation = useMutation(
+    backendMutationOptions(backend, 'deleteAsset', {
+      meta: { invalidates: [['assetVersions'], ['listDirectory', backend.type]] },
+    }),
+  )
+  const undoDeleteAssetMutation = useMutation(
+    backendMutationOptions(backend, 'undoDeleteAsset', {
+      meta: { invalidates: [['listDirectory', backend.type]] },
+    }),
+  )
+  const updateAssetMutation = useMutation(
+    backendMutationOptions(backend, 'updateAsset', {
+      meta: { invalidates: [['assetVersions'], ['listDirectory', backend.type]] },
+    }),
+  )
+  const closeProjectMutation = useMutation(
+    backendMutationOptions(backend, 'closeProject', {
+      meta: { invalidates: [['assetVersions'], ['listDirectory', backend.type]] },
+    }),
+  )
+
+  const directories = useQueries({
+    // We query only expanded directories, as we don't want to load the data for directories that are not visible.
+    queries: React.useMemo(
+      () =>
+        expandedDirectoryIds.map((directoryId) =>
+          queryOptions({
+            queryKey: [
+              'listDirectory',
+              backend.type,
+              directoryId,
+              {
+                parentId: directoryId,
+                labels: null,
+                filterBy: CATEGORY_TO_FILTER_BY[category.type],
+                recentProjects: category.type === 'recent',
+              },
+            ] as const,
+            queryFn: async ({ queryKey: [, , parentId, params] }) => ({
+              parentId,
+              children: await backend.listDirectory(params, parentId),
+            }),
+
+            refetchInterval:
+              enableAssetsTableBackgroundRefresh ? assetsTableBackgroundRefreshInterval : false,
+            refetchOnMount: 'always',
+            refetchIntervalInBackground: false,
+            refetchOnWindowFocus: true,
+
+            enabled: !hidden,
+            meta: { persist: false },
+          }),
+        ),
+      [
+        hidden,
+        backend,
+        category,
+        expandedDirectoryIds,
+        assetsTableBackgroundRefreshInterval,
+        enableAssetsTableBackgroundRefresh,
+      ],
+    ),
+    combine: (results) => {
+      const rootQuery = results.find((directory) => directory.data?.parentId === rootDirectory.id)
+
+      return {
+        rootDirectory: {
+          isFetching: rootQuery?.isFetching ?? true,
+          isLoading: rootQuery?.isLoading ?? true,
+          data: rootQuery?.data,
+        },
+        directories: results.map((res) => ({
+          isFetching: res.isFetching,
+          isLoading: res.isLoading,
+          data: res.data,
+        })),
+      }
+    },
+  })
+
+  /**
+   * Return type of the query function for the listDirectory query.
+   */
+  type ListDirectoryQueryDataType = (typeof directories)['rootDirectory']['data']
+
+  const rootDirectoryContent = directories.rootDirectory.data?.children
+  const isLoading = directories.rootDirectory.isLoading
+
+  const assetTree = React.useMemo(() => {
     const rootPath = 'rootPath' in category ? category.rootPath : backend.rootPath
-    return AssetTreeNode.fromAsset(
-      backendModule.createRootDirectoryAsset(rootDirectoryId),
+
+    // If the root directory is not loaded, then we cannot render the tree.
+    // Return null, and wait for the root directory to load.
+    if (rootDirectoryContent == null) {
+      // eslint-disable-next-line no-restricted-syntax
+      return AssetTreeNode.fromAsset(
+        backendModule.createRootDirectoryAsset(rootDirectoryId),
+        rootParentDirectoryId,
+        rootParentDirectoryId,
+        -1,
+        rootPath,
+        null,
+      )
+    }
+
+    const rootId = rootDirectory.id
+
+    const children = rootDirectoryContent.map((content) => {
+      /**
+       * Recursively build assets tree. If a child is a directory, we search for it is content in the loaded
+       * data. If it is loaded, we append that data to the asset node and do the same for the children
+       */
+      const appendChildrenRecursively = (node: assetTreeNode.AnyAssetTreeNode, depth: number) => {
+        const { item } = node
+
+        if (backendModule.assetIsDirectory(item)) {
+          const childrenAssetsQuery = directories.directories.find(
+            (directory) => directory.data?.parentId === item.id,
+          )
+
+          const nestedChildren = childrenAssetsQuery?.data?.children.map((child) =>
+            AssetTreeNode.fromAsset(
+              child,
+              item.id,
+              item.id,
+              depth,
+              `${node.path}/${child.title}`,
+              null,
+              child.id,
+            ),
+          )
+
+          if (childrenAssetsQuery == null || childrenAssetsQuery.isLoading) {
+            node = node.with({
+              children: [
+                AssetTreeNode.fromAsset(
+                  backendModule.createSpecialLoadingAsset(item.id),
+                  item.id,
+                  item.id,
+                  depth,
+                  '',
+                ),
+              ],
+            })
+          } else if (nestedChildren?.length === 0) {
+            node = node.with({
+              children: [
+                AssetTreeNode.fromAsset(
+                  backendModule.createSpecialEmptyAsset(item.id),
+                  item.id,
+                  item.id,
+                  depth,
+                  '',
+                ),
+              ],
+            })
+          } else if (nestedChildren != null) {
+            node = node.with({
+              children: nestedChildren.map((child) => appendChildrenRecursively(child, depth + 1)),
+            })
+          }
+        }
+
+        return node
+      }
+
+      const node = AssetTreeNode.fromAsset(
+        content,
+        rootId,
+        rootId,
+        0,
+        `${rootPath}/${content.title}`,
+        null,
+        content.id,
+      )
+
+      return appendChildrenRecursively(node, 1)
+    })
+
+    return new AssetTreeNode(
+      rootDirectory,
       rootParentDirectoryId,
       rootParentDirectoryId,
+      children,
       -1,
       rootPath,
       null,
+      rootId,
     )
-  })
-  const [isDraggingFiles, setIsDraggingFiles] = React.useState(false)
-  const [droppedFilesCount, setDroppedFilesCount] = React.useState(0)
-  const isCloud = backend.type === backendModule.BackendType.remote
-  /** Events sent when the asset list was still loading. */
-  const queuedAssetListEventsRef = React.useRef<assetListEvent.AssetListEvent[]>([])
-  const rootRef = React.useRef<HTMLDivElement | null>(null)
-  const cleanupRootRef = React.useRef(() => {})
-  const mainDropzoneRef = React.useRef<HTMLButtonElement | null>(null)
-  const lastSelectedIdsRef = React.useRef<
-    backendModule.AssetId | ReadonlySet<backendModule.AssetId> | null
-  >(null)
-  const headerRowRef = React.useRef<HTMLTableRowElement>(null)
-  const assetTreeRef = React.useRef<assetTreeNode.AnyAssetTreeNode>(assetTree)
-  const pasteDataRef = React.useRef<pasteDataModule.PasteData<
-    ReadonlySet<backendModule.AssetId>
-  > | null>(null)
-  const nodeMapRef = React.useRef<
-    ReadonlyMap<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>
-  >(new Map<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>())
-  const isAssetContextMenuVisible =
-    category.type !== 'cloud' || user.plan == null || user.plan === backendModule.Plan.solo
+  }, [
+    directories,
+    rootDirectoryContent,
+    rootDirectory,
+    rootParentDirectoryId,
+    backend.rootPath,
+    rootDirectoryId,
+    category,
+  ])
+
   const filter = React.useMemo(() => {
     const globCache: Record<string, RegExp> = {}
     if (/^\s*$/.test(query.query)) {
@@ -591,9 +752,37 @@ export default function AssetsTable(props: AssetsTableProps) {
       }
     }
   }, [query])
+
+  const visibilities = React.useMemo(() => {
+    const map = new Map<backendModule.AssetId, Visibility>()
+    const processNode = (node: assetTreeNode.AnyAssetTreeNode) => {
+      let displayState = Visibility.hidden
+      const visible = filter?.(node) ?? true
+      for (const child of node.children ?? []) {
+        if (visible && child.item.type === backendModule.AssetType.specialEmpty) {
+          map.set(child.key, Visibility.visible)
+        } else {
+          processNode(child)
+        }
+        if (map.get(child.key) !== Visibility.hidden) {
+          displayState = Visibility.faded
+        }
+      }
+      if (visible) {
+        displayState = Visibility.visible
+      }
+      map.set(node.key, displayState)
+      return displayState
+    }
+    processNode(assetTree)
+    return map
+  }, [assetTree, filter])
+
   const displayItems = React.useMemo(() => {
     if (sortInfo == null) {
-      return assetTree.preorderTraversal()
+      return assetTree.preorderTraversal((children) =>
+        children.filter((child) => expandedDirectoryIdsSet.has(child.directoryId)),
+      )
     } else {
       const multiplier = sortInfo.direction === sorting.SortDirection.ascending ? 1 : -1
       let compare: (a: assetTreeNode.AnyAssetTreeNode, b: assetTreeNode.AnyAssetTreeNode) => number
@@ -627,37 +816,38 @@ export default function AssetsTable(props: AssetsTableProps) {
           break
         }
       }
-      return assetTree.preorderTraversal((tree) => [...tree].sort(compare))
+      return assetTree.preorderTraversal((tree) =>
+        [...tree].filter((child) => expandedDirectoryIdsSet.has(child.directoryId)).sort(compare),
+      )
     }
-  }, [assetTree, sortInfo])
-  const visibilities = React.useMemo(() => {
-    const map = new Map<backendModule.AssetId, Visibility>()
-    const processNode = (node: assetTreeNode.AnyAssetTreeNode) => {
-      let displayState = Visibility.hidden
-      const visible = filter?.(node) ?? true
-      for (const child of node.children ?? []) {
-        if (visible && child.item.type === backendModule.AssetType.specialEmpty) {
-          map.set(child.key, Visibility.visible)
-        } else {
-          processNode(child)
-        }
-        if (map.get(child.key) !== Visibility.hidden) {
-          displayState = Visibility.faded
-        }
-      }
-      if (visible) {
-        displayState = Visibility.visible
-      }
-      map.set(node.key, displayState)
-      return displayState
-    }
-    processNode(assetTree)
-    return map
-  }, [assetTree, filter])
+  }, [assetTree, sortInfo, expandedDirectoryIdsSet])
+
   const visibleItems = React.useMemo(
     () => displayItems.filter((item) => visibilities.get(item.key) !== Visibility.hidden),
     [displayItems, visibilities],
   )
+
+  const [isDraggingFiles, setIsDraggingFiles] = React.useState(false)
+  const [droppedFilesCount, setDroppedFilesCount] = React.useState(0)
+  const isCloud = backend.type === backendModule.BackendType.remote
+  /** Events sent when the asset list was still loading. */
+  const queuedAssetListEventsRef = React.useRef<assetListEvent.AssetListEvent[]>([])
+  const rootRef = React.useRef<HTMLDivElement | null>(null)
+  const cleanupRootRef = React.useRef(() => {})
+  const mainDropzoneRef = React.useRef<HTMLButtonElement | null>(null)
+  const lastSelectedIdsRef = React.useRef<
+    backendModule.AssetId | ReadonlySet<backendModule.AssetId> | null
+  >(null)
+  const headerRowRef = React.useRef<HTMLTableRowElement>(null)
+  const assetTreeRef = React.useRef<assetTreeNode.AnyAssetTreeNode>(assetTree)
+  const pasteDataRef = React.useRef<pasteDataModule.PasteData<
+    ReadonlySet<backendModule.AssetId>
+  > | null>(null)
+  const nodeMapRef = React.useRef<
+    ReadonlyMap<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>
+  >(new Map<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>())
+
+  const queryClient = useQueryClient()
 
   const isMainDropzoneVisible = intersectionHooks.useIntersectionRatio(
     rootRef,
@@ -667,7 +857,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     true,
   )
 
-  const updateSecret = useMutation(backendMutationOptions(backend, 'updateSecret')).mutateAsync
   React.useEffect(() => {
     previousCategoryRef.current = category
   })
@@ -965,78 +1154,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     [driveStore, isCloud, setCanDownload],
   )
 
-  const overwriteNodes = useEventCallback((newAssets: readonly backendModule.AnyAsset[]) => {
-    mostRecentlySelectedIndexRef.current = null
-    selectionStartIndexRef.current = null
-    const rootPath = 'rootPath' in category ? category.rootPath : backend.rootPath
-    // This is required, otherwise we are using an outdated
-    // `nameOfProjectToImmediatelyOpen`.
-    const nameOfProjectToImmediatelyOpen = nameOfProjectToImmediatelyOpenRef.current
-    const rootParentDirectoryId = backendModule.DirectoryId('')
-    const rootDirectory = backendModule.createRootDirectoryAsset(rootDirectoryId)
-    const rootId = rootDirectory.id
-    const children = newAssets.map((asset) =>
-      AssetTreeNode.fromAsset(asset, rootId, rootId, 0, `${rootPath}/${asset.title}`, null),
-    )
-    const newRootNode = new AssetTreeNode(
-      rootDirectory,
-      rootParentDirectoryId,
-      rootParentDirectoryId,
-      children,
-      -1,
-      rootPath,
-      null,
-      rootId,
-      true,
-    )
-    setAssetTree(newRootNode)
-    // The project name here might also be a string with project id, e.g.
-    // when opening a project file from explorer on Windows.
-    const isInitialProject = (asset: backendModule.AnyAsset) =>
-      asset.title === nameOfProjectToImmediatelyOpen || asset.id === nameOfProjectToImmediatelyOpen
-    if (nameOfProjectToImmediatelyOpen != null) {
-      const projectToLoad = newAssets.filter(backendModule.assetIsProject).find(isInitialProject)
-      if (projectToLoad != null) {
-        const backendType = backendModule.BackendType.local
-        const { id, title, parentId } = projectToLoad
-        doOpenProject({ type: backendType, id, title, parentId })
-      } else {
-        toastAndLog('findProjectError', null, nameOfProjectToImmediatelyOpen)
-      }
-    }
-    setQueuedAssetEvents((oldQueuedAssetEvents) => {
-      if (oldQueuedAssetEvents.length !== 0) {
-        queueMicrotask(() => {
-          for (const event of oldQueuedAssetEvents) {
-            dispatchAssetEvent(event)
-          }
-        })
-      }
-      return []
-    })
-    nameOfProjectToImmediatelyOpenRef.current = null
-  })
-  const overwriteNodesRef = React.useRef(overwriteNodes)
-  overwriteNodesRef.current = overwriteNodes
-
-  const rootDirectoryQuery = useBackendQuery(
-    backend,
-    'listDirectory',
-    [
-      {
-        parentId: rootDirectoryId,
-        filterBy: CATEGORY_TO_FILTER_BY[category.type],
-        recentProjects: category.type === 'recent',
-        labels: null,
-      },
-      // The root directory has no name. This is also SAFE, as there is a different error
-      // message when the directory is the root directory (when `parentId == null`).
-      '(root)',
-    ],
-    { queryKey: [], staleTime: 0, meta: { persist: false } },
-  )
-  const isLoading = rootDirectoryQuery.isLoading
-
   React.useEffect(() => {
     if (isLoading) {
       nameOfProjectToImmediatelyOpenRef.current = initialProjectName
@@ -1066,12 +1183,6 @@ export default function AssetsTable(props: AssetsTableProps) {
   }, [initialProjectName])
 
   React.useEffect(() => {
-    if (rootDirectoryQuery.data) {
-      overwriteNodes(rootDirectoryQuery.data)
-    }
-  }, [rootDirectoryQuery.data, overwriteNodes])
-
-  React.useEffect(() => {
     const savedEnabledColumns = localStorage.get('enabledColumns')
     if (savedEnabledColumns != null) {
       setEnabledColumns(new Set(savedEnabledColumns))
@@ -1093,128 +1204,102 @@ export default function AssetsTable(props: AssetsTableProps) {
     [driveStore, setAssetPanelProps, setIsAssetPanelTemporarilyVisible],
   )
 
-  const directoryListAbortControllersRef = React.useRef(
-    new Map<backendModule.DirectoryId, AbortController>(),
-  )
-  const doToggleDirectoryExpansion = React.useCallback(
+  const doToggleDirectoryExpansion = useEventCallback(
     (
       directoryId: backendModule.DirectoryId,
-      key: backendModule.DirectoryId,
-      title?: string | null,
+      _key: backendModule.DirectoryId,
       override?: boolean,
     ) => {
-      const directory = nodeMapRef.current.get(key)
-      const isExpanded = directory?.children != null && directory.isExpanded
+      const isExpanded = expandedDirectoryIdsSet.has(directoryId)
       const shouldExpand = override ?? !isExpanded
-      if (shouldExpand === isExpanded) {
-        // This is fine, as this is near the top of a very long function.
-        // eslint-disable-next-line no-restricted-syntax
-        return
-      }
-      if (!shouldExpand) {
-        const abortController = directoryListAbortControllersRef.current.get(directoryId)
-        if (abortController != null) {
-          abortController.abort()
-          directoryListAbortControllersRef.current.delete(directoryId)
-        }
-        setAssetTree((oldAssetTree) =>
-          oldAssetTree.map((item) => (item.key !== key ? item : item.with({ isExpanded: false }))),
-        )
-      } else {
-        setAssetTree((oldAssetTree) =>
-          oldAssetTree.map((item) =>
-            item.key !== key ? item
-            : item.children != null ? item.with({ isExpanded: true })
-            : item.with({
-                isExpanded: true,
-                children: [
-                  AssetTreeNode.fromAsset(
-                    backendModule.createSpecialLoadingAsset(directoryId),
-                    key,
-                    directoryId,
-                    item.depth + 1,
-                    '',
-                    null,
-                  ),
-                ],
-              }),
-          ),
-        )
-        void (async () => {
-          const abortController = new AbortController()
-          directoryListAbortControllersRef.current.set(directoryId, abortController)
-          const displayedTitle = title ?? nodeMapRef.current.get(key)?.item.title ?? '(unknown)'
-          const childAssets = await backend
-            .listDirectory(
-              {
-                parentId: directoryId,
-                filterBy: CATEGORY_TO_FILTER_BY[category.type],
-                recentProjects: category.type === 'recent',
-                labels: null,
-              },
-              displayedTitle,
-            )
-            .catch((error) => {
-              toastAndLog('listFolderBackendError', error, displayedTitle)
-              throw error
-            })
-          if (!abortController.signal.aborted) {
-            setAssetTree((oldAssetTree) =>
-              oldAssetTree.map((item) => {
-                if (item.key !== key) {
-                  return item
-                } else {
-                  const initialChildren = item.children?.filter(
-                    (child) => child.item.type !== backendModule.AssetType.specialLoading,
-                  )
-                  const childAssetsMap = new Map(childAssets.map((asset) => [asset.id, asset]))
-                  for (const child of initialChildren ?? []) {
-                    const newChild = childAssetsMap.get(child.item.id)
-                    if (newChild != null) {
-                      child.item = newChild
-                      childAssetsMap.delete(child.item.id)
-                    }
-                  }
-                  const childAssetNodes = Array.from(childAssetsMap.values(), (child) =>
-                    AssetTreeNode.fromAsset(
-                      child,
-                      key,
-                      directoryId,
-                      item.depth + 1,
-                      `${item.path}/${child.title}`,
-                      null,
-                    ),
-                  )
-                  const specialEmptyAsset: backendModule.SpecialEmptyAsset | null =
-                    (
-                      (initialChildren != null && initialChildren.length !== 0) ||
-                      childAssetNodes.length !== 0
-                    ) ?
-                      null
-                    : backendModule.createSpecialEmptyAsset(directoryId)
-                  const children =
-                    specialEmptyAsset != null ?
-                      [
-                        AssetTreeNode.fromAsset(
-                          specialEmptyAsset,
-                          key,
-                          directoryId,
-                          item.depth + 1,
-                          '',
-                          null,
-                        ),
-                      ]
-                    : initialChildren == null || initialChildren.length === 0 ? childAssetNodes
-                    : [...initialChildren, ...childAssetNodes].sort(AssetTreeNode.compare)
-                  return item.with({ children })
-                }
-              }),
+
+      if (shouldExpand !== isExpanded) {
+        React.startTransition(() => {
+          if (shouldExpand) {
+            setExpandedDirectoryIds((currentExpandedDirectoryIds) => [
+              ...currentExpandedDirectoryIds,
+              directoryId,
+            ])
+          } else {
+            setExpandedDirectoryIds((currentExpandedDirectoryIds) =>
+              currentExpandedDirectoryIds.filter((id) => id !== directoryId),
             )
           }
-        })()
+        })
       }
     },
-    [category, backend, toastAndLog],
+  )
+
+  const doCopyOnBackend = useEventCallback(
+    async (newParentId: backendModule.DirectoryId | null, asset: backendModule.AnyAsset) => {
+      try {
+        newParentId ??= rootDirectoryId
+
+        await copyAssetMutation.mutateAsync([
+          asset.id,
+          newParentId,
+          asset.title,
+          nodeMapRef.current.get(newParentId)?.item.title ?? '(unknown)',
+        ])
+      } catch (error) {
+        toastAndLog('copyAssetError', error, asset.title)
+      }
+    },
+  )
+
+  const doMove = useEventCallback(
+    async (newParentId: backendModule.DirectoryId | null, asset: backendModule.AnyAsset) => {
+      try {
+        await updateAssetMutation.mutateAsync([
+          asset.id,
+          { parentDirectoryId: newParentId ?? rootDirectoryId, description: null },
+          asset.title,
+        ])
+      } catch (error) {
+        toastAndLog('moveAssetError', error, asset.title)
+      }
+    },
+  )
+
+  const doDelete = useEventCallback(
+    async (asset: backendModule.AnyAsset, forever: boolean = false) => {
+      if (asset.type === backendModule.AssetType.directory) {
+        dispatchAssetListEvent({
+          type: AssetListEventType.closeFolder,
+          id: asset.id,
+          // This is SAFE, as this asset is already known to be a directory.
+          // eslint-disable-next-line no-restricted-syntax
+          key: asset.id,
+        })
+      }
+      try {
+        dispatchAssetListEvent({ type: AssetListEventType.willDelete, key: asset.id })
+        if (
+          asset.type === backendModule.AssetType.project &&
+          backend.type === backendModule.BackendType.local
+        ) {
+          try {
+            await closeProjectMutation.mutateAsync([asset.id, asset.title])
+          } catch {
+            // Ignored. The project was already closed.
+          }
+        }
+        await deleteAssetMutation.mutateAsync([asset.id, { force: forever }, asset.title])
+      } catch (error) {
+        toastAndLog('deleteAssetError', error, asset.title)
+      }
+    },
+  )
+
+  const doDeleteById = useEventCallback(
+    async (assetId: backendModule.AssetId, forever: boolean = false) => {
+      const asset = nodeMapRef.current.get(assetId)?.item
+
+      if (asset != null) {
+        // eslint-disable-next-line no-restricted-syntax
+        return doDelete(asset, forever)
+      }
+    },
   )
 
   const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
@@ -1225,8 +1310,10 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const setMostRecentlySelectedIndex = React.useCallback(
     (index: number | null, isKeyboard = false) => {
-      mostRecentlySelectedIndexRef.current = index
-      setKeyboardSelectedIndex(isKeyboard ? index : null)
+      React.startTransition(() => {
+        mostRecentlySelectedIndexRef.current = index
+        setKeyboardSelectedIndex(isKeyboard ? index : null)
+      })
     },
     [],
   )
@@ -1292,7 +1379,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     name={item.item.title}
                     doCreate={async (_name, value) => {
                       try {
-                        await updateSecret([id, { value }, item.item.title])
+                        await updateSecretMutation.mutateAsync([id, { value }, item.item.title])
                       } catch (error) {
                         toastAndLog(null, error)
                       }
@@ -1314,7 +1401,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               // The folder is expanded; collapse it.
               event.preventDefault()
               event.stopPropagation()
-              doToggleDirectoryExpansion(item.item.id, item.key, null, false)
+              doToggleDirectoryExpansion(item.item.id, item.key, false)
             } else if (prevIndex != null) {
               // Focus parent if there is one.
               let index = prevIndex - 1
@@ -1339,7 +1426,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             // The folder is collapsed; expand it.
             event.preventDefault()
             event.stopPropagation()
-            doToggleDirectoryExpansion(item.item.id, item.key, null, true)
+            doToggleDirectoryExpansion(item.item.id, item.key, true)
           }
           break
         }
@@ -1433,7 +1520,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     }
   }, [setMostRecentlySelectedIndex])
 
-  const getNewProjectName = React.useCallback(
+  const getNewProjectName = useEventCallback(
     (templateName: string | null, parentKey: backendModule.DirectoryId | null) => {
       const prefix = `${templateName ?? 'New Project'} `
       const projectNameTemplate = new RegExp(`^${prefix}(?<projectIndex>\\d+)$`)
@@ -1448,68 +1535,43 @@ export default function AssetsTable(props: AssetsTableProps) {
         .map((maybeIndex) => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
       return `${prefix}${Math.max(0, ...projectIndices) + 1}`
     },
-    [assetTree, nodeMapRef],
   )
 
-  const deleteAsset = React.useCallback((key: backendModule.AssetId) => {
-    setAssetTree((oldAssetTree) => oldAssetTree.filter((item) => item.key !== key))
-  }, [])
+  const deleteAsset = useEventCallback((assetId: backendModule.AssetId) => {
+    const asset = nodeMapRef.current.get(assetId)?.item
+
+    if (asset) {
+      const listDirectoryQuery = queryClient.getQueryCache().find<ListDirectoryQueryDataType>({
+        queryKey: ['listDirectory', backend.type, asset.parentId],
+        exact: false,
+      })
+
+      if (listDirectoryQuery?.state.data) {
+        listDirectoryQuery.setData({
+          ...listDirectoryQuery.state.data,
+          children: listDirectoryQuery.state.data.children.filter((child) => child.id !== assetId),
+        })
+      }
+    }
+  })
 
   /** All items must have the same type. */
-  const insertAssets = React.useCallback(
-    (
-      assets: readonly backendModule.AnyAsset[],
-      parentKey: backendModule.DirectoryId | null,
-      parentId: backendModule.DirectoryId | null,
-      getInitialAssetEvents: (id: backendModule.AssetId) => readonly assetEvent.AssetEvent[] | null,
-    ) => {
-      const actualParentKey = parentKey ?? rootDirectoryId
+  const insertAssets = useEventCallback(
+    (assets: readonly backendModule.AnyAsset[], parentId: backendModule.DirectoryId | null) => {
       const actualParentId = parentId ?? rootDirectoryId
-      setAssetTree((oldAssetTree) =>
-        oldAssetTree.map((item) =>
-          item.key !== actualParentKey ?
-            item
-          : insertAssetTreeNodeChildren(
-              item,
-              assets,
-              actualParentKey,
-              actualParentId,
-              getInitialAssetEvents,
-            ),
-        ),
-      )
-    },
-    [rootDirectoryId],
-  )
 
-  const insertArbitraryAssets = React.useCallback(
-    (
-      assets: backendModule.AnyAsset[],
-      parentKey: backendModule.DirectoryId | null,
-      parentId: backendModule.DirectoryId | null,
-      getKey: ((asset: backendModule.AnyAsset) => backendModule.AssetId) | null = null,
-      getInitialAssetEvents: (
-        id: backendModule.AssetId,
-      ) => readonly assetEvent.AssetEvent[] | null = () => null,
-    ) => {
-      const actualParentKey = parentKey ?? rootDirectoryId
-      const actualParentId = parentId ?? rootDirectoryId
-      setAssetTree((oldAssetTree) => {
-        return oldAssetTree.map((item) =>
-          item.key !== actualParentKey ?
-            item
-          : insertArbitraryAssetTreeNodeChildren(
-              item,
-              assets,
-              actualParentKey,
-              actualParentId,
-              getKey,
-              getInitialAssetEvents,
-            ),
-        )
+      const listDirectoryQuery = queryClient.getQueryCache().find<ListDirectoryQueryDataType>({
+        queryKey: ['listDirectory', backend.type, actualParentId],
+        exact: false,
       })
+
+      if (listDirectoryQuery?.state.data) {
+        listDirectoryQuery.setData({
+          ...listDirectoryQuery.state.data,
+          children: [...listDirectoryQuery.state.data.children, ...assets],
+        })
+      }
     },
-    [rootDirectoryId],
   )
 
   // This is not a React component, even though it contains JSX.
@@ -1543,10 +1605,14 @@ export default function AssetsTable(props: AssetsTableProps) {
           labels: [],
           description: null,
         }
-        doToggleDirectoryExpansion(event.parentId, event.parentKey, null, true)
-        insertAssets([placeholderItem], event.parentKey, event.parentId, () => [
-          { type: AssetEventType.newFolder, placeholderId: placeholderItem.id },
+
+        doToggleDirectoryExpansion(event.parentId, event.parentKey, true)
+        insertAssets([placeholderItem], event.parentId)
+
+        createDirectoryMutation.mutate([
+          { parentId: placeholderItem.parentId, title: placeholderItem.title },
         ])
+
         break
       }
       case AssetListEventType.newProject: {
@@ -1555,6 +1621,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         const dummyId = backendModule.ProjectId(uniqueString.uniqueString())
         const path =
           backend instanceof LocalBackend ? backend.joinPath(event.parentId, projectName) : null
+
         const placeholderItem: backendModule.ProjectAsset = {
           type: backendModule.AssetType.project,
           id: dummyId,
@@ -1577,19 +1644,37 @@ export default function AssetsTable(props: AssetsTableProps) {
           labels: [],
           description: null,
         }
-        doToggleDirectoryExpansion(event.parentId, event.parentKey, null, true)
-        insertAssets([placeholderItem], event.parentKey, event.parentId, () => [
-          {
-            type: AssetEventType.newProject,
-            placeholderId: dummyId,
-            templateId: event.templateId,
-            datalinkId: event.datalinkId,
-            originalId: null,
-            versionId: null,
-            ...(event.onCreated ? { onCreated: event.onCreated } : {}),
-            ...(event.onError ? { onError: event.onError } : {}),
-          },
-        ])
+        doToggleDirectoryExpansion(event.parentId, event.parentKey, true)
+
+        insertAssets([placeholderItem], event.parentId)
+
+        void createProjectMutation
+          .mutateAsync([
+            {
+              parentDirectoryId: placeholderItem.parentId,
+              projectName: placeholderItem.title,
+              ...(event.templateId == null ? {} : { projectTemplateName: event.templateId }),
+              ...(event.datalinkId == null ? {} : { datalinkId: event.datalinkId }),
+            },
+          ])
+          .catch((error) => {
+            event.onError?.()
+
+            deleteAsset(placeholderItem.id)
+            toastAndLog('createProjectError', error)
+
+            throw error
+          })
+          .then((createdProject) => {
+            event.onCreated?.(createdProject)
+            doOpenProject({
+              id: createdProject.projectId,
+              type: backend.type,
+              parentId: placeholderItem.parentId,
+              title: placeholderItem.title,
+            })
+          })
+
         break
       }
       case AssetListEventType.uploadFiles: {
@@ -1616,14 +1701,88 @@ export default function AssetsTable(props: AssetsTableProps) {
           userGroups ?? [],
         )
         const fileMap = new Map<backendModule.AssetId, File>()
-        const getInitialAssetEvents = (
-          id: backendModule.AssetId,
-        ): readonly assetEvent.AssetEvent[] | null => {
-          const file = fileMap.get(id)
-          return file == null ? null : (
-              [{ type: AssetEventType.uploadFiles, files: new Map([[id, file]]) }]
-            )
+
+        const doUploadFile = async (asset: backendModule.AnyAsset, method: 'new' | 'update') => {
+          const file = fileMap.get(asset.id)
+
+          if (file != null) {
+            const fileId = method === 'new' ? null : asset.id
+
+            switch (true) {
+              case backendModule.assetIsProject(asset): {
+                const { extension } = backendModule.extractProjectExtension(file.name)
+                const title = backendModule.stripProjectExtension(asset.title)
+
+                const assetNode = nodeMapRef.current.get(asset.id)
+
+                if (assetNode == null) {
+                  // eslint-disable-next-line no-restricted-syntax
+                  return
+                }
+
+                if (backend.type === backendModule.BackendType.local && localBackend != null) {
+                  const directory = localBackendModule.extractTypeAndId(assetNode.directoryId).id
+                  let id: string
+                  if (
+                    'backendApi' in window &&
+                    // This non-standard property is defined in Electron.
+                    'path' in file
+                  ) {
+                    id = await window.backendApi.importProjectFromPath(file.path, directory, title)
+                  } else {
+                    const searchParams = new URLSearchParams({ directory, name: title }).toString()
+                    // Ideally this would use `file.stream()`, to minimize RAM
+                    // requirements. for uploading large projects. Unfortunately,
+                    // this requires HTTP/2, which is HTTPS-only, so it will not
+                    // work on `http://localhost`.
+                    const body =
+                      window.location.protocol === 'https:' ?
+                        file.stream()
+                      : await file.arrayBuffer()
+                    const path = `./api/upload-project?${searchParams}`
+                    const response = await fetch(path, { method: 'POST', body })
+                    id = await response.text()
+                  }
+                  const projectId = localBackendModule.newProjectId(projectManager.UUID(id))
+
+                  await getProjectDetailsMutation
+                    .mutateAsync([projectId, asset.parentId, file.name])
+                    .catch((error) => {
+                      deleteAsset(projectId)
+                      toastAndLog('uploadProjectError', error)
+                    })
+                } else {
+                  uploadFileMutation
+                    .mutateAsync([
+                      {
+                        fileId,
+                        fileName: `${title}.${extension}`,
+                        parentDirectoryId: asset.parentId,
+                      },
+                      file,
+                    ])
+                    .catch((error) => {
+                      deleteAsset(asset.id)
+                      toastAndLog('uploadProjectError', error)
+                    })
+                }
+
+                break
+              }
+              case backendModule.assetIsFile(asset): {
+                uploadFileMutation.mutate([
+                  { fileId, fileName: asset.title, parentDirectoryId: asset.parentId },
+                  file,
+                ])
+
+                break
+              }
+              default:
+                break
+            }
+          }
         }
+
         if (duplicateFiles.length === 0 && duplicateProjects.length === 0) {
           const placeholderFiles = files.map((file) => {
             const asset = backendModule.createPlaceholderFileAsset(
@@ -1634,6 +1793,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             fileMap.set(asset.id, file)
             return asset
           })
+
           const placeholderProjects = projects.map((project) => {
             const basename = backendModule.stripProjectExtension(project.name)
             const asset = backendModule.createPlaceholderProjectAsset(
@@ -1646,9 +1806,14 @@ export default function AssetsTable(props: AssetsTableProps) {
             fileMap.set(asset.id, project)
             return asset
           })
-          doToggleDirectoryExpansion(event.parentId, event.parentKey, null, true)
-          insertAssets(placeholderFiles, event.parentKey, event.parentId, getInitialAssetEvents)
-          insertAssets(placeholderProjects, event.parentKey, event.parentId, getInitialAssetEvents)
+
+          const assets = [...placeholderFiles, ...placeholderProjects]
+
+          doToggleDirectoryExpansion(event.parentId, event.parentKey, true)
+
+          insertAssets(assets, event.parentId)
+
+          void Promise.all(assets.map((asset) => doUploadFile(asset, 'new')))
         } else {
           const siblingFilesByName = new Map(siblingFiles.map((file) => [file.title, file]))
           const siblingProjectsByName = new Map(
@@ -1693,8 +1858,15 @@ export default function AssetsTable(props: AssetsTableProps) {
               siblingProjectNames={siblingProjectsByName.keys()}
               nonConflictingFileCount={files.length - conflictingFiles.length}
               nonConflictingProjectCount={projects.length - conflictingProjects.length}
+              doUpdateConflicting={(resolvedConflicts) => {
+                for (const conflict of resolvedConflicts) {
+                  fileMap.set(conflict.current.id, conflict.file)
+                  void doUploadFile(conflict.current, 'update')
+                }
+              }}
               doUploadNonConflicting={() => {
-                doToggleDirectoryExpansion(event.parentId, event.parentKey, null, true)
+                doToggleDirectoryExpansion(event.parentId, event.parentKey, true)
+
                 const newFiles = files
                   .filter((file) => !siblingFileTitles.has(file.name))
                   .map((file) => {
@@ -1706,6 +1878,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     fileMap.set(asset.id, file)
                     return asset
                   })
+
                 const newProjects = projects
                   .filter(
                     (project) =>
@@ -1723,8 +1896,14 @@ export default function AssetsTable(props: AssetsTableProps) {
                     fileMap.set(asset.id, project)
                     return asset
                   })
-                insertAssets(newFiles, event.parentKey, event.parentId, getInitialAssetEvents)
-                insertAssets(newProjects, event.parentKey, event.parentId, getInitialAssetEvents)
+
+                const assets = [...newFiles, ...newProjects]
+
+                insertAssets(assets, event.parentId)
+
+                for (const asset of assets) {
+                  void doUploadFile(asset, 'new')
+                }
               }}
             />,
           )
@@ -1750,14 +1929,18 @@ export default function AssetsTable(props: AssetsTableProps) {
           labels: [],
           description: null,
         }
-        doToggleDirectoryExpansion(event.parentId, event.parentKey, null, true)
-        insertAssets([placeholderItem], event.parentKey, event.parentId, () => [
+        doToggleDirectoryExpansion(event.parentId, event.parentKey, true)
+        insertAssets([placeholderItem], event.parentId)
+
+        createDatalinkMutation.mutate([
           {
-            type: AssetEventType.newDatalink,
-            placeholderId: placeholderItem.id,
+            parentDirectoryId: placeholderItem.parentId,
+            datalinkId: null,
+            name: placeholderItem.title,
             value: event.value,
           },
         ])
+
         break
       }
       case AssetListEventType.newSecret: {
@@ -1779,14 +1962,22 @@ export default function AssetsTable(props: AssetsTableProps) {
           labels: [],
           description: null,
         }
-        doToggleDirectoryExpansion(event.parentId, event.parentKey, null, true)
-        insertAssets([placeholderItem], event.parentKey, event.parentId, () => [
-          { type: AssetEventType.newSecret, placeholderId: placeholderItem.id, value: event.value },
+
+        doToggleDirectoryExpansion(event.parentId, event.parentKey, true)
+        insertAssets([placeholderItem], event.parentId)
+
+        createSecretMutation.mutate([
+          {
+            parentDirectoryId: placeholderItem.parentId,
+            name: placeholderItem.title,
+            value: event.value,
+          },
         ])
+
         break
       }
       case AssetListEventType.insertAssets: {
-        insertArbitraryAssets(event.assets, event.parentKey, event.parentId)
+        insertAssets(event.assets, event.parentId)
         break
       }
       case AssetListEventType.duplicateProject: {
@@ -1799,6 +1990,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           index += 1
           title = `${event.original.title} (${index})`
         }
+
         const placeholderItem: backendModule.ProjectAsset = {
           type: backendModule.AssetType.project,
           id: backendModule.ProjectId(uniqueString.uniqueString()),
@@ -1820,16 +2012,26 @@ export default function AssetsTable(props: AssetsTableProps) {
           labels: [],
           description: null,
         }
-        insertAssets([placeholderItem], event.parentKey, event.parentId, () => [
-          {
-            type: AssetEventType.newProject,
-            placeholderId: placeholderItem.id,
-            templateId: null,
-            datalinkId: null,
-            originalId: event.original.id,
-            versionId: event.versionId,
-          },
-        ])
+
+        insertAssets([placeholderItem], event.parentId)
+
+        void duplicateProjectMutation
+          .mutateAsync([event.original.id, event.versionId, placeholderItem.title])
+          .catch((error) => {
+            deleteAsset(placeholderItem.id)
+            toastAndLog('createProjectError', error)
+
+            throw error
+          })
+          .then((project) => {
+            doOpenProject({
+              type: backend.type,
+              parentId: event.parentId,
+              title: placeholderItem.title,
+              id: project.projectId,
+            })
+          })
+
         break
       }
       case AssetListEventType.willDelete: {
@@ -1839,56 +2041,35 @@ export default function AssetsTable(props: AssetsTableProps) {
           newSelectedKeys.delete(event.key)
           setSelectedKeys(newSelectedKeys)
         }
+
+        deleteAsset(event.key)
+
         break
       }
       case AssetListEventType.copy: {
-        const ids = new Set<backendModule.AssetId>()
-        const getKey = (asset: backendModule.AnyAsset) => {
-          const newId = backendModule.createPlaceholderAssetId(asset.type)
-          ids.add(newId)
-          return newId
+        insertAssets(event.items, event.newParentId)
+
+        for (const item of event.items) {
+          void doCopyOnBackend(event.newParentId, item)
         }
-        const assetEvents: readonly assetEvent.AssetEvent[] = [
-          {
-            type: AssetEventType.copy,
-            ids,
-            newParentKey: event.newParentKey,
-            newParentId: event.newParentId,
-          },
-        ]
-        const newParent = nodeMapRef.current.get(event.newParentKey)
-        const newOwner =
-          !isCloud || !newParent ?
-            null
-          : permissions.newOwnerFromPath(newParent.path, users ?? [], userGroups ?? [])
-        insertArbitraryAssets(
-          newOwner ?
-            event.items.map((item) => permissions.replaceOwnerPermission(item, newOwner))
-          : event.items,
-          event.newParentKey,
-          event.newParentId,
-          getKey,
-          () => assetEvents,
-        )
         break
       }
       case AssetListEventType.move: {
         deleteAsset(event.key)
-        const newParent = nodeMapRef.current.get(event.newParentKey)
-        const newOwner =
-          !isCloud || !newParent ?
-            null
-          : permissions.newOwnerFromPath(newParent.path, users ?? [], userGroups ?? [])
-        insertAssets(
-          [newOwner ? permissions.replaceOwnerPermission(event.item, newOwner) : event.item],
-          event.newParentKey,
-          event.newParentId,
-          () => null,
-        )
+        insertAssets(event.items, event.newParentId)
+
+        for (const item of event.items) {
+          void doMove(event.newParentId, item)
+        }
+
         break
       }
       case AssetListEventType.delete: {
         deleteAsset(event.key)
+        const asset = nodeMapRef.current.get(event.key)?.item
+        if (asset) {
+          void doDelete(asset, false)
+        }
         break
       }
       case AssetListEventType.emptyTrash: {
@@ -1912,7 +2093,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         break
       }
       case AssetListEventType.closeFolder: {
-        doToggleDirectoryExpansion(event.id, event.key, null, false)
+        doToggleDirectoryExpansion(event.id, event.key, false)
         break
       }
     }
@@ -1951,7 +2132,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         if (pasteData.data.has(newParentKey)) {
           toast.toast.error('Cannot paste a folder into itself.')
         } else {
-          doToggleDirectoryExpansion(newParentId, newParentKey, null, true)
+          doToggleDirectoryExpansion(newParentId, newParentKey, true)
           if (pasteData.type === PasteType.copy) {
             const assets = Array.from(pasteData.data, (id) => nodeMapRef.current.get(id)).flatMap(
               (asset) => (asset ? [asset.item] : []),
@@ -1977,6 +2158,14 @@ export default function AssetsTable(props: AssetsTableProps) {
     [pasteData, doToggleDirectoryExpansion, unsetModal, dispatchAssetEvent, dispatchAssetListEvent],
   )
 
+  const doRestore = useEventCallback(async (asset: backendModule.AnyAsset) => {
+    try {
+      await undoDeleteAssetMutation.mutateAsync([asset.id, asset.title])
+    } catch (error) {
+      toastAndLog('restoreAssetError', error, asset.title)
+    }
+  })
+
   const hideColumn = React.useCallback((column: columnUtils.Column) => {
     setEnabledColumns((columns) => set.withPresence(columns, column, false))
   }, [])
@@ -1994,9 +2183,10 @@ export default function AssetsTable(props: AssetsTableProps) {
         doCopy={doCopy}
         doCut={doCut}
         doPaste={doPaste}
+        doDelete={doDeleteById}
       />
     ),
-    [backend, rootDirectoryId, category, pasteData, doCopy, doCut, doPaste],
+    [backend, category, pasteData, rootDirectoryId, doCopy, doCut, doPaste, doDeleteById],
   )
 
   const onDropzoneDragOver = (event: React.DragEvent<Element>) => {
@@ -2033,6 +2223,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     // The type MUST be here to trigger excess property errors at typecheck time.
     () => ({
       backend,
+      expandedDirectoryIds,
       rootDirectoryId,
       visibilities,
       scrollContainerRef: rootRef,
@@ -2052,9 +2243,13 @@ export default function AssetsTable(props: AssetsTableProps) {
       doCopy,
       doCut,
       doPaste,
+      doDelete,
+      doRestore,
+      doMove,
     }),
     [
       backend,
+      expandedDirectoryIds,
       rootDirectoryId,
       visibilities,
       category,
@@ -2065,6 +2260,9 @@ export default function AssetsTable(props: AssetsTableProps) {
       doCopy,
       doCut,
       doPaste,
+      doDelete,
+      doRestore,
+      doMove,
       hideColumn,
       setAssetPanelProps,
       setIsAssetPanelTemporarilyVisible,
@@ -2281,19 +2479,26 @@ export default function AssetsTable(props: AssetsTableProps) {
     [visibleItems, calculateNewKeys, setSelectedKeys, setMostRecentlySelectedIndex],
   )
 
-  const getAsset = React.useCallback(
+  const getAsset = useEventCallback(
     (key: backendModule.AssetId) => nodeMapRef.current.get(key)?.item ?? null,
-    [nodeMapRef],
   )
 
-  const setAsset = React.useCallback(
-    (key: backendModule.AssetId, asset: backendModule.AnyAsset) => {
-      setAssetTree((oldAssetTree) =>
-        oldAssetTree.map((item) => (item.key === key ? item.with({ item: asset }) : item)),
-      )
-      updateAssetRef.current[asset.id]?.(asset)
+  const setAsset = useEventCallback(
+    (assetId: backendModule.AssetId, asset: backendModule.AnyAsset) => {
+      const listDirectoryQuery = queryClient.getQueryCache().find<ListDirectoryQueryDataType>({
+        queryKey: ['listDirectory', backend.type, asset.parentId],
+        exact: false,
+      })
+
+      if (listDirectoryQuery?.state.data) {
+        listDirectoryQuery.setData({
+          ...listDirectoryQuery.state.data,
+          children: listDirectoryQuery.state.data.children.map((child) =>
+            child.id === assetId ? asset : child,
+          ),
+        })
+      }
     },
-    [],
   )
 
   React.useImperativeHandle(assetManagementApiRef, () => ({
@@ -2330,7 +2535,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     : displayItems.map((item, i) => {
         return (
           <AssetRow
-            key={item.key}
+            key={item.key + item.path}
             updateAssetRef={(instance) => {
               if (instance != null) {
                 updateAssetRef.current[item.item.id] = instance
@@ -2528,6 +2733,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               doCopy={doCopy}
               doCut={doCut}
               doPaste={doPaste}
+              doDelete={doDeleteById}
             />,
           )
         }
@@ -2598,6 +2804,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             event.preventDefault()
             event.stopPropagation()
             unsetModal()
+
             dispatchAssetEvent({
               type: AssetEventType.move,
               newParentKey: rootDirectoryId,

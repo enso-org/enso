@@ -77,7 +77,7 @@ class LambdaConsolidateTest extends CompilerTest {
     */
   def mkContext: InlineContext = {
     buildInlineContext(
-      localScope        = Some(LocalScope.root),
+      localScope        = Some(LocalScope.createEmpty),
       freshNameSupply   = Some(new FreshNameSupply),
       passConfiguration = Some(passConfiguration)
     )

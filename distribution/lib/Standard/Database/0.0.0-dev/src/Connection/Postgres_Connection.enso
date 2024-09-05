@@ -54,7 +54,7 @@ type Postgres_Connection
        - make_new: a function that returns a new connection.
     private Value (connection:Connection) (make_new : Text -> Text -> Postgres_Connection) (data_link_setup : Postgres_Data_Link_Setup)
 
-    ## ICON data_input
+    ## ICON close
        Closes the connection releasing the underlying database resources
        immediately instead of waiting for them to be automatically released.
 
@@ -293,7 +293,8 @@ type Postgres_Connection
     base_connection : Connection
     base_connection self = self.connection
 
-    ## Creates a Data Link that will open the same connection.
+    ## ICON data_output
+       Creates a Data Link that will open the same connection.
     @on_existing_file (Existing_File_Behavior.widget include_backup=False include_append=False)
     save_as_data_link self destination (on_existing_file:Existing_File_Behavior = Existing_File_Behavior.Error) =
         self.data_link_setup.save_as_data_link destination on_existing_file

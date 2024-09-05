@@ -109,13 +109,16 @@ Blob.from (that:File) = Blob.Binary that
 Blob.from (that:Any) = Blob.Json that
 
 add_specs suite_builder =
+    pending_js_missing = if Polyglot.is_language_installed "js" then Nothing else
+        "Can't run JavaScript tests, language `js` is not installed."
+
     suite_builder.group "Conversion" group_builder->
         group_builder.specify "should be able to convert atoms" <|
             ((Foo.from (Baz.Value 10)).foo + (Foo.from (Bar.Value 20)).foo) . should_equal 30
             Foo.from Quaffle . foo . should_equal "quaffle"
         group_builder.specify "should be able to convert text" <|
             Foo.from "123" . foo . should_equal 3
-        group_builder.specify "should be able to convert foreign text" <|
+        group_builder.specify "should be able to convert foreign text" pending=pending_js_missing <|
             Foo.from (make_str 4) . foo . should_equal 9
         group_builder.specify "should be able to convert numbers" <|
             Foo.from 4 . should_equal (Foo.Value [4, 0, 0, 0])
@@ -164,7 +167,7 @@ add_specs suite_builder =
         group_builder.specify "should support the use of multiple arguments" <|
             Foo.from that=4 second_param=1 2 . should_equal (Foo.Value [4, 2, 1, 0])
 
-        group_builder.specify "should play nicely with polyglot" <|
+        group_builder.specify "should play nicely with polyglot" pending=pending_js_missing <|
             call_function .from Foo . should_equal (Foo.Value 8)
 
         group_builder.specify "should support the meta functions" <|
