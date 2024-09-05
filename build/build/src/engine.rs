@@ -77,11 +77,7 @@ pub async fn download_project_templates(client: reqwest::Client, enso_root: Path
             "src/excel1.png",
             "src/Main.enso",
         ]),
-        ("Bank_Holiday_Rain", vec![
-            "src/bankholiday.png",
-            "src/eaep.png",
-            "src/Main.enso",
-        ]),
+        ("Bank_Holiday_Rain", vec!["src/bankholiday.png", "src/eaep.png", "src/Main.enso"]),
         ("KMeans", vec!["src/Main.enso"]),
         ("NASDAQReturns", vec!["src/Main.enso"]),
     ];

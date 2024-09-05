@@ -401,7 +401,12 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
         copyTemplateFiles(pkg, "kmeans", List(Package.mainFileName), List())
 
       case Template.NasdaqReturns =>
-        copyTemplateFiles(pkg, "nasdaqreturns", List(Package.mainFileName), List())
+        copyTemplateFiles(
+          pkg,
+          "nasdaqreturns",
+          List(Package.mainFileName),
+          List()
+        )
 
       case Template.Orders =>
         val srcFiles = List(
@@ -423,7 +428,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
           "eaep.png",
           "map1.png",
           "map2.png",
-          "table1.png",
+          "table1.png"
         )
         val dataFiles = List(
           "la_districts.csv",
@@ -438,7 +443,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
         val srcFiles = List(
           Package.mainFileName,
           "eaep.png",
-          "excel1.png",
+          "excel1.png"
         )
         val dataFiles = List(
           "Sales_Sample_Data.xlsx"
@@ -449,12 +454,17 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
         val srcFiles = List(
           Package.mainFileName,
           "eaep.png",
-          "bankholiday.png",
+          "bankholiday.png"
         )
         copyTemplateFiles(pkg, "bank_holiday_rain", srcFiles, List())
     }
 
-  private def copyTemplateFiles(pkg: Package[F], project_name: String, srcFiles: List[String], dataFiles: List[String]): Unit = {
+  private def copyTemplateFiles(
+    pkg: Package[F],
+    project_name: String,
+    srcFiles: List[String],
+    dataFiles: List[String]
+  ): Unit = {
     srcFiles.foreach { file =>
       val srcPath = new URI(s"/$project_name/src/$file")
       copyResource(
