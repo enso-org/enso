@@ -253,6 +253,7 @@
   "path": "Path",
   "reload": "Reload",
   "seeLatestRelease": "See latest release",
+  "save": "Save",
 
   "enterSecretPath": "Enter secret path",
   "enterText": "Enter text",

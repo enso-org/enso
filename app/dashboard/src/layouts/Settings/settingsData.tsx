@@ -457,9 +457,9 @@ export interface SettingsContext {
 // ==============================
 
 /** Metadata describing a settings entry that is an input. */
-export interface SettingsInputData<T> {
+export interface SettingsInputData<T extends Record<keyof T, string>> {
   readonly nameId: text.TextId & `${string}SettingsInput`
-  readonly name: keyof T
+  readonly name: keyof T & string
   readonly getValue: (context: SettingsContext) => string
   readonly getEditable: (context: SettingsContext) => boolean
 }
