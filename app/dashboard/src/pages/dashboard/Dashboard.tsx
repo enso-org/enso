@@ -333,7 +333,6 @@ function DashboardInner(props: DashboardProps) {
                 className="flex min-h-0 grow [&[data-inert]]:hidden"
               >
                 <Editor
-                  key={project.id}
                   hidden={page !== project.id}
                   ydocUrl={ydocUrl}
                   project={project}
