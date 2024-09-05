@@ -443,6 +443,48 @@ public class ExecCompilerTest {
   }
 
   @Test
+  public void testFnAsADefaultValue() throws Exception {
+    var code =
+        """
+    type N
+    type T
+        V (r:(T -> N | T)=(_->N))
+
+        v self = self.r self
+
+    run type = case type of
+      0 -> T.V
+      1 -> T.V (_->N)
+    """;
+    var module = ctx.eval(LanguageInfo.ID, code);
+    var run = module.invokeMember("eval_expression", "run");
+    var real = run.execute(1L);
+    var realN = real.invokeMember("v");
+    var defaulted = run.execute(0L);
+    var defaultedN = defaulted.invokeMember("v");
+    assertEquals("Should be the same", realN, defaultedN);
+  }
+
+  @Test
+  public void testTemporaryFileSpecProblem() throws Exception {
+    var code =
+        """
+    from Standard.Base.Errors.Common import all
+
+    run t = F.app f->
+      f.read t
+
+    type F
+      read self r = r
+      app fn = fn F
+    """;
+    var module = ctx.eval(LanguageInfo.ID, code);
+    var run = module.invokeMember("eval_expression", "run");
+    var real = run.execute(1L);
+    assertEquals("Should be the same", 1, real.asInt());
+  }
+
+  @Test
   public void testPropertlyIdentifyNameOfJavaClassInError() throws Exception {
     var module =
         ctx.eval(

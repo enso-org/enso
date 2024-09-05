@@ -10,6 +10,3 @@ export interface DialogProps extends aria.DialogProps {
   readonly modalProps?: Pick<aria.ModalOverlayProps, 'className' | 'defaultOpen' | 'isOpen'>
   readonly testId?: string
 }
-
-/** The props for the DialogTrigger component. */
-export interface DialogTriggerProps extends aria.DialogTriggerProps {}

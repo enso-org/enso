@@ -573,9 +573,8 @@ class Compiler(
           context.updateModule(
             module,
             u => {
-              u.resetScope()
               u.ir(updatedIr)
-              u.compilationStage(CompilationStage.AFTER_PARSING)
+              u.compilationStage(CompilationStage.AFTER_STATIC_PASSES)
             }
           )
         }
