@@ -42,12 +42,44 @@ pub async fn download_project_templates(client: reqwest::Client, enso_root: Path
     let output_base = enso_root.join("lib/scala/pkg/src/main/resources/");
     let url_base = Url::parse("https://github.com/enso-org/project-templates/raw/main/")?;
     let to_handle = [
-        ("Orders", vec!["data/store_data.xlsx", "src/Main.enso"]),
-        ("Restaurants", vec!["data/la_districts.csv", "data/restaurants.csv", "src/Main.enso"]),
+        ("Orders", vec![
+            "data/store_data.xlsx",
+            "src/eaep.png",
+            "src/Main.enso",
+            "src/excel1.png",
+            "src/excel2.png",
+            "src/excel3.png",
+            "src/eyeball_viz.png",
+        ]),
+        ("Restaurants", vec![
+            "data/la_districts.csv",
+            "data/mapcolors.json",
+            "data/restaurants.csv",
+            "src/eaep.png",
+            "src/Main.enso"
+            "src/map1.png",
+            "src/map2.png",
+            "src/table1.png",
+        ]),
         ("Stargazers", vec!["src/Main.enso"]),
         ("Colorado_COVID", vec![
             "data/CDPHE_COVID19_County_Status_Metrics.csv",
             "data/ColoradoGeoData.db",
+            "src/eaep.png",
+            "src/Main.enso",
+            "src/map.png",
+            "src/table1.png",
+            "src/table2.png",
+        ]),
+        ("Monthly_Sales", vec![
+            "data/Sales_Sample_Data.xlsx",
+            "src/eaep.png",
+            "src/excel1.png",
+            "src/Main.enso",
+        ]),
+        ("Bank_Holiday_Rain", vec![
+            "src/bankholiday.png",
+            "src/eaep.png",
             "src/Main.enso",
         ]),
         ("KMeans", vec!["src/Main.enso"]),
