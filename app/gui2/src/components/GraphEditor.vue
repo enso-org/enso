@@ -805,7 +805,11 @@ const documentationEditorFullscreen = ref(false)
         />
       </template>
       <template #help>
-        <ComponentDocumentation :displayedSuggestionId="displayedDocs" :aiMode="aiMode" @update:displayedSuggestionId="displayedDocs = $event" />
+        <ComponentDocumentation
+          :displayedSuggestionId="displayedDocs"
+          :aiMode="aiMode"
+          @update:displayedSuggestionId="displayedDocs = $event"
+        />
       </template>
     </DockPanel>
   </div>
