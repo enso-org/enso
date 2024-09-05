@@ -16,7 +16,7 @@ import { Button, ButtonGroup, DialogTrigger, useVisualTooltip } from '#/componen
 import AssetEventType from '#/events/AssetEventType'
 import { useOffline } from '#/hooks/offlineHooks'
 import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
-import AssetSearchBar, { type Suggestion } from '#/layouts/AssetSearchBar'
+import AssetSearchBar from '#/layouts/AssetSearchBar'
 import { useDispatchAssetEvent } from '#/layouts/AssetsTable/EventListProvider'
 import { isCloudCategory, type Category } from '#/layouts/CategorySwitcher/Category'
 import StartModal from '#/layouts/StartModal'

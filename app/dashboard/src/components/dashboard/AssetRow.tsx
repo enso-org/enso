@@ -220,7 +220,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
       rootRef.current?.focus()
       grabKeyboardFocusRef.current(item)
     }
-  }, [isKeyboardSelected, item])
+  }, [grabKeyboardFocusRef, isKeyboardSelected, item])
 
   React.useImperativeHandle(updateAssetRef, () => ({ setAsset, item }))
   if (updateAssetRef.current) {

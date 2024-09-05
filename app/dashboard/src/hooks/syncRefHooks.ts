@@ -1,4 +1,4 @@
-/** * @file A hook that returns a ref object whose `current` property is always in sync with the provided value. */
+/** @file A hook that returns a ref object whose `current` property is always in sync with the provided value. */
 import { type MutableRefObject, useRef } from 'react'
 
 /** A hook that returns a ref object whose `current` property is always in sync with the provided value. */
