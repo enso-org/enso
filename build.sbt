@@ -3581,7 +3581,8 @@ lazy val `std-tableau` = project
             import scala.concurrent.ExecutionContext.Implicits.global
             implicit val filesNotEmptySuccess: retry.Success[Set[File]] =
               retry.Success(!_.isEmpty)
-            val future = retry.Directly(4) { () =>
+            import scala.concurrent.duration._
+            val future = retry.Backoff(4, 1.second).apply { () =>
               scala.concurrent.Future {
                 IO.unzipURL(
                   unmanagedExternalZip.value,
@@ -3593,8 +3594,12 @@ lazy val `std-tableau` = project
                 )
               }
             }
-            import scala.concurrent.duration._
-            val files = scala.concurrent.Await.result(future, 30.seconds)
+            val files = scala.concurrent.Await.result(future, 60.seconds)
+            if (files.isEmpty) {
+              throw new IllegalStateException(
+                "Failed to fetch any external artifacts"
+              )
+            }
             files.map { f =>
               IO.move(f, unmanagedPath.resolve(f.getName).toFile)
               Attributed.blank(unmanagedPath.resolve(f.getName).toFile)
