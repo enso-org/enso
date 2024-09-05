@@ -11,7 +11,8 @@ export type FileName = string
 export interface UploadingFile {
   sizePercentage: number
   stackItem: StackItem
-  position: Vec2
+  position?: Vec2
+  portId?: string
 }
 
 // === Awareness wrapper ===
@@ -21,61 +22,48 @@ export interface UploadingFile {
  */
 export class Awareness {
   public internal: YjsAwareness
-  private uploadingFiles: Map<ClientId, Uploads>
 
   constructor(doc: Y.Doc) {
     this.internal = new YjsAwareness(doc)
     this.internal.setLocalState(initialState())
-    this.uploadingFiles = reactive(new Map())
-
-    this.internal.on('update', (updates: AwarenessUpdates) => {
-      updates.removed.forEach((id) => this.uploadingFiles.delete(id))
-      for (const id of [...updates.added, ...updates.updated]) {
-        const uploads = this.internal.getStates().get(id)?.uploads
-        if (uploads) {
-          this.uploadingFiles.set(id, structuredClone(uploads))
-        }
-      }
-    })
+    this.internal.states = reactive(this.internal.states)
   }
 
   public addOrUpdateUpload(name: FileName, file: UploadingFile) {
-    this.withUploads((uploads) => {
-      uploads[name] = file
+    this.mutateLocalState((state) => {
+      state.uploads[name] = { ...(state.uploads[name] ?? {}), ...file }
     })
   }
 
   public removeUpload(name: FileName) {
-    this.withUploads((uploads) => {
-      delete uploads[name]
+    this.mutateLocalState((state) => {
+      delete state.uploads[name]
     })
   }
 
-  public allUploads(): Iterable<[FileName, UploadingFile]> {
-    return [...this.uploadingFiles.values()].flatMap((uploads) => [...Object.entries(uploads)])
+  public allUploads(): [FileName, UploadingFile][] {
+    return [...this.states.values()].flatMap((state) => [...Object.entries(state.uploads)])
   }
 
-  private withUploads(f: (uploads: Uploads) => void) {
+  private get states(): Map<number, State> {
+    return this.internal.states as Map<number, State>
+  }
+
+  private mutateLocalState(f: (state: State) => void) {
     const state = this.internal.getLocalState() as State
-    f(state.uploads)
+    f(state)
     this.internal.setLocalState(state)
   }
 }
 
 // === Private types ===
 
-type ClientId = number
-
 interface State {
-  uploads: Uploads
+  uploads: Record<FileName, UploadingFile>
 }
 
-type Uploads = Record<FileName, UploadingFile>
-
-const initialState: () => State = () => ({ uploads: {} })
-
-interface AwarenessUpdates {
-  added: ClientId[]
-  removed: ClientId[]
-  updated: ClientId[]
+function initialState(): State {
+  return {
+    uploads: {},
+  }
 }

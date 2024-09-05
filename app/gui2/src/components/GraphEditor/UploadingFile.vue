@@ -9,7 +9,7 @@ const props = defineProps<{
 
 const transform = computed(() => {
   let pos = props.file.position
-  return `translate(${pos.x}px, ${pos.y}px)`
+  return pos ? `translate(${pos.x}px, ${pos.y}px)` : ''
 })
 
 const backgroundOffset = computed(() => 200 - props.file.sizePercentage)

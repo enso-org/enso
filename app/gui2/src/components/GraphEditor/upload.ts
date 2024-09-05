@@ -15,6 +15,17 @@ import { Err, Ok, withContext, type Result } from 'ydoc-shared/util/data/result'
 
 const DATA_DIR_NAME = 'data'
 
+export function uploadedExpressionPath(result: UploadResult) {
+  switch (result.source) {
+    case 'Project': {
+      return `enso_project.data/'${escapeTextLiteral(result.name)}'`
+    }
+    case 'FileSystemRoot': {
+      return `'${escapeTextLiteral(result.name)}'`
+    }
+  }
+}
+
 export function uploadedExpression(result: UploadResult) {
   switch (result.source) {
     case 'Project': {
@@ -44,7 +55,6 @@ export class Uploader {
     private awareness: Awareness,
     private file: File,
     private projectRootId: Uuid,
-    private position: Vec2,
     private isOnLocalBackend: boolean,
     private disableDirectRead: boolean,
     stackItem: StackItem,
@@ -60,7 +70,6 @@ export class Uploader {
     projectRootId: Uuid,
     awareness: Awareness,
     file: File,
-    position: Vec2,
     isOnLocalBackend: boolean,
     disableDirectRead: boolean,
     stackItem: StackItem,
@@ -71,14 +80,13 @@ export class Uploader {
       awareness,
       file,
       projectRootId,
-      position,
       isOnLocalBackend,
       disableDirectRead,
       stackItem,
     )
   }
 
-  async upload(): Promise<Result<UploadResult>> {
+  async upload(awarenessData: { position?: Vec2; portId?: string }): Promise<Result<UploadResult>> {
     // This non-standard property is defined in Electron.
     if (
       this.isOnLocalBackend &&
@@ -93,8 +101,8 @@ export class Uploader {
     const name = await this.pickUniqueName(this.file.name)
     if (!name.ok) return name
     this.awareness.addOrUpdateUpload(name.value, {
+      ...awarenessData,
       sizePercentage: 0,
-      position: this.position,
       stackItem: this.stackItem,
     })
     const remotePath: Path = { rootId: this.projectRootId, segments: [DATA_DIR_NAME, name.value] }
@@ -108,8 +116,8 @@ export class Uploader {
         const bytes = Number(uploader.uploadedBytes)
         const sizePercentage = Math.round((bytes / uploader.file.size) * 100)
         uploader.awareness.addOrUpdateUpload(name.value, {
+          ...awarenessData,
           sizePercentage,
-          position: uploader.position,
           stackItem: uploader.stackItem,
         })
       },

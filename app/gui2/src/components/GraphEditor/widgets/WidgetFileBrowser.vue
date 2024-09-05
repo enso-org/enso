@@ -1,20 +1,27 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import { FileUploadKey } from '@/components/GraphEditor/widgets/WidgetFileUploadProgress.vue'
 import {
   CustomDropdownItemsKey,
   type CustomDropdownItem,
 } from '@/components/GraphEditor/widgets/WidgetSelection.vue'
-import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { injectKeyboard } from '@/providers/keyboard'
+import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
+import { useProjectStore } from '@/stores/project'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { computed } from 'vue'
 import { TextLiteral } from 'ydoc-shared/ast'
+import { assertDefined } from 'ydoc-shared/util/assert'
+import { uploadedExpressionPath, Uploader } from '../upload'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
+const projectStore = useProjectStore()
+const keyboard = injectKeyboard(true)
 
 const insertAsFileConstructor = computed(() => {
   const reprType = props.input[ArgumentInfoKey]?.info?.reprType
@@ -86,9 +93,52 @@ function makeValue(edit: Ast.MutableModule, useFileConstructor: boolean, path: s
   }
 }
 
+const uploadStatus = computed(() => {
+  let uploads = projectStore.awareness.allUploads()
+  if (uploads.length == 0) return undefined
+  return uploads.find(([, file]) => file.portId === props.input.portId)
+})
+
+const style = computed(() => {
+  const status = uploadStatus.value
+  if (status) {
+    return {
+      '--upload-progress': `${status[1].sizePercentage}%`,
+    }
+  } else {
+    return {}
+  }
+})
+
 const onClick = async () => {
   if (!window.fileBrowserApi) {
-    console.error('File browser not supported!')
+    const selected = await openFileDialog(dialogKind.value, false)
+    const rootId = await projectStore.projectRootId
+    assertDefined(rootId)
+    if (selected != null && selected[0] != null) {
+      const uploader = Uploader.Create(
+        projectStore.lsRpcConnection,
+        projectStore.dataConnection,
+        rootId,
+        projectStore.awareness,
+        selected[0],
+        projectStore.isOnLocalBackend,
+        keyboard?.shift ?? false,
+        projectStore.executionContext.getStackTop(),
+      )
+
+      const uploadResult = await uploader.upload({ portId: props.input.portId })
+      if (uploadResult.ok) {
+        const edit = graph.startEdit()
+        props.onUpdate({
+          edit,
+          portUpdate: {
+            value: uploadedExpressionPath(uploadResult.value),
+            origin: props.input.portId,
+          },
+        })
+      }
+    }
   } else {
     const selected = await window.fileBrowserApi.openFileBrowser(
       dialogKind.value,
@@ -108,6 +158,24 @@ const onClick = async () => {
   }
 }
 
+/**
+ * Open "file open" system dialog using a temporary file input DOM node.
+ *
+ * his function must be called from a user activation event (ie an onclick event),
+ * otherwise the dispatchEvent will have no effect.
+ */
+
+function openFileDialog(dialogKind: string, multiple: boolean): Promise<FileList | null> {
+  return new Promise((resolve) => {
+    var inputElement = document.createElement('input')
+    inputElement.type = 'file'
+    inputElement.multiple = multiple
+    if (dialogKind === 'directory') inputElement.webkitdirectory = true
+    inputElement.addEventListener('change', () => resolve(inputElement.files))
+    inputElement.dispatchEvent(new MouseEvent('click'))
+  })
+}
+
 const item = computed<CustomDropdownItem>(() => ({
   label: label.value,
   onClick,
@@ -115,9 +183,18 @@ const item = computed<CustomDropdownItem>(() => ({
 
 const innerWidgetInput = computed(() => {
   const existingItems = props.input[CustomDropdownItemsKey] ?? []
+  const upload = uploadStatus.value
   return {
     ...props.input,
     [CustomDropdownItemsKey]: [...existingItems, item.value],
+    ...(upload ?
+      {
+        [FileUploadKey]: {
+          name: upload[0],
+          file: upload[1],
+        },
+      }
+    : {}),
   }
 })
 </script>
@@ -150,7 +227,7 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetFileBrowser">
+  <div class="WidgetFileBrowser" :style="style">
     <NodeWidget :input="innerWidgetInput" />
   </div>
 </template>

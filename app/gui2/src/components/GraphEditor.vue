@@ -623,12 +623,11 @@ async function handleFileDrop(event: DragEvent) {
         projectRootId,
         projectStore.awareness,
         file,
-        pos,
         projectStore.isOnLocalBackend,
         event.shiftKey,
         projectStore.executionContext.getStackTop(),
       )
-      const uploadResult = await uploader.upload()
+      const uploadResult = await uploader.upload({ position: pos })
       if (uploadResult.ok) {
         createNode({
           placement: { type: 'mouseEvent', position: pos },
