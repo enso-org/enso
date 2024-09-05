@@ -705,6 +705,7 @@ export function repair(
   const fixes = module ?? root.module.edit()
   for (const ast of lostInline) {
     if (ast instanceof Group) continue
+    if (ast instanceof BodyBlock) continue
     fixes.getVersion(ast).update(ast => Group.new(fixes, ast))
   }
 

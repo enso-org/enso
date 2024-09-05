@@ -417,7 +417,7 @@ watchEffect(() => {
     @pointerleave="(nodeHovered = false), updateNodeHover(undefined)"
     @pointermove="updateNodeHover"
   >
-    <Teleport v-if="navigator && !edited" :to="graphNodeSelections">
+    <Teleport v-if="navigator && !edited && graphNodeSelections" :to="graphNodeSelections">
       <GraphNodeSelection
         :data-node-id="nodeId"
         :nodePosition="props.node.position"
