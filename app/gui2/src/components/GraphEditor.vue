@@ -47,7 +47,6 @@ import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { provideSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { suggestionDocumentationUrl, type Typename } from '@/stores/suggestionDatabase/entry'
-import { applyUpdates } from '@/stores/suggestionDatabase/lsUpdate'
 import { provideVisualizationStore } from '@/stores/visualization'
 import { bail } from '@/util/assert'
 import type { AstId } from '@/util/ast/abstract'
@@ -72,7 +71,6 @@ import {
   type ComponentInstance,
 } from 'vue'
 import { encodeMethodPointer } from 'ydoc-shared/languageServerTypes'
-import * as lsTypes from 'ydoc-shared/languageServerTypes/suggestions'
 import * as iterable from 'ydoc-shared/util/data/iterable'
 import { isDevMode } from 'ydoc-shared/util/detect'
 
@@ -242,7 +240,7 @@ const { place: nodePlacement, collapse: collapsedNodePlacement } = usePlacement(
   toRef(graphNavigator, 'viewport'),
 )
 
-const { createNode, createNodes, placeNode } = provideNodeCreation(
+const { scheduleCreateNode, createNodes, placeNode } = provideNodeCreation(
   graphStore,
   toRef(graphNavigator, 'viewport'),
   toRef(graphNavigator, 'sceneMousePos'),
@@ -470,7 +468,7 @@ function commitComponentBrowser(
     graphStore.setNodeContent(graphStore.editedNodeInfo.id, content, requiredImports)
   } else if (content != '') {
     // We finish creating a new node.
-    createNode({
+    scheduleCreateNode({
       placement: { type: 'fixed', position: componentBrowserNodePosition.value },
       expression: content,
       type,
@@ -632,7 +630,7 @@ async function handleFileDrop(event: DragEvent) {
       )
       const uploadResult = await uploader.upload()
       if (uploadResult.ok) {
-        createNode({
+        scheduleCreateNode({
           placement: { type: 'mouseEvent', position: pos },
           expression: uploadedExpression(uploadResult.value),
         })

@@ -1276,7 +1276,7 @@ type DB_Column
              import Standard.Examples
 
              example_fill_nothing = Examples.decimal_column.fill_nothing 20.5
-    @default (self-> Widget_Helpers.make_fill_default_value_selector value_type=self.value_type)
+    @default (self-> Widget_Helpers.make_fill_default_value_selector value_types=self.value_type)
     fill_nothing : DB_Column | Previous_Value | Any -> DB_Column
     fill_nothing self default =
         if Previous_Value == default then Error.throw (Unsupported_Database_Operation.Error "The Previous_Value argument is currently not supported in the database backend.") else
@@ -1305,7 +1305,7 @@ type DB_Column
              import Standard.Examples
 
              example_fill_empty = Examples.text_column_1.fill_empty "hello"
-    @default (self-> Widget_Helpers.make_fill_default_value_selector value_type=Value_Type.Char add_nothing=True)
+    @default (self-> Widget_Helpers.make_fill_default_value_selector value_types=Value_Type.Char add_nothing=True)
     fill_empty : DB_Column | Previous_Value | Any -> DB_Column
     fill_empty self default =
         if Previous_Value == default then Error.throw (Unsupported_Database_Operation.Error "The Previous_Value argument is currently not supported in the database backend.") else
