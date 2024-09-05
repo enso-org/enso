@@ -1728,7 +1728,12 @@ export default function AssetsTable(props: AssetsTableProps) {
                     // This non-standard property is defined in Electron.
                     'path' in file
                   ) {
-                    id = await window.backendApi.importProjectFromPath(file.path, directory, title)
+                    const projectInfo = await window.backendApi.importProjectFromPath(
+                      file.path,
+                      directory,
+                      title,
+                    )
+                    id = projectInfo.id
                   } else {
                     const searchParams = new URLSearchParams({ directory, name: title }).toString()
                     // Ideally this would use `file.stream()`, to minimize RAM
