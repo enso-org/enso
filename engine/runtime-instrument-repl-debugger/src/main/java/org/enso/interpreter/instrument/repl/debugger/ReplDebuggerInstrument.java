@@ -1,4 +1,4 @@
-package org.enso.interpreter.instrument;
+package org.enso.interpreter.instrument.repl.debugger;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLogger;

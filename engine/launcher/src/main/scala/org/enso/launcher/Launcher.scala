@@ -506,7 +506,8 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
   ): Int = {
     val useJSON = cliOptions.useJSON
     val runtimeVersionParameter: java.util.List[VersionDescriptionParameter] =
-      if (hideEngineVersion) java.util.List.of() else java.util.List.of(getEngineVersion(useJSON))
+      if (hideEngineVersion) java.util.List.of()
+      else java.util.List.of(getEngineVersion(useJSON))
 
     val versionDescription = VersionDescription.make(
       "Enso Launcher",
