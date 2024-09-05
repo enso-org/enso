@@ -15,7 +15,6 @@ import * as textProvider from '#/providers/TextProvider'
 import AssetListEventType from '#/events/AssetListEventType'
 
 import AssetPanel from '#/layouts/AssetPanel'
-import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import type * as assetsTable from '#/layouts/AssetsTable'
 import AssetsTable from '#/layouts/AssetsTable'
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
@@ -62,7 +61,6 @@ export default function Drive(props: DriveProps) {
   const { getText } = textProvider.useText()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
-  const [suggestions, setSuggestions] = React.useState<readonly assetSearchBar.Suggestion[]>([])
   const organizationQuery = useSuspenseQuery({
     queryKey: [backend.type, 'getOrganization'],
     queryFn: () => backend.getOrganization(),
@@ -218,7 +216,6 @@ export default function Drive(props: DriveProps) {
               backend={backend}
               query={query}
               setQuery={setQuery}
-              suggestions={suggestions}
               category={category}
               doEmptyTrash={doEmptyTrash}
               doCreateProject={doCreateProject}
@@ -267,7 +264,6 @@ export default function Drive(props: DriveProps) {
                   query={query}
                   setQuery={setQuery}
                   category={category}
-                  setSuggestions={setSuggestions}
                   initialProjectName={initialProjectName}
                   targetDirectoryNodeRef={targetDirectoryNodeRef}
                 />

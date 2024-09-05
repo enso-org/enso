@@ -46,7 +46,6 @@ export interface DriveBarProps {
   readonly backend: Backend
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  readonly suggestions: readonly Suggestion[]
   readonly category: Category
   readonly doEmptyTrash: () => void
   readonly doCreateProject: (
@@ -64,7 +63,7 @@ export interface DriveBarProps {
 /** Displays the current directory path and permissions, upload and download buttons,
  * and a column display mode switcher. */
 export default function DriveBar(props: DriveBarProps) {
-  const { backend, query, setQuery, suggestions, category } = props
+  const { backend, query, setQuery, category } = props
   const { doEmptyTrash, doCreateProject, doCreateDirectory } = props
   const { doCreateSecret, doCreateDatalink, doUploadFiles } = props
   const { unsetModal } = useSetModal()
@@ -143,13 +142,7 @@ export default function DriveBar(props: DriveBarProps) {
   }, [isFetching])
 
   const searchBar = (
-    <AssetSearchBar
-      backend={backend}
-      isCloud={isCloud}
-      query={query}
-      setQuery={setQuery}
-      suggestions={suggestions}
-    />
+    <AssetSearchBar backend={backend} isCloud={isCloud} query={query} setQuery={setQuery} />
   )
 
   const assetPanelToggle = (

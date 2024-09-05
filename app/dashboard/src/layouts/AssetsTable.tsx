@@ -32,6 +32,7 @@ import {
   useSetCanDownload,
   useSetIsAssetPanelTemporarilyVisible,
   useSetSelectedKeys,
+  useSetSuggestions,
   useSetVisuallySelectedKeys,
 } from '#/providers/DriveProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
@@ -289,9 +290,6 @@ export interface AssetsTableProps {
   readonly hidden: boolean
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  readonly setSuggestions: React.Dispatch<
-    React.SetStateAction<readonly assetSearchBar.Suggestion[]>
-  >
   readonly category: Category
   readonly initialProjectName: string | null
   readonly targetDirectoryNodeRef: React.MutableRefObject<assetTreeNode.AnyAssetTreeNode<backendModule.DirectoryAsset> | null>
@@ -308,12 +306,13 @@ export interface AssetManagementApi {
 
 /** The table of project assets. */
 export default function AssetsTable(props: AssetsTableProps) {
-  const { hidden, query, setQuery, category, assetManagementApiRef, setSuggestions } = props
+  const { hidden, query, setQuery, category, assetManagementApiRef } = props
   const { initialProjectName, targetDirectoryNodeRef } = props
 
   const openedProjects = projectsProvider.useLaunchedProjects()
   const doOpenProject = projectHooks.useOpenProject()
   const setCanDownload = useSetCanDownload()
+  const setSuggestions = useSetSuggestions()
 
   const { user } = authProvider.useFullUserSession()
   const backend = backendProvider.useBackend(category)

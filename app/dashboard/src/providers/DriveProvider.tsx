@@ -5,6 +5,7 @@ import invariant from 'tiny-invariant'
 import * as zustand from 'zustand'
 
 import type { AssetPanelContextProps } from '#/layouts/AssetPanel'
+import type { Suggestion } from '#/layouts/AssetSearchBar'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import type { AssetId } from 'enso-common/src/services/Backend'
 
@@ -28,6 +29,8 @@ interface DriveStore {
   readonly setIsAssetPanelTemporarilyVisible: (isAssetPanelTemporarilyVisible: boolean) => void
   readonly assetPanelProps: AssetPanelContextProps | null
   readonly setAssetPanelProps: (assetPanelProps: AssetPanelContextProps | null) => void
+  readonly suggestions: readonly Suggestion[]
+  readonly setSuggestions: (suggestions: readonly Suggestion[]) => void
 }
 
 // =======================
@@ -81,6 +84,10 @@ export default function DriveProvider(props: ProjectsProviderProps) {
       assetPanelProps: null,
       setAssetPanelProps: (assetPanelProps) => {
         set({ assetPanelProps })
+      },
+      suggestions: [],
+      setSuggestions: (suggestions) => {
+        set({ suggestions })
       },
     })),
   )
@@ -186,4 +193,16 @@ export function useAssetPanelProps() {
 export function useSetAssetPanelProps() {
   const store = useDriveStore()
   return zustand.useStore(store, (state) => state.setAssetPanelProps)
+}
+
+/** Search suggestions. */
+export function useSuggestions() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.suggestions)
+}
+
+/** Set search suggestions. */
+export function useSetSuggestions() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.setSuggestions)
 }
