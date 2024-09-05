@@ -547,13 +547,10 @@ watch(
 const componentBrowser = ref()
 const docPanel = ref()
 
-const closeCBIf = computed(() => {
-  return (e: PointerEvent) => {
-    const cbRoot = componentBrowser.value?.cbRoot
-    const docPanelRoot = docPanel.value?.root
-    return targetIsOutside(e, cbRoot) && targetIsOutside(e, docPanelRoot)
-  }
-})
+const componentBrowserElements = computed(() => [
+  componentBrowser.value?.cbRoot,
+  docPanel.value?.root,
+])
 
 // === Node Creation ===
 
@@ -756,7 +753,7 @@ const documentationEditorFullscreen = ref(false)
           :navigator="graphNavigator"
           :nodePosition="componentBrowserNodePosition"
           :usage="componentBrowserUsage"
-          :closeIfClicked="closeCBIf"
+          :associatedElements="componentBrowserElements"
           @accepted="commitComponentBrowser"
           @canceled="hideComponentBrowser"
           @selectedSuggestionId="displayedDocs = $event"

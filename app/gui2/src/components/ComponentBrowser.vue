@@ -18,7 +18,7 @@ import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { type Typename } from '@/stores/suggestionDatabase/entry'
 import type { VisualizationDataSource } from '@/stores/visualization'
-import { cancelOnClick, isNodeOutside } from '@/util/autoBlur'
+import { cancelOnClick, isNodeOutside, targetIsOutside } from '@/util/autoBlur'
 import { tryGetIndex } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
@@ -54,7 +54,7 @@ const props = defineProps<{
   nodePosition: Vec2
   navigator: ReturnType<typeof useNavigator>
   usage: Usage
-  closeIfClicked: (e: PointerEvent) => boolean
+  associatedElements: HTMLElement[]
 }>()
 
 const emit = defineEmits<{
@@ -73,7 +73,10 @@ const componentList = ref<ComponentInstance<typeof ComponentList>>()
 
 defineExpose({ cbRoot })
 
-const cbOpen: Interaction = cancelOnClick(props.closeIfClicked, {
+const clickOutsideAssociatedElements = (e: PointerEvent) => {
+  return props.associatedElements.every((element) => targetIsOutside(e, element))
+}
+const cbOpen: Interaction = cancelOnClick(clickOutsideAssociatedElements, {
   cancel: () => emit('canceled'),
   end: () => {
     // In AI prompt mode likely the input is not a valid mode.
