@@ -14,7 +14,7 @@ type Data
 
 create_unsorted vector_size faker =
     l = Faker.upper_case_letters
-    n = Faker.numbers
+    n = Faker.digits
     template = [l, l, l, n, n, n, n, n, l]
     0.up_to vector_size . map _->(faker.text_value template)
 
