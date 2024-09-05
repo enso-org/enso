@@ -151,7 +151,7 @@ export const Field = forwardRef(function Field<Schema extends types.TSchema>(
       )}
 
       {hasError && (
-        <span id={errorId} className={classes.error()}>
+        <span data-testid="error" id={errorId} className={classes.error()}>
           {error ?? fieldState.error?.message}
         </span>
       )}
