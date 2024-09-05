@@ -7,6 +7,7 @@ import type { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
 import { Err, Ok, type Result } from 'ydoc-shared/util/data/result'
 
 const props = defineProps<{ displayedSuggestionId: SuggestionId | null }>()
+const emit = defineEmits<{ 'update:displayedSuggestionId': [SuggestionId] }>()
 const selection = injectGraphSelection()
 const graphStore = useGraphStore()
 
@@ -18,19 +19,19 @@ function docsForSelection() {
   return Ok(suggestionId)
 }
 
-const displayedSuggestionId = computed(() =>
+const displayedId = computed(() =>
   props.displayedSuggestionId != null ? Ok(props.displayedSuggestionId) : docsForSelection(),
 )
 </script>
 
 <template>
   <DocumentationPanel
-    v-if="displayedSuggestionId?.ok"
-    :selectedEntry="displayedSuggestionId.value"
-    @update:selectedEntry="displayedSuggestionId = Ok($event)"
+    v-if="displayedId?.ok"
+    :selectedEntry="displayedId.value"
+    @update:selectedEntry="emit('update:displayedSuggestionId', $event)"
   />
-  <div v-else-if="displayedSuggestionId?.ok === false" class="help-placeholder">
-    {{ displayedSuggestionId.error.payload }}.
+  <div v-else-if="displayedId?.ok === false" class="help-placeholder">
+    {{ displayedId.error.payload }}.
   </div>
 </template>
 

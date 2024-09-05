@@ -129,7 +129,7 @@ interface GraphStoredState {
   /** Whether or not the documentation panel is open. */
   doc: boolean
   /** The selected tab in the right-side panel. */
-  rtab: 'docs' | 'help'
+  rtab: string
   /** Width of the right dock. */
   rwidth: number | null
 }
@@ -805,7 +805,7 @@ const documentationEditorFullscreen = ref(false)
         />
       </template>
       <template #help>
-        <ComponentDocumentation :displayedSuggestionId="displayedDocs" :aiMode="aiMode" />
+        <ComponentDocumentation :displayedSuggestionId="displayedDocs" :aiMode="aiMode" @update:displayedSuggestionId="displayedDocs = $event" />
       </template>
     </DockPanel>
   </div>
