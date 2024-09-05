@@ -417,15 +417,15 @@ type Table
     ## ALIAS select fields
        GROUP Standard.Base.Selections
        ICON select_column
-       Returns a new table with a chosen subset of columns, as specified by the
+
+       Creates a new table with a chosen subset of columns, as specified by the
        `columns`, from the input table. Any unmatched input columns will be
        dropped from the output.
 
        Arguments:
        - columns: Specifies columns by a single instance or Vector of names;
          indexes or regular expressions to match names; or a `By_Type` selector
-         to choose columns by type. Note: specifying columns by type ignores
-         size and precision.
+         to choose columns by type.
        - case_sensitivity: Controls whether to be case sensitive when matching
          column names.
        - reorder: By default, or if set to `False`, columns in the output will
@@ -439,6 +439,64 @@ type Table
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
+       Returns:
+       - A new table with the chosen subset of columns.
+
+       > Example
+         Select columns by name.
+
+             table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", "25","abc","123"]]
+             output = table.select_columns ["bar", "foo"]
+
+             ## Returns a Table
+                | bar  | foo |
+                |------|-----|
+                | John | 25  |
+
+       > Example
+         Select columns by name, reordering the result.
+
+             table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", "25","abc","123"]]
+             output = table.select_columns ["foo", "bar"] reorder=True
+
+             ## Returns a Table
+                | foo  | bar  |
+                |------|------|
+                | 25   | John |
+
+       > Example
+         Select columns matching a regular expression.
+
+             table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", "25","abc","123"]]
+             output = table.select_columns [regex "b.+"]
+
+             ## Returns a Table
+                | bar  | buzz | bizz |
+                |------|------|------|
+                | John | abc  | 123  |
+
+       > Example
+         Select the first two columns and the last column, moving the last one to front.
+
+             table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", 25,"abc",123]]
+             output = table.select_columns [-1, 0, 1] reorder=True
+
+             ## Returns a Table
+                | bizz | bar  | foo  |
+                |------|------|------|
+                | 123  | John | 25   |
+
+       > Example
+         Select integer columns.
+
+             table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", 25,"abc",123]]
+             output = table.select_columns [..By_Type ..Integer]
+
+             ## Returns a Table
+                | foo  | bizz |
+                |------|------|
+                | 25   | 123  |
+
        ! Error Conditions
 
          - If there are no columns in the output table, a `No_Output_Columns` is
@@ -449,30 +507,12 @@ type Table
            `error_on_missing_columns` is set to `False`, in which case the
            problem is reported according to the `on_problems` setting.
 
-       > Example
-         Select columns by name.
+       ? Selecting By Type
 
-             table.select_columns ["bar", "foo"]
-
-       > Example
-         Select columns using names passed as a Vector.
-
-             table.select_columns ["bar", "foo"]
-
-       > Example
-         Select columns matching a regular expression.
-
-             table.select_columns "foo.+".to_regex case_sensitivity=Case_Sensitivity.Insensitive
-
-       > Example
-         Select the first two columns and the last column, moving the last one to front.
-
-             table.select_columns [-1, 0, 1] reorder=True
-
-       > Example
-         Select integer columns.
-
-             table.select_columns [..By_Type ..Integer]
+         If selecting by type, then the length, scale and precision are ignored.
+         In other words, `..Text` will match any text column, regardless of its
+         length or being fixed or variable length. Similarly, `..Integer` will
+         match any integer column, regardless of its size.
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     select_columns :  Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> Boolean -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns
     select_columns self (columns : (Vector | Text | Integer | Regex | By_Type) = [self.columns.first.name]) (reorder:Boolean=False) (case_sensitivity:Case_Sensitivity=..Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=..Report_Warning) =
@@ -501,7 +541,7 @@ type Table
     ## ALIAS drop fields, drop_columns, remove fields, select columns, select fields
        GROUP Standard.Base.Selections
        ICON select_column
-       Returns a new table with the chosen set of columns, as specified by the
+       Creates a new table with the chosen set of columns, as specified by the
        `columns`, removed from the input table. Any unmatched input columns will
        be kept in the output. Columns are returned in the same order as in the
        input.
@@ -509,8 +549,7 @@ type Table
        Arguments:
        - columns: Specifies columns by a single instance or Vector of names;
          indexes or regular expressions to match names; or a `By_Type` selector
-         to choose columns by type. Note: specifying columns by type ignores
-         size and precision.
+         to choose columns by type.
        - case_sensitivity: Controls whether to be case sensitive when matching
          column names.
        - error_on_missing_columns: Specifies if a missing input column should
@@ -518,6 +557,53 @@ type Table
          to `False`.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
+
+       Returns:
+       - A new table with the chosen subset of columns removed.
+
+       > Example
+         Remove columns by name.
+
+             table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", "25","abc","123"]]
+             output = table.remove_columns ["bar", "foo"]
+
+             ## Returns a Table
+                | buzz | bizz |
+                |------|------|
+                | abc  | 123  |
+
+       > Example
+         Remove columns matching a regular expression.
+
+             table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", "25","abc","123"]]
+             output = table.remove_columns [regex "b.+"]
+
+             ## Returns a Table
+                | foo  |
+                |------|
+                | 25   |
+
+       > Example
+         Remove the first two columns and the last column
+
+             table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", 25,"abc",123]]
+             output = table.select_columns [-1, 0, 1]
+
+             ## Returns a Table
+                | buzz |
+                |------|
+                | abc  |
+
+       > Example
+         Remove integer columns.
+
+             table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", 25,"abc",123]]
+             output = table.remove_columns [..By_Type ..Integer]
+
+             ## Returns a Table
+                | bar  | buzz |
+                |------|------|
+                | John | abc  |
 
        ! Error Conditions
 
@@ -529,30 +615,12 @@ type Table
            setting, unless `error_on_missing_columns` is set to `True`, in which
            case it is raised as an error.
 
-       > Example
-         Remove columns with given names.
+       ? Selecting By Type
 
-             table.remove_columns ["bar", "foo"]
-
-       > Example
-         Remove columns using names passed as a Vector.
-
-             table.remove_columns ["bar", "foo"]
-
-       > Example
-         Remove columns matching a regular expression.
-
-             table.remove_columns "foo.+".to_regex case_sensitivity=Case_Sensitivity.Insensitive
-
-       > Example
-         Remove the first two columns and the last column.
-
-             table.remove_columns [-1, 0, 1]
-
-       > Example
-         Remove integer columns.
-
-             table.remove_columns [..By_Type ..Integer]
+         If selecting by type, then the length, scale and precision are ignored.
+         In other words, `..Text` will match any text column, regardless of its
+         length or being fixed or variable length. Similarly, `..Integer` will
+         match any integer column, regardless of its size.
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     remove_columns :  Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns
     remove_columns self (columns : (Vector | Text | Integer | Regex | By_Type) = [self.columns.first.name]) (case_sensitivity:Case_Sensitivity=..Default) (error_on_missing_columns:Boolean=False) (on_problems:Problem_Behavior=..Report_Warning) =
