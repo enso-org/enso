@@ -449,8 +449,8 @@ add_specs suite_builder prefix create_connection_func =
                 name_b = "x" * (max_column_name_length - 1) + "B"
                 src_a = Table.new [[name_a, ["1", "2", "3"]]]
                 src_b = Table.new [[name_b, [4, 5, 6]]]
-                db_a = src_a.select_into_database_table data.connection (Name_Generator.random_name "long-column-names-a") temporary=True
-                db_b = src_b.select_into_database_table data.connection (Name_Generator.random_name "long-column-names-b") temporary=True
+                db_a = src_a.select_into_database_table data.connection (Name_Generator.random_name "long-column-names-a") temporary=True primary_key=Nothing
+                db_b = src_b.select_into_database_table data.connection (Name_Generator.random_name "long-column-names-b") temporary=True primary_key=Nothing
 
                 Test.with_clue "zip test will have to be amended once it is implemented: " <|
                     db_a.zip db_b . should_fail_with Unsupported_Database_Operation
