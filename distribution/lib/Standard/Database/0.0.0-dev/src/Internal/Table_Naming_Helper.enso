@@ -4,6 +4,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Table.Internal.Naming_Properties.Naming_Properties
 import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 from Standard.Table.Errors import Name_Too_Long
+from Standard.Database.Dialect import Temp_Table_Style
 
 polyglot java import org.enso.base.Text_Utils
 
@@ -40,7 +41,10 @@ type Table_Naming_Helper
             Nothing -> True
             max_size ->
                 name_size = self.naming_properties.encoded_size table_name
-                name_size <= max_size
+                actual_max = case self.connection.dialect.temp_table_style of
+                    Temp_Table_Style.Temporary_Table -> max_size
+                    Temp_Table_Style.Hash_Prefix -> max_size - 13
+                name_size <= actual_max
 
     ## PRIVATE
        Generates a temporary table name for the given table name, used for dry

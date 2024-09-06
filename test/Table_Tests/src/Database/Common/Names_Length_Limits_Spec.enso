@@ -111,9 +111,7 @@ add_specs suite_builder prefix create_connection_func =
                         Problems.assume_no_problems t3
 
             group_builder.specify "should not mangle a too long name when accessing tables, returning a different table" <|
-                long_name = case data.connection.dialect.temp_table_style of
-                    Temp_Table_Style.Temporary_Table -> "z" * max_table_name_length
-                    Temp_Table_Style.Hash_Prefix -> "z" * (max_table_name_length - 13)
+                long_name = "z" * max_table_name_length
                 src = Table.new [["X", [1, 2, 3]]]
                 t1 = src.select_into_database_table data.connection long_name temporary=True
                 Problems.assume_no_problems t1
