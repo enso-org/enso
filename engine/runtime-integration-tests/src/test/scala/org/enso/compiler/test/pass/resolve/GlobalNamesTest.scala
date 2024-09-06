@@ -232,5 +232,27 @@ class GlobalNamesTest extends CompilerTest {
       }
       unresolved.map(_.name) shouldEqual List("here")
     }
+
+    "should be detected when trying to use static method without type" in {
+      implicit val ctx: ModuleContext = mkModuleContext._1
+
+      val ir =
+        """
+          |type My_Type
+          |    static_method = 23
+          |main =
+          |    static_method
+          |""".stripMargin.preprocessModule.analyse
+
+      val unresolved = ir.preorder.collect {
+        case errors.Resolution(
+              name,
+              _: errors.Resolution.ResolverError,
+              _
+            ) =>
+          name
+      }
+      unresolved.map(_.name) shouldEqual List("static_method")
+    }
   }
 }

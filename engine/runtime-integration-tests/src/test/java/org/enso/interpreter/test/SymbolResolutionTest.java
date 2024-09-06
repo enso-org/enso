@@ -1,10 +1,17 @@
 package org.enso.interpreter.test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.net.URI;
 import org.enso.common.MethodNames;
+import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.test.utils.ContextUtils;
+import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.junit.Test;
 
@@ -114,5 +121,28 @@ public class SymbolResolutionTest extends ContextTest {
     var result = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "entry_point");
     assertTrue(result.isNumber());
     assertEquals(44, result.asInt());
+  }
+
+  // https://github.com/enso-org/enso/issues/10748
+  @Test
+  public void unresolvedSymbolErrorMessage() {
+    var code =
+        """
+        type My_Type
+            static_method = 23
+
+        main =
+            static_method
+        """;
+    try (var ctx = ContextUtils.createDefaultContext()) {
+      try {
+        var res = ContextUtils.evalModule(ctx, code);
+        fail("Should throw exception. Instead got: " + res);
+      } catch (PolyglotException ex) {
+        var panic = (PanicException) ContextUtils.unwrapValue(ctx, ex.getGuestObject());
+        var errMsg = panic.getPayload().toString();
+        assertThat(errMsg, allOf(containsString("The name"), containsString("could not be found")));
+      }
+    }
   }
 }
