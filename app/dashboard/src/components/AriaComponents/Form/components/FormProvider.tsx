@@ -12,40 +12,36 @@ import type { FormInstance, FormInstanceValidated } from './types'
 /**
  * Context type for the form provider.
  */
-interface FormContextType<
-  Schema extends types.TSchema,
-  TFieldValues extends types.FieldValues<Schema>,
-  TTransformedValues extends types.FieldValues<Schema> | undefined = undefined,
-> {
-  readonly form: types.UseFormReturn<Schema, TFieldValues, TTransformedValues>
+interface FormContextType<Schema extends types.TSchema> {
+  readonly form: types.UseFormReturn<Schema>
 }
 
 // at this moment, we don't know the type of the form context
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const FormContext = createContext<FormContextType<any, any, any> | null>(null)
+const FormContext = createContext<FormContextType<any> | null>(null)
 
 /**
  * Provides the form instance to the component tree.
  */
-export function FormProvider<
-  Schema extends types.TSchema,
-  TFieldValues extends types.FieldValues<Schema>,
-  TTransformedValues extends types.FieldValues<Schema> | undefined = undefined,
->(props: FormContextType<Schema, TFieldValues, TTransformedValues> & PropsWithChildren) {
+export function FormProvider<Schema extends types.TSchema>(
+  props: FormContextType<Schema> & PropsWithChildren,
+) {
   const { children, form } = props
-  return <FormContext.Provider value={{ form }}>{children}</FormContext.Provider>
+
+  return (
+    // eslint-disable-next-line no-restricted-syntax,@typescript-eslint/no-explicit-any
+    <FormContext.Provider value={{ form: form as types.UseFormReturn<any> }}>
+      {children}
+    </FormContext.Provider>
+  )
 }
 
 /**
  * Returns the form instance from the context.
  */
-export function useFormContext<
-  Schema extends types.TSchema,
-  TFieldValues extends types.FieldValues<Schema>,
-  TTransformedValues extends types.FieldValues<Schema> | undefined = undefined,
->(
-  form?: FormInstanceValidated<Schema, TFieldValues, TTransformedValues> | undefined,
-): FormInstance<Schema, TFieldValues, TTransformedValues> {
+export function useFormContext<Schema extends types.TSchema>(
+  form?: FormInstanceValidated<Schema> | undefined,
+): FormInstance<Schema> {
   if (form != null && 'control' in form) {
     return form
   } else {
@@ -56,7 +52,7 @@ export function useFormContext<
 
     // This is safe, as it's we pass the value transparently and it's typed outside
     // eslint-disable-next-line no-restricted-syntax
-    return ctx.form as unknown as types.UseFormReturn<Schema, TFieldValues, TTransformedValues>
+    return ctx.form as unknown as types.UseFormReturn<Schema>
   }
 }
 
@@ -64,17 +60,13 @@ export function useFormContext<
  * Returns the form instance from the context, or null if the context is not available.
  */
 export function useOptionalFormContext<
-  Form extends FormInstanceValidated<Schema, TFieldValues, TTransformedValues> | undefined,
+  Form extends FormInstanceValidated<Schema> | undefined,
   Schema extends types.TSchema,
-  TFieldValues extends types.FieldValues<Schema>,
-  TTransformedValues extends types.FieldValues<Schema> | undefined = undefined,
->(
-  form?: Form,
-): Form extends undefined ? FormInstance<Schema, TFieldValues, TTransformedValues> | null
-: FormInstance<Schema, TFieldValues, TTransformedValues> {
+>(form?: Form): Form extends undefined ? FormInstance<Schema> | null : FormInstance<Schema> {
   try {
-    return useFormContext<Schema, TFieldValues, TTransformedValues>(form)
+    return useFormContext<Schema>(form)
   } catch {
-    return null as any
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    return null!
   }
 }

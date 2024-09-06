@@ -7,7 +7,6 @@
 import { useFormContext } from './FormProvider'
 import type {
   FieldPath,
-  FieldStateProps,
   FieldValues,
   FormFieldProps,
   FormInstanceValidated,
@@ -20,16 +19,11 @@ import type {
 export type UseFieldRegisterOptions<
   BaseValueType extends { value?: unknown },
   Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TFieldName extends FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
-> = Omit<
-  FormFieldProps<BaseValueType, Schema, TFieldValues, TFieldName, TTransformedValues>,
-  'form'
-> & {
-  form?: FormInstanceValidated<Schema, TFieldValues, TTransformedValues> | undefined
+  TFieldName extends FieldPath<Schema>,
+> = Omit<FormFieldProps<BaseValueType, Schema, TFieldName>, 'form'> & {
   name: TFieldName
-  defaultValue?: TFieldValues[TFieldName] | undefined
+  form?: FormInstanceValidated<Schema> | undefined
+  defaultValue?: FieldValues<Schema>[TFieldName] | undefined
   min?: number | string | undefined
   max?: number | string | undefined
   minLength?: number | undefined
@@ -43,27 +37,16 @@ export type UseFieldRegisterOptions<
 export function useFieldRegister<
   BaseValueType extends { value?: unknown },
   Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TFieldName extends FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
->(
-  options: UseFieldRegisterOptions<
-    BaseValueType,
-    Schema,
-    TFieldValues,
-    TFieldName,
-    TTransformedValues
-  >,
-) {
+  TFieldName extends FieldPath<Schema>,
+>(options: UseFieldRegisterOptions<BaseValueType, Schema, TFieldName>) {
   const { name, min, max, minLength, maxLength, isRequired, isDisabled, form, setValueAs } = options
 
   const formInstance = useFormContext(form)
 
-  const extractedValidationDetails = unsafe__extractValidationDetailsFromSchema<
-    Schema,
-    TFieldValues,
-    TFieldName
-  >(formInstance.schema, name)
+  const extractedValidationDetails = unsafe__extractValidationDetailsFromSchema<Schema, TFieldName>(
+    formInstance.schema,
+    name,
+  )
 
   const fieldProps = formInstance.register(name, {
     disabled: isDisabled ?? false,
@@ -86,8 +69,7 @@ export function useFieldRegister<
 // eslint-disable-next-line @typescript-eslint/naming-convention
 function unsafe__extractValidationDetailsFromSchema<
   Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TFieldName extends FieldPath<Schema, TFieldValues>,
+  TFieldName extends FieldPath<Schema>,
 >(schema: Schema, name: TFieldName) {
   try {
     if ('shape' in schema) {

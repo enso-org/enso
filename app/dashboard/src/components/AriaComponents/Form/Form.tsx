@@ -5,10 +5,8 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 
-import * as errorUtils from '#/utilities/error'
-
-import { forwardRef } from '#/utilities/react'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { forwardRef } from '#/utilities/react'
 import * as dialog from '../Dialog'
 import * as components from './components'
 import * as styles from './styles'
@@ -19,10 +17,10 @@ import type * as types from './types'
  * Provides better error handling and form state management and better UX out of the box. */
 // There is no way to avoid type casting here
 // eslint-disable-next-line no-restricted-syntax
-export const Form = forwardRef(function Form<Schema extends components.TSchema,   SubmitResult = void>(
-  props: types.FormProps<Schema, SubmitResult>,
-  ref: React.Ref<HTMLFormElement>,
-) {
+export const Form = forwardRef(function Form<
+  Schema extends components.TSchema,
+  SubmitResult = void,
+>(props: types.FormProps<Schema, SubmitResult>, ref: React.Ref<HTMLFormElement>) {
   /** Input values for this form. */
   type FieldValues = components.FieldValues<Schema>
   const formId = React.useId()
@@ -56,10 +54,7 @@ export const Form = forwardRef(function Form<Schema extends components.TSchema, 
   const dialogContext = dialog.useDialogContext()
 
   const onSubmit = useEventCallback(
-    async (
-      fieldValues: TFieldValues,
-      formInstance: types.UseFormReturn<Schema, TFieldValues, TTransformedValues>,
-    ) => {
+    async (fieldValues: types.FieldValues<Schema>, formInstance: types.UseFormReturn<Schema>) => {
       const result = await props.onSubmit?.(fieldValues, formInstance)
 
       if (method === 'dialog') {
@@ -70,7 +65,7 @@ export const Form = forwardRef(function Form<Schema extends components.TSchema, 
     },
   )
 
-  const innerForm = components.useForm<Schema, TFieldValues, TTransformedValues, SubmitResult>(
+  const innerForm = components.useForm<Schema, SubmitResult>(
     form ??
       // This is unsafe, but it is necessary to avoid a type error and make typescript happy here
       // eslint-disable-next-line no-restricted-syntax
@@ -84,7 +79,7 @@ export const Form = forwardRef(function Form<Schema extends components.TSchema, 
         shouldFocusError: true,
         debugName: `Form ${testId} id: ${id}`,
         ...formOptions,
-      } as components.UseFormProps<Schema, TFieldValues, TTransformedValues, SubmitResult>),
+      } as components.UseFormProps<Schema, SubmitResult>),
   )
 
   React.useImperativeHandle(formRef, () => innerForm, [innerForm])
@@ -126,12 +121,8 @@ export const Form = forwardRef(function Form<Schema extends components.TSchema, 
       </aria.FormValidationContext.Provider>
     </form>
   )
-}) as unknown as (<
-  Schema extends components.TSchema,
-  SubmitResult = void,
->(
-  props: React.RefAttributes<HTMLFormElement> &
-    types.FormProps<Schema, SubmitResult>,
+}) as unknown as (<Schema extends components.TSchema, SubmitResult = void>(
+  props: React.RefAttributes<HTMLFormElement> & types.FormProps<Schema, SubmitResult>,
 ) => React.JSX.Element) & {
   /* eslint-disable @typescript-eslint/naming-convention */
   schema: typeof components.schema

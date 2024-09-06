@@ -18,28 +18,19 @@ export type * from './components'
  */
 export type FormProps<
   Schema extends components.TSchema,
-  TFieldValues extends components.FieldValues<Schema>,
-  // eslint-disable-next-line no-restricted-syntax
-  TTransformedValues extends components.FieldValues<Schema> | undefined = undefined,
   SubmitResult = void,
-> = BaseFormProps<Schema, TFieldValues, TTransformedValues> &
-  (
-    | FormPropsWithOptions<Schema, TFieldValues, TTransformedValues, SubmitResult>
-    | FormPropsWithParentForm<Schema, TFieldValues, TTransformedValues>
-  )
+> = BaseFormProps<Schema> &
+  (FormPropsWithOptions<Schema, SubmitResult> | FormPropsWithParentForm<Schema>)
 
 /**
  * Base props for the Form component.
  */
-interface BaseFormProps<
-  Schema extends components.TSchema,
-  TFieldValues extends components.FieldValues<Schema>,
-  TTransformedValues extends components.FieldValues<Schema> | undefined = undefined,
-> extends Omit<
+interface BaseFormProps<Schema extends components.TSchema>
+  extends Omit<
       React.HTMLProps<HTMLFormElement>,
       'children' | 'className' | 'form' | 'onSubmit' | 'onSubmitCapture' | 'style'
     >,
-    styles.FormStyleProps {
+    Omit<styles.FormStyleProps, 'class' | 'className'> {
   /**
    * The default values for the form fields
    *
@@ -48,27 +39,21 @@ interface BaseFormProps<
    * Otherwise Typescript fails to infer the correct type for the form values.
    * This is a known limitation and we are working on a solution.
    */
-  readonly defaultValues?: components.UseFormProps<Schema, TFieldValues>['defaultValues']
+  readonly defaultValues?: components.UseFormProps<Schema>['defaultValues']
   readonly style?:
     | React.CSSProperties
-    | ((
-        props: components.UseFormReturn<Schema, TFieldValues, TTransformedValues>,
-      ) => React.CSSProperties)
+    | ((props: components.UseFormReturn<Schema>) => React.CSSProperties)
   readonly children:
     | React.ReactNode
     | ((
-        props: components.UseFormReturn<Schema, TFieldValues, TTransformedValues> & {
-          readonly form: components.UseFormReturn<Schema, TFieldValues, TTransformedValues>
-          readonly values: DeepPartialSkipArrayKey<TFieldValues>
+        props: components.UseFormReturn<Schema> & {
+          readonly form: components.UseFormReturn<Schema>
+          readonly values: DeepPartialSkipArrayKey<components.FieldValues<Schema>>
         },
       ) => React.ReactNode)
-  readonly formRef?: React.MutableRefObject<
-    components.UseFormReturn<Schema, TFieldValues, TTransformedValues>
-  >
+  readonly formRef?: React.MutableRefObject<components.UseFormReturn<Schema>>
 
-  readonly className?:
-    | string
-    | ((props: components.UseFormReturn<Schema, TFieldValues, TTransformedValues>) => string)
+  readonly className?: string | ((props: components.UseFormReturn<Schema>) => string)
 
   readonly testId?: string
   /**
@@ -98,18 +83,14 @@ interface FormPropsWithParentForm<Schema extends components.TSchema> {
  * Props for the Form component with schema and form options.
  * Creates a new form instance. This is the default way to use the form.
  */
-interface FormPropsWithOptions<
-  Schema extends components.TSchema,
-  TFieldValues extends components.FieldValues<Schema>,
-  TTransformedValues extends components.FieldValues<Schema> | undefined = undefined,
-  SubmitResult = void,
-> extends components.OnSubmitCallbacks<Schema, TFieldValues, TTransformedValues, SubmitResult> {
+interface FormPropsWithOptions<Schema extends components.TSchema, SubmitResult = void>
+  extends components.OnSubmitCallbacks<Schema, SubmitResult> {
   readonly schema: Schema | ((schema: typeof components.schema) => Schema)
-  readonly form?: never
   readonly formOptions?: Omit<
-    components.UseFormProps<Schema, TFieldValues>,
+    components.UseFormProps<Schema>,
     'handleSubmit' | 'resolver' | 'schema'
   >
+  readonly form?: never
 }
 
 /**

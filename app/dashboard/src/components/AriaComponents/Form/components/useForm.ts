@@ -44,16 +44,9 @@ function mapValueOnEvent(value: unknown) {
  * But be careful, You should not switch between the two types of arguments.
  * Otherwise you'll be fired
  */
-export function useForm<
-  Schema extends types.TSchema,
-  TFieldValues extends types.FieldValues<Schema> = types.FieldValues<Schema>,
-  TTransformedValues extends types.FieldValues<Schema> | undefined = undefined,
-  SubmitResult = void,
->(
-  optionsOrFormInstance:
-    | types.UseFormProps<Schema, TFieldValues, TTransformedValues, SubmitResult>
-    | types.UseFormReturn<Schema, TFieldValues, TTransformedValues>,
-): types.UseFormReturn<Schema, TFieldValues, TTransformedValues> {
+export function useForm<Schema extends types.TSchema, SubmitResult = void>(
+  optionsOrFormInstance: types.UseFormProps<Schema, SubmitResult> | types.UseFormReturn<Schema>,
+): types.UseFormReturn<Schema> {
   const { getText } = useText()
   const [initialTypePassed] = React.useState(() => getArgsType(optionsOrFormInstance))
 
@@ -120,16 +113,16 @@ export function useForm<
       ),
     })
 
-    const register: types.UseFormRegister<Schema, TFieldValues> = (name, opts) => {
+    const register: types.UseFormRegister<Schema> = (name, opts) => {
       const registered = formInstance.register(name, opts)
 
-      const onChange: types.UseFormRegisterReturn<Schema, TFieldValues>['onChange'] = (value) =>
+      const onChange: types.UseFormRegisterReturn<Schema>['onChange'] = (value) =>
         registered.onChange(mapValueOnEvent(value))
 
-      const onBlur: types.UseFormRegisterReturn<Schema, TFieldValues>['onBlur'] = (value) =>
+      const onBlur: types.UseFormRegisterReturn<Schema>['onBlur'] = (value) =>
         registered.onBlur(mapValueOnEvent(value))
 
-      const result: types.UseFormRegisterReturn<Schema, TFieldValues, typeof name> = {
+      const result: types.UseFormRegisterReturn<Schema, typeof name> = {
         ...registered,
         disabled: registered.disabled ?? false,
         isDisabled: registered.disabled ?? false,
@@ -151,7 +144,7 @@ export function useForm<
       // the result, and the variables(form fields).
       // In general, prefer using object literals for the mutation key.
       mutationKey: ['Form submission', `debugName: ${debugName}`],
-      mutationFn: async (fieldValues: TFieldValues) => {
+      mutationFn: async (fieldValues: types.FieldValues<Schema>) => {
         try {
           // This is safe, because we transparently passing the result of the onSubmit function,
           // and the type of the result is the same as the type of the SubmitResult.
@@ -225,7 +218,7 @@ export function useForm<
       formInstance.setError('root.submit', { message: error })
     })
 
-    const form: types.UseFormReturn<Schema, TFieldValues, TTransformedValues> = {
+    const form: types.UseFormReturn<Schema> = {
       ...formInstance,
       submit,
       control: { ...formInstance.control, register },
@@ -242,15 +235,8 @@ export function useForm<
 /**
  * Get the type of arguments passed to the useForm hook
  */
-function getArgsType<
-  Schema extends types.TSchema,
-  TFieldValues extends types.FieldValues<Schema>,
-  TTransformedValues extends types.FieldValues<Schema> | undefined = undefined,
-  SubmitResult = void,
->(
-  args:
-    | types.UseFormProps<Schema, TFieldValues, TTransformedValues, SubmitResult>
-    | types.UseFormReturn<Schema, TFieldValues, TTransformedValues>,
+function getArgsType<Schema extends types.TSchema, SubmitResult = void>(
+  args: types.UseFormProps<Schema, SubmitResult>,
 ) {
   return 'formState' in args ? ('formInstance' as const) : ('formOptions' as const)
 }

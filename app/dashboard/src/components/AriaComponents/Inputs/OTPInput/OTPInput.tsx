@@ -15,7 +15,6 @@ import type {
   FieldPath,
   FieldProps,
   FieldStateProps,
-  FieldValues,
   FieldVariantProps,
   TSchema,
 } from '../../Form'
@@ -27,18 +26,8 @@ import type { TestIdProps } from '../../types'
 /**
  * Props for an {@link OTPInput}.
  */
-export interface OtpInputProps<
-  Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TFieldName extends FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
-> extends FieldStateProps<
-      Omit<OTPInputProps, 'children' | 'render'>,
-      Schema,
-      TFieldValues,
-      TFieldName,
-      TTransformedValues
-    >,
+export interface OtpInputProps<Schema extends TSchema, TFieldName extends FieldPath<Schema>>
+  extends FieldStateProps<Omit<OTPInputProps, 'children' | 'render'>, Schema, TFieldName>,
     FieldProps,
     FieldVariantProps,
     Omit<VariantProps<typeof STYLES>, 'disabled' | 'invalid'>,
@@ -98,13 +87,8 @@ const SLOT_STYLES = tv({
  */
 export const OTPInput = forwardRef(function OTPInput<
   Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TFieldName extends FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
->(
-  props: OtpInputProps<Schema, TFieldValues, TFieldName, TTransformedValues>,
-  ref: ForwardedRef<HTMLFieldSetElement>,
-) {
+  TFieldName extends FieldPath<Schema>,
+>(props: OtpInputProps<Schema, TFieldName>, ref: ForwardedRef<HTMLFieldSetElement>) {
   const {
     maxLength,
     variants = STYLES,
@@ -121,17 +105,20 @@ export const OTPInput = forwardRef(function OTPInput<
   const innerOtpInputRef = useRef<HTMLInputElement>(null)
   const classes = variants({ className })
 
-  const { fieldProps, formInstance } = Form.useFieldRegister({ ...props, form })
+  const { fieldProps, formInstance } = Form.useFieldRegister({
+    ...props,
+    form,
+  })
 
   return (
     <Form.Field
-      {...mergeProps<FieldComponentProps>()(inputProps, omit(fieldProps), {
-        ref,
+      {...mergeProps<FieldComponentProps<Schema>>()(inputProps, omit(fieldProps), {
         isHidden: props.hidden,
         fullWidth: true,
         variants: fieldVariants,
         form: formInstance,
       })}
+      ref={ref}
       name={props.name}
     >
       <BaseOTPInput
@@ -143,9 +130,6 @@ export const OTPInput = forwardRef(function OTPInput<
             maxLength,
             noScriptCSSFallback: null,
             containerClassName: classes.base(),
-            onChange: (value) => {
-              console.log('onChange', value)
-            },
             onClick: () => {
               if (innerOtpInputRef.current) {
                 // Check if the input is not already focused
@@ -154,8 +138,7 @@ export const OTPInput = forwardRef(function OTPInput<
                 }
               }
             },
-            onComplete: async () => {
-              console.log('onComplete')
+            onComplete: () => {
               onComplete?.()
 
               if (submitOnComplete) {

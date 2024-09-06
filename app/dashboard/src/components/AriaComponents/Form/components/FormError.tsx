@@ -26,14 +26,9 @@ export interface FormErrorProps extends Omit<reactAriaComponents.AlertProps, 'ch
  * Form error component.
  */
 export function FormError(props: FormErrorProps) {
-  const {
-    form = formContext.useFormContext(),
-    size = 'large',
-    variant = 'error',
-    rounded = 'large',
-    ...alertProps
-  } = props
+  const { size = 'large', variant = 'error', rounded = 'large', ...alertProps } = props
 
+  const form = formContext.useFormContext(props.form)
   const { formState } = form
   const { errors } = formState
   const { getText } = textProvider.useText()

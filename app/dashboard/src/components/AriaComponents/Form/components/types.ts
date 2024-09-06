@@ -35,39 +35,34 @@ export type TSchema =
 /**
  * OnSubmitCallbacks type.
  */
-export interface OnSubmitCallbacks<
-  Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
-  SubmitResult = void,
-> {
+export interface OnSubmitCallbacks<Schema extends TSchema, SubmitResult = void> {
   readonly onSubmit?:
     | ((
-        values: TFieldValues,
-        form: UseFormReturn<Schema, TFieldValues, TTransformedValues>,
+        values: FieldValues<Schema>,
+        form: UseFormReturn<Schema>,
       ) => Promise<SubmitResult> | SubmitResult)
     | undefined
 
   readonly onSubmitFailed?:
     | ((
         error: unknown,
-        values: TFieldValues,
-        form: UseFormReturn<Schema, TFieldValues, TTransformedValues>,
+        values: FieldValues<Schema>,
+        form: UseFormReturn<Schema>,
       ) => Promise<void> | void)
     | undefined
   readonly onSubmitSuccess?:
     | ((
         data: SubmitResult,
-        values: TFieldValues,
-        form: UseFormReturn<Schema, TFieldValues, TTransformedValues>,
+        values: FieldValues<Schema>,
+        form: UseFormReturn<Schema>,
       ) => Promise<void> | void)
     | undefined
   readonly onSubmitted?:
     | ((
         data: SubmitResult | undefined,
         error: unknown,
-        values: TFieldValues,
-        form: UseFormReturn<Schema, TFieldValues, TTransformedValues>,
+        values: FieldValues<Schema>,
+        form: UseFormReturn<Schema>,
       ) => Promise<void> | void)
     | undefined
 }
@@ -75,14 +70,12 @@ export interface OnSubmitCallbacks<
 /**
  * Props for the useForm hook.
  */
-export interface UseFormProps<
-  Schema extends TSchema,
-  SubmitResult = void,
-> extends Omit<
-      reactHookForm.UseFormProps<TFieldValues>,
+export interface UseFormProps<Schema extends TSchema, SubmitResult = void>
+  extends Omit<
+      reactHookForm.UseFormProps<FieldValues<Schema>>,
       'handleSubmit' | 'resetOptions' | 'resolver'
     >,
-    OnSubmitCallbacks<Schema, TFieldValues, TTransformedValues, SubmitResult> {
+    OnSubmitCallbacks<Schema, SubmitResult> {
   readonly schema: Schema | ((schema: typeof schemaModule.schema) => Schema)
   /**
    * Whether the form can submit offline.
@@ -99,21 +92,19 @@ export interface UseFormProps<
 /**
  * Register function for a form field.
  */
-export type UseFormRegister<Schema extends TSchema, TFieldValues extends FieldValues<Schema>> = <
-  TFieldName extends FieldPath<Schema, TFieldValues> = FieldPath<Schema, TFieldValues>,
+export type UseFormRegister<Schema extends TSchema> = <
+  TFieldName extends FieldPath<Schema> = FieldPath<Schema>,
 >(
   name: TFieldName,
-  options?: reactHookForm.RegisterOptions<TFieldValues, TFieldName>,
-  // eslint-disable-next-line no-restricted-syntax
-) => UseFormRegisterReturn<Schema, TFieldValues, TFieldName>
+  options?: reactHookForm.RegisterOptions<FieldValues<Schema>, TFieldName>,
+) => UseFormRegisterReturn<Schema, TFieldName>
 
 /**
  * UseFormRegister return type.
  */
 export interface UseFormRegisterReturn<
   Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TFieldName extends FieldPath<Schema, TFieldValues> = FieldPath<Schema, TFieldValues>,
+  TFieldName extends FieldPath<Schema> = FieldPath<Schema>,
 > extends Omit<reactHookForm.UseFormRegisterReturn<TFieldName>, 'onBlur' | 'onChange'> {
   // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
   readonly onChange: <Value>(value: Value) => Promise<boolean | void>
@@ -128,41 +119,15 @@ export interface UseFormRegisterReturn<
 }
 
 /**
- * Register function for a form field.
- */
-export type UseFormRegister<Schema extends TSchema> = <
-  TFieldName extends FieldPath<Schema> = FieldPath<Schema>,
->(
-  name: TFieldName,
-  options?: reactHookForm.RegisterOptions<FieldValues<Schema>, TFieldName>,
-  // eslint-disable-next-line no-restricted-syntax
-) => UseFormRegisterReturn<Schema, TFieldName>
-
-/**
- * UseFormRegister return type.
- */
-export interface UseFormRegisterReturn<
-  Schema extends TSchema,
-  TFieldName extends FieldPath<Schema> = FieldPath<Schema>,
-> extends Omit<reactHookForm.UseFormRegisterReturn<TFieldName>, 'onBlur' | 'onChange'> {
-  // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
-  readonly onChange: <Value>(value: Value) => Promise<boolean | void>
-  // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
-  readonly onBlur: <Value>(value: Value) => Promise<boolean | void>
-  readonly isDisabled?: boolean
-  readonly isRequired?: boolean
-  readonly isInvalid?: boolean
-}
-
-/**
  * Return type of the useForm hook.
  * @alias reactHookForm.UseFormReturn
  */
-export interface UseFormReturn<Schema extends TSchema> extends Omit<
-  reactHookForm.UseFormReturn<FieldValues<Schema>, unknown, TransformedValues<Schema>>,
+export interface UseFormReturn<Schema extends TSchema>
+  extends Omit<
+    reactHookForm.UseFormReturn<FieldValues<Schema>, unknown, TransformedValues<Schema>>,
     'resetOptions' | 'resolver'
   > {
-  readonly register: UseFormRegister<Schema, TFieldValues>
+  readonly register: UseFormRegister<Schema>
   readonly submit: (event?: FormEvent<HTMLFormElement> | null | undefined) => Promise<void>
   readonly schema: Schema
   readonly setFormError: (error: string) => void
@@ -209,11 +174,9 @@ export interface FormWithValueValidation<
  */
 export type FormInstanceValidated<
   Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
   // We use any here because we want to bypass the type check for Error type as it won't be a case here
   // eslint-disable-next-line @typescript-eslint/no-explicit-any,@typescript-eslint/ban-types
-> = FormInstance<Schema, TFieldValues, TTransformedValues> | (any[] & {})
+> = FormInstance<Schema> | (any[] & {})
 
 /**
  * Props for the Field component.
@@ -257,20 +220,11 @@ export interface FieldProps {
 export interface FormFieldProps<
   BaseValueType,
   Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TFieldName extends FieldPath<Schema, TFieldValues>,
-  // eslint-disable-next-line no-restricted-syntax
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
-> extends FormWithValueValidation<
-    BaseValueType,
-    Schema,
-    TFieldValues,
-    TFieldName,
-    TTransformedValues
-  > {
+  TFieldName extends FieldPath<Schema>,
+> extends FormWithValueValidation<BaseValueType, Schema, TFieldName> {
   readonly name: TFieldName
-  readonly value?: BaseValueType extends TFieldValues[TFieldName] ? TFieldValues[TFieldName] : never
-  readonly defaultValue?: TFieldValues[TFieldName] | undefined
+  readonly value?: BaseValueType extends FieldValues<Schema> ? FieldValues<Schema> : never
+  readonly defaultValue?: FieldValues<Schema> | undefined
   readonly isDisabled?: boolean | undefined
   readonly isRequired?: boolean | undefined
   readonly isInvalid?: boolean | undefined
@@ -283,14 +237,11 @@ export type FieldStateProps<
   // eslint-disable-next-line no-restricted-syntax
   BaseProps extends { value?: unknown },
   Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TFieldName extends FieldPath<Schema, TFieldValues>,
-  // eslint-disable-next-line no-restricted-syntax
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
-> = FormFieldProps<BaseProps['value'], Schema, TFieldValues, TFieldName, TTransformedValues> & {
+  TFieldName extends FieldPath<Schema>,
+> = FormFieldProps<BaseProps['value'], Schema, TFieldName> & {
   // to avoid conflicts with the FormFieldProps we need to omit the FormFieldProps from the BaseProps
   [K in keyof Omit<
     BaseProps,
-    keyof FormFieldProps<BaseProps['value'], Schema, TFieldValues, TFieldName, TTransformedValues>
+    keyof FormFieldProps<BaseProps['value'], Schema, TFieldName>
   >]: BaseProps[K]
 }

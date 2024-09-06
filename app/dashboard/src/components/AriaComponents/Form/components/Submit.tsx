@@ -51,7 +51,6 @@ export function Submit(props: SubmitProps): React.JSX.Element {
   const { getText } = textProvider.useText()
 
   const {
-    form = formContext.useFormContext(),
     size = 'medium',
     formnovalidate = false,
     loading = false,
@@ -62,6 +61,7 @@ export function Submit(props: SubmitProps): React.JSX.Element {
   } = props
 
   const dialogContext = ariaComponents.useDialogContext()
+  const form = formContext.useFormContext(props.form)
   const { formState } = form
 
   const isLoading = formnovalidate ? false : loading || formState.isSubmitting
