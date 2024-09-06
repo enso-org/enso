@@ -16,7 +16,7 @@ import { DASHBOARD_PATH, LOGIN_PATH } from '#/appUtils'
 
 import { useIsFirstRender } from '#/hooks/mountHooks'
 
-import { useAuth, UserSessionType } from '#/providers/AuthProvider'
+import { useAuth, UserSessionType, useUserSession } from '#/providers/AuthProvider'
 import { useRemoteBackendStrict } from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -65,9 +65,11 @@ const BASE_STEPS: Step[] = [
      */
     component: function SetUsernameStep({ session, goToNextStep }) {
       const { setUsername } = useAuth()
+      const userSession = useUserSession()
       const { getText } = textProvider.useText()
 
-      const defaultName = session && 'user' in session ? session.user.name : ''
+      const defaultName =
+        session && 'user' in session ? session.user.name : userSession?.email ?? ''
 
       return (
         <ariaComponents.Form
