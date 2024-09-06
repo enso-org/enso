@@ -311,7 +311,7 @@ make_dialect_operations =
 
 ## PRIVATE
 is_null = Base_Generator.lift_unary_op "IS_NULL" arg->
-    SQL_Builder.code "(CASE WHEN " ++ arg.paren ++ " IS NULL THEN 1 ELSE 0 END) = 1"
+    arg.paren ++ " IS NULL"
 
 ## PRIVATE
 agg_count_is_null = Base_Generator.lift_unary_op "COUNT_IS_NULL" arg->
@@ -324,6 +324,7 @@ agg_count_empty = Base_Generator.lift_unary_op "COUNT_EMPTY" arg->
 ## PRIVATE
 agg_count_not_empty = Base_Generator.lift_unary_op "COUNT_NOT_EMPTY" arg->
     SQL_Builder.code "SUM(CASE WHEN (" ++ arg.paren ++ " IS NOT NULL) AND (" ++ arg.paren ++ " != '') THEN 1 ELSE 0 END)"
+
 
 ## PRIVATE
 agg_median = Base_Generator.lift_unary_op "MEDIAN" arg->
