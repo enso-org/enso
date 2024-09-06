@@ -60,7 +60,7 @@ import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
-import { useQuery } from '@tanstack/react-query'
+import { usePrefetchQuery } from '@tanstack/react-query'
 
 // ============================
 // === Global configuration ===
@@ -147,7 +147,7 @@ function DashboardInner(props: DashboardProps) {
   const openProjectMutation = projectHooks.useOpenProjectMutation()
   const renameProjectMutation = projectHooks.useRenameProjectMutation()
 
-  useQuery({
+  usePrefetchQuery({
     queryKey: ['loadInitialLocalProject'],
     networkMode: 'always',
     ...STATIC_QUERY_OPTIONS,
