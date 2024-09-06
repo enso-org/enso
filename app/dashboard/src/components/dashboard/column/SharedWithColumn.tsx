@@ -11,7 +11,6 @@ import * as modalProvider from '#/providers/ModalProvider'
 import AssetEventType from '#/events/AssetEventType'
 
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-import Category from '#/layouts/CategorySwitcher/Category'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import type * as column from '#/components/dashboard/column'
@@ -45,21 +44,16 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   const { item, setItem, state, isReadonly = false } = props
   const { category, setQuery } = state
   const asset = item.item
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useFullUserSession()
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
-
   const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
-
   const isUnderPaywall = isFeatureUnderPaywall('share')
-
   const { setModal } = modalProvider.useSetModal()
-  const self = asset.permissions?.find(
-    backendModule.isUserPermissionAnd((permission) => permission.user.userId === user.userId),
-  )
+  const self = permissions.tryFindSelfPermission(user, asset.permissions)
   const plusButtonRef = React.useRef<HTMLButtonElement>(null)
   const managesThisAsset =
     !isReadonly &&
-    category !== Category.trash &&
+    category.type !== 'trash' &&
     (self?.permission === permissions.PermissionAction.own ||
       self?.permission === permissions.PermissionAction.admin)
   const setAsset = React.useCallback(
@@ -76,9 +70,9 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
 
   return (
     <div className="group flex items-center gap-column-items">
-      {(asset.permissions ?? []).map((other) => (
+      {(asset.permissions ?? []).map((other, idx) => (
         <PermissionDisplay
-          key={backendModule.getAssetPermissionId(other)}
+          key={backendModule.getAssetPermissionId(other) + idx}
           action={other.permission}
           onPress={
             setQuery == null ? null : (

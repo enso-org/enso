@@ -32,6 +32,7 @@ import ProfilePictureInput from '#/layouts/Settings/ProfilePictureInput'
 import SettingsTabType from '#/layouts/Settings/SettingsTabType'
 import UserGroupsSettingsSection from '#/layouts/Settings/UserGroupsSettingsSection'
 
+import { Button, ButtonGroup } from '#/components/AriaComponents'
 import * as menuEntry from '#/components/MenuEntry'
 
 import type Backend from '#/services/Backend'
@@ -256,8 +257,42 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             type: SettingsEntryType.input,
             nameId: 'localRootPathSettingsInput',
             getValue: (context) => context.localBackend?.rootPath ?? '',
-            setValue: (context, value) => context.updateLocalRootPath(value),
+            setValue: async (context, value) => {
+              context.updateLocalRootPath(value)
+              await Promise.resolve()
+            },
             getEditable: () => true,
+          },
+          {
+            type: SettingsEntryType.custom,
+            aliasesId: 'localRootPathButtonSettingsCustomEntryAliases',
+            render: (context) => (
+              <ButtonGroup>
+                {window.fileBrowserApi && (
+                  <Button
+                    size="small"
+                    variant="outline"
+                    onPress={async () => {
+                      const [newDirectory] =
+                        (await window.fileBrowserApi?.openFileBrowser('directory')) ?? []
+                      if (newDirectory != null) {
+                        context.updateLocalRootPath(newDirectory)
+                      }
+                    }}
+                  >
+                    {context.getText('browseForNewLocalRootDirectory')}
+                  </Button>
+                )}
+                <Button
+                  size="small"
+                  variant="outline"
+                  className="self-start"
+                  onPress={context.resetLocalRootPath}
+                >
+                  {context.getText('resetLocalRootDirectory')}
+                </Button>
+              </ButtonGroup>
+            ),
           },
         ],
       },
@@ -434,7 +469,8 @@ export interface SettingsContext {
   readonly updateOrganization: (
     variables: Parameters<Backend['updateOrganization']>,
   ) => Promise<backend.OrganizationInfo | null | undefined>
-  readonly updateLocalRootPath: (rootPath: string) => Promise<void>
+  readonly updateLocalRootPath: (rootPath: string) => void
+  readonly resetLocalRootPath: () => void
   readonly toastAndLog: toastAndLogHooks.ToastAndLogCallback
   readonly getText: textProvider.GetText
   readonly queryClient: reactQuery.QueryClient

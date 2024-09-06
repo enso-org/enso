@@ -6,12 +6,12 @@
 import Backend, * as backend from '#/services/Backend'
 import type ProjectManager from '#/services/ProjectManager'
 import * as projectManager from '#/services/ProjectManager'
-
-import * as appBaseUrl from '#/utilities/appBaseUrl'
-import * as dateTime from '#/utilities/dateTime'
-import * as download from '#/utilities/download'
-import * as errorModule from '#/utilities/error'
-import * as fileInfo from '#/utilities/fileInfo'
+import { APP_BASE_URL } from '#/utilities/appBaseUrl'
+import { toRfc3339 } from '#/utilities/dateTime'
+import { download } from '#/utilities/download'
+import { tryGetMessage } from '#/utilities/error'
+import { getFileName, getFolderPath } from '#/utilities/fileInfo'
+import { getDirectoryAndName, joinPath } from '#/utilities/path'
 
 // =============================
 // === ipWithSocketToAddress ===
@@ -103,26 +103,40 @@ export default class LocalBackend extends Backend {
     this.projectManager = projectManagerInstance
   }
 
-  /** Get the root directory of this Backend as a path. */
+  /** Get the root directory of this Backend. */
   get rootPath() {
     return this.projectManager.rootDirectory
   }
 
-  /** Set the root directory of this Backend as a path. */
+  /** Set the root directory of this Backend. */
   set rootPath(value) {
     this.projectManager.rootDirectory = value
   }
 
+  /** Reset the root directory of this Backend. */
+  resetRootPath() {
+    this.projectManager.resetRootDirectory()
+  }
+
+  /** Tell the {@link ProjectManager} to reconnect. */
+  async reconnectProjectManager() {
+    await this.projectManager.reconnect()
+  }
+
   /** Return the ID of the root directory. */
-  override rootDirectoryId(): backend.DirectoryId {
-    return newDirectoryId(this.projectManager.rootDirectory)
+  override rootDirectoryId(
+    _user: backend.User | null,
+    _organization: backend.OrganizationInfo | null,
+    rootDirectory: backend.Path | null | undefined,
+  ): backend.DirectoryId {
+    return newDirectoryId(rootDirectory ?? this.projectManager.rootDirectory)
   }
 
   /** Return a list of assets in a directory.
    * @throws An error if the JSON-RPC call fails. */
   override async listDirectory(
     query: backend.ListDirectoryRequestParams,
-  ): Promise<backend.AnyAsset[]> {
+  ): Promise<readonly backend.AnyAsset[]> {
     const parentIdRaw = query.parentId == null ? null : extractTypeAndId(query.parentId).id
     const parentId = query.parentId ?? newDirectoryId(this.projectManager.rootDirectory)
     // Check if Root Directory Exists
@@ -143,7 +157,7 @@ export default class LocalBackend extends Backend {
                 id: newDirectoryId(entry.path),
                 modifiedAt: entry.attributes.lastModifiedTime,
                 parentId,
-                title: fileInfo.fileName(entry.path),
+                title: getFileName(entry.path),
                 permissions: [],
                 projectState: null,
                 labels: [],
@@ -172,7 +186,7 @@ export default class LocalBackend extends Backend {
               return {
                 type: backend.AssetType.file,
                 id: newFileId(entry.path),
-                title: fileInfo.fileName(entry.path),
+                title: getFileName(entry.path),
                 modifiedAt: entry.attributes.lastModifiedTime,
                 parentId,
                 permissions: [],
@@ -189,7 +203,7 @@ export default class LocalBackend extends Backend {
 
   /** Return a list of projects belonging to the current user.
    * @throws An error if the JSON-RPC call fails. */
-  override async listProjects(): Promise<backend.ListedProject[]> {
+  override async listProjects(): Promise<readonly backend.ListedProject[]> {
     const result = await this.projectManager.listProjects({})
     return result.projects.map((project) => ({
       name: project.name,
@@ -247,7 +261,7 @@ export default class LocalBackend extends Backend {
     } catch (error) {
       throw new Error(
         `Could not close project ${title != null ? `'${title}'` : `with ID '${projectId}'`}: ${
-          errorModule.tryGetMessage(error) ?? 'unknown error'
+          tryGetMessage(error) ?? 'unknown error'
         }.`,
       )
     }
@@ -339,7 +353,7 @@ export default class LocalBackend extends Backend {
     } catch (error) {
       throw new Error(
         `Could not open project ${title != null ? `'${title}'` : `with ID '${projectId}'`}: ${
-          errorModule.tryGetMessage(error) ?? 'unknown error'
+          tryGetMessage(error) ?? 'unknown error'
         }.`,
       )
     }
@@ -361,9 +375,7 @@ export default class LocalBackend extends Backend {
           name: projectManager.ProjectName(body.projectName),
         })
       }
-      const parentPath = projectManager.getDirectoryAndName(
-        this.projectManager.getProjectPath(id),
-      ).directoryPath
+      const parentPath = getDirectoryAndName(this.projectManager.getProjectPath(id)).directoryPath
       const result = await this.projectManager.listDirectory(parentPath)
       const project = result.flatMap((listedProject) =>
         (
@@ -430,7 +442,7 @@ export default class LocalBackend extends Backend {
           throw new Error(
             `Could not delete project ${
               title != null ? `'${title}'` : `with ID '${typeAndId.id}'`
-            }: ${errorModule.tryGetMessage(error) ?? 'unknown error'}.`,
+            }: ${tryGetMessage(error) ?? 'unknown error'}.`,
           )
         }
       }
@@ -448,8 +460,7 @@ export default class LocalBackend extends Backend {
     } else {
       const project = await this.projectManager.duplicateProject({ projectId: typeAndId.id })
       const projectPath = this.projectManager.projectPaths.get(typeAndId.id)
-      const parentPath =
-        projectPath == null ? null : projectManager.getDirectoryAndName(projectPath).directoryPath
+      const parentPath = projectPath == null ? null : getDirectoryAndName(projectPath).directoryPath
       if (parentPath !== extractTypeAndId(parentDirectoryId).id) {
         throw new Error('Cannot duplicate project to a different directory on the Local Backend.')
       } else {
@@ -468,7 +479,7 @@ export default class LocalBackend extends Backend {
     const engineVersions = await this.projectManager.listAvailableEngineVersions()
     const engineVersionToVersion = (version: projectManager.EngineVersion): backend.Version => ({
       ami: null,
-      created: dateTime.toRfc3339(new Date()),
+      created: toRfc3339(new Date()),
       number: {
         value: version.version,
         lifecycle: backend.detectVersionLifecycle(version.version),
@@ -489,12 +500,12 @@ export default class LocalBackend extends Backend {
     throw new Error('Cannot manage users, folders, files, tags, and secrets on the local backend.')
   }
 
-  /** Do nothing. This function should never need to be called. */
+  /** Invalid operation. */
   override undoDeleteAsset(): Promise<void> {
     return this.invalidOperation()
   }
 
-  /** Return an empty array. This function should never need to be called. */
+  /** Return an empty array. */
   override listUsers() {
     return Promise.resolve([])
   }
@@ -534,9 +545,10 @@ export default class LocalBackend extends Backend {
     return this.invalidOperation()
   }
 
-  /** Invalid operation. */
-  override getOrganization() {
-    return this.invalidOperation()
+  /** Get the current organization. Returns `null` because organizations do not exist on the
+   * Local Backend. This is required for `rootDiretoryId` to work. */
+  override async getOrganization(): Promise<backend.OrganizationInfo | null> {
+    return Promise.resolve(null)
   }
 
   /** Invalid operation. */
@@ -570,7 +582,7 @@ export default class LocalBackend extends Backend {
   ): Promise<backend.CreatedDirectory> {
     const parentDirectoryPath =
       body.parentId == null ? this.projectManager.rootDirectory : extractTypeAndId(body.parentId).id
-    const path = projectManager.joinPath(parentDirectoryPath, body.title)
+    const path = joinPath(parentDirectoryPath, body.title)
     await this.projectManager.createDirectory(path)
     return {
       id: newDirectoryId(path),
@@ -591,8 +603,8 @@ export default class LocalBackend extends Backend {
         typeAndId.type !== backend.AssetType.project ?
           typeAndId.id
         : this.projectManager.getProjectPath(typeAndId.id)
-      const fileName = fileInfo.fileName(from)
-      const to = projectManager.joinPath(extractTypeAndId(body.parentDirectoryId).id, fileName)
+      const fileName = getFileName(from)
+      const to = joinPath(extractTypeAndId(body.parentDirectoryId).id, fileName)
       await this.projectManager.moveFile(from, to)
     }
   }
@@ -606,12 +618,12 @@ export default class LocalBackend extends Backend {
       params.parentDirectoryId == null ?
         this.projectManager.rootDirectory
       : extractTypeAndId(params.parentDirectoryId).id
-    const path = projectManager.joinPath(parentPath, params.fileName)
+    const path = joinPath(parentPath, params.fileName)
     const searchParams = new URLSearchParams([
       ['file_name', params.fileName],
       ...(params.parentDirectoryId == null ? [] : [['directory', parentPath]]),
     ]).toString()
-    await fetch(`${appBaseUrl.APP_BASE_URL}/api/upload-file?${searchParams}`, {
+    await fetch(`${APP_BASE_URL}/api/upload-file?${searchParams}`, {
       method: 'POST',
       body: file,
     })
@@ -626,8 +638,8 @@ export default class LocalBackend extends Backend {
   ): Promise<void> {
     const typeAndId = extractTypeAndId(fileId)
     const from = typeAndId.id
-    const folderPath = fileInfo.folderPath(from)
-    const to = projectManager.joinPath(projectManager.Path(folderPath), body.title)
+    const folderPath = getFolderPath(from)
+    const to = joinPath(projectManager.Path(folderPath), body.title)
     await this.projectManager.moveFile(from, to)
   }
 
@@ -638,7 +650,7 @@ export default class LocalBackend extends Backend {
 
   /** Construct a new path using the given parent directory and a file name. */
   joinPath(parentId: backend.DirectoryId, fileName: string) {
-    return projectManager.joinPath(extractTypeAndId(parentId).id, fileName)
+    return joinPath(extractTypeAndId(parentId).id, fileName)
   }
 
   /** Change the name of a directory. */
@@ -647,8 +659,8 @@ export default class LocalBackend extends Backend {
     body: backend.UpdateDirectoryRequestBody,
   ): Promise<backend.UpdatedDirectory> {
     const from = extractTypeAndId(directoryId).id
-    const folderPath = projectManager.Path(fileInfo.folderPath(from))
-    const to = projectManager.joinPath(folderPath, body.title)
+    const folderPath = projectManager.Path(getFolderPath(from))
+    const to = joinPath(folderPath, body.title)
     await this.projectManager.moveFile(from, to)
     return {
       id: newDirectoryId(to),
@@ -659,7 +671,7 @@ export default class LocalBackend extends Backend {
 
   /** Download from an arbitrary URL that is assumed to originate from this backend. */
   override async download(url: string, name?: string) {
-    download.download(url, name)
+    download(url, name)
     return Promise.resolve()
   }
 
@@ -774,9 +786,9 @@ export default class LocalBackend extends Backend {
     return this.invalidOperation()
   }
 
-  /** Invalid operation. */
+  /** Return an empty array. */
   override listUserGroups() {
-    return this.invalidOperation()
+    return Promise.resolve([])
   }
 
   /** Invalid operation. */
@@ -796,6 +808,16 @@ export default class LocalBackend extends Backend {
 
   /** Invalid operation. */
   override resendInvitation() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override acceptInvitation() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override declineInvitation() {
     return this.invalidOperation()
   }
 

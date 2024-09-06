@@ -5,7 +5,8 @@
  */
 import type { CheckboxProps as AriaCheckboxProps } from '#/components/aria'
 import { Checkbox as AriaCheckbox } from '#/components/aria'
-import { mergeRefs } from '#/utilities/mergeRefs'
+import { mergeRefs, useMergedRef } from '#/utilities/mergeRefs'
+import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
 import type { Variants } from 'framer-motion'
@@ -17,13 +18,11 @@ import type {
   ReactElement,
   RefAttributes,
 } from 'react'
-import { forwardRef } from 'react'
 import invariant from 'tiny-invariant'
 import { useStore } from 'zustand'
 import type {
   FieldPath,
   FieldStateProps,
-  FieldValues,
   FormInstance,
   TSchema,
   UseFormRegisterReturn,
@@ -37,20 +36,15 @@ import { CheckboxGroup } from './CheckboxGroup'
 /**
  * Props for the {@link Checkbox} component.
  */
-export type CheckboxProps<
-  Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TFieldName extends FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
-> = Omit<VariantProps<typeof CHECKBOX_STYLES>, 'isDisabled' | 'isInvalid'> &
+export type CheckboxProps<Schema extends TSchema, TFieldName extends FieldPath<Schema>> = Omit<
+  VariantProps<typeof CHECKBOX_STYLES>,
+  'isDisabled' | 'isInvalid'
+> &
   TestIdProps & {
     readonly className?: string
     readonly style?: CSSProperties
     readonly checkboxRef?: MutableRefObject<HTMLInputElement>
-  } & (
-    | CheckboxGroupCheckboxProps
-    | StandaloneCheckboxProps<Schema, TFieldValues, TFieldName, TTransformedValues>
-  )
+  } & (CheckboxGroupCheckboxProps | StandaloneCheckboxProps<Schema, TFieldName>)
 
 /**
  * Props for the {@link Checkbox} component when used inside a {@link CheckboxGroup}.
@@ -64,18 +58,8 @@ interface CheckboxGroupCheckboxProps extends AriaCheckboxProps {
 /**
  * Props for the {@link Checkbox} component when used outside of a {@link CheckboxGroup}.
  */
-interface StandaloneCheckboxProps<
-  Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TFieldName extends FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
-> extends FieldStateProps<
-    AriaCheckboxProps,
-    Schema,
-    TFieldValues,
-    TFieldName,
-    TTransformedValues
-  > {}
+interface StandaloneCheckboxProps<Schema extends TSchema, TFieldName extends FieldPath<Schema>>
+  extends FieldStateProps<AriaCheckboxProps, Schema, TFieldName> {}
 
 export const CHECKBOX_STYLES = tv({
   base: 'group flex gap-2 items-center cursor-pointer select-none',
@@ -142,13 +126,8 @@ export const TICK_VARIANTS: Variants = {
 // eslint-disable-next-line no-restricted-syntax
 export const Checkbox = forwardRef(function Checkbox<
   Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TFieldName extends FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
->(
-  props: CheckboxProps<Schema, TFieldValues, TFieldName, TTransformedValues>,
-  ref: ForwardedRef<HTMLLabelElement>,
-) {
+  TFieldName extends FieldPath<Schema>,
+>(props: CheckboxProps<Schema, TFieldName>, ref: ForwardedRef<HTMLLabelElement>) {
   const {
     checkboxRef,
     variants = CHECKBOX_STYLES,
@@ -165,11 +144,7 @@ export const Checkbox = forwardRef(function Checkbox<
   const { store, removeSelected, addSelected } = useCheckboxContext()
 
   // eslint-disable-next-line react-hooks/rules-of-hooks,no-restricted-syntax
-  const formInstance = (form ?? Form.useFormContext()) as FormInstance<
-    Schema,
-    TFieldValues,
-    TTransformedValues
-  >
+  const formInstance = form ?? Form.useFormContext()
 
   const { isSelected, field, onChange, name } = useStore(store, (state) => {
     const { insideGroup } = state
@@ -177,14 +152,14 @@ export const Checkbox = forwardRef(function Checkbox<
     if (insideGroup) {
       const value = props.value
 
-      invariant(value != null, 'Checkbox must have a value when inside a group')
+      invariant(value != null, 'Checkbox must have a value when placed inside a group')
 
       return {
         isSelected: state.selected.has(value),
         // This is safe, because the name is handled by the `CheckboxGroup` component
         // and checked there
         // eslint-disable-next-line no-restricted-syntax
-        field: state.field as UseFormRegisterReturn<Schema, TFieldValues, TFieldName>,
+        field: state.field as UseFormRegisterReturn<Schema, TFieldName>,
         // eslint-disable-next-line no-restricted-syntax
         name: state.name as TFieldName,
         onChange: (checked: boolean) => {
@@ -199,19 +174,18 @@ export const Checkbox = forwardRef(function Checkbox<
       invariant(props.name != null, 'Checkbox must have a name when outside a group')
 
       // eslint-disable-next-line no-restricted-syntax
-      const fieldInstance = formInstance.register(props.name) as UseFormRegisterReturn<
-        Schema,
-        TFieldValues,
-        TFieldName
-      >
+      const formInstanceTyped = formInstance as unknown as FormInstance<Schema>
+
+      const fieldInstance = formInstanceTyped.register(props.name)
 
       return {
         field: fieldInstance,
         name: props.name,
         isSelected: props.isSelected ?? false,
         onChange: (checked: boolean) => {
-          void fieldInstance.onChange({ target: { value: checked } })
-          void formInstance.trigger(props.name)
+          void fieldInstance
+            .onChange({ target: { value: checked } })
+            .then(() => formInstanceTyped.trigger(props.name))
         },
       }
     }
@@ -226,25 +200,34 @@ export const Checkbox = forwardRef(function Checkbox<
   const classes = variants({
     isReadOnly: isReadOnly,
     isInvalid: isInvalid || fieldState.invalid,
-    isDisabled: isDisabled || field.isDisabled,
+    isDisabled: isDisabled || field.disabled,
     size,
   })
+
+  const testId = props['data-testid'] ?? props['testId'] ?? 'Checkbox'
 
   return (
     <AriaCheckbox
       ref={mergeRefs(ref, field.ref)}
       {...props}
-      /* eslint-disable-next-line no-restricted-syntax */
-      inputRef={checkboxRef as MutableRefObject<HTMLInputElement>}
+      inputRef={useMergedRef(checkboxRef, (input) => {
+        // Hack to remove the `data-testid` attribute from the input element
+        // react-aria-components adds this attribute, but it is a duplicate of the label's `data-testid`
+        // which messes up the test selectors
+        if (input != null) {
+          delete input.dataset.testid
+        }
+      })}
       className={(renderProps) => classes.base({ className, isSelected: renderProps.isSelected })}
       isSelected={isSelected}
       onChange={onChange}
       onBlur={field.onBlur}
       isIndeterminate={isIndeterminate}
       isInvalid={isInvalid || fieldState.invalid}
-      isDisabled={isDisabled || (field.isDisabled ?? false)}
+      isDisabled={isDisabled || (field.disabled ?? false)}
       isReadOnly={isReadOnly}
       isRequired={field.required ?? false}
+      data-testid={testId}
     >
       {(renderProps) => (
         <>
@@ -255,6 +238,7 @@ export const Checkbox = forwardRef(function Checkbox<
             initial={false}
             animate={renderProps.isSelected ? 'checked' : 'unchecked'}
             role="presentation"
+            pointerEvents="none"
           >
             <motion.path
               strokeLinecap="round"
@@ -274,14 +258,8 @@ export const Checkbox = forwardRef(function Checkbox<
       )}
     </AriaCheckbox>
   )
-}) as unknown as (<
-  Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TFieldName extends FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
->(
-  props: CheckboxProps<Schema, TFieldValues, TFieldName, TTransformedValues> &
-    RefAttributes<HTMLInputElement>,
+}) as unknown as (<Schema extends TSchema, TFieldName extends FieldPath<Schema>>(
+  props: CheckboxProps<Schema, TFieldName> & RefAttributes<HTMLInputElement>,
 ) => ReactElement) & {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   Group: typeof CheckboxGroup

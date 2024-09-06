@@ -1,29 +1,21 @@
 /** @file A heading for the "Modified" column. */
-import * as React from 'react'
-
 import SortAscendingIcon from '#/assets/sort_ascending.svg'
 import TimeIcon from '#/assets/time.svg'
-
-import * as textProvider from '#/providers/TextProvider'
-
-import * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
-import type * as column from '#/components/dashboard/column'
-import * as columnUtils from '#/components/dashboard/column/columnUtils'
-import Button from '#/components/styled/Button'
-
-import * as sorting from '#/utilities/sorting'
-import * as tailwindMerge from '#/utilities/tailwindMerge'
+import { Text } from '#/components/aria'
+import { Button } from '#/components/AriaComponents'
+import type { AssetColumnHeadingProps } from '#/components/dashboard/column'
+import { Column } from '#/components/dashboard/column/columnUtils'
+import { useText } from '#/providers/TextProvider'
+import { SortDirection, nextSortDirection } from '#/utilities/sorting'
+import { twMerge } from '#/utilities/tailwindMerge'
 
 /** A heading for the "Modified" column. */
-export default function ModifiedColumnHeading(
-  props: column.AssetColumnHeadingProps,
-): React.JSX.Element {
+export default function ModifiedColumnHeading(props: AssetColumnHeadingProps) {
   const { state } = props
   const { sortInfo, setSortInfo, hideColumn } = state
-  const { getText } = textProvider.useText()
-  const isSortActive = sortInfo?.field === columnUtils.Column.modified
-  const isDescending = sortInfo?.direction === sorting.SortDirection.descending
+  const { getText } = useText()
+  const isSortActive = sortInfo?.field === Column.modified
+  const isDescending = sortInfo?.direction === SortDirection.descending
 
   return (
     <div
@@ -36,41 +28,39 @@ export default function ModifiedColumnHeading(
       className="group flex h-table-row w-full cursor-pointer items-center gap-icon-with-text"
     >
       <Button
-        active
-        image={TimeIcon}
-        className="size-4"
-        alt={getText('modifiedColumnHide')}
+        variant="icon"
+        icon={TimeIcon}
+        aria-label={getText('modifiedColumnHide')}
+        tooltip={false}
         onPress={() => {
-          hideColumn(columnUtils.Column.modified)
+          hideColumn(Column.modified)
         }}
       />
-      <ariaComponents.Button
+      <Button
         size="custom"
         variant="custom"
         className="flex grow justify-start gap-icon-with-text"
         onPress={() => {
           const nextDirection =
-            isSortActive ?
-              sorting.nextSortDirection(sortInfo.direction)
-            : sorting.SortDirection.ascending
+            isSortActive ? nextSortDirection(sortInfo.direction) : SortDirection.ascending
           if (nextDirection == null) {
             setSortInfo(null)
           } else {
-            setSortInfo({ field: columnUtils.Column.modified, direction: nextDirection })
+            setSortInfo({ field: Column.modified, direction: nextDirection })
           }
         }}
       >
-        <aria.Text className="text-header">{getText('modifiedColumnName')}</aria.Text>
+        <Text className="text-header">{getText('modifiedColumnName')}</Text>
         <img
           alt={isDescending ? getText('sortDescending') : getText('sortAscending')}
           src={SortAscendingIcon}
-          className={tailwindMerge.twMerge(
+          className={twMerge(
             'transition-all duration-arrow',
             isSortActive ? 'selectable active' : 'opacity-0 group-hover:selectable',
             isDescending && 'rotate-180',
           )}
         />
-      </ariaComponents.Button>
+      </Button>
     </div>
   )
 }

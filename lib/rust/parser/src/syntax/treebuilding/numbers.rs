@@ -79,20 +79,20 @@ impl<'s, Inner: TokenConsumer<'s> + TreeConsumer<'s>> TokenConsumer<'s>
             (token::Variant::NumberBase(variant), State { negation, number, .. }) => {
                 if number.is_some() {
                     flush(&mut self.inner, negation, number);
-                } else if token.left_offset.visible.width_in_spaces != 0
-                    && let Some(minus) = negation.take()
-                {
-                    self.inner.push_token(minus.with_variant(token::Variant::operator()));
+                } else if token.left_offset.visible.width_in_spaces != 0 {
+                    if let Some(minus) = negation.take() {
+                        self.inner.push_token(minus.with_variant(token::Variant::operator()));
+                    }
                 }
                 *number = Some(Number::Based { base: token.with_variant(variant) })
             }
             (token::Variant::Digits(variant), State { negation, number, .. }) => {
                 if number.is_some() {
                     flush(&mut self.inner, negation, number);
-                } else if token.left_offset.visible.width_in_spaces != 0
-                    && let Some(minus) = negation.take()
-                {
-                    self.inner.push_token(minus.with_variant(token::Variant::operator()));
+                } else if token.left_offset.visible.width_in_spaces != 0 {
+                    if let Some(minus) = negation.take() {
+                        self.inner.push_token(minus.with_variant(token::Variant::operator()));
+                    }
                 }
                 *number =
                     Some(Number::Fractional { digits: token.with_variant(variant), dot: None });

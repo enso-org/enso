@@ -4,7 +4,7 @@ import { expect } from './customExpect'
 import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
 
-const ACCEPT_SUGGESTION_SHORTCUT = `${CONTROL_KEY}+Enter`
+const ACCEPT_INPUT_SHORTCUT = `${CONTROL_KEY}+Enter`
 
 async function deselectAllNodes(page: Page) {
   await page.keyboard.press('Escape')
@@ -149,6 +149,8 @@ test('Accepting suggestion', async ({ page }) => {
   nodeCount = await locate.graphNode(page).count()
   await deselectAllNodes(page)
   await locate.addNewNodeButton(page).click()
+  await expect(locate.componentBrowser(page)).toExist()
+  await expect(locate.componentBrowserEntry(page)).toExist()
   await page.keyboard.press('Enter')
   await expect(locate.componentBrowser(page)).toBeHidden()
   await expect(locate.graphNode(page)).toHaveCount(nodeCount + 1)
@@ -165,29 +167,22 @@ test('Accepting any written input', async ({ page }) => {
   await locate.addNewNodeButton(page).click()
   const nodeCount = await locate.graphNode(page).count()
   await locate.componentBrowserInput(page).locator('input').fill('re')
-  await page.keyboard.press(ACCEPT_SUGGESTION_SHORTCUT)
+  await page.keyboard.press(ACCEPT_INPUT_SHORTCUT)
   await expect(locate.componentBrowser(page)).toBeHidden()
   await expect(locate.graphNode(page)).toHaveCount(nodeCount + 1)
   await expect(locate.graphNode(page).last().locator('.WidgetToken')).toHaveText('re')
 })
 
-test('Filling input with suggestions', async ({ page }) => {
+test('Filling input with suggestion', async ({ page }) => {
   await actions.goToGraph(page)
   await locate.addNewNodeButton(page).click()
-
-  // Entering module
-  await locate.componentBrowserEntryByLabel(page, 'Standard.Base.Data').click()
   await expect(locate.componentBrowser(page)).toExist()
-  await expect(locate.componentBrowserInput(page).locator('input')).toHaveValue(
-    'Standard.Base.Data.',
-  )
+  await expect(locate.componentBrowserEntry(page)).toExist()
 
   // Applying suggestion
   await page.keyboard.press('Tab')
   await expect(locate.componentBrowser(page)).toExist()
-  await expect(locate.componentBrowserInput(page).locator('input')).toHaveValue(
-    'Standard.Base.Data.read ',
-  )
+  await expect(locate.componentBrowserInput(page).locator('input')).toHaveValue('Data.read ')
 })
 
 test('Filtering list', async ({ page }) => {
@@ -268,7 +263,8 @@ test('Visualization preview: user visualization selection', async ({ page }) => 
   await expect(locate.graphNode(page)).toHaveCount(nodeCount)
 })
 
-test('Component browser handling of overridden record-mode', async ({ page }) => {
+// TODO[#10949]: the record button on node is disabled.
+test.skip('Component browser handling of overridden record-mode', async ({ page }) => {
   await actions.goToGraph(page)
   const node = locate.graphNodeByBinding(page, 'data')
   const ADDED_PATH = '"/home/enso/Input.txt"'

@@ -8,10 +8,10 @@ import * as ariaComponents from '#/components/AriaComponents'
 import StatelessSpinner, * as spinnerModule from '#/components/StatelessSpinner'
 import SvgMask from '#/components/SvgMask'
 
-import * as twv from '#/utilities/tailwindVariants'
-
+import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
-import * as text from '../Text'
+import { tv } from '#/utilities/tailwindVariants'
+import { TEXT_STYLE } from '../Text'
 
 // ==============
 // === Button ===
@@ -71,7 +71,7 @@ export interface BaseButtonProps<Render>
   readonly styles?: typeof BUTTON_STYLES
 }
 
-export const BUTTON_STYLES = twv.tv({
+export const BUTTON_STYLES = tv({
   base: [
     'group',
     // we need to set the height to max-content to prevent the button from growing in flex containers
@@ -89,7 +89,9 @@ export const BUTTON_STYLES = twv.tv({
     'transition-[opacity,outline-offset,background,border-color] duration-150 ease-in-out',
   ],
   variants: {
-    isDisabled: { true: 'disabled:opacity-50 disabled:cursor-not-allowed' },
+    isDisabled: {
+      true: 'disabled:opacity-50 disabled:cursor-not-allowed aria-disabled:opacity-50 aria-disabled:cursor-not-allowed',
+    },
     isFocused: {
       true: 'focus:outline-none focus-visible:outline-2 focus-visible:outline-black focus-visible:outline-offset-[-2px]',
     },
@@ -105,7 +107,7 @@ export const BUTTON_STYLES = twv.tv({
       custom: { base: '', extraClickZone: '', icon: 'h-full' },
       hero: { base: 'px-8 py-4 text-lg font-bold', content: 'gap-[0.75em]' },
       large: {
-        base: text.TEXT_STYLE({
+        base: TEXT_STYLE({
           variant: 'body',
           color: 'custom',
           weight: 'semibold',
@@ -116,7 +118,7 @@ export const BUTTON_STYLES = twv.tv({
         extraClickZone: 'after:inset-[-6px]',
       },
       medium: {
-        base: text.TEXT_STYLE({
+        base: TEXT_STYLE({
           variant: 'body',
           color: 'custom',
           weight: 'semibold',
@@ -127,7 +129,7 @@ export const BUTTON_STYLES = twv.tv({
         extraClickZone: 'after:inset-[-8px]',
       },
       small: {
-        base: text.TEXT_STYLE({
+        base: TEXT_STYLE({
           variant: 'body',
           color: 'custom',
           weight: 'medium',
@@ -138,7 +140,7 @@ export const BUTTON_STYLES = twv.tv({
         extraClickZone: 'after:inset-[-10px]',
       },
       xsmall: {
-        base: text.TEXT_STYLE({
+        base: TEXT_STYLE({
           variant: 'body',
           color: 'custom',
           weight: 'medium',
@@ -150,7 +152,7 @@ export const BUTTON_STYLES = twv.tv({
         extraClickZone: 'after:inset-[-12px]',
       },
       xxsmall: {
-        base: text.TEXT_STYLE({
+        base: TEXT_STYLE({
           variant: 'body',
           color: 'custom',
           className: 'flex px-[3px] pt-[0.5px] pb-[2.5px] leading-[16px]',
@@ -165,7 +167,7 @@ export const BUTTON_STYLES = twv.tv({
     },
     iconOnly: {
       true: {
-        base: text.TEXT_STYLE({
+        base: TEXT_STYLE({
           disableLineHeightCompensation: true,
           className: 'border-0 outline-offset-[5px]',
         }),
@@ -190,8 +192,7 @@ export const BUTTON_STYLES = twv.tv({
         icon: 'h-[1.25cap] w-[1.25cap] mt-[0.25cap]',
       },
       primary: 'bg-primary text-white hover:bg-primary/70',
-      tertiary: 'bg-accent text-white hover:bg-accent-dark',
-      cancel: 'bg-white/50 hover:bg-white',
+      accent: 'bg-accent text-white hover:bg-accent-dark',
       delete:
         'bg-danger/80 hover:bg-danger text-white focus-visible:outline-danger focus-visible:bg-danger',
       icon: {
@@ -202,9 +203,11 @@ export const BUTTON_STYLES = twv.tv({
       },
       ghost:
         'text-primary hover:text-primary/80 hover:bg-white focus-visible:text-primary/80 focus-visible:bg-white',
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      'ghost-fading':
+        'text-primary opacity-80 hover:opacity-100 hover:bg-white focus-visible:bg-white',
       submit: 'bg-invite text-white opacity-80 hover:opacity-100',
-      outline: 'border-primary/40 text-primary hover:border-primary hover:bg-primary/5',
-      bar: 'border-primary/20 hover:bg-primary/5',
+      outline: 'border-primary/20 text-primary hover:border-primary hover:bg-primary/5',
     },
     iconPosition: {
       start: { content: '' },
@@ -215,7 +218,8 @@ export const BUTTON_STYLES = twv.tv({
     },
     extraClickZone: {
       true: {
-        extraClickZone: 'flex relative after:absolute after:cursor-pointer',
+        extraClickZone:
+          'flex relative after:absolute after:cursor-pointer group-disabled:after:cursor-not-allowed',
       },
       false: {
         extraClickZone: 'after:inset-0',
@@ -241,7 +245,8 @@ export const BUTTON_STYLES = twv.tv({
     },
   },
   slots: {
-    extraClickZone: 'flex relative after:absolute after:cursor-pointer',
+    extraClickZone:
+      'flex relative after:absolute after:cursor-pointer group-disabled:after:cursor-not-allowed',
     wrapper: 'relative block',
     loader: 'absolute inset-0 flex items-center justify-center',
     content: 'flex items-center gap-[0.5em]',
@@ -279,7 +284,7 @@ export const BUTTON_STYLES = twv.tv({
 })
 
 /** A button allows a user to perform an action, with mouse, touch, and keyboard interactions. */
-export const Button = React.forwardRef(function Button(
+export const Button = forwardRef(function Button(
   props: ButtonProps,
   ref: React.ForwardedRef<HTMLButtonElement>,
 ) {
@@ -333,7 +338,7 @@ export const Button = React.forwardRef(function Button(
   const tooltipElement = shouldShowTooltip ? tooltip ?? ariaProps['aria-label'] : null
 
   const isLoading = loading || implicitlyLoading
-  const isDisabled = props.isDisabled == null ? isLoading : props.isDisabled
+  const isDisabled = props.isDisabled ?? isLoading
 
   React.useLayoutEffect(() => {
     const delay = 350
@@ -384,7 +389,7 @@ export const Button = React.forwardRef(function Button(
     icon: iconClasses,
     text: textClasses,
   } = variants({
-    isDisabled: isDisabled,
+    isDisabled,
     isActive,
     loading: isLoading,
     fullWidth,
@@ -445,7 +450,11 @@ export const Button = React.forwardRef(function Button(
         isDisabled,
         // we use onPressEnd instead of onPress because for some reason react-aria doesn't trigger
         // onPress on EXTRA_CLICK_ZONE, but onPress{start,end} are triggered
-        onPressEnd: handlePress,
+        onPressEnd: (e) => {
+          if (!isDisabled) {
+            handlePress(e)
+          }
+        },
         className: aria.composeRenderProps(className, (classNames, states) =>
           base({ className: classNames, ...states }),
         ),

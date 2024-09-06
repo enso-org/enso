@@ -26,7 +26,7 @@ export interface InviteUsersModalProps {
 export default function InviteUsersModal(props: InviteUsersModalProps) {
   const { relativeToTrigger = false } = props
   const { getText } = textProvider.useText()
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useFullUserSession()
 
   if (relativeToTrigger) {
     return (

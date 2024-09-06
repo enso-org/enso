@@ -37,7 +37,7 @@ import AssetListEventType from '#/events/AssetListEventType'
 
 import type * as assetTable from '#/layouts/AssetsTable'
 import EventListProvider, * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
+import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
 import Drive from '#/layouts/Drive'
@@ -56,7 +56,6 @@ import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
 
-import * as array from '#/utilities/array'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
@@ -120,20 +119,16 @@ function DashboardInner(props: DashboardProps) {
     : null
   const initialProjectName = initialLocalProjectId ?? initialProjectNameRaw
 
-  const [category, setCategory] = searchParamsState.useSearchParamsState(
+  const [category, setCategory] = searchParamsState.useSearchParamsState<categoryModule.Category>(
     'driveCategory',
     () => {
       const shouldDefaultToCloud =
         initialLocalProjectId == null && (user.isEnabled || localBackend == null)
-      return shouldDefaultToCloud ? Category.cloud : Category.local
+      const type = shouldDefaultToCloud ? 'cloud' : 'local'
+      return { type }
     },
-    (value): value is Category => {
-      if (array.includes(Object.values(Category), value)) {
-        return categoryModule.isLocal(value) ? localBackend != null : true
-      } else {
-        return false
-      }
-    },
+    (value): value is categoryModule.Category =>
+      categoryModule.CATEGORY_SCHEMA.safeParse(value).success,
   )
 
   const projectsStore = useProjectsStore()
@@ -152,7 +147,7 @@ function DashboardInner(props: DashboardProps) {
 
   React.useEffect(() => {
     window.projectManagementApi?.setOpenProjectHandler((project) => {
-      setCategory(Category.local)
+      setCategory({ type: 'local' })
       const projectId = localBackendModule.newProjectId(projectManager.UUID(project.id))
       openProject({
         type: backendModule.BackendType.local,
@@ -338,7 +333,6 @@ function DashboardInner(props: DashboardProps) {
                 className="flex min-h-0 grow [&[data-inert]]:hidden"
               >
                 <Editor
-                  key={project.id}
                   hidden={page !== project.id}
                   ydocUrl={ydocUrl}
                   project={project}

@@ -1,7 +1,7 @@
 /** @file Modal for setting the organization name. */
 import * as React from 'react'
 
-import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import * as router from 'react-router'
 
 import { backendMutationOptions } from '#/hooks/backendHooks'
@@ -48,32 +48,78 @@ export function SetupOrganizationAfterSubscribe() {
     select: (data) => data?.name ?? '',
   })
 
-  const { data: hasUserGroups } = useSuspenseQuery({
+  const { data: userGroupsCount } = useSuspenseQuery({
     queryKey: ['userGroups', userId],
     queryFn: () => backend.listUserGroups().catch(() => null),
     staleTime: Infinity,
     select: (data) => data?.length ?? 0,
   })
 
-  const updateOrganization = useMutation(
-    backendMutationOptions(backend, 'updateOrganization', {
-      meta: { invalidates: [['organization', userId]] },
-    }),
-  )
-  const createDefaultUserGroup = useMutation(
-    backendMutationOptions(backend, 'createUserGroup', {
-      meta: { invalidates: [['userGroups', userId]] },
-    }),
-  )
+  const [hideModal, setHideModal] = React.useState(false)
+
+  const queryClient = useQueryClient()
+  const updateOrganization = useMutation(backendMutationOptions(backend, 'updateOrganization'))
+  const createDefaultUserGroup = useMutation(backendMutationOptions(backend, 'createUserGroup'))
 
   const shouldSetOrgName = PLANS_TO_SPECIFY_ORG_NAME.includes(userPlan) && organizationName === ''
   const shouldSetDefaultUserGroup =
-    PLANS_TO_SPECIFY_ORG_NAME.includes(userPlan) && hasUserGroups === 0
-  const shouldShowModal = userIsAdmin && (shouldSetOrgName || shouldSetDefaultUserGroup)
+    PLANS_TO_SPECIFY_ORG_NAME.includes(userPlan) && userGroupsCount === 0
+
+  const steps = [
+    {
+      title: getText('intro'),
+      component: ({ nextStep }: { readonly nextStep: () => void }) => (
+        <Result
+          status="info"
+          title={getText('setupOrganization')}
+          subtitle={getText('setupOrganizationDescription')}
+        >
+          <Button onPress={nextStep} className="mx-auto">
+            {getText('next')}
+          </Button>
+        </Result>
+      ),
+    } as const,
+  ]
+
+  if (shouldSetOrgName) {
+    steps.push({
+      title: getText('setOrgNameTitle'),
+      component: ({ nextStep }) => (
+        <SetOrganizationNameForm
+          onSubmit={async (name) => {
+            await updateOrganization.mutateAsync([{ name }])
+            nextStep()
+          }}
+        />
+      ),
+    })
+  }
+
+  if (shouldSetDefaultUserGroup) {
+    steps.push({
+      title: getText('setDefaultUserGroup'),
+      component: ({ nextStep }) => (
+        <CreateUserGroupForm
+          onSubmit={async (name) => {
+            await createDefaultUserGroup.mutateAsync([{ name }])
+            nextStep()
+          }}
+        />
+      ),
+    })
+  }
+
+  const shouldShowModal = steps.length > 1 && userIsAdmin && !hideModal
 
   const { stepperState } = Stepper.useStepperState({
-    steps: 3,
+    steps: steps.length,
     defaultStep: 0,
+    onCompleted: () => {
+      void queryClient.invalidateQueries({ queryKey: ['organization'] })
+      void queryClient.invalidateQueries({ queryKey: ['userGroups'] })
+      setHideModal(true)
+    },
   })
 
   return (
@@ -90,47 +136,10 @@ export function SetupOrganizationAfterSubscribe() {
         <Stepper
           state={stepperState}
           renderStep={(props) => (
-            <>
-              {props.index === 0 && <Stepper.Step {...props} title={getText('intro')} />}
-              {props.index === 1 && <Stepper.Step {...props} title={getText('setOrgNameTitle')} />}
-              {props.index === 2 && (
-                <Stepper.Step {...props} title={getText('setDefaultUserGroup')} />
-              )}
-            </>
+            <Stepper.Step {...props} title={steps[props.index]?.title ?? ''} />
           )}
         >
-          {({ currentStep, nextStep }) => (
-            <>
-              {currentStep === 0 && (
-                <Result
-                  status="info"
-                  title={getText('setupOrganization')}
-                  subtitle={getText('setupOrganizationDescription')}
-                >
-                  <Button onPress={nextStep} className="mx-auto">
-                    {getText('next')}
-                  </Button>
-                </Result>
-              )}
-
-              {currentStep === 1 && (
-                <SetOrganizationNameForm
-                  onSubmit={async (name) => {
-                    await updateOrganization.mutateAsync([{ name }])
-                    nextStep()
-                  }}
-                />
-              )}
-
-              {currentStep === 2 && (
-                <CreateUserGroupForm
-                  onSubmit={async (name) => {
-                    await createDefaultUserGroup.mutateAsync([{ name }])
-                  }}
-                />
-              )}
-            </>
-          )}
+          {({ currentStep, nextStep }) => <>{steps[currentStep]?.component({ nextStep })}</>}
         </Stepper>
       </ariaComponents.Dialog>
 
@@ -193,7 +202,7 @@ export function SetOrganizationNameForm(props: SetOrganizationNameFormProps) {
 }
 
 /**
- *
+ * Props for the CreateUserGroupForm component.
  */
 export interface CreateUserGroupFormProps {
   readonly onSubmit: (name: string) => Promise<void>

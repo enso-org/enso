@@ -1,33 +1,28 @@
 /** @file A heading for the "Accessed by projects" column. */
-import * as React from 'react'
-
 import AccessedByProjectsIcon from '#/assets/accessed_by_projects.svg'
-
-import * as textProvider from '#/providers/TextProvider'
-
-import * as aria from '#/components/aria'
-import type * as column from '#/components/dashboard/column'
-import * as columnUtils from '#/components/dashboard/column/columnUtils'
-import Button from '#/components/styled/Button'
+import { Button, Text } from '#/components/AriaComponents'
+import type { AssetColumnHeadingProps } from '#/components/dashboard/column'
+import { Column } from '#/components/dashboard/column/columnUtils'
+import { useText } from '#/providers/TextProvider'
 
 /** A heading for the "Accessed by projects" column. */
-export default function AccessedByProjectsColumnHeading(props: column.AssetColumnHeadingProps) {
+export default function AccessedByProjectsColumnHeading(props: AssetColumnHeadingProps) {
   const { state } = props
   const { hideColumn } = state
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
 
   return (
     <div className="flex h-table-row w-full items-center gap-icon-with-text">
       <Button
-        active
-        image={AccessedByProjectsIcon}
-        className="size-4"
-        alt={getText('accessedByProjectsColumnHide')}
+        variant="icon"
+        icon={AccessedByProjectsIcon}
+        aria-label={getText('accessedByProjectsColumnHide')}
+        tooltip={false}
         onPress={() => {
-          hideColumn(columnUtils.Column.accessedByProjects)
+          hideColumn(Column.accessedByProjects)
         }}
       />
-      <aria.Text className="text-header">{getText('accessedByProjectsColumnName')}</aria.Text>
+      <Text className="text-sm font-semibold">{getText('accessedByProjectsColumnName')}</Text>
     </div>
   )
 }

@@ -408,16 +408,15 @@ public class ExecCompilerTest {
           polyglot java import java.util.Random
 
           run seed =
-              operator1 = Random.new_generator seed
+              Random.new_generator seed
           """);
     var run = module.invokeMember("eval_expression", "run");
     try {
       var err = run.execute(1L);
-      fail("Not expecting any result: " + err);
+      assertTrue("Returned value represents exception: " + err, err.isException());
+      throw err.throwException();
     } catch (PolyglotException ex) {
-      assertEquals(
-          "Compile error: Compiler Internal Error: No polyglot symbol for Random.",
-          ex.getMessage());
+      assertEquals("Compile error: No polyglot symbol for Random.", ex.getMessage());
     }
   }
 
@@ -441,6 +440,48 @@ public class ExecCompilerTest {
     } catch (PolyglotException ex) {
       assertEquals("Compile error: NO_FIELD is not visible in this scope.", ex.getMessage());
     }
+  }
+
+  @Test
+  public void testFnAsADefaultValue() throws Exception {
+    var code =
+        """
+    type N
+    type T
+        V (r:(T -> N | T)=(_->N))
+
+        v self = self.r self
+
+    run type = case type of
+      0 -> T.V
+      1 -> T.V (_->N)
+    """;
+    var module = ctx.eval(LanguageInfo.ID, code);
+    var run = module.invokeMember("eval_expression", "run");
+    var real = run.execute(1L);
+    var realN = real.invokeMember("v");
+    var defaulted = run.execute(0L);
+    var defaultedN = defaulted.invokeMember("v");
+    assertEquals("Should be the same", realN, defaultedN);
+  }
+
+  @Test
+  public void testTemporaryFileSpecProblem() throws Exception {
+    var code =
+        """
+    from Standard.Base.Errors.Common import all
+
+    run t = F.app f->
+      f.read t
+
+    type F
+      read self r = r
+      app fn = fn F
+    """;
+    var module = ctx.eval(LanguageInfo.ID, code);
+    var run = module.invokeMember("eval_expression", "run");
+    var real = run.execute(1L);
+    assertEquals("Should be the same", 1, real.asInt());
   }
 
   @Test

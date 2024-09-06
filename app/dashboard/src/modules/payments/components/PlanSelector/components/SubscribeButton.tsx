@@ -30,7 +30,7 @@ export interface SubscribeButtonProps
  */
 export function SubscribeButton(props: SubscribeButtonProps) {
   const {
-    defaultOpen = false,
+    defaultOpen,
     userHasSubscription,
     isCurrent = false,
     isDowngrade = false,
@@ -99,7 +99,11 @@ export function SubscribeButton(props: SubscribeButtonProps) {
 
   return (
     <div className="w-full text-center">
-      <DialogTrigger defaultOpen={disabled ? false : defaultOpen}>
+      <DialogTrigger
+        {...(disabled ? { defaultOpen: false }
+        : defaultOpen == null ? {}
+        : { defaultOpen })}
+      >
         <Button fullWidth isDisabled={disabled} variant={variant} size="medium" rounded="full">
           {buttonText}
         </Button>

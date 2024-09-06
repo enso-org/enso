@@ -375,15 +375,15 @@ fn find_top_level_arrow(items: &[Item]) -> Option<usize> {
     let mut spaced = false;
     let mut arrow_i = None;
     for (i, item) in items.iter().enumerate() {
-        if let Item::Token(token) = item
-            && token.is_spaced()
-        {
-            if let Token { variant: token::Variant::ArrowOperator(_), .. } = token {
-                arrow_i = Some(i);
-                break;
-            }
-            if i != 0 {
-                spaced = true;
+        if let Item::Token(token) = item {
+            if token.is_spaced() {
+                if let Token { variant: token::Variant::ArrowOperator(_), .. } = token {
+                    arrow_i = Some(i);
+                    break;
+                }
+                if i != 0 {
+                    spaced = true;
+                }
             }
         }
     }
@@ -401,25 +401,21 @@ fn try_parse_doc_comment<'s>(
     items: &mut Vec<Item<'s>>,
     precedence: &mut operator::Precedence<'s>,
 ) -> Option<syntax::tree::DocComment<'s>> {
-    if let Some(Item::Token(token @ Token { variant: token::Variant::TextStart(_), .. })) =
-        items.first()
-        && token.code == "##"
-    {
+    if matches!(
+        items.first(),
+        Some(Item::Token(token @ Token { variant: token::Variant::TextStart(_), .. })) if token.code == "##"
+    ) {
         let Some(syntax::Tree {
-            variant:
-                syntax::tree::Variant::Documented(box syntax::tree::Documented {
-                    mut documentation,
-                    expression: None,
-                    ..
-                }),
+            variant: syntax::tree::Variant::Documented(mut documented),
             span,
             ..
         }) = precedence.resolve(items)
         else {
             unreachable!()
         };
-        documentation.open.left_offset += span.left_offset;
-        Some(documentation)
+        debug_assert_eq!(documented.expression, None);
+        documented.documentation.open.left_offset += span.left_offset;
+        Some(documented.documentation)
     } else {
         None
     }
@@ -579,7 +575,7 @@ fn try_token_into_ident(token: Token) -> Option<token::Ident> {
 
 fn try_tree_into_ident(tree: syntax::Tree) -> Option<token::Ident> {
     match tree.variant {
-        syntax::tree::Variant::Ident(box syntax::tree::Ident { token }) => Some(token),
+        syntax::tree::Variant::Ident(token) => Some(token.token),
         _ => None,
     }
 }

@@ -1,6 +1,7 @@
 /** @file An option in a selector. */
 import { AnimatedBackground } from '#/components/AnimatedBackground'
 import { Radio, type RadioProps } from '#/components/aria'
+import { forwardRef } from '#/utilities/react'
 import { tv } from '#/utilities/tailwindVariants'
 import * as React from 'react'
 import type { VariantProps } from 'tailwind-variants'
@@ -39,7 +40,7 @@ export const SELECTOR_OPTION_STYLES = tv({
     },
   },
   slots: {
-    animation: 'bg-primary inset-[1px]',
+    animation: 'bg-primary',
     radio: TEXT_STYLE({
       className: 'flex flex-1 w-full items-center justify-center transition-colors duration-200',
       variant: 'body',
@@ -94,7 +95,7 @@ export const SELECTOR_OPTION_STYLES = tv({
   },
 })
 
-export const SelectorOption = React.forwardRef(function SelectorOption(
+export const SelectorOption = forwardRef(function SelectorOption(
   props: SelectorOptionProps,
   ref: React.ForwardedRef<HTMLLabelElement>,
 ) {

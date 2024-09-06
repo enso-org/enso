@@ -71,12 +71,10 @@ AnimatedBackground.Item = function AnimatedBackgroundItem(props: AnimatedBackgro
   const { value: activeValue, transition, layoutId } = context
 
   return (
-    <div className={twMerge('relative *:isolate', className)}>
       <AnimatePresence initial={false}>
         {activeValue === value && (
           <motion.div
             layoutId={`background-${layoutId}`}
-            className={twMerge('absolute inset-0', animationClassName)}
             transition={transition}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

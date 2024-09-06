@@ -11,6 +11,7 @@ import * as textProvider from '#/providers/TextProvider'
 import * as aria from '#/components/aria'
 import Button from '#/components/styled/Button'
 import FocusRing from '#/components/styled/FocusRing'
+import { forwardRef } from '#/utilities/react'
 import { twMerge } from '#/utilities/tailwindMerge'
 
 // =====================
@@ -26,6 +27,8 @@ export interface SettingsInputProps {
   readonly onChange?: React.ChangeEventHandler<HTMLInputElement>
   readonly onSubmit?: (event: React.SyntheticEvent<HTMLInputElement>) => void
 }
+
+export default forwardRef(SettingsInput)
 
 /** A styled input specific to settings pages. */
 function SettingsInput(props: SettingsInputProps, ref: React.ForwardedRef<HTMLInputElement>) {
@@ -98,5 +101,3 @@ function SettingsInput(props: SettingsInputProps, ref: React.ForwardedRef<HTMLIn
     </div>
   )
 }
-
-export default React.forwardRef(SettingsInput)

@@ -1,9 +1,11 @@
 /** @file Alert component. */
-import * as React from 'react'
+import { type ForwardedRef, type HTMLAttributes, type PropsWithChildren } from 'react'
 
 import SvgMask from '#/components/SvgMask'
-import type { VariantProps } from '#/utilities/tailwindVariants'
-import { tv } from '#/utilities/tailwindVariants'
+
+import { mergeRefs } from '#/utilities/mergeRefs'
+import { forwardRef } from '#/utilities/react'
+import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 
 // =================
 // === Constants ===
@@ -15,12 +17,12 @@ export const ALERT_STYLES = tv({
     fullWidth: { true: 'w-full' },
     variant: {
       custom: '',
-      outline: 'border bg-transparent border-primary/30 text-primary',
-      neutral: 'border bg-gray-100 border-gray-800 text-primary',
-      error: 'border bg-red-100 border-danger text-primary',
-      info: 'border bg-blue-100 border-blue-800 text-blue-800',
-      success: 'border bg-green-100 border-green-800 text-green-800',
-      warning: 'border bg-yellow-100 border-yellow-800 text-yellow-800',
+      outline: 'border border-0.5 bg-transparent border-primary/20 text-primary',
+      neutral: 'border border-0.5 bg-gray-100 border-gray-800 text-primary',
+      error: 'border border-0.5 bg-red-100 border-danger text-primary',
+      info: 'border border-0.5 bg-blue-100 border-blue-800 text-blue-800',
+      success: 'border border-0.5 bg-green-100 border-green-800 text-green-800',
+      warning: 'border border-0.5 bg-yellow-100 border-yellow-800 text-yellow-800',
     },
     rounded: {
       none: 'rounded-none',
@@ -57,9 +59,9 @@ export const ALERT_STYLES = tv({
 
 /** Props for an {@link Alert}. */
 export interface AlertProps
-  extends React.PropsWithChildren,
+  extends PropsWithChildren,
     VariantProps<typeof ALERT_STYLES>,
-    React.HTMLAttributes<HTMLDivElement> {
+    HTMLAttributes<HTMLDivElement> {
   /**
    * The icon to display in the Alert
    */
@@ -67,9 +69,9 @@ export interface AlertProps
 }
 
 /** Alert component. */
-export const Alert = React.forwardRef(function Alert(
+export const Alert = forwardRef(function Alert(
   props: AlertProps,
-  ref: React.ForwardedRef<HTMLDivElement>,
+  ref: ForwardedRef<HTMLDivElement>,
 ) {
   const {
     children,

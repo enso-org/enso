@@ -15,38 +15,32 @@ import {
   type TSchema,
 } from '#/components/AriaComponents'
 
-import { mergeRefs } from '#/utilities/mergeRefs'
-
 import { AnimatedBackground } from '#/components/AnimatedBackground'
 import RadioGroup from '#/components/styled/RadioGroup'
+import { mergeRefs } from '#/utilities/mergeRefs'
+import { forwardRef } from '#/utilities/react'
 import { tv } from '#/utilities/tailwindVariants'
 import { omit } from 'enso-common/src/utilities/data/object'
 import { Controller } from 'react-hook-form'
 import { SelectorOption } from './SelectorOption'
 
 /** * Props for the Selector component. */
-export interface SelectorProps<
-  Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TFieldName extends FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
-> extends FieldStateProps<
-      Omit<RadioGroupProps, 'children' | 'value'> & { value: TFieldValues[TFieldName] },
+export interface SelectorProps<Schema extends TSchema, TFieldName extends FieldPath<Schema>>
+  extends FieldStateProps<
+      Omit<RadioGroupProps, 'children' | 'value'> & { value: FieldValues<Schema>[TFieldName] },
       Schema,
-      TFieldValues,
-      TFieldName,
-      TTransformedValues
+      TFieldName
     >,
     FieldProps,
     Omit<twv.VariantProps<typeof SELECTOR_STYLES>, 'disabled' | 'invalid'>,
     FieldVariantProps {
-  readonly items: readonly TFieldValues[TFieldName][]
-  readonly itemToString?: (item: TFieldValues[TFieldName]) => string
+  readonly items: readonly FieldValues<Schema>[TFieldName][]
+  readonly children?: (item: FieldValues<Schema>[TFieldName]) => string
+  readonly columns?: number
   readonly className?: string
   readonly style?: React.CSSProperties
   readonly inputRef?: React.Ref<HTMLDivElement>
   readonly placeholder?: string
-  readonly readOnly?: boolean
 }
 
 export const SELECTOR_STYLES = tv({
@@ -89,21 +83,16 @@ export const SELECTOR_STYLES = tv({
 /**
  * A horizontal selector.
  */
-// eslint-disable-next-line no-restricted-syntax
-export const Selector = React.forwardRef(function Selector<
+export const Selector = forwardRef(function Selector<
   Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TFieldName extends FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
->(
-  props: SelectorProps<Schema, TFieldValues, TFieldName, TTransformedValues>,
-  ref: React.ForwardedRef<HTMLFieldSetElement>,
-) {
+  TFieldName extends FieldPath<Schema>,
+>(props: SelectorProps<Schema, TFieldName>, ref: React.ForwardedRef<HTMLFieldSetElement>) {
   const {
     name,
     items,
-    itemToString = String,
+    children = String,
     isDisabled,
+    columns,
     form,
     defaultValue,
     inputRef,
@@ -150,8 +139,15 @@ export const Selector = React.forwardRef(function Selector<
             >
               <RadioGroup
                 {...mergeProps<RadioGroupProps>()(
-                  { className: classes.radioGroup(), name },
-                  omit(inputProps, 'isInvalid'),
+                  {
+                    className: classes.radioGroup(),
+                    name,
+                    isRequired,
+                    isDisabled,
+                    style:
+                      columns != null ? { gridTemplateColumns: `repeat(${columns}, 1fr)` } : {},
+                  },
+                  inputProps,
                   renderProps.field,
                 )}
                 ref={mergeRefs(inputRef, privateInputRef, renderProps.field.ref)}
@@ -165,7 +161,7 @@ export const Selector = React.forwardRef(function Selector<
               >
                 <AnimatedBackground value={String(items.indexOf(value))}>
                   {items.map((item, i) => (
-                    <SelectorOption key={i} value={String(i)} label={itemToString(item)} />
+                    <SelectorOption key={i} value={String(i)} label={children(item)} />
                   ))}
                 </AnimatedBackground>
               </RadioGroup>
@@ -175,12 +171,4 @@ export const Selector = React.forwardRef(function Selector<
       }}
     />
   )
-}) as <
-  Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TFieldName extends FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
->(
-  props: React.RefAttributes<HTMLDivElement> &
-    SelectorProps<Schema, TFieldValues, TFieldName, TTransformedValues>,
-) => React.ReactElement
+})

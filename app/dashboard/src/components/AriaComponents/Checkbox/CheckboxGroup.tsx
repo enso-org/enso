@@ -5,40 +5,22 @@
  */
 import type { CheckboxGroupProps as AriaCheckboxGroupProps } from '#/components/aria'
 import { CheckboxGroup as AriaCheckboxGroup, mergeProps } from '#/components/aria'
-import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { omit } from '#/utilities/object'
+import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
-import type { CSSProperties, ForwardedRef, ReactElement, RefAttributes } from 'react'
-import { forwardRef } from 'react'
-import type { FieldVariantProps } from '../Form'
-import {
-  Form,
-  type FieldPath,
-  type FieldProps,
-  type FieldStateProps,
-  type FieldValues,
-  type TSchema,
-} from '../Form'
+import type { CSSProperties, ForwardedRef, ReactElement } from 'react'
+import type { FieldVariantProps, FormInstance } from '../Form'
+import { Form, type FieldPath, type FieldProps, type FieldStateProps, type TSchema } from '../Form'
 import type { TestIdProps } from '../types'
 import { CheckboxGroupProvider } from './CheckboxContext'
 
 /**
  * Props for the {@link CheckboxGroupProps} component.
  */
-export interface CheckboxGroupProps<
-  Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TFieldName extends FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
-> extends FieldStateProps<
-      AriaCheckboxGroupProps,
-      Schema,
-      TFieldValues,
-      TFieldName,
-      TTransformedValues
-    >,
+export interface CheckboxGroupProps<Schema extends TSchema, TFieldName extends FieldPath<Schema>>
+  extends FieldStateProps<AriaCheckboxGroupProps, Schema, TFieldName>,
     FieldProps,
     FieldVariantProps,
     Omit<VariantProps<typeof CHECKBOX_GROUP_STYLES>, 'disabled' | 'invalid'>,
@@ -46,6 +28,7 @@ export interface CheckboxGroupProps<
   readonly className?: string
   readonly style?: CSSProperties
   readonly checkboxRef?: ForwardedRef<HTMLInputElement>
+  readonly children: ReactElement | ((props: AriaCheckboxGroupProps) => ReactElement)
 }
 
 const CHECKBOX_GROUP_STYLES = tv({
@@ -58,13 +41,8 @@ const CHECKBOX_GROUP_STYLES = tv({
  */
 // eslint-disable-next-line no-restricted-syntax
 export const CheckboxGroup = forwardRef(
-  <
-    Schema extends TSchema,
-    TFieldValues extends FieldValues<Schema>,
-    TFieldName extends FieldPath<Schema, TFieldValues>,
-    TTransformedValues extends FieldValues<Schema> | undefined = undefined,
-  >(
-    props: CheckboxGroupProps<Schema, TFieldValues, TFieldName, TTransformedValues>,
+  <Schema extends TSchema, TFieldName extends FieldPath<Schema>>(
+    props: CheckboxGroupProps<Schema, TFieldName>,
     ref: ForwardedRef<HTMLFieldSetElement>,
   ): ReactElement => {
     const {
@@ -72,7 +50,7 @@ export const CheckboxGroup = forwardRef(
       className,
       variants = CHECKBOX_GROUP_STYLES,
       form,
-      defaultValue,
+      defaultValue: defaultValueOverride,
       isDisabled = false,
       isRequired = false,
       isInvalid = false,
@@ -81,71 +59,66 @@ export const CheckboxGroup = forwardRef(
       name,
       description,
       fullWidth = false,
-      testId,
       fieldVariants,
       ...checkboxGroupProps
     } = props
 
-    const { fieldState, formInstance } = Form.useField({
-      name,
-      isDisabled,
-      form,
-      defaultValue,
-    })
-
-    const field = formInstance.register(name, { disabled: isDisabled, required: isRequired })
-
-    const invalid = isInvalid || fieldState.invalid
+    // eslint-disable-next-line react-hooks/rules-of-hooks,no-restricted-syntax
+    const formInstance = (form ?? Form.useFormContext()) as FormInstance<Schema>
 
     const styles = variants({ fullWidth, className })
+    const testId = props['data-testid'] ?? props.testId ?? 'CheckboxGroup'
 
     return (
-      <CheckboxGroupProvider
+      <Form.Controller
         name={name}
-        field={field}
-        onChange={useEventCallback(
-          (selected) =>
-            void field
-              .onChange({ target: { name, value: selected } })
-              .then(() => formInstance.trigger(name)),
-        )}
-      >
-        <AriaCheckboxGroup
-          {...mergeProps<AriaCheckboxGroupProps>()(omit(checkboxGroupProps, 'validate'), {
-            className: styles,
-            isInvalid,
-            isDisabled,
-            isReadOnly,
-            name,
-            testId,
-          })}
-          ref={mergeRefs(ref, field.ref)}
-        >
-          {(renderProps) => (
-            <Form.Field
-              name={name}
-              form={formInstance}
-              label={label}
-              description={description}
-              isRequired={isRequired}
-              fullWidth={fullWidth}
-              isInvalid={invalid}
-              variants={fieldVariants}
-              {...checkboxGroupProps}
-            >
-              {typeof children === 'function' ? children(renderProps) : children}
-            </Form.Field>
-          )}
-        </AriaCheckboxGroup>
-      </CheckboxGroupProvider>
+        {...(defaultValueOverride != null && { defaultValue: defaultValueOverride })}
+        render={({ field, fieldState }) => {
+          const defaultValue = defaultValueOverride ?? formInstance.control._defaultValues[name]
+          return (
+            <>
+              <CheckboxGroupProvider
+                name={name}
+                field={field}
+                defaultValue={defaultValue}
+                onChange={(value) => {
+                  field.onChange({ target: { value } })
+                  void formInstance.trigger(name)
+                }}
+              >
+                <AriaCheckboxGroup
+                  {...mergeProps<AriaCheckboxGroupProps>()(omit(checkboxGroupProps, 'validate'), {
+                    className: styles,
+                    isInvalid,
+                    isDisabled,
+                    isReadOnly,
+                    name,
+                    defaultValue: defaultValue ?? [],
+                  })}
+                  ref={mergeRefs(ref, field.ref)}
+                  data-testid={testId}
+                >
+                  {(renderProps) => (
+                    <Form.Field
+                      name={name}
+                      form={formInstance}
+                      label={label}
+                      description={description}
+                      isRequired={isRequired}
+                      fullWidth={fullWidth}
+                      isInvalid={isInvalid || fieldState.invalid}
+                      variants={fieldVariants}
+                      {...checkboxGroupProps}
+                    >
+                      {typeof children === 'function' ? children(renderProps) : children}
+                    </Form.Field>
+                  )}
+                </AriaCheckboxGroup>
+              </CheckboxGroupProvider>
+            </>
+          )
+        }}
+      />
     )
   },
-) as <
-  Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TFieldName extends FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
->(
-  props: CheckboxGroupProps<Schema, TFieldValues, TFieldName, TTransformedValues> &
-    RefAttributes<HTMLDivElement>,
-) => ReactElement
+)

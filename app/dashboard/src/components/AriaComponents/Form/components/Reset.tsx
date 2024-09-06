@@ -21,9 +21,9 @@ export interface ResetProps extends Omit<ariaComponents.ButtonProps, 'loading'> 
    *
    * This field is helpful when you need to use the submit button outside of the form.
    */
-  // For this component, we don't need to know the form fields
+  // We do not need to know the form fields.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly form?: types.FormInstance<any, any>
+  readonly form?: types.FormInstance<any>
 }
 
 /**

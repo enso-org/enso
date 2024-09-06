@@ -23,7 +23,7 @@ test.test('copy', ({ page }) =>
     .driveTable.withRows(async (rows) => {
       await test.expect(rows).toHaveCount(3)
       await test.expect(rows.nth(2)).toBeVisible()
-      await test.expect(rows.nth(2)).toHaveText(/^New Folder 2 [(]copy[)]/)
+      await test.expect(rows.nth(2)).toHaveText(/^New Folder 1 [(]copy[)]*/)
       const parentLeft = await actions.getAssetRowLeftPx(rows.nth(1))
       const childLeft = await actions.getAssetRowLeftPx(rows.nth(2))
       test.expect(childLeft, 'child is indented further than parent').toBeGreaterThan(parentLeft)
@@ -46,7 +46,7 @@ test.test('copy (keyboard)', ({ page }) =>
     .driveTable.withRows(async (rows) => {
       await test.expect(rows).toHaveCount(3)
       await test.expect(rows.nth(2)).toBeVisible()
-      await test.expect(rows.nth(2)).toHaveText(/^New Folder 2 [(]copy[)]/)
+      await test.expect(rows.nth(2)).toHaveText(/^New Folder 1 [(]copy[)]*/)
       const parentLeft = await actions.getAssetRowLeftPx(rows.nth(1))
       const childLeft = await actions.getAssetRowLeftPx(rows.nth(2))
       test.expect(childLeft, 'child is indented further than parent').toBeGreaterThan(parentLeft)
@@ -69,7 +69,7 @@ test.test('move', ({ page }) =>
     .driveTable.withRows(async (rows) => {
       await test.expect(rows).toHaveCount(2)
       await test.expect(rows.nth(1)).toBeVisible()
-      await test.expect(rows.nth(1)).toHaveText(/^New Folder 2/)
+      await test.expect(rows.nth(1)).toHaveText(/^New Folder 1/)
       const parentLeft = await actions.getAssetRowLeftPx(rows.nth(0))
       const childLeft = await actions.getAssetRowLeftPx(rows.nth(1))
       test.expect(childLeft, 'child is indented further than parent').toBeGreaterThan(parentLeft)
@@ -88,7 +88,7 @@ test.test('move (drag)', ({ page }) =>
     .driveTable.withRows(async (rows) => {
       await test.expect(rows).toHaveCount(2)
       await test.expect(rows.nth(1)).toBeVisible()
-      await test.expect(rows.nth(1)).toHaveText(/^New Folder 2/)
+      await test.expect(rows.nth(1)).toHaveText(/^New Folder 1/)
       const parentLeft = await actions.getAssetRowLeftPx(rows.nth(0))
       const childLeft = await actions.getAssetRowLeftPx(rows.nth(1))
       test.expect(childLeft, 'child is indented further than parent').toBeGreaterThan(parentLeft)
@@ -129,7 +129,7 @@ test.test('move (keyboard)', ({ page }) =>
     .driveTable.withRows(async (rows) => {
       await test.expect(rows).toHaveCount(2)
       await test.expect(rows.nth(1)).toBeVisible()
-      await test.expect(rows.nth(1)).toHaveText(/^New Folder 2/)
+      await test.expect(rows.nth(1)).toHaveText(/^New Folder 1/)
       const parentLeft = await actions.getAssetRowLeftPx(rows.nth(0))
       const childLeft = await actions.getAssetRowLeftPx(rows.nth(1))
       test.expect(childLeft, 'child is indented further than parent').toBeGreaterThan(parentLeft)
@@ -164,11 +164,11 @@ test.test('duplicate', ({ page }) =>
     .driveTable.rightClickRow(0)
     .contextMenu.duplicate()
     .driveTable.withRows(async (rows) => {
-      // Assets: [0: New Project 1 (copy), 1: New Project 1]
+      // Assets: [0: New Project 1, 1: New Project 1 (copy)]
       await test.expect(rows).toHaveCount(2)
       await test.expect(actions.locateContextMenus(page)).not.toBeVisible()
-      await test.expect(rows.nth(0)).toBeVisible()
-      await test.expect(rows.nth(0)).toHaveText(/^New Project 1 [(]copy[)]/)
+      await test.expect(rows.nth(1)).toBeVisible()
+      await test.expect(rows.nth(1)).toHaveText(/^New Project 1 [(]copy[)]/)
     }),
 )
 
@@ -184,7 +184,7 @@ test.test('duplicate (keyboard)', ({ page }) =>
     .driveTable.withRows(async (rows) => {
       // Assets: [0: New Project 1 (copy), 1: New Project 1]
       await test.expect(rows).toHaveCount(2)
-      await test.expect(rows.nth(0)).toBeVisible()
-      await test.expect(rows.nth(0)).toHaveText(/^New Project 1 [(]copy[)]/)
+      await test.expect(rows.nth(1)).toBeVisible()
+      await test.expect(rows.nth(1)).toHaveText(/^New Project 1 [(]copy[)]/)
     }),
 )

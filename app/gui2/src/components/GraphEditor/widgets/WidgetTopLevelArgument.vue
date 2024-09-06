@@ -18,10 +18,27 @@ export const widgetDefinition = defineWidget(
   },
   import.meta.hot,
 )
+
+/** If the element is the recursively-first-child of a top-level argument, return the top-level argument element. */
+export function enclosingTopLevelArgument(
+  element: HTMLElement | undefined,
+  tree: { nodeElement: HTMLElement | undefined },
+): HTMLElement | undefined {
+  return (
+    element?.dataset.topLevelArgument !== undefined ? element
+    : (
+      !element ||
+      element === tree.nodeElement ||
+      element.parentElement?.firstElementChild !== element
+    ) ?
+      undefined
+    : enclosingTopLevelArgument(element.parentElement, tree)
+  )
+}
 </script>
 
 <template>
-  <div class="WidgetTopLevelArgument widgetResetPadding">
+  <div class="WidgetTopLevelArgument widgetResetPadding" data-top-level-argument>
     <NodeWidget :input="props.input" />
   </div>
 </template>

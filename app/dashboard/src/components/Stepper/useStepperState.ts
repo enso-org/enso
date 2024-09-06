@@ -18,7 +18,13 @@ type Direction = 'back-none' | 'back' | 'forward-none' | 'forward' | 'initial'
  * Props for {@link useStepperState}
  */
 export interface StepperStateProps {
+  /**
+   * The default step to start on (0-indexed)
+   */
   readonly defaultStep?: number
+  /**
+   * The number of steps in the stepper (amount of steps is 1-indexed)
+   */
   readonly steps: number
   readonly onStepChange?: (step: number, direction: 'back' | 'forward') => void
   readonly onCompleted?: () => void
@@ -59,7 +65,7 @@ export interface UseStepperStateResult {
  * @returns current step and a function to set the current step
  */
 export function useStepperState(props: StepperStateProps): UseStepperStateResult {
-  const { steps, defaultStep = 0, onStepChange, onCompleted } = props
+  const { steps, defaultStep = 0, onStepChange = () => {}, onCompleted = () => {} } = props
 
   invariant(steps > 0, 'Invalid number of steps')
   invariant(defaultStep >= 0, 'Default step must be greater than or equal to 0')
@@ -70,29 +76,31 @@ export function useStepperState(props: StepperStateProps): UseStepperStateResult
     direction: Direction
   }>(() => ({ current: defaultStep, direction: 'initial' }))
 
+  const onStepChangeStableCallback = eventCallbackHooks.useEventCallback(onStepChange)
+  const onCompletedStableCallback = eventCallbackHooks.useEventCallback(onCompleted)
+
   const setCurrentStep = eventCallbackHooks.useEventCallback(
     (step: number | ((current: number) => number)) => {
       React.startTransition(() => {
         privateSetCurrentStep((current) => {
-          const newStep = typeof step === 'function' ? step(current.current) : step
-          const direction = newStep > current.current ? 'forward' : 'back'
+          const nextStep = typeof step === 'function' ? step(current.current) : step
+          const direction = nextStep > current.current ? 'forward' : 'back'
 
-          if (newStep < 0) {
+          if (nextStep < 0) {
             return {
               current: 0,
-              direction: 'back-none',
+              direction: 'back-none'
             }
-          } else if (newStep > steps) {
-            onCompleted?.()
-
+          } else if (nextStep > steps - 1) {
+          onCompletedStableCallback()
             return {
-              current: steps,
-              direction: 'forward-none',
+              current: steps - 1,
+              direction: 'forward-none'
             }
           } else {
-            onStepChange?.(newStep, direction)
+            onStepChangeStableCallback(nextStep, direction)
 
-            return { current: newStep, direction }
+            return { current: nextStep, direction }
           }
         })
       })

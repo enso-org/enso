@@ -32,6 +32,9 @@ export default function Login() {
   const { signInWithGoogle, signInWithGitHub, signInWithPassword, cognito } = useAuth()
   const { getText } = useText()
 
+  const query = new URLSearchParams(location.search)
+  const initialEmail = query.get('email') ?? ''
+
   const form = Form.useForm({
     schema: (z) =>
       z.object({
@@ -41,6 +44,7 @@ export default function Login() {
           .email(getText('invalidEmailValidationError')),
         password: passwordSchema(getText),
       }),
+    defaultValues: {email:initialEmail},
     onSubmit: async ({ email, password }) => {
       const res = await signInWithPassword(email, password)
 
@@ -59,13 +63,10 @@ export default function Login() {
     },
   })
 
-  const query = new URLSearchParams(location.search)
-  const initialEmail = query.get('email')
 
-  const [emailInput, setEmailInput] = useState(initialEmail ?? '')
+  const [emailInput, setEmailInput] = useState(initialEmail)
 
   const [user, setUser] = useState<CognitoUser | null>(null)
-
   const localBackend = useLocalBackend()
   const supportsOffline = localBackend != null
 
@@ -127,7 +128,6 @@ export default function Login() {
                   type="email"
                   autoComplete="email"
                   icon={AtIcon}
-                  defaultValue={initialEmail ?? undefined}
                   placeholder={getText('emailPlaceholder')}
                   onChange={(event) => {
                     setEmailInput(event.currentTarget.value)

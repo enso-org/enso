@@ -10,6 +10,7 @@ from Standard.Table import all hiding Table
 from Standard.Table.Errors import all
 import Standard.Table.Expression.Expression_Error
 
+import Standard.Database.Internal.IR.SQL_Expression.SQL_Expression
 from Standard.Database.Errors import SQL_Error
 
 from Standard.Test import all

@@ -65,11 +65,11 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         naming: ['"Enso Naming"', '"Enso"', '"M PLUS 1"'],
       },
       fontSize: {
-        xs: '0.71875rem',
-        sm: '0.8125rem',
-        xl: '1.1875rem',
-        '3xl': '2rem',
-        '4xl': '2.375rem',
+        xs: '11.5px',
+        sm: '13px',
+        xl: '19px',
+        '3xl': '32px',
+        '4xl': '38px',
         'auth-heading': 'var(--auth-heading-font-size)',
       },
       borderRadius: {
@@ -609,6 +609,9 @@ inset 0 -36px 51px -51px #00000014`,
           respectImportant: true,
         },
       )
+
+      addVariant('not-focus', '&:where([data-rac]):not([data-focused])')
+      addVariant('not-selected', '&:where([data-rac]):not([data-selected])')
     }),
   ],
 })

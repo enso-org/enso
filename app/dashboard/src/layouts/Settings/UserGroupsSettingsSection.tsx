@@ -7,8 +7,8 @@ import * as mimeTypes from '#/data/mimeTypes'
 
 import {
   backendMutationOptions,
+  useBackendQuery,
   useListUserGroupsWithUsers,
-  useListUsers,
 } from '#/hooks/backendHooks'
 import * as billingHooks from '#/hooks/billing'
 import * as scrollHooks from '#/hooks/scrollHooks'
@@ -49,7 +49,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
   const { getText } = textProvider.useText()
   const { user } = authProvider.useFullUserSession()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const users = useListUsers(backend)
+  const { data: users } = useBackendQuery(backend, 'listUsers', [])
   const userGroups = useListUserGroupsWithUsers(backend)
   const rootRef = React.useRef<HTMLDivElement>(null)
   const bodyRef = React.useRef<HTMLTableSectionElement>(null)
@@ -145,7 +145,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
           {shouldDisplayPaywall && (
             <paywallComponents.PaywallDialogButton
               feature="userGroupsFull"
-              variant="bar"
+              variant="outline"
               size="medium"
               rounded="full"
               iconPosition="end"
@@ -157,7 +157,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
           {!shouldDisplayPaywall && (
             <ariaComponents.Button
               size="medium"
-              variant="bar"
+              variant="outline"
               onPress={(event) => {
                 const rect = event.target.getBoundingClientRect()
                 const position = { pageX: rect.left, pageY: rect.top }
@@ -210,7 +210,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
               <aria.Row className="h-row">
                 <aria.Cell
                   ref={(element) => {
-                    if (element != null) {
+                    if (element instanceof HTMLTableCellElement) {
                       element.colSpan = 2
                     }
                   }}

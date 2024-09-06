@@ -407,22 +407,17 @@ val logbackPkg = Seq(
   "ch.qos.logback" % "logback-classic" % logbackClassicVersion,
   "ch.qos.logback" % "logback-core"    % logbackClassicVersion
 )
-val akkaActor        = akkaPkg("actor")
-val akkaStream       = akkaPkg("stream")
-val akkaTyped        = akkaPkg("actor-typed")
-val akkaTestkit      = akkaPkg("testkit")
-val akkaSLF4J        = akkaPkg("slf4j")
-val akkaTestkitTyped = akkaPkg("actor-testkit-typed") % Test
-val akkaHttp         = akkaHTTPPkg("http")
-val akkaSpray        = akkaHTTPPkg("http-spray-json")
-val logbackTest      = logbackPkg.map(_ % Test)
+val akkaActor   = akkaPkg("actor")
+val akkaStream  = akkaPkg("stream")
+val akkaTestkit = akkaPkg("testkit")
+val akkaSLF4J   = akkaPkg("slf4j")
+val akkaHttp    = akkaHTTPPkg("http")
+val logbackTest = logbackPkg.map(_ % Test)
 val akka =
   Seq(
     akkaActor,
     akkaStream,
-    akkaHttp,
-    akkaSpray,
-    akkaTyped
+    akkaHttp
   )
 
 // === Cats ===================================================================
@@ -1038,7 +1033,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     (Test / fork) := true,
     (Compile / run / connectInput) := true,
     commands += WithDebugCommand.withDebug,
-    libraryDependencies ++= akka ++ Seq(akkaTestkit % Test),
+    libraryDependencies ++= akka ++ Seq(akkaSLF4J, akkaTestkit % Test),
     libraryDependencies ++= circe ++ helidon,
     libraryDependencies ++= Seq(
       "com.typesafe"                % "config"                       % typesafeConfigVersion,
@@ -1526,26 +1521,27 @@ lazy val `language-server` = (project in file("engine/language-server"))
     commands += WithDebugCommand.withDebug,
     frgaalJavaCompilerSetting,
     libraryDependencies ++= akka ++ circe ++ Seq(
-      "org.slf4j"                   % "slf4j-api"               % slf4jVersion,
-      "com.typesafe.scala-logging" %% "scala-logging"           % scalaLoggingVersion,
-      "io.circe"                   %% "circe-generic-extras"    % circeGenericExtrasVersion,
-      "io.circe"                   %% "circe-literal"           % circeVersion,
-      "dev.zio"                    %% "zio"                     % zioVersion,
-      "com.google.flatbuffers"      % "flatbuffers-java"        % flatbuffersVersion,
-      "commons-io"                  % "commons-io"              % commonsIoVersion,
-      "com.github.pureconfig"      %% "pureconfig"              % pureconfigVersion,
-      akkaTestkit                   % Test,
-      "com.typesafe.akka"          %% "akka-http-testkit"       % akkaHTTPVersion           % Test,
-      "org.scalatest"              %% "scalatest"               % scalatestVersion          % Test,
-      "org.scalacheck"             %% "scalacheck"              % scalacheckVersion         % Test,
-      "org.graalvm.truffle"         % "truffle-api"             % graalMavenPackagesVersion % "provided",
-      "org.graalvm.sdk"             % "polyglot-tck"            % graalMavenPackagesVersion % "provided",
-      "org.netbeans.api"            % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
-      "org.eclipse.jgit"            % "org.eclipse.jgit"        % jgitVersion,
-      "org.bouncycastle"            % "bcutil-jdk18on"          % "1.76"                    % Test,
-      "org.bouncycastle"            % "bcpkix-jdk18on"          % "1.76"                    % Test,
-      "org.bouncycastle"            % "bcprov-jdk18on"          % "1.76"                    % Test,
-      "org.apache.tika"             % "tika-core"               % tikaVersion               % Test
+      "org.slf4j"                   % "slf4j-api"            % slf4jVersion,
+      "com.typesafe.scala-logging" %% "scala-logging"        % scalaLoggingVersion,
+      "io.circe"                   %% "circe-generic-extras" % circeGenericExtrasVersion,
+      "io.circe"                   %% "circe-literal"        % circeVersion,
+      "dev.zio"                    %% "zio"                  % zioVersion,
+      "com.google.flatbuffers"      % "flatbuffers-java"     % flatbuffersVersion,
+      "commons-io"                  % "commons-io"           % commonsIoVersion,
+      "com.github.pureconfig"      %% "pureconfig"           % pureconfigVersion,
+      akkaSLF4J,
+      akkaTestkit           % Test,
+      "com.typesafe.akka"  %% "akka-http-testkit"       % akkaHTTPVersion           % Test,
+      "org.scalatest"      %% "scalatest"               % scalatestVersion          % Test,
+      "org.scalacheck"     %% "scalacheck"              % scalacheckVersion         % Test,
+      "org.graalvm.truffle" % "truffle-api"             % graalMavenPackagesVersion % "provided",
+      "org.graalvm.sdk"     % "polyglot-tck"            % graalMavenPackagesVersion % "provided",
+      "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
+      "org.eclipse.jgit"    % "org.eclipse.jgit"        % jgitVersion,
+      "org.bouncycastle"    % "bcutil-jdk18on"          % "1.76"                    % Test,
+      "org.bouncycastle"    % "bcpkix-jdk18on"          % "1.76"                    % Test,
+      "org.bouncycastle"    % "bcprov-jdk18on"          % "1.76"                    % Test,
+      "org.apache.tika"     % "tika-core"               % tikaVersion               % Test
     ),
     Test / testOptions += Tests
       .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000"),
@@ -2872,7 +2868,7 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
   .settings(
     frgaalJavaCompilerSetting,
     annotationProcSetting,
-    libraryDependencies ++= GraalVM.modules ++ GraalVM.langsPkgs ++ Seq(
+    libraryDependencies ++= GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.toolsPkgs ++ Seq(
       "org.openjdk.jmh"      % "jmh-core"                 % jmhVersion,
       "org.openjdk.jmh"      % "jmh-generator-annprocess" % jmhVersion,
       "org.graalvm.polyglot" % "polyglot"                 % graalMavenPackagesVersion,
@@ -2895,14 +2891,23 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
       "-J-Dpolyglotimpl.DisableClassPathIsolation=true",
       "-J-Dpolyglot.engine.WarnInterpreterOnly=false"
     ),
-    moduleDependencies := {
-      componentModulesIds.value ++ Seq(
+    modulePath := {
+      val allRuntimeMods = componentModulesPaths.value
+      val otherModIds = Seq(
         "org.slf4j" % "slf4j-nop" % slf4jVersion
       )
+      val requiredMods = JPMSUtils.filterModulesFromUpdate(
+        (Compile / update).value,
+        otherModIds,
+        streams.value.log,
+        shouldContainAll = true
+      )
+      allRuntimeMods ++ requiredMods
     },
     addModules := {
       val runtimeModuleName = (`runtime-fat-jar` / javaModuleName).value
-      Seq(runtimeModuleName)
+      val arrowModName      = (`runtime-language-arrow` / javaModuleName).value
+      Seq(runtimeModuleName, arrowModName)
     },
     addExports := {
       Map("org.slf4j.nop/org.slf4j.nop" -> Seq("org.slf4j"))
@@ -2937,6 +2942,10 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
   )
   .dependsOn(`bench-processor`)
   .dependsOn(`runtime-fat-jar`)
+  .dependsOn(`ydoc-server`)
+  .dependsOn(`runtime-language-arrow`)
+  .dependsOn(`syntax-rust-definition`)
+  .dependsOn(`profiling-utils`)
   .dependsOn(`std-table` % "provided")
   .dependsOn(`std-base` % "provided")
   .dependsOn(`benchmark-java-helpers` % "provided")

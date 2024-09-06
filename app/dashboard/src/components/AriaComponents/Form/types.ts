@@ -84,13 +84,8 @@ interface BaseFormProps<
  * Props for the Form component with parent form
  * or if form is passed as a prop.
  */
-interface FormPropsWithParentForm<
-  Schema extends components.TSchema,
-  TFieldValues extends components.FieldValues<Schema>,
-  // eslint-disable-next-line no-restricted-syntax
-  TTransformedValues extends components.FieldValues<Schema> | undefined = undefined,
-> {
-  readonly form: components.UseFormReturn<Schema, TFieldValues, TTransformedValues>
+interface FormPropsWithParentForm<Schema extends components.TSchema> {
+  readonly form: components.UseFormReturn<Schema>
   readonly schema?: never
   readonly formOptions?: never
   readonly onSubmit?: never
@@ -120,30 +115,19 @@ interface FormPropsWithOptions<
 /**
  * Register function for a form field.
  */
-export type UseFormRegister<
-  Schema extends components.TSchema,
-  TFieldValues extends components.FieldValues<Schema>,
-> = <
-  TFieldName extends components.FieldPath<Schema, TFieldValues> = components.FieldPath<
-    Schema,
-    TFieldValues
-  >,
+export type UseFormRegister<Schema extends components.TSchema> = <
+  TFieldName extends components.FieldPath<Schema> = components.FieldPath<Schema>,
 >(
   name: TFieldName,
-  options?: reactHookForm.RegisterOptions<TFieldValues, TFieldName>,
-  // eslint-disable-next-line no-restricted-syntax
-) => UseFormRegisterReturn<Schema, TFieldValues, TFieldName>
+  options?: reactHookForm.RegisterOptions<components.FieldValues<Schema>, TFieldName>,
+) => UseFormRegisterReturn<Schema, TFieldName>
 
 /**
  * UseFormRegister return type.
  */
 export interface UseFormRegisterReturn<
   Schema extends components.TSchema,
-  TFieldValues extends components.FieldValues<Schema>,
-  TFieldName extends components.FieldPath<Schema, TFieldValues> = components.FieldPath<
-    Schema,
-    TFieldValues
-  >,
+  TFieldName extends components.FieldPath<Schema> = components.FieldPath<Schema>,
 > extends Omit<reactHookForm.UseFormRegisterReturn<TFieldName>, 'onBlur' | 'onChange'> {
   // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
   readonly onChange: <Value>(value: Value) => Promise<boolean | void> | void
@@ -157,13 +141,8 @@ export interface UseFormRegisterReturn<
 /**
  * Form Render Props.
  */
-export type FormStateRenderProps<
-  Schema extends components.TSchema,
-  TFieldValues extends components.FieldValues<Schema>,
-  // eslint-disable-next-line no-restricted-syntax
-  TTransformedValues extends components.FieldValues<Schema> | undefined = undefined,
-> = Pick<
-  components.FormInstance<Schema, TFieldValues, TTransformedValues>,
+export type FormStateRenderProps<Schema extends components.TSchema> = Pick<
+  components.FormInstance<Schema>,
   | 'clearErrors'
   | 'control'
   | 'formState'
@@ -173,15 +152,9 @@ export type FormStateRenderProps<
   | 'setFocus'
   | 'setValue'
   | 'unregister'
-  // eslint-disable-next-line no-restricted-syntax
 > & {
-  /**
-   * The form register function.
-   * Adds a field to the form state.
-   */
-  readonly register: UseFormRegister<Schema, TFieldValues>
-  /**
-   * Form Instance
-   */
-  readonly form: components.FormInstance<Schema, TFieldValues, TTransformedValues>
+  /** The form register function. Adds a field to the form state. */
+  readonly register: UseFormRegister<Schema>
+  /** The form instance. */
+  readonly form: components.FormInstance<Schema>
 }

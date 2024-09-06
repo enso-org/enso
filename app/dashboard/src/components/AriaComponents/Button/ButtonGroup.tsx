@@ -51,11 +51,14 @@ const STYLES = twv.tv({
 
 /** Props for a {@link ButtonGroup}. */
 interface ButtonGroupProps extends React.PropsWithChildren, twv.VariantProps<typeof STYLES> {
-  readonly className?: string
+  readonly className?: string | undefined
 }
 
 /** A group of buttons. */
-export function ButtonGroup(props: ButtonGroupProps) {
+export const ButtonGroup = React.forwardRef(function ButtonGroup(
+  props: ButtonGroupProps,
+  ref: React.ForwardedRef<HTMLDivElement>,
+) {
   const {
     children,
     className,
@@ -69,6 +72,7 @@ export function ButtonGroup(props: ButtonGroupProps) {
 
   return (
     <div
+      ref={ref}
       className={STYLES({
         gap,
         wrap,
@@ -82,4 +86,4 @@ export function ButtonGroup(props: ButtonGroupProps) {
       {children}
     </div>
   )
-}
+})

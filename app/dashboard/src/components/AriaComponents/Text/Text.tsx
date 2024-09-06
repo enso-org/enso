@@ -8,6 +8,7 @@ import * as aria from '#/components/aria'
 import * as mergeRefs from '#/utilities/mergeRefs'
 import * as twv from '#/utilities/tailwindVariants'
 
+import { forwardRef } from '#/utilities/react'
 import * as textProvider from './TextProvider'
 import * as visualTooltip from './useVisualTooltip'
 
@@ -17,6 +18,7 @@ import * as visualTooltip from './useVisualTooltip'
 export interface TextProps
   extends Omit<aria.TextProps, 'color'>,
     twv.VariantProps<typeof TEXT_STYLE> {
+  readonly elementType?: keyof HTMLElementTagNameMap
   readonly lineClamp?: number
   readonly tooltip?: React.ReactElement | string | false | null
   readonly tooltipDisplay?: visualTooltip.VisualTooltipProps['display']
@@ -116,10 +118,7 @@ export const TEXT_STYLE = twv.tv({
  * Text component that supports truncation and show a tooltip on hover when text is truncated
  */
 // eslint-disable-next-line no-restricted-syntax
-export const Text = React.forwardRef(function Text(
-  props: TextProps,
-  ref: React.Ref<HTMLSpanElement>,
-) {
+export const Text = forwardRef(function Text(props: TextProps, ref: React.Ref<HTMLSpanElement>) {
   const {
     className,
     variant,
@@ -185,8 +184,8 @@ export const Text = React.forwardRef(function Text(
 
   return (
     <textProvider.TextProvider value={{ isInsideTextComponent: true }}>
-      {/* @ts-expect-error We suppose that elementType is a valid HTML element */}
       <ElementType
+        // @ts-expect-error This is caused by the type-safe `elementType` type.
         ref={mergeRefs.mergeRefs(ref, textElementRef)}
         className={textClasses}
         {...aria.mergeProps<React.HTMLAttributes<HTMLElement>>()(
@@ -207,7 +206,7 @@ export const Text = React.forwardRef(function Text(
   // eslint-disable-next-line no-restricted-syntax
 }) as unknown as React.FC<React.RefAttributes<HTMLSpanElement> & TextProps> & {
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  Heading: React.FC<HeadingProps>
+  Heading: typeof Heading
   // eslint-disable-next-line @typescript-eslint/naming-convention
   Group: React.FC<React.PropsWithChildren>
 }
@@ -223,13 +222,15 @@ export interface HeadingProps extends Omit<TextProps, 'elementType'> {
 /**
  * Heading component
  */
-Text.Heading = React.forwardRef(function Heading(
+// eslint-disable-next-line no-restricted-syntax
+const Heading = forwardRef(function Heading(
   props: HeadingProps,
   ref: React.Ref<HTMLHeadingElement>,
 ) {
   const { level = 1, ...textProps } = props
   return <Text ref={ref} elementType={`h${level}`} variant="h1" balance {...textProps} />
 })
+Text.Heading = Heading
 
 /**
  * Text group component. It's used to visually group text elements together

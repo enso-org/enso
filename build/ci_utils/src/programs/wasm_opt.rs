@@ -46,7 +46,9 @@ impl Manipulator for Output<'_> {
 pub struct WasmOpt;
 
 impl Program for WasmOpt {
+    type Command = Command;
     type Version = Version;
+
     fn executable_name(&self) -> &str {
         "wasm-opt"
     }

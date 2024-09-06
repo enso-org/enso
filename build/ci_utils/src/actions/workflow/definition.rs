@@ -2,9 +2,9 @@
 
 use crate::prelude::*;
 
+use crate::convert_case::ToKebabCase;
 use crate::env::accessor::RawVariable;
 
-use heck::ToKebabCase;
 use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 use std::convert::identity;

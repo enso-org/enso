@@ -100,7 +100,7 @@ case object TailCall extends IRPass {
 
   /** Performs tail call analysis on a top-level definition in a module.
     *
-    * @param definition the top-level definition to analyse
+    * @param moduleDefinition the top-level definition to analyse
     * @return `definition`, annotated with tail call information
     */
   private def analyseModuleBinding(
@@ -189,14 +189,7 @@ case object TailCall extends IRPass {
         throw new CompilerError(
           "Comments should not be present during tail call analysis."
         )
-      case block @ Expression.Block(
-            expressions,
-            returnValue,
-            _,
-            _,
-            _,
-            _
-          ) =>
+      case block @ Expression.Block(expressions, returnValue, _, _, _) =>
         block
           .copy(
             expressions = expressions.map(
@@ -207,7 +200,7 @@ case object TailCall extends IRPass {
           .updateMetadata(
             new MetadataPair(this, TailPosition.fromBool(isInTailPosition))
           )
-      case binding @ Expression.Binding(_, expression, _, _, _) =>
+      case binding @ Expression.Binding(_, expression, _, _) =>
         binding
           .copy(
             expression = analyseExpression(expression, isInTailPosition = false)
@@ -241,7 +234,7 @@ case object TailCall extends IRPass {
     *                         or not
     * @return `literal`, annotated with tail position metdata
     */
-  def analyseLiteral(
+  private def analyseLiteral(
     literal: Literal,
     isInTailPosition: Boolean
   ): Literal = {
@@ -262,7 +255,7 @@ case object TailCall extends IRPass {
     isInTailPosition: Boolean
   ): Application = {
     application match {
-      case app @ Application.Prefix(fn, args, _, _, _, _) =>
+      case app @ Application.Prefix(fn, args, _, _, _) =>
         app
           .copy(
             function  = analyseExpression(fn, isInTailPosition = false),
@@ -271,7 +264,7 @@ case object TailCall extends IRPass {
           .updateMetadata(
             new MetadataPair(this, TailPosition.fromBool(isInTailPosition))
           )
-      case force @ Application.Force(target, _, _, _) =>
+      case force @ Application.Force(target, _, _) =>
         force
           .copy(
             target = analyseExpression(target, isInTailPosition)
@@ -279,7 +272,7 @@ case object TailCall extends IRPass {
           .updateMetadata(
             new MetadataPair(this, TailPosition.fromBool(isInTailPosition))
           )
-      case vector @ Application.Sequence(items, _, _, _) =>
+      case vector @ Application.Sequence(items, _, _) =>
         vector
           .copy(items =
             items.map(analyseExpression(_, isInTailPosition = false))
@@ -287,7 +280,7 @@ case object TailCall extends IRPass {
           .updateMetadata(
             new MetadataPair(this, TailPosition.fromBool(isInTailPosition))
           )
-      case tSet @ Application.Typeset(expr, _, _, _) =>
+      case tSet @ Application.Typeset(expr, _, _) =>
         tSet
           .copy(expression =
             expr.map(analyseExpression(_, isInTailPosition = false))
@@ -305,9 +298,9 @@ case object TailCall extends IRPass {
     * @param argument the argument to analyse
     * @return `argument`, annotated with tail position metadata
     */
-  def analyseCallArg(argument: CallArgument): CallArgument = {
+  private def analyseCallArg(argument: CallArgument): CallArgument = {
     argument match {
-      case arg @ CallArgument.Specified(_, expr, _, _, _) =>
+      case arg @ CallArgument.Specified(_, expr, _, _) =>
         arg
           .copy(
             // Note [Call Argument Tail Position]
@@ -364,7 +357,7 @@ case object TailCall extends IRPass {
     */
   def analyseCase(caseExpr: Case, isInTailPosition: Boolean): Case = {
     caseExpr match {
-      case caseExpr @ Case.Expr(scrutinee, branches, _, _, _, _) =>
+      case caseExpr @ Case.Expr(scrutinee, branches, _, _, _) =>
         caseExpr
           .copy(
             scrutinee = analyseExpression(scrutinee, isInTailPosition = false),
@@ -423,13 +416,13 @@ case object TailCall extends IRPass {
     pattern: Pattern
   ): Pattern = {
     pattern match {
-      case namePat @ Pattern.Name(name, _, _, _) =>
+      case namePat @ Pattern.Name(name, _, _) =>
         namePat
           .copy(
             name = analyseName(name, isInTailPosition = false)
           )
           .updateMetadata(new MetadataPair(this, TailPosition.NotTail))
-      case cons @ Pattern.Constructor(constructor, fields, _, _, _) =>
+      case cons @ Pattern.Constructor(constructor, fields, _, _) =>
         cons
           .copy(
             constructor = analyseName(constructor, isInTailPosition = false),
@@ -439,7 +432,7 @@ case object TailCall extends IRPass {
       case literal: Pattern.Literal =>
         literal
           .updateMetadata(new MetadataPair(this, TailPosition.NotTail))
-      case tpePattern @ Pattern.Type(name, tpe, _, _, _) =>
+      case tpePattern @ Pattern.Type(name, tpe, _, _) =>
         tpePattern
           .copy(
             name = analyseName(name, isInTailPosition = false),
@@ -490,9 +483,11 @@ case object TailCall extends IRPass {
     * @param arg the argument definition to analyse
     * @return `arg`, annotated with tail position metadata
     */
-  def analyseDefArgument(arg: DefinitionArgument): DefinitionArgument = {
+  private def analyseDefArgument(
+    arg: DefinitionArgument
+  ): DefinitionArgument = {
     arg match {
-      case arg @ DefinitionArgument.Specified(_, _, default, _, _, _, _) =>
+      case arg @ DefinitionArgument.Specified(_, _, default, _, _, _) =>
         arg
           .copy(
             defaultValue = default.map(x =>

@@ -205,7 +205,6 @@ class GlobalNamesTest extends CompilerTest {
         case errors.Resolution(
               name,
               _: errors.Resolution.ResolverError,
-              _,
               _
             ) =>
           name
@@ -227,7 +226,6 @@ class GlobalNamesTest extends CompilerTest {
         case errors.Resolution(
               name,
               _: errors.Resolution.ResolverError,
-              _,
               _
             ) =>
           name

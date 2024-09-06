@@ -71,7 +71,6 @@ final class SuggestionBuilder[A: IndexedSource](
                 params,
                 List(),
                 _,
-                _,
                 _
               ) =>
             val tpe =
@@ -83,7 +82,6 @@ final class SuggestionBuilder[A: IndexedSource](
                 params,
                 members,
                 _,
-                _,
                 _
               ) =>
             val tpe =
@@ -93,7 +91,6 @@ final class SuggestionBuilder[A: IndexedSource](
                     name,
                     arguments,
                     annotations,
-                    _,
                     isPrivate,
                     _,
                     _
@@ -123,7 +120,7 @@ final class SuggestionBuilder[A: IndexedSource](
 
           case m @ definition.Method
                 .Explicit(
-                  Name.MethodReference(typePtr, methodName, _, _, _),
+                  Name.MethodReference(typePtr, methodName, _, _),
                   Function.Lambda(args, body, _, _, _, _),
                   _,
                   _,
@@ -162,10 +159,9 @@ final class SuggestionBuilder[A: IndexedSource](
 
           case conversionMeth @ definition.Method
                 .Conversion(
-                  Name.MethodReference(typePtr, _, _, _, _),
+                  Name.MethodReference(typePtr, _, _, _),
                   _,
                   Function.Lambda(args, body, _, _, _, _),
-                  _,
                   _,
                   _
                 ) if !conversionMeth.isPrivate =>
@@ -187,7 +183,6 @@ final class SuggestionBuilder[A: IndexedSource](
                 name,
                 Function.Lambda(args, body, _, _, _, _),
                 _,
-                _,
                 _
               ) if name.location.isDefined =>
             val typeSignature = ir.getMetadata(TypeSignatures)
@@ -206,7 +201,7 @@ final class SuggestionBuilder[A: IndexedSource](
             )
             go(tree += Tree.Node(function, subforest), scope)
 
-          case Expression.Binding(name, expr, _, _, _)
+          case Expression.Binding(name, expr, _, _)
               if name.location.isDefined =>
             val typeSignature = ir.getMetadata(TypeSignatures)
             val local = buildLocal(
@@ -571,7 +566,6 @@ final class SuggestionBuilder[A: IndexedSource](
                 defaultValue,
                 suspended,
                 _,
-                _,
                 _
               ) +: vtail =>
             if (isStatic) {
@@ -770,7 +764,7 @@ final class SuggestionBuilder[A: IndexedSource](
     */
   private def buildDefaultValue(expr: IR): String =
     expr match {
-      case Application.Prefix(name, path, _, _, _, _) =>
+      case Application.Prefix(name, path, _, _, _) =>
         path.map(_.value.showCode()).mkString(".") + "." + name.showCode()
       case other => other.showCode()
     }

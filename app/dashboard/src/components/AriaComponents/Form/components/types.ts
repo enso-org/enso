@@ -10,26 +10,27 @@ import type * as z from 'zod'
 import type { FormEvent } from 'react'
 import type * as schemaModule from './schema'
 
-/**
- * Field values type.
- */
-// eslint-disable-next-line no-restricted-syntax
+/** The type of the inputs to the form, used for UI inputs. */
 export type FieldValues<Schema extends TSchema | undefined> =
-  Schema extends TSchema ? z.infer<Schema> : reactHookForm.FieldValues
+  Schema extends TSchema ? z.input<Schema> : reactHookForm.FieldValues
+
+/** The type of the outputs of the form, used for the callback. */
+export type TransformedValues<Schema extends TSchema | undefined> =
+  Schema extends TSchema ? z.output<Schema> : reactHookForm.FieldValues
 
 /**
  * Field path type.
  * @alias reactHookForm.FieldPath
  */
-export type FieldPath<
-  Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-> = reactHookForm.FieldPath<TFieldValues>
+export type FieldPath<Schema extends TSchema> = reactHookForm.FieldPath<FieldValues<Schema>>
 
 /**
  * Schema type
  */
-export type TSchema = z.AnyZodObject | z.ZodEffects<z.AnyZodObject>
+export type TSchema =
+  | z.AnyZodObject
+  | z.ZodEffects<z.AnyZodObject>
+  | z.ZodEffects<z.ZodEffects<z.AnyZodObject>>
 
 /**
  * OnSubmitCallbacks type.
@@ -76,8 +77,6 @@ export interface OnSubmitCallbacks<
  */
 export interface UseFormProps<
   Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
   SubmitResult = void,
 > extends Omit<
       reactHookForm.UseFormProps<TFieldValues>,
@@ -129,15 +128,38 @@ export interface UseFormRegisterReturn<
 }
 
 /**
+ * Register function for a form field.
+ */
+export type UseFormRegister<Schema extends TSchema> = <
+  TFieldName extends FieldPath<Schema> = FieldPath<Schema>,
+>(
+  name: TFieldName,
+  options?: reactHookForm.RegisterOptions<FieldValues<Schema>, TFieldName>,
+  // eslint-disable-next-line no-restricted-syntax
+) => UseFormRegisterReturn<Schema, TFieldName>
+
+/**
+ * UseFormRegister return type.
+ */
+export interface UseFormRegisterReturn<
+  Schema extends TSchema,
+  TFieldName extends FieldPath<Schema> = FieldPath<Schema>,
+> extends Omit<reactHookForm.UseFormRegisterReturn<TFieldName>, 'onBlur' | 'onChange'> {
+  // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+  readonly onChange: <Value>(value: Value) => Promise<boolean | void>
+  // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+  readonly onBlur: <Value>(value: Value) => Promise<boolean | void>
+  readonly isDisabled?: boolean
+  readonly isRequired?: boolean
+  readonly isInvalid?: boolean
+}
+
+/**
  * Return type of the useForm hook.
  * @alias reactHookForm.UseFormReturn
  */
-export interface UseFormReturn<
-  Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
-> extends Omit<
-    reactHookForm.UseFormReturn<TFieldValues, unknown, TTransformedValues>,
+export interface UseFormReturn<Schema extends TSchema> extends Omit<
+  reactHookForm.UseFormReturn<FieldValues<Schema>, unknown, TransformedValues<Schema>>,
     'resetOptions' | 'resolver'
   > {
   readonly register: UseFormRegister<Schema, TFieldValues>
@@ -150,20 +172,13 @@ export interface UseFormReturn<
  * Form state type.
  * @alias reactHookForm.FormState
  */
-export type FormState<
-  Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-> = reactHookForm.FormState<TFieldValues>
+export type FormState<Schema extends TSchema> = reactHookForm.FormState<FieldValues<Schema>>
 
 /**
  * Form instance type
  * @alias UseFormReturn
  */
-export type FormInstance<
-  Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema> = FieldValues<Schema>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
-> = UseFormReturn<Schema, TFieldValues, TTransformedValues>
+export type FormInstance<Schema extends TSchema> = UseFormReturn<Schema>
 
 /**
  * Form type interface that check if FieldValues type is compatible with the value type from component
@@ -171,21 +186,20 @@ export type FormInstance<
 export interface FormWithValueValidation<
   BaseValueType,
   Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TFieldName extends FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
+  TFieldName extends FieldPath<Schema>,
+  // It is not ideal to have this as a parameter as it can be edited, but this is the simplest way
+  // to avoid distributive conditional types to affect the error message. We want distributivity
+  // to happen, just not for the error message itself.
   ErrorType = [
     'Type mismatch: Expected',
-    TFieldValues[TFieldName],
+    FieldValues<Schema>[TFieldName],
     'got',
     BaseValueType,
     'instead.',
   ],
 > {
   readonly form?:
-    | (BaseValueType extends TFieldValues[TFieldName] ?
-        FormInstance<Schema, TFieldValues, TTransformedValues>
-      : ErrorType)
+    | (BaseValueType extends FieldValues<Schema>[TFieldName] ? FormInstance<Schema> : ErrorType)
     | undefined
 }
 

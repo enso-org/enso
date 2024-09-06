@@ -38,6 +38,10 @@ export const ALL_PATHS_REGEX = new RegExp(
 // === Constants related to URLs ===
 
 export const SEARCH_PARAMS_PREFIX = 'cloud-ide_'
+/** Return the email address for contacting support. */
+export const SUPPORT_EMAIL = 'cloud@enso.org'
+/** Return the `mailto:` URL for contacting support. */
+export const SUPPORT_EMAIL_URL = `mailto:${SUPPORT_EMAIL}`
 
 /**
  * Build a Subscription URL for a given plan.

@@ -287,3 +287,10 @@ match : Match
 match =
     pattern = Regex.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
     pattern.match "aa ab abc a bc bcd"
+
+## PRIVATE
+   The welcome file for Enso.
+welcome : File
+welcome =
+    file = data_dir / "welcome.csv"
+    file

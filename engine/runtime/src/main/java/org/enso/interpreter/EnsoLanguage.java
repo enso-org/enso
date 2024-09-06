@@ -267,7 +267,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
         if (optionTupple.nonEmpty()) {
           var newInlineContext = optionTupple.get()._1();
           var ir = optionTupple.get()._2();
-          var sco = newInlineContext.localScope().getOrElse(LocalScope::root);
+          var sco = newInlineContext.localScope().getOrElse(LocalScope::empty);
           var mod = newInlineContext.getModule();
           var m = org.enso.interpreter.runtime.Module.fromCompilerModule(mod);
           var toTruffle =

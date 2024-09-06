@@ -4,9 +4,9 @@
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type { PropsWithChildren } from 'react'
 import { createContext, useContext, useMemo, useState } from 'react'
-import type { UseFormRegisterReturn } from 'react-hook-form'
 import type { StoreApi } from 'zustand'
 import { createStore } from 'zustand'
+import type { TSchema, UseFormRegisterReturn } from '../Form'
 
 /**
  * Context for the checkbox.
@@ -57,7 +57,7 @@ interface CheckBoxGroupPropsStateInsideGroup {
   readonly insideGroup: true
   readonly selected: Set<string>
   readonly name: string
-  readonly field: UseFormRegisterReturn<string>
+  readonly field: UseFormRegisterReturn<TSchema>
 }
 
 /**
@@ -73,8 +73,8 @@ interface CheckBoxGroupPropsStateOutsideGroup {
 export interface CheckboxGroupProviderProps extends PropsWithChildren {
   readonly name: string
   readonly onChange: (selected: string[]) => void
-  readonly field: UseFormRegisterReturn<string>
-  readonly defaultValue?: string[]
+  readonly field: UseFormRegisterReturn<TSchema>
+  readonly defaultValue?: string[] | undefined
 }
 
 /**
@@ -92,6 +92,8 @@ export function CheckboxGroupProvider(props: CheckboxGroupProviderProps) {
     })),
   )
 
+  const onChangeStableCallback = useEventCallback(onChange)
+
   const addSelected = useEventCallback((selected: string) => {
     store.setState((state) => {
       if (state.selected.has(selected)) {
@@ -100,7 +102,7 @@ export function CheckboxGroupProvider(props: CheckboxGroupProviderProps) {
         const nextSelected = new Set(state.selected)
         nextSelected.add(selected)
 
-        onChange(Array.from(nextSelected))
+        onChangeStableCallback(Array.from(nextSelected))
 
         return { selected: nextSelected }
       }
@@ -115,7 +117,7 @@ export function CheckboxGroupProvider(props: CheckboxGroupProviderProps) {
         const nextSelected = new Set(state.selected)
         nextSelected.delete(selected)
 
-        onChange(Array.from(nextSelected))
+        onChangeStableCallback(Array.from(nextSelected))
 
         return { selected: nextSelected }
       }
@@ -131,7 +133,7 @@ export function CheckboxGroupProvider(props: CheckboxGroupProviderProps) {
         nextSelected.add(selected)
       }
 
-      onChange(Array.from(nextSelected))
+      onChangeStableCallback(Array.from(nextSelected))
 
       return { selected: nextSelected }
     })

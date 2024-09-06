@@ -9,33 +9,21 @@ import {
   type SwitchProps as AriaSwitchProps,
 } from '#/components/aria'
 import { mergeRefs } from '#/utilities/mergeRefs'
-import type { CSSProperties, ForwardedRef, ReactElement, RefAttributes } from 'react'
-import { forwardRef, useRef } from 'react'
+import { forwardRef } from '#/utilities/react'
+import type { CSSProperties, ForwardedRef } from 'react'
+import { useRef } from 'react'
 import { tv, type VariantProps } from 'tailwind-variants'
-import {
-  Form,
-  type FieldPath,
-  type FieldProps,
-  type FieldStateProps,
-  type FieldValues,
-  type TSchema,
-} from '../Form'
+import { Form, type FieldPath, type FieldProps, type FieldStateProps, type TSchema } from '../Form'
 import { TEXT_STYLE } from '../Text'
 
 /**
  * Props for the {@Switch} component.
  */
-export interface SwitchProps<
-  Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TFieldName extends FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
-> extends FieldStateProps<
+export interface SwitchProps<Schema extends TSchema, TFieldName extends FieldPath<Schema>>
+  extends FieldStateProps<
       Omit<AriaSwitchProps, 'children' | 'size' | 'value'> & { value: boolean },
       Schema,
-      TFieldValues,
-      TFieldName,
-      TTransformedValues
+      TFieldName
     >,
     FieldProps,
     Omit<VariantProps<typeof SWITCH_STYLES>, 'disabled' | 'invalid'> {
@@ -77,13 +65,8 @@ export const SWITCH_STYLES = tv({
 // eslint-disable-next-line no-restricted-syntax
 export const Switch = forwardRef(function Switch<
   Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TFieldName extends FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
->(
-  props: SwitchProps<Schema, TFieldValues, TFieldName, TTransformedValues>,
-  ref: ForwardedRef<HTMLFieldSetElement>,
-) {
+  TFieldName extends FieldPath<Schema>,
+>(props: SwitchProps<Schema, TFieldName>, ref: ForwardedRef<HTMLFieldSetElement>) {
   const {
     label,
     isDisabled = false,
@@ -120,10 +103,7 @@ export const Switch = forwardRef(function Switch<
     background,
     label: labelStyle,
     switch: switchStyles,
-  } = SWITCH_STYLES({
-    size,
-    disabled: fieldProps.disabled,
-  })
+  } = SWITCH_STYLES({ size, disabled: fieldProps.disabled })
 
   return (
     <Form.Field
@@ -159,12 +139,4 @@ export const Switch = forwardRef(function Switch<
       </AriaSwitch>
     </Form.Field>
   )
-}) as <
-  Schema extends TSchema,
-  TFieldValues extends FieldValues<Schema>,
-  TFieldName extends FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends FieldValues<Schema> | undefined = undefined,
->(
-  props: RefAttributes<HTMLInputElement> &
-    SwitchProps<Schema, TFieldValues, TFieldName, TTransformedValues>,
-) => ReactElement
+})

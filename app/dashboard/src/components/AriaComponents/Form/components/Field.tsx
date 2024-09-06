@@ -3,13 +3,13 @@
  *
  * Field component
  */
-
 import * as React from 'react'
 
 import * as aria from '#/components/aria'
 
-import { useText } from '#/providers/TextProvider'
+import { forwardRef } from '#/utilities/react'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
+import type { Path } from 'react-hook-form'
 import * as text from '../../Text'
 import { Form } from '../Form'
 import * as formContext from './FormProvider'
@@ -18,11 +18,12 @@ import type * as types from './types'
 /**
  * Props for Field component
  */
-export interface FieldComponentProps extends VariantProps<typeof FIELD_STYLES>, types.FieldProps {
+export interface FieldComponentProps<Schema extends types.TSchema>
+  extends VariantProps<typeof FIELD_STYLES>,
+    types.FieldProps {
   readonly 'data-testid'?: string | undefined
-  readonly name: string
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly form?: types.FormInstance<any, any, any> | undefined
+  readonly name: Path<types.FieldValues<Schema>>
+  readonly form?: types.FormInstance<Schema> | undefined
   readonly isInvalid?: boolean | undefined
   readonly className?: string | undefined
   readonly children?: React.ReactNode | ((props: FieldChildrenRenderProps) => React.ReactNode)
@@ -68,12 +69,14 @@ export const FIELD_STYLES = tv({
 /**
  * Field component
  */
-export const Field = React.forwardRef(function Field(
-  props: FieldComponentProps,
+// eslint-disable-next-line no-restricted-syntax
+export const Field = forwardRef(function Field<Schema extends types.TSchema>(
+  props: FieldComponentProps<Schema>,
   ref: React.ForwardedRef<HTMLFieldSetElement>,
 ) {
   const {
-    form = formContext.useFormContext(),
+    // eslint-disable-next-line no-restricted-syntax
+    form = formContext.useFormContext() as unknown as types.FormInstance<Schema>,
     isInvalid,
     children,
     className,
@@ -86,7 +89,6 @@ export const Field = React.forwardRef(function Field(
     isRequired = false,
     variants = FIELD_STYLES,
   } = props
-  const { getText } = useText()
 
   const labelId = React.useId()
   const descriptionId = React.useId()
@@ -94,7 +96,11 @@ export const Field = React.forwardRef(function Field(
 
   const fieldState = Form.useFieldState({ form, name })
 
-  const invalid = isInvalid === true || fieldState.hasError
+  const classes = variants({
+    fullWidth,
+    isInvalid: invalid,
+    isHidden,
+  })
 
   const classes = variants({ fullWidth, isInvalid: invalid, isHidden })
 
@@ -148,7 +154,7 @@ export const Field = React.forwardRef(function Field(
       )}
 
       {hasError && (
-        <span aria-label={getText('fieldErrorLabel')} id={errorId} className={classes.error()}>
+        <span data-testid="error" id={errorId} className={classes.error()}>
           {error ?? fieldState.error}
         </span>
       )}
