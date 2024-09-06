@@ -31,7 +31,9 @@ add_specs suite_builder prefix create_connection_func =
             data.teardown
 
         entity_naming_properties = data.connection.base_connection.entity_naming_properties
-        max_table_name_length = entity_naming_properties.for_table_names.size_limit
+        max_table_name_length = case data.connection.dialect.temp_table_style of
+            Temp_Table_Style.Temporary_Table -> entity_naming_properties.for_table_names.size_limit
+            Temp_Table_Style.Hash_Prefix -> entity_naming_properties.for_table_names.size_limit - 13
         max_column_name_length = entity_naming_properties.for_column_names.size_limit
         has_maximum_table_name_length = max_table_name_length.is_nothing.not
         has_maximum_column_name_length = max_column_name_length.is_nothing.not
