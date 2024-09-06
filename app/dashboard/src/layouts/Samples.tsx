@@ -47,28 +47,28 @@ export const SAMPLES: Sample[] = [
   },
   {
     title: 'Reading and Filterng Data',
-    id: 'GettingStartedReading',
+    id: 'Getting_Started_Reading',
     description: "Learn how to bring data into Enso.",
     background: `url("${ReadAndFilterImage}") center / cover`,
     group: 'Getting Started'
   },
   {
     title: 'Aggregating and Pivoting',
-    id: 'GettingStartedAggregating',
+    id: 'Getting_Started_Aggregating',
     description: "Learn how to group and aggregate data, and pivot.",
     background: `url("${AggregatingImage}") center / cover`,
     group: 'Getting Started'
   },
   {
     title: 'Cleaning and Parsing Data',
-    id: 'GettingStartedCleansing',
+    id: 'Getting_Started_Cleansing',
     description: "Learn how to cleanse and parse text values.",
     background: `url("${CleansingImage}") center / cover`,
     group: 'Getting Started'
   },
   {
     title: 'Selecting Columns and Joining Tables',
-    id: 'GettingStartedSelecting',
+    id: 'Getting_Started_Selecting',
     description: "Learn how to choose columns and join tables.",
     background: `url("${JoinImage}") center / cover`,
     group: 'Getting Started'
@@ -98,12 +98,12 @@ export const SAMPLES: Sample[] = [
     title: 'Combine spreadsheets',
     id: 'Orders',
     description: 'Glue multiple spreadsheets together to analyse all your data at once.',
-    background: `url('${SpreadsheetsImage}') center / 50% no-repeat, rgba(255, 255, 255, 0.30)`,
+    background: `url("${SpreadsheetsImage}") center / 50% no-repeat, rgba(255, 255, 255, 0.30)`,
     group: 'Examples'
   },
   {
     title: 'Month on Month Sales',
-    id: 'MonthlySales',
+    id: 'Monthly_Sales',
     description: 'Learn how to compare with previous month sales.',
     background: `url("${MonthSalesImage}") center / cover`,
     group: 'Examples'
@@ -117,7 +117,7 @@ export const SAMPLES: Sample[] = [
   },
   {
     title: 'Web API analysis',
-    id: 'BankHolidayRain',
+    id: 'Bank_Holiday_Rain',
     description: 'Learn whether it rains on UK Bank Holidays via REST APIs.',
     background: `url('${WeatherImage}') center / 100% no-repeat, rgba(255, 255, 255, 0.30)`,
     group: 'Examples'
