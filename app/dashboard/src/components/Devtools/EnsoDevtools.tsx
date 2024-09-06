@@ -9,7 +9,9 @@ import * as reactQuery from '@tanstack/react-query'
 
 import { IS_DEV_MODE } from 'enso-common/src/detect'
 
+import cross from '#/assets/cross.svg'
 import DevtoolsLogo from '#/assets/enso_logo.svg'
+import trash from '#/assets/trash.svg'
 
 import { SETUP_PATH } from '#/appUtils'
 
@@ -29,7 +31,6 @@ import Portal from '#/components/Portal'
 
 import {
   Button,
-  ButtonGroup,
   Form,
   Popover,
   Radio,
@@ -158,30 +159,43 @@ export function EnsoDevtools() {
 
           <Separator orientation="horizontal" className="my-3" />
 
-          <Text variant="subtitle" className="mb-2">
-            {getText('localStorage')}
-          </Text>
+          <div className="mb-2 flex w-full items-center justify-between">
+            <Text variant="subtitle">{getText('localStorage')}</Text>
 
-          {unsafeEntries(LocalStorage.keyMetadata).map(([key]) => (
-            <div className="flex gap-1">
-              <ButtonGroup className="grow-0">
+            <Button
+              aria-label={getText('deleteAll')}
+              size="small"
+              variant="icon"
+              icon={trash}
+              onPress={() => {
+                for (const [key] of unsafeEntries(LocalStorage.keyMetadata)) {
+                  localStorage.delete(key)
+                }
+              }}
+            />
+          </div>
+
+          <div className="flex flex-col gap-0.5">
+            {unsafeEntries(LocalStorage.keyMetadata).map(([key]) => (
+              <div key={key} className="flex w-full items-center justify-between gap-1">
+                <Text variant="body">
+                  {key
+                    .replace(/[A-Z]/g, (m) => ' ' + m.toLowerCase())
+                    .replace(/^./, (m) => m.toUpperCase())}
+                </Text>
+
                 <Button
+                  variant="icon"
                   size="small"
-                  variant="outline"
+                  aria-label={getText('delete')}
+                  icon={cross}
                   onPress={() => {
                     localStorage.delete(key)
                   }}
-                >
-                  {getText('delete')}
-                </Button>
-              </ButtonGroup>
-              <Text variant="body">
-                {key
-                  .replace(/[A-Z]/g, (m) => ' ' + m.toLowerCase())
-                  .replace(/^./, (m) => m.toUpperCase())}
-              </Text>
-            </div>
-          ))}
+                />
+              </div>
+            ))}
+          </div>
 
           <ariaComponents.Separator orientation="horizontal" className="my-3" />
 

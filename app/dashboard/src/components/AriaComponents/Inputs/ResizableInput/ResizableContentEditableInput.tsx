@@ -3,6 +3,7 @@
  */
 import { useRef, type ClipboardEvent, type ForwardedRef, type HTMLAttributes } from 'react'
 
+import type { FieldVariantProps } from '#/components/AriaComponents'
 import {
   Form,
   Text,
@@ -30,8 +31,16 @@ export interface ResizableContentEditableInputProps<
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema>,
 > extends FieldStateProps<HTMLAttributes<HTMLDivElement> & { value: string }, Schema, TFieldName>,
+    Pick<
+      VariantProps<typeof INPUT_STYLES>,
+      'disabled' | 'invalid' | 'rounded' | 'size' | 'variant'
+    >,
     Omit<FieldProps, 'variant'>,
-    Omit<VariantProps<typeof INPUT_STYLES>, 'disabled' | 'invalid'> {
+    FieldVariantProps,
+    Omit<
+      VariantProps<typeof CONTENT_EDITABLE_STYLES>,
+      'disabled' | 'invalid' | 'rounded' | 'size' | 'variant'
+    > {
   /**
    * onChange is called when the content of the input changes.
    * There is no way to prevent the change, so the value is always the new value.
@@ -63,6 +72,8 @@ export const ResizableContentEditableInput = forwardRef(function ResizableConten
     size,
     rounded,
     variant,
+    variants = CONTENT_EDITABLE_STYLES,
+    fieldVariants,
     ...textFieldProps
   } = props
 
@@ -93,16 +104,22 @@ export const ResizableContentEditableInput = forwardRef(function ResizableConten
     inputContainer,
     textArea,
     placeholder: placeholderClass,
-  } = CONTENT_EDITABLE_STYLES({
-    variant,
+  } = variants({
     invalid: fieldState.invalid,
     disabled: isDisabled || formInstance.formState.isSubmitting,
+    variant,
     rounded,
     size,
   })
 
   return (
-    <Form.Field form={formInstance} name={name} fullWidth {...textFieldProps}>
+    <Form.Field
+      form={formInstance}
+      name={name}
+      fullWidth
+      variants={fieldVariants}
+      {...textFieldProps}
+    >
       <div
         className={base()}
         onClick={() => {

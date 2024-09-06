@@ -26,5 +26,6 @@ const props = defineProps<{ examples: Example[] }>()
   overflow-x: auto;
   margin: 0.05rem 0.1rem;
   box-shadow: inset 0 0 1px 0.5px rgba(0, 0, 0, 0.2);
+  font-family: var(--font-mono);
 }
 </style>
