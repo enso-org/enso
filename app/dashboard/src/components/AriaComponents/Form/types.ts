@@ -87,8 +87,8 @@ interface FormPropsWithOptions<Schema extends components.TSchema, SubmitResult =
   extends components.OnSubmitCallbacks<Schema, SubmitResult> {
   readonly schema: Schema | ((schema: typeof components.schema) => Schema)
   readonly formOptions?: Omit<
-    components.UseFormProps<Schema>,
-    'handleSubmit' | 'resolver' | 'schema'
+    components.UseFormProps<Schema, SubmitResult>,
+    'defaultValues' | 'onSubmit' | 'onSubmitFailed' | 'onSubmitSuccess' | 'onSubmitted'
   >
   readonly form?: never
 }

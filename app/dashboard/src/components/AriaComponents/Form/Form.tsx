@@ -29,7 +29,7 @@ export const Form = forwardRef(function Form<
     children,
     formRef,
     form,
-    formOptions = {},
+    formOptions,
     className,
     style,
     onSubmitted = () => {},
@@ -47,15 +47,13 @@ export const Form = forwardRef(function Form<
 
   const { getText } = textProvider.useText()
 
-  if (defaultValues) {
-    formOptions.defaultValues = defaultValues
-  }
-
   const dialogContext = dialog.useDialogContext()
 
   const onSubmit = useEventCallback(
     async (fieldValues: types.FieldValues<Schema>, formInstance: types.UseFormReturn<Schema>) => {
-      const result = await props.onSubmit?.(fieldValues, formInstance)
+      // This is SAFE because we're passing the result transparently, and it's typed outside
+      // eslint-disable-next-line no-restricted-syntax
+      const result = (await props.onSubmit?.(fieldValues, formInstance)) as SubmitResult
 
       if (method === 'dialog') {
         dialogContext?.close()
@@ -66,20 +64,18 @@ export const Form = forwardRef(function Form<
   )
 
   const innerForm = components.useForm<Schema, SubmitResult>(
-    form ??
-      // This is unsafe, but it is necessary to avoid a type error and make typescript happy here
-      // eslint-disable-next-line no-restricted-syntax
-      ({
-        schema,
-        canSubmitOffline,
-        onSubmit,
-        onSubmitFailed,
-        onSubmitSuccess,
-        onSubmitted,
-        shouldFocusError: true,
-        debugName: `Form ${testId} id: ${id}`,
-        ...formOptions,
-      } as components.UseFormProps<Schema, SubmitResult>),
+    form ?? {
+      ...formOptions,
+      ...(defaultValues ? { defaultValues } : {}),
+      schema,
+      canSubmitOffline,
+      onSubmit,
+      onSubmitFailed,
+      onSubmitSuccess,
+      onSubmitted,
+      shouldFocusError: true,
+      debugName: `Form ${testId} id: ${id}`,
+    },
   )
 
   React.useImperativeHandle(formRef, () => innerForm, [innerForm])

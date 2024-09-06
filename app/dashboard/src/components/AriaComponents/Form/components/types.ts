@@ -125,7 +125,7 @@ export interface UseFormRegisterReturn<
 export interface UseFormReturn<Schema extends TSchema>
   extends Omit<
     reactHookForm.UseFormReturn<FieldValues<Schema>, unknown, TransformedValues<Schema>>,
-    'resetOptions' | 'resolver'
+    'onSubmit' | 'resetOptions' | 'resolver'
   > {
   readonly register: UseFormRegister<Schema>
   readonly submit: (event?: FormEvent<HTMLFormElement> | null | undefined) => Promise<void>
