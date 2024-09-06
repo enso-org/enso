@@ -238,7 +238,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           {
             type: SettingsEntryType.input,
             nameId: 'localRootPathSettingsInput',
-            getValue: (context) => context.localBackend?.rootPath ?? '',
+            getValue: (context) => context.localBackend?.rootPath() ?? '',
             setValue: async (context, value) => {
               context.updateLocalRootPath(value)
               await Promise.resolve()
