@@ -41,10 +41,7 @@ type Table_Naming_Helper
             Nothing -> True
             max_size ->
                 name_size = self.naming_properties.encoded_size table_name
-                actual_max = case self.connection.dialect.temp_table_style of
-                    Temp_Table_Style.Temporary_Table -> max_size
-                    Temp_Table_Style.Hash_Prefix -> max_size - 13
-                name_size <= actual_max
+                name_size <= max_size
 
     ## PRIVATE
        Generates a temporary table name for the given table name, used for dry

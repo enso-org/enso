@@ -17,6 +17,7 @@ import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
 import Standard.Database.Dialect
 import Standard.Database.Internal.Base_Generator
+import Standard.Database.Internal.Base_Generator.lift_binary_op
 import Standard.Database.Internal.Common.Database_Distinct_Helper
 import Standard.Database.Internal.Common.Database_Join_Helper
 import Standard.Database.Internal.Error_Mapper.Error_Mapper
@@ -296,6 +297,8 @@ make_dialect_operations =
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     arith_extensions = [is_nan, is_inf, is_finite, floating_point_div, mod_op, decimal_div, decimal_mod, ["ROW_MIN", Base_Generator.make_function "LEAST"], ["ROW_MAX", Base_Generator.make_function "GREATEST"]]
     bool = [bool_or]
+    eq = lift_binary_op "==" make_equals
+    compare = [eq]
 
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
     stddev_samp = ["STDDEV_SAMP", Base_Generator.make_function "stddev_samp"]
@@ -303,7 +306,7 @@ make_dialect_operations =
     date_ops = [make_extract_as_int "year", make_extract_as_int "quarter", make_extract_as_int "month", make_extract_as_int "week", make_extract_as_int "day", make_extract_as_int "hour", make_extract_as_int "minute", make_extract_fractional_as_int "second", make_extract_fractional_as_int "millisecond" modulus=1000, make_extract_fractional_as_int "microsecond" modulus=1000, ["date_add", make_date_add], ["date_diff", make_date_diff], ["date_trunc_to_day", make_date_trunc_to_day]]
     special_overrides = [is_null]
     other = [["RUNTIME_ERROR", make_runtime_error_op]]
-    my_mappings = text + counts + stats + first_last_aggregators + arith_extensions + bool + date_ops + special_overrides + other
+    my_mappings = text + counts + stats + first_last_aggregators + arith_extensions + bool + compare + date_ops + special_overrides + other
     Base_Generator.base_dialect_operations . extend_with my_mappings
 
 ## PRIVATE
@@ -348,6 +351,10 @@ first_last_aggregators =
     last = make_first_aggregator reverse=True ignore_null=False
     last_not_null = make_first_aggregator reverse=True ignore_null=True
     [["FIRST", first], ["FIRST_NOT_NULL", first_not_null], ["LAST", last], ["LAST_NOT_NULL", last_not_null]]
+
+## PRIVATE
+make_equals a b =
+    SQL_Builder.code "CAST (CASE WHEN " ++ a.paren ++ " = " ++ b.paren ++ " THEN 1 ELSE 0 END AS BIT)"
 
 ## PRIVATE
 make_first_aggregator reverse ignore_null args =

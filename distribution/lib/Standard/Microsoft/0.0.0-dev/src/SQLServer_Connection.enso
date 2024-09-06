@@ -9,7 +9,6 @@ from Standard.Table import Table
 import Standard.Database.Column_Description.Column_Description
 import Standard.Database.Connection.Connection.Connection
 import Standard.Database.DB_Table.DB_Table
-import Standard.Database.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
 import Standard.Database.Internal.JDBC_Connection
 import Standard.Database.SQL_Query.SQL_Query
 import Standard.Database.SQL_Statement.SQL_Statement
@@ -18,6 +17,7 @@ from Standard.Database.Errors import SQL_Error, Table_Already_Exists, Table_Not_
 from Standard.Database.Internal.Upload.Helpers.Default_Arguments import first_column_name_in_structure
 
 import project.Internal.SQLServer_Dialect
+import project.Internal.SQLServer_Entity_Naming_Properties
 
 type SQLServer_Connection
     ## PRIVATE
@@ -31,8 +31,7 @@ type SQLServer_Connection
     create : Text -> Vector -> (Text -> Text -> SQLServer_Connection) -> SQLServer_Connection
     create url properties make_new =
         jdbc_connection = JDBC_Connection.create url properties
-        entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection is_case_sensitive=False
-        SQLServer_Connection.Value (Connection.new jdbc_connection SQLServer_Dialect.sqlserver entity_naming_properties) make_new
+        SQLServer_Connection.Value (Connection.new jdbc_connection SQLServer_Dialect.sqlserver SQLServer_Entity_Naming_Properties.new) make_new
 
     ## PRIVATE
 

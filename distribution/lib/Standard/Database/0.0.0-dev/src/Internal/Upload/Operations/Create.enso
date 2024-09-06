@@ -6,7 +6,7 @@ import Standard.Base.Runtime.Context
 
 import project.SQL_Query.SQL_Query
 from project.Errors import SQL_Error, Table_Already_Exists
-from project.Internal.Upload.Operations.Internal_Core import internal_create_table_structure
+from project.Internal.Upload.Operations.Internal_Core import internal_create_table_structure, resolve_temp_table_name
 
 ## PRIVATE
    Creates a new database table with the provided structure and returns the name
@@ -23,15 +23,16 @@ from project.Internal.Upload.Operations.Internal_Core import internal_create_tab
      intercepting the 'already exists' error.
 create_table_implementation connection table_name structure primary_key temporary allow_existing on_problems:Problem_Behavior =
     connection.base_connection.maybe_run_maintenance
+    resolved_table_name = resolve_temp_table_name connection temporary table_name
     table_naming_helper = connection.base_connection.table_naming_helper
     on_exists =
-        if allow_existing then connection.query (SQL_Query.Table_Name table_name) else Error.throw (Table_Already_Exists.Error table_name)
-    table_naming_helper.verify_table_name table_name <|
-        case connection.base_connection.table_exists table_name of
+        if allow_existing then connection.query (SQL_Query.Table_Name resolved_table_name) else Error.throw (Table_Already_Exists.Error resolved_table_name)
+    table_naming_helper.verify_table_name resolved_table_name <|
+        case connection.base_connection.table_exists resolved_table_name of
             True -> on_exists
             False ->
                 dry_run = Context.Output.is_enabled.not
-                effective_table_name = if dry_run.not then table_name else table_naming_helper.generate_dry_run_table_name table_name
+                effective_table_name = if dry_run.not then table_name else table_naming_helper.generate_dry_run_table_name resolved_table_name
                 effective_temporary = temporary || dry_run
                 created_table_name = Context.Output.with_enabled <|
                     if dry_run then
@@ -53,5 +54,5 @@ create_table_implementation connection table_name structure primary_key temporar
                             # If the table was just created by someone else
                             case dry_run of
                                 # If this was a dry-run, we had a race condition - to ensure correct structure, we re-try the whole operation
-                                True -> create_table_implementation connection table_name structure primary_key temporary allow_existing on_problems
+                                True -> create_table_implementation connection resolved_table_name structure primary_key temporary allow_existing on_problems
                                 False -> on_exists
