@@ -347,12 +347,18 @@ public class BenchProcessor extends AbstractProcessor {
                   @TearDown
                   public void checkNoTruffleCompilation(BenchmarkParams params) {
                     if (compilationMessagesFound) {
+                      var limit = Boolean.getBoolean("bench.all") ? 10 : Integer.MAX_VALUE;
                       for (var l : compilationLog.toString().split("\\n")) {
                         var pipe = l.indexOf('|');
                         if (pipe > 0) {
                           l = l.substring(0, pipe);
                         }
                         System.out.println(l);
+                        if (limit-- <= 0) {
+                          System.out.println("... to see more use:");
+                          System.out.println("benchOnly " + params.getBenchmark());
+                          break;
+                        }
                       }
                     }
                   }

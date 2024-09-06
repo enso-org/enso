@@ -26,6 +26,9 @@ public class BenchmarksRunner {
   public static final File REPORT_FILE = new File("./bench-report.xml");
 
   public static void run(String[] args) throws RunnerException {
+    if (args.length == 0) {
+      args = new String[] {"--jvmArgs=-Dbench.all=true"};
+    }
     CommandLineOptions cmdOpts = null;
     try {
       cmdOpts = new CommandLineOptions(args);
