@@ -3,6 +3,7 @@ import LoadingSpinner from '@/components/LoadingSpinner.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useBackendQuery, useBackendQueryPrefetching } from '@/composables/backend'
+import { useProjectStore } from '@/stores/project'
 import type { ToValue } from '@/util/reactivity'
 import type {
   DirectoryAsset,
@@ -33,6 +34,12 @@ const directoryStack = ref<Directory[]>([
   },
 ])
 const currentDirectory = computed(() => directoryStack.value[directoryStack.value.length - 1]!)
+const currentUser = useBackendQuery('usersMe', [])
+const currentPath = computed(
+  () =>
+    currentUser.data.value &&
+    `enso://Users/${currentUser.data.value.name}${Array.from(directoryStack.value.slice(1), (frame) => '/' + frame.title).join()}`,
+)
 
 // === Directory Contents ===
 
@@ -75,15 +82,6 @@ interface File {
 
 const selectedFile = ref<File>()
 
-function getFileDetailsArgs(parameters: ToValue<File | undefined>) {
-  return computed<Parameters<Backend['getFileDetails']> | undefined>(() => {
-    const paramsValue = toValue(parameters)
-    return paramsValue ? [paramsValue.id, paramsValue.title] : undefined
-  })
-}
-
-const selectedFileDetails = useBackendQuery('getFileDetails', getFileDetailsArgs(selectedFile))
-
 // === Prefetching ===
 
 watch(directories, (directories) => {
@@ -92,11 +90,6 @@ watch(directories, (directories) => {
   // changed since they last viewed.
   for (const directory of directories ?? [])
     ensureQueryData('listDirectory', listDirectoryArgs(directory))
-})
-
-watch(files, (files) => {
-  // Prefetch file info to avoid lag when the user makes a selection.
-  for (const file of files ?? []) prefetch('getFileDetails', getFileDetailsArgs(file))
 })
 
 // === Interactivity ===
@@ -114,17 +107,17 @@ function chooseFile(file: FileAsset) {
 }
 
 const isBusy = computed(
-  () => isPending.value || (selectedFile.value && selectedFileDetails.isPending.value),
+  () => isPending.value || (selectedFile.value && currentUser.isPending.value),
 )
 
 const anyError = computed(() =>
   isError.value ? error
-  : selectedFileDetails.isError.value ? selectedFileDetails.error
+  : currentUser.isError.value ? currentUser.error
   : undefined,
 )
 
-watch(selectedFileDetails.data, (details) => {
-  if (details) emit('pathSelected', details.file.path)
+watch(selectedFile, (file) => {
+  if (file && currentPath.value) emit('pathSelected', `${currentPath.value}/${file.title}`)
 })
 </script>
 
