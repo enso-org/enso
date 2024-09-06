@@ -1042,6 +1042,7 @@ export interface InviteUserRequestBody {
 /** HTTP response body for the "list invitations" endpoint. */
 export interface ListInvitationsResponseBody {
   readonly invitations: readonly Invitation[]
+  readonly availableLicenses: number
 }
 
 /** Invitation to join an organization. */
@@ -1355,7 +1356,7 @@ export default abstract class Backend {
   /** Invite a new user to the organization by email. */
   abstract inviteUser(body: InviteUserRequestBody): Promise<void>
   /** Return a list of invitations to the organization. */
-  abstract listInvitations(): Promise<readonly Invitation[]>
+  abstract listInvitations(): Promise<ListInvitationsResponseBody>
   /** Delete an outgoing invitation. */
   abstract deleteInvitation(userEmail: EmailAddress): Promise<void>
   /** Resend an outgoing invitation. */

@@ -41,7 +41,7 @@ export const ALERT_STYLES = tv({
     fullWidth: true,
     variant: 'error',
     size: 'medium',
-    rounded: 'large',
+    rounded: 'xlarge',
   },
 })
 

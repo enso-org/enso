@@ -108,7 +108,13 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
   const labelMap = new Map<backend.TagId, backend.Label>()
   const users: backend.User[] = [defaultUser]
   const usersMap = new Map<backend.UserId, backend.User>()
-  const userGroups: backend.UserGroupInfo[] = []
+  const userGroups: backend.UserGroupInfo[] = [
+    {
+      id: backend.UserGroupId('usergroup-1'),
+      groupName: 'User Group 1',
+      organizationId: currentOrganization.id,
+    },
+  ]
 
   usersMap.set(defaultUser.userId, defaultUser)
 
@@ -528,7 +534,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       }
     })
     await get(remoteBackendPaths.LIST_USER_GROUPS_PATH + '*', async (route) => {
-      await route.fulfill({ json: [] })
+      await route.fulfill({ json: userGroups })
     })
     await get(remoteBackendPaths.LIST_VERSIONS_PATH + '*', (_route, request) => ({
       versions: [
@@ -622,7 +628,10 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
 
     await get(remoteBackendPaths.INVITATION_PATH + '*', async (route) => {
       await route.fulfill({
-        json: { invitations: [] } satisfies backend.ListInvitationsResponseBody,
+        json: {
+          invitations: [],
+          availableLicenses: 0,
+        } satisfies backend.ListInvitationsResponseBody,
       })
     })
     await post(remoteBackendPaths.INVITE_USER_PATH + '*', async (route) => {
