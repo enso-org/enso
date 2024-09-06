@@ -315,15 +315,15 @@ is_null = Base_Generator.lift_unary_op "IS_NULL" arg->
 
 ## PRIVATE
 agg_count_is_null = Base_Generator.lift_unary_op "COUNT_IS_NULL" arg->
-    SQL_Builder.code "COUNT_IF(" ++ arg.paren ++ " IS NULL)"
+    SQL_Builder.code "SUM(CASE WHEN " ++ arg.paren ++ " IS NULL THEN 1 ELSE 0 END)"
 
 ## PRIVATE
 agg_count_empty = Base_Generator.lift_unary_op "COUNT_EMPTY" arg->
-    SQL_Builder.code "COUNT_IF("++ arg.paren ++ " IS NULL OR " ++ arg.paren ++ " == '')"
+    SQL_Builder.code "SUM(CASE WHEN (" ++ arg.paren ++ " IS NULL) OR (" ++ arg.paren ++ " = '') THEN 1 ELSE 0 END)"
 
 ## PRIVATE
 agg_count_not_empty = Base_Generator.lift_unary_op "COUNT_NOT_EMPTY" arg->
-    SQL_Builder.code "COUNT_IF(" ++ arg.paren ++ " IS NOT NULL AND " ++ arg.paren ++ " != '')"
+    SQL_Builder.code "SUM(CASE WHEN (" ++ arg.paren ++ " IS NOT NULL) AND (" ++ arg.paren ++ " != '') THEN 1 ELSE 0 END)"
 
 ## PRIVATE
 agg_median = Base_Generator.lift_unary_op "MEDIAN" arg->
