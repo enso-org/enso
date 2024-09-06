@@ -174,9 +174,6 @@ function ProjectTile(props: InternalProjectTileProps) {
           </FocusRing>
         )}
       </FocusArea>
-      {/* Although this component is instantiated multiple times, it has a unique role and hence
-       * its own opacity. */}
-      {/* eslint-disable-next-line no-restricted-syntax */}
     </div>
   )
 }

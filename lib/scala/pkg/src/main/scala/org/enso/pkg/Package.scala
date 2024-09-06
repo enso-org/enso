@@ -468,7 +468,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
           "showdata.gif",
           "simpleexpression.gif",
           "table_solution.png",
-          "table_viz.png",
+          "table_viz.png"
         )
         copyTemplateFiles(pkg, "getting_started_reading", srcFiles, List())
 
@@ -478,17 +478,22 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
           "answer_table.png",
           "eags.png",
           "set.gif",
-          "table1.png",
+          "table1.png"
         )
         val dataFiles = List(
           "sample_bank_data.xlsx"
         )
-        copyTemplateFiles(pkg, "getting_started_aggregating", srcFiles, dataFiles)
+        copyTemplateFiles(
+          pkg,
+          "getting_started_aggregating",
+          srcFiles,
+          dataFiles
+        )
 
       case Template.GettingStartedCleansing =>
         val srcFiles = List(
           Package.mainFileName,
-          "eags.png",
+          "eags.png"
         )
         val dataFiles = List(
           "crm_data.csv"
@@ -500,7 +505,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
           Package.mainFileName,
           "eags.png",
           "table1.png",
-          "table2.png",
+          "table2.png"
         )
         val dataFiles = List(
           "crm_data.csv",
