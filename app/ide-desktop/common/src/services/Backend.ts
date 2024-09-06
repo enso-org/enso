@@ -505,8 +505,8 @@ export interface CreateCustomerPortalSessionResponse {
   readonly url: string | null
 }
 
-/** Whether the user is in an organization. */
-export function isUserInOrganization(user: User) {
+/** Whether the user is on a plan associated with an organization. */
+export function isUserOnPlanWithOrganization(user: User) {
   switch (user.plan) {
     case undefined:
     case Plan.free:
