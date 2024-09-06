@@ -204,8 +204,8 @@ export function EnsoDevtools() {
 
             <ariaComponents.Form
               gap="small"
-              formOptions={{ mode: 'onChange' }}
               schema={FEATURE_FLAGS_SCHEMA}
+              formOptions={{ mode: 'onChange' }}
               defaultValues={{
                 enableMultitabs: featureFlags.enableMultitabs,
                 enableAssetsTableBackgroundRefresh: featureFlags.enableAssetsTableBackgroundRefresh,

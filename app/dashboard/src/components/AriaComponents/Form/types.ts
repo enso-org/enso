@@ -31,15 +31,6 @@ interface BaseFormProps<Schema extends components.TSchema>
       'children' | 'className' | 'form' | 'onSubmit' | 'onSubmitCapture' | 'style'
     >,
     Omit<styles.FormStyleProps, 'class' | 'className'> {
-  /**
-   * The default values for the form fields
-   *
-   * __Note:__ Even though this is optional,
-   * it is recommended to provide default values and specify all fields defined in the schema.
-   * Otherwise Typescript fails to infer the correct type for the form values.
-   * This is a known limitation and we are working on a solution.
-   */
-  readonly defaultValues?: components.UseFormProps<Schema>['defaultValues']
   readonly style?:
     | React.CSSProperties
     | ((props: components.UseFormReturn<Schema>) => React.CSSProperties)
@@ -73,6 +64,7 @@ interface FormPropsWithParentForm<Schema extends components.TSchema> {
   readonly form: components.UseFormReturn<Schema>
   readonly schema?: never
   readonly formOptions?: never
+  readonly defaultValues?: never
   readonly onSubmit?: never
   readonly onSubmitSuccess?: never
   readonly onSubmitFailed?: never
@@ -88,8 +80,16 @@ interface FormPropsWithOptions<Schema extends components.TSchema, SubmitResult =
   readonly schema: Schema | ((schema: typeof components.schema) => Schema)
   readonly formOptions?: Omit<
     components.UseFormProps<Schema, SubmitResult>,
-    'defaultValues' | 'onSubmit' | 'onSubmitFailed' | 'onSubmitSuccess' | 'onSubmitted'
+    'defaultValues' | 'onSubmit' | 'onSubmitFailed' | 'onSubmitSuccess' | 'onSubmitted' | 'schema'
   >
+  /**
+   * The default values for the form fields
+   *
+   * __Note:__ Even though this is optional,
+   * it is recommended to provide default values and specify all fields defined in the schema.
+   * Otherwise Typescript fails to infer the correct type for the form values.
+   */
+  readonly defaultValues?: components.UseFormProps<Schema>['defaultValues']
   readonly form?: never
 }
 
