@@ -1,6 +1,7 @@
 package org.enso.compiler.core;
 
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import org.enso.compiler.core.ir.DiagnosticStorage;
 import org.enso.compiler.core.ir.Expression;
@@ -71,16 +72,28 @@ public interface IR {
    */
   List<IR> children();
 
+  default void preorder(Consumer<IR> cb) {
+    class CB implements scala.Function1<IR, Void> {
+      public Void apply(IR e) {
+        cb.accept(e);
+        e.children().foreach(this);
+        return null;
+      }
+    }
+
+    cb.accept(this);
+    children().foreach(new CB());
+  }
+
   /**
    * Lists all the nodes in the preorder walk of the tree of this node.
    *
    * @return all the descendants of this node.
    */
   default List<IR> preorder() {
-    List<IR> ordered = children().flatMap(c -> c.preorder());
-    IR element = this;
-    return $colon$colon$.MODULE$.apply(
-        element, ordered); // ordered.prepended(element) is reporeted as ambiguous
+    var builder = new scala.collection.mutable.ListBuffer<IR>();
+    preorder(builder::addOne);
+    return builder.result();
   }
 
   /**

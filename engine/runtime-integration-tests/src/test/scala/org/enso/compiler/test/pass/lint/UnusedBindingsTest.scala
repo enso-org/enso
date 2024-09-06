@@ -113,6 +113,17 @@ class UnusedBindingsTest extends CompilerTest with Inside {
           |    f 0
           |""".stripMargin.preprocessModule.lint
 
+      println("===============")
+      ir.preorder()
+        .foreach(ir => {
+          println(s"${ir.getClass.getSimpleName} : ${ir.showCode()}")
+        })
+      println("++++++++++++++++")
+      ir.preorder(ir => {
+        println(s"${ir.getClass.getSimpleName} : ${ir.showCode()}")
+      })
+      println("================")
+
       inside(ir.bindings.head) { case definition: definition.Method.Explicit =>
         inside(definition.body) { case f: Function.Lambda =>
           val lintMeta = f.arguments(1).diagnosticsList.collect {

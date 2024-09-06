@@ -4,7 +4,7 @@ package expression
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
 import org.enso.compiler.core.{IR, Identifier}
 
-import java.util.UUID;
+import java.util.UUID
 
 /** Operator applications in Enso. */
 trait Operator extends Application {
