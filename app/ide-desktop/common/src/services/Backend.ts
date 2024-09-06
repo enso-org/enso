@@ -1311,10 +1311,10 @@ export default abstract class Backend {
   abstract readonly type: BackendType
 
   /** The path to the root directory of this {@link Backend}. */
-  abstract readonly rootPath: string
+  abstract rootPath(user: User): string
   /** Return the ID of the root directory, if known. */
   abstract rootDirectoryId(
-    user: User | null,
+    user: User,
     organization: OrganizationInfo | null,
     localRootDirectory: Path | null | undefined,
   ): DirectoryId | null
