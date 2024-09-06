@@ -84,6 +84,9 @@ type SQLServer_Type_Mapping
             Types.VARCHAR -> 
                 effective_size = if sql_type.precision==max_length || (sql_type.precision==9 && sql_type.scale==9) then Nothing else sql_type.precision
                 Value_Type.Char size=effective_size variable_length=True
+            Types.NVARCHAR -> 
+                effective_size = if sql_type.precision==max_length || (sql_type.precision==9 && sql_type.scale==9) then Nothing else sql_type.precision
+                Value_Type.Char size=effective_size variable_length=True
             Types.DATE -> Value_Type.Date
             Types.TIME -> Value_Type.Time
             Types.TIMESTAMP -> case sql_type.name of
