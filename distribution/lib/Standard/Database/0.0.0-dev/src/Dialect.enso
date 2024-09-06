@@ -25,6 +25,7 @@ import project.Internal.Statement_Setter.Statement_Setter
 import project.SQL.SQL_Builder
 import project.SQL_Statement.SQL_Statement
 import project.SQL_Type.SQL_Type
+from project.Dialect_Flags import all
 from project.Errors import SQL_Error, Unsupported_Database_Operation
 from project.Internal.Result_Set import result_set_to_table
 
