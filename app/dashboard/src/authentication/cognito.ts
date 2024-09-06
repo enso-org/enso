@@ -230,6 +230,8 @@ export class Cognito {
    * Gets user email from cognito
    */
   async email() {
+    // This `any` comes from a third-party API and cannot be avoided.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const userInfo: UserInfo = await amplify.Auth.currentUserInfo()
     return userInfo.attributes.email
   }
@@ -288,6 +290,8 @@ export class Cognito {
    * Does not rely on external identity providers (e.g., Google or GitHub). */
   async signInWithPassword(username: string, password: string) {
     const result = await results.Result.wrapAsync(async () => {
+      // This `any` comes from a third-party API and cannot be avoided.
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const maybeUser = await amplify.Auth.signIn(username, password)
 
       if (maybeUser instanceof cognito.CognitoUser) {
@@ -400,7 +404,7 @@ export class Cognito {
 
       const result = (
         await results.Result.wrapAsync(() => amplify.Auth.setupTOTP(cognitoUser))
-      ).map(async (data) => {
+      ).map((data) => {
         const str = 'otpauth://totp/AWSCognito:' + email + '?secret=' + data + '&issuer=' + 'Enso'
 
         return { secret: data, url: str } as const
@@ -481,7 +485,7 @@ export class Cognito {
   }
 
   /**
-   *
+   * Confirm the sign in with the MFA token.
    */
   async confirmSignIn(
     user: amplify.CognitoUser,

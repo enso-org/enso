@@ -64,6 +64,7 @@ export function AddPaymentMethodForm<
 
   // No idea if it's safe or not, but outside of the function everything is fine
   // but for some reason TypeScript fails to infer the `card` field from the schema (it should always be there)
+  // eslint-disable-next-line no-restricted-syntax
   const formInstance = ariaComponents.Form.useForm(
     form ?? {
       schema: ADD_PAYMENT_METHOD_FORM_SCHEMA,

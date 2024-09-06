@@ -27,7 +27,7 @@ import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
 import { lazy } from 'react'
 
 const LazyQRCode = lazy(() =>
-  // eslint-disable-next-line @typescript-eslint/naming-convention
+  // eslint-disable-next-line @typescript-eslint/naming-convention,@typescript-eslint/no-unsafe-assignment
   import('qrcode.react').then(({ QRCodeCanvas }) => ({ default: QRCodeCanvas })),
 )
 
@@ -94,6 +94,7 @@ export function SetupTwoFaForm() {
 
             <Dialog title={getText('disable2FA')}>
               <Form
+                /* eslint-disable-next-line @typescript-eslint/no-magic-numbers */
                 schema={(z) => z.object({ otp: z.string().min(6).max(6) })}
                 formOptions={{ mode: 'onSubmit' }}
                 method="dialog"
@@ -130,6 +131,7 @@ export function SetupTwoFaForm() {
           z.object({
             enabled: z.boolean(),
             display: z.string(),
+            /* eslint-disable-next-line @typescript-eslint/no-magic-numbers */
             otp: z.string().min(6).max(6),
           })
         }

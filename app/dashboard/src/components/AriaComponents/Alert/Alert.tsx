@@ -3,7 +3,6 @@ import { type ForwardedRef, type HTMLAttributes, type PropsWithChildren } from '
 
 import SvgMask from '#/components/SvgMask'
 
-import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 

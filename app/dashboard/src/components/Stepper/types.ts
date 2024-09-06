@@ -1,4 +1,10 @@
 /**
+ * @file
+ *
+ * Types for the stepper component.
+ */
+
+/**
  * Render props for the stepper component.
  */
 export interface BaseRenderProps {

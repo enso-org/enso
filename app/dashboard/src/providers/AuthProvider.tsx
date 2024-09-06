@@ -95,7 +95,10 @@ interface AuthContextType {
   readonly signInWithPassword: (
     email: string,
     password: string,
-  ) => Promise<{ challenge: cognitoModule.UserSessionChallenge; user: cognitoModule.CognitoUser }>
+  ) => Promise<{
+    readonly challenge: cognitoModule.UserSessionChallenge
+    readonly user: cognitoModule.CognitoUser
+  }>
   readonly forgotPassword: (email: string) => Promise<void>
   readonly changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>
   readonly resetPassword: (email: string, code: string, password: string) => Promise<void>
@@ -328,6 +331,7 @@ export default function AuthProvider(props: AuthProviderProps) {
       const challenge = user.challengeName ?? 'NO_CHALLENGE'
 
       if (['SMS_MFA', 'SOFTWARE_TOKEN_MFA'].includes(challenge)) {
+        // eslint-disable-next-line no-restricted-syntax
         return { challenge, user } as const
       }
 

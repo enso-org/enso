@@ -167,6 +167,7 @@ export default function Login() {
         <Stepper.StepContent index={1}>
           {() => (
             <Form
+              /* eslint-disable-next-line @typescript-eslint/no-magic-numbers */
               schema={(z) => z.object({ otp: z.string().min(6).max(6) })}
               onSubmit={async ({ otp }, formInstance) => {
                 if (user) {
