@@ -35,23 +35,6 @@ module org.enso.akka.wrapper {
   exports akka.util;
   exports akka.util.ccompat;
 
-  // akka-actor-typed
-  exports akka.actor.typed;
-  exports akka.actor.typed.delivery;
-  exports akka.actor.typed.delivery.internal;
-  exports akka.actor.typed.eventstream;
-  exports akka.actor.typed.internal;
-  exports akka.actor.typed.internal.adapter;
-  exports akka.actor.typed.internal.jfr;
-  exports akka.actor.typed.internal.pubsub;
-  exports akka.actor.typed.internal.receptionist;
-  exports akka.actor.typed.internal.routing;
-  exports akka.actor.typed.javadsl;
-  exports akka.actor.typed.pubsub;
-  exports akka.actor.typed.receptionist;
-  exports akka.actor.typed.scaladsl;
-  exports akka.actor.typed.scaladsl.adapter;
-
   // akka-http-core
   exports akka.http;
   exports akka.http.ccompat.imm;

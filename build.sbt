@@ -1370,7 +1370,6 @@ lazy val `akka-wrapper` = project
           "com.typesafe"           % "config"                                 % typesafeConfigVersion,
           "io.spray"               % ("spray-json_" + scalaVer)               % "1.3.6",
           akkaURL                  % ("akka-actor_" + scalaVer)               % akkaVersion,
-          akkaURL                  % ("akka-actor-typed_" + scalaVer)         % akkaVersion,
           akkaURL                  % ("akka-stream_" + scalaVer)              % akkaVersion,
           akkaURL                  % ("akka-http_" + scalaVer)                % akkaHTTPVersion,
           akkaURL                  % ("akka-http-core_" + scalaVer)           % akkaHTTPVersion,
