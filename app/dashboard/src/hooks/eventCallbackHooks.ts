@@ -1,10 +1,10 @@
-/** @file `useEventCallback` shim */
+/** @file `useEvent` shim. */
 import { useCallback } from 'react'
 
 import { useSyncRef } from '#/hooks/syncRefHooks'
 
 /**
- * `useEventCallback` shim.
+ * `useEvent` shim.
  * @see https://github.com/reactjs/rfcs/pull/220
  * @see https://github.com/reactjs/rfcs/blob/useevent/text/0000-useevent.md#internal-implementation
  */
