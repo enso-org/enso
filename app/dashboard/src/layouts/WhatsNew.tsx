@@ -85,7 +85,7 @@ export default function WhatsNew() {
                 className="focus-child relative h-news-item rounded-default bg-green text-tag-text"
                 rel="noreferrer"
                 target="_blank"
-                href="https://community.ensoanlytics.com/"
+                href="https://community.ensoanalytics.com/"
                 {...innerProps}
               >
                 <img
