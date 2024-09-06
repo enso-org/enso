@@ -34,8 +34,8 @@ import org.enso.distribution.locking.ResourceManager
 import org.enso.distribution.{DistributionManager, LanguageHome}
 import org.enso.editions.updater.EditionManager
 import org.enso.editions.{DefaultEdition, Editions, LibraryName}
-import org.enso.interpreter.instrument.NotificationHandler
 import org.enso.interpreter.runtime.builtin.Builtins
+import org.enso.interpreter.runtime.instrument.NotificationHandler
 import org.enso.librarymanager.DefaultLibraryProvider
 import org.enso.pkg.{ComponentGroups, Package}
 

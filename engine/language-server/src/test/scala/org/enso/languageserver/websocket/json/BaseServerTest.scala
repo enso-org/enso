@@ -10,7 +10,8 @@ import org.enso.distribution.locking.ResourceManager
 import org.enso.distribution.{DistributionManager, LanguageHome}
 import org.enso.editions.updater.EditionManager
 import org.enso.editions.{EditionResolver, Editions}
-import org.enso.filewatcher.{NoopWatcherFactory, WatcherAdapterFactory}
+import org.enso.filewatcher.WatcherAdapterFactory
+import org.enso.filewatcher.test.NoopWatcherFactory
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, ProtocolFactory}
 import org.enso.languageserver.TestClock
