@@ -296,6 +296,7 @@
   "teamCategoryButtonLabel": "$0 (Team)",
   "localCategoryButtonLabel": "Local",
   "cloudCategoryDropZoneLabel": "Move to your organization's home directory",
+  "cloudCategoryBadgeContent": "Beta",
   "myFilesCategoryDropZoneLabel": "Move to your home directory",
   "recentCategoryDropZoneLabel": "Move to Recent category",
   "trashCategoryDropZoneLabel": "Move to Trash category",
