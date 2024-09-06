@@ -4,7 +4,6 @@ import akka.actor.ActorRef
 import io.circe.literal._
 import org.enso.semver.SemVer
 import org.enso.jsonrpc.ClientControllerFactory
-import org.enso.logger.ReportLogsOnFailure
 import org.enso.projectmanager.boot.configuration.TimeoutConfig
 import org.enso.projectmanager.event.ClientEvent.ClientDisconnected
 import zio.{ZAny, ZIO}
@@ -12,7 +11,7 @@ import zio.{ZAny, ZIO}
 import java.util.UUID
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 import org.enso.runtimeversionmanager.test.OverrideTestVersionSuite
-import org.enso.testkit.FlakySpec
+import org.enso.testkit.{FlakySpec, ReportLogsOnFailure}
 import org.scalactic.source.Position
 
 import scala.concurrent.duration._

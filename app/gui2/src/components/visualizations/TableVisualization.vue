@@ -183,6 +183,10 @@ const newNodeSelectorValues = computed(() => {
   }
 })
 
+const isFilterSortNodeEnabled = computed(
+  () => config.nodeType === TABLE_NODE_TYPE || config.nodeType === DB_TABLE_NODE_TYPE,
+)
+
 const numberFormatGroupped = new Intl.NumberFormat(undefined, {
   style: 'decimal',
   maximumFractionDigits: 12,
@@ -607,6 +611,7 @@ onMounted(() => {
         :filterModel="filterModel"
         :sortModel="sortModel"
         :isDisabled="!isCreateNodeEnabled"
+        :isFilterSortNodeEnabled="isFilterSortNodeEnabled"
         @changeFormat="(i) => updateTextFormat(i)"
       />
     </template>

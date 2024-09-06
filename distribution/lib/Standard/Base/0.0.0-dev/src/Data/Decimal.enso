@@ -1160,7 +1160,7 @@ type Decimal
 
     ## ADVANCED
        GROUP Math
-       ICON math
+       ICON input_number
        Change the scale of a Decimal.
 
        A `Decimal` value is represented internally by a Java `BigInteger` "unscaled
@@ -1231,7 +1231,8 @@ type Decimal
     to_text_without_scientific_notation : Text
     to_text_without_scientific_notation self -> Text = self.big_decimal.toPlainString
 
-## ICON input_number
+## GROUP Math
+   ICON input_number
     Construct a `Decimal` from a `Text`, `Integer` or `Float`.
 
     Arguments:

@@ -170,6 +170,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
             <div className="flex items-center gap-2">
               <Text className="whitespace-nowrap">{getText('types')}</Text>
               <Dropdown
+                aria-label={getText('types')}
                 multiple
                 items={EVENT_TYPES}
                 selectedIndices={typeIndices}
@@ -190,6 +191,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
             <div className="flex items-center gap-2">
               <Text className="whitespace-nowrap">{getText('users')}</Text>
               <Dropdown
+                aria-label={getText('users')}
                 multiple
                 items={allEmails}
                 selectedIndices={emailIndices}

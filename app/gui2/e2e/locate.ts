@@ -130,6 +130,11 @@ export function rightDock(page: Page) {
   return page.getByTestId('rightDock')
 }
 
+/** rightDock, but also includes toggle button */
+export function rightDockRoot(page: Page) {
+  return page.getByTestId('rightDockRoot')
+}
+
 export function bottomDock(page: Page) {
   return page.getByTestId('bottomDock')
 }

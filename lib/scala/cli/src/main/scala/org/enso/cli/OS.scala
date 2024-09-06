@@ -2,7 +2,7 @@ package org.enso.cli
 
 import com.typesafe.scalalogging.Logger
 import io.circe.{Decoder, DecodingFailure}
-import org.enso.yaml.YamlDecoder
+import org.enso.scala.yaml.YamlDecoder
 import org.yaml.snakeyaml.nodes.{Node, ScalarNode}
 import org.yaml.snakeyaml.error.YAMLException
 

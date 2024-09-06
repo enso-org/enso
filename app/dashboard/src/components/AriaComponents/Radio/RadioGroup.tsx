@@ -10,7 +10,9 @@ import * as aria from '#/components/aria'
 import * as mergeRefs from '#/utilities/mergeRefs'
 import * as twv from '#/utilities/tailwindVariants'
 
+import { omit } from '#/utilities/object'
 import { forwardRef } from '#/utilities/react'
+import type { FieldVariantProps } from '../Form'
 import * as formComponent from '../Form'
 import * as radioGroupContext from './RadioGroupContext'
 
@@ -26,7 +28,8 @@ export interface RadioGroupProps<
       TFieldName
     >,
     twv.VariantProps<typeof RADIO_GROUP_STYLES>,
-    formComponent.FieldProps {
+    formComponent.FieldProps,
+    FieldVariantProps {
   readonly children?: React.ReactNode
   readonly className?: string
 }
@@ -57,6 +60,8 @@ export const RadioGroup = forwardRef(function RadioGroup<
     label,
     description,
     fullWidth,
+    variants = RADIO_GROUP_STYLES,
+    fieldVariants,
     ...radioGroupProps
   } = props
 
@@ -69,12 +74,12 @@ export const RadioGroup = forwardRef(function RadioGroup<
 
   const invalid = isInvalid || fieldState.invalid
 
-  const base = RADIO_GROUP_STYLES({ fullWidth, className })
+  const base = variants({ fullWidth, className })
 
   return (
     <aria.RadioGroup
       ref={mergeRefs.mergeRefs(ref, field.ref)}
-      {...aria.mergeProps<aria.RadioGroupProps>()(radioGroupProps, {
+      {...aria.mergeProps<aria.RadioGroupProps>()(omit(radioGroupProps, 'validate'), {
         name: field.name,
         value: field.value,
         isDisabled: field.disabled ?? isDisabled,
@@ -94,6 +99,7 @@ export const RadioGroup = forwardRef(function RadioGroup<
           description={description}
           fullWidth={fullWidth}
           isInvalid={invalid}
+          variants={fieldVariants}
           {...radioGroupProps}
         >
           {children}

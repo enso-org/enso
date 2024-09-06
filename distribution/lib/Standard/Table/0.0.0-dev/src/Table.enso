@@ -94,22 +94,48 @@ polyglot java import org.enso.table.parsing.problems.ParseProblemAggregator
 
 ## Represents a column-oriented table data structure.
 type Table
-    ## GROUP Standard.Base.Input
-       ICON data_input
-       Creates a new table from a vector of `[name, items]` pairs.
+    ## GROUP Standard.Base.Constants
+       ICON table_edit
+       Creates a new table from a set of columns. This can either be provided as
+       a set of pairs of names and data, or existing Column objects.
 
        Arguments:
-       - columns: The `[name, items]` pairs to construct a new table from.
+       - columns: A set of either Column objects or pairs of name and data to
+         construct a column from from. If passing name and data, the items can
+         be passed as a Vector, Range or a Date_Range.
+
+       Returns:
+       - A Table of all of the input data.
+
+       ! Error Conditions
+
+         - If the vector is improperly defined, an error is returned.
+         - If there are no columns, an error is returned.
+         - If column names are not distinct, an error is returned.
+         - If any columns have an inconsistent number of records, an error is returned.
 
        > Example
-         Create a new table with the given columns.
+         Create a new table with the specified columns.
 
-             from Standard.Table import Table
+             first_column = ["count", [1, 2, 3]]
+             second_column = ["is_valid", [True, False, True]]
+             Table.new [first_column, second_column]
 
-             example_new =
-                 first_column = ["count", [1, 2, 3]]
-                 second_column = ["is_valid", [True, False, True]]
-                 Table.new [first_column, second_column]
+             ## Returns a table like:
+
+                | count | is_valid |
+                |-------|----------|
+                | 1     | True     |
+                | 2     | False    |
+                | 3     | True     |
+
+        ? Unique Names
+        Column names must be unique. If a column name is repeated, an error is
+        thrown.
+
+        ? Consistent Row Count
+        All columns must have the same number of rows. If a column has a
+        different number of entries, an error is thrown.
     new : Vector (Vector | Column) -> Table
     new columns =
         invalid_input_shape =
@@ -227,24 +253,44 @@ type Table
 
     ## GROUP Standard.Base.Selections
        ICON select_column
-       Returns the column with the given name.
+       Returns the column with the given name or index.
 
        Arguments:
        - selector: The name or index of the column being looked up.
 
+       Returns:
+       - The column with the given name or index, or the `if_missing` value if
+         the column is not found.
+
+       ! Error Conditions
+
+         - If the column name is not found, a `No_Such_Column` error is raised.
+         - If the column index is out of bounds, an `Index_Out_Of_Bounds` error
+           is raised.
+
        > Example
          Get the names of all of the items from the shop inventory.
 
-             import Standard.Examples
+            table1 = Table.new [['Name', ['John', 'Paul']], ['Age', [25, 35]]]
+            column1 = table1.get 'Name'
 
-             example_at = Examples.inventory_table.at "item_name"
+            ## Returns a Column
+               | Name |
+               |------|
+               | John |
+               | Paul |
 
        > Example
          Get the last column.
 
-             import Standard.Examples
+            table1 = Table.new [['Name', ['John', 'Paul']], ['Age', [25, 35]]]
+            column1 = table1.get -1
 
-             example_at = Examples.inventory_table.at -1
+            ## Returns a Column
+               | Age |
+               |-----|
+               | 25  |
+               | 35  |
     @selector Widget_Helpers.make_column_name_selector
     at : Integer | Text -> Column ! No_Such_Column | Index_Out_Of_Bounds
     at self (selector:(Integer | Text)=0) = case selector of
@@ -260,19 +306,33 @@ type Table
        - selector: The name or index of the column being looked up.
        - if_missing: The value to use if the selector isn't present.
 
+       Returns:
+       - The column with the given name or index, or the `if_missing` value if
+         the column is not found.
+
        > Example
          Get the names of all of the items from the shop inventory.
 
-             import Standard.Examples
+            table1 = Table.new [['Name', ['John', 'Paul']], ['Age', [25, 35]]]
+            column1 = table1.get 'Name'
 
-             example_at = Examples.inventory_table.get "item_name"
+            ## Returns a Column
+               | Name |
+               |------|
+               | John |
+               | Paul |
 
        > Example
          Get the last column.
 
-             import Standard.Examples
+            table1 = Table.new [['Name', ['John', 'Paul']], ['Age', [25, 35]]]
+            column1 = table1.get -1
 
-             example_at = Examples.inventory_table.get -1
+            ## Returns a Column
+               | Age |
+               |-----|
+               | 25  |
+               | 35  |
     @selector Widget_Helpers.make_column_name_selector
     get : Integer | Text -> Any -> Column | Any
     get self (selector:(Integer | Text)=0) ~if_missing=Nothing =
@@ -357,15 +417,15 @@ type Table
     ## ALIAS select fields
        GROUP Standard.Base.Selections
        ICON select_column
-       Returns a new table with a chosen subset of columns, as specified by the
+
+       Creates a new table with a chosen subset of columns, as specified by the
        `columns`, from the input table. Any unmatched input columns will be
        dropped from the output.
 
        Arguments:
        - columns: Specifies columns by a single instance or Vector of names;
          indexes or regular expressions to match names; or a `By_Type` selector
-         to choose columns by type. Note: specifying columns by type ignores
-         size and precision.
+         to choose columns by type.
        - case_sensitivity: Controls whether to be case sensitive when matching
          column names.
        - reorder: By default, or if set to `False`, columns in the output will
@@ -379,6 +439,64 @@ type Table
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
+       Returns:
+       - A new table with the chosen subset of columns.
+
+       > Example
+         Select columns by name.
+
+             table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", "25","abc","123"]]
+             output = table.select_columns ["bar", "foo"]
+
+             ## Returns a Table
+                | bar  | foo |
+                |------|-----|
+                | John | 25  |
+
+       > Example
+         Select columns by name, reordering the result.
+
+             table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", "25","abc","123"]]
+             output = table.select_columns ["foo", "bar"] reorder=True
+
+             ## Returns a Table
+                | foo  | bar  |
+                |------|------|
+                | 25   | John |
+
+       > Example
+         Select columns matching a regular expression.
+
+             table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", "25","abc","123"]]
+             output = table.select_columns [regex "b.+"]
+
+             ## Returns a Table
+                | bar  | buzz | bizz |
+                |------|------|------|
+                | John | abc  | 123  |
+
+       > Example
+         Select the first two columns and the last column, moving the last one to front.
+
+             table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", 25,"abc",123]]
+             output = table.select_columns [-1, 0, 1] reorder=True
+
+             ## Returns a Table
+                | bizz | bar  | foo  |
+                |------|------|------|
+                | 123  | John | 25   |
+
+       > Example
+         Select integer columns.
+
+             table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", 25,"abc",123]]
+             output = table.select_columns [..By_Type ..Integer]
+
+             ## Returns a Table
+                | foo  | bizz |
+                |------|------|
+                | 25   | 123  |
+
        ! Error Conditions
 
          - If there are no columns in the output table, a `No_Output_Columns` is
@@ -389,30 +507,12 @@ type Table
            `error_on_missing_columns` is set to `False`, in which case the
            problem is reported according to the `on_problems` setting.
 
-       > Example
-         Select columns by name.
+       ? Selecting By Type
 
-             table.select_columns ["bar", "foo"]
-
-       > Example
-         Select columns using names passed as a Vector.
-
-             table.select_columns ["bar", "foo"]
-
-       > Example
-         Select columns matching a regular expression.
-
-             table.select_columns "foo.+".to_regex case_sensitivity=Case_Sensitivity.Insensitive
-
-       > Example
-         Select the first two columns and the last column, moving the last one to front.
-
-             table.select_columns [-1, 0, 1] reorder=True
-
-       > Example
-         Select integer columns.
-
-             table.select_columns [..By_Type ..Integer]
+         If selecting by type, then the length, scale and precision are ignored.
+         In other words, `..Text` will match any text column, regardless of its
+         length or being fixed or variable length. Similarly, `..Integer` will
+         match any integer column, regardless of its size.
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     select_columns :  Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> Boolean -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns
     select_columns self (columns : (Vector | Text | Integer | Regex | By_Type) = [self.columns.first.name]) (reorder:Boolean=False) (case_sensitivity:Case_Sensitivity=..Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=..Report_Warning) =
@@ -441,7 +541,7 @@ type Table
     ## ALIAS drop fields, drop_columns, remove fields, select columns, select fields
        GROUP Standard.Base.Selections
        ICON select_column
-       Returns a new table with the chosen set of columns, as specified by the
+       Creates a new table with the chosen set of columns, as specified by the
        `columns`, removed from the input table. Any unmatched input columns will
        be kept in the output. Columns are returned in the same order as in the
        input.
@@ -449,8 +549,7 @@ type Table
        Arguments:
        - columns: Specifies columns by a single instance or Vector of names;
          indexes or regular expressions to match names; or a `By_Type` selector
-         to choose columns by type. Note: specifying columns by type ignores
-         size and precision.
+         to choose columns by type.
        - case_sensitivity: Controls whether to be case sensitive when matching
          column names.
        - error_on_missing_columns: Specifies if a missing input column should
@@ -458,6 +557,53 @@ type Table
          to `False`.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
+
+       Returns:
+       - A new table with the chosen subset of columns removed.
+
+       > Example
+         Remove columns by name.
+
+             table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", "25","abc","123"]]
+             output = table.remove_columns ["bar", "foo"]
+
+             ## Returns a Table
+                | buzz | bizz |
+                |------|------|
+                | abc  | 123  |
+
+       > Example
+         Remove columns matching a regular expression.
+
+             table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", "25","abc","123"]]
+             output = table.remove_columns [regex "b.+"]
+
+             ## Returns a Table
+                | foo  |
+                |------|
+                | 25   |
+
+       > Example
+         Remove the first two columns and the last column
+
+             table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", 25,"abc",123]]
+             output = table.select_columns [-1, 0, 1]
+
+             ## Returns a Table
+                | buzz |
+                |------|
+                | abc  |
+
+       > Example
+         Remove integer columns.
+
+             table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", 25,"abc",123]]
+             output = table.remove_columns [..By_Type ..Integer]
+
+             ## Returns a Table
+                | bar  | buzz |
+                |------|------|
+                | John | abc  |
 
        ! Error Conditions
 
@@ -469,30 +615,12 @@ type Table
            setting, unless `error_on_missing_columns` is set to `True`, in which
            case it is raised as an error.
 
-       > Example
-         Remove columns with given names.
+       ? Selecting By Type
 
-             table.remove_columns ["bar", "foo"]
-
-       > Example
-         Remove columns using names passed as a Vector.
-
-             table.remove_columns ["bar", "foo"]
-
-       > Example
-         Remove columns matching a regular expression.
-
-             table.remove_columns "foo.+".to_regex case_sensitivity=Case_Sensitivity.Insensitive
-
-       > Example
-         Remove the first two columns and the last column.
-
-             table.remove_columns [-1, 0, 1]
-
-       > Example
-         Remove integer columns.
-
-             table.remove_columns [..By_Type ..Integer]
+         If selecting by type, then the length, scale and precision are ignored.
+         In other words, `..Text` will match any text column, regardless of its
+         length or being fixed or variable length. Similarly, `..Integer` will
+         match any integer column, regardless of its size.
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     remove_columns :  Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns
     remove_columns self (columns : (Vector | Text | Integer | Regex | By_Type) = [self.columns.first.name]) (case_sensitivity:Case_Sensitivity=..Default) (error_on_missing_columns:Boolean=False) (on_problems:Problem_Behavior=..Report_Warning) =
@@ -522,23 +650,37 @@ type Table
        GROUP Standard.Base.Selections
        ICON select_column
 
-       Select columns which are either all blank or contain blank values. If no
+       Selects columns which are either all blank or contain blank values. If no
        rows are present, all columns are considered blank.
 
        Arguments:
-       - when: By default, only columns consisting of all blank cells are
-         selected. If set to Blank_Selector.Any_Cell, columns with one or
-         more blank values are selected.
-       - treat_nans_as_blank: specifies whether `Number.nan` is considered as
+       - when: specifies whether to remove is all cells are blank or if any ones
+         are chosen. By default, only columns consisting of all blank cells are
+         selected.
+       - treat_nans_as_blank: specified whether `Number.nan` is considered as
          blank. By default, it is not.
 
-       ? Blank values
-         Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
+       Returns:
+       - A new table of the blank columns.
 
        > Example
-         Select completely blank columns from a table.
+       Select completely blank columns from a table.
 
-             table.select_blank_columns
+          table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", 25,"abc",""]]
+          output = table.select_blank_columns
+
+          ## Returns a Table
+             | bar  | foo | buzz |
+             |------|-----|------|
+             | John | 25  | abc  |
+
+       ! Error Conditions
+         - If there are no columns in the output table, a `No_Output_Columns` is
+           raised as an error regardless of the problem behavior, because it is
+           not possible to create a table without any columns.
+
+       ? What is a blank value?
+         Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
     select_blank_columns : Blank_Selector -> Boolean -> Table ! No_Output_Columns
     select_blank_columns self (when : Blank_Selector = ..All_Cells) (treat_nans_as_blank : Boolean = False) =
         new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank
@@ -552,19 +694,33 @@ type Table
        rows are present, all columns are considered blank.
 
        Arguments:
-       - when By default, only columns consisting of all blank cells are
-         selected. If set to Blank_Selector.Any_Cell, columns with one or more blank values are
+       - when: specifies whether to remove is all cells are blank or if any ones
+         are chosen. By default, only columns consisting of all blank cells are
          selected.
        - treat_nans_as_blank: specified whether `Number.nan` is considered as
          blank. By default, it is not.
 
-       ? Blank values
-         Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
+       Returns:
+       - A new table with the blank columns removed.
 
        > Example
-         Remove completely blank columns from a table.
+       Remove completely blank columns from a table.
 
-             table.remove_blank_columns
+          table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", 25,"abc",""]]
+          output = table.remove_blank_columns
+
+          ## Returns a Table
+             | bar  | foo | buzz |
+             |------|-----|------|
+             | John | 25  | abc  |
+
+       ! Error Conditions
+         - If there are no columns in the output table, a `No_Output_Columns` is
+           raised as an error regardless of the problem behavior, because it is
+           not possible to create a table without any columns.
+
+       ? What is a blank value?
+         Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
     remove_blank_columns : Blank_Selector -> Boolean -> Table ! No_Output_Columns
     remove_blank_columns self (when : Blank_Selector = ..All_Cells) (treat_nans_as_blank : Boolean = False) =
         new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank invert_selection=True
@@ -572,8 +728,9 @@ type Table
 
     ## GROUP Standard.Base.Selections
        ICON select_column
-       Returns a new table with the specified selection of columns moved to
-       either the start or the end in the specified order.
+       Reorders the columns by moving the selected columns to the start (or end)
+       of the Table. By default, the selected columns are moved to the front.
+       Other columns are left in their original order.
 
        Arguments:
        - columns: Specifies columns by a name, type, index or regular expression to
@@ -588,37 +745,70 @@ type Table
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
+       Returns:
+       - A new table with the columns reordered.
+
+       > Example
+         Move a column with a specified name to back.
+
+             table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", "25","abc","123"]]
+             output = table.reorder_columns ["foo"] position=..After_Other_Columns
+
+             ## Returns a Table
+                | bar  | buzz | bizz | foo  |
+                |------|------|------|------|
+                | John | abc  | 123  | 25   |
+
+       > Example
+         Move columns using names passed as a Vector.
+
+             table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", "25","abc","123"]]
+             output = table.reorder_columns ["bizz", "foo"]
+
+             ## Returns a Table
+                | bizz | foo  | bar  | buzz |
+                |------|------|------|------|
+                | 123  | 25   | John | abc  |
+
+       > Example
+         Move columns matching a regular expression to front, keeping columns matching "f.+" before columns matching "ba.*".
+
+             table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", "25","abc","123"]]
+             output = table.reorder_columns [(regex "f.+"), (regex "ba.*")] case_sensitivity=..Insensitive
+
+             ## Returns a Table
+                | foo  | bar  | buzz | bizz  |
+                |------|------|------|-------|
+                | 25   | John | abc  | 123   |
+
+       > Example
+         Swap the first two columns.
+
+             table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", "25","abc","123"]]
+             output = table.reorder_columns [1, 0] position=..Before_Other_Columns
+
+             ## Returns a Table
+                | foo  | bar  | buzz | bizz  |
+                |------|------|------|-------|
+                | 25   | John | abc  | 123   |
+
+       > Example
+         Move the first column to back.
+
+             table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", "25","abc","123"]]
+             output = table.reorder_columns [0] position=..After_Other_Columns
+
+             ## Returns a Table
+                | foo  | buzz | bizz | bar  |
+                |------|------|------|------|
+                | 25   | abc  | 123  | John |
+
        ! Error Conditions
 
          - If a column in `columns` is not in the input table, a
            `Missing_Input_Columns` is reported according to the `on_problems`
            setting, unless `error_on_missing_columns` is set to `True`, in which
            case it is raised as an error.
-
-       > Example
-         Move a column with a specified name to back.
-
-             table.reorder_columns ["foo"] position=Position.After_Other_Columns
-
-       > Example
-         Move columns using names passed as a Vector.
-
-             table.reorder_columns ["bar", "foo"] position=Position.After_Other_Columns
-
-       > Example
-         Move columns matching a regular expression to front, keeping columns matching "foo.+" before columns matching "b.*".
-
-             table.reorder_columns "foo.+".to_regex case_sensitivity=Case_Sensitivity.Insensitive
-
-       > Example
-         Swap the first two columns.
-
-             table.reorder_columns [1, 0] position=Position.Before_Other_Columns
-
-       > Example
-         Move the first column to back.
-
-             table.reorder_columns [0] position=Position.After_Other_Columns
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     reorder_columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> Position -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns
     reorder_columns self (columns : (Vector | Text | Integer | Regex | By_Type) = [self.columns.first.name]) (position:Position=..Before_Other_Columns) (case_sensitivity:Case_Sensitivity=..Default) (error_on_missing_columns:Boolean=False) (on_problems:Problem_Behavior=..Report_Warning) =
@@ -627,28 +817,52 @@ type Table
 
     ## GROUP Standard.Base.Selections
        ICON select_column
-       Returns a new table with the columns sorted by name according to the
-       specified sort method. By default, sorting will be according to
-       case-sensitive ascending order based on the normalized Unicode ordering.
+       Reorders the columns sorted by name in the specified order and the text
+       ordering method. By default, sorting will be according to case-sensitive
+       ascending order.
 
        Arguments:
        - order: Whether sorting should be in ascending or descending order.
-       - text_ordering: The sort methodology to use.
+       - text_ordering: Specifies whether to use dictionary, case-insensitive or
+         case-sensitive ordering. By default, case-sensitive ordering is used.
 
        > Example
          Sort columns according to the default ordering.
 
-             table.sort_columns
+             table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", "25","abc","123"]]
+             output = table.sort_columns
+
+             ## Returns a Table
+                | bar  | bizz | buzz | foo  |
+                |------|------|------|------|
+                | John | 123  | abc  | 25   |
 
        > Example
          Sort columns according to the natural case-insensitive ordering.
 
-             table.sort_columns text_ordering=(Text_Ordering.Case_Insensitive sort_digits_as_numbers=True)
+             table = Table.from_rows ["Bar","foo","buzz","Bizz"] [["John", "25","abc","123"]]
+             output = table.sort_columns (..Case_Insensitive sort_digits_as_numbers=True)
+
+             ## Returns a Table
+                | Bar  | Bizz | buzz | foo  |
+                |------|------|------|------|
+                | John | 123  | abc  | 25   |
 
        > Example
          Sort columns in descending order.
 
-             table.reorder_columns Sort_Direction.Descending
+             table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", "25","abc","123"]]
+             output = table.sort_columns ..Descending
+
+             ## Returns a Table
+                | foo  | buzz | bizz | bar  |
+                |------|------|------|------|
+                | 25   | abc  | 123  | John |
+
+       ? Unicode Normalization
+         The text ordering method uses Unicode normalization to ensure that the
+         text is sorted correctly. This means that text that looks the same but
+         is represented differently will be sorted in the same way.
     sort_columns : Sort_Direction -> Text_Ordering -> Table
     sort_columns self order:Sort_Direction=..Ascending text_ordering:Text_Ordering=..Default =
         new_columns = Table_Helpers.sort_columns self.columns order text_ordering
@@ -662,9 +876,9 @@ type Table
 
        Arguments:
        - column_map: Mapping from old column names to new or a vector of new
-         column names to apply by position. `Regex` objects can be used
-         within the mapping to do pattern based renaming.
-         Can also be supplied as a `Table` either with a single column of new
+         column names to apply by position. The mapping can be provided as a
+         `Dictionary` or a `Vector` of pairs of old and new names.
+         A `Table` can also be used either with a single column of new
          names or two columns with old (first column) and new names (second
          column).
        - case_sensitivity: Controls whether to be case sensitive when matching
@@ -674,6 +888,9 @@ type Table
          to `True`.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
+
+       Returns:
+       - A new table with the columns renamed based on the column_map.
 
        ! Error Conditions
 
@@ -691,35 +908,80 @@ type Table
              - If any of the new names clash either with existing names or each
                other, a `Duplicate_Output_Column_Names`.
 
-       > Example
-         Rename the "Alpha" column to "Beta"
+       ? Pattern based renaming
 
-              table.rename_columns (Dictionary.from_vector [["Alpha", "Beta"]])
+       `Regex` objects can be used within the column_map to do pattern based
+       renaming. Marked groups can be used in the new name by using `$1`, `$2`,
+       etc.
+
+       > Example
+         Rename the "Alpha" column to "Delta"
+
+             table = Table.from_rows ["Alpha", "Beta"] [["John", "25"]]
+             output = table.rename_columns [Pair.Value "Alpha" "Delta"]
+
+             ## Returns a Table
+                | Delta | Beta |
+                |-------|------|
+                | John  | 25   |
 
        > Example
          Rename the last column to "LastColumn"
 
-              table.rename_columns (Dictionary.from_vector [[-1, "LastColumn"]])
+             table = Table.from_rows ["Alpha", "Beta"] [["John", "25"]]
+             output = table.rename_columns [Pair.Value -1 "LastColumn"]
+
+             ## Returns a Table
+                | Alpha | LastColumn |
+                |-------|------------|
+                | John  | 25         |
 
        > Example
          Rename the "Alpha" column to "Beta" and last column to "LastColumn"
 
-              table.rename_columns (Dictionary.from_vector [["Alpha", "Beta"], [-1, "LastColumn"]])
+             table = Table.from_rows ["Alpha", "Age", "State"] [["John", 25, "NY"], ["Paul", 35, "CA"]]
+             output = table.rename_columns [Pair.Value "Alpha" "Beta", Pair.Value -1 "LastColumn"]
+
+             ## Returns a Table
+                | Beta | Age | LastColumn |
+                |------|-----|------------|
+                | John | 25  | NY         |
+                | Paul | 35  | CA         |
 
        > Example
-         Rename the first column to "FirstColumn"
+         Rename the first column to "FirstColumn" and second to "SecondColumn" using a positional list.
 
-              table.rename_columns ["FirstColumn"]
+             table = Table.from_rows ["Alpha", "Age", "State"] [["John", 25, "NY"], ["Paul", 35, "CA"]]
+             output = table.rename_columns ["FirstColumn", "SecondColumn"]
+
+             ## Returns a Table
+                | FirstColumn | SecondColumn | State |
+                |-------------|--------------|-------|
+                | John        | 25           | NY    |
+                | Paul        | 35           | CA    |
 
        > Example
          Add a prefix to all column names.
 
-              table.rename_columns (table.columns.map c-> "prefix_" + c.name)
+              table = Table.from_rows ["Alpha", "Age", "State"] [["John", 25, "NY"], ["Paul", 35, "CA"]]
+              output = table.rename_columns [Pair.Value (regex "(.*)"), "prefix:$1"]
+
+              ## Returns a Table
+                 | prefix:Alpha | prefix:Age | prefix:State |
+                 |--------------|------------|--------------|
+                 | John         | 25         | NY           |
+                 | Paul         | 35         | CA           |
 
        > Example
          For all columns starting with the prefix `name=`, replace it with `key:`.
 
-              table.rename_columns (Dictionary.from_vector [["name=(.*)".to_regex, "key:$1"]])
+             table = Table.from_rows ["name=Alpha", "name=Beta", "name=Gamma"] [["John", "25", "abc"]]
+             output = table.rename_columns [Pair.Value (regex "name=(.*)"), "key:$1"]
+
+             ## Returns a Table
+                | key:Alpha | key:Beta | key:Gamma |
+                |-----------|----------|-----------|
+                | John      | 25       | abc       |
     @column_map Widget_Helpers.make_rename_name_vector_selector
     rename_columns : Table | Dictionary (Text | Integer | Regex) Text | Vector Text | Vector Vector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Column_Names | Duplicate_Output_Column_Names
     rename_columns self (column_map:(Table | Dictionary | Vector)=["Column"]) (case_sensitivity:Case_Sensitivity=..Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=..Report_Warning) = case column_map of
@@ -735,22 +997,31 @@ type Table
        GROUP Standard.Base.Metadata
        ICON table_edit
        Returns a new table with the columns renamed based on entries in the
-       first row.
+       first row, and then the first row is removed.
 
        Arguments:
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
-         The following problems can occur:
-         - If any of the new names are invalid, an
+       Returns:
+       - A new table with the columns renamed based on the first row.
+
+       ! Error Conditions
+       - If any of the new names are invalid (e.g. `Nothing` or ``""`), an
            `Invalid_Column_Names`.
-         - If any of the new names clash either with existing names or each
-           other, a Duplicate_Output_Column_Names.
+       - If any of the new names clash either with existing names or each
+         other, a `Duplicate_Output_Column_Names`.
 
        > Example
          Rename the column based on the first row
 
-              table.use_first_row_as_names
+            table = Table.from_rows ["bar","foo","buzz","bizz"] [["John", "25","abc","123"]]
+            output = table.use_first_row_as_names
+
+            ## Returns a Table
+               | bar | foo | buzz | bizz |
+               |-----|-----|------|------|
+               | John| 25  | abc  | 123  |
     use_first_row_as_names : Problem_Behavior -> Table
     use_first_row_as_names self (on_problems:Problem_Behavior=..Report_Warning) =
         new_names = self.first_row.to_vector.map c->
@@ -771,17 +1042,16 @@ type Table
        and to return.
 
        Arguments:
-       - group_by: Vector of column identifiers to group by. These will be
-         included at the start of the resulting table. If no columns are
-         specified a single row will be returned with the aggregate columns.
-       - columns: Vector of `Aggregate_Column` specifying the aggregated table.
-         Expressions can be used within the aggregate column to perform more
-         complicated calculations.
+       - group_by: A list of columns to group by. These will be included at the
+         start of the resulting table. If no columns are specified a single row
+         will be returned with the aggregate columns.
+       - columns: The aggregate operations being performed specifying the
+         aggregated table. Expressions can be used within the aggregate column
+         to perform more complicated calculations.
        - error_on_missing_columns: Specifies if a missing columns in aggregates
          should result in an error regardless of the `on_problems` settings.
-         Defaults to `False`, meaning that problematic aggregate will not be
-         included in the result and the problem reported according to the
-         `on_problems` setting.
+         Defaults to `False`, meaning that problematic aggregations will not be
+         included in the result and a problem reported.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
@@ -819,15 +1089,31 @@ type Table
            - If there are more than 10 issues with a single column,
              an `Additional_Warnings`.
 
+       Returns
+       - A new table with the group_by columns as well as any aggregate columns.
+
        > Example
          Count all the rows
 
-              table.aggregate columns=[Aggregate_Column.Count]
+             table = Table.from_rows ["Name","Location"] [["John", "Massachusetts"],["Paul","London"]]
+             grouped = table.aggregate columns=[Aggregate_Column.Count]
+
+             ## Returns a Table
+                | Count |
+                |-------|
+                | 2     |
 
        > Example
          Group by the Key column, count the rows
 
-              table.aggregate ["Key"] [Aggregate_Column.Count]
+             table = Table.from_rows ["Name","Location"] [["John", "Massachusetts"],["Paul","London"]]
+             grouped = table.aggregate ["Name"] [Aggregate_Column.Count]
+
+             ## Returns a Table
+                | Name | Count |
+                |------|-------|
+                | John | 1     |
+                | Paul | 1     |
     @group_by Widget_Helpers.make_column_name_multi_selector
     @columns Widget_Helpers.make_aggregate_column_vector_selector
     aggregate : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> Vector Aggregate_Column -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
@@ -848,7 +1134,9 @@ type Table
     ## ALIAS order_by
        GROUP Standard.Base.Selections
        ICON order
-       Sorts the rows of the table according to the specified columns and order.
+       Reorders the table by sorting them based on the specified columns.
+       Optionally, the method of ordering text values can be specified allowing
+       for case-insensitively or dictionary ordering.
 
        Arguments:
        - columns: The columns and order to sort the table.
@@ -858,6 +1146,9 @@ type Table
          to `True`.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
+
+       Returns:
+       - A new table with the rows sorted as specified.
 
        ! Error Conditions
 
@@ -878,37 +1169,53 @@ type Table
        > Example
          Sorting `table` in ascending order by the value in column `'Quantity'`.
 
-             table.sort ['Quantity']
+             table = Table.from_rows ["Name","Quantity"] [["John", 5],["Paul", 3]]
+             sorted = table.sort ['Quantity']
+
+             ## Returns a Table
+                | Name | Quantity |
+                |------|----------|
+                | Paul | 3        |
+                | John | 5        |
 
        > Example
-         Sorting `table` in descending order by the value in column `'Quantity'`.
+         Sorting `table` in descending order by the value in column `'Name'`.
 
-             table.sort [Sort_Column.Name 'Quantity' Sort_Direction.Descending]
+             table = Table.from_rows ["Name","Quantity"] [["John", 5],["Paul", 3]]
+             sorted = table.sort [..Name 'Name' ..Descending]
+
+             ## Returns a Table
+                | Name | Quantity |
+                |------|----------|
+                | Paul | 3        |
+                | John | 5        |
 
        > Example
          Sorting `table` in ascending order by the value in column `'Quantity'`,
          using the value in column `'Rating'` for breaking ties.
 
-             table.sort ['Quantity', 'Rating']
+             table = Table.from_rows ["Name","Quantity","Rating"] [["John", 5, 3],["Paul", 3, 5]]
+             sorted = table.sort ['Quantity', 'Rating']
+
+             ## Returns a Table
+                | Name | Quantity | Rating |
+                |------|----------|--------|
+                | Paul | 3        | 5      |
+                | John | 5        | 3      |
 
        > Example
          Sorting `table` in ascending order by the value in column `'Quantity'`,
          using the value in column `'Rating'` in descending order for breaking
          ties.
 
-             table.sort [..Name 'Quantity', ..Name 'Rating' ..Descending]
+             table = Table.from_rows ["Name","Quantity","Rating"] [["John", 5, 3],["Paul", 3, 5]]
+             sorted = table.sort ['Quantity', ..Name 'Rating' ..Descending]
 
-       > Example
-         Order the table by the second column in ascending order. In case of any
-         ties, break them based on the 7th column from the end of the table in
-         descending order.
-
-             table.sort [1, ..Index -7 ..Descending]
-
-       > Example
-         Sort the table by columns whose names start with letter `a`.
-
-              table.sort [(..Select_By_Name "a.*".to_regex case_sensitivity=..Insensitive)]
+             ## Returns a Table
+                | Name | Quantity | Rating |
+                |------|----------|--------|
+                | John | 5        | 3      |
+                | Paul | 3        | 5      |
     @columns Widget_Helpers.make_order_by_selector
     sort : Vector (Text | Sort_Column) | Text -> Text_Ordering -> Boolean -> Problem_Behavior -> Table ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns
     sort self (columns = [self.columns.first.name]) text_ordering:Text_Ordering=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
@@ -957,6 +1264,7 @@ type Table
 
        Arguments:
        - columns: The columns of the table to use for distinguishing the rows.
+         Defaults to all columns.
        - case_sensitivity: Specifies if the text values should be compared case
          sensitively.
        - error_on_missing_columns: Specifies if a missing input column should
@@ -964,6 +1272,33 @@ type Table
          to `True`.
        - on_problems: Specifies how to handle if a problem occurs, raising as a
          warning by default.
+
+       Returns
+       - A new table with the distinct rows.
+
+       > Example
+         Select distinct by name
+
+             table = Table.from_rows ["Name","Location"] [["John", "Massachusetts"],["Paul","London"]]
+             distinct = table.distinct ["Name"]
+
+             ## Returns a Table
+                | Name |
+                |------|
+                | John |
+                | Paul |
+
+       > Example
+         Select distinct by name and location
+
+             table = Table.from_rows ["Name","Location"] [["John", "Massachusetts"],["Paul","London"]]
+             distinct = table.distinct ["Name", "Location"]
+
+             ## Returns a Table
+                | Name | Location      |
+                |------|---------------|
+                | John | Massachusetts |
+                | Paul | London        |
 
        ! Error Conditions
 
@@ -1030,24 +1365,16 @@ type Table
 
     ## GROUP Standard.Base.Conversions
        ICON convert
-       Parses columns within a `Table` to a specific value type.
+
+       Parses columns within a `Table` into a more specific value type.
        By default, it looks at all `Text` columns and attempts to deduce the
        type (columns with other types are not affected).
-
-       In the Database backends, the default formatting settings of the
-       particular database are used.
-
-       In the in-memory backend, the default parser options only parse values
-       where the process is reversible (e.g., 0123 would not be converted to an
-       integer as there is a leading 0). However, settings in the
-       `Data_Formatter` can control this.
 
        Arguments:
        - columns: The columns to parse. If not specified, all text columns
          will be parsed.
        - type: The type to parse the columns to. Defaults to `Auto` meaning that
-         the type will be inferred from the data. In the Database backends,
-         `Auto` is not supported, so a specific type must be selected.
+         the type will be inferred from the data.
        - format: The formatting settings to use when parsing the columns.
          For `Date`, `Time_Of_Day` and `Date_Time`, a Java date time style
          can be used. For `Boolean`, it should be two values that represent true
@@ -1061,6 +1388,9 @@ type Table
          to `True`.
        - on_problems: Specifies how to handle if a problem occurs, raising as a
          warning by default.
+
+       Returns:
+       - A new table with the parsed columns replacing the original text ones.
 
        ! Error Conditions
 
@@ -1076,20 +1406,34 @@ type Table
            format, an `Invalid_Format` problem is reported. The problematic
            cells are replaced with `Nothing`.
 
-       ? Number Formats
+       ? Auto type detection
 
-         If parsing a column to a number, by default, the parser will attempt
+         In the in-memory backend, if the `type` is `Auto, the process will
+         attempt to work out the type of the column.
+
+         The default parser only parse values where the process is reversible
+         (e.g., 0123 would not be converted to an integer as there is a leading
+         0). However, this can be overriden by providing a `Data_Formatter`.
+
+       ? In Database Support
+
+         In the Database backends, the default formatting settings of the
+         particular database are used. Custom formats are not currently
+         supported.
+
+         The target type must be specified explicitly, the `Auto` option is not
+         currently support there.
+
+       ? Default Number Parsing
+
+         If the type is set to a number, the default parser will attempt
          to find the most appropriate format for the column. This is done by
          finding the format that parses the longest set without an issue from
          the first record.
 
          It will try the following separators in British, German, French and
-         Swiss order.
-
-         - Thousand separators must be followed by groups of 3 numbers.
-         - Scientific notation is only allowed on decimals and must be on a
-           value between -10 and 10. The notation is an `E` followed by an
-           integer and must be enabled on the `Data_Formatter`,
+         Swiss order. Thousand separators must be followed by groups of 3
+         numbers.
 
          The following formats are supported:
          - Sign (+/-) followed by Number (e.g. +1,234.56)
@@ -1099,25 +1443,53 @@ type Table
          - If using brackets, the currency symbol must be placed after the
            opening bracket.
 
-       > Example
-         Parse the first and last columns containing Yes/No values as booleans.
+         Scientific notation is only allowed on decimals and must be on a value
+         between -10 and 10. The notation is an `E` followed by an integer and
+         must be enabled on a `Data_Formatter`.
 
-             table.parse columns=[0, -1] type=Value_Type.Boolean format="Yes|No"
+       > Example
+         Parse the last columns containing Yes/No values as booleans.
+
+             table = Table.from_rows ["foo","bar","buzz","bizz"] [["25", "John","abc","Yes"]]
+             output = table.parse columns=[-1] type=Value_Type.Boolean format="Yes|No"
+
+             ## Returns a Table
+                | foo | bar  | buzz | bizz |
+                |-----|------|------|------|
+                | 25  | John | abc  | true |
 
        > Example
          Parse dates in a column in the format `yyyy-MM-dd` (the default format).
 
-             table.parse "birthday" Value_Type.Date
+             table = Table.from_rows ["Name","Location","Active","Date"] [["John", "Massachusetts", True, "2021-01-01"]]
+             output = table.parse ["Date"] ..Date
+
+             ## Returns a Table
+                | Name | Location      | Active | Date       |
+                |------|---------------|--------|------------|
+                | John | Massachusetts | true   | 2021-01-01 |
 
        > Example
          Parse dates in a column in the format `dd/MM/yyyy`.
 
-             table.parse "birthday" Value_Type.Date 'dd/MM/yyyy'
+             table = Table.from_rows ["Name","Location","Active","Date"] [["John", "Massachusetts", True, "21/12/2021"]]
+             output = table.parse ["Date"] ..Date format="dd/MM/yyyy"
+
+             ## Returns a Table
+                | Name | Location      | Active | Date       |
+                |------|---------------|--------|------------|
+                | John | Massachusetts | true   | 2021-12-21 |
 
        > Example
          Parse all columns inferring their types, using `,` as the decimal point for numbers.
 
-             table.parse format=(Data_Formatter.Value.with_number_formatting decimal_point=',')
+             table = Table.from_rows ["Name","Location","Active","Value"] [["John", "Massachusetts", "True", "1.234,56"]]
+             output = table.parse ["Value"] ..Float
+
+             ## Returns a Table
+                | Name | Location      | Active | Value   |
+                |------|---------------|--------|---------|
+                | John | Massachusetts | True   | 1234.56 |
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True)
     @type Widget_Helpers.parse_type_selector
     @format (make_format_chooser include_number=False)
@@ -1152,26 +1524,28 @@ type Table
 
     ## GROUP Standard.Base.Conversions
        ICON convert
-       Formats `Column`s within a `Table` using a format string,
-       `Date_Time_Formatter`, or `Column` of format strings.
+       Formats specified columns to text, optionally using a specified format.
+       The original columns are replaced by the formatted columns.
 
        Arguments:
        - columns: The columns to format. The columns can have different types,
          but all columns must be compatible with any provided `format` value.
        - format: The type-dependent format string to use to format the values.
-         If `format` is `""` or `Nothing`, .to_text is used to format the value.
+         If `format` is `""` or `Nothing`, default value format is used.
          In case of date/time columns, the format can also be a
          `Date_Time_Formatter`. If `format` is a `Column`, it must be a text
-         column.
+         column and each record is treat row by row.
        - locale: The locale in which the format should be interpreted.
-         If a `Date_Time_Formatter` is provided for `format` and the `locale` is
-         set to anything else than `Locale.default`, then that locale will
-         override the formatters locale.
+         If a `Date_Time_Formatter` is provided for `format`, then this locale
+         will override the locale in the formatter (unless it is `default`).
        - error_on_missing_columns: Specifies if a missing input column should
          result in an error regardless of the `on_problems` settings. Defaults
          to `True`.
        - on_problems: Specifies how to handle if a problem occurs, raising as a
          warning by default.
+
+       Returns:
+       - A new table with the specified columns formatted.
 
        ! Error Conditions
 
@@ -1194,11 +1568,11 @@ type Table
          - `Value_Type.Float`
          - `Value_Type.Boolean`
 
-       ? `Value_Type.Date`, `Value_Type.Date_Time`, `Value_Type.Time` format strings
+       ? `Value_Type.Date`, `Value_Type.Date_Time`, `Value_Type.Time` formats
 
-          See `Date_Time_Formatter` for more details.
+          See https://help.enso.org/docs/using-enso/custom-formats for details.
 
-       ? `Value_Type.Integer`, `Value_Type.Float` format strings
+       ? `Value_Type.Integer`, `Value_Type.Float` formats
 
          Numeric format strings are specified by the Java DecimalFormat class.
          See https://docs.oracle.com/javase/8/docs/api/java/text/DecimalFormat.html
@@ -1210,19 +1584,40 @@ type Table
          and false, separated by a `|`.
 
        > Example
-         Format the first and last boolean columns as 'Yes'/'No'.
+         Format Active and Date columns in the table using the default formatter.
 
-             table.format columns=[0, -1] format="Yes|No"
+             table = Table.from_rows ["Name","Location","Active","Date"] [["John", "Massachusetts", True, Date.new 2020 1 1],["Paul","London", False, Date.new 2020 1 2]]
+             output = table.format columns=["Active", "Date"]
+
+             ## Returns a Table
+                | Name | Location      | Active | Date       |
+                |------|---------------|--------|------------|
+                | John | Massachusetts | True   | 2020-01-01 |
+                | Paul | London        | False  | 2020-01-02 |
+
+       > Example
+         Format the last boolean columns as 'Yes'/'No'.
+
+             table = Table.from_rows ["Name","Location","Active"] [["John", "Massachusetts", True],["Paul","London", False]]
+             output = table.format columns=[-1] format="Yes|No"
+
+             ## Returns a Table
+                | Name | Location      | Active |
+                |------|---------------|--------|
+                | John | Massachusetts | Yes    |
+                | Paul | London        | No     |
 
        > Example
          Format dates in a column using the format `yyyyMMdd`.
 
-             table.format "birthday" "yyyyMMdd"
+             table = Table.from_rows ["Name","Location","Date"] [["John", "Massachusetts", Date.new 2020 1 1],["Paul","London", Date.new 2020 1 2]]
+             output = table.format columns=["Date"] format="yyyyMMdd"
 
-       > Example
-         Format all columns in the table using the default formatter.
-
-             table.format
+             ## Returns a Table
+                | Name | Location      | Date     |
+                |------|---------------|----------|
+                | John | Massachusetts | 20200101 |
+                | Paul | London        | 20200102 |
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @locale Locale.default_widget
     @format (make_format_chooser include_number=True)
@@ -1248,8 +1643,7 @@ type Table
        ICON convert
        Cast the selected columns to a specific type.
 
-       Returns a new table in which the selected columns are replaced with
-       columns having the new types.
+       Change the value type of the selected columns with the specified type.
 
        Arguments:
        - columns: The selection of columns to cast.
@@ -1260,9 +1654,22 @@ type Table
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
+       Returns:
+       - A new table with the specified columns cast to the desired type.
+
+       ! Error Conditions
+       - If the target type cannot fit some of the values (for example due to
+         too small range), a `Conversion_Failure` may be reported according to
+         the `on_problems` rules.
+       - The Database backends may fail with `SQL_Error` instead.
+
+       ? Casting Rules
+
        In the Database backend, this will boil down to a CAST operation.
+
        In the in-memory backend, a conversion will be performed according to
        the following rules:
+
        - Anything can be cast into the `Mixed` type.
        - Converting to a `Char` type, the elements of the column will be
          converted to text. If it is fixed length, the texts will be trimmed or
@@ -1283,18 +1690,13 @@ type Table
        - For a `Mixed` column being converted into a specific type, each row is
          converted individually.
 
-        If the target type cannot fit some of the values (for example due to too
-        small range), a `Conversion_Failure` may be reported according to the
-        `on_problems` rules. The Database backends may fail with `SQL_Error`
-        instead.
-
        ? Inexact Target Type
 
          If the backend does not support the requested target type, the closest
          supported type is chosen and a `Inexact_Type_Coercion` problem is
          reported.
 
-       ! Casting Text values
+       ? Casting Text values
 
          The `parse` method should be used to convert text values into other
          types. Due to this, a Mixed column containing values `[2, "3"]` will
@@ -1310,21 +1712,26 @@ type Table
     ## ALIAS auto_value_types
        GROUP Standard.Base.Conversions
        ICON convert
-       Change the value type of table columns to a more specific one, based on
-       their contents.
+       Automatically detect the appropriate data type and size for specified
+       columns and change them, based on the contents.
 
-       This is most useful for `Mixed` type columns and will allow to narrow
-       down the type if all values in the column fit a more specific type.
+       This is most useful for Mixed types to narrow down the type if all values
+       could fit into one type.
 
        Arguments:
-       - columns: The selection of columns to convert.
+       - columns: The selection of columns to convert. Defaults to all columns.
        - shrink_types: If set `True`, smaller types will be chosen if possible,
-         according to the rules below. Defaults to `False`.
+         according to the rules below. Defaults to `False`. For example, from a
+         64-bit integer to a 32-bit integer if all fit.
        - error_on_missing_columns: Specifies if a missing input column should
          result in an error regardless of the `on_problems` settings. Defaults
          to `True`.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
+
+       Returns
+       - A new table with the specified columns converted to the most
+         appropriate type.
 
        ? Auto Type Selection Rules
 
@@ -1355,7 +1762,8 @@ type Table
             new_column = column_to_cast.auto_cast shrink_types
             table.set new_column as=column_to_cast.name set_mode=Set_Mode.Update
 
-    ## GROUP Standard.Base.Conversions
+    ## PRIVATE
+       GROUP Standard.Base.Conversions
        ICON convert
 
        Deprecated: Use `auto_cast` instead.
@@ -1405,8 +1813,10 @@ type Table
 
     ## GROUP Standard.Base.Conversions
        ICON split
-       Splits a column of text into a set of new columns.
-       The original column will be removed from the table.
+       Creates a new table by splitting the chosen column of text, by the
+       specified delimiter into a set of new columns. The original column will
+       be removed from the table.
+
        The new columns will be named with the name of the input column with a
        incrementing number after.
 
@@ -1415,10 +1825,14 @@ type Table
        - delimiter: The term or terms used to split the text.
        - column_count: The number of columns to split to.
          If `All_Columns` then columns will be added to fit all data.
-       - on_problems: Specifies the behavior when a problem occurs.
+       - on_problems: Specifies the behavior when a problem occurs, reporting
+         them as warnings by default.
+
+       Returns
+       - Returns a Table with the newly split columns and the original removed.
 
        ! Error Conditions
-         If the data exceeds the `column_count`, a `Column_Count_Exceeded` will
+       - If the data exceeds the `column_count`, a `Column_Count_Exceeded` will
          be reported according to the `on_problems` behavior.
     @column Widget_Helpers.make_column_name_selector
     @delimiter make_delimiter_selector
@@ -1429,12 +1843,17 @@ type Table
 
     ## GROUP Standard.Base.Conversions
        ICON split
-       Splits a column of text into a set of new rows.
+       Creates a new table by splitting the chosen column of text, by the
+       specified delimiter into a set of new rows.
+
        The values of other columns are repeated for the new rows.
 
        Arguments:
        - column: The name or index of the column to split the text of.
        - delimiter: The term or terms used to split the text.
+
+       Returns
+       - Returns a Table with the newly generated rows.
     @column Widget_Helpers.make_column_name_selector
     @delimiter make_delimiter_selector
     split_to_rows : Text | Integer -> Text -> Table
@@ -1443,13 +1862,13 @@ type Table
 
     ## GROUP Standard.Base.Conversions
        ICON split
-       Tokenizes a column of text into a set of new columns using a regular
-       expression.
-       If the pattern contains marked groups, the values are concatenated
-       together; otherwise the whole match is returned.
-       The original column will be removed from the table.
-       The new columns will be named with the name of the input column with a
-       incrementing number after.
+
+       Creates a new Table with the chosen column of Text split by the `pattern`
+       regular expression into a set of new columns. If the pattern contains
+       marked groups, the values are concatenated together; otherwise the whole
+       match is returned.
+
+       The values of other columns are repeated for the new rows.
 
        For details on Enso's Regex syntax, see the [Help Documentation](https://help.enso.org/docs/using-enso/regular-expressions).
 
@@ -1462,8 +1881,11 @@ type Table
          If `Nothing` then columns will be added to fit all data.
        - on_problems: Specifies the behavior when a problem occurs.
 
+       Returns
+       - Returns a Table with the newly split columns.
+
        ! Error Conditions
-         If the data exceeds the `column_count`, a `Column_Count_Exceeded` will
+       - If the data exceeds the `column_count`, a `Column_Count_Exceeded` will
          be reported according to the `on_problems` behavior.
     @column Widget_Helpers.make_column_name_selector
     tokenize_to_columns : Text | Integer -> Text -> Case_Sensitivity -> Columns_To_Add -> Problem_Behavior -> Table
@@ -1472,10 +1894,12 @@ type Table
 
     ## GROUP Standard.Base.Conversions
        ICON split
-       Tokenizes a column of text into a set of new rows using a regular
-       expression.
-       If the pattern contains marked groups, the values are concatenated
-       together; otherwise the whole match is returned.
+
+       Creates a new Table with the chosen column of Text split by the `pattern`
+       regular expression into a set of new rows. If the pattern contains marked
+       groups, the values are concatenated together; otherwise the whole match
+       is returned.
+
        The values of other columns are repeated for the new rows.
 
        For details on Enso's Regex syntax, see the [Help Documentation](https://help.enso.org/docs/using-enso/regular-expressions).
@@ -1488,6 +1912,9 @@ type Table
        - at_least_one_row: If True, a tokenization that returns no values will still
          produce at least one row, with `Nothing` for the output column values.
          Equivalent to converting a tokenization output of [] to [Nothing].
+
+       Returns
+       - Returns a Table with the newly split rows.
     @column Widget_Helpers.make_column_name_selector
     tokenize_to_rows : Text | Integer -> Text -> Case_Sensitivity -> Boolean -> Table
     tokenize_to_rows self column pattern="." case_sensitivity:Case_Sensitivity=..Sensitive at_least_one_row:Boolean=False =
@@ -1583,51 +2010,98 @@ type Table
        GROUP Standard.Base.Selections
        ICON preparation
 
-       Selects only the rows of this table that correspond to `True` values of
-       `filter`.
+       Filter is used to select data from a table using a condition. The rows
+       that meet the condition will remain after the filter. Filters can compare
+       columns, compare against static values, or compare against an argument
+       from another component.
 
        Arguments:
-       - column: The column to use for filtering. Can be a column name, index or
-         the `Column` object itself.
-       - filter: The filter to apply to the column. It can either be an instance
-         of `Filter_Condition` or a predicate taking a cell value and returning
-         a boolean value indicating whether the corresponding row should be kept
-         or not.
-       - on_problems: Specifies how to handle if a non-fatal problem occurs,
-         attaching a warning by default.
+       - `column`: The column our condition is tested against.
+         This can be a column name, the column's index or an expression.
+       - `filter`: The filter to apply to the column. It can either be an
+         instance of `Filter_Condition` or a predicate taking a cell value and
+         returning a boolean value indicating whether the corresponding row
+         should be kept or not.
+
+         - `action`:
+           This can be set to `Keep`, which keeps all rows which meet the
+           condition. It can also be set to `Remove`, which will instead only
+           keep the rows that do not meet the condition.
+           For example, `[people] Is Null` would keep all the rows where the
+           column `people` had a Null value. Changing this to `Remove` would
+           remove all of the rows where `people` had a Null value, leaving only
+           the records that are not null.
+
+       - `on_problems`: specified how to report any issues encountered during
+          the operation.
+
+       Returns:
+       - Returns a Table of all of the rows that met the specified condition.
 
        ! Error Conditions
-
-         - If a column name cannot be found, a `No_Such_Column` dataflow error
-           is raised.
-         - If a column index is invalid, an `Index_Out_Of_Bounds` dataflow error
-           is raised.
-         - If the column is an invalid type for the filter, an
-           `Invalid_Value_Type` dataflow error is raised.
-         - Additionally, the following problems may be reported according to the
-           `on_problems` setting:
-           - If filtering by equality on a floating-point column,
-             a `Floating_Point_Equality`.
-
-       > Example
-         Get people older than 30.
-
-             people.filter "Age" (Greater 30)
+       - If a column name cannot be found, a `No_Such_Column` dataflow error
+         is raised.
+       - If a column index is invalid, an `Index_Out_Of_Bounds` dataflow error
+         is raised.
+       - If the column is an invalid type for the filter, an
+         `Invalid_Value_Type` dataflow error is raised.
+       - Additionally, the following problems may be reported according to the
+         `on_problems` setting:
+         - If filtering by equality on a floating-point column, a
+           `Floating_Point_Equality` will warn the user that comparing floats is
+           imprecise, so results may be inconsistent.
 
        > Example
-         Filter people between 30 and 40.
+         Filter where an Age is Greater than 30.
 
-             people.filter "Age" (Between 30 40)
+             table1 = Table.new [['Name', ['John', 'Paul', 'Ringo']], ['Age', [25, 35, 40]]]
+             filter1 = table1.filter 'Age' (..Greater 30)
+
+             ## Returns a Table
+                | Name  | Age |
+                |-------|-----|
+                | Paul  | 35  |
+                | Ringo | 40  |
+
+       > Example
+         Filter where an Age is Between 30 and 39.
+
+             table1 = Table.new [['Name', ['John', 'Paul', 'Ringo']], ['Age', [25, 35, 40]]]
+             filter1 = table1.filter 'Age' (..Between 30 39)
+
+             ## Returns a Table
+                | Name | Age |
+                |------|-----|
+                | Paul | 35  |
 
        > Example
          Select rows where more than 50% of the stock is sold.
 
-             table.filter "sold_stock" (Greater (table.at "total_stock" / 2))
+             table2 = Table.new [['Name', ['John', 'Paul']], ['sold_stock', [20, 30]], ['total_stock', [50, 50]]]
+             filter3= table2.filter 'sold_stock' (..Greater (expr '[total_stock]/2'))
+
+             ## Returns a Table
+                | Name | sold_stock | total_stock |
+                |------|------------|-------------|
+                | Paul | 30         | 50          |
 
        > Example
          Select people celebrating a jubilee.
 
-             people.filter "age" (age -> (age%10 == 0))
+             table3 = Table.new [['Name', ['John', 'Paul', 'Ringo']], ['Age', [25, 35, 40]]]
+             filter4 = table3.filter (expr '[Age] % 10 = 0') ..Is_True
+
+             ## Returns a Table
+                | Name  | Age |
+                |-------|-----|
+                | Ringo | 40  |
+
+       ? Nothing Equality
+
+       When comparing `Nothing` values, filter follows the ANSI SQL conventions
+       that `Nothing ==  Nothing` results in a `Nothing`. This includes both
+       `Equal` and `Is_In` conditions. If you want to filter out `Nothing` use
+       `Is_Not_Nothing` condition (or `Is_Nothing` to filter out non-`Nothing`).
     @column (Widget_Helpers.make_column_name_selector add_expression=True)
     @filter Widget_Helpers.make_filter_condition_selector
     filter : (Column | Expression | Text | Integer) -> (Filter_Condition | (Any -> Boolean)) -> Problem_Behavior -> Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type
@@ -1694,14 +2168,18 @@ type Table
        Arguments:
        - range: The selection of rows from the table to return.
 
-       For the purposes of the `Index_Sub_Range.While` predicate a single
-       "element" of the table is represented by the `Row` type.
+       Returns:
+       - Returns a Table with the selected rows.
 
        ? Supported Range Types
 
          Database backends support all range types except `While` and `Sample`
-
          In-memory tables support all range types.
+
+       ? While
+
+         For the purposes of the `Index_Sub_Range.While` predicate a single
+         "element" of the table is represented by the `Row` type.
 
        > Example
          Take first 10 rows of the table.
@@ -2019,17 +2497,50 @@ type Table
        - right: The table to join with.
        - join_kind: The `Join_Kind` for the joining the two tables. It defaults
          to `Left_Outer`.
-       - on: A single condition or a common column name, or a list thereof, on
-         which to correlate rows from the two tables. If multiple conditions
-         are supplied, rows are correlated only if all are true.
-         If common column names are provided, these columns should be present
-         in both tables and an equality condition is added for each of them.
-         By default, the join is performed on the first column of the left table
-         correlated with a column in the right table with the same name.
+       - on: A set of conditions on which to correlate rows from the two tables.
+         If multiple conditions are supplied, rows are correlated only if all
+         are true. By default, the join is performed on the first column of the
+         left table correlated with a column in the right table with the same
+         name.
        - right_prefix: The prefix added to right table column names in case of
          name conflict.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
+
+       Returns:
+       - Returns a new table with the rows from the two tables joined according
+         to the specified conditions.
+
+       > Example
+         Inner Join on Name from a table with Name and Location to a table with
+         Name and Age.
+
+             left_table = Table.from_rows ["Name","Location"] [["John", "Massachusetts"],["Paul","London"]]
+             right_table = Table.from_rows ["Name","Age"] [["John", 20],["Paul",30]]
+             join_table = left_table.join right_table ..Inner [..Equals Name]
+
+             ## Returns a Table
+                | Name | Location      | Right Name | Age |
+                |------|---------------|------------|-----|
+                | John | Massachusetts | John       | 20  |
+                | Paul | London        | Paul       | 30  |
+
+       > Example
+         Left Outer Join on Name from a table with Name and Location to a table
+         with Name and Age.
+
+             left_table = Table.from_rows ["Name","Location"] [["John", "Massachusetts"],["Paul","London"],["Ringo","Paris"]]
+             right_table = Table.from_rows ["Name","Age"] [["John", 20],["Paul",30]]
+             join_table = left_table.join right_table ..Left_Outer [..Equals Name]
+
+             ## Returns a Table
+                | Name  | Location      | Right Name | Age       |
+                |-------|---------------|------------|-----------|
+                | John  | Massachusetts | John       | 20        |
+                | Paul  | London        | Paul       | 30        |
+                | Ringo | Paris         | _Nothing_  | _Nothing_ |
+
+       ! Error Conditions
 
          - If a column name cannot be found, a `No_Such_Column` is reported
            and an empty result is reported.
@@ -2044,9 +2555,25 @@ type Table
          - If decimal columns are joined on equality, a
            `Floating_Point_Equality` is reported.
 
-         In any of the above cases, if a problem occurs, the resulting table
-         will have the desired structure, but it will be empty to indicate that
-         the join has failed due to an erroneous join condition.
+       ? Join Kind
+
+         Enso supports the following join kinds:
+
+          - `..Inner` - Only the records that matched from the left and right
+            tables.
+          - `..Left_Outer` - all records from the left table, and the matched
+            values from the right.
+          - `..Right_Outer` - all records from the right table, and the matched
+            values from the left.
+          - `..Full` - all records, matched or unmatched.
+          - `..Left_Exclusive` - only the records that did not match from the
+            left table.
+          - `..Right_Exclusive` - only the records that did not match from the
+            right table.
+
+         It is possible to do a cartesian join (where every row from the left
+         table is paired with every row from the right table) as well, by using
+         the `cross_join` function.
 
        ? Column Renaming
 
@@ -2055,6 +2582,12 @@ type Table
          table. The left column remains unchanged. It is possible that the new
          name will be in use, in this case it will be resolved using the normal
          renaming strategy - adding subsequent `_1`, `_2` etc.
+
+       ? Nothing Equality
+
+         When comparing `Nothing` values, filter follows the ANSI SQL
+         conventions that `Nothing ==  Nothing` results in a `Nothing`. This
+         means that in a join this `Nothing` values will not match each other.
 
        ? Result Ordering
 
@@ -2071,8 +2604,11 @@ type Table
 
          As a shorthand, providing a column name or a list of column names
          allows to join the two tables on equality of corresponding columns with
-         the same name. So `table.join other on=["A", "B"]` is a shorthand for:
-             table.join other on=[Join_Condition.Equals "A" "A", Join_Condition.Equals "B" "B"]
+         the same name.
+
+         So `table.join other on=["A", "B"]` is a shorthand for:
+
+             `table.join other on=[..Equals "A" "A", ..Equals "B" "B"]`
     @join_kind Widget_Helpers.make_join_kind_selector
     @on Widget_Helpers.make_join_condition_selector
     join : Table -> Join_Kind -> Vector (Join_Condition | Text) | Text -> Text -> Problem_Behavior -> Table
@@ -3007,31 +3543,48 @@ type Table
 
     ## GROUP Standard.Base.Text
        ICON column_add
-       Applies the specified cleansings to the text in each row of the specified columns
+       Applies the specified cleansing operations to text values in each column
+       specified in `from`.
 
        Arguments:
        - from: The column(s) to cleanse.
-       - remove: A vector of the text cleanings to remove from the text. The text cleansings are
-           applied in the order they are provided. The same text cleansing can be used multiple
-           times. The text cleansings are:
-             - ..Leading_Whitespace: Removes all whitespace from the start of the string.
-             - ..Trailing_Whitespace: Removes all whitespace from the end of the string.
-             - ..Duplicate_Whitespace: Removes all duplicate whitespace from the string replacing it with the first whitespace character of the duplicated block.
-             - ..All_Whitespace: Removes all whitespace from the string.
-             - ..Newlines: Removes all newline characters from the string. Line Feed and Carriage Return characters are considered newlines.
-             - ..Leading_Numbers: Removes all numbers from the start of the string.
-             - ..Trailing_Numbers: Removes all numbers from the end of the string.
-             - ..Non_ASCII: Removes all non-ascii characters from the string.
-             - ..Tabs: Removes all tab characters from the string.
-             - ..Letters: Removes all letters from the string.
-             - ..Numbers: Removes all numbers characters from the string.
-             - ..Punctuation: Removes all characters in the set ,.!?():;'" from the string.
-             - ..Symbols: Removes anything that isn't letters, numbers or whitespace from the string.
+       - remove: The list of operations being performed - which elements to
+         remove. These are performed in the order specified. The same operation
+         can be performed multiple times.
+         The operations are:
+         - ..Leading_Whitespace: Removes all whitespace from the start.
+         - ..Trailing_Whitespace: Removes all whitespace from the end.
+         - ..Duplicate_Whitespace: Removes all duplicate whitespace replacing it
+           with the first whitespace character of the duplicated block.
+         - ..All_Whitespace: Removes all whitespace.
+         - ..Newlines: Removes all newline characters. Line Feed and Carriage
+           Return characters are considered newlines.
+         - ..Leading_Numbers: Removes all numbers from the start.
+         - ..Trailing_Numbers: Removes all numbers from the end.
+         - ..Non_ASCII: Removes all non-ascii characters.
+         - ..Tabs: Removes all tab characters.
+         - ..Letters: Removes all letters.
+         - ..Numbers: Removes all numbers.
+         - ..Punctuation: Removes all characters in the set ``,.!?():;'"`.
+         - ..Symbols: Removes anything that isn't letters, numbers or whitespace
+           from the string.
+
+       Returns:
+       - A Table of all records, with the cleansing operations performed on the
+         specified columns. Original columns are removed and replaced with the
+         cleansed columns.
 
        > Example
          Remove leading and trailing spaces from cells.
 
-             table.text_cleanse ["Input"] [..Leading_Whitespace, ..Trailing_Whitespace]
+            table = Table.new [["Input"], ["  Hello  "], ["  World  "]]
+            cleansed = table.text_cleanse ["Input"] [..Leading_Whitespace, ..Trailing_Whitespace]
+
+            ## Returns a Table
+               | Input |
+               |-------|
+               | Hello |
+               | World |
     @from (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @remove make_data_cleanse_vector_selector
     text_cleanse : Vector (Integer | Text | Regex | By_Type) -> Vector Named_Pattern -> Table
