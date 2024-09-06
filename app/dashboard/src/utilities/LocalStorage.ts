@@ -4,6 +4,19 @@ import type * as z from 'zod'
 import * as common from 'enso-common'
 
 import * as object from '#/utilities/object'
+import { IS_DEV_MODE } from 'enso-common/src/detect'
+import invariant from 'tiny-invariant'
+
+const KEY_DEFINITION_STACK_TRACES = new Map<string, string>()
+
+/** Whether the source location for `LocalStorage.register(key)` is different to the previous
+ * known source location. */
+function isSourceChanged(key: string) {
+  const stack = (new Error().stack ?? '').replace(/[?]t=\d+:\d+:\d+/g, '')
+  const isChanged = stack !== KEY_DEFINITION_STACK_TRACES.get(key)
+  KEY_DEFINITION_STACK_TRACES.set(key, stack)
+  return isChanged
+}
 
 // ===============================
 // === LocalStorageKeyMetadata ===
@@ -74,7 +87,26 @@ export default class LocalStorage {
 
   /** Register runtime behavior associated with a {@link LocalStorageKey}. */
   static registerKey<K extends LocalStorageKey>(key: K, metadata: LocalStorageKeyMetadata<K>) {
+    if (IS_DEV_MODE ? isSourceChanged(key) : true) {
+      invariant(
+        !(key in LocalStorage.keyMetadata),
+        `Local storage key '${key}' has already been registered.`,
+      )
+    }
     LocalStorage.keyMetadata[key] = metadata
+  }
+
+  /** Register runtime behavior associated with a {@link LocalStorageKey}. */
+  static register<K extends LocalStorageKey>(metadata: { [K_ in K]: LocalStorageKeyMetadata<K_> }) {
+    for (const key in metadata) {
+      if (IS_DEV_MODE ? isSourceChanged(key) : true) {
+        invariant(
+          !(key in LocalStorage.keyMetadata),
+          `Local storage key '${key}' has already been registered.`,
+        )
+      }
+    }
+    Object.assign(LocalStorage.keyMetadata, metadata)
   }
 
   /** Retrieve an entry from the stored data. */
