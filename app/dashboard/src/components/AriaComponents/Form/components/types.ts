@@ -223,8 +223,9 @@ export interface FormFieldProps<
   TFieldName extends FieldPath<Schema>,
 > extends FormWithValueValidation<BaseValueType, Schema, TFieldName> {
   readonly name: TFieldName
-  readonly value?: BaseValueType extends FieldValues<Schema> ? FieldValues<Schema> : never
-  readonly defaultValue?: FieldValues<Schema> | undefined
+  readonly value?: BaseValueType extends FieldValues<Schema> ? FieldValues<Schema>[TFieldName]
+  : never
+  readonly defaultValue?: FieldValues<Schema>[TFieldName] | undefined
   readonly isDisabled?: boolean | undefined
   readonly isRequired?: boolean | undefined
   readonly isInvalid?: boolean | undefined

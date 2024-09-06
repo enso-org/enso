@@ -35,10 +35,10 @@ export interface ResizableContentEditableInputProps<
       VariantProps<typeof INPUT_STYLES>,
       'disabled' | 'invalid' | 'rounded' | 'size' | 'variant'
     >,
-    ariaComponents.FieldVariantProps,
+    FieldVariantProps,
     Omit<FieldProps, 'variant'>,
     FieldVariantProps,
-    Pick<twv.VariantProps<typeof INPUT_STYLES>, 'rounded' | 'size' | 'variant'>,
+    Pick<VariantProps<typeof INPUT_STYLES>, 'rounded' | 'size' | 'variant'>,
     Omit<
       VariantProps<typeof CONTENT_EDITABLE_STYLES>,
       'disabled' | 'invalid' | 'rounded' | 'size' | 'variant'
@@ -76,10 +76,8 @@ export const ResizableContentEditableInput = forwardRef(function ResizableConten
     variant,
     variants = CONTENT_EDITABLE_STYLES,
     fieldVariants,
-    variants = CONTENT_EDITABLE_STYLES,
-      fieldVariants,
-      ...textFieldProps
-    } = props
+    ...textFieldProps
+  } = props
 
   const inputRef = useRef<HTMLDivElement>(null)
 
@@ -109,21 +107,20 @@ export const ResizableContentEditableInput = forwardRef(function ResizableConten
     textArea,
     placeholder: placeholderClass,
   } = variants({
-      invalid: fieldState.invalid,
-      disabled: isDisabled || formInstance.formState.isSubmitting,
-      variant,
+    invalid: fieldState.invalid,
+    disabled: isDisabled || formInstance.formState.isSubmitting,
+    variant,
     rounded,
     size,
   })
 
   return (
     <Form.Field
-        form={formInstance}
-        name={name}
-        fullWidth
-        variants={fieldVariants}
-        {...textFieldProps}
-
+      form={formInstance}
+      name={name}
+      fullWidth
+      variants={fieldVariants}
+      {...textFieldProps}
     >
       <div
         className={base()}
