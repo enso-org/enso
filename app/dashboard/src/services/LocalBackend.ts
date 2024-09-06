@@ -125,7 +125,7 @@ export default class LocalBackend extends Backend {
 
   /** Return the ID of the root directory. */
   override rootDirectoryId(
-    _user: backend.User | null,
+    _user: backend.User,
     _organization: backend.OrganizationInfo | null,
     rootDirectory: backend.Path | null | undefined,
   ): backend.DirectoryId {

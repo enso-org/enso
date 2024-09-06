@@ -174,12 +174,12 @@ export default class RemoteBackend extends Backend {
   }
 
   /** The path to the root directory of this {@link Backend}. */
-  override rootPath(user: backend.User | null) {
-    switch (user?.plan ?? null) {
-      case null:
+  override rootPath(user: backend.User) {
+    switch (user.plan) {
+      case undefined:
       case backend.Plan.free:
       case backend.Plan.solo: {
-        return `enso://Users/${user?.name ?? ''}`
+        return `enso://Users/${user.name}`
       }
       case backend.Plan.team:
       case backend.Plan.enterprise: {
@@ -190,14 +190,14 @@ export default class RemoteBackend extends Backend {
 
   /** Return the ID of the root directory. */
   override rootDirectoryId(
-    user: backend.User | null,
+    user: backend.User,
     organization: backend.OrganizationInfo | null,
   ): backend.DirectoryId | null {
-    switch (user?.plan ?? null) {
-      case null:
+    switch (user.plan) {
+      case undefined:
       case backend.Plan.free:
       case backend.Plan.solo: {
-        return user?.rootDirectoryId ?? null
+        return user.rootDirectoryId
       }
       case backend.Plan.team:
       case backend.Plan.enterprise: {
