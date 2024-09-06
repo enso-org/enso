@@ -1,7 +1,7 @@
 /** @file Utilities related to debugging. */
-import * as React from 'react'
+import { useEffect, useRef, useState } from 'react'
 
-import * as debugHooks from '#/hooks/debugHooks'
+import { useMonitorDependencies } from '#/hooks/debugHooks'
 
 /* eslint-disable no-restricted-properties */
 
@@ -44,14 +44,14 @@ export default function Debug(props: DebugProps) {
     : typeof typeRaw === 'object' && typeRaw != null && '$$typeof' in typeRaw ?
       String(typeRaw.$$typeof)
     : String(children.type))
-  const typeNameRef = React.useRef(typeName)
+  const typeNameRef = useRef(typeName)
   typeNameRef.current = typeName
-  const monitorMountUnmountRef = React.useRef(monitorMountUnmount)
+  const monitorMountUnmountRef = useRef(monitorMountUnmount)
   monitorMountUnmountRef.current = monitorMountUnmount
-  const [mountId] = React.useState(() => `(Mount #${nextMountId++})`)
+  const [mountId] = useState(() => `(Mount #${nextMountId++})`)
   const renderId = `(Render #${nextRenderId++})`
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (monitorMountUnmountRef.current) {
       console.log(`[Debug(${typeNameRef.current})] Mounted ${mountId}`)
     }
@@ -62,7 +62,7 @@ export default function Debug(props: DebugProps) {
     }
   }, [mountId])
 
-  debugHooks.useMonitorDependencies(
+  useMonitorDependencies(
     [children.key, ...propsValues],
     typeName,
     ['key', ...Object.keys(childProps)],
@@ -93,7 +93,7 @@ export default function Debug(props: DebugProps) {
     console.group(`[Debug(${typeName})] Rendering ${renderId}`, Component, childProps)
   }
   const element = <Component {...patchedChildProps} />
-  React.useEffect(() => {
+  useEffect(() => {
     if (monitorRender) {
       console.log(`[Debug(${typeName})] Finished rendering ${renderId}`)
       console.groupEnd()

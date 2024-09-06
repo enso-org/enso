@@ -2,7 +2,6 @@
 import * as React from 'react'
 
 import type * as reactQuery from '@tanstack/react-query'
-import isEmail from 'validator/lib/isEmail'
 
 import type * as text from 'enso-common/src/text'
 
@@ -452,22 +451,24 @@ export interface SettingsContext {
 // === SettingsInputEntryData ===
 // ==============================
 
-/** Metadata describing a settings entry that is an input. */
+/** Metadata describing an input in a {@link SettingsFormEntryData}. */
 export interface SettingsInputData<T extends Record<keyof T, string>> {
   readonly nameId: text.TextId & `${string}SettingsInput`
-  readonly name: keyof T & string
+  readonly name: string & keyof T
   /** Defaults to true. */
   readonly editable?: boolean | ((context: SettingsContext) => boolean)
 }
 
+/** Metadata describing a settings entry that is a form. */
 export interface SettingsFormEntryData<T extends Record<keyof T, string>> {
   readonly type: 'form'
   readonly schema: z.ZodType<T> | ((context: SettingsContext) => z.ZodType<T>)
   readonly getValue: (context: SettingsContext) => T
-  readonly onSubmit: (context: SettingsContext, value: T) => void | Promise<void>
+  readonly onSubmit: (context: SettingsContext, value: T) => Promise<void> | void
   readonly inputs: readonly SettingsInputData<NoInfer<T>>[]
 }
 
+/** A type-safe function to define a {@link SettingsFormEntryData}. */
 function settingsFormEntryData<T extends Record<keyof T, string>>(data: SettingsFormEntryData<T>) {
   return data
 }
@@ -490,6 +491,7 @@ export interface SettingsCustomEntryData {
 // =========================
 
 /** A settings entry of an arbitrary type. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type SettingsEntryData = SettingsCustomEntryData | SettingsFormEntryData<any>
 
 // =======================
