@@ -89,6 +89,14 @@ export default function Registration() {
             })
           }
         }),
+    onSubmit: async ({ email, password }) => {
+      localStorage.set('termsOfService', { versionHash: tosHash })
+      localStorage.set('privacyPolicy', { versionHash: privacyPolicyHash })
+
+      await signUp(email, password, organizationId)
+
+      stepperState.nextStep()
+    },
   })
 
   const { stepperState } = useStepperState({ steps: 2, defaultStep: 0 })
@@ -161,17 +169,7 @@ export default function Registration() {
               {getText('createANewAccount')}
             </Text.Heading>
 
-            <Form
-              form={signupForm}
-              onSubmit={async ({ email, password }) => {
-                localStorage.set('termsOfService', { versionHash: tosHash })
-                localStorage.set('privacyPolicy', { versionHash: privacyPolicyHash })
-
-                await signUp(email, password, organizationId)
-
-                stepperState.nextStep()
-              }}
-            >
+            <Form form={signupForm}>
               {({ form }) => (
                 <>
                   <Input

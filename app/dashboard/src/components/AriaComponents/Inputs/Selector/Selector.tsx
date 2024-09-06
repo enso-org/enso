@@ -4,8 +4,8 @@ import * as React from 'react'
 import type * as twv from 'tailwind-variants'
 
 import { mergeProps, type RadioGroupProps } from '#/components/aria'
+import type { FieldComponentProps } from '#/components/AriaComponents'
 import {
-  FieldComponentProps,
   Form,
   type FieldPath,
   type FieldProps,
@@ -20,8 +20,6 @@ import RadioGroup from '#/components/styled/RadioGroup'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
 import { tv } from '#/utilities/tailwindVariants'
-import { omit } from 'enso-common/src/utilities/data/object'
-import { Controller } from 'react-hook-form'
 import { SelectorOption } from './SelectorOption'
 
 /** * Props for the Selector component. */
@@ -91,16 +89,17 @@ export const Selector = forwardRef(function Selector<
     name,
     items,
     children = String,
-    isDisabled,
+    isDisabled = false,
     columns,
     form,
-    defaultValue,
     inputRef,
     label,
     size,
     rounded,
     isRequired = false,
+    isInvalid = false,
     fieldVariants,
+    defaultValue,
     ...inputProps
   } = props
 
@@ -116,15 +115,14 @@ export const Selector = forwardRef(function Selector<
   })
 
   return (
-    <Controller
+    <Form.Controller
       control={formInstance.control}
       name={name}
       render={(renderProps) => {
         const { value } = renderProps.field
         return (
           <Form.Field
-            {...mergeProps<FieldComponentProps>()(inputProps, renderProps.field, {
-              ref,
+            {...mergeProps<FieldComponentProps<Schema>>()(inputProps, renderProps.field, {
               fullWidth: true,
               variants: fieldVariants,
               form: formInstance,
@@ -132,6 +130,7 @@ export const Selector = forwardRef(function Selector<
               isRequired,
             })}
             name={props.name}
+            ref={ref}
           >
             <div
               className={classes.base()}
@@ -144,8 +143,10 @@ export const Selector = forwardRef(function Selector<
                     name,
                     isRequired,
                     isDisabled,
+                    isInvalid,
                     style:
                       columns != null ? { gridTemplateColumns: `repeat(${columns}, 1fr)` } : {},
+                    ...(defaultValue != null ? { defaultValue } : {}),
                   },
                   inputProps,
                   renderProps.field,

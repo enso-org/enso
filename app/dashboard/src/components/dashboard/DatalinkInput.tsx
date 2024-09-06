@@ -8,10 +8,9 @@ import type * as jsonSchemaInput from '#/components/JSONSchemaInput'
 import JSONSchemaInput from '#/components/JSONSchemaInput'
 
 import { FieldError } from '#/components/aria'
-import type { FieldValues, FormInstance, TSchema } from '#/components/AriaComponents'
+import type { FieldPath, FormInstance, TSchema } from '#/components/AriaComponents'
 import { Form } from '#/components/AriaComponents'
 import * as error from '#/utilities/error'
-import { Controller, type FieldPath } from 'react-hook-form'
 
 // =================
 // === Constants ===
@@ -54,7 +53,7 @@ export default function DatalinkInput(props: DatalinkInputProps) {
 export interface DatalinkFormInputProps<Schema extends TSchema>
   extends Omit<DatalinkInputProps, 'onChange' | 'value'> {
   readonly form?: FormInstance<Schema>
-  readonly name: FieldPath<FieldValues<Schema>>
+  readonly name: FieldPath<Schema>
 }
 
 /** A dynamic wizard for creating an arbitrary type of Datalink. */
@@ -64,7 +63,7 @@ export function DatalinkFormInput<Schema extends TSchema>(props: DatalinkFormInp
   const form = Form.useFormContext(props.form)
 
   return (
-    <Controller
+    <Form.Controller
       control={form.control}
       name={name}
       render={({ field, fieldState }) => {

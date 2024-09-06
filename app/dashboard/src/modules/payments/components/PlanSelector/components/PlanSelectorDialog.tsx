@@ -27,7 +27,7 @@ import type { Plan } from '#/services/Backend'
 
 import { twMerge } from '#/utilities/tailwindMerge'
 
-import { createSubscriptionPriceQuery } from '../../../api'
+import { createSubscriptionPriceQuery, useCreatePaymentMethodMutation } from '../../../api'
 import {
   MAX_SEATS_BY_PLAN,
   PRICE_BY_PLAN,
@@ -156,7 +156,6 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
                   name="period"
                   // eslint-disable-next-line @typescript-eslint/no-magic-numbers
                   items={[1, 12, 36]}
-                  itemToString={(item) => billingPeriodToString(getText, item)}
                   label={getText('billingPeriod')}
                 >
                   {(item) => billingPeriodToString(getText, item)}
