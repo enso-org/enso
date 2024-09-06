@@ -51,7 +51,6 @@ export default function StartModal(props: StartModalProps) {
               opts.close()
             }}
           />
-
         </div>
       )}
     </ariaComponents.Dialog>

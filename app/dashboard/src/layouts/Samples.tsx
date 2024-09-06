@@ -2,18 +2,18 @@
 import * as React from 'react'
 
 import ReadAndFilterImage from '#/assets/ReadAndFilter.png'
-import CleansingImage from '#/assets/cleansing.png'
 import AggregatingImage from '#/assets/aggregate.png'
-import JoinImage from '#/assets/joining.png'
-import SpreadsheetsImage from '#/assets/spreadsheets.svg'
 import BlankImage from '#/assets/blankProject.png'
-import VisualizeImage from '#/assets/visualize.png'
-import MonthSalesImage from '#/assets/monthSales.png'
+import CleansingImage from '#/assets/cleansing.png'
 import CovidImage from '#/assets/covid.png'
-import WeatherImage from '#/assets/weather.png'
 import GeoImage from '#/assets/geo.svg'
-import NasdaqImage from '#/assets/nasdaq.png'
+import JoinImage from '#/assets/joining.png'
 import KMeansImage from '#/assets/kmeans.png'
+import MonthSalesImage from '#/assets/monthSales.png'
+import NasdaqImage from '#/assets/nasdaq.png'
+import SpreadsheetsImage from '#/assets/spreadsheets.svg'
+import VisualizeImage from '#/assets/visualize.png'
+import WeatherImage from '#/assets/weather.png'
 
 import * as aria from '#/components/aria'
 import FocusArea from '#/components/styled/FocusArea'
@@ -41,93 +41,93 @@ export const SAMPLES: Sample[] = [
   {
     title: 'Blank Project',
     id: 'Default',
-    description: "Start with a blank workflow.",
+    description: 'Start with a blank workflow.',
     background: `url("${BlankImage}") center / cover`,
-    group: 'Getting Started'
+    group: 'Getting Started',
   },
   {
     title: 'Reading and Filterng Data',
     id: 'Getting_Started_Reading',
-    description: "Learn how to bring data into Enso.",
+    description: 'Learn how to bring data into Enso.',
     background: `url("${ReadAndFilterImage}") center / cover`,
-    group: 'Getting Started'
+    group: 'Getting Started',
   },
   {
     title: 'Aggregating and Pivoting',
     id: 'Getting_Started_Aggregating',
-    description: "Learn how to group and aggregate data, and pivot.",
+    description: 'Learn how to group and aggregate data, and pivot.',
     background: `url("${AggregatingImage}") center / cover`,
-    group: 'Getting Started'
+    group: 'Getting Started',
   },
   {
     title: 'Cleaning and Parsing Data',
     id: 'Getting_Started_Cleansing',
-    description: "Learn how to cleanse and parse text values.",
+    description: 'Learn how to cleanse and parse text values.',
     background: `url("${CleansingImage}") center / cover`,
-    group: 'Getting Started'
+    group: 'Getting Started',
   },
   {
     title: 'Selecting Columns and Joining Tables',
     id: 'Getting_Started_Selecting',
-    description: "Learn how to choose columns and join tables.",
+    description: 'Learn how to choose columns and join tables.',
     background: `url("${JoinImage}") center / cover`,
-    group: 'Getting Started'
+    group: 'Getting Started',
   },
   {
     title: 'Analyze GitHub stars',
     id: 'Stargazers',
     description: "Find out which of Enso's repositories are most popular over time.",
     background: `url("${VisualizeImage}") center / cover`,
-    group: 'Advanced'
+    group: 'Advanced',
   },
   {
     title: 'NASDAQ Returns',
     id: 'NASDAQReturns',
     description: 'Learn how to clean your data to prepare it for advanced analysis.',
     background: `url("${NasdaqImage}") center / cover`,
-    group: 'Advanced'
+    group: 'Advanced',
   },
   {
     title: 'KMeans',
     id: 'KMeans',
     description: 'Learn where to open a coffee shop to maximize your income.',
     background: `url("${KMeansImage}") center / cover`,
-    group: 'Advanced'
+    group: 'Advanced',
   },
   {
     title: 'Combine spreadsheets',
     id: 'Orders',
     description: 'Glue multiple spreadsheets together to analyse all your data at once.',
     background: `url("${SpreadsheetsImage}") center / 50% no-repeat, rgba(255, 255, 255, 0.30)`,
-    group: 'Examples'
+    group: 'Examples',
   },
   {
     title: 'Month on Month Sales',
     id: 'Monthly_Sales',
     description: 'Learn how to compare with previous month sales.',
     background: `url("${MonthSalesImage}") center / cover`,
-    group: 'Examples'
+    group: 'Examples',
   },
   {
     title: 'Colorado COVID',
     id: 'Colorado_COVID',
     description: 'Learn to glue multiple spreadsheets to analyses all your data at once.',
     background: `url('${CovidImage}') center / 100% no-repeat, rgba(255, 255, 255, 0.30)`,
-    group: 'Examples'
+    group: 'Examples',
   },
   {
     title: 'Web API analysis',
     id: 'Bank_Holiday_Rain',
     description: 'Learn whether it rains on UK Bank Holidays via REST APIs.',
     background: `url('${WeatherImage}') center / 100% no-repeat, rgba(255, 255, 255, 0.30)`,
-    group: 'Examples'
+    group: 'Examples',
   },
   {
     title: 'Geospatial analysis',
     id: 'Restaurants',
     description: 'Learn where to open a coffee shop to maximize your income.',
     background: `url('${GeoImage}') 50% 20% / 100% no-repeat`,
-    group: 'Examples'
+    group: 'Examples',
   },
 ]
 
@@ -199,7 +199,7 @@ export default function Samples(props: SamplesProps) {
       </aria.Heading>
 
       <div className="grid grid-cols-fill-samples gap-samples">
-        {SAMPLES.filter(s => s.group === groupName).map((sample) => (
+        {SAMPLES.filter((s) => s.group === groupName).map((sample) => (
           <ProjectTile key={sample.id} sample={sample} createProject={createProject} />
         ))}
       </div>

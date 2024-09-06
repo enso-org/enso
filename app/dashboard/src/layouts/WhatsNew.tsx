@@ -1,8 +1,8 @@
 /** @file Community updates for the app. */
 import * as React from 'react'
 
-import Logo from '#/assets/enso_logo_large.svg'
 import BookImage from '#/assets/book.png'
+import Logo from '#/assets/enso_logo_large.svg'
 import IntegrationsImage from '#/assets/integrations.png'
 import YoutubeIcon from '#/assets/youtube.svg'
 
@@ -36,10 +36,7 @@ export default function WhatsNew() {
                 href="https://help.enso.org/"
                 {...innerProps}
               >
-                <img
-                  className="absolute left-1/2 top-7 mx-auto -translate-x-1/2"
-                  src={BookImage}
-                />
+                <img className="absolute left-1/2 top-7 mx-auto -translate-x-1/2" src={BookImage} />
                 <div className="absolute bottom flex w-full flex-col p-news-item-description">
                   <aria.Text className="text-subheading font-bold">
                     {getText('newsItemHelpServer')}
@@ -88,10 +85,7 @@ export default function WhatsNew() {
                 href="https://community.ensoanalytics.com/"
                 {...innerProps}
               >
-                <img
-                  className="absolute left-1/2 top-7 mx-auto -translate-x-1/2"
-                  src={Logo}
-                />
+                <img className="absolute left-1/2 top-7 mx-auto -translate-x-1/2" src={Logo} />
                 <div className="absolute bottom flex w-full flex-col p-news-item-description">
                   <aria.Text className="text-subheading font-bold">
                     {getText('newsItemCommunityServer')}
