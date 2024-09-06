@@ -35,6 +35,7 @@ import project.SQL.SQL_Builder
 import project.SQL_Statement.SQL_Statement
 import project.SQL_Type.SQL_Type
 from project.Dialect import Temp_Table_Style
+from Standard.Database.Dialect_Flags import all
 from project.Errors import SQL_Error, Unsupported_Database_Operation
 
 ## PRIVATE
@@ -187,13 +188,12 @@ type SQLite_Dialect
     supports_separate_nan : Boolean
     supports_separate_nan self = False
 
-    ## PRIVATE
-    supports_negative_round_decimal_places : Boolean
-    supports_negative_round_decimal_places self = False
-
-    ## PRIVATE
-    supports_float_round_decimal_places : Boolean
-    supports_float_round_decimal_places self = True
+    ## PRIVAITE
+       Specifies implementation details flags.
+    dialect_flags : Dialect_Flags
+    dialect_flags -> Dialect_Flags =
+        rounding = Rounding_Flags.Value supports_negative_decimal_places=False supports_float_decimal_places=True supports_bankers=False
+        Dialect_Flags.Value rounding=rounding
 
     ## PRIVATE
        Specifies how the database creates temp tables.

@@ -43,6 +43,7 @@ import Standard.Database.SQL.SQL_Fragment
 import Standard.Database.SQL_Statement.SQL_Statement
 import Standard.Database.SQL_Type.SQL_Type
 from Standard.Database.Dialect import Temp_Table_Style
+from Standard.Database.Dialect_Flags import all
 from Standard.Database.Errors import SQL_Error, Unsupported_Database_Operation
 from Standard.Database.Internal.IR.Operation_Metadata import Date_Period_Metadata
 from Standard.Database.Internal.Statement_Setter import fill_hole_default
@@ -200,13 +201,12 @@ type Snowflake_Dialect
     supports_separate_nan : Boolean
     supports_separate_nan self = True
 
-    ## PRIVATE
-    supports_negative_round_decimal_places : Boolean
-    supports_negative_round_decimal_places self = True
-
-    ## PRIVATE
-    supports_float_round_decimal_places : Boolean
-    supports_float_round_decimal_places self = True
+    ## PRIVAITE
+       Specifies implementation details flags.
+    dialect_flags : Dialect_Flags
+    dialect_flags -> Dialect_Flags =
+        rounding = Rounding_Flags.Value supports_negative_decimal_places=True supports_float_decimal_places=True supports_bankers=True
+        Dialect_Flags.Value rounding=rounding
 
     ## PRIVATE
        Specifies how the database creates temp tables.

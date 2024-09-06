@@ -929,13 +929,13 @@ type DB_Column
          (Note that Postgres is fine with a `numeric` value here, just not `double precision`.)
     should_use_builtin_round : Integer -> Boolean -> Boolean
     should_use_builtin_round self decimal_places use_bankers =
-        # Don't use for banker's rounding
-        not_bankers = use_bankers.not
+        # Don't use for banker's rounding (unless it's supported natively)
+        bankers_ok = use_bankers.not || self.connection.dialect.dialect_flags.rounding.supports_bankers
         # Don't use for negative decimal places, if the backend doesn't support it
-        negative_dp_ok = decimal_places >= 0 || self.connection.dialect.supports_negative_round_decimal_places
+        negative_dp_ok = decimal_places >= 0 || self.connection.dialect.dialect_flags.rounding.supports_negative_decimal_places
         # Don't use for floating-point inputs if decimal_places != 0, for Postgres
-        dp_param_ok = decimal_places == 0 || self.value_type.is_floating_point.not || self.connection.dialect.supports_float_round_decimal_places
-        not_bankers && negative_dp_ok && dp_param_ok
+        dp_param_ok = decimal_places == 0 || self.value_type.is_floating_point.not || self.connection.dialect.dialect_flags.rounding.supports_float_decimal_places
+        bankers_ok && negative_dp_ok && dp_param_ok
 
     ## PRIVATE
        Round a float-like column using the backend's builtin ROUND function.
