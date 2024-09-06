@@ -7,6 +7,19 @@
 @tailwind utilities;
 
 :root {
+  --color-primary-rgb: 0 0 0;
+  --color-primary-opacity: 60%;
+  --color-primary: rgb(var(--color-primary-rgb) / var(--color-primary-opacity));
+  --color-accent-rgb: 73 159 75;
+  --color-accent-opacity: 100%;
+  --color-accent: rgb(var(--color-accent-rgb) / var(--color-accent-opacity));
+  --color-danger-rgb: 211 59 11;
+  --color-danger-opacity: 100%;
+  --color-danger: rgb(var(--color-danger-rgb) / var(--color-danger-opacity));
+  --color-invert-rgb: 255 255 255;
+  --color-invert-opacity: 100%;
+  --color-invert: rgb(var(--color-invert-rgb) / var(--color-invert-opacity));
+
   --top-bar-height: 3rem;
   --row-height: 2rem;
   --table-row-height: 2.3125rem;
