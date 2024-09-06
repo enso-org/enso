@@ -108,14 +108,13 @@ case class BindingsMap(
   private def ensureConvertedToConcrete(): Option[BindingsMap] = {
     val r = pendingRepository
     if (r != null) {
-      val res = toConcrete(r, r.getModuleMap).map { b =>
+      toConcrete(r, r.getModuleMap).map { b =>
         pendingRepository     = null
         this._currentModule   = b._currentModule
         this._exportedSymbols = b._exportedSymbols
         this._resolvedImports = b._resolvedImports
         this
       }
-      res
     } else {
       Some(this)
     }
@@ -127,17 +126,14 @@ case class BindingsMap(
   ): Option[BindingsMap] = {
     val newMap = this._currentModule
       .toConcrete(moduleMap)
-      .map { c =>
-        this._currentModule = c
-        c
-      }
       .map { module =>
-        this.copy(_currentModule = module)
+        this._currentModule = module
+        this
       }
 
     val withImports: Option[BindingsMap] = newMap.flatMap { bindings =>
       val newImports = this._resolvedImports.map { imp =>
-        imp.targets.map { t =>
+        imp.targets.foreach { t =>
           r.ensurePackageIsLoaded(
             LibraryName(t.qualifiedName.path(0), t.qualifiedName.path(1))
           )
