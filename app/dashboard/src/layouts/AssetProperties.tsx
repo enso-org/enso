@@ -73,9 +73,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     [setItemRaw],
   )
   const labels = useBackendQuery(backend, 'listTags', []).data ?? []
-  const self = item.item.permissions?.find(
-    backendModule.isUserPermissionAnd((permission) => permission.user.userId === user.userId),
-  )
+  const self = permissions.tryFindSelfPermission(user, item.item.permissions)
   const ownsThisAsset = self?.permission === permissions.PermissionAction.own
   const canEditThisAsset =
     ownsThisAsset ||
