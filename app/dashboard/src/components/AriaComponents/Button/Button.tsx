@@ -8,9 +8,9 @@ import * as ariaComponents from '#/components/AriaComponents'
 import StatelessSpinner, * as spinnerModule from '#/components/StatelessSpinner'
 import SvgMask from '#/components/SvgMask'
 
-import * as twv from '#/utilities/tailwindVariants'
-
 import { forwardRef } from '#/utilities/react'
+import type { VariantProps } from '#/utilities/tailwindVariants'
+import { tv } from '#/utilities/tailwindVariants'
 import { TEXT_STYLE } from '../Text'
 
 // ==============
@@ -40,7 +40,7 @@ interface PropsWithoutHref {
  * Base props for a button.
  */
 export interface BaseButtonProps<Render>
-  extends Omit<twv.VariantProps<typeof BUTTON_STYLES>, 'iconOnly'> {
+  extends Omit<VariantProps<typeof BUTTON_STYLES>, 'iconOnly'> {
   /** Falls back to `aria-label`. Pass `false` to explicitly disable the tooltip. */
   readonly tooltip?: React.ReactElement | string | false | null
   readonly tooltipPlacement?: aria.Placement
@@ -71,7 +71,7 @@ export interface BaseButtonProps<Render>
   readonly styles?: typeof BUTTON_STYLES
 }
 
-export const BUTTON_STYLES = twv.tv({
+export const BUTTON_STYLES = tv({
   base: [
     'group',
     // we need to set the height to max-content to prevent the button from growing in flex containers
@@ -307,6 +307,7 @@ export const Button = forwardRef(function Button(
     loaderPosition = 'full',
     extraClickZone: extraClickZoneProp,
     onPress = () => {},
+    variants = BUTTON_STYLES,
     ...ariaProps
   } = props
   const focusChildProps = focusHooks.useFocusChild()
@@ -387,7 +388,7 @@ export const Button = forwardRef(function Button(
     extraClickZone,
     icon: iconClasses,
     text: textClasses,
-  } = BUTTON_STYLES({
+  } = variants({
     isDisabled,
     isActive,
     loading: isLoading,

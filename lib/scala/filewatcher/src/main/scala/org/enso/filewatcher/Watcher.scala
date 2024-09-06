@@ -40,7 +40,7 @@ object Watcher {
 
   /** Object representing en error.
     *
-    * @param exception an error
+    * @param throwable an error
     */
-  case class WatcherError(exception: Exception)
+  case class WatcherError(throwable: Throwable)
 }

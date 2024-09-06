@@ -8,9 +8,12 @@ import org.enso.languageserver.boot.StartupConfig
 import org.enso.languageserver.data._
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.{ContentRoot, ContentRootWithFile}
-import org.enso.logger.ReportLogsOnFailure
 import org.enso.searcher.memory.InMemorySuggestionsRepo
-import org.enso.testkit.{FlakySpec, ToScalaFutureConversions}
+import org.enso.testkit.{
+  FlakySpec,
+  ReportLogsOnFailure,
+  ToScalaFutureConversions
+}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike

@@ -1,6 +1,6 @@
 package org.enso.launcher.releases.fallback.staticwebsite
 
-import org.enso.yaml.YamlDecoder
+import org.enso.scala.yaml.YamlDecoder
 import org.yaml.snakeyaml.nodes.{MappingNode, Node}
 
 import java.io.StringReader

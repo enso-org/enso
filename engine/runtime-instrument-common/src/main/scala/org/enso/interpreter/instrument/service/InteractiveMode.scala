@@ -6,9 +6,9 @@ import org.enso.distribution.ProgressAndLockNotificationForwarder
 import org.enso.editions.{LibraryName, LibraryVersion}
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.{Api, ApiResponse}
-import org.enso.interpreter.instrument.NotificationHandler
 import org.enso.interpreter.instrument.ProgressNotificationTranslator
 import org.enso.interpreter.instrument.Endpoint
+import org.enso.interpreter.runtime.instrument.NotificationHandler
 
 import java.nio.file.Path
 

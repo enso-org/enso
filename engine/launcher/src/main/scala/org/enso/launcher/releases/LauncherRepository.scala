@@ -16,6 +16,7 @@ import org.enso.runtimeversionmanager.releases.{
   ReleaseProvider,
   SimpleReleaseProvider
 }
+import org.enso.version.BuildVersion
 
 /** Represents the default Enso repository providing releases of the launcher.
   *
@@ -60,7 +61,7 @@ object LauncherRepository {
     fakeRepositoryRoot: Path,
     shouldWaitForAssets: Boolean
   ): Unit =
-    if (buildinfo.Info.isRelease)
+    if (BuildVersion.isRelease)
       throw new IllegalStateException(
         "Internal testing function internalUseFakeRepository used in a " +
         "release build."
