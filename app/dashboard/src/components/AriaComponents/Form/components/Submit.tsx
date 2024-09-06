@@ -55,7 +55,7 @@ export function Submit(props: SubmitProps): React.JSX.Element {
     formnovalidate = false,
     loading = false,
     children = formnovalidate ? getText('cancel') : getText('submit'),
-    variant = formnovalidate ? 'secondary' : 'submit',
+    variant = formnovalidate ? 'ghost-fading' : 'submit',
     testId = formnovalidate ? 'form-cancel-button' : 'form-submit-button',
     ...buttonProps
   } = props
