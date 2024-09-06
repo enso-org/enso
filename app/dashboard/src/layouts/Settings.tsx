@@ -232,7 +232,7 @@ export default function Settings() {
             setTab={setTab}
           />
         </aside>
-        <main className="scrollbar-gutter-stable flex flex-1 flex-col overflow-y-auto pb-12 pl-1">
+        <main className="flex flex-1 flex-col overflow-y-auto pb-12 pl-1 scrollbar-gutter-stable">
           <SettingsTab
             context={context}
             data={data}
