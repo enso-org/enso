@@ -65,6 +65,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         naming: ['"Enso Naming"', '"Enso"', '"M PLUS 1"'],
       },
       fontSize: {
+        '2xs': '10.5px',
         xs: '11.5px',
         sm: '13px',
         xl: '19px',
@@ -344,7 +345,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
       },
       zIndex: {
         1: '1',
-        3: '3',
+        tooltip: '2',
       },
       backdropBlur: {
         xs: '2px',
