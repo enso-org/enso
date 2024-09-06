@@ -1,33 +1,25 @@
 /** @file Renders the list of templates from which a project can be created. */
 import * as React from 'react'
 
-import Logo from '#/assets/enso_logo.svg'
-import GeoImage from '#/assets/geo.svg'
-import HeartIcon from '#/assets/heart.svg'
-import OpenCountIcon from '#/assets/open_count.svg'
+import ReadAndFilterImage from '#/assets/ReadAndFilter.png'
+import CleansingImage from '#/assets/cleansing.png'
+import AggregatingImage from '#/assets/aggregate.png'
+import JoinImage from '#/assets/joining.png'
 import SpreadsheetsImage from '#/assets/spreadsheets.svg'
+import BlankImage from '#/assets/blankProject.png'
 import VisualizeImage from '#/assets/visualize.png'
-
-import * as textProvider from '#/providers/TextProvider'
+import MonthSalesImage from '#/assets/monthSales.png'
+import CovidImage from '#/assets/covid.png'
+import WeatherImage from '#/assets/weather.png'
+import GeoImage from '#/assets/geo.svg'
+import NasdaqImage from '#/assets/nasdaq.png'
+import KMeansImage from '#/assets/kmeans.png'
 
 import * as aria from '#/components/aria'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
-import SvgMask from '#/components/SvgMask'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'
-
-// =================
-// === Constants ===
-// =================
-
-/** A placeholder author for a sample, for use until the backend implements an endpoint. */
-const DUMMY_AUTHOR = 'Enso Team'
-/** A placeholder number of times a sample has been opened, for use until the backend implements
- * an endpoint. */
-const DUMMY_OPEN_COUNT = 10
-/** A placeholder number of likes for a sample, for use until the backend implements an endpoint. */
-const DUMMY_LIKE_COUNT = 10
 
 // =========================
 // === List of templates ===
@@ -41,42 +33,101 @@ export interface Sample {
   readonly description: string
   readonly id: string
   readonly background?: string
+  readonly group?: string
 }
 
 /** The full list of templates. */
 export const SAMPLES: Sample[] = [
   {
-    title: 'Colorado COVID',
-    id: 'Colorado_COVID',
-    description: 'Learn to glue multiple spreadsheets to analyses all your data at once.',
+    title: 'Blank Project',
+    id: 'Default',
+    description: "Start with a blank workflow.",
+    background: `url("${BlankImage}") center / cover`,
+    group: 'Getting Started'
   },
   {
-    title: 'KMeans',
-    id: 'KMeans',
-    description: 'Learn where to open a coffee shop to maximize your income.',
+    title: 'Reading and Filterng Data',
+    id: 'GettingStartedReading',
+    description: "Learn how to bring data into Enso.",
+    background: `url("${ReadAndFilterImage}") center / cover`,
+    group: 'Getting Started'
   },
   {
-    title: 'NASDAQ Returns',
-    id: 'NASDAQReturns',
-    description: 'Learn how to clean your data to prepare it for advanced analysis.',
+    title: 'Aggregating and Pivoting',
+    id: 'GettingStartedAggregating',
+    description: "Learn how to group and aggregate data, and pivot.",
+    background: `url("${AggregatingImage}") center / cover`,
+    group: 'Getting Started'
   },
   {
-    title: 'Combine spreadsheets',
-    id: 'Orders',
-    description: 'Glue multiple spreadsheets together to analyse all your data at once.',
-    background: `url('${SpreadsheetsImage}') center / 50% no-repeat, rgba(255, 255, 255, 0.30)`,
+    title: 'Cleaning and Parsing Data',
+    id: 'GettingStartedCleansing',
+    description: "Learn how to cleanse and parse text values.",
+    background: `url("${CleansingImage}") center / cover`,
+    group: 'Getting Started'
   },
   {
-    title: 'Geospatial analysis',
-    id: 'Restaurants',
-    description: 'Learn where to open a coffee shop to maximize your income.',
-    background: `url('${GeoImage}') 50% 20% / 100% no-repeat`,
+    title: 'Selecting Columns and Joining Tables',
+    id: 'GettingStartedSelecting',
+    description: "Learn how to choose columns and join tables.",
+    background: `url("${JoinImage}") center / cover`,
+    group: 'Getting Started'
   },
   {
     title: 'Analyze GitHub stars',
     id: 'Stargazers',
     description: "Find out which of Enso's repositories are most popular over time.",
     background: `url("${VisualizeImage}") center / cover`,
+    group: 'Advanced'
+  },
+  {
+    title: 'NASDAQ Returns',
+    id: 'NASDAQReturns',
+    description: 'Learn how to clean your data to prepare it for advanced analysis.',
+    background: `url("${NasdaqImage}") center / cover`,
+    group: 'Advanced'
+  },
+  {
+    title: 'KMeans',
+    id: 'KMeans',
+    description: 'Learn where to open a coffee shop to maximize your income.',
+    background: `url("${KMeansImage}") center / cover`,
+    group: 'Advanced'
+  },
+  {
+    title: 'Combine spreadsheets',
+    id: 'Orders',
+    description: 'Glue multiple spreadsheets together to analyse all your data at once.',
+    background: `url('${SpreadsheetsImage}') center / 50% no-repeat, rgba(255, 255, 255, 0.30)`,
+    group: 'Examples'
+  },
+  {
+    title: 'Month on Month Sales',
+    id: 'MonthlySales',
+    description: 'Learn how to compare with previous month sales.',
+    background: `url("${MonthSalesImage}") center / cover`,
+    group: 'Examples'
+  },
+  {
+    title: 'Colorado COVID',
+    id: 'Colorado_COVID',
+    description: 'Learn to glue multiple spreadsheets to analyses all your data at once.',
+    background: `url('${CovidImage}') center / 100% no-repeat, rgba(255, 255, 255, 0.30)`,
+    group: 'Examples'
+  },
+  {
+    title: 'Web API analysis',
+    id: 'BankHolidayRain',
+    description: 'Learn whether it rains on UK Bank Holidays via REST APIs.',
+    background: `url('${WeatherImage}') center / 100% no-repeat, rgba(255, 255, 255, 0.30)`,
+    group: 'Examples'
+  },
+  {
+    title: 'Geospatial analysis',
+    id: 'Restaurants',
+    description: 'Learn where to open a coffee shop to maximize your income.',
+    background: `url('${GeoImage}') 50% 20% / 100% no-repeat`,
+    group: 'Examples'
   },
 ]
 
@@ -93,11 +144,7 @@ interface InternalProjectTileProps {
 /** A button that, when clicked, creates and opens a new project based on a template. */
 function ProjectTile(props: InternalProjectTileProps) {
   const { sample, createProject } = props
-  const { getText } = textProvider.useText()
   const { id, title, description, background } = sample
-  const author = DUMMY_AUTHOR
-  const opens = DUMMY_OPEN_COUNT
-  const likes = DUMMY_LIKE_COUNT
 
   return (
     <div className="flex flex-col gap-sample">
@@ -130,23 +177,6 @@ function ProjectTile(props: InternalProjectTileProps) {
       {/* Although this component is instantiated multiple times, it has a unique role and hence
        * its own opacity. */}
       {/* eslint-disable-next-line no-restricted-syntax */}
-      <div className="flex h-sample-info justify-between px-sample-description-x text-primary opacity-70">
-        <div className="flex gap-samples-icon-with-text">
-          <SvgMask src={Logo} className="size-4 self-end" />
-          <aria.Text className="self-start font-bold leading-snug">{author}</aria.Text>
-        </div>
-        {/* Normally `flex` */}
-        <div className="hidden gap-icons">
-          <div title={getText('views')} className="flex gap-samples-icon-with-text">
-            <SvgMask alt={getText('views')} src={OpenCountIcon} className="size-4 self-end" />
-            <aria.Text className="self-start font-bold leading-snug">{opens}</aria.Text>
-          </div>
-          <div title={getText('likes')} className="flex gap-samples-icon-with-text">
-            <SvgMask alt={getText('likes')} src={HeartIcon} className="size-4 self-end" />
-            <aria.Text className="self-start font-bold leading-snug">{likes}</aria.Text>
-          </div>
-        </div>
-      </div>
     </div>
   )
 }
@@ -157,22 +187,22 @@ function ProjectTile(props: InternalProjectTileProps) {
 
 /** Props for a {@link Samples}. */
 export interface SamplesProps {
+  readonly groupName: string
   readonly createProject: (templateId?: string | null, templateName?: string | null) => void
 }
 
 /** A list of sample projects. */
 export default function Samples(props: SamplesProps) {
-  const { createProject } = props
-  const { getText } = textProvider.useText()
+  const { groupName, createProject } = props
 
   return (
     <div data-testid="samples" className="flex flex-col gap-subheading px-[5px]">
       <aria.Heading level={2} className="text-subheading font-normal">
-        {getText('sampleAndCommunityProjects')}
+        {groupName}
       </aria.Heading>
 
       <div className="grid grid-cols-fill-samples gap-samples">
-        {SAMPLES.map((sample) => (
+        {SAMPLES.filter(s => s.group === groupName).map((sample) => (
           <ProjectTile key={sample.id} sample={sample} createProject={createProject} />
         ))}
       </div>

@@ -26,23 +26,32 @@ export default function StartModal(props: StartModalProps) {
     <ariaComponents.Dialog type="fullscreen" title={getText('selectTemplate')}>
       {(opts) => (
         <div className="mb-4 flex flex-1 flex-col gap-home text-xs text-primary">
-          <ariaComponents.Text
-            elementType="p"
-            variant="custom"
-            balance
-            className="mx-10 my-12 max-w-[45rem] self-center text-center text-3xl font-light leading-snug"
-          >
-            {getText('welcomeSubtitle')}
-          </ariaComponents.Text>
-
           <WhatsNew />
 
           <Samples
+            groupName="Getting Started"
             createProject={(templateId, templateName) => {
               createProject(templateId, templateName)
               opts.close()
             }}
           />
+
+          <Samples
+            groupName="Examples"
+            createProject={(templateId, templateName) => {
+              createProject(templateId, templateName)
+              opts.close()
+            }}
+          />
+
+          <Samples
+            groupName="Advanced"
+            createProject={(templateId, templateName) => {
+              createProject(templateId, templateName)
+              opts.close()
+            }}
+          />
+
         </div>
       )}
     </ariaComponents.Dialog>

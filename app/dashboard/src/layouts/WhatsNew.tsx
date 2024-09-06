@@ -1,7 +1,8 @@
 /** @file Community updates for the app. */
 import * as React from 'react'
 
-import DiscordIcon from '#/assets/discord.svg'
+import Logo from '#/assets/enso_logo_large.svg'
+import BookImage from '#/assets/book.png'
 import IntegrationsImage from '#/assets/integrations.png'
 import YoutubeIcon from '#/assets/youtube.svg'
 
@@ -29,19 +30,22 @@ export default function WhatsNew() {
           {(innerProps) => (
             <FocusRing>
               <a
-                className="focus-child relative col-span-1 h-news-item rounded-default bg-v3 text-tag-text col-span-2-news-item sm:col-span-2"
+                className="focus-child relative h-news-item rounded-default bg-green text-tag-text"
                 rel="noreferrer"
                 target="_blank"
-                href="https://enso.org/"
-                style={{ background: `url(${IntegrationsImage}) top -85px right -390px / 1055px` }}
+                href="https://help.enso.org/"
                 {...innerProps}
               >
+                <img
+                  className="absolute left-1/2 top-7 mx-auto -translate-x-1/2"
+                  src={BookImage}
+                />
                 <div className="absolute bottom flex w-full flex-col p-news-item-description">
                   <aria.Text className="text-subheading font-bold">
-                    {getText('newsItem3Beta')}
+                    {getText('newsItemHelpServer')}
                   </aria.Text>
                   <aria.Text className="py-news-item-subtitle-y text-sm leading-snug">
-                    {getText('newsItem3BetaDescription')}
+                    {getText('newsItemHelpServerDescription')}
                   </aria.Text>
                 </div>
               </a>
@@ -55,7 +59,7 @@ export default function WhatsNew() {
                 className="focus-child relative h-news-item rounded-default bg-youtube text-tag-text"
                 rel="noreferrer"
                 target="_blank"
-                href="https://www.youtube.com/c/Enso_org"
+                href="https://www.youtube.com/@Enso_Analytics/videos"
                 {...innerProps}
               >
                 <img
@@ -78,15 +82,15 @@ export default function WhatsNew() {
           {(innerProps) => (
             <FocusRing>
               <a
-                className="focus-child relative h-news-item rounded-default bg-discord text-tag-text"
+                className="focus-child relative h-news-item rounded-default bg-green text-tag-text"
                 rel="noreferrer"
                 target="_blank"
-                href="https://discord.gg/enso"
+                href="https://community.ensoanlytics.com/"
                 {...innerProps}
               >
                 <img
                   className="absolute left-1/2 top-7 mx-auto -translate-x-1/2"
-                  src={DiscordIcon}
+                  src={Logo}
                 />
                 <div className="absolute bottom flex w-full flex-col p-news-item-description">
                   <aria.Text className="text-subheading font-bold">
@@ -94,6 +98,29 @@ export default function WhatsNew() {
                   </aria.Text>
                   <aria.Text className="py-news-item-subtitle-y text-sm leading-snug">
                     {getText('newsItemCommunityServerDescription')}
+                  </aria.Text>
+                </div>
+              </a>
+            </FocusRing>
+          )}
+        </FocusArea>
+        <FocusArea direction="horizontal">
+          {(innerProps) => (
+            <FocusRing>
+              <a
+                className="focus-child relative col-span-1 h-news-item rounded-default bg-v3 text-tag-text"
+                rel="noreferrer"
+                target="_blank"
+                href="https://community.ensoanalytics.com/c/what-is-new-in-enso/"
+                style={{ background: `url(${IntegrationsImage}) top -85px right -390px / 1055px` }}
+                {...innerProps}
+              >
+                <div className="absolute bottom flex w-full flex-col p-news-item-description">
+                  <aria.Text className="text-subheading font-bold">
+                    {getText('newsItem3Beta')}
+                  </aria.Text>
+                  <aria.Text className="py-news-item-subtitle-y text-sm leading-snug">
+                    {getText('newsItem3BetaDescription')}
                   </aria.Text>
                 </div>
               </a>
