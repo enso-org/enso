@@ -10,15 +10,24 @@ import { useQuery } from '@tanstack/react-query'
 
 import { type GetText, useText } from '#/providers/TextProvider'
 
-import { Dialog, Form, Input, Selector, Separator, Text } from '#/components/AriaComponents'
+import {
+  Button,
+  Checkbox,
+  Dialog,
+  Form,
+  Input,
+  Selector,
+  Separator,
+  Text,
+} from '#/components/AriaComponents'
 import { ErrorDisplay } from '#/components/ErrorBoundary'
 import { Suspense } from '#/components/Suspense'
 
-import { createSubscriptionPriceQuery } from '#/modules/payments'
 import type { Plan } from '#/services/Backend'
 
 import { twMerge } from '#/utilities/tailwindMerge'
 
+import { createSubscriptionPriceQuery } from '../../../api'
 import {
   MAX_SEATS_BY_PLAN,
   PRICE_BY_PLAN,
@@ -53,10 +62,8 @@ export interface PlanSelectorDialogProps {
 /** Get the string representation of a billing period. */
 function billingPeriodToString(getText: GetText, item: number) {
   return (
-    item === 1 ? getText('billingPeriodOneMonth')
-      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    : item === 12 ? getText('billingPeriodOneYear')
-    : getText('billingPeriodThreeYears')
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    item === 12 ? getText('billingPeriodOneYear') : getText('billingPeriodThreeYears')
   )
 }
 
@@ -80,9 +87,13 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
           .min(1)
           .max(maxSeats, { message: getText('wantMoreSeats') }),
         period: z.number(),
+        agree: z
+          .array(z.string())
+          .min(1, { message: getText('licenseAgreementCheckboxError') })
+          .max(1, { message: getText('licenseAgreementCheckboxError') }),
       }),
     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    defaultValues: { seats: 1, period: 12 },
+    defaultValues: { seats: 1, period: 12, agree: [] },
     mode: 'onChange',
   })
 
@@ -134,7 +145,7 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
                   form={form}
                   name="period"
                   // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-                  items={[1, 12, 36]}
+                  items={[12, 36]}
                   label={getText('billingPeriod')}
                 >
                   {(item) => billingPeriodToString(getText, item)}
@@ -152,6 +163,26 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
                   label={getText('seats')}
                   description={getText(`${plan}PlanSeatsDescription`, maxSeats)}
                 />
+
+                <Checkbox.Group
+                  form={form}
+                  name="agree"
+                  description={
+                    <>
+                      {getText('slsaLicenseAgreementDescription1')}{' '}
+                      <Button
+                        variant="link"
+                        href="https://www.ensoanalytics.com/SLSA"
+                        target="_blank"
+                      >
+                        {getText('SLSA')}
+                      </Button>
+                      {getText('slsaLicenseAgreementDescription2')}
+                    </>
+                  }
+                >
+                  <Checkbox value="agree">{getText('licenseAgreementCheckbox')}</Checkbox>
+                </Checkbox.Group>
               </Form>
             </div>
           </div>

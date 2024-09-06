@@ -1,6 +1,5 @@
 package org.enso.interpreter.instrument.job
 
-import org.enso.compiler.context.Changeset
 import org.enso.compiler.suggestions.{
   ExportsBuilder,
   ModuleExportsDiff,
@@ -8,6 +7,7 @@ import org.enso.compiler.suggestions.{
   SuggestionDiff
 }
 import org.enso.compiler.core.IR
+import org.enso.interpreter.instrument.Changeset
 import org.enso.interpreter.instrument.execution.ModuleIndexing.IndexState
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.runtime.Module

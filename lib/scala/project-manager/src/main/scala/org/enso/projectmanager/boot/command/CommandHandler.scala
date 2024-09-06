@@ -1,7 +1,7 @@
 package org.enso.projectmanager.boot.command
 
 import org.enso.jsonrpc.{Id, JsonProtocol, Protocol}
-import org.enso.logger.LoggerSetup
+import org.enso.logging.config.LoggerSetup
 import org.enso.projectmanager.boot.Globals.SuccessExitCode
 import org.enso.projectmanager.requesthandler.FailureMapper
 import zio.{Console, ExitCode, ZAny, ZIO}

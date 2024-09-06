@@ -1,6 +1,5 @@
 package org.enso.runner;
 
-import buildinfo.Info;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -44,6 +43,7 @@ import org.enso.profiling.sampler.OutputStreamSampler;
 import org.enso.runner.common.LanguageServerApi;
 import org.enso.runner.common.ProfilingConfig;
 import org.enso.runner.common.WrongOption;
+import org.enso.version.BuildVersion;
 import org.enso.version.VersionDescription;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.PolyglotException.StackFrame;
@@ -103,7 +103,7 @@ public class Main {
   Main() {}
 
   private static boolean isDevBuild() {
-    return Info.ensoVersion().matches(".+-SNAPSHOT$");
+    return BuildVersion.ensoVersion().matches(".+-SNAPSHOT$");
   }
 
   private static Option.Builder cliOptionBuilder() {
@@ -974,13 +974,9 @@ public class Main {
    * @param useJson whether the output should be JSON or human-readable.
    */
   private void displayVersion(boolean useJson) {
+    var customVersion = CurrentVersion.getVersion().toString();
     var versionDescription =
-        VersionDescription.make(
-            "Enso Compiler and Runtime",
-            true,
-            VersionDescription.make$default$3(),
-            VersionDescription.make$default$4(),
-            scala.Option.apply(CurrentVersion.version().toString()));
+        VersionDescription.make("Enso Compiler and Runtime", true, false, List.of(), customVersion);
     println(versionDescription.asString(useJson));
   }
 
@@ -1068,7 +1064,7 @@ public class Main {
         ProjectUploader.uploadProject(
             projectRoot.get(),
             line.getOptionValue(UPLOAD_OPTION),
-            scala.Option.apply(line.getOptionValue(AUTH_TOKEN)),
+            line.getOptionValue(AUTH_TOKEN),
             !line.hasOption(HIDE_PROGRESS),
             logLevel);
         throw exitSuccess();
@@ -1426,7 +1422,12 @@ public class Main {
         scala.Option.apply(line.getOptionValue(LOG_LEVEL))
             .map(this::parseLogLevel)
             .getOrElse(() -> defaultLogLevel);
-    var connectionUri = scala.Option.apply(line.getOptionValue(LOGGER_CONNECT)).map(this::parseUri);
+    URI connectionUri;
+    if (line.getOptionValue(LOGGER_CONNECT) != null) {
+      connectionUri = parseUri(line.getOptionValue(LOGGER_CONNECT));
+    } else {
+      connectionUri = null;
+    }
     logMasking[0] = !line.hasOption(NO_LOG_MASKING);
     RunnerLogging.setup(connectionUri, logLevel, logMasking[0]);
     return logLevel;
