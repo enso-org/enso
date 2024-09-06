@@ -279,23 +279,13 @@ useEvent(window, 'keydown', (event) => {
     (!keyboardBusy() && graphNavigator.keyboardEvents.keydown(event))
 })
 
-useEvent(
-  window,
-  'pointerdown',
-  (e) => interaction.handlePointerEvent(e, 'pointerdown', graphNavigator),
-  {
-    capture: true,
-  },
-)
+useEvent(window, 'pointerdown', (e) => interaction.handlePointerEvent(e, 'pointerdown'), {
+  capture: true,
+})
 
-useEvent(
-  window,
-  'pointerup',
-  (e) => interaction.handlePointerEvent(e, 'pointerup', graphNavigator),
-  {
-    capture: true,
-  },
-)
+useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointerup'), {
+  capture: true,
+})
 
 // === Keyboard/Mouse bindings ===
 

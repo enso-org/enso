@@ -1,5 +1,4 @@
 <script lang="ts">
-import SvgButton from '@/components/SvgButton.vue'
 import { useEvent } from '@/composables/events'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
 import { Ast } from '@/util/ast'
@@ -662,24 +661,29 @@ function zoomToSelected(override?: boolean) {
 }
 
 useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSelected() }))
+
+config.setToolbar([
+  {
+    icon: 'select',
+    title: 'Enable Selection',
+    toggle: selectionEnabled,
+  },
+  {
+    icon: 'show_all',
+    title: 'Fit All',
+    onClick: () => zoomToSelected(false),
+  },
+  {
+    icon: 'find',
+    title: 'Zoom to Selected',
+    disabled: () => brushExtent.value == null,
+    onClick: zoomToSelected,
+  },
+])
 </script>
 
 <template>
   <VisualizationContainer :belowToolbar="true">
-    <template #toolbar>
-      <SvgButton
-        name="select"
-        title="Enable Selection"
-        @click="selectionEnabled = !selectionEnabled"
-      />
-      <SvgButton name="show_all" title="Fit All" @click.stop="zoomToSelected(false)" />
-      <SvgButton
-        name="zoom"
-        title="Zoom to Selected"
-        :disabled="brushExtent == null"
-        @click.stop="zoomToSelected"
-      />
-    </template>
     <div ref="containerNode" class="ScatterplotVisualization">
       <svg :width="width" :height="height">
         <g ref="legendNode"></g>

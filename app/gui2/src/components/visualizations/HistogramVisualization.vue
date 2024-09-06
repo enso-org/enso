@@ -1,5 +1,4 @@
 <script lang="ts">
-import SvgButton from '@/components/SvgButton.vue'
 import { useEvent } from '@/composables/events'
 import { getTextWidthBySizeAndFamily } from '@/util/measurement'
 import { defineKeybinds } from '@/util/shortcuts'
@@ -568,14 +567,23 @@ useEvent(document, 'click', endBrushing)
 useEvent(document, 'auxclick', endBrushing)
 useEvent(document, 'contextmenu', endBrushing)
 useEvent(document, 'scroll', endBrushing)
+
+config.setToolbar([
+  {
+    icon: 'show_all',
+    title: 'Fit All',
+    onClick: () => zoomToSelected(false),
+  },
+  {
+    icon: 'find',
+    title: 'Zoom to Selected',
+    onClick: () => zoomToSelected(true),
+  },
+])
 </script>
 
 <template>
   <VisualizationContainer :belowToolbar="true">
-    <template #toolbar>
-      <SvgButton name="show_all" title="Fit All" @click="zoomToSelected(false)" />
-      <SvgButton name="find" title="Zoom to Selected" @click="zoomToSelected(true)" />
-    </template>
     <div ref="containerNode" class="HistogramVisualization" @pointerdown.stop>
       <svg :width="width" :height="height">
         <rect

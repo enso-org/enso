@@ -3,8 +3,10 @@ import { visualizationBindings } from '@/bindings'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import LoadingErrorVisualization from '@/components/visualizations/LoadingErrorVisualization.vue'
 import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
+import { ToolbarItem } from '@/components/visualizations/toolbar'
 import { SavedSize } from '@/components/WithFullscreenMode.vue'
 import { focusIsIn, useEvent } from '@/composables/events'
+import { provideInteractionHandler } from '@/providers/interactionHandler'
 import { provideVisualizationConfig } from '@/providers/visualizationConfig'
 import { useProjectStore } from '@/stores/project'
 import { type NodeVisualizationConfiguration } from '@/stores/project/executionContext'
@@ -23,6 +25,7 @@ import type { Result } from '@/util/data/result'
 import type { URLString } from '@/util/data/urlString'
 import { Vec2 } from '@/util/data/vec2'
 import type { Icon } from '@/util/iconName'
+import { ToValue } from '@/util/reactivity'
 import { computedAsync } from '@vueuse/core'
 import {
   computed,
@@ -31,9 +34,10 @@ import {
   onUnmounted,
   ref,
   shallowRef,
+  ShallowRef,
+  toValue,
   watch,
   watchEffect,
-  type ShallowRef,
 } from 'vue'
 import { isIdentifier } from 'ydoc-shared/ast'
 import { visIdentifierEquals, type VisualizationIdentifier } from 'ydoc-shared/yjsModel'
@@ -73,6 +77,14 @@ const emit = defineEmits<{
   'update:nodePosition': [pos: Vec2]
   createNodes: [options: NodeCreationOptions[]]
 }>()
+
+const interaction = provideInteractionHandler()
+useEvent(window, 'pointerdown', (e) => interaction.handlePointerEvent(e, 'pointerdown'), {
+  capture: true,
+})
+useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointerup'), {
+  capture: true,
+})
 
 const visPreprocessor = ref(DEFAULT_VISUALIZATION_CONFIGURATION)
 const vueError = ref<Error>()
@@ -260,6 +272,7 @@ const allTypes = computed(() => Array.from(visualizationStore.types(props.typena
 
 const isFullscreen = ref(false)
 const currentSavedSize = ref<SavedSize>()
+const toolbar = shallowRef<ToValue<Readonly<ToolbarItem[]>>>()
 
 provideVisualizationConfig({
   get isFocused() {
@@ -330,6 +343,12 @@ provideVisualizationConfig({
   },
   get isPreview() {
     return props.isPreview ?? false
+  },
+  setToolbar(items) {
+    toolbar.value = items
+  },
+  getToolbar() {
+    return toValue(toolbar.value)
   },
   hide: () => emit('update:enabled', false),
   updateType: (id) => emit('update:id', id),

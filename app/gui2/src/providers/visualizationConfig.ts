@@ -1,9 +1,11 @@
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
+import { ToolbarItem } from '@/components/visualizations/toolbar'
 import { SavedSize } from '@/components/WithFullscreenMode.vue'
 import { createContextStore } from '@/providers'
 import type { URLString } from '@/util/data/urlString'
 import { Vec2 } from '@/util/data/vec2'
 import type { Icon } from '@/util/iconName'
+import { ToValue } from '@/util/reactivity'
 import { reactive } from 'vue'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
@@ -30,6 +32,8 @@ export interface VisualizationConfig {
   hide: () => void
   updateType: (type: VisualizationIdentifier) => void
   createNodes: (...options: NodeCreationOptions[]) => void
+  setToolbar: (toolbar: ToValue<Readonly<ToolbarItem[]>>) => void
+  getToolbar: () => Readonly<ToolbarItem[]> | undefined
 }
 
 export { provideFn as provideVisualizationConfig }

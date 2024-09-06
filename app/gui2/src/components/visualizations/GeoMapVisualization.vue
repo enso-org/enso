@@ -88,8 +88,7 @@ declare var deck: typeof import('deck.gl')
 
 <script setup lang="ts">
 /// <reference types="@danmarshall/deckgl-typings" />
-import SvgButton from '@/components/SvgButton.vue'
-import { VisualizationContainer } from '@/util/visualizationBuiltins'
+import { VisualizationContainer, useVisualizationConfig } from '@/util/visualizationBuiltins'
 import type { Deck } from 'deck.gl'
 import { computed, onUnmounted, ref, watchPostEffect } from 'vue'
 
@@ -121,6 +120,8 @@ const DEFAULT_MAP_STYLE = 'mapbox://styles/mapbox/light-v9'
 const DEFAULT_MAP_ZOOM = 11
 const DEFAULT_MAX_MAP_ZOOM = 18
 const ACCENT_COLOR: Color = [78, 165, 253]
+
+const config = useVisualizationConfig()
 
 const dataPoints = ref<LocationWithPosition[]>([])
 const mapNode = ref<HTMLElement>()
@@ -410,16 +411,29 @@ function pushPoints(newPoints: Location[]) {
     }
   }
 }
+
+config.setToolbar([
+  {
+    icon: 'find',
+    onClick: () => {},
+  },
+  {
+    icon: 'path2',
+    onClick: () => {},
+  },
+  {
+    icon: 'geo_map_distance',
+    onClick: () => {},
+  },
+  {
+    icon: 'geo_map_pin',
+    onClick: () => {},
+  },
+])
 </script>
 
 <template>
   <VisualizationContainer :overflow="true">
-    <template #toolbar>
-      <SvgButton name="find" />
-      <SvgButton name="path2" />
-      <SvgButton name="geo_map_distance" />
-      <SvgButton name="geo_map_pin" />
-    </template>
     <div ref="mapNode" class="GeoMapVisualization" @pointerdown.stop @wheel.stop></div>
   </VisualizationContainer>
 </template>

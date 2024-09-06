@@ -1,6 +1,6 @@
 <script lang="ts">
 import icons from '@/assets/icons.svg'
-import { default as TableVizToolbar, type SortModel } from '@/components/TableVizToolbar.vue'
+import { SortModel, useTableVizToolbar } from '@/components/visualizations/tableVizToolbar'
 import AgGridTableView from '@/components/widgets/AgGridTableView.vue'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
@@ -84,8 +84,8 @@ interface UnknownTable {
 }
 
 export enum TextFormatOptions {
-  Partial,
   On,
+  Partial,
   Off,
 }
 </script>
@@ -134,10 +134,6 @@ const rowData = ref<Record<string, any>[]>([])
 const columnDefs: Ref<ColDef[]> = ref([])
 
 const textFormatterSelected = ref<TextFormatOptions>(TextFormatOptions.Partial)
-
-const updateTextFormat = (option: TextFormatOptions) => {
-  textFormatterSelected.value = option
-}
 
 const isRowCountSelectorVisible = computed(() => rowCount.value >= 1000)
 
@@ -602,19 +598,25 @@ function checkSortAndFilter(e: SortChangedEvent) {
 onMounted(() => {
   setRowLimit(1000)
 })
+
+// ===============
+// === Toolbar ===
+// ===============
+
+config.setToolbar(
+  useTableVizToolbar({
+    textFormatterSelected,
+    filterModel,
+    sortModel,
+    isDisabled: () => !isCreateNodeEnabled.value,
+    isFilterSortNodeEnabled,
+    createNodes: config.createNodes,
+  }),
+)
 </script>
 
 <template>
   <VisualizationContainer :belowToolbar="true" :overflow="true" :toolbarOverflow="true">
-    <template #toolbar>
-      <TableVizToolbar
-        :filterModel="filterModel"
-        :sortModel="sortModel"
-        :isDisabled="!isCreateNodeEnabled"
-        :isFilterSortNodeEnabled="isFilterSortNodeEnabled"
-        @changeFormat="(i) => updateTextFormat(i)"
-      />
-    </template>
     <div ref="rootNode" class="TableVisualization" @wheel.stop @pointerdown.stop>
       <div class="table-visualization-status-bar">
         <select

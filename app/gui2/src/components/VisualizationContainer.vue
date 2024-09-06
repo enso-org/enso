@@ -66,8 +66,7 @@ const style = computed(() => {
     :style="style"
   >
     <VisualizationPanel :overflow="overflow ?? false" :toolbarOverflow="toolbarOverflow ?? false">
-      <template v-if="$slots.toolbar" #toolbar><slot name="toolbar" /></template>
-      <template #default><slot /></template>
+      <slot />
     </VisualizationPanel>
     <ResizeHandles
       v-if="!config.isPreview && config.isResizable"
@@ -89,20 +88,14 @@ const style = computed(() => {
   position: absolute;
   border-radius: var(--radius-default);
   background: var(--color-visualization-bg);
+  padding-top: var(--node-size-y);
 }
 
 .VisualizationContainer {
-  padding-top: var(--node-size-y);
-  height: calc(var(--content-height) + var(--node-size-y));
-}
-
-.VisualizationContainer.below-node {
-  padding-top: var(--node-size-y);
   height: calc(var(--content-height) + var(--node-size-y));
 }
 
 .VisualizationContainer.below-toolbar {
-  padding-top: var(--node-size-y);
   height: calc(var(--content-height) + var(--node-size-y) + var(--toolbar-reserved-height));
 }
 </style>

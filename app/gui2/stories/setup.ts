@@ -138,6 +138,8 @@ export const setupVue3 = defineSetupVue3(({ app, addWrapper }) => {
       isPreview: false,
       nodePosition: Vec2.Zero,
       nodeType: 'component',
+      getToolbar: () => undefined,
+      setToolbar: () => {},
     },
     app,
   )

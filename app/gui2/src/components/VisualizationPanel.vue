@@ -5,13 +5,19 @@
  */
 
 import FullscreenButton from '@/components/FullscreenButton.vue'
+import SelectionDropdown from '@/components/SelectionDropdown.vue'
 import SvgButton from '@/components/SvgButton.vue'
+import ToggleIcon from '@/components/ToggleIcon.vue'
+import {
+  isActionButton,
+  isSelectionMenu,
+  isToggleButton,
+} from '@/components/visualizations/toolbar'
 import VisualizationSelector from '@/components/VisualizationSelector.vue'
 import WithFullscreenMode from '@/components/WithFullscreenMode.vue'
-import { isTriggeredByKeyboard } from '@/composables/events'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
 import { isQualifiedName, qnLastSegment } from '@/util/qualifiedName'
-import { computed, ref } from 'vue'
+import { computed, ref, toValue } from 'vue'
 
 const props = defineProps<{
   overflow?: boolean
@@ -39,12 +45,6 @@ const nodeShortType = computed(() =>
 )
 
 const fullscreenAnimating = ref(false)
-
-const isSelectorVisible = ref(false)
-
-function hideSelector() {
-  requestAnimationFrame(() => (isSelectorVisible.value = false))
-}
 </script>
 
 <template>
@@ -73,32 +73,43 @@ function hideSelector() {
         </div>
         <div v-if="!config.isPreview" class="toolbar">
           <FullscreenButton v-if="config.isFullscreenAllowed" v-model="config.fullscreen" />
-          <div class="icon-container">
-            <SvgButton
-              :name="config.icon ?? 'columns_increasing'"
-              title="Visualization Selector"
-              @click.stop.prevent="
-                (!isSelectorVisible || isTriggeredByKeyboard($event)) &&
-                  (isSelectorVisible = !isSelectorVisible)
-              "
-            />
-            <Suspense>
-              <VisualizationSelector
-                v-if="isSelectorVisible"
-                :types="config.types"
-                :modelValue="config.currentType"
-                @hide="hideSelector"
-                @update:modelValue="(isSelectorVisible = false), config.updateType($event)"
-              />
-            </Suspense>
-          </div>
+          <VisualizationSelector
+            :types="config.types"
+            :modelValue="config.currentType"
+            @update:modelValue="config.updateType($event)"
+          />
         </div>
         <div
-          v-if="$slots.toolbar && !config.isPreview"
+          v-if="!config.isPreview && config.getToolbar()"
           class="visualization-defined-toolbars"
           :class="{ overflow: props.toolbarOverflow }"
         >
-          <div class="toolbar"><slot name="toolbar"></slot></div>
+          <div class="toolbar">
+            <template v-for="(item, index) in config.getToolbar()!" :key="index">
+              <SvgButton
+                v-if="isActionButton(item)"
+                :name="item.icon"
+                :title="item.title"
+                :onClick="item.onClick"
+                :disabled="item.disabled != null ? toValue(item.disabled) : false"
+                :data-testid="item.dataTestid"
+              />
+              <ToggleIcon
+                v-else-if="isToggleButton(item)"
+                :icon="item.icon"
+                :title="item.title"
+                :disabled="item.disabled != null ? toValue(item.disabled) : false"
+                :data-testid="item.dataTestid"
+              />
+              <SelectionDropdown
+                v-else-if="isSelectionMenu(item)"
+                v-model="item.selected.value"
+                :options="item.options"
+                :title="item.title"
+                alwaysShowArrow
+              />
+            </template>
+          </div>
         </div>
         <div
           class="after-toolbars node-type"
