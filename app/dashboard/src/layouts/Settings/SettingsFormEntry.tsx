@@ -1,6 +1,5 @@
 /** @file Rendering for an {@link SettingsFormEntryData}. */
 import { ButtonGroup, Form } from '#/components/AriaComponents'
-import { useDebugEffect } from '#/hooks/debugHooks'
 import SettingsInput from '#/layouts/Settings/SettingsInput'
 import type { SettingsContext, SettingsFormEntryData } from '#/layouts/Settings/settingsData'
 import { useText } from '#/providers/TextProvider'
@@ -29,7 +28,6 @@ export function SettingsFormEntry<T extends Record<keyof T, string>>(
     [context, schemaRaw],
   )
 
-  useDebugEffect(() => {}, [value])
   return (
     <Form
       gap="none"

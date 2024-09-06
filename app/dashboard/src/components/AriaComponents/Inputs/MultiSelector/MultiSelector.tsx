@@ -1,7 +1,10 @@
 /** @file A horizontal selector supporting multiple input. */
 import { useRef, type CSSProperties, type ForwardedRef, type Ref } from 'react'
 
+import { Controller } from 'react-hook-form'
 import type { VariantProps } from 'tailwind-variants'
+
+import { omit, unsafeRemoveUndefined } from 'enso-common/src/utilities/data/object'
 
 import {
   FieldError,
@@ -21,8 +24,6 @@ import {
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
 import { tv } from '#/utilities/tailwindVariants'
-import { omit, unsafeRemoveUndefined } from 'enso-common/src/utilities/data/object'
-import { Controller } from 'react-hook-form'
 import { MultiSelectorOption } from './MultiSelectorOption'
 
 /** * Props for the MultiSelector component. */

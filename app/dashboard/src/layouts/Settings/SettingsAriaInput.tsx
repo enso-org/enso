@@ -49,11 +49,11 @@ export default function SettingsAriaInput<
 >(props: SettingsAriaInputProps<Schema, TFieldName>) {
   return (
     <Input
-      {...props}
       variant="custom"
       size="custom"
       variants={SETTINGS_INPUT_STYLES}
       fieldVariants={SETTINGS_FIELD_STYLES}
+      {...props}
     />
   )
 }

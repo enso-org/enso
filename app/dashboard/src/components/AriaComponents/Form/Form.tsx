@@ -150,10 +150,6 @@ export const Form = forwardRef(function Form<Schema extends components.TSchema>(
           void formOnSubmit(event)
         }
       }}
-      onReset={(event) => {
-        event.preventDefault()
-        form?.reset(defaultValues, { keepDirty: false })
-      }}
       className={base}
       style={typeof style === 'function' ? style(innerForm) : style}
       noValidate

@@ -451,10 +451,18 @@ export default [
       'no-restricted-properties': [
         'error',
         { object: 'console', message: DEBUG_STATEMENTS_MESSAGE },
-        { property: 'useDebugState', message: DEBUG_STATEMENTS_MESSAGE },
-        { property: 'useDebugEffect', message: DEBUG_STATEMENTS_MESSAGE },
-        { property: 'useDebugMemo', message: DEBUG_STATEMENTS_MESSAGE },
-        { property: 'useDebugCallback', message: DEBUG_STATEMENTS_MESSAGE },
+      ],
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '#/hooks/debugHooks',
+              importNames: ['useDebugState', 'useDebugEffect', 'useDebugMemo', 'useDebugCallback'],
+              message: DEBUG_STATEMENTS_MESSAGE,
+            },
+          ],
+        },
       ],
     },
   },
@@ -470,49 +478,22 @@ export default [
     rules: {
       'no-restricted-properties': [
         'error',
+        { object: 'console', message: DEBUG_STATEMENTS_MESSAGE },
+        { object: 'page', property: 'type', message: 'Prefer `locator.type` instead' },
+        { object: 'page', property: 'click', message: 'Prefer `locator.click` instead' },
+        { object: 'page', property: 'fill', message: 'Prefer `locator.fill` instead' },
+        { object: 'page', property: 'locator', message: 'Prefer `page.getBy*` instead' },
+      ],
+      'no-restricted-imports': [
+        'error',
         {
-          object: 'console',
-          message: 'Avoid leaving debugging statements when committing code',
-        },
-        {
-          object: 'hooks',
-          property: 'useDebugState',
-          message: 'Avoid leaving debugging statements when committing code',
-        },
-        {
-          object: 'hooks',
-          property: 'useDebugEffect',
-          message: 'Avoid leaving debugging statements when committing code',
-        },
-        {
-          object: 'hooks',
-          property: 'useDebugMemo',
-          message: 'Avoid leaving debugging statements when committing code',
-        },
-        {
-          object: 'hooks',
-          property: 'useDebugCallback',
-          message: 'Avoid leaving debugging statements when committing code',
-        },
-        {
-          object: 'page',
-          property: 'type',
-          message: 'Prefer `locator.type` instead',
-        },
-        {
-          object: 'page',
-          property: 'click',
-          message: 'Prefer `locator.click` instead',
-        },
-        {
-          object: 'page',
-          property: 'fill',
-          message: 'Prefer `locator.fill` instead',
-        },
-        {
-          object: 'page',
-          property: 'locator',
-          message: 'Prefer `page.getBy*` instead',
+          paths: [
+            {
+              name: '#/hooks/debugHooks',
+              importNames: ['useDebugState', 'useDebugEffect', 'useDebugMemo', 'useDebugCallback'],
+              message: DEBUG_STATEMENTS_MESSAGE,
+            },
+          ],
         },
       ],
     },
