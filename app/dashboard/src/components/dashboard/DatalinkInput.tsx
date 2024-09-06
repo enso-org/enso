@@ -9,7 +9,7 @@ import JSONSchemaInput from '#/components/JSONSchemaInput'
 
 import { FieldError } from '#/components/aria'
 import type { FieldValues, FormInstance, TSchema } from '#/components/AriaComponents'
-import { useFormContext } from '#/components/AriaComponents/Form/components/useFormContext'
+import { Form } from '#/components/AriaComponents'
 import * as error from '#/utilities/error'
 import { Controller, type FieldPath } from 'react-hook-form'
 
@@ -59,9 +59,9 @@ export interface DatalinkFormInputProps<Schema extends TSchema>
 
 /** A dynamic wizard for creating an arbitrary type of Datalink. */
 export function DatalinkFormInput<Schema extends TSchema>(props: DatalinkFormInputProps<Schema>) {
-  const fallbackForm = useFormContext()
-  // eslint-disable-next-line no-restricted-syntax
-  const { form = fallbackForm as unknown as FormInstance<Schema>, name, ...inputProps } = props
+  const { name, ...inputProps } = props
+
+  const form = Form.useFormContext(props.form)
 
   return (
     <Controller

@@ -8,7 +8,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import type { PropsWithChildren } from 'react'
 import { createContext, useContext, useId } from 'react'
 
-import { twMerge } from '#/utilities/tailwindMerge'
+import { twJoin } from '#/utilities/tailwindMerge'
 import invariant from 'tiny-invariant'
 
 /**
@@ -71,10 +71,12 @@ AnimatedBackground.Item = function AnimatedBackgroundItem(props: AnimatedBackgro
   const { value: activeValue, transition, layoutId } = context
 
   return (
+    <div className={twJoin('relative *:isolate', className)}>
       <AnimatePresence initial={false}>
         {activeValue === value && (
           <motion.div
             layoutId={`background-${layoutId}`}
+            className={twJoin('absolute inset-0', animationClassName)}
             transition={transition}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

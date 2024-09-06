@@ -30,6 +30,7 @@ import SvgMask from '#/components/SvgMask'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
 import type { ExtractFunction } from '#/utilities/tailwindVariants'
+import { omit } from 'enso-common/src/utilities/data/object'
 import { INPUT_STYLES } from '../variants'
 
 /**
@@ -39,7 +40,6 @@ export interface InputProps<Schema extends TSchema, TFieldName extends FieldPath
   extends FieldStateProps<Omit<aria.InputProps, 'children' | 'size'>, Schema, TFieldName>,
     FieldProps,
     FieldVariantProps,
-    ariaComponents.FieldVariantProps,
     Omit<VariantProps<typeof INPUT_STYLES>, 'disabled' | 'invalid'>,
     TestIdProps {
   readonly className?: string
@@ -85,9 +85,7 @@ export const Input = forwardRef(function Input<
   const { fieldProps, formInstance } = Form.useFieldRegister<
     Omit<aria.InputProps, 'children' | 'size'>,
     Schema,
-    TFieldValues,
-    TFieldName,
-    TTransformedValues
+    TFieldName
   >({
     ...props,
     form,
@@ -117,14 +115,14 @@ export const Input = forwardRef(function Input<
   })
 
   return (
-    <ariaComponents.Form.Field
-      {...aria.mergeProps<ariaComponents.FieldComponentProps>()(inputProps, omit(fieldProps), {
+    <Form.Field
+      {...aria.mergeProps<FieldComponentProps<Schema>>()(inputProps, omit(fieldProps), {
         isHidden: props.hidden,
-        ref: ref,
         fullWidth: true,
         variants: fieldVariants,
         form: formInstance,
       })}
+      ref={ref}
       name={props.name}
       data-testid={testId}
     >
@@ -144,7 +142,7 @@ export const Input = forwardRef(function Input<
                 { className: classes.textArea(), type, name },
                 omit(fieldProps, 'isInvalid', 'isRequired', 'isDisabled', 'invalid'),
               )}
-              ref={mergeRefs.mergeRefs(inputRef, privateInputRef, fieldProps.ref)}
+              ref={mergeRefs(inputRef, privateInputRef, fieldProps.ref)}
             />
           </div>
 
