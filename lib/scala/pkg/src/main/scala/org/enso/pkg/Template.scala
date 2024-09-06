@@ -53,6 +53,22 @@ object Template {
     override val name = "bank_holiday_rain"
   }
 
+  case object GettingStartedReading extends Template {
+    override val name = "getting_started_reading"
+  }
+
+  case object GettingStartedAggregating extends Template {
+    override val name = "getting_started_aggregating"
+  }
+
+  case object GettingStartedCleansing extends Template {
+    override val name = "getting_started_cleansing"
+  }
+
+  case object GettingStartedSelecting extends Template {
+    override val name = "getting_started_selecting"
+  }
+
   val allTemplates = Seq(
     Default,
     Orders,
@@ -62,6 +78,10 @@ object Template {
     Kmeans,
     NasdaqReturns,
     MonthlySales,
-    BankHolidayRain
+    BankHolidayRain,
+    GettingStartedReading,
+    GettingStartedAggregating,
+    GettingStartedCleansing,
+    GettingStartedSelecting
   )
 }

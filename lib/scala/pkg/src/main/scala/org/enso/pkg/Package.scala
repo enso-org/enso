@@ -432,6 +432,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
         )
         val dataFiles = List(
           "la_districts.csv",
+          "mapcolors.json",
           "restaurants.csv"
         )
         copyTemplateFiles(pkg, "restaurants", srcFiles, dataFiles)
@@ -457,6 +458,55 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
           "bankholiday.png"
         )
         copyTemplateFiles(pkg, "bank_holiday_rain", srcFiles, List())
+
+      case Template.GettingStartedReading =>
+        val srcFiles = List(
+          Package.mainFileName,
+          "eags.png",
+          "loadfile.gif",
+          "sheets.gif",
+          "showdata.gif",
+          "simpleexpression.gif",
+          "table_solution.png",
+          "table_viz.png",
+        )
+        copyTemplateFiles(pkg, "getting_started_reading", srcFiles, List())
+
+      case Template.GettingStartedAggregating =>
+        val srcFiles = List(
+          Package.mainFileName,
+          "answer_table.png",
+          "eags.png",
+          "set.gif",
+          "table1.png",
+        )
+        val dataFiles = List(
+          "sample_bank_data.xlsx"
+        )
+        copyTemplateFiles(pkg, "getting_started_aggregating", srcFiles, dataFiles)
+
+      case Template.GettingStartedCleansing =>
+        val srcFiles = List(
+          Package.mainFileName,
+          "eags.png",
+        )
+        val dataFiles = List(
+          "crm_data.csv"
+        )
+        copyTemplateFiles(pkg, "getting_started_cleansing", srcFiles, dataFiles)
+
+      case Template.GettingStartedSelecting =>
+        val srcFiles = List(
+          Package.mainFileName,
+          "eags.png",
+          "table1.png",
+          "table2.png",
+        )
+        val dataFiles = List(
+          "crm_data.csv",
+          "Customer Data.xlsx"
+        )
+        copyTemplateFiles(pkg, "getting_started_selecting", srcFiles, dataFiles)
     }
 
   private def copyTemplateFiles(

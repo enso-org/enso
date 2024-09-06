@@ -45,11 +45,11 @@ pub async fn download_project_templates(client: reqwest::Client, enso_root: Path
         ("Orders", vec![
             "data/store_data.xlsx",
             "src/eaep.png",
-            "src/Main.enso",
             "src/excel1.png",
             "src/excel2.png",
             "src/excel3.png",
             "src/eyeball_viz.png",
+            "src/Main.enso",
         ]),
         ("Restaurants", vec![
             "data/la_districts.csv",
@@ -80,6 +80,33 @@ pub async fn download_project_templates(client: reqwest::Client, enso_root: Path
         ("Bank_Holiday_Rain", vec!["src/bankholiday.png", "src/eaep.png", "src/Main.enso"]),
         ("KMeans", vec!["src/Main.enso"]),
         ("NASDAQReturns", vec!["src/Main.enso"]),
+        ("Getting_Started_Reading", vec![
+            "src/eags.png",
+            "src/loadfile.gif",
+            "src/Main.enso",
+            "src/sheets.gif",
+            "src/showdata.gif",
+            "src/simpleexpression.gif",
+            "src/table_solution.png",
+            "src/table_viz.png",
+        ]),
+        ("Getting_Started_Aggregating", vec![
+            "data/sample_bank_data.xlsx",
+            "src/answer_table.png",
+            "src/eags.png",
+            "src/Main.enso",
+            "src/set.gif",
+            "src/table1.png",
+        ]),
+        ("Getting_Started_Cleansing", vec!["data/crm_data.csv", "src/eags.png", "src/Main.enso"]),
+        ("Getting_Started_Selecting", vec![
+            "data/crm_data.csv",
+            "data/Customer Data.xlsx",
+            "src/eags.png",
+            "src/Main.enso",
+            "src/table1.png",
+            "src/table2.png",
+        ]),
     ];
 
     let mut futures = Vec::<BoxFuture<'static, Result>>::new();
