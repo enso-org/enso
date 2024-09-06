@@ -31,8 +31,9 @@ import * as result from '#/components/Result'
 
 import * as backendModule from '#/services/Backend'
 
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useDriveStore } from '#/providers/DriveProvider'
 import AssetQuery from '#/utilities/AssetQuery'
-import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
@@ -94,9 +95,6 @@ export default function Drive(props: DriveProps) {
       }
     }
   }, [category, backend, user, organization, localRootDirectory])
-  const targetDirectoryNodeRef = React.useRef<AssetTreeNode<backendModule.DirectoryAsset> | null>(
-    null,
-  )
   const isCloud = categoryModule.isCloudCategory(category)
   const supportLocalBackend = localBackend != null
 
@@ -111,28 +109,31 @@ export default function Drive(props: DriveProps) {
     localStorage.set('isAssetPanelVisible', isAssetPanelEnabled)
   }, [isAssetPanelEnabled, /* should never change */ localStorage])
 
-  const doUploadFiles = React.useCallback(
-    (files: File[]) => {
-      if (isCloud && isOffline) {
-        // This should never happen, however display a nice error message in case it does.
-        toastAndLog('offlineUploadFilesError')
-      } else {
-        dispatchAssetListEvent({
-          type: AssetListEventType.uploadFiles,
-          parentKey: targetDirectoryNodeRef.current?.key ?? rootDirectoryId,
-          parentId: targetDirectoryNodeRef.current?.item.id ?? rootDirectoryId,
-          files,
-        })
-      }
-    },
-    [isCloud, rootDirectoryId, toastAndLog, isOffline, dispatchAssetListEvent],
+  const driveStore = useDriveStore()
+  const getTargetDirectory = React.useCallback(
+    () => driveStore.getState().targetDirectory,
+    [driveStore],
   )
+
+  const doUploadFiles = useEventCallback((files: File[]) => {
+    if (isCloud && isOffline) {
+      // This should never happen, however display a nice error message in case it does.
+      toastAndLog('offlineUploadFilesError')
+    } else {
+      dispatchAssetListEvent({
+        type: AssetListEventType.uploadFiles,
+        parentKey: getTargetDirectory()?.key ?? rootDirectoryId,
+        parentId: getTargetDirectory()?.item.id ?? rootDirectoryId,
+        files,
+      })
+    }
+  })
 
   const doEmptyTrash = React.useCallback(() => {
     dispatchAssetListEvent({ type: AssetListEventType.emptyTrash })
   }, [dispatchAssetListEvent])
 
-  const doCreateProject = React.useCallback(
+  const doCreateProject = useEventCallback(
     (
       templateId: string | null = null,
       templateName: string | null = null,
@@ -141,8 +142,8 @@ export default function Drive(props: DriveProps) {
     ) => {
       dispatchAssetListEvent({
         type: AssetListEventType.newProject,
-        parentKey: targetDirectoryNodeRef.current?.key ?? rootDirectoryId,
-        parentId: targetDirectoryNodeRef.current?.item.id ?? rootDirectoryId,
+        parentKey: getTargetDirectory()?.key ?? rootDirectoryId,
+        parentId: getTargetDirectory()?.item.id ?? rootDirectoryId,
         templateId,
         datalinkId: null,
         preferredName: templateName,
@@ -150,42 +151,35 @@ export default function Drive(props: DriveProps) {
         ...(onError ? { onError } : {}),
       })
     },
-    [rootDirectoryId, dispatchAssetListEvent],
   )
 
-  const doCreateDirectory = React.useCallback(() => {
+  const doCreateDirectory = useEventCallback(() => {
     dispatchAssetListEvent({
       type: AssetListEventType.newFolder,
-      parentKey: targetDirectoryNodeRef.current?.key ?? rootDirectoryId,
-      parentId: targetDirectoryNodeRef.current?.item.id ?? rootDirectoryId,
+      parentKey: getTargetDirectory()?.key ?? rootDirectoryId,
+      parentId: getTargetDirectory()?.item.id ?? rootDirectoryId,
     })
-  }, [rootDirectoryId, dispatchAssetListEvent])
+  })
 
-  const doCreateSecret = React.useCallback(
-    (name: string, value: string) => {
-      dispatchAssetListEvent({
-        type: AssetListEventType.newSecret,
-        parentKey: targetDirectoryNodeRef.current?.key ?? rootDirectoryId,
-        parentId: targetDirectoryNodeRef.current?.item.id ?? rootDirectoryId,
-        name,
-        value,
-      })
-    },
-    [rootDirectoryId, dispatchAssetListEvent],
-  )
+  const doCreateSecret = useEventCallback((name: string, value: string) => {
+    dispatchAssetListEvent({
+      type: AssetListEventType.newSecret,
+      parentKey: getTargetDirectory()?.key ?? rootDirectoryId,
+      parentId: getTargetDirectory()?.item.id ?? rootDirectoryId,
+      name,
+      value,
+    })
+  })
 
-  const doCreateDatalink = React.useCallback(
-    (name: string, value: unknown) => {
-      dispatchAssetListEvent({
-        type: AssetListEventType.newDatalink,
-        parentKey: targetDirectoryNodeRef.current?.key ?? rootDirectoryId,
-        parentId: targetDirectoryNodeRef.current?.item.id ?? rootDirectoryId,
-        name,
-        value,
-      })
-    },
-    [rootDirectoryId, dispatchAssetListEvent],
-  )
+  const doCreateDatalink = useEventCallback((name: string, value: unknown) => {
+    dispatchAssetListEvent({
+      type: AssetListEventType.newDatalink,
+      parentKey: getTargetDirectory()?.key ?? rootDirectoryId,
+      parentId: getTargetDirectory()?.item.id ?? rootDirectoryId,
+      name,
+      value,
+    })
+  })
 
   switch (status) {
     case 'not-enabled': {
@@ -296,7 +290,6 @@ export default function Drive(props: DriveProps) {
                   initialProjectName={initialProjectName}
                   setAssetPanelProps={setAssetPanelProps}
                   setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
-                  targetDirectoryNodeRef={targetDirectoryNodeRef}
                 />
               }
             </div>

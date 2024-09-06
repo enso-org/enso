@@ -297,7 +297,6 @@ export interface AssetsTableProps {
   readonly initialProjectName: string | null
   readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
   readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
-  readonly targetDirectoryNodeRef: React.MutableRefObject<assetTreeNode.AnyAssetTreeNode<backendModule.DirectoryAsset> | null>
   readonly assetManagementApiRef: React.Ref<AssetManagementApi>
 }
 
@@ -313,7 +312,7 @@ export interface AssetManagementApi {
 export default function AssetsTable(props: AssetsTableProps) {
   const { hidden, query, setQuery, category, assetManagementApiRef } = props
   const { setSuggestions, initialProjectName } = props
-  const { setAssetPanelProps, targetDirectoryNodeRef, setIsAssetPanelTemporarilyVisible } = props
+  const { setAssetPanelProps, setIsAssetPanelTemporarilyVisible } = props
 
   const openedProjects = projectsProvider.useLaunchedProjects()
   const doOpenProject = projectHooks.useOpenProject()
@@ -331,7 +330,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const previousCategoryRef = React.useRef(category)
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
-  const setTargetDirectoryRaw = useSetTargetDirectory()
+  const setTargetDirectory = useSetTargetDirectory()
   const didLoadingProjectManagerFail = backendProvider.useDidLoadingProjectManagerFail()
   const reconnectToProjectManager = backendProvider.useReconnectToProjectManager()
   const [enabledColumns, setEnabledColumns] = React.useState(columnUtils.DEFAULT_ENABLED_COLUMNS)
@@ -812,13 +811,6 @@ export default function AssetsTable(props: AssetsTableProps) {
   React.useEffect(() => {
     previousCategoryRef.current = category
   })
-
-  const setTargetDirectory = useEventCallback(
-    (page: AssetTreeNode<backendModule.DirectoryAsset> | null) => {
-      setTargetDirectoryRaw(page)
-      targetDirectoryNodeRef.current = page
-    },
-  )
 
   React.useEffect(
     () =>
