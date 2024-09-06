@@ -191,8 +191,8 @@ type SQLite_Dialect
     ## PRIVAITE
        Specifies implementation details flags.
     dialect_flags : Dialect_Flags
-    dialect_flags -> Dialect_Flags =
-        rounding = Rounding_Flags.Value supports_negative_decimal_places=False supports_float_decimal_places=True supports_bankers=False
+    dialect_flags self -> Dialect_Flags =
+        rounding = Rounding_Flags.Value supports_negative_decimal_places=False supports_float_decimal_places=True
         Dialect_Flags.Value rounding=rounding
 
     ## PRIVATE

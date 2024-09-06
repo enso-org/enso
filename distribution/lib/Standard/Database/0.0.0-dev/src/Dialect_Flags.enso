@@ -14,4 +14,4 @@ type Dialect_Flags
     Value (rounding : Rounding_Flags)
 
 type Rounding_Flags
-    Value (supports_negative_decimal_places : Boolean) (supports_float_decimal_places : Boolean) (supports_bankers : Boolean)
+    Value (supports_negative_decimal_places : Boolean) (supports_float_decimal_places : Boolean)
