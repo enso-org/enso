@@ -77,6 +77,11 @@ export default function Settings() {
     localBackend?.resetRootPath()
   })
 
+  const isMatch = React.useMemo(() => {
+    const regex = new RegExp(string.regexEscape(query.trim()).replace(/\s+/g, '.+'), 'i')
+    return (name: string) => regex.test(name)
+  }, [query])
+
   const context = React.useMemo<settingsData.SettingsContext>(
     () => ({
       accessToken,
@@ -91,6 +96,7 @@ export default function Settings() {
       toastAndLog,
       getText,
       queryClient,
+      isMatch,
     }),
     [
       accessToken,
@@ -105,21 +111,17 @@ export default function Settings() {
       updateUser,
       user,
       queryClient,
+      isMatch,
     ],
   )
-
-  const isMatch = React.useMemo(() => {
-    const regex = new RegExp(string.regexEscape(query.trim()).replace(/\s+/g, '.+'), 'i')
-    return (name: string) => regex.test(name)
-  }, [query])
 
   const doesEntryMatchQuery = React.useCallback(
     (entry: settingsData.SettingsEntryData) => {
       switch (entry.type) {
-        case settingsData.SettingsEntryType.input: {
-          return isMatch(getText(entry.nameId))
+        case 'form': {
+          return entry.inputs.some((input) => isMatch(getText(input.nameId)))
         }
-        case settingsData.SettingsEntryType.custom: {
+        case 'custom': {
           const doesAliasesIdMatch =
             entry.aliasesId == null ? false : getText(entry.aliasesId).split('\n').some(isMatch)
           if (doesAliasesIdMatch) {

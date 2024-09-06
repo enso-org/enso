@@ -1,5 +1,6 @@
 /** @file Rendering for an {@link SettingsFormEntryData}. */
-import { Button, ButtonGroup, Form } from '#/components/AriaComponents'
+import { ButtonGroup, Form } from '#/components/AriaComponents'
+import { useDebugEffect } from '#/hooks/debugHooks'
 import SettingsInput from '#/layouts/Settings/SettingsInput'
 import type { SettingsContext, SettingsFormEntryData } from '#/layouts/Settings/settingsData'
 import { useText } from '#/providers/TextProvider'
@@ -25,9 +26,10 @@ export function SettingsFormEntry<T extends Record<keyof T, string>>(
   const value = getValue(context)
   const schema = useMemo(
     () => (typeof schemaRaw === 'function' ? schemaRaw(context) : schemaRaw),
-    [],
+    [context, schemaRaw],
   )
 
+  useDebugEffect(() => {}, [value])
   return (
     <Form
       gap="none"
@@ -35,11 +37,13 @@ export function SettingsFormEntry<T extends Record<keyof T, string>>(
       schema={schema}
       defaultValues={value}
       // @ts-expect-error This is SAFE, as the type `T` is statically known.
-      onSubmit={(value) => onSubmit(context, value)}
+      onSubmit={(newValue) => onSubmit(context, newValue)}
     >
-      {inputs.map((input) => (
-        <SettingsInput key={input.name} context={context} data={input} />
-      ))}
+      {inputs
+        .filter((input) => context.isMatch(getText(input.nameId)))
+        .map((input) => (
+          <SettingsInput key={input.name} context={context} data={input} />
+        ))}
       <ButtonGroup>
         <Form.Submit>{getText('save')}</Form.Submit>
         <Form.Reset>{getText('cancel')}</Form.Reset>

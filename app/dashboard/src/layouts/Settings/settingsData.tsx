@@ -445,6 +445,7 @@ export interface SettingsContext {
   readonly toastAndLog: toastAndLogHooks.ToastAndLogCallback
   readonly getText: textProvider.GetText
   readonly queryClient: reactQuery.QueryClient
+  readonly isMatch: (name: string) => boolean
 }
 
 // ==============================
