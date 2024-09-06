@@ -1962,6 +1962,7 @@ export class MutableFunction extends Function implements MutableAst {
     if (oldBody instanceof MutableBodyBlock) return oldBody
     const newBody = BodyBlock.new([], this.module)
     if (oldBody) newBody.push(oldBody.take())
+    this.setBody(newBody)
     return newBody
   }
 }
