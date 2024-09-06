@@ -40,7 +40,6 @@ distributed separately and should include all references to all projects that
 are included as part of its distribution. Currently we have three main
 distrbutions (`launcher`, `engine`, and `project-manager`), as well as
 distributions for many of the major components of the standard library.
-ine-runner` and `project-manager`.
 
 Another relevant setting is `GatherLicenses.licenseConfigurations` which defines
 which `ivy` configurations are considered to search for dependencies. Currently
