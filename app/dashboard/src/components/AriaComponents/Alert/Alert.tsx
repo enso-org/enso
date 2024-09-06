@@ -68,6 +68,7 @@ export interface AlertProps
 }
 
 /** Alert component. */
+// eslint-disable-next-line no-restricted-syntax
 export const Alert = forwardRef(function Alert(
   props: AlertProps,
   ref: ForwardedRef<HTMLDivElement>,

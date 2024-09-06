@@ -1,6 +1,6 @@
 package org.enso.semver
 
-import org.enso.yaml.{YamlDecoder, YamlEncoder}
+import org.enso.scala.yaml.{YamlDecoder, YamlEncoder}
 import org.yaml.snakeyaml.error.YAMLException
 import org.yaml.snakeyaml.nodes.{Node, ScalarNode}
 

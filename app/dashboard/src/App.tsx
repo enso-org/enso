@@ -544,7 +544,7 @@ function LocalBackendPathSynchronizer() {
   const localBackend = useLocalBackend()
   if (localBackend) {
     if (localRootDirectory != null) {
-      localBackend.rootPath = Path(localRootDirectory)
+      localBackend.setRootPath(Path(localRootDirectory))
     } else {
       localBackend.resetRootPath()
     }

@@ -223,6 +223,14 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
                   </div>
                 </aria.Cell>
               </aria.Row>
+            : userGroups.length === 0 ?
+              <aria.Row className="h-row">
+                <aria.Cell className="col-span-2 px-2.5 placeholder">
+                  {isAdmin ?
+                    getText('youHaveNoUserGroupsAdmin')
+                  : getText('youHaveNoUserGroupsNonAdmin')}
+                </aria.Cell>
+              </aria.Row>
             : (userGroup) => (
                 <>
                   <UserGroupRow userGroup={userGroup} doDeleteUserGroup={doDeleteUserGroup} />

@@ -26,9 +26,9 @@ open module org.enso.runtime {
       org.enso.interpreter.epb.EpbLanguageProvider;
 
   provides com.oracle.truffle.api.instrumentation.provider.TruffleInstrumentProvider with
-    org.enso.interpreter.instrument.ReplDebuggerInstrumentProvider,
-    org.enso.interpreter.instrument.RuntimeServerInstrumentProvider,
-    org.enso.interpreter.instrument.IdExecutionInstrumentProvider;
+    org.enso.interpreter.instrument.repl.debugger.ReplDebuggerInstrumentProvider,
+    org.enso.interpreter.instrument.runtime.server.RuntimeServerInstrumentProvider,
+    org.enso.interpreter.instrument.id.execution.IdExecutionInstrumentProvider;
 
 
   // java.beans.Transient needed by Jackson jackson.databind.ext.Java7SupportImpl

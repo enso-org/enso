@@ -2,14 +2,14 @@
 import DocumentationPanel from '@/components/DocumentationPanel.vue'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore } from '@/stores/graph'
-import { ref, watchEffect } from 'vue'
+import { computed } from 'vue'
 import type { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
-import { Err, Ok, type Result } from 'ydoc-shared/util/data/result'
+import { Err, Ok } from 'ydoc-shared/util/data/result'
 
+const props = defineProps<{ displayedSuggestionId: SuggestionId | null }>()
+const emit = defineEmits<{ 'update:displayedSuggestionId': [SuggestionId] }>()
 const selection = injectGraphSelection()
 const graphStore = useGraphStore()
-
-const displayedDocs = ref<Result<SuggestionId>>()
 
 function docsForSelection() {
   const selected = selection.tryGetSoleSelection()
@@ -18,17 +18,20 @@ function docsForSelection() {
   if (suggestionId == null) return Err('No documentation available for selected component')
   return Ok(suggestionId)
 }
-watchEffect(() => (displayedDocs.value = docsForSelection()))
+
+const displayedId = computed(() =>
+  props.displayedSuggestionId != null ? Ok(props.displayedSuggestionId) : docsForSelection(),
+)
 </script>
 
 <template>
   <DocumentationPanel
-    v-if="displayedDocs?.ok"
-    :selectedEntry="displayedDocs.value"
-    @update:selectedEntry="displayedDocs = Ok($event)"
+    v-if="displayedId?.ok"
+    :selectedEntry="displayedId.value"
+    @update:selectedEntry="emit('update:displayedSuggestionId', $event)"
   />
-  <div v-else-if="displayedDocs?.ok === false" class="help-placeholder">
-    {{ displayedDocs.error.payload }}.
+  <div v-else-if="displayedId?.ok === false" class="help-placeholder">
+    {{ displayedId.error.payload }}.
   </div>
 </template>
 

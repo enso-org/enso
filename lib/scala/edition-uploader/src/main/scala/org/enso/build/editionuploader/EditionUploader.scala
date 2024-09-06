@@ -4,6 +4,7 @@ import org.enso.build.AWS
 import org.enso.editions.EditionName
 import org.enso.yaml.YamlHelper
 import org.enso.editions.repository.Manifest
+import org.enso.version.BuildVersion
 
 import java.io.PrintWriter
 import java.nio.file.{Files, Path}
@@ -27,7 +28,7 @@ object EditionUploader {
     * If the environment variable [[NIGHTLIES_TO_KEEP]]
     */
   def main(args: Array[String]): Unit = try {
-    val edition = EditionName(buildinfo.Info.currentEdition)
+    val edition = EditionName(BuildVersion.currentEdition)
     updateEditionsRepository(edition)
   } catch {
     case NonFatal(error) =>

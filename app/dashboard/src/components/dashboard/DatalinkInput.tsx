@@ -1,6 +1,4 @@
 /** @file A dynamic wizard for creating an arbitrary type of Datalink. */
-import * as React from 'react'
-
 import SCHEMA from '#/data/datalinkSchema.json' with { type: 'json' }
 import * as datalinkValidator from '#/data/datalinkValidator'
 
