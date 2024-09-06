@@ -3204,7 +3204,8 @@ lazy val `runtime-instrument-repl-debugger` =
         (`engine-common` / Compile / exportedModule).value,
         (`runtime` / Compile / exportedModule).value,
         (`polyglot-api` / Compile / exportedModule).value,
-        (`runtime-compiler` / Compile / exportedModule).value
+        (`runtime-compiler` / Compile / exportedModule).value,
+        (`runtime-parser` / Compile / exportedModule).value,
       )
     )
     .dependsOn(LocalProject("runtime"))
