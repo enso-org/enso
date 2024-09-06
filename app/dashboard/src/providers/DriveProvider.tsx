@@ -5,6 +5,7 @@ import invariant from 'tiny-invariant'
 import * as zustand from 'zustand'
 
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
+import { EMPTY_SET } from '#/utilities/set'
 import type { AssetId, DirectoryAsset } from 'enso-common/src/services/Backend'
 
 // ==================
@@ -53,7 +54,7 @@ export default function DriveProvider(props: ProjectsProviderProps) {
       setCanDownload: (canDownload) => {
         set({ canDownload })
       },
-      selectedKeys: new Set(),
+      selectedKeys: EMPTY_SET,
       setSelectedKeys: (selectedKeys) => {
         set({ selectedKeys })
       },

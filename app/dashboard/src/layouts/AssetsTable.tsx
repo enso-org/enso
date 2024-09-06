@@ -1385,7 +1385,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         break
       }
       case 'Escape': {
-        setSelectedKeys(new Set())
+        setSelectedKeys(set.EMPTY_SET)
         setMostRecentlySelectedIndex(null)
         selectionStartIndexRef.current = null
         break
@@ -1445,7 +1445,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         } else {
           // The arrow key will escape this container. In that case, do not stop propagation
           // and let `navigator2D` navigate to a different container.
-          setSelectedKeys(new Set())
+          setSelectedKeys(set.EMPTY_SET)
           selectionStartIndexRef.current = null
         }
         break
@@ -2066,7 +2066,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const { selectedKeys } = driveStore.getState()
     setPasteData({ type: PasteType.move, data: selectedKeys })
     dispatchAssetEvent({ type: AssetEventType.cut, ids: selectedKeys })
-    setSelectedKeys(new Set())
+    setSelectedKeys(set.EMPTY_SET)
   }, [unsetModal, pasteData, driveStore, dispatchAssetEvent, setSelectedKeys])
 
   const doPaste = React.useCallback(
@@ -2246,9 +2246,12 @@ export default function AssetsTable(props: AssetsTableProps) {
         {
           selectAdditional: () => {},
           selectAdditionalRange: () => {},
-          [inputBindingsModule.DEFAULT_HANDLER]: () => {
-            const { selectedKeys } = driveStore.getState()
-            if (selectedKeys.size !== 0) {
+          [inputBindingsModule.DEFAULT_HANDLER]: (event) => {
+            const portalRoot =
+              event.target instanceof HTMLElement || event.target instanceof SVGElement ?
+                event.target.closest('.enso-portal-root')
+              : null
+            if (!portalRoot && driveStore.getState().selectedKeys.size !== 0) {
               setSelectedKeys(set.EMPTY_SET)
               setMostRecentlySelectedIndex(null)
             }
@@ -2753,7 +2756,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           handleFileDrop(event)
         }}
         onClick={() => {
-          setSelectedKeys(new Set())
+          setSelectedKeys(set.EMPTY_SET)
         }}
       >
         <aria.FileTrigger
