@@ -9,7 +9,9 @@ import * as reactQuery from '@tanstack/react-query'
 
 import { IS_DEV_MODE } from 'enso-common/src/detect'
 
+import cross from '#/assets/cross.svg'
 import DevtoolsLogo from '#/assets/enso_logo.svg'
+import trash from '#/assets/trash.svg'
 
 import { SETUP_PATH } from '#/appUtils'
 
@@ -17,17 +19,18 @@ import * as billing from '#/hooks/billing'
 
 import * as authProvider from '#/providers/AuthProvider'
 import { UserSessionType } from '#/providers/AuthProvider'
+import * as textProvider from '#/providers/TextProvider'
 import {
   useEnableVersionChecker,
+  usePaywallDevtools,
   useSetEnableVersionChecker,
-} from '#/providers/EnsoDevtoolsProvider'
-import * as textProvider from '#/providers/TextProvider'
+} from './EnsoDevtoolsProvider'
 
-import { Switch } from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
+import Portal from '#/components/Portal'
+
 import {
   Button,
-  ButtonGroup,
-  DialogTrigger,
   Form,
   Popover,
   Radio,
@@ -35,246 +38,262 @@ import {
   Separator,
   Text,
 } from '#/components/AriaComponents'
-import Portal from '#/components/Portal'
-
+import {
+  FEATURE_FLAGS_SCHEMA,
+  useFeatureFlags,
+  useSetFeatureFlags,
+} from '#/providers/FeatureFlagsProvider'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import * as backend from '#/services/Backend'
 import LocalStorage from '#/utilities/LocalStorage'
 import { unsafeEntries } from 'enso-common/src/utilities/data/object'
 
 /**
- * Configuration for a paywall feature.
- */
-export interface PaywallDevtoolsFeatureConfiguration {
-  readonly isForceEnabled: boolean | null
-}
-
-const PaywallDevtoolsContext = React.createContext<{
-  features: Record<billing.PaywallFeatureName, PaywallDevtoolsFeatureConfiguration>
-}>({
-  features: {
-    share: { isForceEnabled: null },
-    shareFull: { isForceEnabled: null },
-    userGroups: { isForceEnabled: null },
-    userGroupsFull: { isForceEnabled: null },
-    inviteUser: { isForceEnabled: null },
-    inviteUserFull: { isForceEnabled: null },
-  },
-})
-
-/**
- * Props for the {@link EnsoDevtools} component.
- */
-interface EnsoDevtoolsProps extends React.PropsWithChildren {}
-
-/**
  * A component that provides a UI for toggling paywall features.
  */
-export function EnsoDevtools(props: EnsoDevtoolsProps) {
-  const { children } = props
-
+export function EnsoDevtools() {
   const { getText } = textProvider.useText()
   const { authQueryKey, session } = authProvider.useAuth()
+  const queryClient = reactQuery.useQueryClient()
+  const { getFeature } = billing.usePaywallFeatures()
+  const { features, setFeature } = usePaywallDevtools()
   const enableVersionChecker = useEnableVersionChecker()
   const setEnableVersionChecker = useSetEnableVersionChecker()
   const { localStorage } = useLocalStorage()
 
-  const [features, setFeatures] = React.useState<
-    Record<billing.PaywallFeatureName, PaywallDevtoolsFeatureConfiguration>
-  >({
-    share: { isForceEnabled: null },
-    shareFull: { isForceEnabled: null },
-    userGroups: { isForceEnabled: null },
-    userGroupsFull: { isForceEnabled: null },
-    inviteUser: { isForceEnabled: null },
-    inviteUserFull: { isForceEnabled: null },
-  })
-
-  const { getFeature } = billing.usePaywallFeatures()
-
-  const queryClient = reactQuery.useQueryClient()
-
-  const onConfigurationChange = React.useCallback(
-    (feature: billing.PaywallFeatureName, configuration: PaywallDevtoolsFeatureConfiguration) => {
-      setFeatures((prev) => ({ ...prev, [feature]: configuration }))
-    },
-    [],
-  )
+  const featureFlags = useFeatureFlags()
+  const setFeatureFlags = useSetFeatureFlags()
 
   return (
-    <PaywallDevtoolsContext.Provider value={{ features }}>
-      {children}
+    <Portal>
+      <ariaComponents.DialogTrigger>
+        <ariaComponents.Button
+          icon={DevtoolsLogo}
+          aria-label={getText('ensoDevtoolsButtonLabel')}
+          variant="icon"
+          rounded="full"
+          size="hero"
+          className="fixed bottom-16 right-3 z-50"
+          data-ignore-click-outside
+        />
 
-      <Portal>
-        <DialogTrigger>
-          <Button
-            icon={DevtoolsLogo}
-            aria-label={getText('paywallDevtoolsButtonLabel')}
-            variant="icon"
-            rounded="full"
-            size="hero"
-            className="fixed bottom-16 right-3 z-50"
-            data-ignore-click-outside
-          />
+        <Popover>
+          <Text.Heading disableLineHeightCompensation>
+            {getText('ensoDevtoolsPopoverHeading')}
+          </Text.Heading>
 
-          <Popover>
-            <Text.Heading disableLineHeightCompensation>
-              {getText('paywallDevtoolsPopoverHeading')}
-            </Text.Heading>
+          <Separator orientation="horizontal" className="my-3" />
 
-            <Separator orientation="horizontal" className="my-3" />
+          {session?.type === UserSessionType.full && (
+            <>
+              <Text variant="subtitle">{getText('ensoDevtoolsPlanSelectSubtitle')}</Text>
 
-            {session?.type === UserSessionType.full && (
-              <>
-                <Text variant="subtitle">{getText('paywallDevtoolsPlanSelectSubtitle')}</Text>
-
-                <Form
-                  gap="small"
-                  schema={(schema) => schema.object({ plan: schema.string() })}
-                  defaultValues={{ plan: session.user.plan ?? 'free' }}
-                >
-                  {({ form }) => (
-                    <>
-                      <RadioGroup
-                        form={form}
-                        name="plan"
-                        onChange={(value) => {
-                          queryClient.setQueryData(authQueryKey, {
-                            ...session,
-                            user: { ...session.user, plan: value },
-                          })
-                        }}
-                      >
-                        <Radio label={getText('free')} value={'free'} />
-                        <Radio label={getText('solo')} value={backend.Plan.solo} />
-                        <Radio label={getText('team')} value={backend.Plan.team} />
-                        <Radio label={getText('enterprise')} value={backend.Plan.enterprise} />
-                      </RadioGroup>
-
-                      <Button
-                        size="small"
-                        variant="outline"
-                        onPress={() =>
-                          queryClient.invalidateQueries({ queryKey: authQueryKey }).then(() => {
-                            form.reset()
-                          })
-                        }
-                      >
-                        {getText('reset')}
-                      </Button>
-                    </>
-                  )}
-                </Form>
-
-                <Separator orientation="horizontal" className="my-3" />
-
-                {/* eslint-disable-next-line no-restricted-syntax */}
-                <Button variant="link" href={SETUP_PATH + '?__qd-debg__=true'}>
-                  Open setup page
-                </Button>
-
-                <Separator orientation="horizontal" className="my-3" />
-              </>
-            )}
-
-            <Text variant="subtitle" className="mb-2">
-              {getText('productionOnlyFeatures')}
-            </Text>
-            <div className="flex flex-col">
-              <Switch
-                className="group flex items-center gap-1"
-                isSelected={enableVersionChecker ?? !IS_DEV_MODE}
-                onChange={setEnableVersionChecker}
+              <Form
+                gap="small"
+                schema={(schema) => schema.object({ plan: schema.nativeEnum(backend.Plan) })}
+                defaultValues={{ plan: session.user.plan ?? backend.Plan.free }}
               >
-                <div className="box-border flex h-4 w-[28px] shrink-0 cursor-default items-center rounded-full bg-primary/30 bg-clip-padding p-0.5 shadow-inner outline-none ring-black transition duration-200 ease-in-out group-focus-visible:ring-2 group-pressed:bg-primary/60 group-selected:bg-primary group-selected:group-pressed:bg-primary/50">
-                  <span className="aspect-square h-full flex-none translate-x-0 transform rounded-full bg-white transition duration-200 ease-in-out group-selected:translate-x-[100%]" />
-                </div>
+                {({ form }) => (
+                  <>
+                    <RadioGroup
+                      name="plan"
+                      onChange={(value) => {
+                        queryClient.setQueryData(authQueryKey, {
+                          ...session,
+                          user: { ...session.user, plan: value },
+                        })
+                      }}
+                    >
+                      <Radio label={getText('free')} value={backend.Plan.free} />
+                      <Radio label={getText('solo')} value={backend.Plan.solo} />
+                      <Radio label={getText('team')} value={backend.Plan.team} />
+                      <Radio label={getText('enterprise')} value={backend.Plan.enterprise} />
+                    </RadioGroup>
 
-                <Text className="flex-1">{getText('enableVersionChecker')}</Text>
-              </Switch>
+                    <Button
+                      size="small"
+                      variant="outline"
+                      onPress={() =>
+                        queryClient.invalidateQueries({ queryKey: authQueryKey }).then(() => {
+                          form.reset()
+                        })
+                      }
+                    >
+                      {getText('reset')}
+                    </Button>
+                  </>
+                )}
+              </Form>
 
-              <Text variant="body" color="disabled">
-                {getText('enableVersionCheckerDescription')}
-              </Text>
-            </div>
+              <Separator orientation="horizontal" className="my-3" />
 
-            <Separator orientation="horizontal" className="my-3" />
+              {/* eslint-disable-next-line no-restricted-syntax */}
+              <Button variant="link" href={SETUP_PATH + '?__qd-debg__=true'}>
+                Open setup page
+              </Button>
 
-            <Text variant="subtitle" className="mb-2">
-              {getText('localStorage')}
-            </Text>
+              <Separator orientation="horizontal" className="my-3" />
+            </>
+          )}
+
+          <ariaComponents.Text variant="subtitle" className="mb-2">
+            {getText('productionOnlyFeatures')}
+          </ariaComponents.Text>
+
+          <ariaComponents.Form
+            schema={(z) => z.object({ enableVersionChecker: z.boolean() })}
+            defaultValues={{ enableVersionChecker: enableVersionChecker ?? !IS_DEV_MODE }}
+          >
+            {({ form }) => (
+              <ariaComponents.Switch
+                form={form}
+                name="enableVersionChecker"
+                label={getText('enableVersionChecker')}
+                description={getText('enableVersionCheckerDescription')}
+                onChange={(value) => {
+                  setEnableVersionChecker(value)
+                }}
+              />
+            )}
+          </ariaComponents.Form>
+
+          <Separator orientation="horizontal" className="my-3" />
+
+          <div className="mb-2 flex w-full items-center justify-between">
+            <Text variant="subtitle">{getText('localStorage')}</Text>
+
+            <Button
+              aria-label={getText('deleteAll')}
+              size="small"
+              variant="icon"
+              icon={trash}
+              onPress={() => {
+                for (const [key] of unsafeEntries(LocalStorage.keyMetadata)) {
+                  localStorage.delete(key)
+                }
+              }}
+            />
+          </div>
+
+          <div className="flex flex-col gap-0.5">
             {unsafeEntries(LocalStorage.keyMetadata).map(([key]) => (
-              <div className="flex gap-1">
-                <ButtonGroup className="grow-0">
-                  <Button
-                    size="small"
-                    variant="outline"
-                    onPress={() => {
-                      localStorage.delete(key)
-                    }}
-                  >
-                    {getText('delete')}
-                  </Button>
-                </ButtonGroup>
+              <div key={key} className="flex w-full items-center justify-between gap-1">
                 <Text variant="body">
                   {key
                     .replace(/[A-Z]/g, (m) => ' ' + m.toLowerCase())
                     .replace(/^./, (m) => m.toUpperCase())}
                 </Text>
+
+                <Button
+                  variant="icon"
+                  size="small"
+                  aria-label={getText('delete')}
+                  icon={cross}
+                  onPress={() => {
+                    localStorage.delete(key)
+                  }}
+                />
               </div>
             ))}
+          </div>
 
-            <Separator orientation="horizontal" className="my-3" />
+          <ariaComponents.Separator orientation="horizontal" className="my-3" />
 
-            <Text variant="subtitle" className="mb-2">
-              {getText('paywallDevtoolsPaywallFeaturesToggles')}
-            </Text>
+          <ariaComponents.Text variant="subtitle" className="mb-2">
+            {getText('ensoDevtoolsFeatureFlags')}
 
-            <div className="flex flex-col gap-1">
-              {Object.entries(features).map(([feature, configuration]) => {
+            <ariaComponents.Form
+              gap="small"
+              formOptions={{ mode: 'onChange' }}
+              schema={FEATURE_FLAGS_SCHEMA}
+              defaultValues={{
+                enableMultitabs: featureFlags.enableMultitabs,
+                enableAssetsTableBackgroundRefresh: featureFlags.enableAssetsTableBackgroundRefresh,
+                assetsTableBackgroundRefreshInterval:
+                  featureFlags.assetsTableBackgroundRefreshInterval,
+              }}
+            >
+              {(form) => (
+                <>
+                  <ariaComponents.Switch
+                    form={form}
+                    name="enableMultitabs"
+                    label={getText('enableMultitabs')}
+                    description={getText('enableMultitabsDescription')}
+                    onChange={(value) => {
+                      setFeatureFlags('enableMultitabs', value)
+                    }}
+                  />
+
+                  <div>
+                    <ariaComponents.Switch
+                      form={form}
+                      name="enableAssetsTableBackgroundRefresh"
+                      label={getText('enableAssetsTableBackgroundRefresh')}
+                      description={getText('enableAssetsTableBackgroundRefreshDescription')}
+                      onChange={(value) => {
+                        setFeatureFlags('enableAssetsTableBackgroundRefresh', value)
+                      }}
+                    />
+                    <ariaComponents.Input
+                      form={form}
+                      type="number"
+                      inputMode="numeric"
+                      name="assetsTableBackgroundRefreshInterval"
+                      label={getText('enableAssetsTableBackgroundRefreshInterval')}
+                      description={getText('enableAssetsTableBackgroundRefreshIntervalDescription')}
+                      onChange={(event) => {
+                        setFeatureFlags(
+                          'assetsTableBackgroundRefreshInterval',
+                          event.target.valueAsNumber,
+                        )
+                      }}
+                    />
+                  </div>
+                </>
+              )}
+            </ariaComponents.Form>
+          </ariaComponents.Text>
+
+          <ariaComponents.Separator orientation="horizontal" className="my-3" />
+
+          <ariaComponents.Text variant="subtitle" className="mb-2">
+            {getText('ensoDevtoolsPaywallFeaturesToggles')}
+          </ariaComponents.Text>
+
+          <ariaComponents.Form
+            gap="small"
+            schema={(z) =>
+              z.object(Object.fromEntries(Object.keys(features).map((key) => [key, z.boolean()])))
+            }
+            defaultValues={Object.fromEntries(
+              Object.keys(features).map((feature) => {
                 // eslint-disable-next-line no-restricted-syntax
                 const featureName = feature as billing.PaywallFeatureName
-                const { label, descriptionTextId } = getFeature(featureName)
+                return [featureName, features[featureName].isForceEnabled ?? true]
+              }),
+            )}
+          >
+            {Object.keys(features).map((feature) => {
+              // eslint-disable-next-line no-restricted-syntax
+              const featureName = feature as billing.PaywallFeatureName
+              const { label, descriptionTextId } = getFeature(featureName)
 
-                return (
-                  <div key={feature} className="flex flex-col">
-                    <Switch
-                      className="group flex items-center gap-1"
-                      isSelected={configuration.isForceEnabled ?? true}
-                      onChange={(value) => {
-                        onConfigurationChange(featureName, {
-                          isForceEnabled: value,
-                        })
-                      }}
-                    >
-                      <div className="box-border flex h-4 w-[28px] shrink-0 cursor-default items-center rounded-full bg-primary/30 bg-clip-padding p-0.5 shadow-inner outline-none ring-black transition duration-200 ease-in-out group-focus-visible:ring-2 group-pressed:bg-primary/60 group-selected:bg-primary group-selected:group-pressed:bg-primary/50">
-                        <span className="aspect-square h-full flex-none translate-x-0 transform rounded-full bg-white transition duration-200 ease-in-out group-selected:translate-x-[100%]" />
-                      </div>
-
-                      <Text className="flex-1">{getText(label)}</Text>
-                    </Switch>
-
-                    <Text variant="body" color="disabled">
-                      {getText(descriptionTextId)}
-                    </Text>
-                  </div>
-                )
-              })}
-            </div>
-          </Popover>
-        </DialogTrigger>
-      </Portal>
-    </PaywallDevtoolsContext.Provider>
+              return (
+                <ariaComponents.Switch
+                  key={feature}
+                  name={featureName}
+                  label={getText(label)}
+                  description={getText(descriptionTextId)}
+                  onChange={(value) => {
+                    setFeature(featureName, value)
+                  }}
+                />
+              )
+            })}
+          </ariaComponents.Form>
+        </Popover>
+      </ariaComponents.DialogTrigger>
+    </Portal>
   )
-}
-
-/**
- * A hook that provides access to the paywall devtools.
- */
-export function usePaywallDevtools() {
-  const context = React.useContext(PaywallDevtoolsContext)
-
-  React.useDebugValue(context)
-
-  return context
 }

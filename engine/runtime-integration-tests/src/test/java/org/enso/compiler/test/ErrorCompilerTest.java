@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import org.enso.compiler.core.ir.Empty;
+import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Location;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.expression.errors.Syntax;
@@ -578,6 +579,19 @@ public class ErrorCompilerTest extends CompilerTests {
 
     var method = (Method) ir.bindings().apply(0);
     assertTrue(method.body() instanceof Empty);
+  }
+
+  @Test
+  public void testBodyWithComment() throws Exception {
+    var ir = parse("""
+    main =
+        # comment
+    """);
+
+    var method = (Method) ir.bindings().apply(0);
+    var body = (Expression.Block) method.body();
+    assertTrue(body.expressions().isEmpty());
+    assertTrue(body.returnValue() instanceof Empty);
   }
 
   @Test

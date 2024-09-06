@@ -5,9 +5,9 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import project.Connection.Client_Certificate.Client_Certificate
 import project.Connection.Connection_Options.Connection_Options
 import project.Connection.Credentials.Credentials
+import project.Connection.Postgres_Connection.Postgres_Connection
 import project.Connection.SSL_Mode.SSL_Mode
 import project.Internal.Postgres.Pgpass
-import project.Connection.Postgres_Connection.Postgres_Connection
 import project.Internal.Postgres.Postgres_Data_Link_Setup.Postgres_Data_Link_Setup
 
 polyglot java import org.postgresql.Driver

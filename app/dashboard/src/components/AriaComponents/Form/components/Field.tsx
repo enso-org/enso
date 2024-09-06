@@ -7,9 +7,8 @@ import * as React from 'react'
 
 import * as aria from '#/components/aria'
 
-import { useText } from '#/providers/TextProvider'
 import { forwardRef } from '#/utilities/react'
-import { type ExtractFunction, tv, type VariantProps } from '#/utilities/tailwindVariants'
+import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import type { Path } from 'react-hook-form'
 import * as text from '../../Text'
 import type * as types from './types'
@@ -23,12 +22,18 @@ export interface FieldComponentProps<Schema extends types.TSchema>
     types.FieldProps {
   readonly 'data-testid'?: string | undefined
   readonly name: Path<types.FieldValues<Schema>>
-  readonly form?: types.FormInstance<Schema>
+  readonly form?: types.FormInstance<Schema> | undefined
   readonly isInvalid?: boolean | undefined
   readonly className?: string | undefined
   readonly children?: React.ReactNode | ((props: FieldChildrenRenderProps) => React.ReactNode)
   readonly style?: React.CSSProperties | undefined
-  readonly variants?: ExtractFunction<typeof FIELD_STYLES> | undefined
+}
+
+/**
+ * Props for Field variants
+ */
+export interface FieldVariantProps {
+  readonly fieldVariants?: VariantProps<typeof FIELD_STYLES>['variants'] | undefined
 }
 
 /**
@@ -56,9 +61,7 @@ export const FIELD_STYLES = tv({
     description: text.TEXT_STYLE({ variant: 'body', color: 'disabled' }),
     error: text.TEXT_STYLE({ variant: 'body', color: 'danger' }),
   },
-  defaultVariants: {
-    fullWidth: true,
-  },
+  defaultVariants: { fullWidth: true },
 })
 
 /**
@@ -82,9 +85,8 @@ export const Field = forwardRef(function Field<Schema extends types.TSchema>(
     name,
     isHidden,
     isRequired = false,
-    variants,
+    variants = FIELD_STYLES,
   } = props
-  const { getText } = useText()
 
   const fieldState = form.getFieldState(name)
 
@@ -94,7 +96,7 @@ export const Field = forwardRef(function Field<Schema extends types.TSchema>(
 
   const invalid = isInvalid === true || fieldState.invalid
 
-  const classes = (variants ?? FIELD_STYLES)({
+  const classes = variants({
     fullWidth,
     isInvalid: invalid,
     isHidden,
@@ -149,7 +151,7 @@ export const Field = forwardRef(function Field<Schema extends types.TSchema>(
       )}
 
       {hasError && (
-        <span aria-label={getText('fieldErrorLabel')} id={errorId} className={classes.error()}>
+        <span data-testid="error" id={errorId} className={classes.error()}>
           {error ?? fieldState.error?.message}
         </span>
       )}

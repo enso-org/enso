@@ -115,7 +115,7 @@ interface AssetListMoveEvent extends AssetListBaseEvent<AssetListEventType.move>
   readonly key: backend.AssetId
   readonly newParentKey: backend.DirectoryId
   readonly newParentId: backend.DirectoryId
-  readonly item: backend.AnyAsset
+  readonly items: backend.AnyAsset[]
 }
 
 /** A signal that a file has been deleted. */

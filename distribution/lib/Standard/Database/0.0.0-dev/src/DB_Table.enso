@@ -2510,7 +2510,7 @@ type DB_Table
     auto_cast : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type -> Boolean -> Boolean -> Problem_Behavior -> DB_Table
     auto_cast self columns:(Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type)=self.column_names shrink_types:Boolean=False error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
         _ = [columns, shrink_types, error_on_missing_columns, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "DB_Table.auto_value_types is not supported in the Database backends.")
+        Error.throw (Unsupported_Database_Operation.Error "DB_Table.auto_cast is not supported in the Database backends.")
 
     ## ALIAS drop_missing_rows, dropna
        GROUP Standard.Base.Selections

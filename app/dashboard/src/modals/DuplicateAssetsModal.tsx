@@ -50,12 +50,13 @@ export interface DuplicateAssetsModalProps {
   readonly nonConflictingFileCount: number
   readonly nonConflictingProjectCount: number
   readonly doUploadNonConflicting: () => void
+  readonly doUpdateConflicting: (toUpdate: ConflictingAsset[]) => void
 }
 
 /** A modal for creating a new label. */
 export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
   const { parentKey, parentId, conflictingFiles: conflictingFilesRaw } = props
-  const { conflictingProjects: conflictingProjectsRaw } = props
+  const { conflictingProjects: conflictingProjectsRaw, doUpdateConflicting } = props
   const { siblingFileNames: siblingFileNamesRaw } = props
   const { siblingProjectNames: siblingProjectNamesRaw } = props
   const { nonConflictingFileCount, nonConflictingProjectCount, doUploadNonConflicting } = props
@@ -123,13 +124,6 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
       }
     }
     return title
-  }
-
-  const doUpdate = (toUpdate: ConflictingAsset[]) => {
-    dispatchAssetEvent({
-      type: AssetEventType.updateFiles,
-      files: new Map(toUpdate.map((asset) => [asset.current.id, asset.file])),
-    })
   }
 
   const doRename = (toRename: ConflictingAsset[]) => {
@@ -219,7 +213,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                 <ariaComponents.Button
                   variant="outline"
                   onPress={() => {
-                    doUpdate([firstConflict])
+                    doUpdateConflicting([firstConflict])
                     switch (firstConflict.new.type) {
                       case backendModule.AssetType.file: {
                         setConflictingFiles((oldConflicts) => oldConflicts.slice(1))
@@ -278,7 +272,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
             onPress={() => {
               unsetModal()
               doUploadNonConflicting()
-              doUpdate([...conflictingFiles, ...conflictingProjects])
+              doUpdateConflicting([...conflictingFiles, ...conflictingProjects])
             }}
           >
             {count === 1 ? getText('update') : getText('updateAll')}

@@ -484,7 +484,7 @@ class ChangesetBuilderTest
 
   def freshInlineContext: InlineContext =
     buildInlineContext(
-      localScope       = Some(LocalScope.root),
+      localScope       = Some(LocalScope.createEmpty),
       freshNameSupply  = Some(new FreshNameSupply),
       isInTailPosition = Some(false)
     )

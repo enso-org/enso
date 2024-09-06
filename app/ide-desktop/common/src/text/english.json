@@ -204,6 +204,7 @@
   "upload": "Upload",
   "uploaded": "Uploaded",
   "delete": "Delete",
+  "deleteAll": "Delete All",
   "remove": "Remove",
   "resend": "Resend",
   "invite": "Invite",
@@ -216,6 +217,7 @@
   "shortcuts": "Shortcuts",
   "download": "Download",
   "email": "Email",
+  "intro": "Intro",
   "emailIsRequired": "Email is required",
   "emailIsInvalid": "Email is invalid",
   "emailAlreadyExists": "Email already exists",
@@ -459,6 +461,14 @@
   "organizationInviteErrorSuffix": "' is inviting you.",
   "organizationInviteErrorMessage": "Something went wrong. Please contact the administrators at",
 
+  "enableMultitabs": "Enable Multi-Tabs",
+  "enableMultitabsDescription": "Open multiple projects at the same time.",
+
+  "enableAssetsTableBackgroundRefresh": "Enable Assets Table Background Refresh",
+  "enableAssetsTableBackgroundRefreshDescription": "Automatically refresh the assets table in the background.",
+  "enableAssetsTableBackgroundRefreshInterval": "Refresh interval",
+  "enableAssetsTableBackgroundRefreshIntervalDescription": "Set the interval in ms for the assets table to refresh in the background.",
+
   "deleteLabelActionText": "delete the label '$0'",
   "deleteSelectedAssetActionText": "delete '$0'",
   "deleteSelectedAssetsActionText": "delete $0 selected items",
@@ -589,6 +599,9 @@
   "billingPeriodOneMonth": "1 month",
   "billingPeriodOneYear": "1 year",
   "billingPeriodThreeYears": "3 years",
+  "SLSA": "Enso Software License And Services Agreement",
+  "slsaLicenseAgreementDescription1": "This Order is governed by the Software License and Service Agreement found at",
+  "slsaLicenseAgreementDescription2": ", (the “Agreement”). All capitalized terms used in this Customer Order but not otherwise defined herein shall have the meanings set forth in the Agreement.\n                      Except as expressly provided in the Agreement, Products and Services purchased under this Customer Order are non-cancelable and non-refundable.",
 
   "downgradeInfo": "Looking for downgrade options?",
 
@@ -756,8 +769,8 @@
   "arbitraryFieldInvalid": "This field is invalid",
   "arbitraryFieldTooShort": "This field is too short",
   "arbitraryFieldTooLong": "This field is too long",
-  "arbitraryFieldTooSmall": "This field is too small",
-  "arbitraryFieldTooLarge": "This field is too large",
+  "arbitraryFieldTooSmall": "The value is too small, the minimum is $0",
+  "arbitraryFieldTooLarge": "The value is too large, the maximum is $0",
   "arbitraryFieldNotEqual": "This field is not equal to another field",
   "arbitraryFieldNotMatch": "This field does not match the pattern",
   "arbitraryFieldNotMatchAny": "This field does not match any of the patterns",
@@ -773,9 +786,17 @@
   "bankCardLabel": "Bank Card",
   "contactSales": "Contact Sales",
 
+  "setupOrganization": "Setup your organization",
+  "setupOrganizationDescription": "Before you can invite users, you need to set up your organization.",
   "setOrgNameTitle": "Set your organization name",
   "setOrgNameDescription": "Enter the name of your organization. You can always change it later.",
   "setOrgNameSubmit": "Set organization name",
+
+  "inviteUsers": "Invite Users",
+  "inviteUsersDescription": "Invite users to join your organization by entering their email addresses below. You can always invite more users later.",
+
+  "setDefaultUserGroup": "Set default user group name",
+  "setDefaultUserGroupDescription": "Enter the name of the default user group. All new users will be added to this group. You can always change it later.",
 
   "userContextMenuLabel": "User context menu",
   "userGroupContextMenuLabel": "User Group context menu",
@@ -813,6 +834,8 @@
   "userGroupsSettingsTab": "User groups",
   "userGroupsSettingsSection": "User Groups",
   "userGroupsUsersSettingsSection": "Members",
+  "groupNameSettingsInput": "User Group Name",
+  "groupNameSettingsInputDescription": "The name should not be longer than $0 characters",
   "lookAndFeelSettingsTabSection": "Look and feel",
   "keyboardShortcutsSettingsTab": "Keyboard shortcuts",
   "keyboardShortcutsSettingsSection": "Keyboard Shortcuts",
@@ -856,10 +879,11 @@
   "shareFullFeatureDescription": "Share unlimited assets with other users and manage shared assets. Assign shared assets to user groups to manage their permissions.",
   "shareFullPaywallMessage": "You can only share assets with a single user group. Upgrade to share assets with multiple user groups and users.",
 
-  "paywallDevtoolsButtonLabel": "Open Enso Devtools",
-  "paywallDevtoolsPopoverHeading": "Enso Devtools",
-  "paywallDevtoolsPlanSelectSubtitle": "User Plan",
-  "paywallDevtoolsPaywallFeaturesToggles": "Paywall Features",
+  "ensoDevtoolsButtonLabel": "Open Enso Devtools",
+  "ensoDevtoolsPopoverHeading": "Enso Devtools",
+  "ensoDevtoolsPlanSelectSubtitle": "User Plan",
+  "ensoDevtoolsPaywallFeaturesToggles": "Paywall Features",
+  "ensoDevtoolsFeatureFlags": "Feature Flags",
 
   "setupEnso": "Set up Enso",
   "termsAndConditions": "Terms and Conditions",

@@ -43,11 +43,40 @@ export interface UseFormProps<Schema extends TSchema>
 }
 
 /**
+ * Register function for a form field.
+ */
+export type UseFormRegister<Schema extends TSchema> = <
+  TFieldName extends FieldPath<Schema> = FieldPath<Schema>,
+>(
+  name: TFieldName,
+  options?: reactHookForm.RegisterOptions<FieldValues<Schema>, TFieldName>,
+  // eslint-disable-next-line no-restricted-syntax
+) => UseFormRegisterReturn<Schema, TFieldName>
+
+/**
+ * UseFormRegister return type.
+ */
+export interface UseFormRegisterReturn<
+  Schema extends TSchema,
+  TFieldName extends FieldPath<Schema> = FieldPath<Schema>,
+> extends Omit<reactHookForm.UseFormRegisterReturn<TFieldName>, 'onBlur' | 'onChange'> {
+  // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+  readonly onChange: <Value>(value: Value) => Promise<boolean | void>
+  // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+  readonly onBlur: <Value>(value: Value) => Promise<boolean | void>
+  readonly isDisabled?: boolean
+  readonly isRequired?: boolean
+  readonly isInvalid?: boolean
+}
+
+/**
  * Return type of the useForm hook.
  * @alias reactHookForm.UseFormReturn
  */
 export interface UseFormReturn<Schema extends TSchema>
-  extends reactHookForm.UseFormReturn<FieldValues<Schema>, unknown, TransformedValues<Schema>> {}
+  extends reactHookForm.UseFormReturn<FieldValues<Schema>, unknown, TransformedValues<Schema>> {
+  readonly register: UseFormRegister<Schema>
+}
 
 /**
  * Form state type.
@@ -94,6 +123,7 @@ export interface FieldProps {
   readonly label?: React.ReactNode | undefined
   readonly description?: React.ReactNode | undefined
   readonly error?: React.ReactNode | undefined
+
   /**
    * Defines a string value that labels the current element.
    */

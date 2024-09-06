@@ -43,7 +43,7 @@ type SQLite_Connection
        - connection: the underlying connection.
     Value connection
 
-    ## ICON data_input
+    ## ICON close
        Closes the connection releasing the underlying database resources
        immediately instead of waiting for them to be automatically released.
 
