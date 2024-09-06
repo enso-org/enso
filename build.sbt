@@ -3134,7 +3134,8 @@ lazy val `runtime-instrument-common` =
         "org.graalvm.sdk"      % "collections"   % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "nativeimage"   % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "word"          % graalMavenPackagesVersion,
-        "org.scala-lang"       % "scala-library" % scalacVersion
+        "org.scala-lang"       % "scala-library" % scalacVersion,
+        "org.slf4j"            % "slf4j-api"     % slf4jVersion
       ),
       Compile / internalModuleDependencies := Seq(
         (`cli` / Compile / exportedModule).value,
