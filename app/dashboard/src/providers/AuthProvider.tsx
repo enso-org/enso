@@ -301,28 +301,26 @@ export default function AuthProvider(props: AuthProviderProps) {
   )
 
   const confirmSignUp = useEventCallback(async (email: string, code: string) => {
-      gtagEvent('cloud_confirm_sign_up')
-      const result = await cognito.confirmSignUp(email, code)
+    gtagEvent('cloud_confirm_sign_up')
+    const result = await cognito.confirmSignUp(email, code)
 
-      if (result.err) {
-        switch (result.val.type) {
-          case cognitoModule.CognitoErrorType.userAlreadyConfirmed:
-          case cognitoModule.CognitoErrorType.userNotFound: {
-            return
-          }
-          default: {
-            throw new errorModule.UnreachableCaseError(result.val.type)
-          }
+    if (result.err) {
+      switch (result.val.type) {
+        case cognitoModule.CognitoErrorType.userAlreadyConfirmed:
+        case cognitoModule.CognitoErrorType.userNotFound: {
+          return
+        }
+        default: {
+          throw new errorModule.UnreachableCaseError(result.val.type)
         }
       }
+    }
   })
 
   const signInWithPassword = useEventCallback(async (email: string, password: string) => {
     gtagEvent('cloud_sign_in', { provider: 'Email' })
 
     const result = await cognito.signInWithPassword(email, password)
-
-    console.log('result', result)
 
     if (result.ok) {
       const user = result.unwrap()

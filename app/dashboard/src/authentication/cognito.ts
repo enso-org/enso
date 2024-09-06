@@ -226,6 +226,9 @@ export class Cognito {
     return userInfo.attributes['custom:organizationId'] ?? null
   }
 
+  /**
+   * Gets user email from cognito
+   */
   async email() {
     const userInfo: UserInfo = await amplify.Auth.currentUserInfo()
     return userInfo.attributes.email
@@ -477,6 +480,9 @@ export class Cognito {
     }
   }
 
+  /**
+   *
+   */
   async confirmSignIn(
     user: amplify.CognitoUser,
     confirmationCode: string,

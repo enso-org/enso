@@ -19,7 +19,7 @@ import { passwordSchema } from '#/pages/authentication/schemas'
 import { useAuth } from '#/providers/AuthProvider'
 import { useLocalBackend } from '#/providers/BackendProvider'
 import { useText } from '#/providers/TextProvider'
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 
 // =============
 // === Login ===
@@ -44,7 +44,7 @@ export default function Login() {
           .email(getText('invalidEmailValidationError')),
         password: passwordSchema(getText),
       }),
-    defaultValues: {email:initialEmail},
+    defaultValues: { email: initialEmail },
     onSubmit: async ({ email, password }) => {
       const res = await signInWithPassword(email, password)
 
@@ -62,7 +62,6 @@ export default function Login() {
       }
     },
   })
-
 
   const [emailInput, setEmailInput] = useState(initialEmail)
 
@@ -170,7 +169,6 @@ export default function Login() {
             <Form
               schema={(z) => z.object({ otp: z.string().min(6).max(6) })}
               onSubmit={async ({ otp }, formInstance) => {
-                console.log('submit', { otp })
                 if (user) {
                   const res = await cognito.confirmSignIn(user, otp, 'SOFTWARE_TOKEN_MFA')
 

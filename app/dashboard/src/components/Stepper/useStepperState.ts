@@ -89,13 +89,13 @@ export function useStepperState(props: StepperStateProps): UseStepperStateResult
           if (nextStep < 0) {
             return {
               current: 0,
-              direction: 'back-none'
+              direction: 'back-none',
             }
           } else if (nextStep > steps - 1) {
-          onCompletedStableCallback()
+            onCompletedStableCallback()
             return {
               current: steps - 1,
-              direction: 'forward-none'
+              direction: 'forward-none',
             }
           } else {
             onStepChangeStableCallback(nextStep, direction)
