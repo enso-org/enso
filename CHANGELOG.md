@@ -8,6 +8,7 @@
   the entire input is a filtering pattern (it is not interpreted as parts of
   code). After picking any suggestion with Tab or new button the mode is
   switched to "code editing", where visualization preview is displayed instead.
+  Also the component browser help is now displayed in the right-side dock panel.
 - [Drilldown for XML][10824]
 - [Fixed issue where switching edited widget with <kbd>tab</kbd> key did not
   updated actual code][10857]

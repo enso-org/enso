@@ -14,6 +14,8 @@ test('Adding new node', async ({ page }) => {
   await page.keyboard.press(`${CONTROL_KEY}+Enter`)
   await expect(locate.graphNode(page)).toHaveCount(nodesCount + 1)
   await expect(locate.graphNode(page).last().locator('.WidgetToken')).toHaveText(['foo'])
+  await expect(locate.rightDock(page)).toBeHidden()
+  await expect(page.locator('[data-transitioning]')).toHaveCount(0)
   const newNodeBBox = await locate.graphNode(page).last().boundingBox()
 
   await page.keyboard.press(`${CONTROL_KEY}+Z`)
@@ -26,7 +28,7 @@ test('Adding new node', async ({ page }) => {
   await expect(locate.graphNode(page)).toHaveCount(nodesCount + 1)
   await expect(locate.graphNode(page).last().locator('.WidgetToken')).toHaveText(['foo'])
   const restoredBox = await locate.graphNode(page).last().boundingBox()
-  await expect(restoredBox).toEqual(newNodeBBox)
+  expect(restoredBox).toEqual(newNodeBBox)
 })
 
 test('Removing node', async ({ page }) => {
@@ -44,7 +46,7 @@ test('Removing node', async ({ page }) => {
   await expect(deletedNode.locator('.WidgetToken')).toHaveText(['Main', '.', 'func1', 'prod'])
   await expect(deletedNode.locator('.GraphNodeComment')).toHaveText('This node can be entered')
   const restoredBBox = await deletedNode.boundingBox()
-  await expect(restoredBBox).toEqual(deletedNodeBBox)
+  expect(restoredBBox).toEqual(deletedNodeBBox)
 
   await page.keyboard.press(`${CONTROL_KEY}+Shift+Z`)
   await expect(locate.graphNode(page)).toHaveCount(nodesCount - 1)

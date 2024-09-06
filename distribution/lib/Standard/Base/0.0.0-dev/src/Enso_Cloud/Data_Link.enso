@@ -64,6 +64,7 @@ type Data_Link
         interpret_json_as_data_link config . if_not_error Nothing
 
     ## ADVANCED
+       ICON data_output
        Copies the data-link configuration from one place to another.
 
        The operation does not follow the data links, but copies the
@@ -81,6 +82,7 @@ type Data_Link
 
 
     ## ADVANCED
+       ICON data_output
        Moves the data-link configuration from one place to another.
 
        The operation does not follow the data links, but copies the

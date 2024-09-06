@@ -259,20 +259,32 @@ type Types_To_Include
     ## PRIVATE
     private Value types:Vector
 
-    ## Are there any number columns?
+    ## GROUP Standard.Base.Metadata
+       ICON metadata
+       Are there any number columns?
     number self = self.types.any value_type-> value_type.is_numeric || value_type==Value_Type.Mixed
 
-    ## Are there any boolean columns?
+    ## GROUP Standard.Base.Metadata
+       ICON metadata
+       Are there any boolean columns?
     boolean self = self.types.any value_type-> value_type.is_boolean || value_type==Value_Type.Mixed
 
-    ## Are there any text columns?
+    ## GROUP Standard.Base.Metadata
+       ICON metadata
+       Are there any text columns?
     text self = self.types.any value_type-> value_type.is_text || value_type==Value_Type.Mixed
 
-    ## Are there any date columns?
+    ## GROUP Standard.Base.Metadata
+       ICON metadata
+       Are there any date columns?
     date self = self.types.any value_type-> value_type.is_date || value_type==Value_Type.Mixed
 
-    ## Are there any time columns?
+    ## GROUP Standard.Base.Metadata
+       ICON metadata
+       Are there any time columns?
     time self = self.types.any value_type-> value_type.is_time || value_type==Value_Type.Mixed
 
-    ## Are there any date_time columns?
+    ## GROUP Standard.Base.Metadata
+       ICON metadata
+       Are there any date_time columns?
     date_time self = self.types.any value_type-> value_type.is_date_time || value_type==Value_Type.Mixed

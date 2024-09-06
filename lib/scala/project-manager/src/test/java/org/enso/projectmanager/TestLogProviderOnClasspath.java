@@ -28,14 +28,16 @@ public class TestLogProviderOnClasspath {
     }
     List<String> providerNames =
         providers.stream().map(elem -> elem.getClass().getName()).collect(Collectors.toList());
-    assertThat(providerNames, hasItem("org.enso.logger.TestLogProvider"));
+    assertThat(
+        providerNames, hasItem("org.enso.logging.service.logback.test.provider.TestLogProvider"));
   }
 
   @Test
   public void testLogProviderIsInUnnamedModule() {
     Class<?> testLogProviderClass = null;
     try {
-      testLogProviderClass = Class.forName("org.enso.logger.TestLogProvider");
+      testLogProviderClass =
+          Class.forName("org.enso.logging.service.logback.test.provider.TestLogProvider");
     } catch (ClassNotFoundException e) {
       fail("TestLogProvider class not found");
     }

@@ -19,11 +19,14 @@ type Hyper_Table
        Represents a Tableau Hyper Table.
     private Value file:Hyper_File internal_schema:Text internal_table:Text
 
-    ## The schema of the table.
+    ## ICON metadata
+       The schema of the table.
     schema : Text
     schema self = self.internal_schema
 
-    ## The name of the table.
+    ## GROUP Standard.Base.Metadata
+       ICON metadata
+       The name of the table.
     table : Text
     table self = self.internal_table
 
@@ -36,7 +39,8 @@ type Hyper_Table
     to_js_object self =
         JS_Object.from_pairs [["type", "Hyper_Table"], ["schema", self.schema], ["table", self.table], ["file", self.file.file.path]]
 
-    ## ICON metadata
+    ## GROUP Standard.Base.Metadata
+       ICON metadata
        Reads The Columns for the Table
     column_metadata : Vector Hyper_Column
     column_metadata self = File_Error.handle_java_exceptions self.file.file <| Hyper_Errors.handle_java_exceptions <|

@@ -137,31 +137,35 @@ export const Form = forwardRef(function Form<Schema extends components.TSchema>(
   ) as Record<keyof FieldValues, string>
 
   return (
-    <form
-      id={id}
-      ref={ref}
-      onSubmit={(event) => {
-        event.preventDefault()
-        event.stopPropagation()
+    <>
+      <form
+        id={id}
+        ref={ref}
+        onSubmit={(event) => {
+          event.preventDefault()
+          event.stopPropagation()
 
-        if (isOffline && !canSubmitOffline) {
-          setError('root.offline', { message: getText('unavailableOffline') })
-        } else {
-          void formOnSubmit(event)
-        }
-      }}
-      className={base}
-      style={typeof style === 'function' ? style(innerForm) : style}
-      noValidate
-      data-testid={testId}
-      {...formProps}
-    >
-      <aria.FormValidationContext.Provider value={errors}>
-        <reactHookForm.FormProvider {...innerForm}>
-          {typeof children === 'function' ? children({ ...innerForm, form: innerForm }) : children}
-        </reactHookForm.FormProvider>
-      </aria.FormValidationContext.Provider>
-    </form>
+          if (isOffline && !canSubmitOffline) {
+            setError('root.offline', { message: getText('unavailableOffline') })
+          } else {
+            void formOnSubmit(event)
+          }
+        }}
+        className={base}
+        style={typeof style === 'function' ? style(innerForm) : style}
+        noValidate
+        data-testid={testId}
+        {...formProps}
+      >
+        <aria.FormValidationContext.Provider value={errors}>
+          <reactHookForm.FormProvider {...innerForm}>
+            {typeof children === 'function' ?
+              children({ ...innerForm, form: innerForm })
+            : children}
+          </reactHookForm.FormProvider>
+        </aria.FormValidationContext.Provider>
+      </form>
+    </>
   )
 }) as unknown as (<Schema extends components.TSchema>(
   props: React.RefAttributes<HTMLFormElement> & types.FormProps<Schema>,
@@ -177,6 +181,9 @@ export const Form = forwardRef(function Form<Schema extends components.TSchema>(
   useFormSchema: typeof components.useFormSchema
   Controller: typeof components.Controller
   FIELD_STYLES: typeof components.FIELD_STYLES
+  useFormContext: typeof components.useFormContext
+  useOptionalFormContext: typeof components.useOptionalFormContext
+  useWatch: typeof reactHookForm.useWatch
   /* eslint-enable @typescript-eslint/naming-convention */
 }
 
@@ -187,6 +194,9 @@ Form.useFormSchema = components.useFormSchema
 Form.Submit = components.Submit
 Form.Reset = components.Reset
 Form.FormError = components.FormError
+Form.useFormContext = components.useFormContext
+Form.useOptionalFormContext = components.useOptionalFormContext
 Form.Field = components.Field
 Form.Controller = components.Controller
+Form.useWatch = reactHookForm.useWatch
 Form.FIELD_STYLES = components.FIELD_STYLES

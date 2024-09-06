@@ -9,8 +9,7 @@ import AtIcon from '#/assets/at.svg'
 import CreateAccountIcon from '#/assets/create_account.svg'
 import GoBackIcon from '#/assets/go_back.svg'
 import LockIcon from '#/assets/lock.svg'
-import { Input as AriaInput } from '#/components/aria'
-import { Alert, Button, Form, Input, Password, Text } from '#/components/AriaComponents'
+import { Alert, Button, Checkbox, Form, Input, Password, Text } from '#/components/AriaComponents'
 import Link from '#/components/Link'
 import { Stepper, useStepperState } from '#/components/Stepper'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
@@ -25,10 +24,7 @@ import { useLocalBackend } from '#/providers/BackendProvider'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
 import LocalStorage from '#/utilities/LocalStorage'
-import { twMerge } from '#/utilities/tailwindMerge'
-import { PASSWORD_REGEX } from '#/utilities/validation'
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { omit } from 'enso-common/src/utilities/data/object'
 
 // ============================
 // === Global configuration ===
@@ -70,21 +66,22 @@ export default function Registration() {
   const [emailInput, setEmailInput] = useState(initialEmail)
 
   const signupForm = Form.useForm({
+    defaultValues: { email: initialEmail, agreedToTos: [], agreedToPrivacyPolicy: [] },
     schema: (schema) =>
       schema
         .object({
-          email: Form.schema.string().email(getText('invalidEmailValidationError')),
+          email: schema.string().email(getText('invalidEmailValidationError')),
           password: passwordWithPatternSchema(getText),
-          confirmPassword: Form.schema.string(),
-          agreedToTos: z
-            .boolean()
-            .refine((value) => value, getText('licenseAgreementCheckboxError')),
-          agreedToPrivacyPolicy: z
-            .boolean()
-            .refine((value) => value, getText('privacyPolicyCheckboxError')),
+          confirmPassword: schema.string(),
+          agreedToTos: schema
+            .array(schema.string())
+            .min(1, { message: getText('licenseAgreementCheckboxError') }),
+          agreedToPrivacyPolicy: schema
+            .array(schema.string())
+            .min(1, { message: getText('privacyPolicyCheckboxError') }),
         })
         .superRefine((object, context) => {
-          if (PASSWORD_REGEX.test(object.password) && object.password !== object.confirmPassword) {
+          if (object.password !== object.confirmPassword) {
             context.addIssue({
               path: ['confirmPassword'],
               code: 'custom',
@@ -166,19 +163,19 @@ export default function Registration() {
 
             <Form
               form={signupForm}
-              defaultValues={{ email: initialEmail }}
-              onSubmit={({ email, password }) => {
+              onSubmit={async ({ email, password }) => {
                 localStorage.set('termsOfService', { versionHash: tosHash })
                 localStorage.set('privacyPolicy', { versionHash: privacyPolicyHash })
 
-                return signUp(email, password, organizationId).then(() => {
-                  stepperState.nextStep()
-                })
+                await signUp(email, password, organizationId)
+
+                stepperState.nextStep()
               }}
             >
-              {({ register }) => (
+              {({ form }) => (
                 <>
                   <Input
+                    form={form}
                     autoFocus
                     required
                     data-testid="email-input"
@@ -192,7 +189,9 @@ export default function Registration() {
                       setEmailInput(event.target.value)
                     }}
                   />
+
                   <Password
+                    form={form}
                     required
                     data-testid="password-input"
                     name="password"
@@ -202,7 +201,9 @@ export default function Registration() {
                     placeholder={getText('passwordPlaceholder')}
                     description={getText('passwordValidationMessage')}
                   />
+
                   <Password
+                    form={form}
                     required
                     data-testid="confirm-password-input"
                     name="confirmPassword"
@@ -212,61 +213,37 @@ export default function Registration() {
                     placeholder={getText('confirmPasswordPlaceholder')}
                   />
 
-                  <Form.Field name="agreedToTos">
-                    {({ isInvalid }) => (
-                      <>
-                        <label className="flex w-full items-center gap-1">
-                          <AriaInput
-                            type="checkbox"
-                            className={twMerge(
-                              'flex size-4 cursor-pointer overflow-clip rounded-lg border border-primary outline-primary focus-visible:outline focus-visible:outline-2',
-                              isInvalid && 'border-red-700 text-red-500 outline-red-500',
-                            )}
-                            data-testid="terms-of-service-checkbox"
-                            {...omit(register('agreedToTos'), 'isInvalid')}
-                          />
+                  <Checkbox.Group
+                    form={form}
+                    name="agreedToTos"
+                    description={
+                      <Button variant="link" target="_blank" href="https://ensoanalytics.com/eula">
+                        {getText('viewLicenseAgreement')}
+                      </Button>
+                    }
+                  >
+                    <Checkbox testId="terms-of-service-checkbox" value="agree">
+                      {getText('licenseAgreementCheckbox')}
+                    </Checkbox>
+                  </Checkbox.Group>
 
-                          <Text>{getText('licenseAgreementCheckbox')}</Text>
-                        </label>
-
-                        <Button
-                          variant="link"
-                          target="_blank"
-                          href="https://ensoanalytics.com/eula"
-                        >
-                          {getText('viewLicenseAgreement')}
-                        </Button>
-                      </>
-                    )}
-                  </Form.Field>
-
-                  <Form.Field name="agreedToPrivacyPolicy">
-                    {({ isInvalid }) => (
-                      <>
-                        <label className="flex w-full items-center gap-1">
-                          <AriaInput
-                            type="checkbox"
-                            className={twMerge(
-                              'flex size-4 cursor-pointer overflow-clip rounded-lg border border-primary outline-primary focus-visible:outline focus-visible:outline-2',
-                              isInvalid && 'border-red-700 text-red-500 outline-red-500',
-                            )}
-                            data-testid="privacy-policy-checkbox"
-                            {...omit(register('agreedToPrivacyPolicy'), 'isInvalid')}
-                          />
-
-                          <Text>{getText('privacyPolicyCheckbox')}</Text>
-                        </label>
-
-                        <Button
-                          variant="link"
-                          target="_blank"
-                          href="https://ensoanalytics.com/privacy"
-                        >
-                          {getText('viewPrivacyPolicy')}
-                        </Button>
-                      </>
-                    )}
-                  </Form.Field>
+                  <Checkbox.Group
+                    form={form}
+                    name="agreedToPrivacyPolicy"
+                    description={
+                      <Button
+                        variant="link"
+                        target="_blank"
+                        href="https://ensoanalytics.com/privacy"
+                      >
+                        {getText('viewPrivacyPolicy')}
+                      </Button>
+                    }
+                  >
+                    <Checkbox testId="privacy-policy-checkbox" value="agree">
+                      {getText('privacyPolicyCheckbox')}
+                    </Checkbox>
+                  </Checkbox.Group>
 
                   <Form.Submit size="large" icon={CreateAccountIcon} fullWidth>
                     {getText('register')}
