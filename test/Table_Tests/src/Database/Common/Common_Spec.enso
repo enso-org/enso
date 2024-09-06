@@ -207,7 +207,7 @@ add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn 
             m2.at "b" . to_vector . should_equal [5]
             m2.at "c" . should_fail_with No_Such_Column
 
-            t3 = data.connection.query (SQL_Query.Raw_SQL ('SELECT 1+2'))
+            t3 = data.connection.query (SQL_Query.Raw_SQL ('SELECT 1+2 AS "a"'))
             m3 = t3.read
             m3.at 0 . to_vector . should_equal [3]
 
@@ -227,7 +227,7 @@ add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn 
             r2.catch.to_display_text . should_equal "Table NONEXISTENT-TABLE was not found in the database."
 
             r3 = data.connection.query (SQL_Query.Raw_SQL "MALFORMED-QUERY")
-            r3.should_fail_with SQL_Error
+            r3.should_fail_with Illegal_Argument
 
         group_builder.specify "should not allow interpolations in raw user-built queries" <|
             r = data.connection.query (SQL_Query.Raw_SQL "SELECT 1 + ?")
