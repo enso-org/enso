@@ -132,11 +132,11 @@ export default function MembersTable(props: MembersTableProps) {
         <aria.TableHeader className="sticky top h-row">
           <aria.Column
             isRowHeader
-            className="w-members-name-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0"
+            className="w-48 border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0"
           >
             {getText('name')}
           </aria.Column>
-          <aria.Column className="w-members-email-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
+          <aria.Column className="w-48 border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
             {getText('email')}
           </aria.Column>
           {/* Delete button. */}

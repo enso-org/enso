@@ -2,8 +2,8 @@ package org.enso.distribution.config
 
 import org.enso.semver.SemVer
 import org.enso.cli.arguments.{Argument, OptsParseError}
+import org.enso.scala.yaml.{YamlDecoder, YamlEncoder}
 import org.enso.semver.SemVerYaml._
-import org.enso.yaml.{YamlDecoder, YamlEncoder}
 import org.yaml.snakeyaml.nodes.{Node, ScalarNode}
 
 /** Default version that is used when launching Enso outside of projects and

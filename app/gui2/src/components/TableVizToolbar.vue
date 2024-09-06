@@ -26,6 +26,7 @@ const props = defineProps<{
   }
   sortModel: SortModel[]
   isDisabled: boolean
+  isFilterSortNodeEnabled: boolean
 }>()
 
 const emit = defineEmits<{
@@ -204,7 +205,7 @@ const changeFormat = (option: TextFormatOptions) => {
     </DropdownMenu>
   </div>
 
-  <div class="sortFilterNode">
+  <div v-if="isFilterSortNodeEnabled" class="sortFilterNode">
     <SvgButton
       name="add"
       title="Create new component(s) with the current grid's sort and filters applied to the workflow"

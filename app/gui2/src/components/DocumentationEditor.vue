@@ -118,7 +118,7 @@ watch(
 
 .toolbar {
   height: 48px;
-  padding-left: 4px;
+  padding-left: 16px;
   flex-shrink: 0;
 
   display: flex;

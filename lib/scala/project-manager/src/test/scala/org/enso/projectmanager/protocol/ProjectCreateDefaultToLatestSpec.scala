@@ -2,9 +2,9 @@ package org.enso.projectmanager.protocol
 
 import io.circe.literal.JsonStringContext
 import org.enso.semver.SemVer
-import org.enso.logger.ReportLogsOnFailure
 import org.enso.projectmanager.BaseServerSpec
 import org.enso.runtimeversionmanager.test.OverrideTestVersionSuite
+import org.enso.testkit.ReportLogsOnFailure
 
 class ProjectCreateDefaultToLatestSpec
     extends BaseServerSpec
