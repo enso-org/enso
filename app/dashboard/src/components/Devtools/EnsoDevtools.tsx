@@ -9,9 +9,9 @@ import * as reactQuery from '@tanstack/react-query'
 
 import { IS_DEV_MODE } from 'enso-common/src/detect'
 
-import cross from '#/assets/cross.svg'
+import CrossIcon from '#/assets/cross.svg'
 import DevtoolsLogo from '#/assets/enso_logo.svg'
-import trash from '#/assets/trash.svg'
+import TrashIcon from '#/assets/trash.svg'
 
 import { SETUP_PATH } from '#/appUtils'
 
@@ -45,7 +45,7 @@ import {
 } from '#/providers/FeatureFlagsProvider'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import * as backend from '#/services/Backend'
-import LocalStorage from '#/utilities/LocalStorage'
+import LocalStorage, { type LocalStorageData } from '#/utilities/LocalStorage'
 import { unsafeEntries } from 'enso-common/src/utilities/data/object'
 
 /**
@@ -60,6 +60,10 @@ export function EnsoDevtools() {
   const enableVersionChecker = useEnableVersionChecker()
   const setEnableVersionChecker = useSetEnableVersionChecker()
   const { localStorage } = useLocalStorage()
+  const [localStorageState, setLocalStorageState] = React.useState<Partial<LocalStorageData>>({})
+
+  // Re-render when localStorage changes.
+  React.useEffect(() => localStorage.subscribeAll(setLocalStorageState), [localStorage])
 
   const featureFlags = useFeatureFlags()
   const setFeatureFlags = useSetFeatureFlags()
@@ -157,46 +161,6 @@ export function EnsoDevtools() {
             )}
           </ariaComponents.Form>
 
-          <Separator orientation="horizontal" className="my-3" />
-
-          <div className="mb-2 flex w-full items-center justify-between">
-            <Text variant="subtitle">{getText('localStorage')}</Text>
-
-            <Button
-              aria-label={getText('deleteAll')}
-              size="small"
-              variant="icon"
-              icon={trash}
-              onPress={() => {
-                for (const [key] of unsafeEntries(LocalStorage.keyMetadata)) {
-                  localStorage.delete(key)
-                }
-              }}
-            />
-          </div>
-
-          <div className="flex flex-col gap-0.5">
-            {unsafeEntries(LocalStorage.keyMetadata).map(([key]) => (
-              <div key={key} className="flex w-full items-center justify-between gap-1">
-                <Text variant="body">
-                  {key
-                    .replace(/[A-Z]/g, (m) => ' ' + m.toLowerCase())
-                    .replace(/^./, (m) => m.toUpperCase())}
-                </Text>
-
-                <Button
-                  variant="icon"
-                  size="small"
-                  aria-label={getText('delete')}
-                  icon={cross}
-                  onPress={() => {
-                    localStorage.delete(key)
-                  }}
-                />
-              </div>
-            ))}
-          </div>
-
           <ariaComponents.Separator orientation="horizontal" className="my-3" />
 
           <ariaComponents.Text variant="subtitle" className="mb-2">
@@ -292,6 +256,47 @@ export function EnsoDevtools() {
               )
             })}
           </ariaComponents.Form>
+
+          <Separator orientation="horizontal" className="my-3" />
+
+          <div className="mb-2 flex w-full items-center justify-between">
+            <Text variant="subtitle">{getText('localStorage')}</Text>
+
+            <Button
+              aria-label={getText('deleteAll')}
+              size="small"
+              variant="icon"
+              icon={TrashIcon}
+              onPress={() => {
+                for (const [key] of unsafeEntries(LocalStorage.keyMetadata)) {
+                  localStorage.delete(key)
+                }
+              }}
+            />
+          </div>
+
+          <div className="flex flex-col gap-0.5">
+            {unsafeEntries(LocalStorage.keyMetadata).map(([key]) => (
+              <div key={key} className="flex w-full items-center justify-between gap-1">
+                <Text variant="body">
+                  {key
+                    .replace(/[A-Z]/g, (m) => ' ' + m.toLowerCase())
+                    .replace(/^./, (m) => m.toUpperCase())}
+                </Text>
+
+                <Button
+                  variant="icon"
+                  size="small"
+                  isDisabled={localStorageState[key] == null}
+                  aria-label={getText('delete')}
+                  icon={CrossIcon}
+                  onPress={() => {
+                    localStorage.delete(key)
+                  }}
+                />
+              </div>
+            ))}
+          </div>
         </Popover>
       </ariaComponents.DialogTrigger>
     </Portal>
