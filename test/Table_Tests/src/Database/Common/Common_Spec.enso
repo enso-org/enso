@@ -197,15 +197,6 @@ add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn 
             name = data.t1.name
             tmp = data.connection.query (SQL_Query.Table_Name name)
             tmp.read . should_equal data.t1.read
-            
-        group_builder.specify "should allow to access a Table by an SQL query" <|
-            name = data.t1.name
-            t2 = data.connection.query (SQL_Query.Raw_SQL ('SELECT "a", "b" FROM "' + name + '" WHERE "a" >= 3'))
-            m2 = t2.read
-            m2.column_names . should_equal ["a", "b"]
-            m2.at "a" . to_vector . should_equal [4]
-            m2.at "b" . to_vector . should_equal [5]
-            m2.at "c" . should_fail_with No_Such_Column
 
         group_builder.specify "should allow to access a Table by an SQL query" <|
             name = data.t1.name
