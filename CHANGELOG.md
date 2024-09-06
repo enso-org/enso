@@ -12,12 +12,14 @@
 - [Fixed issue where switching edited widget with <kbd>tab</kbd> key did not
   updated actual code][10857]
 - [Added fullscreen modes to documentation editor and code editor][10876]
+- [Cloud file browser inserts `enso:` paths][11001]
 
 [10774]: https://github.com/enso-org/enso/pull/10774
 [10814]: https://github.com/enso-org/enso/pull/10814
 [10824]: https://github.com/enso-org/enso/pull/10824
 [10857]: https://github.com/enso-org/enso/pull/10857
 [10876]: https://github.com/enso-org/enso/pull/10876
+[11001]: https://github.com/enso-org/enso/pull/11001
 
 #### Enso Standard Library
 
