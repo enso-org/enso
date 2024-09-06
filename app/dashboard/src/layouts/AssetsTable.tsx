@@ -401,69 +401,21 @@ export default function AssetsTable(props: AssetsTableProps) {
     [expandedDirectoryIds],
   )
 
-  const createProjectMutation = useMutation(
-    backendMutationOptions(backend, 'createProject', {
-      meta: { invalidates: [['listDirectory', backend.type]] },
-    }),
-  )
-  const duplicateProjectMutation = useMutation(
-    backendMutationOptions(backend, 'duplicateProject', {
-      meta: { invalidates: [['listDirectory', backend.type]] },
-    }),
-  )
-  const createDirectoryMutation = useMutation(
-    backendMutationOptions(backend, 'createDirectory', {
-      meta: { invalidates: [['listDirectory', backend.type]] },
-    }),
-  )
-  const createSecretMutation = useMutation(
-    backendMutationOptions(backend, 'createSecret', {
-      meta: { invalidates: [['listDirectory', backend.type]] },
-    }),
-  )
-  const updateSecretMutation = useMutation(
-    backendMutationOptions(backend, 'updateSecret', {
-      meta: { invalidates: [['listDirectory', backend.type]] },
-    }),
-  )
-  const createDatalinkMutation = useMutation(
-    backendMutationOptions(backend, 'createDatalink', {
-      meta: { invalidates: [['listDirectory', backend.type]] },
-    }),
-  )
-  const uploadFileMutation = useMutation(
-    backendMutationOptions(backend, 'uploadFile', {
-      meta: { invalidates: [['assetVersions'], ['listDirectory', backend.type]] },
-    }),
-  )
+  const createProjectMutation = useMutation(backendMutationOptions(backend, 'createProject'))
+  const duplicateProjectMutation = useMutation(backendMutationOptions(backend, 'duplicateProject'))
+  const createDirectoryMutation = useMutation(backendMutationOptions(backend, 'createDirectory'))
+  const createSecretMutation = useMutation(backendMutationOptions(backend, 'createSecret'))
+  const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
+  const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
+  const uploadFileMutation = useMutation(backendMutationOptions(backend, 'uploadFile'))
   const getProjectDetailsMutation = useMutation(
     backendMutationOptions(backend, 'getProjectDetails'),
   )
-  const copyAssetMutation = useMutation(
-    backendMutationOptions(backend, 'copyAsset', {
-      meta: { invalidates: [['assetVersions'], ['listDirectory', backend.type]] },
-    }),
-  )
-  const deleteAssetMutation = useMutation(
-    backendMutationOptions(backend, 'deleteAsset', {
-      meta: { invalidates: [['assetVersions'], ['listDirectory', backend.type]] },
-    }),
-  )
-  const undoDeleteAssetMutation = useMutation(
-    backendMutationOptions(backend, 'undoDeleteAsset', {
-      meta: { invalidates: [['listDirectory', backend.type]] },
-    }),
-  )
-  const updateAssetMutation = useMutation(
-    backendMutationOptions(backend, 'updateAsset', {
-      meta: { invalidates: [['assetVersions'], ['listDirectory', backend.type]] },
-    }),
-  )
-  const closeProjectMutation = useMutation(
-    backendMutationOptions(backend, 'closeProject', {
-      meta: { invalidates: [['assetVersions'], ['listDirectory', backend.type]] },
-    }),
-  )
+  const copyAssetMutation = useMutation(backendMutationOptions(backend, 'copyAsset'))
+  const deleteAssetMutation = useMutation(backendMutationOptions(backend, 'deleteAsset'))
+  const undoDeleteAssetMutation = useMutation(backendMutationOptions(backend, 'undoDeleteAsset'))
+  const updateAssetMutation = useMutation(backendMutationOptions(backend, 'updateAsset'))
+  const closeProjectMutation = useMutation(backendMutationOptions(backend, 'closeProject'))
 
   const directories = useQueries({
     // We query only expanded directories, as we don't want to load the data for directories that are not visible.
@@ -472,8 +424,8 @@ export default function AssetsTable(props: AssetsTableProps) {
         expandedDirectoryIds.map((directoryId) =>
           queryOptions({
             queryKey: [
-              'listDirectory',
               backend.type,
+              'listDirectory',
               directoryId,
               {
                 parentId: directoryId,
