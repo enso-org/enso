@@ -1,5 +1,5 @@
 /** @file Plan selector component. */
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { DIALOG_BACKGROUND } from '#/components/AriaComponents'
 import { usePaywall } from '#/hooks/billing'
@@ -30,6 +30,7 @@ export interface PlanSelectorProps {
   readonly showFreePlan?: boolean
   readonly hasTrial?: boolean
   readonly userPlan?: Plan | undefined
+  readonly isOrganizationAdmin?: boolean
   readonly plan?: Plan | null | undefined
   readonly onSubscribeSuccess?: (plan: Plan, paymentMethodId: string) => void
   readonly onSubscribeError?: (error: Error) => void
@@ -47,6 +48,7 @@ export function PlanSelector(props: PlanSelectorProps) {
     userPlan,
     showFreePlan = true,
     hasTrial = true,
+    isOrganizationAdmin = false,
   } = props
 
   const { getText } = useText()
@@ -54,6 +56,7 @@ export function PlanSelector(props: PlanSelectorProps) {
   const { refetchSession } = useAuth()
   const { getPaywallLevel } = usePaywall({ plan: userPlan })
 
+  const queryClient = useQueryClient()
   const onCompleteMutation = useMutation({
     mutationFn: async (mutationData: CreateCheckoutSessionMutation) => {
       const { id } = await backend.createCheckoutSession({
@@ -72,7 +75,6 @@ export function PlanSelector(props: PlanSelectorProps) {
       })
     },
     onError: (error) => onSubscribeError?.(error),
-    meta: { invalidates: [['usersMe'], [['organization']]], awaitInvalidates: true },
   })
 
   return (
@@ -108,11 +110,14 @@ export function PlanSelector(props: PlanSelectorProps) {
                         seats,
                         period,
                       })
+
                       const startEpochMs = Number(new Date())
                       while (true) {
                         const { data: session } = await refetchSession()
                         if (session && 'user' in session && session.user.plan === newPlan) {
                           onSubscribeSuccess?.(newPlan, paymentMethodId)
+                          // Invalidate all queries as the user has changed the plan.
+                          await queryClient.invalidateQueries({ queryKey: ['usersMe'] })
                           break
                         } else {
                           const timePassedMs = Number(new Date()) - startEpochMs
@@ -137,6 +142,7 @@ export function PlanSelector(props: PlanSelectorProps) {
                     features={planProps.features}
                     canTrial={hasTrial}
                     planName={getText(newPlan)}
+                    isOrganizationAdmin={isOrganizationAdmin}
                   />
                 }
                 learnMore={<planProps.learnMore />}

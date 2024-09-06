@@ -69,7 +69,7 @@ export default function Settings() {
   const updateLocalRootPath = useEventCallback((value: string) => {
     setLocalRootDirectory(value)
     if (localBackend) {
-      localBackend.rootPath = projectManager.Path(value)
+      localBackend.setRootPath(projectManager.Path(value))
     }
   })
   const resetLocalRootPath = useEventCallback(() => {

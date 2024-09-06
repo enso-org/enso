@@ -136,6 +136,10 @@ interface PlaceholderOverrides {
   readonly tryFree: [days: number]
   readonly organizationNameSettingsInputDescription: [howLong: number]
   readonly trialDescription: [days: number]
+  readonly groupNameSettingsInputDescription: [howLong: number]
+
+  readonly arbitraryFieldTooLarge: [maxSize: string]
+  readonly arbitraryFieldTooSmall: [minSize: string]
 }
 
 /** An tuple of `string` for placeholders for each {@link TextId}. */

@@ -139,6 +139,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     settingsTab: SettingsTabType.organization,
     icon: PeopleSettingsIcon,
     organizationOnly: true,
+    visible: ({ user }) => backend.isUserOnPlanWithOrganization(user),
     sections: [
       {
         nameId: 'organizationSettingsSection',
@@ -222,16 +223,11 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             schema: z.object({
               localRootPath: z.string(),
             }),
-            getValue: (context) => ({ localRootPath: context.localBackend?.rootPath ?? '' }),
+            getValue: (context) => ({ localRootPath: context.localBackend?.rootPath() ?? '' }),
             onSubmit: (context, { localRootPath }) => {
               context.updateLocalRootPath(localRootPath)
             },
-            inputs: [
-              {
-                nameId: 'localRootPathSettingsInput',
-                name: 'localRootPath',
-              },
-            ],
+            inputs: [{ nameId: 'localRootPathSettingsInput', name: 'localRootPath' }],
           }),
           {
             type: 'custom',
@@ -273,7 +269,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     settingsTab: SettingsTabType.billingAndPlans,
     icon: CreditCardIcon,
     organizationOnly: true,
-    visible: (context) => context.organization?.subscription != null,
+    visible: ({ organization }) => organization?.subscription != null,
     sections: [],
     onPress: (context) =>
       context.queryClient
@@ -300,6 +296,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     settingsTab: SettingsTabType.members,
     icon: PeopleIcon,
     organizationOnly: true,
+    visible: ({ user }) => backend.isUserOnPlanWithOrganization(user),
     feature: 'inviteUser',
     sections: [
       {
@@ -313,6 +310,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     settingsTab: SettingsTabType.userGroups,
     icon: PeopleSettingsIcon,
     organizationOnly: true,
+    visible: ({ user }) => backend.isUserOnPlanWithOrganization(user),
     feature: 'userGroups',
     sections: [
       {
@@ -379,6 +377,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     settingsTab: SettingsTabType.activityLog,
     icon: LogIcon,
     organizationOnly: true,
+    visible: ({ user }) => backend.isUserOnPlanWithOrganization(user),
     sections: [
       {
         nameId: 'activityLogSettingsSection',

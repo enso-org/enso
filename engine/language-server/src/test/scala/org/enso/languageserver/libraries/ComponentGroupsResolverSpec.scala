@@ -1,7 +1,6 @@
 package org.enso.languageserver.libraries
 
 import org.enso.editions.LibraryName
-import org.enso.logger.ReportLogsOnFailure
 import org.enso.pkg.{
   Component,
   ComponentGroup,
@@ -11,6 +10,7 @@ import org.enso.pkg.{
   GroupName,
   GroupReference
 }
+import org.enso.testkit.ReportLogsOnFailure
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 

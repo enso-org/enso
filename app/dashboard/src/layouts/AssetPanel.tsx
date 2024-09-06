@@ -39,11 +39,13 @@ declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
     readonly assetPanelTab: AssetPanelTab
+    readonly assetPanelWidth: number
   }
 }
 
-LocalStorage.registerKey('assetPanelTab', {
-  schema: z.nativeEnum(AssetPanelTab),
+LocalStorage.register({
+  assetPanelTab: { schema: z.nativeEnum(AssetPanelTab) },
+  assetPanelWidth: { schema: z.number().int() },
 })
 
 // ==================

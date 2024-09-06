@@ -59,7 +59,8 @@ type SQL_Generator
        to be distinct and not result in any shadowing.
     Value (let_bindings_ref : Ref Hashset)
 
-    new -> SQL_Generator = SQL_Generator.Value (Ref.new Hashset.empty)
+    ## PRIVATE
+    private new -> SQL_Generator = SQL_Generator.Value (Ref.new Hashset.empty)
 
     ## PRIVATE
 
@@ -277,7 +278,7 @@ type SQL_Generator
             SQL_Builder.code "DELETE FROM " ++ target ++ " WHERE EXISTS (SELECT 1 FROM " ++ source ++ " WHERE " ++ conditions ++ ")"
         _ -> Error.throw <| Unsupported_Database_Operation.Error "Unsupported query type: "+query.to_text
 
-## PRVIATE
+## PRIVATE
    Builds code for a whole query.
 
    Also preprocesses the query.
@@ -723,6 +724,7 @@ default_fetch_types_query dialect expression context where_filter_always_false_l
    string and a unique (serial) number. The short name is saved and returned the
    next time that same identifier is passed in.
 type Let_Binder_Renamer
+    ## PRIVATE
     Value (existing_tables : Hashset Text) (binders_ref : Ref Dictionary) (serial_ref : Ref Integer)
 
     ## PRIVATE

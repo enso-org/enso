@@ -23,7 +23,9 @@ import {
   type FieldPath,
   type FieldProps,
   type FieldStateProps,
+  type FieldVariantProps,
   type FormInstance,
+  type TestIdProps,
   type TSchema,
 } from '#/components/AriaComponents'
 import { useFormContext } from '#/components/AriaComponents/Form/components/useFormContext'
@@ -39,8 +41,9 @@ import { INPUT_STYLES } from '../variants'
 export interface InputProps<Schema extends TSchema, TFieldName extends FieldPath<Schema>>
   extends FieldStateProps<Omit<aria.InputProps, 'children' | 'size'>, Schema, TFieldName>,
     FieldProps,
-    Omit<VariantProps<typeof INPUT_STYLES>, 'disabled' | 'invalid'> {
-  readonly 'data-testid'?: string | undefined
+    FieldVariantProps,
+    Omit<VariantProps<typeof INPUT_STYLES>, 'disabled' | 'invalid'>,
+    TestIdProps {
   readonly className?: string
   readonly style?: CSSProperties
   readonly inputRef?: Ref<HTMLInputElement>
@@ -78,13 +81,15 @@ export const Input = forwardRef(function Input<
     icon,
     type = 'text',
     variant,
-    variants,
+    variants = INPUT_STYLES,
     fieldVariants,
     ...inputProps
   } = props
   const formFromContext = useFormContext()
   // eslint-disable-next-line no-restricted-syntax
   const form = (formRaw ?? formFromContext) as FormInstance<TSchema>
+
+  const testId = props.testId ?? props['data-testid']
 
   const privateInputRef = useRef<HTMLInputElement>(null)
 
@@ -105,7 +110,7 @@ export const Input = forwardRef(function Input<
         ...(max != null ? { max } : {}),
       }}
       render={({ field, fieldState: innerFieldState }) => {
-        const classes = (variants ?? INPUT_STYLES)({
+        const classes = variants({
           variant,
           size,
           rounded,
@@ -115,7 +120,7 @@ export const Input = forwardRef(function Input<
         })
         return (
           <Form.Field
-            data-testid={props['data-testid']}
+            data-testid={testId}
             form={form}
             name={name}
             fullWidth

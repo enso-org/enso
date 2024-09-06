@@ -121,12 +121,7 @@ function DashboardInner(props: DashboardProps) {
 
   const [category, setCategory] = searchParamsState.useSearchParamsState<categoryModule.Category>(
     'driveCategory',
-    () => {
-      const shouldDefaultToCloud =
-        initialLocalProjectId == null && (user.isEnabled || localBackend == null)
-      const type = shouldDefaultToCloud ? 'cloud' : 'local'
-      return { type }
-    },
+    () => (localBackend != null ? { type: 'local' } : { type: 'cloud' }),
     (value): value is categoryModule.Category =>
       categoryModule.CATEGORY_SCHEMA.safeParse(value).success,
   )
@@ -333,7 +328,6 @@ function DashboardInner(props: DashboardProps) {
                 className="flex min-h-0 grow [&[data-inert]]:hidden"
               >
                 <Editor
-                  key={project.id}
                   hidden={page !== project.id}
                   ydocUrl={ydocUrl}
                   project={project}

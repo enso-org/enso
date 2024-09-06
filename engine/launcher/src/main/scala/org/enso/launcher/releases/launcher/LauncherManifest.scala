@@ -3,8 +3,9 @@ package org.enso.launcher.releases.launcher
 import org.enso.launcher.releases.launcher
 import org.enso.semver.SemVer
 import org.enso.runtimeversionmanager.releases.ReleaseProviderException
+import org.enso.scala.yaml.YamlDecoder
 import org.enso.semver.SemVerYaml._
-import org.enso.yaml.{ParseError, YamlDecoder}
+import org.enso.yaml.ParseError
 import org.yaml.snakeyaml.error.YAMLException
 import org.yaml.snakeyaml.nodes.{MappingNode, Node}
 
