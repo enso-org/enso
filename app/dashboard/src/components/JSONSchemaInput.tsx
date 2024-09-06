@@ -1,5 +1,5 @@
 /** @file A dynamic wizard for creating an arbitrary type of Datalink. */
-import { type Dispatch, Fragment, type JSX, type SetStateAction, useState } from 'react'
+import { Fragment, type JSX, useState } from 'react'
 
 import { Input, Text } from '#/components/aria'
 import { Button, Dropdown } from '#/components/AriaComponents'
@@ -26,7 +26,7 @@ export interface JSONSchemaInputProps {
   readonly path: string
   readonly getValidator: (path: string) => (value: unknown) => boolean
   readonly value: NonNullable<unknown> | null
-  readonly onChange: Dispatch<SetStateAction<NonNullable<unknown> | null>>
+  readonly onChange: (value: NonNullable<unknown> | null) => void
 }
 
 /** A dynamic wizard for creating an arbitrary type of Datalink. */
@@ -196,23 +196,21 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                           )}
                           onPress={() => {
                             if (isOptional) {
-                              onChange((oldValue) => {
-                                if (oldValue != null && key in oldValue) {
-                                  // This is SAFE, as `value` is an untyped object.
-                                  // The removed key is intentionally unused.
-                                  // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unused-vars
-                                  const { [key]: removed, ...newValue } = oldValue as Record<
-                                    string,
-                                    NonNullable<unknown> | null
-                                  >
-                                  return newValue
-                                } else {
-                                  return {
-                                    ...oldValue,
-                                    [key]: constantValueOfSchema(defs, childSchema, true)[0],
-                                  }
-                                }
-                              })
+                              if (value != null && key in value) {
+                                // This is SAFE, as `value` is an untyped object.
+                                // The removed key is intentionally unused.
+                                // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unused-vars
+                                const { [key]: removed, ...newValue } = value as Record<
+                                  string,
+                                  NonNullable<unknown> | null
+                                >
+                                onChange(newValue)
+                              } else {
+                                onChange({
+                                  ...value,
+                                  [key]: constantValueOfSchema(defs, childSchema, true)[0],
+                                })
+                              }
                             }
                           }}
                         >
@@ -230,31 +228,29 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                               // eslint-disable-next-line no-restricted-syntax
                               value={(value as Record<string, unknown>)[key] ?? null}
                               onChange={(newValue) => {
-                                onChange((oldValue) => {
-                                  if (typeof newValue === 'function') {
-                                    const unsafeValue: unknown = newValue(
+                                if (typeof newValue === 'function') {
+                                  const unsafeValue: unknown = newValue(
+                                    // This is SAFE; but there is no way to tell TypeScript that an object
+                                    // has an index signature.
+                                    // eslint-disable-next-line no-restricted-syntax
+                                    (value as Readonly<Record<string, unknown>>)[key] ?? null,
+                                  )
+                                  // The value MAY be `null`, but it is better than the value being a
+                                  // function (which is *never* the intended result).
+                                  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                                  newValue = unsafeValue!
+                                }
+                                onChange(
+                                  (
+                                    typeof value === 'object' &&
                                       // This is SAFE; but there is no way to tell TypeScript that an object
                                       // has an index signature.
                                       // eslint-disable-next-line no-restricted-syntax
-                                      (oldValue as Readonly<Record<string, unknown>>)[key] ?? null,
-                                    )
-                                    // The value MAY be `null`, but it is better than the value being a
-                                    // function (which is *never* the intended result).
-                                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                                    newValue = unsafeValue!
-                                  }
-                                  return (
-                                      typeof oldValue === 'object' &&
-                                        oldValue != null &&
-                                        // This is SAFE; but there is no way to tell TypeScript that an object
-                                        // has an index signature.
-                                        // eslint-disable-next-line no-restricted-syntax
-                                        (oldValue as Readonly<Record<string, unknown>>)[key] ===
-                                          newValue
-                                    ) ?
-                                      oldValue
-                                    : { ...oldValue, [key]: newValue }
-                                })
+                                      (value as Readonly<Record<string, unknown>>)[key] === newValue
+                                  ) ?
+                                    value
+                                  : { ...value, [key]: newValue },
+                                )
                               }}
                             />
                           </div>
@@ -302,6 +298,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
       }
       const dropdown = (
         <Dropdown
+          aria-label={getText('options')}
           readOnly={readOnly}
           items={childSchemas}
           selectedIndex={selectedChildIndex}
