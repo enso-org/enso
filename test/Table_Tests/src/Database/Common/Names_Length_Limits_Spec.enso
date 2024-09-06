@@ -4,6 +4,7 @@ from Standard.Table import Table, Join_Kind, Aggregate_Column, Value_Type, expr
 from Standard.Table.Errors import No_Such_Column, Name_Too_Long, Truncated_Column_Names, Duplicate_Output_Column_Names
 
 from Standard.Database import all
+from Standard.Database.Dialect import Temp_Table_Style
 from Standard.Database.Errors import Table_Not_Found, Unsupported_Database_Operation
 
 from Standard.Test import all
@@ -108,11 +109,14 @@ add_specs suite_builder prefix create_connection_func =
                         Problems.assume_no_problems t3
 
             group_builder.specify "should not mangle a too long name when accessing tables, returning a different table" <|
-                long_name = "z" * max_table_name_length
+                long_name = case data.connection.dialect.temp_table_style of
+                    Temp_Table_Style.Temporary_Table -> "z" * max_table_name_length
+                    Temp_Table_Style.Hash_Prefix -> "z" * (max_table_name_length - 13)
                 src = Table.new [["X", [1, 2, 3]]]
                 t1 = src.select_into_database_table data.connection long_name temporary=True
                 Problems.assume_no_problems t1
-                data.connection.query long_name . at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
+                
+                t1 . at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
 
                 longer_name_with_same_prefix = long_name + ("z" * 10)
                 data.connection.query longer_name_with_same_prefix . should_fail_with Name_Too_Long

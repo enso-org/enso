@@ -84,7 +84,7 @@ add_specs suite_builder =
             message = "SQLServer test database is not configured. See README.md for instructions."
             suite_builder.group "[SQLServer] Database tests" pending=message (_-> Nothing)
         connection_builder ->
-            _ = connection_builder
+            add_sqlserver_specs suite_builder connection_builder "tempdb"
             suite_builder.group "[SQLServer] Info" group_builder->
                 default_connection = Database.connect get_configured_connection_details
                 data = SQLServer_Info_Data.setup default_connection
@@ -144,6 +144,28 @@ add_specs suite_builder =
                     returned_table = t.read
                     returned_table.should_equal expected_table
                     data.connection.execute 'DROP TABLE "'+name+'"'
+
+type Lazy_Ref
+   Value ~get
+
+add_sqlserver_specs suite_builder create_connection_fn db_name =
+    prefix = "[SQLServer] "
+    name_counter = Ref.new 0
+
+    default_connection = Lazy_Ref.Value (create_connection_fn Nothing)
+    table_builder columns connection=Nothing =
+        ix = name_counter.get
+        name_counter . put ix+1
+        name = Name_Generator.random_name "table_"+ix.to_text
+
+        in_mem_table = Table.new columns
+        in_mem_table.select_into_database_table (connection.if_nothing default_connection.get) name primary_key=Nothing temporary=True
+    light_table_builder columns =
+        default_connection.get.base_connection.create_literal_table (Table.new columns) "literal_table"
+
+    materialize = .read
+
+    Common_Spec.add_specs suite_builder prefix create_connection_fn default_connection
 
 main filter=Nothing =
     suite = Test.build suite_builder->
