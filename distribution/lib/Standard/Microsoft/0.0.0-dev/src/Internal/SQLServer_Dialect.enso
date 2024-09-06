@@ -355,7 +355,11 @@ first_last_aggregators =
 
 ## PRIVATE
 make_equals a b =
-    SQL_Builder.code "CAST (CASE WHEN " ++ a.paren ++ " = " ++ b.paren ++ " THEN 1 ELSE 0 END AS BIT)"
+    case a.build.prepare.second==[True] of
+        True -> b.paren
+        False -> case b.build.prepare.second==[True] of
+            True -> a.paren
+            False -> a.paren ++ " = " ++ b.paren
 
 ## PRIVATE
 make_first_aggregator reverse ignore_null args =
