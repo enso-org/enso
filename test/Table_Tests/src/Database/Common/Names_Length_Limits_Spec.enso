@@ -421,28 +421,28 @@ add_specs suite_builder prefix create_connection_func =
                 Test.with_clue "join: " <|
                     t2 = db_table.join db_table join_kind=Join_Kind.Left_Outer on=name_a right_prefix="RIGHT_"
                     w = Problems.expect_warning Truncated_Column_Names t2
-                    w.original_names . should_equal ["RIGHT_" + name_a, "RIGHT_" + name_b]
+                    w.original_names . should_equal_ignoring_order ["RIGHT_" + name_a, "RIGHT_" + name_b]
                     t2.row_count . should_equal 3
 
                     m2 = t2.read . sort name_a
-                    m2.column_names . should_equal [name_a, name_b]+w.truncated_names
+                    m2.column_names . should_equal_ignoring_order [name_a, name_b]+w.truncated_names
                     m2.at name_a . to_vector . should_equal [1, 2, 3]
                     m2.at name_b . to_vector . should_equal [4, 5, 6]
-                    m2.at (w.truncated_names.at 0) . to_vector . should_equal [1, 2, 3]
-                    m2.at (w.truncated_names.at 1) . to_vector . should_equal [4, 5, 6]
+                    m2.at (w.names_map.at ("RIGHT_" + name_a)) . to_vector . should_equal [1, 2, 3]
+                    m2.at (w.names_map.at ("RIGHT_" + name_b)) . to_vector . should_equal [4, 5, 6]
 
                 Test.with_clue "cross_join: " <|
                     t2 = db_table.cross_join db_table right_prefix="RIGHT_"
                     w = Problems.expect_warning Truncated_Column_Names t2
-                    w.original_names . should_equal ["RIGHT_" + name_a, "RIGHT_" + name_b]
+                    w.original_names . should_equal_ignoring_order ["RIGHT_" + name_a, "RIGHT_" + name_b]
                     t2.row_count . should_equal 9
 
                     m2 = t2.read . sort [name_a, name_b]
-                    m2.column_names . should_equal [name_a, name_b]+w.truncated_names
+                    m2.column_names . should_equal_ignoring_order [name_a, name_b]+w.truncated_names
                     m2.at name_a . to_vector . distinct . should_equal_ignoring_order [1, 2, 3]
                     m2.at name_b . to_vector . distinct . should_equal_ignoring_order [4, 5, 6]
-                    m2.at (w.truncated_names.at 0) . to_vector . distinct . should_equal_ignoring_order [1, 2, 3]
-                    m2.at (w.truncated_names.at 1) . to_vector . distinct . should_equal_ignoring_order [4, 5, 6]
+                    m2.at (w.names_map.at ("RIGHT_" + name_a)) . to_vector . distinct . should_equal_ignoring_order [1, 2, 3]
+                    m2.at (w.names_map.at ("RIGHT_" + name_b)) . to_vector . distinct . should_equal_ignoring_order [4, 5, 6]
 
             group_builder.specify "should truncate new column names in other operations" <|
                 name_a = "x" * (max_column_name_length - 1) + "A"

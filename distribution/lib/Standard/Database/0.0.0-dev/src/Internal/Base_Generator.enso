@@ -438,8 +438,9 @@ base_dialect_operations =
     arith = [["ADD_NUMBER", make_binary_op "+"], ["ADD_TEXT", make_binary_op "||"], bin "-", bin "*", bin "/", bin "%", ["MOD", make_function "MOD"], ["^", make_function "POWER"], ["ROUND", make_function "ROUND"], ["TRUNCATE", make_function "TRUNC"], ["CEIL", make_function "CEIL"], ["FLOOR", make_function "FLOOR"]]
     logic = [bin "AND", bin "OR", unary "NOT", ["IIF", make_iif], ["CASE", case_when]]
     eq = lift_binary_op "==" make_equals
+    oneq = lift_binary_op "on==" make_equals
     neq = lift_binary_op "!=" make_not_equals
-    compare = [eq, neq, bin "<", bin ">", bin "<=", bin ">=", ["BETWEEN", make_between]]
+    compare = [eq, oneq, neq, bin "<", bin ">", bin "<=", bin ">=", ["BETWEEN", make_between]]
     functions = [["COALESCE", make_function "COALESCE"], ["ROW_MIN", make_function "MIN"], ["ROW_MAX", make_function "MAX"]]
     agg = [fun "MAX", fun "MIN", fun "AVG", fun "SUM"]
     counts = [fun "COUNT", ["COUNT_ROWS", make_constant "COUNT(*)"]]
