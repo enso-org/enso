@@ -509,7 +509,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
         )
         val dataFiles = List(
           "crm_data.csv",
-          "Customer Data.xlsx"
+          "Customer_Data.xlsx"
         )
         copyTemplateFiles(pkg, "getting_started_selecting", srcFiles, dataFiles)
     }

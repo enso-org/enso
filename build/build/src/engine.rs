@@ -101,7 +101,7 @@ pub async fn download_project_templates(client: reqwest::Client, enso_root: Path
         ("Getting_Started_Cleansing", vec!["data/crm_data.csv", "src/eags.png", "src/Main.enso"]),
         ("Getting_Started_Selecting", vec![
             "data/crm_data.csv",
-            "data/Customer Data.xlsx",
+            "data/Customer_Data.xlsx",
             "src/eags.png",
             "src/Main.enso",
             "src/table1.png",
