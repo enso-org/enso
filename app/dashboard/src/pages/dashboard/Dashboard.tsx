@@ -151,14 +151,14 @@ function DashboardInner(props: DashboardProps) {
         const projectName = baseName(initialLocalProjectPath)
         const { id } = await window.backendApi.importProjectFromPath(
           initialLocalProjectPath,
-          localBackend.rootPath,
+          localBackend.rootPath(),
           projectName,
         )
         openProject({
           type: backendModule.BackendType.local,
           id: localBackendModule.newProjectId(projectManager.UUID(id)),
           title: projectName,
-          parentId: localBackendModule.newDirectoryId(localBackend.rootPath),
+          parentId: localBackendModule.newDirectoryId(localBackend.rootPath()),
         })
       }
       return null
