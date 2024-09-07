@@ -110,7 +110,7 @@ declare module '#/utilities/LocalStorage' {
 }
 
 LocalStorage.registerKey('enabledColumns', {
-  schema: z.enum(columnUtils.CLOUD_COLUMNS).array().readonly(),
+  schema: z.nativeEnum(columnUtils.Column).array().readonly(),
 })
 
 // =================
@@ -335,7 +335,9 @@ export default function AssetsTable(props: AssetsTableProps) {
   const didLoadingProjectManagerFail = backendProvider.useDidLoadingProjectManagerFail()
   const reconnectToProjectManager = backendProvider.useReconnectToProjectManager()
   const [enabledColumns, setEnabledColumns] = React.useState(columnUtils.DEFAULT_ENABLED_COLUMNS)
-
+  const hiddenColumns = columnUtils
+    .getColumnList(user, backend.type)
+    .filter((column) => !enabledColumns.has(column))
   const [sortInfo, setSortInfo] =
     React.useState<sorting.SortInfo<columnUtils.SortableColumn> | null>(null)
   const driveStore = useDriveStore()
@@ -533,7 +535,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const isLoading = directories.rootDirectory.isLoading
 
   const assetTree = React.useMemo(() => {
-    const rootPath = 'rootPath' in category ? category.rootPath : backend.rootPath
+    const rootPath = 'rootPath' in category ? category.rootPath : backend.rootPath(user)
 
     // If the root directory is not loaded, then we cannot render the tree.
     // Return null, and wait for the root directory to load.
@@ -634,13 +636,14 @@ export default function AssetsTable(props: AssetsTableProps) {
       rootId,
     )
   }, [
-    directories,
+    category,
+    backend,
+    user,
     rootDirectoryContent,
     rootDirectory,
     rootParentDirectoryId,
-    backend.rootPath,
     rootDirectoryId,
-    category,
+    directories.directories,
   ])
 
   const filter = React.useMemo(() => {
@@ -2286,13 +2289,12 @@ export default function AssetsTable(props: AssetsTableProps) {
       rootRef.current != null &&
       headerRowRef.current != null
     ) {
-      const hiddenColumnsCount = columnUtils.CLOUD_COLUMNS.length - enabledColumns.size
       const shrinkBy =
-        COLUMNS_SELECTOR_BASE_WIDTH_PX + COLUMNS_SELECTOR_ICON_WIDTH_PX * hiddenColumnsCount
+        COLUMNS_SELECTOR_BASE_WIDTH_PX + COLUMNS_SELECTOR_ICON_WIDTH_PX * hiddenColumns.length
       const rightOffset = rootRef.current.clientWidth + rootRef.current.scrollLeft - shrinkBy
       headerRowRef.current.style.clipPath = `polygon(0 0, ${rightOffset}px 0, ${rightOffset}px 100%, 0 100%)`
     }
-  }, [backend.type, enabledColumns.size])
+  }, [backend.type, hiddenColumns.length])
 
   const updateClipPathObserver = React.useMemo(
     () => new ResizeObserver(updateClipPath),
@@ -2511,7 +2513,9 @@ export default function AssetsTable(props: AssetsTableProps) {
     setAsset,
   }))
 
-  const columns = columnUtils.getColumnList(backend.type, enabledColumns)
+  const columns = columnUtils
+    .getColumnList(user, backend.type)
+    .filter((column) => enabledColumns.has(column))
 
   const headerRow = (
     <tr ref={headerRowRef} className="sticky top-[1px] text-sm font-semibold">
@@ -2905,47 +2909,43 @@ export default function AssetsTable(props: AssetsTableProps) {
                 />
               )}
               <div className="flex h-max min-h-full w-max min-w-full flex-col">
-                {isCloud && (
-                  <div className="flex-0 sticky top-0 flex h-0 flex-col">
-                    <div
-                      data-testid="extra-columns"
-                      className="sticky right-0 flex self-end px-2 py-3"
-                    >
-                      <FocusArea direction="horizontal">
-                        {(columnsBarProps) => (
-                          <div
-                            {...aria.mergeProps<JSX.IntrinsicElements['div']>()(columnsBarProps, {
-                              className: 'inline-flex gap-icons',
-                              onFocus: () => {
-                                setKeyboardSelectedIndex(null)
-                              },
-                            })}
-                          >
-                            {columnUtils.CLOUD_COLUMNS.filter(
-                              (column) => !enabledColumns.has(column),
-                            ).map((column) => (
-                              <Button
-                                key={column}
-                                light
-                                image={columnUtils.COLUMN_ICONS[column]}
-                                alt={getText(columnUtils.COLUMN_SHOW_TEXT_ID[column])}
-                                onPress={() => {
-                                  const newExtraColumns = new Set(enabledColumns)
-                                  if (enabledColumns.has(column)) {
-                                    newExtraColumns.delete(column)
-                                  } else {
-                                    newExtraColumns.add(column)
-                                  }
-                                  setEnabledColumns(newExtraColumns)
-                                }}
-                              />
-                            ))}
-                          </div>
-                        )}
-                      </FocusArea>
-                    </div>
+                <div className="flex-0 sticky top-0 flex h-0 flex-col">
+                  <div
+                    data-testid="extra-columns"
+                    className="sticky right-0 flex self-end px-2 py-3"
+                  >
+                    <FocusArea direction="horizontal">
+                      {(columnsBarProps) => (
+                        <div
+                          {...aria.mergeProps<JSX.IntrinsicElements['div']>()(columnsBarProps, {
+                            className: 'inline-flex gap-icons',
+                            onFocus: () => {
+                              setKeyboardSelectedIndex(null)
+                            },
+                          })}
+                        >
+                          {hiddenColumns.map((column) => (
+                            <Button
+                              key={column}
+                              light
+                              image={columnUtils.COLUMN_ICONS[column]}
+                              alt={getText(columnUtils.COLUMN_SHOW_TEXT_ID[column])}
+                              onPress={() => {
+                                const newExtraColumns = new Set(enabledColumns)
+                                if (enabledColumns.has(column)) {
+                                  newExtraColumns.delete(column)
+                                } else {
+                                  newExtraColumns.add(column)
+                                }
+                                setEnabledColumns(newExtraColumns)
+                              }}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </FocusArea>
                   </div>
-                )}
+                </div>
                 <div className="flex h-full w-min min-w-full grow flex-col">{table}</div>
               </div>
             </div>
