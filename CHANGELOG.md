@@ -108,6 +108,7 @@
   `Comparable.new`][10468]
 - [Added `dec` construction function for creating `Decimal`s.][10517]
 - [Added initial read support for SQLServer][10324]
+- [Upgraded SQLite to version 3.46.1.][10911]
 
 [10434]: https://github.com/enso-org/enso/pull/10434
 [10445]: https://github.com/enso-org/enso/pull/10445
@@ -116,6 +117,7 @@
 [10474]: https://github.com/enso-org/enso/pull/10474
 [10517]: https://github.com/enso-org/enso/pull/10517
 [10324]: https://github.com/enso-org/enso/pull/10324
+[10911]: https://github.com/enso-org/enso/pull/10911
 
 # Enso 2024.2
 
