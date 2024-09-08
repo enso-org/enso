@@ -1,6 +1,4 @@
 /** @file The icon and name of a {@link backendModule.ProjectAsset}. */
-import * as React from 'react'
-
 import { useMutation } from '@tanstack/react-query'
 
 import NetworkIcon from '#/assets/network.svg'
@@ -29,6 +27,7 @@ import * as permissions from '#/utilities/permissions'
 import * as string from '#/utilities/string'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import * as validation from '#/utilities/validation'
+import { isOnMacOS } from 'enso-common/src/detect'
 
 // ===================
 // === ProjectName ===
@@ -130,7 +129,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         indent.indentClass(item.depth),
       )}
       onKeyDown={(event) => {
-        if (rowState.isEditingName && event.key === 'Enter') {
+        if (rowState.isEditingName && isOnMacOS() && event.key === 'Enter') {
           event.stopPropagation()
         }
       }}

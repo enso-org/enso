@@ -1,6 +1,4 @@
 /** @file The icon and name of a {@link backendModule.SecretAsset}. */
-import * as React from 'react'
-
 import DatalinkIcon from '#/assets/datalink.svg'
 
 import * as setAssetHooks from '#/hooks/setAssetHooks'
@@ -16,6 +14,7 @@ import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
+import { isOnMacOS } from 'enso-common/src/detect'
 
 // ====================
 // === DatalinkName ===
@@ -69,7 +68,7 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
       onClick={(event) => {
         if (handleClick(event)) {
           // Already handled.
-        } else if (eventModule.isSingleClick(event) && selected) {
+        } else if (eventModule.isSingleClick(event) && isOnMacOS() && selected) {
           setIsEditing(true)
         } else if (eventModule.isDoubleClick(event)) {
           event.stopPropagation()

@@ -1731,7 +1731,12 @@ export default function AssetsTable(props: AssetsTableProps) {
                     // This non-standard property is defined in Electron.
                     'path' in file
                   ) {
-                    id = await window.backendApi.importProjectFromPath(file.path, directory, title)
+                    const projectInfo = await window.backendApi.importProjectFromPath(
+                      file.path,
+                      directory,
+                      title,
+                    )
+                    id = projectInfo.id
                   } else {
                     const searchParams = new URLSearchParams({ directory, name: title }).toString()
                     // Ideally this would use `file.stream()`, to minimize RAM
@@ -2571,6 +2576,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             onDragStart={(event) => {
               startAutoScroll()
               onMouseEvent(event)
+              event.dataTransfer.effectAllowed = 'move'
               let newSelectedKeys = driveStore.getState().selectedKeys
               if (!newSelectedKeys.has(item.key)) {
                 setMostRecentlySelectedIndex(visibleItems.indexOf(item))
@@ -2659,7 +2665,11 @@ export default function AssetsTable(props: AssetsTableProps) {
                 }
               }
             }}
+            onDragLeave={() => {
+              setIsDraggingFiles(false)
+            }}
             onDragEnd={() => {
+              setIsDraggingFiles(false)
               endAutoScroll()
               lastSelectedIdsRef.current = null
               const { selectedKeys } = driveStore.getState()
@@ -2670,6 +2680,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               })
             }}
             onDrop={(event) => {
+              setIsDraggingFiles(false)
               endAutoScroll()
               const { selectedKeys } = driveStore.getState()
               const ids = new Set(selectedKeys.has(item.key) ? selectedKeys : [item.key])
@@ -2946,8 +2957,13 @@ export default function AssetsTable(props: AssetsTableProps) {
               className="flex items-center justify-center gap-3 rounded-default bg-selected-frame px-8 py-6 text-primary/50 backdrop-blur-3xl transition-all"
               onDragEnter={onDropzoneDragOver}
               onDragOver={onDropzoneDragOver}
-              onDrop={(event) => {
+              onDragLeave={() => {
                 setIsDraggingFiles(false)
+              }}
+              onDragEnd={() => {
+                setIsDraggingFiles(false)
+              }}
+              onDrop={(event) => {
                 handleFileDrop(event)
               }}
             >
