@@ -496,7 +496,7 @@ function AppRouter(props: AppRouterProps) {
     <FeatureFlagsProvider>
       <RouterProvider navigate={navigate}>
         <SessionProvider
-          saveAccessToken={authService.cognito.saveAccessToken.bind(authService.cognito) ?? null}
+          saveAccessToken={authService.cognito.saveAccessToken.bind(authService.cognito)}
           mainPageUrl={mainPageUrl}
           userSession={userSession}
           registerAuthEventListener={registerAuthEventListener}
