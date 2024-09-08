@@ -10,6 +10,7 @@ import EditableSpan from '#/components/EditableSpan'
 
 import * as backendModule from '#/services/Backend'
 
+import { useSetIsAssetPanelTemporarilyVisible } from '#/providers/DriveProvider'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
@@ -27,8 +28,8 @@ export interface DatalinkNameColumnProps extends column.AssetColumnProps {}
  * @throws {Error} when the asset is not a {@link backendModule.DatalinkAsset}.
  * This should never happen. */
 export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
-  const { item, setItem, selected, state, rowState, setRowState, isEditable } = props
-  const { setIsAssetPanelTemporarilyVisible } = state
+  const { item, setItem, selected, rowState, setRowState, isEditable } = props
+  const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
   const inputBindings = inputBindingsProvider.useInputBindings()
   if (item.type !== backendModule.AssetType.datalink) {
     // eslint-disable-next-line no-restricted-syntax

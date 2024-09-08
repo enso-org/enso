@@ -46,6 +46,7 @@ export default function SelectionBrush(props: SelectionBrushProps) {
   onDragCancelRef.current = onDragCancel
   const lastMouseEvent = React.useRef<MouseEvent | null>(null)
   const parentBounds = React.useRef<DOMRect | null>(null)
+  const anchorRef = React.useRef<geometry.Coordinate2D | null>(null)
   const [anchor, setAnchor] = React.useState<geometry.Coordinate2D | null>(null)
   const [position, setPosition] = React.useState<geometry.Coordinate2D | null>(null)
   const [lastSetAnchor, setLastSetAnchor] = React.useState<geometry.Coordinate2D | null>(null)
@@ -74,6 +75,12 @@ export default function SelectionBrush(props: SelectionBrushProps) {
         return eventModule.isElementInBounds(event, parentBounds.current, margin)
       }
     }
+    const unsetAnchor = () => {
+      if (anchorRef.current != null) {
+        anchorRef.current = null
+        setAnchor(null)
+      }
+    }
     const onMouseDown = (event: MouseEvent) => {
       if (
         modalRef.current == null &&
@@ -86,7 +93,7 @@ export default function SelectionBrush(props: SelectionBrushProps) {
         didMoveWhileDraggingRef.current = false
         lastMouseEvent.current = event
         const newAnchor = { left: event.pageX, top: event.pageY }
-        setAnchor(newAnchor)
+        anchorRef.current = null
         setLastSetAnchor(newAnchor)
         setPosition(newAnchor)
       }
@@ -101,7 +108,7 @@ export default function SelectionBrush(props: SelectionBrushProps) {
         isMouseDownRef.current = false
         didMoveWhileDraggingRef.current = false
       })
-      setAnchor(null)
+      unsetAnchor()
     }
     const onMouseMove = (event: MouseEvent) => {
       if (!(event.buttons & 1)) {
@@ -137,7 +144,7 @@ export default function SelectionBrush(props: SelectionBrushProps) {
       if (isMouseDownRef.current) {
         isMouseDownRef.current = false
         onDragCancelRef.current()
-        setAnchor(null)
+        unsetAnchor()
       }
     }
 
