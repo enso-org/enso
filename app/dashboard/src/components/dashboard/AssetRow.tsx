@@ -120,6 +120,7 @@ export default function AssetRow(props: AssetRowProps) {
     driveStore,
     ({ selectedKeys }) => selectedKeys.size === 0 || !selected || isSoleSelected,
   )
+  const wasSoleSelectedRef = React.useRef(isSoleSelected)
   const draggableProps = dragAndDropHooks.useDraggable()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
@@ -563,7 +564,12 @@ export default function AssetRow(props: AssetRowProps) {
                   rootRef.current = element
 
                   requestAnimationFrame(() => {
-                    if (isSoleSelected && element != null && scrollContainerRef.current != null) {
+                    if (
+                      isSoleSelected &&
+                      !wasSoleSelectedRef.current &&
+                      element != null &&
+                      scrollContainerRef.current != null
+                    ) {
                       const rect = element.getBoundingClientRect()
                       const scrollRect = scrollContainerRef.current.getBoundingClientRect()
                       const scrollUp = rect.top - (scrollRect.top + HEADER_HEIGHT_PX)
@@ -576,6 +582,7 @@ export default function AssetRow(props: AssetRowProps) {
                         })
                       }
                     }
+                    wasSoleSelectedRef.current = isSoleSelected
                   })
 
                   if (isKeyboardSelected && element?.contains(document.activeElement) === false) {
