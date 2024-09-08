@@ -58,11 +58,12 @@ class App {
     log.addFileLog()
     urlAssociations.registerAssociations()
     // Register file associations for macOS.
-    fileAssociations.setOpenFileEventHandler(project => {
+    fileAssociations.setOpenFileEventHandler(path => {
       if (electron.app.isReady()) {
+        const project = fileAssociations.handleOpenFile(path)
         this.window?.webContents.send(ipc.Channel.openProject, project)
       } else {
-        this.setProjectToOpenOnStartup(project.id)
+        this.setProjectToOpenOnStartup(path)
       }
     })
 
@@ -170,11 +171,9 @@ class App {
     logger.log('Opening file or URL.', { fileToOpen, urlToOpen })
     try {
       if (fileToOpen != null) {
-        // This makes the IDE open the relevant project. Also, this prevents us from using
-        // this method after the IDE has been fully set up, as the initializing code
-        // would have already read the value of this argument.
-        const projectInfo = fileAssociations.handleOpenFile(fileToOpen)
-        this.setProjectToOpenOnStartup(projectInfo.id)
+        // The IDE must receive the project path, otherwise if the IDE has a custom root directory
+        // set then it is added to the (incorrect) default root directory.
+        this.setProjectToOpenOnStartup(`file://${encodeURI(fileToOpen)}`)
       }
 
       if (urlToOpen != null) {
