@@ -9,7 +9,12 @@ import * as dragAndDropHooks from '#/hooks/dragAndDropHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 
-import { useDriveStore, useSetSelectedKeys } from '#/providers/DriveProvider'
+import {
+  useDriveStore,
+  useSetAssetPanelProps,
+  useSetIsAssetPanelTemporarilyVisible,
+  useSetSelectedKeys,
+} from '#/providers/DriveProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -33,6 +38,7 @@ import * as backendModule from '#/services/Backend'
 
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
+import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
@@ -72,27 +78,47 @@ export interface AssetRowInnerProps {
 }
 
 /** Props for an {@link AssetRow}. */
-export interface AssetRowProps
-  extends Readonly<Omit<JSX.IntrinsicElements['tr'], 'onClick' | 'onContextMenu'>> {
+export interface AssetRowProps {
   readonly isOpened: boolean
   readonly item: assetTreeNode.AnyAssetTreeNode
   readonly state: assetsTable.AssetsTableState
   readonly hidden: boolean
   readonly columns: columnUtils.Column[]
   readonly isKeyboardSelected: boolean
-  readonly grabKeyboardFocus: () => void
+  readonly grabKeyboardFocus: (item: assetTreeNode.AnyAssetTreeNode) => void
   readonly onClick: (props: AssetRowInnerProps, event: React.MouseEvent) => void
-  readonly select: () => void
-  readonly updateAssetRef: React.Ref<(asset: backendModule.AnyAsset) => void>
+  readonly select: (item: assetTreeNode.AnyAssetTreeNode) => void
+  readonly onDragStart?: (
+    event: React.DragEvent<HTMLTableRowElement>,
+    item: assetTreeNode.AnyAssetTreeNode,
+  ) => void
+  readonly onDragOver?: (
+    event: React.DragEvent<HTMLTableRowElement>,
+    item: assetTreeNode.AnyAssetTreeNode,
+  ) => void
+  readonly onDragLeave?: (
+    event: React.DragEvent<HTMLTableRowElement>,
+    item: assetTreeNode.AnyAssetTreeNode,
+  ) => void
+  readonly onDragEnd?: (
+    event: React.DragEvent<HTMLTableRowElement>,
+    item: assetTreeNode.AnyAssetTreeNode,
+  ) => void
+  readonly onDrop?: (
+    event: React.DragEvent<HTMLTableRowElement>,
+    item: assetTreeNode.AnyAssetTreeNode,
+  ) => void
+  readonly updateAssetRef: React.RefObject<
+    Record<backendModule.AssetId, (asset: backendModule.AnyAsset) => void>
+  >
 }
 
 /** A row containing an {@link backendModule.AnyAsset}. */
-export default function AssetRow(props: AssetRowProps) {
+export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   const { isKeyboardSelected, isOpened, select, state, columns, onClick } = props
   const { item: rawItem, hidden: hiddenRaw, updateAssetRef, grabKeyboardFocus } = props
   const {
     nodeMap,
-    setAssetPanelProps,
     doToggleDirectoryExpansion,
     doCopy,
     doCut,
@@ -102,13 +128,14 @@ export default function AssetRow(props: AssetRowProps) {
     doMove,
     category,
   } = state
-  const { setIsAssetPanelTemporarilyVisible, scrollContainerRef, rootDirectoryId, backend } = state
+  const { scrollContainerRef, rootDirectoryId, backend } = state
   const { visibilities } = state
 
   const [item, setItem] = React.useState(rawItem)
   const driveStore = useDriveStore()
   const { user } = useFullUserSession()
   const setSelectedKeys = useSetSelectedKeys()
+  const setAssetPanelProps = useSetAssetPanelProps()
   const selected = useStore(driveStore, ({ visuallySelectedKeys, selectedKeys }) =>
     (visuallySelectedKeys ?? selectedKeys).has(item.key),
   )
@@ -129,8 +156,8 @@ export default function AssetRow(props: AssetRowProps) {
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
   const rootRef = React.useRef<HTMLElement | null>(null)
   const dragOverTimeoutHandle = React.useRef<number | null>(null)
-  const grabKeyboardFocusRef = React.useRef(grabKeyboardFocus)
-  grabKeyboardFocusRef.current = grabKeyboardFocus
+  const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
+  const grabKeyboardFocusRef = useSyncRef(grabKeyboardFocus)
   const asset = item.item
   const [insertionVisibility, setInsertionVisibility] = React.useState(Visibility.visible)
   const [rowState, setRowState] = React.useState<assetsTable.AssetRowState>(() =>
@@ -192,11 +219,22 @@ export default function AssetRow(props: AssetRowProps) {
   React.useEffect(() => {
     if (isKeyboardSelected) {
       rootRef.current?.focus()
-      grabKeyboardFocusRef.current()
+      grabKeyboardFocusRef.current(item)
     }
-  }, [isKeyboardSelected])
+  }, [grabKeyboardFocusRef, isKeyboardSelected, item])
 
-  React.useImperativeHandle(updateAssetRef, () => setAsset)
+  React.useImperativeHandle(updateAssetRef, () => ({ setAsset, item }))
+  if (updateAssetRef.current) {
+    updateAssetRef.current[item.item.id] = setAsset
+  }
+  React.useEffect(() => {
+    return () => {
+      if (updateAssetRef.current) {
+        // eslint-disable-next-line react-hooks/exhaustive-deps, @typescript-eslint/no-dynamic-delete
+        delete updateAssetRef.current[item.item.id]
+      }
+    }
+  }, [item.item.id, updateAssetRef])
 
   React.useEffect(() => {
     if (isSoleSelected) {
@@ -616,7 +654,7 @@ export default function AssetRow(props: AssetRowProps) {
                     event.preventDefault()
                     event.stopPropagation()
                     if (!selected) {
-                      select()
+                      select(item)
                     }
                     setModal(
                       <AssetContextMenu
@@ -644,7 +682,7 @@ export default function AssetRow(props: AssetRowProps) {
                   ) {
                     event.preventDefault()
                   } else {
-                    props.onDragStart?.(event)
+                    props.onDragStart?.(event, item)
                   }
                 }}
                 onDragEnter={(event) => {
@@ -657,19 +695,19 @@ export default function AssetRow(props: AssetRowProps) {
                     }, DRAG_EXPAND_DELAY_MS)
                   }
                   // Required because `dragover` does not fire on `mouseenter`.
-                  props.onDragOver?.(event)
+                  props.onDragOver?.(event, item)
                   onDragOver(event)
                 }}
                 onDragOver={(event) => {
                   if (state.category.type === 'trash') {
                     event.dataTransfer.dropEffect = 'none'
                   }
-                  props.onDragOver?.(event)
+                  props.onDragOver?.(event, item)
                   onDragOver(event)
                 }}
                 onDragEnd={(event) => {
                   clearDragState()
-                  props.onDragEnd?.(event)
+                  props.onDragEnd?.(event, item)
                 }}
                 onDragLeave={(event) => {
                   if (
@@ -685,11 +723,11 @@ export default function AssetRow(props: AssetRowProps) {
                   ) {
                     clearDragState()
                   }
-                  props.onDragLeave?.(event)
+                  props.onDragLeave?.(event, item)
                 }}
                 onDrop={(event) => {
                   if (state.category.type !== 'trash') {
-                    props.onDrop?.(event)
+                    props.onDrop?.(event, item)
                     clearDragState()
                     const [directoryKey, directoryId] =
                       item.type === backendModule.AssetType.directory ?
@@ -816,4 +854,4 @@ export default function AssetRow(props: AssetRowProps) {
         )
     }
   }
-}
+})
