@@ -35,7 +35,7 @@ interface BackendApi {
     openedPath: string,
     directory: string | null,
     name: string,
-  ) => Promise<string>
+  ) => Promise<ProjectInfo>
 }
 
 // ==========================
