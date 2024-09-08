@@ -22,6 +22,8 @@ import {
   type FieldPath,
   type FieldProps,
   type FieldStateProps,
+  type FieldVariantProps,
+  type TestIdProps,
   type TSchema,
 } from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
@@ -36,8 +38,9 @@ import { INPUT_STYLES } from '../variants'
 export interface InputProps<Schema extends TSchema, TFieldName extends FieldPath<Schema>>
   extends FieldStateProps<Omit<aria.InputProps, 'children' | 'size'>, Schema, TFieldName>,
     FieldProps,
-    Omit<VariantProps<typeof INPUT_STYLES>, 'disabled' | 'invalid'> {
-  readonly 'data-testid'?: string | undefined
+    FieldVariantProps,
+    Omit<VariantProps<typeof INPUT_STYLES>, 'disabled' | 'invalid'>,
+    TestIdProps {
   readonly className?: string
   readonly style?: CSSProperties
   readonly inputRef?: Ref<HTMLInputElement>
@@ -75,10 +78,12 @@ export const Input = forwardRef(function Input<
     icon,
     type = 'text',
     variant,
-    variants,
+    variants = INPUT_STYLES,
     fieldVariants,
     ...inputProps
   } = props
+
+  const testId = props.testId ?? props['data-testid']
 
   const privateInputRef = useRef<HTMLInputElement>(null)
 
@@ -89,7 +94,7 @@ export const Input = forwardRef(function Input<
     defaultValue,
   })
 
-  const classes = (variants ?? INPUT_STYLES)({
+  const classes = variants({
     variant,
     size,
     rounded,
@@ -125,7 +130,7 @@ export const Input = forwardRef(function Input<
 
   return (
     <Form.Field
-      data-testid={props['data-testid']}
+      data-testid={testId}
       form={formInstance}
       name={name}
       fullWidth

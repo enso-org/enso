@@ -37,6 +37,8 @@ import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 
+import { normalizePath } from '#/utilities/fileInfo'
+import { mapNonNullish } from '#/utilities/nullable'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 
@@ -86,8 +88,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     category.type === 'recent' || category.type === 'trash' ? null
     : isCloud ? `${item.path}${item.type === backendModule.AssetType.datalink ? '.datalink' : ''}`
     : asset.type === backendModule.AssetType.project ?
-      localBackend?.getProjectPath(asset.id) ?? null
-    : localBackendModule.extractTypeAndId(asset.id).id
+      mapNonNullish(localBackend?.getProjectPath(asset.id) ?? null, normalizePath)
+    : normalizePath(localBackendModule.extractTypeAndId(asset.id).id)
   const copyMutation = copyHooks.useCopy({ copyText: path ?? '' })
 
   const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })

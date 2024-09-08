@@ -3,7 +3,7 @@ package org.enso.distribution.config
 import com.typesafe.scalalogging.Logger
 import org.enso.distribution.DistributionManager
 import org.enso.distribution.FileSystem.PathSyntax
-import org.enso.yaml.{YamlDecoder, YamlEncoder}
+import org.enso.scala.yaml.{YamlDecoder, YamlEncoder}
 import org.yaml.snakeyaml.{DumperOptions, Yaml}
 import org.yaml.snakeyaml.error.YAMLException
 import org.yaml.snakeyaml.nodes.{MappingNode, Node, NodeTuple, ScalarNode, Tag}

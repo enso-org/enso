@@ -45,8 +45,9 @@ export type StopEffect = () => void
  */
 export class LazySyncEffectSet {
   _dirtyRunners = new Set<() => void>()
-  _scope = effectScope()
   _boundFlush = this.flush.bind(this)
+
+  constructor(private _scope = effectScope()) {}
 
   /**
    * Add an effect to the lazy set. The effect will run once immediately, and any subsequent runs
@@ -293,4 +294,27 @@ export function resumeReactivity<T>(view: NonReactiveView<DeepReadonly<T>>): T {
  */
 export function resumeShallowReactivity<T>(view: NonReactiveView<DeepReadonly<T>>): T {
   return shallowReactive(view) as T
+}
+
+/** Return a writable computed that reads/writes either `left` or `right` depending on the value of `select`
+ *
+ * `true` means `left`, `false` means `right`.
+ */
+export function useSelectRef<T>(
+  select: ToValue<boolean>,
+  left: Ref<T>,
+  right: Ref<T>,
+): WritableComputedRef<T> {
+  return computed({
+    get() {
+      return toValue(select) ? left.value : right.value
+    },
+    set(v: T) {
+      if (toValue(select)) {
+        left.value = v
+      } else {
+        right.value = v
+      }
+    },
+  })
 }

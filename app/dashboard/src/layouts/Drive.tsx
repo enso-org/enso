@@ -10,14 +10,11 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
-import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import AssetListEventType from '#/events/AssetListEventType'
 
-import type * as assetPanel from '#/layouts/AssetPanel'
 import AssetPanel from '#/layouts/AssetPanel'
-import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import type * as assetsTable from '#/layouts/AssetsTable'
 import AssetsTable from '#/layouts/AssetsTable'
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
@@ -31,6 +28,7 @@ import * as result from '#/components/Result'
 
 import * as backendModule from '#/services/Backend'
 
+import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import AssetQuery from '#/utilities/AssetQuery'
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as download from '#/utilities/download'
@@ -56,7 +54,6 @@ export default function Drive(props: DriveProps) {
   const { category, setCategory, hidden, initialProjectName, assetsManagementApiRef } = props
 
   const { isOffline } = offlineHooks.useOffline()
-  const { localStorage } = localStorageProvider.useLocalStorage()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { user } = authProvider.useFullUserSession()
   const localBackend = backendProvider.useLocalBackend()
@@ -64,21 +61,12 @@ export default function Drive(props: DriveProps) {
   const { getText } = textProvider.useText()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
-  const [suggestions, setSuggestions] = React.useState<readonly assetSearchBar.Suggestion[]>([])
-  const [assetPanelPropsRaw, setAssetPanelProps] =
-    React.useState<assetPanel.AssetPanelRequiredProps | null>(null)
-  const assetPanelProps =
-    backend.type === assetPanelPropsRaw?.backend?.type ? assetPanelPropsRaw : null
-  const [isAssetPanelEnabled, setIsAssetPanelEnabled] = React.useState(
-    () => localStorage.get('isAssetPanelVisible') ?? false,
-  )
-  const [isAssetPanelTemporarilyVisible, setIsAssetPanelTemporarilyVisible] = React.useState(false)
   const organizationQuery = useSuspenseQuery({
     queryKey: [backend.type, 'getOrganization'],
     queryFn: () => backend.getOrganization(),
   })
   const organization = organizationQuery.data ?? null
-  const [localRootDirectory] = localStorageProvider.useLocalStorageState('localRootDirectory')
+  const [localRootDirectory] = useLocalStorageState('localRootDirectory')
   const rootDirectoryId = React.useMemo(() => {
     switch (category.type) {
       case 'user':
@@ -104,12 +92,6 @@ export default function Drive(props: DriveProps) {
     isCloud && isOffline ? 'offline'
     : isCloud && !user.isEnabled ? 'not-enabled'
     : 'ok'
-
-  const isAssetPanelVisible = isAssetPanelEnabled || isAssetPanelTemporarilyVisible
-
-  React.useEffect(() => {
-    localStorage.set('isAssetPanelVisible', isAssetPanelEnabled)
-  }, [isAssetPanelEnabled, /* should never change */ localStorage])
 
   const doUploadFiles = React.useCallback(
     (files: File[]) => {
@@ -234,17 +216,7 @@ export default function Drive(props: DriveProps) {
               backend={backend}
               query={query}
               setQuery={setQuery}
-              suggestions={suggestions}
               category={category}
-              isAssetPanelOpen={isAssetPanelVisible}
-              setIsAssetPanelOpen={(valueOrUpdater) => {
-                const newValue =
-                  typeof valueOrUpdater === 'function' ?
-                    valueOrUpdater(isAssetPanelVisible)
-                  : valueOrUpdater
-                setIsAssetPanelTemporarilyVisible(false)
-                setIsAssetPanelEnabled(newValue)
-              }}
               doEmptyTrash={doEmptyTrash}
               doCreateProject={doCreateProject}
               doUploadFiles={doUploadFiles}
@@ -292,31 +264,13 @@ export default function Drive(props: DriveProps) {
                   query={query}
                   setQuery={setQuery}
                   category={category}
-                  setSuggestions={setSuggestions}
                   initialProjectName={initialProjectName}
-                  setAssetPanelProps={setAssetPanelProps}
-                  setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
                   targetDirectoryNodeRef={targetDirectoryNodeRef}
                 />
               }
             </div>
           </div>
-          <div
-            className={tailwindMerge.twMerge(
-              'flex flex-col overflow-hidden transition-min-width duration-side-panel ease-in-out',
-              isAssetPanelVisible ? 'min-w-side-panel' : 'min-w',
-            )}
-          >
-            <AssetPanel
-              isVisible={isAssetPanelVisible}
-              key={assetPanelProps?.item?.item.id}
-              backend={assetPanelProps?.backend ?? null}
-              item={assetPanelProps?.item ?? null}
-              setItem={assetPanelProps?.setItem ?? null}
-              category={category}
-              isReadonly={category.type === 'trash'}
-            />
-          </div>
+          <AssetPanel backendType={backend.type} category={category} />
         </div>
       )
     }

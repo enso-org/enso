@@ -505,6 +505,21 @@ export interface CreateCustomerPortalSessionResponse {
   readonly url: string | null
 }
 
+/** Whether the user is on a plan associated with an organization. */
+export function isUserOnPlanWithOrganization(user: User) {
+  switch (user.plan) {
+    case undefined:
+    case Plan.free:
+    case Plan.solo: {
+      return false
+    }
+    case Plan.team:
+    case Plan.enterprise: {
+      return true
+    }
+  }
+}
+
 /** Whether an {@link AssetPermission} is a {@link UserPermission}. */
 export function isUserPermission(permission: AssetPermission): permission is UserPermission {
   return 'user' in permission
@@ -1027,6 +1042,7 @@ export interface InviteUserRequestBody {
 /** HTTP response body for the "list invitations" endpoint. */
 export interface ListInvitationsResponseBody {
   readonly invitations: readonly Invitation[]
+  readonly availableLicenses: number
 }
 
 /** Invitation to join an organization. */
@@ -1310,10 +1326,10 @@ export default abstract class Backend {
   abstract readonly type: BackendType
 
   /** The path to the root directory of this {@link Backend}. */
-  abstract readonly rootPath: string
+  abstract rootPath(user: User): string
   /** Return the ID of the root directory, if known. */
   abstract rootDirectoryId(
-    user: User | null,
+    user: User,
     organization: OrganizationInfo | null,
     localRootDirectory: Path | null | undefined,
   ): DirectoryId | null
@@ -1340,7 +1356,7 @@ export default abstract class Backend {
   /** Invite a new user to the organization by email. */
   abstract inviteUser(body: InviteUserRequestBody): Promise<void>
   /** Return a list of invitations to the organization. */
-  abstract listInvitations(): Promise<readonly Invitation[]>
+  abstract listInvitations(): Promise<ListInvitationsResponseBody>
   /** Delete an outgoing invitation. */
   abstract deleteInvitation(userEmail: EmailAddress): Promise<void>
   /** Resend an outgoing invitation. */

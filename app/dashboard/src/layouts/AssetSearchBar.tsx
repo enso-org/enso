@@ -19,6 +19,7 @@ import SvgMask from '#/components/SvgMask'
 
 import type Backend from '#/services/Backend'
 
+import { useSuggestions } from '#/providers/DriveProvider'
 import * as array from '#/utilities/array'
 import AssetQuery from '#/utilities/AssetQuery'
 import * as eventModule from '#/utilities/event'
@@ -120,16 +121,16 @@ export interface AssetSearchBarProps {
   readonly isCloud: boolean
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  readonly suggestions: readonly Suggestion[]
 }
 
 /** A search bar containing a text input, and a list of suggestions. */
 export default function AssetSearchBar(props: AssetSearchBarProps) {
-  const { backend, isCloud, query, setQuery, suggestions: rawSuggestions } = props
+  const { backend, isCloud, query, setQuery } = props
   const { getText } = textProvider.useText()
   const { modalRef } = modalProvider.useModalRef()
   /** A cached query as of the start of tabbing. */
   const baseQuery = React.useRef(query)
+  const rawSuggestions = useSuggestions()
   const [suggestions, setSuggestions] = React.useState(rawSuggestions)
   const suggestionsRef = React.useRef(rawSuggestions)
   const [selectedIndices, setSelectedIndices] = React.useState<ReadonlySet<number>>(
