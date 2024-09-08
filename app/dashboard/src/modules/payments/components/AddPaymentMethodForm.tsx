@@ -95,8 +95,8 @@ export function AddPaymentMethodForm<
       form={formInstance}
       onSubmit={() =>
         createPaymentMethodMutation.mutateAsync().then(async ({ paymentMethod }) => {
-          await onSubmit?.(paymentMethod.id)
           cardElement?.clear()
+          await onSubmit?.(paymentMethod.id)
         })
       }
     >

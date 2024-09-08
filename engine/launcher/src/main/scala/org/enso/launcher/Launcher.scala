@@ -505,15 +505,16 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     hideEngineVersion: Boolean = false
   ): Int = {
     val useJSON = cliOptions.useJSON
-    val runtimeVersionParameter =
-      if (hideEngineVersion) None else Some(getEngineVersion(useJSON))
+    val runtimeVersionParameter: java.util.List[VersionDescriptionParameter] =
+      if (hideEngineVersion) java.util.List.of()
+      else java.util.List.of(getEngineVersion(useJSON))
 
     val versionDescription = VersionDescription.make(
       "Enso Launcher",
-      includeRuntimeJVMInfo         = false,
-      enableNativeImageOSWorkaround = true,
-      additionalParameters          = runtimeVersionParameter.toSeq,
-      customVersion                 = Some(CurrentVersion.version.toString)
+      false,
+      true,
+      runtimeVersionParameter,
+      CurrentVersion.version.toString
     )
 
     println(versionDescription.asString(useJSON))
@@ -547,14 +548,16 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       else "Not installed."
     }
 
-    VersionDescriptionParameter(
-      humanReadableName = whichEngine match {
-        case WhichEngine.FromProject(name) =>
-          s"Enso engine from project $name"
-        case WhichEngine.Default => "Current default Enso engine"
-      },
-      jsonName = "runtime",
-      value    = runtimeVersionString
+    val humanReadableName = whichEngine match {
+      case WhichEngine.FromProject(name) =>
+        s"Enso engine from project $name"
+      case WhichEngine.Default => "Current default Enso engine"
+    }
+    val jsonName = "runtime"
+    new VersionDescriptionParameter(
+      humanReadableName,
+      jsonName,
+      runtimeVersionString
     )
   }
 

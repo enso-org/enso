@@ -417,7 +417,7 @@ watchEffect(() => {
     @pointerleave="(nodeHovered = false), updateNodeHover(undefined)"
     @pointermove="updateNodeHover"
   >
-    <Teleport v-if="navigator && !edited" :to="graphNodeSelections">
+    <Teleport v-if="navigator && !edited && graphNodeSelections" :to="graphNodeSelections">
       <GraphNodeSelection
         :data-node-id="nodeId"
         :nodePosition="props.node.position"
@@ -519,7 +519,7 @@ watchEffect(() => {
     </div>
     <GraphNodeMessage
       v-if="visibleMessage"
-      class="afterNode"
+      class="afterNode shiftWhenMenuVisible"
       :message="visibleMessage.text"
       :type="visibleMessage.type"
     />
@@ -645,10 +645,12 @@ watchEffect(() => {
   top: 100%;
   margin-top: var(--node-vertical-gap);
   transform: translateY(var(--viz-below-node));
+}
+.shiftWhenMenuVisible {
   left: 0;
   transition: left 0.1s ease-out;
 }
-.menuVisible .afterNode {
+.menuVisible .shiftWhenMenuVisible {
   left: 40px;
 }
 

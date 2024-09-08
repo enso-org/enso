@@ -3,7 +3,7 @@ import { Button, type ButtonProps } from '#/components/AriaComponents'
 import { tv } from '#/utilities/tailwindVariants'
 
 const SIDEBAR_TAB_BUTTON_STYLES = tv({
-  base: 'font-medium',
+  base: 'z-1 font-medium',
   variants: {
     isActive: { true: 'bg-white opacity-100' },
   },

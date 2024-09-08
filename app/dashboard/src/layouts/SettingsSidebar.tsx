@@ -56,7 +56,7 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
               : <div key={name} className="flex flex-col items-start">
                   <Header
                     id={`${name}_header`}
-                    className="mb-sidebar-section-heading-b h-text px-sidebar-section-heading-x py-sidebar-section-heading-y text-[13.5px] font-bold leading-cozy"
+                    className="z-1 mb-sidebar-section-heading-b h-text px-sidebar-section-heading-x py-sidebar-section-heading-y text-[13.5px] font-bold leading-cozy"
                   >
                     {name}
                   </Header>

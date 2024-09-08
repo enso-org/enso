@@ -63,8 +63,33 @@ export function endOnClickOutside(
   area: Ref<Opt<Element | VueInstance>>,
   interaction: Interaction,
 ): Interaction {
+  return endOnClick(isClickOutside(area), interaction)
+}
+
+/** Returns a new interaction based on the given `interaction`. The new interaction will be ended if a pointerdown event
+ *  occurs such as a `condition` returns `true`.
+ *
+ * See also {@link cancelOnClickOutside}.
+ */
+export function endOnClick(
+  condition: (e: PointerEvent) => boolean,
+  interaction: Interaction,
+): Interaction {
   const handler = injectInteractionHandler()
-  return handleClickOutside(area, interaction, handler.end.bind(handler))
+  return handleClick(condition, interaction, handler.end.bind(handler))
+}
+
+/** Returns a new interaction based on the given `interaction`. The new interaction will be canceled if a pointerdown event
+ *  occurs such as a `condition` returns `true`.
+ *
+ * See also {@link cancelOnClickOutside}.
+ */
+export function cancelOnClick(
+  condition: (e: PointerEvent) => boolean,
+  interaction: Interaction,
+): Interaction {
+  const handler = injectInteractionHandler()
+  return handleClick(condition, interaction, handler.cancel.bind(handler))
 }
 
 /** Returns a new interaction based on the given `interaction`. The new interaction will be canceled if a pointerdown event
@@ -77,12 +102,16 @@ export function cancelOnClickOutside(
   interaction: Interaction,
 ) {
   const handler = injectInteractionHandler()
-  return handleClickOutside(area, interaction, handler.cancel.bind(handler))
+  return handleClick(isClickOutside(area), interaction, handler.cancel.bind(handler))
+}
+
+function isClickOutside(area: Ref<Opt<Element | VueInstance>>) {
+  return (e: PointerEvent) => targetIsOutside(e, unrefElement(area))
 }
 
 /** Common part of {@link cancelOnClickOutside} and {@link endOnClickOutside}. */
-function handleClickOutside(
-  area: Ref<Opt<Element | VueInstance>>,
+function handleClick(
+  condition: (e: PointerEvent) => boolean,
   interaction: Interaction,
   handler: (interaction: Interaction) => void,
 ) {
@@ -90,7 +119,7 @@ function handleClickOutside(
   const wrappedInteraction: Interaction = {
     ...interaction,
     pointerdown: (e: PointerEvent, ...args) => {
-      if (targetIsOutside(e, unrefElement(area))) {
+      if (condition(e)) {
         handler(wrappedInteraction)
         return false
       }

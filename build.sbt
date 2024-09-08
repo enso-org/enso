@@ -559,7 +559,7 @@ val scalaLoggingVersion     = "3.9.4"
 val scalameterVersion       = "0.19"
 val scalatestVersion        = "3.3.0-SNAP4"
 val slf4jVersion            = JPMSUtils.slf4jVersion
-val sqliteVersion           = "3.42.0.0"
+val sqliteVersion           = "3.46.1.0"
 val tikaVersion             = "2.4.1"
 val typesafeConfigVersion   = "1.4.2"
 val junitVersion            = "4.13.2"
@@ -992,7 +992,8 @@ lazy val `version-output` = (project in file("lib/scala/version-output"))
   .settings(
     frgaalJavaCompilerSetting,
     Compile / sourceGenerators += Def.task {
-      val file = (Compile / sourceManaged).value / "buildinfo" / "Info.scala"
+      val file =
+        (Compile / sourceManaged).value / "org" / "enso" / "version" / "GeneratedVersion.java"
       BuildInfo
         .writeBuildInfoFile(
           file                  = file,
@@ -1222,14 +1223,16 @@ lazy val testkit = project
   .in(file("lib/scala/testkit"))
   .settings(
     frgaalJavaCompilerSetting,
-    libraryDependencies ++= Seq(
+    libraryDependencies ++= logbackPkg ++ Seq(
       "org.apache.commons" % "commons-lang3"   % commonsLangVersion,
       "commons-io"         % "commons-io"      % commonsIoVersion,
       "org.scalatest"     %% "scalatest"       % scalatestVersion,
       "junit"              % "junit"           % junitVersion,
-      "com.github.sbt"     % "junit-interface" % junitIfVersion
+      "com.github.sbt"     % "junit-interface" % junitIfVersion,
+      "org.slf4j"          % "slf4j-api"       % slf4jVersion
     )
   )
+  .dependsOn(`logging-service-logback`)
 
 lazy val searcher = project
   .in(file("lib/scala/searcher"))
@@ -1444,7 +1447,7 @@ val truffleRunOptionsSettings = Seq(
   * the potential conflicts with other *.conf files.
   */
 val testLogProviderOptions = Seq(
-  "-Dslf4j.provider=org.enso.logger.TestLogProvider",
+  "-Dslf4j.provider=org.enso.logging.service.logback.test.provider.TestLogProvider",
   "-Dconfig.resource=application-test.conf"
 )
 
@@ -2550,7 +2553,7 @@ lazy val `engine-runner` = project
       val NI_MODULES =
         "org.graalvm.nativeimage,org.graalvm.nativeimage.builder,org.graalvm.nativeimage.base,org.graalvm.nativeimage.driver,org.graalvm.nativeimage.librarysupport,org.graalvm.nativeimage.objectfile,org.graalvm.nativeimage.pointsto,com.oracle.graal.graal_enterprise,com.oracle.svm.svm_enterprise"
       val JDK_MODULES =
-        "jdk.localedata,jdk.compiler.graal,jdk.httpserver,java.naming,java.net.http"
+        "jdk.localedata,jdk.httpserver,java.naming,java.net.http"
       val DEBUG_MODULES  = "jdk.jdwp.agent"
       val PYTHON_MODULES = "jdk.security.auth,java.naming"
 
@@ -2978,6 +2981,7 @@ lazy val editions = project
     cleanFiles += baseDirectory.value / ".." / ".." / "distribution" / "editions"
   )
   .dependsOn(semver)
+  .dependsOn(`version-output`)
   .dependsOn(testkit % Test)
 
 lazy val semver = project

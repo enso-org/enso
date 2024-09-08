@@ -7,6 +7,19 @@
 @tailwind utilities;
 
 :root {
+  --color-primary-rgb: 0 0 0;
+  --color-primary-opacity: 60%;
+  --color-primary: rgb(var(--color-primary-rgb) / var(--color-primary-opacity));
+  --color-accent-rgb: 73 159 75;
+  --color-accent-opacity: 100%;
+  --color-accent: rgb(var(--color-accent-rgb) / var(--color-accent-opacity));
+  --color-danger-rgb: 211 59 11;
+  --color-danger-opacity: 100%;
+  --color-danger: rgb(var(--color-danger-rgb) / var(--color-danger-opacity));
+  --color-invert-rgb: 255 255 255;
+  --color-invert-opacity: 100%;
+  --color-invert: rgb(var(--color-invert-rgb) / var(--color-invert-opacity));
+
   --top-bar-height: 3rem;
   --row-height: 2rem;
   --table-row-height: 2.3125rem;
@@ -476,22 +489,111 @@
 }
 
 ::-webkit-scrollbar:vertical {
-  width: 11px;
+  width: 12px;
 }
 
 ::-webkit-scrollbar:horizontal {
-  height: 11px;
+  height: 12px;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply rounded-3xl bg-primary/15;
+  @apply w-2 rounded-full border-2 border-solid border-transparent;
+
+  background-repeat: no-repeat, no-repeat, no-repeat;
+}
+
+::-webkit-scrollbar-thumb:vertical {
+  background-position: bottom, top, center;
+  background-size:
+    contain,
+    contain,
+    100% calc(100% - 2 * 8px);
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" style="color:rgb(0 0 0 / 0.15)" fill="currentColor" viewBox="0 0 5 5" preserveAspectRatio="xMidYMid meet"><path d="M0 0H5V2.5C5 3.88071 3.88071 5 2.5 5V5C1.11929 5 0 3.88071 0 2.5V0Z" /></svg>'),
+    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" style="color:rgb(0 0 0 / 0.15)" fill="currentColor" viewBox="0 0 5 5" preserveAspectRatio="xMidYMid meet"><path d="M0 2.5C0 1.11929 1.11929 0 2.5 0V0C3.88071 0 5 1.11929 5 2.5V5H0V2.5Z"/></svg>'),
+    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" style="color:rgb(0 0 0 / 0.15)" fill="currentColor" viewBox="0 0 10 100" preserveAspectRatio="none"><rect x="0" y="0" width="10" height="100" /></svg>');
+
+  /* Custom scrollbar for rounded corners */
+  :where(:is([class*='rounded-xl']))& {
+    border-width: 8px;
+    border-right-width: 4px;
+    border-left-width: 0;
+  }
+
+  :where(:is([class*='rounded-2xl']))& {
+    border-width: 16px;
+    border-right-width: 4px;
+    border-left-width: 0;
+  }
+
+  :where(:is([class*='rounded-3xl']))& {
+    border-width: 24px;
+    border-right-width: 4px;
+    border-left-width: 0;
+  }
+
+  :where(:is([class*='rounded-4xl']))& {
+    border-width: 28px;
+    border-right-width: 4px;
+    border-left-width: 0;
+  }
 
   &:hover {
-    @apply bg-primary/25;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" style="color:rgb(0 0 0 / 0.25)" fill="currentColor" viewBox="0 0 5 5" preserveAspectRatio="xMidYMid meet"><path d="M0 0H5V2.5C5 3.88071 3.88071 5 2.5 5V5C1.11929 5 0 3.88071 0 2.5V0Z" /></svg>'),
+      url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" style="color:rgb(0 0 0 / 0.25)" fill="currentColor" viewBox="0 0 5 5" preserveAspectRatio="xMidYMid meet"><path d="M0 2.5C0 1.11929 1.11929 0 2.5 0V0C3.88071 0 5 1.11929 5 2.5V5H0V2.5Z"/></svg>'),
+      url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" style="color:rgb(0 0 0 / 0.25)" fill="currentColor" viewBox="0 0 10 100" preserveAspectRatio="none"><rect x="0" y="0" width="10" height="100" /></svg>');
   }
 
   &:active {
-    @apply bg-primary/20;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" style="color:rgb(0 0 0 / 0.2)" fill="currentColor" viewBox="0 0 5 5" preserveAspectRatio="xMidYMid meet"><path d="M0 0H5V2.5C5 3.88071 3.88071 5 2.5 5V5C1.11929 5 0 3.88071 0 2.5V0Z" /></svg>'),
+      url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" style="color:rgb(0 0 0 / 0.2)" fill="currentColor" viewBox="0 0 5 5" preserveAspectRatio="xMidYMid meet"><path d="M0 2.5C0 1.11929 1.11929 0 2.5 0V0C3.88071 0 5 1.11929 5 2.5V5H0V2.5Z"/></svg>'),
+      url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" style="color:rgb(0 0 0 / 0.2)" fill="currentColor" viewBox="0 0 10 100" preserveAspectRatio="none"><rect x="0" y="0" width="10" height="100" /></svg>');
+  }
+}
+::-webkit-scrollbar-thumb:horizontal {
+  background-position: left, right, center;
+  background-size:
+    contain,
+    contain,
+    calc(100% - 2 * 8px) 100%;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" style="color:rgb(0 0 0 / 0.15); transform: rotate(90deg)" fill="currentColor" viewBox="0 0 5 5" preserveAspectRatio="xMidYMid meet"><path d="M0 0H5V2.5C5 3.88071 3.88071 5 2.5 5V5C1.11929 5 0 3.88071 0 2.5V0Z" /></svg>'),
+    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" style="color:rgb(0 0 0 / 0.15); transform: rotate(90deg)" fill="currentColor" viewBox="0 0 5 5" preserveAspectRatio="xMidYMid meet"><path d="M0 2.5C0 1.11929 1.11929 0 2.5 0V0C3.88071 0 5 1.11929 5 2.5V5H0V2.5Z"/></svg>'),
+    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" style="color:rgb(0 0 0 / 0.15)" fill="currentColor" viewBox="0 0 100 10" preserveAspectRatio="none"><rect x="0" y="0" width="100" height="10" /></svg>');
+
+  /* Custom scrollbar for rounded corners */
+  :where(:is([class*='rounded-xl']))& {
+    border-width: 8px;
+    border-bottom-width: 4px;
+    border-top-width: 0;
+  }
+
+  :where(:is([class*='rounded-2xl']))& {
+    border-width: 16px;
+    border-bottom-width: 4px;
+    border-top-width: 0;
+  }
+
+  :where(:is([class*='rounded-3xl']))& {
+    border-width: 24px;
+    border-bottom-width: 4px;
+    border-top-width: 0;
+  }
+
+  :where(:is([class*='rounded-4xl']))& {
+    border-width: 28px;
+    border-bottom-width: 4px;
+    border-top-width: 0;
+  }
+
+  &:hover {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" style="color:rgb(0 0 0 / 0.25); transform: rotate(90deg)" fill="currentColor" viewBox="0 0 5 5" preserveAspectRatio="xMidYMid meet"><path d="M0 0H5V2.5C5 3.88071 3.88071 5 2.5 5V5C1.11929 5 0 3.88071 0 2.5V0Z" /></svg>'),
+      url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" style="color:rgb(0 0 0 / 0.25); transform: rotate(90deg)" fill="currentColor" viewBox="0 0 5 5" preserveAspectRatio="xMidYMid meet"><path d="M0 2.5C0 1.11929 1.11929 0 2.5 0V0C3.88071 0 5 1.11929 5 2.5V5H0V2.5Z"/></svg>'),
+      url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" style="color:rgb(0 0 0 / 0.25)" fill="currentColor" viewBox="0 0 100 10" preserveAspectRatio="none"><rect x="0" y="0" width="100" height="10" /></svg>');
+  }
+
+  &:active {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" style="color:rgb(0 0 0 / 0.2); transform: rotate(90deg)" fill="currentColor" viewBox="0 0 5 5" preserveAspectRatio="xMidYMid meet"><path d="M0 0H5V2.5C5 3.88071 3.88071 5 2.5 5V5C1.11929 5 0 3.88071 0 2.5V0Z" /></svg>'),
+      url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" style="color:rgb(0 0 0 / 0.2); transform: rotate(90deg)" fill="currentColor" viewBox="0 0 5 5" preserveAspectRatio="xMidYMid meet"><path d="M0 2.5C0 1.11929 1.11929 0 2.5 0V0C3.88071 0 5 1.11929 5 2.5V5H0V2.5Z"/></svg>'),
+      url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" style="color:rgb(0 0 0 / 0.2)" fill="currentColor" viewBox="0 0 100 10" preserveAspectRatio="none"><rect x="0" y="0" width="100" height="10" /></svg>');
   }
 }
 

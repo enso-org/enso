@@ -80,7 +80,7 @@ import * as suspense from '#/components/Suspense'
 
 import AboutModal from '#/modals/AboutModal'
 import { AgreementsModal } from '#/modals/AgreementsModal'
-import * as setOrganizationNameModal from '#/modals/SetOrganizationNameModal'
+import { SetupOrganizationAfterSubscribe } from '#/modals/SetupOrganizationAfterSubscribe'
 
 import LocalBackend from '#/services/LocalBackend'
 import ProjectManager, * as projectManager from '#/services/ProjectManager'
@@ -432,7 +432,7 @@ function AppRouter(props: AppRouterProps) {
       <router.Route element={<authProvider.NotDeletedUserLayout />}>
         <router.Route element={<authProvider.ProtectedLayout />}>
           <router.Route element={<AgreementsModal />}>
-            <router.Route element={<setOrganizationNameModal.SetOrganizationNameModal />}>
+            <router.Route element={<SetupOrganizationAfterSubscribe />}>
               <router.Route element={<InvitedToOrganizationModal />}>
                 <router.Route element={<openAppWatcher.OpenAppWatcher />}>
                   <router.Route
@@ -543,7 +543,7 @@ function LocalBackendPathSynchronizer() {
   const localBackend = useLocalBackend()
   if (localBackend) {
     if (localRootDirectory != null) {
-      localBackend.rootPath = Path(localRootDirectory)
+      localBackend.setRootPath(Path(localRootDirectory))
     } else {
       localBackend.resetRootPath()
     }

@@ -43,6 +43,9 @@ export interface RenderChildrenProps extends BaseRenderProps {
  * Render props for lazy rendering of steps.
  */
 export interface RenderStepProps extends BaseRenderProps {
+  /**
+   * The index of the step, starting from 0.
+   */
   readonly index: number
   readonly isCurrent: boolean
   readonly isCompleted: boolean
@@ -325,7 +328,7 @@ function Step(props: StepProps) {
       : 'next',
   })
 
-  const stepAnimationRotation = 45
+  const stepAnimationRotation = 30
   const stepAnimationScale = 0.5
 
   return (

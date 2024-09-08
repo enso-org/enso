@@ -668,6 +668,8 @@ function checkSpans(expected: NodeSpanMap, encountered: NodeSpanMap, code: strin
   const lostBlock = new Array<Ast>()
   for (const [key, ast] of lost) {
     const [start, end] = sourceRangeFromKey(key)
+    // Do not report lost empty body blocks, we don't want them to be considered for repair.
+    if (start === end && ast instanceof BodyBlock) continue
     ;(code.substring(start, end).match(/[\r\n]/) ? lostBlock : lostInline).push(ast)
   }
   return { lostInline, lostBlock }

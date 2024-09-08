@@ -127,7 +127,6 @@ interface RemoteBackendPostOptions {
 /** Class for sending requests to the Cloud backend API endpoints. */
 export default class RemoteBackend extends Backend {
   readonly type = backend.BackendType.remote
-  readonly rootPath = 'enso://'
   private defaultVersions: Partial<Record<backend.VersionType, DefaultVersionInfo>> = {}
   private user: object.Mutable<backend.User> | null = null
 
@@ -174,16 +173,31 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Return the ID of the root directory. */
-  override rootDirectoryId(
-    user: backend.User | null,
-    organization: backend.OrganizationInfo | null,
-  ): backend.DirectoryId | null {
-    switch (user?.plan ?? null) {
-      case null:
+  /** The path to the root directory of this {@link Backend}. */
+  override rootPath(user: backend.User) {
+    switch (user.plan) {
+      case undefined:
       case backend.Plan.free:
       case backend.Plan.solo: {
-        return user?.rootDirectoryId ?? null
+        return `enso://Users/${user.name}`
+      }
+      case backend.Plan.team:
+      case backend.Plan.enterprise: {
+        return 'enso://'
+      }
+    }
+  }
+
+  /** Return the ID of the root directory. */
+  override rootDirectoryId(
+    user: backend.User,
+    organization: backend.OrganizationInfo | null,
+  ): backend.DirectoryId | null {
+    switch (user.plan) {
+      case undefined:
+      case backend.Plan.free:
+      case backend.Plan.solo: {
+        return user.rootDirectoryId
       }
       case backend.Plan.team:
       case backend.Plan.enterprise: {
@@ -271,7 +285,7 @@ export default class RemoteBackend extends Backend {
   }
 
   /** List all invitations. */
-  override async listInvitations(): Promise<readonly backend.Invitation[]> {
+  override async listInvitations() {
     const response = await this.get<backend.ListInvitationsResponseBody>(
       remoteBackendPaths.INVITATION_PATH,
     )
@@ -279,8 +293,7 @@ export default class RemoteBackend extends Backend {
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'listInvitationsBackendError')
     } else {
-      const data = await response.json()
-      return data.invitations
+      return await response.json()
     }
   }
 

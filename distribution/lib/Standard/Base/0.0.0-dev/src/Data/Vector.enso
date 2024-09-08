@@ -147,7 +147,8 @@ type Vector a
     fill length item =
         Vector.new length _->item
 
-    ## ADVANCED
+    ## PRIVATE
+       ADVANCED
        Creates a new `Vector` by passing a `Builder` to the provided function.
 
        A vector `Builder` is a mutable data structure, that allows for gathering
