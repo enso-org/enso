@@ -10,7 +10,6 @@ interface Data {
 </script>
 
 <script setup lang="ts">
-import { VisualizationContainer } from '@/util/visualizationBuiltins'
 import { computed } from 'vue'
 
 const props = defineProps<{ data: Data }>()
@@ -23,11 +22,9 @@ const src = computed(
 </script>
 
 <template>
-  <VisualizationContainer :belowNode="true">
-    <div class="ImageVisualization">
-      <img :src="src" />
-    </div>
-  </VisualizationContainer>
+  <div class="ImageVisualization">
+    <img :src="src" />
+  </div>
 </template>
 
 <style scoped>

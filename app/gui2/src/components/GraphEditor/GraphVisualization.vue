@@ -1,45 +1,21 @@
 <script setup lang="ts">
 import { visualizationBindings } from '@/bindings'
+import {
+  RawDataSource,
+  useVisualizationData,
+} from '@/components/GraphEditor/GraphVisualization/visualizationData'
+import VisualizationToolbar from '@/components/GraphEditor/GraphVisualization/VisualizationToolbar.vue'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
-import LoadingErrorVisualization from '@/components/visualizations/LoadingErrorVisualization.vue'
+import ResizeHandles from '@/components/ResizeHandles.vue'
 import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
-import { ToolbarItem } from '@/components/visualizations/toolbar'
-import { SavedSize } from '@/components/WithFullscreenMode.vue'
-import { focusIsIn, useEvent } from '@/composables/events'
-import { provideInteractionHandler } from '@/providers/interactionHandler'
+import WithFullscreenMode from '@/components/WithFullscreenMode.vue'
+import { focusIsIn, useEvent, useResizeObserver } from '@/composables/events'
 import { provideVisualizationConfig } from '@/providers/visualizationConfig'
-import { useProjectStore } from '@/stores/project'
-import { type NodeVisualizationConfiguration } from '@/stores/project/executionContext'
-import {
-  DEFAULT_VISUALIZATION_CONFIGURATION,
-  DEFAULT_VISUALIZATION_IDENTIFIER,
-  useVisualizationStore,
-  type VisualizationDataSource,
-} from '@/stores/visualization'
-import type { Visualization } from '@/stores/visualization/runtimeTypes'
-import { Ast } from '@/util/ast'
-import { toError } from '@/util/data/error'
+import { VisualizationDataSource } from '@/stores/visualization'
 import type { Opt } from '@/util/data/opt'
-import { Rect } from '@/util/data/rect'
-import type { Result } from '@/util/data/result'
-import type { URLString } from '@/util/data/urlString'
+import { type BoundsSet, Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import type { Icon } from '@/util/iconName'
-import { ToValue } from '@/util/reactivity'
-import { computedAsync } from '@vueuse/core'
-import {
-  computed,
-  nextTick,
-  onErrorCaptured,
-  onUnmounted,
-  ref,
-  shallowRef,
-  ShallowRef,
-  toValue,
-  watch,
-  watchEffect,
-} from 'vue'
-import { isIdentifier } from 'ydoc-shared/ast'
+import { computed, nextTick, onUnmounted, ref, toRef, watch, watchEffect } from 'vue'
 import { visIdentifierEquals, type VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 /** The minimum width must be at least the total width of:
@@ -48,10 +24,6 @@ import { visIdentifierEquals, type VisualizationIdentifier } from 'ydoc-shared/y
 const MIN_WIDTH_PX = 200
 const MIN_CONTENT_HEIGHT_PX = 32
 const DEFAULT_CONTENT_HEIGHT_PX = 150
-const TOOLBAR_HEIGHT_PX = 36
-
-// Used for testing.
-type RawDataSource = { type: 'raw'; data: any }
 
 const props = defineProps<{
   currentType?: Opt<VisualizationIdentifier>
@@ -78,302 +50,41 @@ const emit = defineEmits<{
   createNodes: [options: NodeCreationOptions[]]
 }>()
 
-const interaction = provideInteractionHandler()
-useEvent(window, 'pointerdown', (e) => interaction.handlePointerEvent(e, 'pointerdown'), {
-  capture: true,
-})
-useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointerup'), {
-  capture: true,
-})
+// ===================================
+// === Visualization-Specific Data ===
+// ===================================
 
-const visPreprocessor = ref(DEFAULT_VISUALIZATION_CONFIGURATION)
-const vueError = ref<Error>()
-
-const projectStore = useProjectStore()
-const visualizationStore = useVisualizationStore()
-
-const configForGettingDefaultVisualization = computed<NodeVisualizationConfiguration | undefined>(
-  () => {
-    if (props.currentType) return
-    if (props.dataSource?.type !== 'node') return
-    return {
-      visualizationModule: 'Standard.Visualization.Helpers',
-      expression: 'a -> a.default_visualization.to_js_object.to_json',
-      expressionId: props.dataSource.nodeId,
-    }
-  },
-)
-
-const defaultVisualizationRaw = projectStore.useVisualizationData(
-  configForGettingDefaultVisualization,
-) as ShallowRef<Result<{ library: { name: string } | null; name: string } | undefined>>
-
-const defaultVisualizationForCurrentNodeSource = computed<VisualizationIdentifier | undefined>(
-  () => {
-    const raw = defaultVisualizationRaw.value
-    if (!raw?.ok || !raw.value || !raw.value.name) return
-    return {
-      name: raw.value.name,
-      module:
-        raw.value.library == null ?
-          { kind: 'Builtin' }
-        : { kind: 'Library', name: raw.value.library.name },
-    }
-  },
-)
-
-const currentType = computed(() => {
-  if (props.currentType) return props.currentType
-  if (defaultVisualizationForCurrentNodeSource.value)
-    return defaultVisualizationForCurrentNodeSource.value
-  const [id] = visualizationStore.types(props.typename)
-  return id
+const {
+  effectiveVisualization,
+  effectiveVisualizationData,
+  updatePreprocessor,
+  allTypes,
+  currentType,
+  setToolbarDefinition,
+  visualizationDefinedToolbar,
+  toolbarOverlay,
+} = useVisualizationData({
+  selectedVis: toRef(props, 'currentType'),
+  dataSource: toRef(props, 'dataSource'),
+  typename: toRef(props, 'typename'),
 })
 
-const visualization = shallowRef<Visualization>()
-const icon = ref<Icon | URLString>()
+// ===========
+// === DOM ===
+// ===========
 
-onErrorCaptured((error) => {
-  vueError.value = error
-  return false
-})
+/** Includes content and toolbars. */
+const panelElement = ref<HTMLElement>()
 
-const nodeVisualizationData = projectStore.useVisualizationData(() => {
-  if (props.dataSource?.type !== 'node') return
-  return {
-    ...visPreprocessor.value,
-    expressionId: props.dataSource.nodeId,
-  }
-})
+/** Contains only the visualization itself. */
+const contentElement = ref<HTMLElement>()
+const contentElementSize = useResizeObserver(contentElement)
 
-const expressionVisualizationData = computedAsync(() => {
-  if (props.dataSource?.type !== 'expression') return
-  if (preprocessorLoading.value) return
-  const preprocessor = visPreprocessor.value
-  const args = preprocessor.positionalArgumentsExpressions
-  const tempModule = Ast.MutableModule.Transient()
-  const preprocessorModule = Ast.parse(preprocessor.visualizationModule, tempModule)
-  // TODO[ao]: it work with builtin visualization, but does not work in general case.
-  // Tracked in https://github.com/orgs/enso-org/discussions/6832#discussioncomment-7754474.
-  if (!isIdentifier(preprocessor.expression)) {
-    console.error(`Unsupported visualization preprocessor definition`, preprocessor)
-    return
-  }
-  const preprocessorQn = Ast.PropertyAccess.new(
-    tempModule,
-    preprocessorModule,
-    preprocessor.expression,
-  )
-  const preprocessorInvocation = Ast.App.PositionalSequence(preprocessorQn, [
-    Ast.Wildcard.new(tempModule),
-    ...args.map((arg) => Ast.Group.new(tempModule, Ast.parse(arg, tempModule))),
-  ])
-  const rhs = Ast.parse(props.dataSource.expression, tempModule)
-  const expression = Ast.OprApp.new(tempModule, preprocessorInvocation, '<|', rhs)
-  return projectStore.executeExpression(props.dataSource.contextId, expression.code())
-})
-
-const effectiveVisualizationData = computed(() => {
-  const name = currentType.value?.name
-  if (props.dataSource?.type === 'raw') return props.dataSource.data
-  if (vueError.value) return { name, error: vueError.value }
-  const visualizationData = nodeVisualizationData.value ?? expressionVisualizationData.value
-  if (!visualizationData) return
-  if (visualizationData.ok) return visualizationData.value
-  else return { name, error: new Error(`${visualizationData.error.payload}`) }
-})
-
-function updatePreprocessor(
-  visualizationModule: string,
-  expression: string,
-  ...positionalArgumentsExpressions: string[]
-) {
-  visPreprocessor.value = { visualizationModule, expression, positionalArgumentsExpressions }
-}
-// Required to work around janky Vue definitions for the type of a Visualization
-const updatePreprocessor_ = updatePreprocessor as (...args: unknown[]) => void
-
-function switchToDefaultPreprocessor() {
-  visPreprocessor.value = DEFAULT_VISUALIZATION_CONFIGURATION
-}
-
-watch(
-  () => [currentType.value, visualization.value],
-  () => (vueError.value = undefined),
-)
-
-// Flag used to prevent rendering the visualization with a stale preprocessor while the new preprocessor is being
-// prepared asynchronously.
-const preprocessorLoading = ref(false)
-watchEffect(async () => {
-  preprocessorLoading.value = true
-  if (currentType.value == null) return
-  visualization.value = undefined
-  icon.value = undefined
-  try {
-    const module = await visualizationStore.get(currentType.value).value
-    if (module) {
-      if (module.defaultPreprocessor != null) {
-        updatePreprocessor(...module.defaultPreprocessor)
-      } else {
-        switchToDefaultPreprocessor()
-      }
-      visualization.value = module.default
-      icon.value = module.icon
-    } else {
-      switch (currentType.value.module.kind) {
-        case 'Builtin': {
-          vueError.value = new Error(
-            `The builtin visualization '${currentType.value.name}' was not found.`,
-          )
-          break
-        }
-        case 'CurrentProject': {
-          vueError.value = new Error(
-            `The visualization '${currentType.value.name}' was not found in the current project.`,
-          )
-          break
-        }
-        case 'Library': {
-          vueError.value = new Error(
-            `The visualization '${currentType.value.name}' was not found in the library '${currentType.value.module.name}'.`,
-          )
-          break
-        }
-      }
-    }
-  } catch (caughtError) {
-    vueError.value = toError(caughtError)
-  }
-  preprocessorLoading.value = false
-})
-
-const isBelowToolbar = ref(false)
-
-const toolbarHeight = computed(() => (isBelowToolbar.value ? TOOLBAR_HEIGHT_PX : 0))
-
-const rect = computed(
-  () =>
-    new Rect(
-      props.nodePosition,
-      new Vec2(
-        Math.max(props.width ?? MIN_WIDTH_PX, props.nodeSize.x),
-        Math.max(props.height ?? DEFAULT_CONTENT_HEIGHT_PX, MIN_CONTENT_HEIGHT_PX) +
-          toolbarHeight.value +
-          props.nodeSize.y,
-      ),
-    ),
-)
-
-watchEffect(() => emit('update:rect', rect.value))
-onUnmounted(() => emit('update:rect', undefined))
-
-const allTypes = computed(() => Array.from(visualizationStore.types(props.typename)))
-
-const isFullscreen = ref(false)
-const currentSavedSize = ref<SavedSize>()
-const toolbar = shallowRef<ToValue<Readonly<ToolbarItem[]>>>()
-
-provideVisualizationConfig({
-  get isFocused() {
-    return props.isFocused
-  },
-  get fullscreen() {
-    return isFullscreen.value
-  },
-  set fullscreen(value) {
-    isFullscreen.value = value
-  },
-  get isFullscreenAllowed() {
-    return props.isFullscreenAllowed
-  },
-  get isResizable() {
-    return props.isResizable
-  },
-  get savedSize() {
-    return currentSavedSize.value
-  },
-  set savedSize(value) {
-    currentSavedSize.value = value
-  },
-  get scale() {
-    return props.scale
-  },
-  get width() {
-    return rect.value.width
-  },
-  set width(value) {
-    emit('update:width', value)
-  },
-  get height() {
-    return rect.value.height - toolbarHeight.value - props.nodeSize.y
-  },
-  set height(value) {
-    emit('update:height', value)
-  },
-  get nodePosition() {
-    return props.nodePosition
-  },
-  set nodePosition(value) {
-    emit('update:nodePosition', value)
-  },
-  get isBelowToolbar() {
-    return isBelowToolbar.value
-  },
-  set isBelowToolbar(value) {
-    isBelowToolbar.value = value
-  },
-  get types() {
-    return allTypes.value
-  },
-  get isCircularMenuVisible() {
-    return props.isCircularMenuVisible
-  },
-  get nodeSize() {
-    return props.nodeSize
-  },
-  get currentType() {
-    return currentType.value ?? DEFAULT_VISUALIZATION_IDENTIFIER
-  },
-  get icon() {
-    return icon.value
-  },
-  get nodeType() {
-    return props.typename
-  },
-  get isPreview() {
-    return props.isPreview ?? false
-  },
-  setToolbar(items) {
-    toolbar.value = items
-  },
-  getToolbar() {
-    return toValue(toolbar.value)
-  },
-  hide: () => emit('update:enabled', false),
-  updateType: (id) => emit('update:id', id),
-  createNodes: (...options) => emit('createNodes', options),
-})
-
-const effectiveVisualization = computed(() => {
-  if (
-    vueError.value ||
-    (nodeVisualizationData.value && !nodeVisualizationData.value.ok) ||
-    (expressionVisualizationData.value && !expressionVisualizationData.value.ok)
-  ) {
-    return LoadingErrorVisualization
-  }
-  if (!visualization.value || effectiveVisualizationData.value == null) {
-    return LoadingVisualization
-  }
-  return visualization.value
-})
-
-const root = ref<HTMLElement>()
+// === Events ===
 
 const keydownHandler = visualizationBindings.handler({
   nextType: () => {
-    if (props.isFocused || focusIsIn(root.value)) {
+    if (props.isFocused || focusIsIn(panelElement.value)) {
       const currentIndex = allTypes.value.findIndex((type) =>
         visIdentifierEquals(type, currentType.value),
       )
@@ -384,7 +95,7 @@ const keydownHandler = visualizationBindings.handler({
     }
   },
   toggleFullscreen: () => {
-    if (props.isFocused || focusIsIn(root.value)) {
+    if (props.isFocused || focusIsIn(panelElement.value)) {
       isFullscreen.value = !isFullscreen.value
     } else {
       return false
@@ -401,30 +112,203 @@ const keydownHandler = visualizationBindings.handler({
 
 useEvent(window, 'keydown', keydownHandler)
 
+function onWheel(event: WheelEvent) {
+  if (
+    event.currentTarget instanceof Element &&
+    (isFullscreen.value ||
+      event.currentTarget.scrollWidth > event.currentTarget.clientWidth ||
+      event.currentTarget.scrollHeight > event.currentTarget.clientHeight)
+  ) {
+    event.stopPropagation()
+  }
+}
+
+// =============================
+// === Sizing and Fullscreen ===
+// =============================
+
+const rect = computed(
+  () =>
+    new Rect(
+      props.nodePosition,
+      new Vec2(
+        Math.max(props.width ?? MIN_WIDTH_PX, props.nodeSize.x),
+        Math.max(props.height ?? DEFAULT_CONTENT_HEIGHT_PX, MIN_CONTENT_HEIGHT_PX) +
+          props.nodeSize.y,
+      ),
+    ),
+)
+
+watchEffect(() => emit('update:rect', rect.value))
+onUnmounted(() => emit('update:rect', undefined))
+
+const isFullscreen = ref(false)
+
+const containerContentSize = computed(
+  () => new Vec2(rect.value.width, rect.value.height - props.nodeSize.y),
+)
+
+// Because ResizeHandles are applying the screen mouse movements, the bounds must be in `screen`
+// space.
+const clientBounds = computed({
+  get() {
+    return new Rect(Vec2.Zero, containerContentSize.value.scale(props.scale))
+  },
+  set(value) {
+    if (resizing.left || resizing.right) emit('update:width', value.width / props.scale)
+    if (resizing.bottom) emit('update:height', value.height / props.scale)
+  },
+})
+
+let resizing: BoundsSet = {}
+
+watch(containerContentSize, (newVal, oldVal) => {
+  if (!resizing.left) return
+  const delta = newVal.x - oldVal.x
+  if (delta !== 0)
+    emit('update:nodePosition', new Vec2(props.nodePosition.x - delta, props.nodePosition.y))
+})
+
+const style = computed(() => {
+  return {
+    'padding-top': `${props.nodeSize.y}px`,
+    width: `${rect.value.width}px`,
+    height: `${rect.value.height}px`,
+  }
+})
+
+const fullscreenAnimating = ref(false)
+
+// TODO
+const overflow = ref(false)
+const toolbarOverflow = ref(false)
+
 watch(
   () => isFullscreen,
   (f) => {
-    f && nextTick(() => root.value?.focus())
+    f && nextTick(() => panelElement.value?.focus())
   },
 )
+
+// =========================
+// === Visualization API ===
+// =========================
+
+provideVisualizationConfig({
+  get size() {
+    return contentElementSize.value
+  },
+  get nodeType() {
+    return props.typename
+  },
+  setToolbar(items) {
+    setToolbarDefinition(items)
+  },
+  setToolbarOverlay(overlay) {
+    toolbarOverlay.value = overlay
+  },
+  createNodes: (...options) => emit('createNodes', options),
+})
 </script>
 
 <template>
-  <div ref="root" class="GraphVisualization" tabindex="-1">
-    <Suspense>
-      <template #fallback><LoadingVisualization :data="{}" /></template>
-      <component
-        :is="effectiveVisualization"
-        :data="effectiveVisualizationData"
-        @update:preprocessor="updatePreprocessor_"
-      />
-    </Suspense>
+  <div class="GraphVisualization" :style="style">
+    <WithFullscreenMode :fullscreen="isFullscreen" @update:animating="fullscreenAnimating = $event">
+      <div
+        ref="panelElement"
+        class="VisualizationPanel"
+        :class="{
+          fullscreen: isFullscreen || fullscreenAnimating,
+          nonInteractive: isPreview,
+        }"
+        tabindex="-1"
+      >
+        <VisualizationToolbar
+          v-model:isFullscreen="isFullscreen"
+          :currentVis="currentType"
+          :interactive="!isPreview"
+          :hideButton="
+            isFullscreen ? 'hide'
+            : isCircularMenuVisible ? 'invisible'
+            : 'show'
+          "
+          :isFullscreenAllowed="isFullscreenAllowed"
+          :overflow="toolbarOverflow"
+          :allTypes="allTypes"
+          :visualizationDefinedToolbar="visualizationDefinedToolbar"
+          :typename="typename"
+          :class="{ overlay: toolbarOverlay }"
+          @update:currentVis="emit('update:id', $event)"
+          @hide="emit('update:enabled', false)"
+        />
+        <div
+          ref="contentElement"
+          class="content scrollable"
+          :class="{ overflow }"
+          @wheel.passive="onWheel"
+        >
+          <Suspense>
+            <template #fallback><LoadingVisualization :data="{}" /></template>
+            <component
+              :is="effectiveVisualization"
+              :data="effectiveVisualizationData"
+              @update:preprocessor="updatePreprocessor"
+            />
+          </Suspense>
+        </div>
+      </div>
+    </WithFullscreenMode>
+    <ResizeHandles
+      v-if="!isPreview && isResizable"
+      v-model="clientBounds"
+      left
+      right
+      bottom
+      @update:resizing="resizing = $event"
+    />
   </div>
 </template>
 
 <style scoped>
 .GraphVisualization {
+  --resize-handle-inside: var(--visualization-resize-handle-inside);
+  --resize-handle-outside: var(--visualization-resize-handle-outside);
+  --resize-handle-radius: var(--radius-default);
+  position: absolute;
+  border-radius: var(--radius-default);
+  background: var(--color-visualization-bg);
   /** Prevent drawing on top of other UI elements (e.g. dropdown widgets). */
   isolation: isolate;
+}
+
+.VisualizationPanel {
+  --permanent-toolbar-width: 240px;
+  color: var(--color-text);
+  cursor: default;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  &.fullscreen {
+    background: var(--color-visualization-bg);
+  }
+}
+
+.content {
+  overflow: auto;
+  contain: strict;
+  height: 100%;
+}
+
+.overflow {
+  overflow: visible;
+}
+
+.nonInteractive {
+  pointer-events: none;
+}
+
+.overlay {
+  position: absolute;
 }
 </style>

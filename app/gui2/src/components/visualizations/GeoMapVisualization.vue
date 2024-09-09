@@ -88,7 +88,7 @@ declare var deck: typeof import('deck.gl')
 
 <script setup lang="ts">
 /// <reference types="@danmarshall/deckgl-typings" />
-import { VisualizationContainer, useVisualizationConfig } from '@/util/visualizationBuiltins'
+import { useVisualizationConfig } from '@/util/visualizationBuiltins'
 import type { Deck } from 'deck.gl'
 import { computed, onUnmounted, ref, watchPostEffect } from 'vue'
 
@@ -430,12 +430,11 @@ config.setToolbar([
     onClick: () => {},
   },
 ])
+config.setToolbarOverlay(true)
 </script>
 
 <template>
-  <VisualizationContainer :overflow="true">
-    <div ref="mapNode" class="GeoMapVisualization" @pointerdown.stop @wheel.stop></div>
-  </VisualizationContainer>
+  <div ref="mapNode" class="GeoMapVisualization" @pointerdown.stop @wheel.stop></div>
 </template>
 
 <style scoped>

@@ -102,44 +102,11 @@ export const setupVue3 = defineSetupVue3(({ app, addWrapper }) => {
   // Required for visualization stories.
   provideVisualizationConfig._mock(
     {
-      fullscreen: false,
-      isFullscreenAllowed: true,
-      isResizable: true,
-      savedSize: undefined,
-      scale: 1,
-      width: 200,
-      height: 150,
-      hide() {},
-      isCircularMenuVisible: false,
-      isBelowToolbar: false,
-      nodeSize: new Vec2(200, 150),
-      currentType: {
-        module: { kind: 'Builtin' },
-        name: 'Current Type',
-      },
-      icon: 'braces',
-      types: [
-        {
-          module: { kind: 'Builtin' },
-          name: 'Example',
-        },
-        {
-          module: { kind: 'Builtin' },
-          name: 'Types',
-        },
-        {
-          module: { kind: 'Builtin' },
-          name: 'Here',
-        },
-      ],
-      updateType() {},
+      size: new Vec2(200, 150),
       createNodes() {},
-      isFocused: false,
-      isPreview: false,
-      nodePosition: Vec2.Zero,
       nodeType: 'component',
-      getToolbar: () => undefined,
       setToolbar: () => {},
+      setToolbarOverlay: () => {},
     },
     app,
   )

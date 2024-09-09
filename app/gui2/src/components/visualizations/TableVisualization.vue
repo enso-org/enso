@@ -4,7 +4,7 @@ import { SortModel, useTableVizToolbar } from '@/components/visualizations/table
 import AgGridTableView from '@/components/widgets/AgGridTableView.vue'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
-import { VisualizationContainer, useVisualizationConfig } from '@/util/visualizationBuiltins'
+import { useVisualizationConfig } from '@/util/visualizationBuiltins'
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
 import type {
@@ -616,44 +616,42 @@ config.setToolbar(
 </script>
 
 <template>
-  <VisualizationContainer :belowToolbar="true" :overflow="true" :toolbarOverflow="true">
-    <div ref="rootNode" class="TableVisualization" @wheel.stop @pointerdown.stop>
-      <div class="table-visualization-status-bar">
-        <select
-          v-if="isRowCountSelectorVisible"
-          @change="setRowLimit(Number(($event.target as HTMLOptionElement).value))"
-        >
-          <option
-            v-for="limit in selectableRowLimits"
-            :key="limit"
-            :value="limit"
-            v-text="limit"
-          ></option>
-        </select>
-        <template v-if="showRowCount">
-          <span
-            v-if="isRowCountSelectorVisible && isTruncated"
-            v-text="` of ${rowCount} rows (Sorting/Filtering disabled).`"
-          ></span>
-          <span v-else-if="isRowCountSelectorVisible" v-text="' rows.'"></span>
-          <span v-else-if="rowCount === 1" v-text="'1 row.'"></span>
-          <span v-else v-text="`${rowCount} rows.`"></span>
-        </template>
-      </div>
-      <!-- TODO[ao]: Suspence in theory is not needed here (the entire visualization is inside
-       suspense), but for some reason it causes reactivity loop - see https://github.com/enso-org/enso/issues/10782 -->
-      <Suspense>
-        <AgGridTableView
-          class="scrollable grid"
-          :columnDefs="columnDefs"
-          :rowData="rowData"
-          :defaultColDef="defaultColDef"
-          :textFormatOption="textFormatterSelected"
-          @sortOrFilterUpdated="(e) => checkSortAndFilter(e)"
-        />
-      </Suspense>
+  <div ref="rootNode" class="TableVisualization" @wheel.stop @pointerdown.stop>
+    <div class="table-visualization-status-bar">
+      <select
+        v-if="isRowCountSelectorVisible"
+        @change="setRowLimit(Number(($event.target as HTMLOptionElement).value))"
+      >
+        <option
+          v-for="limit in selectableRowLimits"
+          :key="limit"
+          :value="limit"
+          v-text="limit"
+        ></option>
+      </select>
+      <template v-if="showRowCount">
+        <span
+          v-if="isRowCountSelectorVisible && isTruncated"
+          v-text="` of ${rowCount} rows (Sorting/Filtering disabled).`"
+        ></span>
+        <span v-else-if="isRowCountSelectorVisible" v-text="' rows.'"></span>
+        <span v-else-if="rowCount === 1" v-text="'1 row.'"></span>
+        <span v-else v-text="`${rowCount} rows.`"></span>
+      </template>
     </div>
-  </VisualizationContainer>
+    <!-- TODO[ao]: Suspence in theory is not needed here (the entire visualization is inside
+     suspense), but for some reason it causes reactivity loop - see https://github.com/enso-org/enso/issues/10782 -->
+    <Suspense>
+      <AgGridTableView
+        class="scrollable grid"
+        :columnDefs="columnDefs"
+        :rowData="rowData"
+        :defaultColDef="defaultColDef"
+        :textFormatOption="textFormatterSelected"
+        @sortOrFilterUpdated="(e) => checkSortAndFilter(e)"
+      />
+    </Suspense>
+  </div>
 </template>
 
 <style scoped>

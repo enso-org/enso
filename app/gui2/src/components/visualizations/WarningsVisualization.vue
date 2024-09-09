@@ -1,7 +1,7 @@
 <script lang="ts">
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
-import { useVisualizationConfig, VisualizationContainer } from '@/util/visualizationBuiltins'
+import { useVisualizationConfig } from '@/util/visualizationBuiltins'
 import { computed } from 'vue'
 
 export const name = 'Warnings'
@@ -36,14 +36,12 @@ config.setToolbar([
 </script>
 
 <template>
-  <VisualizationContainer :belowToolbar="true">
-    <div class="WarningsVisualization">
-      <ul>
-        <li v-if="props.data.length === 0">There are no warnings.</li>
-        <li v-for="(warning, index) in props.data" :key="index" v-text="warning"></li>
-      </ul>
-    </div>
-  </VisualizationContainer>
+  <div class="WarningsVisualization">
+    <ul>
+      <li v-if="props.data.length === 0">There are no warnings.</li>
+      <li v-for="(warning, index) in props.data" :key="index" v-text="warning"></li>
+    </ul>
+  </div>
 </template>
 
 <style scoped>

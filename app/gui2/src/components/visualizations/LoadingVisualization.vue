@@ -1,6 +1,5 @@
 <script lang="ts">
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
-import { VisualizationContainer } from '@/util/visualizationBuiltins'
 
 export const name = 'Loading'
 export const inputType = 'Any'
@@ -11,11 +10,9 @@ const _props = defineProps<{ data: unknown }>()
 </script>
 
 <template>
-  <VisualizationContainer>
-    <div class="LoadingVisualization">
-      <LoadingSpinner />
-    </div>
-  </VisualizationContainer>
+  <div class="LoadingVisualization">
+    <LoadingSpinner />
+  </div>
 </template>
 
 <style scoped>

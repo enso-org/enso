@@ -9,7 +9,7 @@ import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import JsonValueWidget from '@/components/visualizations/JSONVisualization/JsonValueWidget.vue'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
-import { useVisualizationConfig, VisualizationContainer } from '@/util/visualizationBuiltins'
+import { useVisualizationConfig } from '@/util/visualizationBuiltins'
 
 const props = defineProps<{ data: unknown }>()
 
@@ -55,15 +55,13 @@ function createProjection(path: (string | number)[][]) {
 </script>
 
 <template>
-  <VisualizationContainer :belowToolbar="true">
-    <div class="JSONVisualization">
-      <JsonValueWidget
-        :data="props.data"
-        :class="{ viewonly: !isClickThroughEnabled }"
-        @createProjection="createProjection"
-      />
-    </div>
-  </VisualizationContainer>
+  <div class="JSONVisualization">
+    <JsonValueWidget
+      :data="props.data"
+      :class="{ viewonly: !isClickThroughEnabled }"
+      @createProjection="createProjection"
+    />
+  </div>
 </template>
 
 <style scoped>
