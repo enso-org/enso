@@ -67,7 +67,7 @@ case object GatherDiagnostics extends IRPass {
     */
   private def gatherMetadata(ir: IR): DiagnosticsMeta = {
     val builder = List.newBuilder[Diagnostic]
-    val process: Consumer[IR] = {
+    ir.preorder({
       case err: Diagnostic =>
         builder.addOne(err)
       case arg: DefinitionArgument =>
@@ -89,8 +89,7 @@ case object GatherDiagnostics extends IRPass {
         diagnosticsList(x).foreach(builder.addOne)
       case x =>
         diagnosticsList(x).foreach(builder.addOne)
-    }
-    ir.preorder(process)
+    }: Consumer[IR])
 
     DiagnosticsMeta(
       builder.result().distinctBy(d => new DiagnosticKeys(d))

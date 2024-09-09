@@ -37,6 +37,7 @@ import org.enso.text.editing.model.IdMap
 import java.io.File
 import java.util
 import java.util.UUID
+import java.util.function.Consumer
 import java.util.logging.Level
 import scala.jdk.OptionConverters._
 
@@ -418,25 +419,26 @@ class EnsureCompiledJob(
         "Empty dataflow analysis metadata during the interactive compilation."
       )
 
-    val resolutionNotFoundKeys =
-      ir.preorder()
-        .collect {
-          case err @ expression.errors.Resolution(
-                _,
-                expression.errors.Resolution
-                  .ResolverError(BindingsMap.ResolutionNotFound),
-                _
-              ) =>
-            DataflowAnalysis.DependencyInfo.Type.Static(
-              err.getId(),
-              err.getExternalId
-            )
-        }
-        .toSet
+    val builder = Set.newBuilder[DataflowAnalysis.DependencyInfo.Type]
+    ir.preorder({
+      case err @ expression.errors.Resolution(
+            _,
+            expression.errors.Resolution
+              .ResolverError(BindingsMap.ResolutionNotFound),
+            _
+          ) =>
+        builder += DataflowAnalysis.DependencyInfo.Type.Static(
+          err.getId(),
+          err.getExternalId
+        )
+      case _ =>
+    }: Consumer[IR])
 
-    resolutionNotFoundKeys.flatMap(
-      metadata.dependents.getExternal(_).getOrElse(Set())
-    )
+    builder
+      .result()
+      .flatMap(
+        metadata.dependents.getExternal(_).getOrElse(Set())
+      )
   }
 
   /** Run the invalidation commands.

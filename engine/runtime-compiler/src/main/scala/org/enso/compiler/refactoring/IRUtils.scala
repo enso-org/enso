@@ -19,7 +19,13 @@ trait IRUtils {
     * @return the first node with the given external id in `ir`
     */
   def findByExternalId(ir: IR, externalId: UUID @ExternalID): Option[IR] = {
-    ir.preorder.find(_.getExternalId.contains(externalId))
+    var result: IR = null
+    ir.preorder { ir =>
+      if ((result eq null) && ir.getExternalId.contains(externalId)) {
+        result = ir
+      }
+    }
+    Option(result)
   }
 
   /** Find usages of a local defined in the body block.
@@ -133,7 +139,13 @@ trait IRUtils {
     * @return the `ir` node with the given identifier
     */
   private def findById(ir: IR, id: UUID @Identifier): Option[IR] = {
-    ir.preorder.find(_.getId == id)
+    var result: IR = null
+    ir.preorder { ir =>
+      if ((result eq null) && ir.getId == id) {
+        result = ir
+      }
+    }
+    Option(result)
   }
 }
 
