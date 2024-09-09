@@ -3,13 +3,14 @@ package org.enso.interpreter.test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import org.enso.common.MethodNames;
-import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
@@ -134,14 +135,16 @@ public class SymbolResolutionTest extends ContextTest {
         main =
             static_method
         """;
-    try (var ctx = ContextUtils.createDefaultContext()) {
+    var out = new ByteArrayOutputStream();
+    try (var ctx = ContextUtils.defaultContextBuilder().out(out).err(out).build()) {
       try {
         var res = ContextUtils.evalModule(ctx, code);
         fail("Should throw exception. Instead got: " + res);
       } catch (PolyglotException ex) {
-        var panic = (PanicException) ContextUtils.unwrapValue(ctx, ex.getGuestObject());
-        var errMsg = panic.getPayload().toString();
-        assertThat(errMsg, allOf(containsString("The name"), containsString("could not be found")));
+        assertThat(ex.isSyntaxError(), is(true));
+        assertThat(
+            out.toString(),
+            allOf(containsString("The name"), containsString("could not be found")));
       }
     }
   }
