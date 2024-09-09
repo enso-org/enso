@@ -162,7 +162,19 @@ public final class ContextUtils {
       var b = Source.newBuilder("enso", src, name);
       s = b.buildLiteral();
     }
-    var module = ctx.eval(s);
+    return evalModule(ctx, s, methodName);
+  }
+
+  /**
+   * Evaluates the given source as if it was in a module with given name.
+   *
+   * @param ctx context to evaluate the module at
+   * @param src The source code of the module
+   * @param methodName name of main method to invoke
+   * @return The value returned from the main method of the unnamed module.
+   */
+  public static Value evalModule(Context ctx, Source src, String methodName) {
+    var module = ctx.eval(src);
     var assocType = module.invokeMember(Module.GET_ASSOCIATED_TYPE);
     var method = module.invokeMember(Module.GET_METHOD, assocType, methodName);
     return "main".equals(methodName) ? method.execute() : method.execute(assocType);
