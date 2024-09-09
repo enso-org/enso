@@ -15,11 +15,7 @@ import SpreadsheetsImage from '#/assets/spreadsheets.svg'
 import VisualizeImage from '#/assets/visualize.png'
 import WeatherImage from '#/assets/weather.png'
 
-import * as aria from '#/components/aria'
-import FocusArea from '#/components/styled/FocusArea'
-import FocusRing from '#/components/styled/FocusRing'
-
-import * as tailwindMerge from '#/utilities/tailwindMerge'
+import { Button, Text } from '#/components/AriaComponents'
 
 // =========================
 // === List of templates ===
@@ -147,34 +143,28 @@ function ProjectTile(props: InternalProjectTileProps) {
   const { id, title, description, background } = sample
 
   return (
-    <div className="flex flex-col gap-sample">
-      <FocusArea direction="horizontal">
-        {(innerProps) => (
-          <FocusRing placement="after">
-            <aria.Button
-              key={title}
-              className="focus-child relative flex h-sample grow cursor-pointer flex-col text-left after:pointer-events-none after:absolute after:inset after:rounded-default"
-              onPress={() => {
-                createProject(id, title)
-              }}
-              {...innerProps}
-            >
-              <div
-                style={{ background }}
-                className={tailwindMerge.twMerge(
-                  'h-sample-image w-full rounded-t-default',
-                  background == null && 'bg-frame',
-                )}
-              />
-              <div className="w-full grow rounded-b-default bg-frame px-sample-description-x pb-sample-description-b pt-sample-description-t backdrop-blur">
-                <aria.Heading className="text-header text-sm font-bold">{title}</aria.Heading>
-                <div className="text-ellipsis text-xs leading-snug">{description}</div>
-              </div>
-            </aria.Button>
-          </FocusRing>
-        )}
-      </FocusArea>
-    </div>
+    <Button
+      variant="custom"
+      size="custom"
+      rounded="xxxlarge"
+      key={title}
+      className="flex-none snap-center snap-always overflow-hidden"
+      style={{ background }}
+      onPress={() => {
+        createProject(id, title)
+      }}
+    >
+      <div className="flex aspect-[7/4] h-40 w-full flex-col justify-end bg-gradient-to-t from-primary to-transparent">
+        <div className="flex w-full flex-col items-start px-4 pb-3 text-start">
+          <Text variant="subtitle" color="invert" nowrap={false}>
+            {title}
+          </Text>
+          <Text variant="body-sm" color="invert" nowrap={false}>
+            {description}
+          </Text>
+        </div>
+      </div>
+    </Button>
   )
 }
 
@@ -193,12 +183,10 @@ export default function Samples(props: SamplesProps) {
   const { groupName, createProject } = props
 
   return (
-    <div data-testid="samples" className="flex flex-col gap-subheading px-[5px]">
-      <aria.Heading level={2} className="text-subheading font-normal">
-        {groupName}
-      </aria.Heading>
+    <div data-testid="samples" className="flex w-full flex-col">
+      <Text.Heading level={2}>{groupName}</Text.Heading>
 
-      <div className="grid grid-cols-fill-samples gap-samples">
+      <div className="-mx-3.5 inline-flex snap-x snap-mandatory gap-4 overflow-x-auto rounded-2xl px-3.5 py-2">
         {SAMPLES.filter((s) => s.group === groupName).map((sample) => (
           <ProjectTile key={sample.id} sample={sample} createProject={createProject} />
         ))}

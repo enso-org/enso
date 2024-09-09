@@ -5,12 +5,11 @@ import BookImage from '#/assets/book.png'
 import Logo from '#/assets/enso_logo_large.svg'
 import IntegrationsImage from '#/assets/integrations.png'
 import YoutubeIcon from '#/assets/youtube.svg'
+import { Button, Text } from '#/components/AriaComponents'
 
 import * as textProvider from '#/providers/TextProvider'
 
-import * as aria from '#/components/aria'
-import FocusArea from '#/components/styled/FocusArea'
-import FocusRing from '#/components/styled/FocusRing'
+import SvgMask from '#/components/SvgMask'
 
 // ================
 // === WhatsNew ===
@@ -21,106 +20,108 @@ export default function WhatsNew() {
   const { getText } = textProvider.useText()
 
   return (
-    <div className="flex flex-col gap-subheading px-[5px]">
-      <aria.Heading level={2} className="text-subheading font-normal">
-        {getText('discoverWhatsNew')}
-      </aria.Heading>
-      <div className="grid grid-cols-fill-news-items gap-news-items">
-        <FocusArea direction="horizontal">
-          {(innerProps) => (
-            <FocusRing>
-              <a
-                className="focus-child relative h-news-item rounded-default bg-green text-tag-text"
-                rel="noreferrer"
-                target="_blank"
-                href="https://help.enso.org/"
-                {...innerProps}
-              >
-                <img className="absolute left-1/2 top-7 mx-auto -translate-x-1/2" src={BookImage} />
-                <div className="absolute bottom flex w-full flex-col p-news-item-description">
-                  <aria.Text className="text-subheading font-bold">
-                    {getText('newsItemHelpServer')}
-                  </aria.Text>
-                  <aria.Text className="py-news-item-subtitle-y text-sm leading-snug">
-                    {getText('newsItemHelpServerDescription')}
-                  </aria.Text>
-                </div>
-              </a>
-            </FocusRing>
-          )}
-        </FocusArea>
-        <FocusArea direction="horizontal">
-          {(innerProps) => (
-            <FocusRing>
-              <a
-                className="focus-child relative h-news-item rounded-default bg-youtube text-tag-text"
-                rel="noreferrer"
-                target="_blank"
-                href="https://www.youtube.com/@Enso_Analytics/videos"
-                {...innerProps}
-              >
-                <img
-                  className="absolute left-1/2 top-6 mx-auto -translate-x-1/2"
-                  src={YoutubeIcon}
-                />
-                <div className="absolute bottom flex w-full flex-col p-news-item-description">
-                  <aria.Text className="text-subheading font-bold">
-                    {getText('newsItemWeeklyTutorials')}
-                  </aria.Text>
-                  <aria.Text className="py-news-item-subtitle-y text-sm leading-snug">
-                    {getText('newsItemWeeklyTutorialsDescription')}
-                  </aria.Text>
-                </div>
-              </a>
-            </FocusRing>
-          )}
-        </FocusArea>
-        <FocusArea direction="horizontal">
-          {(innerProps) => (
-            <FocusRing>
-              <a
-                className="focus-child relative h-news-item rounded-default bg-green text-tag-text"
-                rel="noreferrer"
-                target="_blank"
-                href="https://community.ensoanalytics.com/"
-                {...innerProps}
-              >
-                <img className="absolute left-1/2 top-7 mx-auto -translate-x-1/2" src={Logo} />
-                <div className="absolute bottom flex w-full flex-col p-news-item-description">
-                  <aria.Text className="text-subheading font-bold">
-                    {getText('newsItemCommunityServer')}
-                  </aria.Text>
-                  <aria.Text className="py-news-item-subtitle-y text-sm leading-snug">
-                    {getText('newsItemCommunityServerDescription')}
-                  </aria.Text>
-                </div>
-              </a>
-            </FocusRing>
-          )}
-        </FocusArea>
-        <FocusArea direction="horizontal">
-          {(innerProps) => (
-            <FocusRing>
-              <a
-                className="focus-child relative col-span-1 h-news-item rounded-default bg-v3 text-tag-text"
-                rel="noreferrer"
-                target="_blank"
-                href="https://community.ensoanalytics.com/c/what-is-new-in-enso/"
-                style={{ background: `url(${IntegrationsImage}) top -85px right -390px / 1055px` }}
-                {...innerProps}
-              >
-                <div className="absolute bottom flex w-full flex-col p-news-item-description">
-                  <aria.Text className="text-subheading font-bold">
-                    {getText('newsItem3Beta')}
-                  </aria.Text>
-                  <aria.Text className="py-news-item-subtitle-y text-sm leading-snug">
-                    {getText('newsItem3BetaDescription')}
-                  </aria.Text>
-                </div>
-              </a>
-            </FocusRing>
-          )}
-        </FocusArea>
+    <div className="flex w-full flex-col">
+      <Text.Heading level={2}>{getText('discoverWhatsNew')}</Text.Heading>
+
+      <div className="-mx-3.5 inline-flex snap-x snap-mandatory gap-4 overflow-x-auto rounded-2xl px-3.5 py-2">
+        <Button
+          variant="custom"
+          size="custom"
+          rounded="xxxlarge"
+          className="flex-none snap-center snap-always overflow-hidden bg-accent"
+          rel="noreferrer"
+          target="_blank"
+          href="https://help.enso.org/"
+        >
+          <SvgMask
+            src={BookImage}
+            className="absolute left-1/2 top-5 mx-auto -translate-x-1/2"
+            color="white"
+          />
+
+          <div className="flex aspect-[7/4] h-40 w-full flex-col justify-end bg-gradient-to-t from-accent-dark to-transparent">
+            <div className="flex w-full flex-col items-start px-4 pb-3 text-start">
+              <Text variant="subtitle" color="invert" nowrap={false}>
+                {getText('newsItemHelpServer')}
+              </Text>
+              <Text variant="body-sm" color="invert" nowrap={false}>
+                {getText('newsItemHelpServerDescription')}
+              </Text>
+            </div>
+          </div>
+        </Button>
+        <Button
+          variant="custom"
+          size="custom"
+          rounded="xxxlarge"
+          className="flex-none snap-center snap-always overflow-hidden bg-youtube"
+          rel="noreferrer"
+          target="_blank"
+          href="https://www.youtube.com/@Enso_Analytics/videos"
+        >
+          <SvgMask
+            src={YoutubeIcon}
+            className="absolute left-1/2 top-6 mx-auto -translate-x-1/2"
+            color="white"
+          />
+
+          <div className="from-youtube-transparent flex aspect-[7/4] h-40 w-full flex-col justify-end bg-gradient-to-t">
+            <div className="flex w-full flex-col items-start px-4 pb-3 text-start">
+              <Text variant="subtitle" color="invert" nowrap={false}>
+                {getText('newsItemWeeklyTutorials')}
+              </Text>
+              <Text variant="body-sm" color="invert" nowrap={false}>
+                {getText('newsItemWeeklyTutorialsDescription')}
+              </Text>
+            </div>
+          </div>
+        </Button>
+        <Button
+          variant="custom"
+          size="custom"
+          rounded="xxxlarge"
+          className="flex-none snap-center snap-always overflow-hidden bg-green"
+          rel="noreferrer"
+          target="_blank"
+          href="https://community.ensoanalytics.com/"
+        >
+          <SvgMask
+            src={Logo}
+            className="absolute left-1/2 top-4 mx-auto -translate-x-1/2"
+            color="white"
+          />
+          <div className="flex aspect-[7/4] h-40 w-full flex-col justify-end bg-gradient-to-t from-accent-dark to-transparent">
+            <div className="flex w-full flex-col items-start px-4 pb-3 text-start">
+              <Text variant="subtitle" color="invert" nowrap={false}>
+                {getText('newsItemCommunityServer')}
+              </Text>
+              <Text variant="body-sm" color="invert" nowrap={false}>
+                {getText('newsItemCommunityServerDescription')}
+              </Text>
+            </div>
+          </div>
+        </Button>
+        <Button
+          variant="custom"
+          size="custom"
+          rounded="xxxlarge"
+          className="flex-none snap-center snap-always overflow-hidden"
+          target="_blank"
+          href="https://community.ensoanalytics.com/c/what-is-new-in-enso/"
+          style={{ background: `url(${IntegrationsImage}) top -85px right -390px / 1055px` }}
+        >
+          <div className="flex aspect-[7/4] h-40 w-full flex-col justify-end bg-gradient-to-t from-primary to-transparent">
+            <div className="absolute bottom left right flex flex-col items-start px-4 pb-3 text-start">
+              <Text variant="subtitle" color="invert" nowrap={false}>
+                {getText('newsItem3Beta')}
+              </Text>
+
+              <Text variant="body-sm" color="invert" nowrap={false}>
+                {getText('newsItem3BetaDescription')}
+              </Text>
+            </div>
+          </div>
+        </Button>
       </div>
     </div>
   )
