@@ -52,7 +52,7 @@ case class BindingsMap(
     ensureConvertedToConcrete()
     _resolvedImports
   }
-  def resolvedImports_(v: List[ResolvedImport]): Unit = {
+  def resolvedImports_=(v: List[ResolvedImport]): Unit = {
     _resolvedImports = v
   }
 
@@ -67,7 +67,7 @@ case class BindingsMap(
     ensureConvertedToConcrete()
     _exportedSymbols
   }
-  def exportedSymbols_(v: Map[String, List[ResolvedName]]): Unit = {
+  def exportedSymbols_=(v: Map[String, List[ResolvedName]]): Unit = {
     _exportedSymbols = v
   }
 
