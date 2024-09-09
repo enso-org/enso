@@ -4,7 +4,6 @@ import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
 import org.enso.compiler.core.{IR, Identifier}
 
 import java.util.UUID
-
 import scala.jdk.FunctionConverters.enrichAsScalaFromFunction
 
 /** Constructs that operate on types. */

@@ -52,7 +52,7 @@ public interface IR {
    * @return the external identifier for this IR node
    */
   default Option<@ExternalID UUID> getExternalId() {
-    return location().flatMap(l -> l.id());
+    return location().flatMap(IdentifiedLocation::id);
   }
 
   /**
@@ -71,11 +71,17 @@ public interface IR {
    */
   List<IR> children();
 
+  /**
+   * Applies the callback to nodes in the preorder walk of the tree of this node.
+   *
+   * @cb the callback to apply
+   */
   default void preorder(Consumer<IR> cb) {
-    class CB implements scala.Function1<IR, Void> {
-      public Void apply(IR e) {
-        cb.accept(e);
-        e.children().foreach(this);
+    final class CB implements scala.Function1<IR, scala.Unit> {
+      @Override
+      public scala.Unit apply(IR ir) {
+        cb.accept(ir);
+        ir.children().foreach(this);
         return null;
       }
     }
@@ -92,6 +98,7 @@ public interface IR {
   default List<IR> preorder() {
     var builder = new scala.collection.mutable.ListBuffer<IR>();
     preorder(builder::addOne);
+
     return builder.result();
   }
 
