@@ -30,7 +30,7 @@ Cargo.toml
 /build.sbt @4e6 @jaroslavtulach @hubertp @Akirathan
 /distribution/ @4e6 @jdunkerley @radeusgd @GregoryTravis @AdRiley @marthasharkey
 /engine/ @4e6 @jaroslavtulach @hubertp @Akirathan
-/project/ @4e6 @jaroslavtulach @hubertp
+/project/ @4e6 @jaroslavtulach @hubertp @Akirathan
 /tools/ @4e6 @jaroslavtulach @radeusgd @hubertp
 
 # Enso Libraries
