@@ -3725,21 +3725,48 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
       (LocalProject("bench-processor") / mainClass).value,
     Compile / javacOptions ++= Seq(
       "-Xlint:unchecked",
-      "-J-Dpolyglotimpl.DisableClassPathIsolation=true",
-      "-J-Dpolyglot.engine.WarnInterpreterOnly=false"
     ),
     Compile / moduleDependencies := {
-      componentModulesIds.value ++ Seq(
-        "org.slf4j" % "slf4j-nop" % slf4jVersion
+      (`runtime-benchmarks` / Compile / moduleDependencies).value
+    },
+    (Compile / internalModuleDependencies) := {
+      (`runtime-benchmarks` / Compile / internalModuleDependencies).value
+    },
+    Compile / addModules := Seq(
+      (`runtime` / javaModuleName).value
+    ),
+    // std benchmark sources are patch into the `org.enso.runtime` module
+    Compile / patchModules := {
+      val runtimeModName = (`runtime` / javaModuleName).value
+      val javaSrcDir     = (Compile / javaSource).value
+      val classesDir     = (Compile / productDirectories).value.head
+      Map(
+        runtimeModName -> Seq(
+          javaSrcDir,
+          classesDir
+        )
       )
     },
-    addExports := {
-      Map("org.slf4j.nop/org.slf4j.nop" -> Seq("org.slf4j"))
+    Compile / addReads := {
+      (`runtime-benchmarks` / Compile / addReads).value
+    },
+    // export all the packages to ALL-UNNAMED
+    Compile / addExports := {
+      val runtimeModName = (`runtime` / javaModuleName).value
+      val pkgs           = (Compile / packages).value
+      val pkgsExports = pkgs.map { pkg =>
+        runtimeModName + "/" + pkg -> Seq("ALL-UNNAMED")
+      }.toMap
+
+      pkgsExports ++ Map(
+        "org.slf4j.nop/org.slf4j.nop" -> Seq("org.slf4j")
+      )
     },
     javaOptions ++= {
       Seq(
         // To enable logging in benchmarks, add ch.qos.logback module on the modulePath
-        "-Dslf4j.provider=org.slf4j.nop.NOPServiceProvider"
+        //"-Dslf4j.provider=org.slf4j.nop.NOPServiceProvider"
+        "-Dslf4j.provider=ch.qos.logback.classic.spi.LogbackServiceProvider"
       )
     },
     javaOptions ++= benchOnlyOptions
