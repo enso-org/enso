@@ -99,7 +99,7 @@ public class EqualsTest {
 
   private static boolean equalityCheck(VirtualFrame frame) {
     var args = frame.getArguments();
-    return equalsNode.execute(frame, args[0], args[1]);
+    return (Boolean) equalsNode.execute(frame, args[0], args[1]);
   }
 
   private boolean equalityCheck(Object first, Object second) {
