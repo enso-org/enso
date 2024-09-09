@@ -417,7 +417,7 @@ watchEffect(() => {
     @pointerleave="(nodeHovered = false), updateNodeHover(undefined)"
     @pointermove="updateNodeHover"
   >
-    <Teleport v-if="navigator && !edited" :to="graphNodeSelections">
+    <Teleport v-if="navigator && !edited && graphNodeSelections" :to="graphNodeSelections">
       <GraphNodeSelection
         :data-node-id="nodeId"
         :nodePosition="props.node.position"
@@ -476,6 +476,8 @@ watchEffect(() => {
       :height="visualizationHeight"
       :isFocused="isOnlyOneSelected"
       :isPreview="isVisualizationPreviewed"
+      :isFullscreenAllowed="true"
+      :isResizable="true"
       @update:rect="updateVisualizationRect"
       @update:id="emit('update:visualizationId', $event)"
       @update:enabled="emit('update:visualizationEnabled', $event)"

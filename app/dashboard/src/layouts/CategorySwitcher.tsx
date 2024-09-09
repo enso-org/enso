@@ -211,7 +211,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
         case 'local-directory': {
           if (category.type === 'local' || category.type === 'local-directory') {
             const parentDirectory =
-              category.type === 'local' ? localBackend?.rootPath : category.rootPath
+              category.type === 'local' ? localBackend?.rootPath() : category.rootPath
             invariant(parentDirectory != null, 'The Local backend is missing a root directory.')
             const newParentId = newDirectoryId(parentDirectory)
             dispatchAssetEvent({
@@ -394,25 +394,6 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
             dropZoneLabel={getText('myFilesCategoryDropZoneLabel')}
           />
         )}
-        <CategorySwitcherItem
-          {...itemProps}
-          isNested
-          category={{ type: 'recent' }}
-          icon={RecentIcon}
-          label={getText('recentCategory')}
-          buttonLabel={getText('recentCategoryButtonLabel')}
-          dropZoneLabel={getText('recentCategoryDropZoneLabel')}
-          iconClassName="-ml-0.5"
-        />
-        <CategorySwitcherItem
-          {...itemProps}
-          isNested
-          category={{ type: 'trash' }}
-          icon={Trash2Icon}
-          label={getText('trashCategory')}
-          buttonLabel={getText('trashCategoryButtonLabel')}
-          dropZoneLabel={getText('trashCategoryDropZoneLabel')}
-        />
         {usersDirectoryQuery.data?.map((userDirectory) => {
           if (userDirectory.type !== backend.AssetType.directory) {
             return null
@@ -460,6 +441,25 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
               )
           }
         })}
+        <CategorySwitcherItem
+          {...itemProps}
+          isNested
+          category={{ type: 'recent' }}
+          icon={RecentIcon}
+          label={getText('recentCategory')}
+          buttonLabel={getText('recentCategoryButtonLabel')}
+          dropZoneLabel={getText('recentCategoryDropZoneLabel')}
+          iconClassName="-ml-0.5"
+        />
+        <CategorySwitcherItem
+          {...itemProps}
+          isNested
+          category={{ type: 'trash' }}
+          icon={Trash2Icon}
+          label={getText('trashCategory')}
+          buttonLabel={getText('trashCategoryButtonLabel')}
+          dropZoneLabel={getText('trashCategoryDropZoneLabel')}
+        />
         {localBackend && (
           <div className="group flex items-center justify-between self-stretch">
             <CategorySwitcherItem

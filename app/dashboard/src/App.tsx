@@ -86,15 +86,16 @@ import LocalBackend from '#/services/LocalBackend'
 import ProjectManager, * as projectManager from '#/services/ProjectManager'
 import RemoteBackend from '#/services/RemoteBackend'
 
+import { FeatureFlagsProvider } from '#/providers/FeatureFlagsProvider'
 import * as appBaseUrl from '#/utilities/appBaseUrl'
 import * as eventModule from '#/utilities/event'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 import { Path } from '#/utilities/path'
+import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 
 import { useInitAuthService } from '#/authentication/service'
 import { InvitedToOrganizationModal } from '#/modals/InvitedToOrganizationModal'
-import { FeatureFlagsProvider } from '#/providers/FeatureFlagsProvider'
 
 // ============================
 // === Global configuration ===
@@ -178,14 +179,8 @@ export default function App(props: AppProps) {
         supportsLocalBackend: props.supportsLocalBackend,
       },
     ] as const,
-    meta: { persist: false },
     networkMode: 'always',
-    staleTime: Infinity,
-    gcTime: Infinity,
-    refetchOnMount: false,
-    refetchInterval: false,
-    refetchOnReconnect: false,
-    refetchIntervalInBackground: false,
+    ...STATIC_QUERY_OPTIONS,
     behavior: {
       onFetch: ({ state }) => {
         const instance = state.data?.projectManagerInstance ?? null
@@ -543,7 +538,7 @@ function LocalBackendPathSynchronizer() {
   const localBackend = useLocalBackend()
   if (localBackend) {
     if (localRootDirectory != null) {
-      localBackend.rootPath = Path(localRootDirectory)
+      localBackend.setRootPath(Path(localRootDirectory))
     } else {
       localBackend.resetRootPath()
     }

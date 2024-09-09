@@ -61,7 +61,7 @@
     "@lezer/common": "^1.1.0",
     "@lezer/highlight": "^1.1.6",
     "@noble/hashes": "^1.4.0",
-    "@tanstack/vue-query": ">= 5.45.0 < 5.46.0",
+    "@tanstack/vue-query": ">= 5.54.0 < 5.56.0",
     "@vueuse/core": "^10.4.1",
     "ag-grid-community": "^30.2.1",
     "ag-grid-enterprise": "^30.2.1",

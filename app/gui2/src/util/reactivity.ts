@@ -45,8 +45,9 @@ export type StopEffect = () => void
  */
 export class LazySyncEffectSet {
   _dirtyRunners = new Set<() => void>()
-  _scope = effectScope()
   _boundFlush = this.flush.bind(this)
+
+  constructor(private _scope = effectScope()) {}
 
   /**
    * Add an effect to the lazy set. The effect will run once immediately, and any subsequent runs

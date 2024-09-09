@@ -12,6 +12,7 @@ import * as localStorageProvider from '#/providers/LocalStorageProvider'
 
 import * as backendModule from '#/services/Backend'
 
+import { useMounted } from '#/hooks/mountHooks'
 import * as array from '#/utilities/array'
 import LocalStorage from '#/utilities/LocalStorage'
 
@@ -107,6 +108,28 @@ const ProjectsContext = React.createContext<ProjectsContextType | null>(null)
 /** Props for a {@link ProjectsProvider}. */
 export interface ProjectsProviderProps extends Readonly<React.PropsWithChildren> {}
 
+const STORE = zustand.createStore<ProjectsStore>((set) => ({
+  page: TabType.drive,
+  setPage: (page) => {
+    set({ page })
+  },
+  launchedProjects: [],
+  updateLaunchedProjects: (update) => {
+    set(({ launchedProjects }) => ({ launchedProjects: update(launchedProjects) }))
+  },
+  addLaunchedProject: (project) => {
+    set(({ launchedProjects }) => ({ launchedProjects: [...launchedProjects, project] }))
+  },
+  removeLaunchedProject: (projectId) => {
+    set(({ launchedProjects }) => ({
+      launchedProjects: launchedProjects.filter(({ id }) => id !== projectId),
+    }))
+  },
+  clearLaunchedProjects: () => {
+    set({ launchedProjects: [] })
+  },
+}))
+
 // ========================
 // === ProjectsProvider ===
 // ========================
@@ -116,28 +139,15 @@ export interface ProjectsProviderProps extends Readonly<React.PropsWithChildren>
 export default function ProjectsProvider(props: ProjectsProviderProps) {
   const { children } = props
   const { localStorage } = localStorageProvider.useLocalStorage()
-  const [store] = React.useState(() => {
-    return zustand.createStore<ProjectsStore>((set) => ({
-      page: TabType.drive,
-      setPage: (page) => {
-        set({ page })
-      },
-      launchedProjects: localStorage.get('launchedProjects') ?? [],
-      updateLaunchedProjects: (update) => {
-        set(({ launchedProjects }) => ({ launchedProjects: update(launchedProjects) }))
-      },
-      addLaunchedProject: (project) => {
-        set(({ launchedProjects }) => ({ launchedProjects: [...launchedProjects, project] }))
-      },
-      removeLaunchedProject: (projectId) => {
-        set(({ launchedProjects }) => ({
-          launchedProjects: launchedProjects.filter(({ id }) => id !== projectId),
-        }))
-      },
-      clearLaunchedProjects: () => {
-        set({ launchedProjects: [] })
-      },
-    }))
+  const store = STORE
+
+  useMounted(() => {
+    const launchedProjects = localStorage.get('launchedProjects')
+    if (launchedProjects) {
+      store
+        .getState()
+        .updateLaunchedProjects((projects) => (projects.length === 0 ? launchedProjects : projects))
+    }
   })
 
   return (

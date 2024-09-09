@@ -69,12 +69,12 @@ export function SubscribeButton(props: SubscribeButtonProps) {
     if (isDowngrade) {
       // eslint-disable-next-line no-restricted-syntax
       return (
-        <>
-          {getText('downgradeInfo')}{' '}
+        <Text transform="none">
           <Button variant="link" href={getSalesEmail() + `?subject=Downgrade%20our%20plan`}>
             {getText('contactSales')}
-          </Button>
-        </>
+          </Button>{' '}
+          {getText('downgradeInfo')}
+        </Text>
       )
     }
 
@@ -99,29 +99,31 @@ export function SubscribeButton(props: SubscribeButtonProps) {
 
   return (
     <div className="w-full text-center">
-      <DialogTrigger
-        {...(disabled ? { defaultOpen: false }
-        : defaultOpen == null ? {}
-        : { defaultOpen })}
-      >
-        <Button fullWidth isDisabled={disabled} variant={variant} size="medium" rounded="full">
-          {buttonText}
-        </Button>
-
-        <PlanSelectorDialog
-          plan={plan}
-          planName={planName}
-          features={features}
-          onSubmit={onSubmit}
-          isTrialing={canTrial}
-          title={getText('upgradeTo', getText(plan))}
-        />
-      </DialogTrigger>
-
       {isDowngrade && (
-        <Text transform="capitalize" className="my-0.5">
+        <Text transform="normal" className="my-0.5">
           {description}
         </Text>
+      )}
+
+      {!isDowngrade && (
+        <DialogTrigger
+          {...(disabled ? { defaultOpen: false }
+          : defaultOpen == null ? {}
+          : { defaultOpen })}
+        >
+          <Button fullWidth isDisabled={disabled} variant={variant} size="medium" rounded="full">
+            {buttonText}
+          </Button>
+
+          <PlanSelectorDialog
+            plan={plan}
+            planName={planName}
+            features={features}
+            onSubmit={onSubmit}
+            isTrialing={canTrial}
+            title={getText('upgradeTo', getText(plan))}
+          />
+        </DialogTrigger>
       )}
     </div>
   )

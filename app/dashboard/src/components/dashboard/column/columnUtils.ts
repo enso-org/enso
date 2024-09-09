@@ -40,21 +40,6 @@ export const DEFAULT_ENABLED_COLUMNS: ReadonlySet<Column> = new Set([
   Column.labels,
 ])
 
-/** The list of all possible columns for the local backend, in order. */
-export const LOCAL_COLUMNS = Object.freeze([Column.name, Column.modified] as const)
-
-/** The list of all possible columns for the cloud backend, in order. */
-// This MUST be `as const`, to generate the `ExtraColumn` type above.
-export const CLOUD_COLUMNS = Object.freeze([
-  Column.name,
-  Column.modified,
-  Column.sharedWith,
-  Column.labels,
-  Column.accessedByProjects,
-  Column.accessedData,
-  Column.docs,
-] as const)
-
 export const COLUMN_ICONS: Readonly<Record<Column, string>> = {
   /* The file column does not have an icon, however this does not matter as it is not
    * collapsible. */
@@ -97,20 +82,17 @@ export const COLUMN_CSS_CLASS: Readonly<Record<Column, string>> = {
 // =====================
 
 /** Return the full list of columns given the relevant current state. */
-export function getColumnList(
-  backendType: backend.BackendType,
-  enabledColumns: ReadonlySet<Column>,
-) {
-  let columns: readonly Column[]
-  switch (backendType) {
-    case backend.BackendType.local: {
-      columns = LOCAL_COLUMNS
-      break
-    }
-    case backend.BackendType.remote: {
-      columns = CLOUD_COLUMNS
-      break
-    }
-  }
-  return columns.filter((column) => enabledColumns.has(column))
+export function getColumnList(user: backend.User, backendType: backend.BackendType) {
+  const isCloud = backendType === backend.BackendType.remote
+  const isEnterprise = user.plan === backend.Plan.enterprise
+  const columns = [
+    Column.name,
+    Column.modified,
+    isCloud && isEnterprise && Column.sharedWith,
+    isCloud && Column.labels,
+    isCloud && Column.accessedByProjects,
+    isCloud && Column.accessedData,
+    isCloud && Column.docs,
+  ]
+  return columns.flatMap((column) => (column !== false ? [column] : []))
 }

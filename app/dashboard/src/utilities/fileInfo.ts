@@ -6,17 +6,22 @@
 
 /** Return just the file name, including the extension. */
 export function getFileName(filePath: string) {
-  return filePath.match(/(?:[/]|^)([^/]+)[/]?$/)?.[1] ?? filePath
+  return filePath.match(/(?:[/\\]|^)([^/\\]+)[/\\]?$/)?.[1] ?? filePath
 }
 
 /** Return the entire path, without the file name. */
 export function getFolderPath(filePath: string) {
-  return filePath.match(/^.+[/]/)?.[0] ?? filePath
+  return filePath.match(/^.+[/\\]/)?.[0] ?? filePath
 }
 
 /** Return just the file name, without the path and without the extension. */
 export function baseName(fileNameOrPath: string) {
-  return fileNameOrPath.match(/(?:[/]|^)([^./]+)(?:[.][^/]*)?$/)?.[1] ?? fileNameOrPath
+  return fileNameOrPath.match(/(?:[\\/]|^)([^./\\]+)(?:[.][^/\\]*)?$/)?.[1] ?? fileNameOrPath
+}
+
+/** Normalize a path to use `/` instead of `\`. */
+export function normalizePath(path: string) {
+  return path.replace(/\\/g, '/')
 }
 
 /** Extract the file extension from a file name. */

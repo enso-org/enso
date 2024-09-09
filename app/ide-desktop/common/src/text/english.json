@@ -64,7 +64,7 @@
   "missingVerificationCodeError": "Missing verification code",
   "passwordMismatchError": "Passwords do not match.",
   "passwordLengthError": "Your password must be between 6 and 256 characters long.",
-  "passwordValidationMessage": "Your password must include numbers, letters (both lowercase and uppercase) and symbols.",
+  "passwordValidationMessage": "Your password must include numbers, letters (both lowercase and uppercase) and symbols ( ^$*.[]{}()?\"!@#%&/,><':;|_~`=+-).",
   "passwordValidationError": "Your password does not meet the security requirements.",
 
   "confirmSignUpError": "Incorrect email or confirmation code.",
@@ -282,14 +282,14 @@
   "andOtherProjects": "and $0 other projects",
 
   "cloudCategory": "Cloud",
-  "myFilesCategory": "My Files",
+  "myFilesCategory": "Me",
   "recentCategory": "Recent",
   "trashCategory": "Trash",
   "userCategory": "$0",
   "teamCategory": "$0",
   "localCategory": "Local",
   "cloudCategoryButtonLabel": "Cloud",
-  "myFilesCategoryButtonLabel": "My Files",
+  "myFilesCategoryButtonLabel": "Me",
   "recentCategoryButtonLabel": "Recent",
   "trashCategoryButtonLabel": "Trash",
   "userCategoryButtonLabel": "$0 (User)",
@@ -410,7 +410,7 @@
   "organizationProfilePictureWarning": "Your organization’s profile picture is visible to everyone in your organization.",
   "noFilesMatchTheCurrentFilters": "No files match the current filters.",
   "youHaveNoRecentProjects": "You have no recent projects. Switch to another category to create a project.",
-  "youHaveNoFiles": "This folder is empty. Go ahead and create one using the buttons above, or open a template from the home screen.",
+  "youHaveNoFiles": "This folder is empty. You can create a project using the buttons above.",
   "placeholderChatPrompt": "Login or register to access live chat with our support team.",
   "confirmPrompt": "Are you sure you want to $0?",
   "couldNotInviteUser": "Could not invite user $0",
@@ -462,6 +462,8 @@
   "organizationInviteSuffix": "' is inviting you. Would you like to accept? All your assets will be moved with you to your personal space.",
   "organizationInviteErrorSuffix": "' is inviting you.",
   "organizationInviteErrorMessage": "Something went wrong. Please contact the administrators at",
+  "youHaveNoUserGroupsAdmin": "This organization has no user groups. You can create one using the button above.",
+  "youHaveNoUserGroupsNonAdmin": "This organization has no user groups. You can create one using the button above.",
 
   "enableMultitabs": "Enable Multi-Tabs",
   "enableMultitabsDescription": "Open multiple projects at the same time.",
@@ -604,8 +606,7 @@
   "SLSA": "Enso Software License And Services Agreement",
   "slsaLicenseAgreementDescription1": "This Order is governed by the Software License and Service Agreement found at",
   "slsaLicenseAgreementDescription2": ", (the “Agreement”). All capitalized terms used in this Customer Order but not otherwise defined herein shall have the meanings set forth in the Agreement.\n                      Except as expressly provided in the Agreement, Products and Services purchased under this Customer Order are non-cancelable and non-refundable.",
-
-  "downgradeInfo": "Looking for downgrade options?",
+  "downgradeInfo": "to downgrade",
 
   "someAgreementsHaveBeenUpdated": "Some agreements have been updated. Please re-read and agree to continue.",
   "licenseAgreementTitle": "Enso Terms of Service",
