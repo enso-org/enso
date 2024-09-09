@@ -103,7 +103,7 @@ const DIALOG_STYLES = twv.tv({
       'sticky z-1 top-0 grid grid-cols-[1fr_auto_1fr] items-center border-b border-primary/10 transition-[border-color] duration-150',
     closeButton: 'col-start-1 col-end-1 mr-auto',
     heading: 'col-start-2 col-end-2 my-0 text-center',
-    content: 'relative flex-auto',
+    content: 'relative flex-auto overflow-y-auto max-h-[inherit]',
   },
   compoundVariants: [
     { type: 'modal', size: 'small', class: 'max-w-sm' },
@@ -144,7 +144,7 @@ export function Dialog(props: DialogProps) {
     testId = 'dialog',
     size,
     rounded,
-    padding,
+    padding = type === 'modal' ? 'medium' : 'xlarge',
     fitContent,
     ...ariaDialogProps
   } = props

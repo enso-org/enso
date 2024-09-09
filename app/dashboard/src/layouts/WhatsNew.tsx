@@ -23,7 +23,7 @@ export default function WhatsNew() {
     <div className="flex w-full flex-col">
       <Text.Heading level={2}>{getText('discoverWhatsNew')}</Text.Heading>
 
-      <div className="-mx-3.5 inline-flex snap-x snap-mandatory gap-4 overflow-x-auto rounded-2xl px-3.5 py-2">
+      <div className="scroll-offset-edge-9xl -ml-12 inline-flex snap-x snap-mandatory gap-4 overflow-x-auto rounded-2xl px-12 py-2">
         <Button
           variant="custom"
           size="custom"

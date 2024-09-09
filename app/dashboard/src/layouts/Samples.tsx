@@ -154,7 +154,7 @@ function ProjectTile(props: InternalProjectTileProps) {
         createProject(id, title)
       }}
     >
-      <div className="flex aspect-[7/4] h-40 w-full flex-col justify-end bg-gradient-to-t from-primary to-transparent">
+      <div className="flex aspect-[7/4] h-40 w-full flex-col justify-end bg-gradient-to-t from-primary/80 to-transparent">
         <div className="flex w-full flex-col items-start px-4 pb-3 text-start">
           <Text variant="subtitle" color="invert" nowrap="normal">
             {title}
@@ -186,7 +186,7 @@ export default function Samples(props: SamplesProps) {
     <div data-testid="samples" className="flex w-full flex-col">
       <Text.Heading level={2}>{groupName}</Text.Heading>
 
-      <div className="-mx-3.5 inline-flex snap-x snap-mandatory gap-4 overflow-x-auto rounded-2xl px-3.5 py-2">
+      <div className="scroll-offset-edge-9xl -mx-12 inline-flex snap-x snap-mandatory gap-4 overflow-x-auto px-12 py-2">
         {SAMPLES.filter((s) => s.group === groupName).map((sample) => (
           <ProjectTile key={sample.id} sample={sample} createProject={createProject} />
         ))}
