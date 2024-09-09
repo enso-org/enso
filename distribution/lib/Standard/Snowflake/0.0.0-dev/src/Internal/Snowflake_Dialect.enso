@@ -4,6 +4,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
+import Standard.Base.Runtime.Debug
 import Standard.Base.Runtime.Ref.Ref
 
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
@@ -556,9 +557,12 @@ make_order_descriptor internal_column sort_direction text_ordering =
 ## PRIVATE
 round_bankers = Base_Generator.lift_binary_op "ROUND_BANKERS" x-> dp->
     #SQL_Builder.code "ROUND(" ++ x ++ ", " ++ y ++ ", 'HALF_TO_EVEN')"
-    scale = (SQL_Builder "10 ^ " ++ dp).paren
+    Debug.breakpoint
+    fun f args = (SQL_Builder.code f ++ "(" ++ (SQL_Builder.join "," (args.map .paren)) ++ ")").paren
+    ten = SQL_Builder.code "10"
+    scale = fun "POW" [ten, dp]
+    #scale = (SQL_Builder.code "10 ^ " ++ dp).paren
     scaled = (x.paren ++ " * " ++ scale).paren
-    fun f args = SQL_Builder.code f ++ "(" ++ (SQL_Builder.join "," (args.map .paren)) ++ ")"
     floor x = fun "FLOOR" [x]
     ceil x = fun "CEIL" [x]
     round x = fun "ROUND" [x]
