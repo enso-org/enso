@@ -390,7 +390,7 @@ class EnsureCompiledJob(
       CacheInvalidation.Command.InvalidateKeys(
         changeset.invalidated ++ resolutionErrors
       )
-    val moduleIds = ir.preorder().flatMap(_.location()).flatMap(_.id()).toSet
+    val moduleIds = getModuleIds(ir)
     val invalidateStaleCommand =
       CacheInvalidation.Command.InvalidateStale(moduleIds)
     Seq(
@@ -405,6 +405,13 @@ class EnsureCompiledJob(
         Set(CacheInvalidation.IndexSelector.All)
       )
     )
+  }
+
+  private def getModuleIds(ir: IR): Set[UUID @ExternalID] = {
+    val builder = Set.newBuilder[UUID @ExternalID]
+    ir.preorder(_.getExternalId.foreach(builder.addOne))
+
+    builder.result()
   }
 
   /** Looks for the nodes with the resolution error and their dependents.
