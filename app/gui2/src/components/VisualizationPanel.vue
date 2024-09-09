@@ -69,10 +69,10 @@ function hideSelector() {
           class="toolbar"
           :class="{ invisible: config.isCircularMenuVisible }"
         >
-          <SvgButton name="eye" alt="Hide visualization" @click.stop="config.hide()" />
+          <SvgButton name="eye" title="Hide visualization" @click.stop="config.hide()" />
         </div>
         <div v-if="!config.isPreview" class="toolbar">
-          <FullscreenButton v-model="config.fullscreen" />
+          <FullscreenButton v-if="config.isFullscreenAllowed" v-model="config.fullscreen" />
           <div class="icon-container">
             <SvgButton
               :name="config.icon ?? 'columns_increasing'"

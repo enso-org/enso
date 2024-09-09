@@ -91,6 +91,8 @@ const mockFsWrapperProps = computed(() => ({
           :nodeSize="nodeSize"
           :isFocused="true"
           :isFullscreen="false"
+          :isFullscreenAllowed="true"
+          :isResizable="true"
           :isCircularMenuVisible="isCircularMenuVisible"
           @setVisualizationId="$event.module.kind === 'CurrentProject' && (type = $event.name)"
         />
