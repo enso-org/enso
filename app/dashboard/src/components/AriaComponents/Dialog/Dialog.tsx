@@ -100,10 +100,10 @@ const DIALOG_STYLES = twv.tv({
   },
   slots: {
     header:
-      'sticky top-0 grid grid-cols-[1fr_auto_1fr] items-center border-b border-primary/10 transition-[border-color] duration-150',
+      'sticky z-1 top-0 grid grid-cols-[1fr_auto_1fr] items-center border-b border-primary/10 transition-[border-color] duration-150',
     closeButton: 'col-start-1 col-end-1 mr-auto',
     heading: 'col-start-2 col-end-2 my-0 text-center',
-    content: 'relative flex-auto',
+    content: 'relative flex-auto overflow-y-auto max-h-[inherit]',
   },
   compoundVariants: [
     { type: 'modal', size: 'small', class: 'max-w-sm' },
@@ -144,7 +144,7 @@ export function Dialog(props: DialogProps) {
     testId = 'dialog',
     size,
     rounded,
-    padding,
+    padding = type === 'modal' ? 'medium' : 'xlarge',
     fitContent,
     ...ariaDialogProps
   } = props
@@ -252,23 +252,25 @@ export function Dialog(props: DialogProps) {
                 {(opts) => {
                   return (
                     <dialogProvider.DialogProvider value={{ close: opts.close, dialogId }}>
-                      <aria.Header className={styles.header({ scrolledToTop: isScrolledToTop })}>
-                        <ariaComponents.CloseButton
-                          className={styles.closeButton()}
-                          onPress={opts.close}
-                        />
+                      {((!hideCloseButton && closeButton !== 'floating') || title != null) && (
+                        <aria.Header className={styles.header({ scrolledToTop: isScrolledToTop })}>
+                          <ariaComponents.CloseButton
+                            className={styles.closeButton()}
+                            onPress={opts.close}
+                          />
 
-                        {title != null && (
-                          <ariaComponents.Text.Heading
-                            id={titleId}
-                            level={2}
-                            className={styles.heading()}
-                            weight="semibold"
-                          >
-                            {title}
-                          </ariaComponents.Text.Heading>
-                        )}
-                      </aria.Header>
+                          {title != null && (
+                            <ariaComponents.Text.Heading
+                              id={titleId}
+                              level={2}
+                              className={styles.heading()}
+                              weight="semibold"
+                            >
+                              {title}
+                            </ariaComponents.Text.Heading>
+                          )}
+                        </aria.Header>
+                      )}
 
                       <div
                         ref={(ref) => {

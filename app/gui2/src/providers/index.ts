@@ -31,7 +31,7 @@ const MISSING = Symbol('MISSING')
  * [Context API]: https://vuejs.org/guide/components/provide-inject.html#provide-inject
  */
 export function createContextStore<F extends (...args: any[]) => any>(name: string, factory: F) {
-  const provideKey = Symbol(name) as InjectionKey<ReturnType<F>>
+  const provideKey = Symbol.for(`contextStore-${name}`) as InjectionKey<ReturnType<F>>
 
   /**
    * Create the instance of a store and store it in the current component's context. All child

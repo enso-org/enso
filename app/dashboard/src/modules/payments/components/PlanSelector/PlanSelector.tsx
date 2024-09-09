@@ -83,7 +83,7 @@ export function PlanSelector(props: PlanSelectorProps) {
         className: 'w-full snap-x overflow-auto rounded-4xl scroll-hidden',
       })}
     >
-      <div className="inline-flex min-w-full gap-6 p-6">
+      <div className="inline-grid min-w-full grid-cols-1fr gap-6 p-6 md:grid-cols-2 xl:grid-cols-4">
         {PLANS.map((newPlan) => {
           const paywallLevel = getPaywallLevel(newPlan)
           const userPaywallLevel = getPaywallLevel(userPlan)
@@ -96,7 +96,7 @@ export function PlanSelector(props: PlanSelectorProps) {
             return (
               <Card
                 key={newPlan}
-                className="min-w-72 flex-1 snap-center"
+                className="min-w-64 snap-center"
                 features={planProps.features}
                 subtitle={planProps.subtitle}
                 title={planProps.title}

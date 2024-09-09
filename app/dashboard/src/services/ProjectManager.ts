@@ -401,12 +401,17 @@ export default class ProjectManager {
         state: backend.ProjectState.openInProgress,
         data: promise,
       })
-      const result = await promise
-      this.internalProjects.set(params.projectId, {
-        state: backend.ProjectState.opened,
-        data: result,
-      })
-      return result
+      try {
+        const result = await promise
+        this.internalProjects.set(params.projectId, {
+          state: backend.ProjectState.opened,
+          data: result,
+        })
+        return result
+      } catch (error) {
+        this.internalProjects.delete(params.projectId)
+        throw error
+      }
     }
   }
 

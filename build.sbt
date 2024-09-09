@@ -559,7 +559,7 @@ val scalaLoggingVersion     = "3.9.4"
 val scalameterVersion       = "0.19"
 val scalatestVersion        = "3.3.0-SNAP4"
 val slf4jVersion            = JPMSUtils.slf4jVersion
-val sqliteVersion           = "3.42.0.0"
+val sqliteVersion           = "3.46.1.0"
 val tikaVersion             = "2.4.1"
 val typesafeConfigVersion   = "1.4.2"
 val junitVersion            = "4.13.2"
@@ -2553,7 +2553,7 @@ lazy val `engine-runner` = project
       val NI_MODULES =
         "org.graalvm.nativeimage,org.graalvm.nativeimage.builder,org.graalvm.nativeimage.base,org.graalvm.nativeimage.driver,org.graalvm.nativeimage.librarysupport,org.graalvm.nativeimage.objectfile,org.graalvm.nativeimage.pointsto,com.oracle.graal.graal_enterprise,com.oracle.svm.svm_enterprise"
       val JDK_MODULES =
-        "jdk.localedata,jdk.compiler.graal,jdk.httpserver,java.naming,java.net.http"
+        "jdk.localedata,jdk.httpserver,java.naming,java.net.http"
       val DEBUG_MODULES  = "jdk.jdwp.agent"
       val PYTHON_MODULES = "jdk.security.auth,java.naming"
 
@@ -3583,14 +3583,47 @@ lazy val `std-tableau` = project
         val unmanagedPath = unmanagedDirectory.toPath
         IO.withTemporaryDirectory(
           tmp => {
-            val files = IO.unzipURL(
-              unmanagedExternalZip.value,
-              tmp,
-              f =>
-                f.endsWith(".jar") && !f.contains("gradle") && !f.contains(
-                  "javadoc"
-                ) && !f.contains("jna")
-            )
+            import scala.concurrent.ExecutionContext.Implicits.global
+            implicit val filesNotEmptySuccess: retry.Success[Set[File]] =
+              retry.Success(!_.isEmpty)
+            import scala.concurrent.duration._
+            val future = retry.Backoff(4, 1.second).apply { () =>
+              scala.concurrent.Future {
+                try {
+                  IO.unzipURL(
+                    unmanagedExternalZip.value,
+                    tmp,
+                    f =>
+                      f.endsWith(".jar") && !f.contains("gradle") && !f
+                        .contains(
+                          "javadoc"
+                        ) && !f.contains("jna")
+                  )
+                } catch {
+                  case _: java.net.SocketException |
+                      _: java.net.ConnectException =>
+                    Set.empty[File]
+                }
+              }
+            }
+            future.onComplete { result =>
+              if (result.isFailure || result.get.isEmpty) {
+                logger.log(
+                  Level.Error,
+                  "Failed to fetch any external artifacts for tableau"
+                )
+              }
+            }
+            val files = scala.concurrent.Await.result(future, 60.seconds)
+            if (files.isEmpty) {
+              logger.log(
+                Level.Error,
+                "Failed to fetch any external artifacts for tableau"
+              )
+              throw new IllegalStateException(
+                "Failed to fetch any external artifacts"
+              )
+            }
             files.map { f =>
               IO.move(f, unmanagedPath.resolve(f.getName).toFile)
               Attributed.blank(unmanagedPath.resolve(f.getName).toFile)
