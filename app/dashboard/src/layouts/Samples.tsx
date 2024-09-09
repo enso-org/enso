@@ -186,7 +186,7 @@ export default function Samples(props: SamplesProps) {
     <div data-testid="samples" className="flex w-full flex-col">
       <Text.Heading level={2}>{groupName}</Text.Heading>
 
-      <div className="scroll-offset-edge-9xl -mx-12 inline-flex snap-x snap-mandatory gap-4 overflow-x-auto px-12 py-2">
+      <div className="-mx-12 inline-flex snap-x snap-mandatory gap-4 overflow-x-auto px-12 py-2 scroll-offset-edge-9xl">
         {SAMPLES.filter((s) => s.group === groupName).map((sample) => (
           <ProjectTile key={sample.id} sample={sample} createProject={createProject} />
         ))}
