@@ -8,7 +8,7 @@ import { tryEnsoToNumber, tryNumberToEnso } from '@/util/ast/abstract'
 import { Err, Ok, transposeResult, unwrapOrWithLog, type Result } from '@/util/data/result'
 import { qnLastSegment, type QualifiedName } from '@/util/qualifiedName'
 import type { ToValue } from '@/util/reactivity'
-import type { ColDef } from 'ag-grid-community'
+import type { ColDef } from 'ag-grid-enterprise'
 import { computed, toValue } from 'vue'
 
 const NEW_COLUMN_ID = 'NewColumn'
@@ -73,7 +73,9 @@ function retrieveColumnsAst(call: Ast.Ast) {
   return Err('Expected Table.new argument to be a vector of columns or placeholder')
 }
 
-function readColumn(ast: Ast.Ast): Result<{ name: Ast.TextLiteral; data: Ast.Vector }> {
+function readColumn(
+  ast: Ast.Ast,
+): Result<{ id: Ast.AstId; name: Ast.TextLiteral; data: Ast.Vector }> {
   const errormsg = () => `${ast.code} is not a vector of two elements`
   if (!(ast instanceof Ast.Vector)) return Err(errormsg())
   const elements = ast.values()
@@ -89,7 +91,7 @@ function readColumn(ast: Ast.Ast): Result<{ name: Ast.TextLiteral; data: Ast.Vec
     )
   if (!(second.value instanceof Ast.Vector))
     return Err(`Second element in column definition is ${second.value.code()} instead of a vector`)
-  return Ok({ name: first.value, data: second.value })
+  return Ok({ id: ast.id, name: first.value, data: second.value })
 }
 
 function retrieveColumnsDefinitions(columnsAst: Ast.Vector) {
@@ -168,6 +170,13 @@ export function useTableNewArgument(
     }
   }
 
+  function removeRow(edit: Ast.MutableModule, index: number) {
+    for (const column of columns.value) {
+      const editedCol = edit.getVersion(column.data)
+      editedCol.splice(index, 1)
+    }
+  }
+
   function addColumn(
     edit: Ast.MutableModule,
     name: string,
@@ -193,6 +202,20 @@ export function useTableNewArgument(
         inputAst.setArgument(newArg)
       } else {
         inputAst.updateValue((func) => Ast.App.new(edit, func, undefined, newArg))
+      }
+    }
+  }
+
+  function removeColumn(edit: Ast.MutableModule, columnId: Ast.AstId) {
+    const editedCols = unwrapOrWithLog(columnsAst.value, undefined, errorMessagePreamble)
+    if (!editedCols) {
+      console.error(`Cannot remove column in Table Editor, because there is no column list`)
+      return
+    }
+    for (const [index, col] of editedCols.enumerate()) {
+      if (col?.id === columnId) {
+        edit.getVersion(editedCols).splice(index, 1)
+        return
       }
     }
   }
@@ -226,7 +249,7 @@ export function useTableNewArgument(
       columns.value,
       (col) =>
         ({
-          colId: col.data.id,
+          colId: col.id,
           headerName: col.name.rawTextContent,
           valueGetter: ({ data }: { data: RowData | undefined }) => {
             if (data == null) return undefined
@@ -263,6 +286,35 @@ export function useTableNewArgument(
               onUpdate({ edit })
             },
           },
+          contextMenuItems: [
+            'cut',
+            'copy',
+            'copyWithHeaders',
+            'paste',
+            'separator',
+            {
+              name: 'Remove Row',
+              action: ({ node }) => {
+                if (!node?.data) return
+                const edit = graph.startEdit()
+                fixColumns(edit)
+                removeRow(edit, node.data.index)
+                onUpdate({ edit })
+              },
+            },
+            {
+              name: 'Remove Column',
+              action: ({ node }) => {
+                if (!node?.data) return
+                const edit = graph.startEdit()
+                fixColumns(edit)
+                removeColumn(edit, col.id)
+                onUpdate({ edit })
+              },
+            },
+            'separator',
+            'export',
+          ],
         }) satisfies ColDef<RowData>,
     )
     cols.push(newColumnDef.value)
