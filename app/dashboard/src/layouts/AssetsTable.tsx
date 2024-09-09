@@ -33,6 +33,7 @@ import {
   useSetIsAssetPanelTemporarilyVisible,
   useSetSelectedKeys,
   useSetSuggestions,
+  useSetTargetDirectory,
   useSetVisuallySelectedKeys,
 } from '#/providers/DriveProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
@@ -292,8 +293,6 @@ export interface AssetsTableProps {
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly category: Category
   readonly initialProjectName: string | null
-  readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
-  readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
   readonly assetManagementApiRef: React.Ref<AssetManagementApi>
 }
 
@@ -327,8 +326,8 @@ export default function AssetsTable(props: AssetsTableProps) {
   const previousCategoryRef = React.useRef(category)
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
-  const setTargetDirectory = useSetTargetDirectory()
   const setCanCreateAssets = useSetCanCreateAssets()
+  const setTargetDirectoryInStore = useSetTargetDirectory()
   const didLoadingProjectManagerFail = backendProvider.useDidLoadingProjectManagerFail()
   const reconnectToProjectManager = backendProvider.useReconnectToProjectManager()
   const [enabledColumns, setEnabledColumns] = React.useState(columnUtils.DEFAULT_ENABLED_COLUMNS)
@@ -815,6 +814,25 @@ export default function AssetsTable(props: AssetsTableProps) {
   React.useEffect(() => {
     previousCategoryRef.current = category
   })
+
+  const setTargetDirectory = useEventCallback(
+    (targetDirectory: AssetTreeNode<backendModule.DirectoryAsset> | null) => {
+      const targetDirectorySelfPermission =
+        targetDirectory == null ? null : (
+          permissions.tryFindSelfPermission(user, targetDirectory.item.permissions)
+        )
+      const canCreateAssets =
+        targetDirectory == null ?
+          category.type !== 'cloud' || user.plan == null || user.plan === backendModule.Plan.solo
+        : isLocalCategory(category) ||
+          (targetDirectorySelfPermission != null &&
+            permissions.canPermissionModifyDirectoryContents(
+              targetDirectorySelfPermission.permission,
+            ))
+      setCanCreateAssets(canCreateAssets)
+      setTargetDirectoryInStore(targetDirectory)
+    },
+  )
 
   React.useEffect(
     () =>

@@ -7,9 +7,10 @@ import * as zustand from 'zustand'
 import type { AssetPanelContextProps } from '#/layouts/AssetPanel'
 import type { Suggestion } from '#/layouts/AssetSearchBar'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
-import type { AssetId } from 'enso-common/src/services/Backend'
-import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
+import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import { EMPTY_SET } from '#/utilities/set'
+import type { AssetId, DirectoryAsset } from 'enso-common/src/services/Backend'
+import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
 
 // ==================
 // === DriveStore ===
@@ -17,6 +18,8 @@ import { EMPTY_SET } from '#/utilities/set'
 
 /** The state of this zustand store. */
 interface DriveStore {
+  readonly targetDirectory: AssetTreeNode<DirectoryAsset> | null
+  readonly setTargetDirectory: (targetDirectory: AssetTreeNode<DirectoryAsset> | null) => void
   readonly canCreateAssets: boolean
   readonly setCanCreateAssets: (canCreateAssets: boolean) => void
   readonly canDownload: boolean
@@ -59,6 +62,10 @@ export default function DriveProvider(props: ProjectsProviderProps) {
   const [store] = React.useState(() =>
     zustand.createStore<DriveStore>((set, get) => ({
       canCreateAssets: true,
+      targetDirectory: null,
+      setTargetDirectory: (targetDirectory) => {
+        set({ targetDirectory })
+      },
       setCanCreateAssets: (canCreateAssets) => {
         if (get().canCreateAssets !== canCreateAssets) {
           set({ canCreateAssets })
@@ -129,6 +136,26 @@ export function useDriveStore() {
   invariant(store, 'Drive store can only be used inside an `DriveProvider`.')
 
   return store
+}
+
+// ==========================
+// === useTargetDirectory ===
+// ==========================
+
+/** A function to get the target directory of the Asset Table selection. */
+export function useTargetDirectory() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.targetDirectory)
+}
+
+// =============================
+// === useSetTargetDirectory ===
+// =============================
+
+/** A function to set the target directory of the Asset Table selection. */
+export function useSetTargetDirectory() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.setTargetDirectory)
 }
 
 /** Whether assets can be created in the current directory. */

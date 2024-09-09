@@ -28,9 +28,9 @@ import * as result from '#/components/Result'
 
 import * as backendModule from '#/services/Backend'
 
-import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useDriveStore } from '#/providers/DriveProvider'
+import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import AssetQuery from '#/utilities/AssetQuery'
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
@@ -92,6 +92,7 @@ export default function Drive(props: DriveProps) {
     : 'ok'
 
   const driveStore = useDriveStore()
+
   const getTargetDirectory = React.useCallback(
     () => driveStore.getState().targetDirectory,
     [driveStore],
@@ -259,9 +260,6 @@ export default function Drive(props: DriveProps) {
                   setQuery={setQuery}
                   category={category}
                   initialProjectName={initialProjectName}
-                  setAssetPanelProps={setAssetPanelProps}
-                  setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
-                  targetDirectoryNodeRef={targetDirectoryNodeRef}
                 />
               }
             </div>
