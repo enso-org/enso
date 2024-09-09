@@ -98,13 +98,12 @@ object LocationResolver {
     ir: IR,
     location: IdentifiedLocation
   ): Option[IR] = {
-    var result: IR = null
     ir.preorder { ir =>
-      if (result == null && ir.location.contains(location)) {
-        result = ir
+      if (ir.location.contains(location)) {
+        return Some(ir)
       }
     }
-    Option(result)
+    None
   }
 
   /** Find the expression by its location.
@@ -114,13 +113,12 @@ object LocationResolver {
     * @return the expression with the given location
     */
   private def findByLocation(ir: IR, location: Location): Option[IR] = {
-    var result: IR = null
     ir.preorder { ir =>
-      if (result == null && ir.location.map(_.location).contains(location)) {
-        result = ir
+      if (ir.location.map(_.location).contains(location)) {
+        return Some(ir)
       }
     }
-    Option(result)
+    None
   }
 
   /** Convert truffle source section to the range of text.
