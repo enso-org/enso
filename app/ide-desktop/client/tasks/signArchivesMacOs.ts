@@ -103,6 +103,8 @@ async function ensoPackageSignables(resourcesDir: string): Promise<Signable[]> {
       [
         'org/sqlite/native/Mac/aarch64/libsqlitejdbc.jnilib',
         'org/sqlite/native/Mac/x86_64/libsqlitejdbc.jnilib',
+        'org/sqlite/native/Mac/aarch64/libsqlitejdbc.dylib',
+        'org/sqlite/native/Mac/x86_64/libsqlitejdbc.dylib',
       ],
     ],
     [
