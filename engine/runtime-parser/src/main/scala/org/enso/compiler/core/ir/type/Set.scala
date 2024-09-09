@@ -74,8 +74,8 @@ object Set {
         || memberType != this.memberType
         || value != this.value
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Member(label, memberType, value, location, passData)
@@ -202,8 +202,8 @@ object Set {
         left != this.left
         || right != this.right
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Subsumption(left, right, location, passData)
@@ -315,8 +315,8 @@ object Set {
         left != this.left
         || right != this.right
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Equality(left, right, location, passData)
@@ -428,8 +428,8 @@ object Set {
         left != this.left
         || right != this.right
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Concat(left, right, location, passData)
@@ -535,8 +535,8 @@ object Set {
       if (
         operands != this.operands
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Union(operands, location, passData)
@@ -642,8 +642,8 @@ object Set {
         left != this.left
         || right != this.right
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Intersection(left, right, location, passData)

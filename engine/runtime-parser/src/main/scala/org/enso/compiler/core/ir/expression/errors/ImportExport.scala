@@ -62,8 +62,8 @@ sealed case class ImportExport(
     if (
       ir != this.ir
       || reason != this.reason
-      || passData != this.passData
-      || diagnostics != this.diagnostics
+      || (passData ne this.passData)
+      || (diagnostics ne this.diagnostics)
       || id != this.id
     ) {
       val res = ImportExport(ir, reason, passData)

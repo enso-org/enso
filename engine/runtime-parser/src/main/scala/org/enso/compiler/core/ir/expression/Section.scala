@@ -67,8 +67,8 @@ object Section {
         arg != this.arg
         || operator != this.operator
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Left(arg, operator, location, passData)
@@ -174,8 +174,8 @@ object Section {
       if (
         operator != this.operator
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Sides(operator, location, passData)
@@ -277,8 +277,8 @@ object Section {
         operator != this.operator
         || arg != this.arg
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Right(operator, arg, location, passData)

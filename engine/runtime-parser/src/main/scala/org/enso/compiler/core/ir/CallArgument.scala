@@ -72,8 +72,8 @@ object CallArgument {
         name != this.name
         || value != this.value
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Specified(name, value, location, passData)

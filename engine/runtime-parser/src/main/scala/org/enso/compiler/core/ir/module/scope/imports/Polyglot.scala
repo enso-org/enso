@@ -55,8 +55,8 @@ sealed case class Polyglot(
       entity != this.entity
       || rename != this.rename
       || location != this.location
-      || passData != this.passData
-      || diagnostics != this.diagnostics
+      || (passData ne this.passData)
+      || (diagnostics ne this.diagnostics)
       || id != this.id
     ) {
       val res = Polyglot(entity, rename, location, passData)

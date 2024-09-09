@@ -66,8 +66,8 @@ object Pattern {
       if (
         name != this.name
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Name(name, location, passData)
@@ -169,8 +169,8 @@ object Pattern {
         constructor != this.constructor
         || fields != this.fields
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Constructor(constructor, fields, location, passData)
@@ -324,8 +324,8 @@ object Pattern {
       if (
         literal != this.literal
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Literal(literal, location, passData)
@@ -429,8 +429,8 @@ object Pattern {
         name != this.name
         || tpe != this.tpe
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Type(name, tpe, location, passData)
@@ -549,8 +549,8 @@ object Pattern {
       if (
         doc != this.doc
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Documentation(doc, location, passData)

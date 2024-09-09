@@ -118,8 +118,8 @@ object Function {
         || body != this.body
         || location != this.location
         || canBeTCO != this.canBeTCO
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res =
@@ -284,8 +284,8 @@ object Function {
         || isPrivate != this.isPrivate
         || location != this.location
         || canBeTCO != this.canBeTCO
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res =

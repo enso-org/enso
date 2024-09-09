@@ -35,8 +35,8 @@ sealed case class Empty(
   ): Empty = {
     if (
       location != this.location
-      || passData != this.passData
-      || diagnostics != this.diagnostics
+      || (passData ne this.passData)
+      || (diagnostics ne this.diagnostics)
       || id != this.id
     ) {
       val res = Empty(location, passData)

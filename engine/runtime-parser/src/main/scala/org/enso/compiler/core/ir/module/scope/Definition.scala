@@ -78,8 +78,8 @@ object Definition {
         || params != this.params
         || members != this.members
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Type(name, params, members, location, passData)
@@ -206,8 +206,8 @@ object Definition {
         || annotations != this.annotations
         || isPrivate != this.isPrivate
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Data(
@@ -338,8 +338,8 @@ object Definition {
         || arguments != this.arguments
         || body != this.body
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = SugaredType(

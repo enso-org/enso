@@ -72,8 +72,8 @@ object Operator {
         || operator != this.operator
         || right != this.right
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Binary(left, operator, right, location, passData)

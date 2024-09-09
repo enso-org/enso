@@ -88,8 +88,8 @@ object Export {
         || onlyNames != this.onlyNames
         || isSynthetic != this.isSynthetic
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Module(

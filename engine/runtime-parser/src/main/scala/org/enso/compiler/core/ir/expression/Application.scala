@@ -86,8 +86,8 @@ object Application {
         || arguments != this.arguments
         || hasDefaultsSuspended != this.hasDefaultsSuspended
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res =
@@ -203,8 +203,8 @@ object Application {
       if (
         target != this.target
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Force(target, location, passData)
@@ -327,8 +327,8 @@ object Application {
       if (
         expression != this.expression
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Typeset(expression, location, passData)
@@ -430,8 +430,8 @@ object Application {
       if (
         items != this.items
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Sequence(items, location, passData)

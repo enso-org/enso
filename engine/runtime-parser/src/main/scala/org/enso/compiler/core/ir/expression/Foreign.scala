@@ -70,8 +70,8 @@ object Foreign {
         lang != this.lang
         || code != this.code
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Definition(lang, code, location, passData)

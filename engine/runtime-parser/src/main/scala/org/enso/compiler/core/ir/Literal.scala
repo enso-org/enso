@@ -65,8 +65,8 @@ object Literal {
         base != this.base
         || value != this.value
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Number(base, value, location, passData)
@@ -197,8 +197,8 @@ object Literal {
       if (
         text != this.text
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Text(text, location, passData)

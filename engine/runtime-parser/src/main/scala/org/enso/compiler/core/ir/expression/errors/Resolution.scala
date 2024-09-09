@@ -71,8 +71,8 @@ sealed case class Resolution(
     if (
       originalName != this.originalName
       || reason != this.reason
-      || passData != this.passData
-      || diagnostics != this.diagnostics
+      || (passData ne this.passData)
+      || (diagnostics ne this.diagnostics)
       || id != this.id
     ) {
       val res = Resolution(originalName, reason, passData)

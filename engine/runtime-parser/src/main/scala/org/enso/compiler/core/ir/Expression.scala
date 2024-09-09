@@ -90,8 +90,8 @@ object Expression {
         || returnValue != this.returnValue
         || suspended != this.suspended
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Block(
@@ -231,8 +231,8 @@ object Expression {
         name != this.name
         || expression != this.expression
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Binding(name, expression, location, passData)

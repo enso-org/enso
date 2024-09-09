@@ -80,8 +80,8 @@ final case class Module(
       || bindings != this.bindings
       || isPrivate != this.isPrivate
       || location != this.location
-      || passData != this.passData
-      || diagnostics != this.diagnostics
+      || (passData ne this.passData)
+      || (diagnostics ne this.diagnostics)
       || id != this.id
     ) {
       val res =

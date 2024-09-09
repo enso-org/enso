@@ -115,8 +115,8 @@ object Method {
         || isPrivate != this.isPrivate
         || isStaticWrapperForInstanceMethod != this.isStaticWrapperForInstanceMethod
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Explicit(
@@ -322,8 +322,8 @@ object Method {
         || isPrivate != this.isPrivate
         || body != this.body
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Binding(
@@ -490,8 +490,8 @@ object Method {
         || sourceTypeName != this.sourceTypeName
         || body != this.body
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Conversion(

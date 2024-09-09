@@ -76,8 +76,8 @@ object Name {
         typePointer != this.typePointer
         || methodName != this.methodName
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res =
@@ -246,8 +246,8 @@ object Name {
       if (
         parts != this.parts
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Qualified(parts, location, passData)
@@ -317,8 +317,8 @@ object Name {
     ): Blank = {
       if (
         location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Blank(location, passData)
@@ -399,8 +399,8 @@ object Name {
       if (
         specialName != this.specialName
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Special(specialName, location, passData)
@@ -505,8 +505,8 @@ object Name {
         || isMethod != this.isMethod
         || location != this.location
         || originalName != this.originalName
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Literal(name, isMethod, location, originalName, passData)
@@ -614,8 +614,8 @@ object Name {
       if (
         name != this.name
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = BuiltinAnnotation(name, location, passData)
@@ -709,8 +709,8 @@ object Name {
         name != this.name
         || expression != this.expression
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res =
@@ -820,8 +820,8 @@ object Name {
       if (
         synthetic != this.synthetic
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Self(location, synthetic, passData)
@@ -919,8 +919,8 @@ object Name {
     ): SelfType = {
       if (
         location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = SelfType(location, passData)

@@ -124,8 +124,8 @@ object DefinitionArgument {
         || defaultValue != this.defaultValue
         || suspended != this.suspended
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Specified(

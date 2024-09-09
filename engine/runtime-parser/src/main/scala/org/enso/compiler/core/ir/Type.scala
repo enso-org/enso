@@ -54,8 +54,8 @@ object Type {
         args != this.args
         || result != this.result
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Function(args, result, location, passData)
@@ -171,8 +171,8 @@ object Type {
         || signature != this.signature
         || comment != this.comment
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Ascription(typed, signature, comment, location, passData)
@@ -286,8 +286,8 @@ object Type {
         typed != this.typed
         || context != this.context
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Context(typed, context, location, passData)
@@ -398,8 +398,8 @@ object Type {
         typed != this.typed
         || error != this.error
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Error(typed, error, location, passData)

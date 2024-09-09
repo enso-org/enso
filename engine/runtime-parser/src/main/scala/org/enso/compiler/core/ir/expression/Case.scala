@@ -73,8 +73,8 @@ object Case {
         || branches != this.branches
         || isNested != this.isNested
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Expr(scrutinee, branches, isNested, location, passData)
@@ -200,8 +200,8 @@ object Case {
         || expression != this.expression
         || terminalBranch != this.terminalBranch
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Branch(

@@ -55,8 +55,8 @@ sealed case class Conversion(
     if (
       storedIr != this.storedIr
       || reason != this.reason
-      || passData != this.passData
-      || diagnostics != this.diagnostics
+      || (passData ne this.passData)
+      || (diagnostics ne this.diagnostics)
       || id != this.id
     ) {
       val res = Conversion(storedIr, reason, passData)

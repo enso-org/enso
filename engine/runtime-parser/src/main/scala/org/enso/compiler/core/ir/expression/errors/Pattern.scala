@@ -67,8 +67,8 @@ sealed case class Pattern(
     if (
       originalPattern != this.originalPattern
       || reason != this.reason
-      || passData != this.passData
-      || diagnostics != this.diagnostics
+      || (passData ne this.passData)
+      || (diagnostics ne this.diagnostics)
       || id != this.id
     ) {
       val res = Pattern(originalPattern, reason, passData)

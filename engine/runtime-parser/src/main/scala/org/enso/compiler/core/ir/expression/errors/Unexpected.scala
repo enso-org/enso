@@ -75,8 +75,8 @@ object Unexpected {
     ): TypeSignature = {
       if (
         ir != this.ir
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = TypeSignature(ir, passData)

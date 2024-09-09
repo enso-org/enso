@@ -62,8 +62,8 @@ object Redefined {
     ): SelfArg = {
       if (
         location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = SelfArg(location, passData)
@@ -159,8 +159,8 @@ object Redefined {
         targetType != this.targetType
         || sourceType != this.sourceType
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Conversion(targetType, sourceType, location, passData)
@@ -289,8 +289,8 @@ object Redefined {
         typeName != this.typeName
         || methodName != this.methodName
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Method(typeName, methodName, location, passData)
@@ -419,8 +419,8 @@ object Redefined {
         atomName != this.atomName
         || methodName != this.methodName
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = MethodClashWithAtom(
@@ -542,8 +542,8 @@ object Redefined {
       if (
         typeName != this.typeName
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Type(typeName, location, passData)
@@ -649,8 +649,8 @@ object Redefined {
       if (
         name != this.name
         || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Arg(name, location, passData)
@@ -750,8 +750,8 @@ object Redefined {
     ): Binding = {
       if (
         invalidBinding != this.invalidBinding
-        || passData != this.passData
-        || diagnostics != this.diagnostics
+        || (passData ne this.passData)
+        || (diagnostics ne this.diagnostics)
         || id != this.id
       ) {
         val res = Binding(invalidBinding, passData)
