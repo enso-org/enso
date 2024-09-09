@@ -34,7 +34,7 @@ export const TEXT_STYLE = twv.tv({
       danger: 'text-danger',
       success: 'text-accent-dark',
       disabled: 'text-primary/30',
-      invert: 'text-white',
+      invert: 'text-invert',
       inherit: 'text-inherit',
       current: 'text-current',
     },
@@ -90,7 +90,7 @@ export const TEXT_STYLE = twv.tv({
     },
     monospace: { true: 'font-mono' },
     italic: { true: 'italic' },
-    nowrap: { true: 'whitespace-nowrap' },
+    nowrap: { true: 'whitespace-nowrap', normal: 'whitespace-normal', false: '' },
     textSelection: {
       auto: '',
       none: 'select-none',
