@@ -80,9 +80,12 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
       .filter(_._2.size == 1)
       .flatMap { case (pending, directlyAffected) =>
         val directlyAffectedId = directlyAffected.head.externalId
-        val literals =
-          ir.preorder.filter(_.getExternalId == directlyAffectedId)
-        val oldIr = literals.head
+        var oldIr: IR          = null
+        ir.preorder { ir =>
+          if (oldIr == null && ir.getExternalId == directlyAffectedId) {
+            oldIr = ir
+          }
+        }
 
         def newIR(edit: PendingEdit): Option[Literal] = {
           val value = edit match {
@@ -514,12 +517,22 @@ object ChangesetBuilder {
     * @param id the node identifier
     * @return the node name
     */
-  private def getExpressionName(ir: IR, id: UUID @Identifier): Option[String] =
-    ir.preorder.find(_.getId == id).collect {
-      case name: Name =>
-        name.name
-      case method: definition.Method =>
-        method.methodName.name
+  private def getExpressionName(
+    ir: IR,
+    id: UUID @Identifier
+  ): Option[String] = {
+    ir.preorder { ir =>
+      if (ir.getId == id)
+        ir match {
+          case name: Name =>
+            return Some(name.name)
+          case method: definition.Method =>
+            return Some(method.methodName.name)
+          case _ =>
+            return None
+        }
     }
+    None
+  }
 
 }
