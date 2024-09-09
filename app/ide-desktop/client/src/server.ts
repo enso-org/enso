@@ -22,7 +22,8 @@ import { pathToFileURL } from 'node:url'
 
 const logger = contentConfig.logger
 
-ydocServer.configureAllDebugLogs(process.env.ENSO_YDOC_LS_DEBUG === 'true', logger.log)
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+ydocServer.configureAllDebugLogs(process.env.ENSO_YDOC_LS_DEBUG === 'true', logger.log.bind(logger))
 
 // =================
 // === Constants ===
@@ -94,7 +95,7 @@ export class Server {
 
   /** Create a simple HTTP server. */
   constructor(public config: Config) {
-    this.projectsRootDirectory = projectManagement.getProjectsDirectory()
+    this.projectsRootDirectory = projectManagement.getProjectsDirectory().replace(/\\/g, '/')
   }
 
   /** Server constructor. */
@@ -147,8 +148,10 @@ export class Server {
             logger.log(`Server started on port ${this.config.port}.`)
             logger.log(`Serving files from '${path.join(process.cwd(), this.config.dir)}'.`)
             if (process.env.ELECTRON_DEV_MODE === 'true') {
+              // eslint-disable-next-line no-restricted-syntax
               const vite = (await import(
                 pathToFileURL(process.env.NODE_MODULES_PATH + '/vite/dist/node/index.js').href
+                // eslint-disable-next-line @typescript-eslint/consistent-type-imports
               )) as typeof import('vite')
               this.devServer = await vite.createServer({
                 server: {

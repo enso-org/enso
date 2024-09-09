@@ -40,6 +40,7 @@ import * as backend from '#/services/Backend'
 import type LocalBackend from '#/services/LocalBackend'
 import type RemoteBackend from '#/services/RemoteBackend'
 
+import { normalizePath } from '#/utilities/fileInfo'
 import * as object from '#/utilities/object'
 import { SetupTwoFaForm } from './SetupTwoFaForm'
 
@@ -277,7 +278,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
                       const [newDirectory] =
                         (await window.fileBrowserApi?.openFileBrowser('directory')) ?? []
                       if (newDirectory != null) {
-                        context.updateLocalRootPath(newDirectory)
+                        context.updateLocalRootPath(normalizePath(newDirectory))
                       }
                     }}
                   >

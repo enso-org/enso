@@ -164,20 +164,20 @@ export function useNavigator(
   function panToImpl(points: Partial<Vec2>[]) {
     let target = viewport.value
     for (const point of points.reverse()) target = target.offsetToInclude(point) ?? target
-    targetCenter.value = target.center()
+    targetCenter.value = target.center().finiteOrZero()
   }
 
   /** Pan immediately to center the viewport at the given point, in scene coordinates. */
   function scrollTo(newCenter: Vec2) {
     resetTargetFollowing()
-    targetCenter.value = newCenter
+    targetCenter.value = newCenter.finiteOrZero()
     center.skip()
   }
 
   /** Set viewport center point and scale value immediately, skipping animations. */
   function setCenterAndScale(newCenter: Vec2, newScale: number) {
     resetTargetFollowing()
-    targetCenter.value = newCenter
+    targetCenter.value = newCenter.finiteOrZero()
     targetScale.value = newScale
     scale.skip()
     center.skip()
@@ -325,7 +325,7 @@ export function useNavigator(
     const scenePos0 = clientToScenePos(clientPos)
     const result = f()
     const scenePos1 = clientToScenePos(clientPos)
-    targetCenter.value = center.value.add(scenePos0.sub(scenePos1))
+    targetCenter.value = center.value.add(scenePos0.sub(scenePos1)).finiteOrZero()
     center.skip()
     return result
   }
