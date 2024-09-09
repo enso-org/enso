@@ -1,10 +1,17 @@
 package org.enso.interpreter.bench;
 
-import jakarta.xml.bind.JAXBException;
+import com.fasterxml.jackson.core.JsonEncoding;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.networknt.schema.JsonSchemaFactory;
+import com.networknt.schema.SpecVersion.VersionFlag;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import org.enso.interpreter.bench.result.Result;
+import org.enso.interpreter.bench.result.Results;
 import org.openjdk.jmh.results.RunResult;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
@@ -15,9 +22,14 @@ import org.openjdk.jmh.runner.options.TimeValue;
 
 /** Runner class for the benchmarks. Discovers, runs and reports benchmark results. */
 public class BenchmarksRunner {
-  public static final File REPORT_FILE = new File("./bench-report.xml");
+  private final File resultsFile;
+  private static final String schemaFileName = "results_schema.json";
 
-  public static void run(String[] args) throws RunnerException {
+  public BenchmarksRunner() {
+    this.resultsFile = new File("./bench-results.json");
+  }
+
+  public void run(String[] args) throws RunnerException {
     CommandLineOptions cmdOpts = null;
     try {
       cmdOpts = new CommandLineOptions(args);
@@ -53,12 +65,17 @@ public class BenchmarksRunner {
 
       for (RunResult result : results) {
         try {
-          reportResult(result.getParams().getBenchmark(), result);
-        } catch (JAXBException e) {
+          reportResult(result);
+        } catch (IOException e) {
           throw new IllegalStateException("Benchmark result report writing failed", e);
         }
       }
-      System.out.println("Benchmark results reported into " + REPORT_FILE.getAbsolutePath());
+      try {
+        validateResultsSchema();
+      } catch (IOException e) {
+        throw new IllegalStateException("Benchmark results schema validation failed", e);
+      }
+      System.out.println("Benchmark results reported into " + resultsFile.getAbsolutePath());
     }
   }
 
@@ -94,17 +111,37 @@ public class BenchmarksRunner {
     }
   }
 
-  private static BenchmarkItem reportResult(String label, RunResult result) throws JAXBException {
-    Report report;
-    if (REPORT_FILE.exists()) {
-      report = Report.readFromFile(REPORT_FILE);
-    } else {
-      report = new Report();
+  private void reportResult(RunResult result) throws IOException {
+    if (!resultsFile.exists()) {
+      resultsFile.createNewFile();
+      var results = new Results(schemaFileName, new ArrayList<>());
+      ObjectMapper mapper = new ObjectMapper();
+      mapper.writeValue(resultsFile, results);
     }
 
-    BenchmarkItem benchItem = new BenchmarkResultProcessor().processResult(label, report, result);
+    ObjectMapper mapper = new ObjectMapper();
+    var results = mapper.readValue(resultsFile, Results.class);
+    var res = Result.fromJMHResult(result);
+    results.results().add(res);
+    JsonFactory factory = new JsonFactory();
+    var resultsGenerator = factory.createGenerator(resultsFile, JsonEncoding.UTF8);
+    resultsGenerator.useDefaultPrettyPrinter();
+    mapper.writeValue(resultsGenerator, results);
+  }
 
-    Report.writeToFile(report, REPORT_FILE);
-    return benchItem;
+  private void validateResultsSchema() throws IOException {
+    var schemaFactory = JsonSchemaFactory.getInstance(VersionFlag.V7);
+    var mapper = new ObjectMapper();
+    var resultsJson = mapper.readTree(resultsFile);
+    try (var schemaStream = getClass().getClassLoader().getResourceAsStream(schemaFileName)) {
+      var schema = schemaFactory.getSchema(schemaStream);
+      var validationMsgs = schema.validate(resultsJson);
+      for (var validationMsg : validationMsgs) {
+        if (!validationMsg.isValid()) {
+          System.err.println("Schema validation failed: " + validationMsg);
+          System.exit(1);
+        }
+      }
+    }
   }
 }

@@ -129,15 +129,28 @@ generated JMH sources need to be recompiled with `Bench/clean; Bench/compile`.
 You do not need to recompile the `std-benchmarks` project if you only modify the
 benchmark sources.
 
-## Visualization
+## Results
+
+The results from the benchmarks are stored in
+`<project>/target/bench-results.json` where `<project>` is either
+`engine/runtime-benchmarks` or `std-bits/benchmarks`. The schema of the json is
+specified in
+`lib/java/benchmarks-common/src/main/resources/results_schema.json`.
 
 The benchmarks are invoked as a daily
 [GitHub Action](https://github.com/enso-org/enso/actions/workflows/benchmark.yml),
 that can be invoked manually on a specific branch as well. The results are kept
-in the artifacts produced from the actions. In
+in the artifacts (`bench-results.json`) produced from the actions. In
 `tools/performance/engine-benchmarks` directory, there is a simple Python script
 for collecting and processing the results. See the
 [README in that directory](../../tools/performance/engine-benchmarks/README.md)
 for more information about how to run that script. This script is invoked
 regularly on a private machine and the results are published in
 [https://enso-org.github.io/engine-benchmark-results/](https://enso-org.github.io/engine-benchmark-results/).
+
+The
+[Upload benchmarks GH Action](https://github.com/enso-org/enso/actions/workflows/bench-upload.yml)
+is responsible for uploading the results to the
+[enso-org/engine-benchmark-results](https://github.com/enso-org/engine-benchmark-results)
+repository. See the docs in that repository for how the data is further
+processed.

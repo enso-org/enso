@@ -1,0 +1,38 @@
+{
+  "name": "benchmarks-data",
+  "version": "0.0.0-dev",
+  "description": "Utilities for fetching and storing benchmark data from GH Actions.",
+  "author": {
+    "name": "Enso Team",
+    "email": "contact@enso.org"
+  },
+  "homepage": "https://github.com/enso-org/enso",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:enso-org/enso.git"
+  },
+  "main": "target/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "vite-node src/index.ts",
+    "build": "tsc",
+    "test": "vitest",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "date-fns": "^3.6.0",
+    "jszip": "^3.10.1",
+    "octokit": "^4.0.2",
+    "vite": "^5.2.13",
+    "vitest": "^1.6.0"
+  },
+  "devDependencies": {
+    "@types/datejs": "^0.0.36",
+    "@typescript-eslint/eslint-plugin": "^6.7.2",
+    "@typescript-eslint/parser": "^6.7.2",
+    "eslint": "^8.49.0",
+    "typescript": "^5.4.5"
+  }
+}
