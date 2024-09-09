@@ -29,7 +29,7 @@ export default function StartModal(props: StartModalProps) {
           <WhatsNew />
 
           <Samples
-            groupName="Getting Started"
+            groupName="Get Started"
             createProject={(templateId, templateName) => {
               createProject(templateId, templateName)
               opts.close()
