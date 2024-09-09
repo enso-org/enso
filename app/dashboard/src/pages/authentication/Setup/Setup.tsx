@@ -86,7 +86,7 @@ const BASE_STEPS: Step[] = [
           }
           defaultValues={{ username: defaultName }}
           onSubmit={({ username }) => {
-            // If user is already created we shouldn't call `setUsername` if value didn't change
+            // If user is already created we shouldn't call `setUsername` if value wasn't changed
             if (username === defaultName && isUserCreated) {
               goToNextStep()
               return
