@@ -21,7 +21,7 @@ trait IRUtils {
   def findByExternalId(ir: IR, externalId: UUID @ExternalID): Option[IR] = {
     var result: IR = null
     ir.preorder { ir =>
-      if ((result eq null) && ir.getExternalId.contains(externalId)) {
+      if (result == null && ir.getExternalId.contains(externalId)) {
         result = ir
       }
     }
@@ -141,7 +141,7 @@ trait IRUtils {
   private def findById(ir: IR, id: UUID @Identifier): Option[IR] = {
     var result: IR = null
     ir.preorder { ir =>
-      if ((result eq null) && ir.getId == id) {
+      if (result == null && ir.getId == id) {
         result = ir
       }
     }
