@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -278,5 +279,33 @@ public class PersistanceTest {
     var loaded1 = serde(LongerLoop1.class, obj1, -1);
     var inner1 = loaded1.y().get(LongerLoop2.class);
     assertSame("The reference points to null", null, inner1);
+  }
+
+  @Persistable(id = 432442)
+  public record References(
+      Persistance.Reference<? extends Object> a,
+      Persistance.Reference<? extends Object> b,
+      Persistance.Reference<? extends Object> c) {}
+
+  @Test
+  public void referenceEquality1() throws Exception {
+    var obj1 = UUID.randomUUID();
+    var ra = Persistance.Reference.of(obj1);
+    var rb = Persistance.Reference.of(obj1);
+    var rc = Persistance.Reference.of(obj1);
+    var obj2 = new References(ra, rb, rc);
+
+    assertEquals("Same as they point to the same object", ra, rb);
+    assertEquals("Same as they point to the same object", rb, rc);
+
+    var arr = Persistance.write(obj2, (Function<Object, Object>) null);
+    var loaded1 = Persistance.read(arr, (Function<Object, Object>) null).get(References.class);
+
+    var r1 = loaded1.a();
+    var r2 = loaded1.b();
+
+    assertTrue("Not same", r1 != r2);
+    assertEquals("But equal", r1, r2);
+    assertEquals("With same hash code", r1.hashCode(), r2.hashCode());
   }
 }

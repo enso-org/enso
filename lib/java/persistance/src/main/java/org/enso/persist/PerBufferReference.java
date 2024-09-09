@@ -1,6 +1,7 @@
 package org.enso.persist;
 
 import java.io.IOException;
+import java.util.Objects;
 import org.enso.persist.PerInputImpl.InputCache;
 import org.enso.persist.Persistance.Reference;
 
@@ -63,5 +64,35 @@ final class PerBufferReference<T> extends Persistance.Reference<T> {
 
   static <V> Reference<V> cached(Persistance<V> p, InputCache buffer, int offset) {
     return new PerBufferReference<>(p, buffer, offset, true);
+  }
+
+  @Override
+  public int hashCode() {
+    int hash = 5;
+    hash = 97 * hash + Objects.hashCode(this.p);
+    hash = 97 * hash + Objects.hashCode(this.cache);
+    hash = 97 * hash + this.offset;
+    return hash;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null) {
+      return false;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    final PerBufferReference<?> other = (PerBufferReference<?>) obj;
+    if (this.offset != other.offset) {
+      return false;
+    }
+    if (!Objects.equals(this.p, other.p)) {
+      return false;
+    }
+    return Objects.equals(this.cache, other.cache);
   }
 }
