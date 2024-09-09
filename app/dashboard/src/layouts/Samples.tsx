@@ -156,10 +156,10 @@ function ProjectTile(props: InternalProjectTileProps) {
     >
       <div className="flex aspect-[7/4] h-40 w-full flex-col justify-end bg-gradient-to-t from-primary to-transparent">
         <div className="flex w-full flex-col items-start px-4 pb-3 text-start">
-          <Text variant="subtitle" color="invert" nowrap={false}>
+          <Text variant="subtitle" color="invert" nowrap="normal">
             {title}
           </Text>
-          <Text variant="body-sm" color="invert" nowrap={false}>
+          <Text variant="body-sm" color="invert" nowrap="normal">
             {description}
           </Text>
         </div>

@@ -41,10 +41,10 @@ export default function WhatsNew() {
 
           <div className="flex aspect-[7/4] h-40 w-full flex-col justify-end bg-gradient-to-t from-accent-dark to-transparent">
             <div className="flex w-full flex-col items-start px-4 pb-3 text-start">
-              <Text variant="subtitle" color="invert" nowrap={false}>
+              <Text variant="subtitle" color="invert" nowrap="normal">
                 {getText('newsItemHelpServer')}
               </Text>
-              <Text variant="body-sm" color="invert" nowrap={false}>
+              <Text variant="body-sm" color="invert" nowrap="normal">
                 {getText('newsItemHelpServerDescription')}
               </Text>
             </div>
@@ -67,10 +67,10 @@ export default function WhatsNew() {
 
           <div className="from-youtube-transparent flex aspect-[7/4] h-40 w-full flex-col justify-end bg-gradient-to-t">
             <div className="flex w-full flex-col items-start px-4 pb-3 text-start">
-              <Text variant="subtitle" color="invert" nowrap={false}>
+              <Text variant="subtitle" color="invert" nowrap="normal">
                 {getText('newsItemWeeklyTutorials')}
               </Text>
-              <Text variant="body-sm" color="invert" nowrap={false}>
+              <Text variant="body-sm" color="invert" nowrap="normal">
                 {getText('newsItemWeeklyTutorialsDescription')}
               </Text>
             </div>
@@ -92,10 +92,10 @@ export default function WhatsNew() {
           />
           <div className="flex aspect-[7/4] h-40 w-full flex-col justify-end bg-gradient-to-t from-accent-dark to-transparent">
             <div className="flex w-full flex-col items-start px-4 pb-3 text-start">
-              <Text variant="subtitle" color="invert" nowrap={false}>
+              <Text variant="subtitle" color="invert" nowrap="normal">
                 {getText('newsItemCommunityServer')}
               </Text>
-              <Text variant="body-sm" color="invert" nowrap={false}>
+              <Text variant="body-sm" color="invert" nowrap="normal">
                 {getText('newsItemCommunityServerDescription')}
               </Text>
             </div>
@@ -112,11 +112,11 @@ export default function WhatsNew() {
         >
           <div className="flex aspect-[7/4] h-40 w-full flex-col justify-end bg-gradient-to-t from-primary to-transparent">
             <div className="absolute bottom left right flex flex-col items-start px-4 pb-3 text-start">
-              <Text variant="subtitle" color="invert" nowrap={false}>
+              <Text variant="subtitle" color="invert" nowrap="normal">
                 {getText('newsItem3Beta')}
               </Text>
 
-              <Text variant="body-sm" color="invert" nowrap={false}>
+              <Text variant="body-sm" color="invert" nowrap="normal">
                 {getText('newsItem3BetaDescription')}
               </Text>
             </div>

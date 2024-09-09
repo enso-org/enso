@@ -89,7 +89,7 @@ export const TEXT_STYLE = twv.tv({
     },
     monospace: { true: 'font-mono' },
     italic: { true: 'italic' },
-    nowrap: { true: 'whitespace-nowrap', false: 'whitespace-normal' },
+    nowrap: { true: 'whitespace-nowrap', normal: 'whitespace-normal', false: '' },
     textSelection: {
       auto: '',
       none: 'select-none',
