@@ -38,44 +38,47 @@ public abstract class EqualsComplexNode extends Node {
     return EqualsComplexNodeGen.create();
   }
 
-  public abstract boolean execute(VirtualFrame frame, Object left, Object right);
+  public abstract EqualsAndInfo execute(VirtualFrame frame, Object left, Object right);
 
   /** Enso specific types */
   @Specialization
-  boolean equalsUnresolvedSymbols(
+  EqualsAndInfo equalsUnresolvedSymbols(
       VirtualFrame frame,
       UnresolvedSymbol self,
       UnresolvedSymbol otherSymbol,
-      @Shared("equalsNode") @Cached EqualsNode equalsNode) {
-    return self.getName().equals(otherSymbol.getName())
-        && equalsNode.execute(frame, self.getScope(), otherSymbol.getScope());
+      @Shared("equalsNode") @Cached EqualsSimpleNode equalsNode) {
+    if (!self.getName().equals(otherSymbol.getName())) {
+      return EqualsAndInfo.FALSE;
+    } else {
+      return equalsNode.execute(frame, self.getScope(), otherSymbol.getScope());
+    }
   }
 
   @Specialization
-  boolean equalsUnresolvedConversion(
+  EqualsAndInfo equalsUnresolvedConversion(
       VirtualFrame frame,
       UnresolvedConversion selfConversion,
       UnresolvedConversion otherConversion,
-      @Shared("equalsNode") @Cached EqualsNode equalsNode) {
+      @Shared("equalsNode") @Cached EqualsSimpleNode equalsNode) {
     return equalsNode.execute(frame, selfConversion.getScope(), otherConversion.getScope());
   }
 
   @Specialization
-  boolean equalsModuleScopes(ModuleScope selfModuleScope, ModuleScope otherModuleScope) {
-    return selfModuleScope == otherModuleScope;
+  EqualsAndInfo equalsModuleScopes(ModuleScope selfModuleScope, ModuleScope otherModuleScope) {
+    return EqualsAndInfo.valueOf(selfModuleScope == otherModuleScope);
   }
 
   @Specialization
-  boolean equalsModules(Module selfModule, Module otherModule) {
-    return selfModule == otherModule;
+  EqualsAndInfo equalsModules(Module selfModule, Module otherModule) {
+    return EqualsAndInfo.valueOf(selfModule == otherModule);
   }
 
   @Specialization
-  boolean equalsFiles(
+  EqualsAndInfo equalsFiles(
       VirtualFrame frame,
       EnsoFile selfFile,
       EnsoFile otherFile,
-      @Shared("equalsNode") @Cached EqualsNode equalsNode) {
+      @Shared("equalsNode") @Cached EqualsSimpleNode equalsNode) {
     return equalsNode.execute(frame, selfFile.getPath(), otherFile.getPath());
   }
 
@@ -85,11 +88,11 @@ public abstract class EqualsComplexNode extends Node {
    * specialization disjunctive. So we rather specialize directly for {@link Type types}.
    */
   @Specialization(guards = {"typesLib.hasType(selfType)", "typesLib.hasType(otherType)"})
-  boolean equalsTypes(
+  EqualsAndInfo equalsTypes(
       VirtualFrame frame,
       Type selfType,
       Type otherType,
-      @Shared("equalsNode") @Cached EqualsNode equalsNode,
+      @Shared("equalsNode") @Cached EqualsSimpleNode equalsNode,
       @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary typesLib) {
     return equalsNode.execute(
         frame, selfType.getQualifiedName().toString(), otherType.getQualifiedName().toString());
@@ -103,13 +106,13 @@ public abstract class EqualsComplexNode extends Node {
         "selfWarnLib.hasWarnings(selfWithWarnings) || otherWarnLib.hasWarnings(otherWithWarnings)"
       },
       limit = "3")
-  boolean equalsWithWarnings(
+  EqualsAndInfo equalsWithWarnings(
       VirtualFrame frame,
       Object selfWithWarnings,
       Object otherWithWarnings,
       @CachedLibrary("selfWithWarnings") WarningsLibrary selfWarnLib,
       @CachedLibrary("otherWithWarnings") WarningsLibrary otherWarnLib,
-      @Shared("equalsNode") @Cached EqualsNode equalsNode) {
+      @Shared("equalsNode") @Cached EqualsSimpleNode equalsNode) {
     try {
       Object self =
           selfWarnLib.hasWarnings(selfWithWarnings)
@@ -131,24 +134,25 @@ public abstract class EqualsComplexNode extends Node {
         "selfInterop.isNull(selfNull) || otherInterop.isNull(otherNull)",
       },
       limit = "3")
-  boolean equalsNull(
+  EqualsAndInfo equalsNull(
       Object selfNull,
       Object otherNull,
       @CachedLibrary("selfNull") InteropLibrary selfInterop,
       @CachedLibrary("otherNull") InteropLibrary otherInterop) {
-    return selfInterop.isNull(selfNull) && otherInterop.isNull(otherNull);
+    return EqualsAndInfo.valueOf(selfInterop.isNull(selfNull) && otherInterop.isNull(otherNull));
   }
 
   @Specialization(
       guards = {"selfInterop.isBoolean(selfBoolean)", "otherInterop.isBoolean(otherBoolean)"},
       limit = "3")
-  boolean equalsBooleanInterop(
+  EqualsAndInfo equalsBooleanInterop(
       Object selfBoolean,
       Object otherBoolean,
       @CachedLibrary("selfBoolean") InteropLibrary selfInterop,
       @CachedLibrary("otherBoolean") InteropLibrary otherInterop) {
     try {
-      return selfInterop.asBoolean(selfBoolean) == otherInterop.asBoolean(otherBoolean);
+      return EqualsAndInfo.valueOf(
+          selfInterop.asBoolean(selfBoolean) == otherInterop.asBoolean(otherBoolean));
     } catch (UnsupportedMessageException e) {
       throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
@@ -160,13 +164,14 @@ public abstract class EqualsComplexNode extends Node {
         "isTimeZone(otherTimeZone, otherInterop)",
       },
       limit = "3")
-  boolean equalsTimeZones(
+  EqualsAndInfo equalsTimeZones(
       Object selfTimeZone,
       Object otherTimeZone,
       @CachedLibrary("selfTimeZone") InteropLibrary selfInterop,
       @CachedLibrary("otherTimeZone") InteropLibrary otherInterop) {
     try {
-      return selfInterop.asTimeZone(selfTimeZone).equals(otherInterop.asTimeZone(otherTimeZone));
+      return EqualsAndInfo.valueOf(
+          selfInterop.asTimeZone(selfTimeZone).equals(otherInterop.asTimeZone(otherTimeZone)));
     } catch (UnsupportedMessageException e) {
       throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
@@ -179,7 +184,7 @@ public abstract class EqualsComplexNode extends Node {
         "isZonedDateTime(otherZonedDateTime, otherInterop)",
       },
       limit = "3")
-  boolean equalsZonedDateTimes(
+  EqualsAndInfo equalsZonedDateTimes(
       Object selfZonedDateTime,
       Object otherZonedDateTime,
       @CachedLibrary("selfZonedDateTime") InteropLibrary selfInterop,
@@ -196,7 +201,7 @@ public abstract class EqualsComplexNode extends Node {
               otherInterop.asTime(otherZonedDateTime),
               otherInterop.asTimeZone(otherZonedDateTime));
       // We cannot use self.isEqual(other), because that does not include timezone.
-      return self.compareTo(other) == 0;
+      return EqualsAndInfo.valueOf(self.compareTo(other) == 0);
     } catch (UnsupportedMessageException e) {
       throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
@@ -208,7 +213,7 @@ public abstract class EqualsComplexNode extends Node {
         "isDateTime(otherDateTime, otherInterop)",
       },
       limit = "3")
-  boolean equalsDateTimes(
+  EqualsAndInfo equalsDateTimes(
       Object selfDateTime,
       Object otherDateTime,
       @CachedLibrary("selfDateTime") InteropLibrary selfInterop,
@@ -218,7 +223,7 @@ public abstract class EqualsComplexNode extends Node {
           LocalDateTime.of(selfInterop.asDate(selfDateTime), selfInterop.asTime(selfDateTime));
       var other =
           LocalDateTime.of(otherInterop.asDate(otherDateTime), otherInterop.asTime(otherDateTime));
-      return self.isEqual(other);
+      return EqualsAndInfo.valueOf(self.isEqual(other));
     } catch (UnsupportedMessageException e) {
       throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
@@ -230,13 +235,14 @@ public abstract class EqualsComplexNode extends Node {
         "isDate(otherDate, otherInterop)",
       },
       limit = "3")
-  boolean equalsDates(
+  EqualsAndInfo equalsDates(
       Object selfDate,
       Object otherDate,
       @CachedLibrary("selfDate") InteropLibrary selfInterop,
       @CachedLibrary("otherDate") InteropLibrary otherInterop) {
     try {
-      return selfInterop.asDate(selfDate).isEqual(otherInterop.asDate(otherDate));
+      return EqualsAndInfo.valueOf(
+          selfInterop.asDate(selfDate).isEqual(otherInterop.asDate(otherDate)));
     } catch (UnsupportedMessageException e) {
       throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
@@ -248,13 +254,14 @@ public abstract class EqualsComplexNode extends Node {
         "isTime(otherTime, otherInterop)",
       },
       limit = "3")
-  boolean equalsTimes(
+  EqualsAndInfo equalsTimes(
       Object selfTime,
       Object otherTime,
       @CachedLibrary("selfTime") InteropLibrary selfInterop,
       @CachedLibrary("otherTime") InteropLibrary otherInterop) {
     try {
-      return selfInterop.asTime(selfTime).equals(otherInterop.asTime(otherTime));
+      return EqualsAndInfo.valueOf(
+          selfInterop.asTime(selfTime).equals(otherInterop.asTime(otherTime)));
     } catch (UnsupportedMessageException e) {
       throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
@@ -263,13 +270,14 @@ public abstract class EqualsComplexNode extends Node {
   @Specialization(
       guards = {"selfInterop.isDuration(selfDuration)", "otherInterop.isDuration(otherDuration)"},
       limit = "3")
-  boolean equalsDuration(
+  EqualsAndInfo equalsDuration(
       Object selfDuration,
       Object otherDuration,
       @CachedLibrary("selfDuration") InteropLibrary selfInterop,
       @CachedLibrary("otherDuration") InteropLibrary otherInterop) {
     try {
-      return selfInterop.asDuration(selfDuration).equals(otherInterop.asDuration(otherDuration));
+      return EqualsAndInfo.valueOf(
+          selfInterop.asDuration(selfDuration).equals(otherInterop.asDuration(otherDuration)));
     } catch (UnsupportedMessageException e) {
       throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
@@ -283,28 +291,28 @@ public abstract class EqualsComplexNode extends Node {
         "!otherInterop.hasHashEntries(otherArray)",
       },
       limit = "3")
-  boolean equalsArrays(
+  EqualsAndInfo equalsArrays(
       VirtualFrame frame,
       Object selfArray,
       Object otherArray,
       @CachedLibrary("selfArray") InteropLibrary selfInterop,
       @CachedLibrary("otherArray") InteropLibrary otherInterop,
-      @Shared("equalsNode") @Cached EqualsNode equalsNode,
+      @Shared("equalsNode") @Cached EqualsSimpleNode equalsNode,
       @Shared("hostValueToEnsoNode") @Cached HostValueToEnsoNode valueToEnsoNode) {
     try {
       long selfSize = selfInterop.getArraySize(selfArray);
       if (selfSize != otherInterop.getArraySize(otherArray)) {
-        return false;
+        return EqualsAndInfo.FALSE;
       }
       for (long i = 0; i < selfSize; i++) {
         Object selfElem = valueToEnsoNode.execute(selfInterop.readArrayElement(selfArray, i));
         Object otherElem = valueToEnsoNode.execute(otherInterop.readArrayElement(otherArray, i));
-        boolean elemsAreEqual = equalsNode.execute(frame, selfElem, otherElem);
-        if (!elemsAreEqual) {
-          return false;
+        var elemsAreEqual = equalsNode.execute(frame, selfElem, otherElem);
+        if (!elemsAreEqual.equals()) {
+          return elemsAreEqual;
         }
       }
-      return true;
+      return EqualsAndInfo.TRUE;
     } catch (UnsupportedMessageException | InvalidArrayIndexException e) {
       throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
@@ -318,21 +326,21 @@ public abstract class EqualsComplexNode extends Node {
         "!otherInterop.hasArrayElements(otherHashMap)"
       },
       limit = "3")
-  boolean equalsHashMaps(
+  EqualsAndInfo equalsHashMaps(
       VirtualFrame frame,
       Object selfHashMap,
       Object otherHashMap,
       @CachedLibrary("selfHashMap") InteropLibrary selfInterop,
       @CachedLibrary("otherHashMap") InteropLibrary otherInterop,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary entriesInterop,
-      @Shared("equalsNode") @Cached EqualsNode equalsNode,
+      @Shared("equalsNode") @Cached EqualsSimpleNode equalsNode,
       @Exclusive @Cached HostValueToEnsoNode keyToEnsoNode,
       @Exclusive @Cached HostValueToEnsoNode valueToEnsoNode) {
     try {
       int selfHashSize = (int) selfInterop.getHashSize(selfHashMap);
       int otherHashSize = (int) otherInterop.getHashSize(otherHashMap);
       if (selfHashSize != otherHashSize) {
-        return false;
+        return EqualsAndInfo.FALSE;
       }
       Object selfEntriesIter = selfInterop.getHashEntriesIterator(selfHashMap);
       while (entriesInterop.hasIteratorNextElement(selfEntriesIter)) {
@@ -342,16 +350,16 @@ public abstract class EqualsComplexNode extends Node {
             valueToEnsoNode.execute(entriesInterop.readArrayElement(selfKeyValue, 1));
         if (otherInterop.isHashEntryExisting(otherHashMap, key)
             && otherInterop.isHashEntryReadable(otherHashMap, key)) {
-          Object otherValue =
-              valueToEnsoNode.execute(otherInterop.readHashValue(otherHashMap, key));
-          if (!equalsNode.execute(frame, selfValue, otherValue)) {
-            return false;
+          var otherValue = valueToEnsoNode.execute(otherInterop.readHashValue(otherHashMap, key));
+          var res = equalsNode.execute(frame, selfValue, otherValue);
+          if (!res.equals()) {
+            return res;
           }
         } else {
-          return false;
+          return EqualsAndInfo.FALSE;
         }
       }
-      return true;
+      return EqualsAndInfo.TRUE;
     } catch (UnsupportedMessageException
         | StopIterationException
         | UnknownKeyException
@@ -365,27 +373,28 @@ public abstract class EqualsComplexNode extends Node {
         "isObjectWithMembers(selfObject, interop)",
         "isObjectWithMembers(otherObject, interop)",
       })
-  boolean equalsInteropObjectWithMembers(
+  EqualsAndInfo equalsInteropObjectWithMembers(
       Object selfObject,
       Object otherObject,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
       @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary typesLib,
-      @Shared("equalsNode") @Cached EqualsNode equalsNode,
+      @Shared("equalsNode") @Cached EqualsSimpleNode equalsNode,
       @Shared("hostValueToEnsoNode") @Cached HostValueToEnsoNode valueToEnsoNode) {
     if (interop.isIdentical(selfObject, otherObject, interop)) {
-      return true;
+      return EqualsAndInfo.TRUE;
     } else {
-      return false;
+      return EqualsAndInfo.FALSE;
     }
   }
 
   @Specialization(guards = {"isJavaObject(selfHostObject)", "isJavaObject(otherHostObject)"})
-  boolean equalsHostObjects(
+  EqualsAndInfo equalsHostObjects(
       Object selfHostObject,
       Object otherHostObject,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     try {
-      return interop.asBoolean(interop.invokeMember(selfHostObject, "equals", otherHostObject));
+      return EqualsAndInfo.valueOf(
+          interop.asBoolean(interop.invokeMember(selfHostObject, "equals", otherHostObject)));
     } catch (UnsupportedMessageException
         | ArityException
         | UnknownIdentifierException
@@ -397,12 +406,12 @@ public abstract class EqualsComplexNode extends Node {
   // HostFunction is identified by a qualified name, it is not a lambda.
   // It has well-defined equality based on the qualified name.
   @Specialization(guards = {"isJavaFunction(selfHostFunc)", "isJavaFunction(otherHostFunc)"})
-  boolean equalsHostFunctions(
+  EqualsAndInfo equalsHostFunctions(
       VirtualFrame frame,
       Object selfHostFunc,
       Object otherHostFunc,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Shared("equalsNode") @Cached EqualsNode equalsNode) {
+      @Shared("equalsNode") @Cached EqualsSimpleNode equalsNode) {
     Object selfFuncStrRepr = interop.toDisplayString(selfHostFunc);
     Object otherFuncStrRepr = interop.toDisplayString(otherHostFunc);
     return equalsNode.execute(frame, selfFuncStrRepr, otherFuncStrRepr);
@@ -410,16 +419,19 @@ public abstract class EqualsComplexNode extends Node {
 
   @Specialization(guards = "fallbackGuard(left, right, interop, warningsLib)")
   @TruffleBoundary
-  boolean equalsGeneric(
+  EqualsAndInfo equalsGeneric(
       Object left,
       Object right,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
       @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary typesLib,
       @CachedLibrary(limit = "10") WarningsLibrary warningsLib) {
-    return left == right
-        || interop.isIdentical(left, right, interop)
-        || left.equals(right)
-        || (isNullOrNothing(left, typesLib, interop) && isNullOrNothing(right, typesLib, interop));
+    var res =
+        left == right
+            || interop.isIdentical(left, right, interop)
+            || left.equals(right)
+            || (isNullOrNothing(left, typesLib, interop)
+                && isNullOrNothing(right, typesLib, interop));
+    return EqualsAndInfo.valueOf(res);
   }
 
   // We have to manually specify negation of guards of other specializations, because

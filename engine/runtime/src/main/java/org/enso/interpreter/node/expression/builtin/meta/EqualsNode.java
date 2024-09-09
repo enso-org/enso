@@ -26,6 +26,7 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.State;
+import org.enso.interpreter.runtime.warning.AppendWarningNode;
 
 @BuiltinMethod(
     type = "Any",
@@ -48,6 +49,7 @@ public final class EqualsNode extends Node {
   @Child private EqualsSimpleNode node;
   @Child private TypeOfNode types;
   @Child private WithConversionNode convert;
+  @Child private AppendWarningNode append;
 
   private static final EqualsNode UNCACHED =
       new EqualsNode(EqualsSimpleNodeGen.getUncached(), TypeOfNode.getUncached(), true);
@@ -84,9 +86,9 @@ public final class EqualsNode extends Node {
    * @param other the other object
    * @return {@code true} if {@code self} and {@code that} seem equal
    */
-  public boolean execute(VirtualFrame frame, Object self, Object other) {
+  public Object execute(VirtualFrame frame, Object self, Object other) {
     var areEqual = node.execute(frame, self, other);
-    if (!areEqual) {
+    if (!areEqual.equals()) {
       var selfType = types.execute(self);
       var otherType = types.execute(other);
       if (selfType != otherType) {
@@ -97,7 +99,15 @@ public final class EqualsNode extends Node {
         return convert.executeWithConversion(frame, other, self);
       }
     }
-    return areEqual;
+    if (areEqual.warnings() != null) {
+      if (append == null) {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        append = insert(AppendWarningNode.build());
+      }
+      return append.executeAppend(frame, areEqual.equals(), areEqual.warnings());
+    } else {
+      return areEqual.equals();
+    }
   }
 
   /**
@@ -259,7 +269,7 @@ public final class EqualsNode extends Node {
       var state = State.create(ctx);
       try {
         var thatAsSelf = convertNode.execute(convert, state, new Object[] {selfType, that});
-        var result = equalityNode.execute(frame, self, thatAsSelf);
+        var result = equalityNode.execute(frame, self, thatAsSelf).equals();
         assert !result || assertHashCodeIsTheSame(that, thatAsSelf);
         return result;
       } catch (ArityException ex) {

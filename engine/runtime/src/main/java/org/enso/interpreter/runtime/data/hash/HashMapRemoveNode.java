@@ -14,7 +14,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
+import org.enso.interpreter.node.expression.builtin.meta.EqualsSimpleNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.DataflowError;
@@ -39,7 +39,7 @@ public abstract class HashMapRemoveNode extends Node {
       EnsoHashMap ensoMap,
       Object key,
       @Shared("hash") @Cached HashCodeNode hashCodeNode,
-      @Shared("equals") @Cached EqualsNode equalsNode) {
+      @Shared("equals") @Cached EqualsSimpleNode equalsNode) {
     var mapBuilder = ensoMap.getMapBuilder(frame, false, hashCodeNode, equalsNode);
     if (mapBuilder.remove(frame, key, hashCodeNode, equalsNode)) {
       return mapBuilder.build();
@@ -55,10 +55,10 @@ public abstract class HashMapRemoveNode extends Node {
       Object keyToRemove,
       @CachedLibrary(limit = "5") InteropLibrary interop,
       @Shared("hash") @Cached HashCodeNode hashCodeNode,
-      @Shared("equals") @Cached EqualsNode equalsNode) {
+      @Shared("equals") @Cached EqualsSimpleNode equalsNode) {
     // We cannot simply call interop.isHashEntryExisting, because it would, most likely
     // use the default `hashCode` and `equals` Java methods. But we need to use our
-    // EqualsNode, so we do the check for non-existing key inside the while loop.
+    // EqualsSimpleNode, so we do the check for non-existing key inside the while loop.
     boolean keyToRemoveFound = false;
     var mapBuilder = EnsoHashMapBuilder.create();
     try {
@@ -98,11 +98,15 @@ public abstract class HashMapRemoveNode extends Node {
 
   /** A special case of equals - we want to be able to remove NaN from the map. */
   private boolean polyglotEquals(
-      Object obj1, Object obj2, VirtualFrame frame, EqualsNode equalsNode, InteropLibrary interop) {
+      Object obj1,
+      Object obj2,
+      VirtualFrame frame,
+      EqualsSimpleNode equalsNode,
+      InteropLibrary interop) {
     if (isNan(obj1, interop) && isNan(obj2, interop)) {
       return true;
     } else {
-      return equalsNode.execute(frame, obj1, obj2);
+      return equalsNode.execute(frame, obj1, obj2).equals();
     }
   }
 

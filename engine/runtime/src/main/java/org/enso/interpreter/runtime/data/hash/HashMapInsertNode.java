@@ -13,7 +13,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
+import org.enso.interpreter.node.expression.builtin.meta.EqualsSimpleNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -42,7 +42,7 @@ public abstract class HashMapInsertNode extends Node {
       Object key,
       Object value,
       @Shared("hash") @Cached HashCodeNode hashCodeNode,
-      @Shared("equals") @Cached EqualsNode equalsNode) {
+      @Shared("equals") @Cached EqualsSimpleNode equalsNode) {
     assert value != null;
     var mapBuilder = hashMap.getMapBuilder(frame, false, hashCodeNode, equalsNode);
     mapBuilder.put(frame, key, value, hashCodeNode, equalsNode);
@@ -63,7 +63,7 @@ public abstract class HashMapInsertNode extends Node {
       @CachedLibrary("foreignMap") InteropLibrary mapInterop,
       @CachedLibrary(limit = "3") InteropLibrary iteratorInterop,
       @Shared("hash") @Cached HashCodeNode hashCodeNode,
-      @Shared("equals") @Cached EqualsNode equalsNode) {
+      @Shared("equals") @Cached EqualsSimpleNode equalsNode) {
     assert valueToInsert != null;
     var mapBuilder = EnsoHashMapBuilder.create();
     try {
