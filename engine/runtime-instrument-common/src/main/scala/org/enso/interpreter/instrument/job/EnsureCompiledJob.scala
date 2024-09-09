@@ -426,7 +426,7 @@ class EnsureCompiledJob(
         "Empty dataflow analysis metadata during the interactive compilation."
       )
 
-    val builder = Set.newBuilder[DataflowAnalysis.DependencyInfo.Type]
+    val builder = Set.newBuilder[UUID @ExternalID]
     IR.preorder(
       ir,
       {
@@ -436,19 +436,16 @@ class EnsureCompiledJob(
                 .ResolverError(BindingsMap.ResolutionNotFound),
               _
             ) =>
-          builder += DataflowAnalysis.DependencyInfo.Type.Static(
+          val key = DataflowAnalysis.DependencyInfo.Type.Static(
             err.getId(),
             err.getExternalId
           )
+          metadata.dependents.getExternal(key).foreach(builder.addAll)
         case _ =>
       }: Consumer[IR]
     )
 
-    builder
-      .result()
-      .flatMap(
-        metadata.dependents.getExternal(_).getOrElse(Set())
-      )
+    builder.result()
   }
 
   /** Run the invalidation commands.
