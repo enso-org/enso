@@ -74,9 +74,10 @@ public interface IR {
   /**
    * Applies the callback to nodes in the preorder walk of the tree of this node.
    *
+   * @ir the node to traverse
    * @cb the callback to apply
    */
-  default void preorder(Consumer<IR> cb) {
+  static void preorder(IR ir, Consumer<IR> cb) {
     final class CB implements scala.Function1<IR, scala.Unit> {
       @Override
       public scala.Unit apply(IR ir) {
@@ -86,8 +87,8 @@ public interface IR {
       }
     }
 
-    cb.accept(this);
-    children().foreach(new CB());
+    cb.accept(ir);
+    ir.children().foreach(new CB());
   }
 
   /**
@@ -97,7 +98,7 @@ public interface IR {
    */
   default List<IR> preorder() {
     var builder = new scala.collection.mutable.ListBuffer<IR>();
-    preorder(builder::addOne);
+    IR.preorder(this, builder::addOne);
 
     return builder.result();
   }

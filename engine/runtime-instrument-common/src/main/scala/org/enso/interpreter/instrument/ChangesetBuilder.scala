@@ -81,11 +81,14 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
       .flatMap { case (pending, directlyAffected) =>
         val directlyAffectedId = directlyAffected.head.externalId
         var oldIr: IR          = null
-        ir.preorder { ir =>
-          if (oldIr == null && ir.getExternalId == directlyAffectedId) {
-            oldIr = ir
+        IR.preorder(
+          ir,
+          { ir =>
+            if (oldIr == null && ir.getExternalId == directlyAffectedId) {
+              oldIr = ir
+            }
           }
-        }
+        )
 
         def newIR(edit: PendingEdit): Option[Literal] = {
           val value = edit match {
@@ -521,17 +524,20 @@ object ChangesetBuilder {
     ir: IR,
     id: UUID @Identifier
   ): Option[String] = {
-    ir.preorder { ir =>
-      if (ir.getId == id)
-        ir match {
-          case name: Name =>
-            return Some(name.name)
-          case method: definition.Method =>
-            return Some(method.methodName.name)
-          case _ =>
-            return None
-        }
-    }
+    IR.preorder(
+      ir,
+      { ir =>
+        if (ir.getId == id)
+          ir match {
+            case name: Name =>
+              return Some(name.name)
+            case method: definition.Method =>
+              return Some(method.methodName.name)
+            case _ =>
+              return None
+          }
+      }
+    )
     None
   }
 

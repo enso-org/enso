@@ -232,17 +232,20 @@ object AutomaticParallelism extends IRPass {
     }: _*)
     val linesWithDeps = segment.parallelizable.map { line =>
       val builder = Set.newBuilder[Int]
-      line.ir.preorder({
-        case n: Name.Literal =>
-          for {
-            occ @ alias.AliasMetadata.Occurrence(_, _) <-
-              n.getMetadata(AliasAnalysis)
-            link <- occ.graph.defLinkFor(occ.id)
-            id   <- depMap.get(link.target)
-            if id != line.id
-          } yield builder.addOne(id)
-        case _ =>
-      }: Consumer[IR])
+      IR.preorder(
+        line.ir,
+        {
+          case n: Name.Literal =>
+            for {
+              occ @ alias.AliasMetadata.Occurrence(_, _) <-
+                n.getMetadata(AliasAnalysis)
+              link <- occ.graph.defLinkFor(occ.id)
+              id   <- depMap.get(link.target)
+              if id != line.id
+            } yield builder.addOne(id)
+          case _ =>
+        }: Consumer[IR]
+      )
 
       line.copy(dependencies = builder.result())
     }

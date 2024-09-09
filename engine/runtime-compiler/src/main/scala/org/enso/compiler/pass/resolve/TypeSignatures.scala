@@ -94,10 +94,13 @@ case object TypeSignatures extends IRPass {
         res
       case meth: definition.Method =>
         val newMethod = meth.mapExpressions(resolveExpression)
-        newMethod.body.preorder({
-          case fn: Function => verifyAscribedArguments(fn.arguments)
-          case _            =>
-        }: Consumer[IR])
+        IR.preorder(
+          newMethod.body,
+          {
+            case fn: Function => verifyAscribedArguments(fn.arguments)
+            case _            =>
+          }: Consumer[IR]
+        )
 
         val res = lastSignature match {
           case Some(asc @ Type.Ascription(typed, sig, comment, _, _)) =>
@@ -333,7 +336,7 @@ case object TypeSignatures extends IRPass {
 
     /** @inheritdoc */
     override def prepareForSerialization(compiler: Compiler): Signature = {
-      signature.preorder(_.passData.prepareForSerialization(compiler))
+      IR.preorder(signature, _.passData.prepareForSerialization(compiler))
       this
     }
 
@@ -341,11 +344,14 @@ case object TypeSignatures extends IRPass {
     override def restoreFromSerialization(
       compiler: Compiler
     ): Option[Signature] = {
-      signature.preorder { node =>
-        if (!node.passData.restoreFromSerialization(compiler)) {
-          return None
+      IR.preorder(
+        signature,
+        { node =>
+          if (!node.passData.restoreFromSerialization(compiler)) {
+            return None
+          }
         }
-      }
+      )
       Some(this)
     }
 

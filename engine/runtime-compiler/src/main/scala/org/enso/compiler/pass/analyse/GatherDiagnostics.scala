@@ -67,29 +67,40 @@ case object GatherDiagnostics extends IRPass {
     */
   private def gatherMetadata(ir: IR): DiagnosticsMeta = {
     val builder = List.newBuilder[Diagnostic]
-    ir.preorder({
-      case err: Diagnostic =>
-        builder.addOne(err)
-      case arg: DefinitionArgument =>
-        arg
-          .getMetadata(TypeSignatures)
-          .foreach(_.signature.preorder(collectDiagnostics(builder)))
-        diagnosticsList(arg).foreach(builder.addOne)
-      case x: definition.Method =>
-        x.getMetadata(TypeSignatures)
-          .foreach(_.signature.preorder(collectDiagnostics(builder)))
-        x.getMetadata(GenericAnnotations)
-          .foreach(
-            _.annotations.foreach(_.preorder(collectDiagnostics(builder)))
-          )
-        diagnosticsList(x).foreach(builder.addOne)
-      case x: Expression =>
-        x.getMetadata(TypeSignatures)
-          .foreach(_.signature.preorder(collectDiagnostics(builder)))
-        diagnosticsList(x).foreach(builder.addOne)
-      case x =>
-        diagnosticsList(x).foreach(builder.addOne)
-    }: Consumer[IR])
+    IR.preorder(
+      ir,
+      {
+        case err: Diagnostic =>
+          builder.addOne(err)
+        case arg: DefinitionArgument =>
+          arg
+            .getMetadata(TypeSignatures)
+            .foreach(meta =>
+              IR.preorder(meta.signature, collectDiagnostics(builder))
+            )
+          diagnosticsList(arg).foreach(builder.addOne)
+        case x: definition.Method =>
+          x.getMetadata(TypeSignatures)
+            .foreach(meta =>
+              IR.preorder(meta.signature, collectDiagnostics(builder))
+            )
+          x.getMetadata(GenericAnnotations)
+            .foreach(
+              _.annotations.foreach(annotations =>
+                IR.preorder(annotations, collectDiagnostics(builder))
+              )
+            )
+          diagnosticsList(x).foreach(builder.addOne)
+        case x: Expression =>
+          x.getMetadata(TypeSignatures)
+            .foreach(meta =>
+              IR.preorder(meta.signature, collectDiagnostics(builder))
+            )
+          diagnosticsList(x).foreach(builder.addOne)
+        case x =>
+          diagnosticsList(x).foreach(builder.addOne)
+      }: Consumer[IR]
+    )
 
     DiagnosticsMeta(
       builder.result().distinctBy(d => new DiagnosticKeys(d))

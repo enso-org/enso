@@ -19,11 +19,14 @@ trait IRUtils {
     * @return the first node with the given external id in `ir`
     */
   def findByExternalId(ir: IR, externalId: UUID @ExternalID): Option[IR] = {
-    ir.preorder { ir =>
-      if (ir.getExternalId.contains(externalId)) {
-        return Some(ir)
+    IR.preorder(
+      ir,
+      { ir =>
+        if (ir.getExternalId.contains(externalId)) {
+          return Some(ir)
+        }
       }
-    }
+    )
     None
   }
 
@@ -138,11 +141,14 @@ trait IRUtils {
     * @return the `ir` node with the given identifier
     */
   private def findById(ir: IR, id: UUID @Identifier): Option[IR] = {
-    ir.preorder { ir =>
-      if (ir.getId == id) {
-        return Some(ir)
+    IR.preorder(
+      ir,
+      { ir =>
+        if (ir.getId == id) {
+          return Some(ir)
+        }
       }
-    }
+    )
     None
   }
 }

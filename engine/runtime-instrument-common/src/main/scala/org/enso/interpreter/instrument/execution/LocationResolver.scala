@@ -98,11 +98,14 @@ object LocationResolver {
     ir: IR,
     location: IdentifiedLocation
   ): Option[IR] = {
-    ir.preorder { ir =>
-      if (ir.location.contains(location)) {
-        return Some(ir)
+    IR.preorder(
+      ir,
+      { ir =>
+        if (ir.location.contains(location)) {
+          return Some(ir)
+        }
       }
-    }
+    )
     None
   }
 
@@ -113,11 +116,14 @@ object LocationResolver {
     * @return the expression with the given location
     */
   private def findByLocation(ir: IR, location: Location): Option[IR] = {
-    ir.preorder { ir =>
-      if (ir.location.map(_.location).contains(location)) {
-        return Some(ir)
+    IR.preorder(
+      ir,
+      { ir =>
+        if (ir.location.map(_.location).contains(location)) {
+          return Some(ir)
+        }
       }
-    }
+    )
     None
   }
 

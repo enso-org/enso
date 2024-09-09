@@ -406,8 +406,9 @@ public final class Module implements EnsoObject {
       var newMap = new HashMap<UUID, IR>();
       var localIr = getIr();
       if (localIr != null) {
-        localIr.preorder(
-            (v1) -> {
+        IR.preorder(
+            localIr,
+            v1 -> {
               if (v1.getExternalId().isDefined()) {
                 newMap.put(v1.getExternalId().get(), v1);
               }

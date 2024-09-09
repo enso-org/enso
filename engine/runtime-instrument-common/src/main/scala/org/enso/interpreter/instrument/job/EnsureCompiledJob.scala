@@ -409,7 +409,7 @@ class EnsureCompiledJob(
 
   private def getModuleIds(ir: IR): Set[UUID @ExternalID] = {
     val builder = Set.newBuilder[UUID @ExternalID]
-    ir.preorder(_.getExternalId.foreach(builder.addOne))
+    IR.preorder(ir, _.getExternalId.foreach(builder.addOne))
 
     builder.result()
   }
@@ -427,19 +427,22 @@ class EnsureCompiledJob(
       )
 
     val builder = Set.newBuilder[DataflowAnalysis.DependencyInfo.Type]
-    ir.preorder({
-      case err @ expression.errors.Resolution(
-            _,
-            expression.errors.Resolution
-              .ResolverError(BindingsMap.ResolutionNotFound),
-            _
-          ) =>
-        builder += DataflowAnalysis.DependencyInfo.Type.Static(
-          err.getId(),
-          err.getExternalId
-        )
-      case _ =>
-    }: Consumer[IR])
+    IR.preorder(
+      ir,
+      {
+        case err @ expression.errors.Resolution(
+              _,
+              expression.errors.Resolution
+                .ResolverError(BindingsMap.ResolutionNotFound),
+              _
+            ) =>
+          builder += DataflowAnalysis.DependencyInfo.Type.Static(
+            err.getId(),
+            err.getExternalId
+          )
+        case _ =>
+      }: Consumer[IR]
+    )
 
     builder
       .result()
