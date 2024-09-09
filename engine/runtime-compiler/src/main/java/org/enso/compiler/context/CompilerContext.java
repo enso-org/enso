@@ -131,6 +131,8 @@ public interface CompilerContext extends CompilerStub {
 
     void resetScope();
 
+    void resetScope(boolean resetTypes);
+
     void invalidateCache();
   }
 

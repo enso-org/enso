@@ -560,7 +560,6 @@ class Compiler(
       "Parsing module [{0}].",
       context.getModuleName(module)
     )
-    context.updateModule(module, _.resetScope())
 
     if (useCaches) {
       if (context.deserializeModule(this, module)) {
@@ -573,14 +572,17 @@ class Compiler(
           context.updateModule(
             module,
             u => {
+              u.resetScope(true)
               u.ir(updatedIr)
-              u.compilationStage(CompilationStage.AFTER_STATIC_PASSES)
+              u.compilationStage(CompilationStage.AFTER_PARSING)
             }
           )
         }
         return
       }
     }
+
+    context.updateModule(module, _.resetScope())
 
     uncachedParseModule(module, isGenDocs)
   }

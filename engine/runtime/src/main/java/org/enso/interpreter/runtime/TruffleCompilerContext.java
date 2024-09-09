@@ -680,6 +680,7 @@ final class TruffleCompilerContext implements CompilerContext {
     private CompilationStage stage;
     private Boolean loadedFromCache;
     private boolean resetScope;
+    private boolean resetTypes;
     private boolean invalidateCache;
 
     private ModuleUpdater(Module module) {
@@ -714,6 +715,13 @@ final class TruffleCompilerContext implements CompilerContext {
     @Override
     public void resetScope() {
       this.resetScope = true;
+      this.resetTypes = false;
+    }
+
+    @Override
+    public void resetScope(boolean resetTypes) {
+      this.resetScope = true;
+      this.resetTypes = true;
     }
 
     @Override
@@ -742,7 +750,8 @@ final class TruffleCompilerContext implements CompilerContext {
         module.module.setLoadedFromCache(loadedFromCache);
       }
       if (resetScope) {
-        module.module.newScopeBuilder(true);
+        var inheritTypes = !resetTypes;
+        module.module.newScopeBuilder(inheritTypes);
       }
       if (invalidateCache) {
         module.module.getCache().invalidate(context);
