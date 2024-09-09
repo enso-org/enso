@@ -73,17 +73,10 @@ object Unexpected {
       diagnostics: DiagnosticStorage = diagnostics,
       id: UUID @Identifier           = id
     ): TypeSignature = {
-      if (
-        ir != this.ir
-        || passData != this.passData
-        || diagnostics != this.diagnostics
-        || id != this.id
-      ) {
-        val res = TypeSignature(ir, passData)
-        res.diagnostics = diagnostics
-        res.id          = id
-        res
-      } else this
+      val res = TypeSignature(ir, passData)
+      res.diagnostics = diagnostics
+      res.id          = id
+      res
     }
 
     /** @inheritdoc */

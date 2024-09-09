@@ -33,17 +33,10 @@ sealed case class Empty(
     diagnostics: DiagnosticStorage       = diagnostics,
     id: UUID @Identifier                 = id
   ): Empty = {
-    if (
-      location != this.location
-      || passData != this.passData
-      || diagnostics != this.diagnostics
-      || id != this.id
-    ) {
-      val res = Empty(location, passData)
-      res.diagnostics = diagnostics
-      res.id          = id
-      res
-    } else this
+    val res = Empty(location, passData)
+    res.diagnostics = diagnostics
+    res.id          = id
+    res
   }
 
   /** @inheritdoc */

@@ -93,8 +93,8 @@ case object ImportSymbolAnalysis extends IRPass {
             isAll,
             _,
             _,
-            _,
             isSynthetic,
+            _,
             _
           ) if isAll && !isSynthetic =>
         bindingMap.resolvedImports.find(_.importDef == imp) match {

@@ -185,8 +185,8 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
             expName,
             rename,
             onlyNames,
-            _,
             isSynthetic,
+            _,
             _
           ) if !isSynthetic =>
         val exportsItself = curModName.equals(expName.name)

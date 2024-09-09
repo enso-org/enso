@@ -68,20 +68,11 @@ object Case {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Expr = {
-      if (
-        scrutinee != this.scrutinee
-        || branches != this.branches
-        || isNested != this.isNested
-        || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
-        || id != this.id
-      ) {
-        val res = Expr(scrutinee, branches, isNested, location, passData)
-        res.diagnostics = diagnostics
-        res.id          = id
-        res
-      } else this
+      val res =
+        Expr(scrutinee, branches, isNested, location, passData)
+      res.diagnostics = diagnostics
+      res.id          = id
+      res
     }
 
     /** @inheritdoc */
@@ -195,26 +186,16 @@ object Case {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Branch = {
-      if (
-        pattern != this.pattern
-        || expression != this.expression
-        || terminalBranch != this.terminalBranch
-        || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
-        || id != this.id
-      ) {
-        val res = Branch(
-          pattern,
-          expression,
-          terminalBranch,
-          location,
-          passData
-        )
-        res.diagnostics = diagnostics
-        res.id          = id
-        res
-      } else this
+      val res = Branch(
+        pattern,
+        expression,
+        terminalBranch,
+        location,
+        passData
+      )
+      res.diagnostics = diagnostics
+      res.id          = id
+      res
     }
 
     /** @inheritdoc */

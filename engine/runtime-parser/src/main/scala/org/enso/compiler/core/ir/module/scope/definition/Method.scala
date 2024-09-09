@@ -54,10 +54,10 @@ object Method {
     methodReference: Name.MethodReference,
     bodyReference: Persistance.Reference[Expression],
     isStatic: Boolean,
-    override val isPrivate: Boolean,
+    isPrivate: Boolean,
     isStaticWrapperForInstanceMethod: Boolean,
-    override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage
+    location: Option[IdentifiedLocation],
+    passData: MetadataStorage
   ) extends Method
       with IRKind.Primitive
       with LazyDiagnosticStorage
@@ -108,30 +108,18 @@ object Method {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Explicit = {
-      if (
-        methodReference != this.methodReference
-        || body != this.body
-        || isStatic != this.isStatic
-        || isPrivate != this.isPrivate
-        || isStaticWrapperForInstanceMethod != this.isStaticWrapperForInstanceMethod
-        || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
-        || id != this.id
-      ) {
-        val res = Explicit(
-          methodReference,
-          Persistance.Reference.of(body, false),
-          isStatic,
-          isPrivate,
-          isStaticWrapperForInstanceMethod,
-          location,
-          passData
-        )
-        res.diagnostics = diagnostics
-        res.id          = id
-        res
-      } else this
+      val res = Explicit(
+        methodReference,
+        Persistance.Reference.of(body, false),
+        isStatic,
+        isPrivate,
+        isStaticWrapperForInstanceMethod,
+        location,
+        passData
+      )
+      res.diagnostics = diagnostics
+      res.id          = id
+      res
     }
 
     /** @inheritdoc */
@@ -316,28 +304,17 @@ object Method {
       diagnostics: DiagnosticStorage        = diagnostics,
       id: UUID @Identifier                  = id
     ): Binding = {
-      if (
-        methodReference != this.methodReference
-        || arguments != this.arguments
-        || isPrivate != this.isPrivate
-        || body != this.body
-        || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
-        || id != this.id
-      ) {
-        val res = Binding(
-          methodReference,
-          arguments,
-          isPrivate,
-          body,
-          location,
-          passData
-        )
-        res.diagnostics = diagnostics
-        res.id          = id
-        res
-      } else this
+      val res = Binding(
+        methodReference,
+        arguments,
+        isPrivate,
+        body,
+        location,
+        passData
+      )
+      res.diagnostics = diagnostics
+      res.id          = id
+      res
     }
 
     /** @inheritdoc */
@@ -485,26 +462,16 @@ object Method {
       diagnostics: DiagnosticStorage        = diagnostics,
       id: UUID @Identifier                  = id
     ): Conversion = {
-      if (
-        methodReference != this.methodReference
-        || sourceTypeName != this.sourceTypeName
-        || body != this.body
-        || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
-        || id != this.id
-      ) {
-        val res = Conversion(
-          methodReference,
-          sourceTypeName,
-          body,
-          location,
-          passData
-        )
-        res.diagnostics = diagnostics
-        res.id          = id
-        res
-      } else this
+      val res = Conversion(
+        methodReference,
+        sourceTypeName,
+        body,
+        location,
+        passData
+      )
+      res.diagnostics = diagnostics
+      res.id          = id
+      res
     }
 
     /** @inheritdoc */

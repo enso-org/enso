@@ -51,9 +51,9 @@ object Export {
     name: Name.Qualified,
     rename: Option[Name.Literal],
     onlyNames: Option[List[Name.Literal]],
-    override val location: Option[IdentifiedLocation],
-    isSynthetic: Boolean                   = false,
-    override val passData: MetadataStorage = new MetadataStorage()
+    isSynthetic: Boolean                              = false,
+    override val location: Option[IdentifiedLocation] = None,
+    override val passData: MetadataStorage            = new MetadataStorage()
   ) extends IR
       with IRKind.Primitive
       with Export
@@ -82,28 +82,17 @@ object Export {
       diagnostics: DiagnosticStorage        = diagnostics,
       id: UUID @Identifier                  = id
     ): Module = {
-      if (
-        name != this.name
-        || rename != this.rename
-        || onlyNames != this.onlyNames
-        || isSynthetic != this.isSynthetic
-        || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
-        || id != this.id
-      ) {
-        val res = Module(
-          name,
-          rename,
-          onlyNames,
-          location,
-          isSynthetic,
-          passData
-        )
-        res.diagnostics = diagnostics
-        res.id          = id
-        res
-      } else this
+      val res = Module(
+        name,
+        rename,
+        onlyNames,
+        isSynthetic,
+        location,
+        passData
+      )
+      res.diagnostics = diagnostics
+      res.id          = id
+      res
     }
 
     /** @inheritdoc */

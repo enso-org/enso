@@ -74,29 +74,18 @@ final case class Module(
     diagnostics: DiagnosticStorage       = diagnostics,
     id: UUID @Identifier                 = id
   ): Module = {
-    if (
-      imports != this.imports
-      || exports != this.exports
-      || bindings != this.bindings
-      || isPrivate != this.isPrivate
-      || location != this.location
-      || passData != this.passData
-      || diagnostics != this.diagnostics
-      || id != this.id
-    ) {
-      val res =
-        Module(
-          imports,
-          exports,
-          bindings,
-          isPrivate,
-          location,
-          passData
-        )
-      res.diagnostics = diagnostics
-      res.id          = id
-      res
-    } else this
+    val res =
+      Module(
+        imports,
+        exports,
+        bindings,
+        isPrivate,
+        location,
+        passData
+      )
+    res.diagnostics = diagnostics
+    res.id          = id
+    res
   }
 
   /** @inheritdoc */

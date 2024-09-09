@@ -113,27 +113,17 @@ object Function {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Lambda = {
-      if (
-        arguments != this.arguments
-        || body != this.body
-        || location != this.location
-        || canBeTCO != this.canBeTCO
-        || passData != this.passData
-        || diagnostics != this.diagnostics
-        || id != this.id
-      ) {
-        val res =
-          Lambda(
-            arguments,
-            Persistance.Reference.of(body, false),
-            location,
-            canBeTCO,
-            passData
-          )
-        res.diagnostics = diagnostics
-        res.id          = id
-        res
-      } else this
+      val res =
+        Lambda(
+          arguments,
+          Persistance.Reference.of(body, false),
+          location,
+          canBeTCO,
+          passData
+        )
+      res.diagnostics = diagnostics
+      res.id          = id
+      res
     }
 
     /** @inheritdoc */
@@ -277,31 +267,19 @@ object Function {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Binding = {
-      if (
-        name != this.name
-        || arguments != this.arguments
-        || body != this.body
-        || isPrivate != this.isPrivate
-        || location != this.location
-        || canBeTCO != this.canBeTCO
-        || passData != this.passData
-        || diagnostics != this.diagnostics
-        || id != this.id
-      ) {
-        val res =
-          Binding(
-            name,
-            arguments,
-            body,
-            isPrivate,
-            location,
-            canBeTCO,
-            passData
-          )
-        res.diagnostics = diagnostics
-        res.id          = id
-        res
-      } else this
+      val res =
+        Binding(
+          name,
+          arguments,
+          body,
+          isPrivate,
+          location,
+          canBeTCO,
+          passData
+        )
+      res.diagnostics = diagnostics
+      res.id          = id
+      res
     }
 
     /** @inheritdoc */

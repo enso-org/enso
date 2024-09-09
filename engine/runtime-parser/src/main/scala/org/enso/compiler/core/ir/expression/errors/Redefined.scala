@@ -60,17 +60,10 @@ object Redefined {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): SelfArg = {
-      if (
-        location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
-        || id != this.id
-      ) {
-        val res = SelfArg(location, passData)
-        res.diagnostics = diagnostics
-        res.id          = id
-        res
-      } else this
+      val res = SelfArg(location, passData)
+      res.diagnostics = diagnostics
+      res.id          = id
+      res
     }
 
     /** @inheritdoc */
@@ -155,19 +148,11 @@ object Redefined {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Conversion = {
-      if (
-        targetType != this.targetType
-        || sourceType != this.sourceType
-        || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
-        || id != this.id
-      ) {
-        val res = Conversion(targetType, sourceType, location, passData)
-        res.diagnostics = diagnostics
-        res.id          = id
-        res
-      } else this
+      val res =
+        Conversion(targetType, sourceType, location, passData)
+      res.diagnostics = diagnostics
+      res.id          = id
+      res
     }
 
     /** @inheritdoc */
@@ -268,7 +253,7 @@ object Redefined {
 
     /** Creates a copy of `this`.
       *
-      * @param typeName    the name of the atom the method was being redefined on
+      * @param atomName    the name of the atom the method was being redefined on
       * @param methodName  the method name being redefined on `atomName`
       * @param location    the location in the source to which this error
       *                    corresponds
@@ -278,26 +263,18 @@ object Redefined {
       * @return a copy of `this`, updated with the specified values
       */
     def copy(
-      typeName: Option[Name]               = typeName,
+      atomName: Option[Name]               = typeName,
       methodName: Name                     = methodName,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Method = {
-      if (
-        typeName != this.typeName
-        || methodName != this.methodName
-        || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
-        || id != this.id
-      ) {
-        val res = Method(typeName, methodName, location, passData)
-        res.diagnostics = diagnostics
-        res.id          = id
-        res
-      } else this
+      val res =
+        Method(atomName, methodName, location, passData)
+      res.diagnostics = diagnostics
+      res.id          = id
+      res
     }
 
     /** @inheritdoc */
@@ -308,7 +285,7 @@ object Redefined {
       keepIdentifiers: Boolean = false
     ): Method =
       copy(
-        typeName = typeName.map(
+        atomName = typeName.map(
           _.duplicate(
             keepLocations,
             keepMetadata,
@@ -415,24 +392,15 @@ object Redefined {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): MethodClashWithAtom = {
-      if (
-        atomName != this.atomName
-        || methodName != this.methodName
-        || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
-        || id != this.id
-      ) {
-        val res = MethodClashWithAtom(
-          atomName,
-          methodName,
-          location,
-          passData
-        )
-        res.diagnostics = diagnostics
-        res.id          = id
-        res
-      } else this
+      val res = MethodClashWithAtom(
+        atomName,
+        methodName,
+        location,
+        passData
+      )
+      res.diagnostics = diagnostics
+      res.id          = id
+      res
     }
 
     /** @inheritdoc */
@@ -533,24 +501,17 @@ object Redefined {
       * @return a copy of `this`, updated with the specified values
       */
     def copy(
-      typeName: Name                       = typeName,
+      atomName: Name                       = typeName,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Type = {
-      if (
-        typeName != this.typeName
-        || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
-        || id != this.id
-      ) {
-        val res = Type(typeName, location, passData)
-        res.diagnostics = diagnostics
-        res.id          = id
-        res
-      } else this
+      val res =
+        Type(atomName, location, passData)
+      res.diagnostics = diagnostics
+      res.id          = id
+      res
     }
 
     /** @inheritdoc */
@@ -561,7 +522,7 @@ object Redefined {
       keepIdentifiers: Boolean = false
     ): Type =
       copy(
-        typeName = typeName.duplicate(
+        atomName = typeName.duplicate(
           keepLocations,
           keepMetadata,
           keepDiagnostics,
@@ -646,18 +607,11 @@ object Redefined {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID                             = id
     ): Arg = {
-      if (
-        name != this.name
-        || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
-        || id != this.id
-      ) {
-        val res = Arg(name, location, passData)
-        res.diagnostics = diagnostics
-        res.id          = id
-        res
-      } else this
+      val res =
+        Arg(name, location, passData)
+      res.diagnostics = diagnostics
+      res.id          = id
+      res
     }
 
     /** @inheritdoc */
@@ -748,17 +702,10 @@ object Redefined {
       diagnostics: DiagnosticStorage     = diagnostics,
       id: UUID @Identifier               = id
     ): Binding = {
-      if (
-        invalidBinding != this.invalidBinding
-        || passData != this.passData
-        || diagnostics != this.diagnostics
-        || id != this.id
-      ) {
-        val res = Binding(invalidBinding, passData)
-        res.diagnostics = diagnostics
-        res.id          = id
-        res
-      } else this
+      val res = Binding(invalidBinding, passData)
+      res.diagnostics = diagnostics
+      res.id          = id
+      res
     }
 
     /** @inheritdoc */

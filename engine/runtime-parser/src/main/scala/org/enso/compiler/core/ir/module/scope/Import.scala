@@ -55,9 +55,9 @@ object Import {
     isAll: Boolean,
     onlyNames: Option[List[Name.Literal]],
     hiddenNames: Option[List[Name.Literal]],
-    override val location: Option[IdentifiedLocation],
-    isSynthetic: Boolean                   = false,
-    override val passData: MetadataStorage = new MetadataStorage()
+    isSynthetic: Boolean                              = false,
+    override val location: Option[IdentifiedLocation] = None,
+    override val passData: MetadataStorage            = new MetadataStorage()
   ) extends Import
       with IRKind.Primitive
       with LazyDiagnosticStorage
@@ -89,32 +89,19 @@ object Import {
       diagnostics: DiagnosticStorage          = diagnostics,
       id: UUID @Identifier                    = id
     ): Module = {
-      if (
-        name != this.name
-        || rename != this.rename
-        || isAll != this.isAll
-        || onlyNames != this.onlyNames
-        || hiddenNames != this.hiddenNames
-        || isSynthetic != this.isSynthetic
-        || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
-        || id != this.id
-      ) {
-        val res = Module(
-          name,
-          rename,
-          isAll,
-          onlyNames,
-          hiddenNames,
-          location,
-          isSynthetic,
-          passData
-        )
-        res.diagnostics = diagnostics
-        res.id          = id
-        res
-      } else this
+      val res = Module(
+        name,
+        rename,
+        isAll,
+        onlyNames,
+        hiddenNames,
+        isSynthetic,
+        location,
+        passData
+      )
+      res.diagnostics = diagnostics
+      res.id          = id
+      res
     }
 
     /** @inheritdoc */

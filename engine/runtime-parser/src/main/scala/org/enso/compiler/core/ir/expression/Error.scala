@@ -57,17 +57,10 @@ object Error {
       diagnostics: DiagnosticStorage = diagnostics,
       id: UUID @Identifier           = id
     ): InvalidIR = {
-      if (
-        ir != this.ir
-        || passData != this.passData
-        || diagnostics != this.diagnostics
-        || id != this.id
-      ) {
-        val res = InvalidIR(ir, passData)
-        res.diagnostics = diagnostics
-        res.id          = id
-        res
-      } else this
+      val res = InvalidIR(ir, passData)
+      res.diagnostics = diagnostics
+      res.id          = id
+      res
     }
 
     /** @inheritdoc */

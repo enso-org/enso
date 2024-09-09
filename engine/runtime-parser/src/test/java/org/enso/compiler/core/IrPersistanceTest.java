@@ -16,7 +16,6 @@ import org.enso.compiler.core.ir.Module;
 import org.enso.persist.Persistable;
 import org.enso.persist.Persistance;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.openide.util.lookup.ServiceProvider;
 import scala.Option;
@@ -283,7 +282,6 @@ public class IrPersistanceTest {
     assertNotSame("deserialized s1", in.last(), out.last());
   }
 
-  @Ignore
   @Test
   public void serializeModule() throws Exception {
     var meta = new MetadataStorage();

@@ -1804,7 +1804,7 @@ final class TreeToIr {
       return new Import.Module(
           qualifiedName, rename, isAll || onlyNames.isDefined() || hidingNames.isDefined(),
           onlyNames,
-          hidingNames, getIdentifiedLocation(imp), false,
+          hidingNames, false, getIdentifiedLocation(imp),
           meta()
       );
     } catch (SyntaxException err) {
@@ -1868,7 +1868,7 @@ final class TreeToIr {
       }
       return new Export.Module(
           qualifiedName, rename, onlyNames,
-          getIdentifiedLocation(exp), false,
+          false, getIdentifiedLocation(exp),
           meta()
       );
     } catch (SyntaxException err) {

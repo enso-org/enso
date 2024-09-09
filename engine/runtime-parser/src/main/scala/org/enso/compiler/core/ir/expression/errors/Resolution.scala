@@ -68,18 +68,10 @@ sealed case class Resolution(
     diagnostics: DiagnosticStorage = diagnostics,
     id: UUID @Identifier           = id
   ): Resolution = {
-    if (
-      originalName != this.originalName
-      || reason != this.reason
-      || passData != this.passData
-      || diagnostics != this.diagnostics
-      || id != this.id
-    ) {
-      val res = Resolution(originalName, reason, passData)
-      res.diagnostics = diagnostics
-      res.id          = id
-      res
-    } else this
+    val res = Resolution(originalName, reason, passData)
+    res.diagnostics = diagnostics
+    res.id          = id
+    res
   }
 
   /** @inheritdoc */

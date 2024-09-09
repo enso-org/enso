@@ -67,20 +67,11 @@ object Operator {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Binary = {
-      if (
-        left != this.left
-        || operator != this.operator
-        || right != this.right
-        || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
-        || id != this.id
-      ) {
-        val res = Binary(left, operator, right, location, passData)
-        res.diagnostics = diagnostics
-        res.id          = id
-        res
-      } else this
+      val res =
+        Binary(left, operator, right, location, passData)
+      res.diagnostics = diagnostics
+      res.id          = id
+      res
     }
 
     /** @inheritdoc */

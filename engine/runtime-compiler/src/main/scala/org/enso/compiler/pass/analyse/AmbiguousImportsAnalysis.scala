@@ -98,8 +98,8 @@ case object AmbiguousImportsAnalysis extends IRPass {
             _,
             Some(onlyNames),
             _,
-            _,
             false,
+            _,
             _
           ) =>
         getImportTargets(moduleImport, bindingMap) match {
@@ -149,8 +149,8 @@ case object AmbiguousImportsAnalysis extends IRPass {
             true,
             _,
             hiddenNames,
-            _,
             false,
+            _,
             _
           ) =>
         getImportTargets(moduleImport, bindingMap) match {
@@ -207,8 +207,8 @@ case object AmbiguousImportsAnalysis extends IRPass {
             _,
             _,
             _,
-            _,
             false,
+            _,
             _
           ) =>
         val symbolPath = importPath.name
@@ -230,8 +230,8 @@ case object AmbiguousImportsAnalysis extends IRPass {
             _,
             _,
             _,
-            _,
             false,
+            _,
             _
           ) =>
         tryAddEncounteredSymbol(

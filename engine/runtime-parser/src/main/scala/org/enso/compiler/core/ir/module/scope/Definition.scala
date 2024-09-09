@@ -73,20 +73,11 @@ object Definition {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Type = {
-      if (
-        name != this.name
-        || params != this.params
-        || members != this.members
-        || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
-        || id != this.id
-      ) {
-        val res = Type(name, params, members, location, passData)
-        res.diagnostics = diagnostics
-        res.id          = id
-        res
-      } else this
+      val res =
+        Type(name, params, members, location, passData)
+      res.diagnostics = diagnostics
+      res.id          = id
+      res
     }
 
     /** @inheritdoc */
@@ -200,28 +191,17 @@ object Definition {
       diagnostics: DiagnosticStorage            = diagnostics,
       id: UUID @Identifier                      = id
     ): Data = {
-      if (
-        name != this.name
-        || arguments != this.arguments
-        || annotations != this.annotations
-        || isPrivate != this.isPrivate
-        || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
-        || id != this.id
-      ) {
-        val res = Data(
-          name,
-          arguments,
-          annotations,
-          isPrivate,
-          location,
-          passData
-        )
-        res.diagnostics = diagnostics
-        res.id          = id
-        res
-      } else this
+      val res = Data(
+        name,
+        arguments,
+        annotations,
+        isPrivate,
+        location,
+        passData
+      )
+      res.diagnostics = diagnostics
+      res.id          = id
+      res
     }
 
     /** @inheritdoc */
@@ -333,26 +313,16 @@ object Definition {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): SugaredType = {
-      if (
-        name != this.name
-        || arguments != this.arguments
-        || body != this.body
-        || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
-        || id != this.id
-      ) {
-        val res = SugaredType(
-          name,
-          arguments,
-          body,
-          location,
-          passData
-        )
-        res.diagnostics = diagnostics
-        res.id          = id
-        res
-      } else this
+      val res = SugaredType(
+        name,
+        arguments,
+        body,
+        location,
+        passData
+      )
+      res.diagnostics = diagnostics
+      res.id          = id
+      res
     }
 
     /** @inheritdoc */

@@ -118,28 +118,17 @@ object DefinitionArgument {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Specified = {
-      if (
-        name != this.name
-        || ascribedType != this.ascribedType
-        || defaultValue != this.defaultValue
-        || suspended != this.suspended
-        || location != this.location
-        || passData != this.passData
-        || diagnostics != this.diagnostics
-        || id != this.id
-      ) {
-        val res = Specified(
-          name,
-          ascribedType,
-          defaultValue,
-          suspended,
-          location,
-          passData
-        )
-        res.diagnostics = diagnostics
-        res.id          = id
-        res
-      } else this
+      val res = Specified(
+        name,
+        ascribedType,
+        defaultValue,
+        suspended,
+        location,
+        passData
+      )
+      res.diagnostics = diagnostics
+      res.id          = id
+      res
     }
 
     override def withName(ir: Name): DefinitionArgument = copy(name = ir)

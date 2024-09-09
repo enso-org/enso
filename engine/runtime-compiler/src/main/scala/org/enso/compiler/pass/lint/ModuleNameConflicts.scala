@@ -40,8 +40,8 @@ case object ModuleNameConflicts extends IRPass {
               _,
               _,
               None,
-              None,
               true,
+              None,
               _
             ) =>
           Some(mod)

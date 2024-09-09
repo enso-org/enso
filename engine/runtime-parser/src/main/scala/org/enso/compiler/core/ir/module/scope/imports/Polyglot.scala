@@ -51,19 +51,11 @@ sealed case class Polyglot(
     diagnostics: DiagnosticStorage       = diagnostics,
     id: UUID @Identifier                 = id
   ): Polyglot = {
-    if (
-      entity != this.entity
-      || rename != this.rename
-      || location != this.location
-      || passData != this.passData
-      || diagnostics != this.diagnostics
-      || id != this.id
-    ) {
-      val res = Polyglot(entity, rename, location, passData)
-      res.diagnostics = diagnostics
-      res.id          = id
-      res
-    } else this
+    val res =
+      Polyglot(entity, rename, location, passData)
+    res.diagnostics = diagnostics
+    res.id          = id
+    res
   }
 
   /** @inheritdoc */
