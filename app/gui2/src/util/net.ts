@@ -24,7 +24,7 @@ export function createDataWebsocket(url: string, binaryType: 'arraybuffer' | 'bl
     mockWs.binaryType = binaryType
     return mockWs
   } else {
-    const websocket = new ReconnectingWebSocket(url)
+    const websocket = new ReconnectingWebSocket(url, undefined, { maxEnqueuedMessages: 0 })
     websocket.binaryType = binaryType
     return websocket as WebSocket
   }

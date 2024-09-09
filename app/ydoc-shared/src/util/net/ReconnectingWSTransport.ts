@@ -23,7 +23,10 @@ export class ReconnectingWebSocketTransport extends WebSocketTransport {
   constructor(uri: string) {
     super(uri)
     this.uri = uri
-    this._reconnectingConnection = new WebSocket(uri, undefined, { WebSocket: WS })
+    this._reconnectingConnection = new WebSocket(uri, undefined, {
+      WebSocket: WS,
+      maxEnqueuedMessages: 0,
+    })
     // Make sure that the WebSocketTransport implementation uses this version of socket.
     this.connection = this._reconnectingConnection as any
   }
