@@ -134,9 +134,9 @@ case class BindingsMap(
     val withImports: Option[BindingsMap] = newMap.flatMap { bindings =>
       val newImports = this._resolvedImports.map { imp =>
         imp.targets.foreach { t =>
-          r.ensurePackageIsLoaded(
-            LibraryName(t.qualifiedName.path(0), t.qualifiedName.path(1))
-          )
+          LibraryName
+            .fromModuleName(t.qualifiedName.toString())
+            .foreach(r.ensurePackageIsLoaded(_));
         }
         imp.toConcrete(moduleMap)
       }
