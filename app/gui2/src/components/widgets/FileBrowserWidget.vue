@@ -3,7 +3,6 @@ import LoadingSpinner from '@/components/LoadingSpinner.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useBackendQuery, useBackendQueryPrefetching } from '@/composables/backend'
-import { useProjectStore } from '@/stores/project'
 import type { ToValue } from '@/util/reactivity'
 import type {
   DirectoryAsset,
@@ -18,7 +17,7 @@ const emit = defineEmits<{
   pathSelected: [path: string]
 }>()
 
-const { prefetch, ensureQueryData } = useBackendQueryPrefetching()
+const { ensureQueryData } = useBackendQueryPrefetching()
 
 // === Current Directory ===
 
