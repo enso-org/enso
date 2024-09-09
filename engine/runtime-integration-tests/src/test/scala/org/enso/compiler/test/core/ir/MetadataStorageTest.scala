@@ -6,6 +6,7 @@ import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.MetadataStorage
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.core.ir.ProcessingPass
 import org.enso.compiler.test.CompilerTest
 import shapeless.test.illTyped
 import scala.jdk.CollectionConverters._
@@ -81,6 +82,20 @@ class MetadataStorageTest extends CompilerTest {
   // === The Tests ============================================================
 
   "The metadata storage" should {
+    "two storages are equal when storages are equal" in {
+      val s1 = new java.util.HashMap[ProcessingPass, ProcessingPass.Metadata]()
+      val s2 = new java.util.HashMap[ProcessingPass, ProcessingPass.Metadata]()
+
+      val m1 = new MetadataStorage(s1)
+      val m2 = new MetadataStorage(s2)
+
+      m1 shouldEqual m2
+
+      s1.put(null, null)
+
+      m1 shouldNot equal(m2)
+    }
+
     "allow adding metadata pairs" in {
       val meta = new MetadataStorage()
 
@@ -159,7 +174,7 @@ class MetadataStorageTest extends CompilerTest {
       meta1.update(TestPass1, meta)
       meta2.update(TestPass1, meta)
 
-      meta1 shouldNot equal(meta2)
+      meta1 shouldEqual meta2
     }
 
     def newMetadataStorage(init: Seq[MetadataPair[_]]): MetadataStorage = {
@@ -201,8 +216,8 @@ class MetadataStorageTest extends CompilerTest {
         )
       )
 
-      meta.duplicate shouldNot equal(meta)
-      meta.duplicate shouldNot equal(expected)
+      meta.duplicate shouldEqual meta
+      meta.duplicate shouldEqual expected
     }
 
     "enforce safe construction" in {
