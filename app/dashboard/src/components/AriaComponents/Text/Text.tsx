@@ -69,6 +69,7 @@ export const TEXT_STYLE = twv.tv({
     },
     transform: {
       none: '',
+      normal: 'normal-case',
       capitalize: 'capitalize',
       lowercase: 'lowercase',
       uppercase: 'uppercase',
