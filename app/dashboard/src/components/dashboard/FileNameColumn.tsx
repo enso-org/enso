@@ -1,6 +1,4 @@
 /** @file The icon and name of a {@link backendModule.FileAsset}. */
-import * as React from 'react'
-
 import { useMutation } from '@tanstack/react-query'
 
 import { backendMutationOptions } from '#/hooks/backendHooks'
@@ -21,6 +19,7 @@ import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as string from '#/utilities/string'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
+import { isOnMacOS } from 'enso-common/src/detect'
 
 // ================
 // === FileName ===
@@ -95,7 +94,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
       onClick={(event) => {
         if (handleClick(event)) {
           // Already handled.
-        } else if (eventModule.isSingleClick(event) && selected) {
+        } else if (eventModule.isSingleClick(event) && isOnMacOS() && selected) {
           if (!isCloud) {
             setIsEditing(true)
           }

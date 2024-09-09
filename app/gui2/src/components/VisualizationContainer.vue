@@ -70,7 +70,7 @@ const style = computed(() => {
       <template #default><slot /></template>
     </VisualizationPanel>
     <ResizeHandles
-      v-if="!config.isPreview"
+      v-if="!config.isPreview && config.isResizable"
       v-model="clientBounds"
       left
       right
