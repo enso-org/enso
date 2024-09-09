@@ -109,6 +109,23 @@ object FrgaalJavaCompiler {
       x.toPath.toAbsolutePath.toString
     }
 
+    // Ensure that the --module-path option is passed to the frgaal compiler
+    // directly. This ensures that all
+    // the modules specified in the --module-path will be part of the boot
+    // module layer, and thus, ensure proper initialization of all the Truffle
+    // services. This is necessary if we try to initialize Truffle (execute Enso
+    // code) from an annotation processor.
+    // Note that the option is duplicated - passed directly to
+    // `java -jar frgaal-compiler.jar --module-path` and also inside the argfile
+    val strippedModulePath = findOptionValue(
+      nonJArgs,
+      optName => optName == "-p" || optName == "--module-path"
+    )
+    val strippedAddModules = findOptionValue(
+      nonJArgs,
+      _ == "--add-modules"
+    )
+
     def asPath(a: Any): Path = a match {
       case p: PathBasedFile => p.toPath
       case p: Path          => p
@@ -262,25 +279,23 @@ object FrgaalJavaCompiler {
     val allArguments = outputOption ++ frgaalOptions ++ nonJArgs ++ allSources
 
     withArgumentFile(allArguments) { argsFile =>
-      // List of modules that Frgaal can use for compilation
-      val limitModules = Seq(
-        "java.base",
-        "jdk.zipfs",
-        "jdk.internal.vm.compiler.management",
-        "java.desktop",
-        "java.net.http",
-        "java.sql",
-        "jdk.jfr"
-      )
-      val limitModulesArgs = Seq(
-        "--limit-modules",
-        limitModules.mkString(",")
-      )
+      val modulePathOpt = strippedModulePath match {
+        case Some(mp) => Seq("--module-path", mp)
+        case None => Seq()
+      }
+      val addModulesOpt = strippedAddModules match {
+        case Some(am) => Seq("--add-modules", am)
+        case None => Seq()
+      }
       // strippedJArgs needs to be passed via cmd line, and not via the argument file
-      val forkArgs = (strippedJArgs ++ limitModulesArgs ++ Seq(
-        "-jar",
-        compilerJar.toString
-      )) :+
+      val forkArgs = (
+        strippedJArgs ++
+        modulePathOpt ++
+        addModulesOpt ++
+        Seq(
+          "-jar",
+          compilerJar.toString
+        )) :+
         s"@${normalizeSlash(argsFile.getAbsolutePath)}"
       val exe         = getJavaExecutable(javaHome, "java")
       val cwd         = new File(new File(".").getAbsolutePath).getCanonicalFile
@@ -294,6 +309,7 @@ object FrgaalJavaCompiler {
           " You should attach the debugger now."
         )
       }
+      log.debug("Running " + exe + " " + forkArgs.mkString(" "))
       try {
         exitCode = Process(exe +: forkArgs, cwd) ! javacLogger
       } finally {
@@ -353,6 +369,21 @@ object FrgaalJavaCompiler {
       case Some(jh) =>
         jh.resolve("bin").resolve(name).toAbsolutePath.toString
     }
+
+
+  private def findOptionValue(
+    options: Seq[String],
+    optNameMatcher: String => Boolean
+  ): Option[String] = {
+    options
+      .zipWithIndex
+      .collectFirst {
+        case (arg, idx) if optNameMatcher(arg) =>
+          val optValue = options(idx + 1)
+          Some(optValue)
+      }
+      .flatten
+  }
 }
 
 /** An implementation of compiling java which forks Frgaal instance. */
