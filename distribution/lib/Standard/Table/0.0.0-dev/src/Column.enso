@@ -2587,7 +2587,7 @@ type Column
         names = statistics.map _.to_text
         Table.from_rows names [values]
 
-    ## ALIAS count, kurtosis, maximum, mean, median, minimum, mode, skew, standard_deviation, statistic, sum, variance
+    ## ALIAS cumulative, count, sum, total, minimum, maximum, sum, mean, product, variance, standard deviation
        GROUP Standard.Base.Statistics
        ICON transform4
        Compute a single running statistic on the column.

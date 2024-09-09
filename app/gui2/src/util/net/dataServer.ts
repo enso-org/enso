@@ -98,7 +98,8 @@ export class DataServer extends ObservableV2<DataServerEvents> {
       this.scheduleInitializationAfterConnect()
     })
 
-    this.initialized = this.initialize()
+    if (websocket.readyState === WebSocket.OPEN) this.initialized = this.initialize()
+    else this.initialized = this.scheduleInitializationAfterConnect()
   }
 
   dispose() {
