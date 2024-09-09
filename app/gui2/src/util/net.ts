@@ -8,12 +8,17 @@ import {
 
 export { AbortScope, MockWebSocketTransport }
 
+const WS_OPTIONS = {
+  // We do not want to enqueue any messages, because after reconnecting we have to initProtocol again.
+  maxEnqueuedMessages: 0,
+}
+
 export function createRpcTransport(url: string): ReconnectingWebSocketTransport {
   if (url.startsWith('mock://')) {
     const mockName = url.slice('mock://'.length)
     return new MockWebSocketTransport(mockName)
   } else {
-    const transport = new ReconnectingWebSocketTransport(url)
+    const transport = new ReconnectingWebSocketTransport(url, WS_OPTIONS)
     return transport
   }
 }
@@ -24,7 +29,7 @@ export function createDataWebsocket(url: string, binaryType: 'arraybuffer' | 'bl
     mockWs.binaryType = binaryType
     return mockWs
   } else {
-    const websocket = new ReconnectingWebSocket(url, undefined, { maxEnqueuedMessages: 0 })
+    const websocket = new ReconnectingWebSocket(url, undefined, WS_OPTIONS)
     websocket.binaryType = binaryType
     return websocket as WebSocket
   }
