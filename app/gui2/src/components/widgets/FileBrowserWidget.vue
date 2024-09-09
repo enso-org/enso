@@ -116,8 +116,13 @@ const anyError = computed(() =>
   : undefined,
 )
 
-watch(selectedFile, (file) => {
-  if (file && currentPath.value) emit('pathSelected', `${currentPath.value}/${file.title}`)
+const selectedFilePath = computed(
+  () =>
+    selectedFile.value && currentPath.value && `${currentPath.value}/${selectedFile.value.title}`,
+)
+
+watch(selectedFilePath, (path) => {
+  if (path) emit('pathSelected', path)
 })
 </script>
 
