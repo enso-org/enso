@@ -74,8 +74,8 @@ public interface IR {
   /**
    * Applies the callback to nodes in the preorder walk of the tree of this node.
    *
-   * @ir the node to traverse
-   * @cb the callback to apply
+   * @param ir the node to traverse
+   * @param cb the callback to apply
    */
   static void preorder(IR ir, Consumer<IR> cb) {
     final class CB implements scala.Function1<IR, scala.Unit> {
