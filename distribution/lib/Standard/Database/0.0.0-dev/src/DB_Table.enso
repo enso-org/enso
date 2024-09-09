@@ -1923,7 +1923,7 @@ type DB_Table
 
                     DB_Table.Value union_alias self.connection new_columns new_ctx
 
-    ## ALIAS group by, summarize
+    ## ALIAS group by, summarize, count, count distinct, sum, average, mean, median, percentile, mode, standard deviation, variance, minimum, maximum, first, last, shortest, longest
        GROUP Standard.Base.Calculations
        ICON transform4
 
@@ -2924,7 +2924,7 @@ type DB_Table
         transformer col = col.text_cleanse remove
         Table_Helpers.replace_columns_with_transformed_columns self from transformer
 
-    ## ALIAS cumulative
+    ## ALIAS cumulative, count, sum, total, minimum, maximum, sum, mean, product, variance, standard deviation
        GROUP Standard.Base.Values
        ICON data_input
        Adds a new column to the table with a running calculation.

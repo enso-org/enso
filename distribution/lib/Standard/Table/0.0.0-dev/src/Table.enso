@@ -1033,7 +1033,7 @@ type Table
         problem_builder.attach_problems_before on_problems <|
             self.drop (..First 1) . rename_columns new_names_cleaned on_problems=on_problems
 
-    ## ALIAS group by, summarize
+    ## ALIAS group by, summarize, count, count distinct, sum, average, mean, median, percentile, mode, standard deviation, variance, minimum, maximum, first, last, shortest, longest
        GROUP Standard.Base.Calculations
        ICON transform4
 
@@ -3594,7 +3594,7 @@ type Table
         transformer col = col.text_cleanse remove
         Table_Helpers.replace_columns_with_transformed_columns self from transformer
 
-    ## ALIAS cumulative
+    ## ALIAS cumulative, count, sum, total, minimum, maximum, sum, mean, product, variance, standard deviation
        GROUP Standard.Base.Values
        ICON column_add
        Adds a new column to the table with a running calculation.
