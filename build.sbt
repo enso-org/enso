@@ -2899,6 +2899,7 @@ lazy val `runtime-benchmarks` =
         (`runtime-instrument-repl-debugger` / Compile / exportedModule).value,
         (`runtime-instrument-id-execution` / Compile / exportedModule).value,
         (`runtime-language-epb` / Compile / exportedModule).value,
+        (`runtime-language-arrow` / Compile / exportedModule).value,
         (`ydoc-server` / Compile / exportedModule).value,
         (`syntax-rust-definition` / Compile / exportedModule).value,
         (`profiling-utils` / Compile / exportedModule).value,
