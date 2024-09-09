@@ -11,11 +11,11 @@ import org.enso.persist.Persistance;
 import org.enso.persist.Persistance.Reference;
 
 final class IrLazyMap<K, V> extends AbstractMap<K, V> {
-  private final Map<K, Entry<K, V>> delegate;
+  private final Map<K, En<K, V>> delegate;
 
   @SuppressWarnings("unchecked")
   IrLazyMap(Persistance.Input in) throws IOException {
-    var map = new LinkedHashMap<K, Entry<K, V>>();
+    var map = new LinkedHashMap<K, En<K, V>>();
     var n = in.readInt();
     for (var i = 0; i < n; i++) {
       var key = (K) in.readObject();
@@ -35,6 +35,29 @@ final class IrLazyMap<K, V> extends AbstractMap<K, V> {
   public V get(Object key) {
     var entry = this.delegate.get(key);
     return entry == null ? null : entry.getValue();
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    if (other instanceof IrLazyMap otherMap) {
+      var myEntries = delegate.values();
+      var otherEntries = otherMap.delegate.values();
+      if (myEntries.size() != otherEntries.size()) {
+        return false;
+      }
+      var myIt = myEntries.iterator();
+      var otherIt = otherEntries.iterator();
+      while (myIt.hasNext()) {
+        var myElem = myIt.next();
+        var otherElem = otherIt.next();
+        if (!myElem.equals(otherElem)) {
+          return false;
+        }
+      }
+      return true;
+    } else {
+      return super.equals(other);
+    }
   }
 
   private static final class En<K, V> implements Entry<K, V> {
@@ -64,8 +87,9 @@ final class IrLazyMap<K, V> extends AbstractMap<K, V> {
 
     @Override
     public int hashCode() {
-      int hash = 7;
-      hash = 29 * hash + Objects.hashCode(this.key);
+      int hash = 3;
+      hash = 19 * hash + Objects.hashCode(this.key);
+      hash = 19 * hash + Objects.hashCode(this.ref);
       return hash;
     }
 
@@ -74,10 +98,17 @@ final class IrLazyMap<K, V> extends AbstractMap<K, V> {
       if (this == obj) {
         return true;
       }
-      if (obj instanceof En<?, ?> other) {
-        return Objects.equals(this.key, other.key);
+      if (obj == null) {
+        return false;
       }
-      return false;
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      final En<?, ?> other = (En<?, ?>) obj;
+      if (!Objects.equals(this.key, other.key)) {
+        return false;
+      }
+      return Objects.equals(this.ref, other.ref);
     }
   }
 }

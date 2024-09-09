@@ -330,6 +330,31 @@ public class IrPersistanceTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
+  public void hashMapLazyEquality() throws Exception {
+    var s1 = new LazyString("Hello");
+    var s2 = new LazyString("World");
+    var map = new HashMap<String, LazyString>();
+    map.put("Hello", s1);
+    map.put("World", s2);
+
+    var doubleMap = java.util.List.of(map, map);
+
+    LazyString.forbidden = true;
+    var out = serde(java.util.List.class, doubleMap, -1);
+
+    var m1 = out.get(0);
+    var m2 = out.get(1);
+
+    assertTrue("Not same: ", m1 != m2);
+    assertTrue("But equal", m1.equals(m2));
+    LazyString.forbidden = false;
+
+    assertEquals("Content equal", map, m1);
+    assertEquals("Content equal", m2, map);
+  }
+
+  @Test
   public void inlineReferenceIsLazy() throws Exception {
     var s1 = new LazyString("Hello");
     var in = new InlineReferenceHolder(Persistance.Reference.of(s1, false));
