@@ -491,6 +491,46 @@ inset 0 -36px 51px -51px #00000014`,
             '@apply opacity-75 cursor-not-allowed': '',
           },
 
+          '.scroll-offset-edge-s': {
+            '--scrollbar-offset-edge': '2px',
+          },
+          '.scroll-offset-edge-m': {
+            '--scrollbar-offset-edge': '4px',
+          },
+          '.scroll-offset-edge-l': {
+            '--scrollbar-offset-edge': '6px',
+          },
+          '.scroll-offset-edge-xl': {
+            '--scrollbar-offset-edge': '8px',
+          },
+          '.scroll-offset-edge-2xl': {
+            '--scrollbar-offset-edge': '16px',
+          },
+          '.scroll-offset-edge-3xl': {
+            '--scrollbar-offset-edge': '24px',
+          },
+          '.scroll-offset-edge-4xl': {
+            '--scrollbar-offset-edge': '28px',
+          },
+          '.scroll-offset-edge-5xl': {
+            '--scrollbar-offset-edge': '32px',
+          },
+          '.scroll-offset-edge-6xl': {
+            '--scrollbar-offset-edge': '36px',
+          },
+          '.scroll-offset-edge-7xl': {
+            '--scrollbar-offset-edge': '40px',
+          },
+          '.scroll-offset-edge-8xl': {
+            '--scrollbar-offset-edge': '44px',
+          },
+          '.scroll-offset-edge-9xl': {
+            '--scrollbar-offset-edge': '48px',
+          },
+          '.scroll-offset-edge-10xl': {
+            '--scrollbar-offset-edge': '52px',
+          },
+
           // === Visbility classes ===
 
           '.visibility-visible': {},

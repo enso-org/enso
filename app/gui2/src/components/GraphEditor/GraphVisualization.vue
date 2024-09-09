@@ -52,6 +52,8 @@ type RawDataSource = { type: 'raw'; data: any }
 const props = defineProps<{
   currentType?: Opt<VisualizationIdentifier>
   isCircularMenuVisible: boolean
+  isFullscreenAllowed: boolean
+  isResizable: boolean
   isPreview?: boolean
   nodePosition: Vec2
   nodeSize: Vec2
@@ -268,6 +270,12 @@ provideVisualizationConfig({
   },
   set fullscreen(value) {
     isFullscreen.value = value
+  },
+  get isFullscreenAllowed() {
+    return props.isFullscreenAllowed
+  },
+  get isResizable() {
+    return props.isResizable
   },
   get savedSize() {
     return currentSavedSize.value

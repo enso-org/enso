@@ -75,6 +75,9 @@ function main() {
   const projectManagerUrl = config.engine.projectManagerUrl || PROJECT_MANAGER_URL
   const ydocUrl = config.engine.ydocUrl === '' ? YDOC_SERVER_URL : config.engine.ydocUrl
   const initialProjectName = config.startup.project || null
+  const urlWithoutStartupProject = new URL(location.toString())
+  urlWithoutStartupProject.searchParams.delete('startup.project')
+  history.replaceState(null, '', urlWithoutStartupProject)
   const queryClient = commonQuery.createQueryClient()
 
   const registerPlugins = (app: App) => {
