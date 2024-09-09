@@ -1,0 +1,17 @@
+from Standard.Base import all
+
+## PRIVATE
+
+   Dialect flags are used to specify implementation details for different
+   dialects -- the existence or non-existence of certain features, or
+   differening implementations of the same feature.
+
+   Dialect flags differ from test config flags, in that they are used for
+   implementation (as well as testing). They also differ from feature flags,
+   since feature flags are user-facing, and can be used to identify features
+   that are not yet implemented.
+type Dialect_Flags
+    Value (rounding : Rounding_Flags)
+
+type Rounding_Flags
+    Value (supports_negative_decimal_places : Boolean) (supports_float_decimal_places : Boolean)
