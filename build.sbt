@@ -3736,6 +3736,21 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
     Compile / javacOptions ++= Seq(
       "-Xlint:unchecked",
     ),
+    Compile / javacOptions ++= {
+      val mp = (Compile / modulePath).value
+      val mpStr = mp.map(_.getAbsolutePath).mkString(File.pathSeparator)
+      val addModsStr = (Compile / addModules).value.mkString(",")
+      // Passing these arguments with -J prefix will force frgaal to put the
+      // arguments directly to java, rather than passing them via an argfile.
+      // This means that this will correctly form the module boot layer and
+      // we will have truffle modules on module-path
+      Seq(
+        "-J--module-path",
+        "-J" + mpStr,
+        "-J--add-modules",
+        "-J" + addModsStr
+      )
+    },
     Compile / moduleDependencies := {
       (`runtime-benchmarks` / Compile / moduleDependencies).value
     },
