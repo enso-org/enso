@@ -324,7 +324,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     .logLevel(logLevel)
     .strictErrors(false)
     .disableLinting(false)
-    .enableIrCaches(true)
+    .enableIrCaches(false) // Enable once #11022 is addressed
     .out(stdOut)
     .err(stdErr)
     .in(stdIn)
