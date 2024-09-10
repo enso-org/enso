@@ -555,10 +555,11 @@ make_order_descriptor internal_column sort_direction text_ordering =
 
 ## PRIVATE
 round_bankers = Base_Generator.lift_binary_op "ROUND_BANKERS" x-> dp->
-    fun f args = (SQL_Builder.code f ++ "(" ++ (SQL_Builder.join "," (args.map .paren)) ++ ")").paren
+    two = SQL_Builder.code "2"
     ten = SQL_Builder.code "10"
+    fun f args = (SQL_Builder.code f ++ "(" ++ (SQL_Builder.join "," (args.map .paren)) ++ ")").paren
+    neg x = (SQL_Builder.code "-" ++ x.paren).paren
     scale = fun "POW" [ten, dp]
-    scaled = (x.paren ++ " * " ++ scale).paren
     floor x = fun "FLOOR" [x]
     ceil x = fun "CEIL" [x]
     round x = fun "ROUND" [x]
@@ -568,12 +569,19 @@ round_bankers = Base_Generator.lift_binary_op "ROUND_BANKERS" x-> dp->
             exp = pr.at 1
             SQL_Builder.code "WHEN " ++ pred.paren ++ " THEN " ++ exp.paren
         (SQL_Builder.code "CASE " ++ (SQL_Builder.join " " cases_sqls) ++ " ELSE " ++ else_clause ++ " END").paren
-    two = SQL_Builder.code "2.0"
     mod2 x = fun "MOD" [x, two]
-    neg x = (SQL_Builder.code "-" ++ x.paren).paren
+
+    # Scale for the decimal_places argument.
+    scaled = (x.paren ++ " * " ++ scale).paren
+
+    # We've wrapped all values to the 0..2 range, which needs 3 cases.
     partition x = case_when [[mod2 x ++ " <= 0.5", floor x], [mod2 x ++ " >= 1.5", ceil x]] (round x)
+
+    # Handle negative values by negating on the way in and on the way out.
     flip_for_negative x f = case_when [[x ++ " >= 0", f x]] (neg (f (neg x)))
     bankers_rounded = flip_for_negative scaled partition
+
+    # Undo the scaling factor.
     (bankers_rounded ++ " / " ++ scale).paren
 
 ## PRIVATE
