@@ -2,14 +2,12 @@ package org.enso.persist;
 
 import static org.enso.persist.PerGenerator.INLINED_REFERENCE_ID;
 import static org.enso.persist.PerGenerator.NULL_REFERENCE_ID;
-import static org.enso.persist.PerUtils.raise;
 
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.Function;
 import org.enso.persist.Persistance.Input;
 import org.enso.persist.Persistance.Reference;
