@@ -36,6 +36,7 @@ import project.SQL_Statement.SQL_Statement
 import project.SQL_Type.SQL_Type
 from project.Dialect import Temp_Table_Style
 from project.Errors import SQL_Error, Unsupported_Database_Operation
+from project.Internal.JDBC_Connection import JDBC_Connection
 
 ## PRIVATE
 
@@ -324,6 +325,11 @@ type SQLite_Dialect
     needs_literal_table_cast self value_type =
         _ = value_type
         False
+
+    ## PRIVATE
+    ensure_query_has_no_holes : JDBC_Connection -> Text -> Nothing ! Illegal_Argument
+    ensure_query_has_no_holes self jdbc:JDBC_Connection raw_sql:Text =
+        jdbc.ensure_query_has_no_holes raw_sql
 
     ## PRIVATE
        We need custom handling for First and Last, as SQLite does not support

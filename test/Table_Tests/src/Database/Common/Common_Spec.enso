@@ -227,7 +227,7 @@ add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn 
             r2.catch.to_display_text . should_equal "Table NONEXISTENT-TABLE was not found in the database."
 
             r3 = data.connection.query (SQL_Query.Raw_SQL "MALFORMED-QUERY")
-            r3.should_fail_with Illegal_Argument
+            r3.should_fail_with SQL_Error
 
         group_builder.specify "should not allow interpolations in raw user-built queries" <|
             r = data.connection.query (SQL_Query.Raw_SQL "SELECT 1 + ?")
