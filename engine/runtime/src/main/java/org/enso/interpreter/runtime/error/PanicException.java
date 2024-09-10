@@ -158,6 +158,7 @@ public final class PanicException extends AbstractTruffleException implements En
     try {
       return Text.create(strings.asString(text));
     } catch (UnsupportedMessageException e) {
+      CompilerDirectives.transferToInterpreter();
       ctx.getLogger().log(Level.WARNING, "Cannot convert " + text + " to string", e);
       return Text.create(typeToDisplayTextNode.execute(payload));
     }
