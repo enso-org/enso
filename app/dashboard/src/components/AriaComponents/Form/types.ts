@@ -8,6 +8,7 @@ import type * as React from 'react'
 import type * as reactHookForm from 'react-hook-form'
 
 import type { DeepPartialSkipArrayKey } from 'react-hook-form'
+import type { TestIdProps } from '../types'
 import type * as components from './components'
 import type * as styles from './styles'
 
@@ -30,7 +31,8 @@ interface BaseFormProps<Schema extends components.TSchema>
       React.HTMLProps<HTMLFormElement>,
       'children' | 'className' | 'form' | 'onSubmit' | 'onSubmitCapture' | 'style'
     >,
-    Omit<styles.FormStyleProps, 'class' | 'className'> {
+    Omit<styles.FormStyleProps, 'class' | 'className'>,
+    TestIdProps {
   readonly style?:
     | React.CSSProperties
     | ((props: components.UseFormReturn<Schema>) => React.CSSProperties)
@@ -46,7 +48,6 @@ interface BaseFormProps<Schema extends components.TSchema>
 
   readonly className?: string | ((props: components.UseFormReturn<Schema>) => string)
 
-  readonly testId?: string
   /**
    * When set to `dialog`, form submission will close the parent dialog on successful submission.
    */
