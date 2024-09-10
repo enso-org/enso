@@ -103,7 +103,7 @@ public class BenchProcessor extends AbstractProcessor {
               .allowIO(IOAccess.ALL)
               .allowAllAccess(true)
               .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
-              .logHandler(System.err)
+              .logHandler(new java.util.logging.ConsoleHandler())
               .option(RuntimeOptions.PROJECT_ROOT, projectRootDir.getAbsolutePath())
               .option(RuntimeOptions.LANGUAGE_HOME_OVERRIDE, ensoHomeOverride.getAbsolutePath())
               .build()) {
