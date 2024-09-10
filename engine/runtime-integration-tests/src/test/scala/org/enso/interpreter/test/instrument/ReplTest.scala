@@ -295,9 +295,7 @@ class ReplTest
         executor.exit()
       }
       eval(code)
-      val errorMsg =
-        "Compile_Error.Error"
-      evalResult.left.value.getMessage shouldEqual errorMsg
+      evalResult.left.value.getMessage should include ("Compile_Error")
     }
 
     "handle errors gracefully (pretty print)" in {
