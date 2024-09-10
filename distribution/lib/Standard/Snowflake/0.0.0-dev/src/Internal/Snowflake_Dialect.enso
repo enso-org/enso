@@ -572,11 +572,9 @@ round_bankers = Base_Generator.lift_binary_op "ROUND_BANKERS" x-> dp->
     mod2 x = fun "MOD" [x, two]
     neg x = (SQL_Builder.code "-" ++ x.paren).paren
     partition x = case_when [[mod2 x ++ " <= 0.5", floor x], [mod2 x ++ " >= 1.5", ceil x]] (round x)
-    pos_case = partition scaled
-    neg_case = neg (partition (neg scaled))
-    bankers_rounded = case_when [[scaled ++ " >= 0", pos_case]] neg_case
+    flip_for_negative x f = case_when [[x ++ " >= 0", f x]] (neg (f (neg x)))
+    bankers_rounded = flip_for_negative scaled partition
     (bankers_rounded ++ " / " ++ scale).paren
-
 
 ## PRIVATE
 is_nan = Base_Generator.lift_unary_op "IS_NAN" arg->
