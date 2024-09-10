@@ -43,6 +43,8 @@ object FrgaalJavaCompiler {
     *                                of `shouldCompileModuleInfo` task in `build.sbt` and
     *                                the docs of [[JPMSPlugin]].
     * @param javaSourceDir The directory where Java sources are located
+   * @param shouldNotLimitModules Should `--limit-modules` cmdline option be passed to java process
+   *                           to limit set of modules frgaal is able to see?
     * @return
     */
   def compilers(
@@ -50,7 +52,8 @@ object FrgaalJavaCompiler {
     sbtCompilers: xsbti.compile.Compilers,
     javaVersion: String,
     shouldCompileModuleInfo: Boolean,
-    javaSourceDir: File
+    javaSourceDir: File,
+    shouldNotLimitModules: Boolean
   ) = {
     // Enable Java 11+ features by invoking Frgaal instead of regular javac
     val javaHome = Option(System.getProperty("java.home")).map(Paths.get(_))
@@ -78,7 +81,8 @@ object FrgaalJavaCompiler {
       frgaalOnClasspath.get,
       javaSourceDir           = javaSourceDir,
       target                  = javaVersion,
-      shouldCompileModuleInfo = shouldCompileModuleInfo
+      shouldCompileModuleInfo = shouldCompileModuleInfo,
+      shouldNotLimitModules   = shouldNotLimitModules
     )
     val javaTools = sbt.internal.inc.javac
       .JavaTools(frgaalJavac, sbtCompilers.javaTools.javadoc())
@@ -98,7 +102,8 @@ object FrgaalJavaCompiler {
     source: Option[String],
     target: String,
     shouldCompileModuleInfo: Boolean,
-    javaSourceDir: File
+    javaSourceDir: File,
+    shouldNotLimitModules: Boolean
   ): Boolean = {
     val (jArgs, nonJArgs)     = options.partition(_.startsWith("-J"))
     val debugAnotProcessorOpt = jArgs.contains(debugArg)
@@ -272,7 +277,7 @@ object FrgaalJavaCompiler {
         "java.sql",
         "jdk.jfr"
       )
-      val limitModulesArgs = Seq(
+      val limitModulesArgs = if (shouldNotLimitModules) Seq() else Seq(
         "--limit-modules",
         limitModules.mkString(",")
       )
@@ -294,6 +299,7 @@ object FrgaalJavaCompiler {
           " You should attach the debugger now."
         )
       }
+      log.debug("[frgaal] Running " + (exe +: forkArgs).mkString(" "))
       try {
         exitCode = Process(exe +: forkArgs, cwd) ! javacLogger
       } finally {
@@ -362,7 +368,8 @@ final class FrgaalJavaCompiler(
   target: String,
   javaSourceDir: File,
   source: Option[String]           = None,
-  shouldCompileModuleInfo: Boolean = false
+  shouldCompileModuleInfo: Boolean = false,
+  shouldNotLimitModules: Boolean      = false
 ) extends XJavaCompiler {
   def run(
     sources: Array[VirtualFile],
@@ -383,6 +390,7 @@ final class FrgaalJavaCompiler(
       source,
       target,
       shouldCompileModuleInfo,
-      javaSourceDir
+      javaSourceDir,
+      shouldNotLimitModules
     )
 }

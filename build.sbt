@@ -269,6 +269,11 @@ ThisBuild / Test / testOptions ++=
 
 Compile / console / scalacOptions ~= (_ filterNot (_ == "-Xfatal-warnings"))
 
+lazy val frgaalShouldNotLimitModules = Def.settingKey[Boolean](
+  "Whether --limit-modules cmd line option should be passed to the java process that runs " +
+  "the frgaal compiler"
+)
+
 // ============================================================================
 // === Benchmark Configuration ================================================
 // ============================================================================
@@ -2422,12 +2427,16 @@ def customFrgaalJavaCompilerSettings(targetJdk: String) = {
         // with JPMSPlugin. That's why we have to check first for its existance.
         val settingOpt           = (config / shouldCompileModuleInfoManually).?.value
         val shouldCompileModInfo = settingOpt.isDefined && settingOpt.get
+        val shouldNotLimitModulesOpt = frgaalShouldNotLimitModules.?.value
+        val _shouldNotLimitModules = shouldNotLimitModulesOpt.getOrElse(false)
+        val projName = projectID.value.name
         FrgaalJavaCompiler.compilers(
           (config / dependencyClasspath).value,
           compilers.value,
           targetJdk,
           shouldCompileModInfo,
-          (config / javaSource).value
+          (config / javaSource).value,
+          _shouldNotLimitModules
         )
       }
     )
@@ -3706,6 +3715,7 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
   .enablePlugins(JPMSPlugin)
   .enablePlugins(PackageListPlugin)
   .settings(
+    frgaalShouldNotLimitModules := true,
     frgaalJavaCompilerSetting,
     annotationProcSetting,
     libraryDependencies ++= GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.toolsPkgs ++ Seq(
