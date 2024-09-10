@@ -16,6 +16,7 @@
 - [Fixed issue with node name assignment when uploading multiple files.][10979]
 - [Fixed issue where drag'n'dropped files were not uploaded in cloud
   projects.][11014]
+- [Fixed files associations not properly registered on Windows][11030]
 
 [10774]: https://github.com/enso-org/enso/pull/10774
 [10814]: https://github.com/enso-org/enso/pull/10814
@@ -24,6 +25,7 @@
 [10876]: https://github.com/enso-org/enso/pull/10876
 [10979]: https://github.com/enso-org/enso/pull/10979
 [11014]: https://github.com/enso-org/enso/pull/11014
+[11030]: https://github.com/enso-org/enso/pull/11030
 
 #### Enso Standard Library
 
