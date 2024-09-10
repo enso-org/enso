@@ -87,6 +87,9 @@ public class BenchProcessor extends AbstractProcessor {
 
   @Override
   public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+    if (annotations.isEmpty()) {
+      return true;
+    }
     var elements = roundEnv.getElementsAnnotatedWith(GenerateBenchSources.class);
     for (var element : elements) {
       GenerateBenchSources annotation = element.getAnnotation(GenerateBenchSources.class);
