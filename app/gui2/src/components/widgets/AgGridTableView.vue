@@ -94,15 +94,15 @@ watch(
 )
 
 function updateColumnWidths(event: FirstDataRenderedEvent | RowDataUpdatedEvent) {
-  if (event.columnApi == null) {
-    console.warn('AG Grid column API does not exist.')
+  if (event.api == null) {
+    console.warn('AG Grid API does not exist.')
     return
   }
-  const cols = event.columnApi.getAllGridColumns().filter((c) => {
+  const cols = event.api.getAllGridColumns().filter((c) => {
     const id = c.getColId()
     return id && !widths.has(id)
   })
-  event.columnApi.autoSizeColumns(cols)
+  event.api.autoSizeColumns(cols)
 }
 
 function lockColumnSize(e: ColumnResizedEvent) {
