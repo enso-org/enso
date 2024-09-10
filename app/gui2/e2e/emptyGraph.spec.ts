@@ -19,5 +19,5 @@ test('graph can be empty', async ({ page }) => {
   await page.keyboard.insertText('foo')
   await page.keyboard.press(`${CONTROL_KEY}+Enter`)
   await expect(locate.graphNode(page)).toHaveCount(1)
-  await expect(locate.graphNode(page).last().locator('.WidgetToken')).toHaveText(['foo'])
+  await expect(locate.graphNode(page).locator('.WidgetToken')).toHaveText(['foo'])
 })
