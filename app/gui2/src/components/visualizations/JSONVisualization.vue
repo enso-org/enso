@@ -10,8 +10,9 @@ import JsonValueWidget from '@/components/visualizations/JSONVisualization/JsonV
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import { useVisualizationConfig } from '@/util/visualizationBuiltins'
+import { computed } from 'vue'
 
-const props = defineProps<{ data: unknown }>()
+const { data } = defineProps<{ data: unknown }>()
 
 const config = useVisualizationConfig()
 
@@ -19,7 +20,7 @@ type ConstructivePattern = (placeholder: Ast.Owned) => Ast.Owned
 
 const JSON_OBJECT_TYPE = 'Standard.Base.Data.Json.JS_Object'
 
-const isClickThroughEnabled = config.nodeType === JSON_OBJECT_TYPE
+const isClickThroughEnabled = computed(() => config.nodeType === JSON_OBJECT_TYPE)
 
 function projector(parentPattern: ConstructivePattern | undefined) {
   const style = {
@@ -57,7 +58,7 @@ function createProjection(path: (string | number)[][]) {
 <template>
   <div class="JSONVisualization">
     <JsonValueWidget
-      :data="props.data"
+      :data="data"
       :class="{ viewonly: !isClickThroughEnabled }"
       @createProjection="createProjection"
     />
