@@ -297,7 +297,12 @@ export class Cognito {
       if (maybeUser instanceof cognito.CognitoUser) {
         return maybeUser
       } else {
-        throw new Error('Unknown result from signIn, expected CognitoUser, got ' + typeof maybeUser)
+        // eslint-disable-next-line no-restricted-properties
+        console.error(
+          'Unknown result from signIn, expected CognitoUser, got ' + typeof maybeUser,
+          JSON.stringify(maybeUser),
+        )
+        throw new Error('Unknown response from the server, please try again later ')
       }
     })
 
