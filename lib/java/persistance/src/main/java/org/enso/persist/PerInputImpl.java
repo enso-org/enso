@@ -217,22 +217,7 @@ final class PerInputImpl implements Input {
     var inData = new PerInputImpl(cache, at);
     var res = p.readWith(inData);
     res = cache.resolveObject(res);
-    var prev = cache.putObjectAt(at, res);
-    if (prev != null) {
-      var bothObjectsAreTheSame = Objects.equals(res, prev);
-      var sb = new StringBuilder();
-      sb.append("Adding at ").append(at).append(" object:\n  ");
-      dumpObject(sb, res);
-      sb.append("\nbut there already is:\n  ");
-      dumpObject(sb, prev);
-      sb.append("\nare they equal: ").append(bothObjectsAreTheSame);
-      var ex = new IOException(sb.toString());
-      if (bothObjectsAreTheSame) {
-        PerUtils.LOG.warn(sb.toString(), ex);
-      } else {
-        throw raise(RuntimeException.class, ex);
-      }
-    }
+    cache.putObjectAt(at, res);
     return res;
   }
 
