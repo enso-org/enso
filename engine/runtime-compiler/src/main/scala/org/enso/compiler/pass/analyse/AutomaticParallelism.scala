@@ -242,7 +242,7 @@ object AutomaticParallelism extends IRPass {
               link <- occ.graph.defLinkFor(occ.id)
               id   <- depMap.get(link.target)
               if id != line.id
-            } yield builder.addOne(id)
+            } builder.addOne(id)
           case _ =>
         }: Consumer[IR]
       )
