@@ -99,6 +99,19 @@ export default function Dashboard(props: DashboardProps) {
   )
 }
 
+function fileURLToPath(url: string): string | null {
+  if (URL.canParse(url)) {
+    const parsed = new URL(url)
+    if (parsed.protocol === 'file:') {
+      return detect.platform() == detect.Platform.windows ? parsed.pathname.slice(1) : parsed.pathname
+    } else {
+      return null
+    }
+  } else {
+    return null
+  }
+}
+
 /** The component that contains the entire UI. */
 function DashboardInner(props: DashboardProps) {
   const { appRunner, initialProjectName: initialProjectNameRaw, ydocUrl } = props
@@ -115,10 +128,7 @@ function DashboardInner(props: DashboardProps) {
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const assetManagementApiRef = React.useRef<assetTable.AssetManagementApi | null>(null)
 
-  const initialLocalProjectPath =
-    initialProjectNameRaw != null && initialProjectNameRaw.startsWith('file://') ?
-      projectManager.Path(decodeURI(new URL(initialProjectNameRaw).pathname))
-    : null
+  const initialLocalProjectPath = initialProjectNameRaw && fileURLToPath(initialProjectNameRaw)
   const initialProjectName = initialLocalProjectPath != null ? null : initialProjectNameRaw
 
   const [category, setCategory] = searchParamsState.useSearchParamsState<categoryModule.Category>(
