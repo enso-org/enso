@@ -18,19 +18,38 @@ internal_translate_known_upload_errors source_table connection primary_key ~acti
     handler caught_panic =
         error_mapper = connection.dialect.get_error_mapper
         sql_error = caught_panic.payload
+        IO.println ("PKV " + (error_mapper.is_primary_key_violation sql_error).to_text)
+        IO.println ("PKN " + (error_mapper.is_null_primary_key_violation sql_error).to_text)
         case error_mapper.is_primary_key_violation sql_error of
             True -> Panic.throw (Non_Unique_Key_Recipe.Recipe source_table primary_key caught_panic)
-            False -> Panic.throw caught_panic
+            False -> case error_mapper.is_null_primary_key_violation sql_error of
+                True -> Panic.throw (Null_Key_Recipe.Recipe source_table primary_key caught_panic)
+                False -> Panic.throw caught_panic
     Panic.catch SQL_Error action handler
 
 ## PRIVATE
-handle_upload_errors ~action =
+handle_upload_duplicate_primary_key_errors ~action =
     Panic.catch Non_Unique_Key_Recipe action caught_panic->
         recipe = caught_panic.payload
         raise_duplicated_primary_key_error recipe.source_table recipe.primary_key recipe.original_panic
 
 ## PRIVATE
+handle_upload_null_primary_key_errors ~action =
+    Panic.catch Null_Key_Recipe action caught_panic->
+        recipe = caught_panic.payload
+        raise_null_primary_key_error recipe.source_table recipe.primary_key recipe.original_panic
+
+## PRIVATE
+handle_upload_errors ~action =
+    handle_upload_duplicate_primary_key_errors (handle_upload_null_primary_key_errors action)
+
+## PRIVATE
 type Non_Unique_Key_Recipe
+    ## PRIVATE
+    Recipe source_table primary_key original_panic
+
+## PRIVATE
+type Null_Key_Recipe
     ## PRIVATE
     Recipe source_table primary_key original_panic
 
@@ -52,3 +71,20 @@ raise_duplicated_primary_key_error source_table primary_key original_panic =
             example_count = row.last
             example_entry = row.drop (..Last 1)
             Error.throw (Non_Unique_Key.Error primary_key example_entry example_count)
+
+## PRIVATE
+   Creates a `Null_Key` error containing information about an
+   example group violating the non-null constraint.
+raise_null_primary_key_error source_table primary_key original_panic =
+    bad_rows_per_pk = primary_key.map primary_key->
+        filtered = source_table.filter column=primary_key Filter_Condition.Is_Nothing
+        filtered.read (..First 1)
+    tables_with_bad_rows = bad_rows_per_pk.filter (t-> t.row_count > 0)
+    case tables_with_bad_rows.length == 0 of
+        ## If we couldn't find a null key, we give up the translation and
+           rethrow the original panic containing the SQL error.
+        True -> Panic.throw original_panic
+        False ->
+            table_with_bad_rows = tables_with_bad_rows.first
+            row = table_with_bad_rows.first_row.to_vector
+            Error.throw (Null_Values_In_Key_Columns.Error row)

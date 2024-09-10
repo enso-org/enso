@@ -8,6 +8,7 @@ type Postgres_Error_Mapper
     ## PRIVATE
     is_primary_key_violation : SQL_Error -> Boolean
     is_primary_key_violation error =
+        IO.println ("PGEM " + error.java_exception.getMessage.to_text)
         error.java_exception.getMessage.contains "duplicate key value violates unique constraint"
 
     ## PRIVATE

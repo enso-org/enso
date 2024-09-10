@@ -370,6 +370,34 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
                 r1 = data.in_memory_table.select_into_database_table data.connection (Name_Generator.random_name "primary-key-4") primary_key=["X", "nonexistent"]
                 r1.should_fail_with Missing_Input_Columns
 
+        group_builder.specify "should fail if the primary key contains nulls" <|
+            t1 = Table.new [['X', [1, Nothing, 3]], ['Y', [4, 5, Nothing]]]
+            run_with_and_without_output <|
+                r1 = t1.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-0" temporaru=True primary_key=[]
+                Problems.assume_no_problems r1
+
+                r2 = t1.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-1" temporaru=True primary_key=['X']
+                r2.should_fail_with Null_Values_In_Key_Columns
+                r2.catch . example_row . should_equal [Nothing, 5]
+
+                r3 = t1.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-2" temporaru=True primary_key=['Y']
+                r3.should_fail_with Null_Values_In_Key_Columns
+                r3.catch . example_row . should_equal [3, Nothing]
+
+                r4 = t1.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-3" temporaru=True primary_key=['X', 'Y']
+                r4.should_fail_with Null_Values_In_Key_Columns
+                r4.catch . example_row . should_equal [Nothing, 5]
+
+            large_with_null = (0.up_to 1010).to_vector + [Nothing]
+            big_table = Table.new [['X', large_with_null+large_with_null]]]
+            Context.Output.with_disabled <|
+                r5 = big_table.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-4" temporaru=True primary_key=['X']
+                r5.column_names . should_equal ['X']
+                r5.row_count . should_equal 1000
+            Context.Output.with_enabled <|
+                r5 = big_table.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-4" temporaru=True primary_key=['X']
+                r5.should_fail_with Null_Values_In_Key_Columns
+
         snowflake_constraints_pending = if prefix.contains "Snowflake" then "Disabled until https://github.com/enso-org/enso/issues/10737 is resolved."
         group_builder.specify "should fail if the primary key is not unique" pending=snowflake_constraints_pending <|
             t1 = Table.new [["X", [1, 2, 1]], ["Y", ['b', 'b', 'a']]]
@@ -524,6 +552,38 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
             run_with_and_without_output <|
                 r1 = db_table.select_into_database_table data.connection (Name_Generator.random_name "copied-table") temporary=True primary_key=["nonexistent"]
                 r1.should_fail_with Missing_Input_Columns
+
+        group_builder.specify "should fail when the primary key contains nulls" pending=snowflake_constraints_pending <|
+            t = Table.new [['X', [1, Nothing, 3]], ['Y', [4, 5, Nothing]]]
+            db_table = t.select_into_database_table data.connection (Name_Generator.random_name "source-table-nulls-1") temporary=True primary_key=Nothing
+            Problems.assume_no_problems db_table
+
+            run_with_and_without_output <|
+                r1 = db_table.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-1" temporaru=True primary_key=[]
+                Problems.assume_no_problems r1
+
+                r2 = db_table.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-2" temporaru=True primary_key=['X']
+                r2.should_fail_with Null_Values_In_Key_Columns
+                r2.catch . example_row . should_equal [Nothing, 5]
+
+                r3 = db_table.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-3" temporaru=True primary_key=['Y']
+                r3.should_fail_with Null_Values_In_Key_Columns
+                r3.catch . example_row . should_equal [3, Nothing]
+
+                r4 = db_table.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-4" temporaru=True primary_key=['X', 'Y']
+                r4.should_fail_with Null_Values_In_Key_Columns
+                r4.catch . example_row . should_equal [Nothing, 5]
+
+            large_with_null = (0.up_to 1010).to_vector + [Nothing]
+            big_table = Table.new [['X', large_with_null+large_with_null]]]
+            db_table_2 = big_table.select_into_database_table data.connection (Name_Generator.random_name "source-table-nulls-2") temporary=True primary_key=Nothing
+            Context.Output.with_disabled <|
+                r5 = db_table_2.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-4" temporaru=True primary_key=['X']
+                r5.column_names . should_equal ['X']
+                r5.row_count . should_equal 1000
+            Context.Output.with_enabled <|
+                r5 = db_table_2.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-4" temporaru=True primary_key=['X']
+                r5.should_fail_with Null_Values_In_Key_Columns
 
         snowflake_constraints_pending = if prefix.contains "Snowflake" then "Disabled until https://github.com/enso-org/enso/issues/10737 is resolved."
         group_builder.specify "should fail when the primary key is not unique" pending=snowflake_constraints_pending <|
