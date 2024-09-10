@@ -286,6 +286,19 @@ export function useTableNewArgument(
               onUpdate({ edit })
             },
           },
+          mainMenuItems: [
+            'autoSizeThis',
+            'autoSizeAll',
+            {
+              name: 'Remove Column',
+              action: () => {
+                const edit = graph.startEdit()
+                fixColumns(edit)
+                removeColumn(edit, col.id)
+                onUpdate({ edit })
+              },
+            },
+          ],
           contextMenuItems: [
             'cut',
             'copy',
@@ -304,8 +317,7 @@ export function useTableNewArgument(
             },
             {
               name: 'Remove Column',
-              action: ({ node }) => {
-                if (!node?.data) return
+              action: () => {
                 const edit = graph.startEdit()
                 fixColumns(edit)
                 removeColumn(edit, col.id)

@@ -16,7 +16,6 @@ import type {
   CellEditingStoppedEvent,
   ColumnResizedEvent,
   FirstDataRenderedEvent,
-  GridReadyEvent,
   RowDataUpdatedEvent,
   RowEditingStartedEvent,
   RowEditingStoppedEvent,
@@ -27,6 +26,7 @@ import type {
   ColGroupDef,
   GetRowIdFunc,
   GridApi,
+  GridReadyEvent,
   RowHeightParams,
 } from 'ag-grid-enterprise'
 import { type ComponentInstance, reactive, ref, shallowRef, watch } from 'vue'
@@ -59,7 +59,7 @@ const gridApi = shallowRef<GridApi<TData>>()
 const popupParent = document.body
 useAutoBlur(() => grid.value?.$el)
 
-function onGridReady(event: GridReadyEvent) {
+function onGridReady(event: GridReadyEvent<TData>) {
   gridApi.value = event.api
 }
 

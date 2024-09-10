@@ -7,13 +7,8 @@ import { Pattern } from '@/util/ast/match'
 import { VisualizationContainer, useVisualizationConfig } from '@/util/visualizationBuiltins'
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
-import type {
-  CellClassParams,
-  CellClickedEvent,
-  ICellRendererParams,
-  SortChangedEvent,
-} from 'ag-grid-community'
-import type { ColDef } from 'ag-grid-enterprise'
+import type { ICellRendererParams, SortChangedEvent } from 'ag-grid-community'
+import type { CellClassParams, CellClickedEvent, ColDef } from 'ag-grid-enterprise'
 import { computed, onMounted, ref, shallowRef, watchEffect, type Ref } from 'vue'
 
 export const name = 'Table'

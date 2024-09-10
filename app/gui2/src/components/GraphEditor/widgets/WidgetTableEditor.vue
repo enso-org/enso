@@ -59,7 +59,7 @@ class CellEditing {
     })
   }
 
-  cellEditedInGrid(event: CellEditingStartedEvent) {
+  cellEditedInGrid(event: CellEditingStartedEvent<RowData>) {
     this.editedCell =
       event.rowIndex != null ? { rowIndex: event.rowIndex, colKey: event.column } : undefined
     if (!this.handler.isActive()) {
@@ -153,6 +153,7 @@ const defaultColDef = {
     onHeaderEditingStarted: headerEditHandler.headerEditedInGrid.bind(headerEditHandler),
     onHeaderEditingStopped: headerEditHandler.headerEditingStoppedInGrid.bind(headerEditHandler),
   },
+  menuTabs: ['generalMenuTab'],
 }
 </script>
 
