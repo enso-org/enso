@@ -105,6 +105,7 @@ export const setupVue3 = defineSetupVue3(({ app, addWrapper }) => {
       size: new Vec2(200, 150),
       createNodes() {},
       nodeType: 'component',
+      setPreprocessor: () => {},
       setToolbar: () => {},
       setToolbarOverlay: () => {},
     },

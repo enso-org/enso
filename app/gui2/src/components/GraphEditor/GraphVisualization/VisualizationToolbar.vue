@@ -20,11 +20,10 @@ const isFullscreen = defineModel<boolean>('isFullscreen', { required: true })
 const currentVis = defineModel<VisualizationIdentifier>('currentVis', { required: true })
 
 const props = defineProps<{
-  interactive: boolean
-  hideButton: 'show' | 'hide' | 'invisible'
+  showControls: boolean
+  hideVisualizationButton: 'show' | 'hide' | 'invisible'
   isFullscreenAllowed: boolean
   allTypes: Iterable<VisualizationIdentifier>
-  overflow: boolean
   visualizationDefinedToolbar: Readonly<ToolbarItem[]> | undefined
   typename: string | undefined
 }>()
@@ -51,11 +50,11 @@ useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointeru
 
 <template>
   <div class="VisualizationToolbar">
-    <template v-if="interactive">
+    <template v-if="showControls">
       <div
-        v-if="hideButton !== 'hide'"
+        v-if="hideVisualizationButton !== 'hide'"
         class="toolbar"
-        :class="{ invisible: hideButton === 'invisible' }"
+        :class="{ invisible: hideVisualizationButton === 'invisible' }"
       >
         <SvgButton name="eye" title="Hide visualization" @click.stop="emit('hide')" />
       </div>
@@ -63,11 +62,7 @@ useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointeru
         <FullscreenButton v-if="isFullscreenAllowed" v-model="isFullscreen" />
         <VisualizationSelector v-model="currentVis" :types="allTypes" />
       </div>
-      <div
-        v-if="visualizationDefinedToolbar"
-        class="visualization-defined-toolbars"
-        :class="{ overflow }"
-      >
+      <div v-if="visualizationDefinedToolbar" class="visualization-defined-toolbars">
         <div class="toolbar">
           <template v-for="(item, index) in visualizationDefinedToolbar" :key="index">
             <SvgButton
@@ -93,6 +88,7 @@ useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointeru
               :title="item.title"
               alwaysShowArrow
             />
+            <div v-else>?</div>
           </template>
         </div>
       </div>
@@ -159,7 +155,6 @@ useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointeru
 
 .visualization-defined-toolbars {
   max-width: calc(100% - var(--permanent-toolbar-width));
-  overflow: hidden;
 }
 
 .toolbar > :deep(*) {

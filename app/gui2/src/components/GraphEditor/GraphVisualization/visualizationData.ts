@@ -5,6 +5,7 @@ import { useProjectStore } from '@/stores/project'
 import type { NodeVisualizationConfiguration } from '@/stores/project/executionContext'
 import {
   DEFAULT_VISUALIZATION_CONFIGURATION,
+  DEFAULT_VISUALIZATION_IDENTIFIER,
   useVisualizationStore,
   VisualizationDataSource,
 } from '@/stores/visualization'
@@ -85,7 +86,7 @@ export function useVisualizationData({
     if (defaultVisualizationForCurrentNodeSource.value)
       return defaultVisualizationForCurrentNodeSource.value
     const [id] = visualizationStore.types(toValue(typename))
-    return id
+    return id ?? DEFAULT_VISUALIZATION_IDENTIFIER
   })
 
   const visualization = shallowRef<Visualization>()
@@ -231,8 +232,7 @@ export function useVisualizationData({
   return {
     effectiveVisualization,
     effectiveVisualizationData,
-    // Cast required to work around janky Vue definitions for the type of a Visualization
-    updatePreprocessor: updatePreprocessor as (...args: unknown[]) => void,
+    updatePreprocessor,
     allTypes,
     currentType,
     setToolbarDefinition: (definition: ToValue<Readonly<ToolbarItem[]>>) =>

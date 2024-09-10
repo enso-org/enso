@@ -51,6 +51,7 @@ const visualizationOptions = computed(() =>
     :modelValue="visKey(modelValue)"
     :options="visualizationOptions"
     title="Visualization Selector"
+    class="VisualizationSelector"
     alwaysShowArrow
     @update:modelValue="modelValue = visualizationByKey.get($event as string)!"
   />

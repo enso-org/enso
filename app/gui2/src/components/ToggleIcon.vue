@@ -21,8 +21,8 @@ const _props = defineProps<{
 </script>
 
 <template>
-  <MenuButton v-model="toggledOn" class="ToggleIcon" :disabled="disabled">
-    <SvgIcon :name="icon" :title="title" />
+  <MenuButton v-model="toggledOn" class="ToggleIcon" :disabled="disabled" :title="title">
+    <SvgIcon :name="icon" />
     <div v-if="label" v-text="label" />
   </MenuButton>
 </template>

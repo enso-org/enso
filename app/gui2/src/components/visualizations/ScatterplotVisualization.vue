@@ -102,9 +102,6 @@ interface Color {
 const d3 = await import('d3')
 
 const props = defineProps<{ data: Partial<Data> | number[] }>()
-const emit = defineEmits<{
-  'update:preprocessor': [module: string, method: string, ...args: string[]]
-}>()
 
 const config = useVisualizationConfig()
 
@@ -235,8 +232,7 @@ const showYLabelText = computed(() => !data.value.is_multi_series)
 watchEffect(() => {
   const boundsExpression =
     bounds.value != null ? Ast.Vector.tryBuild(bounds.value, tryNumberToEnso) : undefined
-  emit(
-    'update:preprocessor',
+  config.setPreprocessor(
     'Standard.Visualization.Scatter_Plot',
     'process_to_json_text',
     boundsExpression?.code() ?? 'Nothing',

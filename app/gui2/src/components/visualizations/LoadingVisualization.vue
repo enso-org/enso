@@ -1,12 +1,5 @@
-<script lang="ts">
-import LoadingSpinner from '@/components/LoadingSpinner.vue'
-
-export const name = 'Loading'
-export const inputType = 'Any'
-</script>
-
 <script setup lang="ts">
-const _props = defineProps<{ data: unknown }>()
+import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 </script>
 
 <template>
@@ -19,7 +12,6 @@ const _props = defineProps<{ data: unknown }>()
 .LoadingVisualization {
   display: flex;
   height: 100%;
-  padding-top: 30px;
   place-content: center;
   place-items: center;
   overflow: clip;

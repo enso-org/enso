@@ -7,10 +7,8 @@ import {
 import VisualizationToolbar from '@/components/GraphEditor/GraphVisualization/VisualizationToolbar.vue'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import ResizeHandles from '@/components/ResizeHandles.vue'
-import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
 import WithFullscreenMode from '@/components/WithFullscreenMode.vue'
 import { focusIsIn, useEvent, useResizeObserver } from '@/composables/events'
-import { provideVisualizationConfig } from '@/providers/visualizationConfig'
 import { VisualizationDataSource } from '@/stores/visualization'
 import type { Opt } from '@/util/data/opt'
 import { type BoundsSet, Rect } from '@/util/data/rect'
@@ -144,7 +142,7 @@ onUnmounted(() => emit('update:rect', undefined))
 
 const isFullscreen = ref(false)
 
-const containerContentSize = computed(
+const containerContentSize = computed<Vec2>(
   () => new Vec2(rect.value.width, rect.value.height - props.nodeSize.y),
 )
 
@@ -179,36 +177,30 @@ const style = computed(() => {
 
 const fullscreenAnimating = ref(false)
 
-// TODO
-const overflow = ref(false)
-const toolbarOverflow = ref(false)
-
 watch(
   () => isFullscreen,
   (f) => {
     f && nextTick(() => panelElement.value?.focus())
   },
 )
+</script>
 
-// =========================
-// === Visualization API ===
-// =========================
+<script lang="ts">
+import VisualizationHost from '@/components/visualizations/VisualizationHost.vue'
+import { defineCustomElement } from 'vue'
 
-provideVisualizationConfig({
-  get size() {
-    return contentElementSize.value
-  },
-  get nodeType() {
-    return props.typename
-  },
-  setToolbar(items) {
-    setToolbarDefinition(items)
-  },
-  setToolbarOverlay(overlay) {
-    toolbarOverlay.value = overlay
-  },
-  createNodes: (...options) => emit('createNodes', options),
-})
+// ==========================
+// === Visualization Host ===
+// ==========================
+
+let definitionNumber = 0
+if (import.meta.hot) {
+  import.meta.hot.data.graphVizDefinitionNumber =
+    (import.meta.hot.data.graphVizDefinitionNumber ?? 0) + 1
+  definitionNumber = import.meta.hot.data.graphVizDefinitionNumber
+}
+const ensoVisualizationHost = `enso-visualization-host-${definitionNumber}`
+customElements.define(ensoVisualizationHost, defineCustomElement(VisualizationHost))
 </script>
 
 <template>
@@ -226,14 +218,13 @@ provideVisualizationConfig({
         <VisualizationToolbar
           v-model:isFullscreen="isFullscreen"
           :currentVis="currentType"
-          :interactive="!isPreview"
-          :hideButton="
+          :showControls="!isPreview"
+          :hideVisualizationButton="
             isFullscreen ? 'hide'
             : isCircularMenuVisible ? 'invisible'
             : 'show'
           "
           :isFullscreenAllowed="isFullscreenAllowed"
-          :overflow="toolbarOverflow"
           :allTypes="allTypes"
           :visualizationDefinedToolbar="visualizationDefinedToolbar"
           :typename="typename"
@@ -243,18 +234,22 @@ provideVisualizationConfig({
         />
         <div
           ref="contentElement"
-          class="content scrollable"
-          :class="{ overflow }"
+          class="VisualizationHostContainer content scrollable"
           @wheel.passive="onWheel"
         >
-          <Suspense>
-            <template #fallback><LoadingVisualization :data="{}" /></template>
-            <component
-              :is="effectiveVisualization"
-              :data="effectiveVisualizationData"
-              @update:preprocessor="updatePreprocessor"
-            />
-          </Suspense>
+          <component
+            :is="ensoVisualizationHost"
+            :visualization="effectiveVisualization"
+            :data="effectiveVisualizationData"
+            :size="contentElementSize"
+            :nodeType="typename"
+            @updatePreprocessor="
+              updatePreprocessor($event.detail[0], $event.detail[1], ...$event.detail.slice(2))
+            "
+            @updateToolbar="setToolbarDefinition($event.detail[0])"
+            @updateToolbarOverlay="toolbarOverlay = $event.detail[0]"
+            @createNodes="emit('createNodes', $event.detail[0])"
+          />
         </div>
       </div>
     </WithFullscreenMode>
@@ -298,10 +293,6 @@ provideVisualizationConfig({
   overflow: auto;
   contain: strict;
   height: 100%;
-}
-
-.overflow {
-  overflow: visible;
 }
 
 .nonInteractive {

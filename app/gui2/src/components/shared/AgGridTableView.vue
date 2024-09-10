@@ -8,9 +8,8 @@ import {
   tsvTableToEnsoExpression,
   writeClipboard,
 } from '@/components/GraphEditor/clipboard'
+import { TextFormatOptions } from '@/components/visualizations/TableVisualization.vue'
 import { useAutoBlur } from '@/util/autoBlur'
-import '@ag-grid-community/styles/ag-grid.css'
-import '@ag-grid-community/styles/ag-theme-alpine.css'
 import type {
   CellEditingStartedEvent,
   CellEditingStoppedEvent,
@@ -30,7 +29,6 @@ import type {
   RowHeightParams,
 } from 'ag-grid-enterprise'
 import { type ComponentInstance, reactive, ref, shallowRef, watch } from 'vue'
-import { TextFormatOptions } from '../visualizations/TableVisualization.vue'
 
 const DEFAULT_ROW_HEIGHT = 22
 
@@ -206,6 +204,8 @@ const { AgGridVue } = await import('ag-grid-vue3')
   />
 </template>
 
+<style src="@ag-grid-community/styles/ag-grid.css" />
+<style src="@ag-grid-community/styles/ag-theme-alpine.css" />
 <style scoped>
 .ag-theme-alpine {
   --ag-grid-size: 3px;

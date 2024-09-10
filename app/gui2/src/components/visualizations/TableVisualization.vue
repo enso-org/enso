@@ -1,12 +1,10 @@
 <script lang="ts">
 import icons from '@/assets/icons.svg'
+import AgGridTableView from '@/components/shared/AgGridTableView.vue'
 import { SortModel, useTableVizToolbar } from '@/components/visualizations/tableVizToolbar'
-import AgGridTableView from '@/components/widgets/AgGridTableView.vue'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import { useVisualizationConfig } from '@/util/visualizationBuiltins'
-import '@ag-grid-community/styles/ag-grid.css'
-import '@ag-grid-community/styles/ag-theme-alpine.css'
 import type {
   CellClassParams,
   CellClickedEvent,
@@ -92,9 +90,6 @@ export enum TextFormatOptions {
 
 <script setup lang="ts">
 const props = defineProps<{ data: Data }>()
-const emit = defineEmits<{
-  'update:preprocessor': [module: string, method: string, ...args: string[]]
-}>()
 const config = useVisualizationConfig()
 
 const INDEX_FIELD_NAME = '#'
@@ -262,8 +257,7 @@ function formatText(params: ICellRendererParams) {
 function setRowLimit(newRowLimit: number) {
   if (newRowLimit !== rowLimit.value) {
     rowLimit.value = newRowLimit
-    emit(
-      'update:preprocessor',
+    config.setPreprocessor(
       'Standard.Visualization.Table.Visualization',
       'prepare_visualization',
       newRowLimit.toString(),

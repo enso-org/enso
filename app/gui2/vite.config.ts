@@ -32,7 +32,14 @@ export default defineConfig({
   plugins: [
     wasm(),
     VueDevTools(),
-    vue(),
+    vue({
+      customElement: ['**/components/visualizations/**', '**/components/shared/**'],
+      template: {
+        compilerOptions: {
+          isCustomElement: (tag) => tag.startsWith('enso-'),
+        },
+      },
+    }),
     react({
       include: fileURLToPath(new URL('../dashboard/**/*.tsx', import.meta.url)),
       babel: { plugins: ['@babel/plugin-syntax-import-attributes'] },
