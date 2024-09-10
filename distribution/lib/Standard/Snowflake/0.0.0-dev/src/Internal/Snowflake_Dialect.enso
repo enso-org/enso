@@ -4,7 +4,6 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
-import Standard.Base.Runtime.Debug
 import Standard.Base.Runtime.Ref.Ref
 
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
@@ -556,12 +555,9 @@ make_order_descriptor internal_column sort_direction text_ordering =
 
 ## PRIVATE
 round_bankers = Base_Generator.lift_binary_op "ROUND_BANKERS" x-> dp->
-    #SQL_Builder.code "ROUND(" ++ x ++ ", " ++ y ++ ", 'HALF_TO_EVEN')"
-    Debug.breakpoint
     fun f args = (SQL_Builder.code f ++ "(" ++ (SQL_Builder.join "," (args.map .paren)) ++ ")").paren
     ten = SQL_Builder.code "10"
     scale = fun "POW" [ten, dp]
-    #scale = (SQL_Builder.code "10 ^ " ++ dp).paren
     scaled = (x.paren ++ " * " ++ scale).paren
     floor x = fun "FLOOR" [x]
     ceil x = fun "CEIL" [x]
@@ -573,9 +569,9 @@ round_bankers = Base_Generator.lift_binary_op "ROUND_BANKERS" x-> dp->
             SQL_Builder.code "WHEN " ++ pred.paren ++ " THEN " ++ exp.paren
         (SQL_Builder.code "CASE " ++ (SQL_Builder.join " " cases_sqls) ++ " ELSE " ++ elze ++ " END").paren
     two = SQL_Builder.code "2.0"
-    mod2 = fun "MOD" [scaled, two]
+    mod2 x = fun "MOD" [x, two]
     neg x = (SQL_Builder.code "-" ++ x.paren).paren
-    partition x = caze [[mod2 ++ " <= 0.5", floor x], [mod2 ++ " >= 1.5", ceil x]] (round x)
+    partition x = caze [[mod2 x ++ " <= 0.5", floor x], [mod2 x ++ " >= 1.5", ceil x]] (round x)
     pos_case = partition scaled
     neg_case = neg (partition (neg scaled))
     bankers_rounded = caze [[scaled ++ " >= 0", pos_case]] neg_case
