@@ -27,6 +27,8 @@ import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.data.EnsoFile;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.Atom;
+import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
+import org.enso.interpreter.runtime.data.hash.HashMapInsertAllNode;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
@@ -112,17 +114,28 @@ public abstract class EqualsComplexNode extends Node {
       Object otherWithWarnings,
       @CachedLibrary("selfWithWarnings") WarningsLibrary selfWarnLib,
       @CachedLibrary("otherWithWarnings") WarningsLibrary otherWarnLib,
-      @Shared("equalsNode") @Cached EqualsSimpleNode equalsNode) {
+      @Shared("equalsNode") @Cached EqualsSimpleNode equalsNode,
+      @Cached HashMapInsertAllNode insertAllNode) {
     try {
-      Object self =
-          selfWarnLib.hasWarnings(selfWithWarnings)
-              ? selfWarnLib.removeWarnings(selfWithWarnings)
-              : selfWithWarnings;
-      Object other =
-          otherWarnLib.hasWarnings(otherWithWarnings)
-              ? otherWarnLib.removeWarnings(otherWithWarnings)
-              : otherWithWarnings;
-      return equalsNode.execute(frame, self, other);
+      var all = EnsoHashMap.empty();
+      var max = EnsoContext.get(this).getWarningsLimit();
+      Object self = selfWithWarnings;
+      Object other = otherWithWarnings;
+      if (selfWarnLib.hasWarnings(selfWithWarnings)) {
+        self = selfWarnLib.removeWarnings(selfWithWarnings);
+        var toAdd = selfWarnLib.getWarnings(selfWithWarnings, false);
+        all = insertAllNode.executeInsertAll(frame, all, toAdd, max);
+      }
+      if (otherWarnLib.hasWarnings(otherWithWarnings)) {
+        other = otherWarnLib.removeWarnings(otherWithWarnings);
+        var toAdd = otherWarnLib.getWarnings(otherWithWarnings, false);
+        all = insertAllNode.executeInsertAll(frame, all, toAdd, max);
+      }
+      var res = equalsNode.execute(frame, self, other);
+      if (res.warnings() != null) {
+        all = insertAllNode.executeInsertAll(frame, all, res.warnings(), max);
+      }
+      return new EqualsAndInfo(res.equals(), all);
     } catch (UnsupportedMessageException e) {
       throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }

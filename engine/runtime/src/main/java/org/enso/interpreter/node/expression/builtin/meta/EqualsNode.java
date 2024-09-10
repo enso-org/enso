@@ -126,7 +126,7 @@ public final class EqualsNode extends Node {
      * @return {code false} if the conversion makes no sense or result of equality check after doing
      *     the conversion
      */
-    abstract boolean executeWithConversion(VirtualFrame frame, Object self, Object that);
+    abstract Object executeWithConversion(VirtualFrame frame, Object self, Object that);
 
     static Type findType(TypeOfNode typeOfNode, Object obj) {
       var rawType = typeOfNode.execute(obj);
@@ -212,7 +212,7 @@ public final class EqualsNode extends Node {
           "selfType == findType(typeOfNode, self)",
           "thatType == findType(typeOfNode, that)"
         })
-    final boolean doConversionCached(
+    final Object doConversionCached(
         VirtualFrame frame,
         Object self,
         Object that,
@@ -223,45 +223,48 @@ public final class EqualsNode extends Node {
             Type thatType,
         @Cached("findConversions(selfType, thatType, self, that)") Boolean convert,
         @Shared("convert") @Cached InteropConversionCallNode convertNode,
-        @Shared("invoke") @Cached(allowUncached = true) EqualsSimpleNode equalityNode) {
+        @Shared("invoke") @Cached(allowUncached = true) EqualsSimpleNode equalityNode,
+        @Shared("warn") @Cached(allowUncached = true) AppendWarningNode warningsNode) {
       if (convert == null) {
         return false;
       }
       if (convert) {
-        return doDispatch(frame, that, self, thatType, convertNode, equalityNode);
+        return doDispatch(frame, that, self, thatType, convertNode, equalityNode, warningsNode);
       } else {
-        return doDispatch(frame, self, that, selfType, convertNode, equalityNode);
+        return doDispatch(frame, self, that, selfType, convertNode, equalityNode, warningsNode);
       }
     }
 
     @Specialization(replaces = "doConversionCached")
-    final boolean doConversionUncached(
+    final Object doConversionUncached(
         VirtualFrame frame,
         Object self,
         Object that,
         @Shared("typeOf") @Cached TypeOfNode typeOfNode,
         @Shared("convert") @Cached InteropConversionCallNode convertNode,
-        @Shared("invoke") @Cached(allowUncached = true) EqualsSimpleNode equalityNode) {
+        @Shared("invoke") @Cached(allowUncached = true) EqualsSimpleNode equalityNode,
+        @Shared("warn") @Cached(allowUncached = true) AppendWarningNode warningsNode) {
       var selfType = findType(typeOfNode, self);
       var thatType = findType(typeOfNode, that);
       var conv = findConversions(selfType, thatType, self, that);
       if (conv != null) {
         var result =
             conv
-                ? doDispatch(frame, that, self, thatType, convertNode, equalityNode)
-                : doDispatch(frame, self, that, selfType, convertNode, equalityNode);
+                ? doDispatch(frame, that, self, thatType, convertNode, equalityNode, warningsNode)
+                : doDispatch(frame, self, that, selfType, convertNode, equalityNode, warningsNode);
         return result;
       }
       return false;
     }
 
-    private boolean doDispatch(
+    private Object doDispatch(
         VirtualFrame frame,
         Object self,
         Object that,
         Type selfType,
         InteropConversionCallNode convertNode,
-        EqualsSimpleNode equalityNode)
+        EqualsSimpleNode equalityNode,
+        AppendWarningNode warnings)
         throws PanicException {
       var convert = UnresolvedConversion.build(selfType.getDefinitionScope());
 
@@ -269,9 +272,14 @@ public final class EqualsNode extends Node {
       var state = State.create(ctx);
       try {
         var thatAsSelf = convertNode.execute(convert, state, new Object[] {selfType, that});
-        var result = equalityNode.execute(frame, self, thatAsSelf).equals();
+        var withInfo = equalityNode.execute(frame, self, thatAsSelf);
+        var result = withInfo.equals();
         assert !result || assertHashCodeIsTheSame(that, thatAsSelf);
-        return result;
+        if (withInfo.warnings() != null) {
+          return warnings.executeAppend(frame, result, withInfo.warnings());
+        } else {
+          return result;
+        }
       } catch (ArityException ex) {
         var assertsOn = false;
         assert assertsOn = true;
