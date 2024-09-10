@@ -295,7 +295,7 @@ class ReplTest
         executor.exit()
       }
       eval(code)
-      evalResult.left.value.getMessage should include ("Compile_Error")
+      evalResult.left.value.getMessage should include("Compile_Error")
     }
 
     "handle errors gracefully (pretty print)" in {
