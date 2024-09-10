@@ -294,6 +294,8 @@ type SQLSever_Dialect
     ## PRIVATE
     ensure_query_has_no_holes : JDBC_Connection -> Text -> Nothing ! Illegal_Argument
     ensure_query_has_no_holes self jdbc:JDBC_Connection raw_sql:Text =
+        ## The jdbc driver doesn't work for asking about holes for SQLServer temp tables
+           We can skip this check and still get a decent error message
         if raw_sql.contains "#" . not then
             jdbc.ensure_query_has_no_holes raw_sql
 
