@@ -8,6 +8,7 @@ import org.enso.compiler.pass.analyse.{
   CachePreferenceAnalysis,
   DataflowAnalysis
 }
+import org.enso.compiler.refactoring.IRUtils
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
 import org.enso.interpreter.instrument.job.UpsertVisualizationJob.{
   EvaluationFailed,
@@ -628,8 +629,8 @@ object UpsertVisualizationJob {
           .getMetadata(DataflowAnalysis)
           .foreach { metadata =>
             val externalId = expressionId
-            module.getIr.preorder
-              .find(_.getExternalId.contains(externalId))
+            IRUtils
+              .findByExternalId(module.getIr, externalId)
               .map { ir =>
                 DataflowAnalysis.DependencyInfo.Type
                   .Static(ir.getId, ir.getExternalId)
