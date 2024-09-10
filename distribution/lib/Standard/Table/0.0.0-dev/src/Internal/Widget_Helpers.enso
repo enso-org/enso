@@ -20,7 +20,7 @@ from project.Extensions.Table_Conversions import all
 ## PRIVATE
    Make an aggregate column selector.
 make_aggregate_column_selector : Table -> Display -> Widget
-make_aggregate_column_selector table display=Display.Always =
+make_aggregate_column_selector table display:Display=..Always =
     col_names_selector = make_column_name_selector table display=Display.Always add_expression=True
     column_widget = ["column", col_names_selector]
 
@@ -62,7 +62,7 @@ make_aggregate_column_selector table display=Display.Always =
 ## PRIVATE
    Make an Aggregate_Column list editor
 make_aggregate_column_vector_selector : Table -> Display -> Widget
-make_aggregate_column_vector_selector table display=Display.Always =
+make_aggregate_column_vector_selector table display:Display=..Always =
     item_editor = make_aggregate_column_selector table display=Display.Always
     # TODO this is a workaround for a dropdown issue
     Vector_Editor item_editor=item_editor item_default="..Count" display=display
@@ -70,7 +70,7 @@ make_aggregate_column_vector_selector table display=Display.Always =
 ## PRIVATE
    Make a column name selector.
 make_column_name_selector : Table -> Boolean -> Display -> Widget
-make_column_name_selector table add_expression:Boolean=False display=Display.Always =
+make_column_name_selector table add_expression:Boolean=False display:Display=..Always =
     col_names = table.column_names
     names = col_names.map n-> Option n n.pretty
     expression = if add_expression then [Option "<Expression>" "(expr '["+table.column_names.first+"]')"] else []
@@ -79,14 +79,14 @@ make_column_name_selector table add_expression:Boolean=False display=Display.Alw
 ## PRIVATE
    Make a multiple column name selector.
 make_column_name_vector_selector : Table -> Display -> Widget
-make_column_name_vector_selector table display=Display.Always =
+make_column_name_vector_selector table display:Display=..Always =
     item_editor = make_column_name_selector table display=Display.Always
     Vector_Editor item_editor=item_editor item_default=item_editor.values.first.value display=display
 
 ## PRIVATE
    Make a multiple column-name selector that allows each value to be selected at most once.
 make_column_name_multi_selector : Table -> Display -> Boolean -> Boolean -> Widget
-make_column_name_multi_selector table display:Display=Display.Always add_regex:Boolean=False add_by_type:Boolean=False =
+make_column_name_multi_selector table display:Display=..Always add_regex:Boolean=False add_by_type:Boolean=False =
     names = table.column_names.map n-> Option n n.pretty
     regex = if add_regex then [Option "<Regular Expression>" "(regex '')"] else []
     by_type = if add_by_type then [Option "<By Type>" "(..By_Type ..Integer)"] else []
@@ -111,7 +111,7 @@ make_fill_default_value_selector column_source=Nothing display:Display=..Always 
 
 ## PRIVATE
    Make a filter condition selector.
-make_filter_condition_selector table display=Display.Always =
+make_filter_condition_selector table display:Display=..Always =
     equatable_types = make_column_ref_by_name_selector table add_text=True add_number=True add_boolean=True add_date=True add_time=True add_date_time=True
     comparable_types = make_column_ref_by_name_selector table add_text=True add_number=True add_date=True add_time=True add_date_time=True
     with_text = make_column_ref_by_name_selector table add_text=True
@@ -147,14 +147,14 @@ make_filter_condition_selector table display=Display.Always =
 ## PRIVATE
    Make a join kind selector - Needed to override display.
 make_join_kind_selector : Display -> Widget
-make_join_kind_selector display=Display.Always =
+make_join_kind_selector display:Display=..Always =
     options = ["Inner", "Left_Outer", "Right_Outer", "Full", "Left_Exclusive", "Right_Exclusive"].map n-> Option n ".."+n
     Single_Choice display=display values=options
 
 ## PRIVATE
    Make a join condition selector.
 make_join_condition_selector : Table -> Display -> Any -> Widget
-make_join_condition_selector table display=Display.Always cache=Nothing =
+make_join_condition_selector table display:Display=..Always cache=Nothing =
     right = cache.if_not_nothing <| cache "right"
     self_selector = make_column_name_selector table display=Display.Always
     right_selector = if right.is_nothing then Text_Input else
@@ -171,7 +171,7 @@ make_join_condition_selector table display=Display.Always cache=Nothing =
 ## PRIVATE
    Make a column name selector.
 make_order_by_selector : Table -> Display -> Boolean -> Widget
-make_order_by_selector table display=Display.Always name_only:Boolean=False =
+make_order_by_selector table display:Display=..Always name_only:Boolean=False =
     values = if name_only then table.column_names.map n-> Option n "(..Name "+n.pretty+")" else
         name = Option "Name" "..Name" [["name", make_column_name_selector table display=Display.Always]]
         index = Option "Index" "..Index" [["index", Numeric_Input display=Display.Always minimum=0 maximum=table.column_count-1]]
@@ -183,7 +183,7 @@ make_order_by_selector table display=Display.Always name_only:Boolean=False =
 ## PRIVATE
    Make a column rename name selector.
 make_rename_name_vector_selector : Table -> Display -> Any -> Widget
-make_rename_name_vector_selector table display=Display.Always cache=Nothing =
+make_rename_name_vector_selector table display:Display=..Always cache=Nothing =
     col_names = table.column_names
 
     ## Resolved Used Names
@@ -246,7 +246,7 @@ make_value_type_vector_selector =
 ## PRIVATE
    Make a replace builder.
 make_replace_selector : Display -> Widget
-make_replace_selector display=Display.Always =
+make_replace_selector display:Display=..Always =
     key_selector = make_any_selector add_text=True add_regex=True add_number=True add_boolean=True add_named_pattern=True add_date=True add_time=True add_date_time=True add_nothing=False
     value_selector = make_any_selector add_text=True add_regex=True add_number=True add_boolean=True add_named_pattern=True add_date=True add_time=True add_date_time=True add_nothing=True
     fqn = Meta.get_qualified_type_name Pair

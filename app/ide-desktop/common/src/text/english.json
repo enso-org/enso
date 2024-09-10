@@ -350,7 +350,7 @@
   "loadingAppMessage": "Loading Enso...",
   "appErroredMessage": "Enso encountered an unrecoverable error.",
   "appErroredPrompt": "Please try refreshing or installing an updated version.",
-  "discoverWhatsNew": "Learn about Enso Analytics",
+  "discoverWhatsNew": "Learn",
   "sampleAndCommunityProjects": "Sample and community projects",
   "startWithATemplate": "Discover",
   "openInfoMenu": "Open info menu",
@@ -553,7 +553,7 @@
   "confirmNewPasswordLabel": "Confirm new password",
   "confirmNewPasswordPlaceholder": "Confirm your new password",
 
-  "selectTemplate": "Welcome",
+  "selectTemplate": "Discover Enso Analytics",
   "welcomeSubtitle": "Explore templates, plugins, and data sources to kickstart your next big idea.",
   "newsItem3Beta": "Read what’s new in Enso",
   "newsItem3BetaDescription": "Learn about new features and whats coming soon.",
