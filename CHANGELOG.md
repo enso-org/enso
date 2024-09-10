@@ -14,6 +14,7 @@
   updated actual code][10857]
 - [Added fullscreen modes to documentation editor and code editor][10876]
 - [Fixed issue with node name assignment when uploading multiple files.][10979]
+- [Cloud file browser inserts `enso:` paths][11001]
 - [Fixed issue where drag'n'dropped files were not uploaded in cloud
   projects.][11014]
 
@@ -23,6 +24,7 @@
 [10857]: https://github.com/enso-org/enso/pull/10857
 [10876]: https://github.com/enso-org/enso/pull/10876
 [10979]: https://github.com/enso-org/enso/pull/10979
+[11001]: https://github.com/enso-org/enso/pull/11001
 [11014]: https://github.com/enso-org/enso/pull/11014
 
 #### Enso Standard Library
