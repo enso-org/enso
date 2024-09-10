@@ -12,7 +12,9 @@ import type { ColDef } from 'ag-grid-enterprise'
 import { computed, toValue } from 'vue'
 
 const NEW_COLUMN_ID = 'NewColumn'
+const ROW_INDEX_COLUMN_ID = 'RowIndex'
 const NEW_COLUMN_HEADER = 'New Column'
+const ROW_INDEX_HEADER = '#'
 const NOTHING_PATH = 'Standard.Base.Nothing.Nothing' as QualifiedName
 const NOTHING_NAME = qnLastSegment(NOTHING_PATH)
 
@@ -24,12 +26,9 @@ export type RowData = {
 
 /** A more specialized version of AGGrid's `ColDef` to simplify testing (the tests need to provide
  * only values actually used by the composable) */
-interface ColumnDef {
-  colId?: string
-  headerName: string
+interface ColumnDef extends ColDef<RowData> {
   valueGetter: ({ data }: { data: RowData | undefined }) => any
-  valueSetter: ({ data, newValue }: { data: RowData; newValue: any }) => boolean
-  headerComponentParams?: HeaderParams
+  valueSetter?: ({ data, newValue }: { data: RowData; newValue: any }) => boolean
 }
 
 namespace cellValueConversion {
@@ -242,6 +241,41 @@ export function useTableNewArgument(
       },
       virtualColumn: true,
     },
+    mainMenuItems: ['autoSizeThis', 'autoSizeAll'],
+    contextMenuItems: [
+      'paste',
+      'separator',
+      {
+        name: 'Remove Row',
+        action: ({ node }) => {
+          if (!node?.data) return
+          const edit = graph.startEdit()
+          fixColumns(edit)
+          removeRow(edit, node.data.index)
+          onUpdate({ edit })
+        },
+      },
+    ],
+  }))
+
+  const rowIndexColumnDef = computed<ColumnDef>(() => ({
+    colId: ROW_INDEX_COLUMN_ID,
+    headerName: ROW_INDEX_HEADER,
+    valueGetter: ({ data }: { data: RowData | undefined }) => data?.index,
+    editable: false,
+    mainMenuItems: ['autoSizeThis', 'autoSizeAll'],
+    contextMenuItems: [
+      {
+        name: 'Remove Row',
+        action: ({ node }) => {
+          if (!node?.data) return
+          const edit = graph.startEdit()
+          fixColumns(edit)
+          removeRow(edit, node.data.index)
+          onUpdate({ edit })
+        },
+      },
+    ],
   }))
 
   const columnDefs = computed(() => {
@@ -329,6 +363,7 @@ export function useTableNewArgument(
           ],
         }) satisfies ColDef<RowData>,
     )
+    cols.unshift(rowIndexColumnDef.value)
     cols.push(newColumnDef.value)
     return cols
   })
