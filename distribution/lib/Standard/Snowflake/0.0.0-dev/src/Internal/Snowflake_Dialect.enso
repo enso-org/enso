@@ -562,23 +562,20 @@ round_bankers = Base_Generator.lift_binary_op "ROUND_BANKERS" x-> dp->
     floor x = fun "FLOOR" [x]
     ceil x = fun "CEIL" [x]
     round x = fun "ROUND" [x]
-    caze cases elze =
+    case_when cases else_clause =
         cases_sqls = cases.map pr->
             pred = pr.at 0
             exp = pr.at 1
             SQL_Builder.code "WHEN " ++ pred.paren ++ " THEN " ++ exp.paren
-        (SQL_Builder.code "CASE " ++ (SQL_Builder.join " " cases_sqls) ++ " ELSE " ++ elze ++ " END").paren
+        (SQL_Builder.code "CASE " ++ (SQL_Builder.join " " cases_sqls) ++ " ELSE " ++ else_clause ++ " END").paren
     two = SQL_Builder.code "2.0"
     mod2 x = fun "MOD" [x, two]
     neg x = (SQL_Builder.code "-" ++ x.paren).paren
-    partition x = caze [[mod2 x ++ " <= 0.5", floor x], [mod2 x ++ " >= 1.5", ceil x]] (round x)
+    partition x = case_when [[mod2 x ++ " <= 0.5", floor x], [mod2 x ++ " >= 1.5", ceil x]] (round x)
     pos_case = partition scaled
     neg_case = neg (partition (neg scaled))
-    bankers_rounded = caze [[scaled ++ " >= 0", pos_case]] neg_case
+    bankers_rounded = case_when [[scaled ++ " >= 0", pos_case]] neg_case
     (bankers_rounded ++ " / " ++ scale).paren
-
-    #case when a >= 0 then (case when mod(a, 2.0) <= 0.5 then floor(a) when mod(a, 2.0) >= 1.5 then ceil(a) else round(a) end)
-    #               else (case when mod(-a, 2.0) <= 0.5 then -floor(-a) when mod(-a, 2.0) >= 1.5 then -ceil(-a) else -round(-a) end) end
 
 
 ## PRIVATE
