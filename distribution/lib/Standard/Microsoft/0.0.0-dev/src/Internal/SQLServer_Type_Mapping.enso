@@ -106,7 +106,6 @@ type SQLServer_Type_Mapping
     sql_type_to_text : SQL_Type -> Text
     sql_type_to_text sql_type = SQL_Type_Mapping.default_sql_type_to_text sql_type
 
-
     ## PRIVATE
        The SQLServer_Type_Mapping always relies on the return type determined by
        the database backend.

@@ -220,7 +220,7 @@ type Connection
             table_naming_helper.verify_table_name name <|
                 make_table_for_name self name alias
         SQL_Query.Raw_SQL raw_sql -> handle_sql_errors <| alias.if_not_error <|
-            (self.dialect.ensure_query_has_no_holes self.jdbc_connection raw_sql) . if_not_error <|
+            self.dialect.ensure_query_has_no_holes self.jdbc_connection raw_sql . if_not_error <|
                 columns = self.fetch_columns raw_sql Statement_Setter.null
                 name = if alias == "" then (UUID.randomUUID.to_text) else alias
                 ctx = Context.for_query raw_sql name

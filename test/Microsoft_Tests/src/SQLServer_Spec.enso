@@ -78,13 +78,13 @@ create_connection_builder =
     connection_details.if_not_nothing <|
         _ -> Database.connect connection_details
 
-add_specs suite_builder =
+add_specs suite_builder  =
     case create_connection_builder of
         Nothing ->
             message = "SQLServer test database is not configured. See README.md for instructions."
             suite_builder.group "[SQLServer] Database tests" pending=message (_-> Nothing)
         connection_builder ->
-            add_sqlserver_specs suite_builder connection_builder "tempdb"
+            add_sqlserver_specs suite_builder connection_builder
             suite_builder.group "[SQLServer] Info" group_builder->
                 default_connection = Database.connect get_configured_connection_details
                 data = SQLServer_Info_Data.setup default_connection
@@ -148,8 +148,7 @@ add_specs suite_builder =
 type Lazy_Ref
    Value ~get
 
-add_sqlserver_specs suite_builder create_connection_fn db_name =
-    _ = db_name
+add_sqlserver_specs suite_builder create_connection_fn =
     prefix = "[SQLServer] "
     default_connection = Lazy_Ref.Value (create_connection_fn Nothing)
     Common_Spec.add_specs suite_builder prefix create_connection_fn default_connection

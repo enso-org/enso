@@ -20,7 +20,6 @@ from Standard.Database.Internal.Upload.Helpers.Default_Arguments import first_co
 
 import project.Internal.SQLServer_Dialect
 
-
 type SQLServer_Connection
     ## PRIVATE
 

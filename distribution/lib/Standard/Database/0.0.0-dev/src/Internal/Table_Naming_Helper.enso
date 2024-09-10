@@ -4,7 +4,6 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Table.Internal.Naming_Properties.Naming_Properties
 import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 from Standard.Table.Errors import Name_Too_Long
-from Standard.Database.Dialect import Temp_Table_Style
 
 polyglot java import org.enso.base.Text_Utils
 
