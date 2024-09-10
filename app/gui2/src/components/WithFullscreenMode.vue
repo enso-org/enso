@@ -99,15 +99,11 @@ export type SavedSize = Keyframe
 or used with `unrefElement`. -->
 <template>
   <div class="WithFullscreenMode fullsize">
-    <!-- Wait for the target to be ready. `Teleport` requires the target to exist before it is mounted, even if it is
-    initially `disabled`. -->
-    <template v-if="fullscreenContainer">
-      <Teleport :to="fullscreenContainer" :disabled="!active">
-        <div ref="content" class="fullsize" :class="{ active }">
-          <slot />
-        </div>
-      </Teleport>
-    </template>
+    <Teleport defer :disabled="!active" :to="fullscreenContainer">
+      <div ref="content" class="fullsize" :class="{ active }">
+        <slot />
+      </div>
+    </Teleport>
   </div>
 </template>
 
