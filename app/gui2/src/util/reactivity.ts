@@ -14,6 +14,9 @@ import {
   MaybeRefOrGetter,
   queuePostFlushCb,
   reactive,
+  ReactiveEffect,
+  ReactiveEffectOptions,
+  ReactiveEffectRunner,
   Ref,
   shallowReactive,
   shallowRef,
@@ -33,6 +36,26 @@ export function watchSourceToRef<T>(src: WatchSource<T>): Ref<T> {
 /** Get the value behind a watch source at the current time. */
 export function evalWatchSource<T>(src: WatchSource<T>): T {
   return isRef(src) ? src.value : src()
+}
+
+/**
+ * Create a `ReactiveEffect`. This is similar to the `effect` function, but doesn't immediately run the created effect.
+ */
+export function lazyEffect<T = any>(
+  fn: () => T,
+  options?: ReactiveEffectOptions,
+): ReactiveEffectRunner<T> {
+  if ((fn as ReactiveEffectRunner).effect instanceof ReactiveEffect) {
+    fn = (fn as ReactiveEffectRunner).effect.fn
+  }
+
+  const e = new ReactiveEffect(fn)
+  if (options) {
+    Object.assign(e, options)
+  }
+  const runner = e.run.bind(e) as ReactiveEffectRunner
+  runner.effect = e
+  return runner
 }
 
 export type OnCleanup = (fn: () => void) => void
@@ -71,13 +94,12 @@ export class LazySyncEffectSet {
           cleanup = fn
         }
 
-        const runner = effect(
+        const runner = lazyEffect(
           () => {
             callCleanup()
             fn(onCleanup)
           },
           {
-            lazy: true,
             scheduler: () => {
               if (this._dirtyRunners.size === 0) queuePostFlushCb(this._boundFlush)
               this._dirtyRunners.add(runner)
