@@ -33,6 +33,7 @@ import {
   useSetIsAssetPanelTemporarilyVisible,
   useSetSelectedKeys,
   useSetSuggestions,
+  useSetTargetDirectory,
   useSetVisuallySelectedKeys,
 } from '#/providers/DriveProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
@@ -292,7 +293,6 @@ export interface AssetsTableProps {
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly category: Category
   readonly initialProjectName: string | null
-  readonly targetDirectoryNodeRef: React.MutableRefObject<assetTreeNode.AnyAssetTreeNode<backendModule.DirectoryAsset> | null>
   readonly assetManagementApiRef: React.Ref<AssetManagementApi>
 }
 
@@ -307,7 +307,7 @@ export interface AssetManagementApi {
 /** The table of project assets. */
 export default function AssetsTable(props: AssetsTableProps) {
   const { hidden, query, setQuery, category, assetManagementApiRef } = props
-  const { initialProjectName, targetDirectoryNodeRef } = props
+  const { initialProjectName } = props
 
   const openedProjects = projectsProvider.useLaunchedProjects()
   const doOpenProject = projectHooks.useOpenProject()
@@ -327,6 +327,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const setCanCreateAssets = useSetCanCreateAssets()
+  const setTargetDirectoryInStore = useSetTargetDirectory()
   const didLoadingProjectManagerFail = backendProvider.useDidLoadingProjectManagerFail()
   const reconnectToProjectManager = backendProvider.useReconnectToProjectManager()
   const [enabledColumns, setEnabledColumns] = React.useState(columnUtils.DEFAULT_ENABLED_COLUMNS)
@@ -401,69 +402,21 @@ export default function AssetsTable(props: AssetsTableProps) {
     [expandedDirectoryIds],
   )
 
-  const createProjectMutation = useMutation(
-    backendMutationOptions(backend, 'createProject', {
-      meta: { invalidates: [['listDirectory', backend.type]] },
-    }),
-  )
-  const duplicateProjectMutation = useMutation(
-    backendMutationOptions(backend, 'duplicateProject', {
-      meta: { invalidates: [['listDirectory', backend.type]] },
-    }),
-  )
-  const createDirectoryMutation = useMutation(
-    backendMutationOptions(backend, 'createDirectory', {
-      meta: { invalidates: [['listDirectory', backend.type]] },
-    }),
-  )
-  const createSecretMutation = useMutation(
-    backendMutationOptions(backend, 'createSecret', {
-      meta: { invalidates: [['listDirectory', backend.type]] },
-    }),
-  )
-  const updateSecretMutation = useMutation(
-    backendMutationOptions(backend, 'updateSecret', {
-      meta: { invalidates: [['listDirectory', backend.type]] },
-    }),
-  )
-  const createDatalinkMutation = useMutation(
-    backendMutationOptions(backend, 'createDatalink', {
-      meta: { invalidates: [['listDirectory', backend.type]] },
-    }),
-  )
-  const uploadFileMutation = useMutation(
-    backendMutationOptions(backend, 'uploadFile', {
-      meta: { invalidates: [['assetVersions'], ['listDirectory', backend.type]] },
-    }),
-  )
+  const createProjectMutation = useMutation(backendMutationOptions(backend, 'createProject'))
+  const duplicateProjectMutation = useMutation(backendMutationOptions(backend, 'duplicateProject'))
+  const createDirectoryMutation = useMutation(backendMutationOptions(backend, 'createDirectory'))
+  const createSecretMutation = useMutation(backendMutationOptions(backend, 'createSecret'))
+  const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
+  const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
+  const uploadFileMutation = useMutation(backendMutationOptions(backend, 'uploadFile'))
   const getProjectDetailsMutation = useMutation(
     backendMutationOptions(backend, 'getProjectDetails'),
   )
-  const copyAssetMutation = useMutation(
-    backendMutationOptions(backend, 'copyAsset', {
-      meta: { invalidates: [['assetVersions'], ['listDirectory', backend.type]] },
-    }),
-  )
-  const deleteAssetMutation = useMutation(
-    backendMutationOptions(backend, 'deleteAsset', {
-      meta: { invalidates: [['assetVersions'], ['listDirectory', backend.type]] },
-    }),
-  )
-  const undoDeleteAssetMutation = useMutation(
-    backendMutationOptions(backend, 'undoDeleteAsset', {
-      meta: { invalidates: [['listDirectory', backend.type]] },
-    }),
-  )
-  const updateAssetMutation = useMutation(
-    backendMutationOptions(backend, 'updateAsset', {
-      meta: { invalidates: [['assetVersions'], ['listDirectory', backend.type]] },
-    }),
-  )
-  const closeProjectMutation = useMutation(
-    backendMutationOptions(backend, 'closeProject', {
-      meta: { invalidates: [['assetVersions'], ['listDirectory', backend.type]] },
-    }),
-  )
+  const copyAssetMutation = useMutation(backendMutationOptions(backend, 'copyAsset'))
+  const deleteAssetMutation = useMutation(backendMutationOptions(backend, 'deleteAsset'))
+  const undoDeleteAssetMutation = useMutation(backendMutationOptions(backend, 'undoDeleteAsset'))
+  const updateAssetMutation = useMutation(backendMutationOptions(backend, 'updateAsset'))
+  const closeProjectMutation = useMutation(backendMutationOptions(backend, 'closeProject'))
 
   const directories = useQueries({
     // We query only expanded directories, as we don't want to load the data for directories that are not visible.
@@ -472,8 +425,8 @@ export default function AssetsTable(props: AssetsTableProps) {
         expandedDirectoryIds.map((directoryId) =>
           queryOptions({
             queryKey: [
-              'listDirectory',
               backend.type,
+              'listDirectory',
               directoryId,
               {
                 parentId: directoryId,
@@ -877,7 +830,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               targetDirectorySelfPermission.permission,
             ))
       setCanCreateAssets(canCreateAssets)
-      targetDirectoryNodeRef.current = targetDirectory
+      setTargetDirectoryInStore(targetDirectory)
     },
   )
 
@@ -1453,7 +1406,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         break
       }
       case 'Escape': {
-        setSelectedKeys(new Set())
+        setSelectedKeys(set.EMPTY_SET)
         setMostRecentlySelectedIndex(null)
         selectionStartIndexRef.current = null
         break
@@ -1513,7 +1466,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         } else {
           // The arrow key will escape this container. In that case, do not stop propagation
           // and let `navigator2D` navigate to a different container.
-          setSelectedKeys(new Set())
+          setSelectedKeys(set.EMPTY_SET)
           selectionStartIndexRef.current = null
         }
         break
@@ -2137,7 +2090,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const { selectedKeys } = driveStore.getState()
     setPasteData({ type: PasteType.move, data: selectedKeys })
     dispatchAssetEvent({ type: AssetEventType.cut, ids: selectedKeys })
-    setSelectedKeys(new Set())
+    setSelectedKeys(set.EMPTY_SET)
   })
 
   const doPaste = useEventCallback(
@@ -2311,9 +2264,19 @@ export default function AssetsTable(props: AssetsTableProps) {
         {
           selectAdditional: () => {},
           selectAdditionalRange: () => {},
-          [inputBindingsModule.DEFAULT_HANDLER]: () => {
-            const { selectedKeys } = driveStore.getState()
-            if (selectedKeys.size !== 0) {
+          [inputBindingsModule.DEFAULT_HANDLER]: (event) => {
+            /** When the document is clicked, deselect the keys, but only if the clicked element
+             * is not inside a `Dialog`. To detect whether an element is a `Dialog`,
+             * we check whether it is inside the `portal-root` where all the `Dialog`s are mounted.
+             * If this check is omitted, when the user clicks inside a Datalink dialog,
+             * the keys are deselected, causing the Datalink to be added to the root directory,
+             * rather than the one that was selected when the dialog was opened.
+             */
+            const portalRoot =
+              event.target instanceof HTMLElement || event.target instanceof SVGElement ?
+                event.target.closest('.enso-portal-root')
+              : null
+            if (!portalRoot && driveStore.getState().selectedKeys.size !== 0) {
               setSelectedKeys(set.EMPTY_SET)
               setMostRecentlySelectedIndex(null)
             }
@@ -2820,7 +2783,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           handleFileDrop(event)
         }}
         onClick={() => {
-          setSelectedKeys(new Set())
+          setSelectedKeys(set.EMPTY_SET)
         }}
       >
         <aria.FileTrigger
