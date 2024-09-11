@@ -34,8 +34,6 @@ import org.enso.compiler.pass.analyse.FramePointer;
 import org.enso.interpreter.instrument.DebuggerMessageHandler;
 import org.enso.interpreter.instrument.ReplExecutionEventNode;
 import org.enso.interpreter.node.EnsoRootNode;
-import org.enso.interpreter.instrument.DebuggerMessageHandler;
-import org.enso.interpreter.instrument.ReplExecutionEventNode;
 import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.node.expression.debug.CaptureResultScopeNode;

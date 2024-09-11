@@ -43,8 +43,8 @@ object FrgaalJavaCompiler {
     *                                of `shouldCompileModuleInfo` task in `build.sbt` and
     *                                the docs of [[JPMSPlugin]].
     * @param javaSourceDir The directory where Java sources are located
-   * @param shouldNotLimitModules Should `--limit-modules` cmdline option be passed to java process
-   *                           to limit set of modules frgaal is able to see?
+    * @param shouldNotLimitModules Should `--limit-modules` cmdline option be passed to java process
+    *                           to limit set of modules frgaal is able to see?
     * @return
     */
   def compilers(
@@ -277,10 +277,13 @@ object FrgaalJavaCompiler {
         "java.sql",
         "jdk.jfr"
       )
-      val limitModulesArgs = if (shouldNotLimitModules) Seq() else Seq(
-        "--limit-modules",
-        limitModules.mkString(",")
-      )
+      val limitModulesArgs =
+        if (shouldNotLimitModules) Seq()
+        else
+          Seq(
+            "--limit-modules",
+            limitModules.mkString(",")
+          )
       // strippedJArgs needs to be passed via cmd line, and not via the argument file
       val forkArgs = (strippedJArgs ++ limitModulesArgs ++ Seq(
         "-jar",
@@ -369,7 +372,7 @@ final class FrgaalJavaCompiler(
   javaSourceDir: File,
   source: Option[String]           = None,
   shouldCompileModuleInfo: Boolean = false,
-  shouldNotLimitModules: Boolean      = false
+  shouldNotLimitModules: Boolean   = false
 ) extends XJavaCompiler {
   def run(
     sources: Array[VirtualFile],

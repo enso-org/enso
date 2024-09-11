@@ -7,12 +7,7 @@ import xsbti.compile.IncToolOptionsUtil
 
 import java.io.File
 import java.nio.file.attribute.BasicFileAttributes
-import java.nio.file.{
-  FileVisitResult,
-  Files,
-  Path,
-  SimpleFileVisitor
-}
+import java.nio.file.{FileVisitResult, Files, Path, SimpleFileVisitor}
 import scala.collection.mutable
 
 /** Collection of utility methods dealing with JPMS modules.
