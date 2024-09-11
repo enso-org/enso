@@ -18,8 +18,6 @@ internal_translate_known_upload_errors source_table connection primary_key ~acti
     handler caught_panic =
         error_mapper = connection.dialect.get_error_mapper
         sql_error = caught_panic.payload
-        IO.println ("PKV " + (error_mapper.is_primary_key_violation sql_error).to_text)
-        IO.println ("PKN " + (error_mapper.is_null_primary_key_violation sql_error).to_text)
         case error_mapper.is_primary_key_violation sql_error of
             True -> Panic.throw (Non_Unique_Key_Recipe.Recipe source_table primary_key caught_panic)
             False -> case error_mapper.is_null_primary_key_violation sql_error of
