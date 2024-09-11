@@ -556,6 +556,9 @@ watchPostEffect(() => {
       .attr('x', (d) => xScale_(d.x) + POINT_LABEL_PADDING_X_PX)
       .attr('y', (d) => yScale_(d.y) + POINT_LABEL_PADDING_Y_PX)
   }
+})
+
+watchPostEffect(() => {
   if (data.value.is_multi_series) {
     const seriesLabels = Object.keys(data.value.axis)
       .filter((s) => s != 'x')
@@ -571,9 +574,10 @@ watchPostEffect(() => {
       .range(d3.schemeCategory10)
       .domain(seriesLabels)
 
-    const legend = d3Legend.value
+    d3Legend.value.selectAll('circle').remove()
+    d3Legend.value.selectAll('text').remove()
 
-    legend
+    d3Legend.value
       .selectAll('dots')
       .data(seriesLabels)
       .enter()
@@ -585,7 +589,7 @@ watchPostEffect(() => {
       .attr('r', 6)
       .style('fill', (d) => color(d) || DEFAULT_FILL_COLOR)
 
-    legend
+    d3Legend.value
       .selectAll('labels')
       .data(seriesLabels)
       .enter()
