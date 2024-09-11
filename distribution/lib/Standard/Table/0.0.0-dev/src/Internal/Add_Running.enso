@@ -1,3 +1,5 @@
+private
+
 from Standard.Base import all
 import Standard.Base.Errors.Common.Unsupported_Argument_Types
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
@@ -19,27 +21,31 @@ polyglot java import org.enso.table.data.column.storage.numeric.LongRangeStorage
 polyglot java import org.enso.table.operations.AddRunning
 
 ## PRIVATE
-add_running : Table -> Statistic -> (Text|Integer) -> Text -> Vector (Text | Integer | Regex) | Text | Integer | Regex -> Vector (Text | Sort_Column) | Text -> Problem_Behavior -> Table
-add_running table (statistic:Statistic=Statistic.Count) (of:Text|Integer=0) (as:Text='') (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=..Report_Warning) =
+add_running : Table -> Statistic -> (Text|Integer) -> Text -> Set_Mode -> Vector (Text | Integer | Regex) | Text | Integer | Regex -> Vector (Text | Sort_Column) | Text -> Problem_Behavior -> Table
+add_running table (statistic:Statistic=Statistic.Count) (of:Text|Integer=0) (as:Text='') (set_mode:Set_Mode=..Add) (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=..Report_Warning) =
     check_running_support [statistic] <|
         of_col = table.at of
-        new_name = if as.is_empty then 'Running ' + statistic.to_text + ' of ' + of_col.name else as   
-        case statistic of
-            Statistic.Count ->
-                Add_Row_Number.add_row_number table new_name 1 1 group_by order_by on_problems
+        new_name = case as.is_empty of
+            False -> as
+            True -> case set_mode of
+                Set_Mode.Update -> of_col.name
+                _ ->  'Running ' + statistic.to_text + ' of ' + of_col.name
+
+        problem_builder = Problem_Builder.new error_on_missing_columns=True
+        grouping_columns = table.columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder 
+        ordering = Table_Helpers.resolve_order_by table.columns order_by problem_builder
+        source_java_column = of_col.java_column
+        grouping_java_columns = grouping_columns.map c->c.java_column
+        ordering_java_columns = ordering.map c->
+            c.column.java_column
+        directions = ordering.map c->
+            c.associated_selector.direction.to_sign
+        new_column = case statistic of
+            Statistic.Count -> 
+                Add_Row_Number.create_column table new_name from=1 step=1 grouping_columns ordering on_problems
             _ ->
                 Value_Type.expect_numeric of_col <|
-                    problem_builder = Problem_Builder.new error_on_missing_columns=True
-                    grouping_columns = table.columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder 
-                    ordering = Table_Helpers.resolve_order_by table.columns order_by problem_builder
-                    source_java_column = of_col.java_column
-                    grouping_java_columns = grouping_columns.map c->c.java_column
-                    ordering_java_columns = ordering.map c->
-                        c.column.java_column
-                    directions = ordering.map c->
-                        c.associated_selector.direction.to_sign
-
-                    Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
-                        new_storage = AddRunning.create_running statistic.to_java source_java_column grouping_java_columns ordering_java_columns directions java_problem_aggregator
-                        new_column = Column.from_storage new_name new_storage
-                        table.set new_column new_name set_mode=Set_Mode.Add
+                    new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+                        AddRunning.create_running statistic.to_java source_java_column grouping_java_columns ordering_java_columns directions java_problem_aggregator
+                    Column.from_storage new_name new_storage
+        table.set new_column new_name set_mode
