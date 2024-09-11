@@ -373,7 +373,7 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
         group_builder.specify "should fail if the primary key contains nulls" <|
             t1 = Table.new [['X', [1, Nothing, 3]], ['Y', [4, 5, Nothing]]]
             run_with_and_without_output <|
-                r1 = t1.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-0") temporary=True
+                r1 = t1.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-0") temporary=True primary_key=[]
                 r1.row_count . should_equal 3
 
                 r2 = t1.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-1") temporary=True primary_key=['X']
@@ -559,7 +559,7 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
             Problems.assume_no_problems db_table
 
             run_with_and_without_output <|
-                r1 = db_table.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-1") temporary=True
+                r1 = db_table.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-1") temporary=True primary_key=[]
                 r1.row_count . should_equal 3
 
                 r2 = db_table.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-2") temporary=True primary_key=['X']

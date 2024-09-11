@@ -17,6 +17,12 @@ type Error_Mapper
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
+    is_null_primary_key_violation : SQL_Error -> Boolean
+    is_null_primary_key_violation error =
+        _ = error
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
     is_table_already_exists_error : SQL_Error -> Boolean
     is_table_already_exists_error error =
         _ = error
