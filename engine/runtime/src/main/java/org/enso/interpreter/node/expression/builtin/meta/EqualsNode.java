@@ -9,7 +9,6 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.callable.InteropConversionCallNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
@@ -28,28 +27,10 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
 
-@BuiltinMethod(
-    type = "Any",
-    name = "==",
-    description =
-        """
-      Compares self with other object and returns True iff `self` is exactly the same as
-      the other object, including all its transitively accessible properties or fields,
-      False otherwise.
-
-      Can handle arbitrary objects, including all foreign objects.
-
-      Does not throw dataflow errors or panics.
-
-      Note that this is different than `Meta.is_same_object`, which checks whether two
-      references point to the same object on the heap. Moreover, `Meta.is_same_object`
-      implies `Any.==` for all object with the exception of `Number.nan`.
-      """)
 public final class EqualsNode extends Node {
   @Child private EqualsSimpleNode node;
   @Child private TypeOfNode types;
   @Child private WithConversionNode convert;
-  @Child private AppendWarningNode append;
 
   private static final EqualsNode UNCACHED =
       new EqualsNode(EqualsSimpleNodeGen.getUncached(), TypeOfNode.getUncached(), true);
@@ -86,7 +67,7 @@ public final class EqualsNode extends Node {
    * @param other the other object
    * @return {@code true} if {@code self} and {@code that} seem equal
    */
-  public Object execute(VirtualFrame frame, Object self, Object other) {
+  public EqualsAndInfo execute(VirtualFrame frame, Object self, Object other) {
     var areEqual = node.execute(frame, self, other);
     if (!areEqual.equals()) {
       var selfType = types.execute(self);
@@ -99,15 +80,7 @@ public final class EqualsNode extends Node {
         return convert.executeWithConversion(frame, other, self);
       }
     }
-    if (areEqual.warnings() != null) {
-      if (append == null) {
-        CompilerDirectives.transferToInterpreterAndInvalidate();
-        append = insert(AppendWarningNode.build());
-      }
-      return append.executeAppend(frame, areEqual.equals(), areEqual.warnings());
-    } else {
-      return areEqual.equals();
-    }
+    return areEqual;
   }
 
   /**
@@ -126,7 +99,7 @@ public final class EqualsNode extends Node {
      * @return {code false} if the conversion makes no sense or result of equality check after doing
      *     the conversion
      */
-    abstract Object executeWithConversion(VirtualFrame frame, Object self, Object that);
+    abstract EqualsAndInfo executeWithConversion(VirtualFrame frame, Object self, Object that);
 
     static Type findType(TypeOfNode typeOfNode, Object obj) {
       var rawType = typeOfNode.execute(obj);
@@ -212,7 +185,7 @@ public final class EqualsNode extends Node {
           "selfType == findType(typeOfNode, self)",
           "thatType == findType(typeOfNode, that)"
         })
-    final Object doConversionCached(
+    final EqualsAndInfo doConversionCached(
         VirtualFrame frame,
         Object self,
         Object that,
@@ -226,7 +199,7 @@ public final class EqualsNode extends Node {
         @Shared("invoke") @Cached(allowUncached = true) EqualsSimpleNode equalityNode,
         @Shared("warn") @Cached(allowUncached = true) AppendWarningNode warningsNode) {
       if (convert == null) {
-        return false;
+        return EqualsAndInfo.FALSE;
       }
       if (convert) {
         return doDispatch(frame, that, self, thatType, convertNode, equalityNode, warningsNode);
@@ -236,7 +209,7 @@ public final class EqualsNode extends Node {
     }
 
     @Specialization(replaces = "doConversionCached")
-    final Object doConversionUncached(
+    final EqualsAndInfo doConversionUncached(
         VirtualFrame frame,
         Object self,
         Object that,
@@ -254,10 +227,10 @@ public final class EqualsNode extends Node {
                 : doDispatch(frame, self, that, selfType, convertNode, equalityNode, warningsNode);
         return result;
       }
-      return false;
+      return EqualsAndInfo.FALSE;
     }
 
-    private Object doDispatch(
+    private EqualsAndInfo doDispatch(
         VirtualFrame frame,
         Object self,
         Object that,
@@ -275,21 +248,17 @@ public final class EqualsNode extends Node {
         var withInfo = equalityNode.execute(frame, self, thatAsSelf);
         var result = withInfo.equals();
         assert !result || assertHashCodeIsTheSame(that, thatAsSelf);
-        if (withInfo.warnings() != null) {
-          return warnings.executeAppend(frame, result, withInfo.warnings());
-        } else {
-          return result;
-        }
+        return withInfo;
       } catch (ArityException ex) {
         var assertsOn = false;
         assert assertsOn = true;
         if (assertsOn) {
           throw new AssertionError("Unexpected arity exception", ex);
         }
-        return false;
+        return EqualsAndInfo.FALSE;
       } catch (PanicException ex) {
         if (ctx.getBuiltins().error().isNoSuchConversionError(ex.getPayload())) {
-          return false;
+          return EqualsAndInfo.FALSE;
         }
         throw ex;
       }
