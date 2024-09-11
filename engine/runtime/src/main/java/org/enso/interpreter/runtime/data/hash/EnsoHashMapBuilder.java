@@ -4,7 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import java.util.Arrays;
 import java.util.Iterator;
-import org.enso.interpreter.node.expression.builtin.meta.EqualsSimpleNode;
+import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
 
 /**
@@ -139,10 +139,7 @@ final class EnsoHashMapBuilder {
    * Otherwise it may return new builder suitable for additions.
    */
   EnsoHashMapBuilder asModifiable(
-      VirtualFrame frame,
-      int atGeneration,
-      HashCodeNode hashCodeNode,
-      EqualsSimpleNode equalsNode) {
+      VirtualFrame frame, int atGeneration, HashCodeNode hashCodeNode, EqualsNode equalsNode) {
     if (atGeneration != generation || generation * 4 > byHash.length * 3) {
       var newSize = Math.max(actualSize * 2, byHash.length);
       return rehash(frame, newSize, atGeneration, hashCodeNode, equalsNode);
@@ -162,7 +159,7 @@ final class EnsoHashMapBuilder {
       Object key,
       Object value,
       HashCodeNode hashCodeNode,
-      EqualsSimpleNode equalsNode) {
+      EqualsNode equalsNode) {
     assert actualSize <= generation;
     var at = findWhereToStart(key, hashCodeNode);
     var nextGeneration = ++generation;
@@ -198,7 +195,7 @@ final class EnsoHashMapBuilder {
       Object key,
       int generation,
       HashCodeNode hashCodeNode,
-      EqualsSimpleNode equalsNode) {
+      EqualsNode equalsNode) {
     var at = findWhereToStart(key, hashCodeNode);
     for (var i = 0; i < byHash.length; i++) {
       if (byHash[at] == null) {
@@ -229,8 +226,7 @@ final class EnsoHashMapBuilder {
    *
    * @return true if the removal was successful false otherwise.
    */
-  boolean remove(
-      VirtualFrame frame, Object key, HashCodeNode hashCodeNode, EqualsSimpleNode equalsNode) {
+  boolean remove(VirtualFrame frame, Object key, HashCodeNode hashCodeNode, EqualsNode equalsNode) {
     assert actualSize <= generation;
     var at = findWhereToStart(key, hashCodeNode);
     var nextGeneration = ++generation;
@@ -262,7 +258,7 @@ final class EnsoHashMapBuilder {
       int size,
       int atGeneration,
       HashCodeNode hashCodeNode,
-      EqualsSimpleNode equalsNode) {
+      EqualsNode equalsNode) {
     var newBuilder = new EnsoHashMapBuilder(size);
     for (var i = 0; i < byHash.length; i++) {
       var entry = byHash[i];
@@ -298,8 +294,7 @@ final class EnsoHashMapBuilder {
         + "}";
   }
 
-  private static boolean compare(
-      VirtualFrame frame, EqualsSimpleNode equalsNode, Object a, Object b) {
+  private static boolean compare(VirtualFrame frame, EqualsNode equalsNode, Object a, Object b) {
     if (a instanceof Double aDbl && b instanceof Double bDbl && aDbl.isNaN() && bDbl.isNaN()) {
       return true;
     } else {

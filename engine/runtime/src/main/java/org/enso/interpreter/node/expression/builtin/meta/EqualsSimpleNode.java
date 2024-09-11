@@ -27,17 +27,17 @@ import org.enso.polyglot.common_utils.Core_Text_Utils;
 
 @GenerateUncached
 @ReportPolymorphism
-public abstract class EqualsSimpleNode extends Node {
+abstract class EqualsSimpleNode extends Node {
 
-  public static EqualsSimpleNode build() {
+  static EqualsSimpleNode build() {
     return EqualsSimpleNodeGen.create();
   }
 
-  public static EqualsSimpleNode getUncached() {
+  static EqualsSimpleNode getUncached() {
     return EqualsSimpleNodeGen.getUncached();
   }
 
-  public abstract EqualsAndInfo execute(VirtualFrame frame, Object self, Object right);
+  abstract EqualsAndInfo execute(VirtualFrame frame, Object self, Object right);
 
   @Specialization
   EqualsAndInfo equalsBoolBool(boolean self, boolean other) {

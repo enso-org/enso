@@ -14,7 +14,7 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.node.expression.builtin.meta.EqualsSimpleNode;
+import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoObject;
@@ -58,10 +58,7 @@ public final class EnsoHashMap implements EnsoObject {
   }
 
   EnsoHashMapBuilder getMapBuilder(
-      VirtualFrame frame,
-      boolean readOnly,
-      HashCodeNode hashCodeNode,
-      EqualsSimpleNode equalsNode) {
+      VirtualFrame frame, boolean readOnly, HashCodeNode hashCodeNode, EqualsNode equalsNode) {
     if (readOnly) {
       return mapBuilder;
     } else {
@@ -110,7 +107,7 @@ public final class EnsoHashMap implements EnsoObject {
   boolean isHashEntryExisting(
       Object key,
       @Shared("hash") @Cached HashCodeNode hashCodeNode,
-      @Shared("equals") @Cached EqualsSimpleNode equalsNode) {
+      @Shared("equals") @Cached EqualsNode equalsNode) {
     var entry = mapBuilder.get(null, key, generation, hashCodeNode, equalsNode);
     return entry != null;
   }
@@ -119,7 +116,7 @@ public final class EnsoHashMap implements EnsoObject {
   boolean isHashEntryReadable(
       Object key,
       @Shared("hash") @Cached HashCodeNode hashCodeNode,
-      @Shared("equals") @Cached EqualsSimpleNode equalsNode) {
+      @Shared("equals") @Cached EqualsNode equalsNode) {
     return isHashEntryExisting(key, hashCodeNode, equalsNode);
   }
 
@@ -127,7 +124,7 @@ public final class EnsoHashMap implements EnsoObject {
   Object readHashValue(
       Object key,
       @Shared("hash") @Cached HashCodeNode hashCodeNode,
-      @Shared("equals") @Cached EqualsSimpleNode equalsNode)
+      @Shared("equals") @Cached EqualsNode equalsNode)
       throws UnknownKeyException {
     StorageEntry entry = mapBuilder.get(null, key, generation, hashCodeNode, equalsNode);
     if (entry != null) {

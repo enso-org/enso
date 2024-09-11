@@ -31,18 +31,18 @@ import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 @GenerateUncached
-public abstract class EqualsAtomNode extends Node {
+abstract class EqualsAtomNode extends Node {
 
-  public static EqualsAtomNode build() {
+  static EqualsAtomNode build() {
     return EqualsAtomNodeGen.create();
   }
 
-  public abstract EqualsAndInfo execute(VirtualFrame frame, Atom left, Atom right);
+  abstract EqualsAndInfo execute(VirtualFrame frame, Atom left, Atom right);
 
-  static EqualsSimpleNode[] createEqualsNodes(int size) {
-    var nodes = new EqualsSimpleNode[size];
+  static EqualsNode[] createEqualsNodes(int size) {
+    var nodes = new EqualsNode[size];
     for (var i = 0; i < size; i++) {
-      nodes[i] = EqualsSimpleNode.build();
+      nodes[i] = EqualsNode.build();
     }
     return nodes;
   }
@@ -62,7 +62,7 @@ public abstract class EqualsAtomNode extends Node {
       @Cached(value = "selfCtorCached.getFields().length", allowUncached = true)
           int fieldsLenCached,
       @Cached(value = "createEqualsNodes(fieldsLenCached)", allowUncached = true)
-          EqualsSimpleNode[] fieldEqualsNodes,
+          EqualsNode[] fieldEqualsNodes,
       @Shared("customComparatorNode") @Cached CustomComparatorNode customComparatorNode,
       @Cached ConditionProfile constructorsNotEqualProfile,
       @CachedLibrary(limit = "5") StructsLibrary structsLib) {
@@ -174,7 +174,7 @@ public abstract class EqualsAtomNode extends Node {
     for (int i = 0; i < self.getConstructor().getArity(); i++) {
       var selfField = StructsLibrary.getUncached().getField(self, i);
       var otherField = StructsLibrary.getUncached().getField(other, i);
-      var areFieldsSame = EqualsSimpleNode.getUncached().execute(frame, selfField, otherField);
+      var areFieldsSame = EqualsNode.getUncached().execute(frame, selfField, otherField);
       if (!areFieldsSame.equals()) {
         return areFieldsSame;
       }

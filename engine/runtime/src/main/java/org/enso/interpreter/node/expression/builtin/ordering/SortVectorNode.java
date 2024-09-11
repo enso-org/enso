@@ -26,7 +26,7 @@ import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
-import org.enso.interpreter.node.expression.builtin.meta.EqualsSimpleNode;
+import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.text.AnyToTextNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
@@ -115,7 +115,7 @@ public abstract class SortVectorNode extends Node {
       Object onFunc,
       long problemBehavior,
       @Shared("lessThanNode") @Cached LessThanNode lessThanNode,
-      @Shared("equalsNode") @Cached EqualsSimpleNode equalsNode,
+      @Shared("equalsNode") @Cached EqualsNode equalsNode,
       @Shared("lengthNode") @Cached ArrayLikeLengthNode lengthNode,
       @Shared("atNode") @Cached ArrayLikeAtNode atNode,
       @Shared("typeOfNode") @Cached TypeOfNode typeOfNode,
@@ -156,7 +156,7 @@ public abstract class SortVectorNode extends Node {
   private DefaultSortComparator createDefaultComparator(
       MaterializedFrame frame,
       LessThanNode lessThanNode,
-      EqualsSimpleNode equalsNode,
+      EqualsNode equalsNode,
       TypeOfNode typeOfNode,
       AnyToTextNode toTextNode,
       long ascending,
@@ -192,7 +192,7 @@ public abstract class SortVectorNode extends Node {
       @CachedLibrary(limit = "5") WarningsLibrary warningsLib,
       @CachedLibrary(limit = "5") TypesLibrary typesLib,
       @Shared("lessThanNode") @Cached LessThanNode lessThanNode,
-      @Shared("equalsNode") @Cached EqualsSimpleNode equalsNode,
+      @Shared("equalsNode") @Cached EqualsNode equalsNode,
       @Shared("typeOfNode") @Cached TypeOfNode typeOfNode,
       @Shared("lengthNode") @Cached ArrayLikeLengthNode lengthNode,
       @Shared("atNode") @Cached ArrayLikeAtNode atNode,
@@ -585,14 +585,14 @@ public abstract class SortVectorNode extends Node {
 
     private final MaterializedFrame frame;
     private final LessThanNode lessThanNode;
-    private final EqualsSimpleNode equalsNode;
+    private final EqualsNode equalsNode;
     private final TypeOfNode typeOfNode;
     private final boolean ascending;
 
     private DefaultSortComparator(
         MaterializedFrame frame,
         LessThanNode lessThanNode,
-        EqualsSimpleNode equalsNode,
+        EqualsNode equalsNode,
         TypeOfNode typeOfNode,
         AnyToTextNode toTextNode,
         boolean ascending,

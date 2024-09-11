@@ -7,7 +7,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.common.LanguageInfo;
-import org.enso.interpreter.node.expression.builtin.meta.EqualsSimpleNode;
+import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
 
 @GenerateUncached
@@ -42,7 +42,7 @@ public abstract class HashMapInsertAllNode extends Node {
       EnsoHashMap other,
       long maxItems,
       @Cached HashCodeNode hashCodeNode,
-      @Cached EqualsSimpleNode equalsNode) {
+      @Cached EqualsNode equalsNode) {
     if (maxItems <= 0) {
       return self;
     }

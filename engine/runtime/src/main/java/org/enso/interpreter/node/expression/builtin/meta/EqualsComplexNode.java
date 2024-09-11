@@ -34,13 +34,13 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 @GenerateUncached
-public abstract class EqualsComplexNode extends Node {
+abstract class EqualsComplexNode extends Node {
 
-  public static EqualsComplexNode build() {
+  static EqualsComplexNode build() {
     return EqualsComplexNodeGen.create();
   }
 
-  public abstract EqualsAndInfo execute(VirtualFrame frame, Object left, Object right);
+  abstract EqualsAndInfo execute(VirtualFrame frame, Object left, Object right);
 
   /** Enso specific types */
   @Specialization
@@ -48,7 +48,7 @@ public abstract class EqualsComplexNode extends Node {
       VirtualFrame frame,
       UnresolvedSymbol self,
       UnresolvedSymbol otherSymbol,
-      @Shared("equalsNode") @Cached EqualsSimpleNode equalsNode) {
+      @Shared("equalsNode") @Cached EqualsNode equalsNode) {
     if (!self.getName().equals(otherSymbol.getName())) {
       return EqualsAndInfo.FALSE;
     } else {
@@ -61,7 +61,7 @@ public abstract class EqualsComplexNode extends Node {
       VirtualFrame frame,
       UnresolvedConversion selfConversion,
       UnresolvedConversion otherConversion,
-      @Shared("equalsNode") @Cached EqualsSimpleNode equalsNode) {
+      @Shared("equalsNode") @Cached EqualsNode equalsNode) {
     return equalsNode.execute(frame, selfConversion.getScope(), otherConversion.getScope());
   }
 
@@ -80,7 +80,7 @@ public abstract class EqualsComplexNode extends Node {
       VirtualFrame frame,
       EnsoFile selfFile,
       EnsoFile otherFile,
-      @Shared("equalsNode") @Cached EqualsSimpleNode equalsNode) {
+      @Shared("equalsNode") @Cached EqualsNode equalsNode) {
     return equalsNode.execute(frame, selfFile.getPath(), otherFile.getPath());
   }
 
@@ -94,7 +94,7 @@ public abstract class EqualsComplexNode extends Node {
       VirtualFrame frame,
       Type selfType,
       Type otherType,
-      @Shared("equalsNode") @Cached EqualsSimpleNode equalsNode,
+      @Shared("equalsNode") @Cached EqualsNode equalsNode,
       @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary typesLib) {
     return equalsNode.execute(
         frame, selfType.getQualifiedName().toString(), otherType.getQualifiedName().toString());
@@ -114,7 +114,7 @@ public abstract class EqualsComplexNode extends Node {
       Object otherWithWarnings,
       @CachedLibrary("selfWithWarnings") WarningsLibrary selfWarnLib,
       @CachedLibrary("otherWithWarnings") WarningsLibrary otherWarnLib,
-      @Shared("equalsNode") @Cached EqualsSimpleNode equalsNode,
+      @Shared("equalsNode") @Cached EqualsNode equalsNode,
       @Cached HashMapInsertAllNode insertAllNode) {
     try {
       var all = EnsoHashMap.empty();
@@ -310,7 +310,7 @@ public abstract class EqualsComplexNode extends Node {
       Object otherArray,
       @CachedLibrary("selfArray") InteropLibrary selfInterop,
       @CachedLibrary("otherArray") InteropLibrary otherInterop,
-      @Shared("equalsNode") @Cached EqualsSimpleNode equalsNode,
+      @Shared("equalsNode") @Cached EqualsNode equalsNode,
       @Shared("hostValueToEnsoNode") @Cached HostValueToEnsoNode valueToEnsoNode) {
     try {
       long selfSize = selfInterop.getArraySize(selfArray);
@@ -346,7 +346,7 @@ public abstract class EqualsComplexNode extends Node {
       @CachedLibrary("selfHashMap") InteropLibrary selfInterop,
       @CachedLibrary("otherHashMap") InteropLibrary otherInterop,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary entriesInterop,
-      @Shared("equalsNode") @Cached EqualsSimpleNode equalsNode,
+      @Shared("equalsNode") @Cached EqualsNode equalsNode,
       @Exclusive @Cached HostValueToEnsoNode keyToEnsoNode,
       @Exclusive @Cached HostValueToEnsoNode valueToEnsoNode) {
     try {
@@ -391,7 +391,7 @@ public abstract class EqualsComplexNode extends Node {
       Object otherObject,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
       @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary typesLib,
-      @Shared("equalsNode") @Cached EqualsSimpleNode equalsNode,
+      @Shared("equalsNode") @Cached EqualsNode equalsNode,
       @Shared("hostValueToEnsoNode") @Cached HostValueToEnsoNode valueToEnsoNode) {
     if (interop.isIdentical(selfObject, otherObject, interop)) {
       return EqualsAndInfo.TRUE;
@@ -424,7 +424,7 @@ public abstract class EqualsComplexNode extends Node {
       Object selfHostFunc,
       Object otherHostFunc,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Shared("equalsNode") @Cached EqualsSimpleNode equalsNode) {
+      @Shared("equalsNode") @Cached EqualsNode equalsNode) {
     Object selfFuncStrRepr = interop.toDisplayString(selfHostFunc);
     Object otherFuncStrRepr = interop.toDisplayString(otherHostFunc);
     return equalsNode.execute(frame, selfFuncStrRepr, otherFuncStrRepr);
