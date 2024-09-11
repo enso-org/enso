@@ -3603,6 +3603,8 @@ type Table
        - statistic: The running statistic to calculate.
        - of: The existing column to run the statistic over.
        - as: The name of the new column.
+       - set_mode: Specifies the expected behaviour in regards to existing
+         column with the same name.
        - group_by: Specifies the columns to group by. The running statistic is
          calculated separately for each group. By default, all rows are treated as
          a single group.
@@ -3629,9 +3631,9 @@ type Table
     @group_by Widget_Helpers.make_column_name_multi_selector
     @order_by Widget_Helpers.make_order_by_selector
     @of Widget_Helpers.make_column_name_selector
-    running : Statistic -> (Text | Integer) -> Text -> Vector (Text | Integer | Regex) | Text | Integer | Regex -> Vector (Text | Sort_Column) | Text -> Problem_Behavior -> Table
-    running self (statistic:Statistic=..Count) (of:(Text | Integer)=0) (as:Text='') (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=..Report_Warning) =
-        Add_Running.add_running self statistic of as group_by order_by on_problems
+    running : Statistic -> (Text | Integer) -> Text -> Set_Mode -> Vector (Text | Integer | Regex) | Text | Integer | Regex -> Vector (Text | Sort_Column) | Text -> Problem_Behavior -> Table
+    running self (statistic:Statistic=..Count) (of:(Text | Integer)=0) (as:Text='') (set_mode:Set_Mode=..Add) (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=..Report_Warning) =
+        Add_Running.add_running self statistic of as set_mode group_by order_by on_problems
 
     ## PRIVATE
     column_naming_helper : Column_Naming_Helper
