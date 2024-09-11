@@ -1,4 +1,3 @@
-import type { HeaderParams } from '@/components/GraphEditor/widgets/WidgetTableEditor/TableHeader.vue'
 import type { WidgetInput, WidgetUpdate } from '@/providers/widgetRegistry'
 import { requiredImportsByFQN, type RequiredImport } from '@/stores/graph/imports'
 import type { SuggestionDb } from '@/stores/suggestionDatabase'
@@ -8,7 +7,7 @@ import { tryEnsoToNumber, tryNumberToEnso } from '@/util/ast/abstract'
 import { Err, Ok, transposeResult, unwrapOrWithLog, type Result } from '@/util/data/result'
 import { qnLastSegment, type QualifiedName } from '@/util/qualifiedName'
 import type { ToValue } from '@/util/reactivity'
-import type { ColDef } from 'ag-grid-enterprise'
+import type { ColDef, MenuItemDef } from 'ag-grid-enterprise'
 import { computed, toValue } from 'vue'
 
 const NEW_COLUMN_ID = 'NewColumn'
@@ -24,11 +23,19 @@ export type RowData = {
   cells: Record<Ast.AstId, Ast.AstId>
 }
 
+/** A more specialized version of AGGrid's `MenuItemDef` to simplify testing (the tests need to provide
+ * only values actually used by the composable) */
+export interface MenuItem extends MenuItemDef<RowData> {
+  action: (params: { node: { data: RowData | undefined } | null }) => void
+}
+
 /** A more specialized version of AGGrid's `ColDef` to simplify testing (the tests need to provide
  * only values actually used by the composable) */
-interface ColumnDef extends ColDef<RowData> {
+export interface ColumnDef extends ColDef<RowData> {
   valueGetter: ({ data }: { data: RowData | undefined }) => any
   valueSetter?: ({ data, newValue }: { data: RowData; newValue: any }) => boolean
+  mainMenuItems: (string | MenuItem)[]
+  contextMenuItems: (string | MenuItem)[]
 }
 
 namespace cellValueConversion {
@@ -219,6 +226,27 @@ export function useTableNewArgument(
     }
   }
 
+  const removeRowMenuItem = {
+    name: 'Remove Row',
+    action: ({ node }: { node: { data: RowData | undefined } | null }) => {
+      if (!node?.data) return
+      const edit = graph.startEdit()
+      fixColumns(edit)
+      removeRow(edit, node.data.index)
+      onUpdate({ edit })
+    },
+  }
+
+  const removeColumnMenuItem = (colId: Ast.AstId) => ({
+    name: 'Remove Column',
+    action: () => {
+      const edit = graph.startEdit()
+      fixColumns(edit)
+      removeColumn(edit, colId)
+      onUpdate({ edit })
+    },
+  })
+
   const newColumnDef = computed<ColumnDef>(() => ({
     colId: NEW_COLUMN_ID,
     headerName: NEW_COLUMN_HEADER,
@@ -242,20 +270,7 @@ export function useTableNewArgument(
       virtualColumn: true,
     },
     mainMenuItems: ['autoSizeThis', 'autoSizeAll'],
-    contextMenuItems: [
-      'paste',
-      'separator',
-      {
-        name: 'Remove Row',
-        action: ({ node }) => {
-          if (!node?.data) return
-          const edit = graph.startEdit()
-          fixColumns(edit)
-          removeRow(edit, node.data.index)
-          onUpdate({ edit })
-        },
-      },
-    ],
+    contextMenuItems: ['paste', 'separator', removeRowMenuItem],
   }))
 
   const rowIndexColumnDef = computed<ColumnDef>(() => ({
@@ -264,18 +279,7 @@ export function useTableNewArgument(
     valueGetter: ({ data }: { data: RowData | undefined }) => data?.index,
     editable: false,
     mainMenuItems: ['autoSizeThis', 'autoSizeAll'],
-    contextMenuItems: [
-      {
-        name: 'Remove Row',
-        action: ({ node }) => {
-          if (!node?.data) return
-          const edit = graph.startEdit()
-          fixColumns(edit)
-          removeRow(edit, node.data.index)
-          onUpdate({ edit })
-        },
-      },
-    ],
+    contextMenuItems: [removeRowMenuItem],
   }))
 
   const columnDefs = computed(() => {
@@ -320,44 +324,15 @@ export function useTableNewArgument(
               onUpdate({ edit })
             },
           },
-          mainMenuItems: [
-            'autoSizeThis',
-            'autoSizeAll',
-            {
-              name: 'Remove Column',
-              action: () => {
-                const edit = graph.startEdit()
-                fixColumns(edit)
-                removeColumn(edit, col.id)
-                onUpdate({ edit })
-              },
-            },
-          ],
+          mainMenuItems: ['autoSizeThis', 'autoSizeAll', removeColumnMenuItem(col.id)],
           contextMenuItems: [
             'cut',
             'copy',
             'copyWithHeaders',
             'paste',
             'separator',
-            {
-              name: 'Remove Row',
-              action: ({ node }) => {
-                if (!node?.data) return
-                const edit = graph.startEdit()
-                fixColumns(edit)
-                removeRow(edit, node.data.index)
-                onUpdate({ edit })
-              },
-            },
-            {
-              name: 'Remove Column',
-              action: () => {
-                const edit = graph.startEdit()
-                fixColumns(edit)
-                removeColumn(edit, col.id)
-                onUpdate({ edit })
-              },
-            },
+            removeRowMenuItem,
+            removeColumnMenuItem(col.id),
             'separator',
             'export',
           ],

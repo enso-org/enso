@@ -17,8 +17,12 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
-import type { CellEditingStartedEvent, CellEditingStoppedEvent } from 'ag-grid-community'
-import type { Column } from 'ag-grid-enterprise'
+import type {
+  CellEditingStartedEvent,
+  CellEditingStoppedEvent,
+  ColDef,
+  Column,
+} from 'ag-grid-enterprise'
 import { computed, ref } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 
@@ -38,7 +42,7 @@ const { rowData, columnDefs } = useTableNewArgument(
 
 class CellEditing {
   handler: WidgetEditHandler
-  editedCell: { rowIndex: number; colKey: Column<RowData> } | undefined
+  editedCell: { rowIndex: number; colKey: Column } | undefined
   supressNextStopEditEvent: boolean = false
 
   constructor() {
@@ -146,7 +150,7 @@ const widgetStyle = computed(() => {
 
 // === Column Default Definition ===
 
-const defaultColDef = {
+const defaultColDef: ColDef<RowData> = {
   editable: true,
   resizable: true,
   headerComponentParams: {

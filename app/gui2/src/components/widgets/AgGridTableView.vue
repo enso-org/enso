@@ -14,20 +14,18 @@ import '@ag-grid-community/styles/ag-theme-alpine.css'
 import type {
   CellEditingStartedEvent,
   CellEditingStoppedEvent,
-  ColumnResizedEvent,
-  FirstDataRenderedEvent,
-  RowDataUpdatedEvent,
-  RowEditingStartedEvent,
-  RowEditingStoppedEvent,
-  SortChangedEvent,
-} from 'ag-grid-community'
-import type {
   ColDef,
   ColGroupDef,
+  ColumnResizedEvent,
+  FirstDataRenderedEvent,
   GetRowIdFunc,
   GridApi,
   GridReadyEvent,
+  RowDataUpdatedEvent,
+  RowEditingStartedEvent,
+  RowEditingStoppedEvent,
   RowHeightParams,
+  SortChangedEvent,
 } from 'ag-grid-enterprise'
 import { type ComponentInstance, reactive, ref, shallowRef, watch } from 'vue'
 import { TextFormatOptions } from '../visualizations/TableVisualization.vue'

@@ -2461,7 +2461,7 @@ export class MutableVector extends Vector implements MutableAst {
 
   splice(start: number, deletedCount: number) {
     const elements = this.fields.get('elements')
-    this.fields.set('elements', elements.toSpliced(start, deletedCount))
+    this.fields.set('elements', [...elements].splice(start, deletedCount))
   }
 
   keep(predicate: (ast: Ast) => boolean) {
