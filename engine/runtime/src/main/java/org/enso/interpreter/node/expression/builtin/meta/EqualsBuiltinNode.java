@@ -37,20 +37,8 @@ public final class EqualsBuiltinNode extends Node {
     return new EqualsBuiltinNode(EqualsNode.build());
   }
 
-  /*
-    @NeverDefault
-    public static EqualsBuiltinNode create() {
-      return new EqualsBuiltinNode(EqualsNode.build());
-    }
-
-    @NeverDefault
-    public static EqualsBuiltinNode getUncached() {
-      return UNCACHED;
-    }
-  */
   /**
-   * Compares two objects for equality. If the {@link EqualsSimpleNode simple check} fails, it tries
-   * to convert first argument to the second one and compare again.
+   * Compares two objects for equality.
    *
    * @param frame the stack frame we are executing at
    * @param self the self object
