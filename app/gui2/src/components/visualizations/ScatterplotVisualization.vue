@@ -489,7 +489,7 @@ watchPostEffect(() =>
   d3XAxis.value
     .transition()
     .duration(animationDuration.value)
-    .call(d3.axisBottom(xScale.value).ticks(xTicks.value)),
+    .call(d3.axisBottom(xScale.value).ticks(xTicks.value).tickFormat(d3.utcFormat('%d %m'))),
 )
 
 // === Update y axis ===
