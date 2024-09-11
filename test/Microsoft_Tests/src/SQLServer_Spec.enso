@@ -78,7 +78,7 @@ create_connection_builder =
     connection_details.if_not_nothing <|
         _ -> Database.connect connection_details
 
-add_specs suite_builder  =
+add_specs suite_builder =
     case create_connection_builder of
         Nothing ->
             message = "SQLServer test database is not configured. See README.md for instructions."
