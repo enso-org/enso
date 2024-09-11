@@ -157,27 +157,19 @@ add_specs suite_builder setup =
             result = table.at "x" . round dp use_bankers
             result.to_vector.at 0
 
-        round_batch n_vec dp_vec use_bankers = case use_bankers of
-            ## If banker's rounding is used, we refrain from batching due to issue
-               https://github.com/enso-org/enso/issues/10306
-               That is because the created SQL code is tremendously large with batching
-               (up to around 250k characters, making running it very slow).
-            True ->
-                # Just use `round_one` for each entry
-                n_vec.zip dp_vec n-> dp-> round_one n dp use_bankers
-            False ->
-                name_for ix = "x"+ix.to_text
-                n_columns = n_vec.map_with_index ix-> n-> [name_for ix, [n]]
-                table = light_table_builder n_columns
-                new_columns = dp_vec.map_with_index ix-> dp->
-                    n_col = table.at (name_for ix)
-                    n_col.round dp use_bankers . rename (name_for ix)
-                # In new table input columns are replaced with results of output
-                new_table = new_columns.fold table acc-> col-> acc.set col (set_mode=..Update)
-                # We read all operations in a single query
-                materialized = new_table.read
-                Runtime.assert (materialized.row_count == 1)
-                materialized.first_row.to_vector
+        round_batch n_vec dp_vec use_bankers =
+            name_for ix = "x"+ix.to_text
+            n_columns = n_vec.map_with_index ix-> n-> [name_for ix, [n]]
+            table = light_table_builder n_columns
+            new_columns = dp_vec.map_with_index ix-> dp->
+                n_col = table.at (name_for ix)
+                n_col.round dp use_bankers . rename (name_for ix)
+            # In new table input columns are replaced with results of output
+            new_table = new_columns.fold table acc-> col-> acc.set col (set_mode=..Update)
+            # We read all operations in a single query
+            materialized = new_table.read
+            Runtime.assert (materialized.row_count == 1)
+            materialized.first_row.to_vector
         Round_Spec.add_specs group_builder (Round_Spec.Batch_Runner.Value round_batch round_one) run_advanced=setup.test_selection.run_advanced_edge_case_tests
 
         group_builder.specify "Decimal places out of range" <|

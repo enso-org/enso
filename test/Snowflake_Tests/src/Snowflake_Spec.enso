@@ -468,8 +468,8 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
             col . cast Value_Type.Decimal . round 1 . value_type . should_equal (Value_Type.Decimal 38 1)
 
             col . cast Value_Type.Float . round use_bankers=True . value_type . should_equal Value_Type.Float
-            col . cast Value_Type.Integer . round use_bankers=True . value_type . should_equal (Value_Type.Decimal 38 12)
-            col . cast Value_Type.Decimal . round use_bankers=True . value_type . should_equal (Value_Type.Decimal 38 12)
+            col . cast Value_Type.Integer . round use_bankers=True . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Decimal . round use_bankers=True . value_type . should_equal Value_Type.Float
 
             col . cast Value_Type.Float . ceil . value_type . should_equal Value_Type.Float
             col . cast Value_Type.Integer . ceil . value_type . should_equal (Value_Type.Decimal 38 0)

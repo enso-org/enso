@@ -911,7 +911,7 @@ type DB_Column
     round : Integer -> Boolean -> DB_Column | Illegal_Argument | Invalid_Value_Type
     round self (decimal_places:Integer = 0) (use_bankers:Boolean = False) =
         Rounding_Helpers.check_decimal_places decimal_places <| Value_Type.expect_numeric self <|
-            if self.should_use_builtin_round decimal_places use_bankers then self.round_builtin decimal_places else
+            if self.should_use_builtin_round decimal_places use_bankers then self.round_builtin decimal_places use_bankers else
                 self.short_circuit_special_floating_point <|
                     case self.value_type of
                         Value_Type.Integer _ -> self.round_integer decimal_places use_bankers
@@ -929,24 +929,28 @@ type DB_Column
          (Note that Postgres is fine with a `numeric` value here, just not `double precision`.)
     should_use_builtin_round : Integer -> Boolean -> Boolean
     should_use_builtin_round self decimal_places use_bankers =
-        # Don't use for banker's rounding
-        not_bankers = use_bankers.not
+        # Don't use for banker's rounding (unless the dialect has a builtin for it)
+        bankers_ok = self.connection.dialect.dialect_flags.rounding.use_builtin_bankers || use_bankers.not
         # Don't use for negative decimal places, if the backend doesn't support it
         negative_dp_ok = decimal_places >= 0 || self.connection.dialect.dialect_flags.rounding.supports_negative_decimal_places
         # Don't use for floating-point inputs if decimal_places != 0, for Postgres
         dp_param_ok = decimal_places == 0 || self.value_type.is_floating_point.not || self.connection.dialect.dialect_flags.rounding.supports_float_decimal_places
-        not_bankers && negative_dp_ok && dp_param_ok
+        bankers_ok && negative_dp_ok && dp_param_ok
 
     ## PRIVATE
        Round a float-like column using the backend's builtin ROUND function.
-    round_builtin : Integer -> DB_Column
-    round_builtin self decimal_places =
+    round_builtin : Integer -> Boolean -> DB_Column
+    round_builtin self decimal_places use_bankers =
         new_name = self.naming_helper.function_name "round" [self]
-        case decimal_places == 0 of
+        case use_bankers of
             True ->
-                self.make_unary_op "ROUND" new_name
+                    self.make_binary_op "ROUND_BANKERS" (SQL_Expression.Literal decimal_places.to_text) new_name
             False ->
-                self.make_binary_op "ROUND" (SQL_Expression.Literal decimal_places.to_text) new_name
+                case decimal_places == 0 of
+                    True ->
+                        self.make_unary_op "ROUND" new_name
+                    False ->
+                        self.make_binary_op "ROUND" (SQL_Expression.Literal decimal_places.to_text) new_name
 
     ## PRIVATE
        Round a float-like column.

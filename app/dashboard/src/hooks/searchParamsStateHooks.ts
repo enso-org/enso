@@ -22,8 +22,19 @@ import * as safeJsonParse from '#/utilities/safeJsonParse'
  * The return type of the `useSearchParamsState` hook.
  */
 type SearchParamsStateReturnType<T> = Readonly<
-  [value: T, setValue: (nextValue: React.SetStateAction<T>) => void, clear: () => void]
+  [
+    value: T,
+    setValue: (nextValue: React.SetStateAction<T>, params?: SearchParamsSetOptions) => void,
+    clear: (replace?: boolean) => void,
+  ]
 >
+
+/**
+ * Set options for the `set` function.
+ */
+export interface SearchParamsSetOptions {
+  readonly replace?: boolean
+}
 
 // ============================
 // === useSearchParamsState ===
@@ -82,18 +93,22 @@ export function useSearchParamsState<T = unknown>(
    * @param nextValue - The next value to set.
    * @returns void
    */
-  const setValue = eventCallback.useEventCallback((nextValue: React.SetStateAction<T>) => {
-    if (nextValue instanceof Function) {
-      nextValue = nextValue(value)
-    }
+  const setValue = eventCallback.useEventCallback(
+    (nextValue: React.SetStateAction<T>, params: SearchParamsSetOptions = {}) => {
+      const { replace = false } = params
 
-    if (nextValue === lazyDefaultValueInitializer()) {
-      clear()
-    } else {
-      searchParams.set(prefixedKey, JSON.stringify(nextValue))
-      setSearchParams(searchParams)
-    }
-  })
+      if (nextValue instanceof Function) {
+        nextValue = nextValue(value)
+      }
+
+      if (nextValue === lazyDefaultValueInitializer()) {
+        clear()
+      } else {
+        searchParams.set(prefixedKey, JSON.stringify(nextValue))
+        setSearchParams(searchParams, { replace, preventScrollReset: true })
+      }
+    },
+  )
 
   return [value, setValue, clear]
 }
