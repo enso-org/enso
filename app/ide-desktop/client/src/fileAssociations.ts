@@ -82,7 +82,9 @@ function getClientArguments(args = process.argv): readonly string[] {
   } else {
     const noSandbox = args.indexOf('--no-sandbox')
     if (noSandbox !== NOT_FOUND) {
-      return args.slice(noSandbox + 1)
+      let v = [...args]
+      v.splice(noSandbox, 1)
+      return v.slice(1)
     } else {
       // Drop the leading executable name.
       return args.slice(1)
