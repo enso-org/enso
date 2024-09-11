@@ -2425,11 +2425,11 @@ def customFrgaalJavaCompilerSettings(targetJdk: String) = {
         // project, and module-info.java is excluded from the compilation.
         // shouldCompileModuleInfoManually is a settingKey defined only in projects
         // with JPMSPlugin. That's why we have to check first for its existance.
-        val settingOpt           = (config / shouldCompileModuleInfoManually).?.value
-        val shouldCompileModInfo = settingOpt.isDefined && settingOpt.get
+        val settingOpt               = (config / shouldCompileModuleInfoManually).?.value
+        val shouldCompileModInfo     = settingOpt.isDefined && settingOpt.get
         val shouldNotLimitModulesOpt = frgaalShouldNotLimitModules.?.value
-        val _shouldNotLimitModules = shouldNotLimitModulesOpt.getOrElse(false)
-        val projName = projectID.value.name
+        val _shouldNotLimitModules   = shouldNotLimitModulesOpt.getOrElse(false)
+        val projName                 = projectID.value.name
         FrgaalJavaCompiler.compilers(
           (config / dependencyClasspath).value,
           compilers.value,
@@ -3715,6 +3715,9 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
   .enablePlugins(JPMSPlugin)
   .enablePlugins(PackageListPlugin)
   .settings(
+    // Do not pass --limit-modules to frgaal. We need to ensure that the boot module layer
+    // (for the annotation processor) contains all the truffle modules, including our
+    // `org.enso.runtime` module.
     frgaalShouldNotLimitModules := true,
     frgaalJavaCompilerSetting,
     annotationProcSetting,
@@ -3734,31 +3737,37 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
     mainClass :=
       (LocalProject("bench-processor") / mainClass).value,
     Compile / javacOptions ++= Seq(
-      "-Xlint:unchecked",
+      "-Xlint:unchecked"
     ),
+    // Passing these arguments with -J prefix will force frgaal to put the
+    // arguments directly to java, rather than passing them via an argfile.
+    // This means that this will correctly form the module boot layer and
+    // we will have truffle modules on module-path
     Compile / javacOptions ++= {
-      val mp = (Compile / modulePath).value
+      val mp    = (Compile / modulePath).value
       val mpStr = mp.map(_.getAbsolutePath).mkString(File.pathSeparator)
-      val addModsStr = (Compile / addModules).value.mkString(",")
-      // Passing these arguments with -J prefix will force frgaal to put the
-      // arguments directly to java, rather than passing them via an argfile.
-      // This means that this will correctly form the module boot layer and
-      // we will have truffle modules on module-path
       Seq(
-        "-J--module-path",
-        "-J" + mpStr,
-        "-J--add-modules",
-        "-J" + addModsStr
+        "-J-Dorg.enso.benchmarks.processor.BenchProcessor.modulePath=" + mpStr
       )
     },
+    Compile / javacOptions ++= Seq(
+      "-processor",
+      "org.enso.benchmarks.processor.BenchProcessor"
+    ),
     Compile / moduleDependencies := {
       (`runtime-benchmarks` / Compile / moduleDependencies).value
     },
     (Compile / internalModuleDependencies) := {
-      (`runtime-benchmarks` / Compile / internalModuleDependencies).value
+      val runtimeBenchsDeps =
+        (`runtime-benchmarks` / Compile / internalModuleDependencies).value
+      runtimeBenchsDeps ++ Seq(
+        (`bench-processor` / Compile / exportedModule).value,
+        (`benchmarks-common` / Compile / exportedModule).value
+      )
     },
     Compile / addModules := Seq(
-      (`runtime` / javaModuleName).value
+      (`runtime` / javaModuleName).value,
+      (`bench-processor` / javaModuleName).value
     ),
     // std benchmark sources are patch into the `org.enso.runtime` module
     Compile / patchModules := {
