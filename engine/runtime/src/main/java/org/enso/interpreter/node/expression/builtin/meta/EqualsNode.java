@@ -25,7 +25,6 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.State;
-import org.enso.interpreter.runtime.warning.AppendWarningNode;
 
 public final class EqualsNode extends Node {
   @Child private EqualsSimpleNode node;
@@ -196,15 +195,14 @@ public final class EqualsNode extends Node {
             Type thatType,
         @Cached("findConversions(selfType, thatType, self, that)") Boolean convert,
         @Shared("convert") @Cached InteropConversionCallNode convertNode,
-        @Shared("invoke") @Cached(allowUncached = true) EqualsSimpleNode equalityNode,
-        @Shared("warn") @Cached(allowUncached = true) AppendWarningNode warningsNode) {
+        @Shared("invoke") @Cached(allowUncached = true) EqualsSimpleNode equalityNode) {
       if (convert == null) {
         return EqualsAndInfo.FALSE;
       }
       if (convert) {
-        return doDispatch(frame, that, self, thatType, convertNode, equalityNode, warningsNode);
+        return doDispatch(frame, that, self, thatType, convertNode, equalityNode);
       } else {
-        return doDispatch(frame, self, that, selfType, convertNode, equalityNode, warningsNode);
+        return doDispatch(frame, self, that, selfType, convertNode, equalityNode);
       }
     }
 
@@ -215,16 +213,15 @@ public final class EqualsNode extends Node {
         Object that,
         @Shared("typeOf") @Cached TypeOfNode typeOfNode,
         @Shared("convert") @Cached InteropConversionCallNode convertNode,
-        @Shared("invoke") @Cached(allowUncached = true) EqualsSimpleNode equalityNode,
-        @Shared("warn") @Cached(allowUncached = true) AppendWarningNode warningsNode) {
+        @Shared("invoke") @Cached(allowUncached = true) EqualsSimpleNode equalityNode) {
       var selfType = findType(typeOfNode, self);
       var thatType = findType(typeOfNode, that);
       var conv = findConversions(selfType, thatType, self, that);
       if (conv != null) {
         var result =
             conv
-                ? doDispatch(frame, that, self, thatType, convertNode, equalityNode, warningsNode)
-                : doDispatch(frame, self, that, selfType, convertNode, equalityNode, warningsNode);
+                ? doDispatch(frame, that, self, thatType, convertNode, equalityNode)
+                : doDispatch(frame, self, that, selfType, convertNode, equalityNode);
         return result;
       }
       return EqualsAndInfo.FALSE;
@@ -236,8 +233,7 @@ public final class EqualsNode extends Node {
         Object that,
         Type selfType,
         InteropConversionCallNode convertNode,
-        EqualsSimpleNode equalityNode,
-        AppendWarningNode warnings)
+        EqualsSimpleNode equalityNode)
         throws PanicException {
       var convert = UnresolvedConversion.build(selfType.getDefinitionScope());
 
