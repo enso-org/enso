@@ -103,7 +103,9 @@ function fileURLToPath(url: string): string | null {
   if (URL.canParse(url)) {
     const parsed = new URL(url)
     if (parsed.protocol === 'file:') {
-      return detect.platform() == detect.Platform.windows ? parsed.pathname.slice(1) : parsed.pathname
+      return detect.platform() == detect.Platform.windows ?
+          parsed.pathname.slice(1)
+        : parsed.pathname
     } else {
       return null
     }
