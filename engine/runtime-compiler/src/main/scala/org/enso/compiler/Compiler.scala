@@ -25,11 +25,7 @@ import org.enso.compiler.core.EnsoParser
 import org.enso.compiler.data.CompilerConfig
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse._
-import org.enso.compiler.phase.{
-  IdMapProcessor,
-  ImportResolver,
-  ImportResolverAlgorithm
-}
+import org.enso.compiler.phase.{ImportResolver, ImportResolverAlgorithm}
 import org.enso.editions.LibraryName
 import org.enso.pkg.QualifiedName
 import org.enso.common.CompilationStage
@@ -562,24 +558,11 @@ class Compiler(
     )
     context.updateModule(module, _.resetScope())
 
-    if (useCaches) {
-      if (context.deserializeModule(this, module)) {
-        val updatedIr =
-          IdMapProcessor.updateIr(
-            context.getIr(module),
-            context.getIdMap(module)
-          )
-        if (updatedIr != null) {
-          context.updateModule(
-            module,
-            u => {
-              u.ir(updatedIr)
-              u.compilationStage(CompilationStage.AFTER_STATIC_PASSES)
-            }
-          )
-        }
-        return
-      }
+    if (
+      useCaches && context.getIdMap(module) == null && context
+        .deserializeModule(this, module)
+    ) {
+      return
     }
 
     uncachedParseModule(module, isGenDocs)
