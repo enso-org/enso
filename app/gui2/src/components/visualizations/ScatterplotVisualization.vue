@@ -142,7 +142,6 @@ const SCALE_TO_D3_SCALE: any = {
 
 const data = computed<Data>(() => {
   let rawData = props.data
-  console.log({ rawData })
   const unfilteredData =
     Array.isArray(rawData) ? rawData.map((y, index) => ({ x: index, y })) : rawData.data ?? []
   let data: Point[]
