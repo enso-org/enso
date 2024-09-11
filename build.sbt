@@ -3774,7 +3774,7 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
     },
     Compile / javacOptions ++= Seq(
       "-processor",
-      "org.enso.benchmarks.processor.BenchProcessor"
+      "org.enso.benchmarks.processor.BenchProcessor,org.openjdk.jmh.generators.BenchmarkProcessor"
     ),
     Compile / moduleDependencies := {
       (`runtime-benchmarks` / Compile / moduleDependencies).value
