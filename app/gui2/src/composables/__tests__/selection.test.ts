@@ -5,18 +5,26 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { isPointer, pointerButtonToEventInfo, type BindingInfo } from '@/util/shortcuts'
 import { beforeAll, expect, test, vi } from 'vitest'
-import { proxyRefs, ref, type Ref } from 'vue'
+import { ref } from 'vue'
+import { useKeyboard } from '../keyboard'
+import { useNavigator } from '../navigator'
 
-function selectionWithMockData(sceneMousePos?: Ref<Vec2>) {
+function selectionWithMockData() {
   const rects = new Map()
   rects.set(1, Rect.FromBounds(1, 1, 10, 10))
   rects.set(2, Rect.FromBounds(20, 1, 30, 10))
   rects.set(3, Rect.FromBounds(1, 20, 10, 30))
   rects.set(4, Rect.FromBounds(20, 20, 30, 30))
-  const navigator = proxyRefs({ sceneMousePos: sceneMousePos ?? ref(Vec2.Zero), scale: 1 })
+
+  const mockDom = document.createElement('div')
+  mockDom.style.width = '500px'
+  mockDom.style.height = '300px'
+
+  const navigator = useNavigator(ref(mockDom), useKeyboard())
+
   const selection = useSelection(navigator, rects)
   selection.setSelection(new Set([1, 2]))
-  return selection
+  return { selection, mockDom }
 }
 
 const bindingReplace = selectionMouseBindings.bindings.replace
@@ -40,7 +48,7 @@ test.each`
   ${1}  | ${bindingInvert}  | ${[2]}
   ${3}  | ${bindingInvert}  | ${[1, 2, 3]}
 `('Selection by single click at $click with $modifiers', ({ click, binding, expected }) => {
-  const selection = selectionWithMockData()
+  const { selection } = selectionWithMockData()
   // Position is zero, because this method should not depend on click position
   selection.handleSelectionOf(mockPointerEvent('click', Vec2.Zero, binding), new Set([click]))
   expect([...selection.selected.value]).toEqual(expected)
@@ -86,15 +94,13 @@ test.each`
   ({ areaId, binding, expected }) => {
     const area = areas[areaId]!
     const dragCase = (start: Vec2, stop: Vec2) => {
-      const mousePos = ref(start)
-      const selection = selectionWithMockData(mousePos)
+      const { selection, mockDom } = selectionWithMockData()
 
-      selection.events.pointerdown(mockPointerEvent('pointerdown', mousePos.value, binding))
-      selection.events.pointermove(mockPointerEvent('pointermove', mousePos.value, binding))
-      mousePos.value = stop
-      selection.events.pointermove(mockPointerEvent('pointermove', mousePos.value, binding))
+      mockDom.dispatchEvent(mockPointerEvent('pointerdown', start, binding))
+      mockDom.dispatchEvent(mockPointerEvent('pointermove', start, binding))
+      mockDom.dispatchEvent(mockPointerEvent('pointermove', stop, binding))
       expect(selection.selected.value).toEqual(new Set(expected))
-      selection.events.pointerdown(mockPointerEvent('pointerup', mousePos.value, binding))
+      mockDom.dispatchEvent(mockPointerEvent('pointerup', stop, binding))
       expect(selection.selected.value).toEqual(new Set(expected))
     }
 

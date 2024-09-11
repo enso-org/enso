@@ -4,15 +4,24 @@ import { useApproach, useApproachVec } from '@/composables/animation'
 import {
   PointerButtonMask,
   useArrows,
-  useEvent,
-  usePointer,
   useResizeObserver,
   useWheelActions,
 } from '@/composables/events'
 import type { KeyboardComposable } from '@/composables/keyboard'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { computed, proxyRefs, readonly, shallowRef, toRef, watch, type Ref } from 'vue'
+import { useEventListener } from '@vueuse/core'
+import { Handler, useGesture } from '@vueuse/gesture'
+import {
+  computed,
+  onScopeDispose,
+  proxyRefs,
+  readonly,
+  shallowRef,
+  toRef,
+  watch,
+  type Ref,
+} from 'vue'
 
 type ScaleRange = readonly [number, number]
 const PAN_AND_ZOOM_DEFAULT_SCALE_RANGE: ScaleRange = [0.1, 1]
@@ -26,6 +35,8 @@ const ZOOM_LEVELS_REVERSED = [...ZOOM_LEVELS].reverse()
  * to avoid small unnoticeable changes to zoom. */
 const ZOOM_SKIP_THRESHOLD = 0.05
 const WHEEL_CAPTURE_DURATION_MS = 250
+const LONGPRESS_TIMEOUT = 500
+const LONGPRESS_MAX_SLIDE = 10
 
 function elemRect(target: Element | undefined): Rect {
   if (target != null && target instanceof Element)
@@ -40,7 +51,7 @@ export interface NavigatorOptions {
 
 export type NavigatorComposable = ReturnType<typeof useNavigator>
 export function useNavigator(
-  viewportNode: Ref<Element | undefined>,
+  viewportNode: Ref<HTMLElement | undefined>,
   keyboard: KeyboardComposable,
   options: NavigatorOptions = {},
 ) {
@@ -54,17 +65,148 @@ export function useNavigator(
     viewportRect.value = elemRect(viewportNode.value)
   }
 
+  // useDrag(
+  //   (state) => {
+  //     console.log('gesture onDrag standalone', state)
+  //   },
+  //   { domTarget: viewportNode },
+  // )
+
+  const dragPredicate = (e: PointerEvent) => e.target === e.currentTarget && predicate(e)
+
+  function eventIsTouch(e: Event) {
+    return e.type.startsWith('touch') || (e instanceof PointerEvent && e.pointerType === 'touch')
+  }
+
+  const holdDragListeners: Array<Handler<'drag'>> = []
+  function callHoldDragListeners(...params: Parameters<Handler<'drag'>>) {
+    holdDragListeners.forEach((f) => f(...params))
+  }
+
+  let gesturePivot = Vec2.Zero
+  let pinchScaleRatio = 1
+  let lastPinchOrigin = Vec2.Zero
+  let holdDragStarted = false
+
+  let longpressTimer: ReturnType<typeof setTimeout> | null = null
+  useGesture(
+    {
+      onMove(state) {
+        eventMousePos.value = Vec2.FromTuple(state.xy)
+      },
+      onDrag(state) {
+        if (state.first) {
+          gesturePivot = clientToScenePos(Vec2.FromTuple(state.initial))
+          holdDragStarted = false
+        }
+
+        if (!dragPredicate(state.event) || state.pinching) return
+        const isTouch = eventIsTouch(state.event)
+
+        if (isTouch && state.first) {
+          state.event.preventDefault()
+          if (longpressTimer != null) clearTimeout(longpressTimer)
+          longpressTimer = setTimeout(() => {
+            longpressTimer = null
+            if (navigator.vibrate) navigator.vibrate(20)
+            callHoldDragListeners({ ...state, dragging: true })
+            holdDragStarted = true
+          }, LONGPRESS_TIMEOUT)
+        }
+
+        if (!holdDragStarted && (isTouch || (state.buttons & PointerButtonMask.Auxiliary) != 0)) {
+          if (
+            longpressTimer != null &&
+            Vec2.FromTuple(state.movement).length() > LONGPRESS_MAX_SLIDE
+          ) {
+            clearTimeout(longpressTimer)
+            longpressTimer = null
+          }
+          scrollTo(center.value.addScaled(Vec2.FromTuple(state.delta), -1 / scale.value))
+          state.event.stopImmediatePropagation()
+        } else if (!isTouch && (state.buttons & PointerButtonMask.Secondary) != 0) {
+          const prevScale = scale.value
+          updateScale((oldValue) => oldValue * Math.exp(-state.delta[1] / 100))
+          scrollTo(
+            center.value
+              .sub(gesturePivot)
+              .scale(prevScale / scale.value)
+              .add(gesturePivot),
+          )
+        } else if (
+          state.tap ||
+          holdDragStarted ||
+          (!isTouch && (state.buttons & PointerButtonMask.Main) != 0)
+        ) {
+          callHoldDragListeners({
+            ...state,
+            first: holdDragStarted === false,
+            dragging: state.dragging || !state.last,
+          })
+          holdDragStarted = true
+        }
+        if (state.last && longpressTimer) {
+          clearTimeout(longpressTimer)
+          longpressTimer = null
+        }
+        if (state.last && holdDragStarted) holdDragStarted = false
+      },
+      onPinch(state) {
+        // A started longpress touch can transform into pinch without warning, make sure to clear the timeout.
+        if (longpressTimer != null) {
+          clearTimeout(longpressTimer)
+          longpressTimer = null
+        }
+
+        if (state.ctrlKey) return // We do our own touchpad handling below
+
+        const currentOrigin = Vec2.FromTuple(state.origin)
+        gesturePivot = clientToScenePos(currentOrigin)
+        if (state.first) {
+          pinchScaleRatio = scale.value / state.da[0]
+          lastPinchOrigin = currentOrigin
+        }
+
+        const originDelta = currentOrigin.sub(lastPinchOrigin)
+        lastPinchOrigin = currentOrigin
+
+        const prevScale = scale.value
+        updateScale((_) => pinchScaleRatio * state.da[0])
+        scrollTo(
+          center.value
+            .sub(gesturePivot)
+            .scale(prevScale / scale.value)
+            .add(gesturePivot),
+        )
+        scrollTo(center.value.addScaled(originDelta, -1 / scale.value))
+      },
+      onWheel(state) {
+        if (state.ctrlKey) return
+        const delta = Vec2.FromTuple(state.delta)
+        scrollTo(center.value.addScaled(delta, 1 / scale.value))
+      },
+    },
+    {
+      domTarget: viewportNode,
+      eventOptions: {
+        passive: false,
+      },
+      drag: {
+        enabled: true,
+      },
+      pinch: {
+        enabled: true,
+      },
+      wheel: {
+        enabled: true,
+      },
+    },
+  )
+
   watch(size, updateViewportRect, { immediate: true })
 
   const targetScale = shallowRef(1)
   const scale = useApproach(targetScale)
-  const panPointer = usePointer(
-    (pos) => scrollTo(center.value.addScaled(pos.delta, -1 / scale.value)),
-    {
-      requiredButtonMask: PointerButtonMask.Auxiliary,
-      predicate: (e) => e.target === e.currentTarget && predicate(e),
-    },
-  )
 
   const panArrows = useArrows(
     (pos) => scrollTo(center.value.addScaled(pos.delta, 1 / scale.value)),
@@ -183,28 +325,6 @@ export function useNavigator(
     center.skip()
   }
 
-  let zoomPivot = Vec2.Zero
-  const zoomPointer = usePointer(
-    (pos, _event, ty) => {
-      if (ty === 'start') {
-        zoomPivot = clientToScenePos(pos.initial)
-      }
-
-      const prevScale = scale.value
-      updateScale((oldValue) => oldValue * Math.exp(-pos.delta.y / 100))
-      scrollTo(
-        center.value
-          .sub(zoomPivot)
-          .scale(prevScale / scale.value)
-          .add(zoomPivot),
-      )
-    },
-    {
-      requiredButtonMask: PointerButtonMask.Secondary,
-      predicate: (e) => e.target === e.currentTarget && predicate(e),
-    },
-  )
-
   const viewport = computed(() => {
     const nodeSize = size.value
     const { x, y } = center.value
@@ -236,55 +356,18 @@ export function useNavigator(
     () => `translate(${translate.value.x * scale.value}px, ${translate.value.y * scale.value}px)`,
   )
 
-  let isPointerDown = false
-  let scrolledThisFrame = false
+  // let isPointerDown = false
   const eventMousePos = shallowRef<Vec2 | null>(null)
-  let eventTargetScrollPos: Vec2 | null = null
   const sceneMousePos = computed(() =>
     eventMousePos.value ? clientToScenePos(eventMousePos.value) : null,
-  )
-
-  useEvent(
-    window,
-    'scroll',
-    (e) => {
-      if (
-        !isPointerDown ||
-        scrolledThisFrame ||
-        !eventMousePos.value ||
-        !(e.target instanceof Element)
-      )
-        return
-      scrolledThisFrame = true
-      requestAnimationFrame(() => (scrolledThisFrame = false))
-      if (!(e.target instanceof Element)) return
-      const newScrollPos = new Vec2(e.target.scrollLeft, e.target.scrollTop)
-      if (eventTargetScrollPos !== null) {
-        const delta = newScrollPos.sub(eventTargetScrollPos)
-        const mouseDelta = new Vec2(
-          (delta.x * e.target.clientWidth) / e.target.scrollWidth,
-          (delta.y * e.target.clientHeight) / e.target.scrollHeight,
-        )
-        eventMousePos.value = eventMousePos.value?.add(mouseDelta) ?? null
-      }
-      eventTargetScrollPos = newScrollPos
-    },
-    { capture: true },
-  )
-
-  useEvent(
-    window,
-    'scrollend',
-    () => {
-      eventTargetScrollPos = null
-    },
-    { capture: true },
   )
 
   /** Clamp the value to the given bounds, except if it is already outside the bounds allow the new value to be less
    *  outside the bounds. */
   function directedClamp(oldValue: number, newValue: number, [min, max]: ScaleRange): number {
-    if (newValue > oldValue) return Math.min(max, newValue)
+    if (!Number.isFinite(newValue)) return oldValue
+    else if (!Number.isFinite(oldValue)) return Math.max(min, Math.min(newValue, max))
+    else if (newValue > oldValue) return Math.min(max, newValue)
     else return Math.max(min, newValue)
   }
 
@@ -350,38 +433,11 @@ export function useNavigator(
     },
   )
 
+  useEventListener(viewportNode, 'wheel', wheelEvents.wheel)
+  useEventListener(viewportNode, 'wheel', wheelEventsCapture.wheel, { capture: true })
+  useEventListener(viewportNode, 'pointermove', wheelEventsCapture.pointermove, { capture: true })
+
   return proxyRefs({
-    pointerEvents: {
-      dragover(e: DragEvent) {
-        eventMousePos.value = eventScreenPos(e)
-      },
-      dragleave() {
-        eventMousePos.value = null
-      },
-      pointermove(e: PointerEvent) {
-        eventMousePos.value = eventScreenPos(e)
-        panPointer.events.pointermove(e)
-        zoomPointer.events.pointermove(e)
-      },
-      pointerleave() {
-        eventMousePos.value = null
-      },
-      pointerup(e: PointerEvent) {
-        isPointerDown = false
-        panPointer.events.pointerup(e)
-        zoomPointer.events.pointerup(e)
-      },
-      pointerdown(e: PointerEvent) {
-        isPointerDown = true
-        panPointer.events.pointerdown(e)
-        zoomPointer.events.pointerdown(e)
-      },
-      contextmenu(e: Event) {
-        e.preventDefault()
-      },
-      wheel: wheelEvents.wheel,
-    },
-    pointerEventsCapture: wheelEventsCapture,
     keyboardEvents: panArrows.events,
     translate: readonly(translate),
     targetCenter: readonly(targetCenter),
@@ -389,6 +445,10 @@ export function useNavigator(
     scale: readonly(toRef(scale, 'value')),
     viewBox: readonly(viewBox),
     transform: readonly(transform),
+    addHoldDragListener(listener: Handler<'drag'>) {
+      holdDragListeners.push(listener)
+      onScopeDispose(() => holdDragListeners.splice(holdDragListeners.indexOf(listener), 1))
+    },
     /** Use this transform instead, if the element should not be scaled. */
     prescaledTransform,
     sceneMousePos,

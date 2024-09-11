@@ -83,7 +83,8 @@ const flagsOfButtonField = [
   POINTER_BUTTON_FLAG.PointerForward,
 ]
 
-function buttonFlagsForEvent(event: MouseEvent): PointerButtonFlags {
+function buttonFlagsForEvent(event: MouseEvent | TouchEvent): PointerButtonFlags {
+  if (event instanceof TouchEvent) return POINTER_BUTTON_FLAG.PointerMain
   // event.buttons keeps information about buttons being pressed, but in case of `click` or
   // `pointerup` events we also want to know what buttons were just released.
   return (event.buttons | (flagsOfButtonField[event.button] ?? 0)) as PointerButtonFlags
@@ -386,7 +387,7 @@ export function defineKeybinds<
     }
   }
 
-  function handler<Event_ extends KeyboardEvent | MouseEvent | PointerEvent>(
+  function handler<Event_ extends KeyboardEvent | MouseEvent | PointerEvent | TouchEvent>(
     handlers: Partial<
       Record<BindingName | typeof DefaultHandler, (event: Event_) => boolean | void>
     >,
