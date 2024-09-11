@@ -99,11 +99,15 @@ export default function Dashboard(props: DashboardProps) {
   )
 }
 
+/**
+ * Extract proper path from `file://` URL.
+ */
 function fileURLToPath(url: string): string | null {
   if (URL.canParse(url)) {
     const parsed = new URL(url)
     if (parsed.protocol === 'file:') {
-      return detect.platform() == detect.Platform.windows ?
+      return detect.platform() === detect.Platform.windows ?
+          // On Windows, we must remove leading `/` from URL.
           parsed.pathname.slice(1)
         : parsed.pathname
     } else {
@@ -130,7 +134,8 @@ function DashboardInner(props: DashboardProps) {
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const assetManagementApiRef = React.useRef<assetTable.AssetManagementApi | null>(null)
 
-  const initialLocalProjectPath = initialProjectNameRaw && fileURLToPath(initialProjectNameRaw)
+  const initialLocalProjectPath =
+    initialProjectNameRaw != null ? fileURLToPath(initialProjectNameRaw) : null
   const initialProjectName = initialLocalProjectPath != null ? null : initialProjectNameRaw
 
   const [category, setCategory] = searchParamsState.useSearchParamsState<categoryModule.Category>(
