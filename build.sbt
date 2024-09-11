@@ -3215,7 +3215,7 @@ lazy val `runtime-instrument-repl-debugger` =
         (`runtime` / Compile / exportedModule).value,
         (`polyglot-api` / Compile / exportedModule).value,
         (`runtime-compiler` / Compile / exportedModule).value,
-        (`runtime-parser` / Compile / exportedModule).value,
+        (`runtime-parser` / Compile / exportedModule).value
       )
     )
     .dependsOn(LocalProject("runtime"))
@@ -3651,6 +3651,7 @@ lazy val `test-utils` =
 
 lazy val `benchmarks-common` =
   (project in file("lib/java/benchmarks-common"))
+    .enablePlugins(JPMSPlugin)
     .settings(
       frgaalJavaCompilerSetting,
       libraryDependencies ++= GraalVM.modules ++ Seq(
@@ -3658,6 +3659,15 @@ lazy val `benchmarks-common` =
         "org.openjdk.jmh"  % "jmh-generator-annprocess" % jmhVersion,
         "jakarta.xml.bind" % "jakarta.xml.bind-api"     % jaxbVersion,
         "com.sun.xml.bind" % "jaxb-impl"                % jaxbVersion
+      ),
+      Compile / moduleDependencies := Seq(
+        "org.openjdk.jmh"      % "jmh-core"               % jmhVersion, // Automatic module
+        "jakarta.xml.bind"     % "jakarta.xml.bind-api"   % jaxbVersion,
+        "jakarta.activation"   % "jakarta.activation-api" % "2.1.0",
+        "org.graalvm.polyglot" % "polyglot"               % graalMavenPackagesVersion
+      ),
+      Compile / internalModuleDependencies := Seq(
+        (`engine-common` / Compile / exportedModule).value
       )
     )
     .dependsOn(`polyglot-api`)
@@ -3677,8 +3687,10 @@ lazy val `desktop-environment` =
     )
 
 lazy val `bench-processor` = (project in file("lib/scala/bench-processor"))
+  .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
+    javaModuleName := "org.enso.bench.processor",
     libraryDependencies ++= Seq(
       "jakarta.xml.bind"     % "jakarta.xml.bind-api"     % jaxbVersion,
       "com.sun.xml.bind"     % "jaxb-impl"                % jaxbVersion,
@@ -3697,6 +3709,16 @@ lazy val `bench-processor` = (project in file("lib/scala/bench-processor"))
       "-processor",
       "org.netbeans.modules.openide.util.ServiceProviderProcessor"
     )),
+    Compile / moduleDependencies := Seq(
+      "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion,
+      "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion
+    ),
+    Compile / internalModuleDependencies := Seq(
+      (`engine-common` / Compile / exportedModule).value,
+      (`runtime` / Compile / exportedModule).value,
+      (`polyglot-api` / Compile / exportedModule).value,
+      (`benchmarks-common` / Compile / exportedModule).value
+    ),
     mainClass := Some("org.enso.benchmarks.libs.LibBenchRunner"),
     commands += WithDebugCommand.withDebug,
     (Test / fork) := true,
