@@ -71,7 +71,7 @@ type Point_Data
     fallback_column self table = case self of
         Point_Data.X ->
             candidate = table.columns.first
-            is_good c = c.is_numeric && c.name != Point_Data.Y.name
+            is_good c = (c.is_numeric || c.value_type.has_date) && c.name != Point_Data.Y.name
             if is_good candidate then candidate else Point_Data.iota table.row_count
         Point_Data.Y ->
             x_column = Point_Data.X.lookup_in table
@@ -211,7 +211,8 @@ get_axes_field number_of_numeric =
 ## PRIVATE
 json_from_table : Table -> Vector Integer | Nothing -> Integer | Nothing -> Text
 json_from_table table bounds limit =
-    number_of_numeric_cols = table.numeric_column_count-2
+    has_date_time_x = table.columns.first.value_type.has_date
+    number_of_numeric_cols = if has_date_time_x then table.numeric_column_count-1 else table.numeric_column_count-2
     fields_for_multiseries = Point_Data.all_fields + ((0.up_to number_of_numeric_cols).map idx-> Point_Data.Y_multi idx)
     fields_for_plot = if number_of_numeric_cols > 0 then fields_for_multiseries else Point_Data.all_fields
     data = table.point_data fields_for_plot |> bound_data bounds |> limit_data limit
