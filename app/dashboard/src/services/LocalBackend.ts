@@ -141,7 +141,7 @@ export default class LocalBackend extends Backend {
     const parentId = query.parentId ?? newDirectoryId(this.projectManager.rootDirectory)
 
     // Catch the case where the directory does not exist.
-    let result:backend.AnyAsset[] = []
+    let result: backend.AnyAsset[] = []
     try {
       const entries = await this.projectManager.listDirectory(parentIdRaw)
       result = entries
@@ -194,8 +194,7 @@ export default class LocalBackend extends Backend {
           }
         })
         .sort(backend.compareAssets)
-    }
-    catch (error) {
+    } catch (error) {
       // Failed so check if exists
       if (!(await this.projectManager.exists(parentIdRaw))) {
         if (parentIdRaw === this.projectManager.rootDirectory) {
@@ -204,14 +203,13 @@ export default class LocalBackend extends Backend {
           result = []
         } else {
           // eslint-disable-next-line no-restricted-syntax
-          throw new Error("Directory does not exist.")
+          throw new Error('Directory does not exist.')
         }
       }
     }
 
     return result
   }
-
 
   /** Return a list of projects belonging to the current user.
    * @throws An error if the JSON-RPC call fails. */
