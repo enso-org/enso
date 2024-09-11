@@ -40,6 +40,7 @@ import * as backend from '#/services/Backend'
 import type LocalBackend from '#/services/LocalBackend'
 import type RemoteBackend from '#/services/RemoteBackend'
 
+import { normalizePath } from '#/utilities/fileInfo'
 import * as object from '#/utilities/object'
 
 // =========================
@@ -152,6 +153,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     settingsTab: SettingsTabType.organization,
     icon: PeopleSettingsIcon,
     organizationOnly: true,
+    visible: ({ user }) => backend.isUserOnPlanWithOrganization(user),
     sections: [
       {
         nameId: 'organizationSettingsSection',
@@ -238,7 +240,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           {
             type: SettingsEntryType.input,
             nameId: 'localRootPathSettingsInput',
-            getValue: (context) => context.localBackend?.rootPath ?? '',
+            getValue: (context) => context.localBackend?.rootPath() ?? '',
             setValue: async (context, value) => {
               context.updateLocalRootPath(value)
               await Promise.resolve()
@@ -258,7 +260,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
                       const [newDirectory] =
                         (await window.fileBrowserApi?.openFileBrowser('directory')) ?? []
                       if (newDirectory != null) {
-                        context.updateLocalRootPath(newDirectory)
+                        context.updateLocalRootPath(normalizePath(newDirectory))
                       }
                     }}
                   >
@@ -285,7 +287,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     settingsTab: SettingsTabType.billingAndPlans,
     icon: CreditCardIcon,
     organizationOnly: true,
-    visible: (context) => context.organization?.subscription != null,
+    visible: ({ organization }) => organization?.subscription != null,
     sections: [],
     onPress: (context) =>
       context.queryClient
@@ -312,6 +314,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     settingsTab: SettingsTabType.members,
     icon: PeopleIcon,
     organizationOnly: true,
+    visible: ({ user }) => backend.isUserOnPlanWithOrganization(user),
     feature: 'inviteUser',
     sections: [
       {
@@ -325,6 +328,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     settingsTab: SettingsTabType.userGroups,
     icon: PeopleSettingsIcon,
     organizationOnly: true,
+    visible: ({ user }) => backend.isUserOnPlanWithOrganization(user),
     feature: 'userGroups',
     sections: [
       {
@@ -391,6 +395,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     settingsTab: SettingsTabType.activityLog,
     icon: LogIcon,
     organizationOnly: true,
+    visible: ({ user }) => backend.isUserOnPlanWithOrganization(user),
     sections: [
       {
         nameId: 'activityLogSettingsSection',
@@ -470,6 +475,7 @@ export interface SettingsInputEntryData {
   readonly setValue: (context: SettingsContext, value: string) => Promise<void>
   readonly validate?: (value: string, context: SettingsContext) => string | true
   readonly getEditable: (context: SettingsContext) => boolean
+  readonly getVisible?: (context: SettingsContext) => boolean
 }
 
 // ===============================

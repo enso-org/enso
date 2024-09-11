@@ -54,7 +54,7 @@ type Index_Sub_Range
 
        If `count` is greater than the length of the input, a random permutation
        of all elements from the input is selected.
-    Sample (count : Integer = 1) (seed:Integer|Nothing=Nothing)
+    Sample (count : Integer = 1) (seed:Integer=0)
 
     ## Gets every Nth entry.
 

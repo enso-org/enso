@@ -23,7 +23,8 @@ Vector.compute_bulk : Vector Statistic -> Vector Any
 Vector.compute_bulk self statistics:Vector=[..Count, ..Sum] =
     Statistic.compute_bulk self statistics
 
-## GROUP Statistics
+## ALIAS cumulative, count, sum, total, minimum, maximum, sum, mean, product, variance, standard deviation
+   GROUP Statistics
    ICON math
    Compute a single running statistic on the vector (ignoring Nothing and NaN
    values).

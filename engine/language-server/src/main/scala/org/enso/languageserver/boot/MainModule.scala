@@ -222,7 +222,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     new ContentRootManagerWrapper(languageServerConfig, contentRootManagerActor)
 
   lazy val fileManager = system.actorOf(
-    FileManager.pool(
+    FileManager.props(
       languageServerConfig.fileManager,
       contentRootManagerWrapper,
       fileSystem,

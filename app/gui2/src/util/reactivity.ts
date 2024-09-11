@@ -14,6 +14,9 @@ import {
   MaybeRefOrGetter,
   queuePostFlushCb,
   reactive,
+  ReactiveEffect,
+  ReactiveEffectOptions,
+  ReactiveEffectRunner,
   Ref,
   shallowReactive,
   shallowRef,
@@ -35,6 +38,26 @@ export function evalWatchSource<T>(src: WatchSource<T>): T {
   return isRef(src) ? src.value : src()
 }
 
+/**
+ * Create a `ReactiveEffect`. This is similar to the `effect` function, but doesn't immediately run the created effect.
+ */
+export function lazyEffect<T = any>(
+  fn: () => T,
+  options?: ReactiveEffectOptions,
+): ReactiveEffectRunner<T> {
+  if ((fn as ReactiveEffectRunner).effect instanceof ReactiveEffect) {
+    fn = (fn as ReactiveEffectRunner).effect.fn
+  }
+
+  const e = new ReactiveEffect(fn)
+  if (options) {
+    Object.assign(e, options)
+  }
+  const runner = e.run.bind(e) as ReactiveEffectRunner
+  runner.effect = e
+  return runner
+}
+
 export type OnCleanup = (fn: () => void) => void
 export type StopEffect = () => void
 
@@ -45,8 +68,9 @@ export type StopEffect = () => void
  */
 export class LazySyncEffectSet {
   _dirtyRunners = new Set<() => void>()
-  _scope = effectScope()
   _boundFlush = this.flush.bind(this)
+
+  constructor(private _scope = effectScope()) {}
 
   /**
    * Add an effect to the lazy set. The effect will run once immediately, and any subsequent runs
@@ -70,13 +94,12 @@ export class LazySyncEffectSet {
           cleanup = fn
         }
 
-        const runner = effect(
+        const runner = lazyEffect(
           () => {
             callCleanup()
             fn(onCleanup)
           },
           {
-            lazy: true,
             scheduler: () => {
               if (this._dirtyRunners.size === 0) queuePostFlushCb(this._boundFlush)
               this._dirtyRunners.add(runner)

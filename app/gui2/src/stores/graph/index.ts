@@ -179,7 +179,6 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       const methodSpan = moduleSource.getSpan(method.id)
       assert(methodSpan != null)
       const rawFunc = toRaw.get(sourceRangeKey(methodSpan))
-      assert(rawFunc != null)
       const getSpan = (id: AstId) => moduleSource.getSpan(id)
       db.updateBindings(method, rawFunc, moduleSource.text, getSpan)
     })

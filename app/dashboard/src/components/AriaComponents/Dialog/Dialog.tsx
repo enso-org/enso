@@ -9,13 +9,14 @@ import * as portal from '#/components/Portal'
 import * as suspense from '#/components/Suspense'
 
 import * as mergeRefs from '#/utilities/mergeRefs'
-import * as twv from '#/utilities/tailwindVariants'
 
+import type { VariantProps } from '#/utilities/tailwindVariants'
+import { tv } from '#/utilities/tailwindVariants'
 import * as dialogProvider from './DialogProvider'
 import * as dialogStackProvider from './DialogStackProvider'
 import type * as types from './types'
 import * as utlities from './utilities'
-import * as variants from './variants'
+import { DIALOG_BACKGROUND } from './variants'
 
 // =================
 // === Constants ===
@@ -25,10 +26,10 @@ import * as variants from './variants'
  */
 export interface DialogProps
   extends types.DialogProps,
-    Omit<twv.VariantProps<typeof DIALOG_STYLES>, 'scrolledToTop'> {}
+    Omit<VariantProps<typeof DIALOG_STYLES>, 'scrolledToTop'> {}
 
-const OVERLAY_STYLES = twv.tv({
-  base: 'fixed inset-0 isolate flex items-center justify-center bg-black/[25%]',
+const OVERLAY_STYLES = tv({
+  base: 'fixed inset-0 isolate flex items-center justify-center bg-primary/20',
   variants: {
     isEntering: { true: 'animate-in fade-in duration-200 ease-out' },
     isExiting: { true: 'animate-out fade-out duration-200 ease-in' },
@@ -36,17 +37,23 @@ const OVERLAY_STYLES = twv.tv({
   },
 })
 
-const MODAL_STYLES = twv.tv({
-  base: 'fixed inset-0 flex items-center justify-center text-center text-xs text-primary p-4',
+const MODAL_STYLES = tv({
+  base: 'fixed inset-0 flex items-center justify-center text-xs text-primary',
   variants: {
-    isEntering: { true: 'animate-in slide-in-from-top-1 ease-out duration-200' },
-    isExiting: { true: 'animate-out slide-out-to-top-1 ease-in duration-200' },
+    isEntering: { true: 'animate-in ease-out duration-200' },
+    isExiting: { true: 'animate-out ease-in duration-200' },
+    type: { modal: '', fullscreen: 'p-3.5' },
   },
+  compoundVariants: [
+    { type: 'modal', isEntering: true, class: 'slide-in-from-top-1' },
+    { type: 'modal', isExiting: true, class: 'slide-out-to-top-1' },
+    { type: 'fullscreen', isEntering: true, class: 'zoom-in-[1.015]' },
+    { type: 'fullscreen', isExiting: true, class: 'zoom-out-[1.015]' },
+  ],
 })
 
-const DIALOG_STYLES = twv.tv({
-  extend: variants.DIALOG_STYLES,
-  base: 'w-full overflow-y-auto',
+const DIALOG_STYLES = tv({
+  base: DIALOG_BACKGROUND({ className: 'w-full flex flex-col text-left align-middle shadow-xl' }),
   variants: {
     type: {
       modal: {
@@ -74,6 +81,16 @@ const DIALOG_STYLES = twv.tv({
         content: 'isolate',
       },
     },
+    rounded: {
+      none: { base: '' },
+      small: { base: 'rounded-sm' },
+      medium: { base: 'rounded-md' },
+      large: { base: 'rounded-lg' },
+      xlarge: { base: 'rounded-xl' },
+      xxlarge: { base: 'rounded-2xl', content: 'scroll-offset-edge-2xl' },
+      xxxlarge: { base: 'rounded-3xl', content: 'scroll-offset-edge-4xl' },
+      xxxxlarge: { base: 'rounded-4xl', content: 'scroll-offset-edge-6xl' },
+    },
     /**
      * The size of the dialog.
      * Only applies to the `modal` type.
@@ -100,10 +117,10 @@ const DIALOG_STYLES = twv.tv({
   },
   slots: {
     header:
-      'sticky top-0 grid grid-cols-[1fr_auto_1fr] items-center border-b border-primary/10 transition-[border-color] duration-150',
+      'sticky z-1 top-0 grid grid-cols-[1fr_auto_1fr] items-center border-b border-primary/10 transition-[border-color] duration-150',
     closeButton: 'col-start-1 col-end-1 mr-auto',
     heading: 'col-start-2 col-end-2 my-0 text-center',
-    content: 'relative flex-auto',
+    content: 'relative flex-auto overflow-y-auto max-h-[inherit]',
   },
   compoundVariants: [
     { type: 'modal', size: 'small', class: 'max-w-sm' },
@@ -120,6 +137,7 @@ const DIALOG_STYLES = twv.tv({
     hideCloseButton: false,
     size: 'medium',
     padding: 'medium',
+    rounded: 'xxlarge',
   },
 })
 
@@ -144,8 +162,9 @@ export function Dialog(props: DialogProps) {
     testId = 'dialog',
     size,
     rounded,
-    padding,
+    padding = type === 'modal' ? 'medium' : 'xlarge',
     fitContent,
+    variants = DIALOG_STYLES,
     ...ariaDialogProps
   } = props
 
@@ -155,11 +174,13 @@ export function Dialog(props: DialogProps) {
    * Handles the scroll event on the dialog content.
    */
   const handleScroll = (scrollTop: number) => {
-    if (scrollTop > 0) {
-      setIsScrolledToTop(false)
-    } else {
-      setIsScrolledToTop(true)
-    }
+    React.startTransition(() => {
+      if (scrollTop > 0) {
+        setIsScrolledToTop(false)
+      } else {
+        setIsScrolledToTop(true)
+      }
+    })
   }
 
   const dialogId = aria.useId()
@@ -169,7 +190,7 @@ export function Dialog(props: DialogProps) {
   const overlayState = React.useRef<aria.OverlayTriggerState | null>(null)
   const root = portal.useStrictPortalContext()
 
-  const styles = DIALOG_STYLES({
+  const styles = variants({
     className,
     type,
     rounded,
@@ -200,11 +221,7 @@ export function Dialog(props: DialogProps) {
   return (
     <aria.ModalOverlay
       className={({ isEntering, isExiting }) =>
-        OVERLAY_STYLES({
-          isEntering,
-          isExiting,
-          blockInteractions: !isDismissable,
-        })
+        OVERLAY_STYLES({ isEntering, isExiting, blockInteractions: !isDismissable })
       }
       isDismissable={isDismissable}
       isKeyboardDismissDisabled={isKeyboardDismissDisabled}
@@ -218,7 +235,7 @@ export function Dialog(props: DialogProps) {
 
         return (
           <aria.Modal
-            className={MODAL_STYLES}
+            className={({ isEntering, isExiting }) => MODAL_STYLES({ type, isEntering, isExiting })}
             isDismissable={isDismissable}
             isKeyboardDismissDisabled={isKeyboardDismissDisabled}
             UNSTABLE_portalContainer={root}

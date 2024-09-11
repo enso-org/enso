@@ -27,8 +27,12 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import {
   useDriveStore,
+  useSetAssetPanelProps,
+  useSetCanCreateAssets,
   useSetCanDownload,
+  useSetIsAssetPanelTemporarilyVisible,
   useSetSelectedKeys,
+  useSetSuggestions,
   useSetTargetDirectory,
   useSetVisuallySelectedKeys,
 } from '#/providers/DriveProvider'
@@ -43,15 +47,14 @@ import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 
-import type * as assetPanel from '#/layouts/AssetPanel'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
-import type { Category } from '#/layouts/CategorySwitcher/Category'
+import { isLocalCategory, type Category } from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
 import type * as assetRow from '#/components/dashboard/AssetRow'
-import AssetRow from '#/components/dashboard/AssetRow'
+import { AssetRow } from '#/components/dashboard/AssetRow'
 import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import NameColumn from '#/components/dashboard/column/NameColumn'
@@ -110,7 +113,7 @@ declare module '#/utilities/LocalStorage' {
 }
 
 LocalStorage.registerKey('enabledColumns', {
-  schema: z.enum(columnUtils.CLOUD_COLUMNS).array().readonly(),
+  schema: z.nativeEnum(columnUtils.Column).array().readonly(),
 })
 
 // =================
@@ -249,8 +252,6 @@ export interface AssetsTableState {
   readonly setSortInfo: (sortInfo: sorting.SortInfo<columnUtils.SortableColumn> | null) => void
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
-  readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
   readonly nodeMap: Readonly<
     React.MutableRefObject<ReadonlyMap<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>>
   >
@@ -290,14 +291,8 @@ export interface AssetsTableProps {
   readonly hidden: boolean
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  readonly setSuggestions: React.Dispatch<
-    React.SetStateAction<readonly assetSearchBar.Suggestion[]>
-  >
   readonly category: Category
   readonly initialProjectName: string | null
-  readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
-  readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
-  readonly targetDirectoryNodeRef: React.MutableRefObject<assetTreeNode.AnyAssetTreeNode<backendModule.DirectoryAsset> | null>
   readonly assetManagementApiRef: React.Ref<AssetManagementApi>
 }
 
@@ -312,12 +307,12 @@ export interface AssetManagementApi {
 /** The table of project assets. */
 export default function AssetsTable(props: AssetsTableProps) {
   const { hidden, query, setQuery, category, assetManagementApiRef } = props
-  const { setSuggestions, initialProjectName } = props
-  const { setAssetPanelProps, targetDirectoryNodeRef, setIsAssetPanelTemporarilyVisible } = props
+  const { initialProjectName } = props
 
   const openedProjects = projectsProvider.useLaunchedProjects()
   const doOpenProject = projectHooks.useOpenProject()
   const setCanDownload = useSetCanDownload()
+  const setSuggestions = useSetSuggestions()
 
   const { user } = authProvider.useFullUserSession()
   const backend = backendProvider.useBackend(category)
@@ -331,11 +326,17 @@ export default function AssetsTable(props: AssetsTableProps) {
   const previousCategoryRef = React.useRef(category)
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
-  const setTargetDirectoryRaw = useSetTargetDirectory()
+  const setCanCreateAssets = useSetCanCreateAssets()
+  const setTargetDirectoryInStore = useSetTargetDirectory()
   const didLoadingProjectManagerFail = backendProvider.useDidLoadingProjectManagerFail()
   const reconnectToProjectManager = backendProvider.useReconnectToProjectManager()
   const [enabledColumns, setEnabledColumns] = React.useState(columnUtils.DEFAULT_ENABLED_COLUMNS)
+  const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
+  const setAssetPanelProps = useSetAssetPanelProps()
 
+  const hiddenColumns = columnUtils
+    .getColumnList(user, backend.type)
+    .filter((column) => !enabledColumns.has(column))
   const [sortInfo, setSortInfo] =
     React.useState<sorting.SortInfo<columnUtils.SortableColumn> | null>(null)
   const driveStore = useDriveStore()
@@ -401,69 +402,21 @@ export default function AssetsTable(props: AssetsTableProps) {
     [expandedDirectoryIds],
   )
 
-  const createProjectMutation = useMutation(
-    backendMutationOptions(backend, 'createProject', {
-      meta: { invalidates: [['listDirectory', backend.type]] },
-    }),
-  )
-  const duplicateProjectMutation = useMutation(
-    backendMutationOptions(backend, 'duplicateProject', {
-      meta: { invalidates: [['listDirectory', backend.type]] },
-    }),
-  )
-  const createDirectoryMutation = useMutation(
-    backendMutationOptions(backend, 'createDirectory', {
-      meta: { invalidates: [['listDirectory', backend.type]] },
-    }),
-  )
-  const createSecretMutation = useMutation(
-    backendMutationOptions(backend, 'createSecret', {
-      meta: { invalidates: [['listDirectory', backend.type]] },
-    }),
-  )
-  const updateSecretMutation = useMutation(
-    backendMutationOptions(backend, 'updateSecret', {
-      meta: { invalidates: [['listDirectory', backend.type]] },
-    }),
-  )
-  const createDatalinkMutation = useMutation(
-    backendMutationOptions(backend, 'createDatalink', {
-      meta: { invalidates: [['listDirectory', backend.type]] },
-    }),
-  )
-  const uploadFileMutation = useMutation(
-    backendMutationOptions(backend, 'uploadFile', {
-      meta: { invalidates: [['assetVersions'], ['listDirectory', backend.type]] },
-    }),
-  )
+  const createProjectMutation = useMutation(backendMutationOptions(backend, 'createProject'))
+  const duplicateProjectMutation = useMutation(backendMutationOptions(backend, 'duplicateProject'))
+  const createDirectoryMutation = useMutation(backendMutationOptions(backend, 'createDirectory'))
+  const createSecretMutation = useMutation(backendMutationOptions(backend, 'createSecret'))
+  const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
+  const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
+  const uploadFileMutation = useMutation(backendMutationOptions(backend, 'uploadFile'))
   const getProjectDetailsMutation = useMutation(
     backendMutationOptions(backend, 'getProjectDetails'),
   )
-  const copyAssetMutation = useMutation(
-    backendMutationOptions(backend, 'copyAsset', {
-      meta: { invalidates: [['assetVersions'], ['listDirectory', backend.type]] },
-    }),
-  )
-  const deleteAssetMutation = useMutation(
-    backendMutationOptions(backend, 'deleteAsset', {
-      meta: { invalidates: [['assetVersions'], ['listDirectory', backend.type]] },
-    }),
-  )
-  const undoDeleteAssetMutation = useMutation(
-    backendMutationOptions(backend, 'undoDeleteAsset', {
-      meta: { invalidates: [['listDirectory', backend.type]] },
-    }),
-  )
-  const updateAssetMutation = useMutation(
-    backendMutationOptions(backend, 'updateAsset', {
-      meta: { invalidates: [['assetVersions'], ['listDirectory', backend.type]] },
-    }),
-  )
-  const closeProjectMutation = useMutation(
-    backendMutationOptions(backend, 'closeProject', {
-      meta: { invalidates: [['assetVersions'], ['listDirectory', backend.type]] },
-    }),
-  )
+  const copyAssetMutation = useMutation(backendMutationOptions(backend, 'copyAsset'))
+  const deleteAssetMutation = useMutation(backendMutationOptions(backend, 'deleteAsset'))
+  const undoDeleteAssetMutation = useMutation(backendMutationOptions(backend, 'undoDeleteAsset'))
+  const updateAssetMutation = useMutation(backendMutationOptions(backend, 'updateAsset'))
+  const closeProjectMutation = useMutation(backendMutationOptions(backend, 'closeProject'))
 
   const directories = useQueries({
     // We query only expanded directories, as we don't want to load the data for directories that are not visible.
@@ -472,8 +425,8 @@ export default function AssetsTable(props: AssetsTableProps) {
         expandedDirectoryIds.map((directoryId) =>
           queryOptions({
             queryKey: [
-              'listDirectory',
               backend.type,
+              'listDirectory',
               directoryId,
               {
                 parentId: directoryId,
@@ -533,7 +486,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const isLoading = directories.rootDirectory.isLoading
 
   const assetTree = React.useMemo(() => {
-    const rootPath = 'rootPath' in category ? category.rootPath : backend.rootPath
+    const rootPath = 'rootPath' in category ? category.rootPath : backend.rootPath(user)
 
     // If the root directory is not loaded, then we cannot render the tree.
     // Return null, and wait for the root directory to load.
@@ -634,13 +587,14 @@ export default function AssetsTable(props: AssetsTableProps) {
       rootId,
     )
   }, [
-    directories,
+    category,
+    backend,
+    user,
     rootDirectoryContent,
     rootDirectory,
     rootParentDirectoryId,
-    backend.rootPath,
     rootDirectoryId,
-    category,
+    directories.directories,
   ])
 
   const filter = React.useMemo(() => {
@@ -862,9 +816,21 @@ export default function AssetsTable(props: AssetsTableProps) {
   })
 
   const setTargetDirectory = useEventCallback(
-    (page: AssetTreeNode<backendModule.DirectoryAsset> | null) => {
-      setTargetDirectoryRaw(page)
-      targetDirectoryNodeRef.current = page
+    (targetDirectory: AssetTreeNode<backendModule.DirectoryAsset> | null) => {
+      const targetDirectorySelfPermission =
+        targetDirectory == null ? null : (
+          permissions.tryFindSelfPermission(user, targetDirectory.item.permissions)
+        )
+      const canCreateAssets =
+        targetDirectory == null ?
+          category.type !== 'cloud' || user.plan == null || user.plan === backendModule.Plan.solo
+        : isLocalCategory(category) ||
+          (targetDirectorySelfPermission != null &&
+            permissions.canPermissionModifyDirectoryContents(
+              targetDirectorySelfPermission.permission,
+            ))
+      setCanCreateAssets(canCreateAssets)
+      setTargetDirectoryInStore(targetDirectory)
     },
   )
 
@@ -1308,14 +1274,13 @@ export default function AssetsTable(props: AssetsTableProps) {
   const selectionStartIndexRef = React.useRef<number | null>(null)
   const bodyRef = React.useRef<HTMLTableSectionElement>(null)
 
-  const setMostRecentlySelectedIndex = React.useCallback(
-    (index: number | null, isKeyboard = false) => {
+  const setMostRecentlySelectedIndex = useEventCallback(
+    (index: number | null, isKeyboard: boolean = false) => {
       React.startTransition(() => {
         mostRecentlySelectedIndexRef.current = index
         setKeyboardSelectedIndex(isKeyboard ? index : null)
       })
     },
-    [],
   )
 
   React.useEffect(() => {
@@ -1441,7 +1406,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         break
       }
       case 'Escape': {
-        setSelectedKeys(new Set())
+        setSelectedKeys(set.EMPTY_SET)
         setMostRecentlySelectedIndex(null)
         selectionStartIndexRef.current = null
         break
@@ -1501,7 +1466,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         } else {
           // The arrow key will escape this container. In that case, do not stop propagation
           // and let `navigator2D` navigate to a different container.
-          setSelectedKeys(new Set())
+          setSelectedKeys(set.EMPTY_SET)
           selectionStartIndexRef.current = null
         }
         break
@@ -1576,7 +1541,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   // This is not a React component, even though it contains JSX.
   // eslint-disable-next-line no-restricted-syntax
-  const onAssetListEvent = (event: assetListEvent.AssetListEvent) => {
+  const onAssetListEvent = useEventCallback((event: assetListEvent.AssetListEvent) => {
     switch (event.type) {
       case AssetListEventType.newFolder: {
         const parent = nodeMapRef.current.get(event.parentKey)
@@ -1728,7 +1693,12 @@ export default function AssetsTable(props: AssetsTableProps) {
                     // This non-standard property is defined in Electron.
                     'path' in file
                   ) {
-                    id = await window.backendApi.importProjectFromPath(file.path, directory, title)
+                    const projectInfo = await window.backendApi.importProjectFromPath(
+                      file.path,
+                      directory,
+                      title,
+                    )
+                    id = projectInfo.id
                   } else {
                     const searchParams = new URLSearchParams({ directory, name: title }).toString()
                     // Ideally this would use `file.stream()`, to minimize RAM
@@ -2097,9 +2067,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         break
       }
     }
-  }
-  const onAssetListEventRef = React.useRef(onAssetListEvent)
-  onAssetListEventRef.current = onAssetListEvent
+  })
   eventListProvider.useAssetListEventListener((event) => {
     if (!isLoading) {
       onAssetListEvent(event)
@@ -2108,13 +2076,13 @@ export default function AssetsTable(props: AssetsTableProps) {
     }
   })
 
-  const doCopy = React.useCallback(() => {
+  const doCopy = useEventCallback(() => {
     unsetModal()
     const { selectedKeys } = driveStore.getState()
     setPasteData({ type: PasteType.copy, data: selectedKeys })
-  }, [driveStore, unsetModal])
+  })
 
-  const doCut = React.useCallback(() => {
+  const doCut = useEventCallback(() => {
     unsetModal()
     if (pasteData != null) {
       dispatchAssetEvent({ type: AssetEventType.cancelCut, ids: pasteData.data })
@@ -2122,10 +2090,10 @@ export default function AssetsTable(props: AssetsTableProps) {
     const { selectedKeys } = driveStore.getState()
     setPasteData({ type: PasteType.move, data: selectedKeys })
     dispatchAssetEvent({ type: AssetEventType.cut, ids: selectedKeys })
-    setSelectedKeys(new Set())
-  }, [unsetModal, pasteData, driveStore, dispatchAssetEvent, setSelectedKeys])
+    setSelectedKeys(set.EMPTY_SET)
+  })
 
-  const doPaste = React.useCallback(
+  const doPaste = useEventCallback(
     (newParentKey: backendModule.DirectoryId, newParentId: backendModule.DirectoryId) => {
       unsetModal()
       if (pasteData != null) {
@@ -2155,7 +2123,6 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
       }
     },
-    [pasteData, doToggleDirectoryExpansion, unsetModal, dispatchAssetEvent, dispatchAssetListEvent],
   )
 
   const doRestore = useEventCallback(async (asset: backendModule.AnyAsset) => {
@@ -2166,9 +2133,9 @@ export default function AssetsTable(props: AssetsTableProps) {
     }
   })
 
-  const hideColumn = React.useCallback((column: columnUtils.Column) => {
+  const hideColumn = useEventCallback((column: columnUtils.Column) => {
     setEnabledColumns((columns) => set.withPresence(columns, column, false))
-  }, [])
+  })
 
   const hiddenContextMenu = React.useMemo(
     () => (
@@ -2234,8 +2201,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       setSortInfo,
       query,
       setQuery,
-      setAssetPanelProps,
-      setIsAssetPanelTemporarilyVisible,
       nodeMap: nodeMapRef,
       pasteData: pasteDataRef,
       hideColumn,
@@ -2264,8 +2229,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       doRestore,
       doMove,
       hideColumn,
-      setAssetPanelProps,
-      setIsAssetPanelTemporarilyVisible,
       setQuery,
     ],
   )
@@ -2281,13 +2244,12 @@ export default function AssetsTable(props: AssetsTableProps) {
       rootRef.current != null &&
       headerRowRef.current != null
     ) {
-      const hiddenColumnsCount = columnUtils.CLOUD_COLUMNS.length - enabledColumns.size
       const shrinkBy =
-        COLUMNS_SELECTOR_BASE_WIDTH_PX + COLUMNS_SELECTOR_ICON_WIDTH_PX * hiddenColumnsCount
+        COLUMNS_SELECTOR_BASE_WIDTH_PX + COLUMNS_SELECTOR_ICON_WIDTH_PX * hiddenColumns.length
       const rightOffset = rootRef.current.clientWidth + rootRef.current.scrollLeft - shrinkBy
       headerRowRef.current.style.clipPath = `polygon(0 0, ${rightOffset}px 0, ${rightOffset}px 100%, 0 100%)`
     }
-  }, [backend.type, enabledColumns.size])
+  }, [backend.type, hiddenColumns.length])
 
   const updateClipPathObserver = React.useMemo(
     () => new ResizeObserver(updateClipPath),
@@ -2302,9 +2264,19 @@ export default function AssetsTable(props: AssetsTableProps) {
         {
           selectAdditional: () => {},
           selectAdditionalRange: () => {},
-          [inputBindingsModule.DEFAULT_HANDLER]: () => {
-            const { selectedKeys } = driveStore.getState()
-            if (selectedKeys.size !== 0) {
+          [inputBindingsModule.DEFAULT_HANDLER]: (event) => {
+            /** When the document is clicked, deselect the keys, but only if the clicked element
+             * is not inside a `Dialog`. To detect whether an element is a `Dialog`,
+             * we check whether it is inside the `portal-root` where all the `Dialog`s are mounted.
+             * If this check is omitted, when the user clicks inside a Datalink dialog,
+             * the keys are deselected, causing the Datalink to be added to the root directory,
+             * rather than the one that was selected when the dialog was opened.
+             */
+            const portalRoot =
+              event.target instanceof HTMLElement || event.target instanceof SVGElement ?
+                event.target.closest('.enso-portal-root')
+              : null
+            if (!portalRoot && driveStore.getState().selectedKeys.size !== 0) {
               setSelectedKeys(set.EMPTY_SET)
               setMostRecentlySelectedIndex(null)
             }
@@ -2327,14 +2299,14 @@ export default function AssetsTable(props: AssetsTableProps) {
       if (queuedAssetEvents.length !== 0) {
         queuedAssetListEventsRef.current = []
         for (const event of queuedAssetEvents) {
-          onAssetListEventRef.current(event)
+          onAssetListEvent(event)
         }
       }
       setSpinnerState(spinner.SpinnerState.initial)
     }
-  }, [isLoading])
+  }, [isLoading, onAssetListEvent])
 
-  const calculateNewKeys = React.useCallback(
+  const calculateNewKeys = useEventCallback(
     (
       event: MouseEvent | React.MouseEvent,
       keys: backendModule.AssetId[],
@@ -2371,14 +2343,13 @@ export default function AssetsTable(props: AssetsTableProps) {
       })(event, false)
       return result
     },
-    [driveStore, inputBindings],
   )
 
   const { startAutoScroll, endAutoScroll, onMouseEvent } = autoScrollHooks.useAutoScroll(rootRef)
 
   const dragSelectionChangeLoopHandle = React.useRef(0)
   const dragSelectionRangeRef = React.useRef<DragSelectionInfo | null>(null)
-  const onSelectionDrag = React.useCallback(
+  const onSelectionDrag = useEventCallback(
     (rectangle: geometry.DetailedRectangle, event: MouseEvent) => {
       startAutoScroll()
       onMouseEvent(event)
@@ -2424,37 +2395,30 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
       }
     },
-    [startAutoScroll, onMouseEvent, setVisuallySelectedKeys, displayItems, calculateNewKeys],
   )
 
-  const onSelectionDragEnd = React.useCallback(
-    (event: MouseEvent) => {
-      endAutoScroll()
-      onMouseEvent(event)
-      const range = dragSelectionRangeRef.current
-      if (range != null) {
-        const keys = displayItems.slice(range.start, range.end).map((node) => node.key)
-        setSelectedKeys(calculateNewKeys(event, keys, () => []))
-      }
-      setVisuallySelectedKeys(null)
-      dragSelectionRangeRef.current = null
-    },
-    [
-      endAutoScroll,
-      onMouseEvent,
-      setVisuallySelectedKeys,
-      displayItems,
-      setSelectedKeys,
-      calculateNewKeys,
-    ],
-  )
-
-  const onSelectionDragCancel = React.useCallback(() => {
+  const onSelectionDragEnd = useEventCallback((event: MouseEvent) => {
+    endAutoScroll()
+    onMouseEvent(event)
+    const range = dragSelectionRangeRef.current
+    if (range != null) {
+      const keys = displayItems.slice(range.start, range.end).map((node) => node.key)
+      setSelectedKeys(calculateNewKeys(event, keys, () => []))
+    }
     setVisuallySelectedKeys(null)
     dragSelectionRangeRef.current = null
-  }, [setVisuallySelectedKeys])
+  })
 
-  const onRowClick = React.useCallback(
+  const onSelectionDragCancel = useEventCallback(() => {
+    setVisuallySelectedKeys(null)
+    dragSelectionRangeRef.current = null
+  })
+
+  const grabRowKeyboardFocus = useEventCallback((item: assetTreeNode.AnyAssetTreeNode) => {
+    setSelectedKeys(new Set([item.key]))
+  })
+
+  const onRowClick = useEventCallback(
     (innerRowProps: assetRow.AssetRowInnerProps, event: React.MouseEvent) => {
       const { key } = innerRowProps
       event.stopPropagation()
@@ -2476,7 +2440,158 @@ export default function AssetsTable(props: AssetsTableProps) {
         selectionStartIndexRef.current = null
       }
     },
-    [visibleItems, calculateNewKeys, setSelectedKeys, setMostRecentlySelectedIndex],
+  )
+
+  const selectRow = useEventCallback((item: assetTreeNode.AnyAssetTreeNode) => {
+    setMostRecentlySelectedIndex(visibleItems.indexOf(item))
+    selectionStartIndexRef.current = null
+    setSelectedKeys(new Set([item.key]))
+  })
+
+  const onRowDragStart = useEventCallback(
+    (event: React.DragEvent<HTMLTableRowElement>, item: assetTreeNode.AnyAssetTreeNode) => {
+      startAutoScroll()
+      onMouseEvent(event)
+      let newSelectedKeys = driveStore.getState().selectedKeys
+      if (!newSelectedKeys.has(item.key)) {
+        setMostRecentlySelectedIndex(visibleItems.indexOf(item))
+        selectionStartIndexRef.current = null
+        newSelectedKeys = new Set([item.key])
+        setSelectedKeys(newSelectedKeys)
+      }
+      const nodes = assetTree.preorderTraversal().filter((node) => newSelectedKeys.has(node.key))
+      const payload: drag.AssetRowsDragPayload = nodes.map((node) => ({
+        key: node.key,
+        asset: node.item,
+      }))
+      event.dataTransfer.setData(
+        mimeTypes.ASSETS_MIME_TYPE,
+        JSON.stringify(nodes.map((node) => node.key)),
+      )
+      drag.setDragImageToBlank(event)
+      drag.ASSET_ROWS.bind(event, payload)
+      setModal(
+        <DragModal
+          event={event}
+          className="flex flex-col rounded-default bg-selected-frame backdrop-blur-default"
+          onDragEnd={() => {
+            drag.ASSET_ROWS.unbind(payload)
+          }}
+        >
+          {nodes.map((node) => (
+            <NameColumn
+              key={node.key}
+              isOpened={false}
+              keyProp={node.key}
+              item={node.with({ depth: 0 })}
+              backendType={backend.type}
+              state={state}
+              // Default states.
+              isSoleSelected={false}
+              selected={false}
+              rowState={assetRowUtils.INITIAL_ROW_STATE}
+              // The drag placeholder cannot be interacted with.
+              setSelected={() => {}}
+              setItem={() => {}}
+              setRowState={() => {}}
+              isEditable={false}
+            />
+          ))}
+        </DragModal>,
+      )
+    },
+  )
+
+  const onRowDragOver = useEventCallback(
+    (event: React.DragEvent<HTMLTableRowElement>, item: assetTreeNode.AnyAssetTreeNode) => {
+      onMouseEvent(event)
+      const payload = drag.LABELS.lookup(event)
+      if (payload != null) {
+        event.preventDefault()
+        event.stopPropagation()
+        const { selectedKeys } = driveStore.getState()
+        const idsReference = selectedKeys.has(item.key) ? selectedKeys : item.key
+        // This optimization is required in order to avoid severe lag on Firefox.
+        if (idsReference !== lastSelectedIdsRef.current) {
+          lastSelectedIdsRef.current = idsReference
+          const ids = typeof idsReference === 'string' ? new Set([idsReference]) : idsReference
+          let labelsPresent = 0
+          for (const selectedKey of ids) {
+            const nodeLabels = nodeMapRef.current.get(selectedKey)?.item.labels
+            if (nodeLabels != null) {
+              for (const label of nodeLabels) {
+                if (payload.has(label)) {
+                  labelsPresent += 1
+                }
+              }
+            }
+          }
+          const shouldAdd = labelsPresent * 2 < ids.size * payload.size
+          window.setTimeout(() => {
+            dispatchAssetEvent({
+              type:
+                shouldAdd ?
+                  AssetEventType.temporarilyAddLabels
+                : AssetEventType.temporarilyRemoveLabels,
+              ids,
+              labelNames: payload,
+            })
+          })
+        }
+      }
+    },
+  )
+
+  const onRowDragLeave = useEventCallback(() => {
+    setIsDraggingFiles(false)
+  })
+
+  const onRowDragEnd = useEventCallback(() => {
+    setIsDraggingFiles(false)
+    endAutoScroll()
+    lastSelectedIdsRef.current = null
+    const { selectedKeys } = driveStore.getState()
+    dispatchAssetEvent({
+      type: AssetEventType.temporarilyAddLabels,
+      ids: selectedKeys,
+      labelNames: set.EMPTY_SET,
+    })
+  })
+
+  const onRowDrop = useEventCallback(
+    (event: React.DragEvent<HTMLTableRowElement>, item: assetTreeNode.AnyAssetTreeNode) => {
+      endAutoScroll()
+      const { selectedKeys } = driveStore.getState()
+      const ids = new Set(selectedKeys.has(item.key) ? selectedKeys : [item.key])
+      const payload = drag.LABELS.lookup(event)
+      if (payload != null) {
+        event.preventDefault()
+        event.stopPropagation()
+        let labelsPresent = 0
+        for (const selectedKey of ids) {
+          const nodeLabels = nodeMapRef.current.get(selectedKey)?.item.labels
+          if (nodeLabels != null) {
+            for (const label of nodeLabels) {
+              if (payload.has(label)) {
+                labelsPresent += 1
+              }
+            }
+          }
+        }
+        const shouldAdd = labelsPresent * 2 < ids.size * payload.size
+        dispatchAssetEvent({
+          type: shouldAdd ? AssetEventType.addLabels : AssetEventType.removeLabels,
+          ids,
+          labelNames: payload,
+        })
+      } else {
+        dispatchAssetEvent({
+          type: AssetEventType.temporarilyAddLabels,
+          ids,
+          labelNames: set.EMPTY_SET,
+        })
+      }
+    },
   )
 
   const getAsset = useEventCallback(
@@ -2506,7 +2621,11 @@ export default function AssetsTable(props: AssetsTableProps) {
     setAsset,
   }))
 
-  const columns = columnUtils.getColumnList(backend.type, enabledColumns)
+  const columns = React.useMemo(
+    () =>
+      columnUtils.getColumnList(user, backend.type).filter((column) => enabledColumns.has(column)),
+    [backend.type, enabledColumns, user],
+  )
 
   const headerRow = (
     <tr ref={headerRowRef} className="sticky top-[1px] text-sm font-semibold">
@@ -2532,20 +2651,11 @@ export default function AssetsTable(props: AssetsTableProps) {
           </div>
         </td>
       </tr>
-    : displayItems.map((item, i) => {
+    : displayItems.map((item) => {
         return (
           <AssetRow
             key={item.key + item.path}
-            updateAssetRef={(instance) => {
-              if (instance != null) {
-                updateAssetRef.current[item.item.id] = instance
-              } else {
-                // Hacky way to clear the reference to the asset on unmount.
-                // eventually once we pull the assets up in the tree, we can remove this.
-                // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-                delete updateAssetRef.current[item.item.id]
-              }
-            }}
+            updateAssetRef={updateAssetRef}
             isOpened={openedProjects.some(({ id }) => item.item.id === id)}
             columns={columns}
             item={item}
@@ -2554,150 +2664,14 @@ export default function AssetsTable(props: AssetsTableProps) {
             isKeyboardSelected={
               keyboardSelectedIndex != null && item === visibleItems[keyboardSelectedIndex]
             }
-            grabKeyboardFocus={() => {
-              setSelectedKeys(new Set([item.key]))
-              setMostRecentlySelectedIndex(i, true)
-            }}
+            grabKeyboardFocus={grabRowKeyboardFocus}
             onClick={onRowClick}
-            select={() => {
-              setMostRecentlySelectedIndex(visibleItems.indexOf(item))
-              selectionStartIndexRef.current = null
-              setSelectedKeys(new Set([item.key]))
-            }}
-            onDragStart={(event) => {
-              startAutoScroll()
-              onMouseEvent(event)
-              let newSelectedKeys = driveStore.getState().selectedKeys
-              if (!newSelectedKeys.has(item.key)) {
-                setMostRecentlySelectedIndex(visibleItems.indexOf(item))
-                selectionStartIndexRef.current = null
-                newSelectedKeys = new Set([item.key])
-                setSelectedKeys(newSelectedKeys)
-              }
-              const nodes = assetTree
-                .preorderTraversal()
-                .filter((node) => newSelectedKeys.has(node.key))
-              const payload: drag.AssetRowsDragPayload = nodes.map((node) => ({
-                key: node.key,
-                asset: node.item,
-              }))
-              event.dataTransfer.setData(
-                mimeTypes.ASSETS_MIME_TYPE,
-                JSON.stringify(nodes.map((node) => node.key)),
-              )
-              drag.setDragImageToBlank(event)
-              drag.ASSET_ROWS.bind(event, payload)
-              setModal(
-                <DragModal
-                  event={event}
-                  className="flex flex-col rounded-default bg-selected-frame backdrop-blur-default"
-                  onDragEnd={() => {
-                    drag.ASSET_ROWS.unbind(payload)
-                  }}
-                >
-                  {nodes.map((node) => (
-                    <NameColumn
-                      key={node.key}
-                      isOpened={false}
-                      keyProp={node.key}
-                      item={node.with({ depth: 0 })}
-                      backendType={backend.type}
-                      state={state}
-                      // Default states.
-                      isSoleSelected={false}
-                      selected={false}
-                      rowState={assetRowUtils.INITIAL_ROW_STATE}
-                      // The drag placeholder cannot be interacted with.
-                      setSelected={() => {}}
-                      setItem={() => {}}
-                      setRowState={() => {}}
-                      isEditable={false}
-                    />
-                  ))}
-                </DragModal>,
-              )
-            }}
-            onDragOver={(event) => {
-              onMouseEvent(event)
-              const payload = drag.LABELS.lookup(event)
-              if (payload != null) {
-                event.preventDefault()
-                event.stopPropagation()
-                const { selectedKeys } = driveStore.getState()
-                const idsReference = selectedKeys.has(item.key) ? selectedKeys : item.key
-                // This optimization is required in order to avoid severe lag on Firefox.
-                if (idsReference !== lastSelectedIdsRef.current) {
-                  lastSelectedIdsRef.current = idsReference
-                  const ids =
-                    typeof idsReference === 'string' ? new Set([idsReference]) : idsReference
-                  let labelsPresent = 0
-                  for (const selectedKey of ids) {
-                    const nodeLabels = nodeMapRef.current.get(selectedKey)?.item.labels
-                    if (nodeLabels != null) {
-                      for (const label of nodeLabels) {
-                        if (payload.has(label)) {
-                          labelsPresent += 1
-                        }
-                      }
-                    }
-                  }
-                  const shouldAdd = labelsPresent * 2 < ids.size * payload.size
-                  window.setTimeout(() => {
-                    dispatchAssetEvent({
-                      type:
-                        shouldAdd ?
-                          AssetEventType.temporarilyAddLabels
-                        : AssetEventType.temporarilyRemoveLabels,
-                      ids,
-                      labelNames: payload,
-                    })
-                  })
-                }
-              }
-            }}
-            onDragEnd={() => {
-              endAutoScroll()
-              lastSelectedIdsRef.current = null
-              const { selectedKeys } = driveStore.getState()
-              dispatchAssetEvent({
-                type: AssetEventType.temporarilyAddLabels,
-                ids: selectedKeys,
-                labelNames: set.EMPTY_SET,
-              })
-            }}
-            onDrop={(event) => {
-              endAutoScroll()
-              const { selectedKeys } = driveStore.getState()
-              const ids = new Set(selectedKeys.has(item.key) ? selectedKeys : [item.key])
-              const payload = drag.LABELS.lookup(event)
-              if (payload != null) {
-                event.preventDefault()
-                event.stopPropagation()
-                let labelsPresent = 0
-                for (const selectedKey of ids) {
-                  const nodeLabels = nodeMapRef.current.get(selectedKey)?.item.labels
-                  if (nodeLabels != null) {
-                    for (const label of nodeLabels) {
-                      if (payload.has(label)) {
-                        labelsPresent += 1
-                      }
-                    }
-                  }
-                }
-                const shouldAdd = labelsPresent * 2 < ids.size * payload.size
-                dispatchAssetEvent({
-                  type: shouldAdd ? AssetEventType.addLabels : AssetEventType.removeLabels,
-                  ids,
-                  labelNames: payload,
-                })
-              } else {
-                dispatchAssetEvent({
-                  type: AssetEventType.temporarilyAddLabels,
-                  ids,
-                  labelNames: set.EMPTY_SET,
-                })
-              }
-            }}
+            select={selectRow}
+            onDragStart={onRowDragStart}
+            onDragOver={onRowDragOver}
+            onDragLeave={onRowDragLeave}
+            onDragEnd={onRowDragEnd}
+            onDrop={onRowDrop}
           />
         )
       })
@@ -2809,7 +2783,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           handleFileDrop(event)
         }}
         onClick={() => {
-          setSelectedKeys(new Set())
+          setSelectedKeys(set.EMPTY_SET)
         }}
       >
         <aria.FileTrigger
@@ -2894,47 +2868,43 @@ export default function AssetsTable(props: AssetsTableProps) {
                 />
               )}
               <div className="flex h-max min-h-full w-max min-w-full flex-col">
-                {isCloud && (
-                  <div className="flex-0 sticky top-0 flex h-0 flex-col">
-                    <div
-                      data-testid="extra-columns"
-                      className="sticky right-0 flex self-end px-2 py-3"
-                    >
-                      <FocusArea direction="horizontal">
-                        {(columnsBarProps) => (
-                          <div
-                            {...aria.mergeProps<JSX.IntrinsicElements['div']>()(columnsBarProps, {
-                              className: 'inline-flex gap-icons',
-                              onFocus: () => {
-                                setKeyboardSelectedIndex(null)
-                              },
-                            })}
-                          >
-                            {columnUtils.CLOUD_COLUMNS.filter(
-                              (column) => !enabledColumns.has(column),
-                            ).map((column) => (
-                              <Button
-                                key={column}
-                                light
-                                image={columnUtils.COLUMN_ICONS[column]}
-                                alt={getText(columnUtils.COLUMN_SHOW_TEXT_ID[column])}
-                                onPress={() => {
-                                  const newExtraColumns = new Set(enabledColumns)
-                                  if (enabledColumns.has(column)) {
-                                    newExtraColumns.delete(column)
-                                  } else {
-                                    newExtraColumns.add(column)
-                                  }
-                                  setEnabledColumns(newExtraColumns)
-                                }}
-                              />
-                            ))}
-                          </div>
-                        )}
-                      </FocusArea>
-                    </div>
+                <div className="flex-0 sticky top-0 flex h-0 flex-col">
+                  <div
+                    data-testid="extra-columns"
+                    className="sticky right-0 flex self-end px-2 py-3"
+                  >
+                    <FocusArea direction="horizontal">
+                      {(columnsBarProps) => (
+                        <div
+                          {...aria.mergeProps<JSX.IntrinsicElements['div']>()(columnsBarProps, {
+                            className: 'inline-flex gap-icons',
+                            onFocus: () => {
+                              setKeyboardSelectedIndex(null)
+                            },
+                          })}
+                        >
+                          {hiddenColumns.map((column) => (
+                            <Button
+                              key={column}
+                              light
+                              image={columnUtils.COLUMN_ICONS[column]}
+                              alt={getText(columnUtils.COLUMN_SHOW_TEXT_ID[column])}
+                              onPress={() => {
+                                const newExtraColumns = new Set(enabledColumns)
+                                if (enabledColumns.has(column)) {
+                                  newExtraColumns.delete(column)
+                                } else {
+                                  newExtraColumns.add(column)
+                                }
+                                setEnabledColumns(newExtraColumns)
+                              }}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </FocusArea>
                   </div>
-                )}
+                </div>
                 <div className="flex h-full w-min min-w-full grow flex-col">{table}</div>
               </div>
             </div>
@@ -2946,8 +2916,13 @@ export default function AssetsTable(props: AssetsTableProps) {
               className="flex items-center justify-center gap-3 rounded-default bg-selected-frame px-8 py-6 text-primary/50 backdrop-blur-3xl transition-all"
               onDragEnter={onDropzoneDragOver}
               onDragOver={onDropzoneDragOver}
-              onDrop={(event) => {
+              onDragLeave={() => {
                 setIsDraggingFiles(false)
+              }}
+              onDragEnd={() => {
+                setIsDraggingFiles(false)
+              }}
+              onDrop={(event) => {
                 handleFileDrop(event)
               }}
             >

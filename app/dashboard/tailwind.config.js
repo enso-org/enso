@@ -17,9 +17,10 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         // modified.
         /** The default color of all text. */
         // This should be named "regular".
-        primary: 'rgb(0 0 0 / 60%)',
-        invert: 'rgb(255 255 255 / 80%)',
-        accent: '#499f4b',
+        primary: 'rgb(var(--color-primary-rgb) / var(--color-primary-opacity))',
+        invert: 'rgb(var(--color-invert-rgb) / var(--color-invert-opacity))',
+        accent: 'rgb(var(--color-accent-rgb) / 100%)',
+        danger: 'rgb(var(--color-danger-rgb) / 100%)',
         'accent-dark': '#3e9152',
         'hover-bg': 'rgb(0 0 0 / 10%)',
         frame: 'rgb(255 255 255 / 40%)',
@@ -38,7 +39,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         v3: '#252423',
         youtube: '#c62421',
         discord: '#404796',
-        danger: '#d33b0b',
         'selection-brush': 'lch(70% 0 0 / 50%)',
         dim: 'rgb(0 0 0 / 25%)',
         'dim-darker': 'rgb(0 0 0 / 40%)',
@@ -65,6 +65,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         naming: ['"Enso Naming"', '"Enso"', '"M PLUS 1"'],
       },
       fontSize: {
+        '2xs': '10.5px',
         xs: '11.5px',
         sm: '13px',
         xl: '19px',
@@ -344,7 +345,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
       },
       zIndex: {
         1: '1',
-        3: '3',
+        tooltip: '2',
       },
       backdropBlur: {
         xs: '2px',
@@ -488,6 +489,46 @@ inset 0 -36px 51px -51px #00000014`,
           },
           '.read-only': {
             '@apply opacity-75 cursor-not-allowed': '',
+          },
+
+          '.scroll-offset-edge-s': {
+            '--scrollbar-offset-edge': '2px',
+          },
+          '.scroll-offset-edge-m': {
+            '--scrollbar-offset-edge': '4px',
+          },
+          '.scroll-offset-edge-l': {
+            '--scrollbar-offset-edge': '6px',
+          },
+          '.scroll-offset-edge-xl': {
+            '--scrollbar-offset-edge': '8px',
+          },
+          '.scroll-offset-edge-2xl': {
+            '--scrollbar-offset-edge': '16px',
+          },
+          '.scroll-offset-edge-3xl': {
+            '--scrollbar-offset-edge': '24px',
+          },
+          '.scroll-offset-edge-4xl': {
+            '--scrollbar-offset-edge': '28px',
+          },
+          '.scroll-offset-edge-5xl': {
+            '--scrollbar-offset-edge': '32px',
+          },
+          '.scroll-offset-edge-6xl': {
+            '--scrollbar-offset-edge': '36px',
+          },
+          '.scroll-offset-edge-7xl': {
+            '--scrollbar-offset-edge': '40px',
+          },
+          '.scroll-offset-edge-8xl': {
+            '--scrollbar-offset-edge': '44px',
+          },
+          '.scroll-offset-edge-9xl': {
+            '--scrollbar-offset-edge': '48px',
+          },
+          '.scroll-offset-edge-10xl': {
+            '--scrollbar-offset-edge': '52px',
           },
 
           // === Visbility classes ===
