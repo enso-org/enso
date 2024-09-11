@@ -541,7 +541,7 @@ watchPostEffect(() => {
     .duration(animationDuration.value)
     .attr(
       'd',
-      symbol.type(matchShape).size((d) => (d.size ?? 1.0) * SIZE_SCALE_MULTIPLER),
+      symbol.type(matchShape).size((d) => (d.size ?? 0.15) * SIZE_SCALE_MULTIPLER),
     )
     .style('fill', (d) => colorScale(d.series || ''))
     .attr('transform', (d) => `translate(${xScale_(d.x)}, ${yScale_(d.y)})`)
