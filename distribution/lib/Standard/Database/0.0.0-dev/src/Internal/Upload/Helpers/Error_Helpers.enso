@@ -3,7 +3,7 @@ private
 from Standard.Base import all
 
 from Standard.Table import Aggregate_Column
-from Standard.Table.Errors import Non_Unique_Key
+from Standard.Table.Errors import Non_Unique_Key, Null_Values_In_Key_Columns
 
 from Standard.Database.Errors import SQL_Error
 
