@@ -72,7 +72,8 @@ type Point_Data
         Point_Data.X ->
             candidate = table.columns.first
             is_good c = (c.is_numeric || c.value_type.has_date) && c.name != Point_Data.Y.name
-            if is_good candidate then candidate else Point_Data.iota table.row_count
+            map_candidate c = if c.value_type.has_date then c.map col-> col.to_display_text else c
+            if is_good candidate then map_candidate candidate else Point_Data.iota table.row_count
         Point_Data.Y ->
             x_column = Point_Data.X.lookup_in table
             candidates = table.columns
