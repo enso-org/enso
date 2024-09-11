@@ -179,7 +179,7 @@ type Postgres_Dialect
        Specifies implementation details flags.
     dialect_flags : Dialect_Flags
     dialect_flags self -> Dialect_Flags =
-        rounding = Rounding_Flags.Value supports_negative_decimal_places=True supports_float_decimal_places=False
+        rounding = Rounding_Flags.Value supports_negative_decimal_places=True supports_float_decimal_places=False use_builtin_bankers=False
         Dialect_Flags.Value rounding=rounding
 
     ## PRIVATE
