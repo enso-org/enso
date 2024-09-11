@@ -664,7 +664,7 @@ useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSel
   <VisualizationContainer :belowToolbar="true">
     <template #toolbar>
       <SvgButton
-        name="add"
+        name="select"
         title="Enable Selection"
         @click="selectionEnabled = !selectionEnabled"
       />
