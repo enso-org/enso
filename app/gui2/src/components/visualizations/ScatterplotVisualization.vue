@@ -55,6 +55,7 @@ interface Data {
   points: PointsConfiguration
   data: Point[]
   is_multi_series?: boolean
+  is_time_series?: boolean
 }
 
 interface Focus {
@@ -64,7 +65,7 @@ interface Focus {
 }
 
 interface Point {
-  x: number
+  x: number | Date
   y: number
   label?: string
   color?: string
@@ -80,6 +81,7 @@ interface PointsConfiguration {
 enum ScaleType {
   Linear = 'linear',
   Logarithmic = 'logarithmic',
+  Time = 'time',
 }
 
 interface AxisConfiguration {
@@ -132,27 +134,39 @@ const SHAPE_TO_SYMBOL: Record<string, d3.SymbolType> = {
   triangle: d3.symbolTriangle,
 }
 
-const SCALE_TO_D3_SCALE: Record<ScaleType, () => d3.ScaleContinuousNumeric<number, number>> = {
+const SCALE_TO_D3_SCALE: any = {
   [ScaleType.Linear]: () => d3.scaleLinear(),
   [ScaleType.Logarithmic]: () => d3.scaleLog(),
+  [ScaleType.Time]: () => d3.scaleTime(),
 }
 
 const data = computed<Data>(() => {
   let rawData = props.data
+  console.log({ rawData })
   const unfilteredData =
     Array.isArray(rawData) ? rawData.map((y, index) => ({ x: index, y })) : rawData.data ?? []
-  const data: Point[] = unfilteredData.filter(
-    (point) =>
-      typeof point.x === 'number' &&
-      !Number.isNaN(point.x) &&
-      typeof point.y === 'number' &&
-      !Number.isNaN(point.y),
-  )
+  let data: Point[]
+  // eslint-disable-next-line camelcase
+  const is_time_series: boolean = !!rawData.is_time_series
+  // eslint-disable-next-line camelcase
+  if (is_time_series) {
+    data = unfilteredData
+      .filter((point) => typeof point.y === 'number' && !Number.isNaN(point.y))
+      .map((point) => ({ ...point, x: new Date(point.x) }))
+  } else {
+    data = unfilteredData.filter(
+      (point) =>
+        typeof point.x === 'number' &&
+        !Number.isNaN(point.x) &&
+        typeof point.y === 'number' &&
+        !Number.isNaN(point.y),
+    )
+  }
   if (Array.isArray(rawData)) {
     rawData = {}
   }
   const axis: AxesConfiguration = rawData.axis ?? {
-    x: { label: '', scale: ScaleType.Linear },
+    x: { label: '', scale: is_time_series ? ScaleType.Time : ScaleType.Linear },
     y: { label: '', scale: ScaleType.Linear },
   }
   const points = rawData.points ?? { labels: 'visible' }
@@ -160,7 +174,7 @@ const data = computed<Data>(() => {
   // eslint-disable-next-line camelcase
   const is_multi_series: boolean = !!rawData.is_multi_series
   // eslint-disable-next-line camelcase
-  return { axis, points, data, focus, is_multi_series }
+  return { axis, points, data, focus, is_multi_series, is_time_series }
 })
 
 const containerNode = ref<HTMLElement>()
@@ -280,7 +294,7 @@ const extremesAndDeltas = computed(() => {
   }
 
   const [xMin = 0, xMax = 0] = d3.extent(data.value.data, (point) => point.x)
-  const dx = xMax - xMin
+  const dx = Number(xMax) - Number(xMin)
   const dy = yMax - yMin
   const paddingX = 0.1 * dx
   const paddingY = 0.1 * dy
@@ -461,7 +475,7 @@ watchEffect(() => {
     xDomain.value = [focus_.x - newPaddingX, focus_.x + newPaddingX]
     yDomain.value = [focus_.y - newPaddingY, focus_.y + newPaddingY]
   } else {
-    xDomain.value = [xMin - paddingX, xMax + paddingX]
+    xDomain.value = [Number(xMin) - paddingX, Number(xMax) + paddingX]
     yDomain.value = [yMin - paddingY, yMax + paddingY]
   }
 })
@@ -494,6 +508,7 @@ function getPlotData(data: Data) {
     const series = Object.keys(axis).filter((s) => s != 'x')
     const transformedData = series.flatMap((s) =>
       data.data.map((d) => ({
+        ...d,
         x: d.x,
         y: d[s as keyof Point],
         series: s,
@@ -629,8 +644,8 @@ function zoomToSelected(override?: boolean) {
     bounds.value = undefined
     limit.value = DEFAULT_LIMIT
     xDomain.value = [
-      extremesAndDeltas.value.xMin - extremesAndDeltas.value.paddingX,
-      extremesAndDeltas.value.xMax + extremesAndDeltas.value.paddingX,
+      Number(extremesAndDeltas.value.xMin) - extremesAndDeltas.value.paddingX,
+      Number(extremesAndDeltas.value.xMax) + extremesAndDeltas.value.paddingX,
     ]
     yDomain.value = [
       extremesAndDeltas.value.yMin - extremesAndDeltas.value.paddingY,
