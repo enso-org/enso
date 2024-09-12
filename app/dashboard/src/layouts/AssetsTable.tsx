@@ -358,9 +358,6 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const organization = organizationQuery.data
 
-  const isAssetContextMenuVisible =
-    category.type !== 'cloud' || user.plan == null || user.plan === backendModule.Plan.solo
-
   const nameOfProjectToImmediatelyOpenRef = React.useRef(initialProjectName)
   const [localRootDirectory] = localStorageProvider.useLocalStorageState('localRootDirectory')
   const rootDirectoryId = React.useMemo(() => {
@@ -2687,24 +2684,22 @@ export default function AssetsTable(props: AssetsTableProps) {
     <div
       className="flex grow flex-col"
       onContextMenu={(event) => {
-        if (isAssetContextMenuVisible) {
-          event.preventDefault()
-          event.stopPropagation()
-          setModal(
-            <AssetsTableContextMenu
-              backend={backend}
-              category={category}
-              pasteData={pasteData}
-              nodeMapRef={nodeMapRef}
-              event={event}
-              rootDirectoryId={rootDirectoryId}
-              doCopy={doCopy}
-              doCut={doCut}
-              doPaste={doPaste}
-              doDelete={doDeleteById}
-            />,
-          )
-        }
+        event.preventDefault()
+        event.stopPropagation()
+        setModal(
+          <AssetsTableContextMenu
+            backend={backend}
+            category={category}
+            pasteData={pasteData}
+            nodeMapRef={nodeMapRef}
+            event={event}
+            rootDirectoryId={rootDirectoryId}
+            doCopy={doCopy}
+            doCut={doCut}
+            doPaste={doPaste}
+            doDelete={doDeleteById}
+          />,
+        )
       }}
       onDragLeave={(event) => {
         const payload = drag.LABELS.lookup(event)
