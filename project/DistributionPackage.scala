@@ -248,12 +248,27 @@ object DistributionPackage {
           path.getAbsolutePath
         )
         log.debug(command.mkString(" "))
-        val exitCode = Process(
+        val runningProcess = Process(
           command,
           Some(path.getAbsoluteFile.getParentFile),
           "JAVA_OPTS" -> "-Dorg.jline.terminal.dumb=true"
-        ).!
-        if (exitCode != 0) {
+        ).run
+        // Poor man's solution to stuck index generation
+        val GENERATING_INDEX_TIMEOUT = 60 * 2 // 2 minutes
+        var current                  = 0
+        while (runningProcess.isAlive()) {
+          if (current > GENERATING_INDEX_TIMEOUT) {
+            runningProcess.destroy()
+          } else {
+            Thread.sleep(1000)
+            current += 1
+          }
+        }
+        if (runningProcess.exitValue() != 0) {
+          if (current > GENERATING_INDEX_TIMEOUT)
+            throw new RuntimeException(
+              s"TIMEOUT: Failed to compile $libName in $GENERATING_INDEX_TIMEOUT seconds"
+            )
           throw new RuntimeException(s"Cannot compile $libName.")
         }
       } else {
