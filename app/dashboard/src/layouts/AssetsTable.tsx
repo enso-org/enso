@@ -31,6 +31,7 @@ import {
   useSetCanCreateAssets,
   useSetCanDownload,
   useSetIsAssetPanelTemporarilyVisible,
+  useSetNewestFolderId,
   useSetSelectedKeys,
   useSetSuggestions,
   useSetTargetDirectory,
@@ -340,6 +341,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const [sortInfo, setSortInfo] =
     React.useState<sorting.SortInfo<columnUtils.SortableColumn> | null>(null)
   const driveStore = useDriveStore()
+  const setNewestFolderId = useSetNewestFolderId()
   const setSelectedKeys = useSetSelectedKeys()
   const setVisuallySelectedKeys = useSetVisuallySelectedKeys()
   const updateAssetRef = React.useRef<
@@ -1571,6 +1573,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           description: null,
         }
 
+        setNewestFolderId(placeholderItem.id)
         doToggleDirectoryExpansion(event.parentId, event.parentKey, true)
         insertAssets([placeholderItem], event.parentId)
 
