@@ -2176,6 +2176,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   }
 
   const handleFileDrop = (event: React.DragEvent) => {
+    setIsDraggingFiles(false)
     if (event.dataTransfer.types.includes('Files')) {
       event.preventDefault()
       event.stopPropagation()
@@ -2544,10 +2545,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     },
   )
 
-  const onRowDragLeave = useEventCallback(() => {
-    setIsDraggingFiles(false)
-  })
-
   const onRowDragEnd = useEventCallback(() => {
     setIsDraggingFiles(false)
     endAutoScroll()
@@ -2671,7 +2668,6 @@ export default function AssetsTable(props: AssetsTableProps) {
             select={selectRow}
             onDragStart={onRowDragStart}
             onDragOver={onRowDragOver}
-            onDragLeave={onRowDragLeave}
             onDragEnd={onRowDragEnd}
             onDrop={onRowDrop}
           />
@@ -2761,11 +2757,11 @@ export default function AssetsTable(props: AssetsTableProps) {
         )}
         onDragEnter={onDropzoneDragOver}
         onDragOver={onDropzoneDragOver}
-        onDragLeave={(event) => {
+        onDragLeave={() => {
           lastSelectedIdsRef.current = null
-          if (event.currentTarget === event.target) {
-            setIsDraggingFiles(false)
-          }
+        }}
+        onDragEnd={() => {
+          setIsDraggingFiles(false)
         }}
         onDrop={(event) => {
           const payload = drag.ASSET_ROWS.lookup(event)
@@ -2854,8 +2850,10 @@ export default function AssetsTable(props: AssetsTableProps) {
                     !event.currentTarget.contains(event.relatedTarget)
                   ) {
                     lastSelectedIdsRef.current = null
-                    setIsDraggingFiles(false)
                   }
+                },
+                onDragEnd: () => {
+                  setIsDraggingFiles(false)
                 },
               })}
             >
@@ -2915,12 +2913,9 @@ export default function AssetsTable(props: AssetsTableProps) {
         {isDraggingFiles && !isMainDropzoneVisible && (
           <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2">
             <div
-              className="flex items-center justify-center gap-3 rounded-default bg-selected-frame px-8 py-6 text-primary/50 backdrop-blur-3xl transition-all"
+              className="pointer-events-auto flex items-center justify-center gap-3 rounded-default bg-selected-frame px-8 py-6 text-primary/50 backdrop-blur-3xl transition-all"
               onDragEnter={onDropzoneDragOver}
               onDragOver={onDropzoneDragOver}
-              onDragLeave={() => {
-                setIsDraggingFiles(false)
-              }}
               onDragEnd={() => {
                 setIsDraggingFiles(false)
               }}
