@@ -184,6 +184,7 @@ export default function AssetPanel(props: AssetPanelProps) {
         : <>
             {tab === AssetPanelTab.properties && (
               <AssetProperties
+                key={item.item.id}
                 backend={backend}
                 isReadonly={isReadonly}
                 item={item}
