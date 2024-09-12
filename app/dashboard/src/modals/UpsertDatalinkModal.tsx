@@ -55,7 +55,7 @@ export default function UpsertDatalinkModal(props: UpsertDatalinkModalProps) {
                 label={getText('name')}
                 placeholder={getText('datalinkNamePlaceholder')}
               />
-              <div className="relative">
+              <div className="relative w-full">
                 <DatalinkFormInput form={form} name="value" dropdownTitle={getText('type')} />
               </div>
               <ButtonGroup className="relative">
