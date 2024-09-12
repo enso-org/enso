@@ -1,14 +1,8 @@
 /** @file Modal for confirming delete of any type of asset. */
-import * as React from 'react'
+import * as z from 'zod'
 
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-
-import * as modalProvider from '#/providers/ModalProvider'
-import * as textProvider from '#/providers/TextProvider'
-
-import * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
-import Modal from '#/components/Modal'
+import { ButtonGroup, Dialog, Form, Text } from '#/components/AriaComponents'
+import { useText } from '#/providers/TextProvider'
 
 // ==============================
 // === ConfirmDeleteUserModal ===
@@ -22,22 +16,13 @@ export interface ConfirmDeleteUserModalProps {
 /** A modal for confirming the deletion of a user. */
 export default function ConfirmDeleteUserModal(props: ConfirmDeleteUserModalProps) {
   const { doDelete } = props
-  const { unsetModal } = modalProvider.useSetModal()
-  const { getText } = textProvider.useText()
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
-
-  const doSubmit = async () => {
-    unsetModal()
-    try {
-      await doDelete()
-    } catch (error) {
-      toastAndLog(null, error)
-    }
-  }
+  const { getText } = useText()
 
   return (
-    <Modal centered className="bg-dim">
-      <form
+    <Dialog title={getText('areYouSure')}>
+      <Form
+        schema={z.object({})}
+        method="dialog"
         data-testid="confirm-delete-modal"
         ref={(element) => {
           element?.focus()
@@ -47,28 +32,21 @@ export default function ConfirmDeleteUserModal(props: ConfirmDeleteUserModalProp
         onClick={(event) => {
           event.stopPropagation()
         }}
-        onSubmit={(event) => {
-          event.preventDefault()
-          void doSubmit()
-        }}
+        onSubmit={doDelete}
       >
-        <aria.Heading className="py-heading relative h-heading text-xl font-bold">
-          {getText('areYouSure')}
-        </aria.Heading>
-        <aria.Text className="relative mb-2 text-balance text-center">
+        <Text className="relative mb-2 text-balance text-center">
           {getText('confirmDeleteUserAccountWarning')}
-        </aria.Text>
-        <ariaComponents.ButtonGroup className="relative self-center">
-          <ariaComponents.Button
+        </Text>
+        <ButtonGroup className="relative self-center">
+          <Form.Submit
             size="custom"
             variant="custom"
             className="button relative bg-danger text-inversed active"
-            onPress={doSubmit}
           >
-            <aria.Text className="text">{getText('confirmDeleteUserAccountButtonLabel')}</aria.Text>
-          </ariaComponents.Button>
-        </ariaComponents.ButtonGroup>
-      </form>
-    </Modal>
+            <Text className="text">{getText('confirmDeleteUserAccountButtonLabel')}</Text>
+          </Form.Submit>
+        </ButtonGroup>
+      </Form>
+    </Dialog>
   )
 }
