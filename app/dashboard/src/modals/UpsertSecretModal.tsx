@@ -33,7 +33,10 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
   const isNameEditable = nameRaw == null
 
   return (
-    <Dialog title={isCreatingSecret ? getText('newSecret') : getText('editSecret')}>
+    <Dialog
+      title={isCreatingSecret ? getText('newSecret') : getText('editSecret')}
+      isDismissable={false}
+    >
       {({ close }) => (
         <Form
           data-testid="upsert-secret-modal"

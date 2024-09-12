@@ -193,6 +193,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   const getDatalinkMutation = useMutation(backendMutationOptions(backend, 'getDatalink'))
   const createPermissionMutation = useMutation(backendMutationOptions(backend, 'createPermission'))
   const associateTagMutation = useMutation(backendMutationOptions(backend, 'associateTag'))
+  const editDescriptionMutation = useMutation(backendMutationOptions(backend, 'updateAsset'))
 
   const setSelected = useEventCallback((newSelected: boolean) => {
     const { selectedKeys } = driveStore.getState()
@@ -257,18 +258,18 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
           if (description !== asset.description) {
             setAsset(object.merger({ description }))
 
-            await backend
-              .updateAsset(item.item.id, { parentDirectoryId: null, description }, item.item.title)
-              .catch((error) => {
-                setAsset(object.merger({ description: asset.description }))
-                throw error
-              })
+            // eslint-disable-next-line no-restricted-syntax
+            return editDescriptionMutation.mutateAsync([
+              asset.id,
+              { description, parentDirectoryId: null },
+              item.item.title,
+            ])
           }
         }}
         initialDescription={asset.description}
       />,
     )
-  }, [setModal, asset.description, setAsset, backend, item.item.id, item.item.title])
+  }, [setModal, asset.description, asset.id, editDescriptionMutation, item.item.title])
 
   const clearDragState = React.useCallback(() => {
     setIsDraggedOver(false)
