@@ -320,6 +320,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 doAction={() => {
                   setModal(
                     <UpsertSecretModal
+                      defaultOpen
                       id={asset.id}
                       name={asset.title}
                       doCreate={async (_name, value) => {

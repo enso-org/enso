@@ -21,19 +21,23 @@ function createUpsertSecretSchema() {
 export interface UpsertSecretModalProps {
   readonly id: SecretId | null
   readonly name: string | null
+  readonly defaultOpen?: boolean
   readonly doCreate: (name: string, value: string) => Promise<void> | void
 }
 
 /** A modal for creating and editing a secret. */
 export default function UpsertSecretModal(props: UpsertSecretModalProps) {
-  const { id, name: nameRaw, doCreate } = props
+  const { id, name: nameRaw, defaultOpen, doCreate } = props
   const { getText } = useText()
 
   const isCreatingSecret = id == null
   const isNameEditable = nameRaw == null
 
   return (
-    <Dialog title={isCreatingSecret ? getText('newSecret') : getText('editSecret')}>
+    <Dialog
+      title={isCreatingSecret ? getText('newSecret') : getText('editSecret')}
+      modalProps={defaultOpen == null ? {} : { defaultOpen }}
+    >
       {({ close }) => (
         <Form
           data-testid="upsert-secret-modal"
