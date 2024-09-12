@@ -370,6 +370,7 @@
   "thisFolderIsEmpty": "This folder is empty.",
   "yourTrashIsEmpty": "Your trash is empty.",
   "deleteTheAssetTypeTitle": "delete the $0 '$1'",
+  "trashTheAssetTypeTitle": "move the $0 '$1' to Trash",
   "notImplemetedYet": "Not implemented yet.",
   "newLabelButtonLabel": "new label",
   "settingUsername": "Setting username...",
