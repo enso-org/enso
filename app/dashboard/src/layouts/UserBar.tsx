@@ -54,8 +54,12 @@ export default function UserBar(props: UserBarProps) {
 
   const shouldShowUpgradeButton = user.isOrganizationAdmin
   const shouldShowPaywallButton = isFeatureUnderPaywall('inviteUser')
-  const shouldShowShareButton = onShareClick != null
-  const shouldShowInviteButton = !shouldShowShareButton && !shouldShowPaywallButton
+  // FIXME[sb]: Re-enable when they are wanted again.
+  // eslint-disable-next-line no-restricted-syntax
+  const shouldShowShareButton = (false as boolean) && onShareClick != null
+  const shouldShowInviteButton =
+    // eslint-disable-next-line no-restricted-syntax
+    (false as boolean) && !shouldShowShareButton && !shouldShowPaywallButton
 
   return (
     <FocusArea active={!invisible} direction="horizontal">
