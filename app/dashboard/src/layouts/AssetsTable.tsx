@@ -335,7 +335,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const setAssetPanelProps = useSetAssetPanelProps()
 
   const hiddenColumns = columnUtils
-    .getColumnList(user, backend.type)
+    .getColumnList(user, backend.type, category)
     .filter((column) => !enabledColumns.has(column))
   const [sortInfo, setSortInfo] =
     React.useState<sorting.SortInfo<columnUtils.SortableColumn> | null>(null)
@@ -1677,13 +1677,10 @@ export default function AssetsTable(props: AssetsTableProps) {
 
                 const assetNode = nodeMapRef.current.get(asset.id)
 
-                if (assetNode == null) {
-                  // eslint-disable-next-line no-restricted-syntax
-                  return
-                }
-
                 if (backend.type === backendModule.BackendType.local && localBackend != null) {
-                  const directory = localBackendModule.extractTypeAndId(assetNode.directoryId).id
+                  const directory = localBackendModule.extractTypeAndId(
+                    assetNode?.directoryId ?? asset.parentId,
+                  ).id
                   let id: string
                   if (
                     'backendApi' in window &&
@@ -2620,8 +2617,10 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const columns = React.useMemo(
     () =>
-      columnUtils.getColumnList(user, backend.type).filter((column) => enabledColumns.has(column)),
-    [backend.type, enabledColumns, user],
+      columnUtils
+        .getColumnList(user, backend.type, category)
+        .filter((column) => enabledColumns.has(column)),
+    [backend.type, category, enabledColumns, user],
   )
 
   const headerRow = (
