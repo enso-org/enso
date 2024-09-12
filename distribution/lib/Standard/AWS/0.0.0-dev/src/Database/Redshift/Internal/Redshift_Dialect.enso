@@ -143,7 +143,8 @@ type Redshift_Dialect
     dialect_flags : Dialect_Flags
     dialect_flags self -> Dialect_Flags =
         rounding = Rounding_Flags.Value supports_negative_decimal_places=True supports_float_decimal_places=False use_builtin_bankers=False
-        Dialect_Flags.Value rounding=rounding
+        primary_key = Primary_Key_Flags.Value allows_nulls=False
+        Dialect_Flags.Value rounding=rounding primary_key=primary_key
 
     ## PRIVATE
        Specifies how the database creates temp tables.
