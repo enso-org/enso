@@ -1685,13 +1685,10 @@ export default function AssetsTable(props: AssetsTableProps) {
 
                 const assetNode = nodeMapRef.current.get(asset.id)
 
-                if (assetNode == null) {
-                  // eslint-disable-next-line no-restricted-syntax
-                  return
-                }
-
                 if (backend.type === backendModule.BackendType.local && localBackend != null) {
-                  const directory = localBackendModule.extractTypeAndId(assetNode.directoryId).id
+                  const directory = localBackendModule.extractTypeAndId(
+                    assetNode?.directoryId ?? asset.parentId,
+                  ).id
                   let id: string
                   if (
                     'backendApi' in window &&
