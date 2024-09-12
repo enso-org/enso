@@ -452,7 +452,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               }}
             />
           )}
-          {!isOtherUserUsingProject && (
+          {!isRunningProject && !isOtherUserUsingProject && (
             <ContextMenuEntry hidden={hidden} action="cut" doAction={doCut} />
           )}
           {(isCloud ?
