@@ -19,7 +19,7 @@ export default function ConfirmDeleteUserModal(props: ConfirmDeleteUserModalProp
   const { getText } = useText()
 
   return (
-    <Dialog title={getText('areYouSure')}>
+    <Dialog title={getText('areYouSure')} className="items-center">
       <Form
         schema={z.object({})}
         method="dialog"
@@ -28,22 +28,17 @@ export default function ConfirmDeleteUserModal(props: ConfirmDeleteUserModalProp
           element?.focus()
         }}
         tabIndex={-1}
-        className="pointer-events-auto relative flex w-confirm-delete-user-modal flex-col items-center gap-modal rounded-default p-modal-wide pt-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
         onClick={(event) => {
           event.stopPropagation()
         }}
         onSubmit={doDelete}
       >
-        <Text className="relative mb-2 text-balance text-center">
+        <Text className="text-balance text-center">
           {getText('confirmDeleteUserAccountWarning')}
         </Text>
-        <ButtonGroup className="relative self-center">
-          <Form.Submit
-            size="custom"
-            variant="custom"
-            className="button relative bg-danger text-inversed active"
-          >
-            <Text className="text">{getText('confirmDeleteUserAccountButtonLabel')}</Text>
+        <ButtonGroup className="w-min self-center">
+          <Form.Submit variant="delete">
+            {getText('confirmDeleteUserAccountButtonLabel')}
           </Form.Submit>
         </ButtonGroup>
       </Form>
