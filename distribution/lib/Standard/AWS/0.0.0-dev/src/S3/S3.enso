@@ -5,6 +5,7 @@ import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.Network.HTTP.Response import filename_from_content_disposition
 
 import project.AWS_Credential.AWS_Credential
+import project.S3.S3_File.S3_File
 import project.Errors.AWS_SDK_Error
 import project.Errors.More_Records_Available
 import project.Errors.S3_Bucket_Not_Found
@@ -68,9 +69,10 @@ list_buckets credentials:AWS_Credential=..Default = handle_s3_errors <|
    - If the bucket does not exist, an `S3_Bucket_Not_Found` error is thrown.
    - If more items are available than the `max_count` parameter, a
      `More_Records_Available` warning is attached to the result.
-list_objects : Text -> Text -> AWS_Credential -> Integer -> Vector Text ! S3_Error
+list_objects : Text -> Text -> AWS_Credential -> Integer -> Vector S3_File ! S3_Error
 list_objects bucket prefix="" credentials:AWS_Credential=..Default max_count:Integer=1000 =
-    read_bucket bucket prefix credentials delimiter="" max_count=max_count . second
+    names = read_bucket bucket prefix credentials delimiter="" max_count=max_count . second
+    names.map name-> S3_File.new "s3://"+bucket+"/"+name credentials
 
 ## PRIVATE
    ADVANCED

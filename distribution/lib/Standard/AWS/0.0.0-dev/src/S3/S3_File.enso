@@ -588,6 +588,16 @@ type S3_File
     is_descendant_of : S3_File -> Boolean
     is_descendant_of self other = self.s3_path.is_descendant_of other.s3_path
 
+    ## PRIVATE
+       Return the absolute path of this S3_File.
+    to_text : Text
+    to_text self = self.uri
+
+    ## PRIVATE
+       Convert to a display representation of this S3_File.
+    to_display_text : Text
+    to_display_text self = "S3_File {" + self.to_text + "}"
+
 ## PRIVATE
 File_Format_Metadata.from (that : S3_File) = File_Format_Metadata.Value that.uri that.name (that.extension.catch _->Nothing)
 
