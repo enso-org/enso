@@ -1573,13 +1573,15 @@ export default function AssetsTable(props: AssetsTableProps) {
           description: null,
         }
 
-        setNewestFolderId(placeholderItem.id)
         doToggleDirectoryExpansion(event.parentId, event.parentKey, true)
         insertAssets([placeholderItem], event.parentId)
 
-        createDirectoryMutation.mutate([
-          { parentId: placeholderItem.parentId, title: placeholderItem.title },
-        ])
+        void createDirectoryMutation
+          .mutateAsync([{ parentId: placeholderItem.parentId, title: placeholderItem.title }])
+          .then(({ id }) => {
+            setNewestFolderId(id)
+            setSelectedKeys(new Set([id]))
+          })
 
         break
       }
