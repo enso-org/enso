@@ -1671,6 +1671,12 @@ export default function AssetsTable(props: AssetsTableProps) {
           userGroups ?? [],
         )
         const fileMap = new Map<backendModule.AssetId, File>()
+        const uploadedFileIds: backendModule.AssetId[] = []
+        const addIdToSelection = (id: backendModule.AssetId) => {
+          uploadedFileIds.push(id)
+          const newIds = new Set(uploadedFileIds)
+          setSelectedKeys(newIds)
+        }
 
         const doUploadFile = async (asset: backendModule.AnyAsset, method: 'new' | 'update') => {
           const file = fileMap.get(asset.id)
@@ -1716,6 +1722,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     id = await response.text()
                   }
                   const projectId = localBackendModule.newProjectId(projectManager.UUID(id))
+                  addIdToSelection(projectId)
 
                   await getProjectDetailsMutation
                     .mutateAsync([projectId, asset.parentId, file.name])
@@ -1733,6 +1740,9 @@ export default function AssetsTable(props: AssetsTableProps) {
                       },
                       file,
                     ])
+                    .then(({ id }) => {
+                      addIdToSelection(id)
+                    })
                     .catch((error) => {
                       deleteAsset(asset.id)
                       toastAndLog('uploadProjectError', error)
@@ -1742,10 +1752,14 @@ export default function AssetsTable(props: AssetsTableProps) {
                 break
               }
               case backendModule.assetIsFile(asset): {
-                uploadFileMutation.mutate([
-                  { fileId, fileName: asset.title, parentDirectoryId: asset.parentId },
-                  file,
-                ])
+                void uploadFileMutation
+                  .mutateAsync([
+                    { fileId, fileName: asset.title, parentDirectoryId: asset.parentId },
+                    file,
+                  ])
+                  .then(({ id }) => {
+                    addIdToSelection(id)
+                  })
 
                 break
               }
