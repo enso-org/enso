@@ -361,7 +361,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               action="delete"
               label={isCloud ? getText('moveToTrashShortcut') : getText('deleteShortcut')}
               doAction={() => {
-                console.log('ono', asset.type, isCloud)
                 if (isCloud) {
                   if (asset.type === backendModule.AssetType.directory) {
                     setModal(
