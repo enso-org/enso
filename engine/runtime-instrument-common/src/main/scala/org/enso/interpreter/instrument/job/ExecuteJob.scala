@@ -31,11 +31,12 @@ class ExecuteJob(
       runImpl
     } catch {
       case t: Throwable =>
+        val message = Option(t.getMessage).getOrElse(t.getClass.getSimpleName)
         ctx.endpoint.sendToClient(
           Api.Response(
             Api.ExecutionFailed(
               contextId,
-              Api.ExecutionResult.Failure(t.getMessage, None)
+              Api.ExecutionResult.Failure(message, None)
             )
           )
         )
