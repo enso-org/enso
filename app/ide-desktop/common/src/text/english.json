@@ -641,6 +641,7 @@
   "accessedByProjectsColumnName": "Accessed by projects",
   "accessedDataColumnName": "Accessed data",
   "docsColumnName": "Docs",
+  "rootFolderColumnName": "Root folder",
 
   "settingsShortcut": "Settings",
   "closeTabShortcut": "Close Tab",
