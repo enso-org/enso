@@ -2760,6 +2760,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           }
         }}
         onDrop={(event) => {
+          setIsDraggingFiles(false)
           const payload = drag.ASSET_ROWS.lookup(event)
           const filtered = payload?.filter((item) => item.asset.parentId !== rootDirectoryId)
           if (filtered != null && filtered.length > 0) {
@@ -2917,6 +2918,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 setIsDraggingFiles(false)
               }}
               onDrop={(event) => {
+                setIsDraggingFiles(false)
                 handleFileDrop(event)
               }}
             >
