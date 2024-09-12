@@ -9,6 +9,7 @@ from Standard.Table import Table
 import Standard.Database.Column_Description.Column_Description
 import Standard.Database.Connection.Connection.Connection
 import Standard.Database.DB_Table.DB_Table
+import Standard.Database.Internal.Common.Encoding_Limited_Naming_Properties.Encoding_Limited_Naming_Properties
 import Standard.Database.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
 import Standard.Database.Internal.JDBC_Connection
 import Standard.Database.SQL_Query.SQL_Query
@@ -31,8 +32,11 @@ type SQLServer_Connection
     create : Text -> Vector -> (Text -> Text -> SQLServer_Connection) -> SQLServer_Connection
     create url properties make_new =
         jdbc_connection = JDBC_Connection.create url properties
-        entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection is_case_sensitive=False
-        SQLServer_Connection.Value (Connection.new jdbc_connection SQLServer_Dialect.sqlserver entity_naming_properties) make_new
+        jdbc_entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection is_case_sensitive=True
+        ## jdbc reports table name length limit as 128, but it actually seems to be 116 for temp tables so we override it
+        limited = Encoding_Limited_Naming_Properties.Instance Encoding.utf_8 limit=116 is_case_sensitive=True
+        modified_entity_naming_properties = Entity_Naming_Properties.Value for_table_names=limited for_column_names=jdbc_entity_naming_properties.for_column_names for_generated_column_names=jdbc_entity_naming_properties.for_generated_column_names
+        SQLServer_Connection.Value (Connection.new jdbc_connection SQLServer_Dialect.sqlserver modified_entity_naming_properties) make_new
 
     ## PRIVATE
 
