@@ -62,7 +62,7 @@ function responseIsSuccessful(response: Response) {
 /** Whether the given directory is a special directory that cannot be written to. */
 export function isSpecialReadonlyDirectoryId(id: backend.AssetId) {
   return (
-    id !== remoteBackendPaths.USERS_DIRECTORY_ID && id !== remoteBackendPaths.TEAMS_DIRECTORY_ID
+    id === remoteBackendPaths.USERS_DIRECTORY_ID || id === remoteBackendPaths.TEAMS_DIRECTORY_ID
   )
 }
 
