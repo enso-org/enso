@@ -302,7 +302,6 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   const [localRootDirectories, setLocalRootDirectories] =
     useLocalStorageState('localRootDirectories')
   const hasUserAndTeamSpaces = backend.userHasUserAndTeamSpaces(user)
-  const { setModal } = modalProvider.useSetModal()
 
   const localBackend = backendProvider.useLocalBackend()
   const itemProps = { currentCategory: category, setCategory, dispatchAssetEvent }
@@ -501,31 +500,27 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                 dropZoneLabel={getText('localCategoryDropZoneLabel')}
               />
               <div className="grow" />
-              <ariaComponents.Button
-                size="medium"
-                variant="icon"
-                icon={Minus2Icon}
-                aria-label={getText('removeDirectoryFromFavorites')}
-                className="hidden group-hover:block"
-                onPress={() => {
-                  setModal(
-                    <ConfirmDeleteModal
-                      actionText={getText(
-                        'removeTheLocalDirectoryXFromFavorites',
-                        getFileName(directory),
-                      )}
-                      actionButtonLabel={getText('remove')}
-                      doDelete={() => {
-                        setLocalRootDirectories(
-                          localRootDirectories.filter(
-                            (otherDirectory) => otherDirectory !== directory,
-                          ),
-                        )
-                      }}
-                    />,
-                  )
-                }}
-              />
+              <ariaComponents.DialogTrigger>
+                <ariaComponents.Button
+                  size="medium"
+                  variant="icon"
+                  icon={Minus2Icon}
+                  aria-label={getText('removeDirectoryFromFavorites')}
+                  className="hidden group-hover:block"
+                />
+                <ConfirmDeleteModal
+                  actionText={getText(
+                    'removeTheLocalDirectoryXFromFavorites',
+                    getFileName(directory),
+                  )}
+                  actionButtonLabel={getText('remove')}
+                  doDelete={() => {
+                    setLocalRootDirectories(
+                      localRootDirectories.filter((otherDirectory) => otherDirectory !== directory),
+                    )
+                  }}
+                />
+              </ariaComponents.DialogTrigger>
             </div>
           ))}
         {localBackend && window.fileBrowserApi && (

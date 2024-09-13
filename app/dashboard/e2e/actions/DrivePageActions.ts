@@ -249,9 +249,12 @@ export default class DrivePageActions extends PageActions {
 
   /** Create a new folder using the icon in the Drive Bar. */
   createFolder() {
-    return this.step('Create folder', (page) =>
-      page.getByRole('button', { name: TEXT.newFolder, exact: true }).click(),
-    )
+    return this.step('Create folder', async (page) => {
+      await page.getByRole('button', { name: TEXT.newFolder, exact: true }).click()
+      // eslint-disable-next-line no-restricted-properties
+      await test.expect(page.locator('input:focus')).toBeVisible()
+      await page.keyboard.press('Escape')
+    })
   }
 
   /** Upload a file using the icon in the Drive Bar. */
