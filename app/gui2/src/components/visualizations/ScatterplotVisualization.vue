@@ -54,8 +54,9 @@ interface Data {
   focus: Focus | undefined
   points: PointsConfiguration
   data: Point[]
+  isTimeSeries: boolean
+  x_value_type: string
   is_multi_series?: boolean
-  is_time_series?: boolean
 }
 
 interface Focus {
@@ -140,18 +141,33 @@ const SCALE_TO_D3_SCALE: any = {
   [ScaleType.Time]: () => d3.scaleTime(),
 }
 
+const createDate = (x) => {
+  const today = new Date()
+  today.setHours(x.hour)
+  today.setMinutes(x.minute)
+  today.setSeconds(x.second)
+  return today
+}
+
 const data = computed<Data>(() => {
   let rawData = props.data
   const unfilteredData =
     Array.isArray(rawData) ? rawData.map((y, index) => ({ x: index, y })) : rawData.data ?? []
   let data: Point[]
   // eslint-disable-next-line camelcase
-  const is_time_series: boolean = !!rawData.is_time_series
+  const isTimeSeries: boolean =
+    rawData.x_value_type ?
+      rawData.x_value_type === 'Time' || rawData.x_value_type === 'Date'
+    : false
   // eslint-disable-next-line camelcase
-  if (is_time_series) {
+  if (isTimeSeries) {
     data = unfilteredData
       .filter((point) => typeof point.y === 'number' && !Number.isNaN(point.y))
-      .map((point) => ({ ...point, x: new Date(point.x) }))
+      .map((point) =>
+        rawData.x_value_type === 'Time' ?
+          { ...point, x: createDate(point.x) }
+        : { ...point, x: new Date(point.x) },
+      )
   } else {
     data = unfilteredData.filter(
       (point) =>
@@ -166,7 +182,7 @@ const data = computed<Data>(() => {
   }
   const axis: AxesConfiguration = rawData.axis ?? {
     // eslint-disable-next-line camelcase
-    x: { label: '', scale: is_time_series ? ScaleType.Time : ScaleType.Linear },
+    x: { label: '', scale: isTimeSeries ? ScaleType.Time : ScaleType.Linear },
     y: { label: '', scale: ScaleType.Linear },
   }
   const points = rawData.points ?? { labels: 'visible' }
@@ -174,7 +190,15 @@ const data = computed<Data>(() => {
   // eslint-disable-next-line camelcase
   const is_multi_series: boolean = !!rawData.is_multi_series
   // eslint-disable-next-line camelcase
-  return { axis, points, data, focus, is_multi_series, is_time_series }
+  return {
+    axis,
+    points,
+    data,
+    focus,
+    is_multi_series,
+    x_value_type: rawData.x_value_type,
+    isTimeSeries,
+  }
 })
 
 const containerNode = ref<HTMLElement>()
@@ -239,9 +263,7 @@ const height = computed(() =>
 
 const boxWidth = computed(() => Math.max(0, width.value - margin.value.left - margin.value.right))
 const boxHeight = computed(() => Math.max(0, height.value - margin.value.top - margin.value.bottom))
-const xTicks = computed(() =>
-  data.value.is_time_series ? boxWidth.value / 60 : boxWidth.value / 40,
-)
+const xTicks = computed(() => (data.value.isTimeSeries ? boxWidth.value / 60 : boxWidth.value / 40))
 const yTicks = computed(() => boxHeight.value / 20)
 const xLabelLeft = computed(
   () =>
@@ -489,9 +511,10 @@ watchEffect(() => {
 // === Update x axis ===
 
 watchPostEffect(() => {
+  const xTickFormat = data.value.x_value_type === 'Time' ? '%H:%M:%S' : '%d/%m/%Y'
   const xCallVal =
-    data.value.is_time_series ?
-      d3.axisBottom<Date>(xScale.value).ticks(xTicks.value).tickFormat(d3.utcFormat('%d/%m/%Y'))
+    data.value.isTimeSeries ?
+      d3.axisBottom<Date>(xScale.value).ticks(xTicks.value).tickFormat(d3.utcFormat(xTickFormat))
     : d3.axisBottom<string>(xScale.value).ticks(xTicks.value)
   return d3XAxis.value.transition().duration(animationDuration.value).call(xCallVal)
 })
