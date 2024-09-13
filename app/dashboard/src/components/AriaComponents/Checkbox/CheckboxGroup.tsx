@@ -72,6 +72,7 @@ export const CheckboxGroup = forwardRef(
     return (
       <Form.Controller
         name={name}
+        control={formInstance.control}
         {...(defaultValueOverride != null && { defaultValue: defaultValueOverride })}
         render={({ field, fieldState }) => {
           const defaultValue = defaultValueOverride ?? formInstance.control._defaultValues[name]
