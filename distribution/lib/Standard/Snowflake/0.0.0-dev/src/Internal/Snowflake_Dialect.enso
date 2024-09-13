@@ -46,6 +46,7 @@ from Standard.Database.Dialect import Temp_Table_Style
 from Standard.Database.Dialect_Flags import all
 from Standard.Database.Errors import SQL_Error, Unsupported_Database_Operation
 from Standard.Database.Internal.IR.Operation_Metadata import Date_Period_Metadata
+from Standard.Database.Internal.JDBC_Connection import JDBC_Connection
 from Standard.Database.Internal.Statement_Setter import fill_hole_default
 
 import project.Internal.Snowflake_Error_Mapper.Snowflake_Error_Mapper
@@ -304,6 +305,11 @@ type Snowflake_Dialect
         Value_Type.Time        -> True
         Value_Type.Date_Time _ -> True
         _                      -> False
+
+    ## PRIVATE
+    ensure_query_has_no_holes : JDBC_Connection -> Text -> Nothing ! Illegal_Argument
+    ensure_query_has_no_holes self jdbc:JDBC_Connection raw_sql:Text =
+        jdbc.ensure_query_has_no_holes raw_sql
 
     ## PRIVATE
        In Snowflake we need to create tables outside of transactions.

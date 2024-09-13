@@ -30,7 +30,7 @@
  * `kind` field provides a unique string that can be used to brand the error in place of the
  * `internalCode`, when rethrowing the error. */
 import * as amplify from '@aws-amplify/auth'
-import type * as cognito from 'amazon-cognito-identity-js'
+import * as cognito from 'amazon-cognito-identity-js'
 import * as results from 'ts-results'
 
 import * as detect from 'enso-common/src/detect'
@@ -69,6 +69,18 @@ interface UserAttributes {
   readonly 'custom:organizationId'?: string
 }
 /* eslint-enable @typescript-eslint/naming-convention */
+
+/**
+ * The type of multi-factor authentication (MFA) that the user has set up.
+ */
+export type MfaType = 'NOMFA' | 'SMS_MFA' | 'SOFTWARE_TOKEN_MFA' | 'TOTP'
+
+/**
+ * The type of challenge that the user is currently facing after signing in.
+ *
+ * The `NO_CHALLENGE` value is used when the user is not currently facing any challenge.
+ */
+export type UserSessionChallenge = cognito.ChallengeName | 'NO_CHALLENGE'
 
 /** User information returned from {@link amplify.Auth.currentUserInfo}. */
 interface UserInfo {
@@ -214,6 +226,16 @@ export class Cognito {
     return userInfo.attributes['custom:organizationId'] ?? null
   }
 
+  /**
+   * Gets user email from cognito
+   */
+  async email() {
+    // This `any` comes from a third-party API and cannot be avoided.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const userInfo: UserInfo = await amplify.Auth.currentUserInfo()
+    return userInfo.attributes.email
+  }
+
   /** Sign up with username and password.
    *
    * Does not rely on federated identity providers (e.g., Google or GitHub). */
@@ -268,7 +290,20 @@ export class Cognito {
    * Does not rely on external identity providers (e.g., Google or GitHub). */
   async signInWithPassword(username: string, password: string) {
     const result = await results.Result.wrapAsync(async () => {
-      await amplify.Auth.signIn(username, password)
+      // This `any` comes from a third-party API and cannot be avoided.
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const maybeUser = await amplify.Auth.signIn(username, password)
+
+      if (maybeUser instanceof cognito.CognitoUser) {
+        return maybeUser
+      } else {
+        // eslint-disable-next-line no-restricted-properties
+        console.error(
+          'Unknown result from signIn, expected CognitoUser, got ' + typeof maybeUser,
+          JSON.stringify(maybeUser),
+        )
+        throw new Error('Unknown response from the server, please try again later ')
+      }
     })
 
     return result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoSignInWithPasswordErrorOrThrow)
@@ -361,6 +396,112 @@ export class Cognito {
     } else {
       return results.Err(cognitoUserResult.val)
     }
+  }
+
+  /**
+   * Start the TOTP setup process. Returns the secret and the URL to scan the QR code.
+   */
+  async setupTOTP() {
+    const email = await this.email()
+    const cognitoUserResult = await currentAuthenticatedUser()
+    if (cognitoUserResult.ok) {
+      const cognitoUser = cognitoUserResult.unwrap()
+
+      const result = (
+        await results.Result.wrapAsync(() => amplify.Auth.setupTOTP(cognitoUser))
+      ).map((data) => {
+        const str = 'otpauth://totp/AWSCognito:' + email + '?secret=' + data + '&issuer=' + 'Enso'
+
+        return { secret: data, url: str } as const
+      })
+
+      return result.mapErr(intoAmplifyErrorOrThrow)
+    } else {
+      return results.Err(cognitoUserResult.val)
+    }
+  }
+
+  /**
+   * Verify the TOTP token during the setup process.
+   * Use it *only* during the setup process.
+   */
+  async verifyTotpSetup(totpToken: string) {
+    const cognitoUserResult = await currentAuthenticatedUser()
+    if (cognitoUserResult.ok) {
+      const cognitoUser = cognitoUserResult.unwrap()
+      const result = await results.Result.wrapAsync(async () => {
+        await amplify.Auth.verifyTotpToken(cognitoUser, totpToken)
+      })
+      return result.mapErr(intoAmplifyErrorOrThrow)
+    } else {
+      return results.Err(cognitoUserResult.val)
+    }
+  }
+
+  /**
+   * Set the user's preferred MFA method.
+   */
+  async updateMFAPreference(mfaMethod: MfaType) {
+    const cognitoUserResult = await currentAuthenticatedUser()
+    if (cognitoUserResult.ok) {
+      const cognitoUser = cognitoUserResult.unwrap()
+      const result = await results.Result.wrapAsync(
+        async () => await amplify.Auth.setPreferredMFA(cognitoUser, mfaMethod),
+      )
+      return result.mapErr(intoAmplifyErrorOrThrow)
+    } else {
+      return results.Err(cognitoUserResult.val)
+    }
+  }
+
+  /**
+   * Get the user's preferred MFA method.
+   */
+  async getMFAPreference() {
+    const cognitoUserResult = await currentAuthenticatedUser()
+    if (cognitoUserResult.ok) {
+      const cognitoUser = cognitoUserResult.unwrap()
+      const result = await results.Result.wrapAsync(async () => {
+        // eslint-disable-next-line no-restricted-syntax
+        return (await amplify.Auth.getPreferredMFA(cognitoUser)) as MfaType
+      })
+      return result.mapErr(intoAmplifyErrorOrThrow)
+    } else {
+      return results.Err(cognitoUserResult.val)
+    }
+  }
+
+  /**
+   * Verify the TOTP token.
+   * Returns the user session if the token is valid.
+   */
+  async verifyTotpToken(totpToken: string) {
+    const cognitoUserResult = await currentAuthenticatedUser()
+
+    if (cognitoUserResult.ok) {
+      const cognitoUser = cognitoUserResult.unwrap()
+
+      return (
+        await results.Result.wrapAsync(() => amplify.Auth.verifyTotpToken(cognitoUser, totpToken))
+      ).mapErr(intoAmplifyErrorOrThrow)
+    } else {
+      return results.Err(cognitoUserResult.val)
+    }
+  }
+
+  /**
+   * Confirm the sign in with the MFA token.
+   */
+  async confirmSignIn(
+    user: amplify.CognitoUser,
+    confirmationCode: string,
+    mfaType: 'SMS_MFA' | 'SOFTWARE_TOKEN_MFA',
+  ) {
+    const result = await results.Result.wrapAsync(() =>
+      amplify.Auth.confirmSignIn(user, confirmationCode, mfaType),
+    )
+
+    return result.mapErr(intoAmplifyErrorOrThrow)
   }
 
   /** We want to signal to Amplify to fire a "custom state change" event when the user is
@@ -707,3 +848,4 @@ async function currentAuthenticatedUser() {
   )
   return result.mapErr(intoAmplifyErrorOrThrow)
 }
+export { CognitoUser } from '@aws-amplify/auth'

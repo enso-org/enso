@@ -331,7 +331,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
           break
         }
         default: {
-          return
+          break
         }
       }
     } else {
@@ -549,18 +549,18 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
         }
         case AssetEventType.deleteLabel: {
           setAsset((oldAsset) => {
-            // The IIFE is required to prevent TypeScript from narrowing this value.
-            let found = (() => false)()
-            const labels =
-              oldAsset.labels?.filter((label) => {
-                if (label === event.labelName) {
-                  found = true
-                  return false
-                } else {
-                  return true
-                }
-              }) ?? null
-            return found ? object.merge(oldAsset, { labels }) : oldAsset
+            const oldLabels = oldAsset.labels ?? []
+            const labels: backendModule.LabelName[] = []
+
+            for (const label of oldLabels) {
+              if (label !== event.labelName) {
+                labels.push(label)
+              }
+            }
+
+            return oldLabels.length !== labels.length ?
+                object.merge(oldAsset, { labels })
+              : oldAsset
           })
           break
         }

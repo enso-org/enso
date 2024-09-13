@@ -36,8 +36,8 @@ export default function AuthenticationPage<Schema extends TSchema>(
   props: AuthenticationPageProps<Schema>,
 ) {
   const { title, children, footer, supportsOffline = false, ...formProps } = props
-  const { form, schema, onSubmit } = formProps
-  const isForm = onSubmit != null && (form != null || schema != null)
+  const { form, schema } = formProps
+  const isForm = schema != null || form != null
 
   const { getText } = useText()
   const { isOffline } = useOffline()
@@ -88,7 +88,7 @@ export default function AuthenticationPage<Schema extends TSchema>(
             : <Form
                 // This is SAFE, as the props type of this type extends `FormProps`.
                 // eslint-disable-next-line no-restricted-syntax
-                {...(formProps as FormProps<Schema>)}
+                {...(form ? { form } : (formProps as FormProps<Schema>))}
                 className={containerClasses}
               >
                 {(innerProps) => (

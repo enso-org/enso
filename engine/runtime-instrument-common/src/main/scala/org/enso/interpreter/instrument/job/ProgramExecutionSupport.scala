@@ -728,15 +728,23 @@ object ProgramExecutionSupport {
     * @param value the expression value.
     * @return the method call info
     */
-  private def toMethodCall(value: ExpressionValue): Option[Api.MethodCall] =
+  private def toMethodCall(value: ExpressionValue): Option[Api.MethodCall] = {
+    // While hiding the cached method pointer info for evaluated values, it is a
+    // good idea to return the cached method pointer value for dataflow errors
+    // (the one before the value turned into a dataflow error) to continue
+    // displaying widgets on child nodes even after those nodes become errors.
+    def notCachedAndNotDataflowError: Boolean =
+      !value.wasCached() && !value.getValue.isInstanceOf[DataflowError]
     for {
       call <-
-        if (Types.isPanic(value.getType)) Option(value.getCallInfo)
+        if (Types.isPanic(value.getType) || notCachedAndNotDataflowError)
+          Option(value.getCallInfo)
         else Option(value.getCallInfo).orElse(Option(value.getCachedCallInfo))
       methodPointer <- toMethodPointer(call.functionPointer)
     } yield {
       Api.MethodCall(methodPointer, call.notAppliedArguments.toVector)
     }
+  }
 
   /** Extract the method pointer information form the provided runtime function
     * pointer.

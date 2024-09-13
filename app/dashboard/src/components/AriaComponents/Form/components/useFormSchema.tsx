@@ -3,8 +3,8 @@ import * as React from 'react'
 
 import * as callbackEventHooks from '#/hooks/eventCallbackHooks'
 
-import * as schemaComponent from '#/components/AriaComponents/Form/components/schema'
-import type * as types from '#/components/AriaComponents/Form/components/types'
+import * as schemaComponent from './schema'
+import type * as types from './types'
 
 // =====================
 // === useFormSchema ===
