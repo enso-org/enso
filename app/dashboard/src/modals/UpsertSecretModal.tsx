@@ -27,6 +27,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
     <Dialog
       title={isCreatingSecret ? getText('newSecret') : getText('editSecret')}
       modalProps={defaultOpen == null ? {} : { defaultOpen }}
+      isDismissable={false}
     >
       <Form
         testId="upsert-secret-modal"
