@@ -283,6 +283,13 @@ export class Cognito {
   async refreshUserSession() {
     return Promise.resolve(results.Ok(null))
   }
+
+  /**
+   * Returns MFA preference for the current user.
+   */
+  async getMFAPreference() {
+    return Promise.resolve(results.Ok('NOMFA'))
+  }
 }
 
 // ===================

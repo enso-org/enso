@@ -379,6 +379,7 @@ inset 0 -8px 11.4px -11.4px #00000005, inset 0 -15px 21.3px -21.3px #00000006, \
 inset 0 -36px 51px -51px #00000014`,
       },
       animation: {
+        'caret-blink': 'caret-blink 1.5s ease-out infinite',
         'spin-ease': 'spin cubic-bezier(0.67, 0.33, 0.33, 0.67) 1.5s infinite',
         'appear-delayed': 'appear-delayed 0.5s ease-in-out',
       },
@@ -420,6 +421,10 @@ inset 0 -36px 51px -51px #00000014`,
           '99%': { opacity: '0' },
           '100%': { opacity: '1' },
         },
+        'caret-blink': {
+          '0%,70%,100%': { opacity: '1' },
+          '20%,50%': { opacity: '0' },
+        },
       },
     },
   },
@@ -428,6 +433,12 @@ inset 0 -36px 51px -51px #00000014`,
     animate,
     plugin(({ addVariant, addUtilities, matchUtilities, addComponents, theme }) => {
       addVariant('group-hover-2', ['.group:where([data-hovered]) &', '.group:where(:hover) &'])
+
+      addUtilities({
+        '.scrollbar-gutter-stable': {
+          scrollbarGutter: 'stable',
+        },
+      })
 
       addUtilities(
         {

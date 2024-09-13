@@ -925,16 +925,7 @@ class RuntimeErrorsTest
       TestMessages.update(
         contextId,
         xId,
-        ConstantsGen.INTEGER,
-        methodCall = Some(
-          Api.MethodCall(
-            Api.MethodPointer(
-              "Standard.Base.Error",
-              "Standard.Base.Error.Error",
-              "throw"
-            )
-          )
-        )
+        ConstantsGen.INTEGER
       ),
       TestMessages.update(
         contextId,

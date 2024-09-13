@@ -7,6 +7,7 @@ import EyeCrossedIcon from '#/assets/eye_crossed.svg'
 import {
   Button,
   Input,
+  type FieldPath,
   type FieldValues,
   type InputProps,
   type TSchema,
@@ -17,7 +18,7 @@ import {
 // ================
 
 /** Props for a {@link Password}. */
-export interface PasswordProps<Schema extends TSchema, TFieldName extends Path<FieldValues<Schema>>>
+export interface PasswordProps<Schema extends TSchema, TFieldName extends FieldPath<Schema>>
   extends Omit<InputProps<Schema, TFieldName>, 'type'> {}
 
 /** A component wrapping {@link Input} with the ability to show and hide password. */

@@ -137,7 +137,7 @@ export const DatePicker = forwardRef(function DatePicker<
       ref={ref}
       style={props.style}
     >
-      <Controller
+      <Form.Controller
         control={formInstance.control}
         name={name}
         render={(renderProps) => {

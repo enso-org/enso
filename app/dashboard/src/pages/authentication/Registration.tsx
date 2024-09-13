@@ -89,6 +89,14 @@ export default function Registration() {
             })
           }
         }),
+    onSubmit: async ({ email, password }) => {
+      localStorage.set('termsOfService', { versionHash: tosHash })
+      localStorage.set('privacyPolicy', { versionHash: privacyPolicyHash })
+
+      await signUp(email, password, organizationId)
+
+      stepperState.nextStep()
+    },
   })
 
   const { stepperState } = useStepperState({ steps: 2, defaultStep: 0 })
@@ -161,24 +169,14 @@ export default function Registration() {
               {getText('createANewAccount')}
             </Text.Heading>
 
-            <Form
-              form={signupForm}
-              onSubmit={async ({ email, password }) => {
-                localStorage.set('termsOfService', { versionHash: tosHash })
-                localStorage.set('privacyPolicy', { versionHash: privacyPolicyHash })
-
-                await signUp(email, password, organizationId)
-
-                stepperState.nextStep()
-              }}
-            >
+            <Form form={signupForm}>
               {({ form }) => (
                 <>
                   <Input
                     form={form}
                     autoFocus
                     required
-                    data-testid="email-input"
+                    testId="email-input"
                     name="email"
                     label={getText('emailLabel')}
                     type="email"
@@ -193,7 +191,7 @@ export default function Registration() {
                   <Password
                     form={form}
                     required
-                    data-testid="password-input"
+                    testId="password-input"
                     name="password"
                     label={getText('passwordLabel')}
                     autoComplete="new-password"
@@ -205,7 +203,7 @@ export default function Registration() {
                   <Password
                     form={form}
                     required
-                    data-testid="confirm-password-input"
+                    testId="confirm-password-input"
                     name="confirmPassword"
                     label={getText('confirmPasswordLabel')}
                     autoComplete="new-password"
