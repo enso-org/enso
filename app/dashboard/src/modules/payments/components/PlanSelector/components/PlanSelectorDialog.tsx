@@ -155,7 +155,7 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
                   form={form}
                   name="period"
                   // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-                  items={[1, 12, 36]}
+                  items={[12, 36]}
                   label={getText('billingPeriod')}
                 >
                   {(item) => billingPeriodToString(getText, item)}
