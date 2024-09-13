@@ -797,6 +797,8 @@ export default function AssetsTable(props: AssetsTableProps) {
   const nodeMapRef = React.useRef<
     ReadonlyMap<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>
   >(new Map<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>())
+  const isAssetContextMenuVisible =
+    category.type !== 'cloud' || user.plan == null || user.plan === backendModule.Plan.solo
 
   const queryClient = useQueryClient()
 
@@ -2684,22 +2686,24 @@ export default function AssetsTable(props: AssetsTableProps) {
     <div
       className="flex grow flex-col"
       onContextMenu={(event) => {
-        event.preventDefault()
-        event.stopPropagation()
-        setModal(
-          <AssetsTableContextMenu
-            backend={backend}
-            category={category}
-            pasteData={pasteData}
-            nodeMapRef={nodeMapRef}
-            event={event}
-            rootDirectoryId={rootDirectoryId}
-            doCopy={doCopy}
-            doCut={doCut}
-            doPaste={doPaste}
-            doDelete={doDeleteById}
-          />,
-        )
+        if (isAssetContextMenuVisible) {
+          event.preventDefault()
+          event.stopPropagation()
+          setModal(
+            <AssetsTableContextMenu
+              backend={backend}
+              category={category}
+              pasteData={pasteData}
+              nodeMapRef={nodeMapRef}
+              event={event}
+              rootDirectoryId={rootDirectoryId}
+              doCopy={doCopy}
+              doCut={doCut}
+              doPaste={doPaste}
+              doDelete={doDeleteById}
+            />,
+          )
+        }
       }}
       onDragLeave={(event) => {
         const payload = drag.LABELS.lookup(event)
