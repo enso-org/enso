@@ -5,6 +5,7 @@ import * as modalProvider from '#/providers/ModalProvider'
 
 import * as aria from '#/components/aria'
 
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { AnimatePresence, motion } from 'framer-motion'
 
 const PLACEHOLDER = <div />
@@ -26,30 +27,41 @@ export interface DialogTriggerProps extends Omit<aria.DialogTriggerProps, 'child
     React.ReactElement,
     React.ReactElement | ((props: DialogTriggerRenderProps) => React.ReactElement),
   ]
+  readonly onOpen?: () => void
+  readonly onClose?: () => void
 }
 
 /** A DialogTrigger opens a dialog when a trigger element is pressed. */
 export function DialogTrigger(props: DialogTriggerProps) {
-  const { children, onOpenChange, ...triggerProps } = props
+  const { children, onOpenChange, onOpen = () => {}, onClose = () => {}, ...triggerProps } = props
 
-  const [isOpened, setIsOpened] = React.useState(false)
+  const [isOpened, setIsOpened] = React.useState(
+    triggerProps.isOpen ?? triggerProps.defaultOpen ?? false,
+  )
   const { setModal, unsetModal } = modalProvider.useSetModal()
 
-  const onOpenChangeInternal = React.useCallback(
-    (opened: boolean) => {
-      if (opened) {
-        // We're using a placeholder here just to let the rest of the code know that the modal
-        // is open.
-        setModal(PLACEHOLDER)
-      } else {
-        unsetModal()
-      }
+  const onOpenStableCallback = useEventCallback(onOpen)
+  const onCloseStableCallback = useEventCallback(onClose)
 
-      setIsOpened(opened)
-      onOpenChange?.(opened)
-    },
-    [setModal, unsetModal, onOpenChange],
-  )
+  const onOpenChangeInternal = useEventCallback((opened: boolean) => {
+    if (opened) {
+      // We're using a placeholder here just to let the rest of the code know that the modal
+      // is open.
+      setModal(PLACEHOLDER)
+    } else {
+      unsetModal()
+      onCloseStableCallback()
+    }
+
+    setIsOpened(opened)
+    onOpenChange?.(opened)
+  })
+
+  React.useEffect(() => {
+    if (isOpened) {
+      onOpenStableCallback()
+    }
+  }, [isOpened, onOpenStableCallback])
 
   const renderProps = {
     isOpened,

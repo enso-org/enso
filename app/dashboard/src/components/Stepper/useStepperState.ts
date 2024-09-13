@@ -81,19 +81,28 @@ export function useStepperState(props: StepperStateProps): UseStepperStateResult
 
   const setCurrentStep = eventCallbackHooks.useEventCallback(
     (step: number | ((current: number) => number)) => {
-      privateSetCurrentStep((current) => {
-        const nextStep = typeof step === 'function' ? step(current.current) : step
-        const direction = nextStep > current.current ? 'forward' : 'back'
+      React.startTransition(() => {
+        privateSetCurrentStep((current) => {
+          const nextStep = typeof step === 'function' ? step(current.current) : step
+          const direction = nextStep > current.current ? 'forward' : 'back'
 
-        if (nextStep < 0) {
-          return { current: 0, direction: 'back-none' }
-        } else if (nextStep > steps - 1) {
-          onCompletedStableCallback()
-          return { current: steps - 1, direction: 'forward-none' }
-        } else {
-          onStepChangeStableCallback(nextStep, direction)
-          return { current: nextStep, direction }
-        }
+          if (nextStep < 0) {
+            return {
+              current: 0,
+              direction: 'back-none',
+            }
+          } else if (nextStep > steps - 1) {
+            onCompletedStableCallback()
+            return {
+              current: steps - 1,
+              direction: 'forward-none',
+            }
+          } else {
+            onStepChangeStableCallback(nextStep, direction)
+
+            return { current: nextStep, direction }
+          }
+        })
       })
     },
   )

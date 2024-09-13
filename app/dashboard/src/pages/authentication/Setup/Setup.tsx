@@ -354,7 +354,11 @@ const BASE_STEPS: Step[] = [
             iconPosition="end"
             onPress={() =>
               queryClient.invalidateQueries().then(() => {
-                navigate(DASHBOARD_PATH)
+                navigate(
+                  DASHBOARD_PATH +
+                    '?' +
+                    new URLSearchParams({ startModalDefaultOpen: 'true' }).toString(),
+                )
               })
             }
           >

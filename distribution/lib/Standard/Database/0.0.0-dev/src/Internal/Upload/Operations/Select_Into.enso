@@ -9,22 +9,23 @@ import project.Internal.DDL_Transaction
 from project.Errors import SQL_Error, Table_Already_Exists
 from project.Internal.Upload.Helpers.Constants import dry_run_row_limit
 from project.Internal.Upload.Helpers.Error_Helpers import handle_upload_errors
-from project.Internal.Upload.Operations.Internal_Core import internal_upload_table
+from project.Internal.Upload.Operations.Internal_Core import internal_upload_table, resolve_temp_table_name
 
 ## PRIVATE
 select_into_table_implementation source_table connection table_name primary_key temporary on_problems:Problem_Behavior =
     connection.base_connection.maybe_run_maintenance
+    resolved_table_name = resolve_temp_table_name connection temporary table_name
     table_naming_helper = connection.base_connection.table_naming_helper
-    table_naming_helper.verify_table_name table_name <|
+    table_naming_helper.verify_table_name resolved_table_name <|
         Panic.recover SQL_Error <| handle_upload_errors <|
-            real_target_already_exists = connection.base_connection.table_exists table_name
-            if real_target_already_exists then Error.throw (Table_Already_Exists.Error table_name) else
+            real_target_already_exists = connection.base_connection.table_exists resolved_table_name
+            if real_target_already_exists then Error.throw (Table_Already_Exists.Error resolved_table_name) else
                 dry_run = Context.Output.is_enabled.not
                 case dry_run of
                     False ->
-                        upload_table_in_transaction source_table connection table_name primary_key temporary=temporary on_problems=on_problems row_limit=Nothing
+                        upload_table_in_transaction source_table connection resolved_table_name primary_key temporary=temporary on_problems=on_problems row_limit=Nothing
                     True ->
-                        tmp_table_name = table_naming_helper.generate_dry_run_table_name table_name
+                        tmp_table_name = table_naming_helper.generate_dry_run_table_name resolved_table_name
                         create_dry_run_table _ =
                             table = Context.Output.with_enabled <|
                                 ## This temporary table can be safely dropped if it

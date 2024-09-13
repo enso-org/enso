@@ -37,6 +37,7 @@ import org.enso.text.editing.model.IdMap
 import java.io.File
 import java.util
 import java.util.UUID
+import java.util.function.Consumer
 import java.util.logging.Level
 import scala.jdk.OptionConverters._
 
@@ -389,7 +390,7 @@ class EnsureCompiledJob(
       CacheInvalidation.Command.InvalidateKeys(
         changeset.invalidated ++ resolutionErrors
       )
-    val moduleIds = ir.preorder().flatMap(_.location()).flatMap(_.id()).toSet
+    val moduleIds = getModuleIds(ir)
     val invalidateStaleCommand =
       CacheInvalidation.Command.InvalidateStale(moduleIds)
     Seq(
@@ -406,6 +407,13 @@ class EnsureCompiledJob(
     )
   }
 
+  private def getModuleIds(ir: IR): Set[UUID @ExternalID] = {
+    val builder = Set.newBuilder[UUID @ExternalID]
+    IR.preorder(ir, _.getExternalId.foreach(builder.addOne))
+
+    builder.result()
+  }
+
   /** Looks for the nodes with the resolution error and their dependents.
     *
     * @param ir the module IR
@@ -418,25 +426,26 @@ class EnsureCompiledJob(
         "Empty dataflow analysis metadata during the interactive compilation."
       )
 
-    val resolutionNotFoundKeys =
-      ir.preorder()
-        .collect {
-          case err @ expression.errors.Resolution(
-                _,
-                expression.errors.Resolution
-                  .ResolverError(BindingsMap.ResolutionNotFound),
-                _
-              ) =>
-            DataflowAnalysis.DependencyInfo.Type.Static(
-              err.getId(),
-              err.getExternalId
-            )
-        }
-        .toSet
-
-    resolutionNotFoundKeys.flatMap(
-      metadata.dependents.getExternal(_).getOrElse(Set())
+    val builder = Set.newBuilder[UUID @ExternalID]
+    IR.preorder(
+      ir,
+      {
+        case err @ expression.errors.Resolution(
+              _,
+              expression.errors.Resolution
+                .ResolverError(BindingsMap.ResolutionNotFound),
+              _
+            ) =>
+          val key = DataflowAnalysis.DependencyInfo.Type.Static(
+            err.getId(),
+            err.getExternalId
+          )
+          metadata.dependents.getExternal(key).foreach(builder.addAll)
+        case _ =>
+      }: Consumer[IR]
     )
+
+    builder.result()
   }
 
   /** Run the invalidation commands.

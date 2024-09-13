@@ -131,6 +131,18 @@ const INVALIDATION_MAP: Partial<
   deleteTag: ['listTags'],
   acceptInvitation: [INVALIDATE_ALL_QUERIES],
   declineInvitation: ['usersMe'],
+  createProject: ['listDirectory'],
+  duplicateProject: ['listDirectory'],
+  createDirectory: ['listDirectory'],
+  createSecret: ['listDirectory'],
+  updateSecret: ['listDirectory'],
+  createDatalink: ['listDirectory'],
+  uploadFile: ['listDirectory'],
+  copyAsset: ['listDirectory', 'listAssetVersions'],
+  deleteAsset: ['listDirectory', 'listAssetVersions'],
+  undoDeleteAsset: ['listDirectory'],
+  updateAsset: ['listDirectory', 'listAssetVersions'],
+  closeProject: ['listDirectory', 'listAssetVersions'],
 }
 
 export function backendMutationOptions<Method extends MutationMethod>(

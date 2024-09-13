@@ -116,20 +116,17 @@ export interface AuthService {
  *
  * This hook should only be called in a single place, as it performs global configuration of the
  * Amplify library. */
-export function useInitAuthService(authConfig: AuthConfig): AuthService | null {
+export function useInitAuthService(authConfig: AuthConfig): AuthService {
   const { supportsDeepLinks } = authConfig
+
   const logger = useLogger()
   const navigate = useNavigate()
+
   return React.useMemo(() => {
     const amplifyConfig = loadAmplifyConfig(logger, supportsDeepLinks, navigate)
-    const cognito =
-      amplifyConfig == null ? null : (
-        new cognitoModule.Cognito(logger, supportsDeepLinks, amplifyConfig)
-      )
+    const cognito = new cognitoModule.Cognito(logger, supportsDeepLinks, amplifyConfig)
 
-    return cognito == null ? null : (
-        { cognito, registerAuthEventListener: listen.registerAuthEventListener }
-      )
+    return { cognito, registerAuthEventListener: listen.registerAuthEventListener }
   }, [logger, navigate, supportsDeepLinks])
 }
 
@@ -138,7 +135,7 @@ function loadAmplifyConfig(
   logger: Logger,
   supportsDeepLinks: boolean,
   navigate: (url: string) => void,
-): AmplifyConfig | null {
+): AmplifyConfig {
   let urlOpener: ((url: string) => void) | null = null
   let saveAccessToken: ((accessToken: saveAccessTokenModule.AccessToken | null) => void) | null =
     null
@@ -175,25 +172,18 @@ function loadAmplifyConfig(
 
   /** Load the platform-specific Amplify configuration. */
   const signInOutRedirect = supportsDeepLinks ? `${common.DEEP_LINK_SCHEME}://auth` : redirectUrl
-  return (
-      process.env.ENSO_CLOUD_COGNITO_USER_POOL_ID == null ||
-        process.env.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID == null ||
-        process.env.ENSO_CLOUD_COGNITO_DOMAIN == null ||
-        process.env.ENSO_CLOUD_COGNITO_REGION == null
-    ) ?
-      null
-    : {
-        userPoolId: process.env.ENSO_CLOUD_COGNITO_USER_POOL_ID,
-        userPoolWebClientId: process.env.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID,
-        domain: process.env.ENSO_CLOUD_COGNITO_DOMAIN,
-        region: process.env.ENSO_CLOUD_COGNITO_REGION,
-        redirectSignIn: signInOutRedirect,
-        redirectSignOut: signInOutRedirect,
-        scope: ['email', 'openid', 'aws.cognito.signin.user.admin'],
-        responseType: 'code',
-        urlOpener,
-        saveAccessToken,
-      }
+  return {
+    userPoolId: process.env.ENSO_CLOUD_COGNITO_USER_POOL_ID,
+    userPoolWebClientId: process.env.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID,
+    domain: process.env.ENSO_CLOUD_COGNITO_DOMAIN,
+    region: process.env.ENSO_CLOUD_COGNITO_REGION,
+    redirectSignIn: signInOutRedirect,
+    redirectSignOut: signInOutRedirect,
+    scope: ['email', 'openid', 'aws.cognito.signin.user.admin'],
+    responseType: 'code',
+    urlOpener,
+    saveAccessToken,
+  }
 }
 
 /** Set the callback that will be invoked when a deep link to the application is opened.
