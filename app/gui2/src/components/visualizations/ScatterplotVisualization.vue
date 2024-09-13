@@ -559,7 +559,7 @@ watchPostEffect(() => {
     .duration(animationDuration.value)
     .attr(
       'd',
-      symbol.type(matchShape).size((d) => (d.size ?? 1.0) * SIZE_SCALE_MULTIPLER),
+      symbol.type(matchShape).size((d) => (d.size ?? 0.15) * SIZE_SCALE_MULTIPLER),
     )
     .style('fill', (d) => colorScale(d.series || ''))
     .attr('transform', (d) => `translate(${xScale_(d.x)}, ${yScale_(d.y)})`)
@@ -574,6 +574,9 @@ watchPostEffect(() => {
       .attr('x', (d) => xScale_(d.x) + POINT_LABEL_PADDING_X_PX)
       .attr('y', (d) => yScale_(d.y) + POINT_LABEL_PADDING_Y_PX)
   }
+})
+
+watchPostEffect(() => {
   if (data.value.is_multi_series) {
     const seriesLabels = Object.keys(data.value.axis)
       .filter((s) => s != 'x')
@@ -589,9 +592,10 @@ watchPostEffect(() => {
       .range(d3.schemeCategory10)
       .domain(seriesLabels)
 
-    const legend = d3Legend.value
+    d3Legend.value.selectAll('circle').remove()
+    d3Legend.value.selectAll('text').remove()
 
-    legend
+    d3Legend.value
       .selectAll('dots')
       .data(seriesLabels)
       .enter()
@@ -603,7 +607,7 @@ watchPostEffect(() => {
       .attr('r', 6)
       .style('fill', (d) => color(d) || DEFAULT_FILL_COLOR)
 
-    legend
+    d3Legend.value
       .selectAll('labels')
       .data(seriesLabels)
       .enter()
@@ -682,7 +686,7 @@ useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSel
   <VisualizationContainer :belowToolbar="true">
     <template #toolbar>
       <SvgButton
-        name="add"
+        name="select"
         title="Enable Selection"
         @click="selectionEnabled = !selectionEnabled"
       />

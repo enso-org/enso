@@ -41,6 +41,7 @@ from project.Dialect import Temp_Table_Style
 from Standard.Database.Dialect_Flags import all
 from project.Errors import SQL_Error, Unsupported_Database_Operation
 from project.Internal.IR.Operation_Metadata import Date_Period_Metadata
+from project.Internal.JDBC_Connection import JDBC_Connection
 
 polyglot java import java.sql.Types
 
@@ -179,7 +180,7 @@ type Postgres_Dialect
        Specifies implementation details flags.
     dialect_flags : Dialect_Flags
     dialect_flags self -> Dialect_Flags =
-        rounding = Rounding_Flags.Value supports_negative_decimal_places=True supports_float_decimal_places=False
+        rounding = Rounding_Flags.Value supports_negative_decimal_places=True supports_float_decimal_places=False use_builtin_bankers=False
         Dialect_Flags.Value rounding=rounding
 
     ## PRIVATE
@@ -321,6 +322,11 @@ type Postgres_Dialect
     needs_literal_table_cast self value_type =
         _ = value_type
         False
+
+    ## PRIVATE
+    ensure_query_has_no_holes : JDBC_Connection -> Text -> Nothing ! Illegal_Argument
+    ensure_query_has_no_holes self jdbc:JDBC_Connection raw_sql:Text =
+        jdbc.ensure_query_has_no_holes raw_sql
 
 ## PRIVATE
 make_dialect_operations =

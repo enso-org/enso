@@ -35,7 +35,7 @@ export interface Sample {
 /** The full list of templates. */
 export const SAMPLES: Sample[] = [
   {
-    title: 'Blank Project',
+    title: 'New Project',
     id: 'Default',
     description: 'Start with a blank workflow.',
     background: `url("${BlankImage}") center / cover`,
