@@ -126,7 +126,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         ],
       },
       {
-        nameId: 'setupTwoFaSettingsSection',
+        nameId: 'setup2FASettingsSection',
         entries: [
           {
             type: SettingsEntryType.custom,
