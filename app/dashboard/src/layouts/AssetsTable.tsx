@@ -836,6 +836,10 @@ export default function AssetsTable(props: AssetsTableProps) {
     },
   )
 
+  React.useEffect(() => {
+    setNewestFolderId(null)
+  }, [category, setNewestFolderId])
+
   React.useEffect(
     () =>
       driveStore.subscribe(({ selectedKeys }, { selectedKeys: oldSelectedKeys }) => {

@@ -251,6 +251,8 @@ export default class DrivePageActions extends PageActions {
   createFolder() {
     return this.step('Create folder', async (page) => {
       await page.getByRole('button', { name: TEXT.newFolder, exact: true }).click()
+      // eslint-disable-next-line no-restricted-properties
+      await test.expect(page.locator('input:focus')).toBeVisible()
       await page.keyboard.press('Escape')
     })
   }
