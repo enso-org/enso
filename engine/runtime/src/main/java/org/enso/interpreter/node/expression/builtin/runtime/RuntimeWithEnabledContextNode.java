@@ -7,6 +7,7 @@ import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.state.State;
 
@@ -23,7 +24,11 @@ public class RuntimeWithEnabledContextNode extends Node {
   Object execute(
       VirtualFrame frame, State state, Atom context, Object env_name, @Suspend Object action) {
     String envName = expectStringNode.execute(env_name);
-    return thunkExecutorNode.executeThunk(
-        frame, action, state.withContextEnabledIn(context, envName), BaseNode.TailStatus.NOT_TAIL);
+    EnsoContext.get(this).enableExecutionEnvironment(context, envName);
+    try {
+      return thunkExecutorNode.executeThunk(frame, action, state, BaseNode.TailStatus.NOT_TAIL);
+    } finally {
+      EnsoContext.get(this).disableExecutionEnvironment(context, envName);
+    }
   }
 }

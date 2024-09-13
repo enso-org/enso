@@ -51,6 +51,7 @@ import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.OptionsHelper;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.instrument.NotificationHandler;
@@ -873,6 +874,30 @@ public final class EnsoContext {
   /** Set the runtime execution environment of this context. */
   public void setExecutionEnvironment(ExecutionEnvironment executionEnvironment) {
     this.executionEnvironment = executionEnvironment;
+  }
+
+  /**
+   * Enable execution context in the execution environment.
+   *
+   * @param context the execution context
+   * @param environmentName the execution environment name
+   */
+  public void enableExecutionEnvironment(Atom context, String environmentName) {
+    if (executionEnvironment.getName().equals(environmentName)) {
+      executionEnvironment = executionEnvironment.withContextEnabled(context);
+    }
+  }
+
+  /**
+   * Enable execution context in the execution environment.
+   *
+   * @param context the execution context
+   * @param environmentName the execution environment name
+   */
+  public void disableExecutionEnvironment(Atom context, String environmentName) {
+    if (executionEnvironment.getName().equals(environmentName)) {
+      executionEnvironment = executionEnvironment.withContextDisabled(context);
+    }
   }
 
   /** Returns a maximal number of warnings that can be attached to a value */
