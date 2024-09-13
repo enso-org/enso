@@ -251,7 +251,7 @@ export default class DrivePageActions extends PageActions {
   createFolder() {
     return this.step('Create folder', async (page) => {
       await page.getByRole('button', { name: TEXT.newFolder, exact: true }).click()
-      await page.press('body', 'Escape')
+      await page.keyboard.press('Escape')
     })
   }
 
