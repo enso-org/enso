@@ -39,7 +39,6 @@ import { useText } from '#/providers/TextProvider'
 import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
-import { Controller } from 'react-hook-form'
 
 const DATE_PICKER_STYLES = tv({
   base: '',
