@@ -25,6 +25,9 @@ export type TVWithoutExtends<T> = ExtractFunction<T> & Omit<T, 'extend'>
  * Props for a component that uses `tailwind-variants`.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type VariantProps<T extends (...args: any) => any> = TvVariantProps<T> & {
+export type VariantProps<T extends (...args: any) => any> = Omit<
+  TvVariantProps<T>,
+  'class' | 'className'
+> & {
   variants?: ExtractFunction<T> | undefined
 }
