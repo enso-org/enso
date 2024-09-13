@@ -261,9 +261,8 @@ object DistributionPackage {
           if (current > GENERATING_INDEX_TIMEOUT) {
             try {
               val pidOfProcess = pid(runningProcess)
-              @scala.annotation.nowarn("cat=deprecation")
               val in = java.lang.Runtime.getRuntime
-                .exec("jstack " + pidOfProcess)
+                .exec(Array("jstack", pidOfProcess.toString))
                 .getInputStream
 
               System.err.println(IOUtils.toString(in, "UTF-8"))
