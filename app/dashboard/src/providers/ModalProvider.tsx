@@ -1,5 +1,6 @@
 /** @file The React provider for modals, along with hooks to use the provider via
  * the shared React context. */
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as React from 'react'
 
 // =====================
@@ -17,10 +18,11 @@ interface ModalStaticContextType {
 
 /** State contained in a `ModalContext`. */
 interface ModalContextType {
+  readonly key: number
   readonly modal: Modal | null
 }
 
-const ModalContext = React.createContext<ModalContextType>({ modal: null })
+const ModalContext = React.createContext<ModalContextType>({ modal: null, key: 0 })
 
 const ModalStaticContext = React.createContext<ModalStaticContextType>({
   setModal: () => {
@@ -37,23 +39,34 @@ export interface ModalProviderProps extends Readonly<React.PropsWithChildren> {}
 export default function ModalProvider(props: ModalProviderProps) {
   const { children } = props
   const [modal, setModal] = React.useState<Modal | null>(null)
+  // we use key to tell react to invaldidate the modal when we change it.
+  const [key, setKey] = React.useState(0)
   const modalRef = React.useRef(modal)
 
   React.useEffect(() => {
     modalRef.current = modal
   }, [modal])
 
+  const setModalStableCallback = useEventCallback(
+    (nextModal: React.SetStateAction<React.JSX.Element | null>) => {
+      React.startTransition(() => {
+        setModal(nextModal)
+        setKey((currentKey) => currentKey + 1)
+      })
+    },
+  )
+
   // This is NOT for optimization purposes - this is for debugging purposes,
   // so that a change of `modal` does not trigger VDOM changes everywhere in the page.
   const setModalProvider = React.useMemo(
     () => (
-      <ModalStaticProvider setModal={setModal} modalRef={modalRef}>
+      <ModalStaticProvider setModal={setModalStableCallback} modalRef={modalRef}>
         {children}
       </ModalStaticProvider>
     ),
-    [children],
+    [children, setModalStableCallback],
   )
-  return <ModalContext.Provider value={{ modal }}>{setModalProvider}</ModalContext.Provider>
+  return <ModalContext.Provider value={{ modal, key }}>{setModalProvider}</ModalContext.Provider>
 }
 
 /** Props for a {@link ModalStaticProvider}. */
@@ -79,8 +92,8 @@ function ModalStaticProvider(props: InternalModalStaticProviderProps) {
 
 /** A React context hook exposing the currently active modal, if one is currently visible. */
 export function useModal() {
-  const { modal } = React.useContext(ModalContext)
-  return { modal } as const
+  const { modal, key } = React.useContext(ModalContext)
+  return { modal, key } as const
 }
 
 // ===================

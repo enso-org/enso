@@ -109,6 +109,7 @@ export const DatePicker = forwardRef(function DatePicker<
     isRequired,
     className,
     size,
+    variants = DATE_PICKER_STYLES,
   } = props
 
   const { fieldState, formInstance } = Form.useField({
@@ -118,7 +119,7 @@ export const DatePicker = forwardRef(function DatePicker<
     defaultValue,
   })
 
-  const styles = DATE_PICKER_STYLES({ size })
+  const styles = variants({ size })
 
   return (
     <Form.Field
