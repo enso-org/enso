@@ -165,6 +165,7 @@ const data = computed<Data>(() => {
     rawData = {}
   }
   const axis: AxesConfiguration = rawData.axis ?? {
+    // eslint-disable-next-line camelcase
     x: { label: '', scale: is_time_series ? ScaleType.Time : ScaleType.Linear },
     y: { label: '', scale: ScaleType.Linear },
   }
@@ -238,7 +239,9 @@ const height = computed(() =>
 
 const boxWidth = computed(() => Math.max(0, width.value - margin.value.left - margin.value.right))
 const boxHeight = computed(() => Math.max(0, height.value - margin.value.top - margin.value.bottom))
-const xTicks = computed(() => boxWidth.value / 40)
+const xTicks = computed(() =>
+  data.value.is_time_series ? boxWidth.value / 60 : boxWidth.value / 40,
+)
 const yTicks = computed(() => boxHeight.value / 20)
 const xLabelLeft = computed(
   () =>
@@ -485,12 +488,13 @@ watchEffect(() => {
 
 // === Update x axis ===
 
-watchPostEffect(() =>
-  d3XAxis.value
-    .transition()
-    .duration(animationDuration.value)
-    .call(d3.axisBottom(xScale.value).ticks(xTicks.value).tickFormat(d3.utcFormat('%d %m'))),
-)
+watchPostEffect(() => {
+  const xCallVal =
+    data.value.is_time_series ?
+      d3.axisBottom<Date>(xScale.value).ticks(xTicks.value).tickFormat(d3.utcFormat('%d/%m/%Y'))
+    : d3.axisBottom<string>(xScale.value).ticks(xTicks.value)
+  return d3XAxis.value.transition().duration(animationDuration.value).call(xCallVal)
+})
 
 // === Update y axis ===
 
