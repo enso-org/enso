@@ -134,7 +134,7 @@ export class BindingsDb {
 
 export class GraphDb {
   nodeIdToNode = new ReactiveDb<NodeId, Node>()
-  private readonly blockNodeLines = new Map<NodeId, { data: BlockLine; stop: WatchStopHandle }>()
+  private readonly blockNodeLines = new Map<NodeId, { data: Ast.Ast; stop: WatchStopHandle }>()
   private highestZIndex = 0
   private readonly idToExternalMap = reactive(new Map<Ast.AstId, ExternalId>())
   private readonly idFromExternalMap = reactive(new Map<ExternalId, Ast.AstId>())
@@ -336,6 +336,12 @@ export class GraphDb {
   ) {
     const currentNodeIds = new Set<NodeId>()
     const body = [...functionAst_.bodyExpressions()]
+    const args = functionAst_.argumentDefinitions
+    args.forEach(([arg]) => {
+      if (!arg) return
+      const argAst = arg.node
+      const nodeId = asNodeId(argAst.externalId)
+    })
     body.forEach((outerAst, index) => {
       const nodeId = nodeIdFromOuterExpr(outerAst)
       if (!nodeId) return
@@ -533,7 +539,7 @@ declare const brandNodeId: unique symbol
 
 /** An unique node identifier, shared across all clients. It is the ExternalId of node's root expression. */
 export type NodeId = string & ExternalId & { [brandNodeId]: never }
-export type NodeType = 'component' | 'output'
+export type NodeType = 'component' | 'output' | 'input'
 export function asNodeId(id: ExternalId): NodeId
 export function asNodeId(id: ExternalId | undefined): NodeId | undefined
 export function asNodeId(id: ExternalId | undefined): NodeId | undefined {

@@ -60,5 +60,7 @@ export function iconOfNode(node: NodeId, graphDb: GraphDb) {
       )
     case 'output':
       return 'data_output'
+    case 'input':
+      return 'data_output'
   }
 }

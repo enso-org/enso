@@ -98,7 +98,7 @@ export function prepareCollapsedInfo(
     }
   }
   // If there is no output found so far, it means that none of our nodes is used outside
-  // the extracted function. In such we will return value from arbitrarily chosen leaf.
+  // the extracted function. In such case we will return value from arbitrarily chosen leaf.
   if (output == null) {
     const arbitraryLeaf = set.first(leaves)
     if (arbitraryLeaf == null) throw Error('Cannot select the output node, no leaf nodes found.')
