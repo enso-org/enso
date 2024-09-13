@@ -1,5 +1,6 @@
 import io.circe.yaml
 import io.circe.syntax._
+import org.apache.commons.io.IOUtils
 import sbt.internal.util.ManagedLogger
 import sbt._
 import sbt.io.syntax.fileToRichFile
@@ -258,7 +259,21 @@ object DistributionPackage {
         var current                  = 0
         while (runningProcess.isAlive()) {
           if (current > GENERATING_INDEX_TIMEOUT) {
-            runningProcess.destroy()
+            try {
+              val pidOfProcess = pid(runningProcess)
+              @scala.annotation.nowarn("cat=deprecation")
+              val in = java.lang.Runtime.getRuntime
+                .exec("jstack " + pidOfProcess)
+                .getInputStream
+
+              System.err.println(IOUtils.toString(in, "UTF-8"))
+            } catch {
+              case e: Throwable =>
+                java.lang.System.err
+                  .println("Failed to get threaddump of a stuck process", e);
+            } finally {
+              runningProcess.destroy()
+            }
           } else {
             Thread.sleep(1000)
             current += 1
@@ -332,6 +347,38 @@ object DistributionPackage {
       log.warn(enso + " finished with exit code " + exitCode)
     }
     exitCode == 0
+  }
+
+  // https://stackoverflow.com/questions/23279898/get-process-id-of-scala-sys-process-process
+  def pid(p: Process): Long = {
+    val procField = p.getClass.getDeclaredField("p")
+    procField.synchronized {
+      procField.setAccessible(true)
+      val proc = procField.get(p)
+      try {
+        proc match {
+          case unixProc
+              if unixProc.getClass.getName == "java.lang.UNIXProcess" =>
+            val pidField = unixProc.getClass.getDeclaredField("pid")
+            pidField.synchronized {
+              pidField.setAccessible(true)
+              try {
+                pidField.getLong(unixProc)
+              } finally {
+                pidField.setAccessible(false)
+              }
+            }
+          case javaProc: java.lang.Process =>
+            javaProc.pid()
+          case other =>
+            throw new RuntimeException(
+              "Cannot get PID of a " + proc.getClass.getName
+            )
+        }
+      } finally {
+        procField.setAccessible(false)
+      }
+    }
   }
 
   /** Returns the index of the next argument after `--run`, if it exists. */
