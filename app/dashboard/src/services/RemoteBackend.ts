@@ -214,8 +214,8 @@ export default class RemoteBackend extends Backend {
   override async listUsers(): Promise<readonly backend.User[]> {
     const path = remoteBackendPaths.LIST_USERS_PATH
     const response = await this.get<ListUsersResponseBody>(path)
-    if (STATUS_NOT_ALLOWED === response.status) {
-      return [] as const
+    if (response.status === STATUS_NOT_ALLOWED) {
+      return []
     } else if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'listUsersBackendError')
     } else {
@@ -371,9 +371,9 @@ export default class RemoteBackend extends Backend {
   override async getOrganization(): Promise<backend.OrganizationInfo | null> {
     const path = remoteBackendPaths.GET_ORGANIZATION_PATH
     const response = await this.get<backend.OrganizationInfo>(path)
-    if (new Set([STATUS_NOT_ALLOWED, STATUS_NOT_FOUND]).has(response.status)) {
+    if ([STATUS_NOT_ALLOWED, STATUS_NOT_FOUND].includes(response.status)) {
       // Organization info has not yet been created.
-      // or user can't create organization
+      // or the user is not eligible to create an organization.
       return null
     } else if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'getOrganizationBackendError')
@@ -1052,8 +1052,7 @@ export default class RemoteBackend extends Backend {
   override async listUserGroups(): Promise<backend.UserGroupInfo[]> {
     const path = remoteBackendPaths.LIST_USER_GROUPS_PATH
     const response = await this.get<backend.UserGroupInfo[]>(path)
-
-    if (STATUS_NOT_ALLOWED === response.status) {
+    if (response.status === STATUS_NOT_ALLOWED) {
       return [] as const
     } else if (!responseIsSuccessful(response)) {
       return this.throw(response, 'listUserGroupsBackendError')
