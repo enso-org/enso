@@ -35,8 +35,10 @@ export interface ResizableContentEditableInputProps<
       VariantProps<typeof INPUT_STYLES>,
       'disabled' | 'invalid' | 'rounded' | 'size' | 'variant'
     >,
+    FieldVariantProps,
     Omit<FieldProps, 'variant'>,
     FieldVariantProps,
+    Pick<VariantProps<typeof INPUT_STYLES>, 'rounded' | 'size' | 'variant'>,
     Omit<
       VariantProps<typeof CONTENT_EDITABLE_STYLES>,
       'disabled' | 'invalid' | 'rounded' | 'size' | 'variant'
