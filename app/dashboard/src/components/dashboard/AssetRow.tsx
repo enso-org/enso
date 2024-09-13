@@ -225,9 +225,11 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   }, [grabKeyboardFocusRef, isKeyboardSelected, item])
 
   React.useImperativeHandle(updateAssetRef, () => ({ setAsset, item }))
+
   if (updateAssetRef.current) {
     updateAssetRef.current[item.item.id] = setAsset
   }
+
   React.useEffect(() => {
     return () => {
       if (updateAssetRef.current) {
@@ -251,7 +253,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
     [doDeleteRaw, item.item],
   )
 
-  const doTriggerDescriptionEdit = React.useCallback(() => {
+  const doTriggerDescriptionEdit = useEventCallback(() => {
     setModal(
       <EditAssetDescriptionModal
         doChangeDescription={async (description) => {
@@ -269,7 +271,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
         initialDescription={asset.description}
       />,
     )
-  }, [setModal, asset.description, asset.id, editDescriptionMutation, item.item.title])
+  })
 
   const clearDragState = React.useCallback(() => {
     setIsDraggedOver(false)
