@@ -161,7 +161,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   } else {
     return (
       <ContextMenus key={uniqueString.uniqueString()} hidden={hidden} event={event}>
-        {selectedKeys.size !== 0 && selectedKeys.size !== 1 && (
+        {selectedKeys.size !== 0 && (
           <ContextMenu aria-label={getText('assetsTableContextMenuLabel')} hidden={hidden}>
             {ownsAllSelectedAssets && (
               <ContextMenuEntry
