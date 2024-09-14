@@ -31,6 +31,7 @@ import {
   useSetCanCreateAssets,
   useSetCanDownload,
   useSetIsAssetPanelTemporarilyVisible,
+  useSetNewestFolderId,
   useSetSelectedKeys,
   useSetSuggestions,
   useSetTargetDirectory,
@@ -340,6 +341,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const [sortInfo, setSortInfo] =
     React.useState<sorting.SortInfo<columnUtils.SortableColumn> | null>(null)
   const driveStore = useDriveStore()
+  const setNewestFolderId = useSetNewestFolderId()
   const setSelectedKeys = useSetSelectedKeys()
   const setVisuallySelectedKeys = useSetVisuallySelectedKeys()
   const updateAssetRef = React.useRef<
@@ -832,6 +834,10 @@ export default function AssetsTable(props: AssetsTableProps) {
       setTargetDirectoryInStore(targetDirectory)
     },
   )
+
+  React.useEffect(() => {
+    setNewestFolderId(null)
+  }, [category, setNewestFolderId])
 
   React.useEffect(
     () =>
@@ -1573,9 +1579,12 @@ export default function AssetsTable(props: AssetsTableProps) {
         doToggleDirectoryExpansion(event.parentId, event.parentKey, true)
         insertAssets([placeholderItem], event.parentId)
 
-        createDirectoryMutation.mutate([
-          { parentId: placeholderItem.parentId, title: placeholderItem.title },
-        ])
+        void createDirectoryMutation
+          .mutateAsync([{ parentId: placeholderItem.parentId, title: placeholderItem.title }])
+          .then(({ id }) => {
+            setNewestFolderId(id)
+            setSelectedKeys(new Set([id]))
+          })
 
         break
       }
@@ -1665,6 +1674,12 @@ export default function AssetsTable(props: AssetsTableProps) {
           userGroups ?? [],
         )
         const fileMap = new Map<backendModule.AssetId, File>()
+        const uploadedFileIds: backendModule.AssetId[] = []
+        const addIdToSelection = (id: backendModule.AssetId) => {
+          uploadedFileIds.push(id)
+          const newIds = new Set(uploadedFileIds)
+          setSelectedKeys(newIds)
+        }
 
         const doUploadFile = async (asset: backendModule.AnyAsset, method: 'new' | 'update') => {
           const file = fileMap.get(asset.id)
@@ -1710,6 +1725,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     id = await response.text()
                   }
                   const projectId = localBackendModule.newProjectId(projectManager.UUID(id))
+                  addIdToSelection(projectId)
 
                   await getProjectDetailsMutation
                     .mutateAsync([projectId, asset.parentId, file.name])
@@ -1727,6 +1743,9 @@ export default function AssetsTable(props: AssetsTableProps) {
                       },
                       file,
                     ])
+                    .then(({ id }) => {
+                      addIdToSelection(id)
+                    })
                     .catch((error) => {
                       deleteAsset(asset.id)
                       toastAndLog('uploadProjectError', error)
@@ -1736,10 +1755,14 @@ export default function AssetsTable(props: AssetsTableProps) {
                 break
               }
               case backendModule.assetIsFile(asset): {
-                uploadFileMutation.mutate([
-                  { fileId, fileName: asset.title, parentDirectoryId: asset.parentId },
-                  file,
-                ])
+                void uploadFileMutation
+                  .mutateAsync([
+                    { fileId, fileName: asset.title, parentDirectoryId: asset.parentId },
+                    file,
+                  ])
+                  .then(({ id }) => {
+                    addIdToSelection(id)
+                  })
 
                 break
               }
@@ -2539,10 +2562,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     },
   )
 
-  const onRowDragLeave = useEventCallback(() => {
-    setIsDraggingFiles(false)
-  })
-
   const onRowDragEnd = useEventCallback(() => {
     setIsDraggingFiles(false)
     endAutoScroll()
@@ -2668,7 +2687,6 @@ export default function AssetsTable(props: AssetsTableProps) {
             select={selectRow}
             onDragStart={onRowDragStart}
             onDragOver={onRowDragOver}
-            onDragLeave={onRowDragLeave}
             onDragEnd={onRowDragEnd}
             onDrop={onRowDrop}
           />
@@ -2758,11 +2776,11 @@ export default function AssetsTable(props: AssetsTableProps) {
         )}
         onDragEnter={onDropzoneDragOver}
         onDragOver={onDropzoneDragOver}
-        onDragLeave={(event) => {
+        onDragLeave={() => {
           lastSelectedIdsRef.current = null
-          if (event.currentTarget === event.target) {
-            setIsDraggingFiles(false)
-          }
+        }}
+        onDragEnd={() => {
+          setIsDraggingFiles(false)
         }}
         onDrop={(event) => {
           const payload = drag.ASSET_ROWS.lookup(event)
@@ -2851,8 +2869,10 @@ export default function AssetsTable(props: AssetsTableProps) {
                     !event.currentTarget.contains(event.relatedTarget)
                   ) {
                     lastSelectedIdsRef.current = null
-                    setIsDraggingFiles(false)
                   }
+                },
+                onDragEnd: () => {
+                  setIsDraggingFiles(false)
                 },
               })}
             >
@@ -2912,12 +2932,9 @@ export default function AssetsTable(props: AssetsTableProps) {
         {isDraggingFiles && !isMainDropzoneVisible && (
           <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2">
             <div
-              className="flex items-center justify-center gap-3 rounded-default bg-selected-frame px-8 py-6 text-primary/50 backdrop-blur-3xl transition-all"
+              className="pointer-events-auto flex items-center justify-center gap-3 rounded-default bg-selected-frame px-8 py-6 text-primary/50 backdrop-blur-3xl transition-all"
               onDragEnter={onDropzoneDragOver}
               onDragOver={onDropzoneDragOver}
-              onDragLeave={() => {
-                setIsDraggingFiles(false)
-              }}
               onDragEnd={() => {
                 setIsDraggingFiles(false)
               }}

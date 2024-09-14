@@ -6,7 +6,7 @@ import * as modalProvider from '#/providers/ModalProvider'
 import * as aria from '#/components/aria'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { AnimatePresence, motion } from 'framer-motion'
+import { useOverlayTriggerState } from 'react-stately'
 
 const PLACEHOLDER = <div />
 
@@ -14,7 +14,9 @@ const PLACEHOLDER = <div />
  * Props passed to the render function of a {@link DialogTrigger}.
  */
 export interface DialogTriggerRenderProps {
-  readonly isOpened: boolean
+  readonly isOpen: boolean
+  readonly close: () => void
+  readonly open: () => void
 }
 /**
  * Props for a {@link DialogTrigger}.
@@ -33,11 +35,10 @@ export interface DialogTriggerProps extends Omit<aria.DialogTriggerProps, 'child
 
 /** A DialogTrigger opens a dialog when a trigger element is pressed. */
 export function DialogTrigger(props: DialogTriggerProps) {
-  const { children, onOpenChange, onOpen = () => {}, onClose = () => {}, ...triggerProps } = props
+  const { children, onOpenChange, onOpen = () => {}, onClose = () => {} } = props
 
-  const [isOpened, setIsOpened] = React.useState(
-    triggerProps.isOpen ?? triggerProps.defaultOpen ?? false,
-  )
+  const state = useOverlayTriggerState(props)
+
   const { setModal, unsetModal } = modalProvider.useSetModal()
 
   const onOpenStableCallback = useEventCallback(onOpen)
@@ -53,40 +54,29 @@ export function DialogTrigger(props: DialogTriggerProps) {
       onCloseStableCallback()
     }
 
-    setIsOpened(opened)
+    state.setOpen(opened)
     onOpenChange?.(opened)
   })
 
   React.useEffect(() => {
-    if (isOpened) {
+    if (state.isOpen) {
       onOpenStableCallback()
     }
-  }, [isOpened, onOpenStableCallback])
-
-  const renderProps = {
-    isOpened,
-  } satisfies DialogTriggerRenderProps
+  }, [state.isOpen, onOpenStableCallback])
 
   const [trigger, dialog] = children
 
+  const renderProps = {
+    isOpen: state.isOpen,
+    close: state.close.bind(state),
+    open: state.open.bind(state),
+  } satisfies DialogTriggerRenderProps
+
   return (
-    <aria.DialogTrigger onOpenChange={onOpenChangeInternal} {...triggerProps}>
+    <aria.DialogTrigger {...state} onOpenChange={onOpenChangeInternal}>
       {trigger}
 
-      {/* We're using AnimatePresence here to animate the dialog in and out. */}
-      <AnimatePresence>
-        {isOpened && (
-          <motion.div
-            style={{ display: 'none' }}
-            initial={{ opacity: 1 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 1 }}
-          >
-            {typeof dialog === 'function' ? dialog(renderProps) : dialog}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {typeof dialog === 'function' ? dialog(renderProps) : dialog}
     </aria.DialogTrigger>
   )
 }
