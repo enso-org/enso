@@ -10,8 +10,8 @@ import {
   ToolbarItem,
 } from '@/components/visualizations/toolbar'
 import VisualizationSelector from '@/components/VisualizationSelector.vue'
-import { useEvent } from '@/composables/events.ts'
-import { provideInteractionHandler } from '@/providers/interactionHandler.ts'
+import { useEvent } from '@/composables/events'
+import { provideInteractionHandler } from '@/providers/interactionHandler'
 import { isQualifiedName, qnLastSegment } from '@/util/qualifiedName'
 import { computed, toValue } from 'vue'
 import { VisualizationIdentifier } from 'ydoc-shared/yjsModel'

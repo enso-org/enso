@@ -1,6 +1,6 @@
 import LoadingErrorVisualization from '@/components/visualizations/LoadingErrorVisualization.vue'
 import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
-import { ToolbarItem } from '@/components/visualizations/toolbar.ts'
+import { ToolbarItem } from '@/components/visualizations/toolbar'
 import { useProjectStore } from '@/stores/project'
 import type { NodeVisualizationConfiguration } from '@/stores/project/executionContext'
 import {
