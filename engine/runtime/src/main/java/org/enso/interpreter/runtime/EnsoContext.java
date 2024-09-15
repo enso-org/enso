@@ -881,11 +881,14 @@ public final class EnsoContext {
    *
    * @param context the execution context
    * @param environmentName the execution environment name
+   * @return {@code true} when the execution environment was changed
    */
-  public void enableExecutionEnvironment(Atom context, String environmentName) {
+  public boolean enableExecutionEnvironment(Atom context, String environmentName) {
     if (executionEnvironment.getName().equals(environmentName)) {
       executionEnvironment = executionEnvironment.withContextEnabled(context);
+      return true;
     }
+    return false;
   }
 
   /**
@@ -893,11 +896,14 @@ public final class EnsoContext {
    *
    * @param context the execution context
    * @param environmentName the execution environment name
+   * @return {@code true} when the execution environment was changed
    */
-  public void disableExecutionEnvironment(Atom context, String environmentName) {
+  public boolean disableExecutionEnvironment(Atom context, String environmentName) {
     if (executionEnvironment.getName().equals(environmentName)) {
       executionEnvironment = executionEnvironment.withContextDisabled(context);
+      return true;
     }
+    return false;
   }
 
   /** Returns a maximal number of warnings that can be attached to a value */

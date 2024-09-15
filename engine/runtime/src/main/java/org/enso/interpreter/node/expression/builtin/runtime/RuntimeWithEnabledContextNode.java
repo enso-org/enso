@@ -24,11 +24,13 @@ public class RuntimeWithEnabledContextNode extends Node {
   Object execute(
       VirtualFrame frame, State state, Atom context, Object env_name, @Suspend Object action) {
     String envName = expectStringNode.execute(env_name);
-    EnsoContext.get(this).enableExecutionEnvironment(context, envName);
+    boolean updated = EnsoContext.get(this).enableExecutionEnvironment(context, envName);
     try {
       return thunkExecutorNode.executeThunk(frame, action, state, BaseNode.TailStatus.NOT_TAIL);
     } finally {
-      EnsoContext.get(this).disableExecutionEnvironment(context, envName);
+      if (updated) {
+        EnsoContext.get(this).disableExecutionEnvironment(context, envName);
+      }
     }
   }
 }
