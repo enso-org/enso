@@ -79,12 +79,21 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   // This is not a React component even though it contains JSX.
   // eslint-disable-next-line no-restricted-syntax
   const doDeleteAll = () => {
-    if (isCloud) {
+    const deleteAll = () => {
       unsetModal()
+      setSelectedKeys(EMPTY_SET)
 
       for (const key of selectedKeys) {
         void doDelete(key, false)
       }
+    }
+    if (
+      isCloud &&
+      [...selectedKeys].every(
+        (key) => nodeMapRef.current.get(key)?.item.type !== backendModule.AssetType.directory,
+      )
+    ) {
+      deleteAll()
     } else {
       const [firstKey] = selectedKeys
       const soleAssetName =
@@ -97,13 +106,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
               getText('deleteSelectedAssetActionText', soleAssetName)
             : getText('deleteSelectedAssetsActionText', selectedKeys.size)
           }
-          doDelete={() => {
-            setSelectedKeys(EMPTY_SET)
-
-            for (const key of selectedKeys) {
-              void doDelete(key, false)
-            }
-          }}
+          doDelete={deleteAll}
         />,
       )
     }
