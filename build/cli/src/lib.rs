@@ -140,10 +140,11 @@ impl Processor {
         let span = info_span!("Resolving.", ?target, ?source).entered();
         let destination = source.output_path.output_path;
         let should_upload_artifact = source.build_args.upload_artifact;
+        let should_sign_artifacts = source.build_args.sign_artifacts;
         let source = match source.source {
             arg::SourceKind::Build => T::resolve(self, source.build_args.input)
                 .map_ok(move |input| {
-                    Source::BuildLocally(BuildSource { input, should_upload_artifact })
+                    Source::BuildLocally(BuildSource { input, should_upload_artifact, should_sign_artifacts })
                 })
                 .boxed(),
             arg::SourceKind::Local =>
@@ -232,13 +233,14 @@ impl Processor {
         &self,
         job: BuildJob<T>,
     ) -> BoxFuture<'static, Result<BuildTargetJob<T>>> {
-        let BuildJob { input: BuildDescription { input, upload_artifact }, output_path } = job;
+        let BuildJob { input: BuildDescription { input, upload_artifact, sign_artifacts}, output_path } = job;
         let input = self.resolve_inputs::<T>(input);
         async move {
             Ok(WithDestination::new(
                 BuildSource {
                     input:                  input.await?,
                     should_upload_artifact: upload_artifact,
+                    should_sign_artifacts: sign_artifacts
                 },
                 output_path.output_path,
             ))
@@ -547,7 +549,7 @@ impl Processor {
         &self,
         params: arg::ide::BuildInput,
     ) -> BoxFuture<'static, Result<ide::Artifact>> {
-        let arg::ide::BuildInput { gui, project_manager, output_path, electron_target } = params;
+        let arg::ide::BuildInput { gui, project_manager, output_path, electron_target , sign_artifacts} = params;
 
         let build_info_get = self.js_build_info();
         let build_info_path = self.context.inner.repo_root.join(&*enso_build::ide::web::BUILD_INFO);
@@ -569,6 +571,7 @@ impl Processor {
             version: self.triple.versions.version.clone(),
             electron_target,
             artifact_name: "ide".into(),
+            sign_artifacts: sign_artifacts,
         };
 
         let target = Ide { target_os: self.triple.os, target_arch: self.triple.arch };
