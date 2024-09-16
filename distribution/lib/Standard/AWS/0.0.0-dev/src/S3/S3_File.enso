@@ -44,6 +44,7 @@ type S3_File
        ! Error Conditions
        - If the URI is not in the correct format, an `Illegal_Argument` error is
          thrown.
+    @credentials AWS_Credential.default_widget
     new : Text -> AWS_Credential -> S3_File ! Illegal_Argument
     new (uri : Text = S3.uri_prefix) credentials:AWS_Credential=..Default =
         S3_File.Value (S3_Path.parse uri) credentials
