@@ -70,11 +70,11 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   // up to date.
   const ownsAllSelectedAssets =
     !isCloud ||
-    [...selectedKeys].every((key) => {
-      const userPermissions = nodeMapRef.current.get(key)?.item.permissions
-      const selfPermission = permissions.tryFindSelfPermission(user, userPermissions ?? null)
-      return selfPermission?.permission === permissions.PermissionAction.own
-    })
+    Array.from(selectedKeys).every(
+      (key) =>
+        permissions.tryFindSelfPermission(user, nodeMapRef.current.get(key)?.item.permissions)
+          ?.permission === permissions.PermissionAction.own,
+    )
 
   // This is not a React component even though it contains JSX.
   // eslint-disable-next-line no-restricted-syntax
