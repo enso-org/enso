@@ -134,9 +134,9 @@ public final class Parser implements AutoCloseable {
     var message = new Message(serializedTree, input, base, metadata);
     try {
       return Tree.deserialize(message);
-    } catch (BufferUnderflowException bue) {
+    } catch (BufferUnderflowException | IllegalArgumentException e) {
       System.err.println("Unrecoverable parser failure for: " + input);
-      throw bue;
+      throw e;
     }
   }
 
