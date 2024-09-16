@@ -72,8 +72,7 @@ type Point_Data
         Point_Data.X ->
             candidate = table.columns.first
             is_good c = (c.is_numeric || c.value_type.is_date_or_time) && c.name != Point_Data.Y.name
-            map_candidate c = if c.value_type.has_date then c.map col-> col.to_display_text else c
-            if is_good candidate then map_candidate candidate else Point_Data.iota table.row_count
+            if is_good candidate then candidate else Point_Data.iota table.row_count
         Point_Data.Y ->
             x_column = Point_Data.X.lookup_in table
             candidates = table.columns
@@ -126,7 +125,8 @@ Table.point_data self all_fields =
     (0.up_to self.row_count).to_vector.map <| row_n->
         pairs = columns.map column->
             value = column.at row_n . catch_ Nothing
-            [column.name, value]
+            value_mapped = if column.value_type.has_date then value.to_display_text else value
+            [column.name, value_mapped]
         JS_Object.from_pairs pairs
 
 ## PRIVATE
