@@ -66,7 +66,7 @@ interface Focus {
 }
 
 interface Point {
-  x: number | Date
+  x: number | DateObj | Date
   y: number
   label?: string
   color?: string
@@ -99,6 +99,15 @@ interface Color {
   red: number
   green: number
   blue: number
+}
+
+interface DateObj {
+  day?: number
+  month?: number
+  year?: number
+  hour?: number
+  minute?: number
+  second?: number
 }
 </script>
 
@@ -141,12 +150,15 @@ const SCALE_TO_D3_SCALE: any = {
   [ScaleType.Time]: () => d3.scaleTime(),
 }
 
-const createDate = (x) => {
-  const today = new Date()
-  today.setHours(x.hour)
-  today.setMinutes(x.minute)
-  today.setSeconds(x.second)
-  return today
+const createDateTime = (x: DateObj) => {
+  const dateTime = new Date()
+  x.day ? dateTime.setDate(x.day) : dateTime
+  x.month ? dateTime.setMonth(x.month) : dateTime
+  x.year ? dateTime.setFullYear(x.year) : dateTime
+  x.hour ? dateTime.setHours(x.hour) : dateTime
+  x.minute ? dateTime.setMinutes(x.minute) : dateTime
+  x.second ? dateTime.setSeconds(x.second) : dateTime
+  return dateTime
 }
 
 const data = computed<Data>(() => {
@@ -157,17 +169,15 @@ const data = computed<Data>(() => {
   // eslint-disable-next-line camelcase
   const isTimeSeries: boolean =
     'x_value_type' in rawData ?
-      rawData.x_value_type === 'Time' || rawData.x_value_type === 'Date'
+      rawData.x_value_type === 'Time' ||
+      rawData.x_value_type === 'Date' ||
+      rawData.x_value_type === 'Date_Time (with timezone)'
     : false
   // eslint-disable-next-line camelcase
   if (isTimeSeries) {
     data = unfilteredData
       .filter((point) => typeof point.y === 'number' && !Number.isNaN(point.y))
-      .map((point) =>
-        'x_value_type' in rawData && rawData.x_value_type === 'Time' ?
-          { ...point, x: createDate(point.x) }
-        : { ...point, x: new Date(point.x) },
-      )
+      .map((point) => ({ ...point, x: createDateTime(point.x as DateObj) }))
   } else {
     data = unfilteredData.filter(
       (point) =>
@@ -263,7 +273,18 @@ const height = computed(() =>
 
 const boxWidth = computed(() => Math.max(0, width.value - margin.value.left - margin.value.right))
 const boxHeight = computed(() => Math.max(0, height.value - margin.value.top - margin.value.bottom))
-const xTicks = computed(() => (data.value.isTimeSeries ? boxWidth.value / 60 : boxWidth.value / 40))
+const xTicks = computed(() => {
+  switch (data.value.x_value_type) {
+    case 'Time':
+    case 'Date':
+      return boxWidth.value / 60
+    case 'Date_Time (with timezone)':
+      return boxWidth.value / 80
+    default:
+      return boxWidth.value / 40
+  }
+})
+
 const yTicks = computed(() => boxHeight.value / 20)
 const xLabelLeft = computed(
   () =>
@@ -279,6 +300,16 @@ const yLabelLeft = computed(
 )
 const yLabelTop = computed(() => -margin.value.left + 15)
 const showYLabelText = computed(() => !data.value.is_multi_series)
+const xTickFormat = computed(() => {
+  switch (data.value.x_value_type) {
+    case 'Time':
+      return '%H:%M:%S'
+    case 'Date':
+      return '%d/%m/%Y'
+    default:
+      return '%d/%m/%Y %H:%M:%S'
+  }
+})
 
 watchEffect(() => {
   const boundsExpression =
@@ -310,14 +341,13 @@ const extremesAndDeltas = computed(() => {
     const allYValues = series.flatMap((s) =>
       data.value.data.map((d) => d[s as keyof Point]),
     ) as number[]
-
     yMin = Math.min(...allYValues)
     yMax = Math.max(...allYValues)
   } else {
     ;[yMin = 0, yMax = 0] = d3.extent(data.value.data, (point) => point.y)
   }
 
-  const [xMin = 0, xMax = 0] = d3.extent(data.value.data, (point) => point.x)
+  const [xMin = 0, xMax = 0] = d3.extent(data.value.data, (point) => point.x as number)
   const dx = Number(xMax) - Number(xMin)
   const dy = yMax - yMin
   const paddingX = 0.1 * dx
@@ -511,10 +541,12 @@ watchEffect(() => {
 // === Update x axis ===
 
 watchPostEffect(() => {
-  const xTickFormat = data.value.x_value_type === 'Time' ? '%H:%M:%S' : '%d/%m/%Y'
   const xCallVal =
     data.value.isTimeSeries ?
-      d3.axisBottom<Date>(xScale.value).ticks(xTicks.value).tickFormat(d3.utcFormat(xTickFormat))
+      d3
+        .axisBottom<Date>(xScale.value)
+        .ticks(xTicks.value)
+        .tickFormat(d3.utcFormat(xTickFormat.value))
     : d3.axisBottom<string>(xScale.value).ticks(xTicks.value)
   return d3XAxis.value.transition().duration(animationDuration.value).call(xCallVal)
 })
