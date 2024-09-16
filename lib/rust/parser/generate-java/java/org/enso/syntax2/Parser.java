@@ -2,6 +2,7 @@ package org.enso.syntax2;
 
 import java.io.File;
 import java.net.URISyntaxException;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
@@ -131,7 +132,12 @@ public final class Parser implements AutoCloseable {
     var metadata = getMetadata(state);
     serializedTree.order(ByteOrder.LITTLE_ENDIAN);
     var message = new Message(serializedTree, input, base, metadata);
-    return Tree.deserialize(message);
+    try {
+      return Tree.deserialize(message);
+    } catch (BufferUnderflowException bue) {
+      System.err.println("Unrecoverable parser failure for: " + input);
+      throw bue;
+    }
   }
 
   public static String getWarningMessage(Warning warning) {
