@@ -53,7 +53,8 @@ export default function UserBar(props: UserBarProps) {
 
   const shouldShowUpgradeButton =
     user.isOrganizationAdmin && user.plan !== Plan.enterprise && user.plan !== Plan.team
-  const shouldShowPaywallButton = isFeatureUnderPaywall('inviteUser')
+  // eslint-disable-next-line no-restricted-syntax
+  const shouldShowPaywallButton = (false as boolean) && isFeatureUnderPaywall('inviteUser')
   // FIXME[sb]: Re-enable when they are wanted again.
   // eslint-disable-next-line no-restricted-syntax
   const shouldShowShareButton = (false as boolean) && onShareClick != null
