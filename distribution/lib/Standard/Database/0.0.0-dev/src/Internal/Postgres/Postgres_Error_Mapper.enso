@@ -13,7 +13,6 @@ type Postgres_Error_Mapper
     ## PRIVATE
     is_null_primary_key_violation : SQL_Error -> Boolean
     is_null_primary_key_violation error =
-        IO.println "AAAAA "+error.java_exception.getMessage.to_text
         error.java_exception.getMessage.contains "violates not-null constraint"
 
     ## PRIVATE
