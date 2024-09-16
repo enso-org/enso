@@ -1849,8 +1849,20 @@ export default function AssetsTable(props: AssetsTableProps) {
               nonConflictingProjectCount={projects.length - conflictingProjects.length}
               doUpdateConflicting={(resolvedConflicts) => {
                 for (const conflict of resolvedConflicts) {
-                  fileMap.set(conflict.current.id, conflict.file)
-                  void doUploadFile(conflict.current, 'update')
+                  const isUpdating = conflict.current.title === conflict.new.title
+
+                  const asset = isUpdating ? conflict.current : conflict.new
+
+                  fileMap.set(
+                    asset.id,
+                    new File([conflict.file], asset.title, {
+                      type: conflict.file.type,
+                      lastModified: conflict.file.lastModified,
+                    }),
+                  )
+
+                  insertAssets([asset], event.parentId)
+                  void doUploadFile(asset, isUpdating ? 'update' : 'new')
                 }
               }}
               doUploadNonConflicting={() => {
