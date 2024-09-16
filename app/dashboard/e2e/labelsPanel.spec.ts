@@ -59,6 +59,6 @@ test.test('labels', async ({ page }) => {
 
   const labelsPanel = locateLabelsPanel(page)
   await labelsPanel.getByRole('button').and(labelsPanel.getByLabel(TEXT.delete)).click()
-  await page.getByRole('button', { name: 'Delete' }).getByText('Delete').click()
+  await page.getByRole('button', { name: TEXT.delete }).getByText(TEXT.delete).click()
   test.expect(await locateLabelsPanelLabels(page).count()).toBeGreaterThanOrEqual(1)
 })

@@ -336,7 +336,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const setAssetPanelProps = useSetAssetPanelProps()
 
   const hiddenColumns = columnUtils
-    .getColumnList(user, backend.type)
+    .getColumnList(user, backend.type, category)
     .filter((column) => !enabledColumns.has(column))
   const [sortInfo, setSortInfo] =
     React.useState<sorting.SortInfo<columnUtils.SortableColumn> | null>(null)
@@ -359,9 +359,6 @@ export default function AssetsTable(props: AssetsTableProps) {
   })
 
   const organization = organizationQuery.data
-
-  const isAssetContextMenuVisible =
-    category.type !== 'cloud' || user.plan == null || user.plan === backendModule.Plan.solo
 
   const nameOfProjectToImmediatelyOpenRef = React.useRef(initialProjectName)
   const [localRootDirectory] = localStorageProvider.useLocalStorageState('localRootDirectory')
@@ -802,6 +799,8 @@ export default function AssetsTable(props: AssetsTableProps) {
   const nodeMapRef = React.useRef<
     ReadonlyMap<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>
   >(new Map<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>())
+  const isAssetContextMenuVisible =
+    category.type !== 'cloud' || user.plan == null || user.plan === backendModule.Plan.solo
 
   const queryClient = useQueryClient()
 
@@ -2640,8 +2639,10 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const columns = React.useMemo(
     () =>
-      columnUtils.getColumnList(user, backend.type).filter((column) => enabledColumns.has(column)),
-    [backend.type, enabledColumns, user],
+      columnUtils
+        .getColumnList(user, backend.type, category)
+        .filter((column) => enabledColumns.has(column)),
+    [backend.type, category, enabledColumns, user],
   )
 
   const headerRow = (
