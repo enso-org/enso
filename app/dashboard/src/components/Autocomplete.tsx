@@ -100,16 +100,6 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
     }
   }, [])
 
-  React.useEffect(() => {
-    const onClick = () => {
-      setIsDropdownVisible(false)
-    }
-    document.addEventListener('click', onClick)
-    return () => {
-      document.removeEventListener('click', onClick)
-    }
-  }, [])
-
   const fallbackInputRef = React.useRef<HTMLInputElement>(null)
   const inputRef = rawInputRef ?? fallbackInputRef
 
@@ -186,7 +176,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
   }
 
   return (
-    <div className="relative h-6 w-full">
+    <div className="relative isolate h-6 w-full">
       <div
         onKeyDown={onKeyDown}
         className={twMerge(
@@ -223,7 +213,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
               />
             : <div
                 tabIndex={-1}
-                className="text grow cursor-pointer whitespace-nowrap bg-transparent px-button-x"
+                className="text w-full grow cursor-pointer overflow-auto whitespace-nowrap bg-transparent px-button-x scroll-hidden"
                 onClick={() => {
                   setIsDropdownVisible(true)
                 }}

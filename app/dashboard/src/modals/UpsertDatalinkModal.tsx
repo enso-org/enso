@@ -35,45 +35,35 @@ export default function UpsertDatalinkModal(props: UpsertDatalinkModalProps) {
   const { getText } = useText()
 
   return (
-    <Dialog
-      fitContent
-      title={getText('createDatalink')}
-      className="min-w-max"
-      isDismissable={false}
-    >
-      {({ close }) => (
-        <Form
-          method="dialog"
-          schema={createUpsertDatalinkSchema()}
-          defaultValues={{ value: INITIAL_DATALINK_VALUE }}
-          className="min-w-max"
-          onSubmit={async ({ name, value }) => {
-            await doCreate(name, value)
-          }}
-        >
-          {({ form }) => (
-            <>
-              <Input
-                form={form}
-                name="name"
-                autoFocus
-                label={getText('name')}
-                placeholder={getText('datalinkNamePlaceholder')}
-              />
-              <div className="relative w-full">
-                <DatalinkFormInput form={form} name="value" dropdownTitle={getText('type')} />
-              </div>
-              <ButtonGroup className="relative">
-                <Form.Submit>{getText('create')}</Form.Submit>
-                <Button size="medium" variant="outline" onPress={close}>
-                  {getText('cancel')}
-                </Button>
-              </ButtonGroup>
-              <Form.FormError />
-            </>
-          )}
-        </Form>
-      )}
+    <Dialog size="xlarge" title={getText('createDatalink')} isDismissable={false}>
+      <Form
+        method="dialog"
+        schema={createUpsertDatalinkSchema()}
+        defaultValues={{ value: INITIAL_DATALINK_VALUE }}
+        onSubmit={({ name, value }) => doCreate(name, value)}
+      >
+        {({ form }) => (
+          <>
+            <Input
+              form={form}
+              name="name"
+              autoFocus
+              label={getText('name')}
+              placeholder={getText('datalinkNamePlaceholder')}
+            />
+            <div className="relative w-full">
+              <DatalinkFormInput form={form} name="value" dropdownTitle={getText('type')} />
+            </div>
+
+            <ButtonGroup>
+              <Form.Submit>{getText('create')}</Form.Submit>
+              <Form.Submit formnovalidate>{getText('cancel')}</Form.Submit>
+            </ButtonGroup>
+
+            <Form.FormError />
+          </>
+        )}
+      </Form>
     </Dialog>
   )
 }
