@@ -88,7 +88,7 @@ pub struct BuildInput {
     pub electron_target: Option<String>,
     /// The name base used to generate CI run artifact names.
     pub artifact_name:   String,
-    pub sign_artifacts: bool,
+    pub sign_artifacts:  bool,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -110,14 +110,28 @@ impl Ide {
         input: BuildInput,
         output_path: impl AsRef<Path> + Send + Sync + 'static,
     ) -> BoxFuture<'static, Result<Artifact>> {
-        let BuildInput { version, project_manager, gui, electron_target, artifact_name: _ , sign_artifacts} = input;
+        let BuildInput {
+            version,
+            project_manager,
+            gui,
+            electron_target,
+            artifact_name: _,
+            sign_artifacts,
+        } = input;
         let ide_desktop = ide_desktop_from_context(context);
         let target_os = self.target_os;
         let target_arch = self.target_arch;
         async move {
             let (gui, project_manager) = try_join!(gui, project_manager)?;
             ide_desktop
-                .dist(&gui, &project_manager, &output_path, target_os, electron_target, sign_artifacts)
+                .dist(
+                    &gui,
+                    &project_manager,
+                    &output_path,
+                    target_os,
+                    electron_target,
+                    sign_artifacts,
+                )
                 .await?;
             Ok(Artifact::new(target_os, target_arch, &version, output_path))
         }

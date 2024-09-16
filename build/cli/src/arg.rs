@@ -290,7 +290,7 @@ pub struct BuildDescription<Target: IsTargetSource> {
         num_args(0..=1),
         action = clap::ArgAction::Set
     )]
-    pub sign_artifacts: bool,
+    pub sign_artifacts:  bool,
 }
 
 #[derive(Args, Clone, PartialEq, Debug)]

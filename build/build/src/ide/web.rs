@@ -270,7 +270,7 @@ impl IdeDesktop {
         output_path: impl AsRef<Path>,
         target_os: OS,
         target: Option<String>,
-        sign: bool
+        sign: bool,
     ) -> Result {
         let output_path = output_path.as_ref();
         let electron_config = output_path.join("electron-builder.json");

@@ -28,7 +28,7 @@ pub struct BuildInput {
     #[clap(long, enso_env())]
     pub electron_target: Option<String>,
     #[clap(long, enso_env())]
-    pub sign_artifacts: bool,
+    pub sign_artifacts:  bool,
 }
 
 #[derive(Subcommand, Clone, Debug)]
