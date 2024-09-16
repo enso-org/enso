@@ -1,10 +1,12 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Network.HTTP.Response_Body.Response_Body
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.Network.HTTP.Response import filename_from_content_disposition
 
 import project.AWS_Credential.AWS_Credential
+import project.S3.S3_File.S3_File
 import project.Errors.AWS_SDK_Error
 import project.Errors.More_Records_Available
 import project.Errors.S3_Bucket_Not_Found
@@ -42,6 +44,7 @@ polyglot java import software.amazon.awssdk.services.s3.S3Client
    ! Error Conditions
    - If the credentials are invalid or access to S3 is denied, then an
      `AWS_SDK_Error` will be raised.
+@credentials AWS_Credential.default_widget
 list_buckets : AWS_Credential -> Vector Text ! S3_Error
 list_buckets credentials:AWS_Credential=..Default = handle_s3_errors <|
     client = make_client credentials
@@ -68,9 +71,11 @@ list_buckets credentials:AWS_Credential=..Default = handle_s3_errors <|
    - If the bucket does not exist, an `S3_Bucket_Not_Found` error is thrown.
    - If more items are available than the `max_count` parameter, a
      `More_Records_Available` warning is attached to the result.
-list_objects : Text -> Text -> AWS_Credential -> Integer -> Vector Text ! S3_Error
-list_objects bucket prefix="" credentials:AWS_Credential=..Default max_count:Integer=1000 =
-    read_bucket bucket prefix credentials delimiter="" max_count=max_count . second
+@credentials AWS_Credential.default_widget
+list_objects : Text -> Text -> AWS_Credential -> Integer -> Vector S3_File ! S3_Error
+list_objects (bucket : Text = Missing_Argument.throw "bucket") prefix:Text="" credentials:AWS_Credential=..Default max_count:Integer=1000 =
+    names = read_bucket bucket prefix credentials delimiter="" max_count=max_count . second
+    names.map name-> S3_File.new "s3://"+bucket+"/"+name credentials
 
 ## PRIVATE
    ADVANCED
@@ -121,8 +126,9 @@ get_object bucket key credentials:AWS_Credential=AWS_Credential.Default delimite
      `AWS_SDK_Error` will be raised.
    - If the bucket does not exist, an `S3_Bucket_Not_Found` error is thrown.
    - If the object does not exist, an `S3_Key_Not_Found` error is thrown.
+@credentials AWS_Credential.default_widget
 head : Text -> Text -> AWS_Credential -> Dictionary Text Any ! S3_Error
-head bucket key="" credentials:AWS_Credential=AWS_Credential.Default =
+head (bucket : Text = Missing_Argument.throw "bucket") key:Text="" credentials:AWS_Credential=AWS_Credential.Default =
     response = raw_head bucket key credentials
     pairs = response.sdkFields.map f-> [f.memberName, f.getValueOrDefault response]
     Dictionary.from_vector pairs

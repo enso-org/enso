@@ -204,7 +204,7 @@ add_specs suite_builder =
     suite_builder.group "S3.list_objects" pending=api_pending group_builder->
         group_builder.specify "should be able to list objects" <|
             objects = S3.list_objects bucket_name credentials=test_credentials
-            objects . should_contain object_name
+            objects . map .name . should_contain object_name
 
         group_builder.specify "should attach a warning if not a complete list" <|
             objects = S3.list_objects bucket_name max_count=1 credentials=test_credentials
