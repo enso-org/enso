@@ -96,11 +96,6 @@ const RESTRICTED_SYNTAXES = [
   },
   {
     selector:
-      ':not(:matches(FunctionDeclaration, FunctionExpression, ArrowFunctionExpression, SwitchStatement, SwitchCase, IfStatement:has(.consequent > :matches(ReturnStatement, ThrowStatement)):has(.alternate :matches(ReturnStatement, ThrowStatement)), Program > TryStatement, Program > TryStatement > .handler, TryStatement:has(.block > :matches(ReturnStatement, ThrowStatement)):has(:matches([handler=null], .handler :matches(ReturnStatement, ThrowStatement))), TryStatement:has(.block > :matches(ReturnStatement, ThrowStatement)):has(:matches([handler=null], .handler :matches(ReturnStatement, ThrowStatement))) > .handler)) > * > :matches(ReturnStatement, ThrowStatement)',
-    message: 'No early returns',
-  },
-  {
-    selector:
       'TSTypeAliasDeclaration > :matches(TSBooleanKeyword, TSBigintKeyword, TSNullKeyword, TSNumberKeyword, TSObjectKeyword, TSStringKeyword, TSSymbolKeyword, TSUndefinedKeyword, TSUnknownKeyword, TSVoidKeyword)',
     message:
       'No aliases to primitives - consider using brands instead: `string & { _brand: "BrandName"; }`',

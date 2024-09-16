@@ -92,7 +92,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                   value={typeof value === 'string' ? value : ''}
                   size={1}
                   className={twMerge(
-                    'focus-child text w-60 w-full grow rounded-input border-0.5 bg-transparent px-input-x read-only:read-only',
+                    'focus-child text w-full grow rounded-input border-0.5 bg-transparent px-input-x read-only:read-only',
                     getValidator(path)(value) ? 'border-primary/20' : 'border-red-700/60',
                   )}
                   placeholder={getText('enterText')}
