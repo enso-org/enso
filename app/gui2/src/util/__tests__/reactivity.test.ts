@@ -1,7 +1,7 @@
-import { LazySyncEffectSet, syncSet } from '@/util/reactivity'
+import { LazySyncEffectSet, syncSet, useWatchContext } from '@/util/reactivity'
 import { fc, test } from '@fast-check/vitest'
-import { expect, vi } from 'vitest'
-import { nextTick, reactive, ref } from 'vue'
+import { describe, expect, vi } from 'vitest'
+import { nextTick, reactive, ref, watchEffect, WatchStopHandle } from 'vue'
 
 test('LazySyncEffectSet', async () => {
   const lazySet = new LazySyncEffectSet()
@@ -75,9 +75,6 @@ test('LazySyncEffectSet', async () => {
   key2.value = 104
   lazySet.lazyEffect((onCleanup) => {
     const currentValue = key1.value
-    console.log('currentValue', currentValue)
-    console.log('lazilyUpdatedMap', lazilyUpdatedMap)
-
     lazilyUpdatedMap.set(currentValue, 'c' + runCount++)
     onCleanup(() => lazilyUpdatedMap.delete(currentValue))
   })
@@ -153,4 +150,31 @@ test.prop({
   const target = new Set<number>(oldValues)
   syncSet(target, newState)
   expect([...target].sort()).toEqual([...newState].sort())
+})
+
+describe('Stopping WatchEffect prevents already scheduled effects:', () => {
+  async function testProper(watchEffect: (f: () => void) => WatchStopHandle) {
+    const dep = ref(false)
+    const f = vi.fn()
+    const stop = watchEffect(() => {
+      if (dep.value) {
+        f()
+      }
+    })
+    expect(f).not.toHaveBeenCalled()
+    dep.value = true
+    stop()
+    await nextTick()
+    expect(f).not.toHaveBeenCalled()
+  }
+
+  test('from useWatchContext', async () => {
+    const ctx = useWatchContext()
+    await testProper(ctx.watchEffect)
+  })
+
+  // We check if we're consistent with Vue API.
+  test('original from Vue', async () => {
+    await testProper(watchEffect)
+  })
 })

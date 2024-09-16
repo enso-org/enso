@@ -152,8 +152,10 @@ export function useWatchContext(): { watchEffect: (f: () => void) => WatchStopHa
   watch(jobs, () => {
     while (jobs.length > 0) {
       const job = jobs.pop()!
-      queued.delete(job)
-      job()
+      // Do not run scheduled job if it's stopped. It's consistent with vue's "watchEffect" (checked in tests)
+      if (queued.delete(job)) {
+        job()
+      }
     }
   })
   function watchEffect(f: () => void) {
@@ -166,7 +168,10 @@ export function useWatchContext(): { watchEffect: (f: () => void) => WatchStopHa
       },
       allowRecurse: true,
     })
-    return runner.effect.stop.bind(runner.effect)
+    return () => {
+      runner.effect.stop()
+      queued.delete(runner)
+    }
   }
   return { watchEffect }
 }
