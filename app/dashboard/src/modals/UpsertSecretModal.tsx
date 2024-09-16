@@ -11,12 +11,13 @@ import type { SecretId } from '#/services/Backend'
 export interface UpsertSecretModalProps {
   readonly id: SecretId | null
   readonly name: string | null
+  readonly defaultOpen?: boolean
   readonly doCreate: (name: string, value: string) => Promise<void> | void
 }
 
 /** A modal for creating and editing a secret. */
 export default function UpsertSecretModal(props: UpsertSecretModalProps) {
-  const { id, name: nameRaw, doCreate } = props
+  const { id, name: nameRaw, defaultOpen, doCreate } = props
   const { getText } = useText()
 
   const isCreatingSecret = id == null
@@ -25,6 +26,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
   return (
     <Dialog
       title={isCreatingSecret ? getText('newSecret') : getText('editSecret')}
+      modalProps={defaultOpen == null ? {} : { defaultOpen }}
       isDismissable={false}
     >
       <Form
