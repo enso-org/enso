@@ -42,6 +42,7 @@ import type RemoteBackend from '#/services/RemoteBackend'
 
 import { normalizePath } from '#/utilities/fileInfo'
 import * as object from '#/utilities/object'
+import { SetupTwoFaForm } from './SetupTwoFaForm'
 
 // =========================
 // === SettingsEntryType ===
@@ -113,6 +114,23 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             type: SettingsEntryType.custom,
             aliasesId: 'changePasswordSettingsCustomEntryAliases',
             render: ChangePasswordForm,
+            getVisible: (context) => {
+              // The shape of the JWT payload is statically known.
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+              const username: string | null =
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-non-null-assertion
+                JSON.parse(atob(context.accessToken.split('.')[1]!)).username
+              return username != null ? !/^Github_|^Google_/.test(username) : false
+            },
+          },
+        ],
+      },
+      {
+        nameId: 'setup2FASettingsSection',
+        entries: [
+          {
+            type: SettingsEntryType.custom,
+            render: SetupTwoFaForm,
             getVisible: (context) => {
               // The shape of the JWT payload is statically known.
               // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment

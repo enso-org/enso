@@ -53,7 +53,9 @@ const MODAL_STYLES = tv({
 })
 
 const DIALOG_STYLES = tv({
-  base: DIALOG_BACKGROUND({ className: 'w-full flex flex-col text-left align-middle shadow-xl' }),
+  base: DIALOG_BACKGROUND({
+    className: 'w-full max-w-full flex flex-col text-left align-middle shadow-xl',
+  }),
   variants: {
     type: {
       modal: {
@@ -149,7 +151,7 @@ const DIALOG_STYLES = tv({
  * Can be used to display alerts, confirmations, or other content. */
 export function Dialog(props: DialogProps) {
   const {
-    children,
+    children: Children,
     title,
     type = 'modal',
     closeButton = 'normal',
@@ -302,7 +304,9 @@ export function Dialog(props: DialogProps) {
                           <suspense.Suspense
                             loaderProps={{ minHeight: type === 'fullscreen' ? 'full' : 'h32' }}
                           >
-                            {typeof children === 'function' ? children(opts) : children}
+                            {typeof Children === 'function' ?
+                              <Children {...opts} />
+                            : Children}
                           </suspense.Suspense>
                         </errorBoundary.ErrorBoundary>
                       </div>

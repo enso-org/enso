@@ -5,8 +5,6 @@ import { backendMutationOptions } from '#/hooks/backendHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
-
 import type * as column from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
 import SvgMask from '#/components/SvgMask'
@@ -19,7 +17,6 @@ import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as string from '#/utilities/string'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
-import { isOnMacOS } from 'enso-common/src/detect'
 
 // ================
 // === FileName ===
@@ -35,7 +32,6 @@ export default function FileNameColumn(props: FileNameColumnProps) {
   const { item, setItem, selected, state, rowState, setRowState, isEditable } = props
   const { backend, nodeMap } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const inputBindings = inputBindingsProvider.useInputBindings()
 
   if (item.type !== backendModule.AssetType.file) {
     // eslint-disable-next-line no-restricted-syntax
@@ -74,12 +70,6 @@ export default function FileNameColumn(props: FileNameColumnProps) {
     }
   }
 
-  const handleClick = inputBindings.handler({
-    editName: () => {
-      setIsEditing(true)
-    },
-  })
-
   return (
     <div
       className={tailwindMerge.twMerge(
@@ -92,9 +82,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         }
       }}
       onClick={(event) => {
-        if (handleClick(event)) {
-          // Already handled.
-        } else if (eventModule.isSingleClick(event) && isOnMacOS() && selected) {
+        if (eventModule.isSingleClick(event) && selected) {
           if (!isCloud) {
             setIsEditing(true)
           }

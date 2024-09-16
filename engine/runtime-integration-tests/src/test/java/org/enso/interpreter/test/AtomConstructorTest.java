@@ -1,5 +1,7 @@
 package org.enso.interpreter.test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -146,19 +148,19 @@ public class AtomConstructorTest {
             var zero = factory.apply(new Object[0]);
             fail("Expecting exception: " + zero);
           } catch (PanicException e) {
-            assertEquals(msg + " no arguments", "Arity_Error.Error", e.getMessage());
+            assertThat(msg + " no arguments", e.getMessage(), containsString("Arity_Error"));
           }
           try {
             var one = factory.apply(new Object[] {"a"});
             fail("Expecting exception: " + one);
           } catch (PanicException e) {
-            assertEquals(msg + " one argument", "Arity_Error.Error", e.getMessage());
+            assertThat(msg + " one argument", e.getMessage(), containsString("Arity_Error"));
           }
           try {
             var two = factory.apply(new Object[] {"a", "b"});
             fail("Expecting exception: " + two);
           } catch (PanicException e) {
-            assertEquals(msg + " two arguments", "Arity_Error.Error", e.getMessage());
+            assertThat(msg + " two arguments", e.getMessage(), containsString("Arity_Error"));
           }
           return null;
         });

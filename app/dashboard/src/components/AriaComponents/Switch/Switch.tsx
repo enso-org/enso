@@ -127,6 +127,8 @@ export const Switch = forwardRef(function Switch<
         {...mergeProps<AriaSwitchProps>()(ariaSwitchProps, fieldProps, {
           defaultSelected: field.value,
           className: switchStyles(),
+          onChange: field.onChange,
+          onBlur: field.onBlur,
         })}
       >
         <div className={background()} role="presentation">

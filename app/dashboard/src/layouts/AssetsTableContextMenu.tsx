@@ -72,10 +72,18 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
     !isCloud ||
     Array.from(selectedKeys, (key) => {
       const userPermissions = nodeMapRef.current.get(key)?.item.permissions
+      const selfGroupPermission = userPermissions?.find(
+        backendModule.isUserGroupPermissionAnd(
+          (permission) => user.userGroups?.includes(permission.userGroup.id) ?? false,
+        ),
+      )
       const selfPermission = userPermissions?.find(
         backendModule.isUserPermissionAnd((permission) => permission.user.userId === user.userId),
       )
-      return selfPermission?.permission === permissions.PermissionAction.own
+
+      return (
+        (selfPermission ?? selfGroupPermission)?.permission === permissions.PermissionAction.own
+      )
     }).every((isOwner) => isOwner)
 
   // This is not a React component even though it contains JSX.

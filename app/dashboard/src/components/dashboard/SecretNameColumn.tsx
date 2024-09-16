@@ -6,7 +6,6 @@ import KeyIcon from '#/assets/key.svg'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
@@ -21,7 +20,6 @@ import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
-import { isOnMacOS } from 'enso-common/src/detect'
 
 // =====================
 // === ConnectorName ===
@@ -38,11 +36,12 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
   const { backend } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { setModal } = modalProvider.useSetModal()
-  const inputBindings = inputBindingsProvider.useInputBindings()
+
   if (item.type !== backendModule.AssetType.secret) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`SecretNameColumn` can only display secrets.')
   }
+
   const asset = item.item
 
   const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
@@ -52,12 +51,6 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
       setRowState(object.merger({ isEditingName }))
     }
   }
-
-  const handleClick = inputBindings.handler({
-    editName: () => {
-      setIsEditing(true)
-    },
-  })
 
   return (
     <div
@@ -71,9 +64,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
         }
       }}
       onClick={(event) => {
-        if (handleClick(event)) {
-          // Already handled.
-        } else if (eventModule.isSingleClick(event) && isOnMacOS() && selected) {
+        if (eventModule.isSingleClick(event) && selected) {
           setIsEditing(true)
         } else if (eventModule.isDoubleClick(event) && isEditable) {
           event.stopPropagation()

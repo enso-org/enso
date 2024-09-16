@@ -31,8 +31,10 @@ import {
   useSetCanCreateAssets,
   useSetCanDownload,
   useSetIsAssetPanelTemporarilyVisible,
+  useSetNewestFolderId,
   useSetSelectedKeys,
   useSetSuggestions,
+  useSetTargetDirectory,
   useSetVisuallySelectedKeys,
 } from '#/providers/DriveProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
@@ -292,7 +294,6 @@ export interface AssetsTableProps {
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly category: Category
   readonly initialProjectName: string | null
-  readonly targetDirectoryNodeRef: React.MutableRefObject<assetTreeNode.AnyAssetTreeNode<backendModule.DirectoryAsset> | null>
   readonly assetManagementApiRef: React.Ref<AssetManagementApi>
 }
 
@@ -307,7 +308,7 @@ export interface AssetManagementApi {
 /** The table of project assets. */
 export default function AssetsTable(props: AssetsTableProps) {
   const { hidden, query, setQuery, category, assetManagementApiRef } = props
-  const { initialProjectName, targetDirectoryNodeRef } = props
+  const { initialProjectName } = props
 
   const openedProjects = projectsProvider.useLaunchedProjects()
   const doOpenProject = projectHooks.useOpenProject()
@@ -327,6 +328,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const setCanCreateAssets = useSetCanCreateAssets()
+  const setTargetDirectoryInStore = useSetTargetDirectory()
   const didLoadingProjectManagerFail = backendProvider.useDidLoadingProjectManagerFail()
   const reconnectToProjectManager = backendProvider.useReconnectToProjectManager()
   const [enabledColumns, setEnabledColumns] = React.useState(columnUtils.DEFAULT_ENABLED_COLUMNS)
@@ -339,6 +341,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const [sortInfo, setSortInfo] =
     React.useState<sorting.SortInfo<columnUtils.SortableColumn> | null>(null)
   const driveStore = useDriveStore()
+  const setNewestFolderId = useSetNewestFolderId()
   const setSelectedKeys = useSetSelectedKeys()
   const setVisuallySelectedKeys = useSetVisuallySelectedKeys()
   const updateAssetRef = React.useRef<
@@ -401,69 +404,21 @@ export default function AssetsTable(props: AssetsTableProps) {
     [expandedDirectoryIds],
   )
 
-  const createProjectMutation = useMutation(
-    backendMutationOptions(backend, 'createProject', {
-      meta: { invalidates: [['listDirectory', backend.type]] },
-    }),
-  )
-  const duplicateProjectMutation = useMutation(
-    backendMutationOptions(backend, 'duplicateProject', {
-      meta: { invalidates: [['listDirectory', backend.type]] },
-    }),
-  )
-  const createDirectoryMutation = useMutation(
-    backendMutationOptions(backend, 'createDirectory', {
-      meta: { invalidates: [['listDirectory', backend.type]] },
-    }),
-  )
-  const createSecretMutation = useMutation(
-    backendMutationOptions(backend, 'createSecret', {
-      meta: { invalidates: [['listDirectory', backend.type]] },
-    }),
-  )
-  const updateSecretMutation = useMutation(
-    backendMutationOptions(backend, 'updateSecret', {
-      meta: { invalidates: [['listDirectory', backend.type]] },
-    }),
-  )
-  const createDatalinkMutation = useMutation(
-    backendMutationOptions(backend, 'createDatalink', {
-      meta: { invalidates: [['listDirectory', backend.type]] },
-    }),
-  )
-  const uploadFileMutation = useMutation(
-    backendMutationOptions(backend, 'uploadFile', {
-      meta: { invalidates: [['assetVersions'], ['listDirectory', backend.type]] },
-    }),
-  )
+  const createProjectMutation = useMutation(backendMutationOptions(backend, 'createProject'))
+  const duplicateProjectMutation = useMutation(backendMutationOptions(backend, 'duplicateProject'))
+  const createDirectoryMutation = useMutation(backendMutationOptions(backend, 'createDirectory'))
+  const createSecretMutation = useMutation(backendMutationOptions(backend, 'createSecret'))
+  const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
+  const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
+  const uploadFileMutation = useMutation(backendMutationOptions(backend, 'uploadFile'))
   const getProjectDetailsMutation = useMutation(
     backendMutationOptions(backend, 'getProjectDetails'),
   )
-  const copyAssetMutation = useMutation(
-    backendMutationOptions(backend, 'copyAsset', {
-      meta: { invalidates: [['assetVersions'], ['listDirectory', backend.type]] },
-    }),
-  )
-  const deleteAssetMutation = useMutation(
-    backendMutationOptions(backend, 'deleteAsset', {
-      meta: { invalidates: [['assetVersions'], ['listDirectory', backend.type]] },
-    }),
-  )
-  const undoDeleteAssetMutation = useMutation(
-    backendMutationOptions(backend, 'undoDeleteAsset', {
-      meta: { invalidates: [['listDirectory', backend.type]] },
-    }),
-  )
-  const updateAssetMutation = useMutation(
-    backendMutationOptions(backend, 'updateAsset', {
-      meta: { invalidates: [['assetVersions'], ['listDirectory', backend.type]] },
-    }),
-  )
-  const closeProjectMutation = useMutation(
-    backendMutationOptions(backend, 'closeProject', {
-      meta: { invalidates: [['assetVersions'], ['listDirectory', backend.type]] },
-    }),
-  )
+  const copyAssetMutation = useMutation(backendMutationOptions(backend, 'copyAsset'))
+  const deleteAssetMutation = useMutation(backendMutationOptions(backend, 'deleteAsset'))
+  const undoDeleteAssetMutation = useMutation(backendMutationOptions(backend, 'undoDeleteAsset'))
+  const updateAssetMutation = useMutation(backendMutationOptions(backend, 'updateAsset'))
+  const closeProjectMutation = useMutation(backendMutationOptions(backend, 'closeProject'))
 
   const directories = useQueries({
     // We query only expanded directories, as we don't want to load the data for directories that are not visible.
@@ -472,8 +427,8 @@ export default function AssetsTable(props: AssetsTableProps) {
         expandedDirectoryIds.map((directoryId) =>
           queryOptions({
             queryKey: [
-              'listDirectory',
               backend.type,
+              'listDirectory',
               directoryId,
               {
                 parentId: directoryId,
@@ -877,9 +832,13 @@ export default function AssetsTable(props: AssetsTableProps) {
               targetDirectorySelfPermission.permission,
             ))
       setCanCreateAssets(canCreateAssets)
-      targetDirectoryNodeRef.current = targetDirectory
+      setTargetDirectoryInStore(targetDirectory)
     },
   )
+
+  React.useEffect(() => {
+    setNewestFolderId(null)
+  }, [category, setNewestFolderId])
 
   React.useEffect(
     () =>
@@ -1453,7 +1412,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         break
       }
       case 'Escape': {
-        setSelectedKeys(new Set())
+        setSelectedKeys(set.EMPTY_SET)
         setMostRecentlySelectedIndex(null)
         selectionStartIndexRef.current = null
         break
@@ -1513,7 +1472,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         } else {
           // The arrow key will escape this container. In that case, do not stop propagation
           // and let `navigator2D` navigate to a different container.
-          setSelectedKeys(new Set())
+          setSelectedKeys(set.EMPTY_SET)
           selectionStartIndexRef.current = null
         }
         break
@@ -1621,9 +1580,12 @@ export default function AssetsTable(props: AssetsTableProps) {
         doToggleDirectoryExpansion(event.parentId, event.parentKey, true)
         insertAssets([placeholderItem], event.parentId)
 
-        createDirectoryMutation.mutate([
-          { parentId: placeholderItem.parentId, title: placeholderItem.title },
-        ])
+        void createDirectoryMutation
+          .mutateAsync([{ parentId: placeholderItem.parentId, title: placeholderItem.title }])
+          .then(({ id }) => {
+            setNewestFolderId(id)
+            setSelectedKeys(new Set([id]))
+          })
 
         break
       }
@@ -1713,6 +1675,12 @@ export default function AssetsTable(props: AssetsTableProps) {
           userGroups ?? [],
         )
         const fileMap = new Map<backendModule.AssetId, File>()
+        const uploadedFileIds: backendModule.AssetId[] = []
+        const addIdToSelection = (id: backendModule.AssetId) => {
+          uploadedFileIds.push(id)
+          const newIds = new Set(uploadedFileIds)
+          setSelectedKeys(newIds)
+        }
 
         const doUploadFile = async (asset: backendModule.AnyAsset, method: 'new' | 'update') => {
           const file = fileMap.get(asset.id)
@@ -1727,13 +1695,10 @@ export default function AssetsTable(props: AssetsTableProps) {
 
                 const assetNode = nodeMapRef.current.get(asset.id)
 
-                if (assetNode == null) {
-                  // eslint-disable-next-line no-restricted-syntax
-                  return
-                }
-
                 if (backend.type === backendModule.BackendType.local && localBackend != null) {
-                  const directory = localBackendModule.extractTypeAndId(assetNode.directoryId).id
+                  const directory = localBackendModule.extractTypeAndId(
+                    assetNode?.directoryId ?? asset.parentId,
+                  ).id
                   let id: string
                   if (
                     'backendApi' in window &&
@@ -1761,6 +1726,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     id = await response.text()
                   }
                   const projectId = localBackendModule.newProjectId(projectManager.UUID(id))
+                  addIdToSelection(projectId)
 
                   await getProjectDetailsMutation
                     .mutateAsync([projectId, asset.parentId, file.name])
@@ -1778,6 +1744,9 @@ export default function AssetsTable(props: AssetsTableProps) {
                       },
                       file,
                     ])
+                    .then(({ id }) => {
+                      addIdToSelection(id)
+                    })
                     .catch((error) => {
                       deleteAsset(asset.id)
                       toastAndLog('uploadProjectError', error)
@@ -1787,10 +1756,14 @@ export default function AssetsTable(props: AssetsTableProps) {
                 break
               }
               case backendModule.assetIsFile(asset): {
-                uploadFileMutation.mutate([
-                  { fileId, fileName: asset.title, parentDirectoryId: asset.parentId },
-                  file,
-                ])
+                void uploadFileMutation
+                  .mutateAsync([
+                    { fileId, fileName: asset.title, parentDirectoryId: asset.parentId },
+                    file,
+                  ])
+                  .then(({ id }) => {
+                    addIdToSelection(id)
+                  })
 
                 break
               }
@@ -2137,7 +2110,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const { selectedKeys } = driveStore.getState()
     setPasteData({ type: PasteType.move, data: selectedKeys })
     dispatchAssetEvent({ type: AssetEventType.cut, ids: selectedKeys })
-    setSelectedKeys(new Set())
+    setSelectedKeys(set.EMPTY_SET)
   })
 
   const doPaste = useEventCallback(
@@ -2221,6 +2194,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   }
 
   const handleFileDrop = (event: React.DragEvent) => {
+    setIsDraggingFiles(false)
     if (event.dataTransfer.types.includes('Files')) {
       event.preventDefault()
       event.stopPropagation()
@@ -2311,9 +2285,19 @@ export default function AssetsTable(props: AssetsTableProps) {
         {
           selectAdditional: () => {},
           selectAdditionalRange: () => {},
-          [inputBindingsModule.DEFAULT_HANDLER]: () => {
-            const { selectedKeys } = driveStore.getState()
-            if (selectedKeys.size !== 0) {
+          [inputBindingsModule.DEFAULT_HANDLER]: (event) => {
+            /** When the document is clicked, deselect the keys, but only if the clicked element
+             * is not inside a `Dialog`. To detect whether an element is a `Dialog`,
+             * we check whether it is inside the `portal-root` where all the `Dialog`s are mounted.
+             * If this check is omitted, when the user clicks inside a Datalink dialog,
+             * the keys are deselected, causing the Datalink to be added to the root directory,
+             * rather than the one that was selected when the dialog was opened.
+             */
+            const portalRoot =
+              event.target instanceof HTMLElement || event.target instanceof SVGElement ?
+                event.target.closest('.enso-portal-root')
+              : null
+            if (!portalRoot && driveStore.getState().selectedKeys.size !== 0) {
               setSelectedKeys(set.EMPTY_SET)
               setMostRecentlySelectedIndex(null)
             }
@@ -2579,10 +2563,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     },
   )
 
-  const onRowDragLeave = useEventCallback(() => {
-    setIsDraggingFiles(false)
-  })
-
   const onRowDragEnd = useEventCallback(() => {
     setIsDraggingFiles(false)
     endAutoScroll()
@@ -2706,7 +2686,6 @@ export default function AssetsTable(props: AssetsTableProps) {
             select={selectRow}
             onDragStart={onRowDragStart}
             onDragOver={onRowDragOver}
-            onDragLeave={onRowDragLeave}
             onDragEnd={onRowDragEnd}
             onDrop={onRowDrop}
           />
@@ -2796,11 +2775,11 @@ export default function AssetsTable(props: AssetsTableProps) {
         )}
         onDragEnter={onDropzoneDragOver}
         onDragOver={onDropzoneDragOver}
-        onDragLeave={(event) => {
+        onDragLeave={() => {
           lastSelectedIdsRef.current = null
-          if (event.currentTarget === event.target) {
-            setIsDraggingFiles(false)
-          }
+        }}
+        onDragEnd={() => {
+          setIsDraggingFiles(false)
         }}
         onDrop={(event) => {
           const payload = drag.ASSET_ROWS.lookup(event)
@@ -2820,7 +2799,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           handleFileDrop(event)
         }}
         onClick={() => {
-          setSelectedKeys(new Set())
+          setSelectedKeys(set.EMPTY_SET)
         }}
       >
         <aria.FileTrigger
@@ -2889,8 +2868,10 @@ export default function AssetsTable(props: AssetsTableProps) {
                     !event.currentTarget.contains(event.relatedTarget)
                   ) {
                     lastSelectedIdsRef.current = null
-                    setIsDraggingFiles(false)
                   }
+                },
+                onDragEnd: () => {
+                  setIsDraggingFiles(false)
                 },
               })}
             >
@@ -2950,12 +2931,9 @@ export default function AssetsTable(props: AssetsTableProps) {
         {isDraggingFiles && !isMainDropzoneVisible && (
           <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2">
             <div
-              className="flex items-center justify-center gap-3 rounded-default bg-selected-frame px-8 py-6 text-primary/50 backdrop-blur-3xl transition-all"
+              className="pointer-events-auto flex items-center justify-center gap-3 rounded-default bg-selected-frame px-8 py-6 text-primary/50 backdrop-blur-3xl transition-all"
               onDragEnter={onDropzoneDragOver}
               onDragOver={onDropzoneDragOver}
-              onDragLeave={() => {
-                setIsDraggingFiles(false)
-              }}
               onDragEnd={() => {
                 setIsDraggingFiles(false)
               }}
