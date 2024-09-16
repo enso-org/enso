@@ -6,8 +6,8 @@ from Standard.Database.Errors import SQL_Error
 type Redshift_Error_Mapper
 
     ## PRIVATE
-    is_primary_key_violation : SQL_Error -> Boolean
-    is_primary_key_violation error =
+    is_duplicate_primary_key_violation : SQL_Error -> Boolean
+    is_duplicate_primary_key_violation error =
         # Currently not implemented, skipping the error recognition.
         _ = error
         False

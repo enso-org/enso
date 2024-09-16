@@ -6,8 +6,8 @@ from Standard.Database.Errors import Invariant_Violation, SQL_Error
 type SQLServer_Error_Mapper
 
     ## PRIVATE
-    is_primary_key_violation : SQL_Error -> Boolean
-    is_primary_key_violation error =
+    is_duplicate_primary_key_violation : SQL_Error -> Boolean
+    is_duplicate_primary_key_violation error =
         ## TODO the SQL error actually contains the duplicated primary key value!
            We could use that to avoid a separate `Non_Unique_Key_Recipe` query.
         error.java_exception.getMessage.contains "Violation of PRIMARY KEY constraint"
