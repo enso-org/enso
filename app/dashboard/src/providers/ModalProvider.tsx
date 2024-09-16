@@ -1,6 +1,7 @@
 /** @file The React provider for modals, along with hooks to use the provider via
  * the shared React context. */
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useSyncRef } from '#/hooks/syncRefHooks'
 import * as React from 'react'
 
 // =====================
@@ -39,13 +40,9 @@ export interface ModalProviderProps extends Readonly<React.PropsWithChildren> {}
 export default function ModalProvider(props: ModalProviderProps) {
   const { children } = props
   const [modal, setModal] = React.useState<Modal | null>(null)
-  // we use key to tell react to invaldidate the modal when we change it.
+  // We use keys to tell react to invalidate the DialogTrigger when we change the modal.
   const [key, setKey] = React.useState(0)
-  const modalRef = React.useRef(modal)
-
-  React.useEffect(() => {
-    modalRef.current = modal
-  }, [modal])
+  const modalRef = useSyncRef(modal)
 
   const setModalStableCallback = useEventCallback(
     (nextModal: React.SetStateAction<React.JSX.Element | null>) => {
@@ -64,7 +61,7 @@ export default function ModalProvider(props: ModalProviderProps) {
         {children}
       </ModalStaticProvider>
     ),
-    [children, setModalStableCallback],
+    [children, modalRef, setModalStableCallback],
   )
   return <ModalContext.Provider value={{ modal, key }}>{setModalProvider}</ModalContext.Provider>
 }
