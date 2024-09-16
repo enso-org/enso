@@ -156,7 +156,7 @@ const data = computed<Data>(() => {
   let data: Point[]
   // eslint-disable-next-line camelcase
   const isTimeSeries: boolean =
-    rawData.x_value_type ?
+    'x_value_type' in rawData ?
       rawData.x_value_type === 'Time' || rawData.x_value_type === 'Date'
     : false
   // eslint-disable-next-line camelcase
@@ -164,7 +164,7 @@ const data = computed<Data>(() => {
     data = unfilteredData
       .filter((point) => typeof point.y === 'number' && !Number.isNaN(point.y))
       .map((point) =>
-        rawData.x_value_type === 'Time' ?
+        'x_value_type' in rawData && rawData.x_value_type === 'Time' ?
           { ...point, x: createDate(point.x) }
         : { ...point, x: new Date(point.x) },
       )
@@ -181,7 +181,6 @@ const data = computed<Data>(() => {
     rawData = {}
   }
   const axis: AxesConfiguration = rawData.axis ?? {
-    // eslint-disable-next-line camelcase
     x: { label: '', scale: isTimeSeries ? ScaleType.Time : ScaleType.Linear },
     y: { label: '', scale: ScaleType.Linear },
   }
@@ -189,14 +188,15 @@ const data = computed<Data>(() => {
   const focus: Focus | undefined = rawData.focus
   // eslint-disable-next-line camelcase
   const is_multi_series: boolean = !!rawData.is_multi_series
-  // eslint-disable-next-line camelcase
   return {
     axis,
     points,
     data,
     focus,
+    // eslint-disable-next-line camelcase
     is_multi_series,
-    x_value_type: rawData.x_value_type,
+    // eslint-disable-next-line camelcase
+    x_value_type: rawData.x_value_type || '',
     isTimeSeries,
   }
 })
