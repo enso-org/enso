@@ -116,7 +116,8 @@ sealed class Graph(
   }
 
   private def addSourceTargetLink(link: Graph.Link): Unit = {
-    org.enso.common.Asserts.assertInJvm(!frozen)
+    // commented out: used from DebugEvalNode
+    // org.enso.common.Asserts.assertInJvm(!frozen)
     sourceLinks = sourceLinks.updatedWith(link.source)(v =>
       v.map(s => s + link).orElse(Some(Set(link)))
     )
