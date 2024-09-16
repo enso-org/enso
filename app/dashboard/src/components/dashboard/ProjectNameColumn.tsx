@@ -10,7 +10,6 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import { useDriveStore } from '#/providers/DriveProvider'
-import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import type * as column from '#/components/dashboard/column'
@@ -56,7 +55,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { user } = authProvider.useFullUserSession()
   const { getText } = textProvider.useText()
-  const inputBindings = inputBindingsProvider.useInputBindings()
   const driveStore = useDriveStore()
   const doOpenProject = projectHooks.useOpenProject()
 
@@ -116,12 +114,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     }
   }
 
-  const handleClick = inputBindings.handler({
-    editName: () => {
-      setIsEditing(true)
-    },
-  })
-
   return (
     <div
       className={tailwindMerge.twMerge(
@@ -136,8 +128,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       onClick={(event) => {
         if (rowState.isEditingName || isOtherUserUsingProject) {
           // The project should neither be edited nor opened in these cases.
-        } else if (handleClick(event)) {
-          // Already handled.
         } else if (
           !isRunning &&
           eventModule.isSingleClick(event) &&

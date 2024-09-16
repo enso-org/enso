@@ -336,11 +336,11 @@ case object FramePointerAnalysis extends IRPass {
     scope: Graph.Scope,
     defOcc: GraphOccurrence.Def
   ): Int = {
-    assert(
+    org.enso.common.Asserts.assertInJvm(
       graph.scopeFor(defOcc.id).contains(scope),
       "Def occurrence must be in the given scope"
     )
-    assert(
+    org.enso.common.Asserts.assertInJvm(
       scope.allDefinitions.contains(defOcc),
       "The given scope must contain the given Def occurrence"
     )

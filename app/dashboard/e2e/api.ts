@@ -704,7 +704,12 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         new URL(request.url()).searchParams.entries(),
       ) as never
 
-      const file = addFile(searchParams.file_name)
+      const file = addFile(
+        searchParams.file_name,
+        searchParams.parent_directory_id == null ?
+          {}
+        : { parentId: searchParams.parent_directory_id },
+      )
 
       return { path: '', id: file.id, project: null } satisfies backend.FileInfo
     })
@@ -900,8 +905,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       const body: backend.CreateDirectoryRequestBody = request.postDataJSON()
       const title = body.title
       const id = backend.DirectoryId(`directory-${uniqueString.uniqueString()}`)
-      const parentId =
-        body.parentId ?? backend.DirectoryId(`directory-${uniqueString.uniqueString()}`)
+      const parentId = body.parentId ?? defaultDirectoryId
       const json: backend.CreatedDirectory = { title, id, parentId }
       addDirectory(title, {
         description: null,
