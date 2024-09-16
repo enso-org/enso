@@ -248,11 +248,12 @@ type Date_Operation
     create_widget table:Table_Ref display:Display=Display.Always =
         col_names = Widget_Helpers.make_column_ref_by_name_selector table
         with_number = Widget_Helpers.make_column_ref_by_name_selector table add_number=True
+        with_date = Widget_Helpers.make_column_ref_by_name_selector table add_date=True add_date_time=True
 
         options = Vector.build builder->
             builder.append (Option "add" "..Add" [["length", with_number]])
             builder.append (Option "part" "..Part")
-            builder.append (Option "diff" "..Diff" [["end", col_names]])
+            builder.append (Option "diff" "..Diff" [["end", with_date]])
             builder.append (Option "truncate" "..Truncate")
             builder.append (Option "year" "..Year")
             builder.append (Option "month" "..Month")
