@@ -2,7 +2,7 @@
 /** @file Various actions, locators, and constants used in end-to-end tests. */
 import * as test from '@playwright/test'
 
-import * as text from 'enso-common/src/text'
+import { TEXTS } from 'enso-common/src/text'
 
 import DrivePageActions from './actions/DrivePageActions'
 import LoginPageActions from './actions/LoginPageActions'
@@ -20,7 +20,7 @@ export const INVALID_PASSWORD = 'password'
 export const VALID_PASSWORD = 'Password0!'
 /** An example valid email address. */
 export const VALID_EMAIL = 'email@example.com'
-export const TEXT = text.TEXTS.english
+export const TEXT = TEXTS.english
 
 // ================
 // === Locators ===

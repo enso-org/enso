@@ -14,9 +14,6 @@ test.test('setup (free plan)', ({ page }) =>
       },
     })
     .loginAsNewUser()
-    .do(async (thePage) => {
-      await actions.passTermsAndConditionsDialog({ page: thePage })
-    })
     .setUsername('test user')
     .stayOnFreePlan()
     .goToPage.drive()
@@ -35,9 +32,6 @@ test.test('setup (solo plan)', ({ page }) =>
       },
     })
     .loginAsNewUser()
-    .do(async (thePage) => {
-      await actions.passTermsAndConditionsDialog({ page: thePage })
-    })
     .setUsername('test user')
     .selectSoloPlan()
     .goToPage.drive()
@@ -56,9 +50,6 @@ test.test('setup (team plan)', ({ page }) =>
       },
     })
     .loginAsNewUser()
-    .do(async (thePage) => {
-      await actions.passTermsAndConditionsDialog({ page: thePage })
-    })
     .setUsername('test user')
     .selectPlan(Plan.team)
     .setOrganizationName('test organization')
