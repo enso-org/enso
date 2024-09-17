@@ -1849,8 +1849,20 @@ export default function AssetsTable(props: AssetsTableProps) {
               nonConflictingProjectCount={projects.length - conflictingProjects.length}
               doUpdateConflicting={(resolvedConflicts) => {
                 for (const conflict of resolvedConflicts) {
-                  fileMap.set(conflict.current.id, conflict.file)
-                  void doUploadFile(conflict.current, 'update')
+                  const isUpdating = conflict.current.title === conflict.new.title
+
+                  const asset = isUpdating ? conflict.current : conflict.new
+
+                  fileMap.set(
+                    asset.id,
+                    new File([conflict.file], asset.title, {
+                      type: conflict.file.type,
+                      lastModified: conflict.file.lastModified,
+                    }),
+                  )
+
+                  insertAssets([asset], event.parentId)
+                  void doUploadFile(asset, isUpdating ? 'update' : 'new')
                 }
               }}
               doUploadNonConflicting={() => {
@@ -2252,6 +2264,29 @@ export default function AssetsTable(props: AssetsTableProps) {
       setQuery,
     ],
   )
+
+  React.useEffect(() => {
+    // In some browsers, at least in Chrome 126,
+    // in some situations, when an element has a
+    // 'container-size' style, and the parent element is hidden,
+    // the browser can't calculate the element's size
+    // and thus the element doesn't appear when we unhide the parent.
+    // The only way to fix that is to force browser to recalculate styles
+    // So the trick is to change a property, trigger style recalc(`getBoundlingClientRect()`)
+    // and remove the property.
+    // since everything is happening synchronously, user won't see a broken layout during recalculation
+    if (!hidden && rootRef.current) {
+      for (let i = 0; i < rootRef.current.children.length; i++) {
+        const element = rootRef.current.children[i]
+
+        if (element instanceof HTMLElement) {
+          element.style.width = '0px'
+          element.getBoundingClientRect()
+          element.style.width = ''
+        }
+      }
+    }
+  }, [hidden])
 
   // This is required to prevent the table body from overlapping the table header, because
   // the table header is transparent.

@@ -13,7 +13,9 @@ from Standard.Base import all
 type Dialect_Flags
     Value (rounding : Rounding_Flags) (primary_key : Primary_Key_Flags)
 
+## PRIVATE
 type Rounding_Flags
+    ## PRIVATE
     Value (supports_negative_decimal_places : Boolean) (supports_float_decimal_places : Boolean) (use_builtin_bankers : Boolean)
 
 type Primary_Key_Flags
