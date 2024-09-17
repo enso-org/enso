@@ -1,10 +1,7 @@
 /** @file A button to subscribe to a plan. */
 import { getSalesEmail } from '#/appUtils'
-
-import { useText } from '#/providers/TextProvider'
-
 import { Button, DialogTrigger, Text } from '#/components/AriaComponents'
-
+import { useText } from '#/providers/TextProvider'
 import { TRIAL_DURATION_DAYS } from '../../../constants'
 import { PlanSelectorDialog, type PlanSelectorDialogProps } from './PlanSelectorDialog'
 
@@ -38,55 +35,28 @@ export function SubscribeButton(props: SubscribeButtonProps) {
 
   const { getText } = useText()
 
-  const buttonText = (() => {
-    if (isDowngrade) {
-      // eslint-disable-next-line no-restricted-syntax
-      return getText('downgrade')
-    }
+  const buttonText =
+    isDowngrade ? getText('downgrade')
+    : isCurrent ?
+      getText('currentPlan') ? userHasSubscription
+      : getText('upgrade')
+    : canTrial ? getText('trialDescription', TRIAL_DURATION_DAYS)
+    : getText('subscribe')
 
-    if (isCurrent) {
-      // eslint-disable-next-line no-restricted-syntax
-      return getText('currentPlan')
-    }
+  const description =
+    isDowngrade ?
+      <Text transform="none">
+        <Button variant="link" href={getSalesEmail() + `?subject=Downgrade%20our%20plan`}>
+          {getText('contactSales')}
+        </Button>{' '}
+        {getText('downgradeInfo')}
+      </Text>
+    : null
 
-    if (userHasSubscription) {
-      // eslint-disable-next-line no-restricted-syntax
-      return getText('upgrade')
-    }
-
-    // eslint-disable-next-line no-restricted-syntax
-    return canTrial ? getText('trialDescription', TRIAL_DURATION_DAYS) : getText('subscribe')
-  })()
-
-  const description = (() => {
-    if (isDowngrade) {
-      // eslint-disable-next-line no-restricted-syntax
-      return (
-        <Text transform="none">
-          <Button variant="link" href={getSalesEmail() + `?subject=Downgrade%20our%20plan`}>
-            {getText('contactSales')}
-          </Button>{' '}
-          {getText('downgradeInfo')}
-        </Text>
-      )
-    }
-
-    return null
-  })()
-
-  const variant = (() => {
-    if (isCurrent) {
-      // eslint-disable-next-line no-restricted-syntax
-      return 'outline'
-    }
-
-    if (isDowngrade) {
-      // eslint-disable-next-line no-restricted-syntax
-      return 'outline'
-    }
-
-    return 'submit'
-  })()
+  const variant =
+    isCurrent ? 'outline'
+    : isDowngrade ? 'outline'
+    : 'submit'
 
   const disabled = isCurrent || isDowngrade || isDisabled || !isOrganizationAdmin
 
