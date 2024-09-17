@@ -65,13 +65,6 @@ export function useNavigator(
     viewportRect.value = elemRect(viewportNode.value)
   }
 
-  // useDrag(
-  //   (state) => {
-  //     console.log('gesture onDrag standalone', state)
-  //   },
-  //   { domTarget: viewportNode },
-  // )
-
   const dragPredicate = (e: PointerEvent) => e.target === e.currentTarget && predicate(e)
 
   function eventIsTouch(e: Event) {
@@ -193,6 +186,7 @@ export function useNavigator(
       },
       drag: {
         enabled: true,
+        useTouch: false,
       },
       pinch: {
         enabled: true,
@@ -447,7 +441,10 @@ export function useNavigator(
     transform: readonly(transform),
     addHoldDragListener(listener: Handler<'drag'>) {
       holdDragListeners.push(listener)
-      onScopeDispose(() => holdDragListeners.splice(holdDragListeners.indexOf(listener), 1))
+      onScopeDispose(() => {
+        console.log('scope dispose')
+        holdDragListeners.splice(holdDragListeners.indexOf(listener), 1)
+      })
     },
     /** Use this transform instead, if the element should not be scaled. */
     prescaledTransform,

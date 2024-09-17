@@ -75,9 +75,6 @@ test('LazySyncEffectSet', async () => {
   key2.value = 104
   lazySet.lazyEffect((onCleanup) => {
     const currentValue = key1.value
-    console.log('currentValue', currentValue)
-    console.log('lazilyUpdatedMap', lazilyUpdatedMap)
-
     lazilyUpdatedMap.set(currentValue, 'c' + runCount++)
     onCleanup(() => lazilyUpdatedMap.delete(currentValue))
   })
