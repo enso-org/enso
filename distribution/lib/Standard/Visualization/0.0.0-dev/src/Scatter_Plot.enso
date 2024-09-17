@@ -1,6 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.Vector.Builder
-from Standard.Table import Column, Table
+from Standard.Table import Column, Table, Value_Type
 
 import project.Helpers
 
@@ -237,7 +237,7 @@ json_from_table table bounds limit =
 json_from_vector : Vector Any -> Vector Integer | Nothing -> Integer | Nothing -> Text
 json_from_vector vec bounds limit =
     data = vec.point_data |> bound_data bounds |> limit_data limit
-    JS_Object.from_pairs [[data_field, data], [axis_field, Nothing], ["is_multi_series", False]] . to_json
+    JS_Object.from_pairs [[data_field, data], [axis_field, Nothing], ["is_multi_series", False], ["x_value_type", Value_Type.Integer.to_display_text]] . to_json
 
 ## PRIVATE
 
