@@ -6,6 +6,8 @@ import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
 import org.enso.interpreter.runtime.state.ExecutionEnvironment
 import org.enso.polyglot.runtime.Runtime.Api
 
+import java.util.logging.Level
+
 /** A job responsible for executing a call stack for the provided context.
   *
   * @param contextId an identifier of a context to execute
@@ -31,6 +33,11 @@ class ExecuteJob(
       runImpl
     } catch {
       case t: Throwable =>
+        ctx.executionService.getLogger.log(
+          Level.SEVERE,
+          "Failure during the program execution.",
+          t
+        )
         val message = Option(t.getMessage).getOrElse(t.getClass.getSimpleName)
         ctx.endpoint.sendToClient(
           Api.Response(
