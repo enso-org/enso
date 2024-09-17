@@ -544,6 +544,37 @@ function createNode(rowNumber: number) {
   }
 }
 
+const filterPattern = computed(() => Pattern.parse('__ (__ __)'))
+
+const makeFilterPattern = (module: Ast.MutableModule, columnName: string, items) => {
+  return filterPattern.value.instantiateCopied([
+    Ast.TextLiteral.new(columnName),
+    Ast.parse('..Is_In'),
+    Ast.Vector.new(module, items),
+  ])
+}
+
+function getAstPatternFilter() {
+  const xAxisLabel = data.value.axis.x.label
+  const items = data.value.data.map((d) => d.x)
+  return Pattern.new((ast) =>
+    Ast.App.positional(
+      Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('filter')!),
+      makeFilterPattern(ast.module, xAxisLabel, items),
+    ),
+  )
+}
+
+const createNewNodes = () => {
+  const pattern = getAstPatternFilter()
+  if (pattern) {
+    config.createNodes({
+      content: pattern,
+      commit: true,
+    })
+  }
+}
+
 // === Update contents ===
 
 watchPostEffect(() => {
@@ -710,6 +741,7 @@ useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSel
         :disabled="brushExtent == null"
         @click.stop="zoomToSelected"
       />
+      <SvgButton name="add" title="filter to selected points" @click.stop="createNewNodes" />
     </template>
     <div ref="containerNode" class="ScatterplotVisualization">
       <svg :width="width" :height="height">
