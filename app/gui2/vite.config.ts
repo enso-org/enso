@@ -13,7 +13,9 @@ import VueDevTools from 'vite-plugin-vue-devtools'
 import wasm from 'vite-plugin-wasm'
 
 const dynHostnameWsUrl = (port: number) =>
-  process.env.VITEST === 'true' ? "'ws://FAKE/'" : '`ws://${window.location.hostname}:' + port + '`'
+  process.env.VITEST === 'true' || process.env.E2E === 'true' ?
+    "'ws://FAKE/'"
+  : '`ws://${window.location.hostname}:' + port + '`'
 
 const projectManagerUrl = dynHostnameWsUrl(process.env.E2E === 'true' ? 30536 : 30535)
 
