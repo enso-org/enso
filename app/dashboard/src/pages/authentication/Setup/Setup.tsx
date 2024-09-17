@@ -85,16 +85,13 @@ const BASE_STEPS: Step[] = [
             })
           }
           defaultValues={{ username: defaultName }}
-          onSubmit={({ username }) => {
-            // If user is already created we shouldn't call `setUsername` if value wasn't changed
-            if (username === defaultName && isUserCreated) {
-              goToNextStep()
-              return
-            } else {
-              return setUsername(username).then(() => {
-                goToNextStep()
-              })
+          onSubmit={async ({ username }) => {
+            // If user is already created we shouldn't call `setUsername` if the value has not been
+            // changed.
+            if (username !== defaultName || !isUserCreated) {
+              await setUsername(username)
             }
+            goToNextStep()
           }}
         >
           <ariaComponents.Input

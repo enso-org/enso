@@ -140,7 +140,7 @@ function createUsersMeQuery(
   performLogout: () => Promise<void>,
 ) {
   return reactQuery.queryOptions({
-    queryKey: ['usersMe', session?.clientId] as const,
+    queryKey: [remoteBackend.type, 'usersMe', session?.clientId] as const,
     queryFn: async () => {
       if (session == null) {
         // eslint-disable-next-line no-restricted-syntax
@@ -217,7 +217,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   }
 
   const logoutMutation = reactQuery.useMutation({
-    mutationKey: ['usersMe', 'logout', session?.clientId] as const,
+    mutationKey: [remoteBackend.type, 'usersMe', 'logout', session?.clientId] as const,
     mutationFn: () => performLogout(),
     onMutate: () => {
       // If the User Menu is still visible, it breaks when `userSession` is set to `null`.
@@ -347,7 +347,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     gtagEvent('cloud_user_created')
 
     if (userData?.type === UserSessionType.full) {
-      await updateUserMutation.mutateAsync({ username: username })
+      await updateUserMutation.mutateAsync({ username })
     } else {
       const organizationId = await cognito.organizationId()
       const email = session?.email ?? ''
