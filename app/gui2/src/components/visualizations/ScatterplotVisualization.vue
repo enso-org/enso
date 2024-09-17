@@ -546,7 +546,7 @@ watchPostEffect(() => {
       d3
         .axisBottom<Date>(xScale.value)
         .ticks(xTicks.value)
-        .tickFormat(d3.utcFormat(xTickFormat.value))
+        .tickFormat(d3.timeFormat(xTickFormat.value))
     : d3.axisBottom<string>(xScale.value).ticks(xTicks.value)
   return d3XAxis.value.transition().duration(animationDuration.value).call(xCallVal)
 })
@@ -577,6 +577,20 @@ function getPlotData(data: Data) {
   return data.data
 }
 
+function formatXPoint(x: Date | number | DateObj) {
+  if (data.value.isTimeSeries && x instanceof Date) {
+    switch (data.value.x_value_type) {
+      case 'Time':
+        return x.toTimeString()
+      case 'Date':
+        return x.toDateString()
+      default:
+        return x.toString()
+    }
+  }
+  return x
+}
+
 function getTooltipMessage(point: Point) {
   if (data.value.is_multi_series) {
     const axis = data.value.axis
@@ -584,9 +598,9 @@ function getTooltipMessage(point: Point) {
       point.series && point.series in axis ?
         axis[point.series as keyof AxesConfiguration].label
       : ''
-    return `${point.x}, ${point.y}, ${label}`
+    return `${formatXPoint(point.x)}, ${point.y}, ${label}`
   }
-  return `${point.x}, ${point.y}`
+  return `${formatXPoint(point.x)}, ${point.y}`
 }
 
 // === Update contents ===
