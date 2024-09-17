@@ -6,6 +6,7 @@ import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import org.slf4j.LoggerFactory;
 
 public final class Parser implements AutoCloseable {
   private static void initializeLibraries() {
@@ -135,7 +136,8 @@ public final class Parser implements AutoCloseable {
     try {
       return Tree.deserialize(message);
     } catch (BufferUnderflowException | IllegalArgumentException e) {
-      System.err.println("Unrecoverable parser failure for: " + input);
+      LoggerFactory.getLogger(this.getClass())
+          .error("Unrecoverable parser failure for: {}", input, e);
       throw e;
     }
   }
