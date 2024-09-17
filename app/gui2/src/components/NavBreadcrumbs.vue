@@ -49,6 +49,7 @@ async function renameBreadcrumb(index: number, newName: string) {
           class="clickable"
           @click.stop="stackNavigator.handleBreadcrumbClick(index)"
           @update:modelValue="renameBreadcrumb(index, $event)"
+          @focusout="projectNameEdited = false"
         />
       </template>
     </div>
