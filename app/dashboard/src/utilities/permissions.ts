@@ -63,7 +63,7 @@ export function tryCreateOwnerPermission(
 /** Try to find a permission belonging to the user. */
 export function tryFindSelfPermission(
   self: User,
-  otherPermissions: readonly AssetPermission[] | null,
+  otherPermissions: readonly AssetPermission[] | null | undefined,
 ) {
   let selfPermission: AssetPermission | null = null
   for (const permission of otherPermissions ?? []) {
