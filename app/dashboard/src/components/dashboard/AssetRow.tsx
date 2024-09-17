@@ -11,6 +11,7 @@ import * as setAssetHooks from '#/hooks/setAssetHooks'
 
 import {
   useDriveStore,
+  useNewestFolderId,
   useSetAssetPanelProps,
   useSetIsAssetPanelTemporarilyVisible,
   useSetSelectedKeys,
