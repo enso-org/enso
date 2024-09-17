@@ -60,12 +60,12 @@ export function locateNewLabelModalColorButtons(page: test.Page) {
 
 /** Find a "name" input for an "upsert secret" modal (if any) on the current page. */
 export function locateSecretNameInput(page: test.Page) {
-  return locateUpsertSecretModal(page).getByPlaceholder('Enter the name of the secret')
+  return locateUpsertSecretModal(page).getByPlaceholder(TEXT.secretNamePlaceholder)
 }
 
 /** Find a "value" input for an "upsert secret" modal (if any) on the current page. */
 export function locateSecretValueInput(page: test.Page) {
-  return locateUpsertSecretModal(page).getByPlaceholder('Enter the value of the secret')
+  return locateUpsertSecretModal(page).getByPlaceholder(TEXT.secretValuePlaceholder)
 }
 
 /** Find a search bar input (if any) on the current page. */
@@ -88,16 +88,6 @@ export function locateLoginButton(page: test.Locator | test.Page) {
 /** Find a "register" button (if any) on the current locator. */
 export function locateRegisterButton(page: test.Locator | test.Page) {
   return page.getByRole('button', { name: 'Register' }).getByText('Register')
-}
-
-/** Find a "delete" button (if any) on the current page. */
-export function locateDeleteButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Delete' }).getByText('Delete')
-}
-
-/** Find a button to delete something (if any) on the current page. */
-export function locateDeleteIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('Delete')
 }
 
 /** Find a "create" button (if any) on the current page. */
@@ -347,12 +337,6 @@ export function locateCollapsibleDirectories(page: test.Page) {
   return locateAssetRows(page).filter({ has: page.locator('[aria-label=Collapse]') })
 }
 
-/** Find a "confirm delete" modal (if any) on the current page. */
-export function locateConfirmDeleteModal(page: test.Page) {
-  // This has no identifying features.
-  return page.getByTestId('confirm-delete-modal')
-}
-
 /** Find a "new label" modal (if any) on the current page. */
 export function locateNewLabelModal(page: test.Page) {
   // This has no identifying features.
@@ -363,12 +347,6 @@ export function locateNewLabelModal(page: test.Page) {
 export function locateUpsertSecretModal(page: test.Page) {
   // This has no identifying features.
   return page.getByTestId('upsert-secret-modal')
-}
-
-/** Find a "new user group" modal (if any) on the current page. */
-export function locateNewUserGroupModal(page: test.Page) {
-  // This has no identifying features.
-  return page.getByTestId('new-user-group-modal')
 }
 
 /** Find a user menu (if any) on the current page. */
@@ -755,7 +733,7 @@ export async function login(
     await locateLoginButton(page).click()
     await test.expect(page.getByText('Logging in to Enso...')).not.toBeVisible()
     if (first) {
-      await passTermsAndConditionsDialog({ page, setupAPI })
+      await passAgreementsDialog({ page, setupAPI })
       await test.expect(page.getByText('Logging in to Enso...')).not.toBeVisible()
     }
   })
@@ -830,11 +808,12 @@ async function mockDate({ page }: MockParams) {
   })
 }
 
-/** Pass the Terms and conditions dialog. */
-export async function passTermsAndConditionsDialog({ page }: MockParams) {
+/** Pass the Agreements dialog. */
+export async function passAgreementsDialog({ page }: MockParams) {
   await test.test.step('Accept Terms and Conditions', async () => {
-    await page.waitForSelector('#terms-of-service-modal')
-    await page.getByRole('checkbox').click()
+    await page.waitForSelector('#agreements-modal')
+    await page.getByTestId('terms-of-service-checkbox').click()
+    await page.getByTestId('privacy-policy-checkbox').click()
     await page.getByRole('button', { name: 'Accept' }).click()
   })
 }

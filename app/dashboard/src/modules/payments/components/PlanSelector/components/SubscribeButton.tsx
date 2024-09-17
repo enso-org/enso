@@ -8,7 +8,7 @@ import { useText } from '#/providers/TextProvider'
 
 import { Button, DialogTrigger, Text } from '#/components/AriaComponents'
 
-import { PLAN_TO_UPGRADE_LABEL_ID, TRIAL_DURATION_DAYS } from '../../../constants'
+import { TRIAL_DURATION_DAYS } from '../../../constants'
 import { PlanSelectorDialog, type PlanSelectorDialogProps } from './PlanSelectorDialog'
 
 /**
@@ -16,6 +16,7 @@ import { PlanSelectorDialog, type PlanSelectorDialogProps } from './PlanSelector
  */
 export interface SubscribeButtonProps
   extends Omit<PlanSelectorDialogProps, 'isTrialing' | 'title'> {
+  readonly isOrganizationAdmin?: boolean
   readonly userHasSubscription: boolean
   readonly isCurrent?: boolean
   readonly isDowngrade?: boolean
@@ -29,7 +30,7 @@ export interface SubscribeButtonProps
  */
 export function SubscribeButton(props: SubscribeButtonProps) {
   const {
-    defaultOpen = false,
+    defaultOpen,
     userHasSubscription,
     isCurrent = false,
     isDowngrade = false,
@@ -39,6 +40,7 @@ export function SubscribeButton(props: SubscribeButtonProps) {
     onSubmit,
     planName,
     features,
+    isOrganizationAdmin = false,
   } = props
 
   const { getText } = useText()
@@ -67,12 +69,12 @@ export function SubscribeButton(props: SubscribeButtonProps) {
     if (isDowngrade) {
       // eslint-disable-next-line no-restricted-syntax
       return (
-        <>
-          {getText('downgradeInfo')}{' '}
+        <Text transform="none">
           <Button variant="link" href={getSalesEmail() + `?subject=Downgrade%20our%20plan`}>
             {getText('contactSales')}
-          </Button>
-        </>
+          </Button>{' '}
+          {getText('downgradeInfo')}
+        </Text>
       )
     }
 
@@ -93,37 +95,35 @@ export function SubscribeButton(props: SubscribeButtonProps) {
     return 'submit'
   })()
 
-  const disabled = isCurrent || isDowngrade || isDisabled
+  const disabled = isCurrent || isDowngrade || isDisabled || !isOrganizationAdmin
 
   return (
     <div className="w-full text-center">
-      <DialogTrigger defaultOpen={disabled ? false : defaultOpen}>
-        <Button
-          fullWidth
-          isDisabled={disabled}
-          variant={variant}
-          size="medium"
-          rounded="full"
-          aria-label={getText(PLAN_TO_UPGRADE_LABEL_ID[plan])}
-          tooltip={false}
-        >
-          {buttonText}
-        </Button>
-
-        <PlanSelectorDialog
-          plan={plan}
-          planName={planName}
-          features={features}
-          onSubmit={onSubmit}
-          isTrialing={canTrial}
-          title={getText('upgradeTo', getText(plan))}
-        />
-      </DialogTrigger>
-
       {isDowngrade && (
-        <Text transform="capitalize" className="my-0.5">
+        <Text transform="normal" className="my-0.5">
           {description}
         </Text>
+      )}
+
+      {!isDowngrade && (
+        <DialogTrigger
+          {...(disabled ? { defaultOpen: false }
+          : defaultOpen == null ? {}
+          : { defaultOpen })}
+        >
+          <Button fullWidth isDisabled={disabled} variant={variant} size="medium" rounded="full">
+            {buttonText}
+          </Button>
+
+          <PlanSelectorDialog
+            plan={plan}
+            planName={planName}
+            features={features}
+            onSubmit={onSubmit}
+            isTrialing={canTrial}
+            title={getText('upgradeTo', getText(plan))}
+          />
+        </DialogTrigger>
       )}
     </div>
   )

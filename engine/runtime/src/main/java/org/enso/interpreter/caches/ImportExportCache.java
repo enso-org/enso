@@ -1,6 +1,5 @@
 package org.enso.interpreter.caches;
 
-import buildinfo.Info;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
 import java.io.ByteArrayInputStream;
@@ -22,6 +21,7 @@ import org.enso.persist.Persistable;
 import org.enso.persist.Persistance;
 import org.enso.pkg.QualifiedName;
 import org.enso.pkg.SourceFile;
+import org.enso.version.BuildVersion;
 import org.openide.util.lookup.ServiceProvider;
 
 public final class ImportExportCache
@@ -106,7 +106,7 @@ public final class ImportExportCache
         .map(
             pkg -> {
               TruffleFile bindingsCacheRoot =
-                  pkg.getBindingsCacheRootForPackage(Info.ensoVersion());
+                  pkg.getBindingsCacheRootForPackage(BuildVersion.ensoVersion());
               var localCacheRoot = bindingsCacheRoot.resolve(libraryName.namespace());
               var distribution = context.getDistributionManager();
               var pathSegments =
@@ -114,7 +114,7 @@ public final class ImportExportCache
                     pkg.namespace(),
                     pkg.normalizedName(),
                     pkg.getConfig().version(),
-                    Info.ensoVersion(),
+                    BuildVersion.ensoVersion(),
                     libraryName.namespace()
                   };
               var path =

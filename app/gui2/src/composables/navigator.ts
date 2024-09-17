@@ -106,6 +106,7 @@ export function useNavigator(
     maxScale = PAN_AND_ZOOM_DEFAULT_SCALE_RANGE[1],
     skipAnimation = false,
   ) {
+    resetTargetFollowing()
     if (!viewportNode.value) return
     targetScale.value = Math.max(
       minScale,
@@ -122,6 +123,27 @@ export function useNavigator(
     }
   }
 
+  let targetPoints: Partial<Vec2>[] = []
+
+  function resetTargetFollowing() {
+    targetPoints = []
+  }
+
+  watch(size, () => {
+    if (targetPoints.length > 0) {
+      panToImpl(targetPoints)
+    }
+  })
+
+  /** As `panTo`, but also follow the points if the viewport size is changing.
+   *
+   * The following is working until manual panning by user input or until the next call to any `pan…` function.
+   */
+  function panToThenFollow(points: Partial<Vec2>[]) {
+    targetPoints = points
+    panToImpl(points)
+  }
+
   /** Pan to include the given prioritized list of coordinates.
    *
    *  The view will be offset to include each coordinate, unless the coordinate cannot be fit in the viewport without
@@ -130,22 +152,32 @@ export function useNavigator(
    *
    *  If all provided constraints can be met, the viewport will be moved the shortest distance that fits all the
    *  coordinates in view.
+   *
+   *  If the viewport size is changing, the view will be panned to preserve the coordinates in view until a new call
+   *  to `panToThenFollow` or similar functions (like `panAndZoomTo`), or until a manual pan by user input.
    */
   function panTo(points: Partial<Vec2>[]) {
+    resetTargetFollowing()
+    panToImpl(points)
+  }
+
+  function panToImpl(points: Partial<Vec2>[]) {
     let target = viewport.value
     for (const point of points.reverse()) target = target.offsetToInclude(point) ?? target
-    targetCenter.value = target.center()
+    targetCenter.value = target.center().finiteOrZero()
   }
 
   /** Pan immediately to center the viewport at the given point, in scene coordinates. */
   function scrollTo(newCenter: Vec2) {
-    targetCenter.value = newCenter
+    resetTargetFollowing()
+    targetCenter.value = newCenter.finiteOrZero()
     center.skip()
   }
 
   /** Set viewport center point and scale value immediately, skipping animations. */
   function setCenterAndScale(newCenter: Vec2, newScale: number) {
-    targetCenter.value = newCenter
+    resetTargetFollowing()
+    targetCenter.value = newCenter.finiteOrZero()
     targetScale.value = newScale
     scale.skip()
     center.skip()
@@ -289,10 +321,11 @@ export function useNavigator(
    * before and after running the provided function.
    */
   function maintainingScenePosAtClientPoint<T>(clientPos: Vec2, f: () => T): T {
+    resetTargetFollowing()
     const scenePos0 = clientToScenePos(clientPos)
     const result = f()
     const scenePos1 = clientToScenePos(clientPos)
-    targetCenter.value = center.value.add(scenePos0.sub(scenePos1))
+    targetCenter.value = center.value.add(scenePos0.sub(scenePos1)).finiteOrZero()
     center.skip()
     return result
   }
@@ -350,12 +383,12 @@ export function useNavigator(
     },
     pointerEventsCapture: wheelEventsCapture,
     keyboardEvents: panArrows.events,
-    translate,
+    translate: readonly(translate),
     targetCenter: readonly(targetCenter),
     targetScale: readonly(targetScale),
     scale: readonly(toRef(scale, 'value')),
-    viewBox,
-    transform,
+    viewBox: readonly(viewBox),
+    transform: readonly(transform),
     /** Use this transform instead, if the element should not be scaled. */
     prescaledTransform,
     sceneMousePos,
@@ -363,6 +396,7 @@ export function useNavigator(
     clientToSceneRect,
     panAndZoomTo,
     panTo,
+    panToThenFollow,
     viewport,
     stepZoom,
     scrollTo,

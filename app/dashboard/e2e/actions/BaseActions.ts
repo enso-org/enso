@@ -3,7 +3,7 @@ import * as test from '@playwright/test'
 
 import type * as inputBindings from '#/utilities/inputBindings'
 
-import { modModifier, TEXT } from '../actions'
+import { modModifier } from '../actions'
 
 // ====================
 // === PageCallback ===
@@ -164,15 +164,11 @@ export default class BaseActions implements Promise<void> {
       return this
     } else if (expected != null) {
       return this.step(`Expect ${description} error to be '${expected}'`, async (page) => {
-        await test
-          .expect(page.getByTestId(testId).getByLabel(TEXT.fieldErrorLabel))
-          .toHaveText(expected)
+        await test.expect(page.getByTestId(testId).getByTestId('error')).toHaveText(expected)
       })
     } else {
       return this.step(`Expect no ${description} error`, async (page) => {
-        await test
-          .expect(page.getByTestId(testId).getByLabel(TEXT.fieldErrorLabel))
-          .not.toBeVisible()
+        await test.expect(page.getByTestId(testId).getByTestId('error')).not.toBeVisible()
       })
     }
   }

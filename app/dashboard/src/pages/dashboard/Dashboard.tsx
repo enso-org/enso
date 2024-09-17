@@ -2,7 +2,6 @@
  * interactive components. */
 import * as React from 'react'
 
-import * as validator from 'validator'
 import * as z from 'zod'
 
 import * as detect from 'enso-common/src/detect'
@@ -37,7 +36,6 @@ import AssetListEventType from '#/events/AssetListEventType'
 
 import type * as assetTable from '#/layouts/AssetsTable'
 import EventListProvider, * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-import type Category from '#/layouts/CategorySwitcher/Category'
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
@@ -57,10 +55,12 @@ import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
 
-import * as array from '#/utilities/array'
+import { baseName } from '#/utilities/fileInfo'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
+import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
+import { usePrefetchQuery } from '@tanstack/react-query'
 
 // ============================
 // === Global configuration ===
@@ -99,6 +99,25 @@ export default function Dashboard(props: DashboardProps) {
   )
 }
 
+/**
+ * Extract proper path from `file://` URL.
+ */
+function fileURLToPath(url: string): string | null {
+  if (URL.canParse(url)) {
+    const parsed = new URL(url)
+    if (parsed.protocol === 'file:') {
+      return detect.platform() === detect.Platform.windows ?
+          // On Windows, we must remove leading `/` from URL.
+          parsed.pathname.slice(1)
+        : parsed.pathname
+    } else {
+      return null
+    }
+  } else {
+    return null
+  }
+}
+
 /** The component that contains the entire UI. */
 function DashboardInner(props: DashboardProps) {
   const { appRunner, initialProjectName: initialProjectNameRaw, ydocUrl } = props
@@ -115,63 +134,15 @@ function DashboardInner(props: DashboardProps) {
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const assetManagementApiRef = React.useRef<assetTable.AssetManagementApi | null>(null)
 
-  const initialLocalProjectId =
-    initialProjectNameRaw != null && validator.isUUID(initialProjectNameRaw) ?
-      localBackendModule.newProjectId(projectManager.UUID(initialProjectNameRaw))
-    : null
-  const initialProjectName = initialLocalProjectId ?? initialProjectNameRaw
+  const initialLocalProjectPath =
+    initialProjectNameRaw != null ? fileURLToPath(initialProjectNameRaw) : null
+  const initialProjectName = initialLocalProjectPath != null ? null : initialProjectNameRaw
 
-  const [category, setCategory] = searchParamsState.useSearchParamsState<Category>(
+  const [category, setCategory] = searchParamsState.useSearchParamsState<categoryModule.Category>(
     'driveCategory',
-    () => {
-      const shouldDefaultToCloud =
-        initialLocalProjectId == null && (user.isEnabled || localBackend == null)
-      const type =
-        shouldDefaultToCloud ? categoryModule.CategoryType.cloud : categoryModule.CategoryType.local
-      return { type }
-    },
-    (value): value is Category => {
-      if (typeof value !== 'object' || value == null) {
-        return false
-      } else if (!('type' in value) || typeof value.type !== 'string') {
-        return false
-      } else if (array.includes(Object.values(categoryModule.CategoryType), value.type)) {
-        switch (value.type) {
-          case categoryModule.CategoryType.user:
-          case categoryModule.CategoryType.team: {
-            if (!('homeDirectoryId' in value) || typeof value.homeDirectoryId !== 'string') {
-              return false
-            } else if (!('rootPath' in value) || typeof value.rootPath !== 'string') {
-              return false
-            } else {
-              if (value.type === categoryModule.CategoryType.user) {
-                const narrowedValue = {
-                  type: value.type,
-                  rootPath: backendModule.Path(value.rootPath),
-                  homeDirectoryId: backendModule.DirectoryId(value.homeDirectoryId),
-                } as const
-                return categoryModule.isLocalCategory(narrowedValue) ? localBackend != null : true
-              } else {
-                const narrowedValue = {
-                  type: value.type,
-                  rootPath: backendModule.Path(value.rootPath),
-                  homeDirectoryId: backendModule.DirectoryId(value.homeDirectoryId),
-                  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any, no-restricted-syntax, @typescript-eslint/no-unsafe-member-access
-                  team: (value as any).team,
-                } as const
-                return categoryModule.isLocalCategory(narrowedValue) ? localBackend != null : true
-              }
-            }
-          }
-          default: {
-            const narrowedValue = { type: value.type } as const
-            return categoryModule.isLocalCategory(narrowedValue) ? localBackend != null : true
-          }
-        }
-      } else {
-        return false
-      }
-    },
+    () => (localBackend != null ? { type: 'local' } : { type: 'cloud' }),
+    (value): value is categoryModule.Category =>
+      categoryModule.CATEGORY_SCHEMA.safeParse(value).success,
   )
 
   const projectsStore = useProjectsStore()
@@ -188,9 +159,33 @@ function DashboardInner(props: DashboardProps) {
   const openProjectMutation = projectHooks.useOpenProjectMutation()
   const renameProjectMutation = projectHooks.useRenameProjectMutation()
 
+  usePrefetchQuery({
+    queryKey: ['loadInitialLocalProject'],
+    networkMode: 'always',
+    ...STATIC_QUERY_OPTIONS,
+    queryFn: async () => {
+      if (initialLocalProjectPath != null && window.backendApi && localBackend) {
+        const projectName = baseName(initialLocalProjectPath)
+        const { id } = await window.backendApi.importProjectFromPath(
+          initialLocalProjectPath,
+          localBackend.rootPath(),
+          projectName,
+        )
+        openProject({
+          type: backendModule.BackendType.local,
+          id: localBackendModule.newProjectId(projectManager.UUID(id)),
+          title: projectName,
+          parentId: localBackendModule.newDirectoryId(localBackend.rootPath()),
+        })
+      }
+      return null
+    },
+    staleTime: Infinity,
+  })
+
   React.useEffect(() => {
     window.projectManagementApi?.setOpenProjectHandler((project) => {
-      setCategory({ type: categoryModule.CategoryType.local })
+      setCategory({ type: 'local' })
       const projectId = localBackendModule.newProjectId(projectManager.UUID(project.id))
       openProject({
         type: backendModule.BackendType.local,
@@ -370,12 +365,12 @@ function DashboardInner(props: DashboardProps) {
           {appRunner != null &&
             launchedProjects.map((project) => (
               <aria.TabPanel
+                key={project.id}
                 shouldForceMount
                 id={project.id}
                 className="flex min-h-0 grow [&[data-inert]]:hidden"
               >
                 <Editor
-                  key={project.id}
                   hidden={page !== project.id}
                   ydocUrl={ydocUrl}
                   project={project}

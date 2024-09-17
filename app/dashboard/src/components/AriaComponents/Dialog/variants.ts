@@ -14,19 +14,4 @@ export const DIALOG_BACKGROUND = twv.tv({
 export const DIALOG_STYLES = twv.tv({
   extend: DIALOG_BACKGROUND,
   base: 'flex flex-col text-left align-middle shadow-xl',
-  variants: {
-    rounded: {
-      none: '',
-      small: 'rounded-sm',
-      medium: 'rounded-md',
-      large: 'rounded-lg',
-      xlarge: 'rounded-xl',
-      xxlarge: 'rounded-2xl',
-      xxxlarge: 'rounded-3xl',
-      xxxxlarge: 'rounded-4xl',
-    },
-  },
-  defaultVariants: {
-    rounded: 'xxlarge',
-  },
 })

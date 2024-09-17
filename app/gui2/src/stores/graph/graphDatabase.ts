@@ -44,7 +44,7 @@ export class BindingsDb {
 
   readFunctionAst(
     func: Ast.Function,
-    rawFunc: RawAst.Tree.Function,
+    rawFunc: RawAst.Tree.Function | undefined,
     moduleCode: string,
     getSpan: (id: AstId) => SourceRange | undefined,
   ) {
@@ -422,7 +422,7 @@ export class GraphDb {
   /** Deeply scan the function to perform alias-analysis. */
   updateBindings(
     functionAst_: Ast.Function,
-    rawFunction: RawAst.Tree.Function,
+    rawFunction: RawAst.Tree.Function | undefined,
     moduleCode: string,
     getSpan: (id: AstId) => SourceRange | undefined,
   ) {

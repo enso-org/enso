@@ -20,15 +20,19 @@ polyglot java import java.util.Objects
 def_comp = Standard.Base.Internal.Ordering_Helpers.Default_Comparator
 
 add_specs suite_builder =
+    pending_js_missing = if Polyglot.is_language_installed "js" then Nothing else
+        "Can't run JavaScript tests, language `js` is not installed."
+    pending_python_missing = if Polyglot.is_language_installed "python" then Nothing else
+        "Can't run Python tests, language `python` is not installed."
+
     spec_with suite_builder "Date_Time" enso_datetime Date_Time.parse
-    spec_with suite_builder "JavascriptDate" js_datetime js_parse nanoseconds_loss_in_precision=True
-    if Polyglot.is_language_installed "python" then
-        spec_with suite_builder "PythonDate" python_datetime python_parse nanoseconds_loss_in_precision=True
+    spec_with suite_builder "JavascriptDate" js_datetime js_parse nanoseconds_loss_in_precision=True pending=pending_js_missing
+    spec_with suite_builder "PythonDate" python_datetime python_parse nanoseconds_loss_in_precision=True pending=pending_python_missing
     spec_with suite_builder "JavaZonedDateTime" java_datetime java_parse
-    spec_with suite_builder "JavascriptDataInArray" js_array_datetime js_parse nanoseconds_loss_in_precision=True
+    spec_with suite_builder "JavascriptDataInArray" js_array_datetime js_parse nanoseconds_loss_in_precision=True pending=pending_js_missing
 
     suite_builder.group "Date_Time equality" group_builder->
-        group_builder.specify "should work with values coming from various sources" <|
+        group_builder.specify "should work with values coming from various sources" pending=pending_js_missing <|
             d1 = Date_Time.new 2022 3 4 5 6
             d2 = java_datetime 2022 3 4 5 6
             d1 . should_equal d2
@@ -72,8 +76,8 @@ add_specs suite_builder =
             Date_Time.new 1970 1 1 0 0 0 millisecond=1 microsecond=123 zone=Time_Zone.utc . to_unix_epoch_milliseconds . should_equal 1
             Date_Time.new 2024 1 4 12 35 44 millisecond=123 zone=Time_Zone.utc . to_unix_epoch_milliseconds . should_equal 1704371744123
 
-spec_with suite_builder name create_new_datetime parse_datetime nanoseconds_loss_in_precision=False =
-    suite_builder.group name group_builder->
+spec_with suite_builder name create_new_datetime parse_datetime nanoseconds_loss_in_precision=False pending=Nothing =
+    suite_builder.group name pending=pending group_builder->
 
         group_builder.specify "should create time" <|
             time = create_new_datetime 1970 (zone = Time_Zone.utc)
@@ -740,7 +744,7 @@ spec_with suite_builder name create_new_datetime parse_datetime nanoseconds_loss
             dt3.date_diff dt4 Date_Period.Day . should_equal 0
             dt3.date_diff dt4 Time_Period.Hour . should_equal 23
 
-    Date_Part_Spec.add_specs suite_builder name create_new_datetime
+    Date_Part_Spec.add_specs suite_builder name create_new_datetime pending=pending
 
 js_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Time_Zone.system =
     Panic.catch Any (js_datetime_with_zone year month day hour minute second nanosecond zone) (err -> Error.throw (Time_Error.Error err.payload))

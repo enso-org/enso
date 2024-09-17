@@ -13,11 +13,13 @@ polyglot java import java.time.format.DateTimeFormatter
 
 add_specs suite_builder =
     spec_with suite_builder "Date" Date.new Date.parse
-    spec_with suite_builder "JavaScriptDate" js_date js_parse
+    if Polyglot.is_language_installed "js" then
+        spec_with suite_builder "JavaScriptDate" js_date js_parse
     if Polyglot.is_language_installed "python" then
         spec_with suite_builder "PythonDate" python_date python_parse pending="https://github.com/enso-org/enso/issues/8913"
     spec_with suite_builder "JavaDate" java_date java_parse
-    spec_with suite_builder "JavaScriptArrayWithADate" js_array_date js_parse
+    if Polyglot.is_language_installed "js" then
+        spec_with suite_builder "JavaScriptArrayWithADate" js_array_date js_parse
 
 spec_with suite_builder name create_new_date parse_date pending=Nothing =
     if pending.is_nothing then Date_Part_Spec.add_specs suite_builder name create_new_date

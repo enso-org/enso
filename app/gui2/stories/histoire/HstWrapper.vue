@@ -30,18 +30,11 @@ export default {
 
 <script lang="ts" setup>
 import { VTooltip as vTooltip } from 'floating-vue'
-import { withDefaults } from 'vue'
 
-withDefaults(
-  defineProps<{
-    title?: string
-    tag?: string
-  }>(),
-  {
-    title: undefined!,
-    tag: 'label',
-  },
-)
+const { title = undefined!, tag = 'label' } = defineProps<{
+  title?: string
+  tag?: string
+}>()
 </script>
 
 <template>

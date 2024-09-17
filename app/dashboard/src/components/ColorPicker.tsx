@@ -12,6 +12,7 @@ import RadioGroup from '#/components/styled/RadioGroup'
 
 import * as backend from '#/services/Backend'
 
+import { forwardRef } from '#/utilities/react'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 /** Props for a {@link ColorPickerItem}. */
@@ -56,6 +57,9 @@ export interface ColorPickerProps extends Readonly<aria.RadioGroupProps> {
 }
 
 /** A color picker to select from a predetermined list of colors. */
+export default forwardRef(ColorPicker)
+
+/** A color picker to select from a predetermined list of colors. */
 function ColorPicker(props: ColorPickerProps, ref: React.ForwardedRef<HTMLDivElement>) {
   const { pickerClassName = '', children, setColor, ...radioGroupProps } = props
   return (
@@ -79,6 +83,3 @@ function ColorPicker(props: ColorPickerProps, ref: React.ForwardedRef<HTMLDivEle
     </RadioGroup>
   )
 }
-
-/** A color picker to select from a predetermined list of colors. */
-export default React.forwardRef(ColorPicker)

@@ -1,7 +1,7 @@
 package org.enso.languageserver.boot
 
 import akka.actor.ActorSystem
-import buildinfo.Info
+import akka.stream.Materializer
 import com.typesafe.config.ConfigFactory
 import org.enso.distribution.locking.{
   ResourceManager,
@@ -47,13 +47,14 @@ import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.librarymanager.published.PublishedLibraryCache
 import org.enso.lockmanager.server.LockManagerService
 import org.enso.logger.masking.Masking
-import org.enso.logger.akka.AkkaConverter
 import org.enso.common.RuntimeOptions
 import org.enso.common.ContextFactory
+import org.enso.logging.utils.akka.AkkaConverter
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.profiling.events.NoopEventsMonitor
 import org.enso.searcher.memory.InMemorySuggestionsRepo
 import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
+import org.enso.version.BuildVersion
 import org.graalvm.polyglot.io.MessageEndpoint
 import org.slf4j.event.Level
 import org.slf4j.LoggerFactory
@@ -62,7 +63,6 @@ import java.io.{File, PrintStream}
 import java.net.URI
 import java.nio.charset.StandardCharsets
 import java.time.Clock
-
 import scala.concurrent.duration.DurationInt
 
 /** A main module containing all components of the server.
@@ -75,7 +75,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   private val log = LoggerFactory.getLogger(this.getClass)
   log.debug(
     "Initializing main module of the Language Server from [{}, {}, {}]",
-    Info.currentEdition,
+    BuildVersion.currentEdition,
     serverConfig,
     logLevel
   )
@@ -110,7 +110,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   )
   log.trace("Created Language Server config [{}]", languageServerConfig)
 
-  implicit val system: ActorSystem =
+  val system: ActorSystem =
     ActorSystem(
       serverConfig.name,
       None,
@@ -222,7 +222,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     new ContentRootManagerWrapper(languageServerConfig, contentRootManagerActor)
 
   lazy val fileManager = system.actorOf(
-    FileManager.pool(
+    FileManager.props(
       languageServerConfig.fileManager,
       contentRootManagerWrapper,
       fileSystem,
@@ -312,7 +312,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     RuntimeOptions.LOG_MASKING,
     Masking.isMaskingEnabled.toString
   )
-  extraOptions.put(RuntimeOptions.EDITION_OVERRIDE, Info.currentEdition)
+  extraOptions.put(RuntimeOptions.EDITION_OVERRIDE, BuildVersion.currentEdition)
   extraOptions.put(
     RuntimeOptions.JOB_PARALLELISM,
     Runtime.getRuntime.availableProcessors().toString
@@ -453,7 +453,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     profilingManager       = profilingManager,
     libraryConfig          = libraryConfig,
     config                 = languageServerConfig
-  )
+  )(system)
   log.trace(
     "Created JSON connection controller factory [{}]",
     jsonRpcControllerFactory
@@ -466,6 +466,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
       Some(_)
     )
 
+  val materializer: Materializer = Materializer.createMaterializer(system)
   val jsonRpcServer =
     new JsonRpcServer(
       jsonRpcProtocolFactory,
@@ -478,21 +479,21 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
         ),
       List(healthCheckEndpoint, idlenessEndpoint),
       messagesCallback
-    )
+    )(system, materializer)
   log.trace("Created JSON RPC Server [{}]", jsonRpcServer)
 
   val binaryServer =
     new BinaryWebSocketServer(
       InboundMessageDecoder,
       BinaryEncoder.empty,
-      new BinaryConnectionControllerFactory(fileManager),
+      new BinaryConnectionControllerFactory(fileManager)(system),
       BinaryWebSocketServer.Config(
         outgoingBufferSize = 100,
         lazyMessageTimeout = 10.seconds,
         secureConfig       = secureConfig
       ),
       messagesCallback
-    )
+    )(system, materializer)
   log.trace("Created Binary WebSocket Server [{}]", binaryServer)
 
   log.debug(

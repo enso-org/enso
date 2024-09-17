@@ -329,8 +329,8 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
   private def makeVersionDescription: VersionDescription =
     VersionDescription.make(
       "Enso Project Manager",
-      includeRuntimeJVMInfo         = false,
-      enableNativeImageOSWorkaround = true
+      false,
+      true
     )
 
   private def logServerStartup(): UIO[Unit] =

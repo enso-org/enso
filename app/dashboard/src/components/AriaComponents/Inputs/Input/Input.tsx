@@ -3,16 +3,32 @@
  *
  * Basic input component. Input component is a component that is used to get user input in a text field.
  */
-import * as React from 'react'
+import {
+  useRef,
+  type CSSProperties,
+  type ForwardedRef,
+  type ReactElement,
+  type ReactNode,
+  type Ref,
+} from 'react'
 
-import type * as twv from 'tailwind-variants'
+import type { VariantProps } from 'tailwind-variants'
 
 import * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
-
-import * as mergeRefs from '#/utilities/mergeRefs'
-
+import {
+  Form,
+  Text,
+  type FieldComponentProps,
+  type FieldPath,
+  type FieldProps,
+  type FieldStateProps,
+  type FieldVariantProps,
+  type TestIdProps,
+  type TSchema,
+} from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
+import { mergeRefs } from '#/utilities/mergeRefs'
+import { forwardRef } from '#/utilities/react'
 import type { ExtractFunction } from '#/utilities/tailwindVariants'
 import { omit } from 'enso-common/src/utilities/data/object'
 import { INPUT_STYLES } from '../variants'
@@ -20,97 +36,60 @@ import { INPUT_STYLES } from '../variants'
 /**
  * Props for the Input component.
  */
-export interface InputProps<
-  Schema extends ariaComponents.TSchema,
-  TFieldValues extends ariaComponents.FieldValues<Schema>,
-  TFieldName extends ariaComponents.FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends ariaComponents.FieldValues<Schema> | undefined = undefined,
-> extends ariaComponents.FieldStateProps<
-      Omit<aria.InputProps, 'children' | 'size'>,
-      Schema,
-      TFieldValues,
-      TFieldName,
-      TTransformedValues
-    >,
-    ariaComponents.FieldProps,
-    Omit<twv.VariantProps<typeof INPUT_STYLES>, 'disabled' | 'invalid'> {
-  readonly 'data-testid'?: string | undefined
+export interface InputProps<Schema extends TSchema, TFieldName extends FieldPath<Schema>>
+  extends FieldStateProps<Omit<aria.InputProps, 'children' | 'size'>, Schema, TFieldName>,
+    FieldProps,
+    FieldVariantProps,
+    Omit<VariantProps<typeof INPUT_STYLES>, 'disabled' | 'invalid'>,
+    TestIdProps {
   readonly className?: string
-  readonly style?: React.CSSProperties
-  readonly inputRef?: React.Ref<HTMLInputElement>
-  readonly addonStart?: React.ReactNode
-  readonly addonEnd?: React.ReactNode
+  readonly style?: CSSProperties
+  readonly inputRef?: Ref<HTMLInputElement>
+  readonly addonStart?: ReactNode
+  readonly addonEnd?: ReactNode
   readonly placeholder?: string
   /** The icon to display in the input. */
-  readonly icon?: React.ReactElement | string | null
+  readonly icon?: ReactElement | string | null
   readonly variants?: ExtractFunction<typeof INPUT_STYLES> | undefined
-  readonly fieldVariants?: ariaComponents.FieldComponentProps['variants']
+  readonly fieldVariants?: FieldComponentProps<Schema>['variants']
 }
 
 /**
  * Basic input component. Input component is a component that is used to get user input in a text field.
  */
-// eslint-disable-next-line no-restricted-syntax
-export const Input = React.forwardRef(function Input<
-  Schema extends ariaComponents.TSchema,
-  TFieldValues extends ariaComponents.FieldValues<Schema>,
-  TFieldName extends ariaComponents.FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends ariaComponents.FieldValues<Schema> | undefined = undefined,
->(
-  props: InputProps<Schema, TFieldValues, TFieldName, TTransformedValues>,
-  ref: React.ForwardedRef<HTMLFieldSetElement>,
-) {
+export const Input = forwardRef(function Input<
+  Schema extends TSchema,
+  TFieldName extends FieldPath<Schema>,
+>(props: InputProps<Schema, TFieldName>, ref: ForwardedRef<HTMLFieldSetElement>) {
   const {
     name,
-    isDisabled = false,
-    form,
-    defaultValue,
     description,
     inputRef,
     addonStart,
     addonEnd,
-    label,
     size,
     rounded,
-    isRequired = false,
-    min,
-    max,
     icon,
     type = 'text',
     variant,
-    variants,
+    variants = INPUT_STYLES,
     fieldVariants,
+    form,
     ...inputProps
   } = props
 
-  const privateInputRef = React.useRef<HTMLInputElement>(null)
+  const testId = props.testId ?? props['data-testid']
 
-  const { fieldState, formInstance } = ariaComponents.Form.useField({
-    name,
-    isDisabled,
+  const privateInputRef = useRef<HTMLInputElement>(null)
+
+  const { fieldProps, formInstance } = Form.useFieldRegister<
+    Omit<aria.InputProps, 'children' | 'size'>,
+    Schema,
+    TFieldName
+  >({
+    ...props,
     form,
-    defaultValue,
-  })
-
-  const classes = (variants ?? INPUT_STYLES)({
-    variant,
-    size,
-    rounded,
-    invalid: fieldState.invalid,
-    readOnly: inputProps.readOnly,
-    disabled: isDisabled || formInstance.formState.isSubmitting,
-  })
-
-  const { ref: fieldRef, ...field } = formInstance.register(name, {
-    disabled: isDisabled,
-    required: isRequired,
-    ...(inputProps.onBlur && { onBlur: inputProps.onBlur }),
-    ...(inputProps.onChange && { onChange: inputProps.onChange }),
-    ...(inputProps.minLength != null ? { minLength: inputProps.minLength } : {}),
-    ...(inputProps.maxLength != null ? { maxLength: inputProps.maxLength } : {}),
-    ...(min != null ? { min } : {}),
-    ...(max != null ? { max } : {}),
-    setValueAs: (value) => {
+    setValueAs: (value: unknown) => {
       if (typeof value === 'string') {
         if (type === 'number') {
           return Number(value)
@@ -126,24 +105,26 @@ export const Input = React.forwardRef(function Input<
     },
   })
 
+  const classes = variants({
+    variant,
+    size,
+    rounded,
+    invalid: fieldProps.isInvalid,
+    readOnly: inputProps.readOnly,
+    disabled: fieldProps.disabled || formInstance.formState.isSubmitting,
+  })
+
   return (
-    <ariaComponents.Form.Field
-      data-testid={props['data-testid']}
-      form={formInstance}
-      name={name}
-      fullWidth
-      isHidden={inputProps.hidden}
-      label={label}
-      aria-label={props['aria-label']}
-      aria-labelledby={props['aria-labelledby']}
-      aria-describedby={props['aria-describedby']}
-      isRequired={field.required}
-      isInvalid={fieldState.invalid}
-      aria-details={props['aria-details']}
+    <Form.Field
+      {...aria.mergeProps<FieldComponentProps<Schema>>()(inputProps, omit(fieldProps), {
+        isHidden: props.hidden,
+        fullWidth: true,
+        variants: fieldVariants,
+        form: formInstance,
+      })}
       ref={ref}
-      style={props.style}
-      className={props.className}
-      variants={fieldVariants}
+      name={props.name}
+      data-testid={testId}
     >
       <div
         className={classes.base()}
@@ -156,12 +137,12 @@ export const Input = React.forwardRef(function Input<
 
           <div className={classes.inputContainer()}>
             <aria.Input
-              ref={mergeRefs.mergeRefs(inputRef, privateInputRef, fieldRef)}
               {...aria.mergeProps<aria.InputProps>()(
-                { className: classes.textArea(), type, name, min, max, isRequired, isDisabled },
                 inputProps,
-                omit(field, 'required', 'disabled'),
+                { className: classes.textArea(), type, name },
+                omit(fieldProps, 'isInvalid', 'isRequired', 'isDisabled', 'invalid'),
               )}
+              ref={mergeRefs(inputRef, privateInputRef, fieldProps.ref)}
             />
           </div>
 
@@ -169,19 +150,11 @@ export const Input = React.forwardRef(function Input<
         </div>
 
         {description != null && (
-          <ariaComponents.Text slot="description" className={classes.description()}>
+          <Text slot="description" className={classes.description()}>
             {description}
-          </ariaComponents.Text>
+          </Text>
         )}
       </div>
-    </ariaComponents.Form.Field>
+    </Form.Field>
   )
-}) as <
-  Schema extends ariaComponents.TSchema,
-  TFieldValues extends ariaComponents.FieldValues<Schema>,
-  TFieldName extends ariaComponents.FieldPath<Schema, TFieldValues>,
-  TTransformedValues extends ariaComponents.FieldValues<Schema> | undefined = undefined,
->(
-  props: InputProps<Schema, TFieldValues, TFieldName, TTransformedValues> &
-    React.RefAttributes<HTMLInputElement>,
-) => React.ReactElement
+})

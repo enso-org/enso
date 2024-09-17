@@ -183,6 +183,10 @@ const newNodeSelectorValues = computed(() => {
   }
 })
 
+const isFilterSortNodeEnabled = computed(
+  () => config.nodeType === TABLE_NODE_TYPE || config.nodeType === DB_TABLE_NODE_TYPE,
+)
+
 const numberFormatGroupped = new Intl.NumberFormat(undefined, {
   style: 'decimal',
   maximumFractionDigits: 12,
@@ -210,25 +214,35 @@ function formatNumber(params: ICellRendererParams) {
 }
 
 function formatText(params: ICellRendererParams) {
+  const htmlEscaped = params.value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replace(
+      /https?:\/\/([-()_.!~*';/?:@&=+$,A-Za-z0-9])+/g,
+      (url: string) => `<a href="${url}" target="_blank" class="link">${url}</a>`,
+    )
+
   if (textFormatterSelected.value === TextFormatOptions.Off) {
-    return params.value
+    return htmlEscaped.replace(/^\s+|\s+$/g, '&nbsp;')
   }
+
   const partialMappings = {
     '\r': '<span style="color: #df8800">␍</span> <br>',
     '\n': '<span style="color: #df8800;">␊</span> <br>',
-    '\t': '<span style="white-space: break-spaces;">    </span>',
+    '\t': '<span style="color: #df8800; white-space: break-spaces;">&#8594;  |</span>',
   }
   const fullMappings = {
     '\r': '<span style="color: #df8800">␍</span> <br>',
     '\n': '<span style="color: #df8800">␊</span> <br>',
-    '\t': '<span style="color: #df8800; white-space: break-spaces;">&#8594;   </span>',
+    '\t': '<span style="color: #df8800; white-space: break-spaces;">&#8594;  |</span>',
   }
 
   const replaceSpaces =
     textFormatterSelected.value === TextFormatOptions.On ?
-      params.value.replaceAll(' ', '<span style="color: #df8800">&#183;</span>')
-    : params.value.replace(/ {2,}/g, function (match: string) {
-        return `<span style="color: #df8800">${'&#183;'.repeat(match.length)}</span>`
+      htmlEscaped.replaceAll(' ', '<span style="color: #df8800">&#183;</span>')
+    : htmlEscaped.replace(/ \s+|^ +| +$/g, function (match: string) {
+        return `<span style="color: #df8800">${match.replaceAll(' ', '&#183;')}</span>`
       })
 
   const replaceReturns = replaceSpaces.replace(
@@ -597,6 +611,7 @@ onMounted(() => {
         :filterModel="filterModel"
         :sortModel="sortModel"
         :isDisabled="!isCreateNodeEnabled"
+        :isFilterSortNodeEnabled="isFilterSortNodeEnabled"
         @changeFormat="(i) => updateTextFormat(i)"
       />
     </template>
@@ -631,6 +646,7 @@ onMounted(() => {
           :columnDefs="columnDefs"
           :rowData="rowData"
           :defaultColDef="defaultColDef"
+          :textFormatOption="textFormatterSelected"
           @sortOrFilterUpdated="(e) => checkSortAndFilter(e)"
         />
       </Suspense>

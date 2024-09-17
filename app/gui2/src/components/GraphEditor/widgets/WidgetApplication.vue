@@ -25,8 +25,10 @@ const targetMaybePort = computed(() => {
     if (!ptr) return input
     const definition = graph.getMethodAst(ptr)
     if (!definition.ok) return input
-    input[FunctionName] = {
-      editableName: definition.value.name.externalId,
+    if (input.value instanceof Ast.PropertyAccess || input.value instanceof Ast.Ident) {
+      input[FunctionName] = {
+        editableName: definition.value.name.externalId,
+      }
     }
     return input
   } else {

@@ -1962,6 +1962,7 @@ export class MutableFunction extends Function implements MutableAst {
     if (oldBody instanceof MutableBodyBlock) return oldBody
     const newBody = BodyBlock.new([], this.module)
     if (oldBody) newBody.push(oldBody.take())
+    this.setBody(newBody)
     return newBody
   }
 }
@@ -2222,6 +2223,10 @@ export class Ident extends Ast {
 
   get token(): IdentifierToken {
     return this.module.getToken(this.fields.get('token').node) as IdentifierToken
+  }
+
+  isTypeOrConstructor(): boolean {
+    return /^[A-Z]/.test(this.token.code())
   }
 
   static concrete(module: MutableModule, token: NodeChild<Token>) {

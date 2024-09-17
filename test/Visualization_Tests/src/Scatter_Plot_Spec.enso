@@ -10,38 +10,32 @@ from Standard.Test import all
 import project
 
 add_specs suite_builder =
-    expect_text text axis_expected_text data_expected_text =
+    expect_text text axis_expected_text data_expected_text is_multi =
         json = Json.parse text
-        json.field_names.should_equal ['data', 'axis']
+        json.field_names.should_equal ['data', 'axis', 'is_multi_series']
 
-        expect_text = '{"axis": ' + axis_expected_text + ', "data": ' + data_expected_text + '}'
+        expect_text = '{"axis": ' + axis_expected_text + ', "data": ' + data_expected_text + ', "is_multi_series": ' + is_multi + '}'
         expected_result = Json.parse expect_text
 
         json.should_equal expected_result
 
-    expect value axis_expected_text data_expected_text =
+    expect value axis_expected_text data_expected_text (is_multi='false') =
         text = Scatter_Plot.process_to_json_text value
-        expect_text text axis_expected_text data_expected_text
+        expect_text text axis_expected_text data_expected_text is_multi
 
     index = Scatter_Plot.index_name
     axis label = JS_Object.from_pairs [['label',label]]
     labels x y = JS_Object.from_pairs [['x', axis x], ['y', axis y]] . to_text
+    labels_multi x y z = JS_Object.from_pairs [['x', axis x], ['y', axis y], ['(y_multi 0)', axis z]] . to_text
     no_labels  = 'null'
 
     suite_builder.group "Scatter Plot Visualization" group_builder->
-        group_builder.specify "plots first column if none recognized" <|
+        group_builder.specify "plots left most column for x if numeric" <|
             header = ['α', 'ω']
             row_1  = [11 , 10 ]
             row_2  = [21 , 20 ]
             table  = Table.from_rows header [row_1, row_2]
-            expect table (labels index 'α') '[{"x":0,"y":11},{"x":1,"y":21}]'
-
-        group_builder.specify "plots 'y' against indices when no 'x' recognized" <|
-            header = ['α', 'y']
-            row_1 =  [11 , 10 ]
-            row_2 =  [21 , 20 ]
-            table = Table.from_rows header [row_1, row_2]
-            expect table (labels index 'y') '[{"x":0,"y":10},{"x":1,"y":20}]'
+            expect table (labels 'α' 'ω') '[{"x":11,"y":10},{"x":21,"y":20}]'
 
         group_builder.specify "recognizes all relevant columns" <|
             header = ['x' , 'y' , 'size' , 'shape'  , 'label' , 'color' ]
@@ -59,7 +53,7 @@ add_specs suite_builder =
             header = ['x' , 'size' , 'name'   , 'z' , 'ω']
             row_1 =  [11  , 50     , 'circul' ,  20 ,  30]
             table = Table.from_rows header [row_1]
-            expect table (labels 'x' 'z') '[{"size":50,"x":11,"y":20}]'
+            expect table (labels_multi 'x' 'z' 'ω') '[{"size":50,"x":11,"y":20,"(y_multi 0)":30}]' 'true'
 
         group_builder.specify "provided only recognized columns" <|
             header = ['x', 'y' , 'bar' , 'size']
@@ -94,7 +88,7 @@ add_specs suite_builder =
             vector = [0,10,20,30]
             text = Scatter_Plot.process_to_json_text vector limit=2
             json = Json.parse text
-            json.field_names.should_equal ['data','axis']
+            json.field_names.should_equal ['data','axis', 'is_multi_series']
             data = json.get 'data'
             data.should_be_a Vector
             data.length . should_equal 2
@@ -103,7 +97,7 @@ add_specs suite_builder =
             vector = (-15).up_to 15 . map (x -> x * x)
             text = Scatter_Plot.process_to_json_text vector limit=10
             json = Json.parse text
-            json.field_names.should_equal ['data','axis']
+            json.field_names.should_equal ['data','axis', 'is_multi_series']
             data = json.get 'data'
             data.should_be_a Vector
             data.length . should_equal 10
@@ -114,10 +108,6 @@ add_specs suite_builder =
             bounds = [0,5,10,25]
             text = Scatter_Plot.process_to_json_text vector bounds
             expect_text text no_labels '[{"x":1,"y":10},{"x":2,"y":20}]'
-
-        group_builder.specify "using indices for x if given a column" <|
-            column = Column.from_vector 'some_col' [10,2,3]
-            expect column (labels 'index' 'some_col') '[{"x":0,"y":10},{"x":1,"y":2},{"x":2,"y":3}]'
 
         group_builder.specify "using indices for x if given a range" <|
             value = 2.up_to 5

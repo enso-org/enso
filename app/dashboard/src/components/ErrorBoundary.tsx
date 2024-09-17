@@ -70,8 +70,8 @@ export function ErrorDisplay(props: ErrorDisplayProps): React.JSX.Element {
   const { isOffline } = offlineHooks.useOffline()
 
   const {
-    resetErrorBoundary,
     error,
+    resetErrorBoundary,
     title = getText('appErroredMessage'),
     subtitle = isOffline ? getText('offlineErrorMessage') : getText('arbitraryErrorSubtitle'),
     status = isOffline ? 'info' : 'error',
@@ -102,7 +102,7 @@ export function ErrorDisplay(props: ErrorDisplayProps): React.JSX.Element {
 
       {detect.IS_DEV_MODE && stack != null && (
         <ariaComponents.Alert
-          className="mx-auto mt-4 max-w-screen-lg overflow-x-auto"
+          className="mx-auto mt-4 max-h-[80vh] max-w-screen-lg overflow-auto"
           variant="neutral"
         >
           <ariaComponents.Text

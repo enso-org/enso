@@ -27,16 +27,16 @@ import org.enso.distribution.DistributionManager;
 import org.enso.distribution.Environment;
 import org.enso.distribution.locking.LockManager;
 import org.enso.distribution.locking.ThreadSafeFileLockManager;
-import org.enso.interpreter.instrument.NotificationHandler;
-import org.enso.interpreter.instrument.NotificationHandler.Forwarder;
-import org.enso.interpreter.instrument.NotificationHandler.TextMode$;
-import org.enso.interpreter.instrument.Timer;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.ProgramRootNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.IrToTruffle;
 import org.enso.interpreter.runtime.data.atom.AtomNewInstanceNode;
+import org.enso.interpreter.runtime.instrument.NotificationHandler;
+import org.enso.interpreter.runtime.instrument.NotificationHandler.Forwarder;
+import org.enso.interpreter.runtime.instrument.NotificationHandler.TextMode$;
+import org.enso.interpreter.runtime.instrument.Timer;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
@@ -267,7 +267,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
         if (optionTupple.nonEmpty()) {
           var newInlineContext = optionTupple.get()._1();
           var ir = optionTupple.get()._2();
-          var sco = newInlineContext.localScope().getOrElse(LocalScope::root);
+          var sco = newInlineContext.localScope().getOrElse(LocalScope::empty);
           var mod = newInlineContext.getModule();
           var m = org.enso.interpreter.runtime.Module.fromCompilerModule(mod);
           var toTruffle =

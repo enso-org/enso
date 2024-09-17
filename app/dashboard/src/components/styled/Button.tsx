@@ -8,6 +8,7 @@ import * as ariaComponents from '#/components/AriaComponents'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 
+import { forwardRef } from '#/utilities/react'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ==============
@@ -39,6 +40,8 @@ export interface ButtonProps {
   readonly onPress: (event: aria.PressEvent) => void
 }
 
+export default forwardRef(Button)
+
 /** A styled button. */
 function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) {
   const {
@@ -64,13 +67,17 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
   const button = (
     <FocusRing placement="after">
       <aria.Button
-        {...aria.mergeProps<aria.ButtonProps>()(buttonProps, focusChildProps, {
-          ref,
-          className: tailwindMerge.twMerge(
-            'relative after:pointer-events-none after:absolute after:inset after:rounded-button-focus-ring transition-colors hover:enabled:bg-primary/10 rounded-button-focus-ring -m-1 p-1',
-            buttonClassName,
-          ),
-        })}
+        {...aria.mergeProps<aria.ButtonProps & React.RefAttributes<HTMLButtonElement>>()(
+          buttonProps,
+          focusChildProps,
+          {
+            ref,
+            className: tailwindMerge.twMerge(
+              'relative after:pointer-events-none after:absolute after:inset after:rounded-button-focus-ring transition-colors hover:enabled:bg-primary/10 rounded-button-focus-ring -m-1 p-1',
+              buttonClassName,
+            ),
+          },
+        )}
       >
         <div
           className={tailwindMerge.twMerge(
@@ -103,5 +110,3 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
       </ariaComponents.TooltipTrigger>
     )
 }
-
-export default React.forwardRef(Button)

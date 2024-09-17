@@ -35,7 +35,7 @@ interface BackendApi {
     openedPath: string,
     directory: string | null,
     name: string,
-  ) => Promise<string>
+  ) => Promise<ProjectInfo>
 }
 
 // ==========================
@@ -111,6 +111,30 @@ interface ProjectManagementApi {
   readonly setOpenProjectHandler: (handler: (projectInfo: ProjectInfo) => void) => void
 }
 
+// ========================
+// === File Browser API ===
+// ========================
+
+/** `window.fileBrowserApi` is a context bridge to the main process, when we're running in an
+ * Electron context.
+ *
+ * # Safety
+ *
+ * We're assuming that the main process has exposed the `fileBrowserApi` context bridge (see
+ * `app/client/src/preload.ts` for details), and that it contains the functions defined in this
+ * interface.
+ */
+interface FileBrowserApi {
+  /**
+   * Select path for local file or directory using the system file browser.
+   * 'filePath' is same as 'file', but allows picking non-existing files.
+   */
+  readonly openFileBrowser: (
+    kind: 'default' | 'directory' | 'file' | 'filePath',
+    defaultPath?: string,
+  ) => Promise<string[] | undefined>
+}
+
 // ====================
 // === Version Info ===
 // ====================
@@ -139,6 +163,7 @@ declare global {
     readonly menuApi: MenuApi
     readonly systemApi?: SystemApi
     readonly projectManagementApi?: ProjectManagementApi
+    readonly fileBrowserApi?: FileBrowserApi
     readonly versionInfo?: VersionInfo
     toggleDevtools: () => void
   }
@@ -178,13 +203,13 @@ declare global {
       // @ts-expect-error The index signature is intentional to disallow unknown env vars.
       readonly ENSO_CLOUD_STRIPE_KEY?: string
       // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-      readonly ENSO_CLOUD_COGNITO_USER_POOL_ID?: string
+      readonly ENSO_CLOUD_COGNITO_USER_POOL_ID: string
       // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-      readonly ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID?: string
+      readonly ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID: string
       // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-      readonly ENSO_CLOUD_COGNITO_DOMAIN?: string
+      readonly ENSO_CLOUD_COGNITO_DOMAIN: string
       // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-      readonly ENSO_CLOUD_COGNITO_REGION?: string
+      readonly ENSO_CLOUD_COGNITO_REGION: string
       // @ts-expect-error The index signature is intentional to disallow unknown env vars.
       readonly ENSO_CLOUD_GOOGLE_ANALYTICS_TAG?: string
       // @ts-expect-error The index signature is intentional to disallow unknown env vars.

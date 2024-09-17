@@ -1,5 +1,5 @@
 /** @file Plan selector component. */
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { DIALOG_BACKGROUND } from '#/components/AriaComponents'
 import { usePaywall } from '#/hooks/billing'
@@ -7,6 +7,8 @@ import { useAuth } from '#/providers/AuthProvider'
 import { useRemoteBackendStrict } from '#/providers/BackendProvider'
 import { useText } from '#/providers/TextProvider'
 import { Plan, PLANS } from '#/services/Backend'
+import type { VariantProps } from '#/utilities/tailwindVariants'
+import { tv } from '#/utilities/tailwindVariants'
 import { Card } from './components'
 import { getComponentPerPlan } from './getComponentForPlan'
 
@@ -26,14 +28,35 @@ interface CreateCheckoutSessionMutation {
 /**
  * Props for {@link PlanSelector}
  */
-export interface PlanSelectorProps {
+export interface PlanSelectorProps extends VariantProps<typeof PLAN_SELECTOR_STYLES> {
   readonly showFreePlan?: boolean
   readonly hasTrial?: boolean
   readonly userPlan?: Plan | undefined
+  readonly isOrganizationAdmin?: boolean
   readonly plan?: Plan | null | undefined
   readonly onSubscribeSuccess?: (plan: Plan, paymentMethodId: string) => void
   readonly onSubscribeError?: (error: Error) => void
 }
+
+const PLAN_SELECTOR_STYLES = tv({
+  base: DIALOG_BACKGROUND({
+    className: 'w-full snap-x overflow-auto rounded-4xl scroll-hidden',
+  }),
+  variants: {
+    showFreePlan: {
+      true: {
+        grid: 'grid-cols-1fr md:grid-cols-2 xl:grid-cols-4',
+      },
+      false: {
+        grid: 'grid-cols-1fr md:grid-cols-3 justify-center',
+      },
+    },
+  },
+  slots: {
+    grid: 'inline-grid min-w-full gap-6 p-6',
+    card: 'min-w-64 snap-center',
+  },
+})
 
 /**
  * Plan selector component.
@@ -47,6 +70,8 @@ export function PlanSelector(props: PlanSelectorProps) {
     userPlan,
     showFreePlan = true,
     hasTrial = true,
+    isOrganizationAdmin = false,
+    variants = PLAN_SELECTOR_STYLES,
   } = props
 
   const { getText } = useText()
@@ -54,6 +79,7 @@ export function PlanSelector(props: PlanSelectorProps) {
   const { refetchSession } = useAuth()
   const { getPaywallLevel } = usePaywall({ plan: userPlan })
 
+  const queryClient = useQueryClient()
   const onCompleteMutation = useMutation({
     mutationFn: async (mutationData: CreateCheckoutSessionMutation) => {
       const { id } = await backend.createCheckoutSession({
@@ -72,16 +98,13 @@ export function PlanSelector(props: PlanSelectorProps) {
       })
     },
     onError: (error) => onSubscribeError?.(error),
-    meta: { invalidates: [['usersMe'], [['organization']]], awaitInvalidates: true },
   })
 
+  const classes = variants({ showFreePlan })
+
   return (
-    <div
-      className={DIALOG_BACKGROUND({
-        className: 'w-full snap-x overflow-auto rounded-4xl scroll-hidden',
-      })}
-    >
-      <div className="inline-flex min-w-full gap-6 p-6">
+    <div className={classes.base()}>
+      <div className={classes.grid()}>
         {PLANS.map((newPlan) => {
           const paywallLevel = getPaywallLevel(newPlan)
           const userPaywallLevel = getPaywallLevel(userPlan)
@@ -94,7 +117,7 @@ export function PlanSelector(props: PlanSelectorProps) {
             return (
               <Card
                 key={newPlan}
-                className="min-w-72 flex-1 snap-center"
+                className={classes.card()}
                 features={planProps.features}
                 subtitle={planProps.subtitle}
                 title={planProps.title}
@@ -108,11 +131,15 @@ export function PlanSelector(props: PlanSelectorProps) {
                         seats,
                         period,
                       })
+
                       const startEpochMs = Number(new Date())
+
                       while (true) {
                         const { data: session } = await refetchSession()
                         if (session && 'user' in session && session.user.plan === newPlan) {
                           onSubscribeSuccess?.(newPlan, paymentMethodId)
+                          // Invalidate all queries as the user has changed the plan.
+                          await queryClient.invalidateQueries({ queryKey: ['usersMe'] })
                           break
                         } else {
                           const timePassedMs = Number(new Date()) - startEpochMs
@@ -137,6 +164,7 @@ export function PlanSelector(props: PlanSelectorProps) {
                     features={planProps.features}
                     canTrial={hasTrial}
                     planName={getText(newPlan)}
+                    isOrganizationAdmin={isOrganizationAdmin}
                   />
                 }
                 learnMore={<planProps.learnMore />}
