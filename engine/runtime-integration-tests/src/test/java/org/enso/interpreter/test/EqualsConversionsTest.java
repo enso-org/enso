@@ -23,6 +23,7 @@ public class EqualsConversionsTest {
   @AfterClass
   public static void disposeContext() {
     context.close();
+    context = null;
   }
 
   @Test

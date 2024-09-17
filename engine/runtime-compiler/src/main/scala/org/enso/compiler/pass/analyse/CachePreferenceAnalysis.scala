@@ -2,8 +2,10 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.core.ir.CallArgument.Specified
 import org.enso.compiler.core.{CompilerError, ExternalID}
 import org.enso.compiler.core.ir.{
+  CallArgument,
   DefinitionArgument,
   Expression,
   Module,
@@ -12,7 +14,7 @@ import org.enso.compiler.core.ir.{
 }
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
-import org.enso.compiler.core.ir.expression.{Comment, Error}
+import org.enso.compiler.core.ir.expression.{Application, Comment, Error}
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar._
@@ -151,13 +153,37 @@ case object CachePreferenceAnalysis extends IRPass {
           .updateMetadata(new MetadataPair(this, weights))
       case error: Error =>
         error
+      case app: Application.Prefix =>
+        app.arguments match {
+          case self :: rest =>
+            val newSelf = analyseSelfCallArgument(self, weights)
+            app.copy(arguments = newSelf :: rest)
+          case _ =>
+            app
+        }
       case expr =>
-        expr.getExternalId.collect {
+        expr.getExternalId.foreach {
           case id if !weights.contains(id) => weights.update(id, Weight.Never)
+          case _                           =>
         }
         expr
           .mapExpressions(analyseExpression(_, weights))
           .updateMetadata(new MetadataPair(this, weights))
+    }
+  }
+
+  private def analyseSelfCallArgument(
+    callArgument: CallArgument,
+    weights: WeightInfo
+  ): CallArgument = {
+    callArgument.value.getExternalId.foreach(weights.update(_, Weight.Always))
+    callArgument match {
+      case arg: Specified =>
+        arg.copy(value =
+          analyseExpression(arg.value, weights).updateMetadata(
+            new MetadataPair(this, weights)
+          )
+        )
     }
   }
 
@@ -172,7 +198,7 @@ case object CachePreferenceAnalysis extends IRPass {
     weights: WeightInfo
   ): DefinitionArgument = {
     argument match {
-      case spec @ DefinitionArgument.Specified(_, _, defValue, _, _, _, _) =>
+      case spec @ DefinitionArgument.Specified(_, _, defValue, _, _, _) =>
         spec
           .copy(defaultValue = defValue.map(analyseExpression(_, weights)))
           .updateMetadata(new MetadataPair(this, weights))

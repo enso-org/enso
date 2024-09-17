@@ -22,12 +22,7 @@ import org.enso.interpreter.runtime.`type`.{Types, TypesGen}
 import org.enso.interpreter.runtime.data.atom.AtomConstructor
 import org.enso.interpreter.runtime.callable.function.Function
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
-import org.enso.interpreter.runtime.error.{
-  DataflowError,
-  PanicSentinel,
-  WarningsLibrary,
-  WithWarnings
-}
+import org.enso.interpreter.runtime.error.{DataflowError, PanicSentinel}
 import org.enso.interpreter.service.ExecutionService.{
   ExpressionCall,
   ExpressionValue,
@@ -41,6 +36,11 @@ import org.enso.interpreter.service.error.{
   VisualizationException
 }
 import org.enso.common.LanguageInfo
+import org.enso.interpreter.runtime.warning.{
+  Warning,
+  WarningsLibrary,
+  WithWarnings
+}
 import org.enso.polyglot.debugger.ExecutedVisualization
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.{ContextId, ExecutionResult}
@@ -419,12 +419,9 @@ object ProgramExecutionSupport {
                 value.getValue
               )
             ) {
-              val warnings =
-                WarningsLibrary.getUncached.getWarnings(
-                  value.getValue,
-                  null,
-                  false
-                )
+              val warnsMap =
+                WarningsLibrary.getUncached.getWarnings(value.getValue, false)
+              val warnings      = Warning.fromMapToArray(warnsMap)
               val warningsCount = warnings.length
               val warning =
                 if (warningsCount > 0) {
@@ -626,7 +623,7 @@ object ProgramExecutionSupport {
               .getOrElse(expressionValue.getClass)
           ctx.executionService.getLogger.log(
             Level.WARNING,
-            "Execution of visualization [{0}] on value [{1}] of [{2}] failed. {3} | {4}",
+            "Execution of visualization [{0}] on value [{1}] of [{2}] failed. {3} | {4} | {5}",
             Array[Object](
               visualizationId,
               expressionId,
@@ -731,15 +728,23 @@ object ProgramExecutionSupport {
     * @param value the expression value.
     * @return the method call info
     */
-  private def toMethodCall(value: ExpressionValue): Option[Api.MethodCall] =
+  private def toMethodCall(value: ExpressionValue): Option[Api.MethodCall] = {
+    // While hiding the cached method pointer info for evaluated values, it is a
+    // good idea to return the cached method pointer value for dataflow errors
+    // (the one before the value turned into a dataflow error) to continue
+    // displaying widgets on child nodes even after those nodes become errors.
+    def notCachedAndNotDataflowError: Boolean =
+      !value.wasCached() && !value.getValue.isInstanceOf[DataflowError]
     for {
       call <-
-        if (Types.isPanic(value.getType)) Option(value.getCallInfo)
+        if (Types.isPanic(value.getType) || notCachedAndNotDataflowError)
+          Option(value.getCallInfo)
         else Option(value.getCallInfo).orElse(Option(value.getCachedCallInfo))
       methodPointer <- toMethodPointer(call.functionPointer)
     } yield {
       Api.MethodCall(methodPointer, call.notAppliedArguments.toVector)
     }
+  }
 
   /** Extract the method pointer information form the provided runtime function
     * pointer.

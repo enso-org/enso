@@ -15,7 +15,7 @@ import org.graalvm.polyglot.io.IOAccess;
 public final class Ydoc implements AutoCloseable {
 
   private static final String YDOC_EXECUTOR_THREAD_NAME = "Ydoc executor thread";
-  private static final String YDOC_SERVER_PATH = "ydocServer.js";
+  private static final String YDOC_PATH = "ydoc.cjs";
 
   private final ScheduledExecutorService executor;
   private final ParserPolyfill parser;
@@ -116,12 +116,12 @@ public final class Ydoc implements AutoCloseable {
   }
 
   public void start() throws ExecutionException, InterruptedException, IOException {
-    var ydoc = Main.class.getResource(YDOC_SERVER_PATH);
+    var ydoc = Main.class.getResource(YDOC_PATH);
     if (ydoc == null) {
       throw new AssertionError(
-          YDOC_SERVER_PATH
+          YDOC_PATH
               + " not found in resources. You probably need to first built it with: "
-              + "`npm --workspace=enso-gui2 run build-ydoc-server-polyglot`");
+              + "`corepack pnpm -r compile`");
     }
     var ydocJs = Source.newBuilder("js", ydoc).build();
 
@@ -135,6 +135,7 @@ public final class Ydoc implements AutoCloseable {
                   var bindings = ctx.getBindings("js");
                   bindings.putMember("YDOC_HOST", hostname);
                   bindings.putMember("YDOC_PORT", port);
+                  bindings.putMember("YDOC_LS_DEBUG", "false");
 
                   ctx.eval(ydocJs);
 

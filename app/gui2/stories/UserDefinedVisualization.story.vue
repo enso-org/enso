@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import { Vec2 } from '@/util/data/vec2'
-import type { VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, ref } from 'vue'
+import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 import MockFSWrapper from '../mock/MockFSWrapper.vue'
 import HstCode from './histoire/HstCode.vue'
 import HstDirectory from './histoire/HstDirectory.vue'
@@ -45,6 +45,7 @@ const props = defineProps<{ data: unknown }>()
 \x3c/style>`)
 
 const width = ref(0)
+const height = ref(500)
 const data = ref<any>({
   axis: {
     x: { label: 'x-axis label', scale: 'linear' },
@@ -84,11 +85,14 @@ const mockFsWrapperProps = computed(() => ({
           :currentType="currentType"
           :dataSource="{ type: 'raw', data }"
           :width="width"
+          :height="height"
           :scale="1"
           :nodePosition="nodePosition"
           :nodeSize="nodeSize"
           :isFocused="true"
           :isFullscreen="false"
+          :isFullscreenAllowed="true"
+          :isResizable="true"
           :isCircularMenuVisible="isCircularMenuVisible"
           @setVisualizationId="$event.module.kind === 'CurrentProject' && (type = $event.name)"
         />

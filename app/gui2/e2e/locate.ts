@@ -45,7 +45,7 @@ function or(a: (page: Locator | Page) => Locator, b: (page: Locator | Page) => L
 }
 
 export function toggleVisualizationButton(page: Locator | Page) {
-  return page.getByLabel('Visualization')
+  return page.getByLabel('Visualization', { exact: true })
 }
 
 export function toggleVisualizationSelectorButton(page: Locator | Page) {
@@ -97,7 +97,7 @@ export const graphEditor = componentLocator('.GraphEditor')
 export const codeEditor = componentLocator('.CodeEditor')
 export const anyVisualization = componentLocator('.GraphVisualization > *')
 export const loadingVisualization = componentLocator('.LoadingVisualization')
-export const circularMenu = componentLocator('.CircularMenu > .circle')
+export const circularMenu = componentLocator('.CircularMenu')
 export const addNewNodeButton = componentLocator('.PlusButton')
 export const componentBrowser = componentLocator('.ComponentBrowser')
 export const nodeOutputPort = componentLocator('.outputPortHoverArea')
@@ -128,6 +128,11 @@ export function componentBrowserEntryByLabel(page: Locator | Page, label: string
 
 export function rightDock(page: Page) {
   return page.getByTestId('rightDock')
+}
+
+/** rightDock, but also includes toggle button */
+export function rightDockRoot(page: Page) {
+  return page.getByTestId('rightDockRoot')
 }
 
 export function bottomDock(page: Page) {

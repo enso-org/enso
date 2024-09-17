@@ -1,22 +1,16 @@
-/**
- * @file useSyncRef.ts
- *
- * A hook that returns a ref object whose `current` property is always in sync with the provided value.
- */
+/** @file A hook that returns a ref object whose `current` property is always in sync with the provided value. */
+import { type MutableRefObject, useRef } from 'react'
 
-import * as React from 'react'
+/** A hook that returns a ref object whose `current` property is always in sync with the provided value. */
+export function useSyncRef<T>(value: T): Readonly<MutableRefObject<T>> {
+  const ref = useRef(value)
 
-/**
- * A hook that returns a ref object whose `current` property is always in sync with the provided value.
- */
-export function useSyncRef<T>(value: T): Readonly<React.MutableRefObject<T>> {
-  const ref = React.useRef(value)
-
-  // Update the ref value whenever the provided value changes
-  // Refs shall never change during the render phase, so we use `useEffect` here.
-  React.useEffect(() => {
-    ref.current = value
-  })
+  /*
+  Even though the react core team doesn't recommend setting ref values during the render (it might lead to deoptimizations), the reasoning behind this is:
+  - We want to make useEventCallback behave the same way as const x = () => {} or useCallback but have a stable reference.
+  - React components shall be idempotent by default, and we don't see violations here.
+   */
+  ref.current = value
 
   return ref
 }

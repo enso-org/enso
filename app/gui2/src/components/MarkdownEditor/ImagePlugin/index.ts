@@ -6,7 +6,7 @@ import {
 import type { LexicalMarkdownPlugin } from '@/components/MarkdownEditor/markdown'
 import type { TextMatchTransformer } from '@lexical/markdown'
 import type { LexicalEditor } from 'lexical'
-import { assertDefined } from 'shared/util/assert'
+import { assertDefined } from 'ydoc-shared/util/assert'
 
 export const IMAGE: TextMatchTransformer = {
   dependencies: [ImageNode],

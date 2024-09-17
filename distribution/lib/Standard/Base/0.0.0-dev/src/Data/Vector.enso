@@ -147,7 +147,8 @@ type Vector a
     fill length item =
         Vector.new length _->item
 
-    ## ADVANCED
+    ## PRIVATE
+       ADVANCED
        Creates a new `Vector` by passing a `Builder` to the provided function.
 
        A vector `Builder` is a mutable data structure, that allows for gathering
@@ -971,7 +972,7 @@ type Vector a
          If an `Index_Sub_Range`, then the selection is interpreted following
          the rules of that type.
          If a `Range`, the selection is specified by two indices, from and to.
-    @range Index_Sub_Range.default_widget
+    @range (self-> Index_Sub_Range.default_widget self.length)
     take : (Index_Sub_Range | Range | Integer) -> Vector Any
     take self range:(Index_Sub_Range | Range | Integer)=..First =
         Array_Like_Helpers.take self range
@@ -986,7 +987,7 @@ type Vector a
          If an `Index_Sub_Range`, then the selection is interpreted following
          the rules of that type.
          If a `Range`, the selection is specified by two indices, from and to.
-    @range Index_Sub_Range.default_widget
+    @range (self-> Index_Sub_Range.default_widget self.length)
     drop : (Index_Sub_Range | Range | Integer) -> Vector Any
     drop self range:(Index_Sub_Range | Range | Integer)=..First =
         Array_Like_Helpers.drop self range

@@ -2,6 +2,8 @@
 
 use crate::syntax::tree::*;
 
+use crate::syntax::statement::BodyBlockParser;
+
 
 
 // =============
@@ -46,17 +48,14 @@ impl<'s> span::Builder<'s> for Line<'s> {
 // === Body Block ===
 // ==================
 
-/// Build a body block from a sequence of lines; this includes:
-/// - Reinterpret the input expressions in statement context (i.e. expressions at the top-level of
-///   the block that involve the `=` operator will be reinterpreted as function/variable bindings).
-/// - Combine sibling lines in case of multi-line statements, such as annotated statements and
-///   documented statements.
-pub fn body_from_lines<'s>(lines: impl IntoIterator<Item = Line<'s>>) -> Tree<'s> {
-    use crate::expression_to_statement;
-    let lines = lines.into_iter().map(|l| l.map_expression(expression_to_statement));
-    let statements: Vec<_> = compound_lines(lines).collect();
-    Tree::body_block(statements)
+/// Parse the top-level of a module.
+pub fn parse_module<'s>(
+    lines: impl IntoIterator<Item = item::Line<'s>>,
+    precedence: &mut operator::Precedence<'s>,
+) -> Tree<'s> {
+    BodyBlockParser::default().parse_module(lines, precedence)
 }
+
 
 
 // === Multi-line expression construction ===
@@ -133,19 +132,19 @@ where I: Iterator<Item = Line<'s>>
 /// Representation used to build multi-line statements.
 #[derive(Debug)]
 enum Prefix<'s> {
-    Annotation { node: Annotated<'s>, span: Span<'s> },
-    BuiltinAnnotation { node: AnnotatedBuiltin<'s>, span: Span<'s> },
-    Documentation { node: Documented<'s>, span: Span<'s> },
+    Annotation { node: Box<Annotated<'s>>, span: Span<'s> },
+    BuiltinAnnotation { node: Box<AnnotatedBuiltin<'s>>, span: Span<'s> },
+    Documentation { node: Box<Documented<'s>>, span: Span<'s> },
 }
 
 impl<'s> TryFrom<Tree<'s>> for Prefix<'s> {
     type Error = Tree<'s>;
     fn try_from(tree: Tree<'s>) -> Result<Self, Self::Error> {
         match tree.variant {
-            box Variant::Annotated(node) => Ok(Prefix::Annotation { node, span: tree.span }),
-            box Variant::AnnotatedBuiltin(node @ AnnotatedBuiltin { expression: None, .. }) =>
+            Variant::Annotated(node) => Ok(Prefix::Annotation { node, span: tree.span }),
+            Variant::AnnotatedBuiltin(node) if node.expression.is_none() =>
                 Ok(Prefix::BuiltinAnnotation { node, span: tree.span }),
-            box Variant::Documented(node) => Ok(Prefix::Documentation { node, span: tree.span }),
+            Variant::Documented(node) => Ok(Prefix::Documentation { node, span: tree.span }),
             _ => Err(tree),
         }
     }
@@ -154,12 +153,9 @@ impl<'s> TryFrom<Tree<'s>> for Prefix<'s> {
 impl<'s> Prefix<'s> {
     fn push_newline(&mut self, newline: token::Newline<'s>) {
         let (newlines, span) = match self {
-            Prefix::Annotation { node: Annotated { newlines, .. }, span }
-            | Prefix::BuiltinAnnotation { node: AnnotatedBuiltin { newlines, .. }, span }
-            | Prefix::Documentation {
-                node: Documented { documentation: DocComment { newlines, .. }, .. },
-                span,
-            } => (newlines, span),
+            Prefix::Annotation { node, span } => (&mut node.newlines, span),
+            Prefix::BuiltinAnnotation { node, span } => (&mut node.newlines, span),
+            Prefix::Documentation { node, span } => (&mut node.documentation.newlines, span),
         };
         span.code_length += newline.left_offset.code.length() + newline.code.length();
         newlines.push(newline);
@@ -181,14 +177,11 @@ impl<'s> From<Prefix<'s>> for Tree<'s> {
     fn from(prefix: Prefix<'s>) -> Self {
         match prefix {
             Prefix::Annotation { node, span } =>
-                Tree { variant: Box::new(Variant::Annotated(node)), span, warnings: default() },
-            Prefix::BuiltinAnnotation { node, span } => Tree {
-                variant: Box::new(Variant::AnnotatedBuiltin(node)),
-                span,
-                warnings: default(),
-            },
+                Tree { variant: Variant::Annotated(node), span, warnings: default() },
+            Prefix::BuiltinAnnotation { node, span } =>
+                Tree { variant: Variant::AnnotatedBuiltin(node), span, warnings: default() },
             Prefix::Documentation { node, span } =>
-                Tree { variant: Box::new(Variant::Documented(node)), span, warnings: default() },
+                Tree { variant: Variant::Documented(node), span, warnings: default() },
         }
     }
 }
@@ -211,21 +204,20 @@ pub struct OperatorBlockExpression<'s> {
 
 /// Interpret the given expression as an `OperatorBlockExpression`, if it fits the correct pattern.
 fn to_operator_block_expression<'s>(
-    items: Vec<Item<'s>>,
+    mut items: Vec<Item<'s>>,
     precedence: &mut operator::Precedence<'s>,
 ) -> Result<OperatorBlockExpression<'s>, Tree<'s>> {
-    if let Some(b) = items.get(1)
-        && b.left_visible_offset().width_in_spaces != 0
-        && let Some(Item::Token(a)) = items.first()
-        && let token::Variant::Operator(op) = &a.variant
-    {
-        let operator = Ok(Token(a.left_offset.clone(), a.code.clone(), *op));
-        let mut items = items.into_iter();
-        items.next();
-        let expression = precedence.resolve(items).unwrap();
-        Ok(OperatorBlockExpression { operator, expression })
-    } else {
-        Err(precedence.resolve(items).unwrap())
+    match &items[..] {
+        [Item::Token(a), b, ..]
+            if b.left_visible_offset().width_in_spaces != 0
+                && a.operator_properties().is_some_and(|p| p.can_form_section()) =>
+        {
+            let expression = precedence.resolve_offset(1, &mut items).unwrap();
+            let Some(Item::Token(operator)) = items.pop() else { unreachable!() };
+            let operator = Ok(operator.with_variant(token::variant::Operator()));
+            Ok(OperatorBlockExpression { operator, expression })
+        }
+        _ => Err(precedence.resolve(&mut items).unwrap()),
     }
 }
 
@@ -266,12 +258,7 @@ impl<'s> span::Builder<'s> for OperatorLine<'s> {
 // === Block Builder ===
 // =====================
 
-/// Builds an AST block type from a sequence of lines.
-///
-/// Note that the block type is not fully determined at this stage: We apply context information
-/// later (see `apply_operator`) to distinguish the two non-operator block types, `BodyBlock` and
-/// `ArgumentBlockApplication`. Here we treat every non-operator block as an argument block,
-/// because creating a body block involves re-interpreting the expressions in statement context.
+/// Builds an argument block or operator block from a sequence of lines.
 ///
 /// The implementation is a state machine. The only top-level transitions are:
 /// - `Indeterminate` -> `Operator`
@@ -279,112 +266,91 @@ impl<'s> span::Builder<'s> for OperatorLine<'s> {
 ///
 /// The `Operator` state has two substates, and one possible transition:
 /// - `body_lines is empty` -> `body_lines is not empty`
-#[derive(Debug)]
-pub enum Builder<'s> {
+#[derive(Debug, Default)]
+pub struct Builder<'s> {
+    state:          State,
+    empty_lines:    Vec<token::Newline<'s>>,
+    operator_lines: Vec<OperatorLine<'s>>,
+    body_lines:     Vec<Line<'s>>,
+}
+
+#[derive(Debug, Default)]
+enum State {
     /// The builder is in an indeterminate state until a non-empty line has been encountered, which
     /// would distinguish an operator-block from a non-operator block.
-    Indeterminate {
-        /// The `Newline` token introducing the block, and `Newline` tokens for any empty lines
-        /// that have been encountered.
-        empty_lines: Vec<token::Newline<'s>>,
-    },
+    // `empty_lines` contains the `Newline` token introducing the block, and `Newline` tokens for
+    // any empty lines that have been encountered.
+    #[default]
+    Indeterminate,
     /// Building an operator block. If any line doesn't fit the operator-block syntax, that line
     /// and all following will be placed in `body_lines`.
-    Operator {
-        /// Valid operator-block expressions.
-        operator_lines: Vec<OperatorLine<'s>>,
-        /// Any lines violating the expected operator-block syntax.
-        body_lines:     Vec<Line<'s>>,
-    },
-    /// Building a non-operator block (either a body block or an argument block).
-    NonOperator {
-        /// The block content.
-        body_lines: Vec<Line<'s>>,
-    },
+    // `operator_lines` contains valid operator-block expressions.
+    // `body_lines` contains any lines violating the expected operator-block syntax.
+    Operator,
+    /// Building an argument block.
+    // `body_lines` contains the block content.
+    Argument,
 }
 
 impl<'s> Builder<'s> {
     /// Create a new instance, in initial state.
     pub fn new() -> Self {
-        Self::Indeterminate { empty_lines: default() }
-    }
-
-    /// Create a new instance, in a state appropriate for the given expression.
-    fn new_with_expression(
-        empty_lines: impl IntoIterator<Item = token::Newline<'s>>,
-        newline: token::Newline<'s>,
-        items: Vec<Item<'s>>,
-        precedence: &mut operator::Precedence<'s>,
-    ) -> Self {
-        let empty_lines = empty_lines.into_iter();
-        let new_lines = 1;
-        match to_operator_block_expression(items, precedence) {
-            Ok(expression) => {
-                let expression = Some(expression);
-                let mut operator_lines = Vec::with_capacity(empty_lines.size_hint().0 + new_lines);
-                operator_lines.extend(empty_lines.map(OperatorLine::from));
-                operator_lines.push(OperatorLine { newline, expression });
-                Self::Operator { operator_lines, body_lines: default() }
-            }
-            Err(expression) => {
-                let expression = Some(expression);
-                let mut body_lines = Vec::with_capacity(empty_lines.size_hint().0 + new_lines);
-                body_lines.extend(empty_lines.map(Line::from));
-                body_lines.push(Line { newline, expression });
-                Self::NonOperator { body_lines }
-            }
-        }
+        Self::default()
     }
 
     /// Apply a new line to the state.
     pub fn push(
         &mut self,
         newline: token::Newline<'s>,
-        items: Vec<Item<'s>>,
+        mut items: Vec<Item<'s>>,
         precedence: &mut operator::Precedence<'s>,
     ) {
-        match self {
-            Builder::Indeterminate { empty_lines } if items.is_empty() => empty_lines.push(newline),
-            Builder::Indeterminate { empty_lines } =>
-                *self = Self::new_with_expression(empty_lines.drain(..), newline, items, precedence),
-            Builder::NonOperator { body_lines, .. } =>
-                body_lines.push(Line { newline, expression: precedence.resolve(items) }),
-            Builder::Operator { body_lines, .. } if !body_lines.is_empty() => {
-                body_lines.push(Line { newline, expression: precedence.resolve(items) });
-            }
-            Builder::Operator { operator_lines, body_lines, .. } if !items.is_empty() =>
-                match to_operator_block_expression(items, precedence) {
+        match &mut self.state {
+            State::Indeterminate if items.is_empty() => self.empty_lines.push(newline),
+            State::Indeterminate => {
+                self.state = match to_operator_block_expression(items, precedence) {
                     Ok(expression) => {
-                        let expression = Some(expression);
-                        operator_lines.push(OperatorLine { newline, expression });
+                        self.operator_lines
+                            .push(OperatorLine { newline, expression: Some(expression) });
+                        State::Operator
                     }
                     Err(expression) => {
-                        let expression = Some(expression);
-                        body_lines.push(Line { newline, expression })
+                        self.body_lines.push(Line { newline, expression: Some(expression) });
+                        State::Argument
                     }
-                },
-            Builder::Operator { operator_lines, .. } => operator_lines.push(newline.into()),
+                };
+            }
+            State::Argument =>
+                self.body_lines.push(Line { newline, expression: precedence.resolve(&mut items) }),
+            State::Operator if !self.body_lines.is_empty() =>
+                self.body_lines.push(Line { newline, expression: precedence.resolve(&mut items) }),
+            State::Operator if items.is_empty() => self.operator_lines.push(newline.into()),
+            State::Operator => match to_operator_block_expression(items, precedence) {
+                Ok(expression) =>
+                    self.operator_lines.push(OperatorLine { newline, expression: Some(expression) }),
+                Err(expression) =>
+                    self.body_lines.push(Line { newline, expression: Some(expression) }),
+            },
         }
     }
 
     /// Produce an AST node from the state.
-    pub fn build(self) -> Tree<'s> {
-        match self {
-            Builder::Indeterminate { empty_lines } => {
-                let empty_lines = empty_lines.into_iter();
-                let lines = empty_lines.map(Line::from).collect();
-                Tree::argument_block_application(None, lines)
+    pub fn build(&mut self) -> Tree<'s> {
+        match self.state {
+            State::Operator => {
+                let mut operator_lines =
+                    Vec::with_capacity(self.empty_lines.len() + self.operator_lines.len());
+                operator_lines.extend(self.empty_lines.drain(..).map(OperatorLine::from));
+                operator_lines.append(&mut self.operator_lines);
+                Tree::operator_block_application(None, operator_lines, self.body_lines.split_off(0))
             }
-            Builder::Operator { operator_lines, body_lines } =>
-                Tree::operator_block_application(None, operator_lines, body_lines),
-            Builder::NonOperator { body_lines } =>
-                Tree::argument_block_application(None, body_lines),
+            State::Argument | State::Indeterminate => {
+                let mut body_lines =
+                    Vec::with_capacity(self.empty_lines.len() + self.body_lines.len());
+                body_lines.extend(self.empty_lines.drain(..).map(Line::from));
+                body_lines.append(&mut self.body_lines);
+                Tree::argument_block_application(None, body_lines)
+            }
         }
-    }
-}
-
-impl<'s> Default for Builder<'s> {
-    fn default() -> Self {
-        Self::new()
     }
 }

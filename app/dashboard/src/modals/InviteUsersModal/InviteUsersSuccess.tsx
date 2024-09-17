@@ -70,7 +70,7 @@ export function InviteUsersSuccess(props: InviteUsersSuccessProps) {
         <ariaComponents.ButtonGroup gap="medium" align={isUserOnMembersPage ? 'center' : 'end'}>
           {!isUserOnMembersPage && (
             <ariaComponents.Button
-              variant="cancel"
+              variant="outline"
               icon={ArrowRightIcon}
               size="medium"
               iconPosition="end"

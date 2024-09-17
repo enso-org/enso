@@ -14,7 +14,6 @@ import { Ast } from '@/util/ast'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { Rect } from '@/util/data/rect'
 import { cachedGetter } from '@/util/reactivity'
-import { isUuid } from 'shared/yjsModel'
 import {
   computed,
   nextTick,
@@ -26,6 +25,7 @@ import {
   watch,
   watchEffect,
 } from 'vue'
+import { isUuid } from 'ydoc-shared/yjsModel'
 
 const props = defineProps(widgetProps(widgetDefinition))
 

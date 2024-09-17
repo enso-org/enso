@@ -1,0 +1,101 @@
+from Standard.Base import all
+import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+from Standard.Base.Metadata.Choice import Option
+from Standard.Base.Metadata.Widget import Single_Choice
+
+import Standard.Table.Rows_To_Read.Rows_To_Read
+from Standard.Table import Table
+
+import project.Hyper_Errors.Hyper_Table_Not_Found
+import project.Hyper_Table.Hyper_Table
+
+polyglot java import org.enso.tableau.HyperReader
+
+## Represents a Tableau Hyper Extract file.
+type Hyper_File
+    ## ICON data_input
+       Creates a Hyper_File
+
+       Arguments:
+       - file: The file to read.
+       - schema: The schema to read or `*` for all schemas.
+    new : File -> Text -> Hyper_File
+    new file:File schema:Text='*' =
+        if schema == "" then Error.throw (Illegal_Argument.Error "Schema cannot be empty.") else
+            Hyper_File.Value file schema
+
+    ## PRIVATE
+       A representation of a Tableau Hyper Extract file.
+    private Value file:File internal_schema:Text
+
+    ## ICON metadata
+       Returns the list of schemas for the connection within the current database (or catalog).
+    schemas : Vector Text
+    schemas self = File_Error.handle_java_exceptions self.file <|
+        array = HyperReader.readSchemas self.file.path
+        Vector.from_polyglot_array array
+
+    ## ICON metadata
+       Returns the name of the current schema.
+       `*` represents all schemas.
+    schema : Text
+    schema self = self.internal_schema
+
+    ## ICON data_input
+       Returns a new Hyper_File with the specified schema set as default.
+
+       Arguments:
+        - schema: The name of the schema to connect to.
+    @schema (hyper -> make_schema_selector hyper True)
+    set_schema : Text -> Hyper_File
+    set_schema self schema =
+        if schema == self.schema then self else
+            if schema == "" then Error.throw (Illegal_Argument.Error "Schema cannot be empty.") else
+                Hyper_File.Value self.file schema
+
+    ## GROUP Standard.Base.Metadata
+       ICON metadata
+       Returns the list of tables for the connection within the current database (or catalog).
+    @schema (hyper -> make_schema_selector hyper True)
+    tables : Text -> Vector Hyper_Table
+    tables self schema:Text=self.schema = if schema == "" then self.tables self.schema else
+        File_Error.handle_java_exceptions self.file <|
+            array = case schema of
+                "*" -> HyperReader.listTablesAllSchemas self.file.path
+                _ -> HyperReader.listTables self.file.path schema
+            array.map t-> Hyper_Table.Value self t.schema t.name
+
+    ## ALIAS get, sheet
+       GROUP Standard.Base.Input
+       ICON data_input
+       Read a table from the Hyper_File into a Table.
+
+       Arguments:
+       - table: table name to read from.
+       - schema: the schema to read from.
+       - limit: the maximum number of rows to read.
+    @table make_table_selector
+    @schema (hyper -> make_schema_selector hyper True)
+    @limit Rows_To_Read.default_widget
+    read : Text -> Text -> Rows_To_Read -> Table
+    read self (table : Text) (schema : Text = self.schema) (limit : Rows_To_Read = ..All_Rows) = case schema of
+        "" -> self.read table self.schema limit
+        "*" ->
+            table_to_read = self.tables.find if_missing=Nothing t-> t.table == table
+            if table_to_read.is_nothing then Error.throw (Hyper_Table_Not_Found.Error "*" table) else
+                table_to_read.read limit
+        _ -> Hyper_Table.Value self table schema . read limit
+
+## PRIVATE
+make_schema_selector hyper_file:Hyper_File include_any:Boolean=False =
+    schemas = hyper_file.schemas.map t-> Option t t.pretty
+    any_entry = if include_any then [Option "<Any Schema>" "'*'"] else []
+    Single_Choice values=schemas+any_entry
+
+## PRIVATE
+make_table_selector hyper_file:Hyper_File cache=Nothing =
+    schema = cache.if_not_nothing <| cache "schema"
+    used_schema = if schema == "" || schema == Nothing then hyper_file.schema else schema
+    tables = hyper_file.tables used_schema . map t-> Option t.table t.table.pretty
+    Single_Choice values=tables

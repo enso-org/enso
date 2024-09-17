@@ -5,7 +5,6 @@ import FindIcon from '#/assets/find.svg'
 
 import * as aria from '#/components/aria'
 import FocusArea from '#/components/styled/FocusArea'
-import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 
 // =================
@@ -37,26 +36,24 @@ export default function SearchBar(props: SearchBarProps) {
           })}
         >
           <SvgMask src={FindIcon} className="text-primary/30" />
-          <FocusRing placement="before">
-            <aria.SearchField
-              aria-label={label}
-              className="before:inset-x-button-focus-ring-inset relative grow before:text before:absolute before:my-auto before:rounded-full before:transition-all"
-              value={query}
-              onKeyDown={(event) => {
-                event.continuePropagation()
+          <aria.SearchField
+            aria-label={label}
+            className="before:inset-x-button-focus-ring-inset relative grow before:text before:absolute before:my-auto before:rounded-full before:transition-all"
+            value={query}
+            onKeyDown={(event) => {
+              event.continuePropagation()
+            }}
+          >
+            <aria.Input
+              type="search"
+              size={1}
+              placeholder={placeholder}
+              className="focus-child peer text relative z-1 w-full bg-transparent placeholder:text-center"
+              onChange={(event) => {
+                setQuery(event.target.value)
               }}
-            >
-              <aria.Input
-                type="search"
-                size={1}
-                placeholder={placeholder}
-                className="focus-child peer text relative z-1 w-full bg-transparent placeholder:text-center"
-                onChange={(event) => {
-                  setQuery(event.target.value)
-                }}
-              />
-            </aria.SearchField>
-          </FocusRing>
+            />
+          </aria.SearchField>
         </aria.Label>
       )}
     </FocusArea>

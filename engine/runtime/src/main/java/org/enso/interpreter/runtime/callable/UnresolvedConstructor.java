@@ -196,11 +196,11 @@ public final class UnresolvedConstructor implements EnsoObject {
         expr.setSourceLocation(section.getCharIndex(), section.getCharLength());
       }
       var lang = EnsoLanguage.get(null);
-      var body = BlockNode.build(new ExpressionNode[0], expr);
+      var body = BlockNode.buildSilent(new ExpressionNode[0], expr);
       body.adoptChildren();
       var root =
           ClosureRootNode.build(
-              lang, LocalScope.root(), scope, body, section, prototype.getName(), true, true);
+              lang, LocalScope.empty(), scope, body, section, prototype.getName(), true, true);
       root.adoptChildren();
       assert Objects.equals(expr.getSourceSection(), section)
           : "Expr: " + expr.getSourceSection() + " orig: " + section;

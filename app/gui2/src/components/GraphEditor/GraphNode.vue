@@ -34,8 +34,8 @@ import { prefixes } from '@/util/ast/node'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import type { ExternalId, VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, onUnmounted, ref, shallowRef, watch, watchEffect } from 'vue'
+import type { ExternalId, VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 const MAXIMUM_CLICK_DISTANCE_SQ = 50
@@ -69,7 +69,6 @@ const emit = defineEmits<{
   'update:visualizationId': [id: Opt<VisualizationIdentifier>]
   'update:visualizationRect': [rect: Rect | undefined]
   'update:visualizationEnabled': [enabled: boolean]
-  'update:visualizationFullscreen': [fullscreen: boolean]
   'update:visualizationWidth': [width: number]
   'update:visualizationHeight': [height: number]
 }>()
@@ -209,10 +208,13 @@ watch(menuVisible, (visible) => {
 
 function openFullMenu() {
   menuFull.value = true
+  setSelected()
+}
+
+function setSelected() {
   nodeSelection?.setSelection(new Set([nodeId.value]))
 }
 
-const isDocsVisible = ref(false)
 const outputHovered = ref(false)
 const keyboard = injectKeyboard()
 const visualizationWidth = computed(() => props.node.vis?.width ?? null)
@@ -229,8 +231,6 @@ watch(isVisualizationPreviewed, (newVal, oldVal) => {
     graph.db.moveNodeToTop(nodeId.value)
   }
 })
-
-const isVisualizationFullscreen = computed(() => props.node.vis?.fullscreen ?? false)
 
 const transform = computed(() => {
   const { x, y } = props.node.position
@@ -291,7 +291,7 @@ const isRecordingOverridden = computed({
 
 const expressionInfo = computed(() => graph.db.getExpressionInfo(props.node.innerExpr.externalId))
 const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unknown')
-const suggestionEntry = computed(() => graph.db.nodeMainSuggestion.lookup(nodeId.value))
+const suggestionEntry = computed(() => graph.db.getNodeMainSuggestion(nodeId.value))
 const color = computed(() => graph.db.getNodeColorStyle(nodeId.value))
 const documentationUrl = computed(
   () => suggestionEntry.value && suggestionDocumentationUrl(suggestionEntry.value),
@@ -409,13 +409,15 @@ watchEffect(() => {
       selectionVisible,
       ['executionState-' + executionState]: true,
       outputNode: props.node.type === 'output',
+      menuVisible,
+      menuFull,
     }"
     :data-node-id="nodeId"
     @pointerenter="(nodeHovered = true), updateNodeHover($event)"
     @pointerleave="(nodeHovered = false), updateNodeHover(undefined)"
     @pointermove="updateNodeHover"
   >
-    <Teleport v-if="navigator && !edited" :to="graphNodeSelections">
+    <Teleport v-if="navigator && !edited && graphNodeSelections" :to="graphNodeSelections">
       <GraphNodeSelection
         :data-node-id="nodeId"
         :nodePosition="props.node.position"
@@ -437,14 +439,13 @@ watchEffect(() => {
       v-if="!menuVisible && isRecordingOverridden"
       class="overrideRecordButton clickable"
       data-testid="recordingOverriddenButton"
-      @click="isRecordingOverridden = false"
+      @click="(isRecordingOverridden = false), setSelected()"
     >
       <SvgIcon name="record" />
     </button>
     <CircularMenu
       v-if="menuVisible"
       v-model:isRecordingOverridden="isRecordingOverridden"
-      v-model:isDocsVisible="isDocsVisible"
       :isRecordingEnabledGlobally="projectStore.isRecordingEnabled"
       :isVisualizationEnabled="isVisualizationEnabled"
       :isFullMenuVisible="menuVisible && menuFull"
@@ -457,10 +458,10 @@ watchEffect(() => {
       @startEditingComment="editingComment = true"
       @openFullMenu="openFullMenu"
       @delete="emit('delete')"
-      @createNodes="emit('createNodes', $event)"
       @pointerenter="menuHovered = true"
       @pointerleave="menuHovered = false"
       @update:nodeColor="emit('setNodeColor', $event)"
+      @click.capture="setSelected"
     />
     <GraphVisualization
       v-if="isVisualizationVisible"
@@ -469,23 +470,29 @@ watchEffect(() => {
       :nodePosition="props.node.position"
       :isCircularMenuVisible="menuVisible"
       :currentType="props.node.vis?.identifier"
-      :isFullscreen="isVisualizationFullscreen"
       :dataSource="{ type: 'node', nodeId: props.node.rootExpr.externalId }"
       :typename="expressionInfo?.typename"
       :width="visualizationWidth"
       :height="visualizationHeight"
       :isFocused="isOnlyOneSelected"
       :isPreview="isVisualizationPreviewed"
+      :isFullscreenAllowed="true"
+      :isResizable="true"
       @update:rect="updateVisualizationRect"
       @update:id="emit('update:visualizationId', $event)"
       @update:enabled="emit('update:visualizationEnabled', $event)"
-      @update:fullscreen="emit('update:visualizationFullscreen', $event)"
       @update:width="emit('update:visualizationWidth', $event)"
       @update:height="emit('update:visualizationHeight', $event)"
       @update:nodePosition="graph.setNodePosition(nodeId, $event)"
       @createNodes="emit('createNodes', $event)"
+      @click.capture="setSelected"
     />
-    <GraphNodeComment v-model:editing="editingComment" :node="node" class="beforeNode" />
+    <GraphNodeComment
+      v-model:editing="editingComment"
+      :node="node"
+      class="beforeNode"
+      @click.capture="setSelected"
+    />
     <div
       ref="contentNode"
       :class="{ content: true, dragged: isDragged }"
@@ -514,8 +521,7 @@ watchEffect(() => {
     </div>
     <GraphNodeMessage
       v-if="visibleMessage"
-      class="afterNode"
-      :class="{ messageWithMenu: menuVisible }"
+      class="afterNode shiftWhenMenuVisible"
       :message="visibleMessage.text"
       :type="visibleMessage.type"
     />
@@ -532,9 +538,9 @@ watchEffect(() => {
       />
     </svg>
     <SmallPlusButton
-      v-if="menuVisible && isVisualizationVisible"
-      class="afterNode"
-      @createNodes="emit('createNodes', $event)"
+      v-if="menuVisible"
+      :class="isVisualizationVisible ? 'afterNode' : 'belowMenu'"
+      @createNodes="setSelected(), emit('createNodes', $event)"
     />
   </div>
 </template>
@@ -566,6 +572,8 @@ watchEffect(() => {
   border-radius: var(--node-border-radius);
   transition: box-shadow 0.2s ease-in-out;
   box-sizing: border-box;
+  /** Space between node and component above and below, such as comments and errors. */
+  --node-vertical-gap: 4px;
 
   --node-color-primary: color-mix(
     in oklab,
@@ -617,29 +625,40 @@ watchEffect(() => {
 
 .CircularMenu {
   z-index: 25;
-}
-
-.CircularMenu.partial {
-  z-index: 1;
+  &.partial {
+    z-index: 1;
+  }
 }
 
 .beforeNode {
   position: absolute;
   bottom: 100%;
-  left: 60px;
-  width: calc(max(100% - 60px, 800px));
-  margin-bottom: 2px;
+  width: calc(max(100%, 800px));
+  margin-bottom: var(--node-vertical-gap);
+  left: 0;
+  transition: left 0.1s ease-out;
+}
+.menuFull .beforeNode {
+  left: 64px;
 }
 
 .afterNode {
   position: absolute;
   top: 100%;
-  margin-top: 4px;
+  margin-top: var(--node-vertical-gap);
   transform: translateY(var(--viz-below-node));
 }
-
-.messageWithMenu {
+.shiftWhenMenuVisible {
+  left: 0;
+  transition: left 0.1s ease-out;
+}
+.menuVisible .shiftWhenMenuVisible {
   left: 40px;
+}
+
+.belowMenu {
+  position: absolute;
+  top: calc(100% + 40px);
 }
 
 .statuses {

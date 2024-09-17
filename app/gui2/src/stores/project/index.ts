@@ -17,16 +17,6 @@ import { DataServer } from '@/util/net/dataServer'
 import { tryQualifiedName } from '@/util/qualifiedName'
 import { computedAsync } from '@vueuse/core'
 import * as random from 'lib0/random'
-import { Error as DataError, OutboundPayload, VisualizationUpdate } from 'shared/binaryProtocol'
-import { LanguageServer } from 'shared/languageServer'
-import type { Diagnostic, ExpressionId, MethodPointer, Path } from 'shared/languageServerTypes'
-import { type AbortScope } from 'shared/util/net'
-import {
-  DistributedProject,
-  localUserActionOrigins,
-  type ExternalId,
-  type Uuid,
-} from 'shared/yjsModel'
 import {
   computed,
   markRaw,
@@ -40,6 +30,20 @@ import {
   type WatchSource,
   type WritableComputedRef,
 } from 'vue'
+import {
+  Error as DataError,
+  OutboundPayload,
+  VisualizationUpdate,
+} from 'ydoc-shared/binaryProtocol'
+import { LanguageServer } from 'ydoc-shared/languageServer'
+import type { Diagnostic, ExpressionId, MethodPointer, Path } from 'ydoc-shared/languageServerTypes'
+import { type AbortScope } from 'ydoc-shared/util/net'
+import {
+  DistributedProject,
+  localUserActionOrigins,
+  type ExternalId,
+  type Uuid,
+} from 'ydoc-shared/yjsModel'
 import * as Y from 'yjs'
 
 interface LsUrls {

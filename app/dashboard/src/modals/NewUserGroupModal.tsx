@@ -1,7 +1,9 @@
 /** @file A modal to create a user group. */
 import * as React from 'react'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import { useMutation } from '@tanstack/react-query'
+
+import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
@@ -34,7 +36,7 @@ export default function NewUserGroupModal(props: NewUserGroupModalProps) {
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [name, setName] = React.useState('')
-  const listUserGroupsQuery = backendHooks.useBackendQuery(backend, 'listUserGroups', [])
+  const listUserGroupsQuery = useBackendQuery(backend, 'listUserGroups', [])
   const userGroups = listUserGroupsQuery.data ?? null
   const userGroupNames = React.useMemo(
     () =>
@@ -47,14 +49,16 @@ export default function NewUserGroupModal(props: NewUserGroupModalProps) {
     userGroupNames != null && userGroupNames.has(string.normalizeName(name)) ?
       getText('duplicateUserGroupError')
     : null
-  const createUserGroupMutation = backendHooks.useBackendMutation(backend, 'createUserGroup')
+  const createUserGroup = useMutation(
+    backendMutationOptions(backend, 'createUserGroup'),
+  ).mutateAsync
   const canSubmit = nameError == null && name !== '' && userGroupNames != null
 
   const onSubmit = async () => {
     if (canSubmit) {
       unsetModal()
       try {
-        await createUserGroupMutation.mutateAsync([{ name }])
+        await createUserGroup([{ name }])
       } catch (error) {
         toastAndLog(null, error)
       }
@@ -70,7 +74,6 @@ export default function NewUserGroupModal(props: NewUserGroupModalProps) {
       )}
     >
       <form
-        data-testid="new-user-group-modal"
         tabIndex={-1}
         className="pointer-events-auto relative flex w-new-label-modal flex-col gap-modal rounded-default p-modal-wide pb-3 pt-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
         style={positionEvent == null ? {} : { left: positionEvent.pageX, top: positionEvent.pageY }}
@@ -115,7 +118,7 @@ export default function NewUserGroupModal(props: NewUserGroupModalProps) {
           >
             {getText('create')}
           </ariaComponents.Button>
-          <ariaComponents.Button variant="cancel" onPress={unsetModal}>
+          <ariaComponents.Button variant="outline" onPress={unsetModal}>
             {getText('cancel')}
           </ariaComponents.Button>
         </ariaComponents.ButtonGroup>

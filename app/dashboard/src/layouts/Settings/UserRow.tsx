@@ -1,6 +1,4 @@
 /** @file A row representing a user in a table of users. */
-import * as React from 'react'
-
 import Cross2 from '#/assets/cross2.svg'
 
 import * as contextMenuHooks from '#/hooks/contextMenuHooks'
@@ -34,7 +32,7 @@ export interface UserRowProps {
 /** A row representing a user in a table of users. */
 export default function UserRow(props: UserRowProps) {
   const { draggable = false, user, doDeleteUser: doDeleteUserRaw } = props
-  const { user: self } = authProvider.useNonPartialUserSession()
+  const { user: self } = authProvider.useFullUserSession()
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const isAdmin = self.isOrganizationAdmin
@@ -44,14 +42,14 @@ export default function UserRow(props: UserRowProps) {
   const contextMenuRef = contextMenuHooks.useContextMenuRef(
     user.userId,
     getText('userContextMenuLabel'),
-    (position) =>
+    () =>
       doDeleteUser == null ? null : (
         <ContextMenuEntry
           action="delete"
           doAction={() => {
             setModal(
               <ConfirmDeleteModal
-                event={position}
+                defaultOpen
                 actionText={getText('deleteUserActionText', user.name)}
                 doDelete={() => {
                   doDeleteUser(user)
@@ -90,33 +88,30 @@ export default function UserRow(props: UserRowProps) {
         </div>
       </aria.Cell>
       <aria.Cell className="text whitespace-nowrap rounded-r-full border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:border-r-0 group-selected:bg-selected-frame">
-        {user.email}
+        <ariaComponents.Text nowrap truncate="1" className="block">
+          {user.email}
+        </ariaComponents.Text>
       </aria.Cell>
       {doDeleteUserRaw == null ?
         null
       : doDeleteUser == null ?
         <></>
       : <aria.Cell className="relative bg-transparent p-0 opacity-0 group-hover-2:opacity-100">
-          <ariaComponents.Button
-            size="custom"
-            variant="custom"
-            className="absolute right-full mr-4 size-4 -translate-y-1/2"
-            onPress={(event) => {
-              const rect = event.target.getBoundingClientRect()
-              const position = { pageX: rect.left, pageY: rect.top }
-              setModal(
-                <ConfirmDeleteModal
-                  event={position}
-                  actionText={getText('deleteUserActionText', user.name)}
-                  doDelete={() => {
-                    doDeleteUser(user)
-                  }}
-                />,
-              )
-            }}
-          >
-            <img src={Cross2} className="size-4" />
-          </ariaComponents.Button>
+          <ariaComponents.DialogTrigger>
+            <ariaComponents.Button
+              size="custom"
+              variant="custom"
+              className="absolute right-full mr-4 size-4 -translate-y-1/2"
+            >
+              <img src={Cross2} className="size-4" />
+            </ariaComponents.Button>
+            <ConfirmDeleteModal
+              actionText={getText('deleteUserActionText', user.name)}
+              doDelete={() => {
+                doDeleteUser(user)
+              }}
+            />
+          </ariaComponents.DialogTrigger>
         </aria.Cell>
       }
     </aria.Row>

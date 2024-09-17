@@ -4,7 +4,7 @@
 import * as React from 'react'
 
 import * as sentry from '@sentry/react'
-import * as reactQuery from '@tanstack/react-query'
+import { QueryClientProvider } from '@tanstack/react-query'
 import * as reactDOM from 'react-dom/client'
 import * as reactRouter from 'react-router-dom'
 import invariant from 'tiny-invariant'
@@ -14,11 +14,16 @@ import * as detect from 'enso-common/src/detect'
 import type * as app from '#/App'
 import App from '#/App'
 
+import { HttpClientProvider } from '#/providers/HttpClientProvider'
+import LoggerProvider, { type Logger } from '#/providers/LoggerProvider'
+
 import LoadingScreen from '#/pages/authentication/LoadingScreen'
 
-import * as devtools from '#/components/Devtools'
-import * as errorBoundary from '#/components/ErrorBoundary'
-import * as suspense from '#/components/Suspense'
+import { ReactQueryDevtools } from '#/components/Devtools'
+import { ErrorBoundary } from '#/components/ErrorBoundary'
+import { OfflineNotificationManager } from '#/components/OfflineNotificationManager'
+import { Suspense } from '#/components/Suspense'
+import UIProviders from '#/components/UIProviders'
 
 import HttpClient from '#/utilities/HttpClient'
 
@@ -35,6 +40,15 @@ const ROOT_ELEMENT_ID = 'enso-dashboard'
 /** The fraction of non-erroring interactions that should be sampled by Sentry. */
 const SENTRY_SAMPLE_RATE = 0.005
 
+// ======================
+// === DashboardProps ===
+// ======================
+
+/** Props for the dashboard. */
+export interface DashboardProps extends app.AppProps {
+  readonly logger: Logger
+}
+
 // ===========
 // === run ===
 // ===========
@@ -47,8 +61,8 @@ const SENTRY_SAMPLE_RATE = 0.005
 export // This export declaration must be broken up to satisfy the `require-jsdoc` rule.
 // This is not a React component even though it contains JSX.
 // eslint-disable-next-line no-restricted-syntax
-function run(props: Omit<app.AppProps, 'httpClient' | 'portalRoot'>) {
-  const { vibrancy, supportsDeepLinks, queryClient } = props
+function run(props: DashboardProps) {
+  const { vibrancy, supportsDeepLinks, queryClient, logger } = props
   if (
     !detect.IS_DEV_MODE &&
     process.env.ENSO_CLOUD_SENTRY_DSN != null &&
@@ -99,20 +113,23 @@ function run(props: Omit<app.AppProps, 'httpClient' | 'portalRoot'>) {
   React.startTransition(() => {
     reactDOM.createRoot(root).render(
       <React.StrictMode>
-        <reactQuery.QueryClientProvider client={queryClient}>
-          <errorBoundary.ErrorBoundary>
-            <suspense.Suspense fallback={<LoadingScreen />}>
-              <App
-                {...props}
-                supportsDeepLinks={actuallySupportsDeepLinks}
-                portalRoot={portalRoot}
-                httpClient={httpClient}
-              />
-            </suspense.Suspense>
-          </errorBoundary.ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <ErrorBoundary>
+            <Suspense fallback={<LoadingScreen />}>
+              <OfflineNotificationManager>
+                <LoggerProvider logger={logger}>
+                  <HttpClientProvider httpClient={httpClient}>
+                    <UIProviders locale="en-US" portalRoot={portalRoot}>
+                      <App {...props} supportsDeepLinks={actuallySupportsDeepLinks} />
+                    </UIProviders>
+                  </HttpClientProvider>
+                </LoggerProvider>
+              </OfflineNotificationManager>
+            </Suspense>
+          </ErrorBoundary>
 
-          <devtools.ReactQueryDevtools />
-        </reactQuery.QueryClientProvider>
+          <ReactQueryDevtools />
+        </QueryClientProvider>
       </React.StrictMode>,
     )
   })

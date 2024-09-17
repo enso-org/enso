@@ -135,7 +135,7 @@ case object IgnoredBindings extends IRPass {
     * @param supply the compiler's supply of fresh names
     * @return `binding`, with any ignored bindings desugared
     */
-  def resolveBinding(
+  private def resolveBinding(
     binding: Expression.Binding,
     supply: FreshNameSupply
   ): Expression.Binding = {
@@ -203,15 +203,14 @@ case object IgnoredBindings extends IRPass {
     * @param freshNameSupply the compiler's fresh name supply
     * @return `arg`, if `isIgnored` is `false`, otherwise `arg` with a new name
     */
-  def genNewArg(
+  private def genNewArg(
     arg: DefinitionArgument,
     isIgnored: Boolean,
     freshNameSupply: FreshNameSupply
   ): DefinitionArgument = {
     arg match {
       case spec @ DefinitionArgument.Specified(
-            Name.Self(_, _, _, _),
-            _,
+            Name.Self(_, _, _),
             _,
             _,
             _,
@@ -258,9 +257,9 @@ case object IgnoredBindings extends IRPass {
     * @param ir the definition argument to check
     * @return `true` if `ir` represents an ignore, otherwise `false`
     */
-  def isIgnoreArg(ir: DefinitionArgument): Boolean = {
+  private def isIgnoreArg(ir: DefinitionArgument): Boolean = {
     ir match {
-      case DefinitionArgument.Specified(name, _, _, _, _, _, _) =>
+      case DefinitionArgument.Specified(name, _, _, _, _, _) =>
         isIgnore(name)
     }
   }
@@ -284,9 +283,9 @@ case object IgnoredBindings extends IRPass {
     * @param supply the compiler's fresh name supply
     * @return `cse`, with any ignored bindings resolved
     */
-  def resolveCase(cse: Case, supply: FreshNameSupply): Case = {
+  private def resolveCase(cse: Case, supply: FreshNameSupply): Case = {
     cse match {
-      case expr @ Case.Expr(scrutinee, branches, _, _, _, _) =>
+      case expr @ Case.Expr(scrutinee, branches, _, _, _) =>
         expr.copy(
           scrutinee = resolveExpression(scrutinee, supply),
           branches  = branches.map(resolveCaseBranch(_, supply))
@@ -304,7 +303,7 @@ case object IgnoredBindings extends IRPass {
     * @param supply the compiler's fresh name supply
     * @return `branch`, with any ignored bindings resolved
     */
-  def resolveCaseBranch(
+  private def resolveCaseBranch(
     branch: Case.Branch,
     supply: FreshNameSupply
   ): Case.Branch = {
@@ -320,12 +319,12 @@ case object IgnoredBindings extends IRPass {
     * @param supply the compiler's fresh name supply
     * @return `pattern`, with any ignored bindings resolved
     */
-  def resolvePattern(
+  private def resolvePattern(
     pattern: Pattern,
     supply: FreshNameSupply
   ): Pattern = {
     pattern match {
-      case named @ Pattern.Name(name, _, _, _) =>
+      case named @ Pattern.Name(name, _, _) =>
         if (isIgnore(name)) {
           val newName = supply
             .newName(from = Some(name))
@@ -344,12 +343,12 @@ case object IgnoredBindings extends IRPass {
             name = setNotIgnored(name)
           )
         }
-      case cons @ Pattern.Constructor(_, fields, _, _, _) =>
+      case cons @ Pattern.Constructor(_, fields, _, _) =>
         cons.copy(
           fields = fields.map(resolvePattern(_, supply))
         )
       case literal: Pattern.Literal => literal
-      case typed @ Pattern.Type(name, _, _, _, _) =>
+      case typed @ Pattern.Type(name, _, _, _) =>
         if (isIgnore(name)) {
           val newName = supply
             .newName(from = Some(name))

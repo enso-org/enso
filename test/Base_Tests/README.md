@@ -36,3 +36,13 @@ following 3 environment variables:
 Note that some cloud tests (e.g. testing secrets in HTTP requests) still require
 the `ENSO_HTTP_TEST_HTTPBIN_URL` setup, even if running against a real cloud
 deployment.
+
+### Testing audit log batching
+
+Currently, we only have a manual scenario for testing that log messages are
+actually batched.
+
+To test it, launch the `http-test-helper` with additional
+`--enable-manual-log-batching-test` flag. For more information, see the comment
+on `batchingTestModeEnabled` in
+[PostLogHandler.java](../../tools/http-test-helper/src/main/java/org/enso/shttp/cloud_mock/PostLogHandler.java).

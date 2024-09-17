@@ -2,8 +2,8 @@ import type { PortId } from '@/providers/portInfo'
 import type { ConnectedEdge } from '@/stores/graph/index'
 import { filterDefined } from '@/util/data/iterable'
 import { Vec2 } from '@/util/data/vec2'
-import type { AstId } from 'shared/ast'
 import { computed, ref, watch, type WatchSource } from 'vue'
+import type { AstId } from 'ydoc-shared/ast'
 
 export type UnconnectedEdgeAnchor = { type: 'mouse' } | { type: 'fixed'; scenePos: Vec2 }
 

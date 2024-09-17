@@ -10,15 +10,12 @@ const DIR_NAME = path.dirname(url.fileURLToPath(import.meta.url))
 const conf = [
   {
     ignores: [
-      'rust-ffi/pkg',
-      'rust-ffi/node-pkg',
       'dist',
-      'shared/ast/generated',
       'templates',
       '.histoire',
       'playwright-report',
       'test-results',
-      'vite.ydoc-server-polyglot.config.ts',
+      '**/*.timestamp-*.mjs',
     ],
   },
   ...compat.extends('plugin:vue/vue3-recommended'),
@@ -30,14 +27,7 @@ const conf = [
       parserOptions: {
         tsconfigRootDir: DIR_NAME,
         ecmaVersion: 'latest',
-        project: [
-          './tsconfig.app.json',
-          './tsconfig.node.json',
-          './tsconfig.server.json',
-          './tsconfig.app.vitest.json',
-          './tsconfig.server.vitest.json',
-          './tsconfig.story.json',
-        ],
+        project: ['./tsconfig.app.json', './tsconfig.node.json', './tsconfig.app.vitest.json'],
       },
     },
     rules: {

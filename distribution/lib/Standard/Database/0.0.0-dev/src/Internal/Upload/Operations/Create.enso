@@ -6,23 +6,33 @@ import Standard.Base.Runtime.Context
 
 import project.SQL_Query.SQL_Query
 from project.Errors import SQL_Error, Table_Already_Exists
-from project.Internal.Upload.Operations.Internal_Core import internal_create_table_structure
+from project.Internal.Upload.Operations.Internal_Core import internal_create_table_structure, resolve_temp_table_name
 
 ## PRIVATE
    Creates a new database table with the provided structure and returns the name
    of the created table.
 
    The user-facing function that handles the dry-run logic.
-create_table_implementation connection table_name structure primary_key temporary allow_existing on_problems:Problem_Behavior = Panic.recover SQL_Error <|
+
+   ? Transactionality
+
+     The create operation itself is just one CREATE statement, so it does not
+     need to be done inside of a transaction.
+     The only edge case to handle is - if the table already exists, we want to
+     customize the behaviour based on `allow_existing`. This is achieved by
+     intercepting the 'already exists' error.
+create_table_implementation connection table_name structure primary_key temporary allow_existing on_problems:Problem_Behavior =
     connection.base_connection.maybe_run_maintenance
+    resolved_table_name = resolve_temp_table_name connection temporary table_name
     table_naming_helper = connection.base_connection.table_naming_helper
-    table_naming_helper.verify_table_name table_name <| connection.jdbc_connection.run_within_transaction <|
-        case connection.base_connection.table_exists table_name of
-            True ->
-                if allow_existing then connection.query (SQL_Query.Table_Name table_name) else Error.throw (Table_Already_Exists.Error table_name)
+    on_exists =
+        if allow_existing then connection.query (SQL_Query.Table_Name resolved_table_name) else Error.throw (Table_Already_Exists.Error resolved_table_name)
+    table_naming_helper.verify_table_name resolved_table_name <|
+        case connection.base_connection.table_exists resolved_table_name of
+            True -> on_exists
             False ->
                 dry_run = Context.Output.is_enabled.not
-                effective_table_name = if dry_run.not then table_name else table_naming_helper.generate_dry_run_table_name table_name
+                effective_table_name = if dry_run.not then table_name else table_naming_helper.generate_dry_run_table_name resolved_table_name
                 effective_temporary = temporary || dry_run
                 created_table_name = Context.Output.with_enabled <|
                     if dry_run then
@@ -33,7 +43,16 @@ create_table_implementation connection table_name structure primary_key temporar
                            was created outside of a dry run.
                         connection.drop_table effective_table_name if_exists=True
                     internal_create_table_structure connection effective_table_name structure primary_key effective_temporary on_problems
-                if dry_run.not then connection.query (SQL_Query.Table_Name created_table_name) else
-                    created_table = connection.base_connection.internal_allocate_dry_run_table created_table_name
-                    warning = Dry_Run_Operation.Warning "Only a dry run of `create_table` has occurred, creating a temporary table ("+created_table_name.pretty+").  Press the Write button ▶ to create the actual one."
-                    Warning.attach warning created_table
+                case created_table_name.is_error of
+                    False ->
+                        if dry_run.not then connection.query (SQL_Query.Table_Name created_table_name) else
+                            created_table = connection.base_connection.internal_allocate_dry_run_table created_table_name
+                            warning = Dry_Run_Operation.Warning "Only a dry run of `create_table` has occurred, creating a temporary table ("+created_table_name.pretty+").  Press the Write button ▶ to create the actual one."
+                            Warning.attach warning created_table
+                    True ->
+                        created_table_name.catch Table_Already_Exists _->
+                            # If the table was just created by someone else
+                            case dry_run of
+                                # If this was a dry-run, we had a race condition - to ensure correct structure, we re-try the whole operation
+                                True -> create_table_implementation connection resolved_table_name structure primary_key temporary allow_existing on_problems
+                                False -> on_exists

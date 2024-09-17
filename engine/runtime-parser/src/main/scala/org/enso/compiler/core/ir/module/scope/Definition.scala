@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.{
   Expression,
   IRKind,
   IdentifiedLocation,
+  LazyDiagnosticStorage,
   LazyId,
   MetadataStorage,
   Name
@@ -47,21 +48,20 @@ object Definition {
     * types logic through the runtime and implement statics – the whole
     * notion of desugaring complex type definitions becomes obsolete then.
     *
-    * @param name        the name of the union
-    * @param members     the members of this union
-    * @param location    the source location that the node corresponds to
-    * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
+    * @param name the name of the union
+    * @param members the members of this union
+    * @param location the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Type(
     name: Name,
     params: List[DefinitionArgument],
     members: List[Data],
     location: Option[IdentifiedLocation],
-    passData: MetadataStorage      = new MetadataStorage(),
-    diagnostics: DiagnosticStorage = DiagnosticStorage()
+    passData: MetadataStorage = new MetadataStorage()
   ) extends Definition
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
 
     def copy(
@@ -73,10 +73,20 @@ object Definition {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Type = {
-      val res =
-        Type(name, params, members, location, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        name != this.name
+        || params != this.params
+        || members != this.members
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Type(name, params, members, location, passData)
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -104,9 +114,8 @@ object Definition {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -157,18 +166,17 @@ object Definition {
     * @param location    the source location that the node corresponds to
     * @param isPrivate    If the constructor is private (project-private).
     * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
     */
   sealed case class Data(
     name: Name,
     arguments: List[DefinitionArgument],
     annotations: List[Name.GenericAnnotation],
+    isPrivate: Boolean = false,
     location: Option[IdentifiedLocation],
-    isPrivate: Boolean             = false,
-    passData: MetadataStorage      = new MetadataStorage(),
-    diagnostics: DiagnosticStorage = DiagnosticStorage()
+    passData: MetadataStorage = new MetadataStorage()
   ) extends IR
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -186,22 +194,34 @@ object Definition {
       name: Name                                = name,
       arguments: List[DefinitionArgument]       = arguments,
       annotations: List[Name.GenericAnnotation] = annotations,
+      isPrivate: Boolean                        = isPrivate,
       location: Option[IdentifiedLocation]      = location,
       passData: MetadataStorage                 = passData,
       diagnostics: DiagnosticStorage            = diagnostics,
       id: UUID @Identifier                      = id
     ): Data = {
-      val res = Data(
-        name,
-        arguments,
-        annotations,
-        location,
-        isPrivate,
-        passData,
-        diagnostics
-      )
-      res.id = id
-      res
+      if (
+        name != this.name
+        || arguments != this.arguments
+        || annotations != this.annotations
+        || isPrivate != this.isPrivate
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Data(
+          name,
+          arguments,
+          annotations,
+          isPrivate,
+          location,
+          passData
+        )
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -229,9 +249,8 @@ object Definition {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -277,22 +296,21 @@ object Definition {
   /** The definition of a complex type definition that may contain
     * multiple atom and method definitions.
     *
-    * @param name        the name of the complex type
-    * @param arguments   the (type) arguments to the complex type
-    * @param body        the body of the complex type
-    * @param location    the source location that the node corresponds to
-    * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
+    * @param name the name of the complex type
+    * @param arguments the (type) arguments to the complex type
+    * @param body the body of the complex type
+    * @param location the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   sealed case class SugaredType(
     name: Name,
     arguments: List[DefinitionArgument],
     body: List[IR],
     location: Option[IdentifiedLocation],
-    passData: MetadataStorage      = new MetadataStorage(),
-    diagnostics: DiagnosticStorage = DiagnosticStorage()
+    passData: MetadataStorage = new MetadataStorage()
   ) extends Definition
       with IRKind.Sugar
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -315,16 +333,26 @@ object Definition {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): SugaredType = {
-      val res = SugaredType(
-        name,
-        arguments,
-        body,
-        location,
-        passData,
-        diagnostics
-      )
-      res.id = id
-      res
+      if (
+        name != this.name
+        || arguments != this.arguments
+        || body != this.body
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = SugaredType(
+          name,
+          arguments,
+          body,
+          location,
+          passData
+        )
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -360,9 +388,8 @@ object Definition {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */

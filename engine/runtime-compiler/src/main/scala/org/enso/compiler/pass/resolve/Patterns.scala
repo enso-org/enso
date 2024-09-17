@@ -88,7 +88,8 @@ object Patterns extends IRPass {
     bindingsMap.resolveQualifiedName(parts) match {
       case Left(err) => Left(err)
       case Right(resolvedNames) =>
-        assert(resolvedNames.size == 1, "Expected a single resolution")
+        org.enso.common.Asserts
+          .assertInJvm(resolvedNames.size == 1, "Expected a single resolution")
         Right(resolvedNames.head)
     }
   }
@@ -104,7 +105,8 @@ object Patterns extends IRPass {
     bindingsMap.resolveQualifiedNameIn(scope, submoduleNames, finalItem) match {
       case Left(err) => Left(err)
       case Right(resolvedNames) =>
-        assert(resolvedNames.size == 1, "Expected a single resolution")
+        org.enso.common.Asserts
+          .assertInJvm(resolvedNames.size == 1, "Expected a single resolution")
         Right(resolvedNames.head)
     }
   }
@@ -118,7 +120,8 @@ object Patterns extends IRPass {
     bindingsMap.resolveName(name) match {
       case Left(err) => Left(err)
       case Right(resolvedNames) =>
-        assert(resolvedNames.size == 1, "Expected a single resolution")
+        org.enso.common.Asserts
+          .assertInJvm(resolvedNames.size == 1, "Expected a single resolution")
         Right(resolvedNames.head)
     }
   }
@@ -255,7 +258,7 @@ object Patterns extends IRPass {
                 }
               case None => consPat.copy(constructor = resolvedName)
             }
-          case tpePattern @ Pattern.Type(_, tpeName, _, _, _) =>
+          case tpePattern @ Pattern.Type(_, tpeName, _, _) =>
             val resolution = tpeName match {
               case qual: Name.Qualified =>
                 val parts = qual.parts.map(_.name)

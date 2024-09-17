@@ -7,8 +7,8 @@ import type {
   LexicalNodeReplacement,
 } from 'lexical'
 import { createEditor } from 'lexical'
-import { assertDefined } from 'shared/util/assert'
 import { markRaw, onMounted, type Ref } from 'vue'
+import { assertDefined } from 'ydoc-shared/util/assert'
 
 type NodeDefinition = KlassConstructor<typeof LexicalNode> | LexicalNodeReplacement
 

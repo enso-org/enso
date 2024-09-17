@@ -2,12 +2,14 @@
 import { logEvent } from 'histoire/client'
 
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
+import { Usage } from '@/components/ComponentBrowser/input'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { Vec2 } from '@/util/data/vec2'
 import GroupColorsWrapper from './GroupColorsWrapper.vue'
 import NavigatorWrapper from './NavigatorWrapper.vue'
 
 const position = new Vec2(-329.5, 0)
+const usage: Usage = { type: 'newNode' }
 </script>
 
 <template>
@@ -29,9 +31,10 @@ const position = new Vec2(-329.5, 0)
           <ComponentBrowser
             :nodePosition="position"
             :navigator="navigator"
-            :initialContent="''"
+            :usage="usage"
             :sourcePort="null"
             :initialCaretPosition="[0, 0]"
+            :associatedElements="[]"
             @finished="logEvent('finished', [])"
           />
         </GroupColorsWrapper>

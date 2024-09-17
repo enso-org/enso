@@ -4,16 +4,11 @@ private
 # building native image version of Enso with Standard
 # libraries included in
 
-# needed for Standard.Test.Test_Reporter
-# tracked as https://github.com/enso-org/enso/issues/10028
-polyglot java import java.io.PrintStream
-
 # needed by Util_Spec
-polyglot java import org.enso.base.text.CaseFoldedString
+polyglot java import org.enso.base.text.CaseFoldedString as JCaseFoldedString
 polyglot java import org.enso.base.text.CaseFoldedString.Grapheme
-
-# needed by Comparator_Spec:
-polyglot java import org.enso.base.ObjectComparator
+polyglot java import org.enso.base.Text_Utils as JText_Utils
+polyglot java import com.ibm.icu.text.BreakIterator as JBreakIterator
 
 # often used in tests
 polyglot java import java.util.ArrayList
@@ -26,6 +21,21 @@ polyglot java import java.math.BigInteger
 polyglot java import java.time.LocalDate
 polyglot java import java.time.LocalDateTime
 polyglot java import java.util.function.Function
+polyglot java import java.lang.Exception as JException
 polyglot java import java.lang.Thread
 polyglot java import java.lang.Thread.State
 polyglot java import java.lang.Float
+
+polyglot java import org.enso.base.Stream_Utils as JStream_Utils
+polyglot java import org.enso.base.file_system.File_Utils as JFile_Utils
+polyglot java import org.enso.base.CompareException as JCompareException
+polyglot java import org.enso.base.ObjectComparator as JObjectComparator
+
+Stream_Utils=JStream_Utils
+File_Utils=JFile_Utils
+CompareException=JCompareException
+ObjectComparator=JObjectComparator
+CaseFoldedString=JCaseFoldedString
+Text_Utils=JText_Utils
+BreakIterator=JBreakIterator
+Exception=JException

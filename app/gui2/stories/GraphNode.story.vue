@@ -8,8 +8,8 @@ import { Ast } from '@/util/ast'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { logEvent } from 'histoire/client'
-import { type SourceRange } from 'shared/yjsModel'
 import { computed, reactive, ref, watchEffect } from 'vue'
+import { type SourceRange } from 'ydoc-shared/yjsModel'
 import { createSetupComponent } from './histoire/utils'
 
 const nodeBinding = ref('binding')
@@ -45,8 +45,9 @@ const node = computed((): Node => {
     innerExpr: innerExpr.value,
     primarySubject: undefined,
     vis: undefined,
-    documentation: undefined,
     conditionalPorts: new Set(),
+    type: 'component',
+    docs: undefined,
   }
 })
 
@@ -64,7 +65,7 @@ const keyboard = useKeyboard()
 const navigator = useNavigator(ref(), keyboard)
 const allPortsEnabled = () => true
 const SetupStory = createSetupComponent((app) => {
-  const selection = provideGraphSelection._mock([navigator, mockRects, allPortsEnabled], app)
+  const selection = provideGraphSelection._mock([navigator, mockRects, allPortsEnabled, {}], app)
   watchEffect(() => {
     if (selected.value) {
       selection.selectAll()
@@ -82,6 +83,7 @@ const SetupStory = createSetupComponent((app) => {
       <GraphNode
         :edited="false"
         :node="node"
+        :graphNodeSelections="undefined"
         @movePosition="
           (nodeX += $event.x),
             (nodeY += $event.y),

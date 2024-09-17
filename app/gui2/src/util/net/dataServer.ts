@@ -27,12 +27,12 @@ import {
   type AnyInboundPayload,
   type Offset,
   type Table,
-} from 'shared/binaryProtocol'
-import type { Path as LSPath } from 'shared/languageServerTypes'
-import { Err, Ok, type Result } from 'shared/util/data/result'
-import { exponentialBackoff, type AbortScope } from 'shared/util/net'
-import { uuidFromBits, uuidToBits } from 'shared/uuid'
-import type { Uuid } from 'shared/yjsModel'
+} from 'ydoc-shared/binaryProtocol'
+import type { Path as LSPath } from 'ydoc-shared/languageServerTypes'
+import { Err, Ok, type Result } from 'ydoc-shared/util/data/result'
+import { exponentialBackoff, type AbortScope } from 'ydoc-shared/util/net'
+import { uuidFromBits, uuidToBits } from 'ydoc-shared/uuid'
+import type { Uuid } from 'ydoc-shared/yjsModel'
 
 const PAYLOAD_CONSTRUCTOR = {
   [OutboundPayload.NONE]: None,
@@ -98,7 +98,8 @@ export class DataServer extends ObservableV2<DataServerEvents> {
       this.scheduleInitializationAfterConnect()
     })
 
-    this.initialized = this.initialize()
+    if (websocket.readyState === WebSocket.OPEN) this.initialized = this.initialize()
+    else this.initialized = this.scheduleInitializationAfterConnect()
   }
 
   dispose() {

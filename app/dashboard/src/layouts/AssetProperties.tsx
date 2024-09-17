@@ -1,18 +1,18 @@
 /** @file Display and modify the properties of an asset. */
 import * as React from 'react'
 
+import { useMutation } from '@tanstack/react-query'
+
 import PenIcon from '#/assets/pen.svg'
 
 import * as datalinkValidator from '#/data/datalinkValidator'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
-
-import type Category from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
@@ -25,6 +25,7 @@ import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 
+import type { Category } from '#/layouts/CategorySwitcher/Category'
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
@@ -44,14 +45,13 @@ export interface AssetPropertiesProps {
 
 /** Display and modify the properties of an asset. */
 export default function AssetProperties(props: AssetPropertiesProps) {
-  const { backend, item: itemRaw, setItem: setItemRaw, category } = props
+  const { backend, item, setItem, category } = props
   const { isReadonly = false } = props
 
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useFullUserSession()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const localBackend = backendProvider.useLocalBackend()
-  const [item, setItemInner] = React.useState(itemRaw)
   const [isEditingDescription, setIsEditingDescription] = React.useState(false)
   const [queuedDescription, setQueuedDescripion] = React.useState<string | null>(null)
   const [description, setDescription] = React.useState('')
@@ -64,17 +64,9 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     () => datalinkValidator.validateDatalink(datalinkValue),
     [datalinkValue],
   )
-  const setItem = React.useCallback(
-    (valueOrUpdater: React.SetStateAction<assetTreeNode.AnyAssetTreeNode>) => {
-      setItemInner(valueOrUpdater)
-      setItemRaw(valueOrUpdater)
-    },
-    [setItemRaw],
-  )
-  const labels = backendHooks.useBackendListTags(backend) ?? []
-  const self = item.item.permissions?.find(
-    backendModule.isUserPermissionAnd((permission) => permission.user.userId === user.userId),
-  )
+
+  const labels = useBackendQuery(backend, 'listTags', []).data ?? []
+  const self = permissions.tryFindSelfPermission(user, item.item.permissions)
   const ownsThisAsset = self?.permission === permissions.PermissionAction.own
   const canEditThisAsset =
     ownsThisAsset ||
@@ -89,10 +81,10 @@ export default function AssetProperties(props: AssetPropertiesProps) {
       localBackend?.getProjectPath(item.item.id) ?? null
     : localBackendModule.extractTypeAndId(item.item.id).id
 
-  const createDatalinkMutation = backendHooks.useBackendMutation(backend, 'createDatalink')
-  const getDatalinkMutation = backendHooks.useBackendMutation(backend, 'getDatalink')
-  const updateAssetMutation = backendHooks.useBackendMutation(backend, 'updateAsset')
-  const getDatalinkMutate = getDatalinkMutation.mutateAsync
+  const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
+  const getDatalinkMutation = useMutation(backendMutationOptions(backend, 'getDatalink'))
+  const updateAssetMutation = useMutation(backendMutationOptions(backend, 'updateAsset'))
+  const getDatalink = getDatalinkMutation.mutateAsync
 
   React.useEffect(() => {
     setDescription(item.item.description ?? '')
@@ -101,13 +93,13 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   React.useEffect(() => {
     void (async () => {
       if (item.item.type === backendModule.AssetType.datalink) {
-        const value = await getDatalinkMutate([item.item.id, item.item.title])
+        const value = await getDatalink([item.item.id, item.item.title])
         setDatalinkValue(value)
         setEditedDatalinkValue(value)
         setIsDatalinkFetched(true)
       }
     })()
-  }, [backend, item.item, getDatalinkMutate])
+  }, [backend, item.item, getDatalink])
 
   const doEditDescription = async () => {
     setIsEditingDescription(false)
@@ -186,7 +178,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                 }}
               />
               <ariaComponents.ButtonGroup>
-                <ariaComponents.Button size="medium" variant="bar" onPress={doEditDescription}>
+                <ariaComponents.Button size="medium" variant="outline" onPress={doEditDescription}>
                   {getText('update')}
                 </ariaComponents.Button>
               </ariaComponents.ButtonGroup>
@@ -278,7 +270,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                 readOnly={!canEditThisAsset}
                 dropdownTitle="Type"
                 value={editedDatalinkValue}
-                setValue={setEditedDatalinkValue}
+                onChange={setEditedDatalinkValue}
               />
               {canEditThisAsset && (
                 <ariaComponents.ButtonGroup>
@@ -316,7 +308,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                   </ariaComponents.Button>
                   <ariaComponents.Button
                     size="medium"
-                    variant="bar"
+                    variant="outline"
                     isDisabled={isDatalinkDisabled}
                     onPress={() => {
                       setEditedDatalinkValue(datalinkValue)

@@ -18,8 +18,20 @@ use crate::syntax::*;
 #[allow(missing_docs)]
 pub enum Item<'s> {
     Token(Token<'s>),
-    Block(Vec<Line<'s>>),
+    Block(Box<[Line<'s>]>),
     Tree(Tree<'s>),
+    Group(Group<'s>),
+}
+
+/// A parenthesized subtree.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Group<'s> {
+    /// The opening parenthesis.
+    pub open:  token::OpenSymbol<'s>,
+    /// The parenthesized subtree.
+    pub body:  Box<[Item<'s>]>,
+    /// The closing parenthesis.
+    pub close: Option<token::CloseSymbol<'s>>,
 }
 
 /// A line.
@@ -46,6 +58,7 @@ impl<'s> Item<'s> {
         match self {
             Self::Token(t) => t.span().left_offset.visible,
             Self::Tree(t) => t.span.left_offset.visible,
+            Self::Group(t) => t.open.left_offset.visible,
             Self::Block(_) => default(),
         }
     }
@@ -73,18 +86,16 @@ impl<'s> From<Tree<'s>> for Item<'s> {
     }
 }
 
-
-/// Given a sequence of [`Line`]s belonging to one block, create an AST block node, of a type
-/// determined by the syntax of the lines in the block.
-pub fn build_block<'s>(
-    lines: impl IntoIterator<Item = Line<'s>>,
-    parser: &mut operator::Precedence<'s>,
-) -> Tree<'s> {
-    let mut block_builder = tree::block::Builder::new();
-    for Line { newline, items } in lines {
-        block_builder.push(newline, items, parser);
+impl<'s> From<Group<'s>> for Item<'s> {
+    fn from(group: Group<'s>) -> Self {
+        Item::Group(group)
     }
-    block_builder.build()
+}
+
+impl<'s> AsRef<Item<'s>> for Item<'s> {
+    fn as_ref(&self) -> &Self {
+        self
+    }
 }
 
 

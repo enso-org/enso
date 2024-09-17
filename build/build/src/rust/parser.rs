@@ -12,7 +12,6 @@ use ide_ci::programs::Javac;
 
 
 const GENERATOR_CRATE_NAME: &str = "enso-parser-generate-java";
-const PARSER_JNI_CRATE_NAME: &str = "enso-parser-jni";
 const GENERATOR_BIN_NAME: &str = GENERATOR_CRATE_NAME;
 const TEST_GENERATOR_BIN_NAME: &str = "java-tests";
 const GENERATED_CODE_NAMESPACE: [&str; 3] = ["org", "enso", "syntax2"];
@@ -47,17 +46,8 @@ pub async fn generate_java(repo_root: &RepoRoot) -> Result {
     generate_java_to(repo_root, &output_path).await
 }
 
-fn cargo_build_parser_jni(repo_root: &Path) -> Result<Command> {
-    let mut ret = Cargo.cmd()?;
-    ret.current_dir(repo_root)
-        .apply(&cargo::Command::Build)
-        .apply(&cargo::Options::Package(PARSER_JNI_CRATE_NAME.into()));
-    Ok(ret)
-}
-
 #[context("Running self-tests for the generated Java sources failed.")]
 pub async fn run_self_tests(repo_root: &RepoRoot) -> Result {
-    cargo_build_parser_jni(repo_root)?.run_ok().await?;
     let base = &repo_root.target.generated_java;
     let lib = &repo_root.lib.rust.parser.generate_java.java;
     let package = repo_root.target.generated_java.join_iter(GENERATED_CODE_NAMESPACE);

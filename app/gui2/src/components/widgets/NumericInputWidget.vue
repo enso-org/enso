@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { usePointer } from '@/composables/events'
-import { isNumericLiteral } from 'shared/ast/tree'
 import { computed, ref, watch, type CSSProperties, type ComponentInstance } from 'vue'
+import { isNumericLiteral } from 'ydoc-shared/ast/tree'
 import AutoSizedInput from './AutoSizedInput.vue'
 
 const props = defineProps<{

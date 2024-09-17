@@ -5,26 +5,28 @@ import Standard.Base.Errors.Common.Dry_Run_Operation
 import Standard.Base.Runtime.Context
 
 import project.DB_Table.DB_Table
+import project.Internal.DDL_Transaction
 from project.Errors import SQL_Error, Table_Already_Exists
 from project.Internal.Upload.Helpers.Constants import dry_run_row_limit
 from project.Internal.Upload.Helpers.Error_Helpers import handle_upload_errors
-from project.Internal.Upload.Operations.Internal_Core import internal_upload_table
+from project.Internal.Upload.Operations.Internal_Core import internal_upload_table, resolve_temp_table_name
 
 ## PRIVATE
 select_into_table_implementation source_table connection table_name primary_key temporary on_problems:Problem_Behavior =
     connection.base_connection.maybe_run_maintenance
+    resolved_table_name = resolve_temp_table_name connection temporary table_name
     table_naming_helper = connection.base_connection.table_naming_helper
-    table_naming_helper.verify_table_name table_name <|
+    table_naming_helper.verify_table_name resolved_table_name <|
         Panic.recover SQL_Error <| handle_upload_errors <|
-            connection.jdbc_connection.run_within_transaction <|
-                real_target_already_exists = connection.base_connection.table_exists table_name
-                if real_target_already_exists then Error.throw (Table_Already_Exists.Error table_name) else
-                    dry_run = Context.Output.is_enabled.not
-                    case dry_run of
-                        False ->
-                            internal_upload_table source_table connection table_name primary_key temporary on_problems=on_problems row_limit=Nothing
-                        True ->
-                            tmp_table_name = table_naming_helper.generate_dry_run_table_name table_name
+            real_target_already_exists = connection.base_connection.table_exists resolved_table_name
+            if real_target_already_exists then Error.throw (Table_Already_Exists.Error resolved_table_name) else
+                dry_run = Context.Output.is_enabled.not
+                case dry_run of
+                    False ->
+                        upload_table_in_transaction source_table connection resolved_table_name primary_key temporary=temporary on_problems=on_problems row_limit=Nothing
+                    True ->
+                        tmp_table_name = table_naming_helper.generate_dry_run_table_name resolved_table_name
+                        create_dry_run_table _ =
                             table = Context.Output.with_enabled <|
                                 ## This temporary table can be safely dropped if it
                                    exists, because it only existed if it was created by
@@ -32,7 +34,17 @@ select_into_table_implementation source_table connection table_name primary_key 
                                    will never return a name of a table that exists but
                                    was created outside of a dry run.
                                 connection.drop_table tmp_table_name if_exists=True
-                                internal_upload_table source_table connection tmp_table_name primary_key temporary=True on_problems=on_problems row_limit=dry_run_row_limit
+                                upload_table_in_transaction source_table connection tmp_table_name primary_key temporary=True on_problems=on_problems row_limit=dry_run_row_limit
+                                    . catch Table_Already_Exists _->
+                                        # Another dry-run table was created in the meantime - we restart to now DROP it and try again.
+                                        create_dry_run_table Nothing
                             temporary_table = connection.base_connection.internal_allocate_dry_run_table table.name
                             warning = Dry_Run_Operation.Warning "Only a dry run of `select_into_database_table` was performed - a temporary table ("+tmp_table_name+") was created, containing a sample of the data.  Press the Write button ▶ to write to the actual table."
                             Warning.attach warning temporary_table
+                        create_dry_run_table Nothing
+
+## PRIVATE
+upload_table_in_transaction source_table connection table_name primary_key temporary on_problems row_limit =
+    upload_operation = internal_upload_table source_table connection table_name primary_key=primary_key temporary=temporary on_problems=on_problems row_limit=row_limit
+    DDL_Transaction.run_transaction_with_tables connection [upload_operation.table_description] _->
+        upload_operation.perform_upload

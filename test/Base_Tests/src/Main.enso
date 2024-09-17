@@ -39,7 +39,6 @@ import project.Data.Locale_Spec
 import project.Data.Maybe_Spec
 import project.Data.Numbers_Spec
 import project.Data.Ordering_Spec
-import project.Data.Ordering.Comparator_Spec
 import project.Data.Ordering.Natural_Order_Spec
 import project.Data.Ordering.Vector_Lexicographic_Order_Spec
 import project.Data.Pair_Spec
@@ -57,7 +56,6 @@ import project.Data.Text.Encoding_Spec
 import project.Data.Text.Parse_Spec
 import project.Data.Text.Regex_Spec
 import project.Data.Text.Span_Spec
-import project.Data.Text.Utils_Spec
 import project.Data.XML.XML_Spec
 
 import project.Data.Vector.Slicing_Helpers_Spec
@@ -137,7 +135,6 @@ main filter=Nothing =
         Numbers_Spec.add_specs suite_builder
         Equals_Spec.add_specs suite_builder
         Ordering_Spec.add_specs suite_builder
-        Comparator_Spec.add_specs suite_builder
         Natural_Order_Spec.add_specs suite_builder
         Vector_Lexicographic_Order_Spec.add_specs suite_builder
         Process_Spec.add_specs suite_builder
@@ -163,7 +160,6 @@ main filter=Nothing =
         Missing_Required_Arguments_Spec.add_specs suite_builder
         Lazy_Generator_Spec.add_specs suite_builder
         Stack_Traces_Spec.add_specs suite_builder
-        Utils_Spec.add_specs suite_builder
         Text_Spec.add_specs suite_builder
         Time_Spec.add_specs suite_builder
         URI_Spec.add_specs suite_builder

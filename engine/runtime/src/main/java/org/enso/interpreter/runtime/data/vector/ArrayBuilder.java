@@ -12,7 +12,7 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.Arrays;
 import org.enso.interpreter.runtime.data.EnsoObject;
-import org.enso.interpreter.runtime.error.WarningsLibrary;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 @ExportLibrary(InteropLibrary.class)
 final class ArrayBuilder implements EnsoObject {
@@ -142,14 +142,31 @@ final class ArrayBuilder implements EnsoObject {
     }
   }
 
+  private static boolean checkArraySize(boolean mustBeExact, int real, int expected) {
+    if (real == expected) {
+      return true;
+    } else {
+      if (mustBeExact) {
+        CompilerDirectives.transferToInterpreter();
+      }
+      return false;
+    }
+  }
+
   /** Returns the current array of the builder. */
-  private Object toArray() {
+  private Object toArray(boolean mustBeExact) {
     if (objectArray != null) {
-      return objectArray.length == size ? objectArray : Arrays.copyOf(objectArray, size);
+      return checkArraySize(mustBeExact, objectArray.length, size)
+          ? objectArray
+          : Arrays.copyOf(objectArray, size);
     } else if (primitiveArray instanceof long[] longArray) {
-      return longArray.length == size ? longArray : Arrays.copyOf(longArray, size);
+      return checkArraySize(mustBeExact, longArray.length, size)
+          ? longArray
+          : Arrays.copyOf(longArray, size);
     } else if (primitiveArray instanceof double[] doubleArray) {
-      return doubleArray.length == size ? doubleArray : Arrays.copyOf(doubleArray, size);
+      return checkArraySize(mustBeExact, doubleArray.length, size)
+          ? doubleArray
+          : Arrays.copyOf(doubleArray, size);
     } else {
       return null;
     }
@@ -195,7 +212,7 @@ final class ArrayBuilder implements EnsoObject {
         yield get(index, iop);
       }
       case "getSize" -> getSize();
-      case "toArray" -> asVector();
+      case "toArray" -> asVector(false);
       default -> throw UnknownIdentifierException.create(name);
     };
   }
@@ -225,8 +242,8 @@ final class ArrayBuilder implements EnsoObject {
     return "Array_Builder";
   }
 
-  Object asVector() {
-    var res = toArray();
+  Object asVector(boolean mustBeExact) {
+    var res = toArray(mustBeExact);
     if (res instanceof long[] longs) {
       return Vector.fromLongArray(longs);
     }

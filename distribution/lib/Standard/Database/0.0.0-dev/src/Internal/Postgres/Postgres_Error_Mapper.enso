@@ -11,6 +11,11 @@ type Postgres_Error_Mapper
         error.java_exception.getMessage.contains "duplicate key value violates unique constraint"
 
     ## PRIVATE
+    is_table_already_exists_error : SQL_Error -> Boolean
+    is_table_already_exists_error error =
+        error.java_exception.getMessage.match "ERROR: relation .* already exists"
+
+    ## PRIVATE
     transform_custom_errors : SQL_Error -> Any
     transform_custom_errors error =
         message = error.java_exception.getMessage

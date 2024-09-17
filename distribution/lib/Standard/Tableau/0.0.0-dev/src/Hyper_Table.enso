@@ -1,0 +1,98 @@
+from Standard.Base import all
+import Standard.Base.Errors.File_Error.File_Error
+
+import Standard.Table.Internal.Java_Problems
+import Standard.Table.Rows_To_Read.Rows_To_Read
+from Standard.Table import Column, Table, Value_Type
+
+import project.Hyper_Column.Hyper_Column
+import project.Hyper_Errors
+import project.Hyper_File.Hyper_File
+
+polyglot java import java.sql.Types
+polyglot java import org.enso.tableau.HyperReader
+polyglot java import org.enso.tableau.HyperTableColumn
+
+## An Enso representation of a Tableau Hyper Table.
+type Hyper_Table
+    ## PRIVATE
+       Represents a Tableau Hyper Table.
+    private Value file:Hyper_File internal_schema:Text internal_table:Text
+
+    ## ICON metadata
+       The schema of the table.
+    schema : Text
+    schema self = self.internal_schema
+
+    ## GROUP Standard.Base.Metadata
+       ICON metadata
+       The name of the table.
+    table : Text
+    table self = self.internal_table
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self = self.table + " (" + self.schema + ")"
+
+    ## PRIVATE
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "Hyper_Table"], ["schema", self.schema], ["table", self.table], ["file", self.file.file.path]]
+
+    ## GROUP Standard.Base.Metadata
+       ICON metadata
+       Reads The Columns for the Table
+    column_metadata : Vector Hyper_Column
+    column_metadata self = File_Error.handle_java_exceptions self.file.file <| Hyper_Errors.handle_java_exceptions <|
+        array = HyperReader.readStructure self.file.file.path self.schema self.table
+        array.map column->
+            value_type = case column.typeID of
+                Types.BOOLEAN -> Value_Type.Boolean
+                Types.BIGINT -> Value_Type.Integer ..Bits_64
+                Types.SMALLINT -> Value_Type.Integer ..Bits_16
+                Types.INTEGER -> Value_Type.Integer ..Bits_32
+                Types.NUMERIC ->
+                    precision = if column.precision.isEmpty then Nothing else column.precision.getAsInt
+                    scale = if column.scale.isEmpty then Nothing else column.scale.getAsInt
+                    Value_Type.Decimal precision scale
+                Types.FLOAT -> Value_Type.Float ..Bits_32
+                Types.DOUBLE -> Value_Type.Float ..Bits_64
+                Types.VARCHAR ->
+                    length = if column.length.isEmpty then Nothing else column.length.getAsInt
+                    Value_Type.Char length variable_length=True
+                Types.CHAR ->
+                    length = if column.length.isEmpty then Nothing else column.length.getAsInt
+                    Value_Type.Char length variable_length=False
+                Types.DATE -> Value_Type.Date
+                Types.TIME -> Value_Type.Time
+                Types.TIMESTAMP -> Value_Type.Date_Time with_timezone=False
+                Types.TIMESTAMP_WITH_TIMEZONE -> Value_Type.Date_Time with_timezone=True
+                HyperTableColumn.JSON -> Value_Type.Unsupported_Data_Type "JSON" JS_Object
+                HyperTableColumn.INTERVAL -> Value_Type.Unsupported_Data_Type "INTERVAL" Duration
+                _ -> Value_Type.Unsupported_Data_Type "Unknown" Any
+            Hyper_Column.Value column.name value_type column.nullable
+
+    ## GROUP Standard.Base.Metadata
+       ICON metadata
+       Returns a Table describing this table's contents.
+
+       The table lists all columns and value types of each column.
+    column_info : Table
+    column_info self =
+        cols = self.column_metadata
+        Table.new [["Column", cols.map .name], ["Value Type", cols.map .value_type], ["Nullable", cols.map .nullable]]
+
+    ## GROUP Standard.Base.Input
+       ICON data_input
+       Reads the Table into Enso Table
+
+       Arguments:
+       - max_rows: specifies the maximum number of rows to read.
+    @max_rows Rows_To_Read.default_widget
+    read : Rows_To_Read -> Table
+    read self (max_rows : Rows_To_Read = ..All_Rows) =  File_Error.handle_java_exceptions self.file.file <| Hyper_Errors.handle_java_exceptions <|
+        Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+            row_count = if max_rows == Rows_To_Read.All_Rows then Nothing else max_rows.rows
+            java_columns = HyperReader.readTable self.file.file.path self.schema self.table row_count java_problem_aggregator
+            enso_columns = java_columns.map c-> Column.from_storage c.getName c.getStorage
+            Table.new enso_columns

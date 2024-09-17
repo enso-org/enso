@@ -10,29 +10,25 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as reactAriaComponents from '#/components/AriaComponents'
 
+import * as formContext from './FormProvider'
 import type * as types from './types'
-import * as formContext from './useFormContext'
 
 /**
  * Props for the FormError component.
  */
 export interface FormErrorProps extends Omit<reactAriaComponents.AlertProps, 'children'> {
+  // We do not need to know the form fields.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly form?: types.FormInstance<any, any>
+  readonly form?: types.FormInstance<any>
 }
 
 /**
  * Form error component.
  */
 export function FormError(props: FormErrorProps) {
-  const {
-    form = formContext.useFormContext(),
-    size = 'large',
-    variant = 'error',
-    rounded = 'large',
-    ...alertProps
-  } = props
+  const { size = 'large', variant = 'error', rounded = 'large', ...alertProps } = props
 
+  const form = formContext.useFormContext(props.form)
   const { formState } = form
   const { errors } = formState
   const { getText } = textProvider.useText()
@@ -65,7 +61,12 @@ export function FormError(props: FormErrorProps) {
   const submitErrorAlert =
     errorMessage != null ?
       <reactAriaComponents.Alert size={size} variant={variant} rounded={rounded} {...alertProps}>
-        <reactAriaComponents.Text variant="body" truncate="3" color="primary">
+        <reactAriaComponents.Text
+          data-testid="form-submit-error"
+          variant="body"
+          truncate="3"
+          color="primary"
+        >
           {errorMessage}
         </reactAriaComponents.Text>
       </reactAriaComponents.Alert>

@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Decimal.Decimal
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Locale.Locale
 import project.Data.Range.Range
@@ -243,14 +244,17 @@ Text.characters self =
    Find the regular expression `pattern` in `self`, returning the first match
    if present or `Nothing` if not found.
 
+   For details on Enso's Regex syntax, see the [Help Documentation](https://help.enso.org/docs/using-enso/regular-expressions).
+
    Arguments:
    - pattern: The pattern to match `self` against.
    - case_sensitivity: Specifies if the text values should be compared case
      sensitively.
 
-   If an empty regex is used, `find` throws an `Illegal_Argument` error.
+   ! Error Conditions
 
-   If a non-default locale is used, `find` throws an `Illegal_Argument` error.
+   - If an empty regex is used, `find` throws an `Illegal_Argument` error.
+   - If a non-default locale is used, `find` throws an `Illegal_Argument` error.
 
    > Example
      Find the first substring matching the regex.
@@ -261,8 +265,8 @@ Text.characters self =
          example_find_insensitive =
              ## This matches `aBc` @ character 11
              "aabbbbccccaaBcaaaa".find "a[ab]c" Case_Sensitivity.Insensitive
-Text.find : Text -> Case_Sensitivity -> Match | Nothing ! Regex_Syntax_Error | Illegal_Argument
-Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
+Text.find : (Regex | Text) -> Case_Sensitivity -> Match | Nothing ! Regex_Syntax_Error | Illegal_Argument
+Text.find self pattern:(Regex | Text)=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     case_insensitive = case_sensitivity.is_case_insensitive_in_memory
     compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
     compiled_pattern.match self
@@ -273,14 +277,17 @@ Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
    Finds all the matches of the regular expression `pattern` in `self`,
    returning a Vector. If not found, will be an empty Vector.
 
+   For details on Enso's Regex syntax, see the [Help Documentation](https://help.enso.org/docs/using-enso/regular-expressions).
+
    Arguments:
    - pattern: The pattern to match `self` against.
    - case_sensitivity: Specifies if the text values should be compared case
      sensitively.
 
-   If an empty regex is used, `find_all` throws an `Illegal_Argument` error.
+   ! Error Conditions
 
-   If a non-default locale is used, `find_all` throws an `Illegal_Argument` error.
+   - If an empty regex is used, `find` throws an `Illegal_Argument` error.
+   - If a non-default locale is used, `find` throws an `Illegal_Argument` error.
 
    > Example
      Find the substring matching the regex.
@@ -303,14 +310,17 @@ Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
 
    Checks if the whole text in `self` matches a provided `pattern`.
 
+   For details on Enso's Regex syntax, see the [Help Documentation](https://help.enso.org/docs/using-enso/regular-expressions).
+
    Arguments:
    - pattern: The pattern to match `self` against.
    - case_sensitivity: Specifies if the text values should be compared case
      sensitively.
 
-   If an empty regex is used, `match` throws an `Illegal_Argument` error.
+   ! Error Conditions
 
-   If a non-default locale is used, `match` throws an `Illegal_Argument` error.
+   - If an empty regex is used, `find` throws an `Illegal_Argument` error.
+   - If a non-default locale is used, `find` throws an `Illegal_Argument` error.
 
    > Example
      Checks if whole text matches a basic email regex.
@@ -462,6 +472,8 @@ Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
        $n: the nth group
        $&lt;foo&gt;: Named group `foo`
 
+   For details on Enso's Regex syntax, see the [Help Documentation](https://help.enso.org/docs/using-enso/regular-expressions).
+
    Arguments:
    - term: The `Text` or `Regex` to find.
    - replacement: The text to replace matches with.
@@ -469,10 +481,10 @@ Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
      sensitively.
    - only_first: If True, only replace the first match.
 
-   If an empty regex is used, `replace` throws an `Illegal_Argument` error.
+   ! Error Conditions
 
-   If a non-default locale is used with a regex, `replace` throws an
-   Illegal_Argument error.
+   - If an empty regex is used, `find` throws an `Illegal_Argument` error.
+   - If a non-default locale is used, `find` throws an `Illegal_Argument` error.
 
    > Example
      Replace letters in the text "aaa".
@@ -553,6 +565,7 @@ Text.replace self term:(Text | Regex) replacement:Text (case_sensitivity:Case_Se
       - ..Trailing_Whitespace: Removes all whitespace from the end of the string.
       - ..Duplicate_Whitespace: Removes all duplicate whitespace from the string replacing it with the first whitespace character of the duplicated block.
       - ..All_Whitespace: Removes all whitespace from the string.
+      - ..Newlines: Removes all newline characters from the string. Line Feed and Carriage Return characters are considered newlines.
       - ..Leading_Numbers: Removes all numbers from the start of the string.
       - ..Trailing_Numbers: Removes all numbers from the end of the string.
       - ..Non_ASCII: Removes all non-ascii characters from the string.
@@ -1881,6 +1894,46 @@ Text.parse_time_of_day self format:Date_Time_Formatter=Date_Time_Formatter.iso_t
          example_parse = "+03:02:01".parse_time_zone
 Text.parse_time_zone : Time_Zone ! Time_Error
 Text.parse_time_zone self = Time_Zone.parse self
+
+## GROUP Conversions
+   ICON convert
+   Convert this `Text` to a `Decimal`.
+
+   Arguments:
+   - scale: the optional Decimal scale to use. See `Decimal.set_scale` for more
+     information about Decimal scales. If this argument is not used, the default
+     scale is used.
+
+   > Example
+     Convert a `Text` to a `Decimal`.
+
+         d = "23.456".to_decimal
+         d == Decimal.new "23.456"
+         # => True
+
+    ! Error Conditions
+
+        - If an explicit `scale` parameter is passed, and the scale is not
+          large enough to represent the number exactly, an `Arithmetic_Error`
+          is thrown.
+
+   > Example
+     Convert a `Text` to a `Decimal` with an explicit scale.
+
+         d = "23.456".to_decimal scale=4
+         d == Decimal.new "23.456"
+         # => True
+
+   > Example
+     Get an error when using a scale that is too small.
+
+         "23.456".to_decimal scale=2
+         # => Arithmetic_Error
+Text.to_decimal : Integer | Nothing -> Decimal
+Text.to_decimal self (scale : Integer | Nothing = Nothing) -> Decimal =
+    d_unscaled = Decimal.from_text self
+    if scale == Nothing then d_unscaled else
+        d_unscaled.set_scale scale
 
 ## ALIAS mid, slice, substring
    GROUP Selections

@@ -10,22 +10,38 @@ import scala.annotation.unused
 
 /** An erroneous import or export statement.
   *
-  * @param ir          the original statement
-  * @param reason      the reason it's erroneous
-  * @param passData    the pass data
-  * @param diagnostics the attached diagnostics
+  * @param ir the original statement
+  * @param reason the reason it's erroneous
+  * @param passData the pass data
   */
 sealed case class ImportExport(
   ir: IR,
   reason: ImportExport.Reason,
-  override val passData: MetadataStorage      = new MetadataStorage(),
-  override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+  override val passData: MetadataStorage = new MetadataStorage()
 ) extends Error
     with Diagnostic.Kind.Interactive
     with org.enso.compiler.core.ir.module.scope.Import
     with org.enso.compiler.core.ir.module.scope.Export
     with IRKind.Primitive
+    with LazyDiagnosticStorage
     with LazyId {
+
+  /** Create an erroneous import or export statement.
+    *
+    * @param ir the original statement
+    * @param reason the reason it's erroneous
+    * @param passData the pass data
+    * @param diagnostics the attached diagnostics
+    */
+  def this(
+    ir: IR,
+    reason: ImportExport.Reason,
+    passData: MetadataStorage,
+    diagnostics: DiagnosticStorage
+  ) = {
+    this(ir, reason, passData)
+    this.diagnostics = diagnostics
+  }
 
   /** Creates a copy of `this`.
     *
@@ -43,9 +59,18 @@ sealed case class ImportExport(
     diagnostics: DiagnosticStorage = diagnostics,
     id: UUID @Identifier           = id
   ): ImportExport = {
-    val res = ImportExport(ir, reason, passData, diagnostics)
-    res.id = id
-    res
+    if (
+      ir != this.ir
+      || reason != this.reason
+      || passData != this.passData
+      || diagnostics != this.diagnostics
+      || id != this.id
+    ) {
+      val res = ImportExport(ir, reason, passData)
+      res.diagnostics = diagnostics
+      res.id          = id
+      res
+    } else this
   }
 
   /** @inheritdoc */
@@ -58,9 +83,8 @@ sealed case class ImportExport(
     copy(
       passData =
         if (keepMetadata) passData.duplicate else new MetadataStorage(),
-      diagnostics =
-        if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-      id = if (keepIdentifiers) id else null
+      diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+      id          = if (keepIdentifiers) id else null
     )
 
   /** @inheritdoc */
@@ -106,8 +130,7 @@ sealed case class ImportExport(
 
 object ImportExport {
 
-  /** A reason for a statement being erroneous.
-    */
+  /** A reason for a statement being erroneous. */
   sealed trait Reason {
 
     /** @param source Location of the original import/export IR.

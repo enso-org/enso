@@ -2,8 +2,11 @@ use crate::prelude::*;
 use crate::syntax::operator::types::*;
 
 use crate::syntax;
-use crate::syntax::operator::operand::Operand;
+use crate::syntax::maybe_with_error;
+use crate::syntax::operator::section::MaybeSection;
 use crate::syntax::token;
+use crate::syntax::token::TokenOperatorProperties;
+use crate::syntax::Token;
 use crate::syntax::Tree;
 
 
@@ -17,15 +20,15 @@ use crate::syntax::Tree;
 
 #[derive(Debug)]
 pub struct ApplyOperator<'s> {
-    tokens:            Vec<token::Operator<'s>>,
-    lhs:               Option<Operand<Tree<'s>>>,
-    rhs:               Option<Operand<Tree<'s>>>,
+    tokens:            Vec<Token<'s>>,
+    lhs:               Option<MaybeSection<Tree<'s>>>,
+    rhs:               Option<MaybeSection<Tree<'s>>>,
     reify_rhs_section: bool,
     warnings:          Option<Warnings>,
 }
 
 impl<'s> ApplyOperator<'s> {
-    pub fn tokens(tokens: Vec<token::Operator<'s>>) -> Self {
+    pub fn tokens(tokens: Vec<Token<'s>>) -> Self {
         Self {
             tokens,
             lhs: default(),
@@ -35,15 +38,15 @@ impl<'s> ApplyOperator<'s> {
         }
     }
 
-    pub fn token(token: token::Operator<'s>) -> Self {
+    pub fn token(token: Token<'s>) -> Self {
         Self::tokens(vec![token])
     }
 
-    pub fn with_lhs(self, lhs: Option<Operand<Tree<'s>>>) -> Self {
+    pub fn with_lhs(self, lhs: Option<MaybeSection<Tree<'s>>>) -> Self {
         Self { lhs, ..self }
     }
 
-    pub fn with_rhs(self, rhs: Option<Operand<Tree<'s>>>, reify_rhs_section: bool) -> Self {
+    pub fn with_rhs(self, rhs: Option<MaybeSection<Tree<'s>>>, reify_rhs_section: bool) -> Self {
         Self { rhs, reify_rhs_section, ..self }
     }
 
@@ -51,10 +54,11 @@ impl<'s> ApplyOperator<'s> {
         Self { warnings: Some(warnings), ..self }
     }
 
-    pub fn finish(self) -> Operand<Tree<'s>> {
+    pub fn finish(self) -> MaybeSection<Tree<'s>> {
         let Self { tokens, lhs, rhs: rhs_, reify_rhs_section, warnings } = self;
-        let mut operand = if let Some(lhs_termination) =
-            tokens.first().and_then(|token| token.properties.lhs_section_termination())
+        let mut operand = if let Some(lhs_termination) = tokens
+            .first()
+            .and_then(|token| token.operator_properties().unwrap().lhs_section_termination())
         {
             let lhs = match lhs_termination {
                 SectionTermination::Reify => lhs.map(Tree::from),
@@ -62,10 +66,9 @@ impl<'s> ApplyOperator<'s> {
             };
             let rhs = rhs_.map(Tree::from);
             let ast = syntax::tree::apply_operator(lhs, tokens, rhs);
-            Operand::from(ast)
+            MaybeSection::from(ast)
         } else if tokens.len() < 2
-            && let Some(opr) = tokens.first()
-            && opr.properties.can_form_section()
+            && tokens.first().is_some_and(|opr| !opr.is_syntactic_binary_operator())
         {
             let mut rhs = None;
             let mut elided = 0;
@@ -81,18 +84,18 @@ impl<'s> ApplyOperator<'s> {
             }
             elided += lhs.is_none() as u32 + rhs.is_none() as u32;
             let mut operand =
-                Operand::from(lhs).map(|lhs| syntax::tree::apply_operator(lhs, tokens, rhs));
+                MaybeSection::from(lhs).map(|lhs| syntax::tree::apply_operator(lhs, tokens, rhs));
             operand.elided += elided;
             operand.wildcards += wildcards;
             operand
         } else {
             let rhs = rhs_.map(Tree::from);
             let mut elided = 0;
-            if tokens.len() != 1 || tokens[0].properties.can_form_section() {
+            if tokens.len() != 1 || !tokens[0].is_syntactic_binary_operator() {
                 elided += lhs.is_none() as u32 + rhs.is_none() as u32;
             }
             let mut operand =
-                Operand::from(lhs).map(|lhs| syntax::tree::apply_operator(lhs, tokens, rhs));
+                MaybeSection::from(lhs).map(|lhs| syntax::tree::apply_operator(lhs, tokens, rhs));
             operand.elided += elided;
             operand
         };
@@ -108,18 +111,18 @@ impl<'s> ApplyOperator<'s> {
 
 #[derive(Debug)]
 pub struct ApplyUnaryOperator<'s> {
-    token:    token::Operator<'s>,
-    rhs:      Option<Operand<Tree<'s>>>,
+    token:    token::UnaryOperator<'s>,
+    rhs:      Option<MaybeSection<Tree<'s>>>,
     error:    Option<Cow<'static, str>>,
     warnings: Option<Warnings>,
 }
 
 impl<'s> ApplyUnaryOperator<'s> {
-    pub fn token(token: token::Operator<'s>) -> Self {
+    pub fn token(token: token::UnaryOperator<'s>) -> Self {
         Self { token, rhs: default(), error: default(), warnings: default() }
     }
 
-    pub fn with_rhs(self, rhs: Option<Operand<Tree<'s>>>) -> Self {
+    pub fn with_rhs(self, rhs: Option<MaybeSection<Tree<'s>>>) -> Self {
         Self { rhs, ..self }
     }
 
@@ -131,17 +134,19 @@ impl<'s> ApplyUnaryOperator<'s> {
         Self { warnings: Some(warnings), ..self }
     }
 
-    pub fn finish(self) -> Operand<Tree<'s>> {
+    pub fn finish(self) -> MaybeSection<Tree<'s>> {
         let Self { token, rhs, error, warnings } = self;
-        Operand::new(rhs).map(|rhs| {
-            let mut tree = syntax::tree::apply_unary_operator(token, rhs);
+        MaybeSection::new(rhs).map(|rhs| {
+            let mut tree = match rhs {
+                Some(rhs) => Tree::unary_opr_app(token, Some(rhs)),
+                None =>
+                    Tree::opr_app(None, Ok(token.with_variant(token::variant::Operator())), None)
+                        .with_error("Operator must be applied to an operand."),
+            };
             if let Some(warnings) = warnings {
                 warnings.apply(&mut tree);
             }
-            match error {
-                None => tree,
-                Some(error) => tree.with_error(error),
-            }
+            maybe_with_error(tree, error)
         })
     }
 }

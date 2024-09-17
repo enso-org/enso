@@ -53,7 +53,7 @@ public final class EnsoSecretHelper extends SecretValueResolver {
     }
   }
 
-  // ** Makes a request with secrets in the query string or headers. **//
+  /** Makes a request with secrets in the query string or headers. * */
   public static EnsoHttpResponse makeRequest(
       HttpClient client,
       Builder builder,

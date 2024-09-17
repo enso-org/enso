@@ -6,7 +6,7 @@ import {
   toVisualizationId,
   VisualizationMetadataDb,
 } from '@/stores/visualization/metadata'
-import type { VisualizationIdentifier } from 'shared/yjsModel'
+import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 test.prop({
   kind: fc.oneof(

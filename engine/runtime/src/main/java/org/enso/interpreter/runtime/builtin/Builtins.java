@@ -244,7 +244,7 @@ public final class Builtins {
                   constr -> {
                     Map<String, Supplier<LoadedBuiltinMethod>> atomNodes =
                         getOrUpdate(builtinMethodNodes, constr.getName());
-                    atomNodes.put(builtinMethodName, new CachingSupplier<>(() -> meta.toMethod()));
+                    atomNodes.put(builtinMethodName, CachingSupplier.wrap(() -> meta.toMethod()));
 
                     Map<String, LoadedBuiltinMetaMethod> atomNodesMeta =
                         getOrUpdate(builtinMetaMethods, constr.getName());
@@ -253,7 +253,7 @@ public final class Builtins {
                   () -> {
                     Map<String, Supplier<LoadedBuiltinMethod>> atomNodes =
                         getOrUpdate(builtinMethodNodes, builtinMethodOwner);
-                    atomNodes.put(builtinMethodName, new CachingSupplier<>(() -> meta.toMethod()));
+                    atomNodes.put(builtinMethodName, CachingSupplier.wrap(() -> meta.toMethod()));
 
                     Map<String, LoadedBuiltinMetaMethod> atomNodesMeta =
                         getOrUpdate(builtinMetaMethods, builtinMethodOwner);
@@ -420,12 +420,12 @@ public final class Builtins {
                   constr -> {
                     Map<String, Supplier<LoadedBuiltinMethod>> atomNodes =
                         getOrUpdate(methodNodes, constr.getName());
-                    atomNodes.put(builtinMethodName, new CachingSupplier<>(builtin));
+                    atomNodes.put(builtinMethodName, CachingSupplier.forValue(builtin));
                   },
                   () -> {
                     Map<String, Supplier<LoadedBuiltinMethod>> atomNodes =
                         getOrUpdate(methodNodes, builtinMethodOwner);
-                    atomNodes.put(builtinMethodName, new CachingSupplier<>(builtin));
+                    atomNodes.put(builtinMethodName, CachingSupplier.forValue(builtin));
                   });
         });
     return methodNodes;

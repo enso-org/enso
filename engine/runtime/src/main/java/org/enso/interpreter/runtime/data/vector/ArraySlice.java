@@ -15,10 +15,10 @@ import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEn
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.error.Warning;
-import org.enso.interpreter.runtime.error.WarningsLibrary;
-import org.enso.interpreter.runtime.error.WithWarnings;
+import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.warning.AppendWarningNode;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 @ExportLibrary(TypesLibrary.class)
 @ExportLibrary(InteropLibrary.class)
@@ -91,7 +91,8 @@ final class ArraySlice implements EnsoObject {
       long index,
       @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop,
       @CachedLibrary(limit = "3") WarningsLibrary warnings,
-      @Cached HostValueToEnsoNode toEnso)
+      @Cached HostValueToEnsoNode toEnso,
+      @Cached AppendWarningNode appendWarningNode)
       throws InvalidArrayIndexException, UnsupportedMessageException {
     if (index < 0 || index >= getArraySize(interop)) {
       throw InvalidArrayIndexException.create(index);
@@ -99,11 +100,11 @@ final class ArraySlice implements EnsoObject {
 
     var v = interop.readArrayElement(storage, start + index);
     if (this.hasWarnings(warnings)) {
-      Warning[] extracted = this.getWarnings(null, false, warnings);
+      var extracted = this.getWarnings(false, warnings);
       if (warnings.hasWarnings(v)) {
         v = warnings.removeWarnings(v);
       }
-      return WithWarnings.wrap(EnsoContext.get(warnings), toEnso.execute(v), extracted);
+      return appendWarningNode.executeAppend(null, toEnso.execute(v), extracted);
     }
     return toEnso.execute(v);
   }
@@ -155,12 +156,10 @@ final class ArraySlice implements EnsoObject {
   }
 
   @ExportMessage
-  Warning[] getWarnings(
-      Node location,
-      boolean shouldWrap,
-      @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings)
+  EnsoHashMap getWarnings(
+      boolean shouldWrap, @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings)
       throws UnsupportedMessageException {
-    return warnings.getWarnings(this.storage, location, shouldWrap);
+    return warnings.getWarnings(this.storage, shouldWrap);
   }
 
   @ExportMessage

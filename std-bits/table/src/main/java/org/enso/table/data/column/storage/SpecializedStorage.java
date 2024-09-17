@@ -67,9 +67,23 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   }
 
   @Override
+  public boolean isTernaryOpVectorized(String op) {
+    return ops.isSupportedTernary(op);
+  }
+
+  @Override
   public Storage<?> runVectorizedBinaryMap(
       String name, Object argument, MapOperationProblemAggregator problemAggregator) {
     return ops.runBinaryMap(name, this, argument, problemAggregator);
+  }
+
+  @Override
+  public Storage<?> runVectorizedTernaryMap(
+      String name,
+      Object argument0,
+      Object argument1,
+      MapOperationProblemAggregator problemAggregator) {
+    return ops.runTernaryMap(name, this, argument0, argument1, problemAggregator);
   }
 
   @Override
@@ -187,6 +201,19 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
     @Override
     public int size() {
       return storage.size();
+    }
+  }
+
+  /**
+   * Returns the specialized storage casted to my own type, if it is of the same type; or null
+   * otherwise.
+   */
+  @SuppressWarnings("unchecked")
+  public SpecializedStorage<T> castIfSameType(SpecializedStorage<?> storage) {
+    if (storage.getType().equals(getType())) {
+      return (SpecializedStorage<T>) storage;
+    } else {
+      return null;
     }
   }
 }

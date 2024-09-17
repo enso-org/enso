@@ -3,9 +3,9 @@ package org.enso.pkg
 import io.circe._
 import io.circe.syntax._
 import org.enso.editions.LibraryName
+import org.enso.scala.yaml.{YamlDecoder, YamlEncoder}
 import org.yaml.snakeyaml.error.YAMLException
 import org.yaml.snakeyaml.nodes.{MappingNode, Node, ScalarNode, SequenceNode}
-import org.enso.yaml.{YamlDecoder, YamlEncoder}
 
 import java.util
 

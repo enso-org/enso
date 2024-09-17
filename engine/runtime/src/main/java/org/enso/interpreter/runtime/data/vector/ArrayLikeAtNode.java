@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.data.vector;
 
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
@@ -10,8 +11,10 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
-import org.enso.interpreter.runtime.error.WarningsLibrary;
+import org.enso.interpreter.runtime.warning.AppendWarningNode;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
+@GenerateUncached
 public abstract class ArrayLikeAtNode extends Node {
   public abstract Object executeAt(Object arrayLike, long index) throws InvalidArrayIndexException;
 
@@ -57,10 +60,11 @@ public abstract class ArrayLikeAtNode extends Node {
       long index,
       @Cached.Exclusive @CachedLibrary(limit = "3") InteropLibrary interop,
       @Cached.Exclusive @CachedLibrary(limit = "3") WarningsLibrary warnings,
-      @Cached.Exclusive @Cached HostValueToEnsoNode convert)
+      @Cached.Exclusive @Cached HostValueToEnsoNode convert,
+      @Cached AppendWarningNode appendWarningNode)
       throws InvalidArrayIndexException {
     try {
-      return self.readArrayElement(index, interop, warnings, convert);
+      return self.readArrayElement(index, interop, warnings, convert, appendWarningNode);
     } catch (UnsupportedMessageException ex) {
       throw ArrayPanics.notAnArrayPanic(this, self);
     }

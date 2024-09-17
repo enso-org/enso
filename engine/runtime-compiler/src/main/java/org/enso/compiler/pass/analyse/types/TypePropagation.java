@@ -4,6 +4,7 @@ import static org.enso.compiler.MetadataInteropHelpers.getMetadata;
 import static org.enso.compiler.MetadataInteropHelpers.getMetadataOrNull;
 
 import java.util.List;
+import org.enso.compiler.MetadataInteropHelpers;
 import org.enso.compiler.context.NameResolutionAlgorithm;
 import org.enso.compiler.core.CompilerError;
 import org.enso.compiler.core.IR;
@@ -17,8 +18,9 @@ import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.expression.Case;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.analyse.AliasAnalysis$;
-import org.enso.compiler.pass.analyse.alias.Graph;
-import org.enso.compiler.pass.analyse.alias.Info;
+import org.enso.compiler.pass.analyse.alias.AliasMetadata;
+import org.enso.compiler.pass.analyse.alias.graph.Graph;
+import org.enso.compiler.pass.analyse.alias.graph.GraphOccurrence;
 import org.enso.compiler.pass.resolve.TypeSignatures;
 import org.enso.compiler.pass.resolve.TypeSignatures$;
 import org.slf4j.Logger;
@@ -158,7 +160,10 @@ abstract class TypePropagation {
   private TypeRepresentation processName(
       Name.Literal literalName, LocalBindingsTyping localBindingsTyping) {
     var resolver = new CompilerNameResolution(localBindingsTyping);
-    return resolver.resolveName(literalName);
+    var occMeta =
+        MetadataInteropHelpers.getMetadataOrNull(
+            literalName, AliasAnalysis$.MODULE$, AliasMetadata.Occurrence.class);
+    return resolver.resolveName(literalName, occMeta);
   }
 
   private TypeRepresentation processLiteral(Literal literal) {
@@ -332,7 +337,8 @@ abstract class TypePropagation {
   }
 
   private class CompilerNameResolution
-      extends NameResolutionAlgorithm<TypeRepresentation, CompilerNameResolution.LinkInfo> {
+      extends NameResolutionAlgorithm<
+          TypeRepresentation, CompilerNameResolution.LinkInfo, AliasMetadata.Occurrence> {
     private final LocalBindingsTyping localBindingsTyping;
 
     private CompilerNameResolution(LocalBindingsTyping localBindingsTyping) {
@@ -340,7 +346,7 @@ abstract class TypePropagation {
     }
 
     @Override
-    protected Option<LinkInfo> findLocalLink(Info.Occurrence occurrenceMetadata) {
+    protected Option<LinkInfo> findLocalLink(AliasMetadata.Occurrence occurrenceMetadata) {
       return occurrenceMetadata
           .graph()
           .defLinkFor(occurrenceMetadata.id())
@@ -396,7 +402,7 @@ abstract class TypePropagation {
    */
   private void registerBinding(
       IR binding, TypeRepresentation type, LocalBindingsTyping localBindingsTyping) {
-    var metadata = getMetadata(binding, AliasAnalysis$.MODULE$, Info.Occurrence.class);
+    var metadata = getMetadata(binding, AliasAnalysis$.MODULE$, AliasMetadata.Occurrence.class);
     var occurrence = metadata.graph().getOccurrence(metadata.id());
     if (occurrence.isEmpty()) {
       logger.warn(
@@ -404,7 +410,7 @@ abstract class TypePropagation {
       return;
     }
 
-    if (occurrence.get() instanceof org.enso.compiler.pass.analyse.alias.Graph$Occurrence$Def def) {
+    if (occurrence.get() instanceof GraphOccurrence.Def def) {
       localBindingsTyping.registerBindingType(metadata.graph(), def.id(), type);
     } else {
       throw new CompilerError(

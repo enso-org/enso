@@ -1,21 +1,10 @@
 /** @file A context menu. */
 import * as React from 'react'
 
-import * as detect from 'enso-common/src/detect'
-
 import Modal from '#/components/Modal'
 
+import { forwardRef } from '#/utilities/react'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
-
-// =================
-// === Constants ===
-// =================
-
-const DEFAULT_MENU_WIDTH = 256
-const MACOS_MENU_WIDTH = 230
-/** The width of a single context menu. */
-const MENU_WIDTH = detect.isOnMacOS() ? MACOS_MENU_WIDTH : DEFAULT_MENU_WIDTH
-const HALF_MENU_WIDTH = Math.floor(MENU_WIDTH / 2)
 
 // ===================
 // === ContextMenu ===
@@ -27,6 +16,8 @@ export interface ContextMenusProps extends Readonly<React.PropsWithChildren> {
   readonly key: string
   readonly event: Pick<React.MouseEvent, 'pageX' | 'pageY'>
 }
+
+export default forwardRef(ContextMenus)
 
 /** A context menu that opens at the current mouse position. */
 function ContextMenus(props: ContextMenusProps, ref: React.ForwardedRef<HTMLDivElement>) {
@@ -43,7 +34,7 @@ function ContextMenus(props: ContextMenusProps, ref: React.ForwardedRef<HTMLDivE
         <div
           data-testid="context-menus"
           ref={ref}
-          style={{ left: event.pageX - HALF_MENU_WIDTH, top: event.pageY }}
+          style={{ left: event.pageX, top: event.pageY }}
           className={tailwindMerge.twMerge(
             'pointer-events-none sticky flex w-min items-start gap-context-menus',
           )}
@@ -55,5 +46,3 @@ function ContextMenus(props: ContextMenusProps, ref: React.ForwardedRef<HTMLDivE
         </div>
       </Modal>
 }
-
-export default React.forwardRef(ContextMenus)

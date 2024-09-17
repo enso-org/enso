@@ -1,5 +1,3 @@
-// === Features ===
-#![feature(future_join)]
 // === Non-Standard Linter Configuration ===
 #![warn(unused_qualifications)]
 
@@ -18,7 +16,6 @@ pub mod prelude {
 }
 
 use crate::prelude::*;
-use std::future::join;
 
 use crate::arg::java_gen;
 use crate::arg::libraries;
@@ -32,7 +29,6 @@ use crate::arg::WatchJob;
 use anyhow::Context;
 use arg::BuildDescription;
 use clap::Parser;
-use derivative::Derivative;
 use enso_build::config::Config;
 use enso_build::context::BuildContext;
 use enso_build::engine::context::EnginePackageProvider;
@@ -87,34 +83,12 @@ fn resolve_artifact_name(input: Option<String>, project: &impl IsTarget) -> Stri
     input.unwrap_or_else(|| project.artifact_name())
 }
 
-/// Run the given future. After it is complete (regardless of success or failure), upload the
-/// directory as a CI artifact.
-///
-/// Does not attempt any uploads if not running in a CI environment.
-pub fn run_and_upload_dir(
-    fut: BoxFuture<'static, Result>,
-    dir_path: impl Into<PathBuf>,
-    artifact_name: impl Into<String>,
-) -> BoxFuture<'static, Result> {
-    let dir_path = dir_path.into();
-    let artifact_name = artifact_name.into();
-    async move {
-        let result = fut.await;
-        if is_in_env() {
-            ide_ci::actions::artifacts::upload_directory(dir_path, artifact_name).await?;
-        }
-        result
-    }
-    .boxed()
-}
-
 define_env_var! {
     ENSO_BUILD_KIND, version::Kind;
 }
 
 /// The basic, common information available in this application.
-#[derive(Clone, Derivative)]
-#[derivative(Debug)]
+#[derive(Clone, Debug)]
 pub struct Processor {
     pub context: BuildContext,
 }
@@ -214,12 +188,12 @@ impl Processor {
     ) -> BoxFuture<'static, Result<ReleaseSource>> {
         let repository = self.remote_repo.clone();
         let release = self.resolve_release_designator(designator);
-        release
-            .and_then_sync(move |release| {
-                let asset = target.find_asset(&release)?;
-                Ok(ReleaseSource { repository, asset_id: asset.id })
-            })
-            .boxed()
+        async move {
+            let release = release.await?;
+            let asset = target.find_asset(&release)?;
+            Ok(ReleaseSource { repository, asset_id: asset.id })
+        }
+        .boxed()
     }
 
     pub fn js_build_info(&self) -> BoxFuture<'static, Result<gui::BuildInfo>> {
@@ -341,31 +315,36 @@ impl Processor {
         match gui.command {
             arg::gui::Command::Build(job) => self.build(job),
             arg::gui::Command::Get(source) => self.get(source).void_ok().boxed(),
-            arg::gui::Command::Test => {
+            arg::gui::Command::Check => {
                 let repo_root = self.repo_root.clone();
-                let gui_tests = run_and_upload_dir(
-                    gui::tests(&repo_root),
-                    &repo_root.app.gui_2.playwright_report,
-                    "gui-playwright-report",
-                );
-                let dashboard_tests = run_and_upload_dir(
-                    gui::dashboard_tests(&repo_root),
-                    &repo_root.app.dashboard.playwright_report,
-                    "dashboard-playwright-report",
-                );
-                try_join(gui_tests, dashboard_tests).void_ok().boxed()
+                async {
+                    enso_build::web::install(&repo_root).await?;
+                    let check_result =
+                        enso_build::web::run_script(&repo_root, enso_build::web::Script::CiCheck)
+                            .await;
+                    if is_in_env() {
+                        let gui_report = ide_ci::actions::artifacts::upload_directory_if_exists(
+                            &repo_root.app.gui_2.playwright_report,
+                            "gui-playwright-report",
+                        );
+                        let dashboard_report =
+                            ide_ci::actions::artifacts::upload_directory_if_exists(
+                                repo_root.app.dashboard.playwright_report,
+                                "dashboard-playwright-report",
+                            );
+                        try_join!(gui_report, dashboard_report)?;
+                    }
+                    check_result
+                }
+                .void_ok()
+                .boxed()
             }
-            arg::gui::Command::Watch => gui::watch(&self.repo_root),
-            arg::gui::Command::Lint => gui::lint(&self.repo_root),
         }
     }
 
     pub fn handle_runtime(&self, gui: arg::runtime::Target) -> BoxFuture<'static, Result> {
-        // todo!()
         match gui.command {
             arg::runtime::Command::Build(job) => self.build(job),
-            //     arg::gui::Command::Get(source) => self.get(source).void_ok().boxed(),
-            //     arg::gui::Command::Watch(job) => self.watch_and_wait(job),
         }
     }
 
@@ -657,22 +636,21 @@ impl Resolvable for Backend {
     ) -> BoxFuture<'static, Result<<Self as IsTarget>::BuildInput>> {
         let arg::backend::BuildInput { runtime } = from;
         let versions = ctx.triple.versions.clone();
-
         let context = ctx.context.inner.clone();
-
-        ctx.resolve(Runtime, runtime)
-            .and_then_sync(|runtime| {
-                let external_runtime = runtime.to_external().map(move |external| {
-                    Arc::new(move || {
-                        Runtime
-                            .get_external(context.clone(), external.clone())
-                            .map_ok(|artifact| artifact.into_inner())
-                            .boxed()
-                    }) as Arc<EnginePackageProvider>
-                });
-                Ok(backend::BuildInput { external_runtime, versions })
-            })
-            .boxed()
+        let runtime_future = ctx.resolve(Runtime, runtime);
+        async {
+            let runtime = runtime_future.await?;
+            let external_runtime = runtime.to_external().map(move |external| {
+                Arc::new(move || {
+                    Runtime
+                        .get_external(context.clone(), external.clone())
+                        .map_ok(|artifact| artifact.into_inner())
+                        .boxed()
+                }) as Arc<EnginePackageProvider>
+            });
+            Ok(backend::BuildInput { external_runtime, versions })
+        }
+        .boxed()
     }
 }
 
@@ -774,11 +752,6 @@ pub async fn main_internal(config: Option<Config>) -> Result {
                 .await?;
 
             enso_build::rust::enso_linter::lint_all(ctx.repo_root.clone()).await?;
-
-            enso_build::web::install(&ctx.repo_root).await?;
-            enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::Typecheck).await?;
-            enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::Lint).await?;
-            enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::Prettier).await?;
         }
         Target::Fmt => {
             enso_build::web::install(&ctx.repo_root).await?;
@@ -786,9 +759,7 @@ pub async fn main_internal(config: Option<Config>) -> Result {
                 enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::Format);
             let our_formatter =
                 enso_formatter::process_path(&ctx.repo_root, enso_formatter::Action::Format);
-            let (r1, r2) = join!(prettier, our_formatter).await;
-            r1?;
-            r2?;
+            try_join!(prettier, our_formatter)?;
         }
         Target::Release(release) => match release.action {
             Action::CreateDraft => {

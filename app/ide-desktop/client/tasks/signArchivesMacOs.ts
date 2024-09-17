@@ -27,33 +27,33 @@ import glob from 'fast-glob'
 /** Parts of the GraalVM distribution that need to be signed by us in an extra step. */
 async function graalSignables(resourcesDir: string): Promise<Signable[]> {
   const archivePatterns: ArchivePattern[] = [
-    [`Contents/Home/jmods/java.base.jmod`, ['bin/java', 'bin/keytool', 'lib/jspawnhelper']],
-    [`Contents/Home/jmods/java.rmi.jmod`, ['bin/rmiregistry']],
-    [`Contents/Home/jmods/java.scripting.jmod`, ['bin/jrunscript']],
-    [`Contents/Home/jmods/jdk.compiler.jmod`, ['bin/javac', 'bin/serialver']],
-    [`Contents/Home/jmods/jdk.hotspot.agent.jmod`, ['bin/jhsdb']],
-    [`Contents/Home/jmods/jdk.httpserver.jmod`, ['bin/jwebserver']],
-    [`Contents/Home/jmods/jdk.jartool.jmod`, ['bin/jarsigner', 'bin/jar']],
-    [`Contents/Home/jmods/jdk.javadoc.jmod`, ['bin/javadoc']],
-    [`Contents/Home/jmods/jdk.javadoc.jmod`, ['bin/javadoc']],
-    [`Contents/Home/jmods/jdk.jconsole.jmod`, ['bin/jconsole']],
-    [`Contents/Home/jmods/jdk.jdeps.jmod`, ['bin/javap', 'bin/jdeprscan', 'bin/jdeps']],
-    [`Contents/Home/jmods/jdk.jdi.jmod`, ['bin/jdb']],
-    [`Contents/Home/jmods/jdk.jfr.jmod`, ['bin/jfr']],
-    [`Contents/Home/jmods/jdk.jlink.jmod`, ['bin/jmod', 'bin/jlink', 'bin/jimage']],
-    [`Contents/Home/jmods/jdk.jshell.jmod`, ['bin/jshell']],
+    ['Contents/Home/jmods/java.base.jmod', ['bin/java', 'bin/keytool', 'lib/jspawnhelper']],
+    ['Contents/Home/jmods/java.rmi.jmod', ['bin/rmiregistry']],
+    ['Contents/Home/jmods/java.scripting.jmod', ['bin/jrunscript']],
+    ['Contents/Home/jmods/jdk.compiler.jmod', ['bin/javac', 'bin/serialver']],
+    ['Contents/Home/jmods/jdk.hotspot.agent.jmod', ['bin/jhsdb']],
+    ['Contents/Home/jmods/jdk.httpserver.jmod', ['bin/jwebserver']],
+    ['Contents/Home/jmods/jdk.jartool.jmod', ['bin/jarsigner', 'bin/jar']],
+    ['Contents/Home/jmods/jdk.javadoc.jmod', ['bin/javadoc']],
+    ['Contents/Home/jmods/jdk.javadoc.jmod', ['bin/javadoc']],
+    ['Contents/Home/jmods/jdk.jconsole.jmod', ['bin/jconsole']],
+    ['Contents/Home/jmods/jdk.jdeps.jmod', ['bin/javap', 'bin/jdeprscan', 'bin/jdeps']],
+    ['Contents/Home/jmods/jdk.jdi.jmod', ['bin/jdb']],
+    ['Contents/Home/jmods/jdk.jfr.jmod', ['bin/jfr']],
+    ['Contents/Home/jmods/jdk.jlink.jmod', ['bin/jmod', 'bin/jlink', 'bin/jimage']],
+    ['Contents/Home/jmods/jdk.jshell.jmod', ['bin/jshell']],
     [
-      `Contents/Home/jmods/jdk.jpackage.jmod`,
+      'Contents/Home/jmods/jdk.jpackage.jmod',
       ['bin/jpackage', 'classes/jdk/jpackage/internal/resources/jpackageapplauncher'],
     ],
-    [`Contents/Home/jmods/jdk.jstatd.jmod`, ['bin/jstatd']],
+    ['Contents/Home/jmods/jdk.jstatd.jmod', ['bin/jstatd']],
     [
-      `Contents/Home/jmods/jdk.jcmd.jmod`,
+      'Contents/Home/jmods/jdk.jcmd.jmod',
       ['bin/jstack', 'bin/jcmd', 'bin/jps', 'bin/jmap', 'bin/jstat', 'bin/jinfo'],
     ],
   ]
 
-  const binariesPatterns = [`Contents/MacOS/libjli.dylib`]
+  const binariesPatterns = ['Contents/MacOS/libjli.dylib']
 
   // We use `*` for Graal versioned directory to not have to update this script on every GraalVM
   // update. Updates might still be needed when the list of binaries to sign changes.
@@ -72,7 +72,7 @@ async function ensoPackageSignables(resourcesDir: string): Promise<Signable[]> {
   const engineDir = `${resourcesDir}/enso/dist/*`
   const archivePatterns: ArchivePattern[] = [
     [
-      `/component/runner/runner.jar`,
+      '/component/runner/runner.jar',
       [
         'org/sqlite/native/Mac/x86_64/libsqlitejdbc.jnilib',
         'org/sqlite/native/Mac/aarch64/libsqlitejdbc.jnilib',
@@ -83,42 +83,49 @@ async function ensoPackageSignables(resourcesDir: string): Promise<Signable[]> {
     [
       'component/python-resources-*.jar',
       [
-        'META-INF/resources/darwin/*/lib/graalpy23.1/*.dylib',
-        'META-INF/resources/darwin/*/lib/graalpy23.1/modules/*.so',
+        'META-INF/resources/darwin/*/lib/graalpy*/*.dylib',
+        'META-INF/resources/darwin/*/lib/graalpy*/modules/*.so',
       ],
     ],
     [
-      `component/truffle-nfi-libffi-*.jar`,
+      'component/truffle-nfi-libffi-*.jar',
       ['META-INF/resources/nfi-native/libnfi/darwin/*/bin/libtrufflenfi.dylib'],
     ],
     [
-      `component/truffle-runtime-*.jar`,
+      'component/truffle-runtime-*.jar',
       [
         'META-INF/resources/engine/libtruffleattach/darwin/amd64/bin/libtruffleattach.dylib',
         'META-INF/resources/engine/libtruffleattach/darwin/aarch64/bin/libtruffleattach.dylib',
       ],
     ],
     [
-      `lib/Standard/Database/*/polyglot/java/sqlite-jdbc-*.jar`,
+      'lib/Standard/Database/*/polyglot/java/sqlite-jdbc-*.jar',
       [
         'org/sqlite/native/Mac/aarch64/libsqlitejdbc.jnilib',
         'org/sqlite/native/Mac/x86_64/libsqlitejdbc.jnilib',
+        'org/sqlite/native/Mac/aarch64/libsqlitejdbc.dylib',
+        'org/sqlite/native/Mac/x86_64/libsqlitejdbc.dylib',
       ],
     ],
     [
-      `lib/Standard/Snowflake/*/polyglot/java/snowflake-jdbc-*.jar`,
+      'lib/Standard/Snowflake/*/polyglot/java/snowflake-jdbc-*.jar',
       [
         'META-INF/native/libconscrypt_openjdk_jni-osx-*.dylib',
         'META-INF/native/libio_grpc_netty_shaded_netty_tcnative_osx_*.jnilib',
       ],
     ],
     [
-      `lib/Standard/Google_Api/*/polyglot/java/grpc-netty-shaded-*.jar`,
+      'lib/Standard/Google_Api/*/polyglot/java/grpc-netty-shaded-*.jar',
       ['META-INF/native/libio_grpc_netty_shaded_netty_tcnative_osx_*.jnilib'],
     ],
     [
-      `lib/Standard/Google_Api/*/polyglot/java/conscrypt-openjdk-uber-*.jar`,
+      'lib/Standard/Google_Api/*/polyglot/java/conscrypt-openjdk-uber-*.jar',
       ['META-INF/native/libconscrypt_openjdk_jni-osx-*.dylib'],
+    ],
+    ['lib/Standard/Tableau/*/polyglot/java/jna-*.jar', ['com/sun/jna/*/libjnidispatch.jnilib']],
+    [
+      'lib/Standard/Image/*/polyglot/java/opencv-*.jar',
+      ['nu/pattern/opencv/osx/*/libopencv_java*.dylib'],
     ],
   ]
   return ArchiveToSign.lookupMany(engineDir, archivePatterns)
@@ -180,15 +187,15 @@ class ArchiveToSign implements Signable {
     const archiveName = pathModule.basename(this.path)
     const workingDir = await getTmpDir()
     try {
-      const isJar = archiveName.endsWith(`jar`)
+      const isJar = archiveName.endsWith('jar')
 
       if (isJar) {
-        run(`jar`, ['xf', this.path], workingDir)
+        run('jar', ['xf', this.path], workingDir)
       } else {
         // We cannot use `unzip` here because of the following issue:
         // https://unix.stackexchange.com/questions/115825/
         // This started to be an issue with GraalVM 22.3.0 release.
-        run(`7za`, ['X', `-o${workingDir}`, this.path])
+        run('7za', ['X', `-o${workingDir}`, this.path])
       }
 
       const binariesToSign = await BinaryToSign.lookupMany(workingDir, this.binaries)
@@ -197,25 +204,25 @@ class ArchiveToSign implements Signable {
       }
 
       if (isJar) {
-        if (archiveName.includes(`runner`)) {
-          run(`jar`, ['-cfm', TEMPORARY_ARCHIVE_PATH, 'META-INF/MANIFEST.MF', '.'], workingDir)
+        if (archiveName.includes('runner')) {
+          run('jar', ['-cfm', TEMPORARY_ARCHIVE_PATH, 'META-INF/MANIFEST.MF', '.'], workingDir)
         } else {
-          run(`jar`, ['-cf', TEMPORARY_ARCHIVE_PATH, '.'], workingDir)
+          run('jar', ['-cf', TEMPORARY_ARCHIVE_PATH, '.'], workingDir)
         }
       } else {
-        run(`zip`, ['-rm', TEMPORARY_ARCHIVE_PATH, '.'], workingDir)
+        run('zip', ['-rm', TEMPORARY_ARCHIVE_PATH, '.'], workingDir)
       }
 
       // We cannot use fs.rename because temp and target might be on different volumes.
-      console.log(run(`/bin/mv`, [pathModule.join(workingDir, TEMPORARY_ARCHIVE_PATH), this.path]))
+      console.log(run('/bin/mv', [pathModule.join(workingDir, TEMPORARY_ARCHIVE_PATH), this.path]))
       console.log(`Successfully repacked ${this.path} to handle signing inner native dependency.`)
       return
     } catch (error) {
       console.error(
         `Could not repackage ${archiveName}. Please check the ${import.meta.url} task to ` +
-          `ensure that it's working. This jar has to be treated specially` +
-          ` because it has a native library and Apple's codesign does not sign inner ` +
-          `native libraries correctly for jar files.`,
+          "ensure that it's working. This jar has to be treated specially " +
+          "because it has a native library and Apple's codesign does not sign inner " +
+          'native libraries correctly for jar files.',
       )
       throw error
     } finally {
@@ -241,7 +248,7 @@ class BinaryToSign implements Signable {
   /** Sign this binary. */
   async sign({ entitlements, identity }: SigningContext) {
     console.log(`Signing ${this.path}`)
-    run(`codesign`, [
+    run('codesign', [
       '-vvv',
       '--entitlements',
       entitlements,

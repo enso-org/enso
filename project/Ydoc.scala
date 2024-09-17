@@ -5,7 +5,6 @@ import scala.sys.process.*
 
 object Ydoc {
 
-  private val npmCommand = if (Platform.isWindows) "npm.cmd" else "npm"
   private val pnpmCommand =
     if (Platform.isWindows) "corepack.cmd pnpm" else "corepack pnpm"
 
@@ -51,25 +50,30 @@ object Ydoc {
     val generator = Tracked.inputChanged[Seq[File], Seq[File]](store) {
       case (changed, _) =>
         val resourceYdocServerJs =
-          ydocServerResourceManaged / "org" / "enso" / "ydoc" / "ydocServer.js"
+          ydocServerResourceManaged / "org" / "enso" / "ydoc" / "ydoc.cjs"
 
         if (changed) {
-          val command =
-            s"$npmCommand --workspace=enso-gui2 run build-ydoc-server-polyglot"
+          val command = s"$pnpmCommand -r compile"
           streams.log.info(command)
           command ! streams.log
           val generatedYdocServerJs =
-            ydocServerBase / "target" / "ydoc-server-bundle" / "assets" / "ydocServer.js"
+            base / "app" / "ydoc-server-polyglot" / "dist" / "main.cjs"
           IO.copyFile(generatedYdocServerJs, resourceYdocServerJs)
         }
 
         Seq(resourceYdocServerJs)
     }
 
-    val ydocServerSrc = (base / "app" / "gui2" / "ydoc-server") ** "*.ts"
-    val sharedSrc     = (base / "app" / "gui2" / "shared") ** "*.ts"
-    val buildCfg      = (base / "app" / "gui2") * ("*.ts" || "*.json")
-    val inputFiles    = ydocServerSrc +++ sharedSrc +++ buildCfg
+    val ydocServerPolyglot = base / "app" / "ydoc-server-polyglot"
+    val ydocServerPolyglotSrc =
+      ydocServerPolyglot * ("*.mjs" | "*.json") +++ (ydocServerPolyglot / "src") ** "*.ts"
+    val ydocShared = base / "app" / "ydoc-shared"
+    val ydocSharedSrc =
+      ydocShared * ("*.ts" || "*.json") +++
+      (ydocShared / "src") ** "*.ts" +++
+      (ydocShared / "parser-codegen") ** "*.ts"
+    val sharedSrc  = (base / "app" / "gui2" / "shared") ** "*.ts"
+    val inputFiles = ydocServerPolyglotSrc +++ sharedSrc
 
     generator(inputFiles.get)
   }

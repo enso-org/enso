@@ -8,7 +8,7 @@ import type { SuggestionEntry, SuggestionEntryArgument } from '@/stores/suggesti
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
 import { findLastIndex, tryGetIndex } from '@/util/data/array'
-import type { ExternalId } from 'shared/yjsModel'
+import type { ExternalId } from 'ydoc-shared/yjsModel'
 import { assert } from './assert'
 
 export const enum ApplicationKind {
@@ -109,7 +109,7 @@ export class ArgumentPlaceholder extends Argument {
     return this.argInfo.defaultValue
   }
 
-  get hideByDefault(): boolean {
+  override get hideByDefault(): boolean {
     return this.argInfo.hasDefault && this.dynamicConfig?.display !== DisplayMode.Always
   }
 }

@@ -1,4 +1,5 @@
 /** @file Actions for the context menu. */
+import { TEXT } from '../actions'
 import type * as baseActions from './BaseActions'
 import type BaseActions from './BaseActions'
 import EditorPageActions from './EditorPageActions'
@@ -13,7 +14,8 @@ export interface ContextMenuActions<T extends BaseActions> {
   readonly uploadToCloud: () => T
   readonly rename: () => T
   readonly snapshot: () => T
-  readonly moveToTrash: () => T
+  readonly moveNonFolderToTrash: () => T
+  readonly moveFolderToTrash: () => T
   readonly moveAllToTrash: () => T
   readonly restoreFromTrash: () => T
   readonly restoreAllFromTrash: () => T
@@ -43,97 +45,153 @@ export function contextMenuActions<T extends BaseActions>(
   return {
     open: () =>
       step('Open (context menu)', (page) =>
-        page.getByRole('button', { name: 'Open' }).getByText('Open').click(),
+        page.getByRole('button', { name: TEXT.openShortcut }).getByText(TEXT.openShortcut).click(),
       ),
     uploadToCloud: () =>
       step('Upload to cloud (context menu)', (page) =>
-        page.getByRole('button', { name: 'Upload To Cloud' }).getByText('Upload To Cloud').click(),
+        page
+          .getByRole('button', { name: TEXT.uploadToCloudShortcut })
+          .getByText(TEXT.uploadToCloudShortcut)
+          .click(),
       ),
     rename: () =>
       step('Rename (context menu)', (page) =>
-        page.getByRole('button', { name: 'Rename' }).getByText('Rename').click(),
+        page
+          .getByRole('button', { name: TEXT.renameShortcut })
+          .getByText(TEXT.renameShortcut)
+          .click(),
       ),
     snapshot: () =>
       step('Snapshot (context menu)', (page) =>
-        page.getByRole('button', { name: 'Snapshot' }).getByText('Snapshot').click(),
+        page
+          .getByRole('button', { name: TEXT.snapshotShortcut })
+          .getByText(TEXT.snapshotShortcut)
+          .click(),
       ),
-    moveToTrash: () =>
+    moveNonFolderToTrash: () =>
       step('Move to trash (context menu)', (page) =>
-        page.getByRole('button', { name: 'Move To Trash' }).getByText('Move To Trash').click(),
+        page
+          .getByRole('button', { name: TEXT.moveToTrashShortcut })
+          .getByText(TEXT.moveToTrashShortcut)
+          .click(),
       ),
+    moveFolderToTrash: () =>
+      step('Move folder to trash (context menu)', async (page) => {
+        await page
+          .getByRole('button', { name: TEXT.moveToTrashShortcut })
+          .getByText(TEXT.moveToTrashShortcut)
+          .click()
+        await page.getByRole('button', { name: TEXT.delete }).getByText(TEXT.delete).click()
+      }),
     moveAllToTrash: () =>
       step('Move all to trash (context menu)', (page) =>
         page
-          .getByRole('button', { name: 'Move All To Trash' })
-          .getByText('Move All To Trash')
+          .getByRole('button', { name: TEXT.moveAllToTrashShortcut })
+          .getByText(TEXT.moveAllToTrashShortcut)
           .click(),
       ),
     restoreFromTrash: () =>
       step('Restore from trash (context menu)', (page) =>
         page
-          .getByRole('button', { name: 'Restore From Trash' })
-          .getByText('Restore From Trash')
+          .getByRole('button', { name: TEXT.restoreFromTrashShortcut })
+          .getByText(TEXT.restoreFromTrashShortcut)
           .click(),
       ),
     restoreAllFromTrash: () =>
       step('Restore all from trash (context menu)', (page) =>
         page
-          .getByRole('button', { name: 'Restore All From Trash' })
-          .getByText('Restore All From Trash')
+          .getByRole('button', { name: TEXT.restoreAllFromTrashShortcut })
+          .getByText(TEXT.restoreAllFromTrashShortcut)
           .click(),
       ),
     share: () =>
       step('Share (context menu)', (page) =>
-        page.getByRole('button', { name: 'Share' }).getByText('Share').click(),
+        page
+          .getByRole('button', { name: TEXT.shareShortcut })
+          .getByText(TEXT.shareShortcut)
+          .click(),
       ),
     label: () =>
       step('Label (context menu)', (page) =>
-        page.getByRole('button', { name: 'Label' }).getByText('Label').click(),
+        page
+          .getByRole('button', { name: TEXT.labelShortcut })
+          .getByText(TEXT.labelShortcut)
+          .click(),
       ),
     duplicate: () =>
       step('Duplicate (context menu)', (page) =>
-        page.getByRole('button', { name: 'Duplicate' }).getByText('Duplicate').click(),
+        page
+          .getByRole('button', { name: TEXT.duplicateShortcut })
+          .getByText(TEXT.duplicateShortcut)
+          .click(),
       ),
     duplicateProject: () =>
       step('Duplicate project (context menu)', (page) =>
-        page.getByRole('button', { name: 'Duplicate' }).getByText('Duplicate').click(),
+        page
+          .getByRole('button', { name: TEXT.duplicateShortcut })
+          .getByText(TEXT.duplicateShortcut)
+          .click(),
       ).into(EditorPageActions),
     copy: () =>
       step('Copy (context menu)', (page) =>
-        page.getByRole('button', { name: 'Copy' }).getByText('Copy', { exact: true }).click(),
+        page
+          .getByRole('button', { name: TEXT.copyShortcut })
+          .getByText(TEXT.copyShortcut, { exact: true })
+          .click(),
       ),
     cut: () =>
       step('Cut (context menu)', (page) =>
-        page.getByRole('button', { name: 'Cut' }).getByText('Cut').click(),
+        page.getByRole('button', { name: TEXT.cutShortcut }).getByText(TEXT.cutShortcut).click(),
       ),
     paste: () =>
       step('Paste (context menu)', (page) =>
-        page.getByRole('button', { name: 'Paste' }).getByText('Paste').click(),
+        page
+          .getByRole('button', { name: TEXT.pasteShortcut })
+          .getByText(TEXT.pasteShortcut)
+          .click(),
       ),
     copyAsPath: () =>
       step('Copy as path (context menu)', (page) =>
-        page.getByRole('button', { name: 'Copy As Path' }).getByText('Copy As Path').click(),
+        page
+          .getByRole('button', { name: TEXT.copyAsPathShortcut })
+          .getByText(TEXT.copyAsPathShortcut)
+          .click(),
       ),
     download: () =>
       step('Download (context menu)', (page) =>
-        page.getByRole('button', { name: 'Download' }).getByText('Download').click(),
+        page
+          .getByRole('button', { name: TEXT.downloadShortcut })
+          .getByText(TEXT.downloadShortcut)
+          .click(),
       ),
     // TODO: Specify the files in parameters.
     uploadFiles: () =>
       step('Upload files (context menu)', (page) =>
-        page.getByRole('button', { name: 'Upload Files' }).getByText('Upload Files').click(),
+        page
+          .getByRole('button', { name: TEXT.uploadFilesShortcut })
+          .getByText(TEXT.uploadFilesShortcut)
+          .click(),
       ),
     newFolder: () =>
       step('New folder (context menu)', (page) =>
-        page.getByRole('button', { name: 'New Folder' }).getByText('New Folder').click(),
+        page
+          .getByRole('button', { name: TEXT.newFolderShortcut })
+          .getByText(TEXT.newFolderShortcut)
+          .click(),
       ),
     newSecret: () =>
       step('New secret (context menu)', (page) =>
-        page.getByRole('button', { name: 'New Secret' }).getByText('New Secret').click(),
+        page
+          .getByRole('button', { name: TEXT.newSecretShortcut })
+          .getByText(TEXT.newSecretShortcut)
+          .click(),
       ),
     newDataLink: () =>
       step('New Data Link (context menu)', (page) =>
-        page.getByRole('button', { name: 'New Data Link' }).getByText('New Data Link').click(),
+        page
+          .getByRole('button', { name: TEXT.newDatalinkShortcut })
+          .getByText(TEXT.newDatalinkShortcut)
+          .click(),
       ),
   }
 }

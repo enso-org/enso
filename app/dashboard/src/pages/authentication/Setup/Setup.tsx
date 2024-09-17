@@ -4,8 +4,8 @@
  */
 import * as React from 'react'
 
-import { useSuspenseQuery } from '@tanstack/react-query'
-import { Navigate, useSearchParams } from 'react-router-dom'
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import invariant from 'tiny-invariant'
 
 import type * as text from 'enso-common/src/text'
@@ -16,7 +16,7 @@ import { DASHBOARD_PATH, LOGIN_PATH } from '#/appUtils'
 
 import { useIsFirstRender } from '#/hooks/mountHooks'
 
-import { useAuth, UserSessionType } from '#/providers/AuthProvider'
+import { useAuth, UserSessionType, useUserSession } from '#/providers/AuthProvider'
 import { useRemoteBackendStrict } from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -24,8 +24,10 @@ import * as ariaComponents from '#/components/AriaComponents'
 import Page from '#/components/Page'
 import * as stepper from '#/components/Stepper'
 
-import { ORGANIZATION_NAME_MAX_LENGTH } from '#/modals/SetOrganizationNameModal'
+import { ORGANIZATION_NAME_MAX_LENGTH } from '#/modals/SetupOrganizationAfterSubscribe'
 
+import { backendMutationOptions } from '#/hooks/backendHooks'
+import { InviteUsersForm } from '#/modals/InviteUsersModal'
 import { PlanSelector } from '#/modules/payments'
 import { Plan } from '#/services/Backend'
 
@@ -61,25 +63,39 @@ const BASE_STEPS: Step[] = [
     /**
      * Step component
      */
-    component: function SetUsernameStep({ goToNextStep, session }) {
+    component: function SetUsernameStep({ session, goToNextStep }) {
       const { setUsername } = useAuth()
+      const userSession = useUserSession()
       const { getText } = textProvider.useText()
 
-      const defaultName = session && 'user' in session ? session.user.name : ''
+      const isUserCreated = userSession?.type === UserSessionType.full
+      const defaultName =
+        session && 'user' in session ? session.user.name : userSession?.email ?? ''
 
       return (
         <ariaComponents.Form
           className="max-w-96"
-          /* eslint-disable-next-line @typescript-eslint/no-magic-numbers */
-          schema={(z) => z.object({ username: z.string().min(3).max(48) })}
+          schema={(z) =>
+            z.object({
+              username: z
+                .string()
+                .min(3)
+                /* eslint-disable-next-line @typescript-eslint/no-magic-numbers */
+                .max(48),
+            })
+          }
           defaultValues={{ username: defaultName }}
           onSubmit={({ username }) => {
-            if (username !== defaultName) {
-              // eslint-disable-next-line no-restricted-syntax
-              return setUsername(username)
+            // If user is already created we shouldn't call `setUsername` if value wasn't changed
+            if (username === defaultName && isUserCreated) {
+              goToNextStep()
+              return
+            } else {
+              return setUsername(username).then(() => {
+                goToNextStep()
+              })
             }
           }}
-          onSubmitSuccess={goToNextStep}
         >
           <ariaComponents.Input
             name="username"
@@ -88,11 +104,9 @@ const BASE_STEPS: Step[] = [
             description="Minimum 3 characters, maximum 48 characters"
           />
 
-          <ariaComponents.ButtonGroup align="start">
-            <ariaComponents.Form.Submit variant="primary">
-              {getText('next')}
-            </ariaComponents.Form.Submit>
-          </ariaComponents.ButtonGroup>
+          <ariaComponents.Form.Submit variant="primary">
+            {getText('next')}
+          </ariaComponents.Form.Submit>
 
           <ariaComponents.Form.FormError />
         </ariaComponents.Form>
@@ -102,15 +116,21 @@ const BASE_STEPS: Step[] = [
   {
     title: 'choosePlan',
     text: 'choosePlanDescription',
+    ignore: ({ session }) =>
+      session && 'user' in session ? !session.user.isOrganizationAdmin : true,
     canSkip: ({ plan }) => plan === Plan.free,
     hideNext: ({ plan }) => plan === Plan.free,
     /**
      * Step component
      */
-    component: function ChoosePlanStep({ goToNextStep, plan }) {
+    component: function ChoosePlanStep({ goToNextStep, plan, session }) {
+      const isOrganizationAdmin =
+        session && 'user' in session ? session.user.isOrganizationAdmin : false
+
       return (
         <PlanSelector
           userPlan={plan}
+          isOrganizationAdmin={isOrganizationAdmin}
           hasTrial={plan === Plan.free}
           onSubscribeSuccess={goToNextStep}
         />
@@ -120,21 +140,37 @@ const BASE_STEPS: Step[] = [
   {
     title: 'setOrgNameTitle',
     text: 'setOrgNameDescription',
-    ignore: (context) => context.plan === Plan.free || context.plan === Plan.solo,
+    ignore: (context) => {
+      const isOrganizationAdmin =
+        context.session && 'user' in context.session ?
+          context.session.user.isOrganizationAdmin
+        : false
+
+      return context.plan === Plan.free || context.plan === Plan.solo || !isOrganizationAdmin
+    },
     hideNext: true,
     hidePrevious: true,
     /**
      * Step component
      */
-    component: function SetOrganizatioNameStep({ goToNextStep, goToPreviousStep }) {
+    component: function SetOrganizatioNameStep({ goToNextStep, goToPreviousStep, session }) {
       const { getText } = textProvider.useText()
       const remoteBackend = useRemoteBackendStrict()
+      const userId = session && 'user' in session ? session.user.userId : null
 
       const { data: defaultOrgName } = useSuspenseQuery({
-        queryKey: ['organization'],
+        queryKey: ['organization', userId],
         queryFn: () => remoteBackend.getOrganization(),
         select: (data) => data?.name ?? '',
       })
+
+      const updateOrganizationMutation = useMutation(
+        backendMutationOptions(remoteBackend, 'updateOrganization', {
+          onSuccess: () => {
+            goToNextStep()
+          },
+        }),
+      )
 
       return (
         <ariaComponents.Form
@@ -146,10 +182,9 @@ const BASE_STEPS: Step[] = [
           onSubmit={({ organizationName }) => {
             if (organizationName !== defaultOrgName) {
               // eslint-disable-next-line no-restricted-syntax
-              return remoteBackend.updateOrganization({ name: organizationName })
+              return updateOrganizationMutation.mutateAsync([{ name: organizationName }])
             }
           }}
-          onSubmitSuccess={goToNextStep}
         >
           <ariaComponents.Input
             name="organizationName"
@@ -177,8 +212,161 @@ const BASE_STEPS: Step[] = [
     },
   },
   {
+    title: 'inviteUsers',
+    text: 'inviteUsersDescription',
+    ignore: (context) => {
+      const isOrganizationAdmin =
+        context.session && 'user' in context.session ?
+          context.session.user.isOrganizationAdmin
+        : false
+
+      return context.plan === Plan.free || context.plan === Plan.solo || !isOrganizationAdmin
+    },
+    hideNext: true,
+    hidePrevious: true,
+    /**
+     * Step component
+     */
+    component: function InviteUsersStep({ goToNextStep, goToPreviousStep }) {
+      const { getText } = textProvider.useText()
+
+      return (
+        <div className="max-w-96">
+          <InviteUsersForm
+            onSubmitted={() => {
+              goToNextStep()
+            }}
+          />
+
+          <ariaComponents.ButtonGroup align="start" className="mt-4">
+            <ariaComponents.Button variant="outline" onPress={goToPreviousStep}>
+              {getText('back')}
+            </ariaComponents.Button>
+
+            <ariaComponents.Button variant="ghost-fading" onPress={goToNextStep}>
+              {getText('skip')}
+            </ariaComponents.Button>
+          </ariaComponents.ButtonGroup>
+        </div>
+      )
+    },
+  },
+  {
+    title: 'setDefaultUserGroup',
+    text: 'setDefaultUserGroupDescription',
+    ignore: (context) => {
+      const isOrganizationAdmin =
+        context.session && 'user' in context.session ?
+          context.session.user.isOrganizationAdmin
+        : false
+
+      return context.plan === Plan.free || context.plan === Plan.solo || !isOrganizationAdmin
+    },
+    hideNext: true,
+    hidePrevious: true,
+    /**
+     * Step component
+     */
+    component: function CreateUserGroupStep({ goToNextStep, goToPreviousStep }) {
+      const { getText } = textProvider.useText()
+      const remoteBackend = useRemoteBackendStrict()
+
+      const defaultUserGroupMaxLength = 64
+
+      const listUsersQuery = useSuspenseQuery({
+        queryKey: ['users'],
+        queryFn: () => remoteBackend.listUsers(),
+      })
+
+      const changeUserGroupMutation = useMutation(
+        backendMutationOptions(remoteBackend, 'changeUserGroup'),
+      )
+
+      const createUserGroupMutation = useMutation(
+        backendMutationOptions(remoteBackend, 'createUserGroup', {
+          onSuccess: async (result) => {
+            await Promise.all([
+              listUsersQuery.data.map((user) =>
+                changeUserGroupMutation.mutateAsync([
+                  user.userId,
+                  { userGroups: [result.id] },
+                  user.name,
+                ]),
+              ),
+            ])
+
+            goToNextStep()
+          },
+        }),
+      )
+
+      return (
+        <ariaComponents.Form
+          schema={(z) => z.object({ groupName: z.string().min(1).max(defaultUserGroupMaxLength) })}
+          className="max-w-96"
+          onSubmit={({ groupName }) => createUserGroupMutation.mutateAsync([{ name: groupName }])}
+        >
+          <ariaComponents.Input
+            name="groupName"
+            autoComplete="off"
+            label={getText('groupNameSettingsInput')}
+            description={getText('groupNameSettingsInputDescription', defaultUserGroupMaxLength)}
+          />
+
+          <ariaComponents.ButtonGroup align="start">
+            <ariaComponents.Button variant="outline" onPress={goToPreviousStep}>
+              {getText('back')}
+            </ariaComponents.Button>
+
+            <ariaComponents.Form.Submit variant="primary">
+              {getText('next')}
+            </ariaComponents.Form.Submit>
+          </ariaComponents.ButtonGroup>
+
+          <ariaComponents.Form.FormError />
+        </ariaComponents.Form>
+      )
+    },
+  },
+  {
     title: 'allSet',
     text: 'allSetDescription',
+    hideNext: true,
+    hidePrevious: true,
+    /**
+     * Step component
+     */
+    component: function AllSetStep({ goToPreviousStep }) {
+      const { getText } = textProvider.useText()
+      const navigate = useNavigate()
+      const queryClient = useQueryClient()
+
+      return (
+        <ariaComponents.ButtonGroup align="start">
+          <ariaComponents.Button variant="outline" onPress={goToPreviousStep}>
+            {getText('back')}
+          </ariaComponents.Button>
+
+          <ariaComponents.Button
+            variant="primary"
+            size="medium"
+            icon={ArrowRight}
+            iconPosition="end"
+            onPress={() =>
+              queryClient.invalidateQueries().then(() => {
+                navigate(
+                  DASHBOARD_PATH +
+                    '?' +
+                    new URLSearchParams({ startModalDefaultOpen: 'true' }).toString(),
+                )
+              })
+            }
+          >
+            {getText('goToDashboard')}
+          </ariaComponents.Button>
+        </ariaComponents.ButtonGroup>
+      )
+    },
   },
 ]
 
@@ -201,8 +389,16 @@ export function Setup() {
     steps: steps.length,
     onStepChange: (step, direction) => {
       const screen = steps[step]
+
       if (screen?.ignore != null) {
-        if (screen.ignore(context)) {
+        if (
+          screen.ignore({
+            session,
+            plan: userPlan,
+            goToNextStep: nextStep,
+            goToPreviousStep: previousStep,
+          })
+        ) {
           if (direction === 'forward') {
             nextStep()
           } else {
@@ -299,18 +495,6 @@ export function Setup() {
                   {!hideNext && !isLast && (
                     <ariaComponents.Button variant="primary" onPress={nextStep}>
                       {getText('next')}
-                    </ariaComponents.Button>
-                  )}
-
-                  {isLast && (
-                    <ariaComponents.Button
-                      href={DASHBOARD_PATH}
-                      variant="primary"
-                      size="medium"
-                      icon={ArrowRight}
-                      iconPosition="end"
-                    >
-                      {getText('goToDashboard')}
                     </ariaComponents.Button>
                   )}
                 </ariaComponents.ButtonGroup>

@@ -53,6 +53,8 @@ public class HashCodeTest {
   @AfterClass
   public static void disposeContext() {
     context.close();
+    context = null;
+    unwrappedValues = null;
   }
 
   /**

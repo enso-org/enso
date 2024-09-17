@@ -1,9 +1,9 @@
 package org.enso.editions
 
+import org.enso.scala.yaml.{YamlDecoder, YamlEncoder}
 import org.enso.semver.{SemVer, SemVerYaml}
 import org.yaml.snakeyaml.nodes.{MappingNode, Node, ScalarNode}
-import org.enso.yaml.{YamlDecoder, YamlEncoder}
-import org.enso.yaml.YamlDecoder.MapKeyField
+import YamlDecoder.MapKeyField
 import org.yaml.snakeyaml.error.YAMLException
 
 import java.util

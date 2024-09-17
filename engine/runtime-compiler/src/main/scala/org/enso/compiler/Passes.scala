@@ -1,6 +1,7 @@
 package org.enso.compiler
 
 import org.enso.compiler.data.CompilerConfig
+import org.enso.compiler.dump.IRDumperPass
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.analyse.types.TypeInference
@@ -91,6 +92,7 @@ class Passes(config: CompilerConfig) {
             List(PrivateSymbolsAnalysis.INSTANCE)
           } else List()) ++ List(
       AliasAnalysis,
+      FramePointerAnalysis,
       DataflowAnalysis,
       CachePreferenceAnalysis,
       GenericAnnotations
@@ -102,7 +104,9 @@ class Passes(config: CompilerConfig) {
                    List(
                      TypeInference.INSTANCE
                    )
-                 } else Nil)
+                 } else Nil) ++ (if (config.dumpIrs) {
+                                   List(IRDumperPass.INSTANCE)
+                                 } else Nil)
   )
 
   /** A list of the compiler phases, in the order they should be run.

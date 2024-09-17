@@ -134,11 +134,16 @@ foreign js js_obj a b = """
     return m;
 
 add_specs suite_builder =
+    pending_js_missing = if Polyglot.is_language_installed "js" then Nothing else
+        "Can't run JavaScript tests, language `js` is not installed."
+
     suite_builder.group "Operator ==" group_builder->
         group_builder.specify "should handle primitive values" <|
             (2 == (2.0)).should_be_true
             (2 == (2.1)).should_be_false
             (2.0).should_equal 2
+
+        group_builder.specify "should handle primitive JavaScript values" pending=pending_js_missing <|
             (js_true == True).should_be_true
             (js_false == False).should_be_true
             (js_true == False).should_be_false
@@ -178,13 +183,6 @@ add_specs suite_builder =
         group_builder.specify "should be able to compare atoms with different constructors" <|
             ((CustomEqType.C1 10) == (CustomEqType.C2 7 3)).should_be_true
             ((CustomEqType.C1 0) == (CustomEqType.C2 7 3)).should_be_false
-
-        group_builder.specify "should dispatch to equals on host values" <|
-            path1 = File_Utils.toPath "home" . resolve "user" . resolve "file.txt"
-            path2 = File_Utils.toPath "home" . resolve "user" . resolve "file.txt"
-            (path1 == path2).should_be_true
-            path3 = path1.resolve "subfile.txt"
-            (path3 == path2).should_be_false
 
         group_builder.specify "should return False for different Atoms with same fields" <|
             rect = Rect.Value (Point.Value 1 2) (Point.Value 3 4)
@@ -248,7 +246,7 @@ add_specs suite_builder =
             x==x . should_be_true
             z==z . should_be_true
 
-        group_builder.specify "should not try to compare members in JS object" <|
+        group_builder.specify "should not try to compare members in JS object" pending=pending_js_missing <|
             x = js_obj 5 3
             y = js_obj 5 3
             z = js_obj 3 5
@@ -273,16 +271,16 @@ add_specs suite_builder =
             y = Java_Big_Integer.new "54024430107564432"
             x==y . should_be_true
 
-        group_builder.specify "JSON is found different" <|
+        group_builder.specify "JSON is found different" pending=pending_js_missing <|
             x = js_json 10 5
             y = js_json 10 5
             x==y . should_be_false
 
-        group_builder.specify "Identical JSON is found equal" <|
+        group_builder.specify "Identical JSON is found equal" pending=pending_js_missing <|
             x = js_json 10 5
             x==x . should_be_true
 
-        group_builder.specify "JavaScript Map is found same" <|
+        group_builder.specify "JavaScript Map is found same" pending=pending_js_missing <|
             x = js_map 10 5
             y = js_map 10 5
             x==y . should_be_true

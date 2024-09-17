@@ -1,13 +1,13 @@
 import type { ExecutionContext } from '@/stores/project/executionContext'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
+import { markRaw } from 'vue'
 import type {
   ExpressionId,
   ExpressionUpdate,
   ExpressionUpdatePayload,
   MethodCall,
   ProfilingInfo,
-} from 'shared/languageServerTypes'
-import { markRaw } from 'vue'
+} from 'ydoc-shared/languageServerTypes'
 
 export interface ExpressionInfo {
   typename: string | undefined

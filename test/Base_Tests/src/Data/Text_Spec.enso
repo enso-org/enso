@@ -1658,6 +1658,11 @@ add_specs suite_builder =
             expected = "XItXwasXtheXbestXofXtimesXitXwasXtheXworstXofXtimesX"
             res = input.replace Named_Pattern.All_Whitespace "X"
             res.should_equal expected
+        input_with_newlines = 'It was\r the best  of  times\n  it was  the  worst\r\n  of  times'
+        group_builder.specify "should replace newlines" <|
+            expected = 'It wasX the best  of  timesX  it was  the  worstX  of  times'
+            res = input_with_newlines.replace Named_Pattern.Newlines "X"
+            res.should_equal expected
         input2 = "1922  It was the best  of  times  it was  the  worst  of  times  1804"
         group_builder.specify "should replace leading numbers" <|
             expected = "X  It was the best  of  times  it was  the  worst  of  times  1804"
@@ -1726,6 +1731,11 @@ add_specs suite_builder =
         group_builder.specify "should remove all whitespace" <|
             expected = "Itwasthebestoftimesitwastheworstoftimes"
             res = input.cleanse [Named_Pattern.All_Whitespace]
+            res.should_equal expected
+        input_with_newlines = 'It was\r the best  of  times\n  it was  the  worst\r\n  of  times'
+        group_builder.specify "should remove newlines" <|
+            expected = 'It was the best  of  times  it was  the  worst  of  times'
+            res = input_with_newlines.cleanse [Named_Pattern.Newlines]
             res.should_equal expected
         input2 = "1922  It was the best  of  times  it was  the  worst  of  times  1804"
         group_builder.specify "should remove leading numbers" <|

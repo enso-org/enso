@@ -20,8 +20,8 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
-import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
+import org.enso.interpreter.runtime.warning.WithWarnings;
 
 @GenerateUncached
 public abstract class TypeOfNode extends Node {
@@ -70,8 +70,8 @@ public abstract class TypeOfNode extends Node {
   }
 
   @Specialization
-  Object doWarning(WithWarnings value) {
-    return execute(value.getValue());
+  Object doWarning(WithWarnings value, @Cached TypeOfNode withoutWarning) {
+    return withoutWarning.execute(value.getValue());
   }
 
   static boolean isWithoutType(Object value, TypesLibrary types) {

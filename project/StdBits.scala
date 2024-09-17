@@ -48,14 +48,14 @@ object StdBits {
           !graalVmOrgs.contains(orgName)
         })
       )
+      val unmanagedFiles = (Compile / unmanagedJars).value.map(_.data)
       val relevantFiles =
         libraryUpdates
           .select(
             configuration = configFilter,
             module        = graalModuleFilter,
             artifact      = DependencyFilter.artifactFilter()
-          )
-
+          ) ++ unmanagedFiles
       val dependencyStore =
         streams.value.cacheStoreFactory.make("std-bits-dependencies")
       Tracked.diffInputs(dependencyStore, FileInfo.hash)(relevantFiles.toSet) {
@@ -131,4 +131,5 @@ object StdBits {
       log.info(s"No changes detected for '$name' package")
     }
   }
+
 }

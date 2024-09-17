@@ -43,15 +43,15 @@ export class ImageNode extends DecoratorNode<Component> {
   __src: string
   __altText: string
 
-  static getType(): string {
+  static override getType(): string {
     return 'image'
   }
 
-  static clone(node: ImageNode): ImageNode {
+  static override clone(node: ImageNode): ImageNode {
     return new ImageNode(node.__src, node.__altText, node.__key)
   }
 
-  static importJSON(serializedNode: SerializedImageNode): ImageNode {
+  static override importJSON(serializedNode: SerializedImageNode): ImageNode {
     const { altText, src } = serializedNode
     return $createImageNode({
       altText,
@@ -59,7 +59,7 @@ export class ImageNode extends DecoratorNode<Component> {
     })
   }
 
-  static importDOM(): DOMConversionMap | null {
+  static override importDOM(): DOMConversionMap | null {
     return {
       img: (_node: Node) => ({
         conversion: $convertImageElement,
@@ -74,14 +74,14 @@ export class ImageNode extends DecoratorNode<Component> {
     this.__altText = altText
   }
 
-  exportDOM(): DOMExportOutput {
+  override exportDOM(): DOMExportOutput {
     const element = document.createElement('img')
     element.setAttribute('src', this.__src)
     element.setAttribute('alt', this.__altText)
     return { element }
   }
 
-  exportJSON(): SerializedImageNode {
+  override exportJSON(): SerializedImageNode {
     return {
       altText: this.getAltText(),
       src: this.getSrc(),
@@ -113,7 +113,7 @@ export class ImageNode extends DecoratorNode<Component> {
 
   // View
 
-  createDOM(config: EditorConfig): HTMLElement {
+  override createDOM(config: EditorConfig): HTMLElement {
     const span = document.createElement('span')
     const className = config.theme.image
     if (className !== undefined) {
@@ -122,7 +122,7 @@ export class ImageNode extends DecoratorNode<Component> {
     return span
   }
 
-  updateDOM(_prevNode: ImageNode, dom: HTMLElement, config: EditorConfig): false {
+  override updateDOM(_prevNode: ImageNode, dom: HTMLElement, config: EditorConfig): false {
     const className = config.theme.image
     if (className !== undefined) {
       dom.className = className
@@ -130,7 +130,7 @@ export class ImageNode extends DecoratorNode<Component> {
     return false
   }
 
-  decorate(): Component {
+  override decorate(): Component {
     return h(LexicalImage, {
       src: this.__src,
       alt: this.__altText,

@@ -54,6 +54,7 @@ interface Data {
   focus: Focus | undefined
   points: PointsConfiguration
   data: Point[]
+  is_multi_series?: boolean
 }
 
 interface Focus {
@@ -69,6 +70,7 @@ interface Point {
   color?: string
   shape?: string
   size?: number
+  series?: string
 }
 
 interface PointsConfiguration {
@@ -114,7 +116,7 @@ const ANIMATION_DURATION_MS = 400
 const VISIBLE_POINTS = 'visible'
 const ACCENT_COLOR: Color = { red: 78, green: 165, blue: 253 }
 const SIZE_SCALE_MULTIPLER = 100
-const FILL_COLOR = `rgba(${ACCENT_COLOR.red},${ACCENT_COLOR.green},${ACCENT_COLOR.blue},0.8)`
+const DEFAULT_FILL_COLOR = `rgba(${ACCENT_COLOR.red},${ACCENT_COLOR.green},${ACCENT_COLOR.blue},0.8)`
 
 const ZOOM_EXTENT = [0.5, 20] satisfies d3.BrushSelection
 const RIGHT_BUTTON = 2
@@ -155,7 +157,10 @@ const data = computed<Data>(() => {
   }
   const points = rawData.points ?? { labels: 'visible' }
   const focus: Focus | undefined = rawData.focus
-  return { axis, points, data, focus }
+  // eslint-disable-next-line camelcase
+  const is_multi_series: boolean = !!rawData.is_multi_series
+  // eslint-disable-next-line camelcase
+  return { axis, points, data, focus, is_multi_series }
 })
 
 const containerNode = ref<HTMLElement>()
@@ -164,12 +169,14 @@ const xAxisNode = ref<SVGGElement>()
 const yAxisNode = ref<SVGGElement>()
 const zoomNode = ref<SVGGElement>()
 const brushNode = ref<SVGGElement>()
+const legendNode = ref<SVGGElement>()
 
 const d3Points = computed(() => d3.select(pointsNode.value))
 const d3XAxis = computed(() => d3.select(xAxisNode.value))
 const d3YAxis = computed(() => d3.select(yAxisNode.value))
 const d3Zoom = computed(() => d3.select(zoomNode.value))
 const d3Brush = computed(() => d3.select(brushNode.value))
+const d3Legend = computed(() => d3.select(legendNode.value))
 
 const bounds = ref<[number, number, number, number]>()
 const brushExtent = ref<d3.BrushSelection>()
@@ -178,6 +185,7 @@ const focus = ref<Focus>()
 const shouldAnimate = ref(false)
 const xDomain = ref([0, 1])
 const yDomain = ref([0, 1])
+const selectionEnabled = ref(false)
 
 const isBrushing = computed(() => brushExtent.value != null)
 const xScale = computed(() =>
@@ -232,6 +240,7 @@ const yLabelLeft = computed(
     getTextWidthBySizeAndFamily(data.value.axis.y.label, LABEL_FONT_STYLE) / 2,
 )
 const yLabelTop = computed(() => -margin.value.left + 15)
+const showYLabelText = computed(() => !data.value.is_multi_series)
 
 watchEffect(() => {
   const boundsExpression =
@@ -255,8 +264,22 @@ watchEffect(() => (focus.value = data.value.focus))
  * than the container.
  */
 const extremesAndDeltas = computed(() => {
+  let yMin = 0
+  let yMax = 0
+  if (data.value.is_multi_series) {
+    const axis = data.value.axis
+    const series = Object.keys(axis).filter((s) => s != 'x')
+    const allYValues = series.flatMap((s) =>
+      data.value.data.map((d) => d[s as keyof Point]),
+    ) as number[]
+
+    yMin = Math.min(...allYValues)
+    yMax = Math.max(...allYValues)
+  } else {
+    ;[yMin = 0, yMax = 0] = d3.extent(data.value.data, (point) => point.y)
+  }
+
   const [xMin = 0, xMax = 0] = d3.extent(data.value.data, (point) => point.x)
-  const [yMin = 0, yMax = 0] = d3.extent(data.value.data, (point) => point.y)
   const dx = xMax - xMin
   const dy = yMax - yMin
   const paddingX = 0.1 * dx
@@ -380,8 +403,15 @@ function startZoom(event: d3.D3ZoomEvent<Element, unknown>) {
   actionStartYScale = yScale.value.copy()
 }
 
-const brush = computed(() =>
-  d3
+const brush = computed(() => {
+  if (!selectionEnabled.value) {
+    return d3.brush().extent([
+      [0, 0],
+      [0, 0],
+    ])
+  }
+
+  return d3
     .brush()
     .extent([
       [0, 0],
@@ -389,9 +419,20 @@ const brush = computed(() =>
     ])
     .on('start brush', (event: d3.D3BrushEvent<unknown>) => {
       brushExtent.value = event.selection ?? undefined
-    }),
-)
-watchEffect(() => d3Brush.value.call(brush.value))
+    })
+})
+
+watchEffect(() => {
+  if (selectionEnabled.value && brush.value) {
+    d3Brush.value.call(brush.value)
+  } else {
+    d3Brush.value.on('.brush', null)
+    d3Brush.value.style('cursor', 'default')
+    if (brush.value) {
+      d3Brush.value.call(brush.value)
+    }
+  }
+})
 
 watch([boxWidth, boxHeight], () => (shouldAnimate.value = false))
 
@@ -447,33 +488,120 @@ watchPostEffect(() =>
     .call(d3.axisLeft(yScale.value).ticks(yTicks.value)),
 )
 
+function getPlotData(data: Data) {
+  const axis = data.axis
+  if (data.is_multi_series) {
+    const series = Object.keys(axis).filter((s) => s != 'x')
+    const transformedData = series.flatMap((s) =>
+      data.data.map((d) => ({
+        x: d.x,
+        y: d[s as keyof Point],
+        series: s,
+      })),
+    )
+    return transformedData
+  }
+  return data.data
+}
+
+function getTooltipMessage(point: Point) {
+  if (data.value.is_multi_series) {
+    const axis = data.value.axis
+    const label =
+      point.series && point.series in axis ?
+        axis[point.series as keyof AxesConfiguration].label
+      : ''
+    return `${point.x}, ${point.y}, ${label}`
+  }
+  return `${point.x}, ${point.y}`
+}
+
 // === Update contents ===
 
 watchPostEffect(() => {
   const xScale_ = xScale.value
   const yScale_ = yScale.value
+  const plotData = getPlotData(data.value) as Point[]
+  const series = Object.keys(data.value.axis).filter((s) => s != 'x')
+  const colorScale = (d: string) => {
+    const color = d3.scaleOrdinal(d3.schemeCategory10).domain(series)
+    if (data.value.is_multi_series) {
+      return color(d)
+    }
+    return DEFAULT_FILL_COLOR
+  }
   d3Points.value
     .selectAll<SVGPathElement, unknown>('path')
-    .data(data.value.data)
+    .data(plotData)
     .join((enter) => enter.append('path'))
+    .call((data) => {
+      return data.append('title').text((d) => getTooltipMessage(d))
+    })
     .transition()
     .duration(animationDuration.value)
     .attr(
       'd',
-      symbol.type(matchShape).size((d) => (d.size ?? 1.0) * SIZE_SCALE_MULTIPLER),
+      symbol.type(matchShape).size((d) => (d.size ?? 0.15) * SIZE_SCALE_MULTIPLER),
     )
-    .style('fill', (d) => d.color ?? FILL_COLOR)
+    .style('fill', (d) => colorScale(d.series || ''))
     .attr('transform', (d) => `translate(${xScale_(d.x)}, ${yScale_(d.y)})`)
   if (data.value.points.labels === VISIBLE_POINTS) {
     d3Points.value
       .selectAll<SVGPathElement, unknown>('text')
-      .data(data.value.data)
+      .data(plotData)
       .join((enter) => enter.append('text').attr('class', 'label'))
       .transition()
       .duration(animationDuration.value)
       .text((d) => d.label ?? '')
       .attr('x', (d) => xScale_(d.x) + POINT_LABEL_PADDING_X_PX)
       .attr('y', (d) => yScale_(d.y) + POINT_LABEL_PADDING_Y_PX)
+  }
+})
+
+watchPostEffect(() => {
+  if (data.value.is_multi_series) {
+    const seriesLabels = Object.keys(data.value.axis)
+      .filter((s) => s != 'x')
+      .map((s) => {
+        return data.value.axis[s as keyof AxesConfiguration].label
+      })
+    const formatLabel = (string: string) =>
+      string.length > 10 ? `${string.substr(0, 10)}...` : string
+
+    const color = d3
+      .scaleOrdinal<string>()
+      .domain(seriesLabels)
+      .range(d3.schemeCategory10)
+      .domain(seriesLabels)
+
+    d3Legend.value.selectAll('circle').remove()
+    d3Legend.value.selectAll('text').remove()
+
+    d3Legend.value
+      .selectAll('dots')
+      .data(seriesLabels)
+      .enter()
+      .append('circle')
+      .attr('cx', function (d, i) {
+        return 90 + i * 120
+      })
+      .attr('cy', 10)
+      .attr('r', 6)
+      .style('fill', (d) => color(d) || DEFAULT_FILL_COLOR)
+
+    d3Legend.value
+      .selectAll('labels')
+      .data(seriesLabels)
+      .enter()
+      .append('text')
+      .attr('x', function (d, i) {
+        return 100 + i * 120
+      })
+      .attr('y', 10)
+      .style('font-size', '15px')
+      .text((d) => formatLabel(d))
+      .attr('alignment-baseline', 'middle')
+      .call((labels) => labels.append('title').text((d) => d))
   }
 })
 
@@ -539,16 +667,22 @@ useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSel
 <template>
   <VisualizationContainer :belowToolbar="true">
     <template #toolbar>
+      <SvgButton
+        name="select"
+        title="Enable Selection"
+        @click="selectionEnabled = !selectionEnabled"
+      />
       <SvgButton name="show_all" title="Fit All" @click.stop="zoomToSelected(false)" />
       <SvgButton
-        name="find"
+        name="zoom"
         title="Zoom to Selected"
         :disabled="brushExtent == null"
         @click.stop="zoomToSelected"
       />
     </template>
-    <div ref="containerNode" class="ScatterplotVisualization" @pointerdown.stop>
+    <div ref="containerNode" class="ScatterplotVisualization">
       <svg :width="width" :height="height">
+        <g ref="legendNode"></g>
         <g :transform="`translate(${margin.left}, ${margin.top})`">
           <defs>
             <clipPath id="clip">
@@ -566,7 +700,7 @@ useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSel
             v-text="data.axis.x.label"
           ></text>
           <text
-            v-if="data.axis.y.label"
+            v-if="showYLabelText"
             class="label label-y"
             text-anchor="end"
             :x="yLabelLeft"
@@ -587,6 +721,7 @@ useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSel
 .ScatterplotVisualization {
   user-select: none;
   display: flex;
+  flex-direction: column;
 }
 
 .ScatterplotVisualization .selection {

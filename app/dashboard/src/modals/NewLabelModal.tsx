@@ -1,8 +1,9 @@
 /** @file A modal for creating a new label. */
 import * as React from 'react'
 
-import * as backendHooks from '#/hooks/backendHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+import { useMutation } from '@tanstack/react-query'
+
+import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -18,6 +19,7 @@ import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'
+import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
 
 // =================
 // === Constants ===
@@ -39,14 +41,12 @@ export interface NewLabelModalProps {
 /** A modal for creating a new label. */
 export default function NewLabelModal(props: NewLabelModalProps) {
   const { backend, eventTarget } = props
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const [value, setValue] = React.useState('')
   const [color, setColor] = React.useState<backendModule.LChColor | null>(null)
   const position = React.useMemo(() => eventTarget.getBoundingClientRect(), [eventTarget])
-  const labelsRaw = backendHooks.useBackendListTags(backend)
-  const labels = React.useMemo(() => labelsRaw ?? [], [labelsRaw])
+  const labels = useBackendQuery(backend, 'listTags', []).data ?? EMPTY_ARRAY
   const labelNames = React.useMemo(
     () => new Set<string>(labels.map((label) => label.value)),
     [labels],
@@ -54,16 +54,12 @@ export default function NewLabelModal(props: NewLabelModalProps) {
   const leastUsedColor = React.useMemo(() => backendModule.leastUsedColor(labels), [labels])
   const canSubmit = Boolean(value && !labelNames.has(value))
 
-  const createTagMutation = backendHooks.useBackendMutation(backend, 'createTag')
+  const createTag = useMutation(backendMutationOptions(backend, 'createTag')).mutate
 
-  const doSubmit = async () => {
+  const doSubmit = () => {
     if (value !== '') {
       unsetModal()
-      try {
-        await createTagMutation.mutateAsync([{ value, color: color ?? leastUsedColor }])
-      } catch (error) {
-        toastAndLog(null, error)
-      }
+      createTag([{ value, color: color ?? leastUsedColor }])
     }
   }
 
@@ -84,7 +80,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
           event.preventDefault()
           // Consider not calling `onSubmit()` here to make it harder to accidentally
           // delete an important asset.
-          void doSubmit()
+          doSubmit()
         }}
       >
         <aria.Heading level={2} className="relative text-sm font-semibold">
@@ -134,7 +130,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
           <ariaComponents.Button variant="submit" isDisabled={!canSubmit} onPress={doSubmit}>
             {getText('create')}
           </ariaComponents.Button>
-          <ariaComponents.Button variant="cancel" onPress={unsetModal}>
+          <ariaComponents.Button variant="outline" onPress={unsetModal}>
             {getText('cancel')}
           </ariaComponents.Button>
         </ariaComponents.ButtonGroup>

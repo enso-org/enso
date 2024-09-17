@@ -96,9 +96,9 @@ impl GraalPy {
 mod tests {
     use crate::cache::goodie::graalpy::graalpy_version_from_str;
     use crate::cache::goodie::graalpy::GraalPy;
+    use crate::Arch;
+    use crate::OS;
     use octocrab::Octocrab;
-    use platforms::Arch;
-    use platforms::OS;
     use semver::Version;
 
     #[test]

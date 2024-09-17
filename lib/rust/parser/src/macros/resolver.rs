@@ -24,14 +24,20 @@
 
 use crate::prelude::*;
 
+use crate::im_list::List;
 use crate::macros;
 use crate::macros::pattern;
 use crate::source::Code;
 use crate::syntax;
 use crate::syntax::token;
 use crate::syntax::token::Token;
+use crate::syntax::BlockHierarchyConsumer;
+use crate::syntax::Finish;
+use crate::syntax::GroupHierarchyConsumer;
+use crate::syntax::Item;
+use crate::syntax::NewlineConsumer;
+use crate::syntax::TokenConsumer;
 
-use enso_data_structures::im_list::List;
 use std::collections::HashMap;
 use std::collections::VecDeque;
 
@@ -122,16 +128,17 @@ impl<'a> SegmentMap<'a> {
 /// Macro resolver capable of resolving nested macro usages. See the docs of the main parser module
 /// to learn more about the macro resolution steps.
 #[derive(Debug)]
-pub struct Resolver<'s> {
+struct ResolverState<'s> {
     blocks:     Vec<Block>,
     /// The lines of all currently-open blocks. This is partitioned by `blocks`.
     lines:      Vec<syntax::item::Line<'s>>,
+    groups:     Vec<OpenGroup<'s>>,
     /// All currently-open macros. These are partitioned into scopes by `blocks`.
     macros:     Vec<PartiallyMatchedMacro<'s>>,
     /// Segments of all currently-open macros. These are partitioned by `macros`.
     segments:   Vec<MatchedSegment<'s>>,
     /// Items of all segments of all currently-open macros. These are partitioned by `segments`.
-    items:      Vec<syntax::Item<'s>>,
+    items:      Vec<Item<'s>>,
     context:    Context,
     precedence: syntax::operator::Precedence<'s>,
 }
@@ -139,43 +146,98 @@ pub struct Resolver<'s> {
 
 // === Public API ===
 
-impl<'s> Resolver<'s> {
+impl<'s> ResolverState<'s> {
     /// Create a new resolver, in statement context.
-    pub fn new_statement() -> Self {
+    fn new_statement() -> Self {
         Self {
             context:    Context::Statement,
             precedence: syntax::operator::Precedence::new(),
             blocks:     default(),
-            lines:      default(),
+            lines:      vec![initial_line()],
+            groups:     default(),
             macros:     default(),
             segments:   default(),
             items:      default(),
         }
     }
+}
 
-    /// Run the resolver. Returns the resolved AST.
-    pub fn run(
-        &mut self,
-        root_macro_map: &MacroMap,
-        tokens: impl IntoIterator<Item = Token<'s>>,
-    ) -> syntax::Tree<'s> {
-        let start = crate::source::code::Location::default();
-        self.lines.push(syntax::item::Line {
-            newline: token::newline(Code::empty(start), Code::empty(start)),
-            items:   default(),
-        });
-        tokens.into_iter().for_each(|t| self.push(root_macro_map, t));
+fn initial_line<'s>() -> syntax::item::Line<'s> {
+    syntax::item::Line {
+        newline: token::newline(Code::empty(default()), Code::empty(default())),
+        items:   default(),
+    }
+}
+
+impl<'s> Finish for ResolverState<'s> {
+    type Result = syntax::Tree<'s>;
+
+    fn finish(&mut self) -> Self::Result {
         self.finish_current_line();
-        let lines = self.lines.drain(..).map(|syntax::item::Line { newline, items }| {
-            syntax::tree::block::Line { newline, expression: self.precedence.resolve(items) }
-        });
-        let tree = syntax::tree::block::body_from_lines(lines);
+        let tree = syntax::tree::block::parse_module(self.lines.drain(..), &mut self.precedence);
         debug_assert!(self.blocks.is_empty());
         debug_assert!(self.lines.is_empty());
+        debug_assert!(self.groups.is_empty());
         debug_assert!(self.macros.is_empty());
         debug_assert!(self.segments.is_empty());
         debug_assert!(self.items.is_empty());
+        self.context = Context::Statement;
+        self.lines.push(initial_line());
         tree
+    }
+}
+
+/// Resolves macros.
+#[derive(Debug)]
+pub struct Resolver<'s, 'macros> {
+    resolver:       ResolverState<'s>,
+    root_macro_map: &'macros MacroMap,
+}
+
+impl<'s, 'macros> Resolver<'s, 'macros> {
+    /// Creates a macro resolver to use with the given macro map.
+    pub fn new(root_macro_map: &'macros MacroMap) -> Self {
+        Self { resolver: ResolverState::new_statement(), root_macro_map }
+    }
+}
+
+impl<'s, 'macros> TokenConsumer<'s> for Resolver<'s, 'macros> {
+    fn push_token(&mut self, token: Token<'s>) {
+        self.resolver.push(self.root_macro_map, token);
+    }
+}
+
+impl<'s, 'macros> NewlineConsumer<'s> for Resolver<'s, 'macros> {
+    fn push_newline(&mut self, newline: token::Newline<'s>) {
+        self.resolver.push_newline(newline);
+    }
+}
+
+impl<'s, 'macros> BlockHierarchyConsumer for Resolver<'s, 'macros> {
+    fn start_block(&mut self) {
+        self.resolver.start_block()
+    }
+
+    fn end_block(&mut self) {
+        self.resolver.end_block()
+    }
+}
+
+impl<'s, 'macros> GroupHierarchyConsumer<'s> for Resolver<'s, 'macros> {
+    fn start_group(&mut self, open: token::OpenSymbol<'s>) {
+        self.resolver.start_group(open);
+    }
+
+    fn end_group(&mut self, close: token::CloseSymbol<'s>) {
+        self.resolver.close_group(close);
+    }
+}
+
+impl<'s, 'macros> Finish for Resolver<'s, 'macros> {
+    type Result = syntax::Tree<'s>;
+
+    fn finish(&mut self) -> Self::Result {
+        self.resolver.finish()
     }
 }
 
@@ -186,8 +248,8 @@ impl<'s> Resolver<'s> {
 #[derive(Clone, Debug)]
 enum Step<'s> {
     StartSegment(Token<'s>),
-    NormalToken(syntax::Item<'s>),
-    MacroStackPop(syntax::Item<'s>),
+    NormalToken(Item<'s>),
+    MacroStackPop(Item<'s>),
 }
 
 /// Information about macro resolution state that is stored while processing a deeper indentation
@@ -204,16 +266,33 @@ struct Block {
     items:         usize,
 }
 
-impl<'s> Resolver<'s> {
+#[derive(Debug)]
+struct OpenGroup<'s> {
+    open:         token::OpenSymbol<'s>,
+    /// Index in `macro_stack` after the last element in the enclosing scope.
+    macros_start: usize,
+    /// Index in `items` after the last element in the enclosing scope.
+    items:        usize,
+}
+
+impl<'s> ResolverState<'s> {
     /// Returns the index of the first element in `self.macro_stack` that is active in the current
     /// scope. Any macros before that index are active in some block that contains the current
     /// block, so they will not match tokens within this block.
     fn macro_scope_start(&self) -> usize {
-        self.blocks.last().map(|scope| scope.macros_start).unwrap_or_default()
+        self.groups
+            .last()
+            .map(|scope| scope.macros_start)
+            .or_else(|| self.blocks.last().map(|scope| scope.macros_start))
+            .unwrap_or_default()
     }
 
     fn items_start(&self) -> usize {
-        self.blocks.last().map(|scope| scope.items).unwrap_or_default()
+        self.groups
+            .last()
+            .map(|scope| scope.items)
+            .or_else(|| self.blocks.last().map(|scope| scope.items))
+            .unwrap_or_default()
     }
 
     /// Pop the macro stack if the current token is reserved. For example, when matching the
@@ -225,61 +304,86 @@ impl<'s> Resolver<'s> {
         reserved.and_option_from(|| self.macros.pop())
     }
 
+    fn start_block(&mut self) {
+        while let Some(group) = self.groups.pop() {
+            self.end_group(group, None);
+        }
+        let macros_start = self.macros.len();
+        let outputs_start = self.lines.len();
+        let items = self.items.len();
+        self.blocks.push(Block { macros_start, outputs_start, items });
+        self.context = Context::Statement;
+    }
+
+    fn end_block(&mut self) {
+        self.finish_current_line();
+        if let Some(Block { macros_start, outputs_start, items }) = self.blocks.pop() {
+            debug_assert_eq!(macros_start, self.macros.len());
+            debug_assert_eq!(items, self.items.len());
+            let block = self.lines.drain(outputs_start..).collect();
+            self.items.push(Item::Block(block));
+        }
+    }
+
+    fn start_group(&mut self, open: token::OpenSymbol<'s>) {
+        let macros_start = self.macros.len();
+        let items = self.items.len();
+        self.groups.push(OpenGroup { open, macros_start, items });
+        self.context = Context::Expression;
+    }
+
+    fn close_group(&mut self, close: token::CloseSymbol<'s>) {
+        match self.groups.pop() {
+            Some(group) => self.end_group(group, close.into()),
+            None => self.items.push(Item::Token(close.into())),
+        }
+    }
+
+    fn end_group(&mut self, group: OpenGroup<'s>, close: Option<token::CloseSymbol<'s>>) {
+        let OpenGroup { open, macros_start, items } = group;
+        while self.macros.len() > macros_start {
+            let mac = self.macros.pop().unwrap();
+            self.resolve(mac);
+        }
+        let body = self.items.drain(items..).collect();
+        self.items.push(syntax::item::Group { open, body, close }.into());
+    }
+
+    fn push_newline(&mut self, newline: token::Newline<'s>) {
+        self.finish_current_line();
+        self.lines.push(syntax::item::Line { newline, items: default() });
+        self.context = Context::Statement;
+    }
+
     /// Append a token to the state.
-    fn push(&mut self, root_macro_map: &MacroMap, token: Token<'s>) {
-        match token.variant {
-            token::Variant::Newline(newline) => {
-                if !self.lines.is_empty() {
-                    self.finish_current_line();
+    fn push(&mut self, root_macro_map: &MacroMap, mut token: Token<'s>) {
+        debug_assert!(!matches!(token.variant, token::Variant::Newline(_)));
+        loop {
+            token = match self.process_token(root_macro_map, token, self.context) {
+                Step::MacroStackPop(Item::Token(t)) => t,
+                Step::MacroStackPop(item) => {
+                    self.items.push(item);
+                    break;
                 }
-                let newline = token.with_variant(newline);
-                self.lines.push(syntax::item::Line { newline, items: default() });
-                self.context = Context::Statement;
-            }
-            token::Variant::BlockStart(_) => {
-                let macros_start = self.macros.len();
-                let outputs_start = self.lines.len();
-                let items = self.items.len();
-                let scope = Block { macros_start, outputs_start, items };
-                self.blocks.push(scope);
-                self.context = Context::Statement;
-            }
-            token::Variant::BlockEnd(_) => {
-                self.finish_current_line();
-                if let Some(Block { macros_start, outputs_start, items }) = self.blocks.pop() {
-                    debug_assert_eq!(macros_start, self.macros.len());
-                    debug_assert_eq!(items, self.items.len());
-                    let block = self.lines.drain(outputs_start..).collect();
-                    self.items.push(syntax::Item::Block(block));
+                Step::StartSegment(header) => {
+                    let items_start = self.items.len();
+                    self.segments.push(MatchedSegment { header, items_start });
+                    self.context = Context::Expression;
+                    break;
                 }
-            }
-            _ => {
-                let mut token = token;
-                loop {
-                    token = match self.process_token(root_macro_map, token, self.context) {
-                        Step::MacroStackPop(syntax::Item::Token(t)) => t,
-                        Step::MacroStackPop(item) => {
-                            self.items.push(item);
-                            break;
-                        }
-                        Step::StartSegment(header) => {
-                            let items_start = self.items.len();
-                            self.segments.push(MatchedSegment { header, items_start });
-                            self.context = Context::Expression;
-                            break;
-                        }
-                        Step::NormalToken(item) => {
-                            self.items.push(item);
-                            self.context = Context::Expression;
-                            break;
-                        }
-                    }
+                Step::NormalToken(item) => {
+                    self.items.push(item);
+                    self.context = Context::Expression;
+                    break;
                 }
             }
         }
     }
 
     fn finish_current_line(&mut self) {
+        while let Some(group) = self.groups.pop() {
+            self.end_group(group, None);
+        }
         let macros_start = self.macro_scope_start();
         let items_start = self.items_start();
         while self.macros.len() > macros_start {
@@ -365,8 +469,7 @@ impl<'s> Resolver<'s> {
             });
         let out = if all_tokens_consumed {
             let unwrap_match = |(header, match_result)| {
-                let match_result: Result<pattern::MatchResult, VecDeque<syntax::item::Item>> =
-                    match_result;
+                let match_result: Result<pattern::MatchResult, VecDeque<Item>> = match_result;
                 pattern::MatchedSegment::new(header, match_result.unwrap().matched)
             };
             let parser = &mut self.precedence;
@@ -388,11 +491,11 @@ impl<'s> Resolver<'s> {
                     }
                     Err(tokens) => tokens,
                 };
-                if let Some(excess) = self.precedence.resolve(excess) {
+                if let Some(excess) = self.precedence.resolve(&mut excess.into()) {
                     let excess = excess.with_error("Unexpected tokens in macro invocation.");
                     tokens.push(excess.into());
                 }
-                let body = self.precedence.resolve(tokens);
+                let body = self.precedence.resolve(&mut tokens);
                 syntax::tree::MultiSegmentAppSegment { header, body }
             });
             syntax::Tree::multi_segment_app(segments)

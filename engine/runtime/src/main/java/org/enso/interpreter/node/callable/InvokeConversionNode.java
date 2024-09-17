@@ -20,17 +20,18 @@ import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
-import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
-import org.enso.interpreter.runtime.error.Warning;
-import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.state.State;
+import org.enso.interpreter.runtime.warning.AppendWarningNode;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
+import org.enso.interpreter.runtime.warning.WithWarnings;
 
 public abstract class InvokeConversionNode extends BaseNode {
   private @Child InvokeFunctionNode invokeFunctionNode;
@@ -198,7 +199,9 @@ public abstract class InvokeConversionNode extends BaseNode {
       UnresolvedConversion conversion,
       Object self,
       WithWarnings that,
-      Object[] arguments) {
+      Object[] arguments,
+      @Cached AppendWarningNode appendWarningNode,
+      @CachedLibrary(limit = "3") WarningsLibrary warnsLib) {
     // Cannot use @Cached for childDispatch, because we need to call notifyInserted.
     if (childDispatch == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -223,12 +226,17 @@ public abstract class InvokeConversionNode extends BaseNode {
     }
     Object value = that.getValue();
     arguments[thatArgumentPosition] = value;
-    ArrayRope<Warning> warnings = that.getReassignedWarningsAsRope(this, false);
+    EnsoHashMap warnings;
+    try {
+      warnings = warnsLib.getWarnings(that, false);
+    } catch (UnsupportedMessageException e) {
+      throw CompilerDirectives.shouldNotReachHere(e);
+    }
     try {
       Object result = childDispatch.execute(frame, state, conversion, self, value, arguments);
-      return WithWarnings.appendTo(EnsoContext.get(this), result, warnings);
+      return appendWarningNode.executeAppend(null, result, warnings);
     } catch (TailCallException e) {
-      throw new TailCallException(e, warnings.toArray(Warning[]::new));
+      throw new TailCallException(e, warnings);
     }
   }
 

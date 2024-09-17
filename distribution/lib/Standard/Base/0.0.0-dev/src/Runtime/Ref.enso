@@ -60,3 +60,49 @@ type Ref
           # => 10
     modify : (Any -> Any) -> Any
     modify self fun = self.put (fun self.get)
+
+    ## GROUP Calculations
+       ICON edit
+       Temporarily change the value of this mutable reference during the
+       execution of an action.
+
+       Returns the value of the action.
+
+       Arguments:
+       - new_value: the value to set during the execution of the action
+       - action: the action to execute with the modified value set
+
+       > Example
+         Execute an action with a temporarily incremented value.
+
+             r = Ref.new 10
+             r.with_value 11 <|
+                 r.get == 11  # True
+             r.get == 10  # True
+    with_value self (new_value : Any) (~action : Any) =
+        self.with_modification (_ -> new_value) action
+
+    ## GROUP Calculations
+       ICON edit
+       Temporarily change the value of this mutable reference during the
+       execution of an action, using a modification function.
+
+       Returns the value of the action.
+
+       Arguments:
+       - modifier: the function used to modify the value during the execution of
+         the action
+       - action: the action to execute with the modified value set
+
+       > Example
+         Execute an action with a temporarily incremented value.
+
+             r = Ref.new 10
+             r.with_modification (_+1) <|
+                 r.get == 11  # True
+             r.get == 10  # True
+    with_modification self (modifier : Any -> Any) (~action : Any) =
+        old_value = self.modify modifier
+        r = action
+        self.put old_value
+        r

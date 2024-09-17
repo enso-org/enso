@@ -1,32 +1,25 @@
 {
-  "extends": "@vue/tsconfig/tsconfig.dom.json",
+  "extends": "./tsconfig.json",
   "include": [
     "env.d.ts",
     "lib0-ext.d.ts",
     "src/**/*",
     "src/**/*.vue",
-    "shared/**/*",
-    "shared/**/*.vue",
+    "src/**/*.ts",
     "src/util/theme.json",
-    "stories/mockSuggestions.json",
     "mock/**/*",
     "mock/**/*.vue",
+    "stories/**/*",
+    "stories/**/*.json",
+    "stories/**/*.vue",
     "src/**/__tests__/*.json"
   ],
-  "exclude": ["src/**/__tests__/*", "shared/**/__tests__/*", "public/**/__tests__/*"],
+  "exclude": ["src/**/__tests__/*", "public/**/__tests__/*"],
   "compilerOptions": {
-    "lib": ["ES2021", "DOM", "DOM.Iterable"],
-    "resolvePackageJsonExports": false,
-    "composite": true,
-    "outDir": "../../node_modules/.cache/tsc",
-    "baseUrl": ".",
     "noEmit": true,
-    "strict": true,
     "allowImportingTsExtensions": true,
-    "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
     "types": ["vitest/importMeta"],
     "paths": { "@/*": ["./src/*"] }
   },
-  "references": [{ "path": "../dashboard" }]
+  "references": [{ "path": "../dashboard" }, { "path": "../ydoc-shared" }]
 }

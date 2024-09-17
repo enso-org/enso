@@ -1,9 +1,7 @@
 /** @file Settings tab for viewing and editing organization members. */
-import * as React from 'react'
+import { useMutation, useSuspenseQueries } from '@tanstack/react-query'
 
-import * as reactQuery from '@tanstack/react-query'
-
-import * as backendHooks from '#/hooks/backendHooks'
+import { backendMutationOptions } from '#/hooks/backendHooks'
 import * as billingHooks from '#/hooks/billing'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -36,13 +34,14 @@ export default function MembersSettingsSection() {
 
   const { isFeatureUnderPaywall, getFeature } = billingHooks.usePaywall({ plan: user.plan })
 
-  const [{ data: members }, { data: invitations }] = reactQuery.useSuspenseQueries({
+  const [{ data: members }, { data: invitations }] = useSuspenseQueries({
     queries: [
       {
         queryKey: ['listUsers'],
         queryFn: () => backend.listUsers(),
         staleTime: LIST_USERS_STALE_TIME_MS,
       },
+
       {
         queryKey: ['listInvitations'],
         queryFn: () => backend.listInvitations(),
@@ -54,8 +53,7 @@ export default function MembersSettingsSection() {
   const isUnderPaywall = isFeatureUnderPaywall('inviteUserFull')
   const feature = getFeature('inviteUser')
 
-  const seatsLeft =
-    isUnderPaywall ? feature.meta.maxSeats - (members.length + invitations.length) : null
+  const seatsLeft = isUnderPaywall ? invitations.availableLicenses : null
   const seatsTotal = feature.meta.maxSeats
   const isAdmin = user.isOrganizationAdmin
 
@@ -64,7 +62,7 @@ export default function MembersSettingsSection() {
       {isAdmin && (
         <ariaComponents.ButtonGroup>
           <ariaComponents.DialogTrigger>
-            <ariaComponents.Button variant="bar" rounded="full" size="medium">
+            <ariaComponents.Button variant="outline" rounded="full" size="medium">
               {getText('inviteMembers')}
             </ariaComponents.Button>
 
@@ -92,10 +90,10 @@ export default function MembersSettingsSection() {
       <table className="table-fixed self-start rounded-rows">
         <thead>
           <tr className="h-row">
-            <th className="w-members-name-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
+            <th className="w-48 border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
               {getText('name')}
             </th>
-            <th className="w-members-email-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
+            <th className="w-48 border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
               {getText('status')}
             </th>
           </tr>
@@ -103,9 +101,13 @@ export default function MembersSettingsSection() {
         <tbody className="select-text">
           {members.map((member) => (
             <tr key={member.email} className="group h-row rounded-rows-child">
-              <td className="border-x-2 border-transparent bg-clip-padding px-4 py-1 first:rounded-l-full last:rounded-r-full last:border-r-0">
-                <span className="block text-sm">{member.email}</span>
-                <span className="block text-xs text-primary/50">{member.name}</span>
+              <td className="max-w-48 border-x-2 border-transparent bg-clip-padding px-4 py-1 first:rounded-l-full last:rounded-r-full last:border-r-0">
+                <ariaComponents.Text truncate="1" className="block">
+                  {member.email}
+                </ariaComponents.Text>
+                <ariaComponents.Text truncate="1" className="block text-2xs text-primary/40">
+                  {member.name}
+                </ariaComponents.Text>
               </td>
               <td className="border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
                 <div className="flex flex-col">
@@ -119,7 +121,7 @@ export default function MembersSettingsSection() {
               </td>
             </tr>
           ))}
-          {invitations.map((invitation) => (
+          {invitations.invitations.map((invitation) => (
             <tr key={invitation.userEmail} className="group h-row rounded-rows-child">
               <td className="border-x-2 border-transparent bg-clip-padding px-4 py-1 first:rounded-l-full last:rounded-r-full last:border-r-0">
                 <span className="block text-sm">{invitation.userEmail}</span>
@@ -169,9 +171,11 @@ function ResendInvitationButton(props: ResendInvitationButtonProps) {
   const { invitation, backend } = props
 
   const { getText } = textProvider.useText()
-  const resendMutation = backendHooks.useBackendMutation(backend, 'resendInvitation', {
-    mutationKey: [invitation.userEmail],
-  })
+  const resendMutation = useMutation(
+    backendMutationOptions(backend, 'resendInvitation', {
+      mutationKey: [invitation.userEmail],
+    }),
+  )
 
   return (
     <ariaComponents.Button
@@ -202,10 +206,12 @@ function RemoveMemberButton(props: RemoveMemberButtonProps) {
   const { backend, userId } = props
   const { getText } = textProvider.useText()
 
-  const removeMutation = backendHooks.useBackendMutation(backend, 'removeUser', {
-    mutationKey: [userId],
-    meta: { invalidates: [['listUsers']], awaitInvalidates: true },
-  })
+  const removeMutation = useMutation(
+    backendMutationOptions(backend, 'removeUser', {
+      mutationKey: [userId],
+      meta: { invalidates: [['listUsers']], awaitInvalidates: true },
+    }),
+  )
 
   return (
     <ariaComponents.Button
@@ -234,10 +240,12 @@ function RemoveInvitationButton(props: RemoveInvitationButtonProps) {
 
   const { getText } = textProvider.useText()
 
-  const removeMutation = backendHooks.useBackendMutation(backend, 'deleteInvitation', {
-    mutationKey: [email],
-    meta: { invalidates: [['listInvitations']], awaitInvalidates: true },
-  })
+  const removeMutation = useMutation(
+    backendMutationOptions(backend, 'deleteInvitation', {
+      mutationKey: [email],
+      meta: { invalidates: [['listInvitations']], awaitInvalidates: true },
+    }),
+  )
 
   return (
     <ariaComponents.Button

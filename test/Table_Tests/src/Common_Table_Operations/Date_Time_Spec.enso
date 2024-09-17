@@ -319,8 +319,6 @@ add_specs suite_builder setup =
             (t1.at "X1").date_diff (Date.new 2021 03 01) Date_Period.Day . to_vector . should_equal [58]
             (t1.at "X1").date_diff (Date.new 2021 03 01) Date_Period.Month . to_vector . should_equal [1]
 
-            # We do allow the `Time_Period.Day` as a kind of alias for `Date_Period.Day` here.
-            (t1.at "X").date_diff (t1.at "Y") Time_Period.Day . to_vector . should_equal [32]
             (t1.at "X").date_diff (t1.at "Y") Time_Period.Hour . should_fail_with Illegal_Argument
 
             t2 = dates1.get.select_columns ["dt_X", "dt_Y"] reorder=True . rename_columns ["X", "Y"]
@@ -334,8 +332,6 @@ add_specs suite_builder setup =
 
             (t2.at "X").date_diff (t2.at "Y") Date_Period.Year . to_vector . should_equal [0]
             (t2.at "X").date_diff (Date_Time.new 2031 12 1 10 15 0 zone=zone) Date_Period.Year . to_vector . should_equal [10]
-
-            (t2.at "X").date_diff (t2.at "Y") Time_Period.Day . to_vector . should_equal [32]
 
             (t2.at "X").date_diff (t2.at "Y") Time_Period.Hour . to_vector . should_equal [770]
             (t2.at "X").date_diff (Date_Time.new 2021 11 3 12 15 0 zone=zone) Time_Period.Hour . to_vector . should_equal [2]
@@ -364,9 +360,6 @@ add_specs suite_builder setup =
 
             # There is no default period:
             (t3.at "X").date_diff (t3.at "Y") Date_Period.Month . should_fail_with Illegal_Argument
-
-            # This will always be 0, should it be allowed?
-            (t3.at "X").date_diff (t3.at "Y") Time_Period.Day . should_fail_with Illegal_Argument
 
             (t3.at "X").date_diff (t3.at "Y") Time_Period.Hour . to_vector . should_equal [2]
             (t3.at "X").date_diff (Time_Of_Day.new 9 15 0) Time_Period.Hour . to_vector . should_equal [-1]
@@ -434,14 +427,9 @@ add_specs suite_builder setup =
             (t1.at "X").date_add 1 Date_Period.Quarter . to_vector . should_equal [Date.new 2021 04 30, Date.new 2021 04 01, Date.new 2022 03 31]
 
             (t1.at "X").date_add 1 Time_Period.Hour . should_fail_with Illegal_Argument
-            # Will accept Time_Period.Day as alias of Date_Period.Day
-            r1 = (t1.at "X").date_add 1 Time_Period.Day
-            r1.value_type . should_equal Value_Type.Date
-            r1.to_vector . should_equal [Date.new 2021 02 01, Date.new 2021 01 02, Date.new 2022 01 01]
 
             t2 = table_builder [["X", [Date_Time.new 2021 01 31 12 30 0, Date_Time.new 2021 01 01 12 30 0, Date_Time.new 2021 12 31 12 30 0]], ["Y", [11, -1, 0]]]
             (t2.at "X").date_add (t2.at "Y") Date_Period.Day . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 02 11 12 30 0, Date_Time.new 2020 12 31 12 30 0, Date_Time.new 2021 12 31 12 30 0]
-            (t2.at "X").date_add -1 Time_Period.Day . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 01 30 12 30 0, Date_Time.new 2020 12 31 12 30 0, Date_Time.new 2021 12 30 12 30 0]
             (t2.at "X").date_add (t2.at "Y") Date_Period.Month . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 12 31 12 30 0, Date_Time.new 2020 12 01 12 30 0, Date_Time.new 2021 12 31 12 30 0]
             (t2.at "X").date_add 1 Date_Period.Month . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 02 28 12 30 0, Date_Time.new 2021 02 01 12 30 0, Date_Time.new 2022 01 31 12 30 0]
             (t2.at "X").date_add (t2.at "Y") Date_Period.Year . to_vector . should_equal_tz_agnostic [Date_Time.new 2032 01 31 12 30 0, Date_Time.new 2020 01 01 12 30 0, Date_Time.new 2021 12 31 12 30 0]
@@ -478,7 +466,6 @@ add_specs suite_builder setup =
                     (t3.at "X").date_add 1 Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
 
             # No sense to shift Time_Of_Day by days either or by a Date_Period
-            (t3.at "X").date_add (t3.at "Y") Time_Period.Day . to_vector . should_fail_with Illegal_Argument
             (t3.at "X").date_add 1 Date_Period.Month . to_vector . should_fail_with Illegal_Argument
 
             # Date period defaults to Day for date/date-time
@@ -509,9 +496,6 @@ add_specs suite_builder setup =
             # instead let's compare as local timestamps:
             plus_1_calendar_day.to_vector . map as_local_date_time_repr . should_equal ["2023-03-27 00:30:00.0"]
 
-            # Time_Period.Day will shift by 24 hours.
-            x.date_add 1 Time_Period.Day . to_vector . should_equal_tz_agnostic [Date_Time.new 2023 03 27 01 30 00 zone=zone]
-
             # Once we add 3 months, we should get the same hour back.
             plus_3_months = x.date_add 3 Date_Period.Month
             plus_3_months.to_vector.map as_local_date_time_repr . should_equal ["2023-06-26 00:30:00.0"]
@@ -528,15 +512,12 @@ add_specs suite_builder setup =
                  cannot 'guess' that it should be a day of a difference and
                  since it is 'just' 23 hours - there is 0 days.
             [[0], [1]] . should_contain (x.date_diff dt2 Date_Period.Day . to_vector)
-            # Again consistent for both backends, when counting in hours - 23 hours is not a full 24-hour day.
-            x.date_diff dt2 Time_Period.Day . to_vector . should_equal [0]
 
             dt4 = Date_Time.new 2023 03 29 00 30 00 zone=zone
             y = t.at "Y"
             # No DST switch here, so all backends agree that 0 days elapsed in the 23 hours.
             # Snowflake returns 1...
             y.date_diff dt4 Date_Period.Day . to_vector . should_equal [0]
-            y.date_diff dt4 Time_Period.Day . to_vector . should_equal [0]
             y.date_diff dt4 Time_Period.Hour . to_vector . should_equal [23]
 
     if setup.test_selection.date_time.not then

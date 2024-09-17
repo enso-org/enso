@@ -42,16 +42,71 @@ pub async fn download_project_templates(client: reqwest::Client, enso_root: Path
     let output_base = enso_root.join("lib/scala/pkg/src/main/resources/");
     let url_base = Url::parse("https://github.com/enso-org/project-templates/raw/main/")?;
     let to_handle = [
-        ("Orders", vec!["data/store_data.xlsx", "src/Main.enso"]),
-        ("Restaurants", vec!["data/la_districts.csv", "data/restaurants.csv", "src/Main.enso"]),
+        ("Orders", vec![
+            "data/store_data.xlsx",
+            "src/eaep.png",
+            "src/excel1.png",
+            "src/excel2.png",
+            "src/excel3.png",
+            "src/eyeball_viz.png",
+            "src/Main.enso",
+        ]),
+        ("Restaurants", vec![
+            "data/la_districts.csv",
+            "data/mapcolors.json",
+            "data/restaurants.csv",
+            "src/eaep.png",
+            "src/Main.enso",
+            "src/map1.png",
+            "src/map2.png",
+            "src/table1.png",
+        ]),
         ("Stargazers", vec!["src/Main.enso"]),
         ("Colorado_COVID", vec![
             "data/CDPHE_COVID19_County_Status_Metrics.csv",
             "data/ColoradoGeoData.db",
+            "src/eaep.png",
+            "src/Main.enso",
+            "src/map.png",
+            "src/table1.png",
+            "src/table2.png",
+        ]),
+        ("Monthly_Sales", vec![
+            "data/Sales_Sample_Data.xlsx",
+            "src/eaep.png",
+            "src/excel1.png",
             "src/Main.enso",
         ]),
+        ("Bank_Holiday_Rain", vec!["src/bankholiday.png", "src/eaep.png", "src/Main.enso"]),
         ("KMeans", vec!["src/Main.enso"]),
         ("NASDAQReturns", vec!["src/Main.enso"]),
+        ("Getting_Started_Reading", vec![
+            "src/eags.png",
+            "src/loadfile.gif",
+            "src/Main.enso",
+            "src/sheets.gif",
+            "src/showdata.gif",
+            "src/simpleexpression.gif",
+            "src/table_solution.png",
+            "src/table_viz.png",
+        ]),
+        ("Getting_Started_Aggregating", vec![
+            "data/sample_bank_data.xlsx",
+            "src/answer_table.png",
+            "src/eags.png",
+            "src/Main.enso",
+            "src/set.gif",
+            "src/table1.png",
+        ]),
+        ("Getting_Started_Cleansing", vec!["data/crm_data.csv", "src/eags.png", "src/Main.enso"]),
+        ("Getting_Started_Selecting", vec![
+            "data/crm_data.csv",
+            "data/Customer_Data.xlsx",
+            "src/eags.png",
+            "src/Main.enso",
+            "src/table1.png",
+            "src/table2.png",
+        ]),
     ];
 
     let mut futures = Vec::<BoxFuture<'static, Result>>::new();
@@ -74,7 +129,7 @@ pub async fn download_project_templates(client: reqwest::Client, enso_root: Path
         }
     }
 
-    let _result = ide_ci::future::try_join_all(futures, AsyncPolicy::FutureParallelism).await?;
+    let _result = futures::future::try_join_all(futures).await?;
     debug!("Completed downloading templates");
     Ok(())
 }
@@ -247,7 +302,7 @@ impl Default for BuildConfigurationFlags {
             build_project_manager_package: false,
             build_launcher_bundle: false,
             build_project_manager_bundle: false,
-            generate_java_from_rust: true,
+            generate_java_from_rust: false,
             test_java_generated_from_rust: false,
             verify_packages: false,
         }
@@ -318,10 +373,10 @@ impl BuiltArtifacts {
     pub fn artifacts(&self) -> Vec<&dyn IsArtifact> {
         let mut artifacts = Vec::<&dyn IsArtifact>::new();
         for package in self.packages() {
-            artifacts.push(package);
+            artifacts.push(package.as_dyn_artifact());
         }
         for bundle in self.bundles() {
-            artifacts.push(bundle);
+            artifacts.push(bundle.as_dyn_artifact());
         }
         artifacts
     }

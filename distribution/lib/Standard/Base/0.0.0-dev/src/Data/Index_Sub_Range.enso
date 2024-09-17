@@ -19,7 +19,7 @@ import project.Runtime.Ref.Ref
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Range.Extensions import all
 from project.Metadata.Choice import Option
-from project.Metadata.Widget import Single_Choice
+from project.Metadata.Widget import Numeric_Input, Single_Choice, Vector_Editor
 from project.Random import get_default_seed, Random
 
 type Index_Sub_Range
@@ -54,7 +54,7 @@ type Index_Sub_Range
 
        If `count` is greater than the length of the input, a random permutation
        of all elements from the input is selected.
-    Sample (count : Integer = 1) (seed:Integer|Nothing=Nothing)
+    Sample (count : Integer = 1) (seed:Integer=0)
 
     ## Gets every Nth entry.
 
@@ -79,21 +79,24 @@ type Index_Sub_Range
        It includes all constructors of `Index_Sub_Range` but also `Range`, since
        the `Index_Sub_Range` type is by default used in sum types containing
        `Range` too.
-    default_options : Vector Option
-    default_options =
-        o1 = Option "First" "(..First 1)"
-        o2 = Option "Last" "(..Last 1)"
+    default_options : (Integer|Nothing) -> Vector Option
+    default_options count:(Integer|Nothing)=Nothing =
+        count_editor = if count.is_nothing then Numeric_Input else Numeric_Input minimum=1 maximum=count display=Display.Always
+        index_editor = if count.is_nothing then Numeric_Input else Numeric_Input minimum=0 maximum=(count-1) display=Display.Always
+
+        o1 = Option "First" "..First" [["count", count_editor]]
+        o2 = Option "Last" "..Last" [["count", count_editor]]
+        o4 = Option "By_Index" "..By_Index" [["indexes", Vector_Editor item_editor=index_editor item_default="0"]]
+        o5 = Option "Sample" "..Sample" parameters=[["count", count_editor]]
+        o6 = Option "Every" "..Every"
+        o7 = Option "Range" "(..Between 0 100)" [["start", index_editor], ["end", count_editor]]
         o3 = Option "While" "(..While (x-> False))"
-        o4 = Option "By_Index" "(..By_Index [0])"
-        o5 = Option "Sample" "(..Sample 10)"
-        o6 = Option "Every" "(..Every 2)"
-        o7 = Option "Range" "(Range.new 0 100)"
-        [o1, o2, o3, o4, o5, o6, o7]
+        [o1, o2, o4, o5, o6, o7, o3]
 
     ## PRIVATE
-    default_widget : Widget
-    default_widget =
-        Single_Choice display=Display.Always Index_Sub_Range.default_options
+    default_widget : (Integer|Nothing) -> Widget
+    default_widget count:(Integer|Nothing)=Nothing =
+        Single_Choice display=Display.Always (Index_Sub_Range.default_options count)
 
 ## PRIVATE
    Resolves a vector of ranges or indices into a vector of ranges that fit

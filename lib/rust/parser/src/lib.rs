@@ -75,13 +75,8 @@
 //! processed by the operator precedence resolver as well. In the end, a single [`syntax::Tree`] is
 //! produced, containing the parsed expression.
 
-#![recursion_limit = "256"]
 // === Features ===
-#![feature(let_chains)]
 #![feature(test)]
-#![feature(if_let_guard)]
-#![feature(box_patterns)]
-#![feature(option_get_or_insert_default)]
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]
@@ -93,6 +88,13 @@
 
 use crate::prelude::*;
 
+use crate::lexer::Lexer;
+use crate::source::Code;
+use crate::syntax::token;
+use crate::syntax::tree::SyntaxError;
+use crate::syntax::Finish;
+
+mod im_list;
 
 // ==============
 // === Export ===
@@ -163,11 +165,9 @@ impl Parser {
 
     /// Main entry point.
     pub fn run<'s>(&self, code: &'s str) -> syntax::Tree<'s> {
-        let tokens = lexer::run(code);
-        let mut resolver = macros::resolver::Resolver::new_statement();
-        let result = tokens.map(|tokens| resolver.run(&self.macros, tokens));
-        let value = result.value;
-        if let Some(error) = result.internal_error {
+        let resolver = macros::resolver::Resolver::new(&self.macros);
+        let ParseResult { value, internal_error } = Lexer::new(code, resolver).finish();
+        if let Some(error) = internal_error {
             return value.with_error(format!("Internal error: {error}"));
         }
         value
@@ -183,271 +183,96 @@ impl Default for Parser {
 
 // == Parsing helpers ==
 
-/// Reinterpret an expression in a statement context (i.e. as a top level member of a block).
-///
-/// In statement context, an expression that has an assignment operator at its top level is
-/// interpreted as a variable assignment or method definition.
-fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
-    use syntax::tree::*;
-    match &mut *tree.variant {
-        Variant::Annotated(annotated) => {
-            annotated.expression = annotated.expression.take().map(expression_to_statement);
-        }
-        Variant::AnnotatedBuiltin(annotated) => {
-            annotated.expression = annotated.expression.take().map(expression_to_statement);
-        }
-        Variant::Documented(documented) => {
-            documented.expression = documented.expression.take().map(expression_to_statement);
-        }
-        Variant::ArgumentBlockApplication(ArgumentBlockApplication { lhs: None, .. }) => {
-            return tree.with_error("Expected expression before indented block.");
-        }
-        Variant::TypeAnnotated(typed) => {
-            tree.variant = Box::new(Variant::TypeSignature(TypeSignature {
-                variable: mem::take(&mut typed.expression),
-                operator: mem::take(&mut typed.operator),
-                type_:    mem::take(&mut typed.type_),
-            }));
-        }
-        Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs })
-            if opr.properties.is_assignment() =>
-        {
-            let (lhs, return_spec) = match &mut *lhs.variant {
-                Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) })
-                    if opr.properties.is_arrow() =>
-                    (
-                        lhs,
-                        Some(ReturnSpecification {
-                            arrow:  mem::take(opr),
-                            r#type: mem::take(rhs),
-                        }),
-                    ),
-                _ => (lhs, None),
-            };
-            let (leftmost, args) = collect_arguments(lhs.clone());
-            if return_spec.is_none() {
-                if let Some(rhs) = rhs {
-                    if let Variant::Ident(ident) = &*leftmost.variant
-                        && ident.token.variant.is_type
-                    {
-                        // If the LHS is a type, this is a (destructuring) assignment.
-                        let lhs = expression_to_pattern(mem::take(lhs));
-                        tree.variant = Box::new(Variant::Assignment(Assignment {
-                            pattern: lhs,
-                            equals:  mem::take(opr),
-                            expr:    mem::take(rhs),
-                        }));
-                        return tree;
-                    }
-                    if !is_invalid_pattern(&leftmost) && args.is_empty() && !is_body_block(rhs) {
-                        // If the LHS has no arguments, and there is a RHS, and the RHS is not a
-                        // body block, this is a variable assignment.
-                        tree.variant = Box::new(Variant::Assignment(Assignment {
-                            pattern: leftmost,
-                            equals:  mem::take(opr),
-                            expr:    mem::take(rhs),
-                        }));
-                        return tree;
-                    }
-                }
-            }
-            if is_qualified_name(&leftmost) {
-                // If this is not a variable assignment, and the leftmost leaf of the `App` tree is
-                // a qualified name, this is a function definition.
-                tree.variant = Box::new(Variant::Function(Function {
-                    name: leftmost,
-                    args,
-                    returns: return_spec,
-                    equals: mem::take(opr),
-                    body: mem::take(rhs),
-                }));
-                return tree;
-            }
-            return tree.with_error("Invalid use of assignment operator `=`.");
-        }
-        _ => (),
-    }
-    tree
-}
-
-/// If this function returns `true`, the input is not valid where a pattern is expected.
-fn is_invalid_pattern(tree: &syntax::Tree) -> bool {
-    use syntax::tree::*;
-    match &*tree.variant {
-        Variant::App(App { func: Tree { variant: box Variant::Ident(ident), .. }, arg }) =>
-            !ident.token.is_type || is_invalid_pattern(arg),
-        Variant::App(App { func, arg }) => is_invalid_pattern(func) || is_invalid_pattern(arg),
-        Variant::TypeAnnotated(TypeAnnotated { expression, .. }) => is_invalid_pattern(expression),
-        _ => false,
-    }
-}
-
 fn is_qualified_name(tree: &syntax::Tree) -> bool {
     use syntax::tree::*;
-    match &*tree.variant {
+    match &tree.variant {
         Variant::Ident(_) => true,
-        Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) })
-            if matches!(&*rhs.variant, Variant::Ident(_)) && opr.properties.is_dot() =>
-            is_qualified_name(lhs),
+        Variant::OprApp(app) => match &**app {
+            OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) }
+                if matches!(rhs.variant, Variant::Ident(_)) && opr.code.repr.0 == "." =>
+                is_qualified_name(lhs),
+            _ => false,
+        },
         _ => false,
     }
+}
+
+fn expect_qualified_name(tree: syntax::Tree) -> syntax::Tree {
+    if is_qualified_name(&tree) {
+        tree
+    } else {
+        tree.with_error(SyntaxError::ExpectedQualifiedName)
+    }
+}
+
+fn empty_tree(location: Code) -> syntax::Tree {
+    syntax::Tree::ident(token::ident(location.clone(), location, false, 0, false, false, false))
 }
 
 fn expression_to_pattern(mut input: syntax::Tree<'_>) -> syntax::Tree<'_> {
     use syntax::tree::*;
-    if let Variant::Wildcard(wildcard) = &mut *input.variant {
+    if let Variant::Wildcard(wildcard) = &mut input.variant {
         wildcard.de_bruijn_index = None;
         return input;
     }
-    let mut out = match input.variant {
-        box Variant::TemplateFunction(TemplateFunction { ast, .. }) => expression_to_pattern(ast),
-        box Variant::Group(Group { open, body: Some(body), close }) =>
-            Tree::group(open, Some(expression_to_pattern(body)), close),
-        box Variant::App(App { func, arg }) =>
-            Tree::app(expression_to_pattern(func), expression_to_pattern(arg)),
-        box Variant::TypeAnnotated(TypeAnnotated { expression, operator, type_ }) =>
-            Tree::type_annotated(expression_to_pattern(expression), operator, type_),
-        box Variant::AutoscopedIdentifier(_) =>
-            return input.with_error("The autoscope operator (..) cannot be used in a pattern."),
-        _ => return input,
+    let mut error = None;
+    match input.variant {
+        // === Recursions ===
+        Variant::Group(ref mut group) =>
+            if let Group { body: Some(ref mut body), .. } = &mut **group {
+                transform_tree(body, expression_to_pattern)
+            },
+        Variant::App(ref mut app) => match &mut **app {
+            // === Special-case error ===
+            App { func: Tree { variant: Variant::Ident(ref ident), .. }, .. }
+                if !ident.token.is_type =>
+                error = Some(SyntaxError::PatternUnexpectedExpression),
+            App { ref mut func, ref mut arg } => {
+                transform_tree(func, expression_to_pattern);
+                transform_tree(arg, expression_to_pattern);
+            }
+        },
+        Variant::TypeAnnotated(ref mut inner) =>
+            transform_tree(&mut inner.expression, expression_to_pattern),
+        Variant::OprApp(ref opr_app)
+            if opr_app.opr.as_ref().ok().map_or(false, |o| o.code == ".") =>
+            if !is_qualified_name(&input) {
+                error = Some(SyntaxError::PatternUnexpectedDot);
+            },
+
+        // === Transformations ===
+        Variant::TemplateFunction(func) => {
+            let mut out = expression_to_pattern(func.ast);
+            out.span.left_offset += input.span.left_offset;
+            return out;
+        }
+
+        // === Unconditional and fallthrough errors ===
+        Variant::AutoscopedIdentifier(_) => error = Some(SyntaxError::PatternUnexpectedExpression),
+        Variant::OprApp(_) => error = Some(SyntaxError::PatternUnexpectedExpression),
+
+        // === Unhandled ===
+        _ => {}
     };
-    out.span.left_offset += input.span.left_offset;
-    out
+    maybe_with_error(input, error)
 }
 
-fn collect_arguments(tree: syntax::Tree) -> (syntax::Tree, Vec<syntax::tree::ArgumentDefinition>) {
-    let mut args = vec![];
-    let tree = unroll_arguments(tree, &mut args);
-    args.reverse();
-    (tree, args)
+thread_local! {
+    static DEFAULT_TREE: RefCell<Option<syntax::Tree<'static>>> = default();
 }
 
-fn collect_arguments_inclusive(tree: syntax::Tree) -> Vec<syntax::tree::ArgumentDefinition> {
-    let mut args = vec![];
-    let first = unroll_arguments(tree, &mut args);
-    args.push(parse_argument_definition(first));
-    args.reverse();
-    args
-}
-
-fn unroll_arguments<'s>(
-    mut tree: syntax::Tree<'s>,
-    args: &mut Vec<syntax::tree::ArgumentDefinition<'s>>,
-) -> syntax::Tree<'s> {
-    while let Some(arg) = parse_argument_application(&mut tree) {
-        args.push(arg);
-    }
-    tree
-}
-
-/// Try to parse the expression as an application of a function to an `ArgumentDefinition`. If it
-/// matches, replace the expression with its LHS, and return the `ArgumentDefinition` node.
-pub fn parse_argument_application<'s>(
-    expression: &'_ mut syntax::Tree<'s>,
-) -> Option<syntax::tree::ArgumentDefinition<'s>> {
-    use syntax::tree::*;
-    match &mut expression.variant {
-        box Variant::App(App { func, arg }) => {
-            let arg = parse_argument_definition(arg.clone());
-            func.span.left_offset += expression.span.left_offset.take_as_prefix();
-            *expression = func.clone();
-            Some(arg)
-        }
-        box Variant::NamedApp(NamedApp { func, open, name, equals, arg, close }) => {
-            let open = mem::take(open);
-            let close = mem::take(close);
-            let equals = equals.clone();
-            let pattern = Tree::ident(name.clone());
-            let open2 = default();
-            let suspension = default();
-            let close2 = default();
-            let type_ = default();
-            let default = Some(ArgumentDefault { equals, expression: arg.clone() });
-            func.span.left_offset += expression.span.left_offset.take_as_prefix();
-            *expression = func.clone();
-            Some(ArgumentDefinition {
-                open,
-                open2,
-                pattern,
-                suspension,
-                default,
-                close2,
-                type_,
-                close,
-            })
-        }
-        _ => None,
-    }
-}
-
-/// Interpret the expression as an element of an argument definition sequence.
-pub fn parse_argument_definition(mut pattern: syntax::Tree) -> syntax::tree::ArgumentDefinition {
-    use syntax::tree::*;
-    let mut open1 = default();
-    let mut close1 = default();
-    if let box Variant::Group(Group { mut open, body: Some(mut body), close }) = pattern.variant {
-        *(if let Some(open) = open.as_mut() {
-            &mut open.left_offset
-        } else {
-            &mut body.span.left_offset
-        }) += pattern.span.left_offset;
-        open1 = open;
-        close1 = close;
-        pattern = body;
-    }
-    let mut default_ = default();
-    if let Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) }) =
-        &*pattern.variant
-        && opr.properties.is_assignment()
-    {
-        let left_offset = pattern.span.left_offset;
-        default_ = Some(ArgumentDefault { equals: opr.clone(), expression: rhs.clone() });
-        pattern = lhs.clone();
-        pattern.span.left_offset += left_offset;
-    }
-    let mut open2 = default();
-    let mut close2 = default();
-    if let box Variant::Group(Group { mut open, body: Some(mut body), close }) = pattern.variant {
-        *(if let Some(open) = open.as_mut() {
-            &mut open.left_offset
-        } else {
-            &mut body.span.left_offset
-        }) += pattern.span.left_offset;
-        open2 = open;
-        close2 = close;
-        pattern = body;
-    }
-    let mut type__ = default();
-    if let box Variant::TypeAnnotated(TypeAnnotated { mut expression, operator, type_ }) =
-        pattern.variant
-    {
-        expression.span.left_offset += pattern.span.left_offset;
-        type__ = Some(ArgumentType { operator, type_ });
-        pattern = expression;
-    }
-    let mut suspension = default();
-    if let box Variant::TemplateFunction(TemplateFunction { mut ast, .. }) = pattern.variant {
-        ast.span.left_offset += pattern.span.left_offset;
-        pattern = ast;
-    }
-    if let Variant::UnaryOprApp(UnaryOprApp { opr, rhs: Some(rhs) }) = &*pattern.variant
-        && opr.properties.is_suspension()
-    {
-        let mut opr = opr.clone();
-        opr.left_offset += pattern.span.left_offset;
-        suspension = Some(opr);
-        pattern = rhs.clone();
-    }
-    let pattern = expression_to_pattern(pattern);
-    let open = open1;
-    let close = close1;
-    let type_ = type__;
-    ArgumentDefinition { open, open2, pattern, suspension, default: default_, close2, type_, close }
-}
-
-/// Return whether the expression is a body block.
-fn is_body_block(expression: &syntax::tree::Tree<'_>) -> bool {
-    matches!(&*expression.variant, syntax::tree::Variant::BodyBlock { .. })
+fn transform_tree(tree: &mut syntax::Tree, f: impl FnOnce(syntax::Tree) -> syntax::Tree) {
+    let default: syntax::Tree<'static> =
+        DEFAULT_TREE.with(|default| default.borrow_mut().take()).unwrap_or_default();
+    let original = mem::replace(tree, default);
+    let transformed = f(original);
+    let default_returned = mem::replace(tree, transformed);
+    // This lifetime cast is sound because this is the same value as `default` above; its lifetime
+    // was narrowed by the type system when it was stored in the `tree` reference.
+    #[allow(unsafe_code)]
+    let default_returned =
+        unsafe { mem::transmute::<syntax::Tree<'_>, syntax::Tree<'static>>(default_returned) };
+    DEFAULT_TREE.with(|default| *default.borrow_mut() = Some(default_returned));
 }
 
 

@@ -40,17 +40,17 @@ type Foo_Link
     Value x
 
     to_js_object : JS_Object
-    to_js_object self = JS_Object.from_pairs [["x", self.x], ["links", ["a", "b", "c"]]]    
-
+    to_js_object self = JS_Object.from_pairs [["x", self.x], ["links", ["a", "b", "c"]]]
 
 add_specs suite_builder =
-    make_json header data all_rows value_type has_index_col =
+    make_json header data all_rows value_type has_index_col get_child_node =
         p_header      = ["header", header]
         p_data        = ["data",   data]
         p_all_rows    = ["all_rows_count", all_rows]
         p_value_type  = ["value_type", value_type]
         p_has_index_col = ["has_index_col", has_index_col]
-        pairs    = [p_header, p_value_type, p_data, p_all_rows, p_has_index_col, ["type", "Table"]]
+        p_get_child_node = ["get_child_node_action", get_child_node]
+        pairs    = [p_header, p_value_type, p_data, p_all_rows, p_has_index_col, p_get_child_node, ["type", "Table"]]
         JS_Object.from_pairs pairs . to_text
 
     suite_builder.group "Table Visualization" group_builder->
@@ -60,45 +60,45 @@ add_specs suite_builder =
             vis = Visualization.prepare_visualization data.t 1
             value_type_int = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Integer"], ["display_text", "Integer (64 bits)"], ["bits", 64]]
             value_type_char = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Char"], ["display_text", "Char (variable length, max_size=unlimited)"], ["size", Nothing], ["variable_length", True]]
-            json = make_json header=["A", "B", "C"] data=[['a'], [2], [3]] all_rows=3 value_type=[value_type_char, value_type_int, value_type_int] has_index_col=True
+            json = make_json header=["A", "B", "C"] data=[['a'], [2], [3]] all_rows=3 value_type=[value_type_char, value_type_int, value_type_int] has_index_col=True get_child_node="get_row"
             vis . should_equal json
 
         group_builder.specify "should visualize database columns" <|
             vis = Visualization.prepare_visualization (data.t.at "A") 2
             value_type_char = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Char"], ["display_text", "Char (variable length, max_size=unlimited)"], ["size", Nothing], ["variable_length", True]]
             value_type_float = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Float"], ["display_text", "Float (64 bits)"], ["bits", 64]]
-            json = make_json header=["A"] data=[['a', 'a']] all_rows=3 value_type=[value_type_char] has_index_col=True
+            json = make_json header=["A"] data=[['a', 'a']] all_rows=3 value_type=[value_type_char] has_index_col=True get_child_node="get_row"
             vis . should_equal json
 
             g = data.t.aggregate ["A", "B"] [Aggregate_Column.Average "C"] . at "Average C"
             vis2 = Visualization.prepare_visualization g 1
-            json2 = make_json header=["Average C"] data=[[4.0]] all_rows=2 value_type=[value_type_float] has_index_col=True
+            json2 = make_json header=["Average C"] data=[[4.0]] all_rows=2 value_type=[value_type_float] has_index_col=True get_child_node="get_row"
             vis2 . should_equal json2
 
         group_builder.specify "should visualize dataframe tables" <|
             vis = Visualization.prepare_visualization data.t2 1
             value_type_int = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Integer"], ["display_text", "Integer (64 bits)"], ["bits", 64]]
-            json = make_json header=["A", "B", "C"] data=[[1], [4], [7]] all_rows=3 value_type=[value_type_int, value_type_int, value_type_int] has_index_col=True
+            json = make_json header=["A", "B", "C"] data=[[1], [4], [7]] all_rows=3 value_type=[value_type_int, value_type_int, value_type_int] has_index_col=True get_child_node="get_row"
             vis . should_equal json
 
         group_builder.specify "should visualize dataframe columns" <|
             vis = Visualization.prepare_visualization (data.t2.at "A") 2
             value_type_int = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Integer"], ["display_text", "Integer (64 bits)"], ["bits", 64]]
-            json = make_json header=["A"] data=[[1, 2]] all_rows=3 value_type=[value_type_int] has_index_col=True
+            json = make_json header=["A"] data=[[1, 2]] all_rows=3 value_type=[value_type_int] has_index_col=True get_child_node="get_row"
             vis . should_equal json
 
         group_builder.specify "should handle Vectors" <|
             vis = Visualization.prepare_visualization [1, 2, 3] 2
-            json = JS_Object.from_pairs [["type", "Vector"], ["all_rows_count", 3], ["json", [1, 2]]]
+            json = JS_Object.from_pairs [["type", "Vector"], ["all_rows_count", 3], ["json", [1, 2]], ["get_child_node_action", "at"]]
             vis . should_equal json.to_text
 
             vis2 = Visualization.prepare_visualization [[1, 2], [3, 4]] 2
-            json2 = JS_Object.from_pairs [["type", "Matrix"], ["all_rows_count", 2], ["json", [[1, 2], [3, 4]]], ["column_count", 2]]
+            json2 = JS_Object.from_pairs [["type", "Matrix"], ["all_rows_count", 2], ["json", [[1, 2], [3, 4]]], ["column_count", 2], ["get_child_node_action", "at"]]
             vis2 . should_equal json2.to_text
 
         group_builder.specify "should handle Arrays" <|
             vis = Visualization.prepare_visualization ([1, 2, 3] . to_array) 2
-            json = JS_Object.from_pairs [["type", "Vector"], ["all_rows_count", 3], ["json", [1, 2]]]
+            json = JS_Object.from_pairs [["type", "Vector"], ["all_rows_count", 3], ["json", [1, 2]], ["get_child_node_action", "at"]]
             vis . should_equal json.to_text
 
         group_builder.specify "should handle other datatypes" <|

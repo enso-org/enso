@@ -2,10 +2,7 @@ import { getGroupIndex, tagValue } from '@/stores/suggestionDatabase/documentati
 import { unwrap } from '@/util/data/result'
 import { parseDocs } from '@/util/docParser'
 import { tryQualifiedName } from '@/util/qualifiedName'
-import { initializeFFI } from 'shared/ast/ffi'
 import { expect, test } from 'vitest'
-
-await initializeFFI()
 
 test.each([
   ['ALIAS Bar', 'Bar'],

@@ -5,7 +5,6 @@
 use crate::prelude::*;
 
 use ide_ci::io::retry;
-use ide_ci::programs::Npm;
 use ide_ci::programs::Pnpm;
 
 
@@ -66,37 +65,17 @@ pub fn assume_installed() {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, strum::AsRefStr)]
 #[strum(serialize_all = "kebab-case")]
 pub enum Script {
-    Format,
-    Prettier,
-    Lint,
-    Test,
-    Typecheck,
     CiCheck,
+    #[strum(serialize = "build:gui")]
+    Build,
+    Format,
+    #[strum(serialize = "format:workflows")]
+    FormatWorkflows,
 }
 
 /// Invoke the given script in the context of the root repository's NPM.
 pub fn run_script(repo_root: impl AsRef<Path>, script: Script) -> BoxFuture<'static, Result> {
     let root_path = repo_root.as_ref().to_owned();
-    async move { Npm.cmd()?.with_current_dir(&root_path).run(script.as_ref()).run_ok().await }
+    async move { Pnpm.cmd()?.with_current_dir(&root_path).run(script.as_ref()).run_ok().await }
         .boxed()
-}
-
-/// The list of NPM workspaces that are part of the root repository.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::AsRefStr)]
-#[strum(serialize_all = "kebab-case")]
-pub enum Workspace {
-    EnsoIdeDesktop,
-    Enso,
-    EnsoContent,
-    EnsoDashboard,
-    EnsoIcons,
-    EnsoAuthentication,
-    EnsoGui2,
-    EnsoglRunner,
-}
-
-impl AsRef<OsStr> for Workspace {
-    fn as_ref(&self) -> &OsStr {
-        AsRef::<str>::as_ref(self).as_ref()
-    }
 }

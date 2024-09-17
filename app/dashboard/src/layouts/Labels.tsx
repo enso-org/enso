@@ -1,19 +1,21 @@
 /** @file A list of selectable labels. */
 import * as React from 'react'
 
+import { useMutation } from '@tanstack/react-query'
+
 import PlusIcon from '#/assets/plus.svg'
 import Trash2Icon from '#/assets/trash2.svg'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import Label from '#/components/dashboard/Label'
-import Button from '#/components/styled/Button'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
+import SvgMask from '#/components/SvgMask'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import DragModal from '#/modals/DragModal'
@@ -47,22 +49,19 @@ export default function Labels(props: LabelsProps) {
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const dispatchAssetEvent = useDispatchAssetEvent()
-  const labels = backendHooks.useBackendListTags(backend) ?? []
-
-  const deleteTagMutation = backendHooks.useBackendMutation(backend, 'deleteTag', {
-    onSuccess: (_data, [, labelName]) => {
-      dispatchAssetEvent({ type: AssetEventType.deleteLabel, labelName })
-    },
-  })
+  const labels = useBackendQuery(backend, 'listTags', []).data ?? []
+  const deleteTag = useMutation(
+    backendMutationOptions(backend, 'deleteTag', {
+      onSuccess: (_data, [, labelName]) => {
+        dispatchAssetEvent({ type: AssetEventType.deleteLabel, labelName })
+      },
+    }),
+  ).mutate
 
   return (
     <FocusArea direction="vertical">
       {(innerProps) => (
-        <div
-          data-testid="labels"
-          className="flex w-full flex-col items-start gap-4"
-          {...innerProps}
-        >
+        <div data-testid="labels" className="flex flex-col items-start gap-4" {...innerProps}>
           <ariaComponents.Text variant="subtitle" className="px-2 font-bold">
             {getText('labels')}
           </ariaComponents.Text>
@@ -115,26 +114,22 @@ export default function Labels(props: LabelsProps) {
                   >
                     {label.value}
                   </Label>
-                  {!label.isPlaceholder && (
-                    <FocusRing placement="after">
-                      <Button
-                        active
-                        image={Trash2Icon}
-                        alt={getText('delete')}
+                  <FocusRing placement="after">
+                    <ariaComponents.DialogTrigger>
+                      <ariaComponents.Button
+                        variant="icon"
+                        icon={Trash2Icon}
+                        aria-label={getText('delete')}
                         className="relative flex size-4 text-delete opacity-0 transition-all after:absolute after:-inset-1 after:rounded-button-focus-ring group-has-[[data-focus-visible]]:active group-hover:active"
-                        onPress={() => {
-                          setModal(
-                            <ConfirmDeleteModal
-                              actionText={getText('deleteLabelActionText', label.value)}
-                              doDelete={() => {
-                                deleteTagMutation.mutate([label.id, label.value])
-                              }}
-                            />,
-                          )
+                      />
+                      <ConfirmDeleteModal
+                        actionText={getText('deleteLabelActionText', label.value)}
+                        doDelete={() => {
+                          deleteTag([label.id, label.value])
                         }}
                       />
-                    </FocusRing>
-                  )}
+                    </ariaComponents.DialogTrigger>
+                  </FocusRing>
                 </div>
               )
             })}
@@ -143,7 +138,7 @@ export default function Labels(props: LabelsProps) {
               variant="outline"
               className="pl-1 pr-2"
               /* eslint-disable-next-line no-restricted-syntax */
-              icon={<img src={PlusIcon} alt="" className="ml-auto mt-[1px] size-[8px]" />}
+              icon={<SvgMask src={PlusIcon} alt="" className="ml-auto size-[8px]" />}
               onPress={(event) => {
                 if (event.target instanceof HTMLElement) {
                   setModal(<NewLabelModal backend={backend} eventTarget={event.target} />)

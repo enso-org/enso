@@ -1,7 +1,6 @@
 use crate::prelude::*;
 
 use crate::engine::BuildConfigurationFlags;
-use crate::paths::pretty_print_arch;
 use crate::paths::TargetTriple;
 use crate::project::Context;
 use crate::project::IsArtifact;
@@ -9,18 +8,16 @@ use crate::project::IsTarget;
 use crate::source::WithDestination;
 use crate::version::Versions;
 
-use derivative::Derivative;
 use ide_ci::archive::is_archive_name;
-use ide_ci::extensions::os::OsExt;
 use octocrab::models::repos::Asset;
 
 
 
-#[derive(Clone, Derivative)]
-#[derivative(Debug)]
+#[derive(Clone)]
+#[derive_where(Debug)]
 pub struct BuildInput {
     pub versions:         Versions,
-    #[derivative(Debug = "ignore")]
+    #[derive_where(skip)]
     pub external_runtime: Option<Arc<crate::engine::context::EnginePackageProvider>>,
 }
 
@@ -40,11 +37,9 @@ impl BuildInput {
     }
 }
 
-#[derive(Clone, Derivative)]
-#[derivative(Debug)]
+#[derive(Clone, Debug)]
 pub struct Artifact {
     /// Location of the Project Manager distribution.
-    #[derivative(Debug(format_with = "std::fmt::Display::fmt"))]
     pub path:            crate::paths::generated::ProjectManagerBundle,
     /// Versions of Engine that are bundled in this Project Manager distribution.
     ///
@@ -54,7 +49,6 @@ pub struct Artifact {
     ///
     /// Artifacts built with [`ProjectManager::build`] will have exactly one engine
     /// bundled.
-    #[derivative(Debug(format_with = "ide_ci::fmt::display_list"))]
     pub engine_versions: Vec<Version>,
 }
 
@@ -88,7 +82,7 @@ pub async fn bundled_engine_versions(
 
     let mut dir_reader = ide_ci::fs::tokio::read_dir(&project_manager_bundle.dist).await?;
     while let Some(entry) = dir_reader.try_next().await? {
-        if ide_ci::fs::tokio::metadata(&entry.path()).await?.is_dir() {
+        if ide_ci::fs::tokio::metadata(entry.path()).await?.is_dir() {
             ret.push(Version::from_str(entry.file_name().as_str())?);
         }
     }
@@ -104,7 +98,7 @@ impl Backend {
     pub fn matches_platform(&self, name: &str) -> bool {
         // Sample name: "project-manager-bundle-2022.1.1-nightly.2022-04-16-linux-amd64.tar.gz"
         let os_matches = name.contains(self.target_os.as_str());
-        let arch_matches = name.contains(pretty_print_arch(TARGET_ARCH));
+        let arch_matches = name.contains(TARGET_ARCH.as_str());
         os_matches && arch_matches
     }
 }
@@ -155,11 +149,8 @@ impl IsTarget for Backend {
                 target_os == TARGET_OS,
                 "Enso Project Manager cannot be built on '{target_os}' for target '{TARGET_OS}'.",
             );
-            let config = BuildConfigurationFlags {
-                build_project_manager_bundle: true,
-                generate_java_from_rust: true,
-                ..default()
-            };
+            let config =
+                BuildConfigurationFlags { build_project_manager_bundle: true, ..default() };
             let context = inner.prepare_context(context, config)?;
             let artifacts = context.build().await?;
             let project_manager =

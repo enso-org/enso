@@ -1,16 +1,18 @@
 /** @file Settings screen. */
 import * as React from 'react'
 
-import * as reactQuery from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import BurgerMenuIcon from '#/assets/burger_menu.svg'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
+import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import SearchBar from '#/layouts/SearchBar'
@@ -41,6 +43,7 @@ export interface SettingsProps {
 
 /** Settings screen. */
 export default function Settings() {
+  const queryClient = useQueryClient()
   const backend = backendProvider.useRemoteBackendStrict()
   const localBackend = backendProvider.useLocalBackend()
   const [tab, setTab] = searchParamsState.useSearchParamsState(
@@ -48,36 +51,31 @@ export default function Settings() {
     SettingsTabType.account,
     array.includesPredicate(Object.values(SettingsTabType)),
   )
-  const { user, accessToken } = authProvider.useNonPartialUserSession()
-  const { authQueryKey } = authProvider.useAuth()
+  const { user, accessToken } = authProvider.useFullUserSession()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [query, setQuery] = React.useState('')
   const root = portal.useStrictPortalContext()
   const [isSidebarPopoverOpen, setIsSidebarPopoverOpen] = React.useState(false)
-  const organization = backendHooks.useBackendGetOrganization(backend)
+  const { data: organization = null } = useBackendQuery(backend, 'getOrganization', [])
   const isQueryBlank = !/\S/.test(query)
 
-  const client = reactQuery.useQueryClient()
-  const updateUserMutation = backendHooks.useBackendMutation(backend, 'updateUser', {
-    meta: { invalidates: [authQueryKey], awaitInvalidates: true },
-  })
-  const updateOrganizationMutation = backendHooks.useBackendMutation(backend, 'updateOrganization')
-  const updateUser = updateUserMutation.mutateAsync
-  const updateOrganization = updateOrganizationMutation.mutateAsync
+  const updateUser = useMutation(backendMutationOptions(backend, 'updateUser')).mutateAsync
+  const updateOrganization = useMutation(
+    backendMutationOptions(backend, 'updateOrganization'),
+  ).mutateAsync
 
-  const updateLocalRootPathMutation = reactQuery.useMutation({
-    mutationKey: [localBackend?.type, 'updateRootPath'],
-    mutationFn: (value: string) => {
-      if (localBackend) {
-        localBackend.rootPath = projectManager.Path(value)
-      }
-      return Promise.resolve()
-    },
-    meta: { invalidates: [[localBackend?.type, 'listDirectory']], awaitInvalidates: true },
+  const [, setLocalRootDirectory] = useLocalStorageState('localRootDirectory')
+  const updateLocalRootPath = useEventCallback((value: string) => {
+    setLocalRootDirectory(value)
+    if (localBackend) {
+      localBackend.setRootPath(projectManager.Path(value))
+    }
   })
-
-  const updateLocalRootPath = updateLocalRootPathMutation.mutateAsync
+  const resetLocalRootPath = useEventCallback(() => {
+    setLocalRootDirectory(undefined)
+    localBackend?.resetRootPath()
+  })
 
   const context = React.useMemo<settingsData.SettingsContext>(
     () => ({
@@ -89,9 +87,10 @@ export default function Settings() {
       updateUser,
       updateOrganization,
       updateLocalRootPath,
+      resetLocalRootPath,
       toastAndLog,
       getText,
-      queryClient: client,
+      queryClient,
     }),
     [
       accessToken,
@@ -101,10 +100,11 @@ export default function Settings() {
       organization,
       toastAndLog,
       updateLocalRootPath,
+      resetLocalRootPath,
       updateOrganization,
       updateUser,
       user,
-      client,
+      queryClient,
     ],
   )
 
@@ -183,7 +183,7 @@ export default function Settings() {
   }, [isQueryBlank, doesEntryMatchQuery, getText, isMatch, effectiveTab])
 
   return (
-    <div className="flex flex-1 flex-col gap-4 overflow-hidden px-page-x pt-4">
+    <div className="flex flex-1 flex-col gap-4 overflow-hidden pl-page-x pt-4">
       <aria.Heading level={1} className="flex items-center px-heading-x">
         <aria.MenuTrigger isOpen={isSidebarPopoverOpen} onOpenChange={setIsSidebarPopoverOpen}>
           <Button image={BurgerMenuIcon} buttonClassName="mr-3 sm:hidden" onPress={() => {}} />
@@ -208,13 +208,12 @@ export default function Settings() {
         <ariaComponents.Text
           variant="h1"
           truncate="1"
-          className="ml-2.5 max-w-lg rounded-full bg-white px-2.5 font-bold"
+          className="ml-2.5 mr-8 max-w-lg rounded-full bg-white px-2.5 font-bold"
           aria-hidden
         >
           {data.organizationOnly === true ? organization?.name ?? 'your organization' : user.name}
         </ariaComponents.Text>
-      </aria.Heading>
-      <div className="flex sm:ml-[222px]">
+
         <SearchBar
           data-testid="settings-search-bar"
           query={query}
@@ -222,8 +221,9 @@ export default function Settings() {
           label={getText('settingsSearchBarLabel')}
           placeholder={getText('settingsSearchBarPlaceholder')}
         />
-      </div>
-      <div className="flex flex-1 gap-6 overflow-hidden pr-0.5">
+      </aria.Heading>
+      <div className="flex sm:ml-[222px]" />
+      <div className="flex flex-1 gap-4 overflow-hidden">
         <aside className="hidden h-full shrink-0 basis-[206px] flex-col overflow-y-auto overflow-x-hidden pb-12 sm:flex">
           <SettingsSidebar
             context={context}
@@ -232,15 +232,17 @@ export default function Settings() {
             setTab={setTab}
           />
         </aside>
-        <SettingsTab
-          context={context}
-          data={data}
-          onInteracted={() => {
-            if (effectiveTab !== tab) {
-              setTab(effectiveTab)
-            }
-          }}
-        />
+        <main className="flex flex-1 flex-col overflow-y-auto pb-12 pl-1 scrollbar-gutter-stable">
+          <SettingsTab
+            context={context}
+            data={data}
+            onInteracted={() => {
+              if (effectiveTab !== tab) {
+                setTab(effectiveTab)
+              }
+            }}
+          />
+        </main>
       </div>
     </div>
   )

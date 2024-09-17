@@ -2,6 +2,8 @@
 /** @file Various actions, locators, and constants used in end-to-end tests. */
 import * as test from '@playwright/test'
 
+import * as text from 'enso-common/src/text'
+
 import DrivePageActions from './actions/DrivePageActions'
 import LoginPageActions from './actions/LoginPageActions'
 import * as apiModule from './api'
@@ -18,6 +20,7 @@ export const INVALID_PASSWORD = 'password'
 export const VALID_PASSWORD = 'Password0!'
 /** An example valid email address. */
 export const VALID_EMAIL = 'email@example.com'
+export const TEXT = text.TEXTS.english
 
 // ================
 // === Locators ===
@@ -62,12 +65,12 @@ export function locateNewLabelModalColorButtons(page: test.Page) {
 
 /** Find a "name" input for an "upsert secret" modal (if any) on the current page. */
 export function locateSecretNameInput(page: test.Page) {
-  return locateUpsertSecretModal(page).getByPlaceholder('Enter the name of the secret')
+  return locateUpsertSecretModal(page).getByPlaceholder(TEXT.secretNamePlaceholder)
 }
 
 /** Find a "value" input for an "upsert secret" modal (if any) on the current page. */
 export function locateSecretValueInput(page: test.Page) {
-  return locateUpsertSecretModal(page).getByPlaceholder('Enter the value of the secret')
+  return locateUpsertSecretModal(page).getByPlaceholder(TEXT.secretValuePlaceholder)
 }
 
 /** Find a search bar input (if any) on the current page. */
@@ -95,16 +98,6 @@ export function locateRegisterButton(page: test.Locator | test.Page) {
 /** Find a "set username" button (if any) on the current page. */
 export function locateSetUsernameButton(page: test.Locator | test.Page) {
   return page.getByRole('button', { name: 'Set Username' }).getByText('Set Username')
-}
-
-/** Find a "delete" button (if any) on the current page. */
-export function locateDeleteButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Delete' }).getByText('Delete')
-}
-
-/** Find a button to delete something (if any) on the current page. */
-export function locateDeleteIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('Delete')
 }
 
 /** Find a "create" button (if any) on the current page. */
@@ -325,7 +318,12 @@ export function locateAssetsTable(page: test.Page) {
 
 /** Find assets table rows (if any) on the current page. */
 export function locateAssetRows(page: test.Page) {
-  return locateAssetsTable(page).locator('tbody').getByRole('row')
+  return locateAssetsTable(page).getByTestId('asset-row')
+}
+
+/** Find assets table placeholder rows (if any) on the current page. */
+export function locateNonAssetRows(page: test.Page) {
+  return locateAssetsTable(page).locator('tbody tr:not([data-testid="asset-row"])')
 }
 
 /** Find the name column of the given asset row. */
@@ -349,12 +347,6 @@ export function locateCollapsibleDirectories(page: test.Page) {
   return locateAssetRows(page).filter({ has: page.locator('[aria-label=Collapse]') })
 }
 
-/** Find a "confirm delete" modal (if any) on the current page. */
-export function locateConfirmDeleteModal(page: test.Page) {
-  // This has no identifying features.
-  return page.getByTestId('confirm-delete-modal')
-}
-
 /** Find a "new label" modal (if any) on the current page. */
 export function locateNewLabelModal(page: test.Page) {
   // This has no identifying features.
@@ -365,12 +357,6 @@ export function locateNewLabelModal(page: test.Page) {
 export function locateUpsertSecretModal(page: test.Page) {
   // This has no identifying features.
   return page.getByTestId('upsert-secret-modal')
-}
-
-/** Find a "new user group" modal (if any) on the current page. */
-export function locateNewUserGroupModal(page: test.Page) {
-  // This has no identifying features.
-  return page.getByTestId('new-user-group-modal')
 }
 
 /** Find a user menu (if any) on the current page. */
@@ -494,17 +480,21 @@ export namespace settings {
 
     /** Find a "current password" input in the "user account" settings section. */
     export function locateCurrentPasswordInput(page: test.Page) {
-      return locate(page).getByLabel('Current password')
+      return locate(page).getByRole('group', { name: 'Current password' }).getByRole('textbox')
     }
 
     /** Find a "new password" input in the "user account" settings section. */
     export function locateNewPasswordInput(page: test.Page) {
-      return locate(page).getByLabel('New password', { exact: true })
+      return locate(page)
+        .getByRole('group', { name: /^New password/, exact: true })
+        .getByRole('textbox')
     }
 
     /** Find a "confirm new password" input in the "user account" settings section. */
     export function locateConfirmNewPasswordInput(page: test.Page) {
-      return locate(page).getByLabel('Confirm new password')
+      return locate(page)
+        .getByRole('group', { name: /^Confirm new password/, exact: true })
+        .getByRole('textbox')
     }
 
     /** Find a "change" button. */
@@ -701,34 +691,6 @@ export async function expectNotOnScreen(locator: test.Locator) {
   })
 }
 
-// =======================
-// === Mouse utilities ===
-// =======================
-
-// eslint-disable-next-line @typescript-eslint/no-magic-numbers
-export const ASSET_ROW_SAFE_POSITION = { x: 300, y: 16 }
-
-/** Click an asset row. The center must not be clicked as that is the button for adding a label. */
-export async function clickAssetRow(assetRow: test.Locator) {
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  await assetRow.click({ position: ASSET_ROW_SAFE_POSITION })
-}
-
-/** Drag an asset row. The center must not be clicked as that is the button for adding a label. */
-export async function dragAssetRowToAssetRow(from: test.Locator, to: test.Locator) {
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  await from.dragTo(to, {
-    sourcePosition: ASSET_ROW_SAFE_POSITION,
-    targetPosition: ASSET_ROW_SAFE_POSITION,
-  })
-}
-
-/** Drag an asset row. The center must not be clicked as that is the button for adding a label. */
-export async function dragAssetRow(from: test.Locator, to: test.Locator) {
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  await from.dragTo(to, { sourcePosition: ASSET_ROW_SAFE_POSITION })
-}
-
 // ==========================
 // === Keyboard utilities ===
 // ==========================
@@ -776,13 +738,12 @@ export async function login(
   first = true,
 ) {
   await test.test.step('Login', async () => {
-    await page.goto('/')
     await locateEmailInput(page).fill(email)
     await locatePasswordInput(page).fill(password)
     await locateLoginButton(page).click()
     await test.expect(page.getByText('Logging in to Enso...')).not.toBeVisible()
     if (first) {
-      await passTermsAndConditionsDialog({ page, setupAPI })
+      await passAgreementsDialog({ page, setupAPI })
       await test.expect(page.getByText('Logging in to Enso...')).not.toBeVisible()
     }
   })
@@ -857,11 +818,12 @@ async function mockDate({ page }: MockParams) {
   })
 }
 
-/** Pass the Terms and conditions dialog. */
-export async function passTermsAndConditionsDialog({ page }: MockParams) {
+/** Pass the Agreements dialog. */
+export async function passAgreementsDialog({ page }: MockParams) {
   await test.test.step('Accept Terms and Conditions', async () => {
-    await page.waitForSelector('#terms-of-service-modal')
-    await page.getByRole('checkbox').click()
+    await page.waitForSelector('#agreements-modal')
+    await page.getByTestId('terms-of-service-checkbox').click()
+    await page.getByTestId('privacy-policy-checkbox').click()
     await page.getByRole('button', { name: 'Accept' }).click()
   })
 }
@@ -885,6 +847,7 @@ export function mockAll({ page, setupAPI }: MockParams) {
   return new LoginPageActions(page).step('Execute all mocks', async () => {
     await mockApi({ page, setupAPI })
     await mockDate({ page, setupAPI })
+    await page.goto('/')
   })
 }
 
@@ -900,6 +863,7 @@ export function mockAllAndLogin({ page, setupAPI }: MockParams) {
     .step('Execute all mocks', async () => {
       await mockApi({ page, setupAPI })
       await mockDate({ page, setupAPI })
+      await page.goto('/')
     })
     .do((thePage) => login({ page: thePage, setupAPI }))
 }
@@ -916,6 +880,7 @@ export async function mockAllAndLoginAndExposeAPI({ page, setupAPI }: MockParams
   return await test.test.step('Execute all mocks and login', async () => {
     const api = await mockApi({ page, setupAPI })
     await mockDate({ page, setupAPI })
+    await page.goto('/')
     await login({ page, setupAPI })
     return api
   })

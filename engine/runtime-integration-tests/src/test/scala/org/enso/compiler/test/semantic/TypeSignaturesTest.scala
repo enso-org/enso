@@ -90,7 +90,7 @@ trait TypeMatchers {
         } else {
           items.lazyZip(t.operands).flatMap(findInequalityWitness).headOption
         }
-      case (In(typed, context), Type.Context(irTyped, irContext, _, _, _)) =>
+      case (In(typed, context), Type.Context(irTyped, irContext, _, _)) =>
         findInequalityWitness(typed, irTyped).orElse(
           findInequalityWitness(context, irContext)
         )
@@ -130,7 +130,8 @@ class TypeSignaturesTest
     with TypeMatchers {
 
   private val ctx = new InterpreterContext()
-  private val langCtx = ctx.ctx
+  private val langCtx = ctx
+    .ctx()
     .getBindings(LanguageInfo.ID)
     .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
     .asHostObject[EnsoContext]()

@@ -10,6 +10,7 @@ import type { Vec2 } from '@/util/data/vec2'
 import { dataAttribute, elementHierarchy } from '@/util/dom'
 import * as set from 'lib0/set'
 import { computed, ref, shallowReactive, shallowRef } from 'vue'
+import { Err, Ok, type Result } from 'ydoc-shared/util/data/result'
 
 interface BaseSelectionOptions<T> {
   margin?: number
@@ -119,6 +120,17 @@ function useSelectionImpl<T, PackedT>(
     setSelection(newSelection)
   }
 
+  /** Returns the single selected component, or an error. */
+  function tryGetSoleSelection(): Result<T, string> {
+    if (selected.value.size === 0) {
+      return Err('No component selected')
+    } else if (selected.value.size > 1) {
+      return Err('Multiple components selected')
+    } else {
+      return Ok(set.first(selected.value)!)
+    }
+  }
+
   const selectionEventHandler = selectionMouseBindings.handler({
     replace() {
       setSelection(elementsToSelect.value)
@@ -215,6 +227,7 @@ function useSelectionImpl<T, PackedT>(
     },
     committedSelection,
     setSelection,
+    tryGetSoleSelection,
     // === Selection changes ===
     anchor,
     isChanging,

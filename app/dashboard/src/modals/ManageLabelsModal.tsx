@@ -1,7 +1,9 @@
 /** @file A modal to select labels for an asset. */
 import * as React from 'react'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import { useMutation } from '@tanstack/react-query'
+
+import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
@@ -56,7 +58,7 @@ export default function ManageLabelsModal<
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const allLabels = backendHooks.useBackendListTags(backend)
+  const { data: allLabels } = useBackendQuery(backend, 'listTags', [])
   const [labels, setLabelsRaw] = React.useState(item.labels ?? [])
   const [query, setQuery] = React.useState('')
   const [color, setColor] = React.useState<backendModule.LChColor | null>(null)
@@ -73,11 +75,11 @@ export default function ManageLabelsModal<
   )
   const canCreateNewLabel = canSelectColor
 
-  const createTagMutation = backendHooks.useBackendMutation(backend, 'createTag')
-  const associateTagMutation = backendHooks.useBackendMutation(backend, 'associateTag')
+  const createTag = useMutation(backendMutationOptions(backend, 'createTag')).mutateAsync
+  const associateTag = useMutation(backendMutationOptions(backend, 'associateTag')).mutateAsync
 
   const setLabels = React.useCallback(
-    (valueOrUpdater: React.SetStateAction<backendModule.LabelName[]>) => {
+    (valueOrUpdater: React.SetStateAction<readonly backendModule.LabelName[]>) => {
       setLabelsRaw(valueOrUpdater)
       setItem((oldItem) =>
         // This is SAFE, as the type of asset is not being changed.
@@ -98,7 +100,7 @@ export default function ManageLabelsModal<
       labelNames.has(name) ? labels.filter((label) => label !== name) : [...labels, name]
     setLabels(newLabels)
     try {
-      await associateTagMutation.mutateAsync([item.id, newLabels, item.title])
+      await associateTag([item.id, newLabels, item.title])
     } catch (error) {
       toastAndLog(null, error)
       setLabels(labels)
@@ -110,9 +112,9 @@ export default function ManageLabelsModal<
     const labelName = backendModule.LabelName(query)
     setLabels((oldLabels) => [...oldLabels, labelName])
     try {
-      await createTagMutation.mutateAsync([{ value: labelName, color: color ?? leastUsedColor }])
+      await createTag([{ value: labelName, color: color ?? leastUsedColor }])
       setLabels((newLabels) => {
-        associateTagMutation.mutate([item.id, newLabels, item.title])
+        void associateTag([item.id, newLabels, item.title])
         return newLabels
       })
     } catch (error) {

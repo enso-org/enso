@@ -50,6 +50,7 @@ float_id : Float -> Float
 float_id f =
     Number_Utils.floatId f
 
+pending_js_missing = if Polyglot.is_language_installed "js" then Nothing else "Can't run JavaScript tests, language `js` is not installed."
 
 add_specs suite_builder =
     eps = 0.000001
@@ -101,66 +102,68 @@ add_specs suite_builder =
 
             1/0 . is_infinite . should_be_true
             -1/0 . is_infinite . should_be_true
+            1/0 . is_finite . should_be_false
+            -1/0 . is_finite . should_be_false
 
         group_builder.specify "should support integer division" <|
             (10.div 3) . should_equal 3
             (10.div 0).should_fail_with Arithmetic_Error
 
         group_builder.specify "should support integral binary literals" <|
-            lit = 2_01101101
+            lit = 0b01101101
             lit . should_equal 109
 
         group_builder.specify "should support integral hexadecimal literals" <|
-            lit = 16_6D
+            lit = 0x6D
             lit . should_equal 109
 
         group_builder.specify "should support bitwise and" <|
-            left  = 2_01101101
-            right = 2_11000100
-            big_left = 16_17ffffffffffffffa
-            big_right = 16_17ffffffffffffffc
-            left.bit_and right . should_equal 2_01000100
-            left.bit_and big_right . should_equal 2_01101100
-            big_left.bit_and right . should_equal 2_11000000
-            big_left.bit_and big_right . should_equal 16_17ffffffffffffff8
+            left  = 0b01101101
+            right = 0b11000100
+            big_left = 0x17ffffffffffffffa
+            big_right = 0x17ffffffffffffffc
+            left.bit_and right . should_equal 0b01000100
+            left.bit_and big_right . should_equal 0b01101100
+            big_left.bit_and right . should_equal 0b11000000
+            big_left.bit_and big_right . should_equal 0x17ffffffffffffff8
 
         group_builder.specify "should support bitwise or" <|
-            left  = 2_01101101
-            right = 2_11000100
-            big_left = 16_17ffffffffffffffa
-            big_right = 16_17ffffffffffffffc
-            left.bit_or right . should_equal 2_11101101
-            left.bit_or big_right . should_equal 16_17ffffffffffffffd
-            big_left.bit_or right . should_equal 16_17ffffffffffffffe
-            big_left.bit_or right . should_equal 16_17ffffffffffffffe
+            left  = 0b01101101
+            right = 0b11000100
+            big_left = 0x17ffffffffffffffa
+            big_right = 0x17ffffffffffffffc
+            left.bit_or right . should_equal 0b11101101
+            left.bit_or big_right . should_equal 0x17ffffffffffffffd
+            big_left.bit_or right . should_equal 0x17ffffffffffffffe
+            big_left.bit_or right . should_equal 0x17ffffffffffffffe
 
         group_builder.specify "should support bitwise exclusive or" <|
-            left  = 2_01101101
-            right = 2_11000100
-            big_left = 16_17ffffffffffffffa
-            big_right = 16_17ffffffffffffffc
-            left.bit_xor right . should_equal 2_10101001
-            left.bit_xor big_right . should_equal 16_17fffffffffffff91
-            big_left.bit_xor right . should_equal 16_17fffffffffffff3e
-            big_left.bit_xor big_right . should_equal 2_00000110
+            left  = 0b01101101
+            right = 0b11000100
+            big_left = 0x17ffffffffffffffa
+            big_right = 0x17ffffffffffffffc
+            left.bit_xor right . should_equal 0b10101001
+            left.bit_xor big_right . should_equal 0x17fffffffffffff91
+            big_left.bit_xor right . should_equal 0x17fffffffffffff3e
+            big_left.bit_xor big_right . should_equal 0b00000110
 
         group_builder.specify "should support bitwise negation" <|
-            bits  = 2_01101101
-            big_bits = 16_17ffffffffffffffa
-            bits.bit_not . should_equal -2_01101110
+            bits  = 0b01101101
+            big_bits = 0x17ffffffffffffffa
+            bits.bit_not . should_equal -0b01101110
             bits.bit_not.bit_not . should_equal bits
-            big_bits.bit_not . should_equal -16_17ffffffffffffffb
+            big_bits.bit_not . should_equal -0x17ffffffffffffffb
             big_bits.bit_not.bit_not . should_equal big_bits
 
         group_builder.specify "should support left bit shifts" <|
-            positive_bits = 2_01101101
-            negative_bits = -2_01101101
+            positive_bits = 0b01101101
+            negative_bits = -0b01101101
             positive_big_bits = almost_max_long_times_three
             negative_big_bits = -almost_max_long_times_three
 
-            positive_bits.bit_shift_l 2 . should_equal 2_0110110100
-            positive_bits.bit_shift_l 64 . should_equal 16_6d0000000000000000
-            positive_bits.bit_shift_l -2 . should_equal 2_011011
+            positive_bits.bit_shift_l 2 . should_equal 0b0110110100
+            positive_bits.bit_shift_l 64 . should_equal 0x6d0000000000000000
+            positive_bits.bit_shift_l -2 . should_equal 0b011011
             positive_bits.bit_shift_l -64 . should_equal 0
             (positive_bits.bit_shift_l positive_big_bits).should_fail_with Arithmetic_Error
             positive_bits.bit_shift_l negative_big_bits . should_equal 0
@@ -187,8 +190,8 @@ add_specs suite_builder =
             negative_big_bits.bit_shift_l negative_big_bits . should_equal -1
 
         group_builder.specify "should support right bit shifts, preserving sign" <|
-            positive_bits = 2_01101101
-            negative_bits = -2_01101101
+            positive_bits = 0b01101101
+            negative_bits = -0b01101101
             positive_big_bits = almost_max_long_times_three
             negative_big_bits = -almost_max_long_times_three
 
@@ -554,6 +557,11 @@ add_specs suite_builder =
             Number.positive_infinity.is_infinite . should_be_true
             Number.negative_infinity.is_infinite . should_be_true
 
+            Number.nan.is_finite . should_be_false
+            0.is_finite . should_be_true
+            Number.positive_infinity.is_finite . should_be_false
+            Number.negative_infinity.is_finite . should_be_false
+
             Number.nan==Number.nan . should_be_false
             Number.nan==0 . should_be_false
             Number.nan!=Number.nan . should_be_true
@@ -736,8 +744,8 @@ add_specs suite_builder =
     suite_builder.group "BigInts" group_builder->
         expected_value = 2002115494039257055317447151023464523838443110452722331466645440244415760562579268801894716412
 
-        bigint_spec name create mul =
-            group_builder.specify name+" 6 * 7" <|
+        bigint_spec name create mul pending=Nothing =
+            group_builder.specify name+" 6 * 7" pending=pending <|
                 six = create 6
                 seven = create 7
                 both = six*seven
@@ -747,7 +755,7 @@ add_specs suite_builder =
                 seven.is_a Integer . should_be_true
                 both.is_a Integer . should_be_true
 
-            group_builder.specify name+" power of 3 with running_fold" <|
+            group_builder.specify name+" power of 3 with running_fold" pending=pending <|
                 three = create 3
 
                 two_hundred = 1.up_to 200 . running_fold three a->_->
@@ -757,7 +765,7 @@ add_specs suite_builder =
                 sum.is_a Integer . should_be_true
                 sum.div two_hundred.length . should_equal expected_value
 
-            group_builder.specify name+" power of 3 with map" <|
+            group_builder.specify name+" power of 3 with map" pending=pending <|
                 three = create 3
 
                 two_hundred = 1.up_to 200 . map i->
@@ -770,31 +778,31 @@ add_specs suite_builder =
                     v -> Test.fail "Expecting Integer, but got: "+(Meta.type_of v).to_text
                 sum.div two_hundred.length . should_equal expected_value
 
-            group_builder.specify name+" Ordering.compare BigInteger" <|
+            group_builder.specify name+" Ordering.compare BigInteger" pending=pending <|
                     bd1 = create 5
                     bd2 = create 13
                     Ordering.compare bd1 bd2 . should_equal Ordering.Less
                     Ordering.compare bd2 bd1 . should_equal Ordering.Greater
 
-            group_builder.specify name+" < BigInteger" <|
+            group_builder.specify name+" < BigInteger" pending=pending <|
                     bd1 = create 5
                     bd2 = create 13
                     (bd1 < bd2) . should_be_true
                     (bd2 < bd1) . should_be_false
 
-            group_builder.specify name+" <= BigInteger" <|
+            group_builder.specify name+" <= BigInteger" pending=pending <|
                     bd1 = create 5
                     bd2 = create 13
                     (bd1 <= bd2) . should_be_true
                     (bd2 <= bd1) . should_be_false
 
-            group_builder.specify name+" > BigInteger" <|
+            group_builder.specify name+" > BigInteger" pending=pending <|
                     bd1 = create 5
                     bd2 = create 13
                     (bd1 > bd2) . should_be_false
                     (bd2 > bd1) . should_be_true
 
-            group_builder.specify name+" >= BigInteger" <|
+            group_builder.specify name+" >= BigInteger" pending=pending <|
                     bd1 = create 5
                     bd2 = create 13
                     (bd1 >= bd2) . should_be_false
@@ -808,9 +816,10 @@ add_specs suite_builder =
 
         bigint_spec "Enso" (x->x) (*)
         bigint_spec "Java" to_java_bigint java_bigint_mul
-        bigint_spec "JavaScript" to_js_bigint js_bigint_mul
+        bigint_spec "JavaScript" to_js_bigint js_bigint_mul pending_js_missing
 
-        group_builder.specify "Matrix of values" <|
+
+        group_builder.specify "Matrix of values" pending=pending_js_missing <|
             x = to_java_bigint 10
             y = 10
             z = 10.0

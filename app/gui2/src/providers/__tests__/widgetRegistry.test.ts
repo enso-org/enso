@@ -9,13 +9,10 @@ import {
 import { GraphDb } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
 import { ApplicationKind, ArgumentInfoKey } from '@/util/callTree'
-import { initializeFFI } from 'shared/ast/ffi'
 import { describe, expect, test } from 'vitest'
 import { defineComponent } from 'vue'
 import type { PortId } from '../portInfo'
 import { DisplayMode, argsWidgetConfigurationSchema } from '../widgetRegistry/configuration'
-
-await initializeFFI()
 
 describe('WidgetRegistry', () => {
   function makeMockWidget<T extends WidgetInput>(

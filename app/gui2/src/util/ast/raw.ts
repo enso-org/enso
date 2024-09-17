@@ -1,11 +1,11 @@
-import { assert, assertDefined } from '@/util/assert'
+import { assertDefined } from '@/util/assert'
 import * as map from 'lib0/map'
-import * as RawAst from 'shared/ast/generated/ast'
-import { parseEnso } from 'shared/ast/parse'
-import { LazyObject, LazySequence } from 'shared/ast/parserSupport'
-import { tryGetSoleValue } from 'shared/util/data/iterable'
-import { isResult, mapOk } from 'shared/util/data/result'
-import type { SourceRange } from 'shared/yjsModel'
+import * as RawAst from 'ydoc-shared/ast/generated/ast'
+import { parseEnso } from 'ydoc-shared/ast/parse'
+import { LazyObject, LazySequence } from 'ydoc-shared/ast/parserSupport'
+import { tryGetSoleValue } from 'ydoc-shared/util/data/iterable'
+import { isResult, mapOk } from 'ydoc-shared/util/data/result'
+import type { SourceRange } from 'ydoc-shared/yjsModel'
 
 export { parseEnso, RawAst }
 
@@ -17,7 +17,6 @@ export type HasAstRange = SourceRange | RawAst.Tree | RawAst.Token
  */
 export function parseEnsoLine(code: string): RawAst.Tree {
   const block = parseEnso(code)
-  assert(block.type === RawAst.Tree.Type.BodyBlock)
   const soleExpression = tryGetSoleValue(block.statements)?.expression
   assertDefined(soleExpression)
   return soleExpression

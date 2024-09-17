@@ -13,11 +13,13 @@ polyglot java import java.time.format.DateTimeFormatter
 
 add_specs suite_builder =
     spec_with suite_builder "Date" Date.new Date.parse
-    spec_with suite_builder "JavaScriptDate" js_date js_parse
+    if Polyglot.is_language_installed "js" then
+        spec_with suite_builder "JavaScriptDate" js_date js_parse
     if Polyglot.is_language_installed "python" then
         spec_with suite_builder "PythonDate" python_date python_parse pending="https://github.com/enso-org/enso/issues/8913"
     spec_with suite_builder "JavaDate" java_date java_parse
-    spec_with suite_builder "JavaScriptArrayWithADate" js_array_date js_parse
+    if Polyglot.is_language_installed "js" then
+        spec_with suite_builder "JavaScriptArrayWithADate" js_array_date js_parse
 
 spec_with suite_builder name create_new_date parse_date pending=Nothing =
     if pending.is_nothing then Date_Part_Spec.add_specs suite_builder name create_new_date
@@ -476,7 +478,7 @@ spec_with suite_builder name create_new_date parse_date pending=Nothing =
             d1.date_part Date_Period.Week . should_equal 52
             d1.date_part Date_Period.Day . should_equal 30
 
-            Test.expect_panic_with (d1.date_part Time_Period.Day) Type_Error
+            Test.expect_panic_with (d1.date_part Time_Period.Hour) Type_Error
 
         group_builder.specify "should allow computing date_diff" <|
             d1 = create_new_date 2021 11 3
@@ -505,7 +507,6 @@ spec_with suite_builder name create_new_date parse_date pending=Nothing =
             d3.date_diff (Date.new 2021 03 01) Date_Period.Day . should_equal 58
             d3.date_diff (Date.new 2021 03 01) Date_Period.Month . should_equal 1
 
-            Test.expect_panic_with (d1.date_diff d2 Time_Period.Day) Type_Error
             Test.expect_panic_with (d1.date_diff d2 Time_Period.Hour) Type_Error
 
         group_builder.specify "should allow shifting with date_add" <|
@@ -521,7 +522,6 @@ spec_with suite_builder name create_new_date parse_date pending=Nothing =
             d1.date_add 2 Date_Period.Quarter . should_equal (Date.new 2021 07 31)
 
             Test.expect_panic_with (d1.date_add 1 Time_Period.Hour) Type_Error
-            Test.expect_panic_with (d1.date_add 1 Time_Period.Day) Type_Error
             Test.expect_panic_with (d1.date_add 1.5 Date_Period.Day) Type_Error
             Test.expect_panic_with (d1.date_add 1.0 Date_Period.Day) Type_Error
 
@@ -552,7 +552,7 @@ js_date year month=1 day=1 =
 
 js_array_date year month=1 day=1 =
     arr = Panic.catch Any (js_array_dateCreate year month day) (err -> Error.throw (Time_Error.Error err.payload))
-    js_set_zone arr.at(0)
+    js_set_zone (arr.at 0)
 
 java_parse date_text pattern=Nothing =
     Panic.catch Any handler=(err -> Error.throw (Time_Error.Error err.payload.getMessage)) <|

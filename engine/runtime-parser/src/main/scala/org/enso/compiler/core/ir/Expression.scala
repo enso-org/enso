@@ -53,17 +53,16 @@ object Expression {
     * @param location    the source location that the node corresponds to
     * @param suspended   whether or not the block is suspended
     * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
     */
   sealed case class Block(
     expressions: List[Expression],
     returnValue: Expression,
     location: Option[IdentifiedLocation],
-    suspended: Boolean             = false,
-    passData: MetadataStorage      = new MetadataStorage(),
-    diagnostics: DiagnosticStorage = DiagnosticStorage()
+    suspended: Boolean        = false,
+    passData: MetadataStorage = new MetadataStorage()
   ) extends Expression
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -86,16 +85,26 @@ object Expression {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Block = {
-      val res = Block(
-        expressions,
-        returnValue,
-        location,
-        suspended,
-        passData,
-        diagnostics
-      )
-      res.id = id
-      res
+      if (
+        expressions != this.expressions
+        || returnValue != this.returnValue
+        || suspended != this.suspended
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Block(
+          expressions,
+          returnValue,
+          location,
+          suspended,
+          passData
+        )
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -123,9 +132,8 @@ object Expression {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -180,17 +188,26 @@ object Expression {
     * @param expression  the expression being bound to `name`
     * @param location    the source location that the node corresponds to
     * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
     */
   sealed case class Binding(
     name: Name,
     expression: Expression,
     location: Option[IdentifiedLocation],
-    passData: MetadataStorage      = new MetadataStorage(),
-    diagnostics: DiagnosticStorage = DiagnosticStorage()
+    passData: MetadataStorage = new MetadataStorage()
   ) extends Expression
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
+
+    /** Create a [[Binding]] object from a [[Function.Binding]].
+      *
+      * @param ir the function binding
+      * @param lambda the body of the function
+      */
+    def this(ir: Function.Binding, lambda: Function.Lambda) = {
+      this(ir.name, lambda, ir.location, ir.passData)
+      this.diagnostics = ir.diagnostics
+    }
 
     /** Creates a copy of `this`.
       *
@@ -210,9 +227,19 @@ object Expression {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Binding = {
-      val res = Binding(name, expression, location, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        name != this.name
+        || expression != this.expression
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Binding(name, expression, location, passData)
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -238,9 +265,8 @@ object Expression {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */

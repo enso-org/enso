@@ -11,8 +11,5 @@
     "../../build.json",
     "src/config.json"
   ],
-  "references": [
-    { "path": "../../gui2/tsconfig.server.json" },
-    { "path": "../../dashboard" }
-  ]
+  "references": [{ "path": "../../dashboard" }]
 }

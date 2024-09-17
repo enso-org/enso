@@ -378,97 +378,164 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
   private def copyResources(pkg: Package[F], template: Template): Unit =
     template match {
       case Template.Default =>
-        val mainEnsoPath = new URI(s"/default/src/${Package.mainFileName}")
-
-        copyResource(
-          mainEnsoPath,
-          pkg.sourceDir.getChild(Package.mainFileName)
-        )
+        copyTemplateFiles(pkg, "default", List(Package.mainFileName), List())
 
       case Template.ColoradoCovid =>
-        val metricsDataPath = new URI(
-          "/colorado_covid/data/CDPHE_COVID19_County_Status_Metrics.csv"
+        val srcFiles = List(
+          Package.mainFileName,
+          "eaep.png",
+          "map.png",
+          "table1.png",
+          "table2.png"
         )
-        val geoDataPath = new URI("/colorado_covid/data/ColoradoGeoData.db")
-        val mainEnsoPath = new URI(
-          s"/colorado_covid/src/${Package.mainFileName}"
+        val dataFiles = List(
+          "CDPHE_COVID19_County_Status_Metrics.csv",
+          "ColoradoGeoData.db"
         )
-
-        pkg.root.getChild("data").createDirectories()
-        copyResource(
-          metricsDataPath,
-          pkg.root
-            .getChild("data")
-            .getChild("CDPHE_COVID19_County_Status_Metrics.csv")
-        )
-        copyResource(
-          geoDataPath,
-          pkg.root.getChild("data").getChild("ColoradoGeoData.db")
-        )
-        copyResource(
-          mainEnsoPath,
-          pkg.sourceDir.getChild(Package.mainFileName)
-        )
+        copyTemplateFiles(pkg, "colorado_covid", srcFiles, dataFiles)
 
       case Template.Kmeans =>
-        val mainEnsoPath = new URI(s"/kmeans/src/${Package.mainFileName}")
-
-        copyResource(
-          mainEnsoPath,
-          pkg.sourceDir.getChild(Package.mainFileName)
-        )
+        copyTemplateFiles(pkg, "kmeans", List(Package.mainFileName), List())
 
       case Template.NasdaqReturns =>
-        val mainEnsoPath = new URI(
-          s"/nasdaqreturns/src/${Package.mainFileName}"
-        )
-
-        copyResource(
-          mainEnsoPath,
-          pkg.sourceDir.getChild(Package.mainFileName)
+        copyTemplateFiles(
+          pkg,
+          "nasdaqreturns",
+          List(Package.mainFileName),
+          List()
         )
 
       case Template.Orders =>
-        val storeDataPath = new URI("/orders/data/store_data.xlsx")
-        val mainEnsoPath  = new URI(s"/orders/src/${Package.mainFileName}")
-
-        pkg.root.getChild("data").createDirectories()
-        copyResource(
-          storeDataPath,
-          pkg.root.getChild("data").getChild("store_data.xlsx")
+        val srcFiles = List(
+          Package.mainFileName,
+          "eaep.png",
+          "excel1.png",
+          "excel2.png",
+          "excel3.png",
+          "eyeball_viz.png"
         )
-        copyResource(
-          mainEnsoPath,
-          pkg.sourceDir.getChild(Package.mainFileName)
+        val dataFiles = List(
+          "store_data.xlsx"
         )
+        copyTemplateFiles(pkg, "orders", srcFiles, dataFiles)
 
       case Template.Restaurants =>
-        val laDistrictsDataPath = new URI("/restaurants/data/la_districts.csv")
-        val restaurantsDataPath = new URI("/restaurants/data/restaurants.csv")
-        val mainEnsoPath        = new URI(s"/restaurants/src/${Package.mainFileName}")
-
-        pkg.root.getChild("data").createDirectories()
-        copyResource(
-          laDistrictsDataPath,
-          pkg.root.getChild("data").getChild("la_districts.csv")
+        val srcFiles = List(
+          Package.mainFileName,
+          "eaep.png",
+          "map1.png",
+          "map2.png",
+          "table1.png"
         )
-        copyResource(
-          restaurantsDataPath,
-          pkg.root.getChild("data").getChild("restaurants.csv")
+        val dataFiles = List(
+          "la_districts.csv",
+          "mapcolors.json",
+          "restaurants.csv"
         )
-        copyResource(
-          mainEnsoPath,
-          pkg.sourceDir.getChild(Package.mainFileName)
-        )
+        copyTemplateFiles(pkg, "restaurants", srcFiles, dataFiles)
 
       case Template.Stargazers =>
-        val mainEnsoPath = new URI(s"/stargazers/src/${Package.mainFileName}")
+        copyTemplateFiles(pkg, "stargazers", List(Package.mainFileName), List())
 
-        copyResource(
-          mainEnsoPath,
-          pkg.sourceDir.getChild(Package.mainFileName)
+      case Template.MonthlySales =>
+        val srcFiles = List(
+          Package.mainFileName,
+          "eaep.png",
+          "excel1.png"
         )
+        val dataFiles = List(
+          "Sales_Sample_Data.xlsx"
+        )
+        copyTemplateFiles(pkg, "monthly_sales", srcFiles, dataFiles)
+
+      case Template.BankHolidayRain =>
+        val srcFiles = List(
+          Package.mainFileName,
+          "eaep.png",
+          "bankholiday.png"
+        )
+        copyTemplateFiles(pkg, "bank_holiday_rain", srcFiles, List())
+
+      case Template.GettingStartedReading =>
+        val srcFiles = List(
+          Package.mainFileName,
+          "eags.png",
+          "loadfile.gif",
+          "sheets.gif",
+          "showdata.gif",
+          "simpleexpression.gif",
+          "table_solution.png",
+          "table_viz.png"
+        )
+        copyTemplateFiles(pkg, "getting_started_reading", srcFiles, List())
+
+      case Template.GettingStartedAggregating =>
+        val srcFiles = List(
+          Package.mainFileName,
+          "answer_table.png",
+          "eags.png",
+          "set.gif",
+          "table1.png"
+        )
+        val dataFiles = List(
+          "sample_bank_data.xlsx"
+        )
+        copyTemplateFiles(
+          pkg,
+          "getting_started_aggregating",
+          srcFiles,
+          dataFiles
+        )
+
+      case Template.GettingStartedCleansing =>
+        val srcFiles = List(
+          Package.mainFileName,
+          "eags.png"
+        )
+        val dataFiles = List(
+          "crm_data.csv"
+        )
+        copyTemplateFiles(pkg, "getting_started_cleansing", srcFiles, dataFiles)
+
+      case Template.GettingStartedSelecting =>
+        val srcFiles = List(
+          Package.mainFileName,
+          "eags.png",
+          "table1.png",
+          "table2.png"
+        )
+        val dataFiles = List(
+          "crm_data.csv",
+          "Customer_Data.xlsx"
+        )
+        copyTemplateFiles(pkg, "getting_started_selecting", srcFiles, dataFiles)
     }
+
+  private def copyTemplateFiles(
+    pkg: Package[F],
+    project_name: String,
+    srcFiles: List[String],
+    dataFiles: List[String]
+  ): Unit = {
+    srcFiles.foreach { file =>
+      val srcPath = new URI(s"/$project_name/src/$file")
+      copyResource(
+        srcPath,
+        pkg.sourceDir.getChild(file)
+      )
+    }
+
+    if (dataFiles.nonEmpty) {
+      pkg.root.getChild("data").createDirectories()
+      dataFiles.foreach { file =>
+        val dataPath = new URI(s"/$project_name/data/$file")
+        copyResource(
+          dataPath,
+          pkg.root.getChild("data").getChild(file)
+        )
+      }
+    }
+  }
 
   /** Copy the resource to provided resource.
     *

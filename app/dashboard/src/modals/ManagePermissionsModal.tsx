@@ -1,11 +1,11 @@
 /** @file A modal with inputs for user email and permission level. */
 import * as React from 'react'
 
-import * as reactQuery from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import * as toast from 'react-toastify'
 import isEmail from 'validator/es/lib/isEmail'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import { backendMutationOptions } from '#/hooks/backendHooks'
 import * as billingHooks from '#/hooks/billing'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -46,7 +46,7 @@ export interface ManagePermissionsModalProps<
 > {
   readonly item: Pick<Asset, 'id' | 'permissions' | 'type'>
   readonly setItem: React.Dispatch<React.SetStateAction<Asset>>
-  readonly self: backendModule.UserPermission
+  readonly self: backendModule.AssetPermission
   /** Remove the current user's permissions from this asset. This MUST be a prop because it should
    * change the assets list. */
   readonly doRemoveSelf: () => void
@@ -70,14 +70,14 @@ export default function ManagePermissionsModal<
   const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
   const isUnderPaywall = isFeatureUnderPaywall('shareFull')
 
-  const listedUsers = reactQuery.useQuery({
+  const listedUsers = useQuery({
     queryKey: ['listUsers'],
     queryFn: () => remoteBackend.listUsers(),
     enabled: !isUnderPaywall,
     select: (data) => (isUnderPaywall ? [] : data),
   })
 
-  const listedUserGroups = reactQuery.useQuery({
+  const listedUserGroups = useQuery({
     queryKey: ['listUserGroups'],
     queryFn: () => remoteBackend.listUserGroups(),
   })
@@ -121,11 +121,11 @@ export default function ManagePermissionsModal<
       ),
     [user.userId, permissions, self.permission],
   )
+  const selfId = backendModule.getAssetPermissionId(self)
 
-  const inviteUserMutation = backendHooks.useBackendMutation(remoteBackend, 'inviteUser')
-  const createPermissionMutation = backendHooks.useBackendMutation(
-    remoteBackend,
-    'createPermission',
+  const inviteUserMutation = useMutation(backendMutationOptions(remoteBackend, 'inviteUser'))
+  const createPermissionMutation = useMutation(
+    backendMutationOptions(remoteBackend, 'createPermission'),
   )
 
   React.useEffect(() => {
@@ -236,7 +236,7 @@ export default function ManagePermissionsModal<
   }
 
   const doDelete = async (permissionId: backendModule.UserPermissionIdentifier) => {
-    if (permissionId === self.user.userId) {
+    if (selfId === permissionId) {
       doRemoveSelf()
     } else {
       const oldPermission = permissions.find(
@@ -341,11 +341,6 @@ export default function ManagePermissionsModal<
                       itemToKey={(userOrGroup) =>
                         'userId' in userOrGroup ? userOrGroup.userId : userOrGroup.id
                       }
-                      itemToString={(userOrGroup) =>
-                        'name' in userOrGroup ?
-                          `${userOrGroup.name} (${userOrGroup.email})`
-                        : userOrGroup.groupName
-                      }
                       matches={(userOrGroup, text) =>
                         ('email' in userOrGroup &&
                           userOrGroup.email.toLowerCase().includes(text.toLowerCase())) ||
@@ -356,7 +351,13 @@ export default function ManagePermissionsModal<
                       }
                       text={email}
                       setText={setEmail}
-                    />
+                    >
+                      {(userOrGroup) =>
+                        'name' in userOrGroup ?
+                          `${userOrGroup.name} (${userOrGroup.email})`
+                        : userOrGroup.groupName
+                      }
+                    </Autocomplete>
                   </div>
                 </div>
                 <ariaComponents.Button
@@ -396,7 +397,7 @@ export default function ManagePermissionsModal<
                         : oldPermission,
                       ),
                     )
-                    if (permissionId === self.user.userId) {
+                    if (selfId === permissionId) {
                       // This must run only after the permissions have
                       // been updated through `setItem`.
                       setTimeout(() => {
@@ -405,7 +406,7 @@ export default function ManagePermissionsModal<
                     }
                   }}
                   doDelete={(id) => {
-                    if (id === self.user.userId) {
+                    if (selfId === id) {
                       unsetModal()
                     }
                     void doDelete(id)

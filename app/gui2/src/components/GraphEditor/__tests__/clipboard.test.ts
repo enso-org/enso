@@ -7,15 +7,11 @@ import {
 } from '@/components/GraphEditor/clipboard'
 import { type Node } from '@/stores/graph'
 import { Ast } from '@/util/ast'
-import { initializePrefixes, nodeFromAst } from '@/util/ast/node'
+import { nodeFromAst } from '@/util/ast/node'
 import { Blob } from 'node:buffer'
-import { initializeFFI } from 'shared/ast/ffi'
-import { assertDefined } from 'shared/util/assert'
-import { type VisualizationMetadata } from 'shared/yjsModel'
 import { expect, test } from 'vitest'
-
-await initializeFFI()
-initializePrefixes()
+import { assertDefined } from 'ydoc-shared/util/assert'
+import { type VisualizationMetadata } from 'ydoc-shared/yjsModel'
 
 test.each([
   {
@@ -74,7 +70,7 @@ const testNodeInputs: {
 const testNodes = testNodeInputs.map(({ code, visualization, colorOverride }) => {
   const root = Ast.Ast.parse(code)
   root.setNodeMetadata({ visualization, colorOverride })
-  const node = nodeFromAst(root)
+  const node = nodeFromAst(root, false)
   assertDefined(node)
   // `nodesToClipboardData` only needs the `NodeDataFromAst` fields of `Node`, because it reads the metadata directly
   // from the AST.
@@ -86,7 +82,7 @@ test.each([...testNodes.map((node) => [node]), testNodes])(
     const clipboardItem = clipboardItemFromTypes(nodesToClipboardData(sourceNodes))
     const pastedNodes = await nodesFromClipboardContent([clipboardItem])
     sourceNodes.forEach((sourceNode, i) => {
-      expect(pastedNodes[i]?.documentation).toBe(sourceNode.documentation)
+      expect(pastedNodes[i]?.documentation).toBe(sourceNode.docs?.documentation())
       expect(pastedNodes[i]?.expression).toBe(sourceNode.innerExpr.code())
       expect(pastedNodes[i]?.metadata?.colorOverride).toBe(sourceNode.colorOverride)
       expect(pastedNodes[i]?.metadata?.visualization).toBe(sourceNode.vis)

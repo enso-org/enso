@@ -5,18 +5,24 @@ import * as backend from '#/services/Backend'
 
 import * as actions from './actions'
 
+// eslint-disable-next-line @typescript-eslint/no-magic-numbers
+export const ASSET_ROW_SAFE_POSITION = { x: 300, y: 16 }
+
+/** Click an asset row. The center must not be clicked as that is the button for adding a label. */
+export async function clickAssetRow(assetRow: test.Locator) {
+  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+  await assetRow.click({ position: ASSET_ROW_SAFE_POSITION })
+}
+
 test.test('drag labels onto single row', async ({ page }) => {
   const label = 'aaaa'
   await actions.mockAllAndLogin({
     page,
     setupAPI: (api) => {
       api.addLabel(label, backend.COLORS[0])
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      api.addLabel('bbbb', backend.COLORS[1]!)
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      api.addLabel('cccc', backend.COLORS[2]!)
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      api.addLabel('dddd', backend.COLORS[3]!)
+      api.addLabel('bbbb', backend.COLORS[1])
+      api.addLabel('cccc', backend.COLORS[2])
+      api.addLabel('dddd', backend.COLORS[3])
       api.addDirectory('foo')
       api.addSecret('bar')
       api.addFile('baz')
@@ -41,12 +47,9 @@ test.test('drag labels onto multiple rows', async ({ page }) => {
     page,
     setupAPI: (api) => {
       api.addLabel(label, backend.COLORS[0])
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      api.addLabel('bbbb', backend.COLORS[1]!)
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      api.addLabel('cccc', backend.COLORS[2]!)
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      api.addLabel('dddd', backend.COLORS[3]!)
+      api.addLabel('bbbb', backend.COLORS[1])
+      api.addLabel('cccc', backend.COLORS[2])
+      api.addLabel('dddd', backend.COLORS[3])
       api.addDirectory('foo')
       api.addSecret('bar')
       api.addFile('baz')
@@ -57,8 +60,9 @@ test.test('drag labels onto multiple rows', async ({ page }) => {
   const labelEl = actions.locateLabelsPanelLabels(page, label)
 
   await page.keyboard.down(await actions.modModifier(page))
-  await actions.clickAssetRow(assetRows.nth(0))
-  await actions.clickAssetRow(assetRows.nth(2))
+  await test.expect(assetRows).toHaveCount(4)
+  await clickAssetRow(assetRows.nth(0))
+  await clickAssetRow(assetRows.nth(2))
   await test.expect(labelEl).toBeVisible()
   await labelEl.dragTo(assetRows.nth(2))
   await page.keyboard.up(await actions.modModifier(page))

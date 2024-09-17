@@ -3,7 +3,7 @@ import * as test from '@playwright/test'
 
 import type * as inputBindings from '#/utilities/inputBindings'
 
-import * as actions from '../actions'
+import { modModifier } from '../actions'
 
 // ====================
 // === PageCallback ===
@@ -149,10 +149,26 @@ export default class BaseActions implements Promise<void> {
   withModPressed<R extends BaseActions>(callback: (actions: this) => R) {
     return callback(
       this.step('Press "Mod"', async (page) => {
-        await page.keyboard.down(await actions.modModifier(page))
+        await page.keyboard.down(await modModifier(page))
       }),
     ).step('Release "Mod"', async (page) => {
-      await page.keyboard.up(await actions.modModifier(page))
+      await page.keyboard.up(await modModifier(page))
     })
+  }
+
+  /** Expect an input to have an error (or no error if the expected value is `null`).
+   * If the expected value is `undefined`, the assertion is skipped. */
+  expectInputError(testId: string, description: string, expected: string | null | undefined) {
+    if (expected === undefined) {
+      return this
+    } else if (expected != null) {
+      return this.step(`Expect ${description} error to be '${expected}'`, async (page) => {
+        await test.expect(page.getByTestId(testId).getByTestId('error')).toHaveText(expected)
+      })
+    } else {
+      return this.step(`Expect no ${description} error`, async (page) => {
+        await test.expect(page.getByTestId(testId).getByTestId('error')).not.toBeVisible()
+      })
+    }
   }
 }

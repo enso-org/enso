@@ -25,8 +25,8 @@ import {
 } from '@/util/callTree'
 import { partitionPoint } from '@/util/data/array'
 import { isIdentifier } from '@/util/qualifiedName.ts'
-import { methodPointerEquals, type MethodPointer } from 'shared/languageServerTypes'
 import { computed, proxyRefs } from 'vue'
+import { methodPointerEquals, type MethodPointer } from 'ydoc-shared/languageServerTypes'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
@@ -67,8 +67,10 @@ const innerInput = computed(() => {
   const callInfo = methodCallInfo.value
   if (callInfo) {
     input[CallInfo] = callInfo
-    const definition = graph.getMethodAst(callInfo.methodCall.methodPointer)
-    if (definition.ok) input[FunctionName] = { editableName: definition.value.name.externalId }
+    if (input.value instanceof Ast.PropertyAccess || input.value instanceof Ast.Ident) {
+      const definition = graph.getMethodAst(callInfo.methodCall.methodPointer)
+      if (definition.ok) input[FunctionName] = { editableName: definition.value.name.externalId }
+    }
   }
   return input
 })

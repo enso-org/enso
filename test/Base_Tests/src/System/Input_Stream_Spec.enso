@@ -14,24 +14,6 @@ main filter=Nothing =
     suite.run_with_filter filter
 
 
-foreign js is_like data available = """
-    let at = 0
-    let is = {
-        read : function(arr, off, len) {
-          let cnt = 0;
-          while (len-- > 0) {
-            arr[off++] = data[at++];
-            cnt++;
-          }
-          return cnt;
-        }
-    }
-    if (available) {
-      is.available = function() {
-        return data.length - at;
-      };
-    }
-    return is;
 
 add_specs suite_builder = suite_builder.group "Input Stream" group_builder->
     group_builder.specify "should be peekable if backed by memory" <|
@@ -83,32 +65,3 @@ add_specs suite_builder = suite_builder.group "Input Stream" group_builder->
         # The read still succeeds - ensuring there isn't some early EOF
         promoted_stream.read_n_bytes 10 . should_equal [100, 101, 102, 103, 104]
 
-    group_builder.specify "read without available" <|
-        stream_like = is_like [20, 5, 1, 10] False
-        is = Stream_Utils.asInputStream stream_like
-        is.available . should_equal 0
-
-        is.read . should_equal 20
-        is.read . should_equal 5
-
-        is.available . should_equal 0
-
-        is.read . should_equal 1
-        is.read . should_equal 10
-
-        is.available . should_equal 0
-
-    group_builder.specify "read with available" <|
-        stream_like = is_like [20, 6, 8, 23] True
-        is = Stream_Utils.asInputStream stream_like
-        is.available . should_equal 4
-
-        is.read . should_equal 20
-        is.read . should_equal 6
-
-        is.available . should_equal 2
-
-        is.read . should_equal 8
-        is.read . should_equal 23
-
-        is.available . should_equal 0

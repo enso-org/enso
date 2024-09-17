@@ -93,8 +93,18 @@
 //!
 //! See the definitions and macros below to learn more.
 
+
+
+mod collect;
+mod operator;
+
 use crate::prelude::*;
 use crate::source::*;
+
+pub use operator::Associativity;
+pub use operator::OperatorProperties;
+pub use operator::Precedence;
+pub use operator::TokenOperatorProperties;
 
 
 
@@ -158,6 +168,18 @@ impl<'s, T> Token<'s, T> {
     pub fn span<'a>(&'a self) -> span::Ref<'s, 'a> {
         let code_length = self.code.length();
         span::Ref { left_offset: &self.left_offset, code_length }
+    }
+
+    /// Whether this token has space characters on the left.
+    pub fn is_spaced(&self) -> bool {
+        self.left_offset.visible.width_in_spaces != 0
+    }
+}
+
+impl<'s> Token<'s, Variant> {
+    /// Whether this token is a syntactically-special binary operator.
+    pub fn is_syntactic_binary_operator(&self) -> bool {
+        is_syntactic_binary_operator(&self.variant)
     }
 }
 
@@ -268,16 +290,31 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
             #[reflect(skip)]
             pub is_default:            bool,
         },
-        Operator {
-            #[serde(skip)]
-            #[reflect(skip)]
-            pub properties: OperatorProperties,
-        },
+        // === Binary operators ===
+        Operator,
+        AssignmentOperator,
+        TypeAnnotationOperator,
+        ArrowOperator,
+        DotOperator,
+        CommaOperator,
+        // === Unary operators ===
+        UnaryOperator,
+        AnnotationOperator,
+        AutoscopeOperator,
+        LambdaOperator,
+        SuspensionOperator,
+        NegationOperator,
+
         Digits {
             pub base: Option<Base>
         },
         NumberBase,
         Private,
+        TypeKeyword,
+        ForeignKeyword,
+        AllKeyword,
+        CaseKeyword,
+        OfKeyword,
         TextStart,
         TextEnd,
         TextSection,
@@ -319,285 +356,6 @@ impl Default for Variant {
 }
 
 
-// === Operator properties ===
-
-/// Properties of an operator that are identified when lexing.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
-pub struct OperatorProperties {
-    // Precedence
-    binary_infix_precedence:   Option<Precedence>,
-    unary_prefix_precedence:   Option<Precedence>,
-    is_value_operation:        bool,
-    // Operator section behavior
-    lhs_section_termination:   Option<crate::syntax::operator::SectionTermination>,
-    // Special properties
-    is_compile_time_operation: bool,
-    is_right_associative:      bool,
-    is_modifier:               bool,
-    // Unique operators
-    is_decimal:                bool,
-    is_type_annotation:        bool,
-    is_assignment:             bool,
-    is_arrow:                  bool,
-    is_sequence:               bool,
-    is_suspension:             bool,
-    is_autoscope:              bool,
-    is_annotation:             bool,
-    is_dot:                    bool,
-    is_special:                bool,
-    is_token_joiner:           bool,
-}
-
-impl OperatorProperties {
-    /// Construct an operator with default properties.
-    pub fn new() -> Self {
-        default()
-    }
-
-    /// Return a copy of this operator, with the given binary infix precedence.
-    pub fn with_binary_infix_precedence(self, value: u32) -> Self {
-        let precedence = Precedence { value };
-        debug_assert!(precedence > Precedence::min());
-        Self { binary_infix_precedence: Some(precedence), ..self }
-    }
-
-    /// Return a copy of this operator, with unary prefix parsing allowed.
-    pub fn with_unary_prefix_mode(self, precedence: Precedence) -> Self {
-        debug_assert!(precedence > Precedence::min());
-        Self { unary_prefix_precedence: Some(precedence), ..self }
-    }
-
-    /// Return a copy of this operator, modified to be flagged as a compile time operation.
-    pub fn as_compile_time_operation(self) -> Self {
-        Self { is_compile_time_operation: true, ..self }
-    }
-
-    /// Return whether this operator is flagged as a compile time operation.
-    pub fn is_compile_time_operation(&self) -> bool {
-        self.is_compile_time_operation
-    }
-
-    /// Mark the operator as a value-level operation, as opposed to functional.
-    pub fn as_value_operation(self) -> Self {
-        Self { is_value_operation: true, ..self }
-    }
-
-    /// Return whether the operator is a value-level operation, as opposed to functional.
-    pub fn is_value_operation(&self) -> bool {
-        self.is_value_operation
-    }
-
-    /// Return a copy of this operator, modified to be flagged as right associative.
-    pub fn as_right_associative(self) -> Self {
-        Self { is_right_associative: true, ..self }
-    }
-
-    /// Return a copy of this operator, modified to be flagged as an modified-assignment operator.
-    pub fn as_modifier(self) -> Self {
-        Self { is_modifier: true, ..self }
-    }
-
-    /// Return a copy of this operator, modified to be flagged as special.
-    pub fn as_special(self) -> Self {
-        Self { is_special: true, ..self }
-    }
-
-    /// Return a copy of this operator, modified to be flagged as the token-joiner operator.
-    pub fn as_token_joiner(self) -> Self {
-        Self { is_token_joiner: true, ..self }
-    }
-
-    /// Return a copy of this operator, modified to have the specified LHS operator-section/
-    /// template-function behavior.
-    pub fn with_lhs_section_termination<T>(self, lhs_section_termination: T) -> Self
-    where T: Into<Option<crate::syntax::operator::SectionTermination>> {
-        Self { lhs_section_termination: lhs_section_termination.into(), ..self }
-    }
-
-    /// Return a copy of this operator, modified to be flagged as a type annotation operator.
-    pub fn as_type_annotation(self) -> Self {
-        Self { is_type_annotation: true, ..self }
-    }
-
-    /// Return a copy of this operator, modified to be flagged as an assignment operator.
-    pub fn as_assignment(self) -> Self {
-        Self { is_assignment: true, ..self }
-    }
-
-    /// Return a copy of this operator, modified to be flagged as an arrow operator.
-    pub fn as_arrow(self) -> Self {
-        Self { is_arrow: true, ..self }
-    }
-
-    /// Return a copy of this operator, modified to be flagged as the sequence operator.
-    pub fn as_sequence(self) -> Self {
-        Self { is_sequence: true, ..self }
-    }
-
-    /// Return a copy of this operator, modified to be flagged as the annotation operator.
-    pub fn as_annotation(self) -> Self {
-        Self { is_annotation: true, ..self }
-    }
-
-    /// Return a copy of this operator, modified to be flagged as the execution-suspension operator.
-    pub fn as_suspension(self) -> Self {
-        Self { is_suspension: true, ..self }
-    }
-
-    /// Return a copy of this operator, modified to be flagged as the autoscope operator.
-    pub fn as_autoscope(self) -> Self {
-        Self { is_autoscope: true, ..self }
-    }
-
-    /// Return a copy of this operator, modified to be flagged as the dot operator.
-    pub fn as_dot(self) -> Self {
-        Self { is_dot: true, ..self }
-    }
-
-    /// Return a copy of this operator, modified to be interpreted as a decimal point.
-    pub fn as_decimal(self) -> Self {
-        Self { is_decimal: true, ..self }
-    }
-
-    /// Return this operator's binary infix precedence, if it has one.
-    pub fn binary_infix_precedence(&self) -> Option<Precedence> {
-        self.binary_infix_precedence
-    }
-
-    /// Return this operator's unary prefix precedence, if it has one.
-    pub fn unary_prefix_precedence(&self) -> Option<Precedence> {
-        self.unary_prefix_precedence
-    }
-
-    /// Return whether this operator can form operator sections.
-    pub fn can_form_section(&self) -> bool {
-        !self.is_compile_time_operation
-    }
-
-    /// Return whether this operator is the type annotation operator.
-    pub fn is_type_annotation(&self) -> bool {
-        self.is_type_annotation
-    }
-
-    /// Return the LHS operator-section/template-function behavior of this operator.
-    pub fn lhs_section_termination(&self) -> Option<crate::syntax::operator::SectionTermination> {
-        self.lhs_section_termination
-    }
-
-    /// Return whether this operator is illegal outside special uses.
-    pub fn is_special(&self) -> bool {
-        self.is_special
-    }
-
-    /// Return whether this operator is the assignment operator.
-    pub fn is_assignment(&self) -> bool {
-        self.is_assignment
-    }
-
-    /// Return whether this operator is a modified-assignment operator.
-    pub fn is_modifier(&self) -> bool {
-        self.is_modifier
-    }
-
-    /// Return whether this operator is the arrow operator.
-    pub fn is_arrow(&self) -> bool {
-        self.is_arrow
-    }
-
-    /// Return whether this operator is the sequence operator.
-    pub fn is_sequence(&self) -> bool {
-        self.is_sequence
-    }
-
-    /// Return whether this operator is the execution-suspension operator.
-    pub fn is_suspension(&self) -> bool {
-        self.is_suspension
-    }
-
-    /// Return whether this operator is the autoscope operator.
-    pub fn is_autoscope(&self) -> bool {
-        self.is_autoscope
-    }
-
-    /// Return whether this operator is the annotation operator.
-    pub fn is_annotation(&self) -> bool {
-        self.is_annotation
-    }
-
-    /// Return whether this operator is the dot operator.
-    pub fn is_dot(&self) -> bool {
-        self.is_dot
-    }
-
-    /// Return whether this operator is the token-joiner operator.
-    pub fn is_token_joiner(&self) -> bool {
-        self.is_token_joiner
-    }
-
-    /// Return this operator's associativity.
-    pub fn associativity(&self) -> Associativity {
-        match self.is_right_associative {
-            false => Associativity::Left,
-            true => Associativity::Right,
-        }
-    }
-
-    /// Return whether this operator is a decimal point.
-    pub fn is_decimal(&self) -> bool {
-        self.is_decimal
-    }
-}
-
-/// Value that can be compared to determine which operator will bind more tightly within an
-/// expression.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Reflect, Deserialize, PartialOrd, Ord)]
-pub struct Precedence {
-    /// A numeric value determining precedence order.
-    value: u32,
-}
-
-impl Precedence {
-    /// Return a precedence that is lower than the precedence of any operator.
-    pub fn min() -> Self {
-        Precedence { value: 0 }
-    }
-
-    /// Return the precedence for any operator.
-    pub fn min_valid() -> Self {
-        Precedence { value: 1 }
-    }
-
-    /// Return a precedence that is not lower than any other precedence.
-    pub fn max() -> Self {
-        Precedence { value: 100 }
-    }
-
-    /// Return the precedence of application.
-    pub fn application() -> Self {
-        Precedence { value: 80 }
-    }
-
-    /// Return the precedence of unary minus.
-    pub fn unary_minus() -> Self {
-        Precedence { value: 79 }
-    }
-
-    /// Return the precedence of unary minus when applied to a numeric literal.
-    pub fn unary_minus_numeric_literal() -> Self {
-        Precedence { value: 80 }
-    }
-}
-
-/// Associativity (left or right).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Associativity {
-    /// Left-associative.
-    Left,
-    /// Right-associative.
-    Right,
-}
-
-
 // === Numbers ===
 
 /// Alternate numeric bases (decimal is the default).
@@ -624,7 +382,7 @@ pub enum Base {
 ///   serialization for optional codepoints.
 #[derive(Clone, Copy, PartialEq, Eq, Serialize, Reflect, Deserialize, Debug)]
 #[reflect(transparent)]
-pub struct Codepoint(#[reflect(as = "char")] u32);
+pub struct Codepoint(#[reflect(as = char)] u32);
 
 impl Default for Codepoint {
     fn default() -> Self {
@@ -721,4 +479,5 @@ macro_rules! define_token_type {
 }
 
 with_token_definition!(define_token_type());
+use crate::syntax::token::operator::is_syntactic_binary_operator;
 pub use variant::Variant;
