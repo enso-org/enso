@@ -7,9 +7,9 @@ import sbt.io.syntax.fileToRichFile
 import sbt.util.{CacheStore, CacheStoreFactory, FileInfo, Tracked}
 
 import scala.sys.process._
-
 import org.enso.build.WithDebugCommand
 
+import java.nio.file.Paths
 import scala.util.Try
 
 object DistributionPackage {
@@ -257,12 +257,20 @@ object DistributionPackage {
         // Poor man's solution to stuck index generation
         val GENERATING_INDEX_TIMEOUT = 60 * 2 // 2 minutes
         var current                  = 0
-        while (runningProcess.isAlive()) {
+        var timeout                  = false
+        while (runningProcess.isAlive() && !timeout) {
           if (current > GENERATING_INDEX_TIMEOUT) {
+            java.lang.System.err
+              .println("Reached timeout when generating index. Terminating...")
             try {
               val pidOfProcess = pid(runningProcess)
+              val javaHome     = System.getProperty("java.home")
+              val jstack =
+                if (javaHome == null) "jstack"
+                else
+                  Paths.get(javaHome, "bin", "jstack").toAbsolutePath.toString
               val in = java.lang.Runtime.getRuntime
-                .exec(Array("jstack", pidOfProcess.toString))
+                .exec(Array(jstack, pidOfProcess.toString))
                 .getInputStream
 
               System.err.println(IOUtils.toString(in, "UTF-8"))
@@ -271,6 +279,7 @@ object DistributionPackage {
                 java.lang.System.err
                   .println("Failed to get threaddump of a stuck process", e);
             } finally {
+              timeout = true
               runningProcess.destroy()
             }
           } else {
@@ -278,11 +287,12 @@ object DistributionPackage {
             current += 1
           }
         }
+        if (timeout) {
+          throw new RuntimeException(
+            s"TIMEOUT: Failed to compile $libName in $GENERATING_INDEX_TIMEOUT seconds"
+          )
+        }
         if (runningProcess.exitValue() != 0) {
-          if (current > GENERATING_INDEX_TIMEOUT)
-            throw new RuntimeException(
-              s"TIMEOUT: Failed to compile $libName in $GENERATING_INDEX_TIMEOUT seconds"
-            )
           throw new RuntimeException(s"Cannot compile $libName.")
         }
       } else {
