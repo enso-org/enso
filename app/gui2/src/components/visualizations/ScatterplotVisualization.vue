@@ -4,6 +4,7 @@ import { useEvent } from '@/composables/events'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
 import { Ast } from '@/util/ast'
 import { tryNumberToEnso } from '@/util/ast/abstract'
+import { Pattern } from '@/util/ast/match'
 import { getTextWidthBySizeAndFamily } from '@/util/measurement'
 import { VisualizationContainer, defineKeybinds } from '@/util/visualizationBuiltins'
 import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
@@ -71,6 +72,7 @@ interface Point {
   shape?: string
   size?: number
   series?: string
+  row_number: number[]
 }
 
 interface PointsConfiguration {
@@ -140,7 +142,9 @@ const SCALE_TO_D3_SCALE: Record<ScaleType, () => d3.ScaleContinuousNumeric<numbe
 const data = computed<Data>(() => {
   let rawData = props.data
   const unfilteredData =
-    Array.isArray(rawData) ? rawData.map((y, index) => ({ x: index, y })) : rawData.data ?? []
+    Array.isArray(rawData) ?
+      rawData.map((y, index) => ({ x: index, y, row_number: index }))
+    : rawData.data ?? []
   const data: Point[] = unfilteredData.filter(
     (point) =>
       typeof point.x === 'number' &&
@@ -494,6 +498,7 @@ function getPlotData(data: Data) {
     const series = Object.keys(axis).filter((s) => s != 'x')
     const transformedData = series.flatMap((s) =>
       data.data.map((d) => ({
+        ...d,
         x: d.x,
         y: d[s as keyof Point],
         series: s,
@@ -511,9 +516,32 @@ function getTooltipMessage(point: Point) {
       point.series && point.series in axis ?
         axis[point.series as keyof AxesConfiguration].label
       : ''
-    return `${point.x}, ${point.y}, ${label}`
+    return `${point.x}, ${point.y}, ${label}, row number: ${point.row_number}`
   }
-  return `${point.x}, ${point.y}`
+  return `${point.x}, ${point.y}, row number: ${point.row_number}`
+}
+
+function getAstPattern(selector?: string | number, action?: string) {
+  if (action && selector != null) {
+    return Pattern.new((ast) =>
+      Ast.App.positional(
+        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(action)!),
+        typeof selector === 'number' ?
+          Ast.tryNumberToEnso(selector, ast.module)!
+        : Ast.TextLiteral.new(selector, ast.module),
+      ),
+    )
+  }
+}
+
+function createNode(rowNumber: number) {
+  const pattern = getAstPattern(rowNumber, 'get_row')
+  if (pattern) {
+    config.createNodes({
+      content: pattern,
+      commit: true,
+    })
+  }
 }
 
 // === Update contents ===
@@ -536,6 +564,9 @@ watchPostEffect(() => {
     .join((enter) => enter.append('path'))
     .call((data) => {
       return data.append('title').text((d) => getTooltipMessage(d))
+    })
+    .on('dblclick', (d) => {
+      createNode(d.srcElement.__data__.row_number)
     })
     .transition()
     .duration(animationDuration.value)

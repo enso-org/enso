@@ -49,10 +49,13 @@ type Point_Data
     Size
 
     ## PRIVATE
+    Row_Number
+
+    ## PRIVATE
 
        Returns all recognized point data fields.
     all_fields : Vector
-    all_fields = [Point_Data.X, Point_Data.Y, Point_Data.Color, Point_Data.Shape, Point_Data.Label, Point_Data.Size]
+    all_fields = [Point_Data.X, Point_Data.Y, Point_Data.Color, Point_Data.Shape, Point_Data.Label, Point_Data.Size, Point_Data.Row_Number]
 
     ## PRIVATE
     recognized_names : Vector
@@ -89,6 +92,9 @@ type Point_Data
             is_good c = (self.is_recognized c).not
 
             candidates.find if_missing=candidates.first is_good
+        Point_Data.Row_Number ->
+            Point_Data.iota table.row_count
+            
         _ -> Error.throw No_Fallback_Column
 
     ## PRIVATE
