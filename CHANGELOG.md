@@ -18,6 +18,8 @@
 - [Fixed issue where drag'n'dropped files were not uploaded in cloud
   projects.][11014]
 - [Fixed files associations not properly registered on Windows][11030]
+- [Fixed "rename project" button being broken after not changing project
+  name][11103]
 
 [10774]: https://github.com/enso-org/enso/pull/10774
 [10814]: https://github.com/enso-org/enso/pull/10814
@@ -28,6 +30,7 @@
 [11001]: https://github.com/enso-org/enso/pull/11001
 [11014]: https://github.com/enso-org/enso/pull/11014
 [11030]: https://github.com/enso-org/enso/pull/11030
+[11103]: https://github.com/enso-org/enso/pull/11103
 
 #### Enso Standard Library
 
