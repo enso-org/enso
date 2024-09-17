@@ -68,11 +68,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                 )}
               >
                 <Autocomplete
-                  items={
-                    autocompleteItems ?? [
-                      'grid items-center gap-json-schema rounded-default border-0.5 border-primary/20 p-json-schema-object-inputgrid items-center gap-json-schema rounded-default border-0.5 border-primary/20 p-json-schema-object-input',
-                    ]
-                  }
+                  items={autocompleteItems ?? []}
                   itemToKey={(item) => item}
                   placeholder={getText('enterSecretPath')}
                   matches={(item, text) => item.toLowerCase().includes(text.toLowerCase())}
