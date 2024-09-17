@@ -3,8 +3,6 @@ import DatalinkIcon from '#/assets/datalink.svg'
 
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 
-import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
-
 import type * as column from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
 
@@ -15,7 +13,6 @@ import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
-import { isOnMacOS } from 'enso-common/src/detect'
 
 // ====================
 // === DatalinkName ===
@@ -30,7 +27,7 @@ export interface DatalinkNameColumnProps extends column.AssetColumnProps {}
 export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
   const { item, setItem, selected, rowState, setRowState, isEditable } = props
   const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
-  const inputBindings = inputBindingsProvider.useInputBindings()
+
   if (item.type !== backendModule.AssetType.datalink) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`DatalinkNameColumn` can only display Datalinks.')
@@ -49,12 +46,6 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
   // Backend implementation is tracked here: https://github.com/enso-org/cloud-v2/issues/505.
   const doRename = () => Promise.resolve(null)
 
-  const handleClick = inputBindings.handler({
-    editName: () => {
-      setIsEditing(true)
-    },
-  })
-
   return (
     <div
       className={tailwindMerge.twMerge(
@@ -67,9 +58,7 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
         }
       }}
       onClick={(event) => {
-        if (handleClick(event)) {
-          // Already handled.
-        } else if (eventModule.isSingleClick(event) && isOnMacOS() && selected) {
+        if (eventModule.isSingleClick(event) && selected) {
           setIsEditing(true)
         } else if (eventModule.isDoubleClick(event)) {
           event.stopPropagation()

@@ -35,7 +35,12 @@ export default function UpsertDatalinkModal(props: UpsertDatalinkModalProps) {
   const { getText } = useText()
 
   return (
-    <Dialog fitContent title={getText('createDatalink')} className="min-w-max">
+    <Dialog
+      fitContent
+      title={getText('createDatalink')}
+      className="min-w-max"
+      isDismissable={false}
+    >
       {({ close }) => (
         <Form
           method="dialog"
@@ -55,7 +60,7 @@ export default function UpsertDatalinkModal(props: UpsertDatalinkModalProps) {
                 label={getText('name')}
                 placeholder={getText('datalinkNamePlaceholder')}
               />
-              <div className="relative">
+              <div className="relative w-full">
                 <DatalinkFormInput form={form} name="value" dropdownTitle={getText('type')} />
               </div>
               <ButtonGroup className="relative">

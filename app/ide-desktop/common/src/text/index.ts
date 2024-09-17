@@ -43,6 +43,7 @@ interface PlaceholderOverrides {
   readonly deleteUserGroupActionText: [groupName: string]
   readonly removeUserFromUserGroupActionText: [userName: string, groupName: string]
   readonly confirmPrompt: [action: string]
+  readonly trashTheAssetTypeTitle: [assetType: string, assetName: string]
   readonly deleteTheAssetTypeTitle: [assetType: string, assetName: string]
   readonly couldNotInviteUser: [userEmail: string]
   readonly filesWithoutConflicts: [fileCount: number]

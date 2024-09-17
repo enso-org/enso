@@ -11,7 +11,7 @@ import { useText } from '#/providers/TextProvider'
 /** A heading for the "Shared with" column. */
 export default function SharedWithColumnHeading(props: AssetColumnHeadingProps) {
   const { state } = props
-  const { hideColumn } = state
+  const { category, hideColumn } = state
   const { getText } = useText()
 
   const { user } = useFullUserSession()
@@ -33,7 +33,11 @@ export default function SharedWithColumnHeading(props: AssetColumnHeadingProps) 
       />
 
       <div className="flex items-center gap-1">
-        <Text className="text-sm font-semibold">{getText('sharedWithColumnName')}</Text>
+        <Text className="text-sm font-semibold">
+          {category.type === 'trash' ?
+            getText('rootFolderColumnName')
+          : getText('sharedWithColumnName')}
+        </Text>
 
         {isUnderPaywall && (
           <PaywallDialogButton feature="share" variant="icon" children={false} size="medium" />

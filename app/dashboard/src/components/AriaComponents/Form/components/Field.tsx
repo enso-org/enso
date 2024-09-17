@@ -11,8 +11,8 @@ import { forwardRef } from '#/utilities/react'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import type { Path } from 'react-hook-form'
 import * as text from '../../Text'
+import { Form } from '../Form'
 import type * as types from './types'
-import * as formContext from './useFormContext'
 
 /**
  * Props for Field component
@@ -44,6 +44,7 @@ export interface FieldChildrenRenderProps {
   readonly isDirty: boolean
   readonly isTouched: boolean
   readonly isValidating: boolean
+  readonly hasError: boolean
   readonly error?: string | undefined
 }
 
@@ -73,36 +74,29 @@ export const Field = forwardRef(function Field<Schema extends types.TSchema>(
   ref: React.ForwardedRef<HTMLFieldSetElement>,
 ) {
   const {
-    // eslint-disable-next-line no-restricted-syntax
-    form = formContext.useFormContext() as unknown as types.FormInstance<Schema>,
-    isInvalid,
     children,
     className,
     label,
     description,
     fullWidth,
     error,
-    name,
     isHidden,
+    isInvalid = false,
     isRequired = false,
     variants = FIELD_STYLES,
   } = props
-
-  const fieldState = form.getFieldState(name)
 
   const labelId = React.useId()
   const descriptionId = React.useId()
   const errorId = React.useId()
 
-  const invalid = isInvalid === true || fieldState.invalid
+  const fieldState = Form.useFieldState(props)
 
-  const classes = variants({
-    fullWidth,
-    isInvalid: invalid,
-    isHidden,
-  })
+  const invalid = isInvalid || fieldState.hasError
 
-  const hasError = (error ?? fieldState.error?.message) != null
+  const classes = variants({ fullWidth, isInvalid: invalid, isHidden })
+
+  const hasError = (error ?? fieldState.error) != null
 
   return (
     <fieldset
@@ -138,7 +132,8 @@ export const Field = forwardRef(function Field<Schema extends types.TSchema>(
               isDirty: fieldState.isDirty,
               isTouched: fieldState.isTouched,
               isValidating: fieldState.isValidating,
-              error: fieldState.error?.message,
+              hasError: fieldState.hasError,
+              error: fieldState.error,
             })
           : children}
         </div>
@@ -152,7 +147,7 @@ export const Field = forwardRef(function Field<Schema extends types.TSchema>(
 
       {hasError && (
         <span data-testid="error" id={errorId} className={classes.error()}>
-          {error ?? fieldState.error?.message}
+          {error ?? fieldState.error}
         </span>
       )}
     </fieldset>

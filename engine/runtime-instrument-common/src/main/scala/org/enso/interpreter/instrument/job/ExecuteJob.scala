@@ -33,17 +33,25 @@ class ExecuteJob(
       runImpl
     } catch {
       case t: Throwable =>
-        ctx.executionService.getLogger.log(
-          Level.SEVERE,
-          "Failure during the program execution.",
-          t
-        )
-        val message = Option(t.getMessage).getOrElse(t.getClass.getSimpleName)
+        ctx.executionService.getLogger.log(Level.SEVERE, "Failed to execute", t)
+        val errorMsg = if (t.getMessage == null) {
+          if (t.getCause == null) {
+            t.getClass.toString
+          } else {
+            val cause = t.getCause
+            if (cause.getMessage == null) {
+              cause.getClass.toString
+            } else {
+              cause.getMessage
+            }
+          }
+        } else t.getMessage
+
         ctx.endpoint.sendToClient(
           Api.Response(
             Api.ExecutionFailed(
               contextId,
-              Api.ExecutionResult.Failure(message, None)
+              Api.ExecutionResult.Failure(errorMsg, None)
             )
           )
         )

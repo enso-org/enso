@@ -1088,7 +1088,7 @@ class IrToTruffle(
                   asAssociatedType(actualModule),
                   method.name
                 )
-              assert(
+              org.enso.common.Asserts.assertInJvm(
                 fun != null,
                 s"exported symbol `${method.name}` needs to be registered first in the module "
               )
@@ -1106,7 +1106,7 @@ class IrToTruffle(
                 case Right(List(BindingsMap.ResolvedType(modWithTp, _))) =>
                   val tpScope = asScope(modWithTp.unsafeAsModule())
                   val tp      = tpScope.getType(staticMethod.tpName, true)
-                  assert(
+                  org.enso.common.Asserts.assertInJvm(
                     tp != null,
                     s"Type should be defined in module ${modWithTp.getName}"
                   )
@@ -1118,7 +1118,7 @@ class IrToTruffle(
                       eigenTp,
                       staticMethod.methodName
                     )
-                  assert(
+                  org.enso.common.Asserts.assertInJvm(
                     fun != null,
                     s"exported symbol (static method) `${staticMethod.name}` needs to be registered first in the module "
                   )
@@ -1147,7 +1147,7 @@ class IrToTruffle(
                   val targetTpScope = asScope(modWithTargetTp.unsafeAsModule())
                   val targetTp =
                     targetTpScope.getType(conversionMethod.targetTpName, true)
-                  assert(
+                  org.enso.common.Asserts.assertInJvm(
                     targetTp != null,
                     s"Target type should be defined in module ${module.getName}"
                   )
@@ -1163,7 +1163,7 @@ class IrToTruffle(
                         conversionMethod.sourceTpName,
                         true
                       )
-                      assert(
+                      org.enso.common.Asserts.assertInJvm(
                         sourceTp != null,
                         s"Source type should be defined in module ${module.getName}"
                       )
@@ -1172,7 +1172,7 @@ class IrToTruffle(
                           sourceTp,
                           targetTp
                         )
-                      assert(
+                      org.enso.common.Asserts.assertInJvm(
                         conversionFun != null,
                         s"Conversion method `$conversionMethod` should be defined in module ${module.getName}"
                       )
@@ -2570,7 +2570,7 @@ class IrToTruffle(
 
           // Note [Handling Suspended Defaults]
           val defaultedValue = if (arg.suspended && defaultExpression != null) {
-            assert(arg.defaultValue.isDefined)
+            org.enso.common.Asserts.assertInJvm(arg.defaultValue.isDefined)
             val defaultRootNode = ClosureRootNode.build(
               language,
               scope,

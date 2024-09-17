@@ -92,7 +92,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                   value={typeof value === 'string' ? value : ''}
                   size={1}
                   className={twMerge(
-                    'focus-child text w-60 grow rounded-input border-0.5 bg-transparent px-input-x read-only:read-only',
+                    'focus-child text w-full grow rounded-input border-0.5 bg-transparent px-input-x read-only:read-only',
                     getValidator(path)(value) ? 'border-primary/20' : 'border-red-700/60',
                   )}
                   placeholder={getText('enterText')}
@@ -139,7 +139,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                 value={typeof value === 'number' ? value : ''}
                 size={1}
                 className={twMerge(
-                  'focus-child min-6- text40 w-60 grow rounded-input border-0.5 bg-transparent px-input-x read-only:read-only',
+                  'focus-child min-6- text40 w-full grow rounded-input border-0.5 bg-transparent px-input-x read-only:read-only',
                   getValidator(path)(value) ? 'border-primary/20' : 'border-red-700/60',
                 )}
                 placeholder={getText('enterInteger')}
@@ -191,7 +191,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                           isDisabled={!isOptional}
                           isActive={!isOptional || isPresent}
                           className={twMerge(
-                            'col-start-1 inline-block whitespace-nowrap rounded-full px-button-x',
+                            'col-start-1 inline-block justify-self-start whitespace-nowrap rounded-full px-button-x',
                             isOptional && 'hover:bg-hover-bg',
                           )}
                           onPress={() => {
@@ -216,6 +216,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                         >
                           {'title' in childSchema ? String(childSchema.title) : key}
                         </Button>
+
                         {isPresent && (
                           <div className="col-start-2">
                             <JSONSchemaInput
@@ -302,7 +303,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
           readOnly={readOnly}
           items={childSchemas}
           selectedIndex={selectedChildIndex}
-          className="self-start"
+          className="w-full self-start"
           onChange={(childSchema, index) => {
             setSelectedChildIndex(index)
             const newConstantValue = constantValueOfSchema(defs, childSchema, true)
