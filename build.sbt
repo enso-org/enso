@@ -2474,6 +2474,7 @@ lazy val `runtime-language-epb` =
     .enablePlugins(JPMSPlugin)
     .settings(
       frgaalJavaCompilerSetting,
+      javaModuleName := "org.enso.runtime.language.epb",
       inConfig(Compile)(truffleRunOptionsSettings),
       truffleDslSuppressWarnsSetting,
       commands += WithDebugCommand.withDebug,
@@ -2501,6 +2502,7 @@ lazy val `runtime-language-arrow` =
     .settings(
       crossPaths := false,
       autoScalaLibrary := false,
+      javaModuleName := "org.enso.interpreter.arrow",
       inConfig(Compile)(truffleRunOptionsSettings),
       instrumentationSettings,
       libraryDependencies ++= GraalVM.modules ++ Seq(
@@ -3177,6 +3179,7 @@ lazy val `runtime-instrument-id-execution` =
     .enablePlugins(JPMSPlugin)
     .settings(
       frgaalJavaCompilerSetting,
+      compileOrder := CompileOrder.JavaThenScala,
       inConfig(Compile)(truffleRunOptionsSettings),
       instrumentationSettings,
       Compile / moduleDependencies := Seq(
@@ -3200,6 +3203,7 @@ lazy val `runtime-instrument-repl-debugger` =
     .enablePlugins(JPMSPlugin)
     .settings(
       inConfig(Compile)(truffleRunOptionsSettings),
+      compileOrder := CompileOrder.JavaThenScala,
       instrumentationSettings,
       Compile / moduleDependencies := Seq(
         "org.scala-lang"       % "scala-library" % scalacVersion,
@@ -3226,6 +3230,7 @@ lazy val `runtime-instrument-runtime-server` =
     .enablePlugins(JPMSPlugin)
     .settings(
       inConfig(Compile)(truffleRunOptionsSettings),
+      compileOrder := CompileOrder.JavaThenScala,
       instrumentationSettings,
       Compile / moduleDependencies := Seq(
         "org.scala-lang"       % "scala-library"           % scalacVersion,
