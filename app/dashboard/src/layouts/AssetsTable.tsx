@@ -1838,13 +1838,14 @@ export default function AssetsTable(props: AssetsTableProps) {
 
                   const asset = isUpdating ? conflict.current : conflict.new
 
-                  fileMap.set(
-                    asset.id,
-                    new File([conflict.file], asset.title, {
-                      type: conflict.file.type,
-                      lastModified: conflict.file.lastModified,
-                    }),
-                  )
+                  const renamedFile = new File([conflict.file], asset.title, {
+                    type: conflict.file.type,
+                    lastModified: conflict.file.lastModified,
+                  })
+
+                  renamedFile.path = conflict.file.path
+
+                  fileMap.set(asset.id, renamedFile)
 
                   insertAssets([asset], event.parentId)
                   void doUploadFile(asset, isUpdating ? 'update' : 'new')
