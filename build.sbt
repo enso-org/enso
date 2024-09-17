@@ -3382,7 +3382,27 @@ lazy val `engine-runner` = project
     NativeImage.additionalCp := {
       val runnerDeps = (Compile / fullClasspath).value.map(_.data.getAbsolutePath)
       val runtimeDeps = (`runtime` / Compile / fullClasspath).value.map(_.data.getAbsolutePath)
-      val core = (runnerDeps ++ runtimeDeps).distinct
+      val loggingDeps = (`logging-service-logback` / Compile / fullClasspath).value.map(_.data.getAbsolutePath)
+      val replDebugInstr =
+        (`runtime-instrument-repl-debugger` / Compile / fullClasspath)
+          .value
+          .map(_.data.getAbsolutePath)
+      val runtimeServerInstr =
+        (`runtime-instrument-runtime-server` / Compile / fullClasspath)
+          .value
+          .map(_.data.getAbsolutePath)
+      val epbLang =
+        (`runtime-language-epb` / Compile / fullClasspath)
+          .value
+          .map(_.data.getAbsolutePath)
+      val core = (
+        runnerDeps ++
+        runtimeDeps ++
+        loggingDeps ++
+        replDebugInstr ++
+        runtimeServerInstr ++
+        epbLang
+        ).distinct
       val stdLibsJars =
         `base-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath())
       core ++ stdLibsJars
