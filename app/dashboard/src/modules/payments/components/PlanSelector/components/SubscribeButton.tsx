@@ -1,7 +1,4 @@
-/**
- * @file
- * The subscribe button component.
- */
+/** @file A button to subscribe to a plan. */
 import { getSalesEmail } from '#/appUtils'
 
 import { useText } from '#/providers/TextProvider'
@@ -11,9 +8,7 @@ import { Button, DialogTrigger, Text } from '#/components/AriaComponents'
 import { TRIAL_DURATION_DAYS } from '../../../constants'
 import { PlanSelectorDialog, type PlanSelectorDialogProps } from './PlanSelectorDialog'
 
-/**
- * The props for the submit button.
- */
+/** Props for a {@link SubscribeButton}. */
 export interface SubscribeButtonProps
   extends Omit<PlanSelectorDialogProps, 'isTrialing' | 'title'> {
   readonly isOrganizationAdmin?: boolean
@@ -25,9 +20,7 @@ export interface SubscribeButtonProps
   readonly defaultOpen?: boolean
 }
 
-/**
- * Subscribe to a plan button
- */
+/** A button to subscribe to a plan. */
 export function SubscribeButton(props: SubscribeButtonProps) {
   const {
     defaultOpen,
