@@ -36,11 +36,11 @@ class ExecuteJob(
         ctx.executionService.getLogger.log(Level.SEVERE, "Failed to execute", t)
         val errorMsg = if (t.getMessage == null) {
           if (t.getCause == null) {
-            t.getClass.toString
+            t.getClass.getSimpleName
           } else {
             val cause = t.getCause
             if (cause.getMessage == null) {
-              cause.getClass.toString
+              cause.getClass.getSimpleName
             } else {
               cause.getMessage
             }
