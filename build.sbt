@@ -3380,18 +3380,12 @@ lazy val `engine-runner` = project
   .settings(
     NativeImage.smallJdk := Some(buildSmallJdk.value),
     NativeImage.additionalCp := {
-      val core = Seq(
-        "runtime.jar",
-        "runner.jar"
-      )
+      val runnerDeps = (Compile / fullClasspath).value.map(_.data.getAbsolutePath)
+      val runtimeDeps = (`runtime` / Compile / fullClasspath).value.map(_.data.getAbsolutePath)
+      val core = (runnerDeps ++ runtimeDeps).distinct
       val stdLibsJars =
         `base-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath())
-      val profJar = (`profiling-utils` / Compile / exportedProductJars).value
-        .map(_.data.getAbsolutePath)
-      val syntaxJar =
-        (`syntax-rust-definition` / Compile / exportedProductJars).value
-          .map(_.data.getAbsolutePath)
-      core ++ stdLibsJars ++ profJar ++ syntaxJar
+      core ++ stdLibsJars
     },
     buildSmallJdk := {
       val smallJdkDirectory = (target.value / "jdk").getAbsoluteFile()
