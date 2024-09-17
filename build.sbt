@@ -3185,8 +3185,8 @@ lazy val `runtime-instrument-id-execution` =
     .enablePlugins(JPMSPlugin)
     .settings(
       frgaalJavaCompilerSetting,
-      compileOrder := CompileOrder.JavaThenScala,
       inConfig(Compile)(truffleRunOptionsSettings),
+      Compile / forceModuleInfoCompilation := true,
       instrumentationSettings,
       Compile / moduleDependencies := Seq(
         "org.graalvm.truffle"  % "truffle-api" % graalMavenPackagesVersion,
@@ -3209,7 +3209,7 @@ lazy val `runtime-instrument-repl-debugger` =
     .enablePlugins(JPMSPlugin)
     .settings(
       inConfig(Compile)(truffleRunOptionsSettings),
-      compileOrder := CompileOrder.JavaThenScala,
+      Compile / forceModuleInfoCompilation := true,
       instrumentationSettings,
       Compile / moduleDependencies := Seq(
         "org.scala-lang"       % "scala-library" % scalacVersion,
@@ -3236,7 +3236,7 @@ lazy val `runtime-instrument-runtime-server` =
     .enablePlugins(JPMSPlugin)
     .settings(
       inConfig(Compile)(truffleRunOptionsSettings),
-      compileOrder := CompileOrder.JavaThenScala,
+      Compile / forceModuleInfoCompilation := true,
       instrumentationSettings,
       Compile / moduleDependencies := Seq(
         "org.scala-lang"       % "scala-library"           % scalacVersion,
