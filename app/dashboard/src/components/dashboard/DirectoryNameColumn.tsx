@@ -59,10 +59,6 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
     if (isEditable) {
       setRowState(object.merger({ isEditingName }))
     }
-
-    if (!isEditingName) {
-      driveStore.setState({ newestFolderId: null })
-    }
   }
 
   const doRename = async (newTitle: string) => {
