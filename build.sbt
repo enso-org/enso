@@ -888,6 +888,7 @@ lazy val pkg = (project in file("lib/scala/pkg"))
     version := "0.1",
     Compile / run / mainClass := Some("org.enso.pkg.Main"),
     libraryDependencies ++= Seq(
+      "org.graalvm.truffle" % "truffle-api"      % graalMavenPackagesVersion,
       "io.circe"          %% "circe-core"       % circeVersion     % "provided",
       "org.yaml"           % "snakeyaml"        % snakeyamlVersion % "provided",
       "org.scalatest"     %% "scalatest"        % scalatestVersion % Test,
@@ -895,9 +896,14 @@ lazy val pkg = (project in file("lib/scala/pkg"))
     ),
     Compile / moduleDependencies := {
       Seq(
-        "org.apache.commons" % "commons-compress" % commonsCompressVersion,
-        "org.scala-lang"     % "scala-library"    % scalacVersion,
-        "org.yaml"           % "snakeyaml"        % snakeyamlVersion
+        "org.graalvm.truffle" % "truffle-api"      % graalMavenPackagesVersion,
+        "org.graalvm.polyglot" % "polyglot"               % graalMavenPackagesVersion,
+        "org.graalvm.sdk"        % "collections"      % graalMavenPackagesVersion,
+        "org.graalvm.sdk"        % "nativeimage"      % graalMavenPackagesVersion,
+        "org.graalvm.sdk"        % "word"             % graalMavenPackagesVersion,
+        "org.apache.commons"  % "commons-compress" % commonsCompressVersion,
+        "org.scala-lang"      % "scala-library"    % scalacVersion,
+        "org.yaml"            % "snakeyaml"        % snakeyamlVersion
       )
     },
     Compile / internalModuleDependencies := Seq(
