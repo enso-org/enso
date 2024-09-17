@@ -21,6 +21,7 @@
 - [Fixed "rename project" button being broken after not changing project
   name][11103]
 - [Numbers starting with dot (`.5`) are accepted in Numeric Widget][11108]
+- [Add support for interacting with graph editor using touch devices.][11056]
 
 [10774]: https://github.com/enso-org/enso/pull/10774
 [10814]: https://github.com/enso-org/enso/pull/10814
@@ -33,6 +34,7 @@
 [11030]: https://github.com/enso-org/enso/pull/11030
 [11103]: https://github.com/enso-org/enso/pull/11103
 [11108]: https://github.com/enso-org/enso/pull/11108
+[11056]: https://github.com/enso-org/enso/pull/11056
 
 #### Enso Standard Library
 
