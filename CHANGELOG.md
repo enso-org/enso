@@ -18,6 +18,8 @@
 - [Fixed issue where drag'n'dropped files were not uploaded in cloud
   projects.][11014]
 - [Fixed files associations not properly registered on Windows][11030]
+- [Fixed "rename project" button being broken after not changing project
+  name][11103]
 - [Numbers starting with dot (`.5`) are accepted in Numeric Widget][11108]
 
 [10774]: https://github.com/enso-org/enso/pull/10774
@@ -29,6 +31,7 @@
 [11001]: https://github.com/enso-org/enso/pull/11001
 [11014]: https://github.com/enso-org/enso/pull/11014
 [11030]: https://github.com/enso-org/enso/pull/11030
+[11103]: https://github.com/enso-org/enso/pull/11103
 [11108]: https://github.com/enso-org/enso/pull/11108
 
 #### Enso Standard Library
