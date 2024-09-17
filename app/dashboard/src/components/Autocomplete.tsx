@@ -8,7 +8,7 @@ import Input from '#/components/styled/Input'
 
 import { Button, Text } from '#/components/AriaComponents'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
-import { twMerge } from 'tailwind-merge'
+import { twJoin, twMerge } from 'tailwind-merge'
 
 // =================
 // === Constants ===
@@ -176,7 +176,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
   }
 
   return (
-    <div className="relative isolate h-6 w-full">
+    <div className={twJoin('relative isolate h-6 w-full', isDropdownVisible && 'z-1')}>
       <div
         onKeyDown={onKeyDown}
         className={twMerge(
