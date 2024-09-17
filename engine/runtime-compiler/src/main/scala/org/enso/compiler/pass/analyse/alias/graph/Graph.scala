@@ -55,7 +55,7 @@ sealed class Graph(
     * @param sym the symbol occurrence
     */
   def addGlobalSymbol(sym: GraphOccurrence.Global): Unit = {
-    assert(!frozen)
+    org.enso.common.Asserts.assertInJvm(!frozen)
     if (!globalSymbols.contains(sym.symbol)) {
       globalSymbols = globalSymbols + (sym.symbol -> sym)
     }
@@ -116,7 +116,8 @@ sealed class Graph(
   }
 
   private def addSourceTargetLink(link: Graph.Link): Unit = {
-    assert(!frozen)
+    // commented out: used from DebugEvalNode
+    // org.enso.common.Asserts.assertInJvm(!frozen)
     sourceLinks = sourceLinks.updatedWith(link.source)(v =>
       v.map(s => s + link).orElse(Some(Set(link)))
     )
@@ -382,7 +383,7 @@ object Graph {
       * @return this scope with parent scope set
       */
     def withParent(parentScope: Scope): this.type = {
-      assert(parent.isEmpty)
+      org.enso.common.Asserts.assertInJvm(parent.isEmpty)
       this.parent = Some(parentScope)
       this
     }
@@ -697,7 +698,7 @@ object Graph {
     /** Disassociates this Scope from its parent.
       */
     def removeScopeFromParent(): Unit = {
-      assert(this.parent.nonEmpty)
+      org.enso.common.Asserts.assertInJvm(this.parent.nonEmpty)
       this.parent.foreach(_.removeScopeFromParent(this))
     }
   }

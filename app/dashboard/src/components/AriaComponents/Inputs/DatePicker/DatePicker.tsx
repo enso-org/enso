@@ -37,8 +37,8 @@ import {
 } from '#/components/AriaComponents'
 import { useText } from '#/providers/TextProvider'
 import { forwardRef } from '#/utilities/react'
-import { Controller } from 'react-hook-form'
-import { tv, type VariantProps } from 'tailwind-variants'
+import type { VariantProps } from '#/utilities/tailwindVariants'
+import { tv } from '#/utilities/tailwindVariants'
 
 const DATE_PICKER_STYLES = tv({
   base: '',
@@ -109,6 +109,7 @@ export const DatePicker = forwardRef(function DatePicker<
     isRequired,
     className,
     size,
+    variants = DATE_PICKER_STYLES,
   } = props
 
   const { fieldState, formInstance } = Form.useField({
@@ -118,7 +119,7 @@ export const DatePicker = forwardRef(function DatePicker<
     defaultValue,
   })
 
-  const styles = DATE_PICKER_STYLES({ size })
+  const styles = variants({ size })
 
   return (
     <Form.Field
@@ -135,7 +136,7 @@ export const DatePicker = forwardRef(function DatePicker<
       ref={ref}
       style={props.style}
     >
-      <Controller
+      <Form.Controller
         control={formInstance.control}
         name={name}
         render={(renderProps) => {

@@ -1,6 +1,8 @@
 /** @file Alert component. */
 import { type ForwardedRef, type HTMLAttributes, type PropsWithChildren } from 'react'
 
+import SvgMask from '#/components/SvgMask'
+
 import { forwardRef } from '#/utilities/react'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 
@@ -9,7 +11,7 @@ import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 // =================
 
 export const ALERT_STYLES = tv({
-  base: 'flex flex-col items-stretch',
+  base: 'flex items-stretch gap-2',
   variants: {
     fullWidth: { true: 'w-full' },
     variant: {
@@ -37,6 +39,11 @@ export const ALERT_STYLES = tv({
       large: 'px-4 pt-2 pb-2',
     },
   },
+  slots: {
+    iconContainer: 'flex items-center justify-center w-6 h-6',
+    children: 'flex flex-col items-stretch',
+    icon: 'flex items-center justify-center w-6 h-6 mr-2',
+  },
   defaultVariants: {
     fullWidth: true,
     variant: 'error',
@@ -53,7 +60,12 @@ export const ALERT_STYLES = tv({
 export interface AlertProps
   extends PropsWithChildren,
     VariantProps<typeof ALERT_STYLES>,
-    HTMLAttributes<HTMLDivElement> {}
+    HTMLAttributes<HTMLDivElement> {
+  /**
+   * The icon to display in the Alert
+   */
+  readonly icon?: React.ReactElement | string | null | undefined
+}
 
 /** Alert component. */
 // eslint-disable-next-line no-restricted-syntax
@@ -61,20 +73,45 @@ export const Alert = forwardRef(function Alert(
   props: AlertProps,
   ref: ForwardedRef<HTMLDivElement>,
 ) {
-  const { children, className, variant, size, rounded, fullWidth, ...containerProps } = props
+  const {
+    children,
+    className,
+    variant,
+    size,
+    rounded,
+    fullWidth,
+    icon,
+    variants = ALERT_STYLES,
+    ...containerProps
+  } = props
 
   if (variant === 'error') {
     containerProps.tabIndex = -1
     containerProps.role = 'alert'
   }
 
+  const classes = variants({
+    variant,
+    size,
+    rounded,
+    fullWidth,
+  })
+
   return (
-    <div
-      className={ALERT_STYLES({ variant, size, className, rounded, fullWidth })}
-      ref={ref}
-      {...containerProps}
-    >
-      {children}
+    <div className={classes.base({ className })} ref={ref} {...containerProps}>
+      {icon != null &&
+        (() => {
+          if (typeof icon === 'string') {
+            // eslint-disable-next-line no-restricted-syntax
+            return (
+              <div className={classes.iconContainer()}>
+                <SvgMask src={icon} />
+              </div>
+            )
+          }
+          return <div className={classes.iconContainer()}>{icon}</div>
+        })()}
+      <div className={classes.children()}>{children}</div>
     </div>
   )
 })

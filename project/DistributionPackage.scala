@@ -1,5 +1,6 @@
 import io.circe.yaml
 import io.circe.syntax._
+import org.apache.commons.io.IOUtils
 import sbt.internal.util.ManagedLogger
 import sbt._
 import sbt.io.syntax.fileToRichFile
@@ -248,12 +249,40 @@ object DistributionPackage {
           path.getAbsolutePath
         )
         log.debug(command.mkString(" "))
-        val exitCode = Process(
+        val runningProcess = Process(
           command,
           Some(path.getAbsoluteFile.getParentFile),
           "JAVA_OPTS" -> "-Dorg.jline.terminal.dumb=true"
-        ).!
-        if (exitCode != 0) {
+        ).run
+        // Poor man's solution to stuck index generation
+        val GENERATING_INDEX_TIMEOUT = 60 * 2 // 2 minutes
+        var current                  = 0
+        while (runningProcess.isAlive()) {
+          if (current > GENERATING_INDEX_TIMEOUT) {
+            try {
+              val pidOfProcess = pid(runningProcess)
+              val in = java.lang.Runtime.getRuntime
+                .exec(Array("jstack", pidOfProcess.toString))
+                .getInputStream
+
+              System.err.println(IOUtils.toString(in, "UTF-8"))
+            } catch {
+              case e: Throwable =>
+                java.lang.System.err
+                  .println("Failed to get threaddump of a stuck process", e);
+            } finally {
+              runningProcess.destroy()
+            }
+          } else {
+            Thread.sleep(1000)
+            current += 1
+          }
+        }
+        if (runningProcess.exitValue() != 0) {
+          if (current > GENERATING_INDEX_TIMEOUT)
+            throw new RuntimeException(
+              s"TIMEOUT: Failed to compile $libName in $GENERATING_INDEX_TIMEOUT seconds"
+            )
           throw new RuntimeException(s"Cannot compile $libName.")
         }
       } else {
@@ -317,6 +346,38 @@ object DistributionPackage {
       log.warn(enso + " finished with exit code " + exitCode)
     }
     exitCode == 0
+  }
+
+  // https://stackoverflow.com/questions/23279898/get-process-id-of-scala-sys-process-process
+  def pid(p: Process): Long = {
+    val procField = p.getClass.getDeclaredField("p")
+    procField.synchronized {
+      procField.setAccessible(true)
+      val proc = procField.get(p)
+      try {
+        proc match {
+          case unixProc
+              if unixProc.getClass.getName == "java.lang.UNIXProcess" =>
+            val pidField = unixProc.getClass.getDeclaredField("pid")
+            pidField.synchronized {
+              pidField.setAccessible(true)
+              try {
+                pidField.getLong(unixProc)
+              } finally {
+                pidField.setAccessible(false)
+              }
+            }
+          case javaProc: java.lang.Process =>
+            javaProc.pid()
+          case other =>
+            throw new RuntimeException(
+              "Cannot get PID of a " + proc.getClass.getName
+            )
+        }
+      } finally {
+        procField.setAccessible(false)
+      }
+    }
   }
 
   /** Returns the index of the next argument after `--run`, if it exists. */
