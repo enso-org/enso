@@ -1,6 +1,6 @@
 # Next Release
 
-# Enso 2024.3
+# Enso 2024.4
 
 #### Enso IDE
 
