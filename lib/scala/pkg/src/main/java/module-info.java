@@ -1,6 +1,5 @@
 module org.enso.pkg {
   requires scala.library;
-  requires org.graalvm.truffle;
   requires org.apache.commons.compress;
   requires org.enso.editions;
   requires org.enso.semver;
