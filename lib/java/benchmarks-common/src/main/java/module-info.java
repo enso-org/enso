@@ -5,4 +5,6 @@ module org.enso.benchmarks.common {
   requires org.graalvm.polyglot;
 
   exports org.enso.interpreter.bench;
+
+  opens org.enso.interpreter.bench to jakarta.xml.bind;
 }
