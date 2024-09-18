@@ -197,29 +197,14 @@ class Runner(
         jvmSettings.extraOptions.map(
           translateJVMOption(_, standardOption = false)
         )
-      val shouldInvokeViaModulePath = engine.graalRuntimeVersion.isUnchained
-
       val componentPath = engine.componentDirPath.toAbsolutePath.normalize
-      var jvmArguments =
-        manifestOptions ++ environmentOptions ++ commandLineOptions
-      if (shouldInvokeViaModulePath) {
-        jvmArguments = jvmArguments :++ Seq(
+      val jvmArguments =
+        manifestOptions ++ environmentOptions ++ commandLineOptions ++ Seq(
           "--module-path",
           componentPath.toString,
           "-m",
-          "org.enso.runtime/org.enso.EngineRunnerBootLoader"
+          "org.enso.runner/org.enso.runner.Main"
         )
-      } else {
-        assert(
-          engine.runnerPath.isDefined,
-          "Engines path to runner.jar must be defined - it is not an unchained engine"
-        )
-        val runnerJar = engine.runnerPath.get.toAbsolutePath.normalize.toString
-        jvmArguments = jvmArguments :++ Seq(
-          "-jar",
-          runnerJar
-        )
-      }
 
       val loggingConnectionArguments =
         if (runSettings.connectLoggerIfAvailable)
