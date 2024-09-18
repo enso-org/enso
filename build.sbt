@@ -2912,7 +2912,11 @@ lazy val `runtime-benchmarks` =
           "io.sentry"              % "sentry-logback"               % "6.28.0",
           "io.sentry"              % "sentry"                       % "6.28.0",
           "ch.qos.logback"         % "logback-classic"              % logbackClassicVersion,
-          "ch.qos.logback"         % "logback-core"                 % logbackClassicVersion
+          "ch.qos.logback"         % "logback-core"                 % logbackClassicVersion,
+          // Dependencies for benchmarks-common
+          "org.openjdk.jmh"        % "jmh-core"                     % jmhVersion, // Automatic module
+          "jakarta.xml.bind"       % "jakarta.xml.bind-api"         % jaxbVersion,
+          "jakarta.activation"     % "jakarta.activation-api"       % "2.1.0",
         )
       },
       Compile / internalModuleDependencies := Seq(
@@ -2924,6 +2928,7 @@ lazy val `runtime-benchmarks` =
         (`runtime-language-epb` / Compile / exportedModule).value,
         (`runtime-language-arrow` / Compile / exportedModule).value,
         (`ydoc-server` / Compile / exportedModule).value,
+        (`benchmarks-common` / Compile / exportedModule).value,
         (`syntax-rust-definition` / Compile / exportedModule).value,
         (`profiling-utils` / Compile / exportedModule).value,
         (`logging-service-logback` / Compile / exportedModule).value,
@@ -2957,6 +2962,7 @@ lazy val `runtime-benchmarks` =
       ),
       Compile / addModules := Seq(
         (`runtime` / javaModuleName).value,
+        (`benchmarks-common` / javaModuleName).value,
         "org.slf4j.nop"
       ),
       // Benchmark sources are patched into the `org.enso.runtime` module
@@ -2964,16 +2970,15 @@ lazy val `runtime-benchmarks` =
         val runtimeModName = (`runtime` / javaModuleName).value
         val javaSrcDir     = (Compile / javaSource).value
         val classesDir     = (Compile / productDirectories).value.head
+        val generatedClassesDir = (Compile / sourceManaged).value
         val testUtilsClasses =
           (`test-utils` / Compile / productDirectories).value.head
-        val benchCommonClasses =
-          (`benchmarks-common` / Compile / productDirectories).value.head
         Map(
           runtimeModName -> Seq(
             javaSrcDir,
             classesDir,
             testUtilsClasses,
-            benchCommonClasses
+            generatedClassesDir
           )
         )
       },
@@ -2981,7 +2986,10 @@ lazy val `runtime-benchmarks` =
       Compile / addReads := {
         val runtimeModName = (`runtime` / javaModuleName).value
         Map(
-          runtimeModName -> Seq("ALL-UNNAMED")
+          runtimeModName -> Seq(
+            "ALL-UNNAMED",
+            (`benchmarks-common` / javaModuleName).value
+          )
         )
       },
       Compile / addExports := {
@@ -3690,6 +3698,7 @@ lazy val `benchmarks-common` =
     .enablePlugins(JPMSPlugin)
     .settings(
       frgaalJavaCompilerSetting,
+      javaModuleName := "org.enso.benchmarks.common",
       libraryDependencies ++= GraalVM.modules ++ Seq(
         "org.openjdk.jmh"  % "jmh-core"                 % jmhVersion,
         "org.openjdk.jmh"  % "jmh-generator-annprocess" % jmhVersion,
