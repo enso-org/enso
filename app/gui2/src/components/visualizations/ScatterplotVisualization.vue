@@ -152,12 +152,12 @@ const SCALE_TO_D3_SCALE = {
 
 const createDateTime = (x: DateObj) => {
   const dateTime = new Date()
-  x.day ? dateTime.setDate(x.day) : dateTime
-  x.month ? dateTime.setMonth(x.month) : dateTime
-  x.year ? dateTime.setFullYear(x.year) : dateTime
-  x.hour ? dateTime.setHours(x.hour) : dateTime
-  x.minute ? dateTime.setMinutes(x.minute) : dateTime
-  x.second ? dateTime.setSeconds(x.second) : dateTime
+  if (x.day != null) dateTime.setDate(x.day)
+  if (x.month != null) dateTime.setMonth(x.month)
+  if (x.year != null) dateTime.setFullYear(x.year)
+  if (x.hour != null) dateTime.setHours(x.hour)
+  if (x.minute != null) dateTime.setMinutes(x.minute)
+  if (x.second != null) dateTime.setSeconds(x.second)
   return dateTime
 }
 
