@@ -8,6 +8,7 @@ import { Pattern } from '@/util/ast/match'
 import { getTextWidthBySizeAndFamily } from '@/util/measurement'
 import { VisualizationContainer, defineKeybinds } from '@/util/visualizationBuiltins'
 import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
+import { Item } from 'yjs'
 
 export const name = 'Scatter Plot'
 export const icon = 'points'
@@ -544,29 +545,36 @@ function createNode(rowNumber: number) {
   }
 }
 
-const filterPattern = computed(() => Pattern.parse('__ (__ __)'))
+const filterPattern = computed(() => Pattern.parse('____ (..Between ____ ____)'))
 
-const makeFilterPattern = (module: Ast.MutableModule, columnName: string, items) => {
+const makeFilterPattern = (
+  module: Ast.MutableModule,
+  columnName: string,
+  min: number,
+  max: number,
+) => {
   return filterPattern.value.instantiateCopied([
     Ast.TextLiteral.new(columnName),
-    Ast.parse('..Is_In'),
-    Ast.Vector.new(module, items),
+    Ast.tryNumberToEnso(min, module)!,
+    Ast.tryNumberToEnso(max, module)!,
   ])
 }
 
-function getAstPatternFilter() {
-  const xAxisLabel = data.value.axis.x.label
-  const items = data.value.data.map((d) => d.x)
+function getAstPatternFilter(columnName: string, min: number, max: number) {
   return Pattern.new((ast) =>
     Ast.App.positional(
       Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('filter')!),
-      makeFilterPattern(ast.module, xAxisLabel, items),
+      makeFilterPattern(ast.module, columnName, min, max),
     ),
   )
 }
 
 const createNewNodes = () => {
-  const pattern = getAstPatternFilter()
+  const xAxisLabel = data.value.axis.x.label
+  const items = data.value.data.map((d) => d.x)
+  const min = Math.min(...items)
+  const max = Math.max(...items)
+  const pattern = getAstPatternFilter(xAxisLabel, min, max)
   if (pattern) {
     config.createNodes({
       content: pattern,
