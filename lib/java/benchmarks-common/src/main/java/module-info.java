@@ -6,5 +6,6 @@ module org.enso.benchmarks.common {
 
   exports org.enso.interpreter.bench;
 
-  opens org.enso.interpreter.bench to jakarta.xml.bind;
+  opens org.enso.interpreter.bench to
+      jakarta.xml.bind;
 }

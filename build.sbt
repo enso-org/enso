@@ -2914,9 +2914,9 @@ lazy val `runtime-benchmarks` =
           "ch.qos.logback"         % "logback-classic"              % logbackClassicVersion,
           "ch.qos.logback"         % "logback-core"                 % logbackClassicVersion,
           // Dependencies for benchmarks-common
-          "org.openjdk.jmh"        % "jmh-core"                     % jmhVersion, // Automatic module
-          "jakarta.xml.bind"       % "jakarta.xml.bind-api"         % jaxbVersion,
-          "jakarta.activation"     % "jakarta.activation-api"       % "2.1.0",
+          "org.openjdk.jmh"    % "jmh-core"               % jmhVersion, // Automatic module
+          "jakarta.xml.bind"   % "jakarta.xml.bind-api"   % jaxbVersion,
+          "jakarta.activation" % "jakarta.activation-api" % "2.1.0"
         )
       },
       Compile / internalModuleDependencies := Seq(
@@ -2967,9 +2967,9 @@ lazy val `runtime-benchmarks` =
       ),
       // Benchmark sources are patched into the `org.enso.runtime` module
       Compile / patchModules := {
-        val runtimeModName = (`runtime` / javaModuleName).value
-        val javaSrcDir     = (Compile / javaSource).value
-        val classesDir     = (Compile / productDirectories).value.head
+        val runtimeModName      = (`runtime` / javaModuleName).value
+        val javaSrcDir          = (Compile / javaSource).value
+        val classesDir          = (Compile / productDirectories).value.head
         val generatedClassesDir = (Compile / sourceManaged).value
         val testUtilsClasses =
           (`test-utils` / Compile / productDirectories).value.head
@@ -3821,7 +3821,7 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
       "-processor",
       "org.enso.benchmarks.processor.BenchProcessor,org.openjdk.jmh.generators.BenchmarkProcessor",
       // There is no Truffle compiler available for annotation processors. Suppress the warning.
-      "-J-Dpolyglot.engine.WarnInterpreterOnly=false",
+      "-J-Dpolyglot.engine.WarnInterpreterOnly=false"
     ),
     Compile / moduleDependencies := {
       (`runtime-benchmarks` / Compile / moduleDependencies).value
