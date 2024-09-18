@@ -12,6 +12,14 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import SearchBar from '#/layouts/SearchBar'
+import { useFullUserSession } from '#/providers/AuthProvider'
+import { useLocalBackend, useRemoteBackendStrict } from '#/providers/BackendProvider'
+import { useLocalStorageState } from '#/providers/LocalStorageProvider'
+import { useText } from '#/providers/TextProvider'
+import type Backend from '#/services/Backend'
+import { Path } from '#/services/ProjectManager'
+import { includesPredicate } from '#/utilities/array'
+import { regexEscape } from '#/utilities/string'
 import {
   ALL_SETTINGS_TABS,
   SETTINGS_DATA,
@@ -21,18 +29,10 @@ import {
   type SettingsContext,
   type SettingsEntryData,
   type SettingsTabData,
-} from '#/layouts/Settings/settingsData'
-import SettingsTab from '#/layouts/Settings/SettingsTab'
-import SettingsTabType from '#/layouts/Settings/SettingsTabType'
-import SettingsSidebar from '#/layouts/SettingsSidebar'
-import { useFullUserSession } from '#/providers/AuthProvider'
-import { useLocalBackend, useRemoteBackendStrict } from '#/providers/BackendProvider'
-import { useLocalStorageState } from '#/providers/LocalStorageProvider'
-import { useText } from '#/providers/TextProvider'
-import type Backend from '#/services/Backend'
-import { Path } from '#/services/ProjectManager'
-import { includesPredicate } from '#/utilities/array'
-import { regexEscape } from '#/utilities/string'
+} from './data'
+import SettingsSidebar from './Sidebar'
+import SettingsTab from './Tab'
+import SettingsTabType from './TabType'
 
 // ================
 // === Settings ===

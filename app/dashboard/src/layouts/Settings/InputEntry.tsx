@@ -1,14 +1,11 @@
-/** @file Rendering for an {@link settingsData.SettingsInputEntryData}. */
-import * as React from 'react'
+/** @file Rendering for an {@link SettingsInputEntryData}. */
+import { useRef, useState } from 'react'
 
-import * as textProvider from '#/providers/TextProvider'
-
-import type * as settingsData from '#/layouts/Settings/settingsData'
-
-import * as aria from '#/components/aria'
-import SettingsInput from '#/components/styled/SettingsInput'
-
-import * as errorModule from '#/utilities/error'
+import { Button, FieldError, Form, Label, TextField } from '#/components/aria'
+import { useText } from '#/providers/TextProvider'
+import { getMessageOrToString } from '#/utilities/error'
+import type { SettingsContext, SettingsInputEntryData } from './data'
+import SettingsInput from './Input'
 
 // =================
 // === Constants ===
@@ -23,17 +20,17 @@ const FIELD_NAME = 'value'
 
 /** Props for a {@link SettingsInputEntry}. */
 export interface SettingsInputEntryProps {
-  readonly context: settingsData.SettingsContext
-  readonly data: settingsData.SettingsInputEntryData
+  readonly context: SettingsContext
+  readonly data: SettingsInputEntryData
 }
 
-/** Rendering for an {@link settingsData.SettingsInputEntryData}. */
+/** Rendering for an {@link SettingsInputEntryData}. */
 export default function SettingsInputEntry(props: SettingsInputEntryProps) {
   const { context, data } = props
   const { nameId, getValue, setValue, validate, getEditable } = data
-  const { getText } = textProvider.useText()
-  const [errorMessage, setErrorMessage] = React.useState('')
-  const isSubmitting = React.useRef(false)
+  const { getText } = useText()
+  const [errorMessage, setErrorMessage] = useState('')
+  const isSubmitting = useRef(false)
   const value = getValue(context)
   const isEditable = getEditable(context)
 
@@ -52,7 +49,7 @@ export default function SettingsInputEntry(props: SettingsInputEntryProps) {
   )
 
   return (
-    <aria.Form
+    <Form
       validationErrors={{ [FIELD_NAME]: errorMessage }}
       onSubmit={async (event) => {
         event.preventDefault()
@@ -64,31 +61,29 @@ export default function SettingsInputEntry(props: SettingsInputEntryProps) {
             try {
               await setValue(context, newValue)
             } catch (error) {
-              setErrorMessage(errorModule.getMessageOrToString(error))
+              setErrorMessage(getMessageOrToString(error))
             }
           }
           isSubmitting.current = false
         }
       }}
     >
-      <aria.TextField
+      <TextField
         key={value}
         name={FIELD_NAME}
         defaultValue={value}
         className="flex h-row items-center gap-settings-entry"
         {...(validate ? { validate: (newValue) => validate(newValue, context) } : {})}
       >
-        <aria.Label className="text my-auto w-organization-settings-label">
-          {getText(nameId)}
-        </aria.Label>
+        <Label className="text my-auto w-organization-settings-label">{getText(nameId)}</Label>
         {validate ?
           <div className="flex grow flex-col">
             {input}
-            <aria.FieldError className="text-red-700" />
+            <FieldError className="text-red-700" />
           </div>
         : input}
-        <aria.Button type="submit" className="sr-only" />
-      </aria.TextField>
-    </aria.Form>
+        <Button type="submit" className="sr-only" />
+      </TextField>
+    </Form>
   )
 }
