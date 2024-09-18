@@ -545,7 +545,7 @@ function createNode(rowNumber: number) {
   }
 }
 
-const filterPattern = computed(() => Pattern.parse('____ (..Between ____ ____)'))
+const filterPattern = computed(() => Pattern.parse('__ (..Between __ __)'))
 
 const makeFilterPattern = (
   module: Ast.MutableModule,
