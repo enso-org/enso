@@ -12,7 +12,7 @@ import {
 import CloseIcon from '#/assets/cross.svg'
 import { Button, Input, Text } from '#/components/AriaComponents'
 import FocusRing from '#/components/styled/FocusRing'
-import { twMerge } from '#/utilities/tailwindMerge'
+import { twJoin, twMerge } from '#/utilities/tailwindMerge'
 
 // =================
 // === Constants ===
@@ -104,16 +104,6 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
     }
   }, [])
 
-  useEffect(() => {
-    const onClick = () => {
-      setIsDropdownVisible(false)
-    }
-    document.addEventListener('click', onClick)
-    return () => {
-      document.removeEventListener('click', onClick)
-    }
-  }, [])
-
   const fallbackInputRef = useRef<HTMLFieldSetElement>(null)
   const inputRef = rawInputRef ?? fallbackInputRef
 
@@ -190,7 +180,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
   }
 
   return (
-    <div className="relative h-6 w-full">
+    <div className={twJoin('relative isolate h-6 w-full', isDropdownVisible && 'z-1')}>
       <div
         onKeyDown={onKeyDown}
         className={twMerge(
@@ -228,7 +218,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
               />
             : <div
                 tabIndex={-1}
-                className="text grow cursor-pointer whitespace-nowrap bg-transparent px-button-x"
+                className="text w-full grow cursor-pointer overflow-auto whitespace-nowrap bg-transparent px-button-x scroll-hidden"
                 onClick={() => {
                   setIsDropdownVisible(true)
                 }}

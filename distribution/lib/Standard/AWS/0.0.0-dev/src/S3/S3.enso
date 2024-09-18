@@ -6,13 +6,13 @@ import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.Network.HTTP.Response import filename_from_content_disposition
 
 import project.AWS_Credential.AWS_Credential
-import project.S3.S3_File.S3_File
 import project.Errors.AWS_SDK_Error
 import project.Errors.More_Records_Available
 import project.Errors.S3_Bucket_Not_Found
 import project.Errors.S3_Error
 import project.Errors.S3_Key_Not_Found
 import project.Internal.Request_Body
+import project.S3.S3_File.S3_File
 
 polyglot java import java.io.IOException
 polyglot java import org.enso.aws.BucketLocator
