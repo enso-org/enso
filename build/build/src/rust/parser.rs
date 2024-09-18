@@ -9,7 +9,8 @@ use ide_ci::programs::Cargo;
 use ide_ci::programs::Java;
 use ide_ci::programs::Javac;
 
-
+use std::fs;
+use std::path::Path;
 
 const GENERATOR_CRATE_NAME: &str = "enso-parser-generate-java";
 const GENERATOR_BIN_NAME: &str = GENERATOR_CRATE_NAME;
@@ -50,6 +51,15 @@ pub async fn generate_java(repo_root: &RepoRoot) -> Result {
 pub async fn run_self_tests(repo_root: &RepoRoot) -> Result {
     let base = &repo_root.target.generated_java;
     let lib = &repo_root.lib.rust.parser.generate_java.java;
+    let external_dependencies_file = base
+        .as_path()
+        .join("streams")
+        .join("runtime")
+        .join("managedClasspath")
+        .join("_global")
+        .join("streams")
+        .join("export");
+    let dependencies_from_string = fs::read_to_string(external_dependencies_file.into_os_string())?;
     let package = repo_root.target.generated_java.join_iter(GENERATED_CODE_NAMESPACE);
     let test = package.join(GENERATED_TEST_CLASS).with_extension(JAVA_EXTENSION);
     let test_class =
@@ -63,7 +73,11 @@ pub async fn run_self_tests(repo_root: &RepoRoot) -> Result {
 
     Javac
         .cmd()?
-        .apply(&javac::Classpath::new([lib.as_path(), base.as_path()]))
+        .apply(&javac::Classpath::new([
+            lib.as_path(),
+            base.as_path(),
+            Path::new(&dependencies_from_string),
+        ]))
         .apply(&javac::Options::Directory(base.into()))
         .arg(&test)
         .run_ok()
