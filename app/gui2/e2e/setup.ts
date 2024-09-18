@@ -18,7 +18,7 @@ export default function setup() {
           id: 'websocket',
           udp: true,
           ipv6: true,
-          port: 30536,
+          port: 30537,
           middleware: [],
         },
       },

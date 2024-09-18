@@ -13,8 +13,7 @@ import VueDevTools from 'vite-plugin-vue-devtools'
 import wasm from 'vite-plugin-wasm'
 
 const dynHostnameWsUrl = (port: number) => JSON.stringify(`ws://__HOSTNAME__:${port}`)
-const projectManagerUrl =
-  process.env.E2E === 'true' ? '"ws://127.0.0.1:30536"' : dynHostnameWsUrl(30535)
+const projectManagerUrl = dynHostnameWsUrl(process.env.E2E === 'true' ? 30537 : 30535)
 const IS_CLOUD_BUILD = process.env.CLOUD_BUILD === 'true'
 const YDOC_SERVER_URL =
   process.env.ENSO_POLYGLOT_YDOC_SERVER ? JSON.stringify(process.env.ENSO_POLYGLOT_YDOC_SERVER)
