@@ -812,8 +812,14 @@ async function mockDate({ page }: MockParams) {
 export async function passAgreementsDialog({ page }: MockParams) {
   await test.test.step('Accept Terms and Conditions', async () => {
     await page.waitForSelector('#agreements-modal')
-    await page.getByRole('group', { name: TEXT.licenseAgreementCheckbox }).click()
-    await page.getByRole('group', { name: TEXT.privacyPolicyCheckbox }).click()
+    await page
+      .getByRole('group', { name: TEXT.licenseAgreementCheckbox })
+      .getByText(TEXT.licenseAgreementCheckbox)
+      .click()
+    await page
+      .getByRole('group', { name: TEXT.privacyPolicyCheckbox })
+      .getByText(TEXT.privacyPolicyCheckbox)
+      .click()
     await page.getByRole('button', { name: 'Accept' }).click()
   })
 }

@@ -16,7 +16,10 @@ export default class SetupPlanPageActions extends BaseActions {
   selectSoloPlan() {
     return this.step(`Select 'solo' plan`, async (page) => {
       await page.getByLabel(TEXT[PLAN_TO_UPGRADE_LABEL_ID[Plan.solo]]).click()
-      await page.getByRole('group', { name: TEXT.licenseAgreementCheckbox }).click()
+      await page
+        .getByRole('group', { name: TEXT.licenseAgreementCheckbox })
+        .getByText(TEXT.licenseAgreementCheckbox)
+        .click()
       await page.getByText(TEXT.startTrial).click()
     }).into(SetupDonePageActions)
   }
@@ -25,7 +28,10 @@ export default class SetupPlanPageActions extends BaseActions {
   selectPlan(plan: Exclude<Plan, Plan.free | Plan.solo>) {
     return this.step(`Select '${plan}' plan`, async (page) => {
       await page.getByLabel(TEXT[PLAN_TO_UPGRADE_LABEL_ID[plan]]).click()
-      await page.getByRole('group', { name: TEXT.licenseAgreementCheckbox }).click()
+      await page
+        .getByRole('group', { name: TEXT.licenseAgreementCheckbox })
+        .getByText(TEXT.licenseAgreementCheckbox)
+        .click()
       await page.getByText(TEXT.startTrial).click()
     }).into(SetupTeamPageActions)
   }
