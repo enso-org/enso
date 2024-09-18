@@ -3834,7 +3834,8 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
     },
     Compile / addModules := Seq(
       (`runtime` / javaModuleName).value,
-      (`bench-processor` / javaModuleName).value
+      (`bench-processor` / javaModuleName).value,
+      (`benchmarks-common` / javaModuleName).value
     ),
     // std benchmark sources are patch into the `org.enso.runtime` module
     Compile / patchModules := {
@@ -3848,8 +3849,15 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
         )
       )
     },
+    // jmh is in unnamed modules
     Compile / addReads := {
-      (`runtime-benchmarks` / Compile / addReads).value
+      val runtimeModName = (`runtime` / javaModuleName).value
+      Map(
+        runtimeModName -> Seq(
+          "ALL-UNNAMED",
+          (`benchmarks-common` / javaModuleName).value
+        )
+      )
     },
     // export all the packages to ALL-UNNAMED
     Compile / addExports := {
