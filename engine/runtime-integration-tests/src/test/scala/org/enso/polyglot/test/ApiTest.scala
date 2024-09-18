@@ -1,14 +1,17 @@
-package org.enso.polyglot
+package org.enso.polyglot.test
 
 import org.enso.common.RuntimeOptions
+import org.enso.polyglot.PolyglotContext
 import org.graalvm.polyglot.Context
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import java.io.ByteArrayOutputStream
 import java.nio.file.Paths
 
 class ApiTest extends AnyFlatSpec with Matchers {
   import org.enso.common.LanguageInfo._
+  val out = new ByteArrayOutputStream()
   val executionContext = new PolyglotContext(
     Context
       .newBuilder(ID)
@@ -18,6 +21,9 @@ class ApiTest extends AnyFlatSpec with Matchers {
         RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
         Paths.get("../../distribution/component").toFile.getAbsolutePath
       )
+      .out(out)
+      .err(out)
+      .logHandler(out)
       .build()
   )
 

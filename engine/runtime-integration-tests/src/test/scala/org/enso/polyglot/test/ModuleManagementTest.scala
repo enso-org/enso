@@ -1,14 +1,15 @@
-package org.enso.polyglot
+package org.enso.polyglot.test
 
 import org.enso.common.RuntimeOptions
-
-import java.io.File
-import java.nio.file.{Files, Paths}
 import org.enso.pkg.{Package, PackageManager}
+import org.enso.polyglot.PolyglotContext
 import org.enso.testkit.WithTemporaryDirectory
 import org.graalvm.polyglot.{Context, PolyglotException}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
+import java.io.{ByteArrayOutputStream, File}
+import java.nio.file.{Files, Paths}
 
 class ModuleManagementTest
     extends AnyFlatSpec
@@ -28,6 +29,7 @@ class ModuleManagementTest
         packageName,
         "Enso_Test"
       )
+    val out = new ByteArrayOutputStream()
     val executionContext = new PolyglotContext(
       Context
         .newBuilder(org.enso.common.LanguageInfo.ID)
@@ -39,6 +41,9 @@ class ModuleManagementTest
           Paths.get("../../distribution/component").toFile.getAbsolutePath
         )
         .option(RuntimeOptions.STRICT_ERRORS, "true")
+        .out(out)
+        .err(out)
+        .logHandler(out)
         .build()
     )
 
