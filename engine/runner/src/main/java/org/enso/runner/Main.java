@@ -1358,7 +1358,7 @@ public class Main {
         }
         commandAndArgs.add(component.getPath());
         commandAndArgs.add("-m");
-        commandAndArgs.add("org.enso.runtime/org.enso.EngineRunnerBootLoader");
+        commandAndArgs.add("org.enso.runner/org.enso.runner.Main");
         var it = line.iterator();
         while (it.hasNext()) {
           var op = it.next();
