@@ -278,7 +278,6 @@ const xTicks = computed(() => {
   switch (data.value.x_value_type) {
     case 'Time':
     case 'Date':
-      return boxWidth.value / 60
     case 'Date_Time':
       return boxWidth.value / 80
     default:
