@@ -253,6 +253,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
           </table>
         </div>
       )}
+
       {isDatalink && (
         <div className="pointer-events-auto flex flex-col items-start gap-side-panel-section">
           <aria.Heading

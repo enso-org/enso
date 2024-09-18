@@ -87,9 +87,15 @@ public final class PanicException extends AbstractTruffleException implements En
       info = library.getExceptionMessage(this);
       msg = library.asString(info);
     } catch (AssertionError | UnsupportedMessageException e) {
-      var ctx = EnsoContext.get(null);
-      ctx.getLogger().log(Level.WARNING, "Cannot convert " + info + " to string", e);
-      msg = TypeToDisplayTextNode.getUncached().execute(payload);
+      try {
+        var ctx = EnsoContext.get(null);
+        ctx.getLogger().log(Level.WARNING, "Cannot convert " + info + " to string", e);
+        msg = TypeToDisplayTextNode.getUncached().execute(payload);
+      } catch (AssertionError assertionError) {
+        throw new AssertionError(
+            "Failed to log failed conversion of " + info + " to string and payload " + payload,
+            assertionError);
+      }
     }
     cacheMessage = msg;
     return msg;
