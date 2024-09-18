@@ -1,9 +1,15 @@
+<script lang="ts">
+export type Range = { start: number; end: number }
+</script>
+
 <script setup lang="ts">
+import { useEvent } from '@/composables/events'
 import { useAutoBlur } from '@/util/autoBlur'
 import { getTextWidthByFont } from '@/util/measurement'
 import { computed, ref, watch, type StyleValue } from 'vue'
 
 const [model, modifiers] = defineModel<string>()
+const [selection] = defineModel<Range | undefined>('selection')
 const props = defineProps<{
   autoSelect?: boolean
   placeholder?: string | undefined
@@ -46,6 +52,40 @@ const inputStyle = computed<StyleValue>(() => ({ width: `${inputWidth.value}px` 
 function onEnterDown() {
   inputNode.value?.blur()
 }
+
+function readInputFieldSelection() {
+  if (inputNode.value?.selectionStart != null && inputNode.value.selectionEnd != null) {
+    console.log(
+      'Setting selection from HTML:',
+      inputNode.value.selectionStart,
+      inputNode.value.selectionEnd,
+    )
+    selection.value = {
+      start: inputNode.value.selectionStart,
+      end: inputNode.value.selectionEnd,
+    }
+  } else {
+    selection.value = undefined
+  }
+}
+
+// HTMLInputElement's same event is not supported in chrome yet. We just react for any
+// selectionchange in the document and check if the input selection changed.
+// BUT some operations like deleting does not emit 'selectionChange':
+// https://bugs.chromium.org/p/chromium/issues/detail?id=725890
+// Therefore we must also refresh selection after changing input.
+useEvent(document, 'selectionchange', readInputFieldSelection)
+watch(innerModel, readInputFieldSelection)
+watch(selection, (newPos) => {
+  // If boundaries didn't change, don't overwrite selection dir.
+  if (
+    inputNode.value?.selectionStart !== newPos?.start ||
+    inputNode.value?.selectionEnd !== newPos?.end
+  ) {
+    console.log('Setting selection from props:', newPos)
+    inputNode.value?.setSelectionRange(newPos?.start ?? null, newPos?.end ?? null)
+  }
+})
 
 defineExpose({
   inputWidth,

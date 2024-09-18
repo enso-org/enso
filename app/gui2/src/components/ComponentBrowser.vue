@@ -434,7 +434,6 @@ const handler = componentBrowserBindings.handler({
   --radius-default: 20px;
   --background-color: #eaeaea;
   --doc-panel-bottom-clip: 4px;
-  width: 295px;
   color: rgba(0, 0, 0, 0.6);
   font-size: 11.5px;
   display: flex;

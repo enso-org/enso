@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import SvgIcon from '@/components/SvgIcon.vue'
-import { useEvent } from '@/composables/events'
+import AutoSizedInput, { type Range } from '@/components/widgets/AutoSizedInput.vue'
 import type { useNavigator } from '@/composables/navigator'
 import type { Icon } from '@/util/iconName'
 import { computed, ref, watch, type DeepReadonly } from 'vue'
-
-type Range = { start: number; end: number }
+import { ComponentExposed } from 'vue-component-type-helpers'
 
 const content = defineModel<DeepReadonly<{ text: string; selection: Range | undefined }>>({
   required: true,
@@ -16,52 +15,21 @@ const props = defineProps<{
   nodeColor: string
 }>()
 
-const inputField = ref<HTMLInputElement>()
+const inputField = ref<ComponentExposed<typeof AutoSizedInput>>()
+
 const fieldText = ref<string>('')
 const fieldSelection = ref<Range>()
 
 watch(content, ({ text: newText, selection: newPos }) => {
   fieldText.value = newText
-  if (inputField.value == null) return
-  inputField.value.value = newText
-  // If boundaries didn't change, don't overwrite selection dir.
-  if (
-    inputField.value.selectionStart !== newPos?.start ||
-    inputField.value.selectionEnd !== newPos?.end
-  )
-    inputField.value.setSelectionRange(newPos?.start ?? null, newPos?.end ?? null)
+  fieldSelection.value = newPos
 })
-
-watch(fieldText, readInputFieldSelection)
-
 watch([fieldText, fieldSelection], ([newText, newSelection]) => {
   content.value = {
     text: newText,
     selection: newSelection,
   }
 })
-
-function readInputFieldSelection() {
-  if (
-    inputField.value != null &&
-    inputField.value.selectionStart != null &&
-    inputField.value.selectionEnd != null
-  ) {
-    fieldSelection.value = {
-      start: inputField.value.selectionStart,
-      end: inputField.value.selectionEnd,
-    }
-  } else {
-    fieldSelection.value = undefined
-  }
-}
-
-// HTMLInputElement's same event is not supported in chrome yet. We just react for any
-// selectionchange in the document and check if the input selection changed.
-// BUT some operations like deleting does not emit 'selectionChange':
-// https://bugs.chromium.org/p/chromium/issues/detail?id=725890
-// Therefore we must also refresh selection after changing input.
-useEvent(document, 'selectionchange', readInputFieldSelection)
 
 defineExpose({
   blur: () => inputField.value?.blur(),
@@ -81,9 +49,10 @@ const rootStyle = computed(() => {
     <div v-if="props.icon" class="iconPort">
       <SvgIcon :name="props.icon" class="nodeIcon" />
     </div>
-    <input
+    <AutoSizedInput
       ref="inputField"
       v-model="fieldText"
+      v-model:selection="fieldSelection"
       autocomplete="off"
       class="inputField"
       @pointerdown.stop
@@ -105,10 +74,10 @@ const rootStyle = computed(() => {
   border-radius: var(--radius-default);
   background-color: var(--background-color);
   padding: 0 var(--component-editor-padding);
-  width: 100%;
   height: 40px;
   display: flex;
   flex-direction: row;
+  gap: 8px;
   align-items: center;
 }
 
