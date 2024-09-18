@@ -50,8 +50,9 @@ pub async fn generate_java(repo_root: &RepoRoot) -> Result {
 #[context("Running self-tests for the generated Java sources failed.")]
 pub async fn run_self_tests(repo_root: &RepoRoot) -> Result {
     let base = &repo_root.target.generated_java;
+    let parser_target = &repo_root.target;
     let lib = &repo_root.lib.rust.parser.generate_java.java;
-    let external_dependencies_file = base
+    let external_dependencies_file = parser_target
         .as_path()
         .join("streams")
         .join("runtime")
