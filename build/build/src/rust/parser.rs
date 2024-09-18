@@ -17,7 +17,7 @@ const GENERATOR_BIN_NAME: &str = GENERATOR_CRATE_NAME;
 const TEST_GENERATOR_BIN_NAME: &str = "java-tests";
 const GENERATED_CODE_NAMESPACE: [&str; 3] = ["org", "enso", "syntax2"];
 const GENERATED_TEST_CLASS: &str = "GeneratedFormatTests";
-const JAVA_EXTENSION: &str = ".java";
+const JAVA_EXTENSION: &str = "java";
 
 pub fn cargo_run_generator_cmd(repo_root: &Path, binary_name: &str) -> Result<Command> {
     let mut ret = Cargo.cmd()?;
