@@ -13,25 +13,55 @@ import scala.collection.mutable
   * This plugin injects all the module-specific options to `javaOptions`, based on
   * the settings of this plugin.
   *
+  * Note that the settings of this plugin are *scoped* to `Compile` and `Test` configurations, so
+  * you need to always specify the configuration, for example, `Compile / moduleDependencies` instead
+  * of just `moduleDependencies`.
+  *
   * If this plugin is enabled, and no settings/tasks from this plugin are used, then the plugin will
   * not inject anything into `javaOptions` or `javacOptions`.
   *
   * == How to work with this plugin ==
-  * - Specify `moduleDependencies` with something like:
+  *
+  * - Specify external dependencies in `Compile / moduleDependencies` with something like:
   *  {{{
-  *  moduleDependencies := Seq(
+  *  Compile / moduleDependencies := Seq(
   *    "org.apache.commons" % "commons-lang3" % "3.11",
   *  )
   *  }}}
+  *  - Specify internal dependencies in `Compile / internalModuleDependencies` with something like:
+  *  {{{
+  *  Compile / internalModuleDependencies := Seq(
+  *    (myProject / Compile / exportedModule).value
+  *  )
+  *  }}}
+  *     - This ensures that `myProject` will be compiled, along with its `module-info.java`, and
+  *     the resulting directory with all the classes, along with `module-info.class` will be put on
+  *     the module path.
   *  - Ensure that all the module dependencies were gathered by the plugin correctly by
   *    `print modulePath`.
   *    - If not, make sure that these dependencies are in `libraryDependencies`.
   *      Debug this with `print dependencyClasspath`.
   *
+  * == Mixed projects ==
+  *
+  * A project with both Java and Scala sources that call into each other is called *mixed*.
+  * sbt sets `compileOrder := CompileOrder.Mixed` for these projects.
+  * Having `module-info.java` and trying to compile such project fails, because sbt first
+  * tries to parse all the Java sources with its own custom parser, that does not recognize
+  * `module-info.java`.
+  * One has to **exclude** the `module-info.java` from the compilation with setting
+  * {{{
+  *   excludeFilter := excludeFilter.value || "module-info.java"
+  * }}}
+  * This plugin tries to determine this case and will force the compilation of `module-info.java`.
+  * To see if this will be the case, check the value of `shouldCompileModuleInfoManually` task by
+  * `print shouldCompileModuleInfoManually`.
+  * In rare case, you have to override either `shouldCompileInfoManually` or `forceModuleInfoCompilation`.
+  *
   * == Caveats ==
+  *
   * - This plugin cannot determine transitive dependencies of modules in `moduleDependencies`.
-  *   As opposed to `libraryDependencies` which automatically gatheres all the transitive dependencies.
-  * - `compileOrder` has to be specified before `libraryDependencies`.
+  *   As opposed to `libraryDependencies` which automatically gathers all the transitive dependencies.
   */
 object JPMSPlugin extends AutoPlugin {
   object autoImport {
