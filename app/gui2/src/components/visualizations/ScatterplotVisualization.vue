@@ -144,7 +144,7 @@ const SHAPE_TO_SYMBOL: Record<string, d3.SymbolType> = {
   triangle: d3.symbolTriangle,
 }
 
-const SCALE_TO_D3_SCALE: any = {
+const SCALE_TO_D3_SCALE = {
   [ScaleType.Linear]: () => d3.scaleLinear(),
   [ScaleType.Logarithmic]: () => d3.scaleLog(),
   [ScaleType.Time]: () => d3.scaleTime(),
@@ -171,7 +171,7 @@ const data = computed<Data>(() => {
     'x_value_type' in rawData ?
       rawData.x_value_type === 'Time' ||
       rawData.x_value_type === 'Date' ||
-      rawData.x_value_type === 'Date_Time (with timezone)'
+      rawData.x_value_type === 'Date_Time'
     : false
   // eslint-disable-next-line camelcase
   if (isTimeSeries) {
@@ -278,7 +278,7 @@ const xTicks = computed(() => {
     case 'Time':
     case 'Date':
       return boxWidth.value / 60
-    case 'Date_Time (with timezone)':
+    case 'Date_Time':
       return boxWidth.value / 80
     default:
       return boxWidth.value / 40
