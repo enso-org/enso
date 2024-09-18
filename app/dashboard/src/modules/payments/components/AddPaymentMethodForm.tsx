@@ -61,10 +61,7 @@ export function AddPaymentMethodForm<
     },
   ) as unknown as FormInstance<typeof ADD_PAYMENT_METHOD_FORM_SCHEMA>
 
-  const cardElement = Form.useWatch({
-    control: formInstance.control,
-    name: 'cardElement',
-  })
+  const cardElement = Form.useWatch({ control: formInstance.control, name: 'cardElement' })
 
   return (
     <Form method="dialog" form={formInstance}>

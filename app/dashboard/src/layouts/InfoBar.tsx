@@ -1,18 +1,12 @@
 /** @file A toolbar containing chat and the user menu. */
-import * as React from 'react'
-
 import ChatIcon from '#/assets/chat.svg'
 import LogoIcon from '#/assets/enso_logo.svg'
-
-import * as modalProvider from '#/providers/ModalProvider'
-import * as textProvider from '#/providers/TextProvider'
-
-import InfoMenu from '#/layouts/InfoMenu'
-
-import * as ariaComponents from '#/components/AriaComponents'
-import Button from '#/components/styled/Button'
+import { Button } from '#/components/AriaComponents'
 import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
+import InfoMenu from '#/layouts/InfoMenu'
+import { useSetModal } from '#/providers/ModalProvider'
+import { useText } from '#/providers/TextProvider'
 
 // ===============
 // === InfoBar ===
@@ -27,8 +21,8 @@ export interface InfoBarProps {
 /** A toolbar containing chat and the user menu. */
 export default function InfoBar(props: InfoBarProps) {
   const { isHelpChatOpen, setIsHelpChatOpen } = props
-  const { setModal } = modalProvider.useSetModal()
-  const { getText } = textProvider.useText()
+  const { setModal } = useSetModal()
+  const { getText } = useText()
 
   return (
     <FocusArea direction="horizontal">
@@ -42,14 +36,16 @@ export default function InfoBar(props: InfoBarProps) {
           {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
           {false && (
             <Button
-              active={isHelpChatOpen}
-              image={ChatIcon}
+              size="custom"
+              variant="custom"
+              isActive={isHelpChatOpen}
+              icon={ChatIcon}
               onPress={() => {
                 setIsHelpChatOpen(!isHelpChatOpen)
               }}
             />
           )}
-          <ariaComponents.Button
+          <Button
             size="custom"
             variant="custom"
             className="flex size-row-h select-none items-center overflow-clip rounded-full"
@@ -62,7 +58,7 @@ export default function InfoBar(props: InfoBarProps) {
               alt={getText('openInfoMenu')}
               className="pointer-events-none size-7"
             />
-          </ariaComponents.Button>
+          </Button>
           {/* Required for shortcuts to work. */}
           <div className="hidden">
             <InfoMenu hidden />

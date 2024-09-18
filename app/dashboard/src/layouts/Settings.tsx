@@ -4,33 +4,35 @@ import * as React from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import BurgerMenuIcon from '#/assets/burger_menu.svg'
-
+import { MenuTrigger } from '#/components/aria'
+import { Button, Popover, Text } from '#/components/AriaComponents'
+import { useStrictPortalContext } from '#/components/Portal'
 import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import * as searchParamsState from '#/hooks/searchParamsStateHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-
-import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
-import { useLocalStorageState } from '#/providers/LocalStorageProvider'
-import * as textProvider from '#/providers/TextProvider'
-
+import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
+import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import SearchBar from '#/layouts/SearchBar'
-import * as settingsData from '#/layouts/Settings/settingsData'
+import {
+  ALL_SETTINGS_TABS,
+  SETTINGS_DATA,
+  SETTINGS_NO_RESULTS_SECTION_DATA,
+  SETTINGS_TAB_DATA,
+  SettingsEntryType,
+  type SettingsContext,
+  type SettingsEntryData,
+  type SettingsTabData,
+} from '#/layouts/Settings/settingsData'
 import SettingsTab from '#/layouts/Settings/SettingsTab'
 import SettingsTabType from '#/layouts/Settings/SettingsTabType'
 import SettingsSidebar from '#/layouts/SettingsSidebar'
-
-import * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
-import * as portal from '#/components/Portal'
-import Button from '#/components/styled/Button'
-
+import { useFullUserSession } from '#/providers/AuthProvider'
+import { useLocalBackend, useRemoteBackendStrict } from '#/providers/BackendProvider'
+import { useLocalStorageState } from '#/providers/LocalStorageProvider'
+import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import * as projectManager from '#/services/ProjectManager'
-
-import * as array from '#/utilities/array'
-import * as string from '#/utilities/string'
+import { Path } from '#/services/ProjectManager'
+import { includesPredicate } from '#/utilities/array'
+import { regexEscape } from '#/utilities/string'
 
 // ================
 // === Settings ===
@@ -44,18 +46,18 @@ export interface SettingsProps {
 /** Settings screen. */
 export default function Settings() {
   const queryClient = useQueryClient()
-  const backend = backendProvider.useRemoteBackendStrict()
-  const localBackend = backendProvider.useLocalBackend()
-  const [tab, setTab] = searchParamsState.useSearchParamsState(
+  const backend = useRemoteBackendStrict()
+  const localBackend = useLocalBackend()
+  const [tab, setTab] = useSearchParamsState(
     'SettingsTab',
     SettingsTabType.account,
-    array.includesPredicate(Object.values(SettingsTabType)),
+    includesPredicate(Object.values(SettingsTabType)),
   )
-  const { user, accessToken } = authProvider.useFullUserSession()
-  const { getText } = textProvider.useText()
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const { user, accessToken } = useFullUserSession()
+  const { getText } = useText()
+  const toastAndLog = useToastAndLog()
   const [query, setQuery] = React.useState('')
-  const root = portal.useStrictPortalContext()
+  const root = useStrictPortalContext()
   const [isSidebarPopoverOpen, setIsSidebarPopoverOpen] = React.useState(false)
   const { data: organization = null } = useBackendQuery(backend, 'getOrganization', [])
   const isQueryBlank = !/\S/.test(query)
@@ -69,7 +71,7 @@ export default function Settings() {
   const updateLocalRootPath = useEventCallback((value: string) => {
     setLocalRootDirectory(value)
     if (localBackend) {
-      localBackend.setRootPath(projectManager.Path(value))
+      localBackend.setRootPath(Path(value))
     }
   })
   const resetLocalRootPath = useEventCallback(() => {
@@ -77,7 +79,7 @@ export default function Settings() {
     localBackend?.resetRootPath()
   })
 
-  const context = React.useMemo<settingsData.SettingsContext>(
+  const context = React.useMemo<SettingsContext>(
     () => ({
       accessToken,
       user,
@@ -109,17 +111,17 @@ export default function Settings() {
   )
 
   const isMatch = React.useMemo(() => {
-    const regex = new RegExp(string.regexEscape(query.trim()).replace(/\s+/g, '.+'), 'i')
+    const regex = new RegExp(regexEscape(query.trim()).replace(/\s+/g, '.+'), 'i')
     return (name: string) => regex.test(name)
   }, [query])
 
   const doesEntryMatchQuery = React.useCallback(
-    (entry: settingsData.SettingsEntryData) => {
+    (entry: SettingsEntryData) => {
       switch (entry.type) {
-        case settingsData.SettingsEntryType.input: {
+        case SettingsEntryType.input: {
           return isMatch(getText(entry.nameId))
         }
-        case settingsData.SettingsEntryType.custom: {
+        case SettingsEntryType.custom: {
           const doesAliasesIdMatch =
             entry.aliasesId == null ? false : getText(entry.aliasesId).split('\n').some(isMatch)
           if (doesAliasesIdMatch) {
@@ -137,9 +139,9 @@ export default function Settings() {
 
   const tabsToShow = React.useMemo<readonly SettingsTabType[]>(() => {
     if (isQueryBlank) {
-      return settingsData.ALL_SETTINGS_TABS
+      return ALL_SETTINGS_TABS
     } else {
-      return settingsData.SETTINGS_DATA.flatMap((tabSection) =>
+      return SETTINGS_DATA.flatMap((tabSection) =>
         tabSection.tabs
           .filter((tabData) =>
             isMatch(getText(tabData.nameId)) || isMatch(getText(tabSection.nameId)) ?
@@ -154,8 +156,8 @@ export default function Settings() {
   }, [isQueryBlank, doesEntryMatchQuery, getText, isMatch])
   const effectiveTab = tabsToShow.includes(tab) ? tab : tabsToShow[0] ?? SettingsTabType.account
 
-  const data = React.useMemo<settingsData.SettingsTabData>(() => {
-    const tabData = settingsData.SETTINGS_TAB_DATA[effectiveTab]
+  const data = React.useMemo<SettingsTabData>(() => {
+    const tabData = SETTINGS_TAB_DATA[effectiveTab]
     if (isQueryBlank) {
       return tabData
     } else {
@@ -175,8 +177,7 @@ export default function Settings() {
         })
         return {
           ...tabData,
-          sections:
-            sections.length === 0 ? [settingsData.SETTINGS_NO_RESULTS_SECTION_DATA] : sections,
+          sections: sections.length === 0 ? [SETTINGS_NO_RESULTS_SECTION_DATA] : sections,
         }
       }
     }
@@ -184,10 +185,10 @@ export default function Settings() {
 
   return (
     <div className="flex flex-1 flex-col gap-4 overflow-hidden pl-page-x pt-4">
-      <aria.Heading level={1} className="flex items-center px-heading-x">
-        <aria.MenuTrigger isOpen={isSidebarPopoverOpen} onOpenChange={setIsSidebarPopoverOpen}>
-          <Button image={BurgerMenuIcon} buttonClassName="mr-3 sm:hidden" onPress={() => {}} />
-          <aria.Popover UNSTABLE_portalContainer={root}>
+      <Text.Heading level={1} className="flex items-center px-heading-x">
+        <MenuTrigger isOpen={isSidebarPopoverOpen} onOpenChange={setIsSidebarPopoverOpen}>
+          <Button size="custom" variant="custom" icon={BurgerMenuIcon} className="mr-3 sm:hidden" />
+          <Popover UNSTABLE_portalContainer={root}>
             <SettingsSidebar
               isMenu
               context={context}
@@ -198,21 +199,21 @@ export default function Settings() {
                 setIsSidebarPopoverOpen(false)
               }}
             />
-          </aria.Popover>
-        </aria.MenuTrigger>
+          </Popover>
+        </MenuTrigger>
 
-        <ariaComponents.Text variant="h1" className="font-bold">
+        <Text variant="h1" className="font-bold">
           {getText('settingsFor')}
-        </ariaComponents.Text>
+        </Text>
 
-        <ariaComponents.Text
+        <Text
           variant="h1"
           truncate="1"
           className="ml-2.5 mr-8 max-w-lg rounded-full bg-white px-2.5 font-bold"
           aria-hidden
         >
           {data.organizationOnly === true ? organization?.name ?? 'your organization' : user.name}
-        </ariaComponents.Text>
+        </Text>
 
         <SearchBar
           data-testid="settings-search-bar"
@@ -221,7 +222,7 @@ export default function Settings() {
           label={getText('settingsSearchBarLabel')}
           placeholder={getText('settingsSearchBarPlaceholder')}
         />
-      </aria.Heading>
+      </Text.Heading>
       <div className="flex sm:ml-[222px]" />
       <div className="flex flex-1 gap-4 overflow-hidden">
         <aside className="hidden h-full shrink-0 basis-[206px] flex-col overflow-y-auto overflow-x-hidden pb-12 sm:flex">
