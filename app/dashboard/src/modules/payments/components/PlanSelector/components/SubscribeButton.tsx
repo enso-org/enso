@@ -2,7 +2,7 @@
 import { getSalesEmail } from '#/appUtils'
 import { Button, DialogTrigger, Text } from '#/components/AriaComponents'
 import { useText } from '#/providers/TextProvider'
-import { TRIAL_DURATION_DAYS } from '../../../constants'
+import { PLAN_TO_UPGRADE_LABEL_ID, TRIAL_DURATION_DAYS } from '../../../constants'
 import { PlanSelectorDialog, type PlanSelectorDialogProps } from './PlanSelectorDialog'
 
 /** Props for a {@link SubscribeButton}. */
@@ -74,7 +74,14 @@ export function SubscribeButton(props: SubscribeButtonProps) {
           : defaultOpen == null ? {}
           : { defaultOpen })}
         >
-          <Button fullWidth isDisabled={disabled} variant={variant} size="medium" rounded="full">
+          <Button
+            fullWidth
+            isDisabled={disabled}
+            variant={variant}
+            size="medium"
+            rounded="full"
+            aria-label={getText(PLAN_TO_UPGRADE_LABEL_ID[plan])}
+          >
             {buttonText}
           </Button>
 
