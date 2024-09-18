@@ -3819,7 +3819,9 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
     },
     Compile / javacOptions ++= Seq(
       "-processor",
-      "org.enso.benchmarks.processor.BenchProcessor,org.openjdk.jmh.generators.BenchmarkProcessor"
+      "org.enso.benchmarks.processor.BenchProcessor,org.openjdk.jmh.generators.BenchmarkProcessor",
+      // There is no Truffle compiler available for annotation processors. Suppress the warning.
+      "-J-Dpolyglot.engine.WarnInterpreterOnly=false",
     ),
     Compile / moduleDependencies := {
       (`runtime-benchmarks` / Compile / moduleDependencies).value
