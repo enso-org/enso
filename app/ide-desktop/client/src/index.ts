@@ -39,6 +39,17 @@ import * as urlAssociations from '@/urlAssociations'
 
 const logger = contentConfig.logger
 
+/**
+ * Convert path to proper `file://` URL.
+ */
+function pathToURL(path: string): URL {
+  if (process.platform === 'win32') {
+    return new URL(encodeURI(`file:///${path.replaceAll('\\', '/')}`))
+  } else {
+    return new URL(encodeURI(`file://${path}`))
+  }
+}
+
 // ===========
 // === App ===
 // ===========
@@ -63,7 +74,7 @@ class App {
         const project = fileAssociations.handleOpenFile(path)
         this.window?.webContents.send(ipc.Channel.openProject, project)
       } else {
-        this.setProjectToOpenOnStartup(path)
+        this.setProjectToOpenOnStartup(pathToURL(path))
       }
     })
 
@@ -149,17 +160,17 @@ class App {
    * This method should be called before the application is ready, as it only
    * modifies the startup options. If the application is already initialized,
    * an error will be logged, and the method will have no effect.
-   * @param projectId - The ID of the project to be opened on startup. */
-  setProjectToOpenOnStartup(projectId: string) {
+   * @param projectUrl - The `file://` url of project to be opened on startup. */
+  setProjectToOpenOnStartup(projectUrl: URL) {
     // Make sure that we are not initialized yet, as this method should be called before the
     // application is ready.
     if (!electron.app.isReady()) {
-      logger.log(`Setting the project to open on startup to '${projectId}'.`)
-      this.args.groups.startup.options.project.value = projectId
+      logger.log(`Setting the project to open on startup to '${projectUrl.toString()}'.`)
+      this.args.groups.startup.options.project.value = projectUrl.toString()
     } else {
       logger.error(
         "Cannot set the project to open on startup to '" +
-          projectId +
+          projectUrl.toString() +
           "', as the application is already initialized.",
       )
     }
@@ -173,7 +184,7 @@ class App {
       if (fileToOpen != null) {
         // The IDE must receive the project path, otherwise if the IDE has a custom root directory
         // set then it is added to the (incorrect) default root directory.
-        this.setProjectToOpenOnStartup(`file://${encodeURI(fileToOpen)}`)
+        this.setProjectToOpenOnStartup(pathToURL(fileToOpen))
       }
 
       if (urlToOpen != null) {

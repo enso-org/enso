@@ -46,6 +46,7 @@ from Standard.Database.Dialect import Temp_Table_Style
 from Standard.Database.Dialect_Flags import all
 from Standard.Database.Errors import SQL_Error, Unsupported_Database_Operation
 from Standard.Database.Internal.IR.Operation_Metadata import Date_Period_Metadata
+from Standard.Database.Internal.JDBC_Connection import JDBC_Connection
 from Standard.Database.Internal.Statement_Setter import fill_hole_default
 
 import project.Internal.Snowflake_Error_Mapper.Snowflake_Error_Mapper
@@ -205,7 +206,7 @@ type Snowflake_Dialect
        Specifies implementation details flags.
     dialect_flags : Dialect_Flags
     dialect_flags self -> Dialect_Flags =
-        rounding = Rounding_Flags.Value supports_negative_decimal_places=True supports_float_decimal_places=True
+        rounding = Rounding_Flags.Value supports_negative_decimal_places=True supports_float_decimal_places=True use_builtin_bankers=True
         Dialect_Flags.Value rounding=rounding
 
     ## PRIVATE
@@ -306,6 +307,11 @@ type Snowflake_Dialect
         _                      -> False
 
     ## PRIVATE
+    ensure_query_has_no_holes : JDBC_Connection -> Text -> Nothing ! Illegal_Argument
+    ensure_query_has_no_holes self jdbc:JDBC_Connection raw_sql:Text =
+        jdbc.ensure_query_has_no_holes raw_sql
+
+    ## PRIVATE
        In Snowflake we need to create tables outside of transactions.
        However, currently we decide to opt-out of the integrity check for
        performance reasons - there is too much overhead to each query. The check
@@ -357,6 +363,7 @@ type Snowflake_Dialect
 
 ## PRIVATE
 make_dialect_operations =
+    arith = [round_bankers]
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
     text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive, ["REPLACE", replace], left, right]+concat_ops+cases+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
@@ -374,7 +381,7 @@ make_dialect_operations =
         operations = [["date_add", make_date_add], ["date_diff", make_date_diff], ["date_trunc_to_day", make_date_trunc_to_day]]
         trivial + fractional + other + operations
     other = [["IIF", make_iif], ["RUNTIME_ERROR", make_runtime_error_op], ["ROW_NUMBER_IN_GROUP", make_row_number_in_group]]
-    my_mappings = text + counts + stats + arith_extensions + bool + date_ops + other + first_last_aggregators
+    my_mappings = arith + text + counts + stats + arith_extensions + bool + date_ops + other + first_last_aggregators
     Base_Generator.base_dialect_operations . extend_with my_mappings
 
 ## PRIVATE
@@ -551,6 +558,37 @@ make_order_descriptor internal_column sort_direction text_ordering =
                             upper = SQL_Expression.Operation "UPPER" [Internals_Access.column_expression internal_column]
                             folded_expression = SQL_Expression.Operation "LOWER" [upper]
                             Order_Descriptor.Value folded_expression sort_direction nulls_order=nulls collation=Nothing
+
+## PRIVATE
+round_bankers = Base_Generator.lift_binary_op "ROUND_BANKERS" x-> dp->
+    two = SQL_Builder.code "2"
+    ten = SQL_Builder.code "10"
+    fun f args = (SQL_Builder.code f ++ "(" ++ (SQL_Builder.join "," (args.map .paren)) ++ ")").paren
+    neg x = (SQL_Builder.code "-" ++ x.paren).paren
+    scale = fun "POW" [ten, dp]
+    floor x = fun "FLOOR" [x]
+    ceil x = fun "CEIL" [x]
+    round x = fun "ROUND" [x]
+    case_when cases else_clause =
+        cases_sqls = cases.map pr->
+            pred = pr.at 0
+            exp = pr.at 1
+            SQL_Builder.code "WHEN " ++ pred.paren ++ " THEN " ++ exp.paren
+        (SQL_Builder.code "CASE " ++ (SQL_Builder.join " " cases_sqls) ++ " ELSE " ++ else_clause ++ " END").paren
+    mod2 x = fun "MOD" [x, two]
+
+    # Scale for the decimal_places argument.
+    scaled = (x.paren ++ " * " ++ scale).paren
+
+    # We've wrapped all values to the 0..2 range, which needs 3 cases.
+    partition x = case_when [[mod2 x ++ " <= 0.5", floor x], [mod2 x ++ " >= 1.5", ceil x]] (round x)
+
+    # Handle negative values by negating on the way in and on the way out.
+    flip_for_negative x f = case_when [[x ++ " >= 0", f x]] (neg (f (neg x)))
+    bankers_rounded = flip_for_negative scaled partition
+
+    # Undo the scaling factor.
+    (bankers_rounded ++ " / " ++ scale).paren
 
 ## PRIVATE
 is_nan = Base_Generator.lift_unary_op "IS_NAN" arg->

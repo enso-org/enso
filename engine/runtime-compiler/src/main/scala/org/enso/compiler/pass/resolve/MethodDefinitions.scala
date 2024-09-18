@@ -103,7 +103,8 @@ case object MethodDefinitions extends IRPass {
         ) match {
           case Some(Resolution(ResolvedType(_, tp)))
               if canGenerateStaticWrappers(tp) =>
-            assert(method.body.isInstanceOf[Function.Lambda])
+            org.enso.common.Asserts
+              .assertInJvm(method.body.isInstanceOf[Function.Lambda])
             val dup = method.duplicate()
             // This is the self argument that will receive the `SelfType.type` value upon dispatch, it is added to avoid modifying the dispatch mechanism.
             val syntheticModuleSelfArg = DefinitionArgument.Specified(
@@ -197,7 +198,10 @@ case object MethodDefinitions extends IRPass {
               errors.Resolution.ResolverError(err)
             )
           case Right(resolvedItems) =>
-            assert(resolvedItems.size == 1, "Expected a single resolution")
+            org.enso.common.Asserts.assertInJvm(
+              resolvedItems.size == 1,
+              "Expected a single resolution"
+            )
             resolvedItems.head match {
               case _: BindingsMap.ResolvedConstructor =>
                 errors.Resolution(

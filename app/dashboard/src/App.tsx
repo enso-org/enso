@@ -346,6 +346,7 @@ function AppRouter(props: AppRouterProps) {
       },
     }
   }, [localStorage, inputBindingsRaw])
+
   const mainPageUrl = getMainPageUrl()
 
   // Subscribe to `localStorage` updates to trigger a rerender when the terms of service
@@ -354,10 +355,10 @@ function AppRouter(props: AppRouterProps) {
   localStorageProvider.useLocalStorageState('privacyPolicy')
 
   const authService = useInitAuthService(props)
-  const userSession = authService?.cognito.userSession.bind(authService.cognito) ?? null
-  const refreshUserSession =
-    authService?.cognito.refreshUserSession.bind(authService.cognito) ?? null
-  const registerAuthEventListener = authService?.registerAuthEventListener ?? null
+
+  const userSession = authService.cognito.userSession.bind(authService.cognito)
+  const refreshUserSession = authService.cognito.refreshUserSession.bind(authService.cognito)
+  const registerAuthEventListener = authService.registerAuthEventListener
 
   React.useEffect(() => {
     if ('menuApi' in window) {
@@ -490,7 +491,7 @@ function AppRouter(props: AppRouterProps) {
     <FeatureFlagsProvider>
       <RouterProvider navigate={navigate}>
         <SessionProvider
-          saveAccessToken={authService?.cognito.saveAccessToken.bind(authService.cognito) ?? null}
+          saveAccessToken={authService.cognito.saveAccessToken.bind(authService.cognito)}
           mainPageUrl={mainPageUrl}
           userSession={userSession}
           registerAuthEventListener={registerAuthEventListener}
