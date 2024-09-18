@@ -51,7 +51,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
     () => new Set<string>(labels.map((label) => label.value)),
     [labels],
   )
-  const leastUsedColor = React.useMemo(() => backendModule.leastUsedColor(labels), [labels])
+  const leastUsedColor = React.useMemo(() => backendModule.findLeastUsedColor(labels), [labels])
   const canSubmit = Boolean(value && !labelNames.has(value))
 
   const createTag = useMutation(backendMutationOptions(backend, 'createTag')).mutate

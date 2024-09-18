@@ -685,7 +685,7 @@ export const COLOR_STRING_TO_COLOR = new Map(
 export const INITIAL_COLOR_COUNTS = new Map(COLORS.map(color => [lChColorToCssColor(color), 0]))
 
 /** The color that is used for the least labels. Ties are broken by order. */
-export function leastUsedColor(labels: Iterable<Label>) {
+export function findLeastUsedColor(labels: Iterable<Label>) {
   const colorCounts = new Map(INITIAL_COLOR_COUNTS)
   for (const label of labels) {
     const colorString = lChColorToCssColor(label.color)
