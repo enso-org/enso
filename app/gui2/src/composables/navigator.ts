@@ -17,6 +17,7 @@ import {
   onScopeDispose,
   proxyRefs,
   readonly,
+  ref,
   shallowRef,
   toRef,
   watch,
@@ -81,7 +82,45 @@ export function useNavigator(
   let lastPinchOrigin = Vec2.Zero
   let holdDragStarted = false
 
+  type DragState = Parameters<Handler<'drag', PointerEvent>>[0]
+
+  function handleDragPanning(state: DragState) {
+    if (Vec2.FromTuple(state.movement).length() > LONGPRESS_MAX_SLIDE) cancelLongpress()
+    scrollTo(center.value.addScaled(Vec2.FromTuple(state.delta), -1 / scale.value))
+    state.event.stopImmediatePropagation()
+  }
+
+  function handleDragZooming(state: DragState) {
+    const prevScale = scale.value
+    updateScale((oldValue) => oldValue * Math.exp(-state.delta[1] / 100))
+    scrollTo(center.value.scaleAround(prevScale / scale.value, gesturePivot))
+  }
+
+  function handleDragHolding(state: DragState) {
+    callHoldDragListeners({
+      ...state,
+      first: holdDragStarted === false,
+      dragging: state.dragging || !state.last,
+    })
+    holdDragStarted = true
+  }
+
   let longpressTimer: ReturnType<typeof setTimeout> | null = null
+  function startTouchLongpressTimer(state: DragState) {
+    state.event.preventDefault()
+    cancelLongpress()
+    longpressTimer = setTimeout(() => {
+      longpressTimer = null
+      if (navigator.vibrate) navigator.vibrate(20)
+      handleDragHolding(state)
+    }, LONGPRESS_TIMEOUT)
+  }
+
+  function cancelLongpress() {
+    if (longpressTimer) clearTimeout(longpressTimer)
+    longpressTimer = null
+  }
+
   useGesture(
     {
       onMove(state) {
@@ -95,61 +134,22 @@ export function useNavigator(
 
         if (!dragPredicate(state.event) || state.pinching) return
         const isTouch = eventIsTouch(state.event)
+        const mainDown = (state.buttons & PointerButtonMask.Main) != 0
+        const secondaryDown = (state.buttons & PointerButtonMask.Secondary) != 0
+        const auxDown = (state.buttons & PointerButtonMask.Auxiliary) != 0
 
-        if (isTouch && state.first) {
-          state.event.preventDefault()
-          if (longpressTimer != null) clearTimeout(longpressTimer)
-          longpressTimer = setTimeout(() => {
-            longpressTimer = null
-            if (navigator.vibrate) navigator.vibrate(20)
-            callHoldDragListeners({ ...state, dragging: true })
-            holdDragStarted = true
-          }, LONGPRESS_TIMEOUT)
-        }
+        if (isTouch && state.first) startTouchLongpressTimer(state)
 
-        if (!holdDragStarted && (isTouch || (state.buttons & PointerButtonMask.Auxiliary) != 0)) {
-          if (
-            longpressTimer != null &&
-            Vec2.FromTuple(state.movement).length() > LONGPRESS_MAX_SLIDE
-          ) {
-            clearTimeout(longpressTimer)
-            longpressTimer = null
-          }
-          scrollTo(center.value.addScaled(Vec2.FromTuple(state.delta), -1 / scale.value))
-          state.event.stopImmediatePropagation()
-        } else if (!isTouch && (state.buttons & PointerButtonMask.Secondary) != 0) {
-          const prevScale = scale.value
-          updateScale((oldValue) => oldValue * Math.exp(-state.delta[1] / 100))
-          scrollTo(
-            center.value
-              .sub(gesturePivot)
-              .scale(prevScale / scale.value)
-              .add(gesturePivot),
-          )
-        } else if (
-          state.tap ||
-          holdDragStarted ||
-          (!isTouch && (state.buttons & PointerButtonMask.Main) != 0)
-        ) {
-          callHoldDragListeners({
-            ...state,
-            first: holdDragStarted === false,
-            dragging: state.dragging || !state.last,
-          })
-          holdDragStarted = true
-        }
-        if (state.last && longpressTimer) {
-          clearTimeout(longpressTimer)
-          longpressTimer = null
-        }
+        if (!holdDragStarted && (isTouch || auxDown)) handleDragPanning(state)
+        else if (!isTouch && secondaryDown) handleDragZooming(state)
+        else if (state.tap || holdDragStarted || (!isTouch && mainDown)) handleDragHolding(state)
+
+        if (state.last && longpressTimer) cancelLongpress()
         if (state.last && holdDragStarted) holdDragStarted = false
       },
       onPinch(state) {
         // A started longpress touch can transform into pinch without warning, make sure to clear the timeout.
-        if (longpressTimer != null) {
-          clearTimeout(longpressTimer)
-          longpressTimer = null
-        }
+        cancelLongpress()
 
         if (state.ctrlKey) return // We do our own touchpad handling below
 
@@ -167,11 +167,9 @@ export function useNavigator(
         updateScale((_) => pinchScaleRatio * state.da[0])
         scrollTo(
           center.value
-            .sub(gesturePivot)
-            .scale(prevScale / scale.value)
-            .add(gesturePivot),
+            .scaleAround(prevScale / scale.value, gesturePivot)
+            .addScaled(originDelta, -1 / scale.value),
         )
-        scrollTo(center.value.addScaled(originDelta, -1 / scale.value))
       },
       onWheel(state) {
         if (state.ctrlKey) return
@@ -186,7 +184,7 @@ export function useNavigator(
       },
       drag: {
         enabled: true,
-        useTouch: false,
+        useTouch: 'ontouchstart' in document.documentElement && navigator.maxTouchPoints > 0,
       },
       pinch: {
         enabled: true,
@@ -199,7 +197,7 @@ export function useNavigator(
 
   watch(size, updateViewportRect, { immediate: true })
 
-  const targetScale = shallowRef(1)
+  const targetScale = ref(1)
   const scale = useApproach(targetScale)
 
   const panArrows = useArrows(
@@ -350,7 +348,6 @@ export function useNavigator(
     () => `translate(${translate.value.x * scale.value}px, ${translate.value.y * scale.value}px)`,
   )
 
-  // let isPointerDown = false
   const eventMousePos = shallowRef<Vec2 | null>(null)
   const sceneMousePos = computed(() =>
     eventMousePos.value ? clientToScenePos(eventMousePos.value) : null,
@@ -439,12 +436,14 @@ export function useNavigator(
     scale: readonly(toRef(scale, 'value')),
     viewBox: readonly(viewBox),
     transform: readonly(transform),
+    /**
+     * Add handler for "hold" events - a drag action that doesn't move the navigator viewport, but
+     * is supposed to represent holding the viewport contents itself. For desktop, this is the
+     * left mouse button drag. For touch input, it is a long-press and drag.
+     */
     addHoldDragListener(listener: Handler<'drag'>) {
       holdDragListeners.push(listener)
-      onScopeDispose(() => {
-        console.log('scope dispose')
-        holdDragListeners.splice(holdDragListeners.indexOf(listener), 1)
-      })
+      onScopeDispose(() => holdDragListeners.splice(holdDragListeners.indexOf(listener), 1))
     },
     /** Use this transform instead, if the element should not be scaled. */
     prescaledTransform,

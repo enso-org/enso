@@ -267,7 +267,6 @@ const dragPointer = usePointer(
         startEpochMs.value = 0
         emit('draggingCommited')
         break
-
       case 'cancel':
         startEpochMs.value = 0
         emit('draggingCancelled')

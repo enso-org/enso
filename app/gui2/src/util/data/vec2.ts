@@ -61,6 +61,10 @@ export class Vec2 {
     return new Vec2(this.x * scalar, this.y * scalar)
   }
 
+  scaleAround(scalar: number, pivotPoint: Vec2): Vec2 {
+    return this.sub(pivotPoint).scale(scalar).add(pivotPoint)
+  }
+
   distanceSquared(other: Vec2): number {
     const dx = this.x - other.x
     const dy = this.y - other.y
