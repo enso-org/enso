@@ -63,7 +63,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
             children.push(
               <div
                 className={twMerge(
-                  'w-60 rounded-default border-0.5',
+                  'w-full rounded-default border-0.5',
                   getValidator(path)(value) ? 'border-primary/20' : 'border-red-700/60',
                 )}
               >
@@ -115,7 +115,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                 value={typeof value === 'number' ? value : ''}
                 size={1}
                 className={twMerge(
-                  'focus-child text w-60 grow rounded-input border-0.5 bg-transparent px-input-x read-only:read-only',
+                  'focus-child text w-full grow rounded-input border-0.5 bg-transparent px-input-x read-only:read-only',
                   getValidator(path)(value) ? 'border-primary/20' : 'border-red-700/60',
                 )}
                 placeholder={getText('enterNumber')}
@@ -177,7 +177,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
           )
           if (constantValueOfSchema(defs, schema).length !== 1) {
             children.push(
-              <div className="grid items-center gap-json-schema rounded-default border-0.5 border-primary/20 p-json-schema-object-input">
+              <div className="grid auto-cols-[max-content_auto] items-center gap-json-schema rounded-default border-0.5 border-primary/20 p-json-schema-object-input">
                 {propertyDefinitions.map((definition) => {
                   const { key, schema: childSchema } = definition
                   const isOptional = !requiredProperties.includes(key)
