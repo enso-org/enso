@@ -65,10 +65,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
 
   const asset = item.item
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
-  const ownPermission =
-    asset.permissions?.find(
-      backendModule.isUserPermissionAnd((permission) => permission.user.userId === user.userId),
-    ) ?? null
+  const ownPermission = permissions.tryFindSelfPermission(user, asset.permissions)
   // This is a workaround for a temporary bad state in the backend causing the `projectState` key
   // to be absent.
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition

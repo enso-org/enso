@@ -1,6 +1,4 @@
 /** @file An interactive button indicating the status of a project. */
-import * as React from 'react'
-
 import * as reactQuery from '@tanstack/react-query'
 
 import ArrowUpIcon from '#/assets/arrow_up.svg'
