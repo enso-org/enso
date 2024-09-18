@@ -83,8 +83,9 @@ const flagsOfButtonField = [
   POINTER_BUTTON_FLAG.PointerForward,
 ]
 
-function buttonFlagsForEvent(event: MouseEvent | TouchEvent): PointerButtonFlags {
-  if (event instanceof TouchEvent) return POINTER_BUTTON_FLAG.PointerMain
+function buttonFlagsForEvent(event: MouseEvent | TouchEvent | PointerEvent): PointerButtonFlags {
+  if ('TouchEvent' in window && event instanceof TouchEvent) return POINTER_BUTTON_FLAG.PointerMain
+  DEV: assert(event instanceof MouseEvent || event instanceof PointerEvent)
   // event.buttons keeps information about buttons being pressed, but in case of `click` or
   // `pointerup` events we also want to know what buttons were just released.
   return (event.buttons | (flagsOfButtonField[event.button] ?? 0)) as PointerButtonFlags
