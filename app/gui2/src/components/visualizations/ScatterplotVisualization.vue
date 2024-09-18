@@ -144,12 +144,6 @@ const SHAPE_TO_SYMBOL: Record<string, d3.SymbolType> = {
   triangle: d3.symbolTriangle,
 }
 
-const SCALE_TO_D3_SCALE = {
-  [ScaleType.Linear]: () => d3.scaleLinear(),
-  [ScaleType.Logarithmic]: () => d3.scaleLog(),
-  [ScaleType.Time]: () => d3.scaleTime(),
-}
-
 const createDateTime = (x: DateObj) => {
   const dateTime = new Date()
   if (x.day != null) dateTime.setDate(x.day)
@@ -231,17 +225,24 @@ const brushExtent = ref<d3.BrushSelection>()
 const limit = ref(DEFAULT_LIMIT)
 const focus = ref<Focus>()
 const shouldAnimate = ref(false)
-const xDomain = ref([0, 1])
-const yDomain = ref([0, 1])
+const xDomain = ref<number[] | Date[]>([0, 1])
+const yDomain = ref<number[] | Date[]>([0, 1])
 const selectionEnabled = ref(false)
 
 const isBrushing = computed(() => brushExtent.value != null)
+
+function axisD3Scale(axis: AxisConfiguration | undefined) {
+  return axis?.scale === ScaleType.Logarithmic ? d3.scaleLog() : d3.scaleLinear()
+}
+
 const xScale = computed(() =>
   axisD3Scale(data.value.axis.x).domain(xDomain.value).range([0, boxWidth.value]),
 )
 const yScale = computed(() =>
   axisD3Scale(data.value.axis.y).domain(yDomain.value).range([boxHeight.value, 0]),
 )
+
+const xScaleTime = computed(() => d3.scaleTime().domain(xDomain.value).range([0, boxWidth.value]))
 
 const symbol: d3.Symbol<unknown, Point> = d3.symbol()
 
@@ -509,16 +510,6 @@ function matchShape(d: Point) {
   return d.shape != null ? SHAPE_TO_SYMBOL[d.shape] ?? d3.symbolCircle : d3.symbolCircle
 }
 
-/** Construct either a linear or a logarithmic D3 scale.
- *
- * The scale kind is selected depending on update contents.
- *
- * @param axis Axis information as received in the visualization update.
- * @returns D3 scale. */
-function axisD3Scale(axis: AxisConfiguration | undefined) {
-  return axis?.scale != null ? SCALE_TO_D3_SCALE[axis.scale]() : d3.scaleLinear()
-}
-
 watchEffect(() => {
   // Update the axes in d3.
   const { xMin, xMax, yMin, yMax, paddingX, paddingY, dx, dy } = extremesAndDeltas.value
@@ -544,10 +535,10 @@ watchPostEffect(() => {
   const xCallVal =
     data.value.isTimeSeries ?
       d3
-        .axisBottom<Date>(xScale.value)
+        .axisBottom<Date>(xScaleTime.value)
         .ticks(xTicks.value)
         .tickFormat(d3.timeFormat(xTickFormat.value))
-    : d3.axisBottom<string>(xScale.value).ticks(xTicks.value)
+    : d3.axisBottom(xScale.value).ticks(xTicks.value)
   return d3XAxis.value.transition().duration(animationDuration.value).call(xCallVal)
 })
 
@@ -606,7 +597,7 @@ function getTooltipMessage(point: Point) {
 // === Update contents ===
 
 watchPostEffect(() => {
-  const xScale_ = xScale.value
+  const xScale_ = data.value.isTimeSeries ? xScaleTime.value : xScale.value
   const yScale_ = yScale.value
   const plotData = getPlotData(data.value) as Point[]
   const series = Object.keys(data.value.axis).filter((s) => s != 'x')
@@ -631,7 +622,7 @@ watchPostEffect(() => {
       symbol.type(matchShape).size((d) => (d.size ?? 0.15) * SIZE_SCALE_MULTIPLER),
     )
     .style('fill', (d) => colorScale(d.series || ''))
-    .attr('transform', (d) => `translate(${xScale_(d.x)}, ${yScale_(d.y)})`)
+    .attr('transform', (d) => `translate(${xScale_(Number(d.x))}, ${yScale_(d.y)})`)
   if (data.value.points.labels === VISIBLE_POINTS) {
     d3Points.value
       .selectAll<SVGPathElement, unknown>('text')
@@ -640,7 +631,7 @@ watchPostEffect(() => {
       .transition()
       .duration(animationDuration.value)
       .text((d) => d.label ?? '')
-      .attr('x', (d) => xScale_(d.x) + POINT_LABEL_PADDING_X_PX)
+      .attr('x', (d) => xScale_(Number(d.x)) + POINT_LABEL_PADDING_X_PX)
       .attr('y', (d) => yScale_(d.y) + POINT_LABEL_PADDING_Y_PX)
   }
 })
