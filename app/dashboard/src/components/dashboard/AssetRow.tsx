@@ -165,7 +165,8 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
     object.merge(assetRowUtils.INITIAL_ROW_STATE, { setVisibility: setInsertionVisibility }),
   )
 
-  const isEditingName = useNewestFolderId() === asset.id
+  const isNewlyCreated = useStore(driveStore, ({ newestFolderId }) => newestFolderId === asset.id)
+  const isEditingName = innerRowState.isEditingName || isNewlyCreated
 
   const rowState = React.useMemo(() => {
     return object.merge(innerRowState, { isEditingName })
