@@ -1,5 +1,7 @@
 # Next Release
 
+# Enso 2024.3
+
 #### Enso IDE
 
 - [Table Editor Widget][10774] displayed in `Table.new` component.
