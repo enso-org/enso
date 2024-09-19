@@ -14,7 +14,6 @@ import wasm from 'vite-plugin-wasm'
 
 const dynHostnameWsUrl = (port: number) => JSON.stringify(`ws://__HOSTNAME__:${port}`)
 const projectManagerUrl = dynHostnameWsUrl(process.env.E2E === 'true' ? 30536 : 30535)
-console.log('projectManagerUrl')
 const IS_CLOUD_BUILD = process.env.CLOUD_BUILD === 'true'
 const YDOC_SERVER_URL =
   process.env.ENSO_POLYGLOT_YDOC_SERVER ? JSON.stringify(process.env.ENSO_POLYGLOT_YDOC_SERVER)

@@ -118,7 +118,7 @@ export default defineConfig({
         `corepack pnpm build && corepack pnpm exec vite preview --port ${PORT} --strictPort`
       : `corepack pnpm exec vite dev --port ${PORT}`,
     // Build from scratch apparently can take a while on CI machines.
-    timeout: 120 * 1000,
+    timeout: 240 * 1000,
     port: PORT,
     // We use our special, mocked version of server, thus do not want to re-use user's one.
     reuseExistingServer: false,
