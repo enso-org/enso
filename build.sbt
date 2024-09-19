@@ -702,6 +702,7 @@ lazy val componentModulesPaths =
     (`version-output` / Compile / exportedModuleBin).value,
     (`scala-yaml` / Compile / exportedModuleBin).value,
     (`scala-libs-wrapper` / Compile / exportedModuleBin).value,
+    (`fansi-wrapper` / Compile / exportedModuleBin).value,
     (`edition-updater` / Compile / exportedModuleBin).value,
     (`profiling-utils` / Compile / exportedModuleBin).value
   )
@@ -1323,6 +1324,48 @@ lazy val `directory-watcher-wrapper` = project
       )
       Map(
         javaModuleName.value -> scalaLibs
+      )
+    }
+  )
+
+lazy val `fansi-wrapper` = project
+  .in(file("lib/java/fansi-wrapper"))
+  .enablePlugins(JPMSPlugin)
+  .settings(
+    modularFatJarWrapperSettings,
+    libraryDependencies ++= Seq(
+      "com.lihaoyi" %% "fansi" % fansiVersion
+    ),
+    javaModuleName := "org.enso.fansi.wrapper",
+    Compile / moduleDependencies := Seq(
+      "org.scala-lang" % "scala-library" % scalacVersion
+    ),
+    Compile / patchModules := {
+      val scalaVer = scalaBinaryVersion.value
+      val scalaLibs = JPMSUtils.filterModulesFromUpdate(
+        update.value,
+        Seq(
+          "org.scala-lang" % "scala-library" % scalacVersion,
+          "com.lihaoyi"    % ("fansi_" + scalaVer)        % fansiVersion
+        ),
+        streams.value.log,
+        moduleName.value,
+        shouldContainAll = true
+      )
+      Map(
+        javaModuleName.value -> scalaLibs
+      )
+    },
+    assembly / assemblyExcludedJars := {
+      val scalaVer = scalaBinaryVersion.value
+      JPMSUtils.filterModulesFromClasspath(
+        (Compile / dependencyClasspath).value,
+        Seq(
+          "org.scala-lang" % "scala-library" % scalacVersion
+        ),
+        streams.value.log,
+        moduleName.value,
+        shouldContainAll = true
       )
     }
   )
@@ -2671,7 +2714,8 @@ lazy val runtime = (project in file("engine/runtime"))
       (`interpreter-dsl` / Compile / exportedModule).value,
       (`persistance` / Compile / exportedModule).value,
       (`text-buffer` / Compile / exportedModule).value,
-      (`scala-libs-wrapper` / Compile / exportedModule).value
+      (`scala-libs-wrapper` / Compile / exportedModule).value,
+      (`fansi-wrapper` / Compile / exportedModule).value,
     )
   )
   .settings(

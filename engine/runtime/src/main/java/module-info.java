@@ -20,6 +20,7 @@ open module org.enso.runtime {
   requires org.enso.runtime.suggestions;
   requires org.enso.text.buffer;
   requires org.enso.scala.wrapper;
+  requires org.enso.fansi.wrapper;
   requires org.enso.syntax;
   requires org.enso.version.output;
 
