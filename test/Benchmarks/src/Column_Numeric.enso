@@ -8,10 +8,10 @@ options = Bench.options
 
 
 type Data
-    Value ~ints ~floats ~big_ints ~big_floats ~decimals
+    Value ~ints ~floats ~large_ints ~large_floats ~decimals
 
     create vector_size faker =
-        Data.Value (create_ints vector_size faker) (create_floats vector_size faker) (create_big_ints vector_size faker) (create_big_floats vector_size faker) (create_decimals vector_size faker)
+        Data.Value (create_ints vector_size faker) (create_floats vector_size faker) (create_large_ints vector_size faker) (create_large_floats vector_size faker) (create_decimals vector_size faker)
 
 
 create_ints vector_size faker =
@@ -24,19 +24,19 @@ create_floats vector_size faker =
     Column.from_vector "floats" floats_vec
 
 
-create_big_ints vector_size faker =
-    ints_vec = Vector.new vector_size _->(faker.integer -1000000000000000000000 1000000000000000000000)
-    Column.from_vector "big_ints" ints_vec
+create_large_ints vector_size faker =
+    ints_vec = Vector.new vector_size _->(faker.large_integer 60)
+    Column.from_vector "large_ints" ints_vec
 
 
-create_big_floats vector_size faker =
-    floats_vec = Vector.new vector_size _->(faker.integer -1000000000000000000000 1000000000000000000000)
-    Column.from_vector "big_floats" floats_vec
+create_large_floats vector_size faker =
+    floats_vec = Vector.new vector_size _->(faker.float -1000000000000000000000.0 1000000000000000000000.0)
+    Column.from_vector "large_floats" floats_vec
 
 
 create_decimals vector_size faker =
-    decimals_vec = Vector.new vector_size _->(faker.decimal -1000000000000000000000 1000000000000000000000)
-    Column.from_vector "decimals" decimals_vec 
+    decimals_vec = Vector.new vector_size _->(faker.decimal 60)
+    Column.from_vector "decimals" decimals_vec
 
 
 collect_benches = Bench.build builder->
@@ -72,32 +72,34 @@ collect_benches = Bench.build builder->
         group_builder.specify "floor_floats" <|
             data.floats.floor
 
-        group_builder.specify "round_big_ints" <|
-            data.big_ints.round
+        group_builder.specify "round_large_ints" <|
+            data.large_ints.round
 
-        group_builder.specify "truncate_big_ints" <|
-            data.big_ints.truncate
+        group_builder.specify "truncate_large_ints" <|
+            data.large_ints.truncate
 
-        group_builder.specify "ceil_big_ints" <|
-            data.big_ints.ceil
+        group_builder.specify "ceil_large_ints" <|
+            data.large_ints.ceil
 
-        group_builder.specify "floor_big_ints" <|
-            data.big_ints.floor
+        group_builder.specify "floor_large_ints" <|
+            data.large_ints.floor
 
-        group_builder.specify "round_big_floats" <|
-            data.big_floats.round
+        ## Re-enable when https://github.com/enso-org/enso/issues/11132 is done.
+            group_builder.specify "round_large_floats" <|
+                data.large_floats.round
 
-        group_builder.specify "truncate_big_floats" <|
-            data.big_floats.truncate
+        group_builder.specify "truncate_large_floats" <|
+            data.large_floats.truncate
 
-        group_builder.specify "ceil_big_floats" <|
-            data.big_floats.ceil
+        group_builder.specify "ceil_large_floats" <|
+            data.large_floats.ceil
 
-        group_builder.specify "floor_big_floats" <|
-            data.big_floats.floor
+        group_builder.specify "floor_large_floats" <|
+            data.large_floats.floor
 
-        group_builder.specify "round_decimals" <|
-            data.decimals.round
+        ## Re-enable when https://github.com/enso-org/enso/issues/11132 is done.
+            group_builder.specify "round_decimals" <|
+                data.decimals.round
 
         group_builder.specify "truncate_decimals" <|
             data.decimals.truncate
@@ -119,14 +121,15 @@ collect_benches = Bench.build builder->
                 group_builder.specify ("floats_" + name) <|
                     fun data.floats
 
-                group_builder.specify ("big_ints_" + name) <|
-                    fun data.big_ints
+                ## Re-enable when https://github.com/enso-org/enso/issues/11132 is done.
+                    group_builder.specify ("large_ints_" + name) <|
+                        fun data.large_ints
 
-                group_builder.specify ("big_floats_" + name) <|
-                    fun data.big_floats
+                    group_builder.specify ("large_floats_" + name) <|
+                        fun data.large_floats
 
-                group_builder.specify ("decimals_" + name) <|
-                    fun data.decimals
+                    group_builder.specify ("decimals_" + name) <|
+                        fun data.decimals
 
 
 ## Creates a valid name for the benchmark
