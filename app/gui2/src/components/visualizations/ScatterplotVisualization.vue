@@ -535,30 +535,56 @@ function getAstPattern(selector?: string | number, action?: string) {
   }
 }
 
-function createNode(rowNumber: number) {
-  const pattern = getAstPattern(rowNumber, 'get_row')
-  if (pattern) {
-    config.createNodes({
-      content: pattern,
-      commit: true,
-    })
-  }
-}
-
 const filterPattern = computed(() => Pattern.parse('__ (..Between __ __)'))
 
 const makeFilterPattern = (
   module: Ast.MutableModule,
   columnName: string,
-  min: number,
-  max: number,
+  minVal: number | Date,
+  maxVal: number | Date,
 ) => {
-  return filterPattern.value.instantiateCopied([
-    Ast.TextLiteral.new(columnName),
-    Ast.tryNumberToEnso(min, module)!,
-    Ast.tryNumberToEnso(max, module)!,
-  ])
+  const min =
+    typeof minVal === 'number' ?
+      Ast.tryNumberToEnso(minVal, module)!
+    : makeTimePattern(minVal, module)
+  const max =
+    typeof maxVal === 'number' ?
+      Ast.tryNumberToEnso(maxVal, module)!
+    : makeTimePattern(maxVal, module)
+  return filterPattern.value.instantiateCopied([Ast.TextLiteral.new(columnName), min, max])
 }
+
+const makeTimePattern = (val: Date, module: Ast.MutableModule) => {
+  switch (data.value.x_value_type) {
+    case 'Time':
+      return timePattern.value.instantiateCopied([
+        Ast.tryNumberToEnso(val.getHours(), module)!,
+        Ast.tryNumberToEnso(val.getMinutes(), module)!,
+        Ast.tryNumberToEnso(val.getSeconds(), module)!,
+      ])
+    case 'Date_Time':
+      return dateTimePattern.value.instantiateCopied([
+        Ast.tryNumberToEnso(val.getFullYear(), module)!,
+        Ast.tryNumberToEnso(val.getMonth(), module)!,
+        Ast.tryNumberToEnso(val.getDate(), module)!,
+        Ast.tryNumberToEnso(val.getHours(), module)!,
+        Ast.tryNumberToEnso(val.getMinutes(), module)!,
+        Ast.tryNumberToEnso(val.getSeconds(), module)!,
+      ])
+    default:
+      return datePattern.value.instantiateCopied([
+        Ast.tryNumberToEnso(val.getFullYear(), module)!,
+        Ast.tryNumberToEnso(val.getMonth(), module)!,
+        Ast.tryNumberToEnso(val.getDate(), module)!,
+      ])
+  }
+}
+
+const datePattern = computed(() => Pattern.parse('(Date.new __ __ __)'))
+
+const dateTimePattern = computed(() => Pattern.parse('(Date_Time.new __ __ __ __ __ __)'))
+
+const timePattern = computed(() => Pattern.parse('(Time_Of_Day.new __ __ __'))
 
 function getAstPatternFilter(columnName: string, min: number, max: number) {
   return Pattern.new((ast) =>
@@ -575,6 +601,16 @@ const createNewNodes = () => {
   const min = Math.min(...items)
   const max = Math.max(...items)
   const pattern = getAstPatternFilter(xAxisLabel, min, max)
+  if (pattern) {
+    config.createNodes({
+      content: pattern,
+      commit: true,
+    })
+  }
+}
+
+function createNode(rowNumber: number) {
+  const pattern = getAstPattern(rowNumber, 'get_row')
   if (pattern) {
     config.createNodes({
       content: pattern,
