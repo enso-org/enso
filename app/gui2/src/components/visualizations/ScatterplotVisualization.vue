@@ -8,7 +8,6 @@ import { Pattern } from '@/util/ast/match'
 import { getTextWidthBySizeAndFamily } from '@/util/measurement'
 import { VisualizationContainer, defineKeybinds } from '@/util/visualizationBuiltins'
 import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
-import { Item } from 'yjs'
 
 export const name = 'Scatter Plot'
 export const icon = 'points'
@@ -191,6 +190,7 @@ const shouldAnimate = ref(false)
 const xDomain = ref([0, 1])
 const yDomain = ref([0, 1])
 const selectionEnabled = ref(false)
+const createNewNodeEnabled = ref(false)
 
 const isBrushing = computed(() => brushExtent.value != null)
 const xScale = computed(() =>
@@ -586,6 +586,7 @@ const createNewNodes = () => {
 // === Update contents ===
 
 watchPostEffect(() => {
+  console.log(isBrushing.value)
   const xScale_ = xScale.value
   const yScale_ = yScale.value
   const plotData = getPlotData(data.value) as Point[]
@@ -729,6 +730,7 @@ function zoomToSelected(override?: boolean) {
     yDomain.value = [yMin, yMax]
   }
   endBrushing()
+  createNewNodeEnabled.value = true
 }
 
 useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSelected() }))
@@ -749,7 +751,12 @@ useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSel
         :disabled="brushExtent == null"
         @click.stop="zoomToSelected"
       />
-      <SvgButton name="add" title="filter to selected points" @click.stop="createNewNodes" />
+      <SvgButton
+        name="add"
+        title="Create new component with selected points"
+        :disabled="!createNewNodeEnabled"
+        @click.stop="createNewNodes"
+      />
     </template>
     <div ref="containerNode" class="ScatterplotVisualization">
       <svg :width="width" :height="height">
