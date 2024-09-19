@@ -57,6 +57,7 @@ interface Data {
   data: Point[]
   get_row_method: string
   is_multi_series?: boolean
+  has_x_in_data: boolean
 }
 
 interface Focus {
@@ -166,7 +167,9 @@ const data = computed<Data>(() => {
   const is_multi_series: boolean = !!rawData.is_multi_series
   // eslint-disable-next-line camelcase
   const get_row_method: string = rawData.get_row_method || 'get_row'
-  return { axis, points, data, focus, is_multi_series, get_row_method }
+  // eslint-disable-next-line camelcase
+  const has_x_in_data: boolean = !!rawData.has_x_in_data
+  return { axis, points, data, focus, is_multi_series, get_row_method, has_x_in_data }
 })
 
 const containerNode = ref<HTMLElement>()
@@ -192,7 +195,7 @@ const shouldAnimate = ref(false)
 const xDomain = ref([0, 1])
 const yDomain = ref([0, 1])
 const selectionEnabled = ref(false)
-const createNewNodeEnabled = ref(false)
+const createNewFilterNodeEnabled = ref(false)
 
 const isBrushing = computed(() => brushExtent.value != null)
 const xScale = computed(() =>
@@ -248,6 +251,7 @@ const yLabelLeft = computed(
 )
 const yLabelTop = computed(() => -margin.value.left + 15)
 const showYLabelText = computed(() => !data.value.is_multi_series)
+const isUsingIndexForX = computed(() => !data.value.has_x_in_data)
 
 watchEffect(() => {
   const boundsExpression =
@@ -732,7 +736,9 @@ function zoomToSelected(override?: boolean) {
     yDomain.value = [yMin, yMax]
   }
   endBrushing()
-  createNewNodeEnabled.value = true
+  if (!isUsingIndexForX.value) {
+    createNewFilterNodeEnabled.value = true
+  }
 }
 
 useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSelected() }))
@@ -756,7 +762,7 @@ useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSel
       <SvgButton
         name="add"
         title="Create new component with selected points"
-        :disabled="!createNewNodeEnabled"
+        :disabled="!createNewFilterNodeEnabled"
         @click.stop="createNewFilterNode"
       />
     </template>
