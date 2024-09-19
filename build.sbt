@@ -1693,11 +1693,13 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ helidon ++ Seq(
         "org.slf4j"        % "slf4j-api"                    % slf4jVersion,
         "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion,
-        (`ydoc-server` / projectID).value,
-        (`syntax-rust-definition` / projectID).value,
-        (`profiling-utils` / projectID).value
       )
     },
+    Test / internalModuleDependencies := Seq(
+      (`profiling-utils` / Compile / exportedModule).value,
+      (`syntax-rust-definition` / Compile / exportedModule).value,
+      (`ydoc-server` / Compile / exportedModule).value,
+    ),
     Test / javaOptions ++= testLogProviderOptions
   )
   .settings(
