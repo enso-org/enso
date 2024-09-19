@@ -235,7 +235,7 @@ object JPMSPlugin extends AutoPlugin {
             val logger   = streams.value.log
             val projName = moduleName.value
             if (!isModule(targetClassDir)) {
-              logger.error(
+              logger.warn(
                 s"[JPMSPlugin/$projName] The target classes directory ${targetClassDir.getAbsolutePath} is not " +
                 "a module - it does not contain module-info.class. Make sure the `compileModuleInfo` task " +
                 "is set correctly."
