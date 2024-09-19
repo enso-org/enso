@@ -121,14 +121,15 @@ collect_benches = Bench.build builder->
                 group_builder.specify ("floats_" + name) <|
                     fun data.floats
 
-                group_builder.specify ("large_ints_" + name) <|
-                    fun data.large_ints
+                ## Re-enable when https://github.com/enso-org/enso/issues/11132 is done.
+                    group_builder.specify ("large_ints_" + name) <|
+                        fun data.large_ints
 
-                group_builder.specify ("large_floats_" + name) <|
-                    fun data.large_floats
+                    group_builder.specify ("large_floats_" + name) <|
+                        fun data.large_floats
 
-                group_builder.specify ("decimals_" + name) <|
-                    fun data.decimals
+                    group_builder.specify ("decimals_" + name) <|
+                        fun data.decimals
 
 
 ## Creates a valid name for the benchmark
