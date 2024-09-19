@@ -559,7 +559,7 @@ function getAstPatternFilter(columnName: string, min: number, max: number) {
   )
 }
 
-const createNewNodes = () => {
+const createNewFilterNode = () => {
   const xAxisLabel = data.value.axis.x.label
   const items = data.value.data.map((d) => d.x)
   const min = Math.min(...items)
@@ -754,7 +754,7 @@ useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSel
         name="add"
         title="Create new component with selected points"
         :disabled="!createNewNodeEnabled"
-        @click.stop="createNewNodes"
+        @click.stop="createNewFilterNode"
       />
     </template>
     <div ref="containerNode" class="ScatterplotVisualization">
