@@ -55,6 +55,7 @@ interface Data {
   focus: Focus | undefined
   points: PointsConfiguration
   data: Point[]
+  get_row_method: string
   is_multi_series?: boolean
 }
 
@@ -164,7 +165,8 @@ const data = computed<Data>(() => {
   // eslint-disable-next-line camelcase
   const is_multi_series: boolean = !!rawData.is_multi_series
   // eslint-disable-next-line camelcase
-  return { axis, points, data, focus, is_multi_series }
+  const get_row_method: string = rawData.get_row_method || 'get_row'
+  return { axis, points, data, focus, is_multi_series, get_row_method }
 })
 
 const containerNode = ref<HTMLElement>()
@@ -574,7 +576,8 @@ const createNewFilterNode = () => {
 }
 
 function createNode(rowNumber: number) {
-  const pattern = getAstPattern(rowNumber, 'get_row')
+  const selector = data.value.get_row_method
+  const pattern = getAstPattern(rowNumber, selector)
   if (pattern) {
     config.createNodes({
       content: pattern,
