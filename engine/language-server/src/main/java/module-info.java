@@ -35,6 +35,7 @@ module org.enso.language.server {
   requires org.enso.semver;
   requires org.enso.version.output;
   requires org.enso.text.buffer;
+  requires org.enso.task.progress.notifications;
   requires org.enso.ydoc;
 
   exports org.enso.languageserver.boot;

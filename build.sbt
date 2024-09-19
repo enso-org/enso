@@ -695,6 +695,7 @@ lazy val componentModulesPaths =
     (`logging-service-logback` / Compile / exportedModuleBin).value,
     (`pkg` / Compile / exportedModuleBin).value,
     (`refactoring-utils` / Compile / exportedModuleBin).value,
+    (`task-progress-notifications` / Compile / exportedModuleBin).value,
     (`semver` / Compile / exportedModuleBin).value,
     (`searcher` / Compile / exportedModuleBin).value,
     (`text-buffer` / Compile / exportedModuleBin).value,
@@ -1495,11 +1496,20 @@ lazy val cli = project
 
 lazy val `task-progress-notifications` = project
   .in(file("lib/scala/task-progress-notifications"))
+  .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
     version := "0.1",
+    compileOrder := CompileOrder.ScalaThenJava,
     libraryDependencies ++= Seq(
       "org.scalatest" %% "scalatest" % scalatestVersion % Test
+    ),
+    Compile / moduleDependencies := Seq(
+      "org.scala-lang" % "scala-library" % scalacVersion
+    ),
+    Compile / internalModuleDependencies := Seq(
+      (`cli` / Compile / exportedModule).value,
+      (`json-rpc-server` / Compile / exportedModule).value,
     ),
     Test / parallelExecution := false
   )
@@ -2180,7 +2190,8 @@ lazy val `language-server` = (project in file("engine/language-server"))
       (`filewatcher` / Compile / exportedModule).value,
       (`version-output` / Compile / exportedModule).value,
       (`semver` / Compile / exportedModule).value,
-      (`cli` / Compile / exportedModule).value
+      (`cli` / Compile / exportedModule).value,
+      (`task-progress-notifications` / Compile / exportedModule).value,
     ),
     Test / testOptions += Tests
       .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000"),
@@ -2292,7 +2303,8 @@ lazy val `language-server` = (project in file("engine/language-server"))
       (`semver` / Compile / exportedModule).value,
       (`downloader` / Compile / exportedModule).value,
       (`logging-config` / Compile / exportedModule).value,
-      (`logging-service` / Compile / exportedModule).value
+      (`logging-service` / Compile / exportedModule).value,
+      (`task-progress-notifications` / Compile / exportedModule).value,
     ),
     Test / javaOptions ++= testLogProviderOptions,
     Test / patchModules := {
