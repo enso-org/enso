@@ -10,4 +10,6 @@ module org.enso.runner.common {
   requires scala.library;
 
   exports org.enso.runner.common;
+
+  uses org.enso.runner.common.LanguageServerApi;
 }
