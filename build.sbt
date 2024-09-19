@@ -607,12 +607,12 @@ lazy val componentModulesPaths =
     " as files"
   )
 (ThisBuild / componentModulesPaths) := {
-  val runnerCp  = (`engine-runner` / Runtime / fullClasspath).value
-  val runtimeCp = (LocalProject("runtime") / Runtime / fullClasspath).value
-  val langServerCp = (`language-server` / Runtime / fullClasspath).value
+  val runnerCp      = (`engine-runner` / Runtime / fullClasspath).value
+  val runtimeCp     = (LocalProject("runtime") / Runtime / fullClasspath).value
+  val langServerCp  = (`language-server` / Runtime / fullClasspath).value
   val akkaWrapperCp = (`akka-wrapper` / Compile / fullClasspath).value
-  val fullCp    = (runnerCp ++ runtimeCp ++ langServerCp ++ akkaWrapperCp).distinct
-  val log       = streams.value.log
+  val fullCp        = (runnerCp ++ runtimeCp ++ langServerCp ++ akkaWrapperCp).distinct
+  val log           = streams.value.log
   val thirdPartyModIds =
     GraalVM.modules ++
     GraalVM.langsPkgs ++
@@ -1345,8 +1345,8 @@ lazy val `fansi-wrapper` = project
       val scalaLibs = JPMSUtils.filterModulesFromUpdate(
         update.value,
         Seq(
-          "org.scala-lang" % "scala-library" % scalacVersion,
-          "com.lihaoyi"    % ("fansi_" + scalaVer)        % fansiVersion
+          "org.scala-lang" % "scala-library"       % scalacVersion,
+          "com.lihaoyi"    % ("fansi_" + scalaVer) % fansiVersion
         ),
         streams.value.log,
         moduleName.value,
@@ -1552,7 +1552,7 @@ lazy val `task-progress-notifications` = project
     ),
     Compile / internalModuleDependencies := Seq(
       (`cli` / Compile / exportedModule).value,
-      (`json-rpc-server` / Compile / exportedModule).value,
+      (`json-rpc-server` / Compile / exportedModule).value
     ),
     Test / parallelExecution := false
   )
@@ -1692,13 +1692,13 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     Test / moduleDependencies := {
       GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ helidon ++ Seq(
         "org.slf4j"        % "slf4j-api"                    % slf4jVersion,
-        "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion,
+        "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion
       )
     },
     Test / internalModuleDependencies := Seq(
       (`profiling-utils` / Compile / exportedModule).value,
       (`syntax-rust-definition` / Compile / exportedModule).value,
-      (`ydoc-server` / Compile / exportedModule).value,
+      (`ydoc-server` / Compile / exportedModule).value
     ),
     Test / javaOptions ++= testLogProviderOptions
   )
@@ -2200,13 +2200,13 @@ lazy val `language-server` = (project in file("engine/language-server"))
     Compile / moduleDependencies := {
       val scalaVer = scalaBinaryVersion.value
       Seq(
-        "org.scala-lang"         % "scala-library"           % scalacVersion,
-        "org.graalvm.polyglot"   % "polyglot"                % graalMavenPackagesVersion,
-        "org.slf4j"              % "slf4j-api"               % slf4jVersion,
-        "commons-cli"            % "commons-cli"             % commonsCliVersion,
-        "commons-io"             % "commons-io"              % commonsIoVersion,
-        "com.google.flatbuffers" % "flatbuffers-java"        % flatbuffersVersion,
-        "org.eclipse.jgit"       % "org.eclipse.jgit"        % jgitVersion
+        "org.scala-lang"         % "scala-library"    % scalacVersion,
+        "org.graalvm.polyglot"   % "polyglot"         % graalMavenPackagesVersion,
+        "org.slf4j"              % "slf4j-api"        % slf4jVersion,
+        "commons-cli"            % "commons-cli"      % commonsCliVersion,
+        "commons-io"             % "commons-io"       % commonsIoVersion,
+        "com.google.flatbuffers" % "flatbuffers-java" % flatbuffersVersion,
+        "org.eclipse.jgit"       % "org.eclipse.jgit" % jgitVersion
       )
     },
     Compile / internalModuleDependencies := Seq(
@@ -2236,7 +2236,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       (`version-output` / Compile / exportedModule).value,
       (`semver` / Compile / exportedModule).value,
       (`cli` / Compile / exportedModule).value,
-      (`task-progress-notifications` / Compile / exportedModule).value,
+      (`task-progress-notifications` / Compile / exportedModule).value
     ),
     Test / testOptions += Tests
       .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000"),
@@ -2349,7 +2349,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       (`downloader` / Compile / exportedModule).value,
       (`logging-config` / Compile / exportedModule).value,
       (`logging-service` / Compile / exportedModule).value,
-      (`task-progress-notifications` / Compile / exportedModule).value,
+      (`task-progress-notifications` / Compile / exportedModule).value
     ),
     Test / javaOptions ++= testLogProviderOptions,
     Test / patchModules := {
@@ -2717,7 +2717,7 @@ lazy val runtime = (project in file("engine/runtime"))
       (`persistance` / Compile / exportedModule).value,
       (`text-buffer` / Compile / exportedModule).value,
       (`scala-libs-wrapper` / Compile / exportedModule).value,
-      (`fansi-wrapper` / Compile / exportedModule).value,
+      (`fansi-wrapper` / Compile / exportedModule).value
     )
   )
   .settings(
@@ -4317,7 +4317,7 @@ lazy val `connected-lock-manager-server` = project
       (`scala-libs-wrapper` / Compile / exportedModule).value,
       (`akka-wrapper` / Compile / exportedModule).value,
       (`distribution-manager` / Compile / exportedModule).value,
-      (`polyglot-api` / Compile / exportedModule).value,
+      (`polyglot-api` / Compile / exportedModule).value
     )
   )
   .dependsOn(`distribution-manager`)
