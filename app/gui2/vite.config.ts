@@ -48,7 +48,7 @@ export default defineConfig({
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Resource-Policy': 'same-origin',
     },
-    host: process.env.HOSTNAME ?? 'localhost',
+    ...(process.env.HOSTNAME ? { host: process.env.HOSTNAME } : {}),
   },
   resolve: {
     conditions: ['source'],
