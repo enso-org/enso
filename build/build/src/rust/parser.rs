@@ -64,8 +64,10 @@ pub async fn run_self_tests(repo_root: &RepoRoot) -> Result {
         .join("export");
 
     let path = external_dependencies_file.into_os_string();
+    println!("External dep at {}", path.clone().to_str().unwrap());
     let mut dependencies_from_string = fs::read_to_string(path.clone())?;
     dependencies_from_string.pop(); // Remove newline sign
+    println!("Classpath {}", dependencies_from_string);
     let package = repo_root.target.generated_java.join_iter(GENERATED_CODE_NAMESPACE);
     let test = package.join(GENERATED_TEST_CLASS).with_extension(JAVA_EXTENSION);
     let test_class =
