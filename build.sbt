@@ -675,6 +675,7 @@ lazy val componentModulesPaths =
     (`cli` / Compile / exportedModuleBin).value,
     (`json-rpc-server` / Compile / exportedModuleBin).value,
     (`connected-lock-manager` / Compile / exportedModuleBin).value,
+    (`connected-lock-manager-server` / Compile / exportedModuleBin).value,
     (`distribution-manager` / Compile / exportedModuleBin).value,
     (`downloader` / Compile / exportedModuleBin).value,
     (`filewatcher` / Compile / exportedModuleBin).value,
@@ -2157,6 +2158,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       (`akka-wrapper` / Compile / exportedModule).value,
       (`zio-wrapper` / Compile / exportedModule).value,
       (`scala-libs-wrapper` / Compile / exportedModule).value,
+      (`connected-lock-manager-server` / Compile / exportedModule).value,
       (`language-server-deps-wrapper` / Compile / exportedModule).value,
       (`directory-watcher-wrapper` / Compile / exportedModule).value,
       (`engine-runner-common` / Compile / exportedModule).value,
@@ -4238,14 +4240,25 @@ lazy val `connected-lock-manager` = project
   */
 lazy val `connected-lock-manager-server` = project
   .in(file("lib/scala/connected-lock-manager-server"))
+  .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    compileOrder := CompileOrder.ScalaThenJava,
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
       akkaActor,
       akkaTestkit      % Test,
       "org.scalatest" %% "scalatest" % scalatestVersion % Test
+    ),
+    Compile / moduleDependencies := Seq(
+      "org.scala-lang" % "scala-library" % scalacVersion
+    ),
+    Compile / internalModuleDependencies := Seq(
+      (`scala-libs-wrapper` / Compile / exportedModule).value,
+      (`akka-wrapper` / Compile / exportedModule).value,
+      (`distribution-manager` / Compile / exportedModule).value,
+      (`polyglot-api` / Compile / exportedModule).value,
     )
   )
   .dependsOn(`distribution-manager`)

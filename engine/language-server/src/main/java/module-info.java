@@ -24,6 +24,7 @@ module org.enso.language.server {
   requires org.enso.logging.utils;
   requires org.enso.logging.utils.akka;
   requires org.enso.logging.service;
+  requires org.enso.lockmanager.server;
   requires org.enso.librarymanager;
   requires org.enso.polyglot.api;
   requires org.enso.pkg;
