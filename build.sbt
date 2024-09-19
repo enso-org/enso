@@ -609,7 +609,9 @@ lazy val componentModulesPaths =
 (ThisBuild / componentModulesPaths) := {
   val runnerCp  = (`engine-runner` / Runtime / fullClasspath).value
   val runtimeCp = (LocalProject("runtime") / Runtime / fullClasspath).value
-  val fullCp    = (runnerCp ++ runtimeCp).distinct
+  val langServerCp = (`language-server` / Runtime / fullClasspath).value
+  val akkaWrapperCp = (`akka-wrapper` / Compile / fullClasspath).value
+  val fullCp    = (runnerCp ++ runtimeCp ++ langServerCp ++ akkaWrapperCp).distinct
   val log       = streams.value.log
   val thirdPartyModIds =
     GraalVM.modules ++
@@ -623,15 +625,20 @@ lazy val componentModulesPaths =
       "org.netbeans.api"       % "org-openide-util-lookup"      % netbeansApiVersion,
       "org.netbeans.api"       % "org-netbeans-modules-sampler" % netbeansApiVersion,
       "com.google.flatbuffers" % "flatbuffers-java"             % flatbuffersVersion,
-      "commons-io"             % "commons-io"                   % commonsIoVersion,
-      "org.yaml"               % "snakeyaml"                    % snakeyamlVersion,
-      "com.typesafe"           % "config"                       % typesafeConfigVersion,
-      "org.jline"              % "jline"                        % jlineVersion,
+      "com.google.protobuf"    % "protobuf-java"                % "3.25.1",
       "commons-cli"            % "commons-cli"                  % commonsCliVersion,
+      "commons-io"             % "commons-io"                   % commonsIoVersion,
+      "net.java.dev.jna"       % "jna"                          % "5.13.0",
+      "org.yaml"               % "snakeyaml"                    % snakeyamlVersion,
+      "org.eclipse.jgit"       % "org.eclipse.jgit"             % jgitVersion,
+      "com.typesafe"           % "config"                       % typesafeConfigVersion,
+      "org.reactivestreams"    % "reactive-streams"             % "1.0.3",
+      "org.jline"              % "jline"                        % jlineVersion,
       "org.apache.commons"     % "commons-lang3"                % commonsLangVersion,
       "org.apache.commons"     % "commons-compress"             % commonsCompressVersion,
       "org.apache.tika"        % "tika-core"                    % tikaVersion,
       "org.slf4j"              % "slf4j-api"                    % slf4jVersion,
+      "org.yaml"               % "snakeyaml"                    % snakeyamlVersion,
       "ch.qos.logback"         % "logback-classic"              % logbackClassicVersion,
       "ch.qos.logback"         % "logback-core"                 % logbackClassicVersion,
       "com.ibm.icu"            % "icu4j"                        % icuVersion,
@@ -666,18 +673,29 @@ lazy val componentModulesPaths =
     (`runtime-language-epb` / Compile / exportedModuleBin).value,
     (`persistance` / Compile / exportedModuleBin).value,
     (`cli` / Compile / exportedModuleBin).value,
+    (`json-rpc-server` / Compile / exportedModuleBin).value,
     (`connected-lock-manager` / Compile / exportedModuleBin).value,
     (`distribution-manager` / Compile / exportedModuleBin).value,
     (`downloader` / Compile / exportedModuleBin).value,
+    (`filewatcher` / Compile / exportedModuleBin).value,
     (`editions` / Compile / exportedModuleBin).value,
+    (`language-server` / Compile / exportedModuleBin).value,
+    (`library-manager` / Compile / exportedModuleBin).value,
+    (`akka-wrapper` / Compile / exportedModuleBin).value,
+    (`zio-wrapper` / Compile / exportedModuleBin).value,
+    (`language-server-deps-wrapper` / Compile / exportedModuleBin).value,
+    (`directory-watcher-wrapper` / Compile / exportedModuleBin).value,
+    (`ydoc-server` / Compile / exportedModuleBin).value,
     (`library-manager` / Compile / exportedModuleBin).value,
     (`logging-config` / Compile / exportedModuleBin).value,
     (`logging-utils` / Compile / exportedModuleBin).value,
+    (`logging-utils-akka` / Compile / exportedModuleBin).value,
     (`logging-service` / Compile / exportedModuleBin).value,
     (`logging-service-logback` / Compile / exportedModuleBin).value,
     (`pkg` / Compile / exportedModuleBin).value,
     (`refactoring-utils` / Compile / exportedModuleBin).value,
     (`semver` / Compile / exportedModuleBin).value,
+    (`searcher` / Compile / exportedModuleBin).value,
     (`text-buffer` / Compile / exportedModuleBin).value,
     (`version-output` / Compile / exportedModuleBin).value,
     (`scala-yaml` / Compile / exportedModuleBin).value,
