@@ -29,6 +29,7 @@ function checkAvailablePort(port: number) {
 
 const portFromEnv = parseInt(process.env.PLAYWRIGHT_PORT ?? '', 10)
 const PORT = Number.isFinite(portFromEnv) ? portFromEnv : await findFreePortInRange(4300, 4999)
+console.log(`Selected playwright server port: ${PORT}`)
 // Make sure to set the env to actual port that is being used. This is necessary for workers to
 // pick up the same configuration.
 process.env.PLAYWRIGHT_PORT = `${PORT}`
