@@ -2147,7 +2147,6 @@ lazy val `language-server` = (project in file("engine/language-server"))
         "org.scala-lang"         % "scala-library"           % scalacVersion,
         "org.graalvm.polyglot"   % "polyglot"                % graalMavenPackagesVersion,
         "org.slf4j"              % "slf4j-api"               % slf4jVersion,
-        "org.netbeans.api"       % "org-openide-util-lookup" % netbeansApiVersion,
         "commons-cli"            % "commons-cli"             % commonsCliVersion,
         "commons-io"             % "commons-io"              % commonsIoVersion,
         "com.google.flatbuffers" % "flatbuffers-java"        % flatbuffersVersion,
