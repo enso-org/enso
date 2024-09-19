@@ -84,6 +84,9 @@ type SQLServer_Type_Mapping
             Types.VARCHAR -> 
                 effective_size = if sql_type.precision==max_length || (sql_type.precision==9 && sql_type.scale==9) then Nothing else sql_type.precision
                 Value_Type.Char size=effective_size variable_length=True
+            Types.NVARCHAR -> 
+                effective_size = if sql_type.precision==max_length || (sql_type.precision==9 && sql_type.scale==9) then Nothing else sql_type.precision
+                Value_Type.Char size=effective_size variable_length=True
             Types.DATE -> Value_Type.Date
             Types.TIME -> Value_Type.Time
             Types.TIMESTAMP -> case sql_type.name of
@@ -108,8 +111,12 @@ type SQLServer_Type_Mapping
        the database backend.
     infer_return_type : (SQL_Expression -> SQL_Type_Reference) -> Text -> Vector -> SQL_Expression -> SQL_Type_Reference
     infer_return_type infer_from_database_callback op_name arguments expression =
-        _ = [op_name, arguments]
-        infer_from_database_callback expression
+        case operations_dict.contains_key op_name of
+            False -> infer_from_database_callback expression
+            True -> 
+                handler = operations_dict.at op_name
+                sql_type = handler arguments
+                SQL_Type_Reference.from_constant sql_type
 
     ## PRIVATE
        We want to respect any overriding references, but references that rely on
@@ -141,6 +148,11 @@ type SQLServer_Type_Mapping
 ## PRIVATE
 on_unknown_type sql_type =
     Value_Type.Unsupported_Data_Type sql_type.name sql_type
+
+## PRIVATE
+   Maps operation names to functions that infer its result type.
+operations_dict : Dictionary Text (Vector -> SQL_Type)
+operations_dict = Dictionary.from_vector [["IS_NULL", const (SQL_Type.Value Types.BIT "BIT")],["==", const (SQL_Type.Value Types.BIT "BIT")]]
 
 ## PRIVATE
    This is the maximum size that JDBC driver reports for 'unbounded' types in

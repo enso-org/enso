@@ -99,6 +99,27 @@ export default function Dashboard(props: DashboardProps) {
   )
 }
 
+/**
+ * Extract proper path from `file://` URL.
+ */
+function fileURLToPath(url: string): string | null {
+  if (URL.canParse(url)) {
+    const parsed = new URL(url)
+    if (parsed.protocol === 'file:') {
+      return decodeURIComponent(
+        detect.platform() === detect.Platform.windows ?
+          // On Windows, we must remove leading `/` from URL.
+          parsed.pathname.slice(1)
+        : parsed.pathname,
+      )
+    } else {
+      return null
+    }
+  } else {
+    return null
+  }
+}
+
 /** The component that contains the entire UI. */
 function DashboardInner(props: DashboardProps) {
   const { appRunner, initialProjectName: initialProjectNameRaw, ydocUrl } = props
@@ -116,9 +137,7 @@ function DashboardInner(props: DashboardProps) {
   const assetManagementApiRef = React.useRef<assetTable.AssetManagementApi | null>(null)
 
   const initialLocalProjectPath =
-    initialProjectNameRaw != null && initialProjectNameRaw.startsWith('file://') ?
-      projectManager.Path(decodeURI(new URL(initialProjectNameRaw).pathname))
-    : null
+    initialProjectNameRaw != null ? fileURLToPath(initialProjectNameRaw) : null
   const initialProjectName = initialLocalProjectPath != null ? null : initialProjectNameRaw
 
   const [category, setCategory] = searchParamsState.useSearchParamsState<categoryModule.Category>(

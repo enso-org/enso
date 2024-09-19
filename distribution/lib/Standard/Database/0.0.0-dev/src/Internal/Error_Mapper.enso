@@ -11,8 +11,14 @@ type Error_Mapper
     ## PRIVATE
        Checks if the given error is related to a violation of PRIMARY KEY
        uniqueness constraint.
-    is_primary_key_violation : SQL_Error -> Boolean
-    is_primary_key_violation error =
+    is_duplicate_primary_key_violation : SQL_Error -> Boolean
+    is_duplicate_primary_key_violation error =
+        _ = error
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+    is_null_primary_key_violation : SQL_Error -> Boolean
+    is_null_primary_key_violation error =
         _ = error
         Unimplemented.throw "This is an interface only."
 

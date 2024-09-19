@@ -5,7 +5,8 @@ import * as modalProvider from '#/providers/ModalProvider'
 
 import * as aria from '#/components/aria'
 
-import { AnimatePresence, motion } from 'framer-motion'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useOverlayTriggerState } from 'react-stately'
 
 const PLACEHOLDER = <div />
 
@@ -13,7 +14,9 @@ const PLACEHOLDER = <div />
  * Props passed to the render function of a {@link DialogTrigger}.
  */
 export interface DialogTriggerRenderProps {
-  readonly isOpened: boolean
+  readonly isOpen: boolean
+  readonly close: () => void
+  readonly open: () => void
 }
 /**
  * Props for a {@link DialogTrigger}.
@@ -26,55 +29,54 @@ export interface DialogTriggerProps extends Omit<aria.DialogTriggerProps, 'child
     React.ReactElement,
     React.ReactElement | ((props: DialogTriggerRenderProps) => React.ReactElement),
   ]
+  readonly onOpen?: () => void
+  readonly onClose?: () => void
 }
 
 /** A DialogTrigger opens a dialog when a trigger element is pressed. */
 export function DialogTrigger(props: DialogTriggerProps) {
-  const { children, onOpenChange, ...triggerProps } = props
+  const { children, onOpenChange, onOpen = () => {}, onClose = () => {} } = props
 
-  const [isOpened, setIsOpened] = React.useState(false)
+  const state = useOverlayTriggerState(props)
+
   const { setModal, unsetModal } = modalProvider.useSetModal()
 
-  const onOpenChangeInternal = React.useCallback(
-    (opened: boolean) => {
-      if (opened) {
-        // We're using a placeholder here just to let the rest of the code know that the modal
-        // is open.
-        setModal(PLACEHOLDER)
-      } else {
-        unsetModal()
-      }
+  const onOpenStableCallback = useEventCallback(onOpen)
+  const onCloseStableCallback = useEventCallback(onClose)
 
-      setIsOpened(opened)
-      onOpenChange?.(opened)
-    },
-    [setModal, unsetModal, onOpenChange],
-  )
+  const onOpenChangeInternal = useEventCallback((opened: boolean) => {
+    if (opened) {
+      // We're using a placeholder here just to let the rest of the code know that the modal
+      // is open.
+      setModal(PLACEHOLDER)
+    } else {
+      unsetModal()
+      onCloseStableCallback()
+    }
 
-  const renderProps = {
-    isOpened,
-  } satisfies DialogTriggerRenderProps
+    state.setOpen(opened)
+    onOpenChange?.(opened)
+  })
+
+  React.useEffect(() => {
+    if (state.isOpen) {
+      onOpenStableCallback()
+    }
+  }, [state.isOpen, onOpenStableCallback])
 
   const [trigger, dialog] = children
 
+  const renderProps = {
+    isOpen: state.isOpen,
+    close: state.close.bind(state),
+    open: state.open.bind(state),
+  } satisfies DialogTriggerRenderProps
+
   return (
-    <aria.DialogTrigger onOpenChange={onOpenChangeInternal} {...triggerProps}>
+    <aria.DialogTrigger {...state} onOpenChange={onOpenChangeInternal}>
       {trigger}
 
-      {/* We're using AnimatePresence here to animate the dialog in and out. */}
-      <AnimatePresence>
-        {isOpened && (
-          <motion.div
-            style={{ display: 'none' }}
-            initial={{ opacity: 1 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 1 }}
-          >
-            {typeof dialog === 'function' ? dialog(renderProps) : dialog}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {typeof dialog === 'function' ? dialog(renderProps) : dialog}
     </aria.DialogTrigger>
   )
 }

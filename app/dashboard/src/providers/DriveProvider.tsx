@@ -7,7 +7,9 @@ import * as zustand from 'zustand'
 import type { AssetPanelContextProps } from '#/layouts/AssetPanel'
 import type { Suggestion } from '#/layouts/AssetSearchBar'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
-import type { AssetId } from 'enso-common/src/services/Backend'
+import type AssetTreeNode from '#/utilities/AssetTreeNode'
+import { EMPTY_SET } from '#/utilities/set'
+import type { AssetId, DirectoryAsset, DirectoryId } from 'enso-common/src/services/Backend'
 import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
 
 // ==================
@@ -16,6 +18,10 @@ import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
 
 /** The state of this zustand store. */
 interface DriveStore {
+  readonly targetDirectory: AssetTreeNode<DirectoryAsset> | null
+  readonly setTargetDirectory: (targetDirectory: AssetTreeNode<DirectoryAsset> | null) => void
+  readonly newestFolderId: DirectoryId | null
+  readonly setNewestFolderId: (newestFolderId: DirectoryId | null) => void
   readonly canCreateAssets: boolean
   readonly setCanCreateAssets: (canCreateAssets: boolean) => void
   readonly canDownload: boolean
@@ -57,6 +63,14 @@ export default function DriveProvider(props: ProjectsProviderProps) {
   const { localStorage } = useLocalStorage()
   const [store] = React.useState(() =>
     zustand.createStore<DriveStore>((set, get) => ({
+      targetDirectory: null,
+      setTargetDirectory: (targetDirectory) => {
+        set({ targetDirectory })
+      },
+      newestFolderId: null,
+      setNewestFolderId: (newestFolderId) => {
+        set({ newestFolderId })
+      },
       canCreateAssets: true,
       setCanCreateAssets: (canCreateAssets) => {
         if (get().canCreateAssets !== canCreateAssets) {
@@ -69,7 +83,7 @@ export default function DriveProvider(props: ProjectsProviderProps) {
           set({ canDownload })
         }
       },
-      selectedKeys: new Set(),
+      selectedKeys: EMPTY_SET,
       setSelectedKeys: (selectedKeys) => {
         if (
           get().selectedKeys !== selectedKeys &&
@@ -128,6 +142,30 @@ export function useDriveStore() {
   invariant(store, 'Drive store can only be used inside an `DriveProvider`.')
 
   return store
+}
+
+/** Get the target directory of the Asset Table selection. */
+export function useTargetDirectory() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.targetDirectory)
+}
+
+/** A function to set the target directory of the Asset Table selection. */
+export function useSetTargetDirectory() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.setTargetDirectory)
+}
+
+/** Get the ID of the most newly created folder. */
+export function useNewestFolderId() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.newestFolderId)
+}
+
+/** A function to set the ID of the most newly created folder. */
+export function useSetNewestFolderId() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.setNewestFolderId)
 }
 
 /** Whether assets can be created in the current directory. */

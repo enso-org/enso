@@ -53,7 +53,9 @@ const MODAL_STYLES = tv({
 })
 
 const DIALOG_STYLES = tv({
-  base: DIALOG_BACKGROUND({ className: 'w-full flex flex-col text-left align-middle shadow-xl' }),
+  base: DIALOG_BACKGROUND({
+    className: 'w-full max-w-full flex flex-col text-left align-middle shadow-xl',
+  }),
   variants: {
     type: {
       modal: {

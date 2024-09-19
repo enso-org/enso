@@ -44,6 +44,7 @@ type S3_File
        ! Error Conditions
        - If the URI is not in the correct format, an `Illegal_Argument` error is
          thrown.
+    @credentials AWS_Credential.default_widget
     new : Text -> AWS_Credential -> S3_File ! Illegal_Argument
     new (uri : Text = S3.uri_prefix) credentials:AWS_Credential=..Default =
         S3_File.Value (S3_Path.parse uri) credentials
@@ -587,6 +588,16 @@ type S3_File
        - `True` if `self` is a descendant of `other`, `False` otherwise.
     is_descendant_of : S3_File -> Boolean
     is_descendant_of self other = self.s3_path.is_descendant_of other.s3_path
+
+    ## PRIVATE
+       Return the absolute path of this S3_File.
+    to_text : Text
+    to_text self = self.uri
+
+    ## PRIVATE
+       Convert to a display representation of this S3_File.
+    to_display_text : Text
+    to_display_text self = "S3_File {" + self.to_text + "}"
 
 ## PRIVATE
 File_Format_Metadata.from (that : S3_File) = File_Format_Metadata.Value that.uri that.name (that.extension.catch _->Nothing)

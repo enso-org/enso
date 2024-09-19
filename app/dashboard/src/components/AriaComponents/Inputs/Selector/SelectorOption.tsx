@@ -2,9 +2,9 @@
 import { AnimatedBackground } from '#/components/AnimatedBackground'
 import { Radio, type RadioProps } from '#/components/aria'
 import { forwardRef } from '#/utilities/react'
+import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
 import * as React from 'react'
-import type { VariantProps } from 'tailwind-variants'
 import { TEXT_STYLE } from '../../Text'
 
 /** Props for a {@link SelectorOption}. */
@@ -99,9 +99,18 @@ export const SelectorOption = forwardRef(function SelectorOption(
   props: SelectorOptionProps,
   ref: React.ForwardedRef<HTMLLabelElement>,
 ) {
-  const { label, value, size, rounded, variant, className, ...radioProps } = props
+  const {
+    label,
+    value,
+    size,
+    rounded,
+    variant,
+    className,
+    variants = SELECTOR_OPTION_STYLES,
+    ...radioProps
+  } = props
 
-  const styles = SELECTOR_OPTION_STYLES({ size, rounded, variant })
+  const styles = variants({ size, rounded, variant })
 
   return (
     <AnimatedBackground.Item
