@@ -19,15 +19,15 @@ public class UnaryRoundOperation extends AbstractUnaryOperation {
 
   public static final String CEIL = "ceil";
   public static final UnaryOperation CEIL_INSTANCE =
-      new UnaryRoundOperation(CEIL, d -> (long) Math.ceil(d), bd -> Decimal_Utils.ceil(bd));
+      new UnaryRoundOperation(CEIL, d -> (long) Math.ceil(d), Decimal_Utils::ceil);
 
   public static final String FLOOR = "floor";
   public static final UnaryOperation FLOOR_INSTANCE =
-      new UnaryRoundOperation(FLOOR, d -> (long) Math.floor(d), bd -> Decimal_Utils.floor(bd));
+      new UnaryRoundOperation(FLOOR, d -> (long) Math.floor(d), Decimal_Utils::floor);
 
   public static String TRUNCATE = "truncate";
   public static final UnaryOperation TRUNCATE_INSTANCE =
-      new UnaryRoundOperation(TRUNCATE, d -> (long) d, bd -> Decimal_Utils.truncate(bd));
+      new UnaryRoundOperation(TRUNCATE, d -> (long) d, Decimal_Utils::truncate);
 
   private final DoubleToLongFunction doubleFunction;
   private final Function<BigDecimal, BigInteger> bigDecimalFunction;
