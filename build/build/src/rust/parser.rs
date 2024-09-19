@@ -50,17 +50,22 @@ pub async fn generate_java(repo_root: &RepoRoot) -> Result {
 #[context("Running self-tests for the generated Java sources failed.")]
 pub async fn run_self_tests(repo_root: &RepoRoot) -> Result {
     let base = &repo_root.target.generated_java;
-    let parser_target = &repo_root.target;
     let lib = &repo_root.lib.rust.parser.generate_java.java;
-    let external_dependencies_file = parser_target
-        .as_path()
+    let external_dependencies_file = lib
+        .ancestors()
+        .nth(2)
+        .unwrap()
+        .join("target")
         .join("streams")
         .join("runtime")
         .join("managedClasspath")
         .join("_global")
         .join("streams")
         .join("export");
-    let dependencies_from_string = fs::read_to_string(external_dependencies_file.into_os_string())?;
+
+    let path = external_dependencies_file.into_os_string();
+    let mut dependencies_from_string = fs::read_to_string(path.clone())?;
+    dependencies_from_string.pop(); // Remove newline sign
     let package = repo_root.target.generated_java.join_iter(GENERATED_CODE_NAMESPACE);
     let test = package.join(GENERATED_TEST_CLASS).with_extension(JAVA_EXTENSION);
     let test_class =
