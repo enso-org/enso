@@ -32,7 +32,7 @@ export default defineConfig({
   envDir: fileURLToPath(new URL('.', import.meta.url)),
   plugins: [
     wasm(),
-    VueDevTools(),
+    ...(process.env.NODE_ENV === 'development' ? [await VueDevTools()] : []),
     vue(),
     react({
       include: fileURLToPath(new URL('../dashboard/**/*.tsx', import.meta.url)),
