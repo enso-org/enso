@@ -1139,7 +1139,8 @@ add_specs suite_builder setup =
             table.at "x" . round 16 . should_fail_with Illegal_Argument
 
         group_builder.specify "ceil, floor and truncate should work correctly on Integers outside the java Long range" <|
-            values = [9223372036854775809, 9223372036854775807000000]
+            positive_values = [9223372036854775806, 9223372036854775807, 9223372036854775808, 9223372036854775809, 9223372036854775807000000]
+            values = positive_values + positive_values.map .negate
             values.map x->
                 c = table_builder [["x", [x, -x]]] . at "x"
                 c.ceil . to_vector . should_equal [x, -x]
@@ -1147,7 +1148,8 @@ add_specs suite_builder setup =
                 c.truncate . to_vector . should_equal [x, -x]
 
         group_builder.specify "ceil, floor and truncate should work correctly on Floats outside the java Long range" <|
-            values = [9223372036854775809.0, 9223372036854775807000000.0]
+            positive_values = [9223372036854775000.0, 9223372036854776000.0, 9223372036854775807000000.0]
+            values = positive_values + positive_values.map .negate
             values.map x->
                 x_int = x.truncate
                 c = table_builder [["x", [x_int, -x_int]]] . at "x"
