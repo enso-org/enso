@@ -139,17 +139,6 @@ Table.numeric_column_count self =
 
 ## PRIVATE
 
-   Returns whether the x axis should be time/date. This is either a column named 'X' or the left most column
-Table.x_value_type : Boolean
-Table.x_value_type self =
-    get_x_or_first t =
-        x_col = t.lookup_ignore_case Point_Data.X.name
-        x_col.catch_ <| t.columns.first
-    x_col = get_x_or_first self
-    x_col.value_type
-
-## PRIVATE
-
    Generates JSON that describes plot axes.
 Table.axes : Vector -> JS_Object
 Table.axes self all_fields =
@@ -220,9 +209,20 @@ get_axes_field number_of_numeric =
     fields_for_multiseries . insert item=Point_Data.X . insert item=Point_Data.Y
 
 ## PRIVATE
+
+   Returns whether the x axis should be time/date. This is either a column named 'X' or the left most column
+get_x_value_type : Table -> Value_Type
+get_x_value_type table =
+    get_x_or_first t =
+        x_col = t.lookup_ignore_case Point_Data.X.name
+        x_col.catch_ <| t.columns.first
+    x_col = get_x_or_first table
+    x_col.value_type
+
+## PRIVATE
 json_from_table : Table -> Vector Integer | Nothing -> Integer | Nothing -> Text
 json_from_table table bounds limit =
-    x_value_type = table.x_value_type
+    x_value_type = get_x_value_type table
     x_is_date_or_time = x_value_type.is_date_or_time
     number_of_numeric_cols = if x_is_date_or_time then table.numeric_column_count-1 else table.numeric_column_count-2
     fields_for_multiseries = Point_Data.all_fields + ((0.up_to number_of_numeric_cols).map idx-> Point_Data.Y_multi idx)
