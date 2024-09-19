@@ -9,7 +9,7 @@ import { isIdentifier, type AstId, type Identifier } from '@/util/ast/abstract'
 import { Err, Ok, type Result } from '@/util/data/result'
 import { qnLastSegment, type QualifiedName } from '@/util/qualifiedName'
 import { useToast } from '@/util/toast'
-import { computed, proxyRefs, readonly, ref, type ComputedRef } from 'vue'
+import { computed, proxyRefs, readonly, ref, watch, type ComputedRef } from 'vue'
 
 /** Information how the component browser is used, needed for proper input initializing. */
 export type Usage =
@@ -80,6 +80,9 @@ export function useComponentBrowserInput(
     },
   })
 
+  watch(selection, (newValue) => console.error('NEW SELECTION', newValue), { flush: 'sync' })
+  watch(contentModel, (newValue) => console.error('NEW contentModel', newValue), { flush: 'sync' })
+
   function alterInput(newText: string, prefixLengthChange: number) {
     text.value = newText
     const adjustPoint = (point: number) =>
@@ -131,6 +134,7 @@ export function useComponentBrowserInput(
     switchedToCodeMode.value = { appliedSuggestion: id }
     const { newText, newCursorPos, requiredImport } = inputAfterApplyingSuggestion(entry)
     text.value = newText
+    console.log('setting selection to', newCursorPos)cd d
     selection.value = { start: newCursorPos, end: newCursorPos }
     if (requiredImport) {
       const [importId] = suggestionDb.nameToId.lookup(requiredImport)

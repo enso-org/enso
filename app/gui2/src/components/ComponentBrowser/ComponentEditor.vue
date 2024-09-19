@@ -17,19 +17,25 @@ const props = defineProps<{
 
 const inputField = ref<ComponentExposed<typeof AutoSizedInput>>()
 
-const fieldText = ref<string>('')
-const fieldSelection = ref<Range>()
+const fieldContent = ref<{ text: string; selection: Range | undefined }>({
+  text: '',
+  selection: undefined,
+})
 
-watch(content, ({ text: newText, selection: newPos }) => {
-  fieldText.value = newText
-  fieldSelection.value = newPos
+watch(content, (newContent) => {
+  console.log('Setting field content to', newContent)
+  fieldContent.value = newContent
 })
-watch([fieldText, fieldSelection], ([newText, newSelection]) => {
-  content.value = {
-    text: newText,
-    selection: newSelection,
-  }
-})
+watch(
+  [() => fieldContent.value.text, () => fieldContent.value.selection],
+  ([newText, newSelection]) => {
+    console.log('Setting prop content to', newText, newSelection)
+    content.value = {
+      text: newText,
+      selection: newSelection,
+    }
+  },
+)
 
 defineExpose({
   blur: () => inputField.value?.blur(),
@@ -51,8 +57,8 @@ const rootStyle = computed(() => {
     </div>
     <AutoSizedInput
       ref="inputField"
-      v-model="fieldText"
-      v-model:selection="fieldSelection"
+      v-model="fieldContent.text"
+      v-model:selection="fieldContent.selection"
       autocomplete="off"
       class="inputField"
       @pointerdown.stop
