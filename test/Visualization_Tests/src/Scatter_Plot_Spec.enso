@@ -35,32 +35,32 @@ add_specs suite_builder =
             row_1  = [11 , 10 ]
             row_2  = [21 , 20 ]
             table  = Table.from_rows header [row_1, row_2]
-            expect table (labels 'α' 'ω') '[{"x":11,"y":10},{"x":21,"y":20}]'
+            expect table (labels 'α' 'ω') '[{"x":11,"y":10, "row_number": 0},{"x":21,"y":20, "row_number": 1}]'
 
         group_builder.specify "recognizes all relevant columns" <|
             header = ['x' , 'y' , 'size' , 'shape'  , 'label' , 'color' ]
             row_1 =  [11  , 10  , 50     , 'square' , 'label' , 'ff0000']
             table = Table.from_rows header [row_1]
-            expect table (labels 'x' 'y') '[{"color":"ff0000","label":"label","shape":"square","size":50,"x":11,"y":10}]'
+            expect table (labels 'x' 'y') '[{"color":"ff0000","label":"label","shape":"square","size":50,"x":11,"y":10, "row_number": 0}]'
 
         group_builder.specify "is case-insensitive" <|
             header = ['X' , 'Y' , 'Size' , 'Shape'  , 'Label' , 'Color' ]
             row_1 =  [11  , 10  , 50     , 'square' , 'label' , 'ff0000']
             table = Table.from_rows header [row_1]
-            expect table (labels 'X' 'Y') '[{"color":"ff0000","label":"label","shape":"square","size":50,"x":11,"y":10}]'
+            expect table (labels 'X' 'Y') '[{"color":"ff0000","label":"label","shape":"square","size":50,"x":11,"y":10, "row_number": 0}]'
 
         group_builder.specify "uses first unrecognized numeric column as `y` fallback" <|
             header = ['x' , 'size' , 'name'   , 'z' , 'ω']
             row_1 =  [11  , 50     , 'circul' ,  20 ,  30]
             table = Table.from_rows header [row_1]
-            expect table (labels_multi 'x' 'z' 'ω') '[{"size":50,"x":11,"y":20,"(y_multi 0)":30}]' 'true'
+            expect table (labels_multi 'x' 'z' 'ω') '[{"size":50,"x":11,"y":20,"(y_multi 0)":30, "row_number": 0}]' 'true'
 
         group_builder.specify "provided only recognized columns" <|
             header = ['x', 'y' , 'bar' , 'size']
             row_1 =  [11 , 10  , 'aa'  , 40    ]
             row_2 =  [21 , 20  , 'bb'  , 50    ]
             table = Table.from_rows header [row_1, row_2]
-            expect table (labels 'x' 'y') '[{"size":40,"x":11,"y":10},{"size":50,"x":21,"y":20}]'
+            expect table (labels 'x' 'y') '[{"size":40,"x":11,"y":10, "row_number": 0},{"size":50,"x":21,"y":20, "row_number": 1}]'
 
         group_builder.specify "provided only recognized columns within bounds" <|
             header = ['x', 'y' , 'bar' , 'size']
@@ -71,14 +71,14 @@ add_specs suite_builder =
             table = Table.from_rows header [row_1, row_2, row_3, row_4]
             bounds = [0,5,25,25]
             text = Scatter_Plot.process_to_json_text table bounds
-            expect_text text (labels 'x' 'y') '[{"size":40,"x":11,"y":10},{"size":50,"x":21,"y":20}]'
+            expect_text text (labels 'x' 'y') '[{"size":40,"x":11,"y":10, "row_number": 0},{"size":50,"x":21,"y":20, "row_number": 1}]'
 
         group_builder.specify "used default index for `x` if none set" <|
             header = [ 'y'  , 'bar' , 'size']
             row_1 =  [ 10   , 'aa'  , 40    ]
             row_2 =  [ 20   , 'bb'  , 50    ]
             table = Table.from_rows header [row_1, row_2]
-            expect table (labels index 'y') '[{"size":40,"x":0,"y":10},{"size":50,"x":1,"y":20}]'
+            expect table (labels index 'y') '[{"size":40,"x":0,"y":10, "row_number": 0},{"size":50,"x":1,"y":20, "row_number": 1}]'
 
         group_builder.specify "using indices for x if given a vector" <|
             vector = [0,10,20]
