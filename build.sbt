@@ -4300,7 +4300,8 @@ lazy val `connected-lock-manager-server` = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
-    compileOrder := CompileOrder.ScalaThenJava,
+    // See JPMSPlugin docs (Mixed projects)
+    excludeFilter := excludeFilter.value || "module-info.java",
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
       akkaActor,
