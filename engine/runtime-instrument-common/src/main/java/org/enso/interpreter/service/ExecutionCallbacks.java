@@ -13,9 +13,11 @@ import org.enso.interpreter.instrument.VisualizationHolder;
 import org.enso.interpreter.instrument.profiling.ExecutionTime;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
+import org.enso.interpreter.runtime.state.ExecutionEnvironment;
 import org.enso.interpreter.runtime.type.Constants;
 import org.enso.interpreter.service.ExecutionService.ExpressionCall;
 import org.enso.interpreter.service.ExecutionService.ExpressionValue;
@@ -31,21 +33,27 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   private final MethodCallsCache methodCallsCache;
   private final UpdatesSynchronizationState syncState;
   private final Map<UUID, FunctionCallInfo> calls = new HashMap<>();
+  private final Map<UUID, ExecutionEnvironment> expressionConfigs;
   private final Consumer<ExpressionValue> onCachedCallback;
   private final Consumer<ExpressionValue> onComputedCallback;
   private final Consumer<ExpressionCall> functionCallCallback;
   private final Consumer<ExecutedVisualization> onExecutedVisualizationCallback;
 
+  private ExecutionEnvironment originalExecutionEnvironment = null;
+
   /**
    * Creates callbacks instance.
    *
+   * @param visualizationHolder the holder of all visualizations attached to an execution context.
+   * @param nextExecutionItem the next item scheduled for execution.
    * @param cache the precomputed expression values.
    * @param methodCallsCache the storage tracking the executed updateCachedResult calls.
    * @param syncState the synchronization state of runtime updates.
-   * @param nextExecutionItem the next item scheduled for execution.
-   * @param functionCallCallback the consumer of function call events.
+   * @param expressionConfigs the execution config for each expression.
    * @param onComputedCallback the consumer of the computed value events.
    * @param onCachedCallback the consumer of the cached value events.
+   * @param functionCallCallback the consumer of function call events.
+   * @param onExecutedVisualizationCallback the consumer of an executed visualization result.
    */
   ExecutionCallbacks(
       VisualizationHolder visualizationHolder,
@@ -53,6 +61,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
       RuntimeCache cache,
       MethodCallsCache methodCallsCache,
       UpdatesSynchronizationState syncState,
+      Map<UUID, ExecutionEnvironment> expressionConfigs,
       Consumer<ExpressionValue> onCachedCallback,
       Consumer<ExpressionValue> onComputedCallback,
       Consumer<ExpressionCall> functionCallCallback,
@@ -62,6 +71,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     this.cache = cache;
     this.methodCallsCache = methodCallsCache;
     this.syncState = syncState;
+    this.expressionConfigs = expressionConfigs;
     this.onCachedCallback = onCachedCallback;
     this.onComputedCallback = onComputedCallback;
     this.functionCallCallback = functionCallCallback;
@@ -139,6 +149,24 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     }
     methodCallsCache.setExecuted(nodeId);
     return null;
+  }
+
+  @Override
+  public void setExecutionEnvironment(IdExecutionService.Info info) {
+    ExecutionEnvironment nodeEnvironment = expressionConfigs.get(info.getId());
+    if (nodeEnvironment != null && originalExecutionEnvironment == null) {
+      EnsoContext context = EnsoContext.get(info.getRootNode());
+      originalExecutionEnvironment = context.getExecutionEnvironment();
+      context.setExecutionEnvironment(nodeEnvironment);
+    }
+  }
+
+  @Override
+  public void resetExecutionEnvironment(IdExecutionService.Info info) {
+    if (originalExecutionEnvironment != null) {
+      EnsoContext.get(info.getRootNode()).setExecutionEnvironment(originalExecutionEnvironment);
+      originalExecutionEnvironment = null;
+    }
   }
 
   @CompilerDirectives.TruffleBoundary

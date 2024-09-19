@@ -20,6 +20,8 @@ import com.oracle.truffle.api.source.SourceSection;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -48,6 +50,7 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.instrument.Timer;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.state.ExecutionEnvironment;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.service.error.FailedToApplyEditsException;
 import org.enso.interpreter.service.error.MethodNotFoundException;
@@ -157,9 +160,11 @@ public final class ExecutionService {
    * @param methodCallsCache the storage tracking the executed method calls.
    * @param syncState the synchronization state of runtime updates.
    * @param nextExecutionItem the next item scheduled for execution.
+   * @param expressionConfigs the execution config for each expression.
    * @param funCallCallback the consumer for function call events.
    * @param onComputedCallback the consumer of the computed value events.
    * @param onCachedCallback the consumer of the cached value events.
+   * @param onExecutedVisualizationCallback the consumer of an executed visualization result.
    */
   public void execute(
       VisualizationHolder visualizationHolder,
@@ -169,6 +174,7 @@ public final class ExecutionService {
       MethodCallsCache methodCallsCache,
       UpdatesSynchronizationState syncState,
       UUID nextExecutionItem,
+      Map<UUID, ExecutionEnvironment> expressionConfigs,
       Consumer<ExecutionService.ExpressionCall> funCallCallback,
       Consumer<ExecutionService.ExpressionValue> onComputedCallback,
       Consumer<ExecutionService.ExpressionValue> onCachedCallback,
@@ -188,6 +194,7 @@ public final class ExecutionService {
             cache,
             methodCallsCache,
             syncState,
+            expressionConfigs,
             onCachedCallback,
             onComputedCallback,
             funCallCallback,
@@ -220,9 +227,11 @@ public final class ExecutionService {
    * @param methodCallsCache the storage tracking the executed method calls.
    * @param syncState the synchronization state of runtime updates.
    * @param nextExecutionItem the next item scheduled for execution.
+   * @param expressionConfigs the execution config for each expression.
    * @param funCallCallback the consumer for function call events.
    * @param onComputedCallback the consumer of the computed value events.
    * @param onCachedCallback the consumer of the cached value events.
+   * @param onExecutedVisualizationCallback the consumer of an executed visualization result.
    */
   public void execute(
       String moduleName,
@@ -233,6 +242,7 @@ public final class ExecutionService {
       MethodCallsCache methodCallsCache,
       UpdatesSynchronizationState syncState,
       UUID nextExecutionItem,
+      Map<UUID, ExecutionEnvironment> expressionConfigs,
       Consumer<ExecutionService.ExpressionCall> funCallCallback,
       Consumer<ExecutionService.ExpressionValue> onComputedCallback,
       Consumer<ExecutionService.ExpressionValue> onCachedCallback,
@@ -255,6 +265,7 @@ public final class ExecutionService {
         methodCallsCache,
         syncState,
         nextExecutionItem,
+        expressionConfigs,
         funCallCallback,
         onComputedCallback,
         onCachedCallback,
@@ -368,6 +379,7 @@ public final class ExecutionService {
             cache,
             methodCallsCache,
             syncState,
+            Collections.emptyMap(),
             onCachedCallback,
             onComputedCallback,
             funCallCallback,

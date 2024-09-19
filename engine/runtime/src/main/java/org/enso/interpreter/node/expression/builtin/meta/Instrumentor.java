@@ -5,6 +5,7 @@ import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import java.util.UUID;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -120,4 +121,10 @@ final class Instrumentor implements EnsoObject, IdExecutionService.Callbacks {
     }
     return null;
   }
+
+  @Override
+  public void setExecutionEnvironment(IdExecutionService.Info info) {}
+
+  @Override
+  public void resetExecutionEnvironment(IdExecutionService.Info info) {}
 }

@@ -691,6 +691,16 @@ object Runtime {
       }
     }
 
+    /** The configuration of how to execute the expression.
+      *
+      * @param expressionId the expression identifier
+      * @param executionEnvironment the execution environment for the expression
+      */
+    sealed case class ExpressionConfig(
+      expressionId: ExpressionId,
+      executionEnvironment: Option[ExecutionEnvironment]
+    )
+
     /** The notification about the execution status.
       *
       * @param contextId the context's id
@@ -914,12 +924,14 @@ object Runtime {
       * @param expressions the selector specifying which expressions should be
       * recomputed.
       * @param executionEnvironment the environment used for execution
+      * @param expressionConfigs execution configurations for selected expressions
       */
     @named("recomputeContextRequest")
     final case class RecomputeContextRequest(
       contextId: ContextId,
       expressions: Option[InvalidatedExpressions],
-      executionEnvironment: Option[ExecutionEnvironment]
+      executionEnvironment: Option[ExecutionEnvironment],
+      expressionConfigs: Seq[ExpressionConfig]
     ) extends ApiRequest
 
     /** A response sent from the server upon handling the

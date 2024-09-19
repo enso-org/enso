@@ -4,6 +4,8 @@ import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.ExecutionEventNodeFactory;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.nodes.RootNode;
+
 import java.util.UUID;
 
 public interface IdExecutionService {
@@ -20,6 +22,11 @@ public interface IdExecutionService {
      * @return associated result or {@code null} if there is no associated result.
      */
     public abstract Object getResult();
+
+    /**
+     * @return the root of this node.
+     */
+    public abstract RootNode getRootNode();
 
     /**
      * @return {@code true} when the result is panic, {@code false} otherwise.
@@ -69,6 +76,10 @@ public interface IdExecutionService {
      *     the execution and return the value as a result.
      */
     Object onFunctionReturn(Info info);
+
+    void setExecutionEnvironment(Info info);
+
+    void resetExecutionEnvironment(Info info);
   }
 
   /**

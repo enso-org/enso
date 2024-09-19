@@ -1,9 +1,8 @@
 package org.enso.interpreter.instrument.job
 
 import java.util.UUID
-import org.enso.interpreter.instrument.InstrumentFrame
+import org.enso.interpreter.instrument.{ExecutionConfig, InstrumentFrame}
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
-import org.enso.interpreter.runtime.state.ExecutionEnvironment
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.logging.Level
@@ -12,12 +11,12 @@ import java.util.logging.Level
   *
   * @param contextId an identifier of a context to execute
   * @param stack a call stack to execute
-  * @param executionEnvironment the execution environment to use
+  * @param executionConfig the program execution configuration
   */
 class ExecuteJob(
   contextId: UUID,
   stack: List[InstrumentFrame],
-  val executionEnvironment: Option[Api.ExecutionEnvironment],
+  val executionConfig: ExecutionConfig,
   val visualizationTriggered: Boolean = false
 ) extends Job[Unit](
       List(contextId),
@@ -68,20 +67,17 @@ class ExecuteJob(
         ctx.locking.withReadCompilationLock(
           this.getClass,
           () => {
-            val context = ctx.executionService.getContext
-            val originalExecutionEnvironment =
-              executionEnvironment.map(_ => context.getExecutionEnvironment)
-            executionEnvironment.foreach(env =>
+            val context                      = ctx.executionService.getContext
+            val originalExecutionEnvironment = context.getExecutionEnvironment
+            if (executionConfig.executionEnvironment ne null) {
               context.setExecutionEnvironment(
-                ExecutionEnvironment.forName(env.name)
+                executionConfig.executionEnvironment
               )
-            )
+            }
             val outcome =
-              try ProgramExecutionSupport.runProgram(contextId, stack)
+              try ProgramExecutionSupport.runProgram(contextId, stack, executionConfig)
               finally {
-                originalExecutionEnvironment.foreach(
-                  context.setExecutionEnvironment
-                )
+                context.setExecutionEnvironment(originalExecutionEnvironment)
               }
             outcome match {
               case Some(diagnostic: Api.ExecutionResult.Diagnostic) =>
@@ -134,7 +130,7 @@ object ExecuteJob {
     new ExecuteJob(
       executable.contextId,
       executable.stack.toList,
-      None,
+      ExecutionConfig.empty(),
       visualizationTriggered
     )
 
@@ -145,5 +141,5 @@ object ExecuteJob {
     * @return new execute job
     */
   def apply(contextId: UUID, stack: List[InstrumentFrame]): ExecuteJob =
-    new ExecuteJob(contextId, stack, None)
+    new ExecuteJob(contextId, stack, ExecutionConfig.empty())
 }

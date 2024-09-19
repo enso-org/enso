@@ -423,7 +423,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       context.send(
         Api.Request(
           requestId,
-          Api.RecomputeContextRequest(contextId, None, None)
+          Api.RecomputeContextRequest(contextId, None, None, Seq())
         )
       )
 
@@ -551,7 +551,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       context.send(
         Api.Request(
           requestId,
-          Api.RecomputeContextRequest(contextId, None, None)
+          Api.RecomputeContextRequest(contextId, None, None, Seq())
         )
       )
       context.receiveNIgnoreExpressionUpdates(2) should contain allOf (
@@ -570,7 +570,8 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
                 Vector(context.Main.idMainX)
               )
             ),
-            None
+            None,
+            Seq()
           )
         )
       )
@@ -1572,7 +1573,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       context.send(
         Api.Request(
           requestId,
-          Api.RecomputeContextRequest(contextId, None, None)
+          Api.RecomputeContextRequest(contextId, None, None, Seq())
         )
       )
       context.receiveNIgnoreExpressionUpdates(
@@ -1593,7 +1594,8 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
                 Vector(context.Main.idMainX)
               )
             ),
-            None
+            None,
+            Seq()
           )
         )
       )
@@ -2900,7 +2902,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       context.send(
         Api.Request(
           requestId,
-          Api.RecomputeContextRequest(contextId, None, None)
+          Api.RecomputeContextRequest(contextId, None, None, Seq())
         )
       )
 
@@ -3074,7 +3076,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       context.send(
         Api.Request(
           requestId,
-          Api.RecomputeContextRequest(contextId, None, None)
+          Api.RecomputeContextRequest(contextId, None, None, Seq())
         )
       )
 
@@ -3213,7 +3215,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       context.send(
         Api.Request(
           requestId,
-          Api.RecomputeContextRequest(contextId, None, None)
+          Api.RecomputeContextRequest(contextId, None, None, Seq())
         )
       )
 
@@ -3397,7 +3399,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       context.send(
         Api.Request(
           requestId,
-          Api.RecomputeContextRequest(contextId, None, None)
+          Api.RecomputeContextRequest(contextId, None, None, Seq())
         )
       )
 

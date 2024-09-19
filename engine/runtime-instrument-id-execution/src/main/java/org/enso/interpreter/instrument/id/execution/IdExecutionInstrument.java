@@ -149,6 +149,11 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       }
 
       @Override
+      public EnsoRootNode getRootNode() {
+        return ensoRootNode;
+      }
+
+      @Override
       public boolean isPanic() {
         return result instanceof AbstractTruffleException && !(result instanceof DataflowError);
       }
@@ -209,6 +214,8 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         if (result != null) {
           throw context.createUnwind(result);
         }
+        callbacks.setExecutionEnvironment(info);
+
         nanoTimeElapsed = timer.getTime();
       }
 
@@ -250,10 +257,20 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
                   frame == null ? null : frame.materialize(),
                   node);
           callbacks.updateCachedResult(info);
+          callbacks.resetExecutionEnvironment(info);
 
           if (info.isPanic()) {
             throw context.createUnwind(result);
           }
+        } else if (node instanceof ExpressionNode expressionNode) {
+          Info info =
+              new NodeInfo(
+                  expressionNode.getId(),
+                  result,
+                  nanoTimeElapsed,
+                  frame == null ? null : frame.materialize(),
+                  node);
+          callbacks.resetExecutionEnvironment(info);
         }
       }
 

@@ -2,6 +2,7 @@ package org.enso.interpreter.instrument.job
 
 import com.oracle.truffle.api.exception.AbstractTruffleException
 import org.enso.interpreter.instrument.{
+  ExecutionConfig,
   InstrumentFrame,
   MethodCallsCache,
   RuntimeCache,
@@ -49,6 +50,7 @@ import java.io.File
 import java.util.UUID
 import java.util.function.Consumer
 import java.util.logging.Level
+
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.Try
 
@@ -57,15 +59,17 @@ import scala.util.Try
   */
 object ProgramExecutionSupport {
 
-  /** Runs an Enso program.
+  /** Runs the program.
     *
     * @param contextId an identifier of an execution context
+    * @param executionConfig the program execution config
     * @param executionFrame an execution frame
     * @param callStack a call stack
     */
   @scala.annotation.tailrec
   final private def executeProgram(
     contextId: Api.ContextId,
+    executionConfig: ExecutionConfig,
     executionFrame: ExecutionFrame,
     callStack: List[LocalCallFrame]
   )(implicit ctx: RuntimeContext): Unit = {
@@ -142,6 +146,7 @@ object ProgramExecutionSupport {
           methodCallsCache,
           syncState,
           callStack.headOption.map(_.expressionId).orNull,
+          executionConfig.expressionConfigs,
           callablesCallback,
           onComputedValueCallback,
           onCachedValueCallback,
@@ -183,6 +188,7 @@ object ProgramExecutionSupport {
           methodCallsCache,
           syncState,
           callStack.headOption.map(_.expressionId).orNull,
+          executionConfig.expressionConfigs,
           callablesCallback,
           onComputedValueCallback,
           onCachedValueCallback,
@@ -219,23 +225,25 @@ object ProgramExecutionSupport {
                 item.cache,
                 item.syncState
               )
-            executeProgram(contextId, executionFrame, tail)
+            executeProgram(contextId, executionConfig, executionFrame, tail)
           case None =>
             ()
         }
     }
   }
 
-  /** Runs an Enso program.
+  /** Runs the program.
     *
     * @param contextId an identifier of an execution context
     * @param stack a call stack
+    * @param executionConfig the program execution config
     * @param ctx a runtime context
     * @return an execution result
     */
   final def runProgram(
     contextId: Api.ContextId,
-    stack: List[InstrumentFrame]
+    stack: List[InstrumentFrame],
+    executionConfig: ExecutionConfig
   )(implicit ctx: RuntimeContext): Option[Api.ExecutionResult] = {
     val logger = ctx.executionService.getLogger
     logger.log(Level.FINEST, s"Run program $contextId")
@@ -271,7 +279,9 @@ object ProgramExecutionSupport {
           Some(Api.ExecutionResult.Failure("Execution stack is empty.", None))
         )
       _ <-
-        Try(executeProgram(contextId, stackItem, localCalls)).toEither.left
+        Try(
+          executeProgram(contextId, executionConfig, stackItem, localCalls)
+        ).toEither.left
           .map(onExecutionError(stackItem.item, _))
     } yield ()
     logger.log(Level.FINEST, s"Execution finished: $executionResult")
