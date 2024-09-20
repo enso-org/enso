@@ -63,9 +63,8 @@ pub async fn run_self_tests(repo_root: &RepoRoot) -> Result {
         .join("streams")
         .join("export");
 
-    let path = external_dependencies_file.into_os_string();
-    let mut dependencies_from_string = fs::read_to_string(path.clone())?;
-    dependencies_from_string.pop(); // Remove newline sign
+    let dependencies_from_string = fs::read_to_string(&external_dependencies_file)?;
+    let dependencies_from_string = dependencies_from_string.trim_ascii_end();
     let package = repo_root.target.generated_java.join_iter(GENERATED_CODE_NAMESPACE);
     let test = package.join(GENERATED_TEST_CLASS).with_extension(JAVA_EXTENSION);
     let test_class =
@@ -82,7 +81,7 @@ pub async fn run_self_tests(repo_root: &RepoRoot) -> Result {
         .apply(&javac::Classpath::new([
             lib.as_path(),
             base.as_path(),
-            Path::new(&dependencies_from_string),
+            Path::new(dependencies_from_string),
         ]))
         .apply(&javac::Options::Directory(base.into()))
         .arg(&test)
