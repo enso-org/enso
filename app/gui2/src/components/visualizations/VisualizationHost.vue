@@ -52,7 +52,8 @@ provideVisualizationConfig({
 <template>
   <Suspense>
     <template #fallback><LoadingVisualization /></template>
-    <component :is="visualization" v-if="visualization" :data="data" />
+    <component :is="visualization" v-if="visualization && data" :data="data" />
+    <LoadingVisualization v-else />
   </Suspense>
 </template>
 
