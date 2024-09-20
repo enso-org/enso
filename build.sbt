@@ -1331,7 +1331,7 @@ lazy val `ydoc-server` = project
   .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
-    frgaalJavaCompilerSetting,
+    customFrgaalJavaCompilerSettings("21"),
     javaModuleName := "org.enso.ydoc",
     Compile / exportJars := true,
     crossPaths := false,
@@ -1365,7 +1365,8 @@ lazy val `ydoc-server` = project
       "io.helidon.webserver"       % "helidon-webserver-websocket" % helidonVersion,
       "junit"                      % "junit"                       % junitVersion              % Test,
       "com.github.sbt"             % "junit-interface"             % junitIfVersion            % Test,
-      "com.fasterxml.jackson.core" % "jackson-databind"            % jacksonVersion            % Test
+      "com.fasterxml.jackson.core" % "jackson-databind"            % jacksonVersion            % Test,
+      "org.graalvm.sdk"            % "nativeimage"                 % graalMavenPackagesVersion % "provided"
     )
   )
   // `Compile/run` settings are necessary for the `run` task to work.

@@ -7,6 +7,7 @@ module org.enso.ydoc {
   requires org.enso.syntax;
   requires org.graalvm.polyglot;
   requires org.slf4j;
+  requires static org.graalvm.nativeimage;
 
   opens org.enso.ydoc.polyfill.web;
 
