@@ -28,10 +28,14 @@ const props = defineProps<{
   hidden: boolean
   ignoreParamsRegex?: RegExp
   renameProject: (newName: string) => void
-  backend: Backend
+  projectBackend: Backend | null
+  remoteBackend: Backend | null
 }>()
 
-provideBackend(() => markRaw(toRaw(props.backend)))
+provideBackend({
+  project: () => props.projectBackend && markRaw(toRaw(props.projectBackend)),
+  remote: () => props.remoteBackend && markRaw(toRaw(props.remoteBackend)),
+})
 
 const classSet = provideAppClassSet()
 const appTooltips = provideTooltipRegistry()

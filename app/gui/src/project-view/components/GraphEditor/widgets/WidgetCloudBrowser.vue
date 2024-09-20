@@ -50,8 +50,7 @@ export const widgetDefinition = defineWidget(
   {
     priority: 49,
     score: (props) => {
-      const backend = injectBackend(true)?.backend
-      if (backend?.type !== BackendType.remote) return Score.Mismatch
+      const backend = injectBackend()?.remote
       if (props.input.dynamicConfig?.kind === 'File_Browse') return Score.Perfect
       const reprType = props.input[ArgumentInfoKey]?.info?.reprType
       if (reprType?.includes(FILE_TYPE) || reprType?.includes(WRITABLE_FILE_TYPE))
