@@ -17,7 +17,7 @@ public class ContextIsEnabledNode extends Node {
 
   Object execute(Atom self, Object environmentName) {
     String envName = expectStringNode.execute(environmentName);
-    ExecutionEnvironment currentEnv = EnsoContext.get(this).getExecutionEnvironment();
+    ExecutionEnvironment currentEnv = EnsoContext.get(this).getThreadExecutionEnvironment();
     if (!currentEnv.getName().equals(envName)) {
       Atom error =
           EnsoContext.get(this)

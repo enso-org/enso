@@ -56,10 +56,21 @@ public class SetExecutionEnvironmentCommand extends AsynchronousCommand {
                         this.getClass(),
                         () -> {
                           Stack<InstrumentFrame> stack = ctx.contextManager().getStack(contextId);
-                          ctx.executionService()
-                              .getContext()
-                              .setExecutionEnvironment(
-                                  ExecutionEnvironment.forName(executionEnvironment.name()));
+                          ctx.state()
+                              .executionHooks()
+                              .add(
+                                  () ->
+                                      ctx.locking()
+                                          .withWriteCompilationLock(
+                                              this.getClass(),
+                                              () -> {
+                                                ctx.executionService()
+                                                    .getContext()
+                                                    .setExecutionEnvironment(
+                                                        ExecutionEnvironment.forName(
+                                                            executionEnvironment.name()));
+                                                return null;
+                                              }));
                           CacheInvalidation.invalidateAll(stack);
                           ctx.jobProcessor().run(ExecuteJob.apply(contextId, stack.toList()));
                           reply(new Runtime$Api$SetExecutionEnvironmentResponse(contextId), ctx);

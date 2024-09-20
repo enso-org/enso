@@ -56,7 +56,7 @@ public final class DataflowError extends AbstractTruffleException implements Ens
     boolean attachFullStackTrace =
         state == null
             || EnsoContext.get(location)
-                .getExecutionEnvironment()
+                .getThreadExecutionEnvironment()
                 .hasContextEnabled("Dataflow_Stack_Trace");
     if (attachFullStackTrace) {
       var result = new DataflowError(payload, UNLIMITED_STACK_TRACE, location);

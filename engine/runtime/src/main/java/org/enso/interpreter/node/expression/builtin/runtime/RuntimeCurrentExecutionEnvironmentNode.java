@@ -12,6 +12,6 @@ import org.enso.interpreter.runtime.data.text.Text;
     autoRegister = false)
 public class RuntimeCurrentExecutionEnvironmentNode extends Node {
   Object execute() {
-    return Text.create(EnsoContext.get(this).getExecutionEnvironment().getName());
+    return Text.create(EnsoContext.get(this).getThreadExecutionEnvironment().getName());
   }
 }
