@@ -129,6 +129,7 @@ export default function AssetPanel(props: AssetPanelProps) {
           isVisible ? 'shadow-softer' : '',
         )}
         onClick={(event) => {
+          // Prevent deselecting Assets Table rows.
           event.stopPropagation()
         }}
       >
