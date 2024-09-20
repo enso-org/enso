@@ -16,6 +16,7 @@ use jni::objects::JClass;
 use jni::sys::jobject;
 use jni::sys::jstring;
 use jni::JNIEnv;
+use std::cell::UnsafeCell;
 
 
 
@@ -31,19 +32,15 @@ static FAILED_SERIALIZE_AST: &str = "Failed to serialize AST to binary format.";
 ///
 /// # Safety
 ///
-/// The state MUST be a value returned by `allocState` that has not been passed to `freeState`.
-/// The input buffer contents MUST be valid UTF-8.
-/// The contents of the returned buffer MUST not be accessed after another call to `parseInput`, or
-/// a call to `freeState`.
+/// The contents of the returned buffer MUST not be accessed after another call to `parseInput`.
 #[allow(unsafe_code)]
 #[no_mangle]
 pub extern "system" fn Java_org_enso_syntax2_Parser_parseTree(
     mut env: JNIEnv,
     _class: JClass,
-    state: u64,
     input: JByteBuffer,
 ) -> jobject {
-    let state = unsafe { &mut *(state as usize as *mut State) };
+    let state = STATE.with(|state| unsafe { state.get().as_mut() }).unwrap();
     let input = unsafe { decode_utf8_buffer(&env, &input) };
     let mut code = input;
     let mut meta = None;
@@ -76,19 +73,16 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_parseTree(
 ///
 /// # Safety
 ///
-/// The state MUST be a value returned by `allocState` that has not been passed to `freeState`.
 /// The input buffer contents MUST be valid UTF-8.
-/// The contents of the returned buffer MUST not be accessed after another call to `parseInput`, or
-/// a call to `freeState`.
+/// The contents of the returned buffer MUST not be accessed after another call to `parseInput`.
 #[allow(unsafe_code)]
 #[no_mangle]
 pub extern "system" fn Java_org_enso_syntax2_Parser_parseTreeLazy(
     mut env: JNIEnv,
     _class: JClass,
-    state: u64,
     input: JByteBuffer,
 ) -> jobject {
-    let state = unsafe { &mut *(state as usize as *mut State) };
+    let state = STATE.with(|state| unsafe { state.get().as_mut() }).unwrap();
     let input = unsafe { decode_utf8_buffer(&env, &input) };
 
     let tree = enso_parser::Parser::new().run(input);
@@ -126,37 +120,24 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_isIdentOrOperator(
 
 /// Return the `base` parameter to pass to the `Message` class along with the other output of the
 /// most recent call to `parseInput`.
-///
-/// # Safety
-///
-/// The input MUST have been returned by `allocState`, and MUST NOT have previously been passed to
-/// `freeState`.
 #[allow(unsafe_code)]
 #[no_mangle]
 pub extern "system" fn Java_org_enso_syntax2_Parser_getLastInputBase(
     _env: JNIEnv,
     _class: JClass,
-    state: u64,
 ) -> u64 {
-    let state = unsafe { &mut *(state as usize as *mut State) };
-    state.base
+    STATE.with(|state| unsafe { state.get().as_ref() }).unwrap().base
 }
 
 /// Return the metadata associated with the most recent parse.
-///
-/// # Safety
-///
-/// The input MUST have been returned by `allocState`, and MUST NOT have previously been passed to
-/// `freeState`.
 #[allow(unsafe_code)]
 #[no_mangle]
 pub extern "system" fn Java_org_enso_syntax2_Parser_getMetadata(
     _env: JNIEnv,
     _class: JClass,
-    state: u64,
 ) -> u64 {
-    let state = unsafe { &mut *(state as usize as *mut State) };
-    match &state.metadata {
+    let metadata = &STATE.with(|state| unsafe { state.get().as_ref() }).unwrap().metadata;
+    match metadata {
         Some(metadata) => {
             let metadata: *const _ = metadata;
             metadata as usize as u64
@@ -165,34 +146,11 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_getMetadata(
     }
 }
 
-/// Allocate a new parser state object. The returned value should be passed to `freeState` when no
-/// longer needed.
-#[allow(unsafe_code, clippy::box_default)]
-#[no_mangle]
-pub extern "system" fn Java_org_enso_syntax2_Parser_allocState(
-    _env: JNIEnv,
-    _class: JClass,
-) -> u64 {
-    Box::into_raw(Box::new(State::default())) as _
-}
-
-/// Free the resources owned by the state object.
-///
-/// # Safety
-///
-/// The input MUST have been returned by `allocState`, and MUST NOT have previously been passed to
-/// `freeState`.
+/// Free the thread's parsing resources.
 #[allow(unsafe_code)]
 #[no_mangle]
-pub extern "system" fn Java_org_enso_syntax2_Parser_freeState(
-    _env: JNIEnv,
-    _class: JClass,
-    state: u64,
-) {
-    if state != 0 {
-        let state = unsafe { Box::from_raw(state as usize as *mut State) };
-        drop(state);
-    }
+pub extern "system" fn Java_org_enso_syntax2_Parser_freeBuffers(_env: JNIEnv, _class: JClass) {
+    *STATE.with(|state| unsafe { state.get().as_mut() }).unwrap() = Default::default();
 }
 
 /// Returns the string template corresponding to the given warning ID.
@@ -293,4 +251,8 @@ struct State {
     base:     u64,
     output:   Vec<u8>,
     metadata: Option<enso_parser::metadata::Metadata>,
+}
+
+thread_local! {
+    static STATE: UnsafeCell<State> = Default::default();
 }
