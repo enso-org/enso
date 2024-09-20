@@ -78,6 +78,11 @@ function dragEventsHandler(axis: 'x' | 'y') {
         emit('scroll', { type: 'stop' })
         break
       }
+      case 'cancel': {
+        emit('scroll', { type: 'move', startOffset: Vec2.Zero })
+        emit('scroll', { type: 'stop' })
+        break
+      }
     }
     return true
   })
