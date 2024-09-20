@@ -105,8 +105,8 @@ export const args: Arguments = await yargs(process.argv.slice(2))
       type: 'boolean',
       description: 'Should signing/notarization be performed (defaults to true)',
       default: true,
-      coerce: (p: string) => p === 'true'
-    }
+      coerce: (p: string) => p === 'true',
+    },
   }).argv
 
 // ======================================
@@ -293,7 +293,11 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
 
     afterSign: async (context: electronBuilder.AfterPackContext) => {
       // Notarization for macOS.
-      if (passedArgs.platform === electronBuilder.Platform.MAC && process.env.CSC_LINK != null && passedArgs.sign) {
+      if (
+        passedArgs.platform === electronBuilder.Platform.MAC &&
+        process.env.CSC_LINK != null &&
+        passedArgs.sign
+      ) {
         const {
           packager: {
             appInfo: { productFilename: appName },
