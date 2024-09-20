@@ -138,7 +138,7 @@ final class BinaryOperatorNode extends ExpressionNode {
         @Shared("convert") @Cached InteropConversionCallNode convertNode,
         @Shared("invoke") @Cached(allowUncached = true, value = "buildWithArity(2)")
             InvokeFunctionNode invokeNode) {
-      return doDispatch(frame, self, that, thatType, symbolFn, convertNode, invokeNode);
+      return doDispatch(frame, self, that, selfType, thatType, symbolFn, convertNode, invokeNode);
     }
 
     @Specialization(replaces = "doThatConversionCached")
@@ -151,12 +151,15 @@ final class BinaryOperatorNode extends ExpressionNode {
         @Shared("convert") @Cached InteropConversionCallNode convertNode,
         @Shared("invoke") @Cached(allowUncached = true, value = "buildWithArity(2)")
             InvokeFunctionNode invokeNode) {
+      var selfType = findType(typeOfNode, self);
       if (that instanceof EnsoMultiValue multi) {
         for (var thatType : multi.allTypes()) {
           var fn = findSymbol(symbol, thatType);
           if (fn != null) {
             var thatCasted = EnsoMultiValue.CastToNode.getUncached().executeCast(thatType, multi);
-            var result = doDispatch(frame, self, thatCasted, thatType, fn, convertNode, invokeNode);
+            var result =
+                doDispatch(
+                    frame, self, thatCasted, selfType, thatType, fn, convertNode, invokeNode);
             if (result != null) {
               return result;
             }
@@ -167,7 +170,8 @@ final class BinaryOperatorNode extends ExpressionNode {
         if (thatType != null) {
           var fn = findSymbol(symbol, thatType);
           if (fn != null) {
-            var result = doDispatch(frame, self, that, thatType, fn, convertNode, invokeNode);
+            var result =
+                doDispatch(frame, self, that, selfType, thatType, fn, convertNode, invokeNode);
             if (result != null) {
               return result;
             }
@@ -181,11 +185,16 @@ final class BinaryOperatorNode extends ExpressionNode {
         VirtualFrame frame,
         Object self,
         Object that,
+        Type selfType,
         Type thatType,
         Function symbolFn,
         InteropConversionCallNode convertNode,
         InvokeFunctionNode invokeNode)
         throws PanicException {
+      if (selfType == thatType) {
+        // conversions won't help
+        return null;
+      }
       var convert = UnresolvedConversion.build(thatType.getDefinitionScope());
 
       var ctx = EnsoContext.get(this);
