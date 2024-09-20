@@ -3784,11 +3784,13 @@ Table.from (that:Column) = that.to_table
    - that: The text to convert.
    - format: The format of the text.
    - on_problems: What to do if there are problems reading the text.
-Table.from (that : Text) (format = Delimited_Format.Delimited '\t') (on_problems:Problem_Behavior=..Report_Warning) =
-    resolved_format = File_Format.resolve format
-    case resolved_format of
-        _ : Delimited_Format -> Delimited_Reader.read_text that resolved_format on_problems
-        _ -> Unimplemented.throw "Table.from is currently only implemented for Delimited_Format."
+Table.from (that : Text) (format = Delimited_Format.Delimited '\t') (on_problems:Problem_Behavior=..Report_Warning) = case format of
+    _ : Text -> Table.from that (Delimited_Format.Delimited format) on_problems
+    _ ->
+        resolved_format = File_Format.resolve format
+        case resolved_format of
+            _ : Delimited_Format -> Delimited_Reader.read_text that resolved_format on_problems
+            _ -> Unimplemented.throw "Table.from is currently only implemented for Delimited_Format."
 
 ## PRIVATE
    Converts a Table into a Text value.

@@ -1,17 +1,16 @@
 /** @file Test copying, moving, cutting and pasting. */
 import * as test from '@playwright/test'
 
-import * as actions from './actions'
+import { mockAllAndLogin, TEXT } from './actions'
 
 test.test('delete and restore', ({ page }) =>
-  actions
-    .mockAllAndLogin({ page })
+  mockAllAndLogin({ page })
     .createFolder()
     .driveTable.withRows(async (rows) => {
       await test.expect(rows).toHaveCount(1)
     })
     .driveTable.rightClickRow(0)
-    .contextMenu.moveToTrash()
+    .contextMenu.moveFolderToTrash()
     .driveTable.expectPlaceholderRow()
     .goToCategory.trash()
     .driveTable.withRows(async (rows) => {
@@ -27,14 +26,16 @@ test.test('delete and restore', ({ page }) =>
 )
 
 test.test('delete and restore (keyboard)', ({ page }) =>
-  actions
-    .mockAllAndLogin({ page })
+  mockAllAndLogin({ page })
     .createFolder()
     .driveTable.withRows(async (rows) => {
       await test.expect(rows).toHaveCount(1)
     })
     .driveTable.clickRow(0)
     .press('Delete')
+    .do(async (thePage) => {
+      await thePage.getByRole('button', { name: TEXT.delete }).getByText(TEXT.delete).click()
+    })
     .driveTable.expectPlaceholderRow()
     .goToCategory.trash()
     .driveTable.withRows(async (rows) => {

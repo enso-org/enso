@@ -192,6 +192,11 @@ type Enso_File
         self.enso_path.is_descendant_of other.enso_path
 
     ## PRIVATE
+       Convert to a display representation of this S3_File.
+    to_display_text : Text
+    to_display_text self = "Enso_File {" + self.path + "}"
+
+    ## PRIVATE
        ADVANCED
        Creates a new output stream for this file and runs the specified action
        on it.

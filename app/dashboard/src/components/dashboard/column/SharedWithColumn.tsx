@@ -48,6 +48,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
   const isUnderPaywall = isFeatureUnderPaywall('share')
+  const assetPermissions = asset.permissions ?? []
   const { setModal } = modalProvider.useSetModal()
   const self = permissions.tryFindSelfPermission(user, asset.permissions)
   const plusButtonRef = React.useRef<HTMLButtonElement>(null)
@@ -70,7 +71,12 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
 
   return (
     <div className="group flex items-center gap-column-items">
-      {(asset.permissions ?? []).map((other, idx) => (
+      {(category.type === 'trash' ?
+        assetPermissions.filter(
+          (permission) => permission.permission === permissions.PermissionAction.own,
+        )
+      : assetPermissions
+      ).map((other, idx) => (
         <PermissionDisplay
           key={backendModule.getAssetPermissionId(other) + idx}
           action={other.permission}

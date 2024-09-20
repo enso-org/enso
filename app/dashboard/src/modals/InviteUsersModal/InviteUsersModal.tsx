@@ -79,23 +79,17 @@ function InviteUsersModalContent(props: InviteUsersModalContentProps) {
 
   return (
     <Stepper state={stepperState} renderStep={() => null}>
-      {({ currentStep }) => (
-        <>
-          {currentStep === 0 && (
-            <inviteUsersForm.InviteUsersForm
-              onSubmitted={onInviteUsersFormInviteUsersFormSubmitted}
-            />
-          )}
+      <Stepper.StepContent index={0}>
+        <inviteUsersForm.InviteUsersForm onSubmitted={onInviteUsersFormInviteUsersFormSubmitted} />
+      </Stepper.StepContent>
 
-          {currentStep === 1 && (
-            <inviteUsersSuccess.InviteUsersSuccess
-              {...props}
-              invitationLink={invitationLink}
-              emails={submittedEmails}
-            />
-          )}
-        </>
-      )}
+      <Stepper.StepContent index={1}>
+        <inviteUsersSuccess.InviteUsersSuccess
+          {...props}
+          invitationLink={invitationLink}
+          emails={submittedEmails}
+        />
+      </Stepper.StepContent>
     </Stepper>
   )
 }

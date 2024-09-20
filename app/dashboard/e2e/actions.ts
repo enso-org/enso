@@ -347,12 +347,6 @@ export function locateCollapsibleDirectories(page: test.Page) {
   return locateAssetRows(page).filter({ has: page.locator('[aria-label=Collapse]') })
 }
 
-/** Find a "confirm delete" modal (if any) on the current page. */
-export function locateConfirmDeleteModal(page: test.Page) {
-  // This has no identifying features.
-  return page.getByTestId('confirm-delete-modal')
-}
-
 /** Find a "new label" modal (if any) on the current page. */
 export function locateNewLabelModal(page: test.Page) {
   // This has no identifying features.
@@ -363,12 +357,6 @@ export function locateNewLabelModal(page: test.Page) {
 export function locateUpsertSecretModal(page: test.Page) {
   // This has no identifying features.
   return page.getByTestId('upsert-secret-modal')
-}
-
-/** Find a "new user group" modal (if any) on the current page. */
-export function locateNewUserGroupModal(page: test.Page) {
-  // This has no identifying features.
-  return page.getByTestId('new-user-group-modal')
 }
 
 /** Find a user menu (if any) on the current page. */
