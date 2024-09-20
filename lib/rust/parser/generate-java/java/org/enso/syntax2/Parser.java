@@ -75,10 +75,10 @@ public final class Parser implements AutoCloseable {
     return false;
   }
 
-  private long state;
+  private long stateUnlessClosed;
 
   private Parser(long stateIn) {
-    state = stateIn;
+    stateUnlessClosed = stateIn;
   }
 
   private static native long allocState();
@@ -115,7 +115,16 @@ public final class Parser implements AutoCloseable {
     return isIdentOrOperator(inputBuf);
   }
 
+  private long getState() {
+    if (stateUnlessClosed != 0) {
+      return stateUnlessClosed;
+    } else {
+      throw new IllegalStateException("Parser used after close()");
+    }
+  }
+
   public ByteBuffer parseInputLazy(CharSequence input) {
+    var state = getState();
     byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
     ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
     inputBuf.put(inputBytes);
@@ -123,6 +132,7 @@ public final class Parser implements AutoCloseable {
   }
 
   public Tree parse(CharSequence input) {
+    var state = getState();
     byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
     ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
     inputBuf.put(inputBytes);
@@ -140,7 +150,7 @@ public final class Parser implements AutoCloseable {
 
   @Override
   public void close() {
-    freeState(state);
-    state = 0;
+    freeState(stateUnlessClosed);
+    stateUnlessClosed = 0;
   }
 }
