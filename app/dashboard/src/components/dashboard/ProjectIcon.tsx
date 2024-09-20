@@ -57,13 +57,14 @@ const LOCAL_SPINNER_STATE: Readonly<Record<backendModule.ProjectState, spinner.S
 /** Props for a {@link ProjectIcon}. */
 export interface ProjectIconProps {
   readonly backend: Backend
+  readonly isDisabled: boolean
   readonly isOpened: boolean
   readonly item: backendModule.ProjectAsset
 }
 
 /** An interactive icon indicating the status of a project. */
 export default function ProjectIcon(props: ProjectIconProps) {
-  const { backend, item, isOpened } = props
+  const { backend, item, isOpened, isDisabled } = props
 
   const openProject = projectHooks.useOpenProject()
   const closeProject = projectHooks.useCloseProject()
@@ -137,7 +138,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
           aria-label={getText('openInEditor')}
           tooltipPlacement="left"
           extraClickZone="xsmall"
-          isDisabled={projectState?.type === backendModule.ProjectState.closing}
+          isDisabled={isDisabled || projectState?.type === backendModule.ProjectState.closing}
           onPress={doOpenProject}
         />
       )
@@ -152,7 +153,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
             size="large"
             variant="icon"
             extraClickZone="xsmall"
-            isDisabled={isOtherUserUsingProject}
+            isDisabled={isDisabled || isOtherUserUsingProject}
             icon={StopIcon}
             aria-label={getText('stopExecution')}
             tooltipPlacement="left"
@@ -177,11 +178,10 @@ export default function ProjectIcon(props: ProjectIconProps) {
               size="large"
               variant="icon"
               extraClickZone="xsmall"
-              isDisabled={isOtherUserUsingProject}
+              isDisabled={isDisabled || isOtherUserUsingProject}
               icon={StopIcon}
               aria-label={getText('stopExecution')}
               tooltipPlacement="left"
-              tooltip={isOtherUserUsingProject ? getText('otherUserIsUsingProjectError') : null}
               className={tailwindMerge.twMerge(isRunningInBackground && 'text-green')}
               onPress={doCloseProject}
             />
@@ -201,6 +201,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
               extraClickZone="xsmall"
               icon={ArrowUpIcon}
               aria-label={getText('openInEditor')}
+              isDisabled={isDisabled}
               tooltipPlacement="right"
               onPress={doOpenProjectTab}
             />

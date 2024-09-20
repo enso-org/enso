@@ -1,8 +1,6 @@
 /** @file The icon and name of a {@link backendModule.ProjectAsset}. */
 import { useMutation } from '@tanstack/react-query'
 
-import NetworkIcon from '#/assets/network.svg'
-
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
@@ -15,7 +13,6 @@ import * as textProvider from '#/providers/TextProvider'
 import type * as column from '#/components/dashboard/column'
 import ProjectIcon from '#/components/dashboard/ProjectIcon'
 import EditableSpan from '#/components/EditableSpan'
-import SvgMask from '#/components/SvgMask'
 
 import * as backendModule from '#/services/Backend'
 
@@ -142,16 +139,14 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         }
       }}
     >
-      {!canExecute ?
-        <SvgMask src={NetworkIcon} className="m-name-column-icon size-4" />
-      : <ProjectIcon
-          isOpened={isOpened}
-          backend={backend}
-          // This is a workaround for a temporary bad state in the backend causing the
-          // `projectState` key to be absent.
-          item={object.merge(asset, { projectState })}
-        />
-      }
+      <ProjectIcon
+        isDisabled={!canExecute}
+        isOpened={isOpened}
+        backend={backend}
+        // This is a workaround for a temporary bad state in the backend causing the
+        // `projectState` key to be absent.
+        item={object.merge(asset, { projectState })}
+      />
       <EditableSpan
         data-testid="asset-row-name"
         editable={rowState.isEditingName}
