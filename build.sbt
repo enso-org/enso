@@ -628,7 +628,7 @@ lazy val componentModulesPaths =
       "com.google.protobuf"    % "protobuf-java"                % "3.25.1",
       "commons-cli"            % "commons-cli"                  % commonsCliVersion,
       "commons-io"             % "commons-io"                   % commonsIoVersion,
-      "net.java.dev.jna"       % "jna"                          % "5.13.0",
+      "net.java.dev.jna"       % "jna"                          % jnaVersion,
       "org.yaml"               % "snakeyaml"                    % snakeyamlVersion,
       "org.eclipse.jgit"       % "org.eclipse.jgit"             % jgitVersion,
       "com.typesafe"           % "config"                       % typesafeConfigVersion,
@@ -1171,7 +1171,7 @@ lazy val `scala-libs-wrapper` = project
       "org.scala-lang"                         % "scala-compiler"        % scalacVersion,
       "org.jline"                              % "jline"                 % jlineVersion,
       "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion,
-      "net.java.dev.jna"                       % "jna"                   % "5.13.0"
+      "net.java.dev.jna"                       % "jna"                   % jnaVersion
     ),
     Compile / moduleDependencies := Seq(
       "org.scala-lang"   % "scala-library"  % scalacVersion,
@@ -1179,7 +1179,7 @@ lazy val `scala-libs-wrapper` = project
       "org.scala-lang"   % "scala-compiler" % scalacVersion,
       "org.jline"        % "jline"          % jlineVersion,
       "org.slf4j"        % "slf4j-api"      % slf4jVersion,
-      "net.java.dev.jna" % "jna"            % "5.13.0"
+      "net.java.dev.jna" % "jna"            % jnaVersion
     ),
     assembly / assemblyExcludedJars := {
       JPMSUtils.filterModulesFromClasspath(
@@ -1191,7 +1191,7 @@ lazy val `scala-libs-wrapper` = project
           "org.scala-lang"            % "scala-compiler"  % scalacVersion,
           "io.github.java-diff-utils" % "java-diff-utils" % "4.12",
           "org.jline"                 % "jline"           % jlineVersion,
-          "net.java.dev.jna"          % "jna"             % "5.13.0"
+          "net.java.dev.jna"          % "jna"             % jnaVersion
         ),
         streams.value.log,
         moduleName.value,
@@ -1288,7 +1288,7 @@ lazy val `directory-watcher-wrapper` = project
     libraryDependencies ++= Seq(
       "io.methvin"       % "directory-watcher" % directoryWatcherVersion,
       "org.slf4j"        % "slf4j-api"         % "1.7.36",
-      "net.java.dev.jna" % "jna"               % "5.13.0"
+      "net.java.dev.jna" % "jna"               % jnaVersion
     ),
     javaModuleName := "org.enso.directory.watcher.wrapper",
     assembly / assemblyExcludedJars := {
@@ -1298,7 +1298,7 @@ lazy val `directory-watcher-wrapper` = project
         Seq(
           "org.scala-lang"   % "scala-library" % scalacVersion,
           "org.slf4j"        % "slf4j-api"     % "1.7.36",
-          "net.java.dev.jna" % "jna"           % "5.13.0"
+          "net.java.dev.jna" % "jna"           % jnaVersion
         ),
         streams.value.log,
         moduleName.value,
@@ -1307,7 +1307,7 @@ lazy val `directory-watcher-wrapper` = project
     },
     Compile / moduleDependencies := Seq(
       "org.scala-lang"   % "scala-library" % scalacVersion,
-      "net.java.dev.jna" % "jna"           % "5.13.0",
+      "net.java.dev.jna" % "jna"           % jnaVersion,
       "org.slf4j"        % "slf4j-api"     % "1.7.36"
     ),
     Compile / patchModules := {
@@ -1395,7 +1395,7 @@ lazy val `akka-wrapper` = project
       "io.github.java-diff-utils" % "java-diff-utils"          % "4.12",
       "org.reactivestreams"       % "reactive-streams"         % "1.0.3",
       "org.jline"                 % "jline"                    % jlineVersion,
-      "net.java.dev.jna"          % "jna"                      % "5.13.0",
+      "net.java.dev.jna"          % "jna"                      % jnaVersion,
       "io.spray"                 %% "spray-json"               % "1.3.6"
     ),
     javaModuleName := "org.enso.akka.wrapper",
@@ -1420,7 +1420,7 @@ lazy val `akka-wrapper` = project
           "org.jline"                 % "jline"                            % jlineVersion,
           "com.google.protobuf"       % "protobuf-java"                    % "3.25.1",
           "org.reactivestreams"       % "reactive-streams"                 % "1.0.3",
-          "net.java.dev.jna"          % "jna"                              % "5.13.0"
+          "net.java.dev.jna"          % "jna"                              % jnaVersion
         ),
         streams.value.log,
         moduleName.value,
@@ -2302,7 +2302,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
         "io.sentry"              % "sentry"                       % "6.28.0",
         "ch.qos.logback"         % "logback-classic"              % logbackClassicVersion,
         "ch.qos.logback"         % "logback-core"                 % logbackClassicVersion,
-        "net.java.dev.jna"       % "jna"                          % "5.13.0",
+        "net.java.dev.jna"       % "jna"                          % jnaVersion,
         "org.bouncycastle"       % "bcutil-jdk18on"               % "1.76",
         "org.bouncycastle"       % "bcpkix-jdk18on"               % "1.76",
         "org.bouncycastle"       % "bcprov-jdk18on"               % "1.76"
