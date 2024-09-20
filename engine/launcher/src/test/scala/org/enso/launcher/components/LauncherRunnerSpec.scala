@@ -68,16 +68,12 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
         connectLoggerIfAvailable = true
       )
       val jvmOptions = Seq(("locally-added-options", "value1"))
-
-      val enginePath =
-        getTestDirectory / "test_data" / "dist" / "0.0.0"
-      val runnerPath =
-        (enginePath / "component" / "runner.jar").toAbsolutePath.normalize
+      val runnerEntryPoint = "org.enso.runner/org.enso.runner.Main"
 
       def checkCommandLine(command: Command): Unit = {
         val arguments     = command.command.tail
         val javaArguments = arguments.takeWhile(_ != "-jar")
-        val appArguments  = arguments.dropWhile(_ != runnerPath.toString).tail
+        val appArguments  = arguments.dropWhile(_ != runnerEntryPoint).tail
         javaArguments should contain("-Xfrom-env")
         javaArguments should contain("-Denv=env")
         javaArguments should contain("-Dlocally-added-options=value1")
@@ -88,7 +84,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
         val appCommandLine = appArguments.mkString(" ")
 
         appCommandLine shouldEqual s"--logger-connect $fakeUri arg1 --flag2"
-        command.command.mkString(" ") should include(s"-jar $runnerPath")
+        command.command.mkString(" ") should include(runnerEntryPoint)
       }
 
       runner.withCommand(
