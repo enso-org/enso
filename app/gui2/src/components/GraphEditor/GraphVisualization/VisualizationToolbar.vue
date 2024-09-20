@@ -153,10 +153,6 @@ useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointeru
   display: none;
 }
 
-.visualization-defined-toolbars {
-  max-width: calc(100% - var(--permanent-toolbar-width));
-}
-
 .toolbar > :deep(*) {
   position: relative;
 }
