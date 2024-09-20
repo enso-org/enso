@@ -10,18 +10,18 @@ from Standard.Test import all
 import project
 
 add_specs suite_builder =
-    expect_text text axis_expected_text data_expected_text is_multi =
+    expect_text text axis_expected_text data_expected_text row_method is_multi =
         json = Json.parse text
-        json.field_names.should_equal ['data', 'axis', 'is_multi_series']
+        json.field_names.should_equal ['data', 'axis', 'is_multi_series', 'get_row_method']
 
-        expect_text = '{"axis": ' + axis_expected_text + ', "data": ' + data_expected_text + ', "is_multi_series": ' + is_multi + '}'
+        expect_text = '{"axis": ' + axis_expected_text + ', "data": ' + data_expected_text + ', "is_multi_series": ' + is_multi + ', "get_row_method": ' + row_method + '}'
         expected_result = Json.parse expect_text
 
         json.should_equal expected_result
 
-    expect value axis_expected_text data_expected_text (is_multi='false') =
+    expect value axis_expected_text data_expected_text row_method (is_multi='false') =
         text = Scatter_Plot.process_to_json_text value
-        expect_text text axis_expected_text data_expected_text is_multi
+        expect_text text axis_expected_text data_expected_text row_method is_multi
 
     index = Scatter_Plot.index_name
     axis label = JS_Object.from_pairs [['label',label]]
@@ -35,32 +35,32 @@ add_specs suite_builder =
             row_1  = [11 , 10 ]
             row_2  = [21 , 20 ]
             table  = Table.from_rows header [row_1, row_2]
-            expect table (labels 'α' 'ω') '[{"x":11,"y":10},{"x":21,"y":20}]'
+            expect table (labels 'α' 'ω') '[{"x":11,"y":10, "row_number": 0},{"x":21,"y":20, "row_number": 1}]' '"get_row"'
 
         group_builder.specify "recognizes all relevant columns" <|
             header = ['x' , 'y' , 'size' , 'shape'  , 'label' , 'color' ]
             row_1 =  [11  , 10  , 50     , 'square' , 'label' , 'ff0000']
             table = Table.from_rows header [row_1]
-            expect table (labels 'x' 'y') '[{"color":"ff0000","label":"label","shape":"square","size":50,"x":11,"y":10}]'
+            expect table (labels 'x' 'y') '[{"color":"ff0000","label":"label","shape":"square","size":50,"x":11,"y":10, "row_number": 0}]' '"get_row"'
 
         group_builder.specify "is case-insensitive" <|
             header = ['X' , 'Y' , 'Size' , 'Shape'  , 'Label' , 'Color' ]
             row_1 =  [11  , 10  , 50     , 'square' , 'label' , 'ff0000']
             table = Table.from_rows header [row_1]
-            expect table (labels 'X' 'Y') '[{"color":"ff0000","label":"label","shape":"square","size":50,"x":11,"y":10}]'
+            expect table (labels 'X' 'Y') '[{"color":"ff0000","label":"label","shape":"square","size":50,"x":11,"y":10, "row_number": 0}]' '"get_row"'
 
         group_builder.specify "uses first unrecognized numeric column as `y` fallback" <|
             header = ['x' , 'size' , 'name'   , 'z' , 'ω']
             row_1 =  [11  , 50     , 'circul' ,  20 ,  30]
             table = Table.from_rows header [row_1]
-            expect table (labels_multi 'x' 'z' 'ω') '[{"size":50,"x":11,"y":20,"(y_multi 0)":30}]' 'true'
+            expect table (labels_multi 'x' 'z' 'ω') '[{"size":50,"x":11,"y":20,"(y_multi 0)":30, "row_number": 0}]' '"get_row"' 'true'
 
         group_builder.specify "provided only recognized columns" <|
             header = ['x', 'y' , 'bar' , 'size']
             row_1 =  [11 , 10  , 'aa'  , 40    ]
             row_2 =  [21 , 20  , 'bb'  , 50    ]
             table = Table.from_rows header [row_1, row_2]
-            expect table (labels 'x' 'y') '[{"size":40,"x":11,"y":10},{"size":50,"x":21,"y":20}]'
+            expect table (labels 'x' 'y') '[{"size":40,"x":11,"y":10, "row_number": 0},{"size":50,"x":21,"y":20, "row_number": 1}]' '"get_row"'
 
         group_builder.specify "provided only recognized columns within bounds" <|
             header = ['x', 'y' , 'bar' , 'size']
@@ -71,24 +71,24 @@ add_specs suite_builder =
             table = Table.from_rows header [row_1, row_2, row_3, row_4]
             bounds = [0,5,25,25]
             text = Scatter_Plot.process_to_json_text table bounds
-            expect_text text (labels 'x' 'y') '[{"size":40,"x":11,"y":10},{"size":50,"x":21,"y":20}]'
+            expect_text text (labels 'x' 'y') '[{"size":40,"x":11,"y":10, "row_number": 0},{"size":50,"x":21,"y":20, "row_number": 1}]' '"get_row"'
 
         group_builder.specify "used default index for `x` if none set" <|
             header = [ 'y'  , 'bar' , 'size']
             row_1 =  [ 10   , 'aa'  , 40    ]
             row_2 =  [ 20   , 'bb'  , 50    ]
             table = Table.from_rows header [row_1, row_2]
-            expect table (labels index 'y') '[{"size":40,"x":0,"y":10},{"size":50,"x":1,"y":20}]'
+            expect table (labels index 'y') '[{"size":40,"x":0,"y":10, "row_number": 0},{"size":50,"x":1,"y":20, "row_number": 1}]' '"get_row"'
 
         group_builder.specify "using indices for x if given a vector" <|
             vector = [0,10,20]
-            expect vector no_labels '[{"x":0,"y":0},{"x":1,"y":10},{"x":2,"y":20}]'
+            expect vector no_labels '[{"x":0,"y":0, "row_number": 0},{"x":1,"y":10, "row_number": 1},{"x":2,"y":20, "row_number": 2}]' '"at"'
 
         group_builder.specify "limit the number of elements" <|
             vector = [0,10,20,30]
             text = Scatter_Plot.process_to_json_text vector limit=2
             json = Json.parse text
-            json.field_names.should_equal ['data','axis', 'is_multi_series']
+            json.field_names.should_equal ['data','axis', 'is_multi_series', 'get_row_method']
             data = json.get 'data'
             data.should_be_a Vector
             data.length . should_equal 2
@@ -97,24 +97,23 @@ add_specs suite_builder =
             vector = (-15).up_to 15 . map (x -> x * x)
             text = Scatter_Plot.process_to_json_text vector limit=10
             json = Json.parse text
-            json.field_names.should_equal ['data','axis', 'is_multi_series']
+            json.field_names.should_equal ['data','axis', 'is_multi_series', 'get_row_method']
             data = json.get 'data'
             data.should_be_a Vector
             data.length . should_equal 10
-            (data.take (..First 3) . sort on=(_.get "x")).to_text . should_equal '[{"x":0,"y":225}, {"x":15,"y":0}, {"x":29,"y":196}]'
+            (data.take (..First 3) . sort on=(_.get "x")).to_text . should_equal '[{"x":0,"y":225,"row_number":0}, {"x":15,"y":0,"row_number":15}, {"x":29,"y":196,"row_number":29}]'
 
         group_builder.specify "filter the elements" <|
             vector = [0,10,20,30]
             bounds = [0,5,10,25]
             text = Scatter_Plot.process_to_json_text vector bounds
-            expect_text text no_labels '[{"x":1,"y":10},{"x":2,"y":20}]'
+            expect_text text no_labels '[{"x":1,"y":10, "row_number": 0},{"x":2,"y":20, "row_number": 1}]' '"at"'
 
         group_builder.specify "using indices for x if given a range" <|
             value = 2.up_to 5
-            expect value no_labels '[{"x":0,"y":2},{"x":1,"y":3},{"x":2,"y":4}]'
+            expect value no_labels '[{"x":0,"y":2, "row_number": 0},{"x":1,"y":3, "row_number": 1},{"x":2,"y":4, "row_number": 2}]' '"at"'
 
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter filter
-
