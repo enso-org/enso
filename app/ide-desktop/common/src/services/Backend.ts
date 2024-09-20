@@ -643,7 +643,7 @@ export interface LChColor {
   readonly lightness: number
   readonly chroma: number
   readonly hue: number
-  readonly alpha?: number
+  readonly alpha?: number | undefined
 }
 
 /** A pre-selected list of colors to be used in color pickers. */
