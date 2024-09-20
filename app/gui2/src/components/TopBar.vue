@@ -3,8 +3,6 @@ import ExtendedMenu from '@/components/ExtendedMenu.vue'
 import NavBreadcrumbs from '@/components/NavBreadcrumbs.vue'
 import RecordControl from '@/components/RecordControl.vue'
 import SelectionMenu from '@/components/SelectionMenu.vue'
-import { injectGuiConfig } from '@/providers/guiConfig'
-import { computed } from 'vue'
 
 const showColorPicker = defineModel<boolean>('showColorPicker', { required: true })
 const showCodeEditor = defineModel<boolean>('showCodeEditor', { required: true })
@@ -20,21 +18,10 @@ const emit = defineEmits<{
   collapseNodes: []
   removeNodes: []
 }>()
-
-const LEFT_PADDING_PX = 11
-
-const config = injectGuiConfig()
-
-const barStyle = computed(() => {
-  const offset = Number(config.value.window?.topBarOffset ?? '0')
-  return {
-    marginLeft: `${offset + LEFT_PADDING_PX}px`,
-  }
-})
 </script>
 
 <template>
-  <div class="TopBar" :style="barStyle">
+  <div class="TopBar">
     <NavBreadcrumbs />
     <RecordControl />
     <Transition name="selection-menu">
@@ -65,6 +52,7 @@ const barStyle = computed(() => {
   top: 8px;
   left: 0;
   right: 0;
+  margin-left: 11px;
   pointer-events: none;
   > * {
     pointer-events: auto;

@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import { useApproach } from '@/composables/animation'
-import type { Vec2 } from '@/util/data/vec2'
+import { Vec2 } from '@/util/data/vec2'
 import { computed, shallowRef, watch } from 'vue'
 
 const props = defineProps<{
-  position: Vec2
+  position: Vec2 | undefined
   anchor: Vec2 | undefined
   transform: string | undefined
 }>()
 
 const hidden = computed(() => props.anchor == null)
 const lastSetAnchor = shallowRef<Vec2>()
-const lastAnchoredPosition = shallowRef<Vec2>(props.position)
+const lastAnchoredPosition = shallowRef<Vec2>(Vec2.Zero)
 watch(
   () => props.anchor,
   (anchor) => {
