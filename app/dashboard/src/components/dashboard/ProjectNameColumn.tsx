@@ -129,7 +129,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           driveStore.getState().selectedKeys.size === 1
         ) {
           setIsEditing(true)
-        } else if (eventModule.isDoubleClick(event)) {
+        } else if (eventModule.isDoubleClick(event) && canExecute) {
           doOpenProject({
             id: asset.id,
             type: backendType,
