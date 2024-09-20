@@ -88,7 +88,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const state = (() => {
     // Project is closed, show open button
     if (!isOpened) {
-      return backendModule.ProjectState.closed
+      return item.projectState.type
     } else if (status == null) {
       // Project is opened, but not yet queried.
       return backendModule.ProjectState.openInProgress
