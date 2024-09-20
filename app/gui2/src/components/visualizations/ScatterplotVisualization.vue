@@ -57,7 +57,6 @@ interface Data {
   data: Point[]
   get_row_method: string
   is_multi_series?: boolean
-  has_x_in_data: boolean
 }
 
 interface Focus {
@@ -168,8 +167,7 @@ const data = computed<Data>(() => {
   // eslint-disable-next-line camelcase
   const get_row_method: string = rawData.get_row_method || 'get_row'
   // eslint-disable-next-line camelcase
-  const has_x_in_data: boolean = !!rawData.has_x_in_data
-  return { axis, points, data, focus, is_multi_series, get_row_method, has_x_in_data }
+  return { axis, points, data, focus, is_multi_series, get_row_method }
 })
 
 const containerNode = ref<HTMLElement>()
@@ -251,7 +249,7 @@ const yLabelLeft = computed(
 )
 const yLabelTop = computed(() => -margin.value.left + 15)
 const showYLabelText = computed(() => !data.value.is_multi_series)
-const isUsingIndexForX = computed(() => !data.value.has_x_in_data)
+const isUsingIndexForX = computed(() => data.value.axis.x.label === 'index')
 
 watchEffect(() => {
   const boundsExpression =
