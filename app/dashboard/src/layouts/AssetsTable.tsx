@@ -49,7 +49,6 @@ import { ErrorDisplay } from '#/components/ErrorBoundary'
 import SelectionBrush from '#/components/SelectionBrush'
 import Spinner, { SpinnerState } from '#/components/Spinner'
 import FocusArea from '#/components/styled/FocusArea'
-import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 import { ASSETS_MIME_TYPE } from '#/data/mimeTypes'
 import AssetEventType from '#/events/AssetEventType'
@@ -2462,27 +2461,29 @@ export default function AssetsTable(props: AssetsTableProps) {
     setSelectedKeys(new Set([item.key]))
   })
 
-  const onRowClick = useEventCallback((innerRowProps: AssetRowInnerProps, event: ReactMouseEvent) => {
-    const { key } = innerRowProps
-    event.stopPropagation()
-    const newIndex = visibleItems.findIndex((innerItem) => innerItem.key === key)
-    const getRange = () => {
-      if (mostRecentlySelectedIndexRef.current == null) {
-        return [key]
-      } else {
-        const index1 = mostRecentlySelectedIndexRef.current
-        const index2 = newIndex
-        const startIndex = Math.min(index1, index2)
-        const endIndex = Math.max(index1, index2) + 1
-        return visibleItems.slice(startIndex, endIndex).map((innerItem) => innerItem.key)
+  const onRowClick = useEventCallback(
+    (innerRowProps: AssetRowInnerProps, event: ReactMouseEvent) => {
+      const { key } = innerRowProps
+      event.stopPropagation()
+      const newIndex = visibleItems.findIndex((innerItem) => innerItem.key === key)
+      const getRange = () => {
+        if (mostRecentlySelectedIndexRef.current == null) {
+          return [key]
+        } else {
+          const index1 = mostRecentlySelectedIndexRef.current
+          const index2 = newIndex
+          const startIndex = Math.min(index1, index2)
+          const endIndex = Math.max(index1, index2) + 1
+          return visibleItems.slice(startIndex, endIndex).map((innerItem) => innerItem.key)
+        }
       }
-    }
-    setSelectedKeys(calculateNewKeys(event, [key], getRange))
-    setMostRecentlySelectedIndex(newIndex)
-    if (!event.shiftKey) {
-      selectionStartIndexRef.current = null
-    }
-  })
+      setSelectedKeys(calculateNewKeys(event, [key], getRange))
+      setMostRecentlySelectedIndex(newIndex)
+      if (!event.shiftKey) {
+        selectionStartIndexRef.current = null
+      }
+    },
+  )
 
   const selectRow = useEventCallback((item: AnyAssetTreeNode) => {
     setMostRecentlySelectedIndex(visibleItems.indexOf(item))
@@ -2783,7 +2784,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       <div
         data-testid="root-directory-dropzone"
         className={twMerge(
-          'sticky left-0 grid max-w-container grow place-items-center',
+          'sticky left-0 my-20 grid max-w-container grow place-items-center',
           (category.type === 'recent' || category.type === 'trash') && 'hidden',
         )}
         onDragEnter={onDropzoneDragOver}
@@ -2825,16 +2826,16 @@ export default function AssetsTable(props: AssetsTableProps) {
             })
           }}
         >
-          <FocusRing>
-            <Button
-              ref={mainDropzoneRef}
-              className="my-20 flex flex-col items-center gap-3 text-primary/30 transition-colors duration-200 hover:text-primary/50"
-              onPress={() => {}}
-            >
-              <SvgMask src={DropFilesImage} className="size-[186px]" />
-              {dropzoneText}
-            </Button>
-          </FocusRing>
+          <Button
+            size="custom"
+            variant="custom"
+            ref={mainDropzoneRef}
+            icon={DropFilesImage}
+            className="rounded-2xl"
+            contentClassName="h-[186px] flex flex-col items-center gap-3 text-primary/30 transition-colors duration-200 hover:text-primary/50"
+          >
+            {dropzoneText}
+          </Button>
         </FileTrigger>
       </div>
     </div>

@@ -9,7 +9,7 @@ import StatelessSpinner, * as spinnerModule from '#/components/StatelessSpinner'
 import SvgMask from '#/components/SvgMask'
 
 import { forwardRef } from '#/utilities/react'
-import type { VariantProps } from '#/utilities/tailwindVariants'
+import type { ExtractFunction, VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
 import { TEXT_STYLE } from '../Text'
 
@@ -68,7 +68,7 @@ export interface BaseButtonProps<Render>
   /** Defaults to `full`. When `full`, the entire button will be replaced with the loader.
    * When `icon`, only the icon will be replaced with the loader. */
   readonly loaderPosition?: 'full' | 'icon'
-  readonly styles?: typeof BUTTON_STYLES
+  readonly styles?: ExtractFunction<typeof BUTTON_STYLES> | undefined
 }
 
 export const BUTTON_STYLES = tv({
@@ -104,7 +104,7 @@ export const BUTTON_STYLES = tv({
     loading: { true: { base: 'cursor-wait' } },
     fullWidth: { true: 'w-full' },
     size: {
-      custom: { base: '', extraClickZone: '', icon: 'h-full' },
+      custom: { base: '', extraClickZone: '', icon: 'h-full w-unset min-w-[1.906cap]' },
       hero: { base: 'px-8 py-4 text-lg font-bold', content: 'gap-[0.75em]' },
       large: {
         base: TEXT_STYLE({
@@ -460,22 +460,19 @@ export const Button = forwardRef(function Button(
         ),
       })}
     >
-      {/* @ts-expect-error any here is safe because we transparently pass it to the children, and ts infer the type outside correctly */}
-      {(render) => (
-        <>
-          <span className={wrapper()}>
-            <span ref={contentRef} className={content({ className: contentClassName })}>
-              {/* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */}
-              {childrenFactory(render)}
-            </span>
-
-            {isLoading && loaderPosition === 'full' && (
-              <span ref={loaderRef} className={loader()}>
-                <StatelessSpinner state={spinnerModule.SpinnerState.loadingMedium} size={16} />
-              </span>
-            )}
+      {(render: aria.ButtonRenderProps | aria.LinkRenderProps) => (
+        <span className={wrapper()}>
+          <span ref={contentRef} className={content({ className: contentClassName })}>
+            {/* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */}
+            {childrenFactory(render)}
           </span>
-        </>
+
+          {isLoading && loaderPosition === 'full' && (
+            <span ref={loaderRef} className={loader()}>
+              <StatelessSpinner state={spinnerModule.SpinnerState.loadingMedium} size={16} />
+            </span>
+          )}
+        </span>
       )}
     </Tag>
   )

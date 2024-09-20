@@ -114,7 +114,7 @@ export default function UserBar(props: UserBarProps) {
                 icon={user.profilePicture ?? DefaultUserIcon}
                 aria-label={getText('userMenuAltText')}
                 className="rounded-full after:rounded-full"
-                contentClassName="h-row-h w-row-h rounded-full"
+                contentClassName="h-8 w-8 rounded-full"
               />
               <UserMenu goToSettingsPage={goToSettingsPage} onSignOut={onSignOut} />
             </DialogTrigger>
