@@ -483,6 +483,12 @@ type Value_Type
         JS_Object.from_pairs <|
             [["type", "Value_Type"], ["constructor", constructor_name], ["display_text", display_text_value]] + additional_fields
 
+    ## PRIVATE
+       Provides the constructor name 
+    to_name : Text
+    to_name self = 
+        Meta.meta self . constructor . name
+
     ## GROUP Standard.Base.Metadata
        ICON metadata
        Check if the same type of value ignoring size, precision and scale.
