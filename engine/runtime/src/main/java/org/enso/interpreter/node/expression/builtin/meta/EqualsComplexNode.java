@@ -92,7 +92,12 @@ public abstract class EqualsComplexNode extends Node {
       @Shared("equalsNode") @Cached EqualsNode equalsNode,
       @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary typesLib) {
     return equalsNode.execute(
-        frame, selfType.getQualifiedName().toString(), otherType.getQualifiedName().toString());
+        frame, getQualifiedTypeName(selfType), getQualifiedTypeName(otherType));
+  }
+
+  @TruffleBoundary
+  private static String getQualifiedTypeName(Type type) {
+    return type.getQualifiedName().toString();
   }
 
   /**
