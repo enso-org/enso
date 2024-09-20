@@ -520,6 +520,9 @@ val scalaCompiler = Seq(
   "org.scala-lang" % "scala-reflect"  % scalacVersion,
   "org.scala-lang" % "scala-compiler" % scalacVersion
 )
+val scalaLibrary = Seq(
+  "org.scala-lang"         % "scala-library"                % scalacVersion,
+)
 val scalaCollectionCompatVersion = "2.8.1"
 
 // === std-lib ================================================================
@@ -618,8 +621,8 @@ lazy val componentModulesPaths =
     GraalVM.langsPkgs ++
     GraalVM.toolsPkgs ++
     helidon ++
+    scalaLibrary ++
     Seq(
-      "org.scala-lang"         % "scala-library"                % scalacVersion,
       "org.scala-lang"         % "scala-reflect"                % scalacVersion,
       "org.scala-lang"         % "scala-compiler"               % scalacVersion,
       "org.netbeans.api"       % "org-openide-util-lookup"      % netbeansApiVersion,
@@ -750,9 +753,7 @@ lazy val `text-buffer` = project
     ),
     // See JPMSPlugin docs (Mixed projects)
     excludeFilter := excludeFilter.value || "module-info.java",
-    Compile / moduleDependencies := Seq(
-      "org.scala-lang" % "scala-library" % scalacVersion
-    )
+    Compile / moduleDependencies := scalaLibrary
   )
 
 lazy val rustParserTargetDirectory =
@@ -893,10 +894,8 @@ lazy val `scala-yaml` = (project in file("lib/scala/yaml"))
       "org.yaml"     % "snakeyaml" % snakeyamlVersion % "provided",
       "com.chuusai" %% "shapeless" % "2.3.10"
     ),
-    Compile / moduleDependencies ++= Seq(
-      "org.scala-lang" % "scala-library" % scalacVersion,
-      "org.yaml"       % "snakeyaml"     % snakeyamlVersion
-    ),
+    Compile / moduleDependencies ++= scalaLibrary ++
+      Seq("org.yaml" % "snakeyaml" % snakeyamlVersion),
     Compile / internalModuleDependencies := Seq(
       (`scala-libs-wrapper` / Compile / exportedModule).value
     )
@@ -916,13 +915,11 @@ lazy val pkg = (project in file("lib/scala/pkg"))
       "org.scalatest"     %% "scalatest"        % scalatestVersion % Test,
       "org.apache.commons" % "commons-compress" % commonsCompressVersion
     ),
-    Compile / moduleDependencies := {
+    Compile / moduleDependencies := scalaLibrary ++
       Seq(
         "org.apache.commons" % "commons-compress" % commonsCompressVersion,
-        "org.scala-lang"     % "scala-library"    % scalacVersion,
         "org.yaml"           % "snakeyaml"        % snakeyamlVersion
-      )
-    },
+      ),
     Compile / internalModuleDependencies := Seq(
       (`editions` / Compile / exportedModule).value,
       (`semver` / Compile / exportedModule).value,
@@ -993,12 +990,10 @@ lazy val `logging-utils` = project
       "org.scalatest" %% "scalatest" % scalatestVersion % Test,
       "org.slf4j"      % "slf4j-api" % slf4jVersion
     ) ++ logbackTest,
-    Compile / moduleDependencies := {
+    Compile / moduleDependencies := scalaLibrary ++
       Seq(
-        "org.scala-lang" % "scala-library" % scalacVersion,
         "org.slf4j"      % "slf4j-api"     % slf4jVersion
       )
-    }
   )
 
 lazy val `logging-service` = project
@@ -1013,8 +1008,7 @@ lazy val `logging-service` = project
       "com.typesafe"   % "config"    % typesafeConfigVersion,
       "org.scalatest" %% "scalatest" % scalatestVersion % Test
     ),
-    Compile / moduleDependencies := Seq(
-      "org.scala-lang" % "scala-library" % scalacVersion,
+    Compile / moduleDependencies := scalaLibrary ++ Seq(
       "org.slf4j"      % "slf4j-api"     % slf4jVersion
     ),
     Compile / internalModuleDependencies := Seq(
@@ -1071,9 +1065,7 @@ lazy val `logging-service-logback` = project
       (`logging-service` / Compile / exportedModule).value,
       (`logging-config` / Compile / exportedModule).value
     ),
-    Test / moduleDependencies := Seq(
-      "org.scala-lang" % "scala-library" % scalacVersion
-    ),
+    Test / moduleDependencies := scalaLibrary,
     Test / internalModuleDependencies := Seq(
       (Compile / exportedModule).value
     )
@@ -1095,8 +1087,8 @@ lazy val `logging-utils-akka` = project
     ),
     Compile / moduleDependencies := {
       val scalaVer = scalaBinaryVersion.value
+      scalaLibrary ++
       Seq(
-        "org.scala-lang" % "scala-library" % scalacVersion,
         "org.slf4j"      % "slf4j-api"     % slf4jVersion
       )
     },
@@ -1120,8 +1112,7 @@ lazy val filewatcher = project
       "org.slf4j"      % "slf4j-api"         % slf4jVersion,
       "org.scalatest" %% "scalatest"         % scalatestVersion % Test
     ),
-    Compile / moduleDependencies := Seq(
-      "org.scala-lang" % "scala-library" % scalacVersion,
+    Compile / moduleDependencies := scalaLibrary ++ Seq(
       "org.slf4j"      % "slf4j-api"     % slf4jVersion
     ),
     Compile / internalModuleDependencies := Seq(
@@ -1173,8 +1164,7 @@ lazy val `scala-libs-wrapper` = project
       "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion,
       "net.java.dev.jna"                       % "jna"                   % jnaVersion
     ),
-    Compile / moduleDependencies := Seq(
-      "org.scala-lang"   % "scala-library"  % scalacVersion,
+    Compile / moduleDependencies := scalaLibrary ++ Seq(
       "org.scala-lang"   % "scala-reflect"  % scalacVersion,
       "org.scala-lang"   % "scala-compiler" % scalacVersion,
       "org.jline"        % "jline"          % jlineVersion,
@@ -1184,9 +1174,9 @@ lazy val `scala-libs-wrapper` = project
     assembly / assemblyExcludedJars := {
       JPMSUtils.filterModulesFromClasspath(
         (Compile / fullClasspath).value,
+        scalaLibrary ++
         Seq(
           "org.slf4j"                 % "slf4j-api"       % slf4jVersion,
-          "org.scala-lang"            % "scala-library"   % scalacVersion,
           "org.scala-lang"            % "scala-reflect"   % scalacVersion,
           "org.scala-lang"            % "scala-compiler"  % scalacVersion,
           "io.github.java-diff-utils" % "java-diff-utils" % "4.12",
@@ -1242,9 +1232,7 @@ lazy val `language-server-deps-wrapper` = project
       "com.typesafe"           % "config"     % typesafeConfigVersion
     ),
     javaModuleName := "org.enso.language.server.deps.wrapper",
-    Compile / moduleDependencies := Seq(
-      "org.scala-lang" % "scala-library" % scalacVersion
-    ),
+    Compile / moduleDependencies := scalaLibrary,
     Compile / internalModuleDependencies := Seq(
       (`scala-libs-wrapper` / Compile / exportedModule).value
     ),
@@ -1252,8 +1240,8 @@ lazy val `language-server-deps-wrapper` = project
       val scalaVer = scalaBinaryVersion.value
       JPMSUtils.filterModulesFromClasspath(
         (Compile / fullClasspath).value,
+        scalaLibrary ++
         Seq(
-          "org.scala-lang" % "scala-library"           % scalacVersion,
           "com.chuusai"    % ("shapeless_" + scalaVer) % "2.3.10",
           "com.typesafe"   % "config"                  % typesafeConfigVersion
         ),
@@ -1295,8 +1283,8 @@ lazy val `directory-watcher-wrapper` = project
       val scalaVer = scalaBinaryVersion.value
       JPMSUtils.filterModulesFromClasspath(
         (Compile / dependencyClasspath).value,
+        scalaLibrary ++
         Seq(
-          "org.scala-lang"   % "scala-library" % scalacVersion,
           "org.slf4j"        % "slf4j-api"     % "1.7.36",
           "net.java.dev.jna" % "jna"           % jnaVersion
         ),
@@ -1305,8 +1293,7 @@ lazy val `directory-watcher-wrapper` = project
         shouldContainAll = true
       )
     },
-    Compile / moduleDependencies := Seq(
-      "org.scala-lang"   % "scala-library" % scalacVersion,
+    Compile / moduleDependencies := scalaLibrary ++ Seq(
       "net.java.dev.jna" % "jna"           % jnaVersion,
       "org.slf4j"        % "slf4j-api"     % "1.7.36"
     ),
@@ -1314,8 +1301,8 @@ lazy val `directory-watcher-wrapper` = project
       val scalaVer = scalaBinaryVersion.value
       val scalaLibs = JPMSUtils.filterModulesFromUpdate(
         update.value,
+        scalaLibrary ++
         Seq(
-          "org.scala-lang" % "scala-library"     % scalacVersion,
           "io.methvin"     % "directory-watcher" % directoryWatcherVersion
         ),
         streams.value.log,
@@ -1337,15 +1324,13 @@ lazy val `fansi-wrapper` = project
       "com.lihaoyi" %% "fansi" % fansiVersion
     ),
     javaModuleName := "org.enso.fansi.wrapper",
-    Compile / moduleDependencies := Seq(
-      "org.scala-lang" % "scala-library" % scalacVersion
-    ),
+    Compile / moduleDependencies := scalaLibrary,
     Compile / patchModules := {
       val scalaVer = scalaBinaryVersion.value
       val scalaLibs = JPMSUtils.filterModulesFromUpdate(
         update.value,
+        scalaLibrary ++
         Seq(
-          "org.scala-lang" % "scala-library"       % scalacVersion,
           "com.lihaoyi"    % ("fansi_" + scalaVer) % fansiVersion
         ),
         streams.value.log,
@@ -1360,9 +1345,7 @@ lazy val `fansi-wrapper` = project
       val scalaVer = scalaBinaryVersion.value
       JPMSUtils.filterModulesFromClasspath(
         (Compile / dependencyClasspath).value,
-        Seq(
-          "org.scala-lang" % "scala-library" % scalacVersion
-        ),
+        scalaLibrary,
         streams.value.log,
         moduleName.value,
         shouldContainAll = true
@@ -1377,8 +1360,7 @@ lazy val `akka-wrapper` = project
   .enablePlugins(JPMSPlugin)
   .settings(
     modularFatJarWrapperSettings,
-    libraryDependencies ++= akka ++ Seq(
-      "org.scala-lang"            % "scala-library"            % scalacVersion,
+    libraryDependencies ++= akka ++ scalaLibrary ++ Seq(
       "org.scala-lang"            % "scala-reflect"            % scalacVersion,
       "org.scala-lang"            % "scala-compiler"           % scalacVersion,
       "org.scala-lang.modules"   %% "scala-parser-combinators" % "1.1.2",
@@ -1399,8 +1381,7 @@ lazy val `akka-wrapper` = project
       "io.spray"                 %% "spray-json"               % "1.3.6"
     ),
     javaModuleName := "org.enso.akka.wrapper",
-    Compile / moduleDependencies := Seq(
-      "org.scala-lang"      % "scala-library"    % scalacVersion,
+    Compile / moduleDependencies := scalaLibrary ++ Seq(
       "com.google.protobuf" % "protobuf-java"    % "3.25.1",
       "org.reactivestreams" % "reactive-streams" % "1.0.3",
       "org.slf4j"           % "slf4j-api"        % slf4jVersion
@@ -1409,8 +1390,7 @@ lazy val `akka-wrapper` = project
       val scalaVer = scalaBinaryVersion.value
       val excludedJars = JPMSUtils.filterModulesFromUpdate(
         update.value,
-        Seq(
-          "org.scala-lang"            % "scala-library"                    % scalacVersion,
+        scalaLibrary ++ Seq(
           "org.scala-lang"            % "scala-reflect"                    % scalacVersion,
           "org.scala-lang"            % "scala-compiler"                   % scalacVersion,
           "org.scala-lang.modules"    % ("scala-java8-compat_" + scalaVer) % "1.0.0",
@@ -1433,8 +1413,8 @@ lazy val `akka-wrapper` = project
       val scalaVer = scalaBinaryVersion.value
       val scalaLibs = JPMSUtils.filterModulesFromUpdate(
         update.value,
+        scalaLibrary ++
         Seq(
-          "org.scala-lang"         % "scala-library"                          % scalacVersion,
           "org.scala-lang"         % "scala-reflect"                          % scalacVersion,
           "org.scala-lang"         % "scala-compiler"                         % scalacVersion,
           "org.scala-lang.modules" % ("scala-parser-combinators_" + scalaVer) % "1.1.2",
@@ -1471,15 +1451,13 @@ lazy val `zio-wrapper` = project
       "dev.zio" %% "izumi-reflect"                             % "2.3.8",
       "dev.zio" %% "izumi-reflect-thirdparty-boopickle-shaded" % "2.3.8"
     ),
-    Compile / moduleDependencies := Seq(
-      "org.scala-lang" % "scala-library" % scalacVersion
-    ),
+    Compile / moduleDependencies := scalaLibrary,
     assembly / assemblyExcludedJars := {
       val scalaVer = scalaBinaryVersion.value
       val excludedJars = JPMSUtils.filterModulesFromUpdate(
         update.value,
+        scalaLibrary ++
         Seq(
-          "org.scala-lang" % "scala-library"                  % scalacVersion,
           "org.scala-lang" % "scala-reflect"                  % scalacVersion,
           "org.scala-lang" % "scala-compiler"                 % scalacVersion,
           "dev.zio"        % ("zio-interop-cats_" + scalaVer) % zioInteropCatsVersion
@@ -1495,8 +1473,8 @@ lazy val `zio-wrapper` = project
       val scalaVer = scalaBinaryVersion.value
       val scalaLibs = JPMSUtils.filterModulesFromUpdate(
         update.value,
+        scalaLibrary ++
         Seq(
-          "org.scala-lang" % "scala-library"                                           % scalacVersion,
           "dev.zio"        % ("zio_" + scalaVer)                                       % zioVersion,
           "dev.zio"        % ("zio-internal-macros_" + scalaVer)                       % zioVersion,
           "dev.zio"        % ("zio-stacktracer_" + scalaVer)                           % zioVersion,
@@ -1526,9 +1504,7 @@ lazy val cli = project
       "org.yaml"                    % "snakeyaml"     % snakeyamlVersion % "provided",
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
     ),
-    Compile / moduleDependencies := Seq(
-      "org.scala-lang" % "scala-library" % scalacVersion
-    ),
+    Compile / moduleDependencies := scalaLibrary,
     Compile / internalModuleDependencies := Seq(
       (`scala-libs-wrapper` / Compile / exportedModule).value,
       (`scala-yaml` / Compile / exportedModule).value
@@ -1547,9 +1523,7 @@ lazy val `task-progress-notifications` = project
     libraryDependencies ++= Seq(
       "org.scalatest" %% "scalatest" % scalatestVersion % Test
     ),
-    Compile / moduleDependencies := Seq(
-      "org.scala-lang" % "scala-library" % scalacVersion
-    ),
+    Compile / moduleDependencies := scalaLibrary,
     Compile / internalModuleDependencies := Seq(
       (`cli` / Compile / exportedModule).value,
       (`json-rpc-server` / Compile / exportedModule).value
@@ -1596,9 +1570,7 @@ lazy val `refactoring-utils` = project
     ),
     // See JPMSPlugin docs (Mixed projects)
     excludeFilter := excludeFilter.value || "module-info.java",
-    Compile / moduleDependencies := Seq(
-      "org.scala-lang" % "scala-library" % scalacVersion
-    ),
+    Compile / moduleDependencies := scalaLibrary,
     Compile / internalModuleDependencies := Seq(
       (`text-buffer` / Compile / exportedModule).value,
       (`runtime-parser` / Compile / exportedModule).value
@@ -1770,8 +1742,8 @@ lazy val `json-rpc-server` = project
     ),
     Compile / moduleDependencies := {
       val scalaVer = scalaBinaryVersion.value
+      scalaLibrary ++
       Seq(
-        "org.scala-lang" % "scala-library" % scalacVersion,
         "org.slf4j"      % "slf4j-api"     % slf4jVersion
       )
     },
@@ -1836,9 +1808,7 @@ lazy val searcher = project
     libraryDependencies ++= jmh ++ Seq(
       "org.scalatest" %% "scalatest" % scalatestVersion % Test
     ) ++ logbackTest,
-    Compile / moduleDependencies := Seq(
-      "org.scala-lang" % "scala-library" % scalacVersion
-    ),
+    Compile / moduleDependencies := scalaLibrary,
     Compile / internalModuleDependencies := Seq(
       (`polyglot-api` / Compile / exportedModule).value
     )
@@ -2120,8 +2090,7 @@ lazy val `polyglot-api` = project
     javaModuleName := "org.enso.polyglot.api",
     // See JPMSPlugin docs (Mixed projects)
     excludeFilter := excludeFilter.value || "module-info.java",
-    Compile / moduleDependencies := Seq(
-      "org.scala-lang"         % "scala-library"    % scalacVersion,
+    Compile / moduleDependencies := scalaLibrary ++ Seq(
       "com.google.flatbuffers" % "flatbuffers-java" % flatbuffersVersion,
       "org.graalvm.sdk"        % "word"             % graalMavenPackagesVersion,
       "org.graalvm.polyglot"   % "polyglot"         % graalMavenPackagesVersion,
@@ -2157,9 +2126,7 @@ lazy val `polyglot-api-macros` = project
       "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"   % jsoniterVersion % "provided",
       "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion % "provided"
     ),
-    Compile / moduleDependencies := Seq(
-      "org.scala-lang" % "scala-library" % scalacVersion
-    ),
+    Compile / moduleDependencies := scalaLibrary,
     Compile / internalModuleDependencies := Seq(
       (`scala-libs-wrapper` / Compile / exportedModule).value
     )
@@ -2199,8 +2166,8 @@ lazy val `language-server` = (project in file("engine/language-server"))
     javaModuleName := "org.enso.language.server",
     Compile / moduleDependencies := {
       val scalaVer = scalaBinaryVersion.value
+      scalaLibrary ++
       Seq(
-        "org.scala-lang"         % "scala-library"    % scalacVersion,
         "org.graalvm.polyglot"   % "polyglot"         % graalMavenPackagesVersion,
         "org.slf4j"              % "slf4j-api"        % slf4jVersion,
         "commons-cli"            % "commons-cli"      % commonsCliVersion,
@@ -2281,8 +2248,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       "com.ibm.icu"            % "icu4j"                        % icuVersion             % Test
     ),
     Test / moduleDependencies := {
-      GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ helidon ++ Seq(
-        "org.scala-lang"         % "scala-library"                % scalacVersion,
+      GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ helidon ++ scalaLibrary ++ Seq(
         "org.scala-lang"         % "scala-reflect"                % scalacVersion,
         "org.scala-lang"         % "scala-compiler"               % scalacVersion,
         "org.slf4j"              % "slf4j-api"                    % slf4jVersion,
@@ -2683,8 +2649,7 @@ lazy val runtime = (project in file("engine/runtime"))
     javaModuleName := "org.enso.runtime",
     // See JPMSPlugin docs (Mixed projects)
     excludeFilter := excludeFilter.value || "module-info.java",
-    Compile / moduleDependencies := Seq(
-      "org.scala-lang"       % "scala-library"           % scalacVersion,
+    Compile / moduleDependencies := scalaLibrary ++ Seq(
       "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion,
       "org.apache.tika"      % "tika-core"               % tikaVersion,
       "org.slf4j"            % "slf4j-api"               % slf4jVersion,
@@ -2795,8 +2760,7 @@ lazy val `runtime-integration-tests` =
       ),
       Test / javaOptions ++= testLogProviderOptions,
       Test / moduleDependencies := {
-        GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ helidon ++ Seq(
-          "org.scala-lang"         % "scala-library"                % scalacVersion,
+        GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ helidon ++ scalaLibrary ++ Seq(
           "org.scala-lang"         % "scala-reflect"                % scalacVersion,
           "org.scala-lang"         % "scala-compiler"               % scalacVersion,
           "org.apache.commons"     % "commons-lang3"                % commonsLangVersion,
@@ -2964,8 +2928,7 @@ lazy val `runtime-benchmarks` =
       ),
       parallelExecution := false,
       Compile / moduleDependencies := {
-        GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ helidon ++ Seq(
-          "org.scala-lang"         % "scala-library"                % scalacVersion,
+        GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ helidon ++ scalaLibrary ++ Seq(
           "org.scala-lang"         % "scala-reflect"                % scalacVersion,
           "org.scala-lang"         % "scala-compiler"               % scalacVersion,
           "org.apache.commons"     % "commons-lang3"                % commonsLangVersion,
@@ -3129,8 +3092,7 @@ lazy val `runtime-parser` =
       ),
       javaModuleName := "org.enso.runtime.parser",
       Compile / moduleDependencies := {
-        Seq(
-          "org.scala-lang"   % "scala-library"           % scalacVersion,
+        scalaLibrary ++ Seq(
           "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion
         )
       },
@@ -3165,8 +3127,7 @@ lazy val `runtime-compiler` =
         "com.typesafe"         % "config"                  % typesafeConfigVersion     % Test,
         "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % Test
       ),
-      Compile / moduleDependencies := Seq(
-        "org.scala-lang"   % "scala-library"           % scalacVersion,
+      Compile / moduleDependencies := scalaLibrary ++ Seq(
         "org.slf4j"        % "slf4j-api"               % slf4jVersion,
         "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion
       ),
@@ -3181,11 +3142,10 @@ lazy val `runtime-compiler` =
         (`editions` / Compile / exportedModule).value
       ),
       Test / moduleDependencies := {
-        (Compile / moduleDependencies).value ++ Seq(
+        (Compile / moduleDependencies).value ++ scalaLibrary ++ Seq(
           "org.apache.commons"   % "commons-compress" % commonsCompressVersion,
           "org.yaml"             % "snakeyaml"        % snakeyamlVersion,
           "org.jline"            % "jline"            % jlineVersion,
-          "org.scala-lang"       % "scala-library"    % scalacVersion,
           "org.scala-lang"       % "scala-reflect"    % scalacVersion,
           "org.scala-lang"       % "scala-compiler"   % scalacVersion,
           "com.typesafe"         % "config"           % typesafeConfigVersion,
@@ -3248,9 +3208,7 @@ lazy val `runtime-suggestions` =
       ),
       // See JPMSPlugin docs (Mixed projects)
       excludeFilter := excludeFilter.value || "module-info.java",
-      Compile / moduleDependencies := Seq(
-        "org.scala-lang" % "scala-library" % scalacVersion
-      ),
+      Compile / moduleDependencies := scalaLibrary,
       Compile / internalModuleDependencies := Seq(
         (`pkg` / Compile / exportedModule).value,
         (`polyglot-api` / Compile / exportedModule).value,
@@ -3290,13 +3248,12 @@ lazy val `runtime-instrument-common` =
       javaModuleName := "org.enso.runtime.instrument.common",
       // See JPMSPlugin docs (Mixed projects)
       excludeFilter := excludeFilter.value || "module-info.java",
-      Compile / moduleDependencies := Seq(
+      Compile / moduleDependencies := scalaLibrary ++ Seq(
         "org.graalvm.truffle"  % "truffle-api"   % graalMavenPackagesVersion,
         "org.graalvm.polyglot" % "polyglot"      % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "collections"   % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "nativeimage"   % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "word"          % graalMavenPackagesVersion,
-        "org.scala-lang"       % "scala-library" % scalacVersion,
         "org.slf4j"            % "slf4j-api"     % slf4jVersion
       ),
       Compile / internalModuleDependencies := Seq(
@@ -3355,8 +3312,7 @@ lazy val `runtime-instrument-repl-debugger` =
       inConfig(Compile)(truffleRunOptionsSettings),
       Compile / forceModuleInfoCompilation := true,
       instrumentationSettings,
-      Compile / moduleDependencies := Seq(
-        "org.scala-lang"       % "scala-library" % scalacVersion,
+      Compile / moduleDependencies := scalaLibrary ++ Seq(
         "org.graalvm.truffle"  % "truffle-api"   % graalMavenPackagesVersion,
         "org.graalvm.polyglot" % "polyglot"      % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "collections"   % graalMavenPackagesVersion,
@@ -3382,8 +3338,7 @@ lazy val `runtime-instrument-runtime-server` =
       inConfig(Compile)(truffleRunOptionsSettings),
       Compile / forceModuleInfoCompilation := true,
       instrumentationSettings,
-      Compile / moduleDependencies := Seq(
-        "org.scala-lang"       % "scala-library"           % scalacVersion,
+      Compile / moduleDependencies := scalaLibrary ++ Seq(
         "org.graalvm.truffle"  % "truffle-api"             % graalMavenPackagesVersion,
         "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "collections"             % graalMavenPackagesVersion,
@@ -3445,11 +3400,10 @@ lazy val `engine-runner-common` = project
       "commons-io"           % "commons-io"  % commonsIoVersion,
       "commons-cli"          % "commons-cli" % commonsCliVersion
     ),
-    Compile / moduleDependencies := Seq(
+    Compile / moduleDependencies := scalaLibrary ++ Seq(
       "commons-cli"    % "commons-cli"   % commonsCliVersion,
       "org.slf4j"      % "slf4j-api"     % slf4jVersion,
       "commons-io"     % "commons-io"    % commonsIoVersion,
-      "org.scala-lang" % "scala-library" % scalacVersion
     ),
     Compile / internalModuleDependencies := Seq(
       (`pkg` / Compile / exportedModule).value,
@@ -3492,8 +3446,7 @@ lazy val `engine-runner` = project
       "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionCompatVersion
     ),
     Compile / moduleDependencies := {
-      Seq(
-        "org.scala-lang"       % "scala-library" % scalacVersion,
+      scalaLibrary ++ Seq(
         "org.graalvm.polyglot" % "polyglot"      % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "nativeimage"   % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "word"          % graalMavenPackagesVersion,
@@ -3782,8 +3735,7 @@ lazy val `distribution-manager` = project
       "commons-io"                  % "commons-io"    % commonsIoVersion,
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
     ),
-    Compile / moduleDependencies := Seq(
-      "org.scala-lang" % "scala-library" % scalacVersion,
+    Compile / moduleDependencies := scalaLibrary ++ Seq(
       "org.slf4j"      % "slf4j-api"     % slf4jVersion,
       "org.yaml"       % "snakeyaml"     % snakeyamlVersion
     ),
@@ -4050,8 +4002,7 @@ lazy val editions = project
       "org.yaml"       % "snakeyaml"  % snakeyamlVersion % "provided",
       "org.scalatest" %% "scalatest"  % scalatestVersion % Test
     ),
-    Compile / moduleDependencies := Seq(
-      "org.scala-lang" % "scala-library" % scalacVersion,
+    Compile / moduleDependencies := scalaLibrary ++ Seq(
       "org.yaml"       % "snakeyaml"     % snakeyamlVersion
     ),
     Compile / internalModuleDependencies := Seq(
@@ -4098,8 +4049,7 @@ lazy val semver = project
       "com.github.sbt" % "junit-interface" % junitIfVersion   % Test
     ),
     Compile / moduleDependencies := {
-      Seq(
-        "org.scala-lang" % "scala-library" % scalacVersion,
+      scalaLibrary ++ Seq(
         "org.yaml"       % "snakeyaml"     % snakeyamlVersion
       )
     },
@@ -4145,8 +4095,7 @@ lazy val downloader = (project in file("lib/scala/downloader"))
       "org.hamcrest"                % "hamcrest-all"     % hamcrestVersion  % Test
     ),
     javaModuleName := "org.enso.downloader",
-    Compile / moduleDependencies := Seq(
-      "org.scala-lang"     % "scala-library"    % scalacVersion,
+    Compile / moduleDependencies := scalaLibrary ++ Seq(
       "commons-io"         % "commons-io"       % commonsIoVersion,
       "org.apache.commons" % "commons-compress" % commonsCompressVersion,
       "org.slf4j"          % "slf4j-api"        % slf4jVersion
@@ -4174,9 +4123,7 @@ lazy val `edition-updater` = project
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
     ),
-    Compile / moduleDependencies := Seq(
-      "org.scala-lang" % "scala-library" % scalacVersion
-    ),
+    Compile / moduleDependencies := scalaLibrary,
     Compile / internalModuleDependencies := Seq(
       (`distribution-manager` / Compile / exportedModule).value,
       (`editions` / Compile / exportedModule).value
@@ -4210,8 +4157,7 @@ lazy val `library-manager` = project
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
     ),
     javaModuleName := "org.enso.librarymanager",
-    Compile / moduleDependencies := Seq(
-      "org.scala-lang" % "scala-library" % scalacVersion,
+    Compile / moduleDependencies := scalaLibrary ++ Seq(
       "org.yaml"       % "snakeyaml"     % snakeyamlVersion,
       "org.slf4j"      % "slf4j-api"     % slf4jVersion
     ),
@@ -4249,9 +4195,7 @@ lazy val `library-manager-test` = project
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
     ),
-    Compile / moduleDependencies := Seq(
-      "org.scala-lang" % "scala-library" % scalacVersion
-    ),
+    Compile / moduleDependencies := scalaLibrary,
     Compile / internalModuleDependencies := Seq(
       (`library-manager` / Compile / exportedModule).value,
       (`cli` / Compile / exportedModule).value,
@@ -4283,9 +4227,7 @@ lazy val `connected-lock-manager` = project
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
     ),
-    Compile / moduleDependencies := Seq(
-      "org.scala-lang" % "scala-library" % scalacVersion
-    ),
+    Compile / moduleDependencies := scalaLibrary,
     Compile / internalModuleDependencies := Seq(
       (`distribution-manager` / Compile / exportedModule).value,
       (`polyglot-api` / Compile / exportedModule).value,
@@ -4312,9 +4254,7 @@ lazy val `connected-lock-manager-server` = project
       akkaTestkit      % Test,
       "org.scalatest" %% "scalatest" % scalatestVersion % Test
     ),
-    Compile / moduleDependencies := Seq(
-      "org.scala-lang" % "scala-library" % scalacVersion
-    ),
+    Compile / moduleDependencies := scalaLibrary,
     Compile / internalModuleDependencies := Seq(
       (`scala-libs-wrapper` / Compile / exportedModule).value,
       (`akka-wrapper` / Compile / exportedModule).value,
@@ -4356,9 +4296,7 @@ lazy val `process-utils` = project
   .settings(
     frgaalJavaCompilerSetting,
     compileOrder := CompileOrder.ScalaThenJava,
-    Compile / moduleDependencies := Seq(
-      "org.scala-lang" % "scala-library" % scalacVersion
-    )
+    Compile / moduleDependencies := scalaLibrary,
   )
 
 lazy val `runtime-version-manager-test` = project
