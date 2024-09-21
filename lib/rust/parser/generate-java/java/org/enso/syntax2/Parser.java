@@ -15,7 +15,7 @@ public final class Parser {
     // done.
     // Note that this inexpensive check may produce false negatives: Nothing prevents multiple
     // threads from proceeding to library initialization concurrently (before any thread has
-    // completed initialization), but that is harmless; `initializeLibraries` is thread-safe and
+    // completed initialization), but that is harmless; library initialization is thread-safe and
     // idempotent.
     if (initialized.get()) return;
     try {
