@@ -5,7 +5,6 @@ import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public final class Parser implements AutoCloseable {
   private static void initializeLibraries() {
@@ -77,7 +76,6 @@ public final class Parser implements AutoCloseable {
   }
 
   private long stateUnlessClosed;
-  private AtomicInteger mutators = new AtomicInteger(0);
 
   private Parser(long stateIn) {
     stateUnlessClosed = stateIn;
@@ -126,20 +124,14 @@ public final class Parser implements AutoCloseable {
   }
 
   public ByteBuffer parseInputLazy(CharSequence input) {
-    if (mutators.get() != 0) throw new IllegalStateException("Race condition detected");
-    mutators.getAndIncrement();
     var state = getState();
     byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
     ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
     inputBuf.put(inputBytes);
-    var result = parseTreeLazy(state, inputBuf);
-    mutators.getAndDecrement();
-    return result;
+    return parseTreeLazy(state, inputBuf);
   }
 
   public Tree parse(CharSequence input) {
-    if (mutators.get() != 0) throw new IllegalStateException("Race condition detected");
-    mutators.getAndIncrement();
     var state = getState();
     byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
     ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
@@ -149,9 +141,7 @@ public final class Parser implements AutoCloseable {
     var metadata = getMetadata(state);
     serializedTree.order(ByteOrder.LITTLE_ENDIAN);
     var message = new Message(serializedTree, input, base, metadata);
-    var result = Tree.deserialize(message);
-    mutators.getAndDecrement();
-    return result;
+    return Tree.deserialize(message);
   }
 
   public static String getWarningMessage(Warning warning) {
