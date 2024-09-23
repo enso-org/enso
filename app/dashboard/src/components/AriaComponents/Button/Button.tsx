@@ -52,6 +52,8 @@ export interface BaseButtonProps<Render>
     | string
     | ((render: Render) => React.ReactElement | string | null)
     | null
+  /** When `true`, icon will be shown directly instead of being used as a mask. */
+  readonly disableMask?: boolean
   /**
    * When `true`, icon will be shown only when hovered.
    */
@@ -296,6 +298,7 @@ export const Button = forwardRef(function Button(
     icon,
     loading = false,
     isActive,
+    disableMask = false,
     showIconOnHover,
     iconPosition,
     size,
@@ -380,15 +383,7 @@ export const Button = forwardRef(function Button(
     }
   }
 
-  const {
-    base,
-    content,
-    wrapper,
-    loader,
-    extraClickZone,
-    icon: iconClasses,
-    text: textClasses,
-  } = variants({
+  const styles = variants({
     isDisabled,
     isActive,
     loading: isLoading,
@@ -410,7 +405,7 @@ export const Button = forwardRef(function Button(
         return null
       } else if (isLoading && loaderPosition === 'icon') {
         return (
-          <span className={iconClasses()}>
+          <span className={styles.icon()}>
             <StatelessSpinner state={spinnerModule.SpinnerState.loadingMedium} size={16} />
           </span>
         )
@@ -419,21 +414,22 @@ export const Button = forwardRef(function Button(
         const actualIcon = typeof icon === 'function' ? icon(render) : icon
 
         if (typeof actualIcon === 'string') {
-          return <SvgMask src={actualIcon} className={iconClasses()} />
+          const Tag = disableMask ? 'img' : SvgMask
+          return <Tag src={actualIcon} className={styles.icon()} />
         } else {
-          return <span className={iconClasses()}>{actualIcon}</span>
+          return <span className={styles.icon()}>{actualIcon}</span>
         }
       }
     })()
     // Icon only button
     if (isIconOnly) {
-      return <span className={extraClickZone()}>{iconComponent}</span>
+      return <span className={styles.extraClickZone()}>{iconComponent}</span>
     } else {
       // Default button
       return (
         <>
           {iconComponent}
-          <span className={textClasses()}>
+          <span className={styles.text()}>
             {/* @ts-expect-error any here is safe because we transparently pass it to the children, and ts infer the type outside correctly */}
             {typeof children === 'function' ? children(render) : children}
           </span>
@@ -456,19 +452,19 @@ export const Button = forwardRef(function Button(
           }
         },
         className: aria.composeRenderProps(className, (classNames, states) =>
-          base({ className: classNames, ...states }),
+          styles.base({ className: classNames, ...states }),
         ),
       })}
     >
       {(render: aria.ButtonRenderProps | aria.LinkRenderProps) => (
-        <span className={wrapper()}>
-          <span ref={contentRef} className={content({ className: contentClassName })}>
+        <span className={styles.wrapper()}>
+          <span ref={contentRef} className={styles.content({ className: contentClassName })}>
             {/* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */}
             {childrenFactory(render)}
           </span>
 
           {isLoading && loaderPosition === 'full' && (
-            <span ref={loaderRef} className={loader()}>
+            <span ref={loaderRef} className={styles.loader()}>
               <StatelessSpinner state={spinnerModule.SpinnerState.loadingMedium} size={16} />
             </span>
           )}

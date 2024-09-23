@@ -351,7 +351,7 @@ export function locateUpsertSecretModal(page: test.Page) {
 
 /** Find a user menu (if any) on the current page. */
 export function locateUserMenu(page: test.Page) {
-  return page.getByAltText('User Settings').locator('visible=true')
+  return page.getByLabel(TEXT.userMenuLabel).locator('visible=true')
 }
 
 /** Find a "set username" panel (if any) on the current page. */
@@ -766,7 +766,7 @@ export async function relog(
   password = VALID_PASSWORD,
 ) {
   await test.test.step('Relog', async () => {
-    await page.getByAltText('User Settings').locator('visible=true').click()
+    await page.getByLabel(TEXT.userMenuLabel).locator('visible=true').click()
     await page.getByRole('button', { name: 'Logout' }).getByText('Logout').click()
     await login({ page, setupAPI }, email, password, false)
   })

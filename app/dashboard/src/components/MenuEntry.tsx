@@ -156,7 +156,11 @@ export default function MenuEntry(props: MenuEntryProps) {
         >
           <div className={MENU_ENTRY_VARIANTS(variantProps)}>
             <div title={title} className="flex items-center gap-menu-entry whitespace-nowrap">
-              <SvgMask src={icon ?? info.icon ?? BlankIcon} color={info.color} className="size-4" />
+              <SvgMask
+                src={icon ?? info.icon ?? BlankIcon}
+                color={info.color}
+                className="size-4 text-primary"
+              />
               <ariaComponents.Text slot="label">
                 {label ?? getText(labelTextId)}
               </ariaComponents.Text>

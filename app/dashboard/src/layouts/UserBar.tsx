@@ -109,12 +109,13 @@ export default function UserBar(props: UserBarProps) {
             <DialogTrigger>
               <Button
                 size="custom"
-                variant="custom"
+                variant="icon"
                 isActive
+                disableMask
                 icon={user.profilePicture ?? DefaultUserIcon}
-                aria-label={getText('userMenuAltText')}
-                className="rounded-full after:rounded-full"
-                contentClassName="h-8 w-8 rounded-full"
+                aria-label={getText('userMenuLabel')}
+                className="overflow-clip rounded-full opacity-100"
+                contentClassName="size-8"
               />
               <UserMenu goToSettingsPage={goToSettingsPage} onSignOut={onSignOut} />
             </DialogTrigger>

@@ -37,9 +37,8 @@ export function SubscribeButton(props: SubscribeButtonProps) {
 
   const buttonText =
     isDowngrade ? getText('downgrade')
-    : isCurrent ?
-      getText('currentPlan') ? userHasSubscription
-      : getText('upgrade')
+    : isCurrent ? getText('currentPlan')
+    : userHasSubscription ? getText('upgrade')
     : canTrial ? getText('trialDescription', TRIAL_DURATION_DAYS)
     : getText('subscribe')
 

@@ -571,7 +571,6 @@
   "chatButtonAltText": "Chat",
   "inviteButtonAltText": "Invite others to try Enso",
   "shareButtonAltText": "Share",
-  "userMenuAltText": "User Settings",
 
   "billedMonthly": "Billed monthly",
   "billedAnnually": "Billed annually",
@@ -772,7 +771,7 @@
 
   "assetSearchFieldLabel": "Search through items",
   "startModalLabel": "Start modal",
-  "userMenuLabel": "User menu",
+  "userMenuLabel": "User Settings",
   "infoMenuLabel": "Info menu",
   "categorySwitcherMenuLabel": "Category switcher",
   "labelsListLabel": "Labels",
