@@ -2640,7 +2640,6 @@ lazy val `engine-runner` = project
               "io.methvin.watchservice.jna.CarbonAPI",
               "zio.internal.ZScheduler$$anon$4",
               "org.enso.runner.Main$",
-              "org.enso.syntax2.Parser",
               "sun.awt",
               "sun.java2d",
               "sun.font",
