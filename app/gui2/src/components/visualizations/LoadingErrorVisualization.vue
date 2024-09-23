@@ -13,24 +13,14 @@ watchEffect(() => console.error(props.data.error))
 
 <template>
   <div class="LoadingErrorVisualization">
-    <div>
-      <span>Could not load visualization '<span v-text="props.data.name"></span>':</span>
-      <span v-text="props.data.error.message"></span>
-    </div>
+    <div>Could not load visualization '<span v-text="props.data.name"></span>':</div>
+    <div v-text="props.data.error.message"></div>
   </div>
 </template>
 
 <style scoped>
 .LoadingErrorVisualization {
   height: 100%;
-  display: grid;
-  place-items: center;
-}
-
-.LoadingErrorVisualization > div {
-  display: flex;
-  flex-flow: column;
-  place-items: center;
-  text-align: center;
+  padding: 0 1em;
 }
 </style>
