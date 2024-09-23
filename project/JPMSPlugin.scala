@@ -464,7 +464,7 @@ object JPMSPlugin extends AutoPlugin {
         optIdxToRemove += idx
         optIdxToRemove += idx + 1
         modulePathOpt.append(opts(idx + 1))
-        modulePathOpt.append(":")
+        modulePathOpt.append(File.pathSeparator)
       }
     }
 
