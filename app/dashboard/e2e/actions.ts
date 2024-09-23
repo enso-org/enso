@@ -45,7 +45,7 @@ export function locateConfirmPasswordInput(page: test.Locator | test.Page) {
 
 /** Find a "name" input for a "new label" modal (if any) on the current page. */
 export function locateNewLabelModalNameInput(page: test.Page) {
-  return locateNewLabelModal(page).getByLabel('Name')
+  return locateNewLabelModal(page).getByLabel('Name').and(page.getByRole('textbox'))
 }
 
 /** Find all color radio button inputs for a "new label" modal (if any) on the current page. */
@@ -287,12 +287,6 @@ export function locateSamplesList(page: test.Locator | test.Page) {
 export function locateSamples(page: test.Locator | test.Page) {
   // This has no identifying features.
   return locateSamplesList(page).getByRole('button')
-}
-
-/** Find a modal background (if any) on the current page. */
-export function locateModalBackground(page: test.Locator | test.Page) {
-  // This has no identifying features.
-  return page.getByTestId('modal-background')
 }
 
 /** Find an editor container (if any) on the current page. */
