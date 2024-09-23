@@ -141,37 +141,37 @@ export function locateAssetLabels(page: test.Locator | test.Page) {
 
 /** Find a toggle for the "Name" column (if any) on the current page. */
 export function locateNameColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText('Name')
+  return page.getByLabel('Name')
 }
 
 /** Find a toggle for the "Modified" column (if any) on the current page. */
 export function locateModifiedColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText('Modified')
+  return page.getByLabel('Modified')
 }
 
 /** Find a toggle for the "Shared with" column (if any) on the current page. */
 export function locateSharedWithColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText('Shared With')
+  return page.getByLabel('Shared With')
 }
 
 /** Find a toggle for the "Labels" column (if any) on the current page. */
 export function locateLabelsColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText('Labels')
+  return page.getByLabel('Labels')
 }
 
 /** Find a toggle for the "Accessed by projects" column (if any) on the current page. */
 export function locateAccessedByProjectsColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText('Accessed By Projects')
+  return page.getByLabel('Accessed By Projects')
 }
 
 /** Find a toggle for the "Accessed data" column (if any) on the current page. */
 export function locateAccessedDataColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText('Accessed Data')
+  return page.getByLabel('Accessed Data')
 }
 
 /** Find a toggle for the "Docs" column (if any) on the current page. */
 export function locateDocsColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText('Docs')
+  return page.getByLabel('Docs')
 }
 
 /** Find a button for the "Recent" category (if any) on the current page. */
@@ -351,7 +351,7 @@ export function locateUpsertSecretModal(page: test.Page) {
 
 /** Find a user menu (if any) on the current page. */
 export function locateUserMenu(page: test.Page) {
-  return page.getByLabel(TEXT.userMenuLabel).locator('visible=true')
+  return page.getByLabel(TEXT.userMenuLabel).and(page.getByRole('button')).locator('visible=true')
 }
 
 /** Find a "set username" panel (if any) on the current page. */
@@ -714,9 +714,9 @@ export async function press(page: test.Page, keyOrShortcut: string) {
   })
 }
 
-// =============
-// === login ===
-// =============
+// ===============================
+// === Miscellaneous utilities ===
+// ===============================
 
 /** Perform a successful login. */
 // This syntax is required for Playwright to work properly.
@@ -731,17 +731,13 @@ export async function login(
     await locateEmailInput(page).fill(email)
     await locatePasswordInput(page).fill(password)
     await locateLoginButton(page).click()
-    await test.expect(page.getByText('Logging in to Enso...')).not.toBeVisible()
+    await test.expect(page.getByText(TEXT.loadingAppMessage)).not.toBeVisible()
     if (first) {
       await passAgreementsDialog({ page, setupAPI })
-      await test.expect(page.getByText('Logging in to Enso...')).not.toBeVisible()
+      await test.expect(page.getByText(TEXT.loadingAppMessage)).not.toBeVisible()
     }
   })
 }
-
-// ==============
-// === reload ===
-// ==============
 
 /** Reload. */
 // This syntax is required for Playwright to work properly.
@@ -749,13 +745,9 @@ export async function login(
 export async function reload({ page }: MockParams) {
   await test.test.step('Reload', async () => {
     await page.reload()
-    await test.expect(page.getByText('Logging in to Enso...')).not.toBeVisible()
+    await test.expect(page.getByText(TEXT.loadingAppMessage)).not.toBeVisible()
   })
 }
-
-// =============
-// === relog ===
-// =============
 
 /** Logout and then login again. */
 // This syntax is required for Playwright to work properly.
@@ -767,14 +759,13 @@ export async function relog(
 ) {
   await test.test.step('Relog', async () => {
     await page.getByLabel(TEXT.userMenuLabel).locator('visible=true').click()
-    await page.getByRole('button', { name: 'Logout' }).getByText('Logout').click()
+    await page
+      .getByRole('button', { name: TEXT.signOutShortcut })
+      .getByText(TEXT.signOutShortcut)
+      .click()
     await login({ page, setupAPI }, email, password, false)
   })
 }
-
-// ================
-// === mockDate ===
-// ================
 
 /** A placeholder date for visual regression testing. */
 const MOCK_DATE = Number(new Date('01/23/45 01:23:45'))
@@ -824,17 +815,9 @@ export async function passAgreementsDialog({ page }: MockParams) {
   })
 }
 
-// ===============
-// === mockApi ===
-// ===============
-
 // This is a function, even though it does not use function syntax.
 // eslint-disable-next-line no-restricted-syntax
 export const mockApi = apiModule.mockApi
-
-// ===============
-// === mockAll ===
-// ===============
 
 /** Set up all mocks, without logging in. */
 // This syntax is required for Playwright to work properly.
@@ -846,10 +829,6 @@ export function mockAll({ page, setupAPI }: MockParams) {
     await page.goto('/')
   })
 }
-
-// =======================
-// === mockAllAndLogin ===
-// =======================
 
 /** Set up all mocks, and log in with dummy credentials. */
 // This syntax is required for Playwright to work properly.
@@ -863,10 +842,6 @@ export function mockAllAndLogin({ page, setupAPI }: MockParams) {
     })
     .do((thePage) => login({ page: thePage, setupAPI }))
 }
-
-// ===================================
-// === mockAllAndLoginAndExposeAPI ===
-// ===================================
 
 /** Set up all mocks, and log in with dummy credentials.
  * @deprecated Prefer {@link mockAllAndLogin}. */

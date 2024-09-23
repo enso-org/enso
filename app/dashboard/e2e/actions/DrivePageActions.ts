@@ -190,37 +190,37 @@ export default class DrivePageActions extends PageActions {
           /** Toggle visibility for the "modified" column. */
           modified() {
             return self.step('Toggle "modified" column', (page) =>
-              page.getByAltText(TEXT.modifiedColumnName).click(),
+              page.getByLabel(TEXT.modifiedColumnName).click(),
             )
           },
           /** Toggle visibility for the "shared with" column. */
           sharedWith() {
             return self.step('Toggle "shared with" column', (page) =>
-              page.getByAltText(TEXT.sharedWithColumnName).click(),
+              page.getByLabel(TEXT.sharedWithColumnName).click(),
             )
           },
           /** Toggle visibility for the "labels" column. */
           labels() {
             return self.step('Toggle "labels" column', (page) =>
-              page.getByAltText(TEXT.labelsColumnName).click(),
+              page.getByLabel(TEXT.labelsColumnName).click(),
             )
           },
           /** Toggle visibility for the "accessed by projects" column. */
           accessedByProjects() {
             return self.step('Toggle "accessed by projects" column', (page) =>
-              page.getByAltText(TEXT.accessedByProjectsColumnName).click(),
+              page.getByLabel(TEXT.accessedByProjectsColumnName).click(),
             )
           },
           /** Toggle visibility for the "accessed data" column. */
           accessedData() {
             return self.step('Toggle "accessed data" column', (page) =>
-              page.getByAltText(TEXT.accessedDataColumnName).click(),
+              page.getByLabel(TEXT.accessedDataColumnName).click(),
             )
           },
           /** Toggle visibility for the "docs" column. */
           docs() {
             return self.step('Toggle "docs" column', (page) =>
-              page.getByAltText(TEXT.docsColumnName).click(),
+              page.getByLabel(TEXT.docsColumnName).click(),
             )
           },
         }

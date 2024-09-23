@@ -115,6 +115,7 @@ export default function MenuEntry(props: MenuEntryProps) {
   } = props
   const { getText } = textProvider.useText()
   const { unsetModal } = modalProvider.useSetModal()
+  const dialogContext = ariaComponents.useDialogContext()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const focusChildProps = focusHooks.useFocusChild()
   const info = inputBindings.metadata[action]
@@ -149,7 +150,12 @@ export default function MenuEntry(props: MenuEntryProps) {
             isDisabled,
             className: 'group flex w-full rounded-menu-entry',
             onPress: () => {
-              unsetModal()
+              if (dialogContext) {
+                // Closing a dialog takes precedence over unsetting the modal.
+                dialogContext.close()
+              } else {
+                unsetModal()
+              }
               doAction()
             },
           })}

@@ -65,11 +65,7 @@ export default function UserMenu(props: UserMenuProps) {
       </div>
       <FocusArea direction="vertical">
         {(innerProps) => (
-          <div
-            aria-label={getText('userMenuLabel')}
-            className="flex flex-col overflow-hidden"
-            {...innerProps}
-          >
+          <div className="flex flex-col overflow-hidden" {...innerProps}>
             {localBackend == null && (
               <MenuEntry
                 action="downloadApp"

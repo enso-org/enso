@@ -325,7 +325,7 @@ export const Button = forwardRef(function Button(
 
   const goodDefaults = {
     ...(isLink ? { rel: 'noopener noreferrer' } : { type: 'button' as const }),
-    'data-testid': testId ?? (isLink ? 'link' : 'button'),
+    'data-testid': testId,
   }
 
   const isIconOnly = (children == null || children === '' || children === false) && icon != null
@@ -414,8 +414,8 @@ export const Button = forwardRef(function Button(
         const actualIcon = typeof icon === 'function' ? icon(render) : icon
 
         if (typeof actualIcon === 'string') {
-          const Tag = disableMask ? 'img' : SvgMask
-          return <Tag src={actualIcon} className={styles.icon()} />
+          const IconTag = disableMask ? 'img' : SvgMask
+          return <IconTag src={actualIcon} className={styles.icon()} />
         } else {
           return <span className={styles.icon()}>{actualIcon}</span>
         }
