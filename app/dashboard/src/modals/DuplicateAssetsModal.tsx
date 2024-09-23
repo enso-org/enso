@@ -46,11 +46,17 @@ export interface DuplicateAssetsModalProps {
   readonly nonConflictingProjectCount: number
   readonly doUploadNonConflicting: () => void
   readonly doUpdateConflicting: (toUpdate: ConflictingAsset[]) => void
+  /**
+   * Whether the user can update the assets.
+   * Usually it's not possible to update assets in local backends.
+   * @default true
+   */
+  readonly canUpdate?: boolean
 }
 
 /** A modal for creating a new label. */
 export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
-  const { conflictingFiles: conflictingFilesRaw } = props
+  const { conflictingFiles: conflictingFilesRaw, canUpdate = true } = props
   const { conflictingProjects: conflictingProjectsRaw, doUpdateConflicting } = props
   const { siblingFileNames: siblingFileNamesRaw } = props
   const { siblingProjectNames: siblingProjectNamesRaw } = props
@@ -194,7 +200,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                 className="relative"
               />
             </div>
-            {count > 1 && (
+            {count > 1 && canUpdate && (
               <ariaComponents.ButtonGroup>
                 <ariaComponents.Button
                   variant="outline"
@@ -214,6 +220,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                 >
                   {getText('update')}
                 </ariaComponents.Button>
+
                 <ariaComponents.Button
                   variant="outline"
                   onPress={() => {
@@ -252,17 +259,20 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
             : getText('andOtherProjects', otherProjectsCount)}
           </aria.Text>
         )}
+
         <ariaComponents.ButtonGroup className="relative">
-          <ariaComponents.Button
-            variant="submit"
-            onPress={() => {
-              doUploadNonConflicting()
-              doUpdateConflicting([...conflictingFiles, ...conflictingProjects])
-              unsetModal()
-            }}
-          >
-            {count === 1 ? getText('update') : getText('updateAll')}
-          </ariaComponents.Button>
+          {canUpdate && (
+            <ariaComponents.Button
+              variant="submit"
+              onPress={() => {
+                doUploadNonConflicting()
+                doUpdateConflicting([...conflictingFiles, ...conflictingProjects])
+                unsetModal()
+              }}
+            >
+              {count === 1 ? getText('update') : getText('updateAll')}
+            </ariaComponents.Button>
+          )}
           <ariaComponents.Button
             variant="accent"
             onPress={() => {
