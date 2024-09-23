@@ -1153,7 +1153,7 @@ add_specs suite_builder setup =
                 values = positive_values + positive_values.map .negate
                 values.map x->
                     x_int = x.truncate
-                    c = table_builder [["x", [x_int, -x_int]]] . at "x"
+                    c = table_builder [["x", [x, -x]]] . at "x"
                     c.ceil . to_vector . should_equal [x_int, -x_int]
                     c.floor . to_vector . should_equal [x_int, -x_int]
                     c.truncate . to_vector . should_equal [x_int, -x_int]
