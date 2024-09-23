@@ -151,7 +151,7 @@ const DIALOG_STYLES = tv({
  * Can be used to display alerts, confirmations, or other content. */
 export function Dialog(props: DialogProps) {
   const {
-    children: Children,
+    children,
     title,
     type = 'modal',
     closeButton = 'normal',
@@ -304,9 +304,7 @@ export function Dialog(props: DialogProps) {
                           <suspense.Suspense
                             loaderProps={{ minHeight: type === 'fullscreen' ? 'full' : 'h32' }}
                           >
-                            {typeof Children === 'function' ?
-                              <Children {...opts} />
-                            : Children}
+                            {typeof children === 'function' ? children(opts) : children}
                           </suspense.Suspense>
                         </errorBoundary.ErrorBoundary>
                       </div>

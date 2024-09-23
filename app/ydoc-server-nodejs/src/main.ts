@@ -7,7 +7,7 @@ import { createGatewayServer } from 'ydoc-server'
 
 const DEFAULT_PORT = 5976
 const PORT = (process.env.PORT != null && parseInt(process.env.PORT, 10)) || DEFAULT_PORT
-const HOSTNAME = process.env.HOSTNAME ?? 'localhost'
+const HOSTNAME = process.env.GUI_HOSTNAME ?? 'localhost'
 const LANGUAGE_SERVER_URL = process.env.LANGUAGE_SERVER_URL
 
 await runServer()
