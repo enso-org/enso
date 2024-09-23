@@ -155,7 +155,7 @@ function createFormatMenu({ textFormatterSelected }: FormatMenuOptions): Toolbar
     selected: textFormatterSelected,
     title: 'Text Display Options',
     options: {
-      [TextFormatOptions.On]: {
+      full: {
         icon: 'paragraph',
         iconStyle: {
           stroke: 'black',
@@ -165,7 +165,7 @@ function createFormatMenu({ textFormatterSelected }: FormatMenuOptions): Toolbar
           'Text displayed in monospace font and all whitespace characters displayed as symbols',
         label: 'Full whitespace rendering',
       },
-      [TextFormatOptions.Partial]: {
+      partial: {
         icon: 'paragraph',
         iconStyle: {
           stroke: 'grey',
@@ -174,7 +174,7 @@ function createFormatMenu({ textFormatterSelected }: FormatMenuOptions): Toolbar
         title: 'Text displayed in monospace font, only multiple spaces displayed with &#183;',
         label: 'Partial whitespace rendering',
       },
-      [TextFormatOptions.Off]: {
+      off: {
         icon: 'not_paragraph',
         title: 'No formatting applied to text',
         label: 'No whitespace rendering',
