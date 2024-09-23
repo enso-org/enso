@@ -37,6 +37,7 @@ export interface Arguments {
   readonly ideDist: string
   readonly projectManagerDist: string
   readonly platform: electronBuilder.Platform
+  readonly sign: boolean
 }
 
 /** File association configuration, extended with information needed by the `enso-installer`. */
@@ -99,6 +100,12 @@ export const args: Arguments = await yargs(process.argv.slice(2))
     target: {
       type: 'string',
       description: 'Overwrite the platform-default target',
+    },
+    sign: {
+      type: 'boolean',
+      description: 'Should signing/notarization be performed (defaults to true)',
+      default: true,
+      coerce: (p: string) => p === 'true',
     },
   }).argv
 
@@ -286,7 +293,11 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
 
     afterSign: async (context: electronBuilder.AfterPackContext) => {
       // Notarization for macOS.
-      if (passedArgs.platform === electronBuilder.Platform.MAC && process.env.CSC_LINK != null) {
+      if (
+        passedArgs.platform === electronBuilder.Platform.MAC &&
+        process.env.CSC_LINK != null &&
+        passedArgs.sign
+      ) {
         const {
           packager: {
             appInfo: { productFilename: appName },

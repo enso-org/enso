@@ -526,7 +526,7 @@ pub struct PackageIde;
 impl JobArchetype for PackageIde {
     fn job(&self, target: Target) -> Job {
         RunStepsBuilder::new(
-            "ide build --backend-source current-ci-run --gui-upload-artifact false",
+            "ide build --backend-source current-ci-run --gui-upload-artifact false --gui-sign-artifacts false",
         )
         .customize(with_packaging_steps(target.0))
         .build_job("Package New IDE", target)

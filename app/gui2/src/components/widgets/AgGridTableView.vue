@@ -14,20 +14,18 @@ import '@ag-grid-community/styles/ag-theme-alpine.css'
 import type {
   CellEditingStartedEvent,
   CellEditingStoppedEvent,
+  ColDef,
+  ColGroupDef,
   ColumnResizedEvent,
   FirstDataRenderedEvent,
+  GetRowIdFunc,
+  GridApi,
   GridReadyEvent,
   RowDataUpdatedEvent,
   RowEditingStartedEvent,
   RowEditingStoppedEvent,
-  SortChangedEvent,
-} from 'ag-grid-community'
-import type {
-  ColDef,
-  ColGroupDef,
-  GetRowIdFunc,
-  GridApi,
   RowHeightParams,
+  SortChangedEvent,
 } from 'ag-grid-enterprise'
 import { type ComponentInstance, reactive, ref, shallowRef, watch } from 'vue'
 import { TextFormatOptions } from '../visualizations/TableVisualization.vue'
@@ -59,7 +57,7 @@ const gridApi = shallowRef<GridApi<TData>>()
 const popupParent = document.body
 useAutoBlur(() => grid.value?.$el)
 
-function onGridReady(event: GridReadyEvent) {
+function onGridReady(event: GridReadyEvent<TData>) {
   gridApi.value = event.api
 }
 
@@ -94,15 +92,15 @@ watch(
 )
 
 function updateColumnWidths(event: FirstDataRenderedEvent | RowDataUpdatedEvent) {
-  if (event.columnApi == null) {
-    console.warn('AG Grid column API does not exist.')
+  if (event.api == null) {
+    console.warn('AG Grid API does not exist.')
     return
   }
-  const cols = event.columnApi.getAllGridColumns().filter((c) => {
+  const cols = event.api.getAllGridColumns().filter((c) => {
     const id = c.getColId()
     return id && !widths.has(id)
   })
-  event.columnApi.autoSizeColumns(cols)
+  event.api.autoSizeColumns(cols)
 }
 
 function lockColumnSize(e: ColumnResizedEvent) {

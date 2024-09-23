@@ -10,10 +10,10 @@ import '@ag-grid-community/styles/ag-theme-alpine.css'
 import type {
   CellClassParams,
   CellClickedEvent,
+  ColDef,
   ICellRendererParams,
   SortChangedEvent,
-} from 'ag-grid-community'
-import type { ColDef } from 'ag-grid-enterprise'
+} from 'ag-grid-enterprise'
 import { computed, onMounted, ref, shallowRef, watchEffect, type Ref } from 'vue'
 
 export const name = 'Table'
