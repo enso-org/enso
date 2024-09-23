@@ -284,7 +284,7 @@ const isMulti = computed(() => props.input.dynamicConfig?.kind === 'Multiple_Cho
 const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input, {
   cancel: onClose,
   end: onClose,
-  pointerdown: (e, _) => {
+  pointerdown: (e) => {
     if (
       targetIsOutside(e, unrefElement(dropdownElement)) &&
       targetIsOutside(e, unrefElement(activityElement)) &&

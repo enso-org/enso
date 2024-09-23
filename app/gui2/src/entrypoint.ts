@@ -69,11 +69,13 @@ function main() {
     localStorage.setItem(INITIAL_URL_KEY, location.href)
   }
 
+  const resolveEnvUrl = (url: string) => url.replace('__HOSTNAME__', window.location.hostname)
+
   const config = configValue(mergeConfig(baseConfig, urlParams()))
   const supportsVibrancy = config.window.vibrancy
   const shouldUseAuthentication = config.authentication.enabled
-  const projectManagerUrl = config.engine.projectManagerUrl || PROJECT_MANAGER_URL
-  const ydocUrl = config.engine.ydocUrl === '' ? YDOC_SERVER_URL : config.engine.ydocUrl
+  const projectManagerUrl = config.engine.projectManagerUrl || resolveEnvUrl(PROJECT_MANAGER_URL)
+  const ydocUrl = config.engine.ydocUrl || resolveEnvUrl(YDOC_SERVER_URL)
   const initialProjectName = config.startup.project || null
   const urlWithoutStartupProject = new URL(location.toString())
   urlWithoutStartupProject.searchParams.delete('startup.project')

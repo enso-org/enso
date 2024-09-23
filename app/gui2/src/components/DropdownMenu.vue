@@ -11,6 +11,7 @@ const open = defineModel<boolean>('open', { default: false })
 const props = defineProps<{
   title?: string | undefined
   placement?: Placement
+  alwaysShowArrow?: boolean | undefined
 }>()
 
 const rootElement = shallowRef<HTMLElement>()
@@ -42,7 +43,11 @@ const { floatingStyles } = useFloating(rootElement, floatElement, {
     >
       <slot name="button" />
     </MenuButton>
-    <SvgIcon v-if="hovered && !open" name="arrow_right_head_only" class="arrow" />
+    <SvgIcon
+      v-if="alwaysShowArrow || (hovered && !open)"
+      name="arrow_right_head_only"
+      class="arrow"
+    />
     <SizeTransition height :duration="100">
       <div v-if="open" ref="floatElement" class="DropdownMenuContent" :style="floatingStyles">
         <slot name="entries" />

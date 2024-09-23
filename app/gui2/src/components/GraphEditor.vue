@@ -279,23 +279,13 @@ useEvent(window, 'keydown', (event) => {
     (!keyboardBusy() && graphNavigator.keyboardEvents.keydown(event))
 })
 
-useEvent(
-  window,
-  'pointerdown',
-  (e) => interaction.handlePointerEvent(e, 'pointerdown', graphNavigator),
-  {
-    capture: true,
-  },
-)
+useEvent(window, 'pointerdown', (e) => interaction.handlePointerEvent(e, 'pointerdown'), {
+  capture: true,
+})
 
-useEvent(
-  window,
-  'pointerup',
-  (e) => interaction.handlePointerEvent(e, 'pointerup', graphNavigator),
-  {
-    capture: true,
-  },
-)
+useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointerup'), {
+  capture: true,
+})
 
 // === Keyboard/Mouse bindings ===
 
@@ -724,15 +714,7 @@ const documentationEditorFullscreen = ref(false)
     @drop.prevent="handleFileDrop($event)"
   >
     <div class="vertical">
-      <div
-        ref="viewportNode"
-        class="viewport"
-        v-on.="graphNavigator.pointerEvents"
-        v-on..="nodeSelection.events"
-        @click="handleClick"
-        @pointermove.capture="graphNavigator.pointerEventsCapture.pointermove"
-        @wheel.capture="graphNavigator.pointerEventsCapture.wheel"
-      >
+      <div ref="viewportNode" class="viewport" @click="handleClick">
         <GraphNodes
           @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
           @nodeDoubleClick="(id) => stackNavigator.enterNode(id)"
@@ -840,8 +822,10 @@ const documentationEditorFullscreen = ref(false)
 }
 
 .viewport {
+  position: relative; /* Needed for safari when using contain: layout */
   contain: layout;
   overflow: clip;
+  touch-action: none;
   --group-color-fallback: #006b8a;
   --node-color-no-type: #596b81;
   --output-node-color: #006b8a;

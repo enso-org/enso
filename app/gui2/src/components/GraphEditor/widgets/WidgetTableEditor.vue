@@ -7,7 +7,7 @@ import {
   type RowData,
 } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableNewArgument'
 import ResizeHandles from '@/components/ResizeHandles.vue'
-import AgGridTableView from '@/components/widgets/AgGridTableView.vue'
+import AgGridTableView from '@/components/shared/AgGridTableView.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
@@ -17,8 +17,7 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
-import type { CellEditingStartedEvent, CellEditingStoppedEvent } from 'ag-grid-community'
-import type { Column } from 'ag-grid-enterprise'
+import type { CellEditingStartedEvent, CellEditingStoppedEvent, Column } from 'ag-grid-enterprise'
 import { computed, ref } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 
