@@ -7,7 +7,7 @@ import {
   type RowData,
 } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableNewArgument'
 import ResizeHandles from '@/components/ResizeHandles.vue'
-import AgGridTableView from '@/components/widgets/AgGridTableView.vue'
+import AgGridTableView from '@/components/shared/AgGridTableView.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'

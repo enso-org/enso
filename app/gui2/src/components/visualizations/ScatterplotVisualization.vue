@@ -1,11 +1,10 @@
 <script lang="ts">
-import SvgButton from '@/components/SvgButton.vue'
 import { useEvent } from '@/composables/events'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
 import { Ast } from '@/util/ast'
 import { tryNumberToEnso } from '@/util/ast/abstract'
 import { getTextWidthBySizeAndFamily } from '@/util/measurement'
-import { VisualizationContainer, defineKeybinds } from '@/util/visualizationBuiltins'
+import { defineKeybinds } from '@/util/visualizationBuiltins'
 import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
 
 export const name = 'Scatter Plot'
@@ -115,9 +114,6 @@ interface DateObj {
 const d3 = await import('d3')
 
 const props = defineProps<{ data: Partial<Data> | number[] }>()
-const emit = defineEmits<{
-  'update:preprocessor': [module: string, method: string, ...args: string[]]
-}>()
 
 const config = useVisualizationConfig()
 
@@ -260,17 +256,8 @@ const margin = computed(() => {
     return { top: 10, right: 10, bottom: 35, left: 55 }
   }
 })
-const width = computed(() =>
-  config.fullscreen ?
-    containerNode.value?.parentElement?.clientWidth ?? 0
-  : Math.max(config.width ?? 0, config.nodeSize.x),
-)
-
-const height = computed(() =>
-  config.fullscreen ?
-    containerNode.value?.parentElement?.clientHeight ?? 0
-  : config.height ?? (config.nodeSize.x * 3) / 4,
-)
+const width = computed(() => config.size.x)
+const height = computed(() => config.size.y)
 
 const boxWidth = computed(() => Math.max(0, width.value - margin.value.left - margin.value.right))
 const boxHeight = computed(() => Math.max(0, height.value - margin.value.top - margin.value.bottom))
@@ -314,8 +301,7 @@ const xTickFormat = computed(() => {
 watchEffect(() => {
   const boundsExpression =
     bounds.value != null ? Ast.Vector.tryBuild(bounds.value, tryNumberToEnso) : undefined
-  emit(
-    'update:preprocessor',
+  config.setPreprocessor(
     'Standard.Visualization.Scatter_Plot',
     'process_to_json_text',
     boundsExpression?.code() ?? 'Nothing',
@@ -739,59 +725,62 @@ function zoomToSelected(override?: boolean) {
 }
 
 useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSelected() }))
+
+config.setToolbar([
+  {
+    icon: 'select',
+    title: 'Enable Selection',
+    toggle: selectionEnabled,
+  },
+  {
+    icon: 'show_all',
+    title: 'Fit All',
+    onClick: () => zoomToSelected(false),
+  },
+  {
+    icon: 'find',
+    title: 'Zoom to Selected',
+    disabled: () => brushExtent.value == null,
+    onClick: zoomToSelected,
+  },
+])
 </script>
 
 <template>
-  <VisualizationContainer :belowToolbar="true">
-    <template #toolbar>
-      <SvgButton
-        name="select"
-        title="Enable Selection"
-        @click="selectionEnabled = !selectionEnabled"
-      />
-      <SvgButton name="show_all" title="Fit All" @click.stop="zoomToSelected(false)" />
-      <SvgButton
-        name="zoom"
-        title="Zoom to Selected"
-        :disabled="brushExtent == null"
-        @click.stop="zoomToSelected"
-      />
-    </template>
-    <div ref="containerNode" class="ScatterplotVisualization">
-      <svg :width="width" :height="height">
-        <g ref="legendNode"></g>
-        <g :transform="`translate(${margin.left}, ${margin.top})`">
-          <defs>
-            <clipPath id="clip">
-              <rect :width="boxWidth" :height="boxHeight"></rect>
-            </clipPath>
-          </defs>
-          <g ref="xAxisNode" class="axis-x" :transform="`translate(0, ${boxHeight})`"></g>
-          <g ref="yAxisNode" class="axis-y"></g>
-          <text
-            v-if="data.axis.x.label"
-            class="label label-x"
-            text-anchor="end"
-            :x="xLabelLeft"
-            :y="xLabelTop"
-            v-text="data.axis.x.label"
-          ></text>
-          <text
-            v-if="showYLabelText"
-            class="label label-y"
-            text-anchor="end"
-            :x="yLabelLeft"
-            :y="yLabelTop"
-            v-text="data.axis.y.label"
-          ></text>
-          <g ref="pointsNode" clip-path="url(#clip)"></g>
-          <g ref="zoomNode" class="zoom" :width="boxWidth" :height="boxHeight" fill="none">
-            <g ref="brushNode" class="brush"></g>
-          </g>
+  <div ref="containerNode" class="ScatterplotVisualization">
+    <svg :width="width" :height="height">
+      <g ref="legendNode"></g>
+      <g :transform="`translate(${margin.left}, ${margin.top})`">
+        <defs>
+          <clipPath id="clip">
+            <rect :width="boxWidth" :height="boxHeight"></rect>
+          </clipPath>
+        </defs>
+        <g ref="xAxisNode" class="axis-x" :transform="`translate(0, ${boxHeight})`"></g>
+        <g ref="yAxisNode" class="axis-y"></g>
+        <text
+          v-if="data.axis.x.label"
+          class="label label-x"
+          text-anchor="end"
+          :x="xLabelLeft"
+          :y="xLabelTop"
+          v-text="data.axis.x.label"
+        ></text>
+        <text
+          v-if="showYLabelText"
+          class="label label-y"
+          text-anchor="end"
+          :x="yLabelLeft"
+          :y="yLabelTop"
+          v-text="data.axis.y.label"
+        ></text>
+        <g ref="pointsNode" clip-path="url(#clip)"></g>
+        <g ref="zoomNode" class="zoom" :width="boxWidth" :height="boxHeight" fill="none">
+          <g ref="brushNode" class="brush"></g>
         </g>
-      </svg>
-    </div>
-  </VisualizationContainer>
+      </g>
+    </svg>
+  </div>
 </template>
 
 <style scoped>

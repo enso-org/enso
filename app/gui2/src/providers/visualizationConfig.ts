@@ -1,35 +1,30 @@
-import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
-import { SavedSize } from '@/components/WithFullscreenMode.vue'
+import { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
+import { ToolbarItem } from '@/components/visualizations/toolbar'
 import { createContextStore } from '@/providers'
-import type { URLString } from '@/util/data/urlString'
 import { Vec2 } from '@/util/data/vec2'
-import type { Icon } from '@/util/iconName'
+import { ToValue } from '@/util/reactivity'
 import { reactive } from 'vue'
-import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 export interface VisualizationConfig {
-  background?: string
-  /** Possible visualization types that can be switched to. */
-  readonly types: Iterable<VisualizationIdentifier>
-  readonly currentType: VisualizationIdentifier
-  readonly icon: Icon | URLString | undefined
-  readonly isCircularMenuVisible: boolean
-  readonly nodeSize: Vec2
-  readonly scale: number
-  readonly isFocused: boolean
+  /** The Enso type of the data being visualized. */
   readonly nodeType: string | undefined
-  readonly isPreview: boolean
-  readonly isFullscreenAllowed: boolean
-  readonly isResizable: boolean
-  isBelowToolbar: boolean
-  width: number
-  height: number
-  nodePosition: Vec2
-  fullscreen: boolean
-  savedSize: SavedSize | undefined
-  hide: () => void
-  updateType: (type: VisualizationIdentifier) => void
+  /** The size of the area available for the visualization to draw its content. */
+  readonly size: Vec2
+  /** Create graph nodes. */
   createNodes: (...options: NodeCreationOptions[]) => void
+  /** Set the preprocessor that prepares the visualization data on the backend. */
+  setPreprocessor: (
+    visualizationModule: string,
+    expression: string,
+    ...positionalArgumentsExpressions: string[]
+  ) => void
+  /** Provide a toolbar definition. */
+  setToolbar: (toolbar: ToValue<Readonly<ToolbarItem[]>>) => void
+  /**
+   * If set to `true`, the toolbar will be overlayed on top of the visualization, instead of in a space reserved above
+   * it. By default, this is `false`.
+   */
+  setToolbarOverlay: (enableOverlay: boolean) => void
 }
 
 export { provideFn as provideVisualizationConfig }
