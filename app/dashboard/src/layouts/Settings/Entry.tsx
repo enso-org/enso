@@ -1,6 +1,6 @@
 /** @file Rendering for an arbitrary {@link SettingsEntryData}. */
 import SettingsCustomEntry from './CustomEntry'
-import { SettingsContext, SettingsEntryData, SettingsEntryType } from './data'
+import { SettingsEntryType, type SettingsContext, type SettingsEntryData } from './data'
 import SettingsInputEntry from './InputEntry'
 
 // =====================

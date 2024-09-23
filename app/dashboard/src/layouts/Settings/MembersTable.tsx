@@ -3,12 +3,12 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 
 import {
   Column,
-  Selection,
   Table,
   TableBody,
   TableHeader,
   Text,
   useDragAndDrop,
+  type Selection,
 } from '#/components/aria'
 import { USER_MIME_TYPE } from '#/data/mimeTypes'
 import { useBackendQuery } from '#/hooks/backendHooks'
