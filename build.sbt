@@ -657,26 +657,26 @@ lazy val componentModulesPaths =
     scalaCompiler ++
     ioSentry ++
     logbackPkg ++
-  Seq(
-    "org.netbeans.api"       % "org-openide-util-lookup"      % netbeansApiVersion,
-    "org.netbeans.api"       % "org-netbeans-modules-sampler" % netbeansApiVersion,
-    "com.google.flatbuffers" % "flatbuffers-java"             % flatbuffersVersion,
-    "com.google.protobuf"    % "protobuf-java"                % googleProtobufVersion,
-    "commons-cli"            % "commons-cli"                  % commonsCliVersion,
-    "commons-io"             % "commons-io"                   % commonsIoVersion,
-    "net.java.dev.jna"       % "jna"                          % jnaVersion,
-    "org.yaml"               % "snakeyaml"                    % snakeyamlVersion,
-    "org.eclipse.jgit"       % "org.eclipse.jgit"             % jgitVersion,
-    "com.typesafe"           % "config"                       % typesafeConfigVersion,
-    "org.reactivestreams"    % "reactive-streams"             % reactiveStreamsVersion,
-    "org.jline"              % "jline"                        % jlineVersion,
-    "org.apache.commons"     % "commons-lang3"                % commonsLangVersion,
-    "org.apache.commons"     % "commons-compress"             % commonsCompressVersion,
-    "org.apache.tika"        % "tika-core"                    % tikaVersion,
-    "org.slf4j"              % "slf4j-api"                    % slf4jVersion,
-    "org.yaml"               % "snakeyaml"                    % snakeyamlVersion,
-    "com.ibm.icu"            % "icu4j"                        % icuVersion
-  )
+    Seq(
+      "org.netbeans.api"       % "org-openide-util-lookup"      % netbeansApiVersion,
+      "org.netbeans.api"       % "org-netbeans-modules-sampler" % netbeansApiVersion,
+      "com.google.flatbuffers" % "flatbuffers-java"             % flatbuffersVersion,
+      "com.google.protobuf"    % "protobuf-java"                % googleProtobufVersion,
+      "commons-cli"            % "commons-cli"                  % commonsCliVersion,
+      "commons-io"             % "commons-io"                   % commonsIoVersion,
+      "net.java.dev.jna"       % "jna"                          % jnaVersion,
+      "org.yaml"               % "snakeyaml"                    % snakeyamlVersion,
+      "org.eclipse.jgit"       % "org.eclipse.jgit"             % jgitVersion,
+      "com.typesafe"           % "config"                       % typesafeConfigVersion,
+      "org.reactivestreams"    % "reactive-streams"             % reactiveStreamsVersion,
+      "org.jline"              % "jline"                        % jlineVersion,
+      "org.apache.commons"     % "commons-lang3"                % commonsLangVersion,
+      "org.apache.commons"     % "commons-compress"             % commonsCompressVersion,
+      "org.apache.tika"        % "tika-core"                    % tikaVersion,
+      "org.slf4j"              % "slf4j-api"                    % slf4jVersion,
+      "org.yaml"               % "snakeyaml"                    % snakeyamlVersion,
+      "com.ibm.icu"            % "icu4j"                        % icuVersion
+    )
   val thirdPartyMods = JPMSUtils.filterModulesFromClasspath(
     fullCp,
     thirdPartyModIds,
@@ -774,15 +774,15 @@ lazy val `text-buffer` = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    scalaProjectSettings,
+    // See JPMSPlugin docs (Mixed projects)
+    excludeFilter := excludeFilter.value || "module-info.java",
     commands += WithDebugCommand.withDebug,
     javaModuleName := "org.enso.text.buffer",
     libraryDependencies ++= Seq(
       "org.scalatest"  %% "scalatest"  % scalatestVersion  % Test,
       "org.scalacheck" %% "scalacheck" % scalacheckVersion % Test
-    ),
-    // See JPMSPlugin docs (Mixed projects)
-    excludeFilter := excludeFilter.value || "module-info.java",
-    Compile / moduleDependencies := scalaLibrary
+    )
   )
 
 lazy val rustParserTargetDirectory =
@@ -917,14 +917,15 @@ lazy val `scala-yaml` = (project in file("lib/scala/yaml"))
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    scalaProjectSettings,
     // See JPMSPlugin docs (Mixed projects)
     excludeFilter := excludeFilter.value || "module-info.java",
     libraryDependencies ++= Seq(
-      "org.yaml"     % "snakeyaml" % snakeyamlVersion % "provided",
-      "com.chuusai" %% "shapeless" % shapelessVersion
+      "org.yaml" % "snakeyaml" % snakeyamlVersion % "provided"
     ),
-    Compile / moduleDependencies ++= scalaLibrary ++
-    Seq("org.yaml" % "snakeyaml" % snakeyamlVersion),
+    Compile / moduleDependencies ++= Seq(
+      "org.yaml" % "snakeyaml" % snakeyamlVersion
+    ),
     Compile / internalModuleDependencies := Seq(
       (`scala-libs-wrapper` / Compile / exportedModule).value
     )
@@ -935,6 +936,7 @@ lazy val pkg = (project in file("lib/scala/pkg"))
   .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
+    scalaProjectSettings,
     compileOrder := CompileOrder.ScalaThenJava,
     version := "0.1",
     Compile / run / mainClass := Some("org.enso.pkg.Main"),
@@ -944,8 +946,7 @@ lazy val pkg = (project in file("lib/scala/pkg"))
       "org.scalatest"     %% "scalatest"        % scalatestVersion % Test,
       "org.apache.commons" % "commons-compress" % commonsCompressVersion
     ),
-    Compile / moduleDependencies := scalaLibrary ++
-    Seq(
+    Compile / moduleDependencies ++= Seq(
       "org.apache.commons" % "commons-compress" % commonsCompressVersion,
       "org.yaml"           % "snakeyaml"        % snakeyamlVersion
     ),
@@ -1013,16 +1014,17 @@ lazy val `logging-utils` = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    scalaProjectSettings,
     compileOrder := CompileOrder.ScalaThenJava, // Note [JPMS Compile order]
     version := "0.1",
     libraryDependencies ++= Seq(
       "org.scalatest" %% "scalatest" % scalatestVersion % Test,
       "org.slf4j"      % "slf4j-api" % slf4jVersion
     ) ++ logbackTest,
-    Compile / moduleDependencies := scalaLibrary ++
-    Seq(
-      "org.slf4j" % "slf4j-api" % slf4jVersion
-    )
+    Compile / moduleDependencies ++=
+      Seq(
+        "org.slf4j" % "slf4j-api" % slf4jVersion
+      )
   )
 
 lazy val `logging-service` = project
@@ -1031,13 +1033,14 @@ lazy val `logging-service` = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    scalaProjectSettings,
     version := "0.1",
     libraryDependencies ++= Seq(
       "org.slf4j"      % "slf4j-api" % slf4jVersion,
       "com.typesafe"   % "config"    % typesafeConfigVersion,
       "org.scalatest" %% "scalatest" % scalatestVersion % Test
     ),
-    Compile / moduleDependencies := scalaLibrary ++ Seq(
+    Compile / moduleDependencies ++= Seq(
       "org.slf4j" % "slf4j-api" % slf4jVersion
     ),
     Compile / internalModuleDependencies := Seq(
@@ -1102,18 +1105,17 @@ lazy val `logging-utils-akka` = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    scalaProjectSettings,
     version := "0.1",
     compileOrder := CompileOrder.ScalaThenJava,
     libraryDependencies ++= Seq(
       "org.slf4j"          % "slf4j-api"  % slf4jVersion,
       "com.typesafe.akka" %% "akka-actor" % akkaVersion
     ),
-    Compile / moduleDependencies := {
-      scalaLibrary ++
+    Compile / moduleDependencies ++=
       Seq(
         "org.slf4j" % "slf4j-api" % slf4jVersion
-      )
-    },
+      ),
     Compile / internalModuleDependencies := Seq(
       (`akka-wrapper` / Compile / exportedModule).value
     )
@@ -1125,6 +1127,7 @@ lazy val filewatcher = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    scalaProjectSettings,
     compileOrder := CompileOrder.ScalaThenJava,
     javaModuleName := "org.enso.filewatcher",
     version := "0.1",
@@ -1134,7 +1137,7 @@ lazy val filewatcher = project
       "org.slf4j"      % "slf4j-api"         % slf4jVersion,
       "org.scalatest" %% "scalatest"         % scalatestVersion % Test
     ),
-    Compile / moduleDependencies := scalaLibrary ++ Seq(
+    Compile / moduleDependencies ++= Seq(
       "org.slf4j" % "slf4j-api" % slf4jVersion
     ),
     Compile / internalModuleDependencies := Seq(
@@ -1176,6 +1179,7 @@ lazy val `scala-libs-wrapper` = project
   .enablePlugins(JPMSPlugin)
   .settings(
     modularFatJarWrapperSettings,
+    scalaProjectSettings,
     javaModuleName := "org.enso.scala.wrapper",
     libraryDependencies ++= circe ++ Seq(
       "com.typesafe.scala-logging"            %% "scala-logging"         % scalaLoggingVersion,
@@ -1186,7 +1190,7 @@ lazy val `scala-libs-wrapper` = project
       "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion,
       "net.java.dev.jna"                       % "jna"                   % jnaVersion
     ),
-    Compile / moduleDependencies := scalaLibrary ++ scalaCompiler ++ Seq(
+    Compile / moduleDependencies ++= scalaCompiler ++ Seq(
       "org.jline"        % "jline"     % jlineVersion,
       "org.slf4j"        % "slf4j-api" % slf4jVersion,
       "net.java.dev.jna" % "jna"       % jnaVersion
@@ -1245,13 +1249,13 @@ lazy val `language-server-deps-wrapper` = project
   .enablePlugins(JPMSPlugin)
   .settings(
     modularFatJarWrapperSettings,
+    scalaProjectSettings,
     libraryDependencies ++= Seq(
       "com.github.pureconfig" %% "pureconfig" % pureconfigVersion,
       "com.chuusai"           %% "shapeless"  % shapelessVersion,
       "com.typesafe"           % "config"     % typesafeConfigVersion
     ),
     javaModuleName := "org.enso.language.server.deps.wrapper",
-    Compile / moduleDependencies := scalaLibrary,
     Compile / internalModuleDependencies := Seq(
       (`scala-libs-wrapper` / Compile / exportedModule).value
     ),
@@ -1292,6 +1296,7 @@ lazy val `directory-watcher-wrapper` = project
   .enablePlugins(JPMSPlugin)
   .settings(
     modularFatJarWrapperSettings,
+    scalaProjectSettings,
     libraryDependencies ++= Seq(
       "io.methvin"       % "directory-watcher" % directoryWatcherVersion,
       "org.slf4j"        % "slf4j-api"         % "1.7.36",
@@ -1311,7 +1316,7 @@ lazy val `directory-watcher-wrapper` = project
         shouldContainAll = true
       )
     },
-    Compile / moduleDependencies := scalaLibrary ++ Seq(
+    Compile / moduleDependencies ++= Seq(
       "net.java.dev.jna" % "jna"       % jnaVersion,
       "org.slf4j"        % "slf4j-api" % "1.7.36"
     ),
@@ -1337,11 +1342,11 @@ lazy val `fansi-wrapper` = project
   .enablePlugins(JPMSPlugin)
   .settings(
     modularFatJarWrapperSettings,
+    scalaProjectSettings,
     libraryDependencies ++= Seq(
       "com.lihaoyi" %% "fansi" % fansiVersion
     ),
     javaModuleName := "org.enso.fansi.wrapper",
-    Compile / moduleDependencies := scalaLibrary,
     Compile / patchModules := {
       val scalaVer = scalaBinaryVersion.value
       val scalaLibs = JPMSUtils.filterModulesFromUpdate(
@@ -1376,6 +1381,7 @@ lazy val `akka-wrapper` = project
   .enablePlugins(JPMSPlugin)
   .settings(
     modularFatJarWrapperSettings,
+    scalaProjectSettings,
     libraryDependencies ++= akka ++ scalaLibrary ++ scalaCompiler ++ Seq(
       "org.scala-lang.modules"   %% "scala-parser-combinators" % scalaParserCombinatorsVersion,
       "org.scala-lang.modules"   %% "scala-java8-compat"       % scalaJavaCompatVersion,
@@ -1395,7 +1401,7 @@ lazy val `akka-wrapper` = project
       "io.spray"                 %% "spray-json"               % sprayJsonVersion
     ),
     javaModuleName := "org.enso.akka.wrapper",
-    Compile / moduleDependencies := scalaLibrary ++ Seq(
+    Compile / moduleDependencies ++= Seq(
       "com.google.protobuf" % "protobuf-java"    % googleProtobufVersion,
       "org.reactivestreams" % "reactive-streams" % reactiveStreamsVersion,
       "org.slf4j"           % "slf4j-api"        % slf4jVersion
@@ -1454,6 +1460,7 @@ lazy val `zio-wrapper` = project
   .enablePlugins(JPMSPlugin)
   .settings(
     modularFatJarWrapperSettings,
+    scalaProjectSettings,
     javaModuleName := "org.enso.zio.wrapper",
     libraryDependencies ++= zio ++ Seq(
       "dev.zio" %% "zio-internal-macros"                       % zioVersion,
@@ -1461,7 +1468,6 @@ lazy val `zio-wrapper` = project
       "dev.zio" %% "izumi-reflect"                             % zioIzumiReflectVersion,
       "dev.zio" %% "izumi-reflect-thirdparty-boopickle-shaded" % zioIzumiReflectVersion
     ),
-    Compile / moduleDependencies := scalaLibrary,
     assembly / assemblyExcludedJars := {
       val scalaVer = scalaBinaryVersion.value
       val excludedJars = JPMSUtils.filterModulesFromUpdate(
@@ -1506,6 +1512,7 @@ lazy val cli = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    scalaProjectSettings,
     compileOrder := CompileOrder.ScalaThenJava,
     version := "0.1",
     libraryDependencies ++= circe ++ Seq(
@@ -1513,7 +1520,6 @@ lazy val cli = project
       "org.yaml"                    % "snakeyaml"     % snakeyamlVersion % "provided",
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
     ),
-    Compile / moduleDependencies := scalaLibrary,
     Compile / internalModuleDependencies := Seq(
       (`scala-libs-wrapper` / Compile / exportedModule).value,
       (`scala-yaml` / Compile / exportedModule).value
@@ -1527,12 +1533,12 @@ lazy val `task-progress-notifications` = project
   .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
+    scalaProjectSettings,
     version := "0.1",
     compileOrder := CompileOrder.ScalaThenJava,
     libraryDependencies ++= Seq(
       "org.scalatest" %% "scalatest" % scalatestVersion % Test
     ),
-    Compile / moduleDependencies := scalaLibrary,
     Compile / internalModuleDependencies := Seq(
       (`cli` / Compile / exportedModule).value,
       (`json-rpc-server` / Compile / exportedModule).value
@@ -1571,6 +1577,7 @@ lazy val `refactoring-utils` = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    scalaProjectSettings,
     commands += WithDebugCommand.withDebug,
     version := "0.1",
     libraryDependencies ++= Seq(
@@ -1579,7 +1586,6 @@ lazy val `refactoring-utils` = project
     ),
     // See JPMSPlugin docs (Mixed projects)
     excludeFilter := excludeFilter.value || "module-info.java",
-    Compile / moduleDependencies := scalaLibrary,
     Compile / internalModuleDependencies := Seq(
       (`text-buffer` / Compile / exportedModule).value,
       (`runtime-parser` / Compile / exportedModule).value
@@ -1734,6 +1740,7 @@ lazy val `json-rpc-server` = project
   .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
+    scalaProjectSettings,
     compileOrder := CompileOrder.ScalaThenJava,
     libraryDependencies ++= akka ++ logbackTest,
     libraryDependencies ++= circe,
@@ -1749,12 +1756,10 @@ lazy val `json-rpc-server` = project
       "org.apache.httpcomponents"   % "httpcore"        % httpComponentsVersion % Test,
       "commons-io"                  % "commons-io"      % commonsIoVersion      % Test
     ),
-    Compile / moduleDependencies := {
-      scalaLibrary ++
+    Compile / moduleDependencies ++=
       Seq(
         "org.slf4j" % "slf4j-api" % slf4jVersion
-      )
-    },
+      ),
     Compile / internalModuleDependencies := Seq(
       (`scala-libs-wrapper` / Compile / exportedModule).value,
       (`akka-wrapper` / Compile / exportedModule).value
@@ -1811,12 +1816,12 @@ lazy val searcher = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    scalaProjectSettings,
     compileOrder := CompileOrder.ScalaThenJava,
     annotationProcSetting,
     libraryDependencies ++= jmh ++ Seq(
       "org.scalatest" %% "scalatest" % scalatestVersion % Test
     ) ++ logbackTest,
-    Compile / moduleDependencies := scalaLibrary,
     Compile / internalModuleDependencies := Seq(
       (`polyglot-api` / Compile / exportedModule).value
     )
@@ -2076,6 +2081,7 @@ lazy val `polyglot-api` = project
   .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
+    scalaProjectSettings,
     Test / fork := true,
     commands += WithDebugCommand.withDebug,
     Test / envVars ++= distributionEnvironmentOverrides,
@@ -2096,7 +2102,7 @@ lazy val `polyglot-api` = project
     javaModuleName := "org.enso.polyglot.api",
     // See JPMSPlugin docs (Mixed projects)
     excludeFilter := excludeFilter.value || "module-info.java",
-    Compile / moduleDependencies := scalaLibrary ++ Seq(
+    Compile / moduleDependencies ++= Seq(
       "com.google.flatbuffers" % "flatbuffers-java" % flatbuffersVersion,
       "org.graalvm.sdk"        % "word"             % graalMavenPackagesVersion,
       "org.graalvm.polyglot"   % "polyglot"         % graalMavenPackagesVersion,
@@ -2126,13 +2132,13 @@ lazy val `polyglot-api-macros` = project
   .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
+    scalaProjectSettings,
     // See JPMSPlugin docs (Mixed projects)
     excludeFilter := excludeFilter.value || "module-info.java",
     libraryDependencies ++= Seq(
       "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"   % jsoniterVersion % "provided",
       "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion % "provided"
     ),
-    Compile / moduleDependencies := scalaLibrary,
     Compile / internalModuleDependencies := Seq(
       (`scala-libs-wrapper` / Compile / exportedModule).value
     )
@@ -2144,6 +2150,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .settings(
     commands += WithDebugCommand.withDebug,
     frgaalJavaCompilerSetting,
+    scalaProjectSettings,
     libraryDependencies ++= akka ++ circe ++ bouncyCastle.map(_ % Test) ++ Seq(
       "org.slf4j"                   % "slf4j-api"            % slf4jVersion,
       "com.typesafe.scala-logging" %% "scala-logging"        % scalaLoggingVersion,
@@ -2167,8 +2174,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
     // See JPMSPlugin docs (Mixed projects)
     excludeFilter := excludeFilter.value || "module-info.java",
     javaModuleName := "org.enso.language.server",
-    Compile / moduleDependencies := {
-      scalaLibrary ++
+    Compile / moduleDependencies ++=
       Seq(
         "org.graalvm.polyglot"   % "polyglot"         % graalMavenPackagesVersion,
         "org.slf4j"              % "slf4j-api"        % slf4jVersion,
@@ -2176,8 +2182,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
         "commons-io"             % "commons-io"       % commonsIoVersion,
         "com.google.flatbuffers" % "flatbuffers-java" % flatbuffersVersion,
         "org.eclipse.jgit"       % "org.eclipse.jgit" % jgitVersion
-      )
-    },
+      ),
     Compile / internalModuleDependencies := Seq(
       (`akka-wrapper` / Compile / exportedModule).value,
       (`zio-wrapper` / Compile / exportedModule).value,
@@ -2448,8 +2453,12 @@ lazy val javadocSettings = Seq(
 /** A setting to replace javac with Frgaal compiler, allowing to use latest Java features in the code
   * and still compile down to JDK 17
   */
-lazy val frgaalJavaCompilerSetting =
+lazy val frgaalJavaCompilerSetting: SettingsDefinition =
   customFrgaalJavaCompilerSettings(targetJavaVersion)
+
+lazy val scalaProjectSettings: SettingsDefinition = Seq(
+  Compile / moduleDependencies := scalaLibrary
+)
 
 def customFrgaalJavaCompilerSettings(targetJdk: String) = {
   // There might be slightly different Frgaal compiler configuration for
