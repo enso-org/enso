@@ -898,11 +898,9 @@ lazy val `syntax-rust-definition` = project
     libraryDependencies ++= Seq(
       "org.slf4j" % "slf4j-api" % slf4jVersion
     ),
-    moduleDependencies := {
-      Seq(
-        "org.slf4j" % "slf4j-api" % slf4jVersion
-      )
-    },
+    Compile / moduleDependencies := Seq(
+      "org.slf4j" % "slf4j-api" % slf4jVersion
+    ),
     javaModuleName := "org.enso.syntax",
     Compile / sourceGenerators += generateParserJavaSources,
     Compile / resourceGenerators += generateRustParserLib,
