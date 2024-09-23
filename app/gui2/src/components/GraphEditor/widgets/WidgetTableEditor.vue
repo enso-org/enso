@@ -17,12 +17,8 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
-import type {
-  CellEditingStartedEvent,
-  CellEditingStoppedEvent,
-  ColDef,
-  Column,
-} from 'ag-grid-enterprise'
+import type { CellEditingStartedEvent, CellEditingStoppedEvent } from 'ag-grid-community'
+import type { Column } from 'ag-grid-enterprise'
 import { computed, ref } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 
@@ -42,7 +38,7 @@ const { rowData, columnDefs } = useTableNewArgument(
 
 class CellEditing {
   handler: WidgetEditHandler
-  editedCell: { rowIndex: number; colKey: Column } | undefined
+  editedCell: { rowIndex: number; colKey: Column<RowData> } | undefined
   supressNextStopEditEvent: boolean = false
 
   constructor() {
@@ -63,7 +59,7 @@ class CellEditing {
     })
   }
 
-  cellEditedInGrid(event: CellEditingStartedEvent<RowData>) {
+  cellEditedInGrid(event: CellEditingStartedEvent) {
     this.editedCell =
       event.rowIndex != null ? { rowIndex: event.rowIndex, colKey: event.column } : undefined
     if (!this.handler.isActive()) {
@@ -150,14 +146,13 @@ const widgetStyle = computed(() => {
 
 // === Column Default Definition ===
 
-const defaultColDef: ColDef<RowData> = {
+const defaultColDef = {
   editable: true,
   resizable: true,
   headerComponentParams: {
     onHeaderEditingStarted: headerEditHandler.headerEditedInGrid.bind(headerEditHandler),
     onHeaderEditingStopped: headerEditHandler.headerEditingStoppedInGrid.bind(headerEditHandler),
   },
-  menuTabs: ['generalMenuTab'],
 }
 </script>
 

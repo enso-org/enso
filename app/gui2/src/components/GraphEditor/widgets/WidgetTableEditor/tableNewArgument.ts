@@ -280,6 +280,7 @@ export function useTableNewArgument(
     editable: false,
     mainMenuItems: ['autoSizeThis', 'autoSizeAll'],
     contextMenuItems: [removeRowMenuItem],
+    cellStyle: { color: 'rgba(0, 0, 0, 0.4)' },
   }))
 
   const columnDefs = computed(() => {

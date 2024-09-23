@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { IHeaderParams } from 'ag-grid-community'
-import { ref, watch } from 'vue'
+import { onUnmounted, ref, watch } from 'vue'
 
 /** Parameters recognized by this header component.
  *
@@ -26,7 +26,7 @@ const props = defineProps<{
 const editing = ref(false)
 const inputElement = ref<HTMLInputElement>()
 
-watch(editing, (newVal, oldVal) => {
+watch(editing, (newVal) => {
   if (newVal) {
     props.params.onHeaderEditingStarted?.((cancel: boolean) => {
       if (cancel) editing.value = false
