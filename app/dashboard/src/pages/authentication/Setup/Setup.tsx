@@ -112,7 +112,9 @@ const BASE_STEPS: Step[] = [
     title: 'choosePlan',
     text: 'choosePlanDescription',
     ignore: ({ session }) =>
-      session && 'user' in session ? !session.user.isOrganizationAdmin : true,
+      console.log('SESS', session) || (session && 'user' in session) ?
+        !session.user.isOrganizationAdmin
+      : true,
     canSkip: ({ plan }) => plan === Plan.free,
     hideNext: ({ plan }) => plan === Plan.free,
     /** Setup step for choosing plan. */

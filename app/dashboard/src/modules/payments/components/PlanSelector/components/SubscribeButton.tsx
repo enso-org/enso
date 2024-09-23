@@ -35,12 +35,21 @@ export function SubscribeButton(props: SubscribeButtonProps) {
 
   const { getText } = useText()
 
-  const buttonText =
-    isDowngrade ? getText('downgrade')
-    : isCurrent ? getText('currentPlan')
-    : userHasSubscription ? getText('upgrade')
-    : canTrial ? getText('trialDescription', TRIAL_DURATION_DAYS)
-    : getText('subscribe')
+  const buttonText = (() => {
+    if (isDowngrade) {
+      return getText('downgrade')
+    }
+    if (isCurrent) {
+      return getText('currentPlan')
+    }
+    if (userHasSubscription) {
+      return getText('upgrade')
+    }
+    if (canTrial) {
+      return getText('trialDescription', TRIAL_DURATION_DAYS)
+    }
+    return getText('subscribe')
+  })()
 
   const description =
     isDowngrade ?
@@ -52,10 +61,12 @@ export function SubscribeButton(props: SubscribeButtonProps) {
       </Text>
     : null
 
-  const variant =
-    isCurrent ? 'outline'
-    : isDowngrade ? 'outline'
-    : 'submit'
+  const variant = (() => {
+    if (isCurrent || isDowngrade) {
+      return 'outline'
+    }
+    return 'submit'
+  })()
 
   const disabled = isCurrent || isDowngrade || isDisabled || !isOrganizationAdmin
 

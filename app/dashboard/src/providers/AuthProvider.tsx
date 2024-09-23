@@ -147,7 +147,9 @@ function createUsersMeQuery(
         return null
       }
       try {
+        console.log('WHAT')
         const user = await remoteBackend.usersMe()
+        console.log('WHAT 2')
 
         // if API returns null, user is not yet registered
         // but already authenticated with Cognito
@@ -218,24 +220,22 @@ export default function AuthProvider(props: AuthProviderProps) {
 
   const logoutMutation = reactQuery.useMutation({
     mutationKey: [remoteBackend.type, 'usersMe', 'logout', session?.clientId] as const,
-    mutationFn: () => performLogout(),
-    onMutate: () => {
-      // If the User Menu is still visible, it breaks when `userSession` is set to `null`.
-      unsetModal()
-    },
+    mutationFn: performLogout,
+    // If the User Menu is still visible, it breaks when `userSession` is set to `null`.
+    onMutate: unsetModal,
     onSuccess: () => toast.toast.success(getText('signOutSuccess')),
     onError: () => toast.toast.error(getText('signOutError')),
     meta: { invalidates: [sessionQueryKey], awaitInvalidates: true },
   })
 
-  const usersMeQueryOptions = createUsersMeQuery(session, remoteBackend, () =>
-    performLogout().then(() => {
-      toast.toast.info(getText('userNotAuthorizedError'))
-    }),
-  )
+  const usersMeQueryOptions = createUsersMeQuery(session, remoteBackend, async () => {
+    await performLogout()
+    toast.toast.info(getText('userNotAuthorizedError'))
+  })
 
   const usersMeQuery = reactQuery.useSuspenseQuery(usersMeQueryOptions)
   const userData = usersMeQuery.data
+  console.log('UH HUH', userData)
 
   const createUserMutation = reactQuery.useMutation({
     mutationFn: (user: backendModule.CreateUserRequestBody) => remoteBackend.createUser(user),

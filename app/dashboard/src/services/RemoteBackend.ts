@@ -434,6 +434,7 @@ export default class RemoteBackend extends Backend {
   override async usersMe(): Promise<backend.User | null> {
     const response = await this.get<backend.User>(remoteBackendPaths.USERS_ME_PATH)
 
+    console.log('SOBBING', response.status)
     if (response.status === STATUS_NOT_FOUND) {
       // User info has not yet been created, we should redirect to the onboarding page.
       return null

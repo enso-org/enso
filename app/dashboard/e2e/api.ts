@@ -873,6 +873,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       const rootDirectoryId = backend.DirectoryId(
         organizationId.replace(/^organization-/, 'directory-'),
       )
+      console.log(':)')
       currentUser = {
         email: body.userEmail,
         name: body.userName,
@@ -919,6 +920,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       }
     })
     await get(remoteBackendPaths.USERS_ME_PATH + '*', () => {
+      console.log(':3', currentUser)
       return currentUser
     })
     await patch(remoteBackendPaths.UPDATE_ORGANIZATION_PATH + '*', async (route, request) => {
