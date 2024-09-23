@@ -89,7 +89,7 @@ class ProjectService[
     projectsDirectory: Option[File]
   ): F[ProjectServiceFailure, Project] = for {
     projectId <- gen.randomUUID()
-    _ <- log.debug(
+    _ <- log.error(
       "Creating project [{}, {}, {}, {}].",
       projectName,
       projectId,
@@ -98,7 +98,7 @@ class ProjectService[
     )
     repo = projectRepositoryFactory.getProjectRepository(projectsDirectory)
     name         <- getNameForNewProject(projectName, repo)
-    _            <- log.info("Created project with actual name [{}].", name)
+    _            <- log.error("Created project with actual name [{}].", name)
     _            <- validateProjectName(name)
     _            <- checkIfNameExists(name, repo)
     creationTime <- clock.nowInUtc()
@@ -114,7 +114,7 @@ class ProjectService[
       edition   = None,
       path      = path.toFile
     )
-    _ <- log.debug(
+    _ <- log.error(
       "Found a path [{}] for a new project [{}, {}].",
       path,
       name,
@@ -128,7 +128,7 @@ class ProjectService[
       projectTemplate,
       missingComponentAction
     )
-    _ <- log.debug(
+    _ <- log.error(
       "Project [{}] structure created with [{}, {}, {}, {}].",
       projectId,
       path,
@@ -136,8 +136,8 @@ class ProjectService[
       moduleName
     )
     _ <- repo.update(project).mapError(toServiceFailure)
-    _ <- log.debug("Project [{}] updated in repository [{}].", projectId, repo)
-    _ <- log.info("Project created [{}].", project)
+    _ <- log.error("Project [{}] updated in repository [{}].", projectId, repo)
+    _ <- log.error("Project created [{}].", project)
   } yield project
 
   /** @inheritdoc */
@@ -302,7 +302,7 @@ class ProjectService[
     projectsDirectory: Option[File]
   ): F[ProjectServiceFailure, RunningLanguageServerInfo] = {
     for {
-      _ <- log.debug(s"Opening project [{}].", projectId)
+      _ <- log.error(s"Opening project [{}].", projectId)
       repo = projectRepositoryFactory.getProjectRepository(projectsDirectory)
       project  <- getUserProject(projectId, repo)
       openTime <- clock.nowInUtc()
@@ -559,6 +559,9 @@ class ProjectService[
 }
 
 object ProjectService {
+  // TODO: REMOVE
+  var SHOULD_LOG = false
+
 
   val toServiceFailure: ProjectRepositoryFailure => ProjectServiceFailure = {
     case CannotLoadIndex(msg) =>
