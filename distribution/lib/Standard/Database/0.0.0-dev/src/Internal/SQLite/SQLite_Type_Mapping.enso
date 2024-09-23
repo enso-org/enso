@@ -14,7 +14,7 @@ import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.SQL_Type.SQL_Type
-from project.Errors import Unsupported_Database_Operation
+from project.Errors import Unsupported_Database_Type
 
 polyglot java import java.sql.Types
 
@@ -65,7 +65,7 @@ type SQLite_Type_Mapping
                    report invalid type or coerce the values to Text. Both seem
                    bad when Mixed type is explicitly requested. Instead, we
                    should rely on explicit casting to text.
-                Error.throw (Unsupported_Database_Operation.Error "Mixed types")
+                Error.throw (Unsupported_Database_Type.Error "SQLite" "Mixed")
             Value_Type.Unsupported_Data_Type type_name underlying_type ->
                 underlying_type.if_nothing <|
                     Error.throw <|
