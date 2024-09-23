@@ -591,7 +591,7 @@ add_specs suite_builder setup =
                 r1.should_fail_with Unsupported_Database_Operation
 
                 r2 = t.parse ["X"] Value_Type.Date
-                r2.should_fail_with Unsupported_Database_Operation
+                r2.should_fail_with Unsupported_Database_Type
 
         group_builder.specify "should be able to parse booleans with default format" <|
             t = table_builder [["X", ["true", "false", "true"]]]

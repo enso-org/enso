@@ -65,7 +65,7 @@ type Postgres_Type_Mapping
                    See: https://www.postgresql.org/docs/current/datatype-bit.html
                 SQL_Type.Value Types.BINARY "bytea" precision=max_precision
             Value_Type.Mixed ->
-                Error.throw (Unsupported_Database_Type.Error "Postgres" "Mixed")
+                Error.throw (Unsupported_Database_Type.Error "Mixed" "Postgres")
             Value_Type.Unsupported_Data_Type type_name underlying_type ->
                 underlying_type.if_nothing <|
                     Error.throw <|

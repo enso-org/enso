@@ -62,7 +62,7 @@ type Snowflake_Type_Mapping
                 case is_unbounded of
                     True  -> SQL_Type.Value Types.BINARY "binary"
                     False -> SQL_Type.Value Types.BINARY "binary" size
-            Value_Type.Mixed -> Error.throw (Unsupported_Database_Type.Error "Snowflake" "Mixed")
+            Value_Type.Mixed -> Error.throw (Unsupported_Database_Type.Error "Mixed" "Snowflake")
             Value_Type.Unsupported_Data_Type type_name underlying_type ->
                 underlying_type.if_nothing <| Error.throw <| Illegal_Argument.Error <|
                     "An unsupported SQL type ["+type_name.to_text+"] cannot be converted into an SQL type because it did not contain the SQL metadata needed to reconstruct it."

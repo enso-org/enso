@@ -119,7 +119,7 @@ add_specs suite_builder =
         group_builder.specify "does not support creating tables with date/time values" <|
             t = Table.new [["a", [Date.today]], ["b", [Time_Of_Day.now]], ["c", [Date_Time.now]]]
             r1 = t.select_into_database_table data.connection table_name=(Name_Generator.random_name "date-time-table") temporary=True
-            r1.should_fail_with Unsupported_Database_Operation
+            r1.should_fail_with Unsupported_Database_Type
 
         group_builder.specify "should be able to infer types for all supported operations" <|
             dialect = Dialect.sqlite
