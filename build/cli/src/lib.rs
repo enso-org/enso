@@ -790,7 +790,11 @@ pub async fn main_internal(config: Option<Config>) -> Result {
                     java_gen::Command::Build => generate_job.await,
                     java_gen::Command::Test => {
                         generate_job.await?;
-                        let backend_context = ctx.prepare_backend_context(default()).await?;
+                        let config = enso_build::engine::BuildConfigurationFlags {
+                            test_java_generated_from_rust: true,
+                            ..Default::default()
+                        };
+                        let backend_context = ctx.prepare_backend_context(config).await?;
                         backend_context.prepare_build_env().await?;
                         enso_build::rust::parser::run_self_tests(&repo_root).await
                     }
