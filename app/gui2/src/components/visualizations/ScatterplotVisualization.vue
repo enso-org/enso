@@ -600,9 +600,13 @@ const createNewFilterNode = () => {
   const xItems = data.value.data.map((d) => d.x)
   const minX = Math.min(...xItems)
   const maxX = Math.max(...xItems)
-  const yItems = data.value.data.map((d) => d.y)
-  const minY = Math.min(...yItems)
-  const maxY = Math.max(...yItems)
+  const yItems = data.value.data.map((d) => {
+    const { x, label, color, shape, size, row_number, series, ...rest } = d
+    return rest
+  })
+  const yItemsVal = yItems.map((k) => Object.values(k)).flat(1)
+  const minY = Math.min(...yItemsVal)
+  const maxY = Math.max(...yItemsVal)
   const pattern = getAstPatternFilterAndSort(seriesLabels, xColName, minX, maxX, minY, maxY)
   if (pattern) {
     config.createNodes({
