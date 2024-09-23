@@ -296,7 +296,7 @@ export interface EventPosition {
   delta: Vec2
 }
 
-type PointerEventType = 'start' | 'move' | 'stop'
+type PointerEventType = 'start' | 'move' | 'stop' | 'cancel'
 
 /**
  * A mask of all available pointer buttons. The values are compatible with DOM's `PointerEvent.buttons` value. The mask values
@@ -359,12 +359,12 @@ export function usePointer(
 
   const dragging = computed(() => dragState.value != null)
 
-  function doStop(e: PointerEvent) {
+  function doStop(e: PointerEvent, eventType: PointerEventType = 'stop') {
     if (dragState.value?.trackedPointer !== e.pointerId) return
     const { trackedElement, trackedPointer, initialGrabPos, lastPos } = dragState.value
     trackedElement?.releasePointerCapture(trackedPointer)
 
-    if (handler(computePosition(e, initialGrabPos, lastPos), e, 'stop') !== false) {
+    if (handler(computePosition(e, initialGrabPos, lastPos), e, eventType) !== false) {
       e.stopImmediatePropagation()
     }
 
@@ -410,6 +410,7 @@ export function usePointer(
       }
     },
     pointerup(e: PointerEvent) {
+      if (dragState.value?.trackedPointer !== e.pointerId) return
       doStop(e)
     },
     pointermove(e: PointerEvent) {
@@ -419,6 +420,10 @@ export function usePointer(
       } else {
         doStop(e)
       }
+    },
+    pointercancel(e: PointerEvent) {
+      if (dragState.value?.trackedPointer !== e.pointerId) return
+      doStop(e, 'cancel')
     },
   }
 

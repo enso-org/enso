@@ -80,7 +80,7 @@ export default function SettingsTab(props: SettingsTabProps) {
             <div
               key={i}
               className={tailwindMerge.twMerge(
-                'flex h-fit w-0 flex-1 flex-col gap-settings-subsection pb-12',
+                'flex h-fit flex-1 flex-col gap-settings-subsection pb-12',
                 classes[i],
               )}
             >

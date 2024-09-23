@@ -18,7 +18,7 @@ public final class EnsoMeta {
       var ex =
           new NullPointerException(
               "Cannot get type for " + moduleName + " type: " + typeName + " at " + module);
-      ex.initCause(ex);
+      ex.initCause(e);
       throw ex;
     }
   }

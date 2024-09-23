@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { IHeaderParams } from 'ag-grid-community'
-import { onUnmounted, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 
 /** Parameters recognized by this header component.
  *
