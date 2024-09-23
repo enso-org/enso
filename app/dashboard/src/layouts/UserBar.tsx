@@ -1,6 +1,4 @@
 /** @file A toolbar containing chat and the user menu. */
-import * as React from 'react'
-
 import ChatIcon from '#/assets/chat.svg'
 import DefaultUserIcon from '#/assets/default_user.svg'
 
@@ -20,6 +18,7 @@ import Button from '#/components/styled/Button'
 import FocusArea from '#/components/styled/FocusArea'
 
 import InviteUsersModal from '#/modals/InviteUsersModal'
+import { Plan } from '#/services/Backend'
 
 // =================
 // === Constants ===
@@ -52,10 +51,16 @@ export default function UserBar(props: UserBarProps) {
   const { getText } = textProvider.useText()
   const { isFeatureUnderPaywall } = billing.usePaywall({ plan: user.plan })
 
-  const shouldShowUpgradeButton = user.isOrganizationAdmin
-  const shouldShowPaywallButton = isFeatureUnderPaywall('inviteUser')
-  const shouldShowShareButton = onShareClick != null
-  const shouldShowInviteButton = !shouldShowShareButton && !shouldShowPaywallButton
+  const shouldShowUpgradeButton =
+    user.isOrganizationAdmin && user.plan !== Plan.enterprise && user.plan !== Plan.team
+  // eslint-disable-next-line no-restricted-syntax
+  const shouldShowPaywallButton = (false as boolean) && isFeatureUnderPaywall('inviteUser')
+  // FIXME[sb]: Re-enable when they are wanted again.
+  // eslint-disable-next-line no-restricted-syntax
+  const shouldShowShareButton = (false as boolean) && onShareClick != null
+  const shouldShowInviteButton =
+    // eslint-disable-next-line no-restricted-syntax
+    (false as boolean) && !shouldShowShareButton && !shouldShowPaywallButton
 
   return (
     <FocusArea active={!invisible} direction="horizontal">

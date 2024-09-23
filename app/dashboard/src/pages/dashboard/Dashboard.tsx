@@ -106,10 +106,12 @@ function fileURLToPath(url: string): string | null {
   if (URL.canParse(url)) {
     const parsed = new URL(url)
     if (parsed.protocol === 'file:') {
-      return detect.platform() === detect.Platform.windows ?
+      return decodeURIComponent(
+        detect.platform() === detect.Platform.windows ?
           // On Windows, we must remove leading `/` from URL.
           parsed.pathname.slice(1)
-        : parsed.pathname
+        : parsed.pathname,
+      )
     } else {
       return null
     }

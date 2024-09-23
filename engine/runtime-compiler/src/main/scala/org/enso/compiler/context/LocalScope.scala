@@ -107,7 +107,7 @@ class LocalScope(
     symbolsProvider: () => FrameVariableNames = null
   ): LocalScope = {
     val sp = if (flattenToParent) {
-      assert(symbolsProvider == null)
+      org.enso.common.Asserts.assertInJvm(symbolsProvider == null)
       this.symbolsProvider
     } else {
       symbolsProvider

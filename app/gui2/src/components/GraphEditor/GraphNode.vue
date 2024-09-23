@@ -56,6 +56,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   dragging: [offset: Vec2]
   draggingCommited: []
+  draggingCancelled: []
   delete: []
   replaceSelection: []
   outputPortClick: [event: PointerEvent, portId: AstId]
@@ -262,10 +263,14 @@ const dragPointer = usePointer(
         startEpochMs.value = Number(new Date())
         significantMove.value = false
         break
-      case 'stop': {
+      case 'stop':
         startEpochMs.value = 0
         emit('draggingCommited')
-      }
+        break
+      case 'cancel':
+        startEpochMs.value = 0
+        emit('draggingCancelled')
+        break
     }
   },
   // Pointer is captured by `target`, to make it receive the `up` and `click` event in case this
@@ -634,8 +639,10 @@ watchEffect(() => {
   position: absolute;
   bottom: 100%;
   width: calc(max(100%, 800px));
+  max-width: max-content;
   margin-bottom: var(--node-vertical-gap);
-  left: 0;
+  /* Allow space for the input arrow. */
+  left: 24px;
   transition: left 0.1s ease-out;
 }
 .menuFull .beforeNode {

@@ -10,6 +10,8 @@ from Standard.Table.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import Inexact_Type_Coercion
 from Standard.Table.Internal.Storage import get_storage_for_column
 
+from Standard.Database.Dialect_Flags import all
+
 import project.Connection.Connection.Connection
 import project.DB_Column.DB_Column
 import project.DB_Table.DB_Table
@@ -38,7 +40,6 @@ import project.SQL.SQL_Fragment
 import project.SQL_Statement.SQL_Statement
 import project.SQL_Type.SQL_Type
 from project.Dialect import Temp_Table_Style
-from Standard.Database.Dialect_Flags import all
 from project.Errors import SQL_Error, Unsupported_Database_Operation
 from project.Internal.IR.Operation_Metadata import Date_Period_Metadata
 from project.Internal.JDBC_Connection import JDBC_Connection
@@ -181,7 +182,8 @@ type Postgres_Dialect
     dialect_flags : Dialect_Flags
     dialect_flags self -> Dialect_Flags =
         rounding = Rounding_Flags.Value supports_negative_decimal_places=True supports_float_decimal_places=False use_builtin_bankers=False
-        Dialect_Flags.Value rounding=rounding
+        primary_key = Primary_Key_Flags.Value allows_nulls=False
+        Dialect_Flags.Value rounding=rounding primary_key=primary_key
 
     ## PRIVATE
        Specifies how the database creates temp tables.

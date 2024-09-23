@@ -2,6 +2,15 @@
 
 #### Enso IDE
 
+- [Rows and Columns may be now removed in Table Input Widget][11151]. The option
+  is available in right-click context menu.
+
+[11151]: https://github.com/enso-org/enso/pull/11151
+
+# Enso 2024.4
+
+#### Enso IDE
+
 - [Table Editor Widget][10774] displayed in `Table.new` component.
 - [New design of Component Browser][10814] - the component list is under the
   input and shown only in the initial "component browsing" mode - in this mode
@@ -18,6 +27,10 @@
 - [Fixed issue where drag'n'dropped files were not uploaded in cloud
   projects.][11014]
 - [Fixed files associations not properly registered on Windows][11030]
+- [Fixed "rename project" button being broken after not changing project
+  name][11103]
+- [Numbers starting with dot (`.5`) are accepted in Numeric Widget][11108]
+- [Add support for interacting with graph editor using touch devices.][11056]
 
 [10774]: https://github.com/enso-org/enso/pull/10774
 [10814]: https://github.com/enso-org/enso/pull/10814
@@ -28,6 +41,9 @@
 [11001]: https://github.com/enso-org/enso/pull/11001
 [11014]: https://github.com/enso-org/enso/pull/11014
 [11030]: https://github.com/enso-org/enso/pull/11030
+[11103]: https://github.com/enso-org/enso/pull/11103
+[11108]: https://github.com/enso-org/enso/pull/11108
+[11056]: https://github.com/enso-org/enso/pull/11056
 
 #### Enso Standard Library
 

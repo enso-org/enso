@@ -66,7 +66,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
       )}
       <ContextMenuEntry
         hidden={hidden}
-        action={'uploadFiles'}
+        action="uploadFiles"
         doAction={() => {
           if (filesInputRef.current?.isConnected === true) {
             filesInputRef.current.click()

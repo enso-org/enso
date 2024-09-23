@@ -74,7 +74,6 @@ export default function NewUserGroupModal(props: NewUserGroupModalProps) {
       )}
     >
       <form
-        data-testid="new-user-group-modal"
         tabIndex={-1}
         className="pointer-events-auto relative flex w-new-label-modal flex-col gap-modal rounded-default p-modal-wide pb-3 pt-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
         style={positionEvent == null ? {} : { left: positionEvent.pageX, top: positionEvent.pageY }}
