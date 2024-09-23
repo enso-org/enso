@@ -144,12 +144,10 @@ function createUsersMeQuery(
     queryFn: async () => {
       if (session == null) {
         // eslint-disable-next-line no-restricted-syntax
-        return null
+        return Promise.resolve(null)
       }
       try {
-        console.log('WHAT')
         const user = await remoteBackend.usersMe()
-        console.log('WHAT 2')
 
         // if API returns null, user is not yet registered
         // but already authenticated with Cognito
@@ -188,9 +186,6 @@ export default function AuthProvider(props: AuthProviderProps) {
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
   const { unsetModal } = modalProvider.useSetModal()
-  // This must not be `hooks.useNavigate` as `goOffline` would be inaccessible,
-  // and the function call would error.
-  // eslint-disable-next-line no-restricted-properties
   const navigate = router.useNavigate()
   const toastId = React.useId()
 
@@ -235,7 +230,6 @@ export default function AuthProvider(props: AuthProviderProps) {
 
   const usersMeQuery = reactQuery.useSuspenseQuery(usersMeQueryOptions)
   const userData = usersMeQuery.data
-  console.log('UH HUH', userData)
 
   const createUserMutation = reactQuery.useMutation({
     mutationFn: (user: backendModule.CreateUserRequestBody) => remoteBackend.createUser(user),

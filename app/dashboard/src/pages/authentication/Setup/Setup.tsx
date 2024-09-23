@@ -31,6 +31,9 @@ import { InviteUsersForm } from '#/modals/InviteUsersModal'
 import { PlanSelector } from '#/modules/payments'
 import { Plan } from '#/services/Backend'
 
+const USER_REFETCH_DELAY_MS = 3_000
+const USER_REFETCH_TIMEOUT_MS = 30_000
+
 /**
  * Step in the setup process
  */
@@ -62,7 +65,7 @@ const BASE_STEPS: Step[] = [
     hideNext: true,
     /** Setup step for setting username. */
     component: function SetUsernameStep({ session, goToNextStep }) {
-      const { setUsername } = useAuth()
+      const { setUsername, refetchSession } = useAuth()
       const userSession = useUserSession()
       const { getText } = textProvider.useText()
 
@@ -88,6 +91,27 @@ const BASE_STEPS: Step[] = [
             // changed.
             if (username !== defaultName || !isUserCreated) {
               await setUsername(username)
+              // Wait until the backend returns a value from `users/me`,
+              // otherwise the rest of the steps are skipped.
+              const startEpochMs = Number(new Date())
+              while (true) {
+                const { data: newSession } = await refetchSession()
+                if (newSession?.type === UserSessionType.full) {
+                  break
+                } else {
+                  const timePassedMs = Number(new Date()) - startEpochMs
+                  if (timePassedMs > USER_REFETCH_TIMEOUT_MS) {
+                    // eslint-disable-next-line no-restricted-syntax
+                    throw new Error(
+                      'Timed out waiting for subscription, please contact support to continue.',
+                    )
+                  } else {
+                    await new Promise((resolve) => {
+                      window.setTimeout(resolve, USER_REFETCH_DELAY_MS)
+                    })
+                  }
+                }
+              }
             }
             goToNextStep()
           }}
@@ -112,9 +136,7 @@ const BASE_STEPS: Step[] = [
     title: 'choosePlan',
     text: 'choosePlanDescription',
     ignore: ({ session }) =>
-      console.log('SESS', session) || (session && 'user' in session) ?
-        !session.user.isOrganizationAdmin
-      : true,
+      session && 'user' in session ? !session.user.isOrganizationAdmin : true,
     canSkip: ({ plan }) => plan === Plan.free,
     hideNext: ({ plan }) => plan === Plan.free,
     /** Setup step for choosing plan. */

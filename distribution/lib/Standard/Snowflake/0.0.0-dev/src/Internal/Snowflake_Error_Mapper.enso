@@ -6,10 +6,15 @@ from Standard.Database.Errors import Invariant_Violation, SQL_Error
 type Snowflake_Error_Mapper
 
     ## PRIVATE
-    is_primary_key_violation : SQL_Error -> Boolean
-    is_primary_key_violation error =
+    is_duplicate_primary_key_violation : SQL_Error -> Boolean
+    is_duplicate_primary_key_violation error =
         # TODO https://github.com/enso-org/enso/issues/7117
         error.java_exception.getMessage.contains "A primary key already exists."
+
+    ## PRIVATE
+    is_null_primary_key_violation : SQL_Error -> Boolean
+    is_null_primary_key_violation error =
+        error.java_exception.getMessage.contains "NULL result in a non-nullable column"
 
     ## PRIVATE
     is_table_already_exists_error : SQL_Error -> Boolean
