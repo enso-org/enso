@@ -774,7 +774,7 @@ lazy val `text-buffer` = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
-    scalaProjectSettings,
+    scalaModuleDependencySetting,
     mixedJavaScalaProjectSetting,
     commands += WithDebugCommand.withDebug,
     javaModuleName := "org.enso.text.buffer",
@@ -898,7 +898,7 @@ lazy val `syntax-rust-definition` = project
     libraryDependencies ++= Seq(
       "org.slf4j" % "slf4j-api" % slf4jVersion
     ),
-    Compile / moduleDependencies := Seq(
+    Compile / moduleDependencies ++= Seq(
       "org.slf4j" % "slf4j-api" % slf4jVersion
     ),
     javaModuleName := "org.enso.syntax",
@@ -922,7 +922,7 @@ lazy val `scala-yaml` = (project in file("lib/scala/yaml"))
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
-    scalaProjectSettings,
+    scalaModuleDependencySetting,
     mixedJavaScalaProjectSetting,
     libraryDependencies ++= Seq(
       "org.yaml" % "snakeyaml" % snakeyamlVersion % "provided"
@@ -940,7 +940,7 @@ lazy val pkg = (project in file("lib/scala/pkg"))
   .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
-    scalaProjectSettings,
+    scalaModuleDependencySetting,
     compileOrder := CompileOrder.ScalaThenJava,
     version := "0.1",
     Compile / run / mainClass := Some("org.enso.pkg.Main"),
@@ -1004,7 +1004,7 @@ lazy val `profiling-utils` = project
       "junit"          % "junit"           % junitVersion   % Test,
       "com.github.sbt" % "junit-interface" % junitIfVersion % Test
     ),
-    Compile / moduleDependencies := {
+    Compile / moduleDependencies ++= {
       Seq(
         "org.slf4j"        % "slf4j-api"                    % slf4jVersion,
         "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion
@@ -1018,7 +1018,7 @@ lazy val `logging-utils` = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
-    scalaProjectSettings,
+    scalaModuleDependencySetting,
     compileOrder := CompileOrder.ScalaThenJava, // Note [JPMS Compile order]
     version := "0.1",
     libraryDependencies ++= Seq(
@@ -1037,7 +1037,7 @@ lazy val `logging-service` = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
-    scalaProjectSettings,
+    scalaModuleDependencySetting,
     version := "0.1",
     libraryDependencies ++= Seq(
       "org.slf4j"      % "slf4j-api" % slf4jVersion,
@@ -1066,7 +1066,7 @@ lazy val `logging-config` = project
       "com.typesafe" % "config"    % typesafeConfigVersion,
       "org.slf4j"    % "slf4j-api" % slf4jVersion
     ),
-    Compile / moduleDependencies := Seq(
+    Compile / moduleDependencies ++= Seq(
       "com.typesafe" % "config"    % typesafeConfigVersion,
       "org.slf4j"    % "slf4j-api" % slf4jVersion
     )
@@ -1084,7 +1084,7 @@ lazy val `logging-service-logback` = project
       "org.scalatest"   %% "scalatest"               % scalatestVersion   % Test,
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
     ) ++ logbackPkg ++ ioSentry,
-    Compile / moduleDependencies := logbackPkg ++ ioSentry ++ Seq(
+    Compile / moduleDependencies ++= logbackPkg ++ ioSentry ++ Seq(
       "org.slf4j"        % "slf4j-api"               % slf4jVersion,
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
     ),
@@ -1093,7 +1093,7 @@ lazy val `logging-service-logback` = project
       (`logging-service` / Compile / exportedModule).value,
       (`logging-config` / Compile / exportedModule).value
     ),
-    Test / moduleDependencies := scalaLibrary,
+    Test / moduleDependencies ++= scalaLibrary,
     Test / internalModuleDependencies := Seq(
       (Compile / exportedModule).value
     )
@@ -1107,7 +1107,7 @@ lazy val `logging-utils-akka` = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
-    scalaProjectSettings,
+    scalaModuleDependencySetting,
     version := "0.1",
     compileOrder := CompileOrder.ScalaThenJava,
     libraryDependencies ++= Seq(
@@ -1129,7 +1129,7 @@ lazy val filewatcher = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
-    scalaProjectSettings,
+    scalaModuleDependencySetting,
     compileOrder := CompileOrder.ScalaThenJava,
     javaModuleName := "org.enso.filewatcher",
     version := "0.1",
@@ -1181,7 +1181,7 @@ lazy val `scala-libs-wrapper` = project
   .enablePlugins(JPMSPlugin)
   .settings(
     modularFatJarWrapperSettings,
-    scalaProjectSettings,
+    scalaModuleDependencySetting,
     javaModuleName := "org.enso.scala.wrapper",
     libraryDependencies ++= circe ++ Seq(
       "com.typesafe.scala-logging"            %% "scala-logging"         % scalaLoggingVersion,
@@ -1251,7 +1251,7 @@ lazy val `language-server-deps-wrapper` = project
   .enablePlugins(JPMSPlugin)
   .settings(
     modularFatJarWrapperSettings,
-    scalaProjectSettings,
+    scalaModuleDependencySetting,
     libraryDependencies ++= Seq(
       "com.github.pureconfig" %% "pureconfig" % pureconfigVersion,
       "com.chuusai"           %% "shapeless"  % shapelessVersion,
@@ -1298,7 +1298,7 @@ lazy val `directory-watcher-wrapper` = project
   .enablePlugins(JPMSPlugin)
   .settings(
     modularFatJarWrapperSettings,
-    scalaProjectSettings,
+    scalaModuleDependencySetting,
     libraryDependencies ++= Seq(
       "io.methvin"       % "directory-watcher" % directoryWatcherVersion,
       "org.slf4j"        % "slf4j-api"         % "1.7.36",
@@ -1344,7 +1344,7 @@ lazy val `fansi-wrapper` = project
   .enablePlugins(JPMSPlugin)
   .settings(
     modularFatJarWrapperSettings,
-    scalaProjectSettings,
+    scalaModuleDependencySetting,
     libraryDependencies ++= Seq(
       "com.lihaoyi" %% "fansi" % fansiVersion
     ),
@@ -1383,7 +1383,7 @@ lazy val `akka-wrapper` = project
   .enablePlugins(JPMSPlugin)
   .settings(
     modularFatJarWrapperSettings,
-    scalaProjectSettings,
+    scalaModuleDependencySetting,
     libraryDependencies ++= akka ++ scalaLibrary ++ scalaCompiler ++ Seq(
       "org.scala-lang.modules"   %% "scala-parser-combinators" % scalaParserCombinatorsVersion,
       "org.scala-lang.modules"   %% "scala-java8-compat"       % scalaJavaCompatVersion,
@@ -1462,7 +1462,7 @@ lazy val `zio-wrapper` = project
   .enablePlugins(JPMSPlugin)
   .settings(
     modularFatJarWrapperSettings,
-    scalaProjectSettings,
+    scalaModuleDependencySetting,
     javaModuleName := "org.enso.zio.wrapper",
     libraryDependencies ++= zio ++ Seq(
       "dev.zio" %% "zio-internal-macros"                       % zioVersion,
@@ -1514,7 +1514,7 @@ lazy val cli = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
-    scalaProjectSettings,
+    scalaModuleDependencySetting,
     compileOrder := CompileOrder.ScalaThenJava,
     version := "0.1",
     libraryDependencies ++= circe ++ Seq(
@@ -1535,7 +1535,7 @@ lazy val `task-progress-notifications` = project
   .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
-    scalaProjectSettings,
+    scalaModuleDependencySetting,
     version := "0.1",
     compileOrder := CompileOrder.ScalaThenJava,
     libraryDependencies ++= Seq(
@@ -1579,7 +1579,7 @@ lazy val `refactoring-utils` = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
-    scalaProjectSettings,
+    scalaModuleDependencySetting,
     mixedJavaScalaProjectSetting,
     commands += WithDebugCommand.withDebug,
     version := "0.1",
@@ -1741,7 +1741,7 @@ lazy val `json-rpc-server` = project
   .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
-    scalaProjectSettings,
+    scalaModuleDependencySetting,
     compileOrder := CompileOrder.ScalaThenJava,
     libraryDependencies ++= akka ++ logbackTest,
     libraryDependencies ++= circe,
@@ -1817,7 +1817,7 @@ lazy val searcher = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
-    scalaProjectSettings,
+    scalaModuleDependencySetting,
     compileOrder := CompileOrder.ScalaThenJava,
     annotationProcSetting,
     libraryDependencies ++= jmh ++ Seq(
@@ -1847,7 +1847,7 @@ lazy val `ydoc-server` = project
     autoScalaLibrary := false,
     Test / fork := true,
     commands += WithDebugCommand.withDebug,
-    Compile / moduleDependencies := {
+    Compile / moduleDependencies ++= {
       GraalVM.modules ++ GraalVM.jsPkgs ++ GraalVM.chromeInspectorPkgs ++ helidon ++ logbackPkg ++ Seq(
         "org.slf4j" % "slf4j-api" % slf4jVersion
       )
@@ -1935,7 +1935,7 @@ lazy val `persistance` = (project in file("lib/java/persistance"))
       "junit"            % "junit"                   % junitVersion   % Test,
       "com.github.sbt"   % "junit-interface"         % junitIfVersion % Test
     ),
-    Compile / moduleDependencies := Seq(
+    Compile / moduleDependencies ++= Seq(
       "org.slf4j"        % "slf4j-api"               % slf4jVersion,
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion
     )
@@ -1979,7 +1979,7 @@ lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
       "org.netbeans.api"   % "org-openide-util-lookup" % netbeansApiVersion % "provided",
       "com.google.guava"   % "guava"                   % guavaVersion exclude ("com.google.code.findbugs", "jsr305")
     ),
-    Compile / moduleDependencies := Seq(
+    Compile / moduleDependencies ++= Seq(
       "org.apache.commons" % "commons-lang3"           % commonsLangVersion,
       "org.netbeans.api"   % "org-openide-util-lookup" % netbeansApiVersion,
       "com.google.guava"   % "guava"                   % guavaVersion
@@ -2062,7 +2062,7 @@ lazy val `engine-common` = project
     libraryDependencies ++= Seq(
       "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided"
     ),
-    Compile / moduleDependencies := {
+    Compile / moduleDependencies ++= {
       Seq(
         "org.graalvm.polyglot" % "polyglot"  % graalMavenPackagesVersion,
         "org.slf4j"            % "slf4j-api" % slf4jVersion
@@ -2082,7 +2082,7 @@ lazy val `polyglot-api` = project
   .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
-    scalaProjectSettings,
+    scalaModuleDependencySetting,
     mixedJavaScalaProjectSetting,
     Test / fork := true,
     commands += WithDebugCommand.withDebug,
@@ -2132,7 +2132,7 @@ lazy val `polyglot-api-macros` = project
   .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
-    scalaProjectSettings,
+    scalaModuleDependencySetting,
     mixedJavaScalaProjectSetting,
     libraryDependencies ++= Seq(
       "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"   % jsoniterVersion % "provided",
@@ -2149,7 +2149,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .settings(
     commands += WithDebugCommand.withDebug,
     frgaalJavaCompilerSetting,
-    scalaProjectSettings,
+    scalaModuleDependencySetting,
     mixedJavaScalaProjectSetting,
     libraryDependencies ++= akka ++ circe ++ bouncyCastle.map(_ % Test) ++ Seq(
       "org.slf4j"                   % "slf4j-api"            % slf4jVersion,
@@ -2454,7 +2454,7 @@ lazy val javadocSettings = Seq(
 lazy val frgaalJavaCompilerSetting: SettingsDefinition =
   customFrgaalJavaCompilerSettings(targetJavaVersion)
 
-lazy val scalaProjectSettings: SettingsDefinition = Seq(
+lazy val scalaModuleDependencySetting: SettingsDefinition = Seq(
   Compile / moduleDependencies := scalaLibrary
 )
 
@@ -2535,7 +2535,7 @@ lazy val `runtime-language-epb` =
         "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion % "provided",
         "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided"
       ),
-      Compile / moduleDependencies := Seq(
+      Compile / moduleDependencies ++= Seq(
         "org.graalvm.truffle"  % "truffle-api" % graalMavenPackagesVersion,
         "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "collections" % graalMavenPackagesVersion,
@@ -2562,7 +2562,7 @@ lazy val `runtime-language-arrow` =
         "org.apache.arrow" % "arrow-memory-netty" % apacheArrowVersion % Test
       ),
       javaModuleName := "org.enso.interpreter.arrow",
-      Compile / moduleDependencies := GraalVM.modules,
+      Compile / moduleDependencies ++= GraalVM.modules,
       Test / moduleDependencies +=
         (LocalProject("runtime-language-arrow") / projectID).value,
       Test / patchModules := {
@@ -2599,7 +2599,7 @@ lazy val `runtime-test-instruments` =
         "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided"
       ),
       javaModuleName := "org.enso.runtime.test",
-      Compile / moduleDependencies := {
+      Compile / moduleDependencies ++= {
         GraalVM.modules ++ Seq(
           "org.graalvm.sdk"     % "polyglot-tck"            % graalMavenPackagesVersion,
           "org.graalvm.truffle" % "truffle-tck"             % graalMavenPackagesVersion,
@@ -2614,7 +2614,7 @@ lazy val runtime = (project in file("engine/runtime"))
   .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
-    scalaProjectSettings,
+    scalaModuleDependencySetting,
     mixedJavaScalaProjectSetting,
     annotationProcSetting,
     truffleDslSuppressWarnsSetting,
@@ -2896,6 +2896,7 @@ lazy val `runtime-benchmarks` =
     .enablePlugins(PackageListPlugin)
     .settings(
       frgaalJavaCompilerSetting,
+      scalaModuleDependencySetting,
       annotationProcSetting,
       // Note that withDebug command only makes sense if you use `@Fork(0)` in your benchmarks.
       commands += WithDebugCommand.withDebug,
@@ -2918,8 +2919,8 @@ lazy val `runtime-benchmarks` =
         "--enable-preview"
       ),
       parallelExecution := false,
-      Compile / moduleDependencies := {
-        GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ helidon ++ ioSentry ++ scalaLibrary ++ scalaCompiler ++ Seq(
+      Compile / moduleDependencies ++= {
+        GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ helidon ++ ioSentry ++ scalaCompiler ++ Seq(
           "org.apache.commons"     % "commons-lang3"                % commonsLangVersion,
           "org.apache.commons"     % "commons-compress"             % commonsCompressVersion,
           "commons-io"             % "commons-io"                   % commonsIoVersion,
@@ -3061,7 +3062,7 @@ lazy val `runtime-parser` =
   (project in file("engine/runtime-parser"))
     .enablePlugins(JPMSPlugin)
     .settings(
-      scalaProjectSettings,
+      scalaModuleDependencySetting,
       mixedJavaScalaProjectSetting,
       version := mavenUploadVersion,
       javadocSettings,
@@ -3096,7 +3097,7 @@ lazy val `runtime-compiler` =
     .enablePlugins(PackageListPlugin)
     .settings(
       frgaalJavaCompilerSetting,
-      scalaProjectSettings,
+      scalaModuleDependencySetting,
       mixedJavaScalaProjectSetting,
       annotationProcSetting,
       commands += WithDebugCommand.withDebug,
@@ -3180,7 +3181,7 @@ lazy val `runtime-suggestions` =
     .enablePlugins(JPMSPlugin)
     .settings(
       frgaalJavaCompilerSetting,
-      scalaProjectSettings,
+      scalaModuleDependencySetting,
       mixedJavaScalaProjectSetting,
       (Test / fork) := true,
       libraryDependencies ++= Seq(
@@ -3206,7 +3207,7 @@ lazy val `runtime-instrument-common` =
     .configs(Benchmark)
     .settings(
       frgaalJavaCompilerSetting,
-      scalaProjectSettings,
+      scalaModuleDependencySetting,
       mixedJavaScalaProjectSetting,
       inConfig(Compile)(truffleRunOptionsSettings),
       inConfig(Benchmark)(Defaults.testSettings),
@@ -3269,7 +3270,7 @@ lazy val `runtime-instrument-id-execution` =
       inConfig(Compile)(truffleRunOptionsSettings),
       Compile / forceModuleInfoCompilation := true,
       instrumentationSettings,
-      Compile / moduleDependencies := Seq(
+      Compile / moduleDependencies ++= Seq(
         "org.graalvm.truffle"  % "truffle-api" % graalMavenPackagesVersion,
         "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "collections" % graalMavenPackagesVersion,
@@ -3289,10 +3290,11 @@ lazy val `runtime-instrument-repl-debugger` =
   (project in file("engine/runtime-instrument-repl-debugger"))
     .enablePlugins(JPMSPlugin)
     .settings(
+      scalaModuleDependencySetting,
       inConfig(Compile)(truffleRunOptionsSettings),
       Compile / forceModuleInfoCompilation := true,
       instrumentationSettings,
-      Compile / moduleDependencies := scalaLibrary ++ Seq(
+      Compile / moduleDependencies ++= Seq(
         "org.graalvm.truffle"  % "truffle-api" % graalMavenPackagesVersion,
         "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "collections" % graalMavenPackagesVersion,
@@ -3318,7 +3320,7 @@ lazy val `runtime-instrument-runtime-server` =
       inConfig(Compile)(truffleRunOptionsSettings),
       Compile / forceModuleInfoCompilation := true,
       instrumentationSettings,
-      Compile / moduleDependencies := scalaLibrary ++ Seq(
+      Compile / moduleDependencies ++= Seq(
         "org.graalvm.truffle"  % "truffle-api"             % graalMavenPackagesVersion,
         "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "collections"             % graalMavenPackagesVersion,
@@ -3371,6 +3373,7 @@ lazy val `engine-runner-common` = project
   .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
+    scalaModuleDependencySetting,
     compileOrder := CompileOrder.ScalaThenJava, // Note [JPMS Compile order]
     Test / fork := true,
     commands += WithDebugCommand.withDebug,
@@ -3380,7 +3383,7 @@ lazy val `engine-runner-common` = project
       "commons-io"           % "commons-io"  % commonsIoVersion,
       "commons-cli"          % "commons-cli" % commonsCliVersion
     ),
-    Compile / moduleDependencies := scalaLibrary ++ Seq(
+    Compile / moduleDependencies ++= Seq(
       "commons-cli" % "commons-cli" % commonsCliVersion,
       "org.slf4j"   % "slf4j-api"   % slf4jVersion,
       "commons-io"  % "commons-io"  % commonsIoVersion
@@ -3403,6 +3406,7 @@ lazy val `engine-runner` = project
   .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
+    scalaModuleDependencySetting,
     compileOrder := CompileOrder.JavaThenScala,
     truffleDslSuppressWarnsSetting,
     packageOptions := Seq(
@@ -3425,16 +3429,15 @@ lazy val `engine-runner` = project
       "org.hamcrest"            % "hamcrest-all"            % hamcrestVersion           % Test,
       "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionCompatVersion
     ),
-    Compile / moduleDependencies := {
-      scalaLibrary ++ Seq(
+    Compile / moduleDependencies ++=
+      Seq(
         "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion,
         "commons-cli"          % "commons-cli" % commonsCliVersion,
         "org.jline"            % "jline"       % jlineVersion,
         "org.slf4j"            % "slf4j-api"   % slf4jVersion
-      )
-    },
+      ),
     Compile / internalModuleDependencies := Seq(
       (`profiling-utils` / Compile / exportedModule).value,
       (`semver` / Compile / exportedModule).value,
@@ -3709,6 +3712,7 @@ lazy val `distribution-manager` = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    scalaModuleDependencySetting,
     // Note [JPMS Compile order]
     compileOrder := CompileOrder.ScalaThenJava,
     resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
@@ -3718,7 +3722,7 @@ lazy val `distribution-manager` = project
       "commons-io"                  % "commons-io"    % commonsIoVersion,
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
     ),
-    Compile / moduleDependencies := scalaLibrary ++ Seq(
+    Compile / moduleDependencies ++= Seq(
       "org.slf4j" % "slf4j-api" % slf4jVersion,
       "org.yaml"  % "snakeyaml" % snakeyamlVersion
     ),
@@ -3979,13 +3983,14 @@ lazy val editions = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    scalaModuleDependencySetting,
     compileOrder := CompileOrder.ScalaThenJava, // Note [JPMS Compile order]
     libraryDependencies ++= Seq(
       "io.circe"      %% "circe-core" % circeVersion     % "provided",
       "org.yaml"       % "snakeyaml"  % snakeyamlVersion % "provided",
       "org.scalatest" %% "scalatest"  % scalatestVersion % Test
     ),
-    Compile / moduleDependencies := scalaLibrary ++ Seq(
+    Compile / moduleDependencies ++= Seq(
       "org.yaml" % "snakeyaml" % snakeyamlVersion
     ),
     Compile / internalModuleDependencies := Seq(
@@ -4021,6 +4026,7 @@ lazy val semver = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    scalaModuleDependencySetting,
     // Note [JPMS Compile order]
     compileOrder := CompileOrder.JavaThenScala,
     javaModuleName := "org.enso.semver",
@@ -4031,11 +4037,9 @@ lazy val semver = project
       "junit"          % "junit"           % junitVersion     % Test,
       "com.github.sbt" % "junit-interface" % junitIfVersion   % Test
     ),
-    Compile / moduleDependencies := {
-      scalaLibrary ++ Seq(
-        "org.yaml" % "snakeyaml" % snakeyamlVersion
-      )
-    },
+    Compile / moduleDependencies ++= Seq(
+      "org.yaml" % "snakeyaml" % snakeyamlVersion
+    ),
     Compile / internalModuleDependencies := Seq(
       (`scala-yaml` / Compile / exportedModule).value
     )
@@ -4063,7 +4067,7 @@ lazy val downloader = (project in file("lib/scala/downloader"))
   .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
-    scalaProjectSettings,
+    scalaModuleDependencySetting,
     mixedJavaScalaProjectSetting,
     // Fork the tests to make sure that the withDebug command works (we can
     // attach debugger to the subprocess)
@@ -4100,13 +4104,13 @@ lazy val `edition-updater` = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    scalaModuleDependencySetting,
     compileOrder := CompileOrder.ScalaThenJava, // Note [JPMS Compile order]
     Test / test := (Test / test).tag(simpleLibraryServerTag).value,
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
     ),
-    Compile / moduleDependencies := scalaLibrary,
     Compile / internalModuleDependencies := Seq(
       (`distribution-manager` / Compile / exportedModule).value,
       (`editions` / Compile / exportedModule).value
@@ -4134,13 +4138,14 @@ lazy val `library-manager` = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    scalaModuleDependencySetting,
     compileOrder := CompileOrder.ScalaThenJava, // Note [JPMS Compile order]
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
     ),
     javaModuleName := "org.enso.librarymanager",
-    Compile / moduleDependencies := scalaLibrary ++ Seq(
+    Compile / moduleDependencies ++= Seq(
       "org.yaml"  % "snakeyaml" % snakeyamlVersion,
       "org.slf4j" % "slf4j-api" % slf4jVersion
     ),
@@ -4169,6 +4174,7 @@ lazy val `library-manager-test` = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    scalaModuleDependencySetting,
     compileOrder := CompileOrder.ScalaThenJava,
     Test / fork := true,
     commands += WithDebugCommand.withDebug,
@@ -4178,7 +4184,6 @@ lazy val `library-manager-test` = project
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
     ),
-    Compile / moduleDependencies := scalaLibrary,
     Compile / internalModuleDependencies := Seq(
       (`library-manager` / Compile / exportedModule).value,
       (`cli` / Compile / exportedModule).value,
@@ -4205,12 +4210,12 @@ lazy val `connected-lock-manager` = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    scalaModuleDependencySetting,
     compileOrder := CompileOrder.ScalaThenJava,
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
     ),
-    Compile / moduleDependencies := scalaLibrary,
     Compile / internalModuleDependencies := Seq(
       (`distribution-manager` / Compile / exportedModule).value,
       (`polyglot-api` / Compile / exportedModule).value,
@@ -4229,7 +4234,7 @@ lazy val `connected-lock-manager-server` = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
-    scalaProjectSettings,
+    scalaModuleDependencySetting,
     mixedJavaScalaProjectSetting,
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
@@ -4277,8 +4282,8 @@ lazy val `process-utils` = project
   .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
-    compileOrder := CompileOrder.ScalaThenJava,
-    Compile / moduleDependencies := scalaLibrary
+    scalaModuleDependencySetting,
+    compileOrder := CompileOrder.ScalaThenJava
   )
 
 lazy val `runtime-version-manager-test` = project
