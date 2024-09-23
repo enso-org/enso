@@ -3621,7 +3621,6 @@ lazy val `engine-runner` = project
   .dependsOn(`engine-runner-common`)
   .dependsOn(`polyglot-api`)
   .dependsOn(`enso-test-java-helpers`)
-  .dependsOn(`language-server` % Runtime)
 
 lazy val buildSmallJdk =
   taskKey[File]("Build a minimal JDK used for native image generation")
