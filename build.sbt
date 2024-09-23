@@ -656,7 +656,7 @@ lazy val componentModulesPaths =
     scalaLibrary ++
     scalaCompiler ++
     ioSentry ++
-    logbackPkg
+    logbackPkg ++
   Seq(
     "org.netbeans.api"       % "org-openide-util-lookup"      % netbeansApiVersion,
     "org.netbeans.api"       % "org-netbeans-modules-sampler" % netbeansApiVersion,
