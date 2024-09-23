@@ -7,6 +7,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.CachedLibrary;
+import com.oracle.truffle.api.profiles.BranchProfile;
 import java.math.BigInteger;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
@@ -53,12 +54,14 @@ public abstract class ModNode extends IntegerNode {
   }
 
   @Specialization
-  Object doLong(EnsoBigInteger self, long that) {
+  Object doLong(EnsoBigInteger self, long that, @Cached BranchProfile attachFullStackTraceProfile) {
     try {
       return toEnsoNumberNode.execute(BigIntegerOps.modulo(self.getValue(), that));
     } catch (ArithmeticException e) {
       return DataflowError.withDefaultTrace(
-          EnsoContext.get(this).getBuiltins().error().getDivideByZeroError(), this);
+          EnsoContext.get(this).getBuiltins().error().getDivideByZeroError(),
+          this,
+          attachFullStackTraceProfile);
     }
   }
 
