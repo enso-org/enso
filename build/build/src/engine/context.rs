@@ -190,6 +190,16 @@ impl RunContext {
         graalpy.install_if_missing(&self.cache).await?;
         ide_ci::programs::graalpy::GraalPy.require_present().await?;
 
+        if self.config.test_java_generated_from_rust {
+            // Ensure all runtime dependencies are resolved and exported so that they can be
+            // appended to classpath
+            let sbt = engine::sbt::Context {
+                repo_root:         self.paths.repo_root.path.clone(),
+                system_properties: default(),
+            };
+            sbt.call_arg("syntax-rust-definition/Runtime/managedClasspath").await?;
+        }
+
         prepare_simple_library_server.await??;
         Ok(())
     }

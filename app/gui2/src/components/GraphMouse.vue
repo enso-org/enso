@@ -12,6 +12,7 @@ const scaledMousePos = computed(
   () => navigator?.sceneMousePos?.scale(navigator?.scale ?? 1) ?? Vec2.Zero,
 )
 const scaledSelectionAnchor = computed(() => nodeSelection?.anchor?.scale(navigator?.scale ?? 1))
+const scaledSelectionFocus = computed(() => nodeSelection?.focus?.scale(navigator?.scale ?? 1))
 const isNativeDragging = ref(0)
 
 useEvent(
@@ -44,7 +45,7 @@ useEvent(
   <SelectionBrush
     v-if="!isNativeDragging"
     :transform="navigator?.prescaledTransform"
-    :position="scaledMousePos"
+    :position="scaledSelectionFocus"
     :anchor="scaledSelectionAnchor"
   />
 </template>
