@@ -3462,6 +3462,9 @@ lazy val `engine-runner` = project
       val runtimeServerInstr =
         (`runtime-instrument-runtime-server` / Compile / fullClasspath).value
           .map(_.data.getAbsolutePath)
+      val idExecInstr =
+        (`runtime-instrument-id-execution` / Compile / fullClasspath).value
+          .map(_.data.getAbsolutePath)
       val epbLang =
         (`runtime-language-epb` / Compile / fullClasspath).value
           .map(_.data.getAbsolutePath)
@@ -3471,6 +3474,7 @@ lazy val `engine-runner` = project
           loggingDeps ++
           replDebugInstr ++
           runtimeServerInstr ++
+          idExecInstr ++
           epbLang
       ).distinct
       val stdLibsJars =
