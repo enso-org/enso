@@ -6,6 +6,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.CachedLibrary;
+import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -61,9 +62,9 @@ public abstract class LessNode extends IntegerNode {
   }
 
   @Fallback
-  Object doOther(Object self, Object that) {
+  Object doOther(Object self, Object that, @Cached BranchProfile attachFullStackTraceProfile) {
     var builtins = EnsoContext.get(this).getBuiltins();
     var incomparableValsErr = builtins.error().makeIncomparableValues(self, that);
-    return DataflowError.withDefaultTrace(incomparableValsErr, this);
+    return DataflowError.withDefaultTrace(incomparableValsErr, this, attachFullStackTraceProfile);
   }
 }

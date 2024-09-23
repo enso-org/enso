@@ -2,6 +2,7 @@ package org.enso.interpreter.node.expression.builtin.number.integer;
 
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Exclusive;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.NeverDefault;
@@ -9,6 +10,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.CachedLibrary;
+import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
@@ -40,14 +42,17 @@ public abstract class BitShiftNode extends IntegerNode {
   }
 
   @Specialization(guards = "that >= 0", replaces = "doLongShiftLeft")
-  Object doLongShiftLeftExplicit(long self, long that) {
+  Object doLongShiftLeftExplicit(
+      long self, long that, @Shared @Cached BranchProfile attachFullStackTraceProfile) {
     if (canShiftLeftInLongProfile.profile(canShiftLeftInLong(self, that))) {
       return doLongShiftLeft(self, that);
     } else if (positiveFitsInInt.profile(BigIntegerOps.fitsInInt(that))) {
       return toEnsoNumberNode.execute(BigIntegerOps.bitShiftLeft(self, (int) that));
     } else {
       return DataflowError.withDefaultTrace(
-          EnsoContext.get(this).getBuiltins().error().getShiftAmountTooLargeError(), this);
+          EnsoContext.get(this).getBuiltins().error().getShiftAmountTooLargeError(),
+          this,
+          attachFullStackTraceProfile);
     }
   }
 
@@ -70,13 +75,16 @@ public abstract class BitShiftNode extends IntegerNode {
   }
 
   @Specialization
-  Object doBigInteger(long self, EnsoBigInteger that) {
+  Object doBigInteger(
+      long self, EnsoBigInteger that, @Cached BranchProfile attachFullStackTraceProfile) {
     if (!BigIntegerOps.nonNegative(that.getValue())) {
       return self >= 0 ? 0L : -1L;
     } else {
       // Note [Well-Formed BigIntegers]
       return DataflowError.withDefaultTrace(
-          EnsoContext.get(this).getBuiltins().error().getShiftAmountTooLargeError(), this);
+          EnsoContext.get(this).getBuiltins().error().getShiftAmountTooLargeError(),
+          this,
+          attachFullStackTraceProfile);
     }
   }
 
@@ -89,12 +97,15 @@ public abstract class BitShiftNode extends IntegerNode {
   Object doBigIntShiftLeftExplicit(
       EnsoBigInteger self,
       long that,
-      @Exclusive @Cached CountingConditionProfile fitsInIntProfileLeftShift) {
+      @Exclusive @Cached CountingConditionProfile fitsInIntProfileLeftShift,
+      @Cached BranchProfile attachFullStackTraceProfile) {
     if (fitsInIntProfileLeftShift.profile(BigIntegerOps.fitsInInt(that))) {
       return doBigIntShiftLeft(self, that);
     } else {
       return DataflowError.withDefaultTrace(
-          EnsoContext.get(this).getBuiltins().error().getShiftAmountTooLargeError(), this);
+          EnsoContext.get(this).getBuiltins().error().getShiftAmountTooLargeError(),
+          this,
+          attachFullStackTraceProfile);
     }
   }
 
@@ -116,12 +127,17 @@ public abstract class BitShiftNode extends IntegerNode {
   }
 
   @Specialization
-  Object doBigIntThat(EnsoBigInteger self, EnsoBigInteger that) {
+  Object doBigIntThat(
+      EnsoBigInteger self,
+      EnsoBigInteger that,
+      @Shared @Cached BranchProfile attachFullStackTraceProfile) {
     if (!BigIntegerOps.nonNegative(that.getValue())) {
       return BigIntegerOps.nonNegative(self.getValue()) ? 0L : -1L;
     } else {
       return DataflowError.withDefaultTrace(
-          EnsoContext.get(this).getBuiltins().error().getShiftAmountTooLargeError(), this);
+          EnsoContext.get(this).getBuiltins().error().getShiftAmountTooLargeError(),
+          this,
+          attachFullStackTraceProfile);
     }
   }
 

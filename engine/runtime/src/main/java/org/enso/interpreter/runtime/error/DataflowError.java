@@ -15,6 +15,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.profiles.BranchProfile;
 import java.util.Objects;
 import org.enso.interpreter.node.callable.IndirectInvokeMethodNode;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNode;
@@ -49,9 +50,11 @@ public final class DataflowError extends AbstractTruffleException implements Ens
    *
    * @param payload the user-provided value carried by the error
    * @param location the node in which the error was created
+   * @param attachFullStackTraceProfile
    * @return a new dataflow error
    */
-  public static DataflowError withDefaultTrace(State state, Object payload, Node location) {
+  public static DataflowError withDefaultTrace(
+      State state, Object payload, Node location, BranchProfile attachFullStackTraceProfile) {
     assert payload != null;
     boolean attachFullStackTrace =
         state == null
@@ -59,6 +62,7 @@ public final class DataflowError extends AbstractTruffleException implements Ens
                 .getExecutionEnvironment()
                 .hasContextEnabled("Dataflow_Stack_Trace");
     if (attachFullStackTrace) {
+      attachFullStackTraceProfile.enter();
       var result = new DataflowError(payload, UNLIMITED_STACK_TRACE, location);
       TruffleStackTrace.fillIn(result);
       return result;
@@ -68,8 +72,13 @@ public final class DataflowError extends AbstractTruffleException implements Ens
     }
   }
 
+  public static DataflowError withDefaultTrace(
+      Object payload, Node location, BranchProfile attachFullStackTraceProfile) {
+    return withDefaultTrace(null, payload, location, attachFullStackTraceProfile);
+  }
+
   public static DataflowError withDefaultTrace(Object payload, Node location) {
-    return withDefaultTrace(null, payload, location);
+    return withDefaultTrace(null, payload, location, BranchProfile.getUncached());
   }
 
   /**
