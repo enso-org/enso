@@ -277,4 +277,4 @@ map_column_inputs f:Function aggregate_column:Aggregate_Column -> Aggregate_Colu
 is_non_empty_selector v = v.is_nothing.not && v.not_empty
 
 ## PRIVATE
-throw_ordering_required op_name = Error.throw (Error ("`" + op_name + "` aggregation requires at least one `order_by` column."))
+throw_ordering_required op_name = Error.throw ("`" + op_name + "` aggregation requires at least one `order_by` column.")

@@ -551,7 +551,7 @@ make_order_descriptor internal_column sort_direction text_ordering =
                         Order_Descriptor.Value (Internals_Access.column_expression internal_column) sort_direction nulls_order=nulls collation=Nothing
                     Case_Sensitivity.Sensitive ->
                         # Order_Descriptor.Value (Internals_Access.column_expression internal_column) sort_direction nulls_order=nulls collation="ucs_basic"
-                        Error.throw (Error "Feature unsupported due to bug. Please use `..Default` until https://github.com/enso-org/enso/issues/10835 is fixed.")
+                        Error.throw ("Feature unsupported due to bug. Please use `..Default` until https://github.com/enso-org/enso/issues/10835 is fixed.")
                     Case_Sensitivity.Insensitive locale -> case locale == Locale.default of
                         False ->
                             Error.throw (Unsupported_Database_Operation.Error "Case insensitive ordering with custom locale")
