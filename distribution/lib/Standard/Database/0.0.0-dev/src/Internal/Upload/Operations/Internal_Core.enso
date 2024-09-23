@@ -14,7 +14,7 @@ import project.Internal.In_Transaction.In_Transaction
 import project.Internal.IR.Query.Query
 import project.SQL_Query.SQL_Query
 from project.Dialect import Temp_Table_Style
-from project.Errors import SQL_Error, Table_Already_Exists, Unsupported_Database_Operation
+from project.Errors import SQL_Error, Table_Already_Exists
 from project.Internal.JDBC_Connection import log_sql_if_enabled
 from project.Internal.Upload.Helpers.Argument_Checks import resolve_primary_key
 from project.Internal.Upload.Helpers.Constants import default_batch_size
@@ -102,7 +102,7 @@ internal_upload_in_memory_table (source_table : Table) connection table_name pri
 internal_upload_database_table (source_table : DB_Table) connection table_name primary_key temporary remove_after_transaction structure_hint on_problems:Problem_Behavior row_limit =
     check_outside_transaction
     connection_check = if source_table.connection.jdbc_connection == connection.jdbc_connection then True else
-        Error.throw (Unsupported_Database_Operation.Error "The Database table to be uploaded must be coming from the same connection as the connection on which the new table is being created. Cross-connection uploads are currently not supported. To work around this, you can first `.read` the table into memory and then upload it from memory to a different connection.")
+        Error.throw "The Database table to be uploaded must be coming from the same connection as the connection on which the new table is being created. Cross-connection uploads are currently not supported. To work around this, you can first `.read` the table into memory and then upload it from memory to a different connection."
     verify_structure_hint structure_hint source_table.column_names
     connection_check.if_not_error <| table_name.if_not_error <|
         structure = structure_hint.if_nothing source_table

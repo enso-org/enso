@@ -10,15 +10,29 @@ type Unsupported_Database_Operation
 
     ## PRIVATE
        Convert the SQL error to a textual representation.
-    to_text : Text
-    to_text self =
-        "Unsupported database operation: " + self.message
+    to_text self -> Text =
+        self.message + " not yet supported for DB backend. Use .read to download the data and use this feature."
 
     ## PRIVATE
        Pretty print the error.
-    to_display_text : Text
-    to_display_text self =
-        "Unsupported database operation: " + self.message
+    to_display_text self -> Text =
+        self.to_text
+
+## Indicates that a requested type is not supported, for example because a
+   particular database backend does not support it.
+type Unsupported_Database_Type
+    ## PRIVATE
+    Error db:Text type:Text
+
+    ## PRIVATE
+       Convert the SQL error to a textual representation.
+    to_text self -> Text =
+        self.db + " tables do not support " + self.type + " types."
+
+    ## PRIVATE
+       Pretty print the error.
+    to_display_text self -> Text =
+        self.to_text
 
 type SQL_Error
     ## PRIVATE

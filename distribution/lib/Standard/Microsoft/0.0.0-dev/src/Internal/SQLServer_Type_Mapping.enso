@@ -14,7 +14,7 @@ import Standard.Database.Internal.IR.SQL_Expression.SQL_Expression
 import Standard.Database.Internal.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
 import Standard.Database.SQL_Type.SQL_Type
-from Standard.Database.Errors import Unsupported_Database_Operation
+from Standard.Database.Errors import Unsupported_Database_Type
 
 polyglot java import java.sql.Types
 
@@ -61,7 +61,7 @@ type SQLServer_Type_Mapping
                     False -> case variable_length of
                         True  -> SQL_Type.Value Types.BINARY "VARBINARY" size
                         False -> SQL_Type.Value Types.BINARY "BINARY" size
-            Value_Type.Mixed -> Error.throw (Unsupported_Database_Operation.Error "SQLServer tables do not support Mixed types.")
+            Value_Type.Mixed -> Error.throw (Unsupported_Database_Type.Error "SQLServer" "Mixed")
             Value_Type.Unsupported_Data_Type type_name underlying_type ->
                 underlying_type.if_nothing <| Error.throw <| Illegal_Argument.Error <|
                     "An unsupported SQL type ["+type_name.to_text+"] cannot be converted into an SQL type because it did not contain the SQL metadata needed to reconstruct it."
