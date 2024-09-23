@@ -620,9 +620,9 @@ function getTooltipMessage(point: Point) {
       point.series && point.series in axis ?
         axis[point.series as keyof AxesConfiguration].label
       : ''
-    return `${formatXPoint(point.x)}, ${point.y}, ${label}`
+    return `${formatXPoint(point.x)}, ${point.y}, ${label}- Double click to inspect point`
   }
-  return `${formatXPoint(point.x)}, ${point.y}`
+  return `${formatXPoint(point.x)}, ${point.y}- Double click to inspect point`
 }
 
 // === Update contents ===
