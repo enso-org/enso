@@ -2,9 +2,11 @@ package org.enso.syntax2;
 
 import java.io.File;
 import java.net.URISyntaxException;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import org.slf4j.LoggerFactory;
 
 public final class Parser implements AutoCloseable {
   private static void initializeLibraries() {
@@ -141,7 +143,13 @@ public final class Parser implements AutoCloseable {
     var metadata = getMetadata(state);
     serializedTree.order(ByteOrder.LITTLE_ENDIAN);
     var message = new Message(serializedTree, input, base, metadata);
-    return Tree.deserialize(message);
+    try {
+      return Tree.deserialize(message);
+    } catch (BufferUnderflowException | IllegalArgumentException e) {
+      LoggerFactory.getLogger(this.getClass())
+          .error("Unrecoverable parser failure for: {}", input, e);
+      throw e;
+    }
   }
 
   public static String getWarningMessage(Warning warning) {

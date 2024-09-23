@@ -27,6 +27,8 @@ pub struct BuildInput {
     /// (fastest). See <https://www.electron.build> for all supported targets.
     #[clap(long, enso_env())]
     pub electron_target: Option<String>,
+    #[clap(long, enso_env())]
+    pub sign_artifacts:  bool,
 }
 
 #[derive(Subcommand, Clone, Debug)]
