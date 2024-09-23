@@ -634,8 +634,10 @@ watchEffect(() => {
   position: absolute;
   bottom: 100%;
   width: calc(max(100%, 800px));
+  max-width: max-content;
   margin-bottom: var(--node-vertical-gap);
-  left: 0;
+  /* Allow space for the input arrow. */
+  left: 24px;
   transition: left 0.1s ease-out;
 }
 .menuFull .beforeNode {
