@@ -1576,8 +1576,6 @@ export default function AssetsTable(props: AssetsTableProps) {
           description: null,
         }
 
-        console.log('placeholderItem', { placeholderItem, parent, siblings })
-
         doToggleDirectoryExpansion(event.parentId, event.parentKey, true)
         insertAssets([placeholderItem], event.parentId)
 
