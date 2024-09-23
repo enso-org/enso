@@ -1,4 +1,3 @@
-import type { HeaderParams } from '@/components/GraphEditor/widgets/WidgetTableEditor/TableHeader.vue'
 import type { WidgetInput, WidgetUpdate } from '@/providers/widgetRegistry'
 import { requiredImportsByFQN, type RequiredImport } from '@/stores/graph/imports'
 import type { SuggestionDb } from '@/stores/suggestionDatabase'
@@ -8,11 +7,13 @@ import { tryEnsoToNumber, tryNumberToEnso } from '@/util/ast/abstract'
 import { Err, Ok, transposeResult, unwrapOrWithLog, type Result } from '@/util/data/result'
 import { qnLastSegment, type QualifiedName } from '@/util/qualifiedName'
 import type { ToValue } from '@/util/reactivity'
-import type { ColDef } from 'ag-grid-community'
+import type { ColDef, MenuItemDef } from 'ag-grid-enterprise'
 import { computed, toValue } from 'vue'
 
 const NEW_COLUMN_ID = 'NewColumn'
+const ROW_INDEX_COLUMN_ID = 'RowIndex'
 const NEW_COLUMN_HEADER = 'New Column'
+const ROW_INDEX_HEADER = '#'
 const NOTHING_PATH = 'Standard.Base.Nothing.Nothing' as QualifiedName
 const NOTHING_NAME = qnLastSegment(NOTHING_PATH)
 
@@ -22,14 +23,19 @@ export type RowData = {
   cells: Record<Ast.AstId, Ast.AstId>
 }
 
+/** A more specialized version of AGGrid's `MenuItemDef` to simplify testing (the tests need to provide
+ * only values actually used by the composable) */
+export interface MenuItem extends MenuItemDef<RowData> {
+  action: (params: { node: { data: RowData | undefined } | null }) => void
+}
+
 /** A more specialized version of AGGrid's `ColDef` to simplify testing (the tests need to provide
  * only values actually used by the composable) */
-interface ColumnDef {
-  colId?: string
-  headerName: string
+export interface ColumnDef extends ColDef<RowData> {
   valueGetter: ({ data }: { data: RowData | undefined }) => any
-  valueSetter: ({ data, newValue }: { data: RowData; newValue: any }) => boolean
-  headerComponentParams?: HeaderParams
+  valueSetter?: ({ data, newValue }: { data: RowData; newValue: any }) => boolean
+  mainMenuItems: (string | MenuItem)[]
+  contextMenuItems: (string | MenuItem)[]
 }
 
 namespace cellValueConversion {
@@ -73,7 +79,9 @@ function retrieveColumnsAst(call: Ast.Ast) {
   return Err('Expected Table.new argument to be a vector of columns or placeholder')
 }
 
-function readColumn(ast: Ast.Ast): Result<{ name: Ast.TextLiteral; data: Ast.Vector }> {
+function readColumn(
+  ast: Ast.Ast,
+): Result<{ id: Ast.AstId; name: Ast.TextLiteral; data: Ast.Vector }> {
   const errormsg = () => `${ast.code} is not a vector of two elements`
   if (!(ast instanceof Ast.Vector)) return Err(errormsg())
   const elements = ast.values()
@@ -89,7 +97,7 @@ function readColumn(ast: Ast.Ast): Result<{ name: Ast.TextLiteral; data: Ast.Vec
     )
   if (!(second.value instanceof Ast.Vector))
     return Err(`Second element in column definition is ${second.value.code()} instead of a vector`)
-  return Ok({ name: first.value, data: second.value })
+  return Ok({ id: ast.id, name: first.value, data: second.value })
 }
 
 function retrieveColumnsDefinitions(columnsAst: Ast.Vector) {
@@ -168,6 +176,13 @@ export function useTableNewArgument(
     }
   }
 
+  function removeRow(edit: Ast.MutableModule, index: number) {
+    for (const column of columns.value) {
+      const editedCol = edit.getVersion(column.data)
+      editedCol.splice(index, 1)
+    }
+  }
+
   function addColumn(
     edit: Ast.MutableModule,
     name: string,
@@ -197,6 +212,41 @@ export function useTableNewArgument(
     }
   }
 
+  function removeColumn(edit: Ast.MutableModule, columnId: Ast.AstId) {
+    const editedCols = unwrapOrWithLog(columnsAst.value, undefined, errorMessagePreamble)
+    if (!editedCols) {
+      console.error(`Cannot remove column in Table Editor, because there is no column list`)
+      return
+    }
+    for (const [index, col] of editedCols.enumerate()) {
+      if (col?.id === columnId) {
+        edit.getVersion(editedCols).splice(index, 1)
+        return
+      }
+    }
+  }
+
+  const removeRowMenuItem = {
+    name: 'Remove Row',
+    action: ({ node }: { node: { data: RowData | undefined } | null }) => {
+      if (!node?.data) return
+      const edit = graph.startEdit()
+      fixColumns(edit)
+      removeRow(edit, node.data.index)
+      onUpdate({ edit })
+    },
+  }
+
+  const removeColumnMenuItem = (colId: Ast.AstId) => ({
+    name: 'Remove Column',
+    action: () => {
+      const edit = graph.startEdit()
+      fixColumns(edit)
+      removeColumn(edit, colId)
+      onUpdate({ edit })
+    },
+  })
+
   const newColumnDef = computed<ColumnDef>(() => ({
     colId: NEW_COLUMN_ID,
     headerName: NEW_COLUMN_HEADER,
@@ -219,6 +269,18 @@ export function useTableNewArgument(
       },
       virtualColumn: true,
     },
+    mainMenuItems: ['autoSizeThis', 'autoSizeAll'],
+    contextMenuItems: ['paste', 'separator', removeRowMenuItem],
+  }))
+
+  const rowIndexColumnDef = computed<ColumnDef>(() => ({
+    colId: ROW_INDEX_COLUMN_ID,
+    headerName: ROW_INDEX_HEADER,
+    valueGetter: ({ data }: { data: RowData | undefined }) => data?.index,
+    editable: false,
+    mainMenuItems: ['autoSizeThis', 'autoSizeAll'],
+    contextMenuItems: [removeRowMenuItem],
+    cellStyle: { color: 'rgba(0, 0, 0, 0.4)' },
   }))
 
   const columnDefs = computed(() => {
@@ -226,7 +288,7 @@ export function useTableNewArgument(
       columns.value,
       (col) =>
         ({
-          colId: col.data.id,
+          colId: col.id,
           headerName: col.name.rawTextContent,
           valueGetter: ({ data }: { data: RowData | undefined }) => {
             if (data == null) return undefined
@@ -263,8 +325,21 @@ export function useTableNewArgument(
               onUpdate({ edit })
             },
           },
+          mainMenuItems: ['autoSizeThis', 'autoSizeAll', removeColumnMenuItem(col.id)],
+          contextMenuItems: [
+            'cut',
+            'copy',
+            'copyWithHeaders',
+            'paste',
+            'separator',
+            removeRowMenuItem,
+            removeColumnMenuItem(col.id),
+            'separator',
+            'export',
+          ],
         }) satisfies ColDef<RowData>,
     )
+    cols.unshift(rowIndexColumnDef.value)
     cols.push(newColumnDef.value)
     return cols
   })

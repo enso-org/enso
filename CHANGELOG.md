@@ -1,5 +1,12 @@
 # Next Release
 
+#### Enso IDE
+
+- [Rows and Columns may be now removed in Table Input Widget][11151]. The option
+  is available in right-click context menu.
+
+[11151]: https://github.com/enso-org/enso/pull/11151
+
 # Enso 2024.4
 
 #### Enso IDE
