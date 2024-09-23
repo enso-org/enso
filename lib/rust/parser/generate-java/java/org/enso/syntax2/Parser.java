@@ -5,8 +5,42 @@ import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Supplier;
 
 public final class Parser implements AutoCloseable {
+  private final static class OstensiblySuperfluousMutex {
+    private final Map<Thread, StackTraceElement[]> mutators = new HashMap<>();
+
+    private <R> R run(Supplier<R> action) {
+      var thisThread = Thread.currentThread();
+      synchronized (mutators) {
+        mutators.put(thisThread, thisThread.getStackTrace());
+        if (mutators.size() != 1) {
+          System.err.println("THREAD CONFLICT:");
+          var index = 0;
+          for (var entry : mutators.entrySet()) {
+            System.err.println("Thread " + index + ": " + entry.getKey());
+            System.err.println(Arrays.toString(entry.getValue()));
+            index += 1;
+          }
+        }
+      }
+      R result;
+      synchronized (this) {
+        result = action.get();
+      }
+      synchronized (mutators) {
+        mutators.remove(thisThread);
+      }
+      return result;
+    }
+  }
+
+  private final OstensiblySuperfluousMutex mutex = new OstensiblySuperfluousMutex();
+
   private static void initializeLibraries() {
     try {
       System.loadLibrary("enso_parser");
@@ -108,11 +142,13 @@ public final class Parser implements AutoCloseable {
   }
 
   public long isIdentOrOperator(CharSequence input) {
-    byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
-    ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
-    inputBuf.put(inputBytes);
+    return mutex.run(() -> {
+      byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
+      ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
+      inputBuf.put(inputBytes);
 
-    return isIdentOrOperator(inputBuf);
+      return isIdentOrOperator(inputBuf);
+    });
   }
 
   private long getState() {
@@ -124,24 +160,28 @@ public final class Parser implements AutoCloseable {
   }
 
   public ByteBuffer parseInputLazy(CharSequence input) {
-    var state = getState();
-    byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
-    ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
-    inputBuf.put(inputBytes);
-    return parseTreeLazy(state, inputBuf);
+    return mutex.run(() -> {
+      var state = getState();
+      byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
+      ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
+      inputBuf.put(inputBytes);
+      return parseTreeLazy(state, inputBuf);
+    });
   }
 
   public Tree parse(CharSequence input) {
-    var state = getState();
-    byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
-    ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
-    inputBuf.put(inputBytes);
-    var serializedTree = parseTree(state, inputBuf);
-    var base = getLastInputBase(state);
-    var metadata = getMetadata(state);
-    serializedTree.order(ByteOrder.LITTLE_ENDIAN);
-    var message = new Message(serializedTree, input, base, metadata);
-    return Tree.deserialize(message);
+    return mutex.run(() -> {
+      var state = getState();
+      byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
+      ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
+      inputBuf.put(inputBytes);
+      var serializedTree = parseTree(state, inputBuf);
+      var base = getLastInputBase(state);
+      var metadata = getMetadata(state);
+      serializedTree.order(ByteOrder.LITTLE_ENDIAN);
+      var message = new Message(serializedTree, input, base, metadata);
+      return Tree.deserialize(message);
+    });
   }
 
   public static String getWarningMessage(Warning warning) {
