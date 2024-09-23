@@ -74,12 +74,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         const oldTitle = asset.title
         setAsset(object.merger({ title: newTitle }))
         try {
-          const updated = await updateDirectoryMutation.mutateAsync([
-            asset.id,
-            { title: newTitle },
-            asset.title,
-          ])
-          setAsset(object.merger(updated))
+          await updateDirectoryMutation.mutateAsync([asset.id, { title: newTitle }, asset.title])
         } catch (error) {
           toastAndLog('renameFolderError', error)
           setAsset(object.merger({ title: oldTitle }))
