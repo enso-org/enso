@@ -5,10 +5,9 @@ import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class Parser {
-  static AtomicBoolean initialized = new AtomicBoolean(false);
+  private static volatile boolean initialized = false;
 
   private static void ensureInitialized() {
     // Optimization: Skip finding and initializing the library when it's definitely already been
@@ -17,10 +16,15 @@ public final class Parser {
     // threads from proceeding to library initialization concurrently (before any thread has
     // completed initialization), but that is harmless; library initialization is thread-safe and
     // idempotent.
-    if (initialized.get()) return;
+    // FIXME: Native image issue
+    //if (initialized) return;
+    initializeLibraries();
+    initialized = true;
+  }
+
+  private static void initializeLibraries() {
     try {
       System.loadLibrary("enso_parser");
-      initialized.set(true);
       return;
     } catch (LinkageError err) {
       // try harder to find the library
@@ -56,12 +60,10 @@ public final class Parser {
       System.load(path.getAbsolutePath());
     } catch (NullPointerException | IllegalArgumentException | LinkageError e) {
       if (searchFromDirToTop(e, root, "target", "rust", "parser-jni", name)) {
-        initialized.set(true);
         return;
       }
       if (searchFromDirToTop(
           e, new File(".").getAbsoluteFile(), "target", "rust", "parser-jni", name)) {
-        initialized.set(true);
         return;
       }
       throw new IllegalStateException("Cannot load parser from " + root, e);

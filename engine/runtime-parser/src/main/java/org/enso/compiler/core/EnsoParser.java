@@ -8,6 +8,8 @@ import org.enso.compiler.core.ir.Module;
 import org.enso.syntax2.Parser;
 
 public final class EnsoParser {
+  private EnsoParser() {}
+
   public static Module compile(CharSequence src) {
     return compile(src, null);
   }
