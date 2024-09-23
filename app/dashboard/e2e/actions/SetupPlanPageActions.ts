@@ -4,13 +4,13 @@ import { Plan } from 'enso-common/src/services/Backend'
 import { TEXT } from '../actions'
 import BaseActions from './BaseActions'
 import SetupDonePageActions from './SetupDonePageActions'
-import SetupTeamPageActions from './SetupTeamPageActions'
+import SetupOrganizationPageActions from './SetupOrganizationPageActions'
 
 // ============================
 // === SetupPlanPageActions ===
 // ============================
 
-/** Actions for the second step of the "setup" page. */
+/** Actions for the "select plan" step of the "setup" page. */
 export default class SetupPlanPageActions extends BaseActions {
   /** Select a plan. */
   selectSoloPlan() {
@@ -33,7 +33,7 @@ export default class SetupPlanPageActions extends BaseActions {
         .getByText(TEXT.licenseAgreementCheckbox)
         .click()
       await page.getByText(TEXT.startTrial).click()
-    }).into(SetupTeamPageActions)
+    }).into(SetupOrganizationPageActions)
   }
 
   /** Stay on the current (free) plan. */
@@ -47,6 +47,6 @@ export default class SetupPlanPageActions extends BaseActions {
   stayOnPaidPlan() {
     return this.step(`Stay on current plan`, async (page) => {
       await page.getByText(TEXT.skip).click()
-    }).into(SetupTeamPageActions)
+    }).into(SetupOrganizationPageActions)
   }
 }

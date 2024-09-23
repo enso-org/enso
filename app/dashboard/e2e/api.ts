@@ -24,6 +24,8 @@ const HTTP_STATUS_NO_CONTENT = 204
 const HTTP_STATUS_BAD_REQUEST = 400
 /** The HTTP status code representing a URL that does not exist. */
 const HTTP_STATUS_NOT_FOUND = 404
+/** A user id that is a path glob. */
+const GLOB_USER_ID = backend.UserId('*')
 /** An asset ID that is a path glob. */
 const GLOB_ASSET_ID: backend.AssetId = backend.DirectoryId('*')
 /** A directory ID that is a path glob. */
@@ -315,7 +317,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     }
   }
 
-  const addUserGroup = (name: string, rest: Partial<backend.UserGroupInfo>) => {
+  const addUserGroup = (name: string, rest?: Partial<backend.UserGroupInfo>) => {
     const userGroup: backend.UserGroupInfo = {
       id: backend.UserGroupId(`usergroup-${uniqueString.uniqueString()}`),
       groupName: name,
@@ -336,10 +338,10 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     }
   }
 
+  // FIXME[sb]: Add missing endpoints:
   // addPermission,
   // deletePermission,
-  // addUserGroupToUser,
-  // deleteUserGroupFromUser,
+
   const addUserGroupToUser = (userId: backend.UserId, userGroupId: backend.UserGroupId) => {
     const user = usersMap.get(userId)
     if (user == null || user.userGroups?.includes(userGroupId) === true) {
@@ -858,7 +860,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       undeleteAsset(body.assetId)
       await route.fulfill({ status: HTTP_STATUS_NO_CONTENT })
     })
-    await post(remoteBackendPaths.CREATE_USER_PATH + '*', async (route, request) => {
+    await post(remoteBackendPaths.CREATE_USER_PATH + '*', async (_route, request) => {
       // The type of the body sent by this app is statically known.
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const body: backend.CreateUserRequestBody = await request.postDataJSON()
@@ -876,8 +878,31 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         userGroups: null,
         isOrganizationAdmin: true,
       }
-      await route.fulfill({ json: currentUser })
+      return currentUser
     })
+    await post(remoteBackendPaths.CREATE_USER_GROUP_PATH + '*', async (_route, request) => {
+      // The type of the body sent by this app is statically known.
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const body: backend.CreateUserGroupRequestBody = await request.postDataJSON()
+      const userGroup = addUserGroup(body.name)
+      return userGroup
+    })
+    await put(
+      remoteBackendPaths.changeUserGroupPath(GLOB_USER_ID) + '*',
+      async (route, request) => {
+        const userId = backend.UserId(request.url().match(/[/]users[/]([^?/]+)/)?.[1] ?? '')
+        // The type of the body sent by this app is statically known.
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const body: backend.ChangeUserGroupRequestBody = await request.postDataJSON()
+        const user = usersMap.get(userId)
+        if (!user) {
+          await route.fulfill({ status: HTTP_STATUS_BAD_REQUEST })
+        } else {
+          object.unsafeMutable(user).userGroups = body.userGroups
+          return user
+        }
+      },
+    )
     await put(remoteBackendPaths.UPDATE_CURRENT_USER_PATH + '*', async (_route, request) => {
       // The type of the body sent by this app is statically known.
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment

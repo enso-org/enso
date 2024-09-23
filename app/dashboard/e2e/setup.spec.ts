@@ -10,7 +10,6 @@ test.test('setup (free plan)', ({ page }) =>
       page,
       setupAPI: (api) => {
         api.setCurrentUser(null)
-        api.setPlan(Plan.free)
       },
     })
     .loginAsNewUser()
@@ -28,7 +27,6 @@ test.test('setup (solo plan)', ({ page }) =>
       page,
       setupAPI: (api) => {
         api.setCurrentUser(null)
-        api.setPlan(Plan.free)
       },
     })
     .loginAsNewUser()
@@ -46,15 +44,18 @@ test.test('setup (team plan)', ({ page }) =>
       page,
       setupAPI: (api) => {
         api.setCurrentUser(null)
-        api.setPlan(Plan.free)
       },
     })
     .loginAsNewUser()
     .setUsername('test user')
     .selectPlan(Plan.team)
     .setOrganizationName('test organization')
+    .skip()
+    .setTeamName('test team')
     .goToPage.drive()
     .withDriveView(async (drive) => {
       await test.expect(drive).toBeVisible()
     }),
 )
+
+// No test for enterprise plan as the plan must be set to enterprise manually.
