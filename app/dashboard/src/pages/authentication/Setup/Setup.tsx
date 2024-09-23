@@ -60,9 +60,7 @@ const BASE_STEPS: Step[] = [
     title: 'setUsername',
     text: 'setUsernameDescription',
     hideNext: true,
-    /**
-     * Step component
-     */
+    /** Setup step for setting username. */
     component: function SetUsernameStep({ session, goToNextStep }) {
       const { setUsername } = useAuth()
       const userSession = useUserSession()
@@ -117,9 +115,7 @@ const BASE_STEPS: Step[] = [
       session && 'user' in session ? !session.user.isOrganizationAdmin : true,
     canSkip: ({ plan }) => plan === Plan.free,
     hideNext: ({ plan }) => plan === Plan.free,
-    /**
-     * Step component
-     */
+    /** Setup step for choosing plan. */
     component: function ChoosePlanStep({ goToNextStep, plan, session }) {
       const isOrganizationAdmin =
         session && 'user' in session ? session.user.isOrganizationAdmin : false
@@ -147,10 +143,8 @@ const BASE_STEPS: Step[] = [
     },
     hideNext: true,
     hidePrevious: true,
-    /**
-     * Step component
-     */
-    component: function SetOrganizatioNameStep({ goToNextStep, goToPreviousStep, session }) {
+    /** Setup step for setting organization name. */
+    component: function SetOrganizationNameStep({ goToNextStep, goToPreviousStep, session }) {
       const { getText } = textProvider.useText()
       const remoteBackend = useRemoteBackendStrict()
       const userId = session && 'user' in session ? session.user.userId : null
@@ -221,19 +215,13 @@ const BASE_STEPS: Step[] = [
     },
     hideNext: true,
     hidePrevious: true,
-    /**
-     * Step component
-     */
+    /** Setup step for inviting users to the organization. */
     component: function InviteUsersStep({ goToNextStep, goToPreviousStep }) {
       const { getText } = textProvider.useText()
 
       return (
         <div className="max-w-96">
-          <InviteUsersForm
-            onSubmitted={() => {
-              goToNextStep()
-            }}
-          />
+          <InviteUsersForm onSubmitted={goToNextStep} />
 
           <ariaComponents.ButtonGroup align="start" className="mt-4">
             <ariaComponents.Button variant="outline" onPress={goToPreviousStep}>
@@ -261,9 +249,7 @@ const BASE_STEPS: Step[] = [
     },
     hideNext: true,
     hidePrevious: true,
-    /**
-     * Step component
-     */
+    /** Setup step for creating the first user group. */
     component: function CreateUserGroupStep({ goToNextStep, goToPreviousStep }) {
       const { getText } = textProvider.useText()
       const remoteBackend = useRemoteBackendStrict()
@@ -330,9 +316,7 @@ const BASE_STEPS: Step[] = [
     text: 'allSetDescription',
     hideNext: true,
     hidePrevious: true,
-    /**
-     * Step component
-     */
+    /** Final setup step. */
     component: function AllSetStep({ goToPreviousStep }) {
       const { getText } = textProvider.useText()
       const navigate = useNavigate()

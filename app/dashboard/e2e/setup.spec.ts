@@ -38,6 +38,26 @@ test.test('setup (solo plan)', ({ page }) =>
     }),
 )
 
+test.test('setup (team plan, skipping invites)', ({ page }) =>
+  actions
+    .mockAll({
+      page,
+      setupAPI: (api) => {
+        api.setCurrentUser(null)
+      },
+    })
+    .loginAsNewUser()
+    .setUsername('test user')
+    .selectTeamPlan(Plan.team)
+    .setOrganizationName('test organization')
+    .skipInvitingUsers()
+    .setTeamName('test team')
+    .goToPage.drive()
+    .withDriveView(async (drive) => {
+      await test.expect(drive).toBeVisible()
+    }),
+)
+
 test.test('setup (team plan)', ({ page }) =>
   actions
     .mockAll({
@@ -48,9 +68,10 @@ test.test('setup (team plan)', ({ page }) =>
     })
     .loginAsNewUser()
     .setUsername('test user')
-    .selectPlan(Plan.team)
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    .selectTeamPlan(Plan.team, 10)
     .setOrganizationName('test organization')
-    .skip()
+    .inviteUsers('foo@bar.baz bar@bar.baz, baz@example.com; other+email@org.co.uk')
     .setTeamName('test team')
     .goToPage.drive()
     .withDriveView(async (drive) => {
