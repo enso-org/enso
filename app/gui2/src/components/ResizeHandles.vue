@@ -37,6 +37,10 @@ function resizeHandler(resizeX: 'left' | 'right' | false, resizeY: 'top' | 'bott
       case 'stop':
         emit('update:resizing', {})
         break
+      case 'cancel':
+        if (initialBounds) bounds.value = initialBounds
+        emit('update:resizing', {})
+        break
     }
   })
 }
