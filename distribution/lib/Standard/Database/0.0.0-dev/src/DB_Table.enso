@@ -619,7 +619,7 @@ type DB_Table
     use_first_row_as_names : Problem_Behavior -> DB_Table
     use_first_row_as_names self (on_problems:Problem_Behavior=..Report_Warning) =
         _ = on_problems
-        throw_unsupported_error "DB_Table.use_first_row_as_names"
+        Error.throw (Unsupported_Database_Operation.Error "use_first_row_as_names")
 
     ## PRIVATE
 
@@ -705,7 +705,7 @@ type DB_Table
                     resolved = (self:Table_Ref).resolve_condition filter_condition
                     mask (make_filter_column column resolved on_problems)
                 _ : Function ->
-                    throw_unsupported_error "Filtering with a custom predicate"
+                    Error.throw (Unsupported_Database_Operation.Error "Filtering with a custom predicate")
         _ : Expression -> self.filter (self.evaluate_expression column on_problems) filter on_problems
         _ ->
             table_at = self.at column

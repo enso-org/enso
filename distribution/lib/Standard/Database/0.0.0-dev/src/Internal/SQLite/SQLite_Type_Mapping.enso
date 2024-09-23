@@ -257,4 +257,4 @@ default_integer = Value_Type.Integer Bits.Bits_64
 
 ## PRIVATE
 unsupported_date_time =
-    Error.throw (Unsupported_Database_Operation.Error "Date/time types")
+    Error.throw (Unsupported_Database_Type.Error "Date/time")
