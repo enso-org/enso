@@ -37,7 +37,7 @@ export const SAMPLES: Sample[] = [
   {
     title: 'New Project',
     id: 'Default',
-    description: 'Start with a blank workflow.',
+    description: '',
     background: `url("${BlankImage}") center / cover`,
     group: 'Get Started',
   },
