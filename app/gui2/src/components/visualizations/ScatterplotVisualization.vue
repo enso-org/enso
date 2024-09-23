@@ -577,14 +577,12 @@ function getPlotData(data: Data) {
   return data.data
 }
 
-function getAstPattern(selector?: string | number, action?: string) {
+function getAstPattern(selector?: number, action?: string) {
   if (action && selector != null) {
     return Pattern.new((ast) =>
       Ast.App.positional(
         Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(action)!),
-        typeof selector === 'number' ?
-          Ast.tryNumberToEnso(selector, ast.module)!
-        : Ast.TextLiteral.new(selector, ast.module),
+        Ast.tryNumberToEnso(selector, ast.module)!,
       ),
     )
   }
