@@ -251,6 +251,10 @@ object JPMSPlugin extends AutoPlugin {
             .dependsOn(config / exportedModule)
             .value
         },
+        // All the exported artifact names will be stripped.
+        // Do not use the default sbt artifact name which inserts scala version and module
+        // revision.
+        config / artifactName := stripArtifactName,
         config / patchModules := Map.empty,
         config / addExports := Map.empty,
         config / addReads := Map.empty,
@@ -484,5 +488,16 @@ object JPMSPlugin extends AutoPlugin {
     } else {
       opts
     }
+  }
+
+  /**
+   * Does not use the default artifact name which inserts scala version and module version.
+   */
+  private def stripArtifactName(
+    scalaVersion: ScalaVersion,
+    modId: ModuleID,
+    artifact: Artifact
+  ): String = {
+    artifact.name + "." + artifact.extension
   }
 }
