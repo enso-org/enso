@@ -7,7 +7,6 @@ import org.apache.commons.cli.CommandLine;
 import org.enso.runner.common.LanguageServerApi;
 import org.enso.runner.common.ProfilingConfig;
 import org.enso.runner.common.WrongOption;
-import org.junit.Ignore;
 import org.junit.Test;
 import scala.Option;
 

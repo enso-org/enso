@@ -12,6 +12,6 @@ module org.enso.logging.service.logback.test.provider {
 
   provides SLF4JServiceProvider with
       org.enso.logging.service.logback.test.provider.TestLogProvider;
-  
+
   exports org.enso.logging.service.logback.test.provider;
 }
