@@ -1434,7 +1434,7 @@ add_specs suite_builder setup =
                     materialized.column_count . should_equal 1
                     materialized.columns.first.name . should_equal "Sum A"
                     materialized.columns.first.to_vector . should_equal [6]
-                problems = [Aggregagtion_Requires_Order.Error "`First` aggregation requires at least one `order_by` column.", Aggregagtion_Requires_Order.Error "`Last` aggregation requires at least one `order_by` column."]
+                problems = [Aggregagtion_Requires_Order.Error "First", Aggregagtion_Requires_Order.Error "Last"]
                 Problems.test_problem_handling action problems tester
 
             group_builder.specify "will include unsupported feature problem in No_Output_Columns" <|
