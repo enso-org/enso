@@ -60,7 +60,7 @@ function onGridReady(event: GridReadyEvent<TData>) {
 }
 
 function getRowHeight(params: RowHeightParams): number {
-  if (_props.textFormatOption === TextFormatOptions.Off) {
+  if (_props.textFormatOption === 'off') {
     return DEFAULT_ROW_HEIGHT
   }
   const rowData = Object.values(params.data)
