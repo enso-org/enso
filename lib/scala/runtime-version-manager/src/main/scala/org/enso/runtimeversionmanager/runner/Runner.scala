@@ -231,7 +231,6 @@ class Runner(
       val extraEnvironmentOverrides =
         javaHome.map("JAVA_HOME" -> _).toSeq ++ distributionSettings.toSeq
 
-      Logger[Runner].error("Starting command: {}", command)
       action(
         Command(
           command,

@@ -3,6 +3,7 @@ package org.enso.projectmanager.service
 import akka.actor.ActorRef
 import com.typesafe.scalalogging.Logger
 import org.enso.semver.SemVer
+import org.enso.logger.masking.MaskedPath
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
@@ -69,20 +70,14 @@ class ProjectCreationService[
           .get
       val jvmSettings = distributionConfiguration.defaultJVMSettings
       runner.withCommand(settings, jvmSettings) { command =>
-        logger.error(
-          "[ProjectCreationService.createProject] Runner arguments = {}, " +
-          "jvmSettings.jvmOptions = {}, jvmSettings.extraOptions = {}, " +
-          "jvmSettings.javaCommandOverride = {}",
-          settings.runnerArguments,
-          jvmSettings.jvmOptions,
-          jvmSettings.extraOptions,
-          jvmSettings.javaCommandOverride
+        logger.trace(
+          s"Running engine $engineVersion to create project $name at " +
+          s"[${MaskedPath(path).applyMasking()}]."
         )
         command.runAndCaptureOutput().get
       }
     }
     .mapRuntimeManagerErrors { other: Throwable =>
-      logger.error("[ProjectCreationService.createProject] Error: {}", other)
       ProjectCreateFailed(other.getMessage)
     }
     .flatMap { case (exitCode, output) =>
