@@ -2,7 +2,9 @@ package org.enso.benchmarks.processor;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.module.FindException;
 import java.lang.module.ModuleFinder;
+import java.lang.module.ResolutionException;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -107,8 +109,17 @@ public class BenchProcessor extends AbstractProcessor {
             "org.enso.runtime.language.epb",
             "org.enso.interpreter.arrow",
             "org.enso.bench.processor");
-    var truffleLayer = createLayerFromPaths(pathsToUse, rootModules, bootLayer);
-    return truffleLayer;
+    try {
+      var truffleLayer = createLayerFromPaths(pathsToUse, rootModules, bootLayer);
+      return truffleLayer;
+    } catch (FindException | ResolutionException e) {
+      System.out.println("Error creating truffle module layer: " + e.getMessage() + " :");
+      System.out.println("  Paths used for the module finder: " + pathsToUse);
+      System.out.println("  Out of all paths: " + Arrays.toString(paths));
+      System.out.println("  Root modules for resolution: " + rootModules);
+      System.out.println("  Boot layer: " + bootLayer);
+      throw new AssertionError(e);
+    }
   }
 
   /**
