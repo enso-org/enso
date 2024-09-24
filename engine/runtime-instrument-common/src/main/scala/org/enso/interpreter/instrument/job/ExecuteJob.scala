@@ -75,7 +75,8 @@ class ExecuteJob(
               )
             }
             val outcome =
-              try ProgramExecutionSupport.runProgram(contextId, stack, executionConfig)
+              try ProgramExecutionSupport
+                .runProgram(contextId, stack, executionConfig)
               finally {
                 context.setExecutionEnvironment(originalExecutionEnvironment)
               }
