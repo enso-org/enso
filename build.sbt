@@ -681,7 +681,8 @@ lazy val componentModulesPaths =
     fullCp,
     thirdPartyModIds,
     log,
-    projName         = moduleName.value,
+    projName = moduleName.value,
+    scalaBinaryVersion.value,
     shouldContainAll = true
   )
   val thirdPartyModFiles = thirdPartyMods.map(_.data)
@@ -1078,6 +1079,7 @@ lazy val `logging-service-logback` = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    mixedJavaScalaProjectSetting,
     version := "0.1",
     libraryDependencies ++= Seq(
       "org.slf4j"        % "slf4j-api"               % slf4jVersion,
@@ -1210,31 +1212,32 @@ lazy val `scala-libs-wrapper` = project
         ),
         streams.value.log,
         moduleName.value,
+        scalaBinaryVersion.value,
         shouldContainAll = true
       )
     },
     // Patch this JPMS module such that the JVM thinks that all the Scala stuff
     // is part of this module
     Compile / patchModules := {
-      val scalaVer = scalaBinaryVersion.value
       val scalaLibs = JPMSUtils.filterModulesFromUpdate(
         update.value,
         Seq(
-          "com.typesafe.scala-logging"            % ("scala-logging_" + scalaVer)         % scalaLoggingVersion,
-          "io.circe"                              % ("circe-core_" + scalaVer)            % circeVersion,
-          "io.circe"                              % ("circe-generic_" + scalaVer)         % circeVersion,
-          "io.circe"                              % ("circe-parser_" + scalaVer)          % circeVersion,
-          "io.circe"                              % ("circe-jawn_" + scalaVer)            % circeVersion,
-          "io.circe"                              % ("circe-numbers_" + scalaVer)         % circeVersion,
-          "org.typelevel"                         % ("cats-core_" + scalaVer)             % catsVersion,
-          "org.typelevel"                         % ("cats-kernel_" + scalaVer)           % catsVersion,
-          "org.typelevel"                         % ("jawn-parser_" + scalaVer)           % jawnParserVersion,
-          "com.chuusai"                           % ("shapeless_" + scalaVer)             % shapelessVersion,
-          "com.github.plokhotnyuk.jsoniter-scala" % ("jsoniter-scala-macros_" + scalaVer) % jsoniterVersion,
-          "com.github.plokhotnyuk.jsoniter-scala" % ("jsoniter-scala-core_" + scalaVer)   % jsoniterVersion
+          "com.typesafe.scala-logging"            %% "scala-logging"         % scalaLoggingVersion,
+          "io.circe"                              %% "circe-core"            % circeVersion,
+          "io.circe"                              %% "circe-generic"         % circeVersion,
+          "io.circe"                              %% "circe-parser"          % circeVersion,
+          "io.circe"                              %% "circe-jawn"            % circeVersion,
+          "io.circe"                              %% "circe-numbers"         % circeVersion,
+          "org.typelevel"                         %% "cats-core"             % catsVersion,
+          "org.typelevel"                         %% "cats-kernel"           % catsVersion,
+          "org.typelevel"                         %% "jawn-parser"           % jawnParserVersion,
+          "com.chuusai"                           %% "shapeless"             % shapelessVersion,
+          "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion,
+          "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"   % jsoniterVersion
         ),
         streams.value.log,
         moduleName.value,
+        scalaBinaryVersion.value,
         shouldContainAll = true
       )
       Map(
@@ -1262,29 +1265,29 @@ lazy val `language-server-deps-wrapper` = project
       (`scala-libs-wrapper` / Compile / exportedModule).value
     ),
     assembly / assemblyExcludedJars := {
-      val scalaVer = scalaBinaryVersion.value
       JPMSUtils.filterModulesFromClasspath(
         (Compile / fullClasspath).value,
         scalaLibrary ++
         Seq(
-          "com.chuusai"  % ("shapeless_" + scalaVer) % shapelessVersion,
-          "com.typesafe" % "config"                  % typesafeConfigVersion
+          "com.chuusai" %% "shapeless" % shapelessVersion,
+          "com.typesafe" % "config"    % typesafeConfigVersion
         ),
         streams.value.log,
         moduleName.value,
+        scalaBinaryVersion.value,
         shouldContainAll = true
       )
     },
     Compile / patchModules := {
-      val scalaVer = scalaBinaryVersion.value
       val scalaLibs = JPMSUtils.filterModulesFromUpdate(
         update.value,
         Seq(
-          "com.github.pureconfig" % ("pureconfig-core_" + scalaVer)    % pureconfigVersion,
-          "com.github.pureconfig" % ("pureconfig-generic_" + scalaVer) % pureconfigVersion
+          "com.github.pureconfig" %% "pureconfig-core"    % pureconfigVersion,
+          "com.github.pureconfig" %% "pureconfig-generic" % pureconfigVersion
         ),
         streams.value.log,
         moduleName.value,
+        scalaBinaryVersion.value,
         shouldContainAll = true
       )
       Map(
@@ -1315,6 +1318,7 @@ lazy val `directory-watcher-wrapper` = project
         ),
         streams.value.log,
         moduleName.value,
+        scalaBinaryVersion.value,
         shouldContainAll = true
       )
     },
@@ -1331,6 +1335,7 @@ lazy val `directory-watcher-wrapper` = project
         ),
         streams.value.log,
         moduleName.value,
+        scalaBinaryVersion.value,
         shouldContainAll = true
       )
       Map(
@@ -1350,15 +1355,15 @@ lazy val `fansi-wrapper` = project
     ),
     javaModuleName := "org.enso.fansi.wrapper",
     Compile / patchModules := {
-      val scalaVer = scalaBinaryVersion.value
       val scalaLibs = JPMSUtils.filterModulesFromUpdate(
         update.value,
         scalaLibrary ++
         Seq(
-          "com.lihaoyi" % ("fansi_" + scalaVer) % fansiVersion
+          "com.lihaoyi" %% "fansi" % fansiVersion
         ),
         streams.value.log,
         moduleName.value,
+        scalaBinaryVersion.value,
         shouldContainAll = true
       )
       Map(
@@ -1371,6 +1376,7 @@ lazy val `fansi-wrapper` = project
         scalaLibrary,
         streams.value.log,
         moduleName.value,
+        scalaBinaryVersion.value,
         shouldContainAll = true
       )
     }
@@ -1409,46 +1415,46 @@ lazy val `akka-wrapper` = project
       "org.slf4j"           % "slf4j-api"        % slf4jVersion
     ),
     assembly / assemblyExcludedJars := {
-      val scalaVer = scalaBinaryVersion.value
       val excludedJars = JPMSUtils.filterModulesFromUpdate(
         update.value,
         scalaLibrary ++ scalaCompiler ++ Seq(
-          "org.scala-lang.modules"    % ("scala-java8-compat_" + scalaVer) % scalaJavaCompatVersion,
-          "org.slf4j"                 % "slf4j-api"                        % slf4jVersion,
-          "com.typesafe"              % "config"                           % typesafeConfigVersion,
-          "io.github.java-diff-utils" % "java-diff-utils"                  % javaDiffVersion,
-          "org.jline"                 % "jline"                            % jlineVersion,
-          "com.google.protobuf"       % "protobuf-java"                    % googleProtobufVersion,
-          "org.reactivestreams"       % "reactive-streams"                 % reactiveStreamsVersion,
-          "net.java.dev.jna"          % "jna"                              % jnaVersion
+          "org.scala-lang.modules"   %% "scala-java8-compat" % scalaJavaCompatVersion,
+          "org.slf4j"                 % "slf4j-api"          % slf4jVersion,
+          "com.typesafe"              % "config"             % typesafeConfigVersion,
+          "io.github.java-diff-utils" % "java-diff-utils"    % javaDiffVersion,
+          "org.jline"                 % "jline"              % jlineVersion,
+          "com.google.protobuf"       % "protobuf-java"      % googleProtobufVersion,
+          "org.reactivestreams"       % "reactive-streams"   % reactiveStreamsVersion,
+          "net.java.dev.jna"          % "jna"                % jnaVersion
         ),
         streams.value.log,
         moduleName.value,
+        scalaBinaryVersion.value,
         shouldContainAll = true
       )
       excludedJars
         .map(Attributed.blank)
     },
     Compile / patchModules := {
-      val scalaVer = scalaBinaryVersion.value
       val scalaLibs = JPMSUtils.filterModulesFromUpdate(
         update.value,
         scalaLibrary ++ scalaCompiler ++
         Seq(
-          "org.scala-lang.modules" % ("scala-parser-combinators_" + scalaVer) % scalaParserCombinatorsVersion,
-          "com.typesafe"           % "config"                                 % typesafeConfigVersion,
-          "io.spray"               % ("spray-json_" + scalaVer)               % sprayJsonVersion,
-          akkaURL                  % ("akka-actor_" + scalaVer)               % akkaVersion,
-          akkaURL                  % ("akka-stream_" + scalaVer)              % akkaVersion,
-          akkaURL                  % ("akka-http_" + scalaVer)                % akkaHTTPVersion,
-          akkaURL                  % ("akka-http-core_" + scalaVer)           % akkaHTTPVersion,
-          akkaURL                  % ("akka-http-spray-json_" + scalaVer)     % akkaHTTPVersion,
-          akkaURL                  % ("akka-slf4j_" + scalaVer)               % akkaVersion,
-          akkaURL                  % ("akka-parsing_" + scalaVer)             % akkaHTTPVersion,
-          akkaURL                  % ("akka-protobuf-v3_" + scalaVer)         % akkaVersion
+          "org.scala-lang.modules" %% "scala-parser-combinators" % scalaParserCombinatorsVersion,
+          "com.typesafe"            % "config"                   % typesafeConfigVersion,
+          "io.spray"               %% "spray-json"               % sprayJsonVersion,
+          akkaURL                  %% "akka-actor"               % akkaVersion,
+          akkaURL                  %% "akka-stream"              % akkaVersion,
+          akkaURL                  %% "akka-http"                % akkaHTTPVersion,
+          akkaURL                  %% "akka-http-core"           % akkaHTTPVersion,
+          akkaURL                  %% "akka-http-spray-json"     % akkaHTTPVersion,
+          akkaURL                  %% "akka-slf4j"               % akkaVersion,
+          akkaURL                  %% "akka-parsing"             % akkaHTTPVersion,
+          akkaURL                  %% "akka-protobuf-v3"         % akkaVersion
         ),
         streams.value.log,
         moduleName.value,
+        scalaBinaryVersion.value,
         shouldContainAll = true
       )
       Map(
@@ -1471,35 +1477,33 @@ lazy val `zio-wrapper` = project
       "dev.zio" %% "izumi-reflect-thirdparty-boopickle-shaded" % zioIzumiReflectVersion
     ),
     assembly / assemblyExcludedJars := {
-      val scalaVer = scalaBinaryVersion.value
       val excludedJars = JPMSUtils.filterModulesFromUpdate(
         update.value,
         scalaLibrary ++
         scalaCompiler ++
-        Seq(
-          "dev.zio" % ("zio-interop-cats_" + scalaVer) % zioInteropCatsVersion
-        ),
+        Seq("dev.zio" %% "zio-interop-cats" % zioInteropCatsVersion),
         streams.value.log,
         moduleName.value,
+        scalaBinaryVersion.value,
         shouldContainAll = true
       )
       excludedJars
         .map(Attributed.blank)
     },
     Compile / patchModules := {
-      val scalaVer = scalaBinaryVersion.value
       val scalaLibs = JPMSUtils.filterModulesFromUpdate(
         update.value,
         scalaLibrary ++
         Seq(
-          "dev.zio" % ("zio_" + scalaVer)                                       % zioVersion,
-          "dev.zio" % ("zio-internal-macros_" + scalaVer)                       % zioVersion,
-          "dev.zio" % ("zio-stacktracer_" + scalaVer)                           % zioVersion,
-          "dev.zio" % ("izumi-reflect_" + scalaVer)                             % zioIzumiReflectVersion,
-          "dev.zio" % ("izumi-reflect-thirdparty-boopickle-shaded_" + scalaVer) % zioIzumiReflectVersion
+          "dev.zio" %% "zio"                                       % zioVersion,
+          "dev.zio" %% "zio-internal-macros"                       % zioVersion,
+          "dev.zio" %% "zio-stacktracer"                           % zioVersion,
+          "dev.zio" %% "izumi-reflect"                             % zioIzumiReflectVersion,
+          "dev.zio" %% "izumi-reflect-thirdparty-boopickle-shaded" % zioIzumiReflectVersion
         ),
         streams.value.log,
         moduleName.value,
+        scalaBinaryVersion.value,
         shouldContainAll = true
       )
       Map(
@@ -1645,6 +1649,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
         ourFullCp,
         pkgsToExclude,
         streams.value.log,
+        scalaBinaryVersion.value,
         moduleName.value
       )
     },

@@ -222,7 +222,8 @@ object JPMSPlugin extends AutoPlugin {
             (config / internalModuleDependencies).value,
             (config / dependencyClasspath).value,
             streams.value.log,
-            moduleName.value
+            moduleName.value,
+            scalaBinaryVersion.value
           )
         },
         // Returns the reference to target/classes directory and ensures that module-info
@@ -309,6 +310,7 @@ object JPMSPlugin extends AutoPlugin {
     internalModuleDeps: Seq[File],
     classPath: Def.Classpath,
     logger: ManagedLogger,
+    scalaBinaryVersion: String,
     currProjName: String
   ): Seq[File] = {
     moduleDeps.foreach { moduleDep =>
@@ -353,6 +355,7 @@ object JPMSPlugin extends AutoPlugin {
       moduleDeps,
       logger,
       currProjName,
+      scalaBinaryVersion,
       shouldContainAll = true
     )
     val externalFiles = cp.map(_.data)
@@ -490,9 +493,8 @@ object JPMSPlugin extends AutoPlugin {
     }
   }
 
-  /**
-   * Does not use the default artifact name which inserts scala version and module version.
-   */
+  /** Does not use the default artifact name which inserts scala version and module version.
+    */
   private def stripArtifactName(
     scalaVersion: ScalaVersion,
     modId: ModuleID,
