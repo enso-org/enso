@@ -234,6 +234,7 @@ const shouldAnimate = ref(false)
 const xDomain = ref<number[] | Date[]>([0, 1])
 const yDomain = ref<number[] | Date[]>([0, 1])
 const selectionEnabled = ref(false)
+const createNewFilterNodeEnabled = ref(false)
 
 const isBrushing = computed(() => brushExtent.value != null)
 
@@ -307,6 +308,7 @@ const xTickFormat = computed(() => {
       return '%d/%m/%Y %H:%M:%S'
   }
 })
+const isUsingIndexForX = computed(() => data.value.axis.x.label === 'index')
 
 watchEffect(() => {
   const boundsExpression =
@@ -563,6 +565,82 @@ function getPlotData(data: Data) {
   return data.data
 }
 
+const filterPattern = computed(() => Pattern.parse('__ (..Between __ __)'))
+const makeFilterPattern = (
+  module: Ast.MutableModule,
+  columnName: string,
+  min: number,
+  max: number,
+) => {
+  return filterPattern.value.instantiateCopied([
+    Ast.TextLiteral.new(columnName),
+    Ast.tryNumberToEnso(min, module)!,
+    Ast.tryNumberToEnso(max, module)!,
+  ])
+}
+function getAstPatternFilterAndSort(
+  series: string[],
+  xColName: string,
+  minX: number,
+  maxX: number,
+  minY: number,
+  maxY: number,
+) {
+  return Pattern.new((ast) => {
+    let pattern = Ast.OprApp.new(
+      ast.module,
+      Ast.App.positional(
+        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('filter')!),
+        makeFilterPattern(ast.module, xColName, minX, maxX),
+      ),
+      '.',
+      Ast.App.positional(
+        Ast.Ident.new(ast.module, Ast.identifier('filter')!),
+        makeFilterPattern(ast.module, series[1]!, minY, maxY),
+      ),
+    )
+    for (const s in series) {
+      pattern = Ast.OprApp.new(
+        ast.module,
+        pattern,
+        '.',
+        Ast.App.positional(
+          Ast.Ident.new(ast.module, Ast.identifier('filter')!),
+          makeFilterPattern(ast.module, series[s]!, minY, maxY),
+        ),
+      )
+    }
+    return pattern
+  })
+}
+const createNewFilterNode = () => {
+  if (!data.value.isTimeSeries) {
+    const seriesLabels = Object.keys(data.value.axis)
+      .filter((s) => s != 'x')
+      .map((s) => {
+        return data.value.axis[s as keyof AxesConfiguration].label
+      })
+    const xColName = data.value.axis.x.label
+    const xItems = data.value.data.map((d) => d.x)
+    const minX = Math.min(...(xItems as number[]))
+    const maxX = Math.max(...(xItems as number[]))
+    const yItems = data.value.data.map((d) => {
+      const { x, label, color, shape, size, row_number, series, ...rest } = d
+      return rest
+    })
+    const yItemsVal = yItems.map((k) => Object.values(k)).flat(1)
+    const minY = Math.min(...yItemsVal)
+    const maxY = Math.max(...yItemsVal)
+    const pattern = getAstPatternFilterAndSort(seriesLabels, xColName, minX, maxX, minY, maxY)
+    if (pattern) {
+      config.createNodes({
+        content: pattern,
+        commit: true,
+      })
+    }
+  }
+}
+
 function getAstPattern(selector?: number, action?: string) {
   if (action && selector != null) {
     return Pattern.new((ast) =>
@@ -757,6 +835,13 @@ function zoomToSelected(override?: boolean) {
     yDomain.value = [yMin, yMax]
   }
   endBrushing()
+
+  if (!isUsingIndexForX.value && !data.value.isTimeSeries) {
+    createNewFilterNodeEnabled.value = true
+  }
+  if (!override) {
+    createNewFilterNodeEnabled.value = false
+  }
 }
 
 useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSelected() }))
@@ -773,10 +858,16 @@ config.setToolbar([
     onClick: () => zoomToSelected(false),
   },
   {
-    icon: 'find',
+    icon: 'zoom',
     title: 'Zoom to Selected',
     disabled: () => brushExtent.value == null,
     onClick: zoomToSelected,
+  },
+  {
+    icon: 'add',
+    title: 'Create component of selected points',
+    disabled: () => !createNewFilterNodeEnabled.value,
+    onClick: createNewFilterNode,
   },
 ])
 </script>
