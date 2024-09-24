@@ -1133,7 +1133,6 @@ lazy val filewatcher = project
     frgaalJavaCompilerSetting,
     scalaModuleDependencySetting,
     compileOrder := CompileOrder.ScalaThenJava,
-    javaModuleName := "org.enso.filewatcher",
     version := "0.1",
     libraryDependencies ++= Seq(
       "io.methvin"     % "directory-watcher" % directoryWatcherVersion,
@@ -2109,7 +2108,6 @@ lazy val `polyglot-api` = project
       "org.scalatest"                         %% "scalatest"             % scalatestVersion          % Test,
       "org.scalacheck"                        %% "scalacheck"            % scalacheckVersion         % Test
     ),
-    javaModuleName := "org.enso.polyglot.api",
     Compile / moduleDependencies ++= Seq(
       "com.google.flatbuffers" % "flatbuffers-java" % flatbuffersVersion,
       "org.graalvm.sdk"        % "word"             % graalMavenPackagesVersion,
@@ -2532,7 +2530,6 @@ lazy val `runtime-language-epb` =
     .enablePlugins(JPMSPlugin)
     .settings(
       frgaalJavaCompilerSetting,
-      javaModuleName := "org.enso.runtime.language.epb",
       inConfig(Compile)(truffleRunOptionsSettings),
       truffleDslSuppressWarnsSetting,
       commands += WithDebugCommand.withDebug,
@@ -3088,7 +3085,6 @@ lazy val `runtime-parser` =
         "org.scalatest"   %% "scalatest"               % scalatestVersion   % Test,
         "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
       ),
-      javaModuleName := "org.enso.runtime.parser",
       Compile / moduleDependencies ++= Seq(
         "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion
       ),
