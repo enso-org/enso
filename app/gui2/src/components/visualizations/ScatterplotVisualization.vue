@@ -3,6 +3,7 @@ import { useEvent } from '@/composables/events'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
 import { Ast } from '@/util/ast'
 import { tryNumberToEnso } from '@/util/ast/abstract'
+import { Pattern } from '@/util/ast/match'
 import { getTextWidthBySizeAndFamily } from '@/util/measurement'
 import { defineKeybinds } from '@/util/visualizationBuiltins'
 import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
@@ -56,6 +57,7 @@ interface Data {
   isTimeSeries: boolean
   x_value_type: string
   is_multi_series?: boolean
+  get_row_method: string
 }
 
 interface Focus {
@@ -72,6 +74,7 @@ interface Point {
   shape?: string
   size?: number
   series?: string
+  row_number: number
 }
 
 interface PointsConfiguration {
@@ -154,7 +157,10 @@ const createDateTime = (x: DateObj) => {
 const data = computed<Data>(() => {
   let rawData = props.data
   const unfilteredData =
-    Array.isArray(rawData) ? rawData.map((y, index) => ({ x: index, y })) : rawData.data ?? []
+    Array.isArray(rawData) ?
+      // eslint-disable-next-line camelcase
+      rawData.map((y, index) => ({ x: index, y, row_number: index }))
+    : rawData.data ?? []
   let data: Point[]
   // eslint-disable-next-line camelcase
   const isTimeSeries: boolean =
@@ -188,6 +194,8 @@ const data = computed<Data>(() => {
   const focus: Focus | undefined = rawData.focus
   // eslint-disable-next-line camelcase
   const is_multi_series: boolean = !!rawData.is_multi_series
+  // eslint-disable-next-line camelcase
+  const get_row_method: string = rawData.get_row_method || 'get_row'
   return {
     axis,
     points,
@@ -197,6 +205,8 @@ const data = computed<Data>(() => {
     is_multi_series,
     // eslint-disable-next-line camelcase
     x_value_type: rawData.x_value_type || '',
+    // eslint-disable-next-line camelcase
+    get_row_method,
     isTimeSeries,
   }
 })
@@ -553,6 +563,28 @@ function getPlotData(data: Data) {
   return data.data
 }
 
+function getAstPattern(selector?: number, action?: string) {
+  if (action && selector != null) {
+    return Pattern.new((ast) =>
+      Ast.App.positional(
+        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(action)!),
+        Ast.tryNumberToEnso(selector, ast.module)!,
+      ),
+    )
+  }
+}
+
+function createNode(rowNumber: number) {
+  const selector = data.value.get_row_method
+  const pattern = getAstPattern(rowNumber, selector)
+  if (pattern) {
+    config.createNodes({
+      content: pattern,
+      commit: true,
+    })
+  }
+}
+
 function formatXPoint(x: Date | number | DateObj) {
   if (data.value.isTimeSeries && x instanceof Date) {
     switch (data.value.x_value_type) {
@@ -574,9 +606,9 @@ function getTooltipMessage(point: Point) {
       point.series && point.series in axis ?
         axis[point.series as keyof AxesConfiguration].label
       : ''
-    return `${formatXPoint(point.x)}, ${point.y}, ${label}`
+    return `${formatXPoint(point.x)}, ${point.y}, ${label}- Double click to inspect point`
   }
-  return `${formatXPoint(point.x)}, ${point.y}`
+  return `${formatXPoint(point.x)}, ${point.y}- Double click to inspect point`
 }
 
 // === Update contents ===
@@ -599,6 +631,9 @@ watchPostEffect(() => {
     .join((enter) => enter.append('path'))
     .call((data) => {
       return data.append('title').text((d) => getTooltipMessage(d))
+    })
+    .on('dblclick', (d) => {
+      createNode(d.srcElement.__data__.row_number)
     })
     .transition()
     .duration(animationDuration.value)
