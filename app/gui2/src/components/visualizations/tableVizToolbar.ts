@@ -171,7 +171,7 @@ function createFormatMenu({ textFormatterSelected }: FormatMenuOptions): Toolbar
           stroke: 'grey',
           color: 'grey',
         },
-        title: 'Text displayed in monospace font, only multiple spaces displayed with &#183;',
+        title: 'Text displayed in monospace font, only multiple spaces displayed with "\xB7"',
         label: 'Partial whitespace rendering',
       },
       off: {
