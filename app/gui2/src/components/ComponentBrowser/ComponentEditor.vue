@@ -23,13 +23,11 @@ const fieldContent = ref<{ text: string; selection: Range | undefined }>({
 })
 
 watch(content, (newContent) => {
-  console.log('Setting field content to', newContent)
   fieldContent.value = newContent
 })
 watch(
   [() => fieldContent.value.text, () => fieldContent.value.selection],
   ([newText, newSelection]) => {
-    console.log('Setting prop content to', newText, newSelection)
     content.value = {
       text: newText,
       selection: newSelection,

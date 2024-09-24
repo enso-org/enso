@@ -80,9 +80,6 @@ export function useComponentBrowserInput(
     },
   })
 
-  watch(selection, (newValue) => console.error('NEW SELECTION', newValue), { flush: 'sync' })
-  watch(contentModel, (newValue) => console.error('NEW contentModel', newValue), { flush: 'sync' })
-
   function alterInput(newText: string, prefixLengthChange: number) {
     text.value = newText
     const adjustPoint = (point: number) =>
@@ -134,7 +131,6 @@ export function useComponentBrowserInput(
     switchedToCodeMode.value = { appliedSuggestion: id }
     const { newText, newCursorPos, requiredImport } = inputAfterApplyingSuggestion(entry)
     text.value = newText
-    console.log('setting selection to', newCursorPos)cd d
     selection.value = { start: newCursorPos, end: newCursorPos }
     if (requiredImport) {
       const [importId] = suggestionDb.nameToId.lookup(requiredImport)

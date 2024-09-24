@@ -26,6 +26,11 @@ function onChange() {
   emit('change', innerModel.value)
 }
 
+function onInput() {
+  readInputFieldSelection()
+  emit('input', innerModel.value)
+}
+
 const inputNode = ref<HTMLInputElement>()
 useAutoBlur(inputNode)
 function onFocus() {
@@ -55,11 +60,6 @@ function onEnterDown() {
 
 function readInputFieldSelection() {
   if (inputNode.value?.selectionStart != null && inputNode.value.selectionEnd != null) {
-    console.log(
-      'Setting selection from HTML:',
-      inputNode.value.selectionStart,
-      inputNode.value.selectionEnd,
-    )
     selection.value = {
       start: inputNode.value.selectionStart,
       end: inputNode.value.selectionEnd,
@@ -75,14 +75,12 @@ function readInputFieldSelection() {
 // https://bugs.chromium.org/p/chromium/issues/detail?id=725890
 // Therefore we must also refresh selection after changing input.
 useEvent(document, 'selectionchange', readInputFieldSelection)
-watch(innerModel, readInputFieldSelection)
 watch(selection, (newPos) => {
   // If boundaries didn't change, don't overwrite selection dir.
   if (
     inputNode.value?.selectionStart !== newPos?.start ||
     inputNode.value?.selectionEnd !== newPos?.end
   ) {
-    console.log('Setting selection from props:', newPos)
     inputNode.value?.setSelectionRange(newPos?.start ?? null, newPos?.end ?? null)
   }
 })
@@ -114,7 +112,7 @@ defineExpose({
     @keydown.arrow-left.stop
     @keydown.arrow-right.stop
     @keydown.enter.stop="onEnterDown"
-    @input="emit('input', innerModel)"
+    @input="onInput"
     @change="onChange"
     @focus="onFocus"
   />
