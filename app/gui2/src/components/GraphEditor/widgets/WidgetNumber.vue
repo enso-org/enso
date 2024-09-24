@@ -75,6 +75,12 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
+  <!-- Do not finish edit on blur here!
+  
+  It is tempting, but it breaks the cooperation with possible drop-down widget. Blur may be done on
+  pointerdown, and if it would end the interaction, the drop down would also be hidden, making 
+  any `click` event on it impossible.
+  -->
   <NumericInputWidget
     ref="inputComponent"
     class="WidgetNumber"
@@ -84,7 +90,8 @@ export const widgetDefinition = defineWidget(
     @update:modelValue="setValue"
     @click.stop
     @focus="editHandler.start()"
-    @blur="editHandler.end()"
+    @keydown.enter.stop="editHandler.end()"
+    @keydown.tab.stop="editHandler.end()"
     @input="editHandler.edit($event)"
   />
 </template>

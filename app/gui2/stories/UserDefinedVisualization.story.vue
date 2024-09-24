@@ -28,14 +28,11 @@ export const inputType = 'Any'
 \x3c/script>
 
 \x3cscript setup lang="ts">
-import { VisualizationContainer } from 'builtins'
 const props = defineProps<{ data: unknown }>()
 \x3c/script>
 
 \x3ctemplate>
-  <VisualizationContainer :belowToolbar="true">
-    <pre><code class="green-text" v-text="props.data"></code></pre>
-  </VisualizationContainer>
+  <pre><code class="green-text" v-text="props.data"></code></pre>
 \x3c/template>
 
 \x3cstyle scoped>
@@ -91,6 +88,8 @@ const mockFsWrapperProps = computed(() => ({
           :nodeSize="nodeSize"
           :isFocused="true"
           :isFullscreen="false"
+          :isFullscreenAllowed="true"
+          :isResizable="true"
           :isCircularMenuVisible="isCircularMenuVisible"
           @setVisualizationId="$event.module.kind === 'CurrentProject' && (type = $event.name)"
         />

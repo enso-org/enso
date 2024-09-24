@@ -39,8 +39,11 @@ import Standard.Database.SQL.SQL_Fragment
 import Standard.Database.SQL_Statement.SQL_Statement
 import Standard.Database.SQL_Type.SQL_Type
 from Standard.Database.Dialect import Temp_Table_Style
+from Standard.Database.Dialect_Flags import all
 from Standard.Database.Errors import SQL_Error, Unsupported_Database_Operation
+from  Standard.Database.Internal.Base_Generator import lift_binary_op
 from Standard.Database.Internal.IR.Operation_Metadata import Date_Period_Metadata
+from Standard.Database.Internal.JDBC_Connection import JDBC_Connection
 from Standard.Database.Internal.Statement_Setter import fill_hole_default
 
 import project.Internal.SQLServer_Error_Mapper.SQLServer_Error_Mapper
@@ -186,13 +189,13 @@ type SQLSever_Dialect
     supports_separate_nan : Boolean
     supports_separate_nan self = True
 
-    ## PRIVATE
-    supports_negative_round_decimal_places : Boolean
-    supports_negative_round_decimal_places self = True
-
-    ## PRIVATE
-    supports_float_round_decimal_places : Boolean
-    supports_float_round_decimal_places self = True
+    ## PRIVAITE
+       Specifies implementation details flags.
+    dialect_flags : Dialect_Flags
+    dialect_flags self -> Dialect_Flags =
+        rounding = Rounding_Flags.Value supports_negative_decimal_places=True supports_float_decimal_places=True use_builtin_bankers=False
+        primary_key = Primary_Key_Flags.Value allows_nulls=False
+        Dialect_Flags.Value rounding=rounding primary_key=primary_key
 
     ## PRIVATE
        Specifies how the database creates temp tables.
@@ -283,6 +286,20 @@ type SQLSever_Dialect
                         Warning.attach (Inexact_Type_Coercion.Warning base_type new_type unavailable=False) new_type
                 _ -> base_type
 
+    ## PRIVATE
+    needs_literal_table_cast : Value_Type -> Boolean
+    needs_literal_table_cast self value_type =
+        _ = value_type
+        False
+
+    ## PRIVATE
+    ensure_query_has_no_holes : JDBC_Connection -> Text -> Nothing ! Illegal_Argument
+    ensure_query_has_no_holes self jdbc:JDBC_Connection raw_sql:Text =
+        ## The jdbc driver doesn't work for asking about holes for SQLServer temp tables
+           We can skip this check and still get a decent error message
+        if raw_sql.contains "#" . not then
+            jdbc.ensure_query_has_no_holes raw_sql
+
 ## PRIVATE
 make_dialect_operations =
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
@@ -290,27 +307,34 @@ make_dialect_operations =
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     arith_extensions = [is_nan, is_inf, is_finite, floating_point_div, mod_op, decimal_div, decimal_mod, ["ROW_MIN", Base_Generator.make_function "LEAST"], ["ROW_MAX", Base_Generator.make_function "GREATEST"]]
     bool = [bool_or]
+    eq = lift_binary_op "==" make_equals
+    compare = [eq]
 
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
     stddev_samp = ["STDDEV_SAMP", Base_Generator.make_function "stddev_samp"]
     stats = [agg_median, agg_mode, agg_percentile, stddev_pop, stddev_samp]
     date_ops = [make_extract_as_int "year", make_extract_as_int "quarter", make_extract_as_int "month", make_extract_as_int "week", make_extract_as_int "day", make_extract_as_int "hour", make_extract_as_int "minute", make_extract_fractional_as_int "second", make_extract_fractional_as_int "millisecond" modulus=1000, make_extract_fractional_as_int "microsecond" modulus=1000, ["date_add", make_date_add], ["date_diff", make_date_diff], ["date_trunc_to_day", make_date_trunc_to_day]]
-    special_overrides = []
+    special_overrides = [is_null]
     other = [["RUNTIME_ERROR", make_runtime_error_op]]
-    my_mappings = text + counts + stats + first_last_aggregators + arith_extensions + bool + date_ops + special_overrides + other
+    my_mappings = text + counts + stats + first_last_aggregators + arith_extensions + bool + compare + date_ops + special_overrides + other
     Base_Generator.base_dialect_operations . extend_with my_mappings
 
 ## PRIVATE
+is_null = Base_Generator.lift_unary_op "IS_NULL" arg->
+    arg.paren ++ " IS NULL"
+
+## PRIVATE
 agg_count_is_null = Base_Generator.lift_unary_op "COUNT_IS_NULL" arg->
-    SQL_Builder.code "COUNT_IF(" ++ arg.paren ++ " IS NULL)"
+    SQL_Builder.code "SUM(CASE WHEN " ++ arg.paren ++ " IS NULL THEN 1 ELSE 0 END)"
 
 ## PRIVATE
 agg_count_empty = Base_Generator.lift_unary_op "COUNT_EMPTY" arg->
-    SQL_Builder.code "COUNT_IF("++ arg.paren ++ " IS NULL OR " ++ arg.paren ++ " == '')"
+    SQL_Builder.code "SUM(CASE WHEN (" ++ arg.paren ++ " IS NULL) OR (" ++ arg.paren ++ " = '') THEN 1 ELSE 0 END)"
 
 ## PRIVATE
 agg_count_not_empty = Base_Generator.lift_unary_op "COUNT_NOT_EMPTY" arg->
-    SQL_Builder.code "COUNT_IF(" ++ arg.paren ++ " IS NOT NULL AND " ++ arg.paren ++ " != '')"
+    SQL_Builder.code "SUM(CASE WHEN (" ++ arg.paren ++ " IS NOT NULL) AND (" ++ arg.paren ++ " != '') THEN 1 ELSE 0 END)"
+
 
 ## PRIVATE
 agg_median = Base_Generator.lift_unary_op "MEDIAN" arg->
@@ -338,6 +362,14 @@ first_last_aggregators =
     last = make_first_aggregator reverse=True ignore_null=False
     last_not_null = make_first_aggregator reverse=True ignore_null=True
     [["FIRST", first], ["FIRST_NOT_NULL", first_not_null], ["LAST", last], ["LAST_NOT_NULL", last_not_null]]
+
+## PRIVATE
+make_equals a b =
+    case a.build.prepare.second==[True] of
+        True -> b.paren
+        False -> case b.build.prepare.second==[True] of
+            True -> a.paren
+            False -> a.paren ++ " = " ++ b.paren
 
 ## PRIVATE
 make_first_aggregator reverse ignore_null args =
@@ -430,9 +462,7 @@ right = Base_Generator.lift_binary_op "RIGHT" str-> n->
 
 ## PRIVATE
 make_order_descriptor internal_column sort_direction text_ordering =
-    nulls = case sort_direction of
-        Sort_Direction.Ascending -> Nulls_Order.First
-        Sort_Direction.Descending -> Nulls_Order.Last
+    nulls = Nothing
     case text_ordering of
         Nothing ->
             Order_Descriptor.Value (Internals_Access.column_expression internal_column) sort_direction nulls_order=nulls collation=Nothing

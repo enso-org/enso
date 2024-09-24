@@ -1,6 +1,7 @@
 import { Vec2 } from '@/util/data/vec2'
+import { withSetup } from '@/util/testing'
 import { afterEach, beforeEach, expect, test, vi, type Mock, type MockInstance } from 'vitest'
-import { effectScope, nextTick } from 'vue'
+import { nextTick } from 'vue'
 import { useArrows } from '../events'
 
 let rafSpy: MockInstance
@@ -57,6 +58,7 @@ function checkCbSequence(cb: Mock, steps: CbSequenceStep[]) {
       event,
     )
   }
+  expect(cb).toHaveBeenCalledTimes(steps.length)
 }
 
 test.each`
@@ -69,8 +71,22 @@ test.each`
   ${['ArrowUp', 'ArrowLeft']}    | ${10}    | ${1000} | ${[2000, 3000]}       | ${[[-10, -10], [-20, -20]]}                     | ${[[-10, -10], [-10, -10]]}
 `(
   'useArrows with $pressedKeys keys and $velocity velocity',
-  async ({ pressedKeys, velocity, t0, t, offset, delta }) => {
-    await effectScope().run(async () => {
+  async ({
+    pressedKeys,
+    velocity,
+    t0,
+    t,
+    offset,
+    delta,
+  }: {
+    pressedKeys: string[]
+    velocity: number
+    t0: number
+    t: number[]
+    offset: [number, number][]
+    delta: [number, number][]
+  }) => {
+    await withSetup(async () => {
       const cb = vi.fn()
       const expectedSequence: CbSequenceStep[] = []
       const arrows = useArrows(cb, { velocity })
@@ -86,13 +102,13 @@ test.each`
       expect(arrows.moving.value).toBeTruthy
 
       for (let i = 0; i < t.length - 1; ++i) {
-        runFrame(t[i])
+        runFrame(t[i]!)
         await nextTick()
-        expectedSequence.push(['move', offset[i], delta[i], undefined])
+        expectedSequence.push(['move', offset[i]!, delta[i]!, undefined])
       }
 
       const keyupEvents = Array.from(pressedKeys, (key) =>
-        keyEvent('keyup', { key, timeStamp: t[t.length - 1] }),
+        keyEvent('keyup', { key, timeStamp: t[t.length - 1]! }),
       )
       for (const event of keyupEvents) {
         window.dispatchEvent(event)
@@ -100,18 +116,18 @@ test.each`
       await nextTick()
       expectedSequence.push([
         'stop',
-        offset[offset.length - 1],
-        delta[delta.length - 1],
+        offset[offset.length - 1]!,
+        delta[delta.length - 1]!,
         keyupEvents[keyupEvents.length - 1],
       ])
       expect(arrows.moving.value).toBeFalsy()
       checkCbSequence(cb, expectedSequence)
-    })
+    })[0]
   },
 )
 
 test('useArrow with non-overlaping keystrokes', async () => {
-  await effectScope().run(async () => {
+  await withSetup(async () => {
     const cb = vi.fn()
     const arrows = useArrows(cb, { velocity: 10 })
     const rightDown = keyEvent('keydown', { key: 'ArrowRight', timeStamp: 0 })
@@ -143,11 +159,11 @@ test('useArrow with non-overlaping keystrokes', async () => {
       ['move', [0, 5], [0, 5], undefined],
       ['stop', [0, 10], [0, 5], downUp],
     ])
-  })
+  })[0]
 })
 
 test('useArrow with overlaping keystrokes', async () => {
-  await effectScope().run(async () => {
+  await withSetup(async () => {
     const cb = vi.fn()
     const arrows = useArrows(cb, { velocity: 10 })
     const rightDown = keyEvent('keydown', { key: 'ArrowRight', timeStamp: 0 })
@@ -178,5 +194,5 @@ test('useArrow with overlaping keystrokes', async () => {
       ['move', [20, 15], [5, 10], undefined],
       ['stop', [20, 20], [0, 5], downUp],
     ])
-  })
+  })[0]
 })

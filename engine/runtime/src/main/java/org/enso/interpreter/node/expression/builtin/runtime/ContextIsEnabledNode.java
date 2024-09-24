@@ -7,7 +7,6 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
-import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
     type = "Context",
@@ -16,9 +15,9 @@ import org.enso.interpreter.runtime.state.State;
 public class ContextIsEnabledNode extends Node {
   private @Child ExpectStringNode expectStringNode = ExpectStringNode.build();
 
-  Object execute(State state, Atom self, Object environmentName) {
+  Object execute(Atom self, Object environmentName) {
     String envName = expectStringNode.execute(environmentName);
-    ExecutionEnvironment currentEnv = state.currentEnvironment();
+    ExecutionEnvironment currentEnv = EnsoContext.get(this).getExecutionEnvironment();
     if (!currentEnv.getName().equals(envName)) {
       Atom error =
           EnsoContext.get(this)

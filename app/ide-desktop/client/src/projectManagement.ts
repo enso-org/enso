@@ -422,9 +422,11 @@ export function bumpMetadata(
     let index: number | null = null
     const prefix = `${currentName} `
     for (const sibling of fs.readdirSync(parentDirectory, { withFileTypes: true })) {
-      if (sibling.isDirectory()) {
+      const siblingPath = pathModule.join(parentDirectory, sibling.name)
+      if (siblingPath === projectRoot) {
+        continue
+      } else if (sibling.isDirectory()) {
         try {
-          const siblingPath = pathModule.join(parentDirectory, sibling.name)
           const siblingName = getPackageName(siblingPath)
           if (siblingName === currentName) {
             index = index ?? 2

@@ -37,7 +37,7 @@ test.test('drive view', ({ page }) =>
     })
     // Project context menu
     .driveTable.rightClickRow(0)
-    .contextMenu.moveToTrash()
+    .contextMenu.moveNonFolderToTrash()
     .driveTable.withRows(async (rows) => {
       await test.expect(rows).toHaveCount(1)
     }),

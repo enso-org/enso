@@ -13,6 +13,7 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.SourceSection;
+import java.util.logging.Level;
 import org.enso.interpreter.node.BaseNode.TailStatus;
 import org.enso.interpreter.node.callable.IndirectInvokeMethodNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
@@ -81,10 +82,20 @@ public final class PanicException extends AbstractTruffleException implements En
   private String computeMessage() {
     String msg;
     InteropLibrary library = InteropLibrary.getUncached();
+    Object info = null;
     try {
-      msg = library.asString(library.getExceptionMessage(this));
+      info = library.getExceptionMessage(this);
+      msg = library.asString(info);
     } catch (AssertionError | UnsupportedMessageException e) {
-      msg = TypeToDisplayTextNode.getUncached().execute(payload);
+      try {
+        var ctx = EnsoContext.get(null);
+        ctx.getLogger().log(Level.WARNING, "Cannot convert " + info + " to string", e);
+        msg = TypeToDisplayTextNode.getUncached().execute(payload);
+      } catch (AssertionError assertionError) {
+        throw new AssertionError(
+            "Failed to log failed conversion of " + info + " to string and payload " + payload,
+            assertionError);
+      }
     }
     cacheMessage = msg;
     return msg;
@@ -153,6 +164,8 @@ public final class PanicException extends AbstractTruffleException implements En
     try {
       return Text.create(strings.asString(text));
     } catch (UnsupportedMessageException e) {
+      CompilerDirectives.transferToInterpreter();
+      ctx.getLogger().log(Level.WARNING, "Cannot convert " + text + " to string", e);
       return Text.create(typeToDisplayTextNode.execute(payload));
     }
   }

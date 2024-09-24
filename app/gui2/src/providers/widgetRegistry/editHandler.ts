@@ -1,4 +1,3 @@
-import type { GraphNavigator } from '@/providers/graphNavigator'
 import type { Interaction, InteractionHandler } from '@/providers/interactionHandler'
 import { injectInteractionHandler } from '@/providers/interactionHandler'
 import type { PortId } from '@/providers/portInfo'
@@ -69,10 +68,9 @@ export abstract class WidgetEditHandlerParent {
     return this.hooks.addItem?.() ?? this.parent?.addItem() ?? false
   }
 
-  protected pointerdown(event: PointerEvent, navigator: GraphNavigator): boolean | void {
-    if (this.hooks.pointerdown && this.hooks.pointerdown(event, navigator) !== false) return true
-    else
-      return this.activeChild.value ? this.activeChild.value.pointerdown(event, navigator) : false
+  protected pointerdown(event: PointerEvent): boolean | void {
+    if (this.hooks.pointerdown && this.hooks.pointerdown(event) !== false) return true
+    else return this.activeChild.value ? this.activeChild.value.pointerdown(event) : false
   }
 
   isActive() {
@@ -165,8 +163,8 @@ export class WidgetEditHandlerRoot extends WidgetEditHandlerParent implements In
     this.onEnd()
   }
 
-  override pointerdown(event: PointerEvent, navigator: GraphNavigator) {
-    return super.pointerdown(event, navigator)
+  override pointerdown(event: PointerEvent) {
+    return super.pointerdown(event)
   }
 
   protected override root() {

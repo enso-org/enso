@@ -160,9 +160,17 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   const grabKeyboardFocusRef = useSyncRef(grabKeyboardFocus)
   const asset = item.item
   const [insertionVisibility, setInsertionVisibility] = React.useState(Visibility.visible)
-  const [rowState, setRowState] = React.useState<assetsTable.AssetRowState>(() =>
+  const [innerRowState, setRowState] = React.useState<assetsTable.AssetRowState>(() =>
     object.merge(assetRowUtils.INITIAL_ROW_STATE, { setVisibility: setInsertionVisibility }),
   )
+
+  const isNewlyCreated = useStore(driveStore, ({ newestFolderId }) => newestFolderId === asset.id)
+  const isEditingName = innerRowState.isEditingName || isNewlyCreated
+
+  const rowState = React.useMemo(() => {
+    return object.merge(innerRowState, { isEditingName })
+  }, [isEditingName, innerRowState])
+
   const nodeParentKeysRef = React.useRef<{
     readonly nodeMap: WeakRef<ReadonlyMap<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>>
     readonly parentKeys: Map<backendModule.AssetId, backendModule.DirectoryId>
@@ -193,6 +201,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   const getDatalinkMutation = useMutation(backendMutationOptions(backend, 'getDatalink'))
   const createPermissionMutation = useMutation(backendMutationOptions(backend, 'createPermission'))
   const associateTagMutation = useMutation(backendMutationOptions(backend, 'associateTag'))
+  const editDescriptionMutation = useMutation(backendMutationOptions(backend, 'updateAsset'))
 
   const setSelected = useEventCallback((newSelected: boolean) => {
     const { selectedKeys } = driveStore.getState()
@@ -224,9 +233,11 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   }, [grabKeyboardFocusRef, isKeyboardSelected, item])
 
   React.useImperativeHandle(updateAssetRef, () => ({ setAsset, item }))
+
   if (updateAssetRef.current) {
     updateAssetRef.current[item.item.id] = setAsset
   }
+
   React.useEffect(() => {
     return () => {
       if (updateAssetRef.current) {
@@ -250,25 +261,25 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
     [doDeleteRaw, item.item],
   )
 
-  const doTriggerDescriptionEdit = React.useCallback(() => {
+  const doTriggerDescriptionEdit = useEventCallback(() => {
     setModal(
       <EditAssetDescriptionModal
         doChangeDescription={async (description) => {
           if (description !== asset.description) {
             setAsset(object.merger({ description }))
 
-            await backend
-              .updateAsset(item.item.id, { parentDirectoryId: null, description }, item.item.title)
-              .catch((error) => {
-                setAsset(object.merger({ description: asset.description }))
-                throw error
-              })
+            // eslint-disable-next-line no-restricted-syntax
+            return editDescriptionMutation.mutateAsync([
+              asset.id,
+              { description, parentDirectoryId: null },
+              item.item.title,
+            ])
           }
         }}
         initialDescription={asset.description}
       />,
     )
-  }, [setModal, asset.description, setAsset, backend, item.item.id, item.item.title])
+  })
 
   const clearDragState = React.useCallback(() => {
     setIsDraggedOver(false)
@@ -331,7 +342,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
           break
         }
         default: {
-          return
+          break
         }
       }
     } else {
@@ -549,18 +560,18 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
         }
         case AssetEventType.deleteLabel: {
           setAsset((oldAsset) => {
-            // The IIFE is required to prevent TypeScript from narrowing this value.
-            let found = (() => false)()
-            const labels =
-              oldAsset.labels?.filter((label) => {
-                if (label === event.labelName) {
-                  found = true
-                  return false
-                } else {
-                  return true
-                }
-              }) ?? null
-            return found ? object.merge(oldAsset, { labels }) : oldAsset
+            const oldLabels = oldAsset.labels ?? []
+            const labels: backendModule.LabelName[] = []
+
+            for (const label of oldLabels) {
+              if (label !== event.labelName) {
+                labels.push(label)
+              }
+            }
+
+            return oldLabels.length !== labels.length ?
+                object.merge(oldAsset, { labels })
+              : oldAsset
           })
           break
         }

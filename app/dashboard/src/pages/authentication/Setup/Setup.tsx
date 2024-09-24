@@ -68,6 +68,7 @@ const BASE_STEPS: Step[] = [
       const userSession = useUserSession()
       const { getText } = textProvider.useText()
 
+      const isUserCreated = userSession?.type === UserSessionType.full
       const defaultName =
         session && 'user' in session ? session.user.name : userSession?.email ?? ''
 
@@ -85,7 +86,8 @@ const BASE_STEPS: Step[] = [
           }
           defaultValues={{ username: defaultName }}
           onSubmit={({ username }) => {
-            if (username === defaultName) {
+            // If user is already created we shouldn't call `setUsername` if value wasn't changed
+            if (username === defaultName && isUserCreated) {
               goToNextStep()
               return
             } else {
@@ -352,7 +354,11 @@ const BASE_STEPS: Step[] = [
             iconPosition="end"
             onPress={() =>
               queryClient.invalidateQueries().then(() => {
-                navigate(DASHBOARD_PATH)
+                navigate(
+                  DASHBOARD_PATH +
+                    '?' +
+                    new URLSearchParams({ startModalDefaultOpen: 'true' }).toString(),
+                )
               })
             }
           >

@@ -8,8 +8,7 @@ import org.enso.compiler.core.ir.{
   Function,
   IdentifiedLocation,
   Module,
-  Name,
-  Type
+  Name
 }
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ir.expression.{Application, Case, Operator}
@@ -71,19 +70,17 @@ case object LambdaShorthandToLambda extends IRPass {
     ir: Module,
     moduleContext: ModuleContext
   ): Module = {
-    val new_bindings = ir.bindings.map {
-      case asc: Type.Ascription => asc
-      case a =>
-        a.mapExpressions(
-          runExpression(
-            _,
-            InlineContext(
-              moduleContext,
-              freshNameSupply = moduleContext.freshNameSupply,
-              compilerConfig  = moduleContext.compilerConfig
-            )
+    val new_bindings = ir.bindings.map { case a =>
+      a.mapExpressions(
+        runExpression(
+          _,
+          InlineContext(
+            moduleContext,
+            freshNameSupply = moduleContext.freshNameSupply,
+            compilerConfig  = moduleContext.compilerConfig
           )
         )
+      )
     }
     ir.copy(bindings = new_bindings)
   }
@@ -123,10 +120,9 @@ case object LambdaShorthandToLambda extends IRPass {
     freshNameSupply: FreshNameSupply
   ): Expression = {
     ir.transformExpressions {
-      case asc: Type.Ascription => asc
-      case app: Application     => desugarApplication(app, freshNameSupply)
-      case caseExpr: Case.Expr  => desugarCaseExpr(caseExpr, freshNameSupply)
-      case name: Name           => desugarName(name, freshNameSupply)
+      case app: Application    => desugarApplication(app, freshNameSupply)
+      case caseExpr: Case.Expr => desugarCaseExpr(caseExpr, freshNameSupply)
+      case name: Name          => desugarName(name, freshNameSupply)
     }
   }
 

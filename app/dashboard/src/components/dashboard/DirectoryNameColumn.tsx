@@ -9,7 +9,6 @@ import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import { useDriveStore } from '#/providers/DriveProvider'
-import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
@@ -25,7 +24,6 @@ import * as object from '#/utilities/object'
 import * as string from '#/utilities/string'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import * as validation from '#/utilities/validation'
-import { isOnMacOS } from 'enso-common/src/detect'
 
 // =====================
 // === DirectoryName ===
@@ -43,7 +41,6 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   const { doToggleDirectoryExpansion, expandedDirectoryIds } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
-  const inputBindings = inputBindingsProvider.useInputBindings()
   const driveStore = useDriveStore()
 
   if (item.type !== backendModule.AssetType.directory) {
@@ -62,6 +59,10 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
     if (isEditable) {
       setRowState(object.merger({ isEditingName }))
     }
+
+    if (!isEditingName) {
+      driveStore.setState({ newestFolderId: null })
+    }
   }
 
   const doRename = async (newTitle: string) => {
@@ -73,12 +74,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         const oldTitle = asset.title
         setAsset(object.merger({ title: newTitle }))
         try {
-          const updated = await updateDirectoryMutation.mutateAsync([
-            asset.id,
-            { title: newTitle },
-            asset.title,
-          ])
-          setAsset(object.merger(updated))
+          await updateDirectoryMutation.mutateAsync([asset.id, { title: newTitle }, asset.title])
         } catch (error) {
           toastAndLog('renameFolderError', error)
           setAsset(object.merger({ title: oldTitle }))
@@ -86,12 +82,6 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       }
     }
   }
-
-  const handleClick = inputBindings.handler({
-    editName: () => {
-      setIsEditing(true)
-    },
-  })
 
   return (
     <div
@@ -105,11 +95,8 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         }
       }}
       onClick={(event) => {
-        if (handleClick(event)) {
-          // Already handled.
-        } else if (
+        if (
           eventModule.isSingleClick(event) &&
-          isOnMacOS() &&
           selected &&
           driveStore.getState().selectedKeys.size === 1
         ) {

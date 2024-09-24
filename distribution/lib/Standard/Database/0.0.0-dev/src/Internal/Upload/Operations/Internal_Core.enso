@@ -15,6 +15,7 @@ import project.Internal.IR.Query.Query
 import project.SQL_Query.SQL_Query
 from project.Dialect import Temp_Table_Style
 from project.Errors import SQL_Error, Table_Already_Exists, Unsupported_Database_Operation
+from project.Internal.JDBC_Connection import log_sql_if_enabled
 from project.Internal.Upload.Helpers.Argument_Checks import resolve_primary_key
 from project.Internal.Upload.Helpers.Constants import default_batch_size
 from project.Internal.Upload.Helpers.Error_Helpers import handle_upload_errors, internal_translate_known_upload_errors
@@ -30,6 +31,7 @@ internal_create_table_structure connection table_name structure primary_key temp
     validate_structure connection.base_connection.column_naming_helper aligned_structure <|
         create_table_statement = prepare_create_table_statement connection table_name aligned_structure resolved_primary_key temporary on_problems
         update_result = create_table_statement.if_not_error <|
+            log_sql_if_enabled connection.jdbc_connection create_table_statement.to_text
             connection.execute create_table_statement
         final_result = update_result.if_not_error table_name
         final_result.catch SQL_Error sql_error->

@@ -34,7 +34,7 @@ export const TEXT_STYLE = twv.tv({
       danger: 'text-danger',
       success: 'text-accent-dark',
       disabled: 'text-primary/30',
-      invert: 'text-white',
+      invert: 'text-invert',
       inherit: 'text-inherit',
       current: 'text-current',
     },
@@ -69,6 +69,7 @@ export const TEXT_STYLE = twv.tv({
     },
     transform: {
       none: '',
+      normal: 'normal-case',
       capitalize: 'capitalize',
       lowercase: 'lowercase',
       uppercase: 'uppercase',
@@ -89,7 +90,7 @@ export const TEXT_STYLE = twv.tv({
     },
     monospace: { true: 'font-mono' },
     italic: { true: 'italic' },
-    nowrap: { true: 'whitespace-nowrap' },
+    nowrap: { true: 'whitespace-nowrap', normal: 'whitespace-normal', false: '' },
     textSelection: {
       auto: '',
       none: 'select-none',
@@ -211,6 +212,8 @@ export const Text = forwardRef(function Text(props: TextProps, ref: React.Ref<HT
 }) as unknown as React.FC<React.RefAttributes<HTMLSpanElement> & TextProps> & {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   Heading: typeof Heading
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  Group: React.FC<React.PropsWithChildren>
 }
 
 /**
@@ -233,3 +236,14 @@ const Heading = forwardRef(function Heading(
   return <Text ref={ref} elementType={`h${level}`} variant="h1" balance {...textProps} />
 })
 Text.Heading = Heading
+
+/**
+ * Text group component. It's used to visually group text elements together
+ */
+Text.Group = function TextGroup(props: React.PropsWithChildren) {
+  return (
+    <textProvider.TextProvider value={{ isInsideTextComponent: true }}>
+      {props.children}
+    </textProvider.TextProvider>
+  )
+}

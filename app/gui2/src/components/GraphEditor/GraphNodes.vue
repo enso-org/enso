@@ -38,6 +38,7 @@ const displacingWithArrows = useArrows(
     if (!oneOfMoved) return false
     dragging.startOrUpdate(oneOfMoved, pos.relative)
     if (type === 'stop') dragging.finishDrag()
+    else if (type === 'cancel') dragging.cancelDrag()
   },
   { predicate: (_) => selection.selected.size > 0 },
 )
@@ -70,6 +71,7 @@ const graphNodeSelections = shallowRef<HTMLElement>()
       @delete="graphStore.deleteNodes([id])"
       @dragging="nodeIsDragged(id, $event)"
       @draggingCommited="dragging.finishDrag()"
+      @draggingCancelled="dragging.cancelDrag()"
       @outputPortClick="(event, port) => graphStore.createEdgeFromOutput(port, event)"
       @outputPortDoubleClick="(_event, port) => emit('nodeOutputPortDoubleClick', port)"
       @doubleClick="emit('nodeDoubleClick', id)"

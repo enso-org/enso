@@ -180,7 +180,8 @@ case object FunctionBinding extends IRPass {
               errors.Conversion.MissingSourceType(args.head.name.name)
             )
           } else {
-            assert(!isPrivate, "Should be handled by previous match")
+            org.enso.common.Asserts
+              .assertInJvm(!isPrivate, "Should be handled by previous match")
             val firstArg :: restArgs = args
             val firstArgumentType    = firstArg.ascribedType.get
             val firstArgumentName    = firstArg.name

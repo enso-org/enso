@@ -125,7 +125,7 @@ export default function AssetPanel(props: AssetPanelProps) {
       <div
         data-testid="asset-panel"
         className={tailwindMerge.twMerge(
-          'pointer-events-none absolute flex h-full w-asset-panel flex-col gap-asset-panel bg-white p-4 pl-asset-panel-l transition-[box-shadow] clip-path-left-shadow',
+          'pointer-events-none absolute flex h-full w-asset-panel flex-col gap-asset-panel bg-invert p-4 pl-asset-panel-l transition-[box-shadow] clip-path-left-shadow',
           isVisible ? 'shadow-softer' : '',
         )}
         onClick={(event) => {
@@ -184,6 +184,7 @@ export default function AssetPanel(props: AssetPanelProps) {
         : <>
             {tab === AssetPanelTab.properties && (
               <AssetProperties
+                key={item.item.id}
                 backend={backend}
                 isReadonly={isReadonly}
                 item={item}

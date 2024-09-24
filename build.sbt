@@ -769,6 +769,14 @@ lazy val `syntax-rust-definition` = project
     publish / skip := false,
     autoScalaLibrary := false,
     crossPaths := false,
+    libraryDependencies ++= Seq(
+      "org.slf4j" % "slf4j-api" % slf4jVersion
+    ),
+    moduleDependencies := {
+      Seq(
+        "org.slf4j" % "slf4j-api" % slf4jVersion
+      )
+    },
     javaModuleName := "org.enso.syntax",
     Compile / sourceGenerators += generateParserJavaSources,
     Compile / resourceGenerators += generateRustParserLib,
@@ -3583,14 +3591,47 @@ lazy val `std-tableau` = project
         val unmanagedPath = unmanagedDirectory.toPath
         IO.withTemporaryDirectory(
           tmp => {
-            val files = IO.unzipURL(
-              unmanagedExternalZip.value,
-              tmp,
-              f =>
-                f.endsWith(".jar") && !f.contains("gradle") && !f.contains(
-                  "javadoc"
-                ) && !f.contains("jna")
-            )
+            import scala.concurrent.ExecutionContext.Implicits.global
+            implicit val filesNotEmptySuccess: retry.Success[Set[File]] =
+              retry.Success(!_.isEmpty)
+            import scala.concurrent.duration._
+            val future = retry.Backoff(4, 1.second).apply { () =>
+              scala.concurrent.Future {
+                try {
+                  IO.unzipURL(
+                    unmanagedExternalZip.value,
+                    tmp,
+                    f =>
+                      f.endsWith(".jar") && !f.contains("gradle") && !f
+                        .contains(
+                          "javadoc"
+                        ) && !f.contains("jna")
+                  )
+                } catch {
+                  case _: java.net.SocketException |
+                      _: java.net.ConnectException =>
+                    Set.empty[File]
+                }
+              }
+            }
+            future.onComplete { result =>
+              if (result.isFailure || result.get.isEmpty) {
+                logger.log(
+                  Level.Error,
+                  "Failed to fetch any external artifacts for tableau"
+                )
+              }
+            }
+            val files = scala.concurrent.Await.result(future, 60.seconds)
+            if (files.isEmpty) {
+              logger.log(
+                Level.Error,
+                "Failed to fetch any external artifacts for tableau"
+              )
+              throw new IllegalStateException(
+                "Failed to fetch any external artifacts"
+              )
+            }
             files.map { f =>
               IO.move(f, unmanagedPath.resolve(f.getName).toFile)
               Attributed.blank(unmanagedPath.resolve(f.getName).toFile)

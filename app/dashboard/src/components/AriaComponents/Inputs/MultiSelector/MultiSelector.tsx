@@ -22,7 +22,6 @@ import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
 import { tv } from '#/utilities/tailwindVariants'
 import { omit, unsafeRemoveUndefined } from 'enso-common/src/utilities/data/object'
-import { Controller } from 'react-hook-form'
 import { MultiSelectorOption } from './MultiSelectorOption'
 
 /** * Props for the MultiSelector component. */
@@ -141,7 +140,7 @@ export const MultiSelector = forwardRef(function MultiSelector<
         className={classes.base()}
         onClick={() => privateInputRef.current?.focus({ preventScroll: true })}
       >
-        <Controller
+        <Form.Controller
           control={formInstance.control}
           name={name}
           render={(renderProps) => {

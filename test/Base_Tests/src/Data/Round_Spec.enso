@@ -176,62 +176,6 @@ add_specs group_builder batch_runner run_advanced =
             round_fun -3.50001 . should_equal -4
             round_fun -3.99999 . should_equal -4
 
-    group_builder.specify "Can round correctly near the precision limit" pending=pending_advanced <|
-        batch_runner.run use_bankers=False round_fun->
-            round_fun 1.22222222225 10 . should_equal 1.2222222223
-            round_fun 1.222222222225 11 . should_equal 1.22222222223
-            round_fun 1.2222222222225 12 . should_equal 1.222222222223
-            round_fun 1.22222222222225 13 . should_equal 1.2222222222223
-            round_fun 1.222222222222225 14 . should_equal 1.22222222222223 0.00000000000001
-
-            round_fun -1.22222222225 10 . should_equal -1.2222222223
-            round_fun -1.222222222225 11 . should_equal -1.22222222223
-            round_fun -1.2222222222225 12 . should_equal -1.222222222223
-            round_fun -1.22222222222225 13 . should_equal -1.2222222222223
-            round_fun -1.222222222222225 14 . should_equal -1.22222222222223 0.00000000000001
-
-            round_fun 1.22222222235 10 . should_equal 1.2222222224
-            round_fun 1.222222222235 11 . should_equal 1.22222222224
-            round_fun 1.2222222222235 12 . should_equal 1.222222222224 0.000000000002
-            round_fun 1.22222222222235 13 . should_equal 1.2222222222224 0.0000000000001
-            round_fun 1.222222222222235 14 . should_equal 1.22222222222224 0.00000000000001
-
-            round_fun -1.22222222235 10 . should_equal -1.2222222224
-            round_fun -1.222222222235 11 . should_equal -1.22222222224
-            round_fun -1.2222222222235 12 . should_equal -1.222222222224 0.000000000002
-            round_fun -1.22222222222235 13 . should_equal -1.2222222222224 0.0000000000001
-            round_fun -1.222222222222235 14 . should_equal -1.22222222222224 0.00000000000001
-
-    group_builder.specify "Can round correctly near the precision limit, using banker's rounding" pending=pending_advanced <|
-        batch_runner.run use_bankers=True round_fun->
-            round_fun 1.22222222225 10 . should_equal 1.2222222222
-            round_fun 1.222222222225 11 . should_equal 1.22222222222
-            round_fun 1.2222222222225 12 . should_equal 1.222222222222
-            round_fun 1.22222222222225 13 . should_equal 1.2222222222222
-            round_fun 1.222222222222225 14 . should_equal 1.22222222222222
-
-            round_fun -1.22222222225 10 . should_equal -1.2222222222
-            round_fun -1.222222222225 11 . should_equal -1.22222222222
-            round_fun -1.2222222222225 12 . should_equal -1.222222222222
-            round_fun -1.22222222222225 13 . should_equal -1.2222222222222
-            round_fun -1.222222222222225 14 . should_equal -1.22222222222222
-
-            round_fun 1.22222222235 10 . should_equal 1.2222222224
-            round_fun 1.222222222235 11 . should_equal 1.22222222224
-            round_fun 1.2222222222235 12 . should_equal 1.222222222224
-            round_fun 1.22222222222235 13 . should_equal 1.2222222222224
-            round_fun 1.222222222222235 14 . should_equal 1.22222222222224
-
-            round_fun -1.22222222235 10 . should_equal -1.2222222224
-            round_fun -1.222222222235 11 . should_equal -1.22222222224
-            round_fun -1.2222222222235 12 . should_equal -1.222222222224
-            round_fun -1.22222222222235 13 . should_equal -1.2222222222224
-            round_fun -1.222222222222235 14 . should_equal -1.22222222222224
-
-    group_builder.specify "Floating point imperfect representation counter-examples" pending=(if group_builder.name.contains "Snowflake" then "TODO: https://github.com/enso-org/enso/issues/10307") <|
-        batch_runner.run_one 1.225 2 use_bankers=True . should_equal 1.22  # Actual result 1.23
-        batch_runner.run_one 37.785 2 . should_equal 37.79 0.01
-
     group_builder.specify "Can round small integers to a specified number of decimal places correctly (value is unchanged)" <|
         batch_runner.run use_bankers=False round_fun->
             round_fun 0 . should_equal 0

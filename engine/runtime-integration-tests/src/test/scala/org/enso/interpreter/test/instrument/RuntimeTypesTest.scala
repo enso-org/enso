@@ -370,7 +370,6 @@ class RuntimeTypesTest
       TestMessages.panic(
         contextId,
         id_x,
-        Api.MethodCall(Api.MethodPointer(moduleName, s"$moduleName.T", "C")),
         Api.ExpressionUpdate.Payload.Panic("Compile_Error", List(id_x)),
         builtin = true
       ),

@@ -428,7 +428,10 @@
 },
 {
   "name":"java.lang.Object",
-  "methods":[{"name":"equals","parameterTypes":["java.lang.Object"] }, {"name":"hashCode","parameterTypes":[] }, {"name":"toString","parameterTypes":[] }]
+  "methods":[
+    {"name":"<init>", "parameterTypes":[]},
+    {"name":"equals","parameterTypes":["java.lang.Object"] }, {"name":"hashCode","parameterTypes":[] }, {"name":"toString","parameterTypes":[] }
+  ]
 },
 {
   "name":"java.lang.OutOfMemoryError"
@@ -446,7 +449,11 @@
 },
 {
   "name":"java.lang.String",
-  "fields":[{"name":"TYPE"}, {"name":"value"}]
+  "fields":[{"name":"TYPE"}, {"name":"CASE_INSENSITIVE_ORDER"}, {"name":"value"}],
+  "methods":[
+    {"name":"<init>","parameterTypes":["java.lang.String"]},
+    {"name":"format","parameterTypes":["java.lang.String", "java.lang.Object[]"]}
+  ]
 },
 {
   "name":"java.lang.StringBuilder"
