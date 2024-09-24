@@ -144,6 +144,7 @@ class App {
 
   /** Process the command line arguments. */
   processArguments(args = fileAssociations.CLIENT_ARGUMENTS) {
+    logger.log('ARGS', args)
     // We parse only "client arguments", so we don't have to worry about the Electron-Dev vs
     // Electron-Proper distinction.
     const fileToOpen = fileAssociations.argsDenoteFileOpenAttempt(args)
