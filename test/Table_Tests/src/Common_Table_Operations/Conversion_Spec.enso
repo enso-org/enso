@@ -588,7 +588,7 @@ add_specs suite_builder setup =
                 t = table_builder [["X", ["2018-01-01", "2023-12-31"]]]
 
                 r1 = t.at "X" . parse Value_Type.Date
-                r1.should_fail_with Unsupported_Database_Operation
+                r1.should_fail_with Unsupported_Database_Type
 
                 r2 = t.parse ["X"] Value_Type.Date
                 r2.should_fail_with Unsupported_Database_Type
