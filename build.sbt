@@ -2263,7 +2263,8 @@ lazy val `language-server` = (project in file("engine/language-server"))
         "org.jline"              % "jline"                        % jlineVersion,
         "org.apache.tika"        % "tika-core"                    % tikaVersion,
         "com.ibm.icu"            % "icu4j"                        % icuVersion,
-        "net.java.dev.jna"       % "jna"                          % jnaVersion
+        "net.java.dev.jna"       % "jna"                          % jnaVersion,
+        "org.netbeans.api"       % "org-openide-util-lookup"      % netbeansApiVersion
       )
     },
     Test / internalModuleDependencies := Seq(
@@ -2283,6 +2284,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       (`scala-libs-wrapper` / Compile / exportedModule).value,
       (`akka-wrapper` / Compile / exportedModule).value,
       (`language-server-deps-wrapper` / Compile / exportedModule).value,
+      (`fansi-wrapper` / Compile / exportedModule).value,
       (`text-buffer` / Compile / exportedModule).value,
       (`runtime-suggestions` / Compile / exportedModule).value,
       (`runtime-parser` / Compile / exportedModule).value,
