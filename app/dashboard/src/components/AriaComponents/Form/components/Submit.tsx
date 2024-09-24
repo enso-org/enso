@@ -10,8 +10,8 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
 
+import * as formContext from './FormProvider'
 import type * as types from './types'
-import * as formContext from './useFormContext'
 
 /**
  * Additional props for the Submit component.
@@ -24,9 +24,9 @@ interface SubmitButtonBaseProps {
    *
    * This field is helpful when you need to use the submit button outside of the form.
    */
-  // For this component, we don't need to know the form fields
+  // We do not need to know the form fields.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly form?: types.FormInstance<any, any>
+  readonly form?: types.FormInstance<any>
   /**
    * Prop that allows to close the parent dialog without submitting the form.
    *
@@ -48,22 +48,23 @@ export type SubmitProps = Omit<ariaComponents.ButtonProps, 'href' | 'variant'> &
  * Manages the form state and displays a loading spinner when the form is submitting.
  */
 export function Submit(props: SubmitProps): React.JSX.Element {
+  const { getText } = textProvider.useText()
+
   const {
-    form = formContext.useFormContext(),
-    variant = 'submit',
     size = 'medium',
-    testId = 'form-submit-button',
     formnovalidate = false,
     loading = false,
-    children,
+    children = formnovalidate ? getText('cancel') : getText('submit'),
+    variant = formnovalidate ? 'ghost-fading' : 'submit',
+    testId = formnovalidate ? 'form-cancel-button' : 'form-submit-button',
     ...buttonProps
   } = props
 
-  const { getText } = textProvider.useText()
   const dialogContext = ariaComponents.useDialogContext()
+  const form = formContext.useFormContext(props.form)
   const { formState } = form
 
-  const isLoading = loading || formState.isSubmitting
+  const isLoading = formnovalidate ? false : loading || formState.isSubmitting
   const type = formnovalidate || isLoading ? 'button' : 'submit'
 
   return (
@@ -82,7 +83,7 @@ export function Submit(props: SubmitProps): React.JSX.Element {
         }
       }}
     >
-      {children ?? getText('submit')}
+      {children}
     </ariaComponents.Button>
   )
 }

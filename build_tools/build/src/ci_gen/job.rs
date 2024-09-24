@@ -13,8 +13,6 @@ use crate::engine::env;
 use crate::ide::web::env::VITE_ENSO_AG_GRID_LICENSE_KEY;
 use crate::ide::web::env::VITE_ENSO_MAPBOX_API_TOKEN;
 
-use convert_case::Case;
-use convert_case::Casing;
 use ide_ci::actions::workflow::definition::cancel_workflow_action;
 use ide_ci::actions::workflow::definition::Access;
 use ide_ci::actions::workflow::definition::Job;
@@ -25,6 +23,7 @@ use ide_ci::actions::workflow::definition::Step;
 use ide_ci::actions::workflow::definition::Strategy;
 use ide_ci::actions::workflow::definition::Target;
 use ide_ci::cache::goodie::graalvm;
+use ide_ci::convert_case::ToKebabCase;
 
 
 
@@ -207,22 +206,47 @@ impl JobArchetype for JvmTests {
         format!(
             "{}-{}-{os}-{arch}",
             self.id_key_base(),
-            self.graal_edition.to_string().to_case(Case::Kebab)
+            self.graal_edition.to_string().to_kebab_case()
         )
     }
 }
 
+fn enable_cloud_tests(step: Step) -> Step {
+    step.with_secret_exposed_as(
+        secret::ENSO_CLOUD_COGNITO_USER_POOL_ID,
+        crate::cloud_tests::env::ci_config::ENSO_CLOUD_COGNITO_USER_POOL_ID,
+    )
+    .with_secret_exposed_as(
+        secret::ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID,
+        crate::cloud_tests::env::ci_config::ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID,
+    )
+    .with_secret_exposed_as(
+        secret::ENSO_CLOUD_COGNITO_REGION,
+        crate::cloud_tests::env::ci_config::ENSO_CLOUD_COGNITO_REGION,
+    )
+    .with_secret_exposed_as(
+        secret::ENSO_CLOUD_TEST_ACCOUNT_USERNAME,
+        crate::cloud_tests::env::ci_config::ENSO_CLOUD_TEST_ACCOUNT_USERNAME,
+    )
+    .with_secret_exposed_as(
+        secret::ENSO_CLOUD_TEST_ACCOUNT_PASSWORD,
+        crate::cloud_tests::env::ci_config::ENSO_CLOUD_TEST_ACCOUNT_PASSWORD,
+    )
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct StandardLibraryTests {
-    pub graal_edition: graalvm::Edition,
+    pub graal_edition:       graalvm::Edition,
+    pub cloud_tests_enabled: bool,
 }
 
 impl JobArchetype for StandardLibraryTests {
     fn job(&self, target: Target) -> Job {
         let graal_edition = self.graal_edition;
+        let should_enable_cloud_tests = self.cloud_tests_enabled;
         let job_name = format!("Standard Library Tests ({graal_edition})");
-        let mut job = RunStepsBuilder::new("backend test standard-library")
-            .customize(move |step| {
+        let run_steps_builder =
+            RunStepsBuilder::new("backend test standard-library").customize(move |step| {
                 let main_step = step
                     .with_secret_exposed_as(
                         secret::ENSO_LIB_S3_AWS_REGION,
@@ -236,10 +260,22 @@ impl JobArchetype for StandardLibraryTests {
                         secret::ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY,
                         crate::libraries_tests::s3::env::ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY,
                     );
-                vec![main_step, step::stdlib_test_reporter(target, graal_edition)]
-            })
-            .build_job(job_name, target)
-            .with_permission(Permission::Checks, Access::Write);
+
+                let updated_main_step = if should_enable_cloud_tests {
+                    enable_cloud_tests(main_step)
+                } else {
+                    main_step
+                };
+
+                vec![updated_main_step, step::stdlib_test_reporter(target, graal_edition)]
+            });
+        let mut job = build_job_ensuring_cloud_tests_run_on_github(
+            run_steps_builder,
+            target,
+            &job_name,
+            should_enable_cloud_tests,
+        )
+        .with_permission(Permission::Checks, Access::Write);
         match graal_edition {
             graalvm::Edition::Community => job.env(env::GRAAL_EDITION, graalvm::Edition::Community),
             graalvm::Edition::Enterprise =>
@@ -252,8 +288,28 @@ impl JobArchetype for StandardLibraryTests {
         format!(
             "{}-{}-{os}-{arch}",
             self.id_key_base(),
-            self.graal_edition.to_string().to_case(Case::Kebab)
+            self.graal_edition.to_string().to_kebab_case()
         )
+    }
+}
+
+/** This is a temporary workaround.
+ *
+ * The Cloud tests preparation requires `aws` CLI to be installed on the machine.
+ * The GitHub hosted runners have it, but our self-hosted runners do not.
+ * To fix this we either need to modify self-hosted runners to provide the AWS CLI or change the
+ * way we prepare the Cloud tests to not require it.
+ */
+fn build_job_ensuring_cloud_tests_run_on_github(
+    run_steps_builder: RunStepsBuilder,
+    target: Target,
+    job_name: &str,
+    cloud_tests_enabled: bool,
+) -> Job {
+    if cloud_tests_enabled {
+        run_steps_builder.build_job(job_name, RunnerLabel::LinuxLatest)
+    } else {
+        run_steps_builder.build_job(job_name, target)
     }
 }
 
@@ -292,6 +348,12 @@ impl JobArchetype for SnowflakeTests {
                         secret::ENSO_SNOWFLAKE_WAREHOUSE,
                         crate::libraries_tests::snowflake::env::ENSO_SNOWFLAKE_WAREHOUSE,
                     );
+
+                // Temporarily disabled until we can get the Cloud auth fixed.
+                // Snowflake does not rely on cloud anyway, so it can be disabled.
+                // But it will rely once we add datalink tests, so this should be fixed soon.
+                // let updated_main_step = enable_cloud_tests(main_step);
+
                 vec![
                     main_step,
                     step::extra_stdlib_test_reporter(target, GRAAL_EDITION_FOR_EXTRA_TESTS),
@@ -464,7 +526,7 @@ pub struct PackageIde;
 impl JobArchetype for PackageIde {
     fn job(&self, target: Target) -> Job {
         RunStepsBuilder::new(
-            "ide build --backend-source current-ci-run --gui-upload-artifact false",
+            "ide build --backend-source current-ci-run --gui-upload-artifact false --gui-sign-artifacts false",
         )
         .customize(with_packaging_steps(target.0))
         .build_job("Package New IDE", target)
@@ -492,7 +554,7 @@ impl JobArchetype for CiCheckBackend {
         format!(
             "{}-{}-{os}-{arch}",
             self.id_key_base(),
-            self.graal_edition.to_string().to_case(Case::Kebab)
+            self.graal_edition.to_string().to_kebab_case()
         )
     }
 }

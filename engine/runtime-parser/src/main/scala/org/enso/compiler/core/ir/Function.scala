@@ -84,7 +84,7 @@ object Function {
         Persistance.Reference.of(body, true),
         location,
         true,
-        ir.passData
+        ir.passData.duplicate()
       )
       diagnostics = ir.diagnostics
     }

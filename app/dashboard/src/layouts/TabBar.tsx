@@ -207,14 +207,13 @@ export function Tab(props: InternalTabProps) {
     }
   }, [actuallyActive, id, setSelectedTab])
 
-  const { isLoading, data } = reactQuery.useQuery<backend.Project>(
+  const { isLoading, data } = reactQuery.useQuery<backend.Project | null>(
     project?.id ?
       projectHooks.createGetProjectDetailsQuery.createPassiveListener(project.id)
     : { queryKey: ['__IGNORE__'], queryFn: reactQuery.skipToken },
   )
 
-  const isFetching =
-    (isLoading || (data && data.state.type !== backend.ProjectState.opened)) ?? false
+  const isFetching = isLoading || data == null || data.state.type !== backend.ProjectState.opened
 
   React.useEffect(() => {
     if (!isFetching && isLoadingRef.current) {
@@ -227,14 +226,16 @@ export function Tab(props: InternalTabProps) {
     <aria.Tab
       data-testid={props['data-testid']}
       ref={(element) => {
-        ref.current = element
-        if (element) {
+        if (element instanceof HTMLDivElement) {
+          ref.current = element
           if (actuallyActive) {
             setSelectedTab(element)
           }
           resizeObserver.disconnect()
           resizeObserver.observe(element)
           updateClipPath()
+        } else {
+          ref.current = null
         }
       }}
       id={id}

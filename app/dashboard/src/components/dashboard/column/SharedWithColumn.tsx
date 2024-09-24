@@ -11,7 +11,6 @@ import * as modalProvider from '#/providers/ModalProvider'
 import AssetEventType from '#/events/AssetEventType'
 
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import type * as column from '#/components/dashboard/column'
@@ -49,12 +48,13 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
   const isUnderPaywall = isFeatureUnderPaywall('share')
+  const assetPermissions = asset.permissions ?? []
   const { setModal } = modalProvider.useSetModal()
   const self = permissions.tryFindSelfPermission(user, asset.permissions)
   const plusButtonRef = React.useRef<HTMLButtonElement>(null)
   const managesThisAsset =
     !isReadonly &&
-    category.type !== categoryModule.CategoryType.trash &&
+    category.type !== 'trash' &&
     (self?.permission === permissions.PermissionAction.own ||
       self?.permission === permissions.PermissionAction.admin)
   const setAsset = React.useCallback(
@@ -71,9 +71,14 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
 
   return (
     <div className="group flex items-center gap-column-items">
-      {(asset.permissions ?? []).map((other) => (
+      {(category.type === 'trash' ?
+        assetPermissions.filter(
+          (permission) => permission.permission === permissions.PermissionAction.own,
+        )
+      : assetPermissions
+      ).map((other, idx) => (
         <PermissionDisplay
-          key={backendModule.getAssetPermissionId(other)}
+          key={backendModule.getAssetPermissionId(other) + idx}
           action={other.permission}
           onPress={
             setQuery == null ? null : (

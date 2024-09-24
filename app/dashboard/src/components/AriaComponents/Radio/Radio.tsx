@@ -11,6 +11,7 @@ import * as aria from '#/components/aria'
 import * as mergeRefs from '#/utilities/mergeRefs'
 import * as twv from '#/utilities/tailwindVariants'
 
+import { forwardRef } from '#/utilities/react'
 import * as text from '../Text'
 import * as radioGroup from './RadioGroup'
 import * as radioGroupContext from './RadioGroupContext'
@@ -27,9 +28,7 @@ const RADIO_STYLES = twv.tv({
     isHovered: { true: { radio: 'border-primary/50' } },
     isInvalid: { true: { radio: 'border-danger' } },
     isDisabled: { true: { base: 'cursor-not-allowed', radio: 'border-gray-200' } },
-    isPressed: {
-      true: { radio: 'border-[3px] border-primary' },
-    },
+    isPressed: { true: { radio: 'border-[3px] border-primary' } },
     isSiblingPressed: { true: '' },
   },
   slots: {
@@ -56,7 +55,7 @@ export interface RadioProps extends aria.RadioProps {
  * A radio button.
  */
 // eslint-disable-next-line no-restricted-syntax
-export const Radio = React.forwardRef(function Radio(
+export const Radio = forwardRef(function Radio(
   props: RadioProps,
   ref: React.ForwardedRef<HTMLLabelElement>,
 ) {

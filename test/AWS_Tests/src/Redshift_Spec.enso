@@ -11,6 +11,7 @@ from Standard.Test import all
 
 import enso_dev.Table_Tests
 import enso_dev.Table_Tests.Database.Common.Common_Spec
+import enso_dev.Table_Tests.Database.Common.IR_Spec
 import enso_dev.Table_Tests.Database.Helpers.Name_Generator
 import enso_dev.Table_Tests.Common_Table_Operations
 
@@ -35,7 +36,7 @@ type Data
     teardown self = self.connection.close
 
 
-add_redshift_specific_specs suite_builder create_connection_fn =
+add_redshift_specific_specs suite_builder create_connection_fn setup =
     suite_builder.group "[Redshift] Info" group_builder->
         data = Data.setup create_connection_fn
 
@@ -73,7 +74,6 @@ add_database_specs suite_builder create_connection_fn =
     materialize = .read
 
     Common_Spec.add_specs suite_builder prefix create_connection_fn default_connection
-    add_redshift_specific_specs suite_builder create_connection_fn
 
     common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=True order_by_unicode_normalization_by_default=True allows_mixed_type_comparisons=False supports_decimal_type=True run_advanced_edge_case_tests_by_default=False
     aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config first_last_row_order=False aggregation_problems=False date_support=False
@@ -85,7 +85,9 @@ add_database_specs suite_builder create_connection_fn =
         (agg_in_memory_table.take (..First 0)).select_into_database_table default_connection.get (Name_Generator.random_name "Agg_Empty") primary_key=Nothing temporary=True
 
     setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table_fn empty_agg_table_fn table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection create_connection_func=create_connection_fn light_table_builder=light_table_builder
+    add_redshift_specific_specs suite_builder create_connection_fn setup
     Common_Table_Operations.Main.add_specs suite_builder setup
+    IR_Spec.add_specs suite_builder setup prefix default_connection.get
 
 connect_via_json_config =
     credentials = enso_project.data / 'redshift_credentials.json'

@@ -22,8 +22,8 @@ const props = defineProps<{
  * - If the new component leaves fullscreen mode, its "return" to the dimensions of the original component will be
  *   animated.
  *
- * This approach is used when switching visualizations (which replaces the `VisualizationContainer` and its
- * `WithFullscreenMode` instance).
+ * This approach was previously used when switching visualizations (when each visualization had its own
+ * `VisualizationContainer` and `WithFullscreenMode` instance).
  */
 const savedSize = defineModel<SavedSize | undefined>('savedSize')
 const emit = defineEmits<{
@@ -99,15 +99,11 @@ export type SavedSize = Keyframe
 or used with `unrefElement`. -->
 <template>
   <div class="WithFullscreenMode fullsize">
-    <!-- Wait for the target to be ready. `Teleport` requires the target to exist before it is mounted, even if it is
-    initially `disabled`. -->
-    <template v-if="fullscreenContainer">
-      <Teleport :to="fullscreenContainer" :disabled="!active">
-        <div ref="content" class="fullsize" :class="{ active }">
-          <slot />
-        </div>
-      </Teleport>
-    </template>
+    <Teleport defer :disabled="!active" :to="fullscreenContainer">
+      <div ref="content" class="fullsize" :class="{ active }">
+        <slot />
+      </div>
+    </Teleport>
   </div>
 </template>
 

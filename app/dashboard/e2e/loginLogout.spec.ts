@@ -12,7 +12,7 @@ test.test('login and logout', ({ page }) =>
     .mockAll({ page })
     .login()
     .do(async (thePage) => {
-      await actions.passTermsAndConditionsDialog({ page: thePage })
+      await actions.passAgreementsDialog({ page: thePage })
       await test.expect(actions.locateDriveView(thePage)).toBeVisible()
       await test.expect(actions.locateLoginButton(thePage)).not.toBeVisible()
     })

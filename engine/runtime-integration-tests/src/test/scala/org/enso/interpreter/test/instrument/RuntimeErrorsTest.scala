@@ -925,16 +925,7 @@ class RuntimeErrorsTest
       TestMessages.update(
         contextId,
         xId,
-        ConstantsGen.INTEGER,
-        methodCall = Some(
-          Api.MethodCall(
-            Api.MethodPointer(
-              "Standard.Base.Error",
-              "Standard.Base.Error.Error",
-              "throw"
-            )
-          )
-        )
+        ConstantsGen.INTEGER
       ),
       TestMessages.update(
         contextId,
@@ -2713,6 +2704,64 @@ class RuntimeErrorsTest
         )
       ),
       context.executionComplete(contextId)
+    )
+  }
+
+  it should "return failure result after stack overflow errors" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+
+    val code =
+      """from Standard.Base import all
+        |
+        |main =
+        |    operator1 = Main.function1
+        |    operator1
+        |
+        |function1 = function1
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionFailed(
+          contextId,
+          Api.ExecutionResult.Failure("StackOverflowError", None)
+        )
+      )
     )
   }
 

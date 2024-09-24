@@ -68,7 +68,8 @@ type Simple_Expression
        Create a widget for operation
     default_widget : Table_Ref -> Display -> Widget
     default_widget table:Table_Ref display=Display.Always =
-        with_all_types = Widget_Helpers.make_column_ref_by_name_selector table add_text=True add_number=True add_boolean=True
+        with_everything = Widget_Helpers.make_column_ref_by_name_selector table add_text=True add_number=True add_boolean=True add_date=True add_time=True add_date_time=True add_nothing=True
+        with_all_types = Widget_Helpers.make_column_ref_by_name_selector table add_text=True add_number=True add_boolean=True add_date=True add_time=True add_date_time=True
         with_number_text = Widget_Helpers.make_column_ref_by_name_selector table add_text=True add_number=True
         filter_cond = Widget_Helpers.make_filter_condition_selector table
 
@@ -76,7 +77,7 @@ type Simple_Expression
             builder.append (Option "copy" "..Copy")
             builder.append (Option "add" "..Add" [["rhs", with_number_text]])
             builder.append (Option "format" "..Format" [["format", make_format_chooser include_number=True]])
-            builder.append (Option "if" "..If" [["condition", filter_cond], ["true_value", with_all_types], ["false_value", with_all_types]])
+            builder.append (Option "if" "..If" [["condition", filter_cond], ["true_value", with_everything], ["false_value", with_everything]])
             builder.append (Option "min" "..Min" [["rhs", with_number_text]])
             builder.append (Option "max" "..Max" [["rhs", with_number_text]])
             builder.append (Option "Text" "..Text" [["operation", Text_Operation.create_widget table]])
@@ -154,6 +155,9 @@ type Math_Operation
     ## Divide a fixed value or column by another value or column.
     Divide (rhs : Column_Ref|Expression|Number = 1)
 
+    ## Negate a column.
+    Negate
+
     ## Compute the remainder of a fixed value or column divided by another
        value or column.
     Mod (rhs : Column_Ref|Expression|Number = 1)
@@ -182,6 +186,7 @@ type Math_Operation
             builder.append (Option "subtract" "..Subtract" [["rhs", with_number]])
             builder.append (Option "multiply" "..Multiply" [["rhs", with_number]])
             builder.append (Option "divide" "..Divide" [["rhs", with_number]])
+            builder.append (Option "negate" "..Negate")
             builder.append (Option "mod" "..Mod" [["rhs", with_number]])
             builder.append (Option "power" "..Power" [["rhs", with_number]])
             builder.append (Option "round" "..Round")
@@ -198,6 +203,7 @@ type Math_Operation
             Math_Operation.Subtract rhs -> column - (table.resolve rhs)
             Math_Operation.Multiply rhs -> column * (table.resolve rhs)
             Math_Operation.Divide rhs -> column / (table.resolve rhs)
+            Math_Operation.Negate -> column * -1
             Math_Operation.Mod rhs -> column % (table.resolve rhs)
             Math_Operation.Power rhs -> column ^ (table.resolve rhs)
             Math_Operation.Round precision use_bankers -> column.round precision use_bankers
@@ -240,13 +246,13 @@ type Date_Operation
     ## PRIVATE
     create_widget : Table_Ref -> Display -> Widget
     create_widget table:Table_Ref display:Display=Display.Always =
-        col_names = Widget_Helpers.make_column_ref_by_name_selector table
         with_number = Widget_Helpers.make_column_ref_by_name_selector table add_number=True
+        with_date = Widget_Helpers.make_column_ref_by_name_selector table add_date=True add_date_time=True
 
         options = Vector.build builder->
             builder.append (Option "add" "..Add" [["length", with_number]])
             builder.append (Option "part" "..Part")
-            builder.append (Option "diff" "..Diff" [["end", col_names]])
+            builder.append (Option "diff" "..Diff" [["end", with_date]])
             builder.append (Option "truncate" "..Truncate")
             builder.append (Option "year" "..Year")
             builder.append (Option "month" "..Month")

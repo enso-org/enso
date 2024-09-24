@@ -13,6 +13,7 @@ import com.oracle.truffle.api.TruffleLanguage.Env;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.io.TruffleProcessBuilder;
@@ -48,11 +49,12 @@ import org.enso.distribution.locking.LockManager;
 import org.enso.editions.LibraryName;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.OptionsHelper;
-import org.enso.interpreter.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.data.atom.Atom;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
 import org.enso.interpreter.runtime.state.State;
@@ -553,10 +555,10 @@ public final class EnsoContext {
    * is looked up by iterating the members of the outer class via Truffle's interop protocol.
    *
    * @param className Fully qualified class name, can also be nested static inner class.
-   * @return If the java class is found, return it, otherwise return null.
+   * @return If the java class is found, return it, otherwise return {@link DataflowError}.
    */
   @TruffleBoundary
-  public Object lookupJavaClass(String className) {
+  public TruffleObject lookupJavaClass(String className) {
     var binaryName = new StringBuilder(className);
     var collectedExceptions = new ArrayList<Exception>();
     for (; ; ) {
@@ -564,7 +566,7 @@ public final class EnsoContext {
       try {
         var hostSymbol = lookupHostSymbol(fqn);
         if (hostSymbol != null) {
-          return hostSymbol;
+          return (TruffleObject) hostSymbol;
         }
       } catch (ClassNotFoundException | RuntimeException | InteropException ex) {
         collectedExceptions.add(ex);
@@ -581,7 +583,7 @@ public final class EnsoContext {
       level = Level.FINE;
       logger.log(Level.FINE, null, ex);
     }
-    return null;
+    return getBuiltins().error().makeMissingPolyglotImportError(className);
   }
 
   private Object lookupHostSymbol(String fqn)
@@ -874,6 +876,34 @@ public final class EnsoContext {
     this.executionEnvironment = executionEnvironment;
   }
 
+  /**
+   * Enable execution context in the execution environment.
+   *
+   * @param context the execution context
+   * @param environmentName the execution environment name
+   */
+  public ExecutionEnvironment enableExecutionEnvironment(Atom context, String environmentName) {
+    ExecutionEnvironment original = executionEnvironment;
+    if (executionEnvironment.getName().equals(environmentName)) {
+      executionEnvironment = executionEnvironment.withContextEnabled(context);
+    }
+    return original;
+  }
+
+  /**
+   * Enable execution context in the execution environment.
+   *
+   * @param context the execution context
+   * @param environmentName the execution environment name
+   */
+  public ExecutionEnvironment disableExecutionEnvironment(Atom context, String environmentName) {
+    ExecutionEnvironment original = executionEnvironment;
+    if (executionEnvironment.getName().equals(environmentName)) {
+      executionEnvironment = executionEnvironment.withContextDisabled(context);
+    }
+    return original;
+  }
+
   /** Returns a maximal number of warnings that can be attached to a value */
   public int getWarningsLimit() {
     return this.warningsLimit;
@@ -971,8 +1001,7 @@ public final class EnsoContext {
     if (message != null) {
       msg = msg + sep + message;
     }
-    var txt = Text.create(msg);
-    var err = getBuiltins().error().makeAssertionError(txt);
+    var err = getBuiltins().error().makeAssertionError(msg);
     throw new PanicException(err, e, node);
   }
 

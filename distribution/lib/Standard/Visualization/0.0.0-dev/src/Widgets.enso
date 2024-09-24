@@ -2,6 +2,10 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Not_Invokable
 from Standard.Base.Meta import Instrumentor
 
+from Standard.Table import all
+
+from Standard.Database import all
+
 ## PRIVATE
    Basic preprocessor for widgets metadata visualization.
 

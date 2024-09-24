@@ -1,5 +1,8 @@
 package org.enso.compiler.context
 
+import org.enso.compiler.pass.analyse.FrameAnalysisMeta
+import org.enso.compiler.pass.analyse.FramePointer
+import org.enso.compiler.pass.analyse.FrameVariableNames
 import org.enso.compiler.pass.analyse.DataflowAnalysis
 import org.enso.compiler.pass.analyse.alias.graph.{
   GraphOccurrence,
@@ -7,6 +10,7 @@ import org.enso.compiler.pass.analyse.alias.graph.{
 }
 
 import scala.jdk.CollectionConverters._
+import java.util.function.BiFunction
 
 /** A representation of an Enso local scope.
   *
@@ -34,11 +38,46 @@ class LocalScope(
   final val aliasingGraph: () => AliasGraph,
   final private val scopeProvider: () => AliasGraph.Scope,
   final private val dataflowInfoProvider: () => DataflowAnalysis.Metadata,
-  final val flattenToParent: Boolean                       = false,
-  private val parentFrameSlotIdxs: Map[AliasGraph.Id, Int] = Map()
+  final private val symbolsProvider: () => FrameAnalysisMeta     = null,
+  final val flattenToParent: Boolean                             = false,
+  private val parentFrameSlotIdxs: () => Map[AliasGraph.Id, Int] = () => Map()
 ) {
   lazy val scope: AliasGraph.Scope                 = scopeProvider()
   lazy val dataflowInfo: DataflowAnalysis.Metadata = dataflowInfoProvider()
+
+  /** Computes allSymbols needed by this scope. Either the value is obtained
+    * from symbolsProvider or (as a fallback) a computation from aliasingGraph
+    * is performed - the latter situation is logged, when log is not null.
+    *
+    * @param where human "friendly" identification of the caller
+    * @param log function to log or null if no logging is needed
+    */
+  def allSymbols(
+    where: String,
+    log: BiFunction[String, Array[Object], Void]
+  ): java.util.List[String] = {
+    def symbols(): java.util.List[String] = {
+      val r = scope.allDefinitions.map(_.symbol)
+      r.asJava
+    }
+    val meta = if (symbolsProvider == null) null else symbolsProvider()
+    if (meta.isInstanceOf[FrameVariableNames]) {
+      val cached = meta.asInstanceOf[FrameVariableNames].variableNames()
+      if (log != null) {
+        ContextUtils.assertSame(where, cached, () => symbols())
+      }
+      cached
+    } else {
+      val result = symbols()
+      if (log != null) {
+        log(
+          "Scope computed from AliasAnalysis at {0} = {1}",
+          Array(where, result)
+        )
+      }
+      result
+    }
+  }
 
   private lazy val localFrameSlotIdxs: Map[AliasGraph.Id, Int] =
     gatherLocalFrameSlotIdxs()
@@ -47,7 +86,7 @@ class LocalScope(
     * Useful for quick searching for [[FramePointer]] of parent scopes.
     */
   private lazy val allFrameSlotIdxs: Map[AliasGraph.Id, Int] =
-    parentFrameSlotIdxs ++ localFrameSlotIdxs
+    parentFrameSlotIdxs() ++ localFrameSlotIdxs
 
   /** Creates a new child with a new aliasing scope.
     *
@@ -64,15 +103,23 @@ class LocalScope(
     */
   def createChild(
     childScope: () => AliasGraph.Scope,
-    flattenToParent: Boolean = false
+    flattenToParent: Boolean                  = false,
+    symbolsProvider: () => FrameVariableNames = null
   ): LocalScope = {
+    val sp = if (flattenToParent) {
+      org.enso.common.Asserts.assertInJvm(symbolsProvider == null)
+      this.symbolsProvider
+    } else {
+      symbolsProvider
+    }
     new LocalScope(
       Some(this),
       aliasingGraph,
       childScope,
       () => dataflowInfo,
+      sp,
       flattenToParent,
-      allFrameSlotIdxs
+      () => allFrameSlotIdxs
     )
   }
 
@@ -125,11 +172,27 @@ class LocalScope(
 }
 object LocalScope {
 
-  /** Constructs a local scope for an [[EnsoRootNode]].
-    *
-    * @return a defaulted local scope
+  /** Empty and immutable singleton scope.
     */
-  def root: LocalScope = {
+  val empty: LocalScope = {
+    val graph = new AliasGraph
+    graph.freeze()
+    val info               = DataflowAnalysis.DependencyInfo()
+    val emptyVariableNames = FrameVariableNames.create(List())
+    new LocalScope(
+      None,
+      () => graph,
+      () => graph.rootScope,
+      () => info,
+      () => emptyVariableNames
+    )
+  }
+
+  /** Constructs a new local scope for an [[EnsoRootNode]] that can then be modified.
+    *
+    * @return a new empty scope ready for additional modifications.
+    */
+  def createEmpty: LocalScope = {
     val graph = new AliasGraph
     val info  = DataflowAnalysis.DependencyInfo()
     new LocalScope(

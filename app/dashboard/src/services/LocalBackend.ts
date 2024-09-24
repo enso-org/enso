@@ -103,19 +103,33 @@ export default class LocalBackend extends Backend {
     this.projectManager = projectManagerInstance
   }
 
-  /** Get the root directory of this Backend as a path. */
-  get rootPath() {
+  /** Get the root directory of this Backend. */
+  override rootPath() {
     return this.projectManager.rootDirectory
   }
 
-  /** Set the root directory of this Backend as a path. */
-  set rootPath(value) {
+  /** Set the root directory of this Backend. */
+  setRootPath(value: projectManager.Path) {
     this.projectManager.rootDirectory = value
   }
 
+  /** Reset the root directory of this Backend. */
+  resetRootPath() {
+    this.projectManager.resetRootDirectory()
+  }
+
+  /** Tell the {@link ProjectManager} to reconnect. */
+  async reconnectProjectManager() {
+    await this.projectManager.reconnect()
+  }
+
   /** Return the ID of the root directory. */
-  override rootDirectoryId(): backend.DirectoryId {
-    return newDirectoryId(this.projectManager.rootDirectory)
+  override rootDirectoryId(
+    _user: backend.User,
+    _organization: backend.OrganizationInfo | null,
+    rootDirectory: backend.Path | null | undefined,
+  ): backend.DirectoryId {
+    return newDirectoryId(rootDirectory ?? this.projectManager.rootDirectory)
   }
 
   /** Return a list of assets in a directory.
@@ -125,16 +139,12 @@ export default class LocalBackend extends Backend {
   ): Promise<readonly backend.AnyAsset[]> {
     const parentIdRaw = query.parentId == null ? null : extractTypeAndId(query.parentId).id
     const parentId = query.parentId ?? newDirectoryId(this.projectManager.rootDirectory)
-    // Check if Root Directory Exists
-    if (
-      parentIdRaw == null &&
-      !(await this.projectManager.exists(this.projectManager.rootDirectory))
-    ) {
-      await this.projectManager.createDirectory(this.projectManager.rootDirectory)
-      return []
-    } else {
+
+    // Catch the case where the directory does not exist.
+    let result: backend.AnyAsset[] = []
+    try {
       const entries = await this.projectManager.listDirectory(parentIdRaw)
-      return entries
+      result = entries
         .map((entry) => {
           switch (entry.type) {
             case projectManager.FileSystemEntryType.DirectoryEntry: {
@@ -184,7 +194,21 @@ export default class LocalBackend extends Backend {
           }
         })
         .sort(backend.compareAssets)
+    } catch (error) {
+      // Failed so check if exists
+      if (!(await this.projectManager.exists(parentIdRaw))) {
+        if (parentIdRaw === this.projectManager.rootDirectory) {
+          // Auto create the root directory
+          await this.projectManager.createDirectory(this.projectManager.rootDirectory)
+          result = []
+        } else {
+          // eslint-disable-next-line no-restricted-syntax
+          throw new Error('Directory does not exist.')
+        }
+      }
     }
+
+    return result
   }
 
   /** Return a list of projects belonging to the current user.

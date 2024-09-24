@@ -32,6 +32,7 @@ import ProfilePictureInput from '#/layouts/Settings/ProfilePictureInput'
 import SettingsTabType from '#/layouts/Settings/SettingsTabType'
 import UserGroupsSettingsSection from '#/layouts/Settings/UserGroupsSettingsSection'
 
+import { Button, ButtonGroup } from '#/components/AriaComponents'
 import * as menuEntry from '#/components/MenuEntry'
 
 import type Backend from '#/services/Backend'
@@ -39,7 +40,9 @@ import * as backend from '#/services/Backend'
 import type LocalBackend from '#/services/LocalBackend'
 import type RemoteBackend from '#/services/RemoteBackend'
 
+import { normalizePath } from '#/utilities/fileInfo'
 import * as object from '#/utilities/object'
+import { SetupTwoFaForm } from './SetupTwoFaForm'
 
 // =========================
 // === SettingsEntryType ===
@@ -123,6 +126,23 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         ],
       },
       {
+        nameId: 'setup2FASettingsSection',
+        entries: [
+          {
+            type: SettingsEntryType.custom,
+            render: SetupTwoFaForm,
+            getVisible: (context) => {
+              // The shape of the JWT payload is statically known.
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+              const username: string | null =
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-non-null-assertion
+                JSON.parse(atob(context.accessToken.split('.')[1]!)).username
+              return username != null ? !/^Github_|^Google_/.test(username) : false
+            },
+          },
+        ],
+      },
+      {
         nameId: 'deleteUserAccountSettingsSection',
         heading: false,
         entries: [
@@ -151,6 +171,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     settingsTab: SettingsTabType.organization,
     icon: PeopleSettingsIcon,
     organizationOnly: true,
+    visible: ({ user }) => backend.isUserOnPlanWithOrganization(user),
     sections: [
       {
         nameId: 'organizationSettingsSection',
@@ -237,9 +258,43 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           {
             type: SettingsEntryType.input,
             nameId: 'localRootPathSettingsInput',
-            getValue: (context) => context.localBackend?.rootPath ?? '',
-            setValue: (context, value) => context.updateLocalRootPath(value),
+            getValue: (context) => context.localBackend?.rootPath() ?? '',
+            setValue: async (context, value) => {
+              context.updateLocalRootPath(value)
+              await Promise.resolve()
+            },
             getEditable: () => true,
+          },
+          {
+            type: SettingsEntryType.custom,
+            aliasesId: 'localRootPathButtonSettingsCustomEntryAliases',
+            render: (context) => (
+              <ButtonGroup>
+                {window.fileBrowserApi && (
+                  <Button
+                    size="small"
+                    variant="outline"
+                    onPress={async () => {
+                      const [newDirectory] =
+                        (await window.fileBrowserApi?.openFileBrowser('directory')) ?? []
+                      if (newDirectory != null) {
+                        context.updateLocalRootPath(normalizePath(newDirectory))
+                      }
+                    }}
+                  >
+                    {context.getText('browseForNewLocalRootDirectory')}
+                  </Button>
+                )}
+                <Button
+                  size="small"
+                  variant="outline"
+                  className="self-start"
+                  onPress={context.resetLocalRootPath}
+                >
+                  {context.getText('resetLocalRootDirectory')}
+                </Button>
+              </ButtonGroup>
+            ),
           },
         ],
       },
@@ -250,7 +305,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     settingsTab: SettingsTabType.billingAndPlans,
     icon: CreditCardIcon,
     organizationOnly: true,
-    visible: (context) => context.organization?.subscription != null,
+    visible: ({ organization }) => organization?.subscription != null,
     sections: [],
     onPress: (context) =>
       context.queryClient
@@ -277,6 +332,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     settingsTab: SettingsTabType.members,
     icon: PeopleIcon,
     organizationOnly: true,
+    visible: ({ user }) => backend.isUserOnPlanWithOrganization(user),
     feature: 'inviteUser',
     sections: [
       {
@@ -290,6 +346,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     settingsTab: SettingsTabType.userGroups,
     icon: PeopleSettingsIcon,
     organizationOnly: true,
+    visible: ({ user }) => backend.isUserOnPlanWithOrganization(user),
     feature: 'userGroups',
     sections: [
       {
@@ -356,6 +413,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     settingsTab: SettingsTabType.activityLog,
     icon: LogIcon,
     organizationOnly: true,
+    visible: ({ user }) => backend.isUserOnPlanWithOrganization(user),
     sections: [
       {
         nameId: 'activityLogSettingsSection',
@@ -416,7 +474,8 @@ export interface SettingsContext {
   readonly updateOrganization: (
     variables: Parameters<Backend['updateOrganization']>,
   ) => Promise<backend.OrganizationInfo | null | undefined>
-  readonly updateLocalRootPath: (rootPath: string) => Promise<void>
+  readonly updateLocalRootPath: (rootPath: string) => void
+  readonly resetLocalRootPath: () => void
   readonly toastAndLog: toastAndLogHooks.ToastAndLogCallback
   readonly getText: textProvider.GetText
   readonly queryClient: reactQuery.QueryClient
@@ -434,6 +493,7 @@ export interface SettingsInputEntryData {
   readonly setValue: (context: SettingsContext, value: string) => Promise<void>
   readonly validate?: (value: string, context: SettingsContext) => string | true
   readonly getEditable: (context: SettingsContext) => boolean
+  readonly getVisible?: (context: SettingsContext) => boolean
 }
 
 // ===============================

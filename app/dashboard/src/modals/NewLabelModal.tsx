@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import { useMutation } from '@tanstack/react-query'
 
-import { backendMutationOptions, useListTags } from '#/hooks/backendHooks'
+import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -19,6 +19,7 @@ import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'
+import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
 
 // =================
 // === Constants ===
@@ -45,8 +46,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
   const [value, setValue] = React.useState('')
   const [color, setColor] = React.useState<backendModule.LChColor | null>(null)
   const position = React.useMemo(() => eventTarget.getBoundingClientRect(), [eventTarget])
-  const labelsRaw = useListTags(backend)
-  const labels = React.useMemo(() => labelsRaw ?? [], [labelsRaw])
+  const labels = useBackendQuery(backend, 'listTags', []).data ?? EMPTY_ARRAY
   const labelNames = React.useMemo(
     () => new Set<string>(labels.map((label) => label.value)),
     [labels],
@@ -130,7 +130,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
           <ariaComponents.Button variant="submit" isDisabled={!canSubmit} onPress={doSubmit}>
             {getText('create')}
           </ariaComponents.Button>
-          <ariaComponents.Button variant="cancel" onPress={unsetModal}>
+          <ariaComponents.Button variant="outline" onPress={unsetModal}>
             {getText('cancel')}
           </ariaComponents.Button>
         </ariaComponents.ButtonGroup>

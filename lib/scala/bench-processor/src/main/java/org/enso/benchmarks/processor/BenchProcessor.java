@@ -98,7 +98,7 @@ public class BenchProcessor extends AbstractProcessor {
                 + "' specified in the annotation does not exist or is not readable");
       }
       try (var ctx =
-          Context.newBuilder(LanguageInfo.ID)
+          Context.newBuilder()
               .allowExperimentalOptions(true)
               .allowIO(IOAccess.ALL)
               .allowAllAccess(true)
@@ -347,7 +347,19 @@ public class BenchProcessor extends AbstractProcessor {
                   @TearDown
                   public void checkNoTruffleCompilation(BenchmarkParams params) {
                     if (compilationMessagesFound) {
-                      System.err.println(compilationLog.toString());
+                      var limit = Boolean.getBoolean("bench.all") ? 10 : Integer.MAX_VALUE;
+                      for (var l : compilationLog.toString().split("\\n")) {
+                        var pipe = l.indexOf('|');
+                        if (pipe > 0) {
+                          l = l.substring(0, pipe);
+                        }
+                        System.out.println(l);
+                        if (limit-- <= 0) {
+                          System.out.println("... to see more use:");
+                          System.out.println("benchOnly " + params.getBenchmark());
+                          break;
+                        }
+                      }
                     }
                   }
 
@@ -438,6 +450,8 @@ public class BenchProcessor extends AbstractProcessor {
   }
 
   private void failWithMessage(String msg) {
+    // Better have duplicated error message than none at all
+    System.out.println("[org.enso.benchmarks.processor.BenchProcessor]: ERROR: " + msg);
     processingEnv.getMessager().printMessage(Kind.ERROR, msg);
   }
 }

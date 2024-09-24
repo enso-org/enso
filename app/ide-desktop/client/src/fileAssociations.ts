@@ -13,7 +13,6 @@ import electronIsDev from 'electron-is-dev'
 
 import * as common from 'enso-common'
 
-import type * as clientConfig from '@/config'
 import * as contentConfig from '@/contentConfig'
 import * as project from '@/projectManagement'
 import * as fileAssociations from '../fileAssociations'
@@ -81,8 +80,15 @@ function getClientArguments(args = process.argv): readonly string[] {
       return args.slice(separatorIndex + 1)
     }
   } else {
-    // Drop the leading executable name.
-    return args.slice(1)
+    const noSandbox = args.indexOf('--no-sandbox')
+    if (noSandbox !== NOT_FOUND) {
+      let v = [...args]
+      v.splice(noSandbox, 1)
+      return v.slice(1)
+    } else {
+      // Drop the leading executable name.
+      return args.slice(1)
+    }
   }
 }
 
@@ -100,13 +106,13 @@ export function isFileOpenable(path: string): boolean {
 }
 
 /** Callback called when a file is opened via the `open-file` event. */
-export function onFileOpened(event: electron.Event, path: string): project.ProjectInfo | null {
+export function onFileOpened(event: electron.Event, path: string): string | null {
   logger.log(`Received 'open-file' event for path '${path}'.`)
   if (isFileOpenable(path)) {
     logger.log(`The file '${path}' is openable.`)
     event.preventDefault()
     logger.log(`Opening file '${path}'.`)
-    return handleOpenFile(path)
+    return path
   } else {
     logger.log(`The file '${path}' is not openable, ignoring the 'open-file' event.`)
     return null
@@ -115,14 +121,11 @@ export function onFileOpened(event: electron.Event, path: string): project.Proje
 
 /** Set up the `open-file` event handler that might import a project and invoke the given callback,
  * if this IDE instance should load the project. See {@link onFileOpened} for more details.
- * @param setProjectToOpen - A function that will be called with the ID of the project to open. */
-export function setOpenFileEventHandler(setProjectToOpen: (info: project.ProjectInfo) => void) {
-  electron.app.on('open-file', (event, path) => {
+ * @param setProjectToOpen - A function that will be called with the path of the project to open. */
+export function setOpenFileEventHandler(setProjectToOpen: (path: string) => void) {
+  electron.app.on('open-file', (_event, path) => {
     logger.log(`Opening file '${path}'.`)
-    const projectInfo = onFileOpened(event, path)
-    if (projectInfo) {
-      setProjectToOpen(projectInfo)
-    }
+    setProjectToOpen(path)
   })
 
   electron.app.on('second-instance', (event, _argv, _workingDir, additionalData) => {
@@ -140,9 +143,9 @@ export function setOpenFileEventHandler(setProjectToOpen: (info: project.Project
     if (path != null) {
       logger.log(`Got path '${path.toString()}' from second instance.`)
       event.preventDefault()
-      const projectInfo = onFileOpened(event, path)
-      if (projectInfo) {
-        setProjectToOpen(projectInfo)
+      const file = onFileOpened(event, path)
+      if (file != null) {
+        setProjectToOpen(file)
       }
     }
   })
@@ -169,26 +172,5 @@ export function handleOpenFile(openedFile: string): project.ProjectInfo {
     logger.error(error)
     electron.dialog.showErrorBox(common.PRODUCT_NAME, message)
     throw error
-  }
-}
-
-/** Handle the file to open, if any. See {@link handleOpenFile} for details.
- *
- * If no file to open is provided, does nothing.
- *
- * Handles all errors internally.
- * @param openedFile - The file to open (null if none).
- * @param args - The parsed application arguments. */
-export function handleFileArguments(openedFile: string | null, args: clientConfig.Args): void {
-  if (openedFile != null) {
-    try {
-      // This makes the IDE open the relevant project. Also, this prevents us from using this
-      // method after IDE has been fully set up, as the initializing code would have already
-      // read the value of this argument.
-      args.groups.startup.options.project.value = handleOpenFile(openedFile).id
-    } catch (e) {
-      // If we failed to open the file, we should enter the usual welcome screen.
-      // The `handleOpenFile` function will have already displayed an error message.
-    }
   }
 }

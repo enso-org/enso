@@ -48,7 +48,7 @@ export default function AssetVersions(props: AssetVersionsProps) {
     readonly backendService.S3ObjectVersion[]
   >([])
   const isCloud = backend.type === backendService.BackendType.remote
-  const queryKey = ['assetVersions', item.item.id, item.item.title]
+  const queryKey = [backend.type, 'listAssetVersions', item.item.id, item.item.title]
   const versionsQuery = useAssetVersions.useAssetVersions({
     backend,
     queryKey,

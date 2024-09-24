@@ -4,6 +4,7 @@ import { expect } from './customExpect'
 import { mockCollapsedFunctionInfo } from './expressionUpdates'
 import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
+import { mockSuggestion } from './suggestionUpdates'
 
 const MAIN_FILE_NODES = 12
 
@@ -81,9 +82,24 @@ test('Collapsing nodes', async ({ page }) => {
 
   await page.getByLabel('Group Selected Components').click()
   await expect(locate.graphNode(page)).toHaveCount(initialNodesCount - 2)
-  const collapsedNode = locate.graphNodeByBinding(page, 'prod')
-  await expect(collapsedNode.locator('.WidgetToken')).toHaveText(['Main', '.', 'collapsed', 'five'])
   await mockCollapsedFunctionInfo(page, 'prod', 'collapsed')
+  await mockSuggestion(page, {
+    type: 'method',
+    module: 'local.Mock_Project',
+    name: 'collapsed',
+    isStatic: true,
+    aliases: [],
+    arguments: [{ name: 'five', reprType: 'Any', isSuspended: false, hasDefault: false }],
+    selfType: 'local.Mock_Project',
+    returnType: 'Standard.Base.Any.Any',
+    documentation: [],
+    annotations: [],
+  })
+  const collapsedNode = locate.graphNodeByBinding(page, 'prod')
+  await expect(collapsedNode.locator('.WidgetFunctionName')).toExist()
+  await expect(collapsedNode.locator('.WidgetFunctionName .WidgetToken')).toHaveText(['Main', '.'])
+  await expect(collapsedNode.locator('.WidgetFunctionName input')).toHaveValue('collapsed')
+  await expect(collapsedNode.locator('.WidgetTopLevelArgument')).toHaveText('five')
 
   await locate.graphNodeIcon(collapsedNode).dblclick()
   await actions.ensureNoCircularMenusVisibleDueToHovering(page)

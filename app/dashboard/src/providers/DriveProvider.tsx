@@ -4,9 +4,13 @@ import * as React from 'react'
 import invariant from 'tiny-invariant'
 import * as zustand from 'zustand'
 
+import type { AssetPanelContextProps } from '#/layouts/AssetPanel'
+import type { Suggestion } from '#/layouts/AssetSearchBar'
+import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
-import type { AssetId } from 'enso-common/src/services/Backend'
-import { type DirectoryAsset } from 'enso-common/src/services/Backend'
+import { EMPTY_SET } from '#/utilities/set'
+import type { AssetId, DirectoryAsset, DirectoryId } from 'enso-common/src/services/Backend'
+import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
 
 // ==================
 // === DriveStore ===
@@ -16,12 +20,24 @@ import { type DirectoryAsset } from 'enso-common/src/services/Backend'
 interface DriveStore {
   readonly targetDirectory: AssetTreeNode<DirectoryAsset> | null
   readonly setTargetDirectory: (targetDirectory: AssetTreeNode<DirectoryAsset> | null) => void
+  readonly newestFolderId: DirectoryId | null
+  readonly setNewestFolderId: (newestFolderId: DirectoryId | null) => void
+  readonly canCreateAssets: boolean
+  readonly setCanCreateAssets: (canCreateAssets: boolean) => void
   readonly canDownload: boolean
   readonly setCanDownload: (canDownload: boolean) => void
   readonly selectedKeys: ReadonlySet<AssetId>
   readonly setSelectedKeys: (selectedKeys: ReadonlySet<AssetId>) => void
   readonly visuallySelectedKeys: ReadonlySet<AssetId> | null
   readonly setVisuallySelectedKeys: (visuallySelectedKeys: ReadonlySet<AssetId> | null) => void
+  readonly isAssetPanelPermanentlyVisible: boolean
+  readonly setIsAssetPanelPermanentlyVisible: (isAssetPanelTemporarilyVisible: boolean) => void
+  readonly isAssetPanelTemporarilyVisible: boolean
+  readonly setIsAssetPanelTemporarilyVisible: (isAssetPanelTemporarilyVisible: boolean) => void
+  readonly assetPanelProps: AssetPanelContextProps | null
+  readonly setAssetPanelProps: (assetPanelProps: AssetPanelContextProps | null) => void
+  readonly suggestions: readonly Suggestion[]
+  readonly setSuggestions: (suggestions: readonly Suggestion[]) => void
 }
 
 // =======================
@@ -44,33 +60,80 @@ export interface ProjectsProviderProps extends Readonly<React.PropsWithChildren>
  * containing the current element is focused. */
 export default function DriveProvider(props: ProjectsProviderProps) {
   const { children } = props
-  const [store] = React.useState(() => {
-    return zustand.createStore<DriveStore>((set) => ({
+  const { localStorage } = useLocalStorage()
+  const [store] = React.useState(() =>
+    zustand.createStore<DriveStore>((set, get) => ({
       targetDirectory: null,
       setTargetDirectory: (targetDirectory) => {
         set({ targetDirectory })
       },
+      newestFolderId: null,
+      setNewestFolderId: (newestFolderId) => {
+        set({ newestFolderId })
+      },
+      canCreateAssets: true,
+      setCanCreateAssets: (canCreateAssets) => {
+        if (get().canCreateAssets !== canCreateAssets) {
+          set({ canCreateAssets })
+        }
+      },
       canDownload: false,
       setCanDownload: (canDownload) => {
-        set({ canDownload })
+        if (get().canDownload !== canDownload) {
+          set({ canDownload })
+        }
       },
-      selectedKeys: new Set(),
+      selectedKeys: EMPTY_SET,
       setSelectedKeys: (selectedKeys) => {
-        set({ selectedKeys })
+        if (
+          get().selectedKeys !== selectedKeys &&
+          (selectedKeys.size !== 0 || get().selectedKeys.size !== 0)
+        ) {
+          set({ selectedKeys })
+        }
       },
       visuallySelectedKeys: null,
       setVisuallySelectedKeys: (visuallySelectedKeys) => {
-        set({ visuallySelectedKeys })
+        if (
+          get().visuallySelectedKeys !== visuallySelectedKeys &&
+          (visuallySelectedKeys?.size !== 0 || get().visuallySelectedKeys?.size !== 0)
+        ) {
+          set({ visuallySelectedKeys })
+        }
       },
-    }))
-  })
+      isAssetPanelPermanentlyVisible: localStorage.get('isAssetPanelVisible') ?? false,
+      setIsAssetPanelPermanentlyVisible: (isAssetPanelPermanentlyVisible) => {
+        if (get().isAssetPanelPermanentlyVisible !== isAssetPanelPermanentlyVisible) {
+          set({ isAssetPanelPermanentlyVisible })
+          localStorage.set('isAssetPanelVisible', isAssetPanelPermanentlyVisible)
+        }
+      },
+      isAssetPanelTemporarilyVisible: false,
+      setIsAssetPanelTemporarilyVisible: (isAssetPanelTemporarilyVisible) => {
+        if (get().isAssetPanelTemporarilyVisible !== isAssetPanelTemporarilyVisible) {
+          set({ isAssetPanelTemporarilyVisible })
+        }
+      },
+      assetPanelProps: null,
+      setAssetPanelProps: (assetPanelProps) => {
+        if (get().assetPanelProps !== assetPanelProps) {
+          set({ assetPanelProps })
+        }
+      },
+      suggestions: EMPTY_ARRAY,
+      setSuggestions: (suggestions) => {
+        if (
+          get().suggestions !== suggestions &&
+          (suggestions.length !== 0 || get().suggestions.length !== 0)
+        ) {
+          set({ suggestions })
+        }
+      },
+    })),
+  )
 
   return <DriveContext.Provider value={store}>{children}</DriveContext.Provider>
 }
-
-// =====================
-// === useDriveStore ===
-// =====================
 
 /** The drive store. */
 export function useDriveStore() {
@@ -81,19 +144,11 @@ export function useDriveStore() {
   return store
 }
 
-// ==========================
-// === useTargetDirectory ===
-// ==========================
-
-/** A function to get the target directory of the Asset Table selection. */
+/** Get the target directory of the Asset Table selection. */
 export function useTargetDirectory() {
   const store = useDriveStore()
   return zustand.useStore(store, (state) => state.targetDirectory)
 }
-
-// =============================
-// === useSetTargetDirectory ===
-// =============================
 
 /** A function to set the target directory of the Asset Table selection. */
 export function useSetTargetDirectory() {
@@ -101,9 +156,29 @@ export function useSetTargetDirectory() {
   return zustand.useStore(store, (state) => state.setTargetDirectory)
 }
 
-// ======================
-// === useCanDownload ===
-// ======================
+/** Get the ID of the most newly created folder. */
+export function useNewestFolderId() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.newestFolderId)
+}
+
+/** A function to set the ID of the most newly created folder. */
+export function useSetNewestFolderId() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.setNewestFolderId)
+}
+
+/** Whether assets can be created in the current directory. */
+export function useCanCreateAssets() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.canCreateAssets)
+}
+
+/** A function to set whether assets can be created in the current directory. */
+export function useSetCanCreateAssets() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.setCanCreateAssets)
+}
 
 /** Whether the current Asset Table selection is downloadble. */
 export function useCanDownload() {
@@ -111,19 +186,11 @@ export function useCanDownload() {
   return zustand.useStore(store, (state) => state.canDownload)
 }
 
-// =========================
-// === useSetCanDownload ===
-// =========================
-
 /** A function to set whether the current Asset Table selection is downloadble. */
 export function useSetCanDownload() {
   const store = useDriveStore()
   return zustand.useStore(store, (state) => state.setCanDownload)
 }
-
-// =======================
-// === useSelectedKeys ===
-// =======================
 
 /** The selected keys in the Asset Table. */
 export function useSelectedKeys() {
@@ -131,19 +198,11 @@ export function useSelectedKeys() {
   return zustand.useStore(store, (state) => state.selectedKeys)
 }
 
-// ==========================
-// === useSetSelectedKeys ===
-// ==========================
-
 /** A function to set the selected keys of the Asset Table selection. */
 export function useSetSelectedKeys() {
   const store = useDriveStore()
   return zustand.useStore(store, (state) => state.setSelectedKeys)
 }
-
-// ===============================
-// === useVisuallySelectedKeys ===
-// ===============================
 
 /** The visually selected keys in the Asset Table. */
 export function useVisuallySelectedKeys() {
@@ -151,12 +210,63 @@ export function useVisuallySelectedKeys() {
   return zustand.useStore(store, (state) => state.selectedKeys)
 }
 
-// ==================================
-// === useSetVisuallySelectedKeys ===
-// ==================================
-
 /** A function to set the visually selected keys in the Asset Table. */
 export function useSetVisuallySelectedKeys() {
   const store = useDriveStore()
   return zustand.useStore(store, (state) => state.setVisuallySelectedKeys)
+}
+
+/** Whether the Asset Panel is toggled on. */
+export function useIsAssetPanelPermanentlyVisible() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.isAssetPanelPermanentlyVisible)
+}
+
+/** A function to set whether the Asset Panel is toggled on. */
+export function useSetIsAssetPanelPermanentlyVisible() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.setIsAssetPanelPermanentlyVisible)
+}
+
+/** Whether the Asset Panel is currently visible (e.g. for editing a Datalink). */
+export function useIsAssetPanelTemporarilyVisible() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.isAssetPanelTemporarilyVisible)
+}
+
+/** A function to set whether the Asset Panel is currently visible (e.g. for editing a Datalink). */
+export function useSetIsAssetPanelTemporarilyVisible() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.setIsAssetPanelTemporarilyVisible)
+}
+
+/** Whether the Asset Panel is currently visible, either temporarily or permanently. */
+export function useIsAssetPanelVisible() {
+  const isAssetPanelPermanentlyVisible = useIsAssetPanelPermanentlyVisible()
+  const isAssetPanelTemporarilyVisible = useIsAssetPanelTemporarilyVisible()
+  return isAssetPanelPermanentlyVisible || isAssetPanelTemporarilyVisible
+}
+
+/** Props for the Asset Panel. */
+export function useAssetPanelProps() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.assetPanelProps)
+}
+
+/** A function to set props for the Asset Panel. */
+export function useSetAssetPanelProps() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.setAssetPanelProps)
+}
+
+/** Search suggestions. */
+export function useSuggestions() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.suggestions)
+}
+
+/** Set search suggestions. */
+export function useSetSuggestions() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.setSuggestions)
 }

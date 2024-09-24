@@ -10,6 +10,8 @@ from Standard.Table.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import Inexact_Type_Coercion
 from Standard.Table.Internal.Storage import get_storage_for_column
 
+from Standard.Database.Dialect_Flags import all
+
 import project.Connection.Connection.Connection
 import project.DB_Column.DB_Column
 import project.DB_Table.DB_Table
@@ -40,6 +42,7 @@ import project.SQL_Type.SQL_Type
 from project.Dialect import Temp_Table_Style
 from project.Errors import SQL_Error, Unsupported_Database_Operation
 from project.Internal.IR.Operation_Metadata import Date_Period_Metadata
+from project.Internal.JDBC_Connection import JDBC_Connection
 
 polyglot java import java.sql.Types
 
@@ -166,16 +169,21 @@ type Postgres_Dialect
         False
 
     ## PRIVATE
+       Specifies if the Database backend supports WITH clauses in nested queries.
+    supports_nested_with_clause : Boolean
+    supports_nested_with_clause self = True
+
+    ## PRIVATE
     supports_separate_nan : Boolean
     supports_separate_nan self = True
 
-    ## PRIVATE
-    supports_negative_round_decimal_places : Boolean
-    supports_negative_round_decimal_places self = True
-
-    ## PRIVATE
-    supports_float_round_decimal_places : Boolean
-    supports_float_round_decimal_places self = False
+    ## PRIVAITE
+       Specifies implementation details flags.
+    dialect_flags : Dialect_Flags
+    dialect_flags self -> Dialect_Flags =
+        rounding = Rounding_Flags.Value supports_negative_decimal_places=True supports_float_decimal_places=False use_builtin_bankers=False
+        primary_key = Primary_Key_Flags.Value allows_nulls=False
+        Dialect_Flags.Value rounding=rounding primary_key=primary_key
 
     ## PRIVATE
        Specifies how the database creates temp tables.
@@ -317,12 +325,17 @@ type Postgres_Dialect
         _ = value_type
         False
 
+    ## PRIVATE
+    ensure_query_has_no_holes : JDBC_Connection -> Text -> Nothing ! Illegal_Argument
+    ensure_query_has_no_holes self jdbc:JDBC_Connection raw_sql:Text =
+        jdbc.ensure_query_has_no_holes raw_sql
+
 ## PRIVATE
 make_dialect_operations =
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
     text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive, ["REPLACE", replace], left, right]+concat_ops+cases+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
-    arith_extensions = [is_nan, is_inf, floating_point_div, mod_op, decimal_div, decimal_mod, ["ROW_MIN", Base_Generator.make_function "LEAST"], ["ROW_MAX", Base_Generator.make_function "GREATEST"]]
+    arith_extensions = [is_nan, is_inf, is_finite, floating_point_div, mod_op, decimal_div, decimal_mod, ["ROW_MIN", Base_Generator.make_function "LEAST"], ["ROW_MAX", Base_Generator.make_function "GREATEST"]]
     bool = [bool_or]
 
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
@@ -556,6 +569,10 @@ is_nan = Base_Generator.lift_unary_op "IS_NAN" arg->
 ## PRIVATE
 is_inf = Base_Generator.lift_unary_op "IS_INF" arg->
     (arg ++ " in (double precision 'Infinity', double precision '-Infinity')").paren
+
+## PRIVATE
+is_finite = Base_Generator.lift_unary_op "IS_FINITE" arg->
+    (arg ++ " not in (double precision 'Infinity', double precision '-Infinity', double precision 'NaN')").paren
 
 ## PRIVATE
 bool_or = Base_Generator.lift_unary_op "BOOL_OR" arg->

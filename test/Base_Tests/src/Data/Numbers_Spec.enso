@@ -50,6 +50,7 @@ float_id : Float -> Float
 float_id f =
     Number_Utils.floatId f
 
+pending_js_missing = if Polyglot.is_language_installed "js" then Nothing else "Can't run JavaScript tests, language `js` is not installed."
 
 add_specs suite_builder =
     eps = 0.000001
@@ -101,6 +102,8 @@ add_specs suite_builder =
 
             1/0 . is_infinite . should_be_true
             -1/0 . is_infinite . should_be_true
+            1/0 . is_finite . should_be_false
+            -1/0 . is_finite . should_be_false
 
         group_builder.specify "should support integer division" <|
             (10.div 3) . should_equal 3
@@ -554,6 +557,11 @@ add_specs suite_builder =
             Number.positive_infinity.is_infinite . should_be_true
             Number.negative_infinity.is_infinite . should_be_true
 
+            Number.nan.is_finite . should_be_false
+            0.is_finite . should_be_true
+            Number.positive_infinity.is_finite . should_be_false
+            Number.negative_infinity.is_finite . should_be_false
+
             Number.nan==Number.nan . should_be_false
             Number.nan==0 . should_be_false
             Number.nan!=Number.nan . should_be_true
@@ -736,8 +744,8 @@ add_specs suite_builder =
     suite_builder.group "BigInts" group_builder->
         expected_value = 2002115494039257055317447151023464523838443110452722331466645440244415760562579268801894716412
 
-        bigint_spec name create mul =
-            group_builder.specify name+" 6 * 7" <|
+        bigint_spec name create mul pending=Nothing =
+            group_builder.specify name+" 6 * 7" pending=pending <|
                 six = create 6
                 seven = create 7
                 both = six*seven
@@ -747,7 +755,7 @@ add_specs suite_builder =
                 seven.is_a Integer . should_be_true
                 both.is_a Integer . should_be_true
 
-            group_builder.specify name+" power of 3 with running_fold" <|
+            group_builder.specify name+" power of 3 with running_fold" pending=pending <|
                 three = create 3
 
                 two_hundred = 1.up_to 200 . running_fold three a->_->
@@ -757,7 +765,7 @@ add_specs suite_builder =
                 sum.is_a Integer . should_be_true
                 sum.div two_hundred.length . should_equal expected_value
 
-            group_builder.specify name+" power of 3 with map" <|
+            group_builder.specify name+" power of 3 with map" pending=pending <|
                 three = create 3
 
                 two_hundred = 1.up_to 200 . map i->
@@ -770,31 +778,31 @@ add_specs suite_builder =
                     v -> Test.fail "Expecting Integer, but got: "+(Meta.type_of v).to_text
                 sum.div two_hundred.length . should_equal expected_value
 
-            group_builder.specify name+" Ordering.compare BigInteger" <|
+            group_builder.specify name+" Ordering.compare BigInteger" pending=pending <|
                     bd1 = create 5
                     bd2 = create 13
                     Ordering.compare bd1 bd2 . should_equal Ordering.Less
                     Ordering.compare bd2 bd1 . should_equal Ordering.Greater
 
-            group_builder.specify name+" < BigInteger" <|
+            group_builder.specify name+" < BigInteger" pending=pending <|
                     bd1 = create 5
                     bd2 = create 13
                     (bd1 < bd2) . should_be_true
                     (bd2 < bd1) . should_be_false
 
-            group_builder.specify name+" <= BigInteger" <|
+            group_builder.specify name+" <= BigInteger" pending=pending <|
                     bd1 = create 5
                     bd2 = create 13
                     (bd1 <= bd2) . should_be_true
                     (bd2 <= bd1) . should_be_false
 
-            group_builder.specify name+" > BigInteger" <|
+            group_builder.specify name+" > BigInteger" pending=pending <|
                     bd1 = create 5
                     bd2 = create 13
                     (bd1 > bd2) . should_be_false
                     (bd2 > bd1) . should_be_true
 
-            group_builder.specify name+" >= BigInteger" <|
+            group_builder.specify name+" >= BigInteger" pending=pending <|
                     bd1 = create 5
                     bd2 = create 13
                     (bd1 >= bd2) . should_be_false
@@ -808,9 +816,10 @@ add_specs suite_builder =
 
         bigint_spec "Enso" (x->x) (*)
         bigint_spec "Java" to_java_bigint java_bigint_mul
-        bigint_spec "JavaScript" to_js_bigint js_bigint_mul
+        bigint_spec "JavaScript" to_js_bigint js_bigint_mul pending_js_missing
 
-        group_builder.specify "Matrix of values" <|
+
+        group_builder.specify "Matrix of values" pending=pending_js_missing <|
             x = to_java_bigint 10
             y = 10
             z = 10.0

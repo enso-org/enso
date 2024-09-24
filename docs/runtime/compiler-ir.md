@@ -11,8 +11,8 @@ for future goals.
 
 ## Visualization
 
-The IR can be visualized using `-Denso.compiler.dumpIr` system property. This
-will output a `.dot` file in [GraphViz](www.graphviz.org) format in the
+The IR can be visualized using `--vm.D=enso.compiler.dumpIr` system property.
+This will output a `.dot` file in [GraphViz](www.graphviz.org) format in the
 `ir-dumps` directory for each IR in the program. The _dot_ file format is a
 minimal textual format, that can be converted to a graphical representation
 using the `dot` command from the GraphViz package. For example, on Ubuntu,

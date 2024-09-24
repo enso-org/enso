@@ -31,6 +31,7 @@ pub struct BuildSource<Target: IsTarget> {
     pub input:                  Target::BuildInput,
     /// Whether to upload the resulting artifact as CI artifact.
     pub should_upload_artifact: bool,
+    pub should_sign_artifacts:  bool,
 }
 
 /// Describes how to get a target.

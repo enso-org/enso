@@ -34,8 +34,8 @@ import org.enso.distribution.locking.ResourceManager
 import org.enso.distribution.{DistributionManager, LanguageHome}
 import org.enso.editions.updater.EditionManager
 import org.enso.editions.{DefaultEdition, Editions, LibraryName}
-import org.enso.interpreter.instrument.NotificationHandler
 import org.enso.interpreter.runtime.builtin.Builtins
+import org.enso.interpreter.runtime.instrument.NotificationHandler
 import org.enso.librarymanager.DefaultLibraryProvider
 import org.enso.pkg.{ComponentGroups, Package}
 
@@ -489,7 +489,7 @@ private class DefaultPackageRepository(
     syntheticModule: Module,
     refs: List[QualifiedName]
   ): Unit = {
-    assert(syntheticModule.isSynthetic)
+    org.enso.common.Asserts.assertInJvm(syntheticModule.isSynthetic)
     if (!loadedModules.contains(syntheticModule.getName.toString)) {
       loadedModules.put(
         syntheticModule.getName.toString,
@@ -497,7 +497,7 @@ private class DefaultPackageRepository(
       )
     } else {
       val loaded = loadedModules(syntheticModule.getName.toString)
-      assert(!loaded.isSynthetic)
+      org.enso.common.Asserts.assertInJvm(!loaded.isSynthetic)
       loaded
         .asInstanceOf[TruffleCompilerContext.Module]
         .unsafeModule()

@@ -10,6 +10,7 @@ pub mod actions;
 pub mod archive;
 pub mod cache;
 pub mod ci;
+pub mod convert_case;
 pub mod deploy;
 pub mod env;
 pub mod extensions;

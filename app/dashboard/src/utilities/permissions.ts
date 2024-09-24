@@ -1,6 +1,5 @@
 /** @file Utilities for working with permissions. */
-import type Category from '#/layouts/CategorySwitcher/Category'
-import { CategoryType } from '#/layouts/CategorySwitcher/Category'
+import type { Category } from '#/layouts/CategorySwitcher/Category'
 import * as backend from '#/services/Backend'
 import {
   type AssetPermission,
@@ -40,7 +39,7 @@ export function tryCreateOwnerPermission(
   userGroups: readonly backend.UserGroupInfo[],
 ): readonly backend.AssetPermission[] {
   switch (category.type) {
-    case CategoryType.team: {
+    case 'team': {
       return [{ userGroup: category.team, permission: PermissionAction.own }]
     }
     default: {
@@ -64,7 +63,7 @@ export function tryCreateOwnerPermission(
 /** Try to find a permission belonging to the user. */
 export function tryFindSelfPermission(
   self: User,
-  otherPermissions: readonly AssetPermission[] | null,
+  otherPermissions: readonly AssetPermission[] | null | undefined,
 ) {
   let selfPermission: AssetPermission | null = null
   for (const permission of otherPermissions ?? []) {

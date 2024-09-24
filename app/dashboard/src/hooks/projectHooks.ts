@@ -21,6 +21,7 @@ import {
   type LaunchedProjectId,
 } from '#/providers/ProjectsProvider'
 
+import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import * as backendModule from '#/services/Backend'
 import type LocalBackend from '#/services/LocalBackend'
 import type RemoteBackend from '#/services/RemoteBackend'
@@ -28,6 +29,14 @@ import type RemoteBackend from '#/services/RemoteBackend'
 // ====================================
 // === createGetProjectDetailsQuery ===
 // ====================================
+/** Default interval for refetching project status when the project is opened. */
+const OPENED_INTERVAL_MS = 30_000
+/** Interval when we open a cloud project.
+ * Since opening a cloud project is a long operation, we want to check the status less often. */
+const CLOUD_OPENING_INTERVAL_MS = 5_000
+/** Interval when we open a local project or when we want to sync the project status as soon as
+ * possible. */
+const ACTIVE_SYNC_INTERVAL_MS = 100
 
 /** Options for {@link createGetProjectDetailsQuery}. */
 export interface CreateOpenedProjectQueryOptions {
@@ -51,14 +60,6 @@ export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOp
     meta: { persist: false },
     gcTime: 0,
     refetchInterval: ({ state }) => {
-      /** Default interval for refetching project status when the project is opened. */
-      const openedIntervalMS = 30_000
-      /** Interval when we open a cloud project.
-       * Since opening a cloud project is a long operation, we want to check the status less often. */
-      const cloudOpeningIntervalMS = 5_000
-      /** Interval when we open a local project or when we want to sync the project status as soon as
-       * possible. */
-      const activeSyncIntervalMS = 100
       const states = [backendModule.ProjectState.opened, backendModule.ProjectState.closed]
 
       if (state.status === 'error') {
@@ -67,17 +68,17 @@ export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOp
       }
       if (isLocal) {
         if (state.data?.state.type === backendModule.ProjectState.opened) {
-          return openedIntervalMS
+          return OPENED_INTERVAL_MS
         } else {
-          return activeSyncIntervalMS
+          return ACTIVE_SYNC_INTERVAL_MS
         }
       } else {
         if (state.data == null) {
-          return activeSyncIntervalMS
+          return ACTIVE_SYNC_INTERVAL_MS
         } else if (states.includes(state.data.state.type)) {
-          return openedIntervalMS
+          return OPENED_INTERVAL_MS
         } else {
-          return cloudOpeningIntervalMS
+          return CLOUD_OPENING_INTERVAL_MS
         }
       }
     },
@@ -93,8 +94,9 @@ export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOp
 }
 createGetProjectDetailsQuery.getQueryKey = (id: LaunchedProjectId) => ['project', id] as const
 createGetProjectDetailsQuery.createPassiveListener = (id: LaunchedProjectId) =>
-  reactQuery.queryOptions<backendModule.Project>({
+  reactQuery.queryOptions<backendModule.Project | null>({
     queryKey: createGetProjectDetailsQuery.getQueryKey(id),
+    initialData: null,
   })
 
 // ==============================
@@ -230,11 +232,17 @@ export function useOpenProject() {
   const addLaunchedProject = useAddLaunchedProject()
   const closeAllProjects = useCloseAllProjects()
   const openProjectMutation = useOpenProjectMutation()
+
+  const enableMultitabs = useFeatureFlag('enableMultitabs')
+
   return eventCallbacks.useEventCallback((project: LaunchedProject) => {
-    // Since multiple tabs cannot be opened at the sametime, the opened projects need to be closed first.
-    if (projectsStore.getState().launchedProjects.length > 0) {
-      closeAllProjects()
+    if (!enableMultitabs) {
+      // Since multiple tabs cannot be opened at the same time, the opened projects need to be closed first.
+      if (projectsStore.getState().launchedProjects.length > 0) {
+        closeAllProjects()
+      }
     }
+
     const existingMutation = client.getMutationCache().find({
       mutationKey: ['openProject'],
       predicate: (mutation) => mutation.options.scope?.id === project.id,

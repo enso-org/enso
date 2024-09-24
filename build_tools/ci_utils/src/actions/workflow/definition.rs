@@ -2,10 +2,9 @@
 
 use crate::prelude::*;
 
+use crate::convert_case::ToKebabCase;
 use crate::env::accessor::RawVariable;
 
-use convert_case::Case;
-use convert_case::Casing;
 use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 use std::convert::identity;
@@ -79,7 +78,7 @@ pub fn setup_wasm_pack_step() -> Step {
         uses: Some("jetli/wasm-pack-action@v0.4.0".into()),
         with: Some(step::Argument::Other(BTreeMap::from_iter([(
             "version".into(),
-            "v0.10.2".into(),
+            "v0.12.1".into(),
         )]))),
         r#if: Some(is_github_hosted()),
         ..default()
@@ -238,7 +237,7 @@ impl Workflow {
 
 impl Workflow {
     pub fn add_job(&mut self, job: Job) -> String {
-        let key = job.name.to_case(Case::Kebab);
+        let key = job.name.to_kebab_case();
         if self.jobs.insert(key.clone(), job).is_some() {
             warn!("Job with name {key} already exists.");
         }
@@ -1061,7 +1060,7 @@ pub fn checkout_repo_step() -> impl IntoIterator<Item = Step> {
 
 pub trait JobArchetype {
     fn id_key_base(&self) -> String {
-        std::any::type_name::<Self>().to_case(Case::Kebab)
+        std::any::type_name::<Self>().to_kebab_case()
     }
 
     fn key(&self, (os, arch): Target) -> String {

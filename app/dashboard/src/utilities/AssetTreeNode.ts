@@ -17,7 +17,6 @@ export interface AssetTreeNodeData
     | 'directoryId'
     | 'directoryKey'
     | 'initialAssetEvents'
-    | 'isExpanded'
     | 'item'
     | 'key'
     | 'path'
@@ -52,7 +51,6 @@ export default class AssetTreeNode<Item extends backendModule.AnyAsset = backend
      * This must never change, otherwise the component's state is lost when receiving the real id
      * from the backend. */
     public readonly key: Item['id'] = item.id,
-    public readonly isExpanded = false,
     public readonly createdAt = new Date(),
   ) {
     this.type = item.type
@@ -72,7 +70,7 @@ export default class AssetTreeNode<Item extends backendModule.AnyAsset = backend
     directoryId: backendModule.DirectoryId,
     depth: number,
     path: string,
-    initialAssetEvents: readonly assetEvent.AssetEvent[] | null,
+    initialAssetEvents: readonly assetEvent.AssetEvent[] | null = null,
     key: Asset['id'] = asset.id,
   ): AnyAssetTreeNode {
     return new AssetTreeNode(
@@ -115,7 +113,6 @@ export default class AssetTreeNode<Item extends backendModule.AnyAsset = backend
       update.path ?? this.path,
       update.initialAssetEvents ?? this.initialAssetEvents,
       update.key ?? this.key,
-      update.isExpanded ?? this.isExpanded,
       update.createdAt ?? this.createdAt,
     ).asUnion()
   }
@@ -184,7 +181,7 @@ export default class AssetTreeNode<Item extends backendModule.AnyAsset = backend
   preorderTraversal(
     preprocess: ((tree: AnyAssetTreeNode[]) => AnyAssetTreeNode[]) | null = null,
   ): AnyAssetTreeNode[] {
-    const children = !this.isExpanded ? [] : this.children ?? []
+    const children = this.children ?? []
     return (preprocess?.(children) ?? children).flatMap((node) =>
       node.children == null ? [node] : [node, ...node.preorderTraversal(preprocess)],
     )

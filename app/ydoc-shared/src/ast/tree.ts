@@ -1962,6 +1962,7 @@ export class MutableFunction extends Function implements MutableAst {
     if (oldBody instanceof MutableBodyBlock) return oldBody
     const newBody = BodyBlock.new([], this.module)
     if (oldBody) newBody.push(oldBody.take())
+    this.setBody(newBody)
     return newBody
   }
 }
@@ -2224,6 +2225,10 @@ export class Ident extends Ast {
     return this.module.getToken(this.fields.get('token').node) as IdentifierToken
   }
 
+  isTypeOrConstructor(): boolean {
+    return /^[A-Z]/.test(this.token.code())
+  }
+
   static concrete(module: MutableModule, token: NodeChild<Token>) {
     const base = module.baseObject('Ident')
     const fields = composeFieldData(base, { token })
@@ -2451,6 +2456,12 @@ export class MutableVector extends Vector implements MutableAst {
       delimiter: elements[index]!.delimiter,
       value: autospaced(this.claimChild(value)),
     }
+    this.fields.set('elements', elements)
+  }
+
+  splice(start: number, deletedCount: number) {
+    const elements = [...this.fields.get('elements')]
+    elements.splice(start, deletedCount)
     this.fields.set('elements', elements)
   }
 
