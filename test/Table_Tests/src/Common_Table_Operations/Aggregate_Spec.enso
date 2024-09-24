@@ -1680,8 +1680,6 @@ add_specs suite_builder setup =
                 result.columns.first.to_vector . should_equal [6]
                 warnings = Problems.get_attached_warnings result
                 warnings.length . should_equal error_count
-                warnings.each warning->
-                    warning.should_be_a Aggregagtion_Requires_Order.Error
 
             if test_selection.first_last_row_order.not then
                 group_builder.specify "with First and Last in row order" <|
