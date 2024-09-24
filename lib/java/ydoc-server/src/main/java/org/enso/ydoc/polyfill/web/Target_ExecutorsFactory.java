@@ -8,11 +8,9 @@ import java.util.concurrent.ThreadFactory;
 import java.util.function.Predicate;
 
 @TargetClass(
-    className = Target_ExecutorsFactory.CLASS_NAME,
+    className = "io.helidon.webserver.ExecutorsFactory",
     onlyWith = Target_ExecutorsFactory.Available.class)
 final class Target_ExecutorsFactory {
-  static final String CLASS_NAME = "io.helidon.webserver.ExecutorsFactory";
-
   @Substitute
   private static ThreadFactory virtualThreadFactory() {
     return Thread.ofPlatform().name("Emulating loom", 0).factory();
@@ -27,7 +25,7 @@ final class Target_ExecutorsFactory {
     @Override
     public boolean test(Object t) {
       try {
-        Class.forName(CLASS_NAME);
+        Class.forName("io.helidon.webserver.ExecutorsFactory");
         return true;
       } catch (ClassNotFoundException e) {
         return false;
