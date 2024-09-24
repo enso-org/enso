@@ -497,6 +497,11 @@ object JPMSPlugin extends AutoPlugin {
     modId: ModuleID,
     artifact: Artifact
   ): String = {
-    artifact.name + "." + artifact.extension
+    // Classifier optionally adds e.g. `-test` or `-sources` to the artifact name
+    // This needs to be retained for the tests to work.
+    val classifierStr = artifact.classifier match {
+      case None => ""; case Some(c) => "-" + c
+    }
+    artifact.name + classifierStr + "." + artifact.extension
   }
 }
