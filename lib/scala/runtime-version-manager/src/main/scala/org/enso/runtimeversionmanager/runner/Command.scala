@@ -46,7 +46,7 @@ case class Command(
     timeoutInSeconds: Option[Long] = Some(300)
   ): Try[(Int, String)] =
     wrapError {
-      logger.debug("Executing {}", this)
+      logger.error("Executing {}", this)
       val processBuilder = builder()
       val process        = processBuilder.start()
       val wrappedProcess = new WrappedProcess(command, process)
