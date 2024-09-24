@@ -1690,7 +1690,8 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       (`syntax-rust-definition` / Compile / exportedModule).value,
       (`ydoc-server` / Compile / exportedModule).value
     ),
-    Test / javaOptions ++= testLogProviderOptions
+    Test / javaOptions ++= testLogProviderOptions,
+    Test / test := (Test / test).dependsOn(buildEngineDistribution).value
   )
   .settings(
     NativeImage.smallJdk := None,
