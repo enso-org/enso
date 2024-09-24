@@ -10,10 +10,14 @@ import org.slf4j.event.Level
 
 import java.net.URI
 import org.enso.runtimeversionmanager.components.Manifest.JVMOptionsContext
-import org.enso.runtimeversionmanager.components.{Engine, GraalRuntime, RuntimeVersionManager}
+import org.enso.runtimeversionmanager.components.{
+  Engine,
+  GraalRuntime,
+  RuntimeVersionManager
+}
 import org.enso.runtimeversionmanager.config.GlobalRunnerConfigurationManager
 
-import java.nio.file.{Files, Path}
+import java.nio.file.Path
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future, TimeoutException}
 import scala.util.Try
@@ -227,10 +231,7 @@ class Runner(
       val extraEnvironmentOverrides =
         javaHome.map("JAVA_HOME" -> _).toSeq ++ distributionSettings.toSeq
 
-      val logger = Logger[Runner]
-      logger.error("Starting command: {}", command)
-      val allComponents = Files.list(componentPath).map(_.getFileName).toList
-      logger.error("Contents of component dir: [{}]", allComponents)
+      Logger[Runner].error("Starting command: {}", command)
       action(
         Command(
           command,
