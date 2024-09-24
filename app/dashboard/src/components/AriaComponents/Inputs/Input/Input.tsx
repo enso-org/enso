@@ -27,6 +27,7 @@ import {
   type TSchema,
 } from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
+import { useAutoFocus } from '#/hooks/autoFocusHooks'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
 import type { ExtractFunction } from '#/utilities/tailwindVariants'
@@ -75,6 +76,7 @@ export const Input = forwardRef(function Input<
     variants = INPUT_STYLES,
     fieldVariants,
     form,
+    autoFocus = false,
     ...inputProps
   } = props
 
@@ -113,6 +115,8 @@ export const Input = forwardRef(function Input<
     readOnly: inputProps.readOnly,
     disabled: fieldProps.disabled || formInstance.formState.isSubmitting,
   })
+
+  useAutoFocus({ ref: privateInputRef, disabled: !autoFocus })
 
   return (
     <Form.Field
