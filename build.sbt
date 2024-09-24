@@ -643,7 +643,7 @@ lazy val componentModulesPaths =
   )
 (ThisBuild / componentModulesPaths) := {
   val runnerCp      = (`engine-runner` / Runtime / fullClasspath).value
-  val runtimeCp     = (LocalProject("runtime") / Runtime / fullClasspath).value
+  val runtimeCp     = (`runtime` / Runtime / fullClasspath).value
   val langServerCp  = (`language-server` / Runtime / fullClasspath).value
   val akkaWrapperCp = (`akka-wrapper` / Compile / fullClasspath).value
   val fullCp        = (runnerCp ++ runtimeCp ++ langServerCp ++ akkaWrapperCp).distinct
@@ -2566,8 +2566,7 @@ lazy val `runtime-language-arrow` =
       ),
       javaModuleName := "org.enso.interpreter.arrow",
       Compile / moduleDependencies ++= GraalVM.modules,
-      Test / moduleDependencies +=
-        (LocalProject("runtime-language-arrow") / projectID).value,
+      Test / moduleDependencies += projectID.value,
       Test / patchModules := {
         val testClassesDir = (Test / productDirectories).value.head
         Map(javaModuleName.value -> Seq(testClassesDir))
@@ -3258,11 +3257,7 @@ lazy val `runtime-instrument-common` =
       )
     )
     .dependsOn(`refactoring-utils`)
-    .dependsOn(
-      LocalProject(
-        "runtime"
-      ) % "compile->compile;runtime->runtime;bench->bench"
-    )
+    .dependsOn(`runtime` % "compile->compile;runtime->runtime;bench->bench")
 
 lazy val `runtime-instrument-id-execution` =
   (project in file("engine/runtime-instrument-id-execution"))
@@ -3285,7 +3280,7 @@ lazy val `runtime-instrument-id-execution` =
         (`polyglot-api` / Compile / exportedModule).value
       )
     )
-    .dependsOn(LocalProject("runtime"))
+    .dependsOn(`runtime`)
     .dependsOn(`runtime-instrument-common`)
 
 lazy val `runtime-instrument-repl-debugger` =
@@ -3312,7 +3307,7 @@ lazy val `runtime-instrument-repl-debugger` =
         (`runtime-parser` / Compile / exportedModule).value
       )
     )
-    .dependsOn(LocalProject("runtime"))
+    .dependsOn(`runtime`)
     .dependsOn(`runtime-instrument-common`)
 
 lazy val `runtime-instrument-runtime-server` =
@@ -3340,7 +3335,7 @@ lazy val `runtime-instrument-runtime-server` =
         (`connected-lock-manager` / Compile / exportedModule).value
       )
     )
-    .dependsOn(LocalProject("runtime"))
+    .dependsOn(`runtime`)
     .dependsOn(`runtime-instrument-common` % "test->test;compile->compile")
 
 /* Note [Unmanaged Classpath]
@@ -3870,7 +3865,7 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
     run / fork := true,
     run / connectInput := true,
     mainClass :=
-      (LocalProject("bench-processor") / mainClass).value,
+      (`bench-processor` / mainClass).value,
     Compile / javacOptions ++= Seq(
       "-Xlint:unchecked"
     ),
@@ -5125,8 +5120,8 @@ updateLibraryManifests := {
   val libraries = Editions.standardLibraries.map(libName =>
     BundledLibrary(libName, stdLibVersion)
   )
-  val runnerCp   = (LocalProject("engine-runner") / Runtime / fullClasspath).value
-  val runtimeCp  = (LocalProject("runtime") / Runtime / fullClasspath).value
+  val runnerCp   = (`engine-runner` / Runtime / fullClasspath).value
+  val runtimeCp  = (`runtime` / Runtime / fullClasspath).value
   val fullCp     = (runnerCp ++ runtimeCp).distinct
   val modulePath = componentModulesPaths.value
   val javaOpts = Seq(
