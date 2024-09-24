@@ -4,7 +4,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Table import Value_Type, Bits
 from Standard.Table.Errors import Loss_Of_Decimal_Precision, Loss_Of_Integer_Precision, Missing_Input_Columns, Conversion_Failure
 
-from Standard.Database.Errors import Unsupported_Database_Operation
+from Standard.Database.Errors import Unsupported_Database_Operation, Unsupported_Database_Type
 
 from Standard.Test import all
 

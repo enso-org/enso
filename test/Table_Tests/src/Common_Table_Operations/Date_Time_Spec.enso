@@ -4,7 +4,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Table import Table, Value_Type
 from Standard.Table.Errors import Inexact_Type_Coercion, Invalid_Value_Type
 
-from Standard.Database.Errors import Unsupported_Database_Operation
+from Standard.Database.Errors import Unsupported_Database_Operation, Unsupported_Database_Type
 import Standard.Database.Column_Description.Column_Description
 import Standard.Database.Internal.Internals_Access
 # Import the `update_rows` extension method.
