@@ -490,9 +490,8 @@ object JPMSPlugin extends AutoPlugin {
     }
   }
 
-  /**
-   * Does not use the default artifact name which inserts scala version and module version.
-   */
+  /** Does not use the default artifact name which inserts scala version and module version.
+    */
   private def stripArtifactName(
     scalaVersion: ScalaVersion,
     modId: ModuleID,
