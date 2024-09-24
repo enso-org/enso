@@ -35,28 +35,33 @@ object JPMSUtils {
   /** Filters modules by their IDs from the given classpath.
     *
     * @param cp               The classpath to filter
-    * @param modules          These modules are looked for in the class path, can be duplicated
-    * @param projName Name of the current sbt project for debugging
+    * @param modules          These modules are looked for in the class path, can be duplicated.
+    * @param projName Name of the current sbt project for debugging.
     * @param shouldContainAll If true, the method will throw an exception if not all modules were found
-    *                         in the classpath
-    * @param scalaBinaryVersion Scala version used in all dependencies
-    * @return The classpath with only the provided modules searched by their IDs
+    *                         in the classpath.
+    * @return The classpath with only the provided modules searched by their IDs.
     */
   def filterModulesFromClasspath(
     cp: Def.Classpath,
     modules: Seq[ModuleID],
     log: sbt.util.Logger,
     projName: String,
-    scalaBinaryVersion: String,
     shouldContainAll: Boolean = false
   ): Def.Classpath = {
     val distinctModules = modules.distinct
 
+    def shouldFilterModule(module: ModuleID): Boolean = {
+      distinctModules.exists(m =>
+        m.organization == module.organization &&
+        m.name == module.name &&
+        m.revision == module.revision
+      )
+    }
+
     val ret = cp.filter(dep => {
       val moduleID = dep.metadata.get(AttributeKey[ModuleID]("moduleID")).get
-      shouldFilterModule(distinctModules)(moduleID)
+      shouldFilterModule(moduleID)
     })
-
     if (shouldContainAll) {
       if (ret.size < distinctModules.size) {
         log.error(
@@ -76,12 +81,11 @@ object JPMSUtils {
 
   /** Filters all the requested modules from the given [[UpdateReport]].
     *
-    * @param updateReport       The update report to filter. This is the result of `update.value`.
-    * @param modules            The modules to filter from the update report. Can be duplicated.
-    * @param log                The logger to use for logging.
-    * @param projName           Name of the current sbt project for debugging.
-    * @param scalaBinaryVersion Scala version used in all dependencies
-    * @param shouldContainAll   If true, the method will log an error if not all modules were found.
+    * @param updateReport     The update report to filter. This is the result of `update.value`.
+    * @param modules          The modules to filter from the update report. Can be duplicated.
+    * @param log              The logger to use for logging.
+    * @param projName Name of the current sbt project for debugging.
+    * @param shouldContainAll If true, the method will log an error if not all modules were found.
     * @return The list of files (Jar archives, directories, etc.) that were found in the update report.
     */
   def filterModulesFromUpdate(
@@ -89,13 +93,20 @@ object JPMSUtils {
     modules: Seq[ModuleID],
     log: sbt.util.Logger,
     projName: String,
-    scalaBinaryVersion: String,
     shouldContainAll: Boolean = false
   ): Seq[File] = {
     val distinctModules = modules.distinct
 
+    def shouldFilterModule(module: ModuleID): Boolean = {
+      distinctModules.exists(m =>
+        m.organization == module.organization &&
+        m.name == module.name &&
+        m.revision == module.revision
+      )
+    }
+
     val foundFiles = updateReport.select(
-      module = shouldFilterModule(distinctModules)
+      module = shouldFilterModule
     )
     if (shouldContainAll) {
       if (foundFiles.size < distinctModules.size) {
@@ -114,18 +125,6 @@ object JPMSUtils {
       }
     }
     foundFiles
-  }
-
-  def shouldFilterModule(
-    distinctModules: Seq[ModuleID]
-  )(module: ModuleID): Boolean = {
-    distinctModules.exists(m =>
-      m.organization == module.organization &&
-      (m.name == module.name || m.crossVersion.isInstanceOf[
-        sbt.librarymanagement.Binary
-      ] && s"${m.name}_$scalaBinaryVersion" == module.name) &&
-      m.revision == module.revision
-    )
   }
 
   def filterArtifacts(
