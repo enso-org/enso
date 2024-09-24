@@ -48,6 +48,41 @@ export interface CreateOpenedProjectQueryOptions {
   readonly localBackend: LocalBackend | null
 }
 
+/** Return a function to update a project asset in the TanStack Query cache. */
+function useSetProjectAsset() {
+  const queryClient = reactQuery.useQueryClient()
+  return eventCallbacks.useEventCallback(
+    (
+      backendType: backendModule.BackendType,
+      assetId: backendModule.AssetId,
+      parentId: backendModule.DirectoryId,
+      transform: (asset: backendModule.ProjectAsset) => backendModule.ProjectAsset,
+    ) => {
+      const listDirectoryQuery = queryClient.getQueryCache().find<
+        | {
+            parentId: backendModule.DirectoryId
+            children: readonly backendModule.AnyAsset<backendModule.AssetType>[]
+          }
+        | undefined
+      >({
+        queryKey: [backendType, 'listDirectory', parentId],
+        exact: false,
+      })
+
+      if (listDirectoryQuery?.state.data) {
+        listDirectoryQuery.setData({
+          ...listDirectoryQuery.state.data,
+          children: listDirectoryQuery.state.data.children.map((child) =>
+            child.id === assetId && child.type === backendModule.AssetType.project ?
+              transform(child)
+            : child,
+          ),
+        })
+      }
+    },
+  )
+}
+
 /** Project status query.  */
 export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOptions) {
   const { assetId, parentId, title, remoteBackend, localBackend, type } = options
@@ -109,6 +144,7 @@ export function useOpenProjectMutation() {
   const session = authProvider.useFullUserSession()
   const remoteBackend = backendProvider.useRemoteBackendStrict()
   const localBackend = backendProvider.useLocalBackend()
+  const setProjectAsset = useSetProjectAsset()
 
   return reactQuery.useMutation({
     mutationKey: ['openProject'],
@@ -140,17 +176,25 @@ export function useOpenProjectMutation() {
         title,
       )
     },
-    onMutate: ({ id }) => {
+    onMutate: ({ type, id, parentId }) => {
       const queryKey = createGetProjectDetailsQuery.getQueryKey(id)
 
       client.setQueryData(queryKey, { state: { type: backendModule.ProjectState.openInProgress } })
+      setProjectAsset(type, id, parentId, (asset) => ({
+        ...asset,
+        projectState: { ...asset.projectState, type: backendModule.ProjectState.openInProgress },
+      }))
 
       void client.cancelQueries({ queryKey })
     },
-    onSuccess: (_, { id }) =>
-      client.resetQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) }),
-    onError: (_, { id }) =>
-      client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) }),
+    onSuccess: async (_, { type, id, parentId }) => {
+      await client.resetQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
+      await client.invalidateQueries({ queryKey: [type, 'listDirectory', parentId] })
+    },
+    onError: async (_, { type, id, parentId }) => {
+      await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
+      await client.invalidateQueries({ queryKey: [type, 'listDirectory', parentId] })
+    },
   })
 }
 
@@ -163,6 +207,7 @@ export function useCloseProjectMutation() {
   const client = reactQuery.useQueryClient()
   const remoteBackend = backendProvider.useRemoteBackendStrict()
   const localBackend = backendProvider.useLocalBackend()
+  const setProjectAsset = useSetProjectAsset()
 
   return reactQuery.useMutation({
     mutationKey: ['closeProject'],
@@ -173,17 +218,28 @@ export function useCloseProjectMutation() {
 
       return backend.closeProject(id, title)
     },
-    onMutate: ({ id }) => {
+    onMutate: ({ type, id, parentId }) => {
       const queryKey = createGetProjectDetailsQuery.getQueryKey(id)
 
       client.setQueryData(queryKey, { state: { type: backendModule.ProjectState.closing } })
+      setProjectAsset(type, id, parentId, (asset) => ({
+        ...asset,
+        projectState: { ...asset.projectState, type: backendModule.ProjectState.closing },
+      }))
 
       void client.cancelQueries({ queryKey })
     },
-    onSuccess: (_, { id }) =>
-      client.resetQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) }),
-    onError: (_, { id }) =>
-      client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) }),
+    onSuccess: async (_, { type, id, parentId }) => {
+      await client.resetQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
+      setProjectAsset(type, id, parentId, (asset) => ({
+        ...asset,
+        projectState: { ...asset.projectState, type: backendModule.ProjectState.closed },
+      }))
+    },
+    onError: async (_, { type, id, parentId }) => {
+      await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
+      await client.invalidateQueries({ queryKey: [type, 'listDirectory', parentId] })
+    },
   })
 }
 
@@ -307,7 +363,7 @@ export function useCloseProject() {
       .getMutationCache()
       .findAll({
         mutationKey: ['closeProject'],
-        // this is unsafe, but we can't do anything about it
+        // This is unsafe, but we cannot do anything about it.
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         predicate: (mutation) => mutation.state.variables?.id === project.id,
       })

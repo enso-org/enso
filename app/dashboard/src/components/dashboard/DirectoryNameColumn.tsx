@@ -16,8 +16,9 @@ import type * as column from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
 import SvgMask from '#/components/SvgMask'
 
-import * as backendModule from '#/services/Backend'
+import type * as backendModule from '#/services/Backend'
 
+import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
@@ -30,7 +31,9 @@ import * as validation from '#/utilities/validation'
 // =====================
 
 /** Props for a {@link DirectoryNameColumn}. */
-export interface DirectoryNameColumnProps extends column.AssetColumnProps {}
+export interface DirectoryNameColumnProps extends column.AssetColumnProps {
+  readonly item: AssetTreeNode<backendModule.DirectoryAsset>
+}
 
 /** The icon and name of a {@link backendModule.DirectoryAsset}.
  * @throws {Error} when the asset is not a {@link backendModule.DirectoryAsset}.
@@ -42,12 +45,6 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
   const driveStore = useDriveStore()
-
-  if (item.type !== backendModule.AssetType.directory) {
-    // eslint-disable-next-line no-restricted-syntax
-    throw new Error('`DirectoryNameColumn` can only display folders.')
-  }
-
   const asset = item.item
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 

@@ -23,6 +23,8 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 // === Constants ===
 // =================
 
+export const CLOSED_PROJECT_STATE = { type: backendModule.ProjectState.closed } as const
+
 /** The corresponding {@link spinner.SpinnerState} for each {@link backendModule.ProjectState},
  * when using the remote backend. */
 const REMOTE_SPINNER_STATE: Readonly<Record<backendModule.ProjectState, spinner.SpinnerState>> = {
@@ -73,6 +75,8 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const { user } = authProvider.useFullUserSession()
   const { getText } = textProvider.useText()
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const itemProjectState = item.projectState ?? CLOSED_PROJECT_STATE
   const { data: projectState, isError } = reactQuery.useQuery({
     ...projectHooks.createGetProjectDetailsQuery.createPassiveListener(item.id),
     select: (data) => data?.state,
@@ -84,12 +88,12 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const isCloud = backend.type === backendModule.BackendType.remote
 
   const isOtherUserUsingProject =
-    isCloud && item.projectState.openedBy != null && item.projectState.openedBy !== user.email
+    isCloud && itemProjectState.openedBy != null && itemProjectState.openedBy !== user.email
 
   const state = (() => {
     // Project is closed, show open button
     if (!isOpened) {
-      return item.projectState.type
+      return (projectState ?? itemProjectState).type
     } else if (status == null) {
       // Project is opened, but not yet queried.
       return backendModule.ProjectState.openInProgress

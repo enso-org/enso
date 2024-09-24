@@ -11,11 +11,12 @@ import { useDriveStore } from '#/providers/DriveProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import type * as column from '#/components/dashboard/column'
-import ProjectIcon from '#/components/dashboard/ProjectIcon'
+import ProjectIcon, { CLOSED_PROJECT_STATE } from '#/components/dashboard/ProjectIcon'
 import EditableSpan from '#/components/EditableSpan'
 
 import * as backendModule from '#/services/Backend'
 
+import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
@@ -30,7 +31,9 @@ import { isOnMacOS } from 'enso-common/src/detect'
 // ===================
 
 /** Props for a {@link ProjectNameColumn}. */
-export interface ProjectNameColumnProps extends column.AssetColumnProps {}
+export interface ProjectNameColumnProps extends column.AssetColumnProps {
+  readonly item: AssetTreeNode<backendModule.ProjectAsset>
+}
 
 /** The icon and name of a {@link backendModule.ProjectAsset}.
  * @throws {Error} when the asset is not a {@link backendModule.ProjectAsset}.
@@ -54,21 +57,13 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const { getText } = textProvider.useText()
   const driveStore = useDriveStore()
   const doOpenProject = projectHooks.useOpenProject()
-
-  if (item.type !== backendModule.AssetType.project) {
-    // eslint-disable-next-line no-restricted-syntax
-    throw new Error('`ProjectNameColumn` can only display projects.')
-  }
-
   const asset = item.item
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
   const ownPermission = permissions.tryFindSelfPermission(user, asset.permissions)
   // This is a workaround for a temporary bad state in the backend causing the `projectState` key
   // to be absent.
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  const projectState = asset.projectState ?? {
-    type: backendModule.ProjectState.closed,
-  }
+  const projectState = asset.projectState ?? CLOSED_PROJECT_STATE
   const isRunning = backendModule.IS_OPENING_OR_OPENED[projectState.type]
   const canExecute =
     isEditable &&
@@ -139,14 +134,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         }
       }}
     >
-      <ProjectIcon
-        isDisabled={!canExecute}
-        isOpened={isOpened}
-        backend={backend}
-        // This is a workaround for a temporary bad state in the backend causing the
-        // `projectState` key to be absent.
-        item={object.merge(asset, { projectState })}
-      />
+      <ProjectIcon isDisabled={!canExecute} isOpened={isOpened} backend={backend} item={asset} />
       <EditableSpan
         data-testid="asset-row-name"
         editable={rowState.isEditingName}
