@@ -1543,7 +1543,9 @@ lazy val `task-progress-notifications` = project
     ),
     Compile / internalModuleDependencies := Seq(
       (`cli` / Compile / exportedModule).value,
-      (`json-rpc-server` / Compile / exportedModule).value
+      (`json-rpc-server` / Compile / exportedModule).value,
+      (`akka-wrapper` / Compile / exportedModuleBin).value,
+      (`scala-libs-wrapper` / Compile / exportedModule).value
     ),
     Test / parallelExecution := false
   )
