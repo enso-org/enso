@@ -88,10 +88,10 @@ const rootStyle = computed(() => {
 .inputField {
   border: none;
   outline: none;
-  min-width: 0;
-  flex-grow: 1;
   background: none;
   font: inherit;
+  text-align: left;
+  flex-grow: 1;
 }
 
 .iconPort {
@@ -124,8 +124,7 @@ const rootStyle = computed(() => {
 .buttonPanel {
   display: flex;
   flex-direction: row;
-  flex-shrink: 0;
-  flex-grow: 0;
   gap: 8px;
+  flex-grow: 0;
 }
 </style>

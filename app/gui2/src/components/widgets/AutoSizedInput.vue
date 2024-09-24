@@ -75,6 +75,7 @@ function readInputFieldSelection() {
 // https://bugs.chromium.org/p/chromium/issues/detail?id=725890
 // Therefore we must also refresh selection after changing input.
 useEvent(document, 'selectionchange', readInputFieldSelection)
+
 watch(selection, (newPos) => {
   // If boundaries didn't change, don't overwrite selection dir.
   if (
