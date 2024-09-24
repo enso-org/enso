@@ -320,7 +320,7 @@
   "newDatalink": "New Datalink",
   "newSecret": "New Secret",
   "newLabel": "New Label",
-  "newEmptyProject": "New Empty Project",
+  "newEmptyProject": "New Project",
 
   "stopExecution": "Stop execution",
   "openInEditor": "Open in editor",
@@ -379,6 +379,7 @@
   "thisFolderIsEmpty": "This folder is empty.",
   "yourTrashIsEmpty": "Your trash is empty.",
   "deleteTheAssetTypeTitle": "delete the $0 '$1'",
+  "trashTheAssetTypeTitle": "move the $0 '$1' to Trash",
   "notImplemetedYet": "Not implemented yet.",
   "newLabelButtonLabel": "new label",
   "settingUsername": "Setting username...",
@@ -658,6 +659,7 @@
   "accessedByProjectsColumnName": "Accessed by projects",
   "accessedDataColumnName": "Accessed data",
   "docsColumnName": "Docs",
+  "rootFolderColumnName": "Root folder",
 
   "settingsShortcut": "Settings",
   "closeTabShortcut": "Close Tab",

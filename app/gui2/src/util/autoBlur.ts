@@ -118,12 +118,12 @@ function handleClick(
   const chainedPointerdown = interaction.pointerdown
   const wrappedInteraction: Interaction = {
     ...interaction,
-    pointerdown: (e: PointerEvent, ...args) => {
+    pointerdown: (e: PointerEvent) => {
       if (condition(e)) {
         handler(wrappedInteraction)
         return false
       }
-      return chainedPointerdown ? chainedPointerdown(e, ...args) : false
+      return chainedPointerdown ? chainedPointerdown(e) : false
     },
   }
   return wrappedInteraction

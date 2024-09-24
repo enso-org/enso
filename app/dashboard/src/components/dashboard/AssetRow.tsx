@@ -160,12 +160,17 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   const grabKeyboardFocusRef = useSyncRef(grabKeyboardFocus)
   const asset = item.item
   const [insertionVisibility, setInsertionVisibility] = React.useState(Visibility.visible)
-  const [rowState, setRowState] = React.useState<assetsTable.AssetRowState>(() =>
-    object.merge(assetRowUtils.INITIAL_ROW_STATE, {
-      setVisibility: setInsertionVisibility,
-      isEditingName: driveStore.getState().newestFolderId === asset.id,
-    }),
+  const [innerRowState, setRowState] = React.useState<assetsTable.AssetRowState>(() =>
+    object.merge(assetRowUtils.INITIAL_ROW_STATE, { setVisibility: setInsertionVisibility }),
   )
+
+  const isNewlyCreated = useStore(driveStore, ({ newestFolderId }) => newestFolderId === asset.id)
+  const isEditingName = innerRowState.isEditingName || isNewlyCreated
+
+  const rowState = React.useMemo(() => {
+    return object.merge(innerRowState, { isEditingName })
+  }, [isEditingName, innerRowState])
+
   const nodeParentKeysRef = React.useRef<{
     readonly nodeMap: WeakRef<ReadonlyMap<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>>
     readonly parentKeys: Map<backendModule.AssetId, backendModule.DirectoryId>
