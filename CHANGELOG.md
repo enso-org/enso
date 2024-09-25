@@ -58,8 +58,10 @@
 - [Support for creating Atoms in expressions.][10820]
 - [IO.print without new line][10858]
 - [Add `Text.to_decimal`.][10874]
-- [Added .floor, .ceil, .trunc to the in-memory `Decimal` column.][10887]
+- [Added `floor`, `ceil`, `trunc` to the in-memory `Decimal` column.][10887]
 - [Added vectorized .round to the in-memory `Decimal` column.][10912]
+- [Extend the range of `floor`, `ceil`, `trunc` to values outside the `Long`
+  range.][11135]
 
 [10614]: https://github.com/enso-org/enso/pull/10614
 [10660]: https://github.com/enso-org/enso/pull/10660
@@ -71,6 +73,7 @@
 [10874]: https://github.com/enso-org/enso/pull/10874
 [10887]: https://github.com/enso-org/enso/pull/10887
 [10912]: https://github.com/enso-org/enso/pull/10912
+[11135]: https://github.com/enso-org/enso/pull/11135
 
 #### Enso Language & Runtime
 
