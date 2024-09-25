@@ -29,7 +29,8 @@ from project.Data.Ordering import all
 from project.Data.Range.Extensions import all
 from project.Data.Text.Extensions import all
 from project.Metadata.Choice import Option
-from project.Metadata.Widget import Single_Choice
+from project.Metadata.Widget import Single_Choice, Text_Input, Vector_Editor
+from project.Widget_Helpers import make_any_selector
 
 polyglot java import com.fasterxml.jackson.core.JsonLocation
 polyglot java import com.fasterxml.jackson.core.JsonProcessingException
@@ -161,10 +162,11 @@ type JS_Object
                 loop name_iterator builder
         JS_Object.Value object_node (make_field_names object_node)
 
-    ## PRIVATE
-       Creates a Jackson_Object from a list of key-value pairs.
+    ## ICON braces
+       Creates a JS_Object from a list of key-value pairs.
        Keys must be `Text` values.
        Values will be recursively converted to JSON serializable as needed.
+    @pairs key_value_widget
     from_pairs : Vector -> JS_Object
     from_pairs pairs =
         mapper = ObjectMapper.new
@@ -423,3 +425,13 @@ make_enso object =
                 _ -> js_object
 
             if parsed.is_error then js_object else parsed
+
+## PRIVATE
+key_value_widget : Widget
+key_value_widget =
+    value_editor = make_any_selector add_text=True add_number=True add_boolean=True add_date=True add_time=True add_date_time=True add_nothing=True
+    fqn = Meta.get_qualified_type_name Pair
+    default = 'Pair.Value "key" Nothing'
+    pair = Option "Pair" fqn+".Value" [["first", Text_Input], ["second", value_editor]]
+    item_editor = Single_Choice display=..Always values=[pair]
+    Vector_Editor item_editor=item_editor display=..Always item_default=default
