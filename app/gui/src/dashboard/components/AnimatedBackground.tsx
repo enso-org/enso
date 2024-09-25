@@ -13,12 +13,16 @@ import invariant from 'tiny-invariant'
 
 /** Props for {@link AnimatedBackground}. */
 interface AnimatedBackgroundProps extends PropsWithChildren {
-  readonly value: string
+  /**
+   * Active value.
+   * You can omit this prop if you want to use the `isSelected` prop on {@link AnimatedBackground.Item}.
+   */
+  readonly value?: string
   readonly transition?: Transition
 }
 
 const AnimatedBackgroundContext = createContext<{
-  value: string | null
+  value: string | undefined
   transition: Transition
   layoutId: string
 } | null>(null)
@@ -47,33 +51,70 @@ export function AnimatedBackground(props: AnimatedBackgroundProps) {
   )
 }
 
-/** Props for {@link AnimatedBackground.Item}. */
-interface AnimatedBackgroundItemProps extends PropsWithChildren {
-  readonly value: string
+/**
+ * Props for {@link AnimatedBackground.Item}.
+ */
+type AnimatedBackgroundItemProps = PropsWithChildren<
+  AnimatedBackgroundItemPropsWithSelected | AnimatedBackgroundItemPropsWithValue
+> & {
   readonly className?: string
   readonly animationClassName?: string
+  readonly underlayElement?: React.ReactNode
+}
+
+/**
+ * Props for {@link AnimatedBackground.Item} with a `value` prop.
+ */
+interface AnimatedBackgroundItemPropsWithValue {
+  readonly value: string
+  readonly isSelected?: never
+}
+
+/**
+ * Props for {@link AnimatedBackground.Item} with a `isSelected` prop.
+ */
+interface AnimatedBackgroundItemPropsWithSelected {
+  readonly isSelected: boolean
+  readonly value?: never
 }
 
 /** Item within an {@link AnimatedBackground}. */
 AnimatedBackground.Item = function AnimatedBackgroundItem(props: AnimatedBackgroundItemProps) {
-  const context = useContext(AnimatedBackgroundContext)
-  invariant(context, 'useAnimatedBackground must be used within an AnimatedBackgroundProvider')
+  const {
+    value,
+    className,
+    animationClassName,
+    children,
+    isSelected,
+    underlayElement = <div className={twJoin('h-full w-full', animationClassName)} />,
+  } = props
 
-  const { value, className, animationClassName, children } = props
+  const context = useContext(AnimatedBackgroundContext)
+  invariant(context, '<AnimatedBackground.Item /> must be placed within an <AnimatedBackground />')
   const { value: activeValue, transition, layoutId } = context
+
+  invariant(
+    activeValue === undefined || isSelected === undefined,
+    'isSelected shall be passed either directly or via context by matching the value prop in <AnimatedBackground.Item /> and value from <AnimatedBackground />',
+  )
+
+  const isActive = isSelected ?? activeValue === value
 
   return (
     <div className={twJoin('relative *:isolate', className)}>
       <AnimatePresence initial={false}>
-        {activeValue === value && (
+        {isActive && (
           <motion.div
+            layout="position"
             layoutId={`background-${layoutId}`}
-            className={twJoin('absolute inset-0', animationClassName)}
+            className="absolute inset-0"
             transition={transition}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-          />
+          >
+            {underlayElement}
+          </motion.div>
         )}
       </AnimatePresence>
 

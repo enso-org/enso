@@ -51,6 +51,8 @@ const RESULT_STYLES = tv({
   base: 'flex flex-col items-center justify-center max-w-full px-6 py-4 text-center h-[max-content]',
   variants: {
     centered: {
+      true: 'm-auto',
+      false: '',
       horizontal: 'mx-auto',
       vertical: 'my-auto',
       all: 'm-auto',

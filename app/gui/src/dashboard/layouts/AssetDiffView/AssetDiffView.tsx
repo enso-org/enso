@@ -16,8 +16,8 @@ import * as useFetchVersionContent from './useFetchVersionContent'
 
 /** Props for an {@link AssetDiffView}. */
 export interface AssetDiffViewProps {
-  readonly versionId: string
-  readonly latestVersionId: string
+  readonly versionId: backendService.S3ObjectVersionId
+  readonly latestVersionId: backendService.S3ObjectVersionId
   readonly project: backendService.ProjectAsset
   readonly backend: Backend
 }

@@ -2,7 +2,12 @@
 import { useState } from 'react'
 
 import LogsIcon from '#/assets/logs.svg'
-import { Button, DialogTrigger } from '#/components/AriaComponents'
+
+import * as textProvider from '#/providers/TextProvider'
+
+import * as ariaComponents from '#/components/AriaComponents'
+import Button from '#/components/styled/Button'
+
 import ProjectLogsModal from '#/modals/ProjectLogsModal'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'

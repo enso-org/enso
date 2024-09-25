@@ -49,6 +49,8 @@ interface DriveStore {
   readonly visuallySelectedKeys: ReadonlySet<AssetId> | null
   readonly setVisuallySelectedKeys: (visuallySelectedKeys: ReadonlySet<AssetId> | null) => void
   readonly isAssetPanelPermanentlyVisible: boolean
+  readonly isAssetPanelExpanded: boolean
+  readonly setIsAssetPanelExpanded: (isAssetPanelExpanded: boolean) => void
   readonly setIsAssetPanelPermanentlyVisible: (isAssetPanelTemporarilyVisible: boolean) => void
   readonly isAssetPanelTemporarilyVisible: boolean
   readonly setIsAssetPanelTemporarilyVisible: (isAssetPanelTemporarilyVisible: boolean) => void
@@ -143,6 +145,12 @@ export default function DriveProvider(props: ProjectsProviderProps) {
         if (get().isAssetPanelPermanentlyVisible !== isAssetPanelPermanentlyVisible) {
           set({ isAssetPanelPermanentlyVisible })
           localStorage.set('isAssetPanelVisible', isAssetPanelPermanentlyVisible)
+        }
+      },
+      isAssetPanelExpanded: false,
+      setIsAssetPanelExpanded: (isAssetPanelExpanded) => {
+        if (get().isAssetPanelExpanded !== isAssetPanelExpanded) {
+          set({ isAssetPanelExpanded })
         }
       },
       isAssetPanelTemporarilyVisible: false,
@@ -305,10 +313,28 @@ export function useIsAssetPanelVisible() {
   return isAssetPanelPermanentlyVisible || isAssetPanelTemporarilyVisible
 }
 
+/**
+ * Whether the Asset Panel is expanded.
+ */
+export function useIsAssetPanelExpanded() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.isAssetPanelExpanded)
+}
+
+/** A function to set whether the Asset Panel is expanded. */
+export function useSetIsAssetPanelExpanded() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.setIsAssetPanelExpanded)
+}
+
 /** Props for the Asset Panel. */
 export function useAssetPanelProps() {
   const store = useDriveStore()
-  return zustand.useStore(store, (state) => state.assetPanelProps)
+
+  return zustand.useStore(
+    store,
+    (state) => state.assetPanelProps ?? { backend: null, item: null, setItem: null },
+  )
 }
 
 /** A function to set props for the Asset Panel. */

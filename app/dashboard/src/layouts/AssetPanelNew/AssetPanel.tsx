@@ -1,0 +1,233 @@
+/**
+ * @file
+ * @description
+ * The asset panel is a sidebar that can be expanded or collapsed.
+ * It is used to view and interact with assets in the drive.
+ */
+import docsIcon from '#/assets/file_text.svg'
+import sessionsIcon from '#/assets/group.svg'
+import inspectIcon from '#/assets/inspect.svg'
+import versionsIcon from '#/assets/versions.svg'
+
+import { useBackend } from '#/providers/BackendProvider'
+import {
+  useAssetPanelProps,
+  useIsAssetPanelExpanded,
+  useIsAssetPanelVisible,
+  useSetIsAssetPanelExpanded,
+} from '#/providers/DriveProvider'
+import { useText } from '#/providers/TextProvider'
+import LocalStorage from '#/utilities/LocalStorage'
+import type { BackendType } from 'enso-common/src/services/Backend'
+import type { Spring } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
+import { startTransition } from 'react'
+import { z } from 'zod'
+import { useLocalStorageState } from '../../providers/LocalStorageProvider'
+import { AssetDocs } from '../AssetDocs'
+import AssetProjectSessions from '../AssetProjectSessions'
+import AssetProperties from '../AssetProperties'
+import AssetVersions from '../AssetVersions/AssetVersions'
+import type { Category } from '../CategorySwitcher/Category'
+import { AssetPanelTabs } from './components/AssetPanelTabs'
+import { AssetPanelToggle } from './components/AssetPanelToggle'
+
+const ASSET_SIDEBAR_COLLAPSED_WIDTH = 48
+const ASSET_PANEL_WIDTH = 480
+const ASSET_PANEL_TOTAL_WIDTH = ASSET_PANEL_WIDTH + ASSET_SIDEBAR_COLLAPSED_WIDTH
+
+/** Determines the content of the {@link AssetPanel}. */
+enum AssetPanelTab {
+  properties = 'properties',
+  versions = 'versions',
+  projectSessions = 'projectSessions',
+  docs = 'docs',
+}
+
+// ============================
+// === Global configuration ===
+// ============================
+
+declare module '#/utilities/LocalStorage' {
+  /** */
+  interface LocalStorageData {
+    readonly assetPanelTab: AssetPanelTab
+    readonly assetPanelWidth: number
+  }
+}
+
+const ASSET_PANEL_TAB_SCHEMA = z.nativeEnum(AssetPanelTab)
+
+LocalStorage.register({
+  assetPanelTab: { schema: ASSET_PANEL_TAB_SCHEMA },
+  assetPanelWidth: { schema: z.number().int() },
+})
+
+/**
+ * Props for an {@link AssetPanel}.
+ */
+export interface AssetPanelProps {
+  readonly backendType: BackendType
+  readonly category: Category
+}
+
+const DEFAULT_TRANSITION_OPTIONS: Spring = {
+  type: 'spring',
+  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+  stiffness: 200,
+  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+  damping: 30,
+  mass: 1,
+  velocity: 0,
+}
+
+/**
+ * The asset panel is a sidebar that can be expanded or collapsed.
+ * It is used to view and interact with assets in the drive.
+ */
+export function AssetPanel(props: AssetPanelProps) {
+  const { category } = props
+
+  const [selectedTab, setSelectedTab] = useLocalStorageState(
+    'assetPanelTab',
+    AssetPanelTab.properties,
+  )
+
+  const isReadonly = category.type === 'trash'
+
+  const { getText } = useText()
+
+  const isVisible = useIsAssetPanelVisible()
+  const isExpanded = useIsAssetPanelExpanded()
+  const setIsExpanded = useSetIsAssetPanelExpanded()
+
+  const backend = useBackend(category)
+
+  const { item, setItem } = useAssetPanelProps()
+
+  const panelWidth = isExpanded ? ASSET_PANEL_TOTAL_WIDTH : ASSET_SIDEBAR_COLLAPSED_WIDTH
+
+  return (
+    <AnimatePresence initial={isVisible} mode="sync">
+      {isVisible && (
+        <motion.div
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          custom={panelWidth}
+          variants={{
+            initial: { opacity: 0, width: 0 },
+            animate: (width: number) => ({ opacity: 1, width }),
+            exit: { opacity: 0, width: 0 },
+          }}
+          transition={DEFAULT_TRANSITION_OPTIONS}
+          className="relative flex flex-col shadow-softer clip-path-left-shadow"
+        >
+          <AssetPanelTabs
+            className="h-full"
+            orientation="vertical"
+            selectedKey={selectedTab}
+            onSelectionChange={(key) => {
+              startTransition(() => {
+                if (key === selectedTab && isExpanded) {
+                  setIsExpanded(false)
+                } else {
+                  setSelectedTab(ASSET_PANEL_TAB_SCHEMA.parse(key))
+                  setIsExpanded(true)
+                }
+              })
+            }}
+          >
+            {isExpanded && (
+              <div
+                className="min-h-full"
+                // We use clipPath to prevent the sidebar from being visible under tabs while expanding.
+                style={{ clipPath: `inset(0 ${ASSET_SIDEBAR_COLLAPSED_WIDTH}px 0 0)` }}
+              >
+                <motion.div
+                  initial={{ x: ASSET_PANEL_WIDTH, filter: 'blur(16px)' }}
+                  animate={{ x: 0, filter: 'blur(0px)' }}
+                  exit={{ x: ASSET_PANEL_WIDTH, filter: 'blur(16px)' }}
+                  transition={DEFAULT_TRANSITION_OPTIONS}
+                  className="absolute left-0 top-0 h-full w-full bg-background"
+                  style={{ width: ASSET_PANEL_WIDTH }}
+                >
+                  <AssetPanelTabs.TabPanel id="properties">
+                    <AssetProperties
+                      backend={backend}
+                      item={item}
+                      isReadonly={isReadonly}
+                      setItem={setItem}
+                      category={category}
+                    />
+                  </AssetPanelTabs.TabPanel>
+
+                  <AssetPanelTabs.TabPanel id="versions">
+                    <AssetVersions backend={backend} item={item} />
+                  </AssetPanelTabs.TabPanel>
+
+                  <AssetPanelTabs.TabPanel id="projectSessions">
+                    <AssetProjectSessions backend={backend} item={item} />
+                  </AssetPanelTabs.TabPanel>
+
+                  <AssetPanelTabs.TabPanel id="docs">
+                    <AssetDocs backend={backend} item={item} />
+                  </AssetPanelTabs.TabPanel>
+                </motion.div>
+              </div>
+            )}
+
+            <div
+              className="absolute bottom-0 right-0 top-0 pt-2"
+              style={{ width: ASSET_SIDEBAR_COLLAPSED_WIDTH }}
+            >
+              <AssetPanelToggle
+                showWhen="expanded"
+                className="flex aspect-square w-full items-center justify-center"
+              />
+
+              <AssetPanelTabs.TabList>
+                <AssetPanelTabs.Tab
+                  id="properties"
+                  icon={inspectIcon}
+                  label={getText('properties')}
+                  isExpanded={isExpanded}
+                  onPress={() => {
+                    setIsExpanded(true)
+                  }}
+                />
+                <AssetPanelTabs.Tab
+                  id="versions"
+                  icon={versionsIcon}
+                  label={getText('versions')}
+                  isExpanded={isExpanded}
+                  onPress={() => {
+                    setIsExpanded(true)
+                  }}
+                />
+                <AssetPanelTabs.Tab
+                  id="projectSessions"
+                  icon={sessionsIcon}
+                  label={getText('projectSessions')}
+                  isExpanded={isExpanded}
+                  onPress={() => {
+                    setIsExpanded(true)
+                  }}
+                />
+                <AssetPanelTabs.Tab
+                  id="docs"
+                  icon={docsIcon}
+                  label={getText('docs')}
+                  isExpanded={isExpanded}
+                  onPress={() => {
+                    setIsExpanded(true)
+                  }}
+                />
+              </AssetPanelTabs.TabList>
+            </div>
+          </AssetPanelTabs>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+}

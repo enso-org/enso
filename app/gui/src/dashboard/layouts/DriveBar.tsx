@@ -12,7 +12,6 @@ import AddKeyIcon from '#/assets/add_key.svg'
 import DataDownloadIcon from '#/assets/data_download.svg'
 import DataUploadIcon from '#/assets/data_upload.svg'
 import Plus2Icon from '#/assets/plus2.svg'
-import RightPanelIcon from '#/assets/right_panel.svg'
 import { Input as AriaInput } from '#/components/aria'
 import {
   Button,
@@ -53,6 +52,7 @@ import { ProjectState, type CreatedProject, type Project, type ProjectId } from 
 import type AssetQuery from '#/utilities/AssetQuery'
 import { inputFiles } from '#/utilities/input'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
+import { AssetPanelToggle } from './AssetPanelNew'
 
 // ================
 // === DriveBar ===
@@ -336,6 +336,7 @@ export default function DriveBar(props: DriveBarProps) {
                   <UpsertSecretModal id={null} name={null} doCreate={doCreateSecret} />
                 </DialogTrigger>
               )}
+
               {isCloud && (
                 <DialogTrigger>
                   <Button

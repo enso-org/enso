@@ -4,6 +4,7 @@ import * as reactQuery from '@tanstack/react-query'
 
 import type * as backendService from '#/services/Backend'
 import type Backend from '#/services/Backend'
+import { splitFileContents } from 'ydoc-shared/ensoFile'
 
 // =================
 // === Constants ===
@@ -18,25 +19,41 @@ const TWO_MINUTES_MS = 120_000
 /** Options for {@link useFetchVersionContent}. */
 export interface FetchVersionContentOptions {
   readonly project: backendService.ProjectAsset
-  readonly versionId: string
+  readonly versionId: backendService.S3ObjectVersionId
   readonly backend: Backend
   /** If `false`, the metadata is stripped out. Defaults to `false`. */
   readonly metadata?: boolean
 }
 
-/** Fetch the content of a version. */
-export function useFetchVersionContent(params: FetchVersionContentOptions) {
-  const { versionId, backend, project, metadata = false } = params
-
-  return reactQuery.useQuery({
-    queryKey: ['versionContent', versionId],
-    queryFn: () => backend.getFileContent(project.id, versionId, project.title),
-    select: (data) => (metadata ? data : omitMetadata(data)),
+/**
+ * Return the query options for fetching the content of a version.
+ */
+export function versionContentQueryOptions(params: FetchVersionContentOptions) {
+  return reactQuery.queryOptions({
+    queryKey: [
+      params.backend.type,
+      {
+        method: 'getFileContent',
+        versionId: params.versionId,
+        projectId: params.project.id,
+        title: params.project.title,
+      },
+    ] as const,
+    queryFn: ({ queryKey }) => {
+      const [, { method, versionId, projectId, title }] = queryKey
+      return params.backend[method](projectId, versionId, title)
+    },
+    select: (data) => (params.metadata === true ? data : omitMetadata(data)),
     staleTime: TWO_MINUTES_MS,
   })
 }
 
+/** Fetch the content of a version. */
+export function useFetchVersionContent(params: FetchVersionContentOptions) {
+  return reactQuery.useQuery(versionContentQueryOptions(params))
+}
+
 /** Remove the metadata from the content of a version. */
 function omitMetadata(file: string): string {
-  return file.split('#### METADATA ####')[0]?.replace(/\n+$/, '') ?? file
+  return splitFileContents(file).code
 }
