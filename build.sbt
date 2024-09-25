@@ -1079,7 +1079,6 @@ lazy val `logging-service-logback` = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
-    mixedJavaScalaProjectSetting,
     version := "0.1",
     libraryDependencies ++= Seq(
       "org.slf4j"        % "slf4j-api"               % slf4jVersion,
