@@ -65,6 +65,7 @@ test('Reading graph from definition', () => {
   db.updateBindings(func, rawFunc, code, getSpan)
 
   expect(Array.from(db.nodeIdToNode.keys())).toEqual([
+    eid('parameter'),
     eid('node1Content'),
     eid('node2Content'),
     eid('node3Content'),
@@ -94,6 +95,7 @@ test('Reading graph from definition', () => {
 
   // Commented the connection from input node, as we don't support them yet.
   expect(Array.from(db.connections.allForward(), ([key]) => key)).toEqual([
+    id('parameter'),
     id('node1Id'),
     id('node2Id'),
   ])

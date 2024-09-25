@@ -436,7 +436,6 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     watch(nodesToPlace, (nodeIds) =>
       nextTick(() => {
         if (nodeIds.length === 0) return
-        nodesToPlace.length = 0
         const [inputNodes, nonInputNodes] = partition(
           nodeIds,
           (id) => db.nodeIdToNode.get(id)?.type === 'input',
@@ -448,6 +447,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
           return (nodeA.argIndex ?? 0) - (nodeB.argIndex ?? 0)
         })
         const nodesToProcess = [...nonInputNodes, ...inputNodesSortedByArgIndex]
+        nodesToPlace.length = 0
         batchEdits(() => {
           for (const nodeId of nodesToProcess) {
             const nodeType = db.nodeIdToNode.get(nodeId)?.type
