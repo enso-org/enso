@@ -30,7 +30,7 @@ create_large_ints vector_size faker =
 
 
 create_large_floats vector_size faker =
-    floats_vec = Vector.new vector_size _->(faker.float -1000000000000000000000.0 1000000000000000000000.0)
+    floats_vec = Vector.new vector_size _->(faker.float -1000000000 1000000000)
     Column.from_vector "large_floats" floats_vec
 
 
@@ -48,88 +48,92 @@ collect_benches = Bench.build builder->
     data = Data.create vector_size faker
 
     builder.group "Column_Numeric" options group_builder->
-        group_builder.specify "round_ints" <|
-            data.ints.round
-
-        group_builder.specify "truncate_ints" <|
-            data.ints.truncate
-
-        group_builder.specify "ceil_ints" <|
-            data.ints.ceil
-
-        group_builder.specify "floor_ints" <|
-            data.ints.floor
-
-        group_builder.specify "round_floats" <|
-            data.floats.round
-
-        group_builder.specify "truncate_floats" <|
-            data.floats.truncate
-
-        group_builder.specify "ceil_floats" <|
-            data.floats.ceil
-
-        group_builder.specify "floor_floats" <|
-            data.floats.floor
-
-        group_builder.specify "round_large_ints" <|
-            data.large_ints.round
-
-        group_builder.specify "truncate_large_ints" <|
-            data.large_ints.truncate
-
-        group_builder.specify "ceil_large_ints" <|
-            data.large_ints.ceil
-
-        group_builder.specify "floor_large_ints" <|
-            data.large_ints.floor
-
-        ## Re-enable when https://github.com/enso-org/enso/issues/11132 is done.
-            group_builder.specify "round_large_floats" <|
-                data.large_floats.round
-
-        group_builder.specify "truncate_large_floats" <|
-            data.large_floats.truncate
-
         group_builder.specify "ceil_large_floats" <|
             data.large_floats.ceil
 
-        group_builder.specify "floor_large_floats" <|
-            data.large_floats.floor
+        ##
+            group_builder.specify "round_ints" <|
+                data.ints.round
 
-        ## Re-enable when https://github.com/enso-org/enso/issues/11132 is done.
-            group_builder.specify "round_decimals" <|
-                data.decimals.round
+            group_builder.specify "truncate_ints" <|
+                data.ints.truncate
 
-        group_builder.specify "truncate_decimals" <|
-            data.decimals.truncate
+            group_builder.specify "ceil_ints" <|
+                data.ints.ceil
 
-        group_builder.specify "ceil_decimals" <|
-            data.decimals.ceil
+            group_builder.specify "floor_ints" <|
+                data.ints.floor
 
-        group_builder.specify "floor_decimals" <|
-            data.decimals.floor
+            group_builder.specify "round_floats" <|
+                data.floats.round
 
-        [True, False].each use_bankers->
-            [0, -2, 2].map decimal_places->
-                name = create_name "round_decimal_places_" decimal_places use_bankers
-                fun x = x.round decimal_places use_bankers
+            group_builder.specify "truncate_floats" <|
+                data.floats.truncate
 
-                group_builder.specify ("ints_" + name) <|
-                    fun data.ints
+            group_builder.specify "ceil_floats" <|
+                data.floats.ceil
 
-                group_builder.specify ("floats_" + name) <|
-                    fun data.floats
+            group_builder.specify "floor_floats" <|
+                data.floats.floor
 
-                ## Re-enable when https://github.com/enso-org/enso/issues/11132 is done.
-                    group_builder.specify ("large_ints_" + name) <|
-                        fun data.large_ints
+            group_builder.specify "round_large_ints" <|
+                data.large_ints.round
 
-                    group_builder.specify ("large_floats_" + name) <|
-                        fun data.large_floats
+            group_builder.specify "truncate_large_ints" <|
+                data.large_ints.truncate
 
-                    group_builder.specify ("decimals_" + name) <|
-                        fun data.decimals
+            group_builder.specify "ceil_large_ints" <|
+                data.large_ints.ceil
+
+            group_builder.specify "floor_large_ints" <|
+                data.large_ints.floor
+
+            ## Re-enable when https://github.com/enso-org/enso/issues/11132 is done.
+                group_builder.specify "round_large_floats" <|
+                    data.large_floats.round
+
+            group_builder.specify "truncate_large_floats" <|
+                data.large_floats.truncate
+
+            group_builder.specify "ceil_large_floats" <|
+                data.large_floats.ceil
+
+            group_builder.specify "floor_large_floats" <|
+                data.large_floats.floor
+
+            ## Re-enable when https://github.com/enso-org/enso/issues/11132 is done.
+                group_builder.specify "round_decimals" <|
+                    data.decimals.round
+
+            group_builder.specify "truncate_decimals" <|
+                data.decimals.truncate
+
+            group_builder.specify "ceil_decimals" <|
+                data.decimals.ceil
+
+            group_builder.specify "floor_decimals" <|
+                data.decimals.floor
+
+            [True, False].each use_bankers->
+                [0, -2, 2].map decimal_places->
+                    name = create_name "round_decimal_places_" decimal_places use_bankers
+                    fun x = x.round decimal_places use_bankers
+
+                    group_builder.specify ("ints_" + name) <|
+                        fun data.ints
+
+                    group_builder.specify ("floats_" + name) <|
+                        fun data.floats
+
+                    ## Re-enable when https://github.com/enso-org/enso/issues/11132 is done.
+                        group_builder.specify ("large_ints_" + name) <|
+                            fun data.large_ints
+
+                        group_builder.specify ("large_floats_" + name) <|
+                            fun data.large_floats
+
+                        group_builder.specify ("decimals_" + name) <|
+                            fun data.decimals
 
 
 ## Creates a valid name for the benchmark
