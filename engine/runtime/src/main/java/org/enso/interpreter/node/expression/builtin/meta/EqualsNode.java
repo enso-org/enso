@@ -68,7 +68,7 @@ public final class EqualsNode extends Node {
    */
   public EqualsAndInfo execute(VirtualFrame frame, Object self, Object other) {
     var areEqual = node.execute(frame, self, other);
-    if (!areEqual.equals()) {
+    if (!areEqual.isTrue()) {
       var selfType = types.execute(self);
       var otherType = types.execute(other);
       if (selfType != otherType) {
@@ -242,7 +242,7 @@ public final class EqualsNode extends Node {
       try {
         var thatAsSelf = convertNode.execute(convert, state, new Object[] {selfType, that});
         var withInfo = equalityNode.execute(frame, self, thatAsSelf);
-        var result = withInfo.equals();
+        var result = withInfo.isTrue();
         assert !result || assertHashCodeIsTheSame(that, thatAsSelf);
         return withInfo;
       } catch (ArityException ex) {

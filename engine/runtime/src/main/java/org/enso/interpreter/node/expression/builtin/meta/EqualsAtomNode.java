@@ -74,7 +74,7 @@ abstract class EqualsAtomNode extends Node {
       var selfValue = structsLib.getField(self, i);
       var otherValue = structsLib.getField(other, i);
       var fieldsAreEqual = fieldEqualsNodes[i].execute(frame, selfValue, otherValue);
-      if (!fieldsAreEqual.equals()) {
+      if (!fieldsAreEqual.isTrue()) {
         return fieldsAreEqual;
       }
     }
@@ -112,7 +112,7 @@ abstract class EqualsAtomNode extends Node {
         var map = warnings.getWarnings(result, false);
         result = warnings.removeWarnings(result);
         var eq = ctx.getBuiltins().ordering().newEqual() == result;
-        return new EqualsAndInfo(eq, map);
+        return EqualsAndInfo.valueOf(eq, map);
       } else {
         return EqualsAndInfo.valueOf(ctx.getBuiltins().ordering().newEqual() == result);
       }
@@ -175,7 +175,7 @@ abstract class EqualsAtomNode extends Node {
       var selfField = StructsLibrary.getUncached().getField(self, i);
       var otherField = StructsLibrary.getUncached().getField(other, i);
       var areFieldsSame = EqualsNode.getUncached().execute(frame, selfField, otherField);
-      if (!areFieldsSame.equals()) {
+      if (!areFieldsSame.isTrue()) {
         return areFieldsSame;
       }
     }

@@ -47,14 +47,14 @@ public final class EqualsBuiltinNode extends Node {
    */
   public Object execute(VirtualFrame frame, Object self, Object other) {
     var areEqual = node.execute(frame, self, other);
-    if (areEqual.warnings() != null) {
+    if (areEqual.getWarnings() != null) {
       if (append == null) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
         append = insert(AppendWarningNode.build());
       }
-      return append.executeAppend(frame, areEqual.equals(), areEqual.warnings());
+      return append.executeAppend(frame, areEqual.isTrue(), areEqual.getWarnings());
     } else {
-      return areEqual.equals();
+      return areEqual.isTrue();
     }
   }
 }

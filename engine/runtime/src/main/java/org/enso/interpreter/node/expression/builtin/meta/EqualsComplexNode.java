@@ -132,10 +132,10 @@ abstract class EqualsComplexNode extends Node {
         all = insertAllNode.executeInsertAll(frame, all, toAdd, max);
       }
       var res = equalsNode.execute(frame, self, other);
-      if (res.warnings() != null) {
-        all = insertAllNode.executeInsertAll(frame, all, res.warnings(), max);
+      if (res.getWarnings() != null) {
+        all = insertAllNode.executeInsertAll(frame, all, res.getWarnings(), max);
       }
-      return new EqualsAndInfo(res.equals(), all);
+      return EqualsAndInfo.valueOf(res.isTrue(), all);
     } catch (UnsupportedMessageException e) {
       throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
@@ -321,7 +321,7 @@ abstract class EqualsComplexNode extends Node {
         Object selfElem = valueToEnsoNode.execute(selfInterop.readArrayElement(selfArray, i));
         Object otherElem = valueToEnsoNode.execute(otherInterop.readArrayElement(otherArray, i));
         var elemsAreEqual = equalsNode.execute(frame, selfElem, otherElem);
-        if (!elemsAreEqual.equals()) {
+        if (!elemsAreEqual.isTrue()) {
           return elemsAreEqual;
         }
       }
@@ -365,7 +365,7 @@ abstract class EqualsComplexNode extends Node {
             && otherInterop.isHashEntryReadable(otherHashMap, key)) {
           var otherValue = valueToEnsoNode.execute(otherInterop.readHashValue(otherHashMap, key));
           var res = equalsNode.execute(frame, selfValue, otherValue);
-          if (!res.equals()) {
+          if (!res.isTrue()) {
             return res;
           }
         } else {
