@@ -157,8 +157,8 @@ interface CollapsingResult {
    * The order of these IDs is reversed comparing to the order of nodes in the source code.
    */
   collapsedNodeIds: NodeId[]
-  /** ID of the output node inside the collapsed function. */
-  outputNodeId?: NodeId | undefined
+  /** ID of the output AST node inside the collapsed function. */
+  outputAstId?: Ast.AstId | undefined
 }
 
 /** Perform the actual AST refactoring for collapsing nodes. */
@@ -204,18 +204,18 @@ export function performCollapse(
 
   // Insert a new function.
   const collapsedNodeIds = [...filterDefined(collapsed.map(nodeIdFromOuterExpr))].reverse()
-  let outputNodeId: NodeId | undefined
+  let outputAstId: Ast.AstId | undefined
   const outputIdentifier = info.extracted.output?.identifier
   if (outputIdentifier != null) {
     const ident = Ast.Ident.new(edit, outputIdentifier)
     collapsed.push(ident)
-    outputNodeId = asNodeId(ident.externalId)
+    outputAstId = ident.id
   }
   const argNames = info.extracted.inputs
   const collapsedFunction = Ast.Function.fromStatements(edit, collapsedName, argNames, collapsed)
   const collapsedFunctionWithIcon = Ast.Documented.new('ICON group', collapsedFunction)
   topLevel.insert(posToInsert, collapsedFunctionWithIcon, undefined)
-  return { refactoredNodeId, refactoredExpressionAstId, collapsedNodeIds, outputNodeId }
+  return { refactoredNodeId, refactoredExpressionAstId, collapsedNodeIds, outputAstId }
 }
 
 /** Prepare a method call expression for collapsed method. */

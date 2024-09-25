@@ -630,7 +630,7 @@ function collapseNodes() {
     }
     const selectedNodeRects = filterDefined(Array.from(selected, graphStore.visibleArea))
     graphStore.edit((edit) => {
-      const { refactoredExpressionAstId, collapsedNodeIds, outputNodeId } = performCollapse(
+      const { refactoredExpressionAstId, collapsedNodeIds, outputAstId } = performCollapse(
         info.value,
         edit.getVersion(topLevel),
         graphStore.db,
@@ -638,13 +638,13 @@ function collapseNodes() {
       )
       const position = collapsedNodePlacement(selectedNodeRects)
       edit.get(refactoredExpressionAstId).mutableNodeMetadata().set('position', position.xy())
-      if (outputNodeId != null) {
+      if (outputAstId != null) {
         const collapsedNodeRects = filterDefined(
           Array.from(collapsedNodeIds, graphStore.visibleArea),
         )
         const { place } = usePlacement(collapsedNodeRects, graphNavigator.viewport)
         const position = place(collapsedNodeRects)
-        edit.get(refactoredExpressionAstId).mutableNodeMetadata().set('position', position.xy())
+        edit.get(outputAstId).mutableNodeMetadata().set('position', position.xy())
       }
     })
   } catch (err) {

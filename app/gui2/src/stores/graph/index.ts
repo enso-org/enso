@@ -33,6 +33,7 @@ import { iteratorFilter } from 'lib0/iterator'
 import {
   computed,
   markRaw,
+  nextTick,
   proxyRefs,
   reactive,
   ref,
@@ -430,26 +431,47 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     }
 
     const nodesToPlace = reactive<NodeId[]>([])
-    const { place: placeNode } = usePlacement(visibleNodeAreas, Rect.Zero)
+    const { place: placeNode, input: placeInputNode } = usePlacement(visibleNodeAreas, Rect.Zero)
 
-    watch(nodesToPlace, (nodeIds) => {
-      if (nodeIds.length === 0) return
-      const nodesToProcess = [...nodeIds]
-      nodesToPlace.length = 0
-      batchEdits(() => {
-        for (const nodeId of nodesToProcess) {
-          const rect = nodeRects.get(nodeId)
-          if (!rect) continue
-          const nodeAst = syncModule.value?.get(db.idFromExternal(nodeId))
-          if (!nodeAst) continue
-          const metadata = nodeAst.mutableNodeMetadata()
-          if (metadata.get('position') != null) continue
-          const position = placeNode([], rect.size)
-          metadata.set('position', { x: position.x, y: position.y })
-          nodeRects.set(nodeId, new Rect(position, rect.size))
-        }
-      }, 'local:autoLayout')
-    })
+    watch(nodesToPlace, (nodeIds) =>
+      nextTick(() => {
+        if (nodeIds.length === 0) return
+        nodesToPlace.length = 0
+        const [inputNodes, nonInputNodes] = partition(
+          nodeIds,
+          (id) => db.nodeIdToNode.get(id)?.type === 'input',
+        )
+        const inputNodesSortedByArgIndex = inputNodes.sort((a, b) => {
+          const nodeA = db.nodeIdToNode.get(a)
+          const nodeB = db.nodeIdToNode.get(b)
+          if (!nodeA || !nodeB) return 0
+          return (nodeA.argIndex ?? 0) - (nodeB.argIndex ?? 0)
+        })
+        const nodesToProcess = [...nonInputNodes, ...inputNodesSortedByArgIndex]
+        batchEdits(() => {
+          for (const nodeId of nodesToProcess) {
+            const nodeType = db.nodeIdToNode.get(nodeId)?.type
+            const rect = nodeRects.get(nodeId)
+            if (!rect) continue
+            const nodeAst = syncModule.value?.get(db.idFromExternal(nodeId))
+            if (!nodeAst) continue
+            const metadata = nodeAst.mutableNodeMetadata()
+            if (metadata.get('position') != null) continue
+            let position
+            if (nodeType === 'input') {
+              const allNodes = [...db.nodeIdToNode.entries()]
+              const nonInputNodes = allNodes.filter(([_, node]) => node.type !== 'input')
+              const nonInputNodeRects = nonInputNodes.map(([id]) => nodeRects.get(id) ?? Rect.Zero)
+              position = placeInputNode(nonInputNodeRects, rect.size)
+            } else {
+              position = placeNode([], rect.size)
+            }
+            metadata.set('position', { x: position.x, y: position.y })
+            nodeRects.set(nodeId, new Rect(position, rect.size))
+          }
+        }, 'local:autoLayout')
+      }),
+    )
 
     function updateVizRect(id: NodeId, rect: Rect | undefined) {
       if (rect) vizRects.set(id, rect)
@@ -499,6 +521,12 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
 
     function isPortEnabled(id: PortId): boolean {
       return getPortRelativeRect(id) != null
+    }
+
+    /** Return the node ID that has the given `id` as its pattern or primary port.
+     * Technically this is either a component or the input node, as input nodes do not have patterns. */
+    function getSourceNodeId(id: AstId): NodeId | undefined {
+      return db.getPatternExpressionNodeId(id) || getPortPrimaryInstance(id)?.nodeId
     }
 
     function getPortNodeId(id: PortId): NodeId | undefined {
@@ -739,6 +767,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       removePortInstance,
       getPortRelativeRect,
       getPortNodeId,
+      getSourceNodeId,
       isPortEnabled,
       updatePortValue,
       setEditedNode,

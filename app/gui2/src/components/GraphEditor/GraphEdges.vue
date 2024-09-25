@@ -90,7 +90,7 @@ function createEdge(source: AstId, target: PortId) {
   const ident = graph.db.getOutputPortIdentifier(source)
   if (ident == null) return
 
-  const sourceNode = graph.db.getPatternExpressionNodeId(source)
+  const sourceNode = graph.getSourceNodeId(source)
   const targetNode = graph.getPortNodeId(target)
   if (sourceNode == null || targetNode == null) {
     return console.error(`Failed to connect edge, source or target node not found.`)

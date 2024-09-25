@@ -7,7 +7,7 @@ import { Ast, RawAst } from '@/util/ast'
 import type { AstId, NodeMetadata } from '@/util/ast/abstract'
 import { autospaced, MutableModule } from '@/util/ast/abstract'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
-import { nodeFromAst, nodeRootExpr } from '@/util/ast/node'
+import { inputNodeFromAst, nodeFromAst, nodeRootExpr } from '@/util/ast/node'
 import { MappedKeyMap, MappedSet } from '@/util/containers'
 import { tryGetIndex } from '@/util/data/array'
 import { recordEqual } from '@/util/data/object'
@@ -134,7 +134,7 @@ export class BindingsDb {
 
 export class GraphDb {
   nodeIdToNode = new ReactiveDb<NodeId, Node>()
-  private readonly blockNodeLines = new Map<NodeId, { data: Ast.Ast; stop: WatchStopHandle }>()
+  private readonly blockNodeLines = new Map<NodeId, { data: NodeInfo; stop: WatchStopHandle }>()
   private highestZIndex = 0
   private readonly idToExternalMap = reactive(new Map<Ast.AstId, ExternalId>())
   private readonly idFromExternalMap = reactive(new Map<ExternalId, Ast.AstId>())
@@ -160,9 +160,6 @@ export class GraphDb {
 
   connections = new ReactiveIndex(this.bindings.bindings, (alias, info) => {
     const srcNode = this.getPatternExpressionNodeId(alias)
-    // Display connection starting from existing node.
-    //TODO[ao]: When implementing input nodes, they should be taken into account here.
-    if (srcNode == null) return []
     return Array.from(this.connectionsFromBindings(info, alias, srcNode))
   })
 
@@ -337,28 +334,50 @@ export class GraphDb {
     const currentNodeIds = new Set<NodeId>()
     const body = [...functionAst_.bodyExpressions()]
     const args = functionAst_.argumentDefinitions
-    args.forEach(([arg]) => {
-      if (!arg) return
-      const argAst = arg.node
+    const update = (
+      nodeId: NodeId,
+      ast: Ast.Ast,
+      isInput: boolean,
+      isOutput: boolean,
+      argIndex: number | undefined,
+    ) => {
+      const oldNode = nonReactiveView(this.blockNodeLines.get(nodeId)?.data)
+      if (oldNode) {
+        const node = resumeShallowReactivity<NodeInfo>(oldNode)
+        if (oldNode.isOutput !== isOutput) node.isOutput = isOutput
+        if (oldNode.isInput !== isInput) node.isInput = isInput
+        if (oldNode.argIndex !== argIndex) node.argIndex = argIndex
+        if (oldNode.outerAst.id !== ast.id) node.outerAst = ast
+      } else {
+        const data = shallowReactive({ isOutput, outerAst: ast, isInput, argIndex })
+        const stop = watchEffect(() =>
+          this.updateNodeStructure(
+            nodeId,
+            data.outerAst,
+            data.isOutput,
+            data.isInput,
+            data.argIndex,
+          ),
+        )
+        this.blockNodeLines.set(nodeId, { data, stop })
+      }
+      currentNodeIds.add(nodeId)
+    }
+    args.forEach((argAstNodes, index) => {
+      // Argument identifier is either the first or second node in the argument definition.
+      // If the first node is a token, it usually means the argument has a type annotation, like '(x: Number)'.
+      // More complex cases are not handled at the moment.
+      const [first, second] = argAstNodes
+      const argAst = first?.node instanceof Ast.Ast ? first.node : second?.node
+      if (!argAst || !(argAst instanceof Ast.Ast)) return
       const nodeId = asNodeId(argAst.externalId)
+      update(nodeId, argAst, true, false, index)
     })
     body.forEach((outerAst, index) => {
       const nodeId = nodeIdFromOuterExpr(outerAst)
       if (!nodeId) return
       const isLastInBlock = index === body.length - 1
-      const oldNode = nonReactiveView(this.blockNodeLines.get(nodeId)?.data)
-      if (oldNode) {
-        const node = resumeShallowReactivity<BlockLine>(oldNode)
-        if (oldNode.isLastInBlock !== isLastInBlock) node.isLastInBlock = isLastInBlock
-        if (oldNode.outerAst.id !== outerAst.id) node.outerAst = outerAst
-      } else {
-        const data = shallowReactive({ isLastInBlock, outerAst })
-        const stop = watchEffect(() =>
-          this.updateNodeStructure(nodeId, data.outerAst, data.isLastInBlock),
-        )
-        this.blockNodeLines.set(nodeId, { data, stop })
-      }
-      currentNodeIds.add(nodeId)
+      update(nodeId, outerAst, false, isLastInBlock, undefined)
     })
     for (const [nodeId, info] of this.blockNodeLines.entries()) {
       if (!currentNodeIds.has(nodeId)) {
@@ -370,8 +389,14 @@ export class GraphDb {
   }
 
   /** Scan a node's content from its outer expression down to, but not including, its inner expression. */
-  private updateNodeStructure(nodeId: NodeId, nodeAst: Ast.Ast, isLastInBlock: boolean) {
-    const newNode = nodeFromAst(nodeAst, isLastInBlock)
+  private updateNodeStructure(
+    nodeId: NodeId,
+    ast: Ast.Ast,
+    isOutput: boolean,
+    isInput: boolean,
+    argIndex?: number,
+  ) {
+    const newNode = isInput ? inputNodeFromAst(ast, argIndex ?? 0) : nodeFromAst(ast, isOutput)
     if (!newNode) return
     const oldNode = this.nodeIdToNode.getUntracked(nodeId)
     if (oldNode == null) {
@@ -398,6 +423,7 @@ export class GraphDb {
         prefixes,
         conditionalPorts,
         docs,
+        argIndex,
       } = newNode
       const node = resumeReactivity(oldNode)
       if (oldNode.type !== type) node.type = type
@@ -410,6 +436,7 @@ export class GraphDb {
       if (oldNode.primarySubject !== primarySubject) node.primarySubject = primarySubject
       if (!recordEqual(oldNode.prefixes, prefixes)) node.prefixes = prefixes
       syncSetDiff(node.conditionalPorts, oldNode.conditionalPorts, conditionalPorts)
+      if (oldNode.argIndex !== argIndex) node.argIndex = argIndex
       // Ensure new fields can't be added to `NodeAstData` without this code being updated.
       const _allFieldsHandled = {
         type,
@@ -421,6 +448,7 @@ export class GraphDb {
         prefixes,
         conditionalPorts,
         docs,
+        argIndex,
       } satisfies NodeDataFromAst
     }
   }
@@ -522,6 +550,7 @@ export class GraphDb {
       rootExpr: Ast.parse(code ?? '0'),
       innerExpr: Ast.parse(code ?? '0'),
       zIndex: this.highestZIndex,
+      argIndex: undefined,
     }
     const bindingId = pattern.id
     this.nodeIdToNode.set(id, node)
@@ -530,9 +559,11 @@ export class GraphDb {
   }
 }
 
-interface BlockLine {
+interface NodeInfo {
   outerAst: Ast.Ast
-  isLastInBlock: boolean
+  isOutput: boolean
+  isInput: boolean
+  argIndex: number | undefined
 }
 
 declare const brandNodeId: unique symbol
@@ -573,6 +604,8 @@ export interface NodeDataFromAst {
   conditionalPorts: Set<Ast.AstId>
   /** An AST node containing the node's documentation comment. */
   docs: Ast.Documented | undefined
+  /** The index of the argument in the function's argument list, if the node is an input node. */
+  argIndex: number | undefined
 }
 
 export interface NodeDataFromMetadata {
