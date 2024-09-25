@@ -193,6 +193,7 @@ declare global {
       readonly ENSO_TEST?: string
       readonly ENSO_TEST_USER?: string
       readonly ENSO_TEST_USER_PASSWORD?: string
+      ENSO_TEST_EXEC_PATH?: string | undefined
 
       // === Electron watch script variables ===
 

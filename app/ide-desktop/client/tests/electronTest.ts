@@ -1,10 +1,17 @@
-import { _electron, expect, Page, test } from '@playwright/test'
+/** @file Commonly used functions for electron tests */
 
-export function electronTest(name: string, body: (page: Page) => void | Promise<void>) {
+import { _electron, expect, type Page, test } from '@playwright/test'
+
+/**
+ * Tests run on electron executable.
+ *
+ * Similar to playwright's test, but launches electron, and passes Page of the main window.
+ */
+export function electronTest(name: string, body: (page: Page) => Promise<void> | void) {
   test(name, async () => {
     const app = await _electron.launch({
-      executablePath: '../../../dist/ide/linux-unpacked/enso',
-      env: { ...process.env, ['ENSO_TEST']: 'Create new project' },
+      executablePath: process.env.ENSO_TEST_EXEC_PATH,
+      env: { ...process.env, ['ENSO_TEST']: name },
     })
     const page = await app.firstWindow()
     await body(page)
@@ -12,6 +19,10 @@ export function electronTest(name: string, body: (page: Page) => void | Promise<
   })
 }
 
+/**
+ * Login as test user. This function asserts that page is the login page, and uses
+ * credentials from ENSO_TEST_USER and ENSO_TEST_USER_PASSWORD env variables.
+ */
 export async function loginAsTestUser(page: Page) {
   // Login screen
   await expect(page.getByRole('textbox', { name: 'email' })).toBeVisible()
