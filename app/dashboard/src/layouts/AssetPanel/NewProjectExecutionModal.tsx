@@ -84,7 +84,26 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
   const { getText } = useText()
 
   const nowZonedDateTime = now(getLocalTimeZone())
-  const form = Form.useForm({ schema: createUpsertExecutionSchema(getText) })
+  const minFirstOccurrence = nowZonedDateTime
+  const form = Form.useForm({
+    schema: createUpsertExecutionSchema(getText),
+    defaultValues: {
+      repeatInterval: 'weekly',
+      parallelMode: 'restart',
+      date: minFirstOccurrence,
+      maxDurationMinutes: MAX_DURATION_DEFAULT_MINUTES,
+    },
+    onSubmit: async (values) => {
+      const { date: newDate, ...rest } = values
+      const time = {
+        minute: newDate.minute,
+        hour: newDate.hour,
+        day: undefined,
+        date: newDate.day,
+      }
+      await createProjectExecution([{ projectId: item.id, time, ...rest }, item.title])
+    },
+  })
   const repeatInterval = form.watch('repeatInterval', 'weekly')
   const parallelMode = form.watch('parallelMode', 'restart')
   const date = form.watch('date', nowZonedDateTime)
@@ -93,7 +112,6 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
     backendMutationOptions(backend, 'createProjectExecution'),
   ).mutateAsync
 
-  const minFirstOccurrence = nowZonedDateTime
   const maxFirstOccurrence = (() => {
     switch (repeatInterval) {
       case 'hourly': {
@@ -131,30 +149,16 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
   return (
     <Dialog title={getText('newProjectExecution')} {...(defaultOpen != null && { defaultOpen })}>
       {({ close }) => (
-        <Form
-          form={form}
-          method="dialog"
-          defaultValues={{
-            repeatInterval: 'weekly',
-            parallelMode: 'restart',
-            date: minFirstOccurrence,
-            maxDurationMinutes: MAX_DURATION_DEFAULT_MINUTES,
-          }}
-          className="w-full"
-          onSubmit={async (values) => {
-            const { minute, hour, day, date: newDate, ...rest } = values
-            const time = { minute, hour, day, date: newDate }
-            await createProjectExecution([{ projectId: item.id, time, ...rest }, item.title])
-          }}
-        >
+        <Form form={form} method="dialog" className="w-full">
           <Selector
             form={form}
             isRequired
             name="repeatInterval"
             label={getText('repeatIntervalLabel')}
             items={PROJECT_REPEAT_INTERVALS}
-            itemToString={(interval) => getText(REPEAT_INTERVAL_TO_TEXT_ID[interval])}
-          />
+          >
+            {(interval) => getText(REPEAT_INTERVAL_TO_TEXT_ID[interval])}
+          </Selector>
           <div className="flex w-full flex-col">
             <Selector
               form={form}
@@ -162,33 +166,37 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
               name="parallelMode"
               label={getText('parallelModeLabel')}
               items={PROJECT_PARALLEL_MODES}
-              itemToString={(interval) => getText(PARALLEL_MODE_TO_TEXT_ID[interval])}
-            />
+            >
+              {(interval) => getText(PARALLEL_MODE_TO_TEXT_ID[interval])}
+            </Selector>
             <Text>{getText(PARALLEL_MODE_TO_DESCRIPTION_ID[parallelMode])}</Text>
           </div>
-          <div className="flex flex-col">
-            <DatePicker
-              form={form}
-              isRequired
-              name="date"
-              label={getText('firstOccurrenceLabel')}
-              noCalendarHeader
-              minValue={minFirstOccurrence}
-              maxValue={maxFirstOccurrence}
-            />
-            {repeatInterval !== 'hourly' && (
+          {repeatInterval !== 'hourly' && (
+            <div className="flex flex-col">
+              <DatePicker
+                form={form}
+                isRequired
+                name="date"
+                label={getText('firstOccurrenceLabel')}
+                noCalendarHeader
+                minValue={minFirstOccurrence}
+                maxValue={maxFirstOccurrence}
+              />
               <Text>
                 {getText(
                   'repeatsAtX',
                   repeatTimes.map((time) => toCalendarDate(time).toString()).join(', '),
                 )}
               </Text>
-            )}
-          </div>
+            </div>
+          )}
           <Input
             form={form}
             name="maxDurationMinutes"
             type="number"
+            defaultValue={MAX_DURATION_DEFAULT_MINUTES}
+            min={MAX_DURATION_MINIMUM_MINUTES}
+            max={MAX_DURATION_MAXIMUM_MINUTES}
             label={getText('maxDurationMinutesLabel')}
           />
 
