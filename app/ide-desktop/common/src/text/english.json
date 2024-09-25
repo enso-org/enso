@@ -167,6 +167,8 @@
   "getDefaultVersionBackendError": "No default $0 version found",
   "duplicateUserGroupError": "This user group already exists",
   "getCustomerPortalUrlBackendError": "Could not get customer portal URL",
+  "duplicateLabelError": "This label already exists.",
+  "emptyStringError": "This value must not be empty.",
 
   "directoryAssetType": "folder",
   "projectAssetType": "project",
@@ -474,14 +476,6 @@
   "organizationInviteErrorMessage": "Something went wrong. Please contact the administrators at",
   "youHaveNoUserGroupsAdmin": "This organization has no user groups. You can create one using the button above.",
   "youHaveNoUserGroupsNonAdmin": "This organization has no user groups. You can create one using the button above.",
-
-  "enableMultitabs": "Enable Multi-Tabs",
-  "enableMultitabsDescription": "Open multiple projects at the same time.",
-
-  "enableAssetsTableBackgroundRefresh": "Enable Assets Table Background Refresh",
-  "enableAssetsTableBackgroundRefreshDescription": "Automatically refresh the assets table in the background.",
-  "enableAssetsTableBackgroundRefreshInterval": "Refresh interval",
-  "enableAssetsTableBackgroundRefreshIntervalDescription": "Set the interval in ms for the assets table to refresh in the background.",
 
   "enableMultitabs": "Enable Multi-Tabs",
   "enableMultitabsDescription": "Open multiple projects at the same time.",
