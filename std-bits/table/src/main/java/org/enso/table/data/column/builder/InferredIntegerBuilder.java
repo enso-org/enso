@@ -10,8 +10,8 @@ import org.enso.table.problems.ProblemAggregator;
 /**
  * A builder for storing enso Integers, which might be Longs or BigIntegers.
  *
- * This builder starts off delegating to LongBuilder, but if it receives a
- * BigInteger, it retypes the LongBuilder to a BigIntegerBuilder.
+ * <p>This builder starts off delegating to LongBuilder, but if it receives a BigInteger, it retypes
+ * the LongBuilder to a BigIntegerBuilder.
  */
 public class InferredIntegerBuilder extends Builder {
   private LongBuilder longBuilder = null;
@@ -20,29 +20,28 @@ public class InferredIntegerBuilder extends Builder {
   private final int initialSize;
   private final ProblemAggregator problemAggregator;
 
-  /**
-   * Creates a new instance of this builder, with the given known result length.
-   */
-  public InferredIntegerBuilder (int initialSize, ProblemAggregator problemAggregator) {
+  /** Creates a new instance of this builder, with the given known result length. */
+  public InferredIntegerBuilder(int initialSize, ProblemAggregator problemAggregator) {
     this.initialSize = initialSize;
     this.problemAggregator = problemAggregator;
 
-    longBuilder = NumericBuilder.createLongBuilder(this.initialSize, IntegerType.INT_64, problemAggregator);
+    longBuilder =
+        NumericBuilder.createLongBuilder(this.initialSize, IntegerType.INT_64, problemAggregator);
   }
 
   @Override
   public void appendNoGrow(Object o) {
     if (o == null) {
-        appendNulls(1);
+      appendNulls(1);
     } else if (o instanceof BigInteger bi) {
-        retypeToBigIntegerMaybe();
-        bigIntegerBuilder.appendNoGrow(bi);
+      retypeToBigIntegerMaybe();
+      bigIntegerBuilder.appendNoGrow(bi);
     } else if (o instanceof Long lng) {
-        if (bigIntegerBuilder != null) {
-            bigIntegerBuilder.appendNoGrow(BigInteger.valueOf(lng));
-        } else {
-            longBuilder.appendNoGrow(lng);
-        }
+      if (bigIntegerBuilder != null) {
+        bigIntegerBuilder.appendNoGrow(BigInteger.valueOf(lng));
+      } else {
+        longBuilder.appendNoGrow(lng);
+      }
     }
     currentSize++;
   }
@@ -50,16 +49,16 @@ public class InferredIntegerBuilder extends Builder {
   @Override
   public void append(Object o) {
     if (o == null) {
-        appendNulls(1);
+      appendNulls(1);
     } else if (o instanceof BigInteger bi) {
-        retypeToBigIntegerMaybe();
-        bigIntegerBuilder.append(bi);
+      retypeToBigIntegerMaybe();
+      bigIntegerBuilder.append(bi);
     } else if (o instanceof Long lng) {
-        if (bigIntegerBuilder != null) {
-            bigIntegerBuilder.append(BigInteger.valueOf(lng));
-        } else {
-            longBuilder.append(lng);
-        }
+      if (bigIntegerBuilder != null) {
+        bigIntegerBuilder.append(BigInteger.valueOf(lng));
+      } else {
+        longBuilder.append(lng);
+      }
     }
     currentSize++;
   }

@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.function.DoubleToLongFunction;
 import java.util.function.Function;
-
 import org.enso.base.numeric.Decimal_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.InferredIntegerBuilder;
@@ -37,7 +36,10 @@ public class UnaryRoundOperation extends AbstractUnaryOperation {
   private final DoubleToLongFunction doubleFunction;
   private final Function<BigDecimal, BigInteger> bigDecimalFunction;
 
-  private UnaryRoundOperation(String name, DoubleToLongFunction doubleFunction, Function<BigDecimal, BigInteger> bigDecimalFunction) {
+  private UnaryRoundOperation(
+      String name,
+      DoubleToLongFunction doubleFunction,
+      Function<BigDecimal, BigInteger> bigDecimalFunction) {
     super(name, true);
     this.doubleFunction = doubleFunction;
     this.bigDecimalFunction = bigDecimalFunction;
