@@ -12,6 +12,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.TestRootNode;
@@ -132,6 +133,43 @@ public class CatchPanicNodeTest {
   }
 
   @Test
+  public void catchAnyPanicSentinel() throws Exception {
+    ContextUtils.executeInContext(
+        context,
+        () -> {
+          var ctx = EnsoContext.get(catchPanicNode);
+          var any = ctx.getBuiltins().any();
+          var thrown = Text.create("Thrown");
+          var text = Text.create("Catched");
+          var handlerFn =
+              new TestRootNode(
+                  (frame) -> {
+                    var args =
+                        Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
+                    assertEquals("One argument expected", 1, args.length);
+                    var argType = TypeOfNode.getUncached().execute(args[0]);
+                    if (argType == ctx.getBuiltins().caughtPanic().getType()) {
+                      assertThat(args[0].toString(), Matchers.containsString("Thrown"));
+                      return text;
+                    } else {
+                      fail("Expecting Catched_Panic: " + args[0] + " type: " + argType);
+                      return null;
+                    }
+                  });
+          var fn =
+              new TestRootNode(
+                  (frame) -> {
+                    return new PanicSentinel(new PanicException(thrown, null), null);
+                  });
+          var thunk = Function.thunk(fn.getCallTarget(), null);
+          var handler = new Function(handlerFn.getCallTarget(), null, schema("err"));
+          var result = catchPanicNode.execute(null, null, any, thunk, handler);
+          assertEquals("Thunk gets evaluated", "Catched", result.toString());
+          return null;
+        });
+  }
+
+  @Test
   public void catchSpecificPanic() throws Exception {
     ContextUtils.executeInContext(
         context,
@@ -169,6 +207,43 @@ public class CatchPanicNodeTest {
   }
 
   @Test
+  public void catchSpecificPanicSentinel() throws Exception {
+    ContextUtils.executeInContext(
+        context,
+        () -> {
+          var ctx = EnsoContext.get(catchPanicNode);
+          var textType = ctx.getBuiltins().text();
+          var thrown = Text.create("Thrown");
+          var text = Text.create("Catched");
+          var handlerFn =
+              new TestRootNode(
+                  (frame) -> {
+                    var args =
+                        Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
+                    assertEquals("One argument expected", 1, args.length);
+                    var argType = TypeOfNode.getUncached().execute(args[0]);
+                    if (argType == ctx.getBuiltins().caughtPanic().getType()) {
+                      assertThat(args[0].toString(), Matchers.containsString("Thrown"));
+                      return text;
+                    } else {
+                      fail("Expecting Catched_Panic: " + args[0] + " type: " + argType);
+                      return null;
+                    }
+                  });
+          var fn =
+              new TestRootNode(
+                  (frame) -> {
+                    return new PanicSentinel(new PanicException(thrown, null), null);
+                  });
+          var thunk = Function.thunk(fn.getCallTarget(), null);
+          var handler = new Function(handlerFn.getCallTarget(), null, schema("err"));
+          var result = catchPanicNode.execute(null, null, textType, thunk, handler);
+          assertEquals("Thunk gets evaluated", "Catched", result.toString());
+          return null;
+        });
+  }
+
+  @Test
   public void dontCatchSpecificPanic() throws Exception {
     ContextUtils.executeInContext(
         context,
@@ -196,6 +271,48 @@ public class CatchPanicNodeTest {
               new TestRootNode(
                   (frame) -> {
                     throw new PanicException(thrown, null);
+                  });
+          var thunk = Function.thunk(fn.getCallTarget(), null);
+          var handler = new Function(handlerFn.getCallTarget(), null, schema("err"));
+          try {
+            var result = catchPanicNode.execute(null, null, numberType, thunk, handler);
+            fail("Not expecting any result back: " + result);
+          } catch (PanicException ex) {
+            // OK
+            assertEquals("Thrown", ex.getMessage());
+          }
+          return null;
+        });
+  }
+
+  @Test
+  public void dontCatchSpecificPanicSentinel() throws Exception {
+    ContextUtils.executeInContext(
+        context,
+        () -> {
+          var ctx = EnsoContext.get(catchPanicNode);
+          var numberType = ctx.getBuiltins().number().getNumber();
+          var thrown = Text.create("Thrown");
+          var text = Text.create("Catched");
+          var handlerFn =
+              new TestRootNode(
+                  (frame) -> {
+                    var args =
+                        Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
+                    assertEquals("One argument expected", 1, args.length);
+                    var argType = TypeOfNode.getUncached().execute(args[0]);
+                    if (argType == ctx.getBuiltins().caughtPanic().getType()) {
+                      assertThat(args[0].toString(), Matchers.containsString("Thrown"));
+                      return text;
+                    } else {
+                      fail("Expecting Catched_Panic: " + args[0] + " type: " + argType);
+                      return null;
+                    }
+                  });
+          var fn =
+              new TestRootNode(
+                  (frame) -> {
+                    return new PanicSentinel(new PanicException(thrown, null), null);
                   });
           var thunk = Function.thunk(fn.getCallTarget(), null);
           var handler = new Function(handlerFn.getCallTarget(), null, schema("err"));
