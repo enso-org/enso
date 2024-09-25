@@ -22,7 +22,6 @@ module org.enso.runtime.instrument.common {
 
   requires org.graalvm.truffle;
   requires org.graalvm.polyglot;
-  // TODO: com.oracle.truffle.api.TruffleContext?
 
   exports org.enso.interpreter.instrument;
   exports org.enso.interpreter.service;
