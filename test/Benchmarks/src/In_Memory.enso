@@ -1,0 +1,44 @@
+from Standard.Base import all
+
+from Standard.Table import Column
+from Standard.Table.Value_Type import all
+from Standard.Test import Bench, Faker
+
+
+options = Bench.options
+
+
+type Data
+    Value ~ints ~floats
+
+    create vector_size faker =
+        Data.Value (create_ints vector_size faker) (create_floats vector_size faker)
+
+
+create_ints vector_size faker =
+    ints_vec = Vector.new vector_size _->(faker.integer -1000000000 1000000000)
+    Column.from_vector "ints" ints_vec
+
+
+create_floats vector_size faker =
+    floats_vec = Vector.new vector_size _->(faker.float -1000000000 1000000000)
+    Column.from_vector "floats" floats_vec
+
+
+collect_benches = Bench.build builder->
+    vector_size = 5 * 1000 * 1000
+    ## No specific significance to this constant, just fixed to make generated set deterministic
+    fixed_random_seed = 1644575867
+    faker = Faker.new fixed_random_seed
+
+    data = Data.create vector_size faker
+
+    builder.group "In_Memory" options group_builder->
+        float_col = Column.from_vector "floats" data.floats Value_Type.Float
+        int_col = Column.from_vector "ints" data.ints Value_Type.Integer
+        
+        group_builder.specify "col_div_float_int" <|
+            q = float_col * int_col
+            _ = [q]
+
+main = collect_benches . run_main
