@@ -147,6 +147,7 @@ const INVALIDATION_MAP: Partial<
   undoDeleteAsset: ['listDirectory'],
   updateAsset: ['listDirectory', 'listAssetVersions'],
   closeProject: ['listDirectory', 'listAssetVersions'],
+  updateDirectory: ['listDirectory'],
 }
 
 export function backendMutationOptions<Method extends MutationMethod>(

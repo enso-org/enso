@@ -502,11 +502,12 @@ export default function AssetsTable(props: AssetsTableProps) {
           isLoading: rootQuery?.isLoading ?? true,
           data: rootQuery?.data,
         },
-        directories: results.map((res) => ({
-          isFetching: res.isFetching,
-          isLoading: res.isLoading,
-          data: res.data,
-        })),
+        directories: new Map(
+          results.map((res) => [
+            res.data?.parentId,
+            { isFetching: res.isFetching, isLoading: res.isLoading, data: res.data },
+          ]),
+        ),
       }
     },
   })
@@ -514,7 +515,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   /**
    * Return type of the query function for the listDirectory query.
    */
-  type ListDirectoryQueryDataType = (typeof directories)['rootDirectory']['data']
+  type DirectoryQuery = typeof directories.rootDirectory.data
 
   const rootDirectoryContent = directories.rootDirectory.data?.children
   const isLoading = directories.rootDirectory.isLoading
@@ -540,16 +541,15 @@ export default function AssetsTable(props: AssetsTableProps) {
 
     const children = rootDirectoryContent.map((content) => {
       /**
-       * Recursively build assets tree. If a child is a directory, we search for it is content in the loaded
-       * data. If it is loaded, we append that data to the asset node and do the same for the children
+       * Recursively build assets tree. If a child is a directory, we search for its content
+       * in the loaded data. If it is loaded, we append that data to the asset node
+       * and do the same for the children.
        */
-      const appendChildrenRecursively = (node: AnyAssetTreeNode, depth: number) => {
+      const withChildren = (node: AnyAssetTreeNode, depth: number) => {
         const { item } = node
 
         if (assetIsDirectory(item)) {
-          const childrenAssetsQuery = directories.directories.find(
-            (directory) => directory.data?.parentId === item.id,
-          )
+          const childrenAssetsQuery = directories.directories.get(item.id)
 
           const nestedChildren = childrenAssetsQuery?.data?.children.map((child) =>
             AssetTreeNode.fromAsset(
@@ -589,7 +589,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             })
           } else if (nestedChildren != null) {
             node = node.with({
-              children: nestedChildren.map((child) => appendChildrenRecursively(child, depth + 1)),
+              children: nestedChildren.map((child) => withChildren(child, depth + 1)),
             })
           }
         }
@@ -607,7 +607,8 @@ export default function AssetsTable(props: AssetsTableProps) {
         content.id,
       )
 
-      return appendChildrenRecursively(node, 1)
+      const ret = withChildren(node, 1)
+      return ret
     })
 
     return new AssetTreeNode(
@@ -774,23 +775,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       let compare: (a: AnyAssetTreeNode, b: AnyAssetTreeNode) => number
       switch (sortInfo.field) {
         case Column.name: {
-          compare = (a, b) => {
-            const aTitle = a.item.title.toLowerCase()
-            const bTitle = b.item.title.toLowerCase()
-            if (aTitle === bTitle) {
-              const delta =
-                a.item.title > b.item.title ? 1
-                : a.item.title < b.item.title ? -1
-                : 0
-              return multiplier * delta
-            } else {
-              const delta =
-                aTitle > bTitle ? 1
-                : aTitle < bTitle ? -1
-                : 0
-              return multiplier * delta
-            }
-          }
+          compare = (a, b) => multiplier * a.item.title.localeCompare(b.item.title, 'en')
           break
         }
         case Column.modified: {
@@ -1521,8 +1506,8 @@ export default function AssetsTable(props: AssetsTableProps) {
     const asset = nodeMapRef.current.get(assetId)?.item
 
     if (asset) {
-      const listDirectoryQuery = queryClient.getQueryCache().find<ListDirectoryQueryDataType>({
-        queryKey: ['listDirectory', backend.type, asset.parentId],
+      const listDirectoryQuery = queryClient.getQueryCache().find<DirectoryQuery>({
+        queryKey: [backend.type, 'listDirectory', asset.parentId],
         exact: false,
       })
 
@@ -1540,8 +1525,8 @@ export default function AssetsTable(props: AssetsTableProps) {
     (assets: readonly AnyAsset[], parentId: DirectoryId | null) => {
       const actualParentId = parentId ?? rootDirectoryId
 
-      const listDirectoryQuery = queryClient.getQueryCache().find<ListDirectoryQueryDataType>({
-        queryKey: ['listDirectory', backend.type, actualParentId],
+      const listDirectoryQuery = queryClient.getQueryCache().find<DirectoryQuery>({
+        queryKey: [backend.type, 'listDirectory', actualParentId],
         exact: false,
       })
 
@@ -2633,8 +2618,8 @@ export default function AssetsTable(props: AssetsTableProps) {
   const getAsset = useEventCallback((key: AssetId) => nodeMapRef.current.get(key)?.item ?? null)
 
   const setAsset = useEventCallback((assetId: AssetId, asset: AnyAsset) => {
-    const listDirectoryQuery = queryClient.getQueryCache().find<ListDirectoryQueryDataType>({
-      queryKey: ['listDirectory', backend.type, asset.parentId],
+    const listDirectoryQuery = queryClient.getQueryCache().find<DirectoryQuery>({
+      queryKey: [backend.type, 'listDirectory', asset.parentId],
       exact: false,
     })
 

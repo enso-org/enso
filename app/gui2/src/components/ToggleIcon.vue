@@ -8,16 +8,22 @@
 
 import MenuButton from '@/components/MenuButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import { URLString } from '@/util/data/urlString'
 import type { Icon } from '@/util/iconName'
 
 const toggledOn = defineModel<boolean>({ default: false })
-const props = defineProps<{ icon: Icon; label?: string; disabled?: boolean }>()
+const _props = defineProps<{
+  icon: Icon | URLString
+  title?: string | undefined
+  label?: string | undefined
+  disabled?: boolean | undefined
+}>()
 </script>
 
 <template>
-  <MenuButton v-model="toggledOn" class="ToggleIcon" :disabled="props.disabled">
+  <MenuButton v-model="toggledOn" class="ToggleIcon" :disabled="disabled" :title="title">
     <SvgIcon :name="icon" />
-    <div v-if="props.label" v-text="props.label" />
+    <div v-if="label" v-text="label" />
   </MenuButton>
 </template>
 

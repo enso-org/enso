@@ -22,8 +22,8 @@ const props = defineProps<{
  * - If the new component leaves fullscreen mode, its "return" to the dimensions of the original component will be
  *   animated.
  *
- * This approach is used when switching visualizations (which replaces the `VisualizationContainer` and its
- * `WithFullscreenMode` instance).
+ * This approach was previously used when switching visualizations (when each visualization had its own
+ * `VisualizationContainer` and `WithFullscreenMode` instance).
  */
 const savedSize = defineModel<SavedSize | undefined>('savedSize')
 const emit = defineEmits<{

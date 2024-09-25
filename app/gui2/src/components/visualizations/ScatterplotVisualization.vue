@@ -1,11 +1,11 @@
 <script lang="ts">
-import SvgButton from '@/components/SvgButton.vue'
 import { useEvent } from '@/composables/events'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
 import { Ast } from '@/util/ast'
 import { tryNumberToEnso } from '@/util/ast/abstract'
+import { Pattern } from '@/util/ast/match'
 import { getTextWidthBySizeAndFamily } from '@/util/measurement'
-import { VisualizationContainer, defineKeybinds } from '@/util/visualizationBuiltins'
+import { defineKeybinds } from '@/util/visualizationBuiltins'
 import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
 
 export const name = 'Scatter Plot'
@@ -57,6 +57,7 @@ interface Data {
   isTimeSeries: boolean
   x_value_type: string
   is_multi_series?: boolean
+  get_row_method: string
 }
 
 interface Focus {
@@ -73,6 +74,7 @@ interface Point {
   shape?: string
   size?: number
   series?: string
+  row_number: number
 }
 
 interface PointsConfiguration {
@@ -115,9 +117,6 @@ interface DateObj {
 const d3 = await import('d3')
 
 const props = defineProps<{ data: Partial<Data> | number[] }>()
-const emit = defineEmits<{
-  'update:preprocessor': [module: string, method: string, ...args: string[]]
-}>()
 
 const config = useVisualizationConfig()
 
@@ -158,7 +157,10 @@ const createDateTime = (x: DateObj) => {
 const data = computed<Data>(() => {
   let rawData = props.data
   const unfilteredData =
-    Array.isArray(rawData) ? rawData.map((y, index) => ({ x: index, y })) : rawData.data ?? []
+    Array.isArray(rawData) ?
+      // eslint-disable-next-line camelcase
+      rawData.map((y, index) => ({ x: index, y, row_number: index }))
+    : rawData.data ?? []
   let data: Point[]
   // eslint-disable-next-line camelcase
   const isTimeSeries: boolean =
@@ -192,6 +194,8 @@ const data = computed<Data>(() => {
   const focus: Focus | undefined = rawData.focus
   // eslint-disable-next-line camelcase
   const is_multi_series: boolean = !!rawData.is_multi_series
+  // eslint-disable-next-line camelcase
+  const get_row_method: string = rawData.get_row_method || 'get_row'
   return {
     axis,
     points,
@@ -201,6 +205,8 @@ const data = computed<Data>(() => {
     is_multi_series,
     // eslint-disable-next-line camelcase
     x_value_type: rawData.x_value_type || '',
+    // eslint-disable-next-line camelcase
+    get_row_method,
     isTimeSeries,
   }
 })
@@ -260,17 +266,8 @@ const margin = computed(() => {
     return { top: 10, right: 10, bottom: 35, left: 55 }
   }
 })
-const width = computed(() =>
-  config.fullscreen ?
-    containerNode.value?.parentElement?.clientWidth ?? 0
-  : Math.max(config.width ?? 0, config.nodeSize.x),
-)
-
-const height = computed(() =>
-  config.fullscreen ?
-    containerNode.value?.parentElement?.clientHeight ?? 0
-  : config.height ?? (config.nodeSize.x * 3) / 4,
-)
+const width = computed(() => config.size.x)
+const height = computed(() => config.size.y)
 
 const boxWidth = computed(() => Math.max(0, width.value - margin.value.left - margin.value.right))
 const boxHeight = computed(() => Math.max(0, height.value - margin.value.top - margin.value.bottom))
@@ -314,8 +311,7 @@ const xTickFormat = computed(() => {
 watchEffect(() => {
   const boundsExpression =
     bounds.value != null ? Ast.Vector.tryBuild(bounds.value, tryNumberToEnso) : undefined
-  emit(
-    'update:preprocessor',
+  config.setPreprocessor(
     'Standard.Visualization.Scatter_Plot',
     'process_to_json_text',
     boundsExpression?.code() ?? 'Nothing',
@@ -567,6 +563,28 @@ function getPlotData(data: Data) {
   return data.data
 }
 
+function getAstPattern(selector?: number, action?: string) {
+  if (action && selector != null) {
+    return Pattern.new((ast) =>
+      Ast.App.positional(
+        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(action)!),
+        Ast.tryNumberToEnso(selector, ast.module)!,
+      ),
+    )
+  }
+}
+
+function createNode(rowNumber: number) {
+  const selector = data.value.get_row_method
+  const pattern = getAstPattern(rowNumber, selector)
+  if (pattern) {
+    config.createNodes({
+      content: pattern,
+      commit: true,
+    })
+  }
+}
+
 function formatXPoint(x: Date | number | DateObj) {
   if (data.value.isTimeSeries && x instanceof Date) {
     switch (data.value.x_value_type) {
@@ -588,9 +606,9 @@ function getTooltipMessage(point: Point) {
       point.series && point.series in axis ?
         axis[point.series as keyof AxesConfiguration].label
       : ''
-    return `${formatXPoint(point.x)}, ${point.y}, ${label}`
+    return `${formatXPoint(point.x)}, ${point.y}, ${label}- Double click to inspect point`
   }
-  return `${formatXPoint(point.x)}, ${point.y}`
+  return `${formatXPoint(point.x)}, ${point.y}- Double click to inspect point`
 }
 
 // === Update contents ===
@@ -613,6 +631,9 @@ watchPostEffect(() => {
     .join((enter) => enter.append('path'))
     .call((data) => {
       return data.append('title').text((d) => getTooltipMessage(d))
+    })
+    .on('dblclick', (d) => {
+      createNode(d.srcElement.__data__.row_number)
     })
     .transition()
     .duration(animationDuration.value)
@@ -739,59 +760,62 @@ function zoomToSelected(override?: boolean) {
 }
 
 useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSelected() }))
+
+config.setToolbar([
+  {
+    icon: 'select',
+    title: 'Enable Selection',
+    toggle: selectionEnabled,
+  },
+  {
+    icon: 'show_all',
+    title: 'Fit All',
+    onClick: () => zoomToSelected(false),
+  },
+  {
+    icon: 'find',
+    title: 'Zoom to Selected',
+    disabled: () => brushExtent.value == null,
+    onClick: zoomToSelected,
+  },
+])
 </script>
 
 <template>
-  <VisualizationContainer :belowToolbar="true">
-    <template #toolbar>
-      <SvgButton
-        name="select"
-        title="Enable Selection"
-        @click="selectionEnabled = !selectionEnabled"
-      />
-      <SvgButton name="show_all" title="Fit All" @click.stop="zoomToSelected(false)" />
-      <SvgButton
-        name="zoom"
-        title="Zoom to Selected"
-        :disabled="brushExtent == null"
-        @click.stop="zoomToSelected"
-      />
-    </template>
-    <div ref="containerNode" class="ScatterplotVisualization">
-      <svg :width="width" :height="height">
-        <g ref="legendNode"></g>
-        <g :transform="`translate(${margin.left}, ${margin.top})`">
-          <defs>
-            <clipPath id="clip">
-              <rect :width="boxWidth" :height="boxHeight"></rect>
-            </clipPath>
-          </defs>
-          <g ref="xAxisNode" class="axis-x" :transform="`translate(0, ${boxHeight})`"></g>
-          <g ref="yAxisNode" class="axis-y"></g>
-          <text
-            v-if="data.axis.x.label"
-            class="label label-x"
-            text-anchor="end"
-            :x="xLabelLeft"
-            :y="xLabelTop"
-            v-text="data.axis.x.label"
-          ></text>
-          <text
-            v-if="showYLabelText"
-            class="label label-y"
-            text-anchor="end"
-            :x="yLabelLeft"
-            :y="yLabelTop"
-            v-text="data.axis.y.label"
-          ></text>
-          <g ref="pointsNode" clip-path="url(#clip)"></g>
-          <g ref="zoomNode" class="zoom" :width="boxWidth" :height="boxHeight" fill="none">
-            <g ref="brushNode" class="brush"></g>
-          </g>
+  <div ref="containerNode" class="ScatterplotVisualization">
+    <svg :width="width" :height="height">
+      <g ref="legendNode"></g>
+      <g :transform="`translate(${margin.left}, ${margin.top})`">
+        <defs>
+          <clipPath id="clip">
+            <rect :width="boxWidth" :height="boxHeight"></rect>
+          </clipPath>
+        </defs>
+        <g ref="xAxisNode" class="axis-x" :transform="`translate(0, ${boxHeight})`"></g>
+        <g ref="yAxisNode" class="axis-y"></g>
+        <text
+          v-if="data.axis.x.label"
+          class="label label-x"
+          text-anchor="end"
+          :x="xLabelLeft"
+          :y="xLabelTop"
+          v-text="data.axis.x.label"
+        ></text>
+        <text
+          v-if="showYLabelText"
+          class="label label-y"
+          text-anchor="end"
+          :x="yLabelLeft"
+          :y="yLabelTop"
+          v-text="data.axis.y.label"
+        ></text>
+        <g ref="pointsNode" clip-path="url(#clip)"></g>
+        <g ref="zoomNode" class="zoom" :width="boxWidth" :height="boxHeight" fill="none">
+          <g ref="brushNode" class="brush"></g>
         </g>
-      </svg>
-    </div>
-  </VisualizationContainer>
+      </g>
+    </svg>
+  </div>
 </template>
 
 <style scoped>
