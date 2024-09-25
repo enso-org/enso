@@ -3,12 +3,13 @@ import { type Dispatch, type SetStateAction, useEffect, useRef, useState } from 
 
 import * as z from 'zod'
 
-import { Button, ButtonGroup } from '#/components/AriaComponents'
+import { TabPanel, Tabs } from '#/components/aria'
 import AssetProperties from '#/layouts/AssetPanel/AssetProperties'
 import ProjectExecutions from '#/layouts/AssetPanel/ProjectExecutions'
 import ProjectSessions from '#/layouts/AssetPanel/ProjectSessions'
 import AssetVersions from '#/layouts/AssetVersions/AssetVersions'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
+import { TabBar } from '#/layouts/TabBar'
 import { useAssetPanelProps, useIsAssetPanelVisible } from '#/providers/DriveProvider'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
@@ -22,13 +23,11 @@ import { twMerge } from '#/utilities/tailwindMerge'
 // === AssetPanelTab ===
 // =====================
 
+const ASSET_PANEL_TABS = ['information', 'versions', 'sessions', 'schedules'] as const
+const TABS_SCHEMA = z.enum(ASSET_PANEL_TABS)
+
 /** Determines the content of the {@link AssetPanel}. */
-enum AssetPanelTab {
-  properties = 'properties',
-  versions = 'versions',
-  projectSessions = 'projectSessions',
-  executions = 'executions',
-}
+type AssetPanelTab = (typeof ASSET_PANEL_TABS)[number]
 
 // ============================
 // === Global configuration ===
@@ -43,7 +42,7 @@ declare module '#/utilities/LocalStorage' {
 }
 
 LocalStorage.register({
-  assetPanelTab: { schema: z.nativeEnum(AssetPanelTab) },
+  assetPanelTab: { schema: z.enum(ASSET_PANEL_TABS) },
   assetPanelWidth: { schema: z.number().int() },
 })
 
@@ -79,19 +78,17 @@ export default function AssetPanel(props: AssetPanelProps) {
   const [initialized, setInitialized] = useState(false)
   const initializedRef = useRef(initialized)
   initializedRef.current = initialized
-  const [tabRaw, setTab] = useState(
-    () => localStorage.get('assetPanelTab') ?? AssetPanelTab.properties,
-  )
+  const [tabRaw, setTab] = useState(() => localStorage.get('assetPanelTab') ?? 'information')
   const tab = (() => {
     if (!isCloud) {
-      return AssetPanelTab.properties
+      return 'information'
     } else if (
       (item?.item.type === AssetType.secret || item?.item.type === AssetType.directory) &&
-      tabRaw === AssetPanelTab.versions
+      tabRaw === 'versions'
     ) {
-      return AssetPanelTab.properties
-    } else if (item?.item.type !== AssetType.project && tabRaw === AssetPanelTab.projectSessions) {
-      return AssetPanelTab.properties
+      return 'information'
+    } else if (item?.item.type !== AssetType.project && tabRaw === 'sessions') {
+      return 'information'
     } else {
       return tabRaw
     }
@@ -113,89 +110,75 @@ export default function AssetPanel(props: AssetPanelProps) {
     <div
       className={twMerge(
         'flex flex-col overflow-hidden transition-min-width duration-side-panel ease-in-out',
-        isVisible ? 'min-w-side-panel' : 'min-w',
+        isVisible ? 'min-w-side-panel' : 'min-w-0',
       )}
+      onClick={(event) => {
+        event.stopPropagation()
+      }}
     >
-      <div
+      <Tabs
         data-testid="asset-panel"
         className={twMerge(
-          'pointer-events-none absolute flex h-full w-asset-panel flex-col gap-asset-panel bg-invert p-4 pl-asset-panel-l transition-[box-shadow] clip-path-left-shadow',
+          'absolute flex h-full w-asset-panel flex-col bg-invert transition-[box-shadow] clip-path-left-shadow',
           isVisible ? 'shadow-softer' : '',
         )}
-        onClick={(event) => {
-          event.stopPropagation()
+        selectedKey={tab}
+        onSelectionChange={(newPage) => {
+          const validated = TABS_SCHEMA.safeParse(newPage)
+          if (validated.success) {
+            setTab(validated.data)
+          }
         }}
       >
-        <ButtonGroup className="mt-0.5 grow-0 basis-8">
-          {isCloud &&
-            item != null &&
-            item.item.type !== AssetType.secret &&
-            item.item.type !== AssetType.directory && (
-              <Button
-                size="medium"
-                variant="outline"
-                className={twMerge(
-                  'pointer-events-auto disabled:opacity-100',
-                  tab === AssetPanelTab.versions && 'bg-primary/[8%] opacity-100',
-                )}
-                onPress={() => {
-                  setTab((oldTab) =>
-                    oldTab === AssetPanelTab.versions ?
-                      AssetPanelTab.properties
-                    : AssetPanelTab.versions,
-                  )
-                }}
-              >
-                {getText('versions')}
-              </Button>
-            )}
-          {isCloud && item != null && item.item.type === AssetType.project && (
-            <Button
-              size="medium"
-              variant="outline"
-              className={twMerge(
-                'pointer-events-auto disabled:opacity-100',
-                tab === AssetPanelTab.projectSessions && 'bg-primary/[8%] opacity-100',
-              )}
-              onPress={() => {
-                setTab((oldTab) =>
-                  oldTab === AssetPanelTab.projectSessions ?
-                    AssetPanelTab.properties
-                  : AssetPanelTab.projectSessions,
-                )
-              }}
-            >
-              {getText('projectSessions')}
-            </Button>
-          )}
-          {isCloud && item != null && item.item.type === AssetType.project && (
-            <Button
-              size="medium"
-              variant="outline"
-              className={twMerge(
-                'pointer-events-auto disabled:opacity-100',
-                tab === AssetPanelTab.executions && 'bg-primary/[8%] opacity-100',
-              )}
-              onPress={() => {
-                setTab((oldTab) =>
-                  oldTab === AssetPanelTab.executions ?
-                    AssetPanelTab.properties
-                  : AssetPanelTab.executions,
-                )
-              }}
-            >
-              {getText('executions')}
-            </Button>
-          )}
-          {/* Spacing. The top right asset and user bars overlap this area. */}
-          <div className="grow" />
-        </ButtonGroup>
         {item == null || setItem == null || backend == null ?
           <div className="grid grow place-items-center text-lg">
             {getText('selectExactlyOneAssetToViewItsDetails')}
           </div>
         : <>
-            {tab === AssetPanelTab.properties && (
+            <div className="h-4 bg-primary/5" />
+            <TabBar className="grow-0">
+              <TabBar.Tab
+                id="information"
+                labelId="information"
+                isActive={tab === 'information'}
+                icon={null}
+              >
+                {getText('information')}
+              </TabBar.Tab>
+              {isCloud &&
+                item.item.type !== AssetType.secret &&
+                item.item.type !== AssetType.directory && (
+                  <TabBar.Tab
+                    id="versions"
+                    labelId="versions"
+                    isActive={tab === 'versions'}
+                    icon={null}
+                  >
+                    {getText('versions')}
+                  </TabBar.Tab>
+                )}
+              {isCloud && item.item.type === AssetType.project && (
+                <TabBar.Tab
+                  id="sessions"
+                  labelId="projectSessions"
+                  isActive={tab === 'sessions'}
+                  icon={null}
+                >
+                  {getText('projectSessions')}
+                </TabBar.Tab>
+              )}
+              {isCloud && item.item.type === AssetType.project && (
+                <TabBar.Tab
+                  id="schedules"
+                  labelId="executions"
+                  isActive={tab === 'schedules'}
+                  icon={null}
+                >
+                  {getText('executions')}
+                </TabBar.Tab>
+              )}
+            </TabBar>
+            <TabPanel id="information" className="p-4 pl-asset-panel-l">
               <AssetProperties
                 key={item.item.id}
                 backend={backend}
@@ -204,17 +187,23 @@ export default function AssetPanel(props: AssetPanelProps) {
                 setItem={setItem}
                 category={category}
               />
+            </TabPanel>
+            <TabPanel id="versions" className="p-4 pl-asset-panel-l">
+              <AssetVersions backend={backend} item={item} />
+            </TabPanel>
+            {item.type === AssetType.project && (
+              <TabPanel id="sessions" className="p-4 pl-asset-panel-l">
+                <ProjectSessions backend={backend} item={item} />
+              </TabPanel>
             )}
-            {tab === AssetPanelTab.versions && <AssetVersions backend={backend} item={item} />}
-            {tab === AssetPanelTab.projectSessions && item.type === AssetType.project && (
-              <ProjectSessions backend={backend} item={item} />
-            )}
-            {tab === AssetPanelTab.executions && item.type === AssetType.project && (
-              <ProjectExecutions backend={backend} item={item.item} />
+            {item.type === AssetType.project && (
+              <TabPanel id="schedules" className="p-4 pl-asset-panel-l">
+                <ProjectExecutions backend={backend} item={item.item} />
+              </TabPanel>
             )}
           </>
         }
-      </div>
+      </Tabs>
     </div>
   )
 }

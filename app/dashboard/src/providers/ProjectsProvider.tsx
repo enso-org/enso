@@ -20,11 +20,10 @@ import LocalStorage from '#/utilities/LocalStorage'
 // === TabType ===
 // ===============
 
+const TAB_TYPES = ['drive', 'settings'] as const
+
 /** Main content of the screen. Only one should be visible at a time. */
-export enum TabType {
-  drive = 'drive',
-  settings = 'settings',
-}
+export type TabType = (typeof TAB_TYPES)[number]
 
 // ============================
 // === Global configuration ===
@@ -70,7 +69,7 @@ LocalStorage.registerKey('launchedProjects', {
 })
 
 export const PAGES_SCHEMA = z
-  .nativeEnum(TabType)
+  .enum(TAB_TYPES)
   .or(
     z.custom<LaunchedProjectId>(
       (value) => typeof value === 'string' && value.startsWith('project-'),
@@ -109,7 +108,7 @@ const ProjectsContext = React.createContext<ProjectsContextType | null>(null)
 export interface ProjectsProviderProps extends Readonly<React.PropsWithChildren> {}
 
 const STORE = zustand.createStore<ProjectsStore>((set) => ({
-  page: TabType.drive,
+  page: 'drive',
   setPage: (page) => {
     set({ page })
   },
@@ -173,7 +172,7 @@ function PageSynchronizer() {
     () => store.getState().page,
     (value: unknown): value is LaunchedProjectId | TabType => {
       return (
-        array.includes(Object.values(TabType), value) ||
+        array.includes(TAB_TYPES, value) ||
         store.getState().launchedProjects.some((p) => p.id === value)
       )
     },

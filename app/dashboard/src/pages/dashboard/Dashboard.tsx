@@ -21,7 +21,6 @@ import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import ProjectsProvider, {
   PAGES_SCHEMA,
-  TabType,
   useClearLaunchedProjects,
   useLaunchedProjects,
   usePage,
@@ -43,7 +42,7 @@ import Drive from '#/layouts/Drive'
 import type * as editor from '#/layouts/Editor'
 import Editor from '#/layouts/Editor'
 import Settings from '#/layouts/Settings'
-import TabBar, * as tabBar from '#/layouts/TabBar'
+import { TabBar } from '#/layouts/TabBar'
 import UserBar from '#/layouts/UserBar'
 
 import * as aria from '#/components/aria'
@@ -208,8 +207,8 @@ function DashboardInner(props: DashboardProps) {
           updateModal((oldModal) => {
             if (oldModal == null) {
               const currentPage = projectsStore.getState().page
-              if (currentPage === TabType.settings) {
-                setPage(TabType.drive)
+              if (currentPage === 'settings') {
+                setPage('drive')
               }
             }
             return null
@@ -244,7 +243,7 @@ function DashboardInner(props: DashboardProps) {
   })
 
   const onSignOut = eventCallbacks.useEventCallback(() => {
-    setPage(TabType.drive)
+    setPage('drive')
     closeAllProjects()
     clearLaunchedProjects()
   })
@@ -299,17 +298,17 @@ function DashboardInner(props: DashboardProps) {
         >
           <div className="flex">
             <TabBar>
-              <tabBar.Tab
-                id={TabType.drive}
-                isActive={page === TabType.drive}
+              <TabBar.Tab
+                id="drive"
+                isActive={page === 'drive'}
                 icon={DriveIcon}
                 labelId="drivePageName"
               >
                 {getText('drivePageName')}
-              </tabBar.Tab>
+              </TabBar.Tab>
 
               {launchedProjects.map((project) => (
-                <tabBar.Tab
+                <TabBar.Tab
                   data-testid="editor-tab-button"
                   id={project.id}
                   project={project}
@@ -325,42 +324,42 @@ function DashboardInner(props: DashboardProps) {
                   }}
                 >
                   {project.title}
-                </tabBar.Tab>
+                </TabBar.Tab>
               ))}
 
-              <tabBar.Tab
+              <TabBar.Tab
                 isActive
-                id={TabType.settings}
-                isHidden={page !== TabType.settings}
+                id="settings"
+                isHidden={page !== 'settings'}
                 icon={SettingsIcon}
                 labelId="settingsPageName"
                 onClose={() => {
-                  setPage(TabType.drive)
+                  setPage('drive')
                 }}
               >
                 {getText('settingsPageName')}
-              </tabBar.Tab>
+              </TabBar.Tab>
             </TabBar>
 
             <UserBar
               onShareClick={selectedProject ? doOpenShareModal : undefined}
               setIsHelpChatOpen={setIsHelpChatOpen}
               goToSettingsPage={() => {
-                setPage(TabType.settings)
+                setPage('settings')
               }}
               onSignOut={onSignOut}
             />
           </div>
           <aria.TabPanel
             shouldForceMount
-            id={TabType.drive}
+            id="drive"
             className="flex min-h-0 grow [&[data-inert]]:hidden"
           >
             <Drive
               assetsManagementApiRef={assetManagementApiRef}
               category={category}
               setCategory={setCategory}
-              hidden={page !== TabType.drive}
+              hidden={page !== 'drive'}
               initialProjectName={initialProjectName}
             />
           </aria.TabPanel>
@@ -401,7 +400,7 @@ function DashboardInner(props: DashboardProps) {
                 />
               </aria.TabPanel>
             ))}
-          <aria.TabPanel id={TabType.settings} className="flex min-h-0 grow">
+          <aria.TabPanel id="settings" className="flex min-h-0 grow">
             <Settings />
           </aria.TabPanel>
         </aria.Tabs>

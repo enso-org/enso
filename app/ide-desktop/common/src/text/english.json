@@ -260,6 +260,7 @@
   "status": "Status",
   "active": "Active",
   "pendingInvitation": "Pending Invitation",
+  "information": "Information",
   "versions": "Versions",
   "datalink": "Datalink",
   "createDatalink": "Create Datalink",
