@@ -5,8 +5,10 @@ module org.enso.polyglot.api {
   requires org.graalvm.polyglot;
 
   requires org.enso.engine.common;
+  requires org.enso.editions;
   requires org.enso.logging.utils;
   requires org.enso.scala.wrapper;
+  requires org.enso.pkg;
   requires org.enso.polyglot.api.macros;
   requires org.enso.text.buffer;
 

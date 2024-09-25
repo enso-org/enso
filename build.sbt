@@ -2120,6 +2120,8 @@ lazy val `polyglot-api` = project
     Compile / internalModuleDependencies := Seq(
       (`scala-libs-wrapper` / Compile / exportedModule).value,
       (`engine-common` / Compile / exportedModule).value,
+      (`editions` / Compile / exportedModule).value,
+      (`pkg` / Compile / exportedModule).value,
       (`logging-utils` / Compile / exportedModule).value,
       (`text-buffer` / Compile / exportedModule).value,
       (`polyglot-api-macros` / Compile / exportedModule).value
