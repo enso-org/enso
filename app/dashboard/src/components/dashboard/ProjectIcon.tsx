@@ -134,6 +134,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     case backendModule.ProjectState.new:
     case backendModule.ProjectState.closing:
     case backendModule.ProjectState.closed:
+    case backendModule.ProjectState.created:
       return (
         <ariaComponents.Button
           size="custom"
@@ -146,7 +147,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
           onPress={doOpenProject}
         />
       )
-    case backendModule.ProjectState.created:
     case backendModule.ProjectState.openInProgress:
     case backendModule.ProjectState.scheduled:
     case backendModule.ProjectState.provisioned:
