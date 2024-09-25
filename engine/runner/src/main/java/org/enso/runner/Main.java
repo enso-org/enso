@@ -609,6 +609,7 @@ public class Main {
    *     compiled
    * @param shouldUseGlobalCache whether or not the compilation result should be written to the
    *     global cache
+   * @param shouldUseIrCaches whether or not IR caches should be used.
    * @param enableStaticAnalysis whether or not static type checking should be enabled
    * @param logLevel the logging level
    * @param logMasking whether or not log masking is enabled
@@ -617,6 +618,7 @@ public class Main {
       String packagePath,
       boolean shouldCompileDependencies,
       boolean shouldUseGlobalCache,
+      boolean shouldUseIrCaches,
       boolean enableStaticAnalysis,
       Level logLevel,
       boolean logMasking) {
@@ -634,7 +636,7 @@ public class Main {
                 .out(System.out)
                 .logLevel(logLevel)
                 .logMasking(logMasking)
-                .enableIrCaches(true)
+                .enableIrCaches(shouldUseIrCaches)
                 .enableStaticAnalysis(enableStaticAnalysis)
                 .strictErrors(true)
                 .useGlobalIrCacheLocation(shouldUseGlobalCache)
@@ -1106,14 +1108,16 @@ public class Main {
     }
 
     if (line.hasOption(COMPILE_OPTION)) {
-      var packagePaths = line.getOptionValue(COMPILE_OPTION);
+      var packagePath = line.getOptionValue(COMPILE_OPTION);
       var shouldCompileDependencies = !line.hasOption(NO_COMPILE_DEPENDENCIES_OPTION);
       var shouldUseGlobalCache = !line.hasOption(NO_GLOBAL_CACHE_OPTION);
+      var shouldUseIrCaches = !line.hasOption(NO_IR_CACHES_OPTION);
 
       compile(
-          packagePaths,
+          packagePath,
           shouldCompileDependencies,
           shouldUseGlobalCache,
+          shouldUseIrCaches,
           line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION),
           logLevel,
           logMasking);
