@@ -90,7 +90,7 @@ public class BenchProcessor extends AbstractProcessor {
                         () ->
                             new AssertionError(
                                 "Module " + modRef.descriptor().name() + " has no location"));
-            duplicatedModPaths.add(uri.getPath());
+            duplicatedModPaths.add(new File(uri).getPath());
           });
     }
     // Path to modules without duplicated ones.
