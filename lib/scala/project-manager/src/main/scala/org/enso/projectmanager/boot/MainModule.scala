@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import akka.stream.SystemMaterializer
 import cats.MonadError
 import org.enso.jsonrpc.JsonRpcServer
-import org.enso.logger.akka.AkkaConverter
+import org.enso.logging.utils.akka.AkkaConverter
 import org.enso.projectmanager.boot.configuration.{
   MainProcessConfig,
   ProjectManagerConfig

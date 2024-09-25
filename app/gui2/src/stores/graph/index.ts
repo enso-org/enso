@@ -147,9 +147,20 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
 
     const watchContext = useWatchContext()
 
+    const afterUpdate: (() => void)[] = []
+
+    /** `func` callback will be executed once after next call to `updateNodes`. */
+    function doAfterUpdate(func: () => void) {
+      afterUpdate.push(func)
+    }
+
     watchEffect(() => {
       if (!methodAst.value.ok) return
       db.updateNodes(methodAst.value.value, watchContext)
+      for (const cb of afterUpdate) {
+        cb()
+      }
+      afterUpdate.length = 0
     })
 
     watchEffect(() => {
@@ -168,7 +179,6 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       const methodSpan = moduleSource.getSpan(method.id)
       assert(methodSpan != null)
       const rawFunc = toRaw.get(sourceRangeKey(methodSpan))
-      assert(rawFunc != null)
       const getSpan = (id: AstId) => moduleSource.getSpan(id)
       db.updateBindings(method, rawFunc, moduleSource.text, getSpan)
     })
@@ -300,23 +310,27 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     }
 
     function deleteNodes(ids: Iterable<NodeId>) {
-      edit(
-        (edit) => {
-          for (const id of ids) {
-            const node = db.nodeIdToNode.get(id)
-            if (!node) continue
-            if (node.type !== 'component') continue
-            const usages = db.getNodeUsages(id)
-            for (const usage of usages) updatePortValue(edit, usage, undefined)
-            const outerExpr = edit.getVersion(node.outerExpr)
-            if (outerExpr) Ast.deleteFromParentBlock(outerExpr)
-            nodeRects.delete(id)
-            nodeHoverAnimations.delete(id)
+      edit((edit) => {
+        const deletedNodes = new Set()
+        for (const id of ids) {
+          const node = db.nodeIdToNode.get(id)
+          if (!node) continue
+          if (node.type !== 'component') continue
+          const usages = db.getNodeUsages(id)
+          for (const usage of usages) {
+            const nodeId = getPortPrimaryInstance(usage)?.nodeId
+            // Skip ports on already deleted nodes.
+            if (nodeId && deletedNodes.has(nodeId)) continue
+
+            updatePortValue(edit, usage, undefined)
           }
-        },
-        true,
-        true,
-      )
+          const outerExpr = edit.getVersion(node.outerExpr)
+          if (outerExpr) Ast.deleteFromParentBlock(outerExpr)
+          nodeRects.delete(id)
+          nodeHoverAnimations.delete(id)
+          deletedNodes.add(id)
+        }
+      })
     }
 
     function setNodeContent(
@@ -344,10 +358,6 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
           }
         }
       })
-    }
-
-    function transact(fn: () => void) {
-      syncModule.value!.transact(fn)
     }
 
     const undoManager = {
@@ -387,7 +397,6 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       const empty: VisualizationMetadata = {
         identifier: null,
         visible: false,
-        fullscreen: false,
         width: null,
         height: null,
       }
@@ -403,7 +412,6 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       const data: Partial<VisualizationMetadata> = {
         identifier: vis.identifier ?? metadata.get('visualization')?.identifier ?? null,
         visible: vis.visible ?? metadata.get('visualization')?.visible ?? false,
-        fullscreen: vis.fullscreen ?? metadata.get('visualization')?.fullscreen ?? false,
         width: vis.width ?? metadata.get('visualization')?.width ?? null,
         height: vis.height ?? metadata.get('visualization')?.height ?? null,
       }
@@ -544,11 +552,9 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
      *
      *  @param skipTreeRepair - If the edit is certain not to produce incorrect or non-canonical syntax, this may be set
      *  to `true` for better performance.
-     *  @param direct - Apply all changes directly to the synchronized module; they will be committed even if the callback
-     *  exits by throwing an exception.
      */
-    function edit<T>(f: (edit: MutableModule) => T, skipTreeRepair?: boolean, direct?: boolean): T {
-      const edit = direct ? syncModule.value : syncModule.value?.edit()
+    function edit<T>(f: (edit: MutableModule) => T, skipTreeRepair?: boolean): T {
+      const edit = syncModule.value?.edit()
       assert(edit != null)
       let result
       edit.transact(() => {
@@ -558,9 +564,16 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
           assert(root instanceof Ast.BodyBlock)
           Ast.repair(root, edit)
         }
-        if (!direct) syncModule.value!.applyEdit(edit)
+        syncModule.value!.applyEdit(edit)
       })
       return result!
+    }
+
+    /** Obtain a version of the given `Ast` for direct mutation. The `ast` must exist in the current module.
+     *  This can be more efficient than creating and committing an edit, but skips tree-repair and cannot be aborted.
+     */
+    function getMutable<T extends Ast.Ast>(ast: T): Ast.Mutable<T> {
+      return syncModule.value!.getVersion(ast)
     }
 
     function batchEdits(f: () => void, origin: Origin = defaultLocalOrigin) {
@@ -693,9 +706,9 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     })
 
     return proxyRefs({
-      transact,
       db: markRaw(db),
       mockExpressionUpdate,
+      doAfterUpdate,
       editedNodeInfo,
       moduleSource,
       nodeRects,
@@ -712,6 +725,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       pickInCodeOrder,
       ensureCorrectNodeOrder,
       batchEdits,
+      getMutable,
       overrideNodeColor,
       getNodeColorOverride,
       setNodeContent,

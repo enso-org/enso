@@ -8,6 +8,7 @@ import * as aria from '#/components/aria'
 import * as mergeRefs from '#/utilities/mergeRefs'
 import * as twv from '#/utilities/tailwindVariants'
 
+import { forwardRef } from '#/utilities/react'
 import * as textProvider from './TextProvider'
 import * as visualTooltip from './useVisualTooltip'
 
@@ -33,7 +34,7 @@ export const TEXT_STYLE = twv.tv({
       danger: 'text-danger',
       success: 'text-accent-dark',
       disabled: 'text-primary/30',
-      invert: 'text-white',
+      invert: 'text-invert',
       inherit: 'text-inherit',
       current: 'text-current',
     },
@@ -47,8 +48,12 @@ export const TEXT_STYLE = twv.tv({
     variant: {
       custom: '',
       body: 'text-xs leading-[20px] before:h-[1px] after:h-[3px] font-medium',
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      'body-sm': 'text-[10.5px] leading-[16px] before:h-[0.5px] after:h-[2.5px] font-medium',
       h1: 'text-xl leading-[29px] before:h-0.5 after:h-[5px] font-bold',
       subtitle: 'text-[13.5px] leading-[19px] before:h-[1px] after:h-[3px] font-bold',
+      caption: 'text-[8.5px] leading-[12px] before:h-[0.5px] after:h-[1.5px]',
+      overline: 'text-[8.5px] leading-[16px] before:h-[0.5px] after:h-[1.5px] uppercase',
     },
     weight: {
       custom: '',
@@ -64,6 +69,7 @@ export const TEXT_STYLE = twv.tv({
     },
     transform: {
       none: '',
+      normal: 'normal-case',
       capitalize: 'capitalize',
       lowercase: 'lowercase',
       uppercase: 'uppercase',
@@ -84,7 +90,7 @@ export const TEXT_STYLE = twv.tv({
     },
     monospace: { true: 'font-mono' },
     italic: { true: 'italic' },
-    nowrap: { true: 'whitespace-nowrap' },
+    nowrap: { true: 'whitespace-nowrap', normal: 'whitespace-normal', false: '' },
     textSelection: {
       auto: '',
       none: 'select-none',
@@ -117,10 +123,7 @@ export const TEXT_STYLE = twv.tv({
  * Text component that supports truncation and show a tooltip on hover when text is truncated
  */
 // eslint-disable-next-line no-restricted-syntax
-export const Text = React.forwardRef(function Text(
-  props: TextProps,
-  ref: React.Ref<HTMLSpanElement>,
-) {
+export const Text = forwardRef(function Text(props: TextProps, ref: React.Ref<HTMLSpanElement>) {
   const {
     className,
     variant,
@@ -208,7 +211,9 @@ export const Text = React.forwardRef(function Text(
   // eslint-disable-next-line no-restricted-syntax
 }) as unknown as React.FC<React.RefAttributes<HTMLSpanElement> & TextProps> & {
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  Heading: React.FC<HeadingProps>
+  Heading: typeof Heading
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  Group: React.FC<React.PropsWithChildren>
 }
 
 /**
@@ -222,10 +227,23 @@ export interface HeadingProps extends Omit<TextProps, 'elementType'> {
 /**
  * Heading component
  */
-Text.Heading = React.forwardRef(function Heading(
+// eslint-disable-next-line no-restricted-syntax
+const Heading = forwardRef(function Heading(
   props: HeadingProps,
   ref: React.Ref<HTMLHeadingElement>,
 ) {
   const { level = 1, ...textProps } = props
   return <Text ref={ref} elementType={`h${level}`} variant="h1" balance {...textProps} />
 })
+Text.Heading = Heading
+
+/**
+ * Text group component. It's used to visually group text elements together
+ */
+Text.Group = function TextGroup(props: React.PropsWithChildren) {
+  return (
+    <textProvider.TextProvider value={{ isInsideTextComponent: true }}>
+      {props.children}
+    </textProvider.TextProvider>
+  )
+}

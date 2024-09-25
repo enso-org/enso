@@ -8,7 +8,7 @@ import java.util.Objects;
 import org.enso.base.CurrentEnsoProject;
 import org.enso.base.enso_cloud.CloudAPI;
 
-public class AuditLogMessage implements AuditLogAPI.LogMessage {
+class AuditLogMessage implements AuditLogApiAccess.LogMessage {
 
   /**
    * A reserved field that is currently added by the cloud backend. Duplicating it will lead to
@@ -55,8 +55,7 @@ public class AuditLogMessage implements AuditLogAPI.LogMessage {
     var copy = metadata.deepCopy();
     copy.set(OPERATION, TextNode.valueOf(operation));
 
-    // TODO the null check should no longer be needed once
-    // https://github.com/enso-org/enso/issues/9845 is fixed
+    // The project name may be null if a script is run outside a project.
     if (projectName != null) {
       copy.set(PROJECT_NAME, TextNode.valueOf(projectName));
     }

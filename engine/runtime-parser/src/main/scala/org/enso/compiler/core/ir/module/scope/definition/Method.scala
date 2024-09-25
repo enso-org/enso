@@ -49,38 +49,36 @@ object Method {
     * @param isStaticWrapperForInstanceMethod true if this method represents a static wrapper for instance method, false otherwise
     * @param location        the source location that the node corresponds to
     * @param passData        the pass metadata associated with this node
-    * @param diagnostics     compiler diagnostics for this node
     */
   sealed case class Explicit(
     methodReference: Name.MethodReference,
     bodyReference: Persistance.Reference[Expression],
     isStatic: Boolean,
-    isPrivate: Boolean,
+    override val isPrivate: Boolean,
     isStaticWrapperForInstanceMethod: Boolean,
-    location: Option[IdentifiedLocation],
-    passData: MetadataStorage,
-    diagnostics: DiagnosticStorage
+    override val location: Option[IdentifiedLocation],
+    override val passData: MetadataStorage
   ) extends Method
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
-    def this(
-      methodReference: Name.MethodReference,
-      body: Expression,
-      isPrivate: Boolean,
-      location: Option[IdentifiedLocation],
-      passData: MetadataStorage      = new MetadataStorage(),
-      diagnostics: DiagnosticStorage = DiagnosticStorage()
-    ) = {
+
+    /** Create an [[Explicit]] object from [[Method.Binding]].
+      *
+      * @param ir the method binding IR
+      * @param body the method body expression
+      */
+    def this(ir: Method.Binding, body: Expression) = {
       this(
-        methodReference,
+        ir.methodReference,
         Persistance.Reference.of(body, false),
         Explicit.computeIsStatic(body),
-        isPrivate,
+        ir.isPrivate,
         Explicit.computeIsStaticWrapperForInstanceMethod(body),
-        location,
-        passData,
-        diagnostics
-      );
+        ir.location,
+        ir.passData
+      )
+      diagnostics = ir.diagnostics
     }
 
     lazy val body: Expression = bodyReference.get(classOf[Expression])
@@ -128,10 +126,10 @@ object Method {
           isPrivate,
           isStaticWrapperForInstanceMethod,
           location,
-          passData,
-          diagnostics
+          passData
         )
-        res.id = id
+        res.diagnostics = diagnostics
+        res.id          = id
         res
       } else this
     }
@@ -160,10 +158,8 @@ object Method {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy
-          else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -211,6 +207,7 @@ object Method {
   }
 
   object Explicit {
+
     def unapply(m: Explicit): Option[
       (
         Name.MethodReference,
@@ -254,7 +251,6 @@ object Method {
     * @param body            the body of the method
     * @param location        the source location that the node corresponds to
     * @param passData        the pass metadata associated with this node
-    * @param diagnostics     compiler diagnostics for this node
     */
   sealed case class Binding(
     override val methodReference: Name.MethodReference,
@@ -262,11 +258,42 @@ object Method {
     isPrivate: Boolean,
     override val body: Expression,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Method
       with IRKind.Sugar
+      with LazyDiagnosticStorage
       with LazyId {
+
+    /** Create a [[Binding]] object.
+      *
+      * @param methodReference a reference to the method being defined
+      * @param arguments the arguments to the method
+      * @param isPrivate if the method is declared as private (project-private).
+      * i.e. with prepended `private` keyword.
+      * @param body the body of the method
+      * @param location the source location that the node corresponds to
+      * @param passData the pass metadata associated with this node
+      * @param diagnostics the compiler diagnostics
+      */
+    def this(
+      methodReference: Name.MethodReference,
+      arguments: List[DefinitionArgument],
+      isPrivate: Boolean,
+      body: Expression,
+      location: Option[IdentifiedLocation],
+      passData: MetadataStorage,
+      diagnostics: DiagnosticStorage
+    ) = {
+      this(
+        methodReference,
+        arguments,
+        isPrivate,
+        body,
+        location,
+        passData
+      )
+      this.diagnostics = diagnostics
+    }
 
     /** Creates a copy of `this`.
       *
@@ -305,10 +332,10 @@ object Method {
           isPrivate,
           body,
           location,
-          passData,
-          diagnostics
+          passData
         )
-        res.id = id
+        res.diagnostics = diagnostics
+        res.id          = id
         res
       } else this
     }
@@ -344,10 +371,8 @@ object Method {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy
-          else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -408,18 +433,32 @@ object Method {
     * @param body            the body of the method
     * @param location        the source location that the node corresponds to
     * @param passData        the pass metadata associated with this node
-    * @param diagnostics     compiler diagnostics for this node
     */
   sealed case class Conversion(
     override val methodReference: Name.MethodReference,
     sourceTypeName: Expression,
     override val body: Expression,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Method
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
+
+    /** Create a conversion method from [[Method.Binding]].
+      *
+      * @param ir the method binding IR
+      * @param sourceTypeName the type of the source value for this conversion
+      * @param body the body of the method
+      */
+    def this(
+      ir: Method.Binding,
+      sourceTypeName: Expression,
+      body: Expression
+    ) = {
+      this(ir.methodReference, sourceTypeName, body, ir.location, ir.passData)
+      diagnostics = ir.diagnostics
+    }
 
     // Conversion methods cannot be private for now
     override val isPrivate: Boolean = false
@@ -455,16 +494,15 @@ object Method {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-
         val res = Conversion(
           methodReference,
           sourceTypeName,
           body,
           location,
-          passData,
-          diagnostics
+          passData
         )
-        res.id = id
+        res.diagnostics = diagnostics
+        res.id          = id
         res
       } else this
     }
@@ -498,10 +536,8 @@ object Method {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy
-          else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
     }
 

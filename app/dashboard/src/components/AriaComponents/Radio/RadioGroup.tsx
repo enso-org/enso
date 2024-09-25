@@ -10,6 +10,9 @@ import * as aria from '#/components/aria'
 import * as mergeRefs from '#/utilities/mergeRefs'
 import * as twv from '#/utilities/tailwindVariants'
 
+import { omit } from '#/utilities/object'
+import { forwardRef } from '#/utilities/react'
+import type { FieldVariantProps } from '../Form'
 import * as formComponent from '../Form'
 import * as radioGroupContext from './RadioGroupContext'
 
@@ -25,7 +28,8 @@ export interface RadioGroupProps<
       TFieldName
     >,
     twv.VariantProps<typeof RADIO_GROUP_STYLES>,
-    formComponent.FieldProps {
+    formComponent.FieldProps,
+    FieldVariantProps {
   readonly children?: React.ReactNode
   readonly className?: string
 }
@@ -39,7 +43,7 @@ export const RADIO_GROUP_STYLES = twv.tv({
  * A radio group component.
  */
 // eslint-disable-next-line no-restricted-syntax
-export const RadioGroup = React.forwardRef(function RadioGroup<
+export const RadioGroup = forwardRef(function RadioGroup<
   Schema extends formComponent.TSchema,
   TFieldName extends formComponent.FieldPath<Schema>,
 >(props: RadioGroupProps<Schema, TFieldName>, ref: React.ForwardedRef<HTMLDivElement>) {
@@ -56,6 +60,8 @@ export const RadioGroup = React.forwardRef(function RadioGroup<
     label,
     description,
     fullWidth,
+    variants = RADIO_GROUP_STYLES,
+    fieldVariants,
     ...radioGroupProps
   } = props
 
@@ -68,12 +74,12 @@ export const RadioGroup = React.forwardRef(function RadioGroup<
 
   const invalid = isInvalid || fieldState.invalid
 
-  const base = RADIO_GROUP_STYLES({ fullWidth, className })
+  const base = variants({ fullWidth, className })
 
   return (
     <aria.RadioGroup
       ref={mergeRefs.mergeRefs(ref, field.ref)}
-      {...aria.mergeProps<aria.RadioGroupProps>()(radioGroupProps, {
+      {...aria.mergeProps<aria.RadioGroupProps>()(omit(radioGroupProps, 'validate'), {
         name: field.name,
         value: field.value,
         isDisabled: field.disabled ?? isDisabled,
@@ -93,6 +99,7 @@ export const RadioGroup = React.forwardRef(function RadioGroup<
           description={description}
           fullWidth={fullWidth}
           isInvalid={invalid}
+          variants={fieldVariants}
           {...radioGroupProps}
         >
           {children}
@@ -100,6 +107,4 @@ export const RadioGroup = React.forwardRef(function RadioGroup<
       </radioGroupContext.RadioGroupProvider>
     </aria.RadioGroup>
   )
-}) as <Schema extends formComponent.TSchema, TFieldName extends formComponent.FieldPath<Schema>>(
-  props: RadioGroupProps<Schema, TFieldName> & React.RefAttributes<HTMLFormElement>,
-) => React.JSX.Element
+})

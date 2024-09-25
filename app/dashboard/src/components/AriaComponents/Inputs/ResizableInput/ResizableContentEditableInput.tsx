@@ -1,19 +1,25 @@
 /**
  * @file A resizable input that uses a content-editable div.
  */
-import * as React from 'react'
+import { useRef, type ClipboardEvent, type ForwardedRef, type HTMLAttributes } from 'react'
 
-import * as eventCallbackHooks from '#/hooks/eventCallbackHooks'
+import type { FieldVariantProps } from '#/components/AriaComponents'
+import {
+  Form,
+  Text,
+  type FieldPath,
+  type FieldProps,
+  type FieldStateProps,
+  type TSchema,
+} from '#/components/AriaComponents'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { mergeRefs } from '#/utilities/mergeRefs'
+import { forwardRef } from '#/utilities/react'
+import { tv, type VariantProps } from '#/utilities/tailwindVariants'
+import { INPUT_STYLES } from '../variants'
 
-import * as ariaComponents from '#/components/AriaComponents'
-
-import * as mergeRefs from '#/utilities/mergeRefs'
-import * as twv from '#/utilities/tailwindVariants'
-
-import * as variants from '../variants'
-
-const CONTENT_EDITABLE_STYLES = twv.tv({
-  extend: variants.INPUT_STYLES,
+const CONTENT_EDITABLE_STYLES = tv({
+  extend: INPUT_STYLES,
   base: '',
   slots: { placeholder: 'opacity-50 absolute inset-0 pointer-events-none' },
 })
@@ -22,15 +28,21 @@ const CONTENT_EDITABLE_STYLES = twv.tv({
  * Props for a {@link ResizableContentEditableInput}.
  */
 export interface ResizableContentEditableInputProps<
-  Schema extends ariaComponents.TSchema,
-  TFieldName extends ariaComponents.FieldPath<Schema>,
-> extends ariaComponents.FieldStateProps<
-      React.HTMLAttributes<HTMLDivElement> & { value: string },
-      Schema,
-      TFieldName
+  Schema extends TSchema,
+  TFieldName extends FieldPath<Schema>,
+> extends FieldStateProps<HTMLAttributes<HTMLDivElement> & { value: string }, Schema, TFieldName>,
+    Pick<
+      VariantProps<typeof INPUT_STYLES>,
+      'disabled' | 'invalid' | 'rounded' | 'size' | 'variant'
     >,
-    Omit<ariaComponents.FieldProps, 'variant'>,
-    Omit<twv.VariantProps<typeof variants.INPUT_STYLES>, 'disabled' | 'invalid'> {
+    FieldVariantProps,
+    Omit<FieldProps, 'variant'>,
+    FieldVariantProps,
+    Pick<VariantProps<typeof INPUT_STYLES>, 'rounded' | 'size' | 'variant'>,
+    Omit<
+      VariantProps<typeof CONTENT_EDITABLE_STYLES>,
+      'disabled' | 'invalid' | 'rounded' | 'size' | 'variant'
+    > {
   /**
    * onChange is called when the content of the input changes.
    * There is no way to prevent the change, so the value is always the new value.
@@ -45,108 +57,106 @@ export interface ResizableContentEditableInputProps<
  * A resizable input that uses a content-editable div.
  * This component might be useful for a text input that needs to have highlighted content inside of it.
  */
-// eslint-disable-next-line no-restricted-syntax
-export const ResizableContentEditableInput = React.forwardRef(
-  function ResizableContentEditableInput<
-    Schema extends ariaComponents.TSchema,
-    TFieldName extends ariaComponents.FieldPath<Schema>,
-  >(
-    props: ResizableContentEditableInputProps<Schema, TFieldName>,
-    ref: React.ForwardedRef<HTMLDivElement>,
-  ) {
-    const {
-      placeholder = '',
-      description = null,
-      name,
-      isDisabled = false,
-      form,
-      defaultValue,
-      size,
-      rounded,
-      variant,
-      ...textFieldProps
-    } = props
+export const ResizableContentEditableInput = forwardRef(function ResizableContentEditableInput<
+  Schema extends TSchema,
+  TFieldName extends FieldPath<Schema>,
+>(
+  props: ResizableContentEditableInputProps<Schema, TFieldName>,
+  ref: ForwardedRef<HTMLDivElement>,
+) {
+  const {
+    placeholder = '',
+    description = null,
+    name,
+    isDisabled = false,
+    form,
+    defaultValue,
+    size,
+    rounded,
+    variant,
+    variants = CONTENT_EDITABLE_STYLES,
+    fieldVariants,
+    ...textFieldProps
+  } = props
 
-    const inputRef = React.useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLDivElement>(null)
 
-    const onPaste = eventCallbackHooks.useEventCallback(
-      (event: React.ClipboardEvent<HTMLDivElement>) => {
-        // Prevent pasting styled text.
-        event.preventDefault()
-        // sanitize the pasted text
-        // replace all < with &lt; to prevent XSS
-        const text = event.clipboardData
-          .getData('text/plain')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-        document.execCommand('insertHTML', false, text)
-      },
-    )
+  const onPaste = useEventCallback((event: ClipboardEvent<HTMLDivElement>) => {
+    // Prevent pasting styled text.
+    event.preventDefault()
+    // sanitize the pasted text
+    // replace all < with &lt; to prevent XSS
+    const text = event.clipboardData
+      .getData('text/plain')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+    document.execCommand('insertHTML', false, text)
+  })
 
-    const { field, fieldState, formInstance } = ariaComponents.Form.useField({
-      name,
-      isDisabled,
-      form,
-      defaultValue,
-    })
+  const { field, fieldState, formInstance } = Form.useField({
+    name,
+    isDisabled,
+    form,
+    defaultValue,
+  })
 
-    const {
-      base,
-      description: descriptionClass,
-      inputContainer,
-      textArea,
-      placeholder: placeholderClass,
-    } = CONTENT_EDITABLE_STYLES({
-      variant,
-      invalid: fieldState.invalid,
-      disabled: isDisabled || formInstance.formState.isSubmitting,
-      rounded,
-      size,
-    })
+  const {
+    base,
+    description: descriptionClass,
+    inputContainer,
+    textArea,
+    placeholder: placeholderClass,
+  } = variants({
+    invalid: fieldState.invalid,
+    disabled: isDisabled || formInstance.formState.isSubmitting,
+    variant,
+    rounded,
+    size,
+  })
 
-    return (
-      <ariaComponents.Form.Field form={formInstance} name={name} fullWidth {...textFieldProps}>
-        <div
-          className={base()}
-          onClick={() => {
-            inputRef.current?.focus({ preventScroll: true })
-          }}
-        >
-          <div className={inputContainer()}>
-            <div
-              className={textArea()}
-              ref={mergeRefs.mergeRefs(inputRef, ref, field.ref)}
-              contentEditable
-              suppressContentEditableWarning
-              role="textbox"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck="false"
-              aria-autocomplete="none"
-              onPaste={onPaste}
-              onBlur={field.onBlur}
-              onInput={(event) => {
-                field.onChange(event.currentTarget.textContent ?? '')
-              }}
-            />
+  return (
+    <Form.Field
+      form={formInstance}
+      name={name}
+      fullWidth
+      variants={fieldVariants}
+      {...textFieldProps}
+    >
+      <div
+        className={base()}
+        onClick={() => {
+          inputRef.current?.focus({ preventScroll: true })
+        }}
+      >
+        <div className={inputContainer()}>
+          <div
+            className={textArea()}
+            ref={mergeRefs(inputRef, ref, field.ref)}
+            contentEditable
+            suppressContentEditableWarning
+            role="textbox"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
+            aria-autocomplete="none"
+            onPaste={onPaste}
+            onBlur={field.onBlur}
+            onInput={(event) => {
+              field.onChange(event.currentTarget.textContent ?? '')
+            }}
+          />
 
-            <ariaComponents.Text
-              className={placeholderClass({ class: field.value.length > 0 ? 'hidden' : '' })}
-            >
-              {placeholder}
-            </ariaComponents.Text>
-          </div>
-
-          {description != null && (
-            <ariaComponents.Text slot="description" className={descriptionClass()}>
-              {description}
-            </ariaComponents.Text>
-          )}
+          <Text className={placeholderClass({ class: field.value.length > 0 ? 'hidden' : '' })}>
+            {placeholder}
+          </Text>
         </div>
-      </ariaComponents.Form.Field>
-    )
-  },
-) as <Schema extends ariaComponents.TSchema, TFieldName extends ariaComponents.FieldPath<Schema>>(
-  props: React.RefAttributes<HTMLDivElement> &
-    ResizableContentEditableInputProps<Schema, TFieldName>,
-) => React.JSX.Element
+
+        {description != null && (
+          <Text slot="description" className={descriptionClass()}>
+            {description}
+          </Text>
+        )}
+      </div>
+    </Form.Field>
+  )
+})

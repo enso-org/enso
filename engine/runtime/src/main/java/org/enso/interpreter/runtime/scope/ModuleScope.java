@@ -1,12 +1,14 @@
 package org.enso.interpreter.runtime.scope;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.enso.compiler.context.CompilerContext;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoObject;
@@ -21,7 +23,7 @@ import org.enso.interpreter.runtime.util.CachingSupplier;
 public final class ModuleScope implements EnsoObject {
   private final Type associatedType;
   private final Module module;
-  private final Map<String, Object> polyglotSymbols;
+  private final Map<String, Supplier<TruffleObject>> polyglotSymbols;
   private final Map<String, Type> types;
   private final Map<Type, Map<String, Supplier<Function>>> methods;
 
@@ -43,7 +45,7 @@ public final class ModuleScope implements EnsoObject {
   public ModuleScope(
       Module module,
       Type associatedType,
-      Map<String, Object> polyglotSymbols,
+      Map<String, Supplier<TruffleObject>> polyglotSymbols,
       Map<String, Type> types,
       Map<Type, Map<String, Supplier<Function>>> methods,
       Map<Type, Map<Type, Function>> conversions,
@@ -257,10 +259,20 @@ public final class ModuleScope implements EnsoObject {
   }
 
   /**
-   * @return the polyglot symbol imported into this scope.
+   * Finds a polyglot symbol supplier. The supplier will then load the provided {@code symbolName}
+   * when its {@link Supplier#get()} method is called.
+   *
+   * @param symbolName name of the symbol to search for
+   * @return non-{@code null} supplier of a polyglot symbol imported into this scope
    */
-  public Object getPolyglotSymbol(String symbolName) {
-    return polyglotSymbols.get(symbolName);
+  public Supplier<TruffleObject> getPolyglotSymbolSupplier(String symbolName) {
+    var supplier = polyglotSymbols.get(symbolName);
+    if (supplier != null) {
+      return supplier;
+    }
+    var ctx = EnsoContext.get(null);
+    var err = ctx.getBuiltins().error().makeMissingPolyglotImportError(symbolName);
+    return CachingSupplier.forValue(err);
   }
 
   @ExportMessage
@@ -283,7 +295,7 @@ public final class ModuleScope implements EnsoObject {
     @CompilerDirectives.CompilationFinal private ModuleScope moduleScope = null;
     private final Module module;
     private final Type associatedType;
-    private final Map<String, Object> polyglotSymbols;
+    private final Map<String, Supplier<TruffleObject>> polyglotSymbols;
     private final Map<String, Type> types;
     private final Map<Type, Map<String, Supplier<Function>>> methods;
     private final Map<Type, Map<Type, Function>> conversions;
@@ -315,7 +327,7 @@ public final class ModuleScope implements EnsoObject {
     public Builder(
         Module module,
         Type associatedType,
-        Map<String, Object> polyglotSymbols,
+        Map<String, Supplier<TruffleObject>> polyglotSymbols,
         Map<String, Type> types,
         Map<Type, Map<String, Supplier<Function>>> methods,
         Map<Type, Map<Type, Function>> conversions,
@@ -364,7 +376,7 @@ public final class ModuleScope implements EnsoObject {
       if (methodMap.containsKey(method) && !type.isBuiltin()) {
         throw new RedefinedMethodException(type.getName(), method);
       } else {
-        methodMap.put(method, new CachingSupplier<>(function));
+        methodMap.put(method, CachingSupplier.forValue(function));
       }
     }
 
@@ -384,7 +396,7 @@ public final class ModuleScope implements EnsoObject {
       if (methodMap.containsKey(method) && !type.isBuiltin()) {
         throw new RedefinedMethodException(type.getName(), method);
       } else {
-        methodMap.put(method, new CachingSupplier<>(supply));
+        methodMap.put(method, CachingSupplier.wrap(supply));
       }
     }
 
@@ -409,11 +421,11 @@ public final class ModuleScope implements EnsoObject {
      * Registers a new symbol in the polyglot namespace.
      *
      * @param name the name of the symbol
-     * @param sym the value being exposed
+     * @param symbolFactory the value being exposed
      */
-    public void registerPolyglotSymbol(String name, Object sym) {
+    public void registerPolyglotSymbol(String name, Supplier<TruffleObject> symbolFactory) {
       assert moduleScope == null;
-      polyglotSymbols.put(name, sym);
+      polyglotSymbols.put(name, CachingSupplier.wrap(symbolFactory));
     }
 
     /**

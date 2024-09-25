@@ -72,14 +72,14 @@ public class PrivateSymbolsAnalysis implements IRPass {
         ir.bindings()
             .map(binding -> binding.mapExpressions(expr -> processExpression(expr, bindingsMap)));
     return ir.copy(
-        ir.imports(),
-        ir.exports(),
+        ir.copy$default$1(),
+        ir.copy$default$2(),
         newBindings,
-        ir.isPrivate(),
-        ir.location(),
-        ir.passData(),
-        ir.diagnostics(),
-        ir.id());
+        ir.copy$default$4(),
+        ir.copy$default$5(),
+        ir.copy$default$6(),
+        ir.copy$default$7(),
+        ir.copy$default$8());
   }
 
   /** Not supported for expressions. */
@@ -98,11 +98,11 @@ public class PrivateSymbolsAnalysis implements IRPass {
         yield caseExpr.copy(
             newScrutinee,
             newBranches,
-            caseExpr.isNested(),
-            caseExpr.location(),
-            caseExpr.passData(),
-            caseExpr.diagnostics(),
-            caseExpr.id());
+            caseExpr.copy$default$3(),
+            caseExpr.copy$default$4(),
+            caseExpr.copy$default$5(),
+            caseExpr.copy$default$6(),
+            caseExpr.copy$default$7());
       }
       case Name name -> processName(name, bindingsMap);
       default -> expr.mapExpressions(e -> processExpression(e, bindingsMap));
@@ -116,11 +116,11 @@ public class PrivateSymbolsAnalysis implements IRPass {
     return branch.copy(
         newPat,
         newExpr,
-        branch.terminalBranch(),
-        branch.location(),
-        branch.passData(),
-        branch.diagnostics(),
-        branch.id());
+        branch.copy$default$3(),
+        branch.copy$default$4(),
+        branch.copy$default$5(),
+        branch.copy$default$6(),
+        branch.copy$default$7());
   }
 
   private Pattern processCasePattern(Pattern pattern, BindingsMap bindingsMap) {

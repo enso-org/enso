@@ -2,6 +2,7 @@ package org.enso.runtimeversionmanager.releases.testing
 
 import org.enso.cli.OS
 import org.enso.distribution.FileSystem
+import org.enso.version.BuildVersion
 
 import java.nio.file.Path
 import scala.sys.process.Process
@@ -16,7 +17,7 @@ object TestArchivePackager {
     * workflow.
     */
   def packArchive(source: Path, destination: Path): Unit = {
-    if (buildinfo.Info.isRelease)
+    if (BuildVersion.isRelease)
       throw new IllegalStateException(
         "Internal TestArchivePackager called in release mode."
       )

@@ -67,20 +67,20 @@ export default function SettingsTab(props: SettingsTabProps) {
   } else {
     const content =
       columns.length === 1 ?
-        <div className="flex grow flex-col gap-settings-subsection overflow-auto" {...contentProps}>
+        <div className="flex grow flex-col gap-settings-subsection" {...contentProps}>
           {sections.map((section) => (
             <SettingsSection key={section.nameId} context={context} data={section} />
           ))}
         </div>
       : <div
-          className="flex min-h-full grow flex-col gap-settings-section overflow-auto lg:h-auto lg:flex-row"
+          className="flex min-h-full grow flex-col gap-settings-section lg:h-auto lg:flex-row"
           {...contentProps}
         >
           {columns.map((sectionsInColumn, i) => (
             <div
               key={i}
               className={tailwindMerge.twMerge(
-                'flex flex-1 flex-col gap-settings-subsection',
+                'flex h-fit flex-1 flex-col gap-settings-subsection pb-12',
                 classes[i],
               )}
             >

@@ -37,6 +37,8 @@ import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 
+import { normalizePath } from '#/utilities/fileInfo'
+import { mapNonNullish } from '#/utilities/nullable'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 
@@ -83,15 +85,11 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const self = permissions.tryFindSelfPermission(user, asset.permissions)
   const isCloud = categoryModule.isCloudCategory(category)
   const path =
-    (
-      category.type === categoryModule.CategoryType.recent ||
-      category.type === categoryModule.CategoryType.trash
-    ) ?
-      null
+    category.type === 'recent' || category.type === 'trash' ? null
     : isCloud ? `${item.path}${item.type === backendModule.AssetType.datalink ? '.datalink' : ''}`
     : asset.type === backendModule.AssetType.project ?
-      localBackend?.getProjectPath(asset.id) ?? null
-    : localBackendModule.extractTypeAndId(asset.id).id
+      mapNonNullish(localBackend?.getProjectPath(asset.id) ?? null, normalizePath)
+    : normalizePath(localBackendModule.extractTypeAndId(asset.id).id)
   const copyMutation = copyHooks.useCopy({ copyText: path ?? '' })
 
   const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
@@ -103,7 +101,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const canEditThisAsset =
     managesThisAsset || self?.permission === permissions.PermissionAction.edit
   const canAddToThisDirectory =
-    category.type !== categoryModule.CategoryType.recent &&
+    category.type !== 'recent' &&
     asset.type === backendModule.AssetType.directory &&
     canEditThisAsset
   const pasteDataParentKeys =
@@ -151,7 +149,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
   return (
-    category.type === categoryModule.CategoryType.trash ?
+    category.type === 'trash' ?
       !ownsThisAsset ? null
       : <ContextMenus hidden={hidden} key={asset.id} event={event}>
           <ContextMenu aria-label={getText('assetContextMenuLabel')} hidden={hidden}>
@@ -171,6 +169,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               doAction={() => {
                 setModal(
                   <ConfirmDeleteModal
+                    defaultOpen
                     actionText={`delete the ${asset.type} '${asset.title}' forever`}
                     doDelete={() => {
                       const ids = new Set([asset.id])
@@ -297,22 +296,21 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               }}
             />
           )}
-          {canExecute && !isRunningProject && !isOtherUserUsingProject && (
-            <ContextMenuEntry
-              hidden={hidden}
-              isDisabled={
-                isCloud ?
-                  asset.type !== backendModule.AssetType.project &&
-                  asset.type !== backendModule.AssetType.directory
-                : false
-              }
-              action="rename"
-              doAction={() => {
-                setRowState(object.merger({ isEditingName: true }))
-                unsetModal()
-              }}
-            />
-          )}
+          {canExecute &&
+            !isRunningProject &&
+            !isOtherUserUsingProject &&
+            (!isCloud ||
+              asset.type === backendModule.AssetType.project ||
+              asset.type === backendModule.AssetType.directory) && (
+              <ContextMenuEntry
+                hidden={hidden}
+                action="rename"
+                doAction={() => {
+                  setRowState(object.merger({ isEditingName: true }))
+                  unsetModal()
+                }}
+              />
+            )}
           {asset.type === backendModule.AssetType.secret &&
             canEditThisAsset &&
             remoteBackend != null && (
@@ -322,6 +320,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 doAction={() => {
                   setModal(
                     <UpsertSecretModal
+                      defaultOpen
                       id={asset.id}
                       name={asset.title}
                       doCreate={async (_name, value) => {
@@ -363,11 +362,22 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               label={isCloud ? getText('moveToTrashShortcut') : getText('deleteShortcut')}
               doAction={() => {
                 if (isCloud) {
-                  unsetModal()
-                  doDelete()
+                  if (asset.type === backendModule.AssetType.directory) {
+                    setModal(
+                      <ConfirmDeleteModal
+                        defaultOpen
+                        actionText={getText('trashTheAssetTypeTitle', asset.type, asset.title)}
+                        doDelete={doDelete}
+                      />,
+                    )
+                  } else {
+                    unsetModal()
+                    doDelete()
+                  }
                 } else {
                   setModal(
                     <ConfirmDeleteModal
+                      defaultOpen
                       actionText={getText('deleteTheAssetTypeTitle', asset.type, asset.title)}
                       doDelete={doDelete}
                     />,
@@ -452,7 +462,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               }}
             />
           )}
-          {!isOtherUserUsingProject && (
+          {!isRunningProject && !isOtherUserUsingProject && (
             <ContextMenuEntry hidden={hidden} action="cut" doAction={doCut} />
           )}
           {(isCloud ?

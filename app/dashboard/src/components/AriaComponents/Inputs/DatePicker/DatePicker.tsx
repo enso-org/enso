@@ -1,8 +1,9 @@
 /** @file A date picker. */
-import type { ForwardedRef } from 'react'
+import { useContext, type ForwardedRef } from 'react'
 
 import type { DateSegment as DateSegmentType } from 'react-stately'
 
+import CrossIcon from '#/assets/cross.svg'
 import ArrowIcon from '#/assets/folder_arrow.svg'
 import {
   DatePicker as AriaDatePicker,
@@ -13,6 +14,7 @@ import {
   CalendarGridHeader,
   CalendarHeaderCell,
   DateInput,
+  DatePickerStateContext,
   DateSegment,
   Dialog,
   Group,
@@ -33,16 +35,28 @@ import {
   type FieldValues,
   type TSchema,
 } from '#/components/AriaComponents'
+import { useText } from '#/providers/TextProvider'
 import { forwardRef } from '#/utilities/react'
-import { Controller } from 'react-hook-form'
-import { tv } from 'tailwind-variants'
+import type { VariantProps } from '#/utilities/tailwindVariants'
+import { tv } from '#/utilities/tailwindVariants'
 
 const DATE_PICKER_STYLES = tv({
   base: '',
+  variants: {
+    size: {
+      small: {
+        inputGroup: 'h-6 px-2',
+      },
+      medium: {
+        inputGroup: 'h-8 px-4',
+      },
+    },
+  },
   slots: {
-    inputGroup: 'flex items-center h-8 gap-2 rounded-full border-0.5 border-primary/20 px-4',
-    dateInput: 'flex',
+    inputGroup: 'flex items-center gap-2 rounded-full border-0.5 border-primary/20',
+    dateInput: 'flex justify-center grow',
     dateSegment: 'rounded placeholder-shown:text-primary/30 focus:bg-primary/10 px-[0.5px]',
+    resetButton: '',
     calendarPopover: 'w-0',
     calendarDialog: 'text-primary text-xs',
     calendarContainer: '',
@@ -53,7 +67,10 @@ const DATE_PICKER_STYLES = tv({
     calendarGridHeaderCell: '',
     calendarGridBody: '',
     calendarGridCell:
-      'text-center px-1 rounded hover:bg-primary/10 outside-visible-range:text-primary/30',
+      'text-center px-1 rounded border border-transparent hover:bg-primary/10 outside-visible-range:text-primary/30 disabled:text-primary/30 selected:border-primary/40',
+  },
+  defaultVariants: {
+    size: 'medium',
   },
 })
 
@@ -68,7 +85,9 @@ export interface DatePickerProps<Schema extends TSchema, TFieldName extends Fiel
       TFieldName
     >,
     FieldProps,
-    Pick<FieldComponentProps<Schema>, 'className' | 'style'> {
+    Pick<FieldComponentProps<Schema>, 'className' | 'style'>,
+    VariantProps<typeof DATE_PICKER_STYLES> {
+  readonly noResetButton?: boolean
   readonly noCalendarHeader?: boolean
   readonly segments?: Partial<Record<DateSegmentType['type'], boolean>>
 }
@@ -79,6 +98,7 @@ export const DatePicker = forwardRef(function DatePicker<
   TFieldName extends FieldPath<Schema>,
 >(props: DatePickerProps<Schema, TFieldName>, ref: ForwardedRef<HTMLFieldSetElement>) {
   const {
+    noResetButton = false,
     noCalendarHeader = false,
     segments = {},
     name,
@@ -87,6 +107,9 @@ export const DatePicker = forwardRef(function DatePicker<
     defaultValue,
     label,
     isRequired,
+    className,
+    size,
+    variants = DATE_PICKER_STYLES,
   } = props
 
   const { fieldState, formInstance } = Form.useField({
@@ -96,7 +119,7 @@ export const DatePicker = forwardRef(function DatePicker<
     defaultValue,
   })
 
-  const classes = DATE_PICKER_STYLES({})
+  const styles = variants({ size })
 
   return (
     <Form.Field
@@ -112,51 +135,49 @@ export const DatePicker = forwardRef(function DatePicker<
       aria-details={props['aria-details']}
       ref={ref}
       style={props.style}
-      className={props.className}
     >
-      <Controller
+      <Form.Controller
         control={formInstance.control}
         name={name}
         render={(renderProps) => {
           return (
-            <AriaDatePicker {...renderProps.field}>
+            <AriaDatePicker className={styles.base({ className })} {...renderProps.field}>
               <Label />
-              <Group className={classes.inputGroup()}>
-                <DateInput className={classes.dateInput()}>
+              <Group className={styles.inputGroup()}>
+                <Button variant="icon" icon={ArrowIcon} className="rotate-90" />
+                <DateInput className={styles.dateInput()}>
                   {(segment) =>
                     segments[segment.type] === false ?
                       <></>
-                    : <DateSegment segment={segment} className={classes.dateSegment()} />
+                    : <DateSegment segment={segment} className={styles.dateSegment()} />
                   }
                 </DateInput>
-                <Button variant="icon" icon={ArrowIcon} className="rotate-90" />
+                {!noResetButton && <DatePickerResetButton className={styles.resetButton()} />}
               </Group>
-              <Text slot="description" />
-              <Popover size="auto" className={classes.calendarPopover()}>
-                <Dialog className={classes.calendarDialog()}>
-                  <Calendar className={classes.calendarContainer()}>
-                    <header className={classes.calendarHeader()}>
+              {props.description != null && <Text slot="description" />}
+              <Popover size="auto" className={styles.calendarPopover()}>
+                <Dialog className={styles.calendarDialog()}>
+                  <Calendar className={styles.calendarContainer()}>
+                    <header className={styles.calendarHeader()}>
                       <Button
                         variant="icon"
                         slot="previous"
                         icon={ArrowIcon}
                         className="rotate-180"
                       />
-                      <Heading className={classes.calendarHeading()} />
+                      <Heading className={styles.calendarHeading()} />
                       <Button variant="icon" slot="next" icon={ArrowIcon} />
                     </header>
-                    <CalendarGrid className={classes.calendarGrid()}>
+                    <CalendarGrid className={styles.calendarGrid()}>
                       {noCalendarHeader ?
                         <></>
-                      : <CalendarGridHeader className={classes.calendarGridHeader()}>
-                          {() => (
-                            <CalendarHeaderCell className={classes.calendarGridHeaderCell()} />
-                          )}
+                      : <CalendarGridHeader className={styles.calendarGridHeader()}>
+                          {() => <CalendarHeaderCell className={styles.calendarGridHeaderCell()} />}
                         </CalendarGridHeader>
                       }
-                      <CalendarGridBody className={classes.calendarGridBody()}>
+                      <CalendarGridBody className={styles.calendarGridBody()}>
                         {(date) => (
-                          <CalendarCell date={date} className={classes.calendarGridCell()} />
+                          <CalendarCell date={date} className={styles.calendarGridCell()} />
                         )}
                       </CalendarGridBody>
                     </CalendarGrid>
@@ -171,3 +192,29 @@ export const DatePicker = forwardRef(function DatePicker<
     </Form.Field>
   )
 })
+
+/** Props for a {@link DatePickerResetButton}. */
+interface DatePickerResetButtonProps {
+  readonly className?: string
+}
+
+/** A reset button for a {@link DatePicker}. */
+function DatePickerResetButton(props: DatePickerResetButtonProps) {
+  const { className } = props
+  const state = useContext(DatePickerStateContext)
+  const { getText } = useText()
+
+  return (
+    <Button
+      // Do not inherit default Button behavior from DatePicker.
+      slot={null}
+      variant="icon"
+      aria-label={getText('reset')}
+      icon={CrossIcon}
+      className={className ?? ''}
+      onPress={() => {
+        state.setValue(null)
+      }}
+    />
+  )
+}

@@ -39,7 +39,7 @@ export const INPUT_STYLES = tv({
     variant: {
       custom: {},
       outline: {
-        base: 'border-[0.5px] border-primary/20 outline-offset-2 focus-within:border-primary/50 focus-within:outline focus-within:outline-2 focus-within:outline-offset-[-1px] focus-within:outline-primary',
+        base: 'border-[0.5px] border-primary/20 outline-offset-2 focus-within:border-primary/50 focus-within:outline focus-within:outline-2 focus-within:outline-offset-0 focus-within:outline-primary',
         textArea: 'border-transparent focus-within:border-transparent',
       },
     },

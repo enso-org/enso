@@ -2,9 +2,9 @@
 
 use crate::prelude::*;
 
+use crate::convert_case::ToKebabCase;
 use crate::env::accessor::RawVariable;
 
-use heck::ToKebabCase;
 use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 use std::convert::identity;
@@ -78,7 +78,7 @@ pub fn setup_wasm_pack_step() -> Step {
         uses: Some("jetli/wasm-pack-action@v0.4.0".into()),
         with: Some(step::Argument::Other(BTreeMap::from_iter([(
             "version".into(),
-            "v0.10.2".into(),
+            "v0.12.1".into(),
         )]))),
         r#if: Some(is_github_hosted()),
         ..default()

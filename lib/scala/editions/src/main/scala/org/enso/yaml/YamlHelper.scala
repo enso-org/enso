@@ -1,5 +1,6 @@
 package org.enso.yaml
 
+import org.enso.scala.yaml.{YamlDecoder, YamlEncoder}
 import org.yaml.snakeyaml.nodes.Tag
 import org.yaml.snakeyaml.{DumperOptions, Yaml}
 

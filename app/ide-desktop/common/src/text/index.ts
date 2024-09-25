@@ -43,6 +43,7 @@ interface PlaceholderOverrides {
   readonly deleteUserGroupActionText: [groupName: string]
   readonly removeUserFromUserGroupActionText: [userName: string, groupName: string]
   readonly confirmPrompt: [action: string]
+  readonly trashTheAssetTypeTitle: [assetType: string, assetName: string]
   readonly deleteTheAssetTypeTitle: [assetType: string, assetName: string]
   readonly couldNotInviteUser: [userEmail: string]
   readonly filesWithoutConflicts: [fileCount: number]
@@ -61,6 +62,7 @@ interface PlaceholderOverrides {
   readonly compareVersionXWithLatest: [versionNumber: number]
   readonly onDateX: [dateString: string]
   readonly xUsersAndGroupsSelected: [usersAndGroupsCount: number]
+  readonly removeTheLocalDirectoryXFromFavorites: [directoryName: string]
   readonly upgradeTo: [planName: string]
   readonly enterTheNewKeyboardShortcutFor: [actionName: string]
   readonly downloadProjectError: [projectName: string]
@@ -143,6 +145,10 @@ interface PlaceholderOverrides {
 
   readonly repeatsAtX: [dates: string]
   readonly xMinutes: [minutes: number]
+  readonly groupNameSettingsInputDescription: [howLong: number]
+
+  readonly arbitraryFieldTooLarge: [maxSize: string]
+  readonly arbitraryFieldTooSmall: [minSize: string]
 }
 
 /** An tuple of `string` for placeholders for each {@link TextId}. */

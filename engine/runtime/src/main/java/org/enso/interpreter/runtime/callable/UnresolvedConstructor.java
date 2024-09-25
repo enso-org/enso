@@ -200,7 +200,7 @@ public final class UnresolvedConstructor implements EnsoObject {
       body.adoptChildren();
       var root =
           ClosureRootNode.build(
-              lang, LocalScope.root(), scope, body, section, prototype.getName(), true, true);
+              lang, LocalScope.empty(), scope, body, section, prototype.getName(), true, true);
       root.adoptChildren();
       assert Objects.equals(expr.getSourceSection(), section)
           : "Expr: " + expr.getSourceSection() + " orig: " + section;

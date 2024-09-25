@@ -143,11 +143,15 @@ export function useVisualTooltip(props: VisualTooltipProps): VisualTooltipReturn
             }),
             // eslint-disable-next-line @typescript-eslint/naming-convention
             'aria-hidden': true,
+            // Note that this is a `@ts-expect-error` so that an update to the outdated type
+            // definitions will notify that this `@ts-expect-error` can be safely removed.
+            // @ts-expect-error This is a new DOM property.
             popover: '',
             role: 'presentation',
             'data-testid': testId,
-            // Remove z-index from the overlay style
-            // because it's not needed(we show latest element on top) and can cause issues with stacking context
+            // Remove z-index from the overlay style because it is not needed.
+            // We show the latest element on top, and z-index can cause issues with
+            // the stacking context.
             style: { zIndex: '' },
           },
         )}

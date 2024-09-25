@@ -19,6 +19,8 @@ async function expectAndCancelBrowser(
   const nodeCount = await locate.graphNode(page).count()
   await expect(locate.componentBrowser(page)).toExist()
   await expect(locate.componentBrowserEntry(page)).toExist()
+  await expect(locate.rightDock(page)).toBeVisible()
+  await expect(page.locator('[data-transitioning]')).toHaveCount(0)
   if (expectedSelfArgument != null)
     await expect(locate.componentBrowser(page)).toHaveAttribute(
       'data-self-argument',
@@ -28,6 +30,8 @@ async function expectAndCancelBrowser(
   await expect(locate.componentBrowserInput(page).locator('input')).toBeInViewport()
   await page.keyboard.press('Escape')
   await expect(locate.componentBrowser(page)).toBeHidden()
+  await expect(locate.rightDock(page)).toBeHidden()
+  await expect(page.locator('[data-transitioning]')).toHaveCount(0)
   await expect(locate.graphNode(page)).toHaveCount(nodeCount)
 }
 
@@ -40,31 +44,33 @@ test('Different ways of opening Component Browser', async ({ page }) => {
   await locate.addNewNodeButton(page).click()
   await expectAndCancelBrowser(page, '')
   // (+) button with selection (ignored)
-  await locate.graphNodeByBinding(page, 'final').click()
+  await locate.graphNodeByBinding(page, 'selected').click()
   await locate.addNewNodeButton(page).click()
   await expectAndCancelBrowser(page, '')
   // Enter key
+  await locate.graphEditor(page).click({ position: { x: 100, y: 500 } })
   await locate.graphEditor(page).press('Enter')
   await expectAndCancelBrowser(page, '')
 
   // With source node
 
   // Enter key
-  await locate.graphNodeByBinding(page, 'final').click()
+  await locate.graphNodeByBinding(page, 'selected').click()
   await locate.graphEditor(page).press('Enter')
-  await expectAndCancelBrowser(page, '', 'final')
+  await expectAndCancelBrowser(page, '', 'selected')
   // Dragging out an edge
-  const outputPort = await locate.outputPortCoordinates(locate.graphNodeByBinding(page, 'final'))
+  let outputPort = await locate.outputPortCoordinates(locate.graphNodeByBinding(page, 'selected'))
   await page.mouse.click(outputPort.x, outputPort.y)
   await locate.graphEditor(page).click({ position: { x: 100, y: 500 } })
-  await expectAndCancelBrowser(page, '', 'final')
+  await expectAndCancelBrowser(page, '', 'selected')
   // Double-clicking port
   // TODO[ao] Without timeout, even the first click would be treated as double due to previous
   // event. Probably we need a better way to simulate double clicks.
   await page.waitForTimeout(600)
+  outputPort = await locate.outputPortCoordinates(locate.graphNodeByBinding(page, 'selected'))
   await page.mouse.click(outputPort.x, outputPort.y)
   await page.mouse.click(outputPort.x, outputPort.y)
-  await expectAndCancelBrowser(page, '', 'final')
+  await expectAndCancelBrowser(page, '', 'selected')
 })
 
 test('Opening Component Browser with small plus buttons', async ({ page }) => {
@@ -263,7 +269,8 @@ test('Visualization preview: user visualization selection', async ({ page }) => 
   await expect(locate.graphNode(page)).toHaveCount(nodeCount)
 })
 
-test('Component browser handling of overridden record-mode', async ({ page }) => {
+// TODO[#10949]: the record button on node is disabled.
+test.skip('Component browser handling of overridden record-mode', async ({ page }) => {
   await actions.goToGraph(page)
   const node = locate.graphNodeByBinding(page, 'data')
   const ADDED_PATH = '"/home/enso/Input.txt"'

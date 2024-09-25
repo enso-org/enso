@@ -48,7 +48,7 @@ public class HttpDownloaderTest {
   @BeforeClass
   public static void initServer() throws URISyntaxException, IOException {
     serverExecutor = Executors.newSingleThreadExecutor();
-    server = HTTPTestHelperServer.createServer("localhost", port, serverExecutor, false);
+    server = HTTPTestHelperServer.createServer("localhost", port, serverExecutor, false, null);
     server.addHandler("/texts", new TextHandler());
     server.addHandler("/redirect", new RedirectHandler());
     server.addHandler("/files", new BigFileHandler());

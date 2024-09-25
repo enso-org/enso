@@ -17,6 +17,7 @@ import com.oracle.truffle.api.nodes.NodeUtil;
 import com.oracle.truffle.api.nodes.RootNode;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.enso.interpreter.EnsoLanguage;
@@ -45,6 +46,7 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.util.CachingSupplier;
 import org.graalvm.collections.Pair;
 
 public abstract class ReadArgumentCheckNode extends Node {
@@ -162,8 +164,10 @@ public abstract class ReadArgumentCheckNode extends Node {
     return ReadArgumentCheckNodeFactory.TypeCheckNodeGen.create(comment, expectedType);
   }
 
-  public static ReadArgumentCheckNode meta(String comment, Object metaObject) {
-    return ReadArgumentCheckNodeFactory.MetaCheckNodeGen.create(comment, metaObject);
+  public static ReadArgumentCheckNode meta(
+      String comment, Supplier<? extends Object> metaObjectSupplier) {
+    var cachingSupplier = CachingSupplier.wrap(metaObjectSupplier);
+    return ReadArgumentCheckNodeFactory.MetaCheckNodeGen.create(comment, cachingSupplier);
   }
 
   public static boolean isWrappedThunk(Function fn) {
@@ -475,12 +479,12 @@ public abstract class ReadArgumentCheckNode extends Node {
   }
 
   abstract static class MetaCheckNode extends ReadArgumentCheckNode {
-    private final Object expectedMeta;
+    private final CachingSupplier<? extends Object> expectedSupplier;
     @CompilerDirectives.CompilationFinal private String expectedTypeMessage;
 
-    MetaCheckNode(String name, Object expectedMeta) {
+    MetaCheckNode(String name, CachingSupplier<? extends Object> expectedMetaSupplier) {
       super(name);
-      this.expectedMeta = expectedMeta;
+      this.expectedSupplier = expectedMetaSupplier;
     }
 
     @Override
@@ -493,7 +497,7 @@ public abstract class ReadArgumentCheckNode extends Node {
       if (isAllFitValue(v)) {
         return v;
       }
-      if (isA.execute(expectedMeta, v)) {
+      if (isA.execute(expectedSupplier.get(), v)) {
         return v;
       } else {
         return null;
@@ -508,9 +512,9 @@ public abstract class ReadArgumentCheckNode extends Node {
       CompilerDirectives.transferToInterpreterAndInvalidate();
       var iop = InteropLibrary.getUncached();
       try {
-        expectedTypeMessage = iop.asString(iop.getMetaQualifiedName(expectedMeta));
+        expectedTypeMessage = iop.asString(iop.getMetaQualifiedName(expectedSupplier.get()));
       } catch (UnsupportedMessageException ex) {
-        expectedTypeMessage = expectedMeta.toString();
+        expectedTypeMessage = expectedSupplier.get().toString();
       }
       return expectedTypeMessage;
     }

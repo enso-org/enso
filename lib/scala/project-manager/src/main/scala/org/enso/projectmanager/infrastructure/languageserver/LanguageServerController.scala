@@ -11,8 +11,8 @@ import akka.actor.{
   Terminated
 }
 import com.typesafe.scalalogging.LazyLogging
+import org.enso.logging.utils.akka.ActorMessageLogging
 import org.enso.semver.SemVer
-import org.enso.logger.akka.ActorMessageLogging
 import org.enso.projectmanager.boot.configuration._
 import org.enso.projectmanager.data.{LanguageServerSockets, Socket}
 import org.enso.projectmanager.event.ClientEvent.{

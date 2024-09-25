@@ -407,22 +407,17 @@ val logbackPkg = Seq(
   "ch.qos.logback" % "logback-classic" % logbackClassicVersion,
   "ch.qos.logback" % "logback-core"    % logbackClassicVersion
 )
-val akkaActor        = akkaPkg("actor")
-val akkaStream       = akkaPkg("stream")
-val akkaTyped        = akkaPkg("actor-typed")
-val akkaTestkit      = akkaPkg("testkit")
-val akkaSLF4J        = akkaPkg("slf4j")
-val akkaTestkitTyped = akkaPkg("actor-testkit-typed") % Test
-val akkaHttp         = akkaHTTPPkg("http")
-val akkaSpray        = akkaHTTPPkg("http-spray-json")
-val logbackTest      = logbackPkg.map(_ % Test)
+val akkaActor   = akkaPkg("actor")
+val akkaStream  = akkaPkg("stream")
+val akkaTestkit = akkaPkg("testkit")
+val akkaSLF4J   = akkaPkg("slf4j")
+val akkaHttp    = akkaHTTPPkg("http")
+val logbackTest = logbackPkg.map(_ % Test)
 val akka =
   Seq(
     akkaActor,
     akkaStream,
-    akkaHttp,
-    akkaSpray,
-    akkaTyped
+    akkaHttp
   )
 
 // === Cats ===================================================================
@@ -564,7 +559,7 @@ val scalaLoggingVersion     = "3.9.4"
 val scalameterVersion       = "0.19"
 val scalatestVersion        = "3.3.0-SNAP4"
 val slf4jVersion            = JPMSUtils.slf4jVersion
-val sqliteVersion           = "3.42.0.0"
+val sqliteVersion           = "3.46.1.0"
 val tikaVersion             = "2.4.1"
 val typesafeConfigVersion   = "1.4.2"
 val junitVersion            = "4.13.2"
@@ -774,6 +769,14 @@ lazy val `syntax-rust-definition` = project
     publish / skip := false,
     autoScalaLibrary := false,
     crossPaths := false,
+    libraryDependencies ++= Seq(
+      "org.slf4j" % "slf4j-api" % slf4jVersion
+    ),
+    moduleDependencies := {
+      Seq(
+        "org.slf4j" % "slf4j-api" % slf4jVersion
+      )
+    },
     javaModuleName := "org.enso.syntax",
     Compile / sourceGenerators += generateParserJavaSources,
     Compile / resourceGenerators += generateRustParserLib,
@@ -997,7 +1000,8 @@ lazy val `version-output` = (project in file("lib/scala/version-output"))
   .settings(
     frgaalJavaCompilerSetting,
     Compile / sourceGenerators += Def.task {
-      val file = (Compile / sourceManaged).value / "buildinfo" / "Info.scala"
+      val file =
+        (Compile / sourceManaged).value / "org" / "enso" / "version" / "GeneratedVersion.java"
       BuildInfo
         .writeBuildInfoFile(
           file                  = file,
@@ -1038,7 +1042,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     (Test / fork) := true,
     (Compile / run / connectInput) := true,
     commands += WithDebugCommand.withDebug,
-    libraryDependencies ++= akka ++ Seq(akkaTestkit % Test),
+    libraryDependencies ++= akka ++ Seq(akkaSLF4J, akkaTestkit % Test),
     libraryDependencies ++= circe ++ helidon,
     libraryDependencies ++= Seq(
       "com.typesafe"                % "config"                       % typesafeConfigVersion,
@@ -1227,14 +1231,16 @@ lazy val testkit = project
   .in(file("lib/scala/testkit"))
   .settings(
     frgaalJavaCompilerSetting,
-    libraryDependencies ++= Seq(
+    libraryDependencies ++= logbackPkg ++ Seq(
       "org.apache.commons" % "commons-lang3"   % commonsLangVersion,
       "commons-io"         % "commons-io"      % commonsIoVersion,
       "org.scalatest"     %% "scalatest"       % scalatestVersion,
       "junit"              % "junit"           % junitVersion,
-      "com.github.sbt"     % "junit-interface" % junitIfVersion
+      "com.github.sbt"     % "junit-interface" % junitIfVersion,
+      "org.slf4j"          % "slf4j-api"       % slf4jVersion
     )
   )
+  .dependsOn(`logging-service-logback`)
 
 lazy val searcher = project
   .in(file("lib/scala/searcher"))
@@ -1449,7 +1455,7 @@ val truffleRunOptionsSettings = Seq(
   * the potential conflicts with other *.conf files.
   */
 val testLogProviderOptions = Seq(
-  "-Dslf4j.provider=org.enso.logger.TestLogProvider",
+  "-Dslf4j.provider=org.enso.logging.service.logback.test.provider.TestLogProvider",
   "-Dconfig.resource=application-test.conf"
 )
 
@@ -1526,26 +1532,27 @@ lazy val `language-server` = (project in file("engine/language-server"))
     commands += WithDebugCommand.withDebug,
     frgaalJavaCompilerSetting,
     libraryDependencies ++= akka ++ circe ++ Seq(
-      "org.slf4j"                   % "slf4j-api"               % slf4jVersion,
-      "com.typesafe.scala-logging" %% "scala-logging"           % scalaLoggingVersion,
-      "io.circe"                   %% "circe-generic-extras"    % circeGenericExtrasVersion,
-      "io.circe"                   %% "circe-literal"           % circeVersion,
-      "dev.zio"                    %% "zio"                     % zioVersion,
-      "com.google.flatbuffers"      % "flatbuffers-java"        % flatbuffersVersion,
-      "commons-io"                  % "commons-io"              % commonsIoVersion,
-      "com.github.pureconfig"      %% "pureconfig"              % pureconfigVersion,
-      akkaTestkit                   % Test,
-      "com.typesafe.akka"          %% "akka-http-testkit"       % akkaHTTPVersion           % Test,
-      "org.scalatest"              %% "scalatest"               % scalatestVersion          % Test,
-      "org.scalacheck"             %% "scalacheck"              % scalacheckVersion         % Test,
-      "org.graalvm.truffle"         % "truffle-api"             % graalMavenPackagesVersion % "provided",
-      "org.graalvm.sdk"             % "polyglot-tck"            % graalMavenPackagesVersion % "provided",
-      "org.netbeans.api"            % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
-      "org.eclipse.jgit"            % "org.eclipse.jgit"        % jgitVersion,
-      "org.bouncycastle"            % "bcutil-jdk18on"          % "1.76"                    % Test,
-      "org.bouncycastle"            % "bcpkix-jdk18on"          % "1.76"                    % Test,
-      "org.bouncycastle"            % "bcprov-jdk18on"          % "1.76"                    % Test,
-      "org.apache.tika"             % "tika-core"               % tikaVersion               % Test
+      "org.slf4j"                   % "slf4j-api"            % slf4jVersion,
+      "com.typesafe.scala-logging" %% "scala-logging"        % scalaLoggingVersion,
+      "io.circe"                   %% "circe-generic-extras" % circeGenericExtrasVersion,
+      "io.circe"                   %% "circe-literal"        % circeVersion,
+      "dev.zio"                    %% "zio"                  % zioVersion,
+      "com.google.flatbuffers"      % "flatbuffers-java"     % flatbuffersVersion,
+      "commons-io"                  % "commons-io"           % commonsIoVersion,
+      "com.github.pureconfig"      %% "pureconfig"           % pureconfigVersion,
+      akkaSLF4J,
+      akkaTestkit           % Test,
+      "com.typesafe.akka"  %% "akka-http-testkit"       % akkaHTTPVersion           % Test,
+      "org.scalatest"      %% "scalatest"               % scalatestVersion          % Test,
+      "org.scalacheck"     %% "scalacheck"              % scalacheckVersion         % Test,
+      "org.graalvm.truffle" % "truffle-api"             % graalMavenPackagesVersion % "provided",
+      "org.graalvm.sdk"     % "polyglot-tck"            % graalMavenPackagesVersion % "provided",
+      "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
+      "org.eclipse.jgit"    % "org.eclipse.jgit"        % jgitVersion,
+      "org.bouncycastle"    % "bcutil-jdk18on"          % "1.76"                    % Test,
+      "org.bouncycastle"    % "bcpkix-jdk18on"          % "1.76"                    % Test,
+      "org.bouncycastle"    % "bcprov-jdk18on"          % "1.76"                    % Test,
+      "org.apache.tika"     % "tika-core"               % tikaVersion               % Test
     ),
     Test / testOptions += Tests
       .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000"),
@@ -2554,7 +2561,7 @@ lazy val `engine-runner` = project
       val NI_MODULES =
         "org.graalvm.nativeimage,org.graalvm.nativeimage.builder,org.graalvm.nativeimage.base,org.graalvm.nativeimage.driver,org.graalvm.nativeimage.librarysupport,org.graalvm.nativeimage.objectfile,org.graalvm.nativeimage.pointsto,com.oracle.graal.graal_enterprise,com.oracle.svm.svm_enterprise"
       val JDK_MODULES =
-        "jdk.localedata,jdk.compiler.graal,jdk.httpserver,java.naming,java.net.http"
+        "jdk.localedata,jdk.httpserver,java.naming,java.net.http"
       val DEBUG_MODULES  = "jdk.jdwp.agent"
       val PYTHON_MODULES = "jdk.security.auth,java.naming"
 
@@ -2872,7 +2879,7 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
   .settings(
     frgaalJavaCompilerSetting,
     annotationProcSetting,
-    libraryDependencies ++= GraalVM.modules ++ GraalVM.langsPkgs ++ Seq(
+    libraryDependencies ++= GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.toolsPkgs ++ Seq(
       "org.openjdk.jmh"      % "jmh-core"                 % jmhVersion,
       "org.openjdk.jmh"      % "jmh-generator-annprocess" % jmhVersion,
       "org.graalvm.polyglot" % "polyglot"                 % graalMavenPackagesVersion,
@@ -2895,14 +2902,23 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
       "-J-Dpolyglotimpl.DisableClassPathIsolation=true",
       "-J-Dpolyglot.engine.WarnInterpreterOnly=false"
     ),
-    moduleDependencies := {
-      componentModulesIds.value ++ Seq(
+    modulePath := {
+      val allRuntimeMods = componentModulesPaths.value
+      val otherModIds = Seq(
         "org.slf4j" % "slf4j-nop" % slf4jVersion
       )
+      val requiredMods = JPMSUtils.filterModulesFromUpdate(
+        (Compile / update).value,
+        otherModIds,
+        streams.value.log,
+        shouldContainAll = true
+      )
+      allRuntimeMods ++ requiredMods
     },
     addModules := {
       val runtimeModuleName = (`runtime-fat-jar` / javaModuleName).value
-      Seq(runtimeModuleName)
+      val arrowModName      = (`runtime-language-arrow` / javaModuleName).value
+      Seq(runtimeModuleName, arrowModName)
     },
     addExports := {
       Map("org.slf4j.nop/org.slf4j.nop" -> Seq("org.slf4j"))
@@ -2937,6 +2953,10 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
   )
   .dependsOn(`bench-processor`)
   .dependsOn(`runtime-fat-jar`)
+  .dependsOn(`ydoc-server`)
+  .dependsOn(`runtime-language-arrow`)
+  .dependsOn(`syntax-rust-definition`)
+  .dependsOn(`profiling-utils`)
   .dependsOn(`std-table` % "provided")
   .dependsOn(`std-base` % "provided")
   .dependsOn(`benchmark-java-helpers` % "provided")
@@ -2969,6 +2989,7 @@ lazy val editions = project
     cleanFiles += baseDirectory.value / ".." / ".." / "distribution" / "editions"
   )
   .dependsOn(semver)
+  .dependsOn(`version-output`)
   .dependsOn(testkit % Test)
 
 lazy val semver = project
@@ -3570,14 +3591,47 @@ lazy val `std-tableau` = project
         val unmanagedPath = unmanagedDirectory.toPath
         IO.withTemporaryDirectory(
           tmp => {
-            val files = IO.unzipURL(
-              unmanagedExternalZip.value,
-              tmp,
-              f =>
-                f.endsWith(".jar") && !f.contains("gradle") && !f.contains(
-                  "javadoc"
-                ) && !f.contains("jna")
-            )
+            import scala.concurrent.ExecutionContext.Implicits.global
+            implicit val filesNotEmptySuccess: retry.Success[Set[File]] =
+              retry.Success(!_.isEmpty)
+            import scala.concurrent.duration._
+            val future = retry.Backoff(4, 1.second).apply { () =>
+              scala.concurrent.Future {
+                try {
+                  IO.unzipURL(
+                    unmanagedExternalZip.value,
+                    tmp,
+                    f =>
+                      f.endsWith(".jar") && !f.contains("gradle") && !f
+                        .contains(
+                          "javadoc"
+                        ) && !f.contains("jna")
+                  )
+                } catch {
+                  case _: java.net.SocketException |
+                      _: java.net.ConnectException =>
+                    Set.empty[File]
+                }
+              }
+            }
+            future.onComplete { result =>
+              if (result.isFailure || result.get.isEmpty) {
+                logger.log(
+                  Level.Error,
+                  "Failed to fetch any external artifacts for tableau"
+                )
+              }
+            }
+            val files = scala.concurrent.Await.result(future, 60.seconds)
+            if (files.isEmpty) {
+              logger.log(
+                Level.Error,
+                "Failed to fetch any external artifacts for tableau"
+              )
+              throw new IllegalStateException(
+                "Failed to fetch any external artifacts"
+              )
+            }
             files.map { f =>
               IO.move(f, unmanagedPath.resolve(f.getName).toFile)
               Attributed.blank(unmanagedPath.resolve(f.getName).toFile)

@@ -1,17 +1,25 @@
 package org.enso.interpreter.runtime.error;
 
+import static org.enso.interpreter.runtime.error.PanicException.handleExceptionMessage;
+
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.TruffleStackTrace;
 import com.oracle.truffle.api.TruffleStackTraceElement;
 import com.oracle.truffle.api.dsl.Bind;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.Objects;
+import org.enso.interpreter.node.callable.IndirectInvokeMethodNode;
+import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
@@ -26,6 +34,7 @@ import org.enso.interpreter.runtime.state.State;
  */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
+@ImportStatic(PanicException.class)
 public final class DataflowError extends AbstractTruffleException implements EnsoObject {
   /** Signals (local) values that haven't yet been initialized */
   public static final DataflowError UNINITIALIZED = new DataflowError(null, (Node) null);
@@ -45,7 +54,10 @@ public final class DataflowError extends AbstractTruffleException implements Ens
   public static DataflowError withDefaultTrace(State state, Object payload, Node location) {
     assert payload != null;
     boolean attachFullStackTrace =
-        state == null ? true : state.currentEnvironment().hasContextEnabled("Dataflow_Stack_Trace");
+        state == null
+            || EnsoContext.get(location)
+                .getExecutionEnvironment()
+                .hasContextEnabled("Dataflow_Stack_Trace");
     if (attachFullStackTrace) {
       var result = new DataflowError(payload, UNLIMITED_STACK_TRACE, location);
       TruffleStackTrace.fillIn(result);
@@ -139,6 +151,21 @@ public final class DataflowError extends AbstractTruffleException implements Ens
   @ExportMessage
   boolean isException() {
     return true;
+  }
+
+  @ExportMessage
+  boolean hasExceptionMessage() {
+    return true;
+  }
+
+  @ExportMessage
+  Object getExceptionMessage(
+      @Cached IndirectInvokeMethodNode payloads,
+      @Cached(value = "toDisplayText(payloads)", allowUncached = true)
+          UnresolvedSymbol toDisplayText,
+      @CachedLibrary(limit = "3") InteropLibrary strings,
+      @Cached TypeToDisplayTextNode typeToDisplayTextNode) {
+    return handleExceptionMessage(payload, payloads, toDisplayText, strings, typeToDisplayTextNode);
   }
 
   @ExportMessage

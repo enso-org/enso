@@ -112,7 +112,7 @@ public final class AtomConstructor implements EnsoObject {
     return initializeFields(
         language,
         null,
-        LocalScope.root(),
+        LocalScope.empty(),
         scopeBuilder,
         new ExpressionNode[0],
         reads,

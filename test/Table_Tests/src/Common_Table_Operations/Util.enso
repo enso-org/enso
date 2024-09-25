@@ -1,6 +1,8 @@
 from Standard.Base import all
 from Standard.Table import Column, Table, Value_Type
 
+import Standard.Database.DB_Table.DB_Table
+
 from Standard.Test import all
 
 from project.In_Memory.Common_Spec import in_memory_setup
@@ -34,7 +36,17 @@ run_default_backend add_specs filter=Nothing =
          t = Table.new [["A", [1, 2, 3]]]
          within_table t <|
              t.at "A" . to_vector . should_equal [1, 2, 3]
-within_table table = Test.with_clue 'Resulting table:\n'+table.display+'\n\n'
+within_table table =
+    description =
+        case table of
+            _ : DB_Table ->
+                code = table.to_sql.to_text
+                simplified = if table.name . contains "-" . not then 'SQL: ' + code else
+                    # Risky heuristic but should be good enough for debugging tests and it helps so much!
+                    'Simplified SQL: ' + code.replace table.name (table.name.take (..Before "-"))
+                simplified + '\n\n' + table.display
+            _ -> table.display
+    Test.with_clue 'Resulting table:\n'+description+'\n\n'
 
 ## PRIVATE
 Any.should_equal_tz_agnostic self other =

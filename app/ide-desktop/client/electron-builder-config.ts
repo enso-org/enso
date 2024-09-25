@@ -37,6 +37,7 @@ export interface Arguments {
   readonly ideDist: string
   readonly projectManagerDist: string
   readonly platform: electronBuilder.Platform
+  readonly sign: boolean
 }
 
 /** File association configuration, extended with information needed by the `enso-installer`. */
@@ -100,6 +101,12 @@ export const args: Arguments = await yargs(process.argv.slice(2))
       type: 'string',
       description: 'Overwrite the platform-default target',
     },
+    sign: {
+      type: 'boolean',
+      description: 'Should signing/notarization be performed (defaults to true)',
+      default: true,
+      coerce: (p: string) => p === 'true',
+    },
   }).argv
 
 // ======================================
@@ -109,7 +116,7 @@ export const args: Arguments = await yargs(process.argv.slice(2))
 /** File associations for the IDE. */
 export const EXTENDED_FILE_ASSOCIATIONS = [
   {
-    ext: fileAssociations.SOURCE_FILE_EXTENSION,
+    ext: `.${fileAssociations.SOURCE_FILE_EXTENSION}`,
     name: `${common.PRODUCT_NAME} Source File`,
     role: 'Editor',
     // Note that MIME type is used on Windows by the enso-installer to register the file association.
@@ -118,7 +125,7 @@ export const EXTENDED_FILE_ASSOCIATIONS = [
     progId: 'Enso.Source',
   },
   {
-    ext: fileAssociations.BUNDLED_PROJECT_EXTENSION,
+    ext: `.${fileAssociations.BUNDLED_PROJECT_EXTENSION}`,
     name: `${common.PRODUCT_NAME} Project Bundle`,
     role: 'Editor',
     mimeType: 'application/gzip',
@@ -286,7 +293,11 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
 
     afterSign: async (context: electronBuilder.AfterPackContext) => {
       // Notarization for macOS.
-      if (passedArgs.platform === electronBuilder.Platform.MAC && process.env.CSC_LINK != null) {
+      if (
+        passedArgs.platform === electronBuilder.Platform.MAC &&
+        process.env.CSC_LINK != null &&
+        passedArgs.sign
+      ) {
         const {
           packager: {
             appInfo: { productFilename: appName },

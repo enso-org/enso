@@ -65,7 +65,8 @@ public abstract class EvalNode extends BaseNode {
   @CompilerDirectives.TruffleBoundary
   RootCallTarget parseExpression(LocalScope scope, ModuleScope moduleScope, String expression) {
     EnsoContext context = EnsoContext.get(this);
-    LocalScope localScope = scope.createChild();
+    LocalScope localScope =
+        scope == LocalScope.empty() ? LocalScope.createEmpty() : scope.createChild();
     var compiler = context.getCompiler();
     InlineContext inlineContext =
         InlineContext.fromJava(
@@ -83,7 +84,7 @@ public abstract class EvalNode extends BaseNode {
     var newInlineContext = tuppleOption.get()._1();
     var ir = tuppleOption.get()._2();
 
-    var sco = newInlineContext.localScope().getOrElse(LocalScope::root);
+    var sco = newInlineContext.localScope().getOrElse(LocalScope::empty);
     var mod = newInlineContext.getModule();
     var m = org.enso.interpreter.runtime.Module.fromCompilerModule(mod);
     var toTruffle = new IrToTruffle(context, src, m.getScopeBuilder(), compiler.getConfig());

@@ -14,6 +14,7 @@ export const LOGIN_PATH = '/login'
 export const REGISTRATION_PATH = '/registration'
 /** Path to the confirm registration page. */
 export const CONFIRM_REGISTRATION_PATH = '/confirmation'
+
 export const SETUP_PATH = '/setup'
 /** Path to the page in which a user can restore their account after it has been
  * marked for deletion. */
@@ -37,6 +38,10 @@ export const ALL_PATHS_REGEX = new RegExp(
 // === Constants related to URLs ===
 
 export const SEARCH_PARAMS_PREFIX = 'cloud-ide_'
+/** Return the email address for contacting support. */
+export const SUPPORT_EMAIL = 'cloud@enso.org'
+/** Return the `mailto:` URL for contacting support. */
+export const SUPPORT_EMAIL_URL = `mailto:${SUPPORT_EMAIL}`
 
 /**
  * Build a Subscription URL for a given plan.

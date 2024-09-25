@@ -21,7 +21,7 @@ import {
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
 import { tv } from '#/utilities/tailwindVariants'
-import { Controller } from 'react-hook-form'
+import { omit, unsafeRemoveUndefined } from 'enso-common/src/utilities/data/object'
 import { MultiSelectorOption } from './MultiSelectorOption'
 
 /** * Props for the MultiSelector component. */
@@ -140,7 +140,7 @@ export const MultiSelector = forwardRef(function MultiSelector<
         className={classes.base()}
         onClick={() => privateInputRef.current?.focus({ preventScroll: true })}
       >
-        <Controller
+        <Form.Controller
           control={formInstance.control}
           name={name}
           render={(renderProps) => {
@@ -150,14 +150,13 @@ export const MultiSelector = forwardRef(function MultiSelector<
                 ref={mergeRefs(inputRef, privateInputRef, fieldRef)}
                 orientation="horizontal"
                 selectionMode="multiple"
+                {...(inputProps.id != null && { id: String(inputProps.id) })}
                 {...mergeProps<ListBoxProps<FieldValues<Schema>[TFieldName]>>()(
                   {
                     className: classes.listBox(),
                     style: { gridTemplateColumns: `repeat(${columns ?? items.length}, 1fr)` },
                   },
-                  // @ts-expect-error This is UNSAFE. This error is caused by type mismatches for
-                  // the `id` and `aria-*` properties.
-                  inputProps,
+                  unsafeRemoveUndefined(omit(inputProps, 'id')),
                   field,
                 )}
                 // eslint-disable-next-line no-restricted-syntax

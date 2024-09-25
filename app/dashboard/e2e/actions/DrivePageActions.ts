@@ -62,7 +62,7 @@ export default class DrivePageActions extends PageActions {
       cloud() {
         return self.step('Go to "Cloud" category', (page) =>
           page
-            .getByRole('button', { name: TEXT.cloudCategory })
+            .getByRole('button', { name: TEXT.cloudCategory, exact: true })
             .getByText(TEXT.cloudCategory)
             .click(),
         )
@@ -71,7 +71,7 @@ export default class DrivePageActions extends PageActions {
       local() {
         return self.step('Go to "Local" category', (page) =>
           page
-            .getByRole('button', { name: TEXT.localCategory })
+            .getByRole('button', { name: TEXT.localCategory, exact: true })
             .getByText(TEXT.localCategory)
             .click(),
         )
@@ -80,7 +80,7 @@ export default class DrivePageActions extends PageActions {
       recent() {
         return self.step('Go to "Recent" category', (page) =>
           page
-            .getByRole('button', { name: TEXT.recentCategory })
+            .getByRole('button', { name: TEXT.recentCategory, exact: true })
             .getByText(TEXT.recentCategory)
             .click(),
         )
@@ -88,10 +88,7 @@ export default class DrivePageActions extends PageActions {
       /** Switch to the "trash" category. */
       trash() {
         return self.step('Go to "Trash" category', (page) =>
-          page
-            .getByRole('button', { name: TEXT.trashCategory })
-            .getByText(TEXT.trashCategory)
-            .click(),
+          page.getByRole('button', { name: TEXT.trashCategory, exact: true }).click(),
         )
       },
     }
@@ -241,7 +238,7 @@ export default class DrivePageActions extends PageActions {
   /** Create a new empty project. */
   newEmptyProject() {
     return this.step('Create empty project', (page) =>
-      page.getByText(TEXT.newEmptyProject).click(),
+      page.getByText(TEXT.newEmptyProject, { exact: true }).click(),
     ).into(EditorPageActions)
   }
 
@@ -252,9 +249,12 @@ export default class DrivePageActions extends PageActions {
 
   /** Create a new folder using the icon in the Drive Bar. */
   createFolder() {
-    return this.step('Create folder', (page) =>
-      page.getByRole('button', { name: TEXT.newFolder, exact: true }).click(),
-    )
+    return this.step('Create folder', async (page) => {
+      await page.getByRole('button', { name: TEXT.newFolder, exact: true }).click()
+      // eslint-disable-next-line no-restricted-properties
+      await test.expect(page.locator('input:focus')).toBeVisible()
+      await page.keyboard.press('Escape')
+    })
   }
 
   /** Upload a file using the icon in the Drive Bar. */

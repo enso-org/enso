@@ -16,6 +16,8 @@ import * as eventModule from '#/utilities/event'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
+import { useAutoFocus } from '#/hooks/autoFocusHooks'
+
 // =================
 // === Constants ===
 // =================
@@ -46,7 +48,10 @@ export default function EditableSpan(props: EditableSpanProps) {
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const [isSubmittable, setIsSubmittable] = React.useState(false)
+
+  const formRef = React.useRef<HTMLFormElement | null>(null)
   const inputRef = React.useRef<HTMLInputElement | null>(null)
+
   const cancelledRef = React.useRef(false)
   const checkSubmittableRef = React.useRef(checkSubmittable)
   checkSubmittableRef.current = checkSubmittable
@@ -78,21 +83,20 @@ export default function EditableSpan(props: EditableSpanProps) {
     cancelledRef.current = false
   }, [editable])
 
+  aria.useInteractOutside({
+    ref: formRef,
+    onInteractOutside: () => {
+      onCancel()
+    },
+  })
+
+  useAutoFocus({ ref: inputRef, disabled: !editable })
+
   if (editable) {
     return (
       <form
+        ref={formRef}
         className={tailwindMerge.twMerge('flex grow gap-1.5', WIDTH_CLASS_NAME)}
-        onBlur={(event) => {
-          const currentTarget = event.currentTarget
-          if (!currentTarget.contains(event.relatedTarget)) {
-            // This must run AFTER the cancel button's event handler runs.
-            setTimeout(() => {
-              if (!cancelledRef.current) {
-                currentTarget.requestSubmit()
-              }
-            })
-          }
-        }}
         onSubmit={(event) => {
           event.preventDefault()
           if (inputRef.current != null) {
@@ -109,12 +113,12 @@ export default function EditableSpan(props: EditableSpanProps) {
           className={tailwindMerge.twMerge('rounded-lg', className)}
           ref={(element) => {
             inputRef.current = element
+
             if (element) {
               element.style.width = '0'
               element.style.width = `${element.scrollWidth}px`
             }
           }}
-          autoFocus
           type="text"
           size={1}
           defaultValue={children}

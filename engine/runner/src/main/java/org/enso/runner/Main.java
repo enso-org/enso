@@ -1,6 +1,5 @@
 package org.enso.runner;
 
-import buildinfo.Info;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -14,6 +13,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -44,6 +46,7 @@ import org.enso.profiling.sampler.OutputStreamSampler;
 import org.enso.runner.common.LanguageServerApi;
 import org.enso.runner.common.ProfilingConfig;
 import org.enso.runner.common.WrongOption;
+import org.enso.version.BuildVersion;
 import org.enso.version.VersionDescription;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.PolyglotException.StackFrame;
@@ -103,7 +106,7 @@ public class Main {
   Main() {}
 
   private static boolean isDevBuild() {
-    return Info.ensoVersion().matches(".+-SNAPSHOT$");
+    return BuildVersion.ensoVersion().matches(".+-SNAPSHOT$");
   }
 
   private static Option.Builder cliOptionBuilder() {
@@ -959,12 +962,21 @@ public class Main {
   }
 
   private static MessageTransport replTransport() {
-    var repl = new Repl(makeTerminalForRepl());
+    ThreadFactory factory = (r) -> new Thread(r, "Initialize Enso Terminal");
+    var executor = Executors.newSingleThreadExecutor(factory);
+    var futureRepl = executor.submit(() -> new Repl(makeTerminalForRepl()));
     MessageTransport transport =
-        (uri, peer) ->
-            DebugServerInfo.URI.equals(uri.toString())
-                ? new DebuggerSessionManagerEndpoint(repl, peer)
-                : null;
+        (uri, peer) -> {
+          if (DebugServerInfo.URI.equals(uri.toString())) {
+            try {
+              var repl = futureRepl.get();
+              return new DebuggerSessionManagerEndpoint(repl, peer);
+            } catch (InterruptedException | ExecutionException ex) {
+              logger.error("Cannot initialize REPL transport", ex);
+            }
+          }
+          return null;
+        };
     return transport;
   }
 
@@ -974,13 +986,9 @@ public class Main {
    * @param useJson whether the output should be JSON or human-readable.
    */
   private void displayVersion(boolean useJson) {
+    var customVersion = CurrentVersion.getVersion().toString();
     var versionDescription =
-        VersionDescription.make(
-            "Enso Compiler and Runtime",
-            true,
-            VersionDescription.make$default$3(),
-            VersionDescription.make$default$4(),
-            scala.Option.apply(CurrentVersion.version().toString()));
+        VersionDescription.make("Enso Compiler and Runtime", true, false, List.of(), customVersion);
     println(versionDescription.asString(useJson));
   }
 
@@ -1068,7 +1076,7 @@ public class Main {
         ProjectUploader.uploadProject(
             projectRoot.get(),
             line.getOptionValue(UPLOAD_OPTION),
-            scala.Option.apply(line.getOptionValue(AUTH_TOKEN)),
+            line.getOptionValue(AUTH_TOKEN),
             !line.hasOption(HIDE_PROGRESS),
             logLevel);
         throw exitSuccess();
@@ -1426,7 +1434,12 @@ public class Main {
         scala.Option.apply(line.getOptionValue(LOG_LEVEL))
             .map(this::parseLogLevel)
             .getOrElse(() -> defaultLogLevel);
-    var connectionUri = scala.Option.apply(line.getOptionValue(LOGGER_CONNECT)).map(this::parseUri);
+    URI connectionUri;
+    if (line.getOptionValue(LOGGER_CONNECT) != null) {
+      connectionUri = parseUri(line.getOptionValue(LOGGER_CONNECT));
+    } else {
+      connectionUri = null;
+    }
     logMasking[0] = !line.hasOption(NO_LOG_MASKING);
     RunnerLogging.setup(connectionUri, logLevel, logMasking[0]);
     return logLevel;

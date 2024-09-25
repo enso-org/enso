@@ -56,6 +56,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   dragging: [offset: Vec2]
   draggingCommited: []
+  draggingCancelled: []
   delete: []
   replaceSelection: []
   outputPortClick: [event: PointerEvent, portId: AstId]
@@ -69,7 +70,6 @@ const emit = defineEmits<{
   'update:visualizationId': [id: Opt<VisualizationIdentifier>]
   'update:visualizationRect': [rect: Rect | undefined]
   'update:visualizationEnabled': [enabled: boolean]
-  'update:visualizationFullscreen': [fullscreen: boolean]
   'update:visualizationWidth': [width: number]
   'update:visualizationHeight': [height: number]
 }>()
@@ -233,8 +233,6 @@ watch(isVisualizationPreviewed, (newVal, oldVal) => {
   }
 })
 
-const isVisualizationFullscreen = computed(() => props.node.vis?.fullscreen ?? false)
-
 const transform = computed(() => {
   const { x, y } = props.node.position
   return `translate(${x}px, ${y}px)`
@@ -265,10 +263,14 @@ const dragPointer = usePointer(
         startEpochMs.value = Number(new Date())
         significantMove.value = false
         break
-      case 'stop': {
+      case 'stop':
         startEpochMs.value = 0
         emit('draggingCommited')
-      }
+        break
+      case 'cancel':
+        startEpochMs.value = 0
+        emit('draggingCancelled')
+        break
     }
   },
   // Pointer is captured by `target`, to make it receive the `up` and `click` event in case this
@@ -412,13 +414,15 @@ watchEffect(() => {
       selectionVisible,
       ['executionState-' + executionState]: true,
       outputNode: props.node.type === 'output',
+      menuVisible,
+      menuFull,
     }"
     :data-node-id="nodeId"
     @pointerenter="(nodeHovered = true), updateNodeHover($event)"
     @pointerleave="(nodeHovered = false), updateNodeHover(undefined)"
     @pointermove="updateNodeHover"
   >
-    <Teleport v-if="navigator && !edited" :to="graphNodeSelections">
+    <Teleport v-if="navigator && !edited && graphNodeSelections" :to="graphNodeSelections">
       <GraphNodeSelection
         :data-node-id="nodeId"
         :nodePosition="props.node.position"
@@ -471,17 +475,17 @@ watchEffect(() => {
       :nodePosition="props.node.position"
       :isCircularMenuVisible="menuVisible"
       :currentType="props.node.vis?.identifier"
-      :isFullscreen="isVisualizationFullscreen"
       :dataSource="{ type: 'node', nodeId: props.node.rootExpr.externalId }"
       :typename="expressionInfo?.typename"
       :width="visualizationWidth"
       :height="visualizationHeight"
       :isFocused="isOnlyOneSelected"
       :isPreview="isVisualizationPreviewed"
+      :isFullscreenAllowed="true"
+      :isResizable="true"
       @update:rect="updateVisualizationRect"
       @update:id="emit('update:visualizationId', $event)"
       @update:enabled="emit('update:visualizationEnabled', $event)"
-      @update:fullscreen="emit('update:visualizationFullscreen', $event)"
       @update:width="emit('update:visualizationWidth', $event)"
       @update:height="emit('update:visualizationHeight', $event)"
       @update:nodePosition="graph.setNodePosition(nodeId, $event)"
@@ -522,8 +526,7 @@ watchEffect(() => {
     </div>
     <GraphNodeMessage
       v-if="visibleMessage"
-      class="afterNode"
-      :class="{ messageWithMenu: menuVisible }"
+      class="afterNode shiftWhenMenuVisible"
       :message="visibleMessage.text"
       :type="visibleMessage.type"
     />
@@ -574,6 +577,8 @@ watchEffect(() => {
   border-radius: var(--node-border-radius);
   transition: box-shadow 0.2s ease-in-out;
   box-sizing: border-box;
+  /** Space between node and component above and below, such as comments and errors. */
+  --node-vertical-gap: 4px;
 
   --node-color-primary: color-mix(
     in oklab,
@@ -633,25 +638,34 @@ watchEffect(() => {
 .beforeNode {
   position: absolute;
   bottom: 100%;
-  left: 60px;
-  width: calc(max(100% - 60px, 800px));
-  margin-bottom: 2px;
+  width: calc(max(100%, 800px));
+  max-width: max-content;
+  margin-bottom: var(--node-vertical-gap);
+  /* Allow space for the input arrow. */
+  left: 24px;
+  transition: left 0.1s ease-out;
+}
+.menuFull .beforeNode {
+  left: 64px;
 }
 
 .afterNode {
   position: absolute;
   top: 100%;
-  margin-top: 4px;
+  margin-top: var(--node-vertical-gap);
   transform: translateY(var(--viz-below-node));
+}
+.shiftWhenMenuVisible {
+  left: 0;
+  transition: left 0.1s ease-out;
+}
+.menuVisible .shiftWhenMenuVisible {
+  left: 40px;
 }
 
 .belowMenu {
   position: absolute;
   top: calc(100% + 40px);
-}
-
-.messageWithMenu {
-  left: 40px;
 }
 
 .statuses {

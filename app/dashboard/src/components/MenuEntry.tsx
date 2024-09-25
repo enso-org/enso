@@ -75,7 +75,6 @@ export const ACTION_TO_TEXT_ID: Readonly<
   signOut: 'signOutShortcut',
   downloadApp: 'downloadAppShortcut',
   cancelCut: 'cancelCutShortcut',
-  editName: 'editNameShortcut',
   selectAdditional: 'selectAdditionalShortcut',
   selectRange: 'selectRangeShortcut',
   selectAdditionalRange: 'selectAdditionalRangeShortcut',

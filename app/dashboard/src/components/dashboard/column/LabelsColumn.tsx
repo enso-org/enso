@@ -10,8 +10,6 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import * as categoryModule from '#/layouts/CategorySwitcher/Category'
-
 import * as ariaComponents from '#/components/AriaComponents'
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenus from '#/components/ContextMenus'
@@ -41,14 +39,14 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const labels = backendHooks.useListTags(backend)
+  const { data: labels } = backendHooks.useBackendQuery(backend, 'listTags', [])
   const labelsByName = React.useMemo(() => {
     return new Map(labels?.map((label) => [label.value, label]))
   }, [labels])
   const plusButtonRef = React.useRef<HTMLButtonElement>(null)
   const self = permissions.tryFindSelfPermission(user, asset.permissions)
   const managesThisAsset =
-    category.type !== categoryModule.CategoryType.trash &&
+    category.type !== 'trash' &&
     (self?.permission === permissions.PermissionAction.own ||
       self?.permission === permissions.PermissionAction.admin)
   const setAsset = React.useCallback(

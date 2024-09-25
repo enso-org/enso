@@ -1,8 +1,9 @@
 /** @file An option in a selector. */
 import { ListBoxItem, type ListBoxItemProps } from '#/components/aria'
+import { forwardRef } from '#/utilities/react'
+import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
 import * as React from 'react'
-import type { VariantProps } from 'tailwind-variants'
 import { TEXT_STYLE } from '../../Text'
 
 /** Props for a {@link MultiSelectorOption}. */
@@ -45,7 +46,7 @@ export const MULTI_SELECTOR_OPTION_STYLES = tv({
   },
 })
 
-export const MultiSelectorOption = React.forwardRef(function MultiSelectorOption(
+export const MultiSelectorOption = forwardRef(function MultiSelectorOption(
   props: MultiSelectorOptionProps,
   ref: React.ForwardedRef<HTMLDivElement>,
 ) {

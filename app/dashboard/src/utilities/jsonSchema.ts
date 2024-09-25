@@ -146,7 +146,7 @@ const EMPTY_ARRAY = Object.freeze([] as const)
 
 // FIXME: Adjust to allow `type` and `anyOf` and `allOf` and `$ref` to all be present
 /** The value of the schema, if it can only have one possible value. */
-function constantValueHelper(
+function constantValueOfSchemaHelper(
   defs: Record<string, object>,
   schema: object,
   partial = false,
@@ -180,7 +180,7 @@ function constantValueHelper(
             if (childSchema == null || (partial && !required.has(key))) {
               continue
             }
-            const value = constantValue(defs, childSchema, partial)
+            const value = constantValueOfSchema(defs, childSchema, partial)
             if (value.length === 0 && !partial) {
               // eslint-disable-next-line no-restricted-syntax
               return invalid
@@ -204,7 +204,9 @@ function constantValueHelper(
             for (const childSchema of schema.prefixItems) {
               const childSchemaObject = objectModule.asObject(childSchema)
               const childValue =
-                childSchemaObject == null ? [] : constantValue(defs, childSchemaObject, partial)
+                childSchemaObject == null ?
+                  []
+                : constantValueOfSchema(defs, childSchemaObject, partial)
               if (childValue.length === 0 && !partial) {
                 // eslint-disable-next-line no-restricted-syntax
                 return invalid
@@ -221,7 +223,7 @@ function constantValueHelper(
         // eslint-disable-next-line no-restricted-syntax
         return invalid
       } else {
-        const value = constantValue(defs, referencedSchema, partial)
+        const value = constantValueOfSchema(defs, referencedSchema, partial)
         if (!partial && value.length === 0) {
           // eslint-disable-next-line no-restricted-syntax
           return invalid
@@ -240,7 +242,7 @@ function constantValueHelper(
           // eslint-disable-next-line no-restricted-syntax
           return invalid
         } else {
-          const value = constantValue(defs, firstMember, partial)
+          const value = constantValueOfSchema(defs, firstMember, partial)
           if (!partial && value.length === 0) {
             // eslint-disable-next-line no-restricted-syntax
             return invalid
@@ -257,7 +259,8 @@ function constantValueHelper(
       } else {
         for (const childSchema of schema.allOf) {
           const schemaObject = objectModule.asObject(childSchema)
-          const value = schemaObject == null ? [] : constantValue(defs, schemaObject, partial)
+          const value =
+            schemaObject == null ? [] : constantValueOfSchema(defs, schemaObject, partial)
           if (!partial && value.length === 0) {
             // eslint-disable-next-line no-restricted-syntax
             return invalid
@@ -298,7 +301,7 @@ function constantValueHelper(
         if (childSchema == null) {
           continue
         }
-        const value = constantValue(defs, childSchema, partial)
+        const value = constantValueOfSchema(defs, childSchema, partial)
         if (value.length === 0 && !partial) {
           resultArray = []
           break
@@ -339,14 +342,18 @@ function constantValueHelper(
 }
 
 /** The value of the schema, if it can only have one possible value.
- * This function is a memoized version of {@link constantValueHelper}. */
-export function constantValue(defs: Record<string, object>, schema: object, partial = false) {
+ * This function is a memoized version of {@link constantValueOfSchemaHelper}. */
+export function constantValueOfSchema(
+  defs: Record<string, object>,
+  schema: object,
+  partial = false,
+) {
   const cache = partial ? PARTIAL_CONSTANT_VALUE : CONSTANT_VALUE
   const cached = cache.get(schema)
   if (cached != null) {
     return cached
   } else {
-    const renderable = constantValueHelper(defs, schema, partial)
+    const renderable = constantValueOfSchemaHelper(defs, schema, partial)
     cache.set(schema, renderable)
     return renderable
   }

@@ -74,13 +74,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const { user } = authProvider.useFullUserSession()
   const { getText } = textProvider.useText()
 
-  const {
-    data: projectState,
-    isLoading,
-    isError,
-  } = reactQuery.useQuery({
+  const { data: projectState, isError } = reactQuery.useQuery({
     ...projectHooks.createGetProjectDetailsQuery.createPassiveListener(item.id),
-    select: (data) => data.state,
+    select: (data) => data?.state,
     enabled: isOpened,
   })
   const status = projectState?.type
@@ -95,12 +91,8 @@ export default function ProjectIcon(props: ProjectIconProps) {
     // Project is closed, show open button
     if (!isOpened) {
       return backendModule.ProjectState.closed
-    } else if (!isLoading && status == null) {
-      // Project is opened, but not yet queried.
-      return backendModule.ProjectState.openInProgress
-    } else if (isLoading) {
-      return backendModule.ProjectState.openInProgress
     } else if (status == null) {
+      // Project is opened, but not yet queried.
       return backendModule.ProjectState.openInProgress
     } else if (status === backendModule.ProjectState.closed) {
       // Project is opened locally, but not on the backend yet.
@@ -113,8 +105,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const spinnerState = (() => {
     if (!isOpened) {
       return spinner.SpinnerState.initial
-    } else if (isLoading) {
-      return spinner.SpinnerState.loadingSlow
     } else if (isError) {
       return spinner.SpinnerState.initial
     } else if (status == null) {

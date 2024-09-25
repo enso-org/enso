@@ -94,7 +94,7 @@ const ELECTRON_ARGS = [
   path.join(IDE_DIR_PATH, 'index.mjs'),
   ...ELECTRON_FLAGS,
   '--',
-  ...process.argv.slice(2),
+  ...process.argv.slice(2).map(arg => `'${arg}'`),
 ]
 
 process.on('SIGINT', () => {

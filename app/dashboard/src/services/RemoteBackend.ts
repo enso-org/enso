@@ -31,6 +31,8 @@ const STATUS_NOT_FOUND = 404
 const STATUS_SERVER_ERROR = 500
 /** HTTP status indicating that the request was successful, but the user is not authorized to access. */
 const STATUS_NOT_AUTHORIZED = 401
+/** HTTP status indicating that authorized user doesn't have access to the given resource */
+const STATUS_NOT_ALLOWED = 403
 
 /** The number of milliseconds in one day. */
 const ONE_DAY_MS = 86_400_000
@@ -63,7 +65,7 @@ function responseIsSuccessful(response: Response) {
 /** Whether the given directory is a special directory that cannot be written to. */
 export function isSpecialReadonlyDirectoryId(id: backend.AssetId) {
   return (
-    id !== remoteBackendPaths.USERS_DIRECTORY_ID && id !== remoteBackendPaths.TEAMS_DIRECTORY_ID
+    id === remoteBackendPaths.USERS_DIRECTORY_ID || id === remoteBackendPaths.TEAMS_DIRECTORY_ID
   )
 }
 
@@ -128,7 +130,6 @@ interface RemoteBackendPostOptions {
 /** Class for sending requests to the Cloud backend API endpoints. */
 export default class RemoteBackend extends Backend {
   readonly type = backend.BackendType.remote
-  readonly rootPath = 'enso://'
   // FIXME: For mock endpoint only, remove when backend is ready.
   readonly projectExecutions: backend.ProjectExecution[] = []
   private defaultVersions: Partial<Record<backend.VersionType, DefaultVersionInfo>> = {}
@@ -177,16 +178,31 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Return the ID of the root directory. */
-  override rootDirectoryId(
-    user: backend.User | null,
-    organization: backend.OrganizationInfo | null,
-  ): backend.DirectoryId | null {
-    switch (user?.plan ?? null) {
-      case null:
+  /** The path to the root directory of this {@link Backend}. */
+  override rootPath(user: backend.User) {
+    switch (user.plan) {
+      case undefined:
       case backend.Plan.free:
       case backend.Plan.solo: {
-        return user?.rootDirectoryId ?? null
+        return `enso://Users/${user.name}`
+      }
+      case backend.Plan.team:
+      case backend.Plan.enterprise: {
+        return 'enso://'
+      }
+    }
+  }
+
+  /** Return the ID of the root directory. */
+  override rootDirectoryId(
+    user: backend.User,
+    organization: backend.OrganizationInfo | null,
+  ): backend.DirectoryId | null {
+    switch (user.plan) {
+      case undefined:
+      case backend.Plan.free:
+      case backend.Plan.solo: {
+        return user.rootDirectoryId
       }
       case backend.Plan.team:
       case backend.Plan.enterprise: {
@@ -201,7 +217,9 @@ export default class RemoteBackend extends Backend {
   override async listUsers(): Promise<readonly backend.User[]> {
     const path = remoteBackendPaths.LIST_USERS_PATH
     const response = await this.get<ListUsersResponseBody>(path)
-    if (!responseIsSuccessful(response)) {
+    if (response.status === STATUS_NOT_ALLOWED) {
+      return []
+    } else if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'listUsersBackendError')
     } else {
       return (await response.json()).users
@@ -274,7 +292,7 @@ export default class RemoteBackend extends Backend {
   }
 
   /** List all invitations. */
-  override async listInvitations(): Promise<readonly backend.Invitation[]> {
+  override async listInvitations() {
     const response = await this.get<backend.ListInvitationsResponseBody>(
       remoteBackendPaths.INVITATION_PATH,
     )
@@ -282,11 +300,11 @@ export default class RemoteBackend extends Backend {
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'listInvitationsBackendError')
     } else {
-      return await response.json().then((data) => data.invitations)
+      return await response.json()
     }
   }
 
-  /** Delete an invitation. */
+  /** Delete an outgoing invitation. */
   override async deleteInvitation(userEmail: backend.EmailAddress): Promise<void> {
     const response = await this.delete(remoteBackendPaths.INVITATION_PATH, { userEmail })
 
@@ -297,9 +315,24 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Resend an invitation to a user. */
+  /** Resend an outgoing invitation to a user. */
   override async resendInvitation(userEmail: backend.EmailAddress): Promise<void> {
     await this.inviteUser({ userEmail, resend: true })
+  }
+
+  /** Accept an invitation to a new organization. */
+  override async acceptInvitation(): Promise<void> {
+    const response = await this.patch(remoteBackendPaths.ACCEPT_INVITATION_PATH, {})
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'acceptInvitationBackendError')
+    } else {
+      return
+    }
+  }
+
+  /** Decline an invitation to a new organization. */
+  override async declineInvitation(userEmail: backend.EmailAddress): Promise<void> {
+    await this.deleteInvitation(userEmail)
   }
 
   /** Upload a new profile picture for the current user. */
@@ -341,8 +374,9 @@ export default class RemoteBackend extends Backend {
   override async getOrganization(): Promise<backend.OrganizationInfo | null> {
     const path = remoteBackendPaths.GET_ORGANIZATION_PATH
     const response = await this.get<backend.OrganizationInfo>(path)
-    if (response.status === STATUS_NOT_FOUND) {
+    if ([STATUS_NOT_ALLOWED, STATUS_NOT_FOUND].includes(response.status)) {
       // Organization info has not yet been created.
+      // or the user is not eligible to create an organization.
       return null
     } else if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'getOrganizationBackendError')
@@ -655,8 +689,7 @@ export default class RemoteBackend extends Backend {
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'duplicateProjectBackendError', title)
     } else {
-      const json = await response.json()
-      return json
+      return await response.json()
     }
   }
 
@@ -1145,7 +1178,9 @@ export default class RemoteBackend extends Backend {
   override async listUserGroups(): Promise<backend.UserGroupInfo[]> {
     const path = remoteBackendPaths.LIST_USER_GROUPS_PATH
     const response = await this.get<backend.UserGroupInfo[]>(path)
-    if (!responseIsSuccessful(response)) {
+    if (response.status === STATUS_NOT_ALLOWED) {
+      return [] as const
+    } else if (!responseIsSuccessful(response)) {
       return this.throw(response, 'listUserGroupsBackendError')
     } else {
       return await response.json()

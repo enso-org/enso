@@ -1,15 +1,3 @@
-// === Features ===
-#![feature(hash_set_entry)]
-#![feature(type_alias_impl_trait)]
-#![feature(trait_alias)]
-#![feature(let_chains)]
-#![feature(exit_status_error)]
-#![feature(async_closure)]
-#![feature(associated_type_defaults)]
-#![feature(duration_constants)]
-#![feature(slice_take)]
-#![feature(future_join)]
-#![feature(trait_upcasting)]
 // === Non-Standard Linter Configuration ===
 #![warn(trivial_casts)]
 #![warn(unused_qualifications)]
@@ -33,6 +21,7 @@ pub mod aws;
 pub mod changelog;
 pub mod ci;
 pub mod ci_gen;
+pub mod cloud_tests;
 pub mod config;
 pub mod context;
 pub mod engine;

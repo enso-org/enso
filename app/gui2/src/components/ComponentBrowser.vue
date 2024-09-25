@@ -18,7 +18,7 @@ import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { type Typename } from '@/stores/suggestionDatabase/entry'
 import type { VisualizationDataSource } from '@/stores/visualization'
-import { cancelOnClickOutside, isNodeOutside } from '@/util/autoBlur'
+import { cancelOnClick, isNodeOutside, targetIsOutside } from '@/util/autoBlur'
 import { tryGetIndex } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
@@ -26,7 +26,7 @@ import { Vec2 } from '@/util/data/vec2'
 import { DEFAULT_ICON, suggestionEntryToIcon } from '@/util/getIconName'
 import { iconOfNode } from '@/util/getIconName.ts'
 import { debouncedGetter } from '@/util/reactivity'
-import type { ComponentInstance, Ref } from 'vue'
+import type { ComponentInstance } from 'vue'
 import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue'
 import type { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
@@ -54,6 +54,7 @@ const props = defineProps<{
   nodePosition: Vec2
   navigator: ReturnType<typeof useNavigator>
   usage: Usage
+  associatedElements: HTMLElement[]
 }>()
 
 const emit = defineEmits<{
@@ -63,12 +64,21 @@ const emit = defineEmits<{
     firstAppliedReturnType: Typename | undefined,
   ]
   canceled: []
+  selectedSuggestionId: [id: SuggestionId | null]
+  isAiPrompt: [boolean]
 }>()
 
 const cbRoot = ref<HTMLElement>()
 const componentList = ref<ComponentInstance<typeof ComponentList>>()
 
-const cbOpen: Interaction = cancelOnClickOutside(cbRoot, {
+defineExpose({ cbRoot })
+
+const clickOutsideAssociatedElements = (e: PointerEvent) => {
+  return props.associatedElements.length === 0 ?
+      false
+    : props.associatedElements.every((element) => targetIsOutside(e, element))
+}
+const cbOpen: Interaction = cancelOnClick(clickOutsideAssociatedElements, {
   cancel: () => emit('canceled'),
   end: () => {
     // In AI prompt mode likely the input is not a valid mode.
@@ -104,7 +114,7 @@ function panIntoView() {
     new Vec2(screenRect.width, screenRect.height).scale(clientToSceneFactor.value),
   )
   const margins = scaleValues(PAN_MARGINS, clientToSceneFactor.value)
-  props.navigator.panTo([
+  props.navigator.panToThenFollow([
     // Always include the top-left of the input area.
     { x: area.left, y: area.top },
     // Try to reach the bottom-right corner of the panels.
@@ -267,13 +277,15 @@ const visualizationSelection = ref<Opt<VisualizationIdentifier>>(
   : undefined,
 )
 
+const isVisualizationVisible = ref(true)
+
 // === Documentation Panel ===
 
-const docEntry: Ref<Opt<SuggestionId>> = ref(null)
-
-watch(selectedSuggestionId, (id) => {
-  docEntry.value = id
-})
+watch(selectedSuggestionId, (id) => emit('selectedSuggestionId', id ?? null))
+watch(
+  () => input.mode,
+  (mode) => emit('isAiPrompt', mode.mode === 'aiPrompt'),
+)
 
 // === Accepting Entry ===
 
@@ -352,13 +364,15 @@ const handler = componentBrowserBindings.handler({
     @keydown.arrow-right.stop
   >
     <GraphVisualization
-      v-if="input.mode.mode === 'codeEditing'"
+      v-if="input.mode.mode === 'codeEditing' && isVisualizationVisible"
       class="visualization-preview"
       :nodeSize="inputSize"
       :nodePosition="nodePosition"
       :scale="1"
       :isCircularMenuVisible="false"
       :isFullscreen="false"
+      :isFullscreenAllowed="false"
+      :isResizable="false"
       :isFocused="true"
       :width="null"
       :height="null"
@@ -366,6 +380,7 @@ const handler = componentBrowserBindings.handler({
       :typename="previewedSuggestionReturnType"
       :currentType="visualizationSelection"
       @update:id="visualizationSelection = $event"
+      @update:enabled="isVisualizationVisible = $event"
     />
     <ComponentEditor
       ref="inputElement"
@@ -393,6 +408,16 @@ const handler = componentBrowserBindings.handler({
         @click.stop="applySuggestion()"
       />
     </ComponentEditor>
+    <div
+      v-if="input.mode.mode === 'codeEditing' && !isVisualizationVisible"
+      class="show-visualization"
+    >
+      <SvgButton
+        name="eye"
+        title="Show visualization"
+        @click.stop="isVisualizationVisible = true"
+      />
+    </div>
     <ComponentList
       v-if="input.mode.mode === 'componentBrowsing' && currentFiltering"
       ref="componentList"
@@ -415,6 +440,13 @@ const handler = componentBrowserBindings.handler({
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.show-visualization {
+  position: relative;
+  display: flex;
+  padding: 8px;
+  opacity: 30%;
 }
 
 .component-editor {

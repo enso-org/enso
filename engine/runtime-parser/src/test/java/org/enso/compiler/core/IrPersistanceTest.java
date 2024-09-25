@@ -9,7 +9,6 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import org.enso.compiler.core.ir.DiagnosticStorage;
 import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.core.ir.Location;
 import org.enso.compiler.core.ir.MetadataStorage;
@@ -288,8 +287,7 @@ public class IrPersistanceTest {
   @Test
   public void serializeModule() throws Exception {
     var meta = new MetadataStorage();
-    var diag = new DiagnosticStorage(nil());
-    var m = new Module(nil(), nil(), nil(), true, Option.empty(), meta, diag);
+    var m = new Module(nil(), nil(), nil(), true, Option.empty(), meta);
 
     var out = serde(Module.class, m, -1);
 

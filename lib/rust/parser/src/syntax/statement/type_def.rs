@@ -46,12 +46,12 @@ pub fn try_parse_type_def<'s>(
         let lines = block.into_iter().map(|item::Line { newline, mut items }| block::Line {
             newline,
             expression: {
-                if let Some(Item::Token(token)) = items.first_mut()
-                    && matches!(token.variant, token::Variant::Operator(_))
-                {
-                    let opr_ident =
-                        token::variant::Ident { is_operator_lexically: true, ..default() };
-                    token.variant = token::Variant::Ident(opr_ident);
+                if let Some(Item::Token(token)) = items.first_mut() {
+                    if matches!(token.variant, token::Variant::Operator(_)) {
+                        let opr_ident =
+                            token::variant::Ident { is_operator_lexically: true, ..default() };
+                        token.variant = token::Variant::Ident(opr_ident);
+                    }
                 }
                 parse_type_body_statement(items, precedence, args_buffer)
             },
