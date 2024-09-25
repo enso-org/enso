@@ -46,17 +46,11 @@ export interface DuplicateAssetsModalProps {
   readonly nonConflictingProjectCount: number
   readonly doUploadNonConflicting: () => void
   readonly doUpdateConflicting: (toUpdate: ConflictingAsset[]) => void
-  /**
-   * Whether the user can update the assets.
-   * Usually it's not possible to update assets in local backends.
-   * @default true
-   */
-  readonly canUpdate?: boolean
 }
 
 /** A modal for creating a new label. */
 export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
-  const { conflictingFiles: conflictingFilesRaw, canUpdate = true } = props
+  const { conflictingFiles: conflictingFilesRaw } = props
   const { conflictingProjects: conflictingProjectsRaw, doUpdateConflicting } = props
   const { siblingFileNames: siblingFileNamesRaw } = props
   const { siblingProjectNames: siblingProjectNamesRaw } = props
@@ -200,7 +194,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                 className="relative"
               />
             </div>
-            {count > 1 && canUpdate && (
+            {count > 1 && (
               <ariaComponents.ButtonGroup>
                 <ariaComponents.Button
                   variant="outline"
@@ -261,18 +255,17 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
         )}
 
         <ariaComponents.ButtonGroup className="relative">
-          {canUpdate && (
-            <ariaComponents.Button
-              variant="submit"
-              onPress={() => {
-                doUploadNonConflicting()
-                doUpdateConflicting([...conflictingFiles, ...conflictingProjects])
-                unsetModal()
-              }}
-            >
-              {count === 1 ? getText('update') : getText('updateAll')}
-            </ariaComponents.Button>
-          )}
+          <ariaComponents.Button
+            variant="submit"
+            onPress={() => {
+              doUploadNonConflicting()
+              doUpdateConflicting([...conflictingFiles, ...conflictingProjects])
+              unsetModal()
+            }}
+          >
+            {count === 1 ? getText('update') : getText('updateAll')}
+          </ariaComponents.Button>
+
           <ariaComponents.Button
             variant="accent"
             onPress={() => {

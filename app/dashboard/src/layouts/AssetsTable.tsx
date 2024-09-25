@@ -128,7 +128,7 @@ import {
 } from '#/services/Backend'
 import LocalBackend, { extractTypeAndId, newProjectId } from '#/services/LocalBackend'
 import { UUID } from '#/services/ProjectManager'
-import RemoteBackend, { isSpecialReadonlyDirectoryId } from '#/services/RemoteBackend'
+import { isSpecialReadonlyDirectoryId } from '#/services/RemoteBackend'
 import type { AssetQueryKey } from '#/utilities/AssetQuery'
 import AssetQuery from '#/utilities/AssetQuery'
 import type { AnyAssetTreeNode } from '#/utilities/AssetTreeNode'
@@ -1824,7 +1824,6 @@ export default function AssetsTable(props: AssetsTableProps) {
           })
           setModal(
             <DuplicateAssetsModal
-              canUpdate={backend instanceof RemoteBackend}
               parentKey={event.parentKey}
               parentId={event.parentId}
               conflictingFiles={conflictingFiles}
