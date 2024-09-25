@@ -15,6 +15,10 @@ import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 
 public class UnaryRoundOperation extends AbstractUnaryOperation {
+  // Used to determine whether we should use Double or BigDecimal operations.
+  // Values outside this range are promoted to BigDecimal operation, because
+  // representing their rounded value as a Long might overflow the Long dynamic
+  // range.
   public static final double USE_DOUBLE_LIMIT_POSITIVE = 9223372036854775000.0;
   public static final double USE_DOUBLE_LIMIT_NEGATIVE = -9223372036854775000.0;
 

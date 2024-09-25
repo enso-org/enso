@@ -8,7 +8,10 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.problems.ProblemAggregator;
 
 /**
- * A builder performing type inference on the appended elements, choosing the best possible storage.
+ * A builder for storing enso Integers, which might be Longs or BigIntegers.
+ *
+ * This builder starts off delegating to LongBuilder, but if it receives a
+ * BigInteger, it retypes the LongBuilder to a BigIntegerBuilder.
  */
 public class InferredIntegerBuilder extends Builder {
   private LongBuilder longBuilder = null;
@@ -19,8 +22,6 @@ public class InferredIntegerBuilder extends Builder {
 
   /**
    * Creates a new instance of this builder, with the given known result length.
-   *
-   * @param initialSize the result length
    */
   public InferredIntegerBuilder (int initialSize, ProblemAggregator problemAggregator) {
     this.initialSize = initialSize;
@@ -103,6 +104,8 @@ public class InferredIntegerBuilder extends Builder {
     }
   }
 
+  // Retype the LongBuilder to a BigIntegerBuilder, if we haven't already
+  // done so.
   private void retypeToBigIntegerMaybe() {
     if (bigIntegerBuilder != null) {
       return;
