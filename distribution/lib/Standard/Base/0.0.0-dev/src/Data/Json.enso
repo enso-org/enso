@@ -30,7 +30,7 @@ from project.Data.Range.Extensions import all
 from project.Data.Text.Extensions import all
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Single_Choice, Text_Input, Vector_Editor
-from project.Widget_Helpers import make_any_selector
+from project.Widget_Helpers import make_all_selector
 
 polyglot java import com.fasterxml.jackson.core.JsonLocation
 polyglot java import com.fasterxml.jackson.core.JsonProcessingException
@@ -350,7 +350,7 @@ type JS_Object
 ## PRIVATE
    Make a field name selector
 make_field_name_selector : JS_Object -> Display -> Widget
-make_field_name_selector js_object display=Display.Always =
+make_field_name_selector js_object display:Display=..Always =
     Single_Choice display=display values=(js_object.field_names.map n->(Option n n.pretty))
 
 ## PRIVATE
@@ -429,9 +429,8 @@ make_enso object =
 ## PRIVATE
 key_value_widget : Widget
 key_value_widget =
-    value_editor = make_any_selector add_text=True add_number=True add_boolean=True add_date=True add_time=True add_date_time=True add_nothing=True
-    fqn = Meta.get_qualified_type_name Pair
-    default = 'Pair.Value "key" Nothing'
-    pair = Option "Pair" fqn+".Value" [["first", Text_Input], ["second", value_editor]]
+    fqn = Meta.get_qualified_type_name Pair . drop (..Last 5)
+    default = 'pair "key" Nothing'
+    pair = Option "Pair" fqn+".pair" [["first", Text_Input], ["second", make_all_selector]]
     item_editor = Single_Choice display=..Always values=[pair]
     Vector_Editor item_editor=item_editor display=..Always item_default=default

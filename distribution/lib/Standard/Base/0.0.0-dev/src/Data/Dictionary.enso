@@ -6,10 +6,15 @@ import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.No_Such_Key.No_Such_Key
+import project.Meta
+import project.Metadata.Widget
 import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
+from project.Metadata.Choice import Option
+from project.Metadata.Widget import Single_Choice, Vector_Editor
+from project.Widget_Helpers import make_all_selector
 
 ## A key-value store. It is possible to use any type as keys and values and mix
    them in one Dictionary. Keys are checked for equality based on their hash
@@ -32,14 +37,12 @@ from project.Data.Text.Extensions import all
    to pass a foreign map into Enso, where it will be treated as a Dictionary.
 @Builtin_Type
 type Dictionary key value
-    ## PRIVATE
-       ADVANCED
+    ## ICON array_new2
        Returns an empty dictionary.
     empty : Dictionary
     empty = @Builtin_Method "Dictionary.empty"
 
-    ## PRIVATE
-       ADVANCED
+    ## ICON array_new2
        Returns a single-element dictionary with the given key and value.
        A Call to `Dictionary.singleton key value` is the same as a call to
        `Dictionary.empty.insert key value`.
@@ -53,12 +56,14 @@ type Dictionary key value
          value 2.
 
              example_singleton = Dictionary.singleton "my_key" 2
+    @key (make_all_selector ..Always)
+    @value (make_all_selector ..Always)
     singleton : Any -> Any -> Dictionary
     singleton key value = Dictionary.empty.insert key value
 
     ## ALIAS dictionary, lookup table
        GROUP Constants
-       ICON convert
+       ICON array_new2
        Builds a dictionary from two Vectors. The first vector contains the keys,
        and the second vector contains the values. The two vectors must be of the
        same length.
@@ -71,6 +76,8 @@ type Dictionary key value
          meaning that if two entries in the vector share the same key, an
          `Illegal_Argument` error is raised. If set to `False`, the last entry
          with a given key will be kept.
+    @keys (Vector_Editor item_editor=make_all_selector display=..Always item_default="Nothing")
+    @values (Vector_Editor item_editor=make_all_selector display=..Always item_default="Nothing")
     from_keys_and_values : Vector Any -> Vector Any -> Boolean -> Dictionary ! Illegal_Argument
     from_keys_and_values keys:Vector values:Vector error_on_duplicates:Boolean=True =
         if keys.length != values.length then Error.throw (Illegal_Argument.Error "`Dictionary.from_keys_and_values` encountered two vectors of different lengths.") else
@@ -80,7 +87,7 @@ type Dictionary key value
 
     ## ALIAS dictionary, lookup table
        GROUP Constants
-       ICON convert
+       ICON array_new2
        Builds a dictionary from a vector of key-value pairs, with each key-value
        pair represented as a 2 element vector.
 
@@ -96,8 +103,9 @@ type Dictionary key value
          Building a dictionary containing two key-value pairs.
 
              example_from_vector = Dictionary.from_vector [["A", 1], ["B", 2]]
+    @vec key_value_widget
     from_vector : Vector Any -> Boolean -> Dictionary ! Illegal_Argument
-    from_vector vec error_on_duplicates=True =
+    from_vector vec error_on_duplicates:Boolean=True =
         vec.fold Dictionary.empty m-> el-> if el.length != 2 then Error.throw (Illegal_Argument.Error "`Dictionary.from_vector` encountered an invalid value. Each value in the vector has to be a key-value pair - it must have exactly 2 elements.") else
             key = el.at 0
             value = el.at 1
@@ -152,6 +160,8 @@ type Dictionary key value
              import Standard.Examples
 
              example_insert = Examples.dictionary.insert 7 "seven"
+    @key (make_all_selector ..Always)
+    @value (make_all_selector ..Always)
     insert : Any -> Any -> Dictionary
     insert self key value = @Builtin_Method "Dictionary.insert"
 
@@ -423,3 +433,18 @@ type Dictionary key value
     ## PRIVATE
     get_builtin : Any -> Any -> Any
     get_builtin self key ~if_missing = @Builtin_Method "Dictionary.get_builtin"
+
+## PRIVATE
+key_widget Dictionary -> Widget
+key_widget dict =
+    values = dict.keys.map k-> Option k.to_text k.pretty
+    Single_Choice display=..Always values=values
+
+## PRIVATE
+key_value_widget : Widget
+key_value_widget =
+    fqn = Meta.get_qualified_type_name Pair . drop (..Last 5)
+    default = 'pair "key" Nothing'
+    pair = Option "Pair" fqn+".pair" [["first", make_all_selector], ["second", make_all_selector]]
+    item_editor = Single_Choice display=..Always values=[pair]
+    Vector_Editor item_editor=item_editor display=..Always item_default=default
