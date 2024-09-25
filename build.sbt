@@ -654,10 +654,10 @@ lazy val componentModulesPaths =
     GraalVM.toolsPkgs ++
     helidon ++
     scalaLibrary ++
-    scalaCompiler ++
     ioSentry ++
     logbackPkg ++
     Seq(
+      "org.scala-lang"         % "scala-reflect"                % scalacVersion,
       "org.netbeans.api"       % "org-openide-util-lookup"      % netbeansApiVersion,
       "org.netbeans.api"       % "org-netbeans-modules-sampler" % netbeansApiVersion,
       "com.google.flatbuffers" % "flatbuffers-java"             % flatbuffersVersion,
@@ -1184,17 +1184,17 @@ lazy val `scala-libs-wrapper` = project
     modularFatJarWrapperSettings,
     scalaModuleDependencySetting,
     javaModuleName := "org.enso.scala.wrapper",
-    libraryDependencies ++= circe ++ Seq(
+    libraryDependencies ++= circe ++ scalaCompiler ++ Seq(
       "com.typesafe.scala-logging"            %% "scala-logging"         % scalaLoggingVersion,
       "org.slf4j"                              % "slf4j-api"             % slf4jVersion,
       "org.typelevel"                         %% "cats-core"             % catsVersion,
-      "org.scala-lang"                         % "scala-compiler"        % scalacVersion,
       "org.jline"                              % "jline"                 % jlineVersion,
       "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion,
       "net.java.dev.jna"                       % "jna"                   % jnaVersion
     ),
-    Compile / moduleDependencies ++= scalaCompiler ++ Seq(
-      "org.jline"        % "jline"     % jlineVersion,
+    Compile / moduleDependencies ++= scalaLibrary ++ Seq(
+      "org.scala-lang"   % "scala-reflect"   % scalacVersion,
+      "org.jline"        % "jline"         % jlineVersion,
       "org.slf4j"        % "slf4j-api" % slf4jVersion,
       "net.java.dev.jna" % "jna"       % jnaVersion
     ),
@@ -1204,6 +1204,7 @@ lazy val `scala-libs-wrapper` = project
         scalaLibrary ++
         scalaCompiler ++
         Seq(
+          "org.scala-lang"            % "scala-reflect"   % scalacVersion,
           "org.slf4j"                 % "slf4j-api"       % slf4jVersion,
           "io.github.java-diff-utils" % "java-diff-utils" % javaDiffVersion,
           "org.jline"                 % "jline"           % jlineVersion,

@@ -1,8 +1,6 @@
 module org.enso.scala.wrapper {
   requires scala.library;
   requires scala.reflect;
-  // scala-compiler.jar
-  requires scala.tools.nsc;
   requires org.jline;
   requires org.slf4j;
 
