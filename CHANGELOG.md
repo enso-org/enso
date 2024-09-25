@@ -60,8 +60,8 @@
 - [Add `Text.to_decimal`.][10874]
 - [Added .floor, .ceil, .trunc to the in-memory `Decimal` column.][10887]
 - [Added vectorized .round to the in-memory `Decimal` column.][10912]
-- [`select_into_database_table` no longer defaults the primary key to the
-  first column][11120]
+- [`select_into_database_table` no longer defaults the primary key to the first
+  column][11120]
 
 [10614]: https://github.com/enso-org/enso/pull/10614
 [10660]: https://github.com/enso-org/enso/pull/10660
