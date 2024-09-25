@@ -52,8 +52,6 @@ export interface BaseButtonProps<Render>
     | string
     | ((render: Render) => React.ReactElement | string | null)
     | null
-  /** When `true`, icon will be shown directly instead of being used as a mask. */
-  readonly disableMask?: boolean
   /**
    * When `true`, icon will be shown only when hovered.
    */
@@ -298,7 +296,6 @@ export const Button = forwardRef(function Button(
     icon,
     loading = false,
     isActive,
-    disableMask = false,
     showIconOnHover,
     iconPosition,
     size,
@@ -414,8 +411,7 @@ export const Button = forwardRef(function Button(
         const actualIcon = typeof icon === 'function' ? icon(render) : icon
 
         if (typeof actualIcon === 'string') {
-          const IconTag = disableMask ? 'img' : SvgMask
-          return <IconTag src={actualIcon} className={styles.icon()} />
+          return <SvgMask src={actualIcon} className={styles.icon()} />
         } else {
           return <span className={styles.icon()}>{actualIcon}</span>
         }

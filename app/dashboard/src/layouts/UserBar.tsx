@@ -111,8 +111,9 @@ export default function UserBar(props: UserBarProps) {
                 size="custom"
                 variant="icon"
                 isActive
-                disableMask
-                icon={user.profilePicture ?? DefaultUserIcon}
+                icon={
+                  <img src={user.profilePicture ?? DefaultUserIcon} className="aspect-square" />
+                }
                 aria-label={getText('userMenuLabel')}
                 className="overflow-clip rounded-full opacity-100"
                 contentClassName="size-8"

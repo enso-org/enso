@@ -103,7 +103,7 @@ const BASE_STEPS: Step[] = [
                   if (timePassedMs > USER_REFETCH_TIMEOUT_MS) {
                     // eslint-disable-next-line no-restricted-syntax
                     throw new Error(
-                      'Timed out waiting for subscription, please contact support to continue.',
+                      'Timed out waiting for registration, please contact support to continue.',
                     )
                   } else {
                     await new Promise((resolve) => {

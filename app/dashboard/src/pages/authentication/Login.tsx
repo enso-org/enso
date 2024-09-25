@@ -100,7 +100,6 @@ export default function Login() {
                 size="large"
                 variant="outline"
                 icon={GoogleIcon}
-                disableMask
                 onPress={async () => {
                   await signInWithGoogle()
                 }}
@@ -111,7 +110,6 @@ export default function Login() {
                 size="large"
                 variant="outline"
                 icon={GithubIcon}
-                disableMask
                 onPress={async () => {
                   await signInWithGitHub()
                 }}

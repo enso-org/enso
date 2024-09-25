@@ -45,7 +45,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
         schema={z.object({
           name: z
             .string()
-            .min(1, getText('emptyStringError'))
+            .min(1)
             .refine((value) => !labelNamesRef.current.has(value), {
               message: getText('duplicateLabelError'),
             }),
