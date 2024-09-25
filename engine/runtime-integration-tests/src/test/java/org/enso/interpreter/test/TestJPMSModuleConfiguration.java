@@ -41,4 +41,17 @@ public class TestJPMSModuleConfiguration {
     var newClazz = lookup.accessClass(clazz);
     assertThat(newClazz, is(notNullValue()));
   }
+
+  @Test
+  public void logProviderIsOnModulePath() {
+    var modName = "org.enso.logging.service.logback.test.provider";
+    var logProviderMod = ModuleLayer.boot().findModule(modName);
+    var bootModuleNames = ModuleLayer.boot().modules().stream().map(Module::getName).toList();
+    assertThat(
+        "Test log provider module should be in the boot module layer. "
+            + "Contents of boot module layer: "
+            + bootModuleNames,
+        logProviderMod.isPresent(),
+        is(true));
+  }
 }
