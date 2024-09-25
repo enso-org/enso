@@ -1138,7 +1138,7 @@ add_specs suite_builder setup =
             table = table_builder [["x", [0, 3, -3, 1, -2]]]
             table.at "x" . round 16 . should_fail_with Illegal_Argument
 
-        if setup.is_database.not then
+        if setup.test_selection.supports_decimal_type then
             group_builder.specify "ceil, floor and truncate should work correctly on Integers outside the java Long range" <|
                 positive_values = [9223372036854775806, 9223372036854775807, 9223372036854775808, 9223372036854775809, 9223372036854775807000000]
                 values = positive_values + positive_values.map .negate
