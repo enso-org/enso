@@ -337,6 +337,8 @@ export default function AuthProvider(props: AuthProviderProps) {
     }
   })
 
+  const refetchSession = usersMeQuery.refetch
+
   const setUsername = useEventCallback(async (username: string) => {
     gtagEvent('cloud_user_created')
 
@@ -353,6 +355,12 @@ export default function AuthProvider(props: AuthProviderProps) {
           organizationId != null ? backendModule.OrganizationId(organizationId) : null,
       })
     }
+    // Wait until the backend returns a value from `users/me`,
+    // otherwise the rest of the steps are skipped.
+    // This only happens on specific devices, and (seemingly) only when using
+    // the Vite development server, not with the built application bundle.
+    // i.e. PROD=1
+    await refetchSession()
 
     return true
   })
@@ -513,7 +521,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     forgotPassword,
     resetPassword,
     changePassword: withLoadingToast(changePassword),
-    refetchSession: usersMeQuery.refetch,
+    refetchSession,
     session: userData,
     signOut: logoutMutation.mutateAsync,
     setUser,

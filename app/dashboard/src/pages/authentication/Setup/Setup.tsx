@@ -62,7 +62,7 @@ const BASE_STEPS: Step[] = [
     hideNext: true,
     /** Setup step for setting username. */
     component: function SetUsernameStep({ session, goToNextStep }) {
-      const { setUsername, refetchSession } = useAuth()
+      const { setUsername } = useAuth()
       const userSession = useUserSession()
       const { getText } = textProvider.useText()
 
@@ -88,9 +88,6 @@ const BASE_STEPS: Step[] = [
             // changed.
             if (username !== defaultName || !isUserCreated) {
               await setUsername(username)
-              // Wait until the backend returns a value from `users/me`,
-              // otherwise the rest of the steps are skipped.
-              await refetchSession()
             }
             goToNextStep()
           }}
