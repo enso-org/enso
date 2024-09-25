@@ -54,7 +54,7 @@ object JPMSUtils {
 
     val ret = cp.filter(dep => {
       val moduleID = dep.metadata.get(AttributeKey[ModuleID]("moduleID")).get
-      shouldFilterModule(distinctModules)(moduleID)
+      shouldFilterModule(distinctModules, scalaBinaryVersion)(moduleID)
     })
 
     if (shouldContainAll) {
@@ -95,7 +95,7 @@ object JPMSUtils {
     val distinctModules = modules.distinct
 
     val foundFiles = updateReport.select(
-      module = shouldFilterModule(distinctModules)
+      module = shouldFilterModule(distinctModules, scalaBinaryVersion)
     )
     if (shouldContainAll) {
       if (foundFiles.size < distinctModules.size) {
@@ -117,7 +117,8 @@ object JPMSUtils {
   }
 
   def shouldFilterModule(
-    distinctModules: Seq[ModuleID]
+    distinctModules: Seq[ModuleID],
+    scalaBinaryVersion: String
   )(module: ModuleID): Boolean = {
     distinctModules.exists(m =>
       m.organization == module.organization &&
