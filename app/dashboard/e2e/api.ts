@@ -918,8 +918,12 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         currentUser = { ...currentUser, name: body.username }
       }
     })
-    await get(remoteBackendPaths.USERS_ME_PATH + '*', () => {
-      return currentUser
+    await get(remoteBackendPaths.USERS_ME_PATH + '*', (route) => {
+      if (currentUser == null) {
+        return route.fulfill({ status: HTTP_STATUS_NOT_FOUND })
+      } else {
+        return currentUser
+      }
     })
     await patch(remoteBackendPaths.UPDATE_ORGANIZATION_PATH + '*', async (route, request) => {
       // The type of the body sent by this app is statically known.

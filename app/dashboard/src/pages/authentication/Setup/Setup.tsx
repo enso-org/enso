@@ -31,9 +31,6 @@ import { InviteUsersForm } from '#/modals/InviteUsersModal'
 import { PlanSelector } from '#/modules/payments'
 import { Plan } from '#/services/Backend'
 
-const USER_REFETCH_DELAY_MS = 3_000
-const USER_REFETCH_TIMEOUT_MS = 30_000
-
 /**
  * Step in the setup process
  */
@@ -93,25 +90,7 @@ const BASE_STEPS: Step[] = [
               await setUsername(username)
               // Wait until the backend returns a value from `users/me`,
               // otherwise the rest of the steps are skipped.
-              const startEpochMs = Number(new Date())
-              while (true) {
-                const { data: newSession } = await refetchSession()
-                if (newSession?.type === UserSessionType.full) {
-                  break
-                } else {
-                  const timePassedMs = Number(new Date()) - startEpochMs
-                  if (timePassedMs > USER_REFETCH_TIMEOUT_MS) {
-                    // eslint-disable-next-line no-restricted-syntax
-                    throw new Error(
-                      'Timed out waiting for registration, please contact support to continue.',
-                    )
-                  } else {
-                    await new Promise((resolve) => {
-                      window.setTimeout(resolve, USER_REFETCH_DELAY_MS)
-                    })
-                  }
-                }
-              }
+              await refetchSession()
             }
             goToNextStep()
           }}
