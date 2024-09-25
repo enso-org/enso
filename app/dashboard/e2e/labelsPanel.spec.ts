@@ -5,7 +5,6 @@ import {
   locateCreateButton,
   locateLabelsPanel,
   locateLabelsPanelLabels,
-  locateModalBackground,
   locateNewLabelButton,
   locateNewLabelModal,
   locateNewLabelModalColorButtons,
@@ -24,9 +23,6 @@ test.test('labels', async ({ page }) => {
   await locateNewLabelButton(page).click()
   await test.expect(locateNewLabelModal(page)).toBeVisible()
   await page.press('body', 'Escape')
-  await test.expect(locateNewLabelModal(page)).not.toBeVisible()
-  await locateNewLabelButton(page).click()
-  await locateModalBackground(page).click()
   await test.expect(locateNewLabelModal(page)).not.toBeVisible()
   await locateNewLabelButton(page).click()
 

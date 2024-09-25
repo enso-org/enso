@@ -63,7 +63,7 @@ export default function ManageLabelsModal<
   const [query, setQuery] = React.useState('')
   const [color, setColor] = React.useState<backendModule.LChColor | null>(null)
   const leastUsedColor = React.useMemo(
-    () => backendModule.leastUsedColor(allLabels ?? []),
+    () => backendModule.getLeastUsedColor(allLabels ?? []),
     [allLabels],
   )
   const position = React.useMemo(() => eventTarget?.getBoundingClientRect(), [eventTarget])
