@@ -1193,10 +1193,10 @@ lazy val `scala-libs-wrapper` = project
       "net.java.dev.jna"                       % "jna"                   % jnaVersion
     ),
     Compile / moduleDependencies ++= scalaLibrary ++ Seq(
-      "org.scala-lang"   % "scala-reflect"   % scalacVersion,
+      "org.scala-lang"   % "scala-reflect" % scalacVersion,
       "org.jline"        % "jline"         % jlineVersion,
-      "org.slf4j"        % "slf4j-api" % slf4jVersion,
-      "net.java.dev.jna" % "jna"       % jnaVersion
+      "org.slf4j"        % "slf4j-api"     % slf4jVersion,
+      "net.java.dev.jna" % "jna"           % jnaVersion
     ),
     assembly / assemblyExcludedJars := {
       JPMSUtils.filterModulesFromClasspath(
