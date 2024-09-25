@@ -80,8 +80,20 @@ export interface NewProjectExecutionModalProps {
 }
 
 /** A modal for confirming the deletion of an asset. */
-export default function NewProjectExecutionModal(props: NewProjectExecutionModalProps) {
-  const { backend, item, defaultOpen } = props
+export function NewProjectExecutionModal(props: NewProjectExecutionModalProps) {
+  const { defaultOpen } = props
+  const { getText } = useText()
+
+  return (
+    <Dialog title={getText('newProjectExecution')} {...(defaultOpen != null && { defaultOpen })}>
+      <NewProjectExecutionModalInner {...props} />
+    </Dialog>
+  )
+}
+
+/** A modal for confirming the deletion of an asset. */
+function NewProjectExecutionModalInner(props: NewProjectExecutionModalProps) {
+  const { backend, item } = props
   const { getText } = useText()
 
   const nowZonedDateTime = now(getLocalTimeZone())
@@ -149,72 +161,66 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
   })
 
   return (
-    <Dialog title={getText('newProjectExecution')} {...(defaultOpen != null && { defaultOpen })}>
-      {({ close }) => (
-        <Form form={form} className="w-full">
-          <Selector
+    <Form form={form} className="w-full">
+      <Selector
+        form={form}
+        isRequired
+        name="repeatInterval"
+        label={getText('repeatIntervalLabel')}
+        items={PROJECT_REPEAT_INTERVALS}
+      >
+        {(interval) => getText(REPEAT_INTERVAL_TO_TEXT_ID[interval])}
+      </Selector>
+      <div className="flex w-full flex-col">
+        <Selector
+          form={form}
+          isRequired
+          name="parallelMode"
+          label={getText('parallelModeLabel')}
+          items={PROJECT_PARALLEL_MODES}
+        >
+          {(interval) => getText(PARALLEL_MODE_TO_TEXT_ID[interval])}
+        </Selector>
+        <Text>{getText(PARALLEL_MODE_TO_DESCRIPTION_ID[parallelMode])}</Text>
+      </div>
+      {repeatInterval !== 'hourly' && (
+        <div className="flex flex-col">
+          <DatePicker
             form={form}
             isRequired
-            name="repeatInterval"
-            label={getText('repeatIntervalLabel')}
-            items={PROJECT_REPEAT_INTERVALS}
-          >
-            {(interval) => getText(REPEAT_INTERVAL_TO_TEXT_ID[interval])}
-          </Selector>
-          <div className="flex w-full flex-col">
-            <Selector
-              form={form}
-              isRequired
-              name="parallelMode"
-              label={getText('parallelModeLabel')}
-              items={PROJECT_PARALLEL_MODES}
-            >
-              {(interval) => getText(PARALLEL_MODE_TO_TEXT_ID[interval])}
-            </Selector>
-            <Text>{getText(PARALLEL_MODE_TO_DESCRIPTION_ID[parallelMode])}</Text>
-          </div>
-          {repeatInterval !== 'hourly' && (
-            <div className="flex flex-col">
-              <DatePicker
-                form={form}
-                isRequired
-                name="date"
-                label={getText('firstOccurrenceLabel')}
-                noCalendarHeader
-                minValue={minFirstOccurrence}
-                maxValue={maxFirstOccurrence}
-              />
-              <Text>
-                {getText(
-                  'repeatsAtX',
-                  repeatTimes
-                    .map((time) =>
-                      toCalendarDate(time).toDate(getLocalTimeZone()).toLocaleDateString(),
-                    )
-                    .join(', '),
-                )}
-              </Text>
-            </div>
-          )}
-          <Input
-            form={form}
-            name="maxDurationMinutes"
-            type="number"
-            defaultValue={MAX_DURATION_DEFAULT_MINUTES}
-            min={MAX_DURATION_MINIMUM_MINUTES}
-            max={MAX_DURATION_MAXIMUM_MINUTES}
-            label={getText('maxDurationMinutesLabel')}
+            name="date"
+            label={getText('firstOccurrenceLabel')}
+            noCalendarHeader
+            minValue={minFirstOccurrence}
+            maxValue={maxFirstOccurrence}
           />
-
-          <Form.FormError />
-          <ButtonGroup>
-            <Form.Submit />
-            <Button variant="outline" onPress={close}>
-              {getText('cancel')}
-            </Button>
-          </ButtonGroup>
-        </Form>
+          <Text>
+            {getText(
+              'repeatsAtX',
+              repeatTimes
+                .map((time) => toCalendarDate(time).toDate(getLocalTimeZone()).toLocaleDateString())
+                .join(', '),
+            )}
+          </Text>
+        </div>
       )}
-    </Dialog>
+      <Input
+        form={form}
+        name="maxDurationMinutes"
+        type="number"
+        defaultValue={MAX_DURATION_DEFAULT_MINUTES}
+        min={MAX_DURATION_MINIMUM_MINUTES}
+        max={MAX_DURATION_MAXIMUM_MINUTES}
+        label={getText('maxDurationMinutesLabel')}
+      />
+
+      <Form.FormError />
+      <ButtonGroup>
+        <Form.Submit />
+        <Button formnovalidate variant="outline">
+          {getText('cancel')}
+        </Button>
+      </ButtonGroup>
+    </Form>
   )
 }
