@@ -38,7 +38,7 @@ export type TSchema =
 export interface OnSubmitCallbacks<Schema extends TSchema, SubmitResult = void> {
   readonly onSubmit?:
     | ((
-        values: FieldValues<Schema>,
+        values: TransformedValues<Schema>,
         form: UseFormReturn<Schema>,
       ) => Promise<SubmitResult> | SubmitResult)
     | undefined
@@ -46,14 +46,14 @@ export interface OnSubmitCallbacks<Schema extends TSchema, SubmitResult = void> 
   readonly onSubmitFailed?:
     | ((
         error: unknown,
-        values: FieldValues<Schema>,
+        values: TransformedValues<Schema>,
         form: UseFormReturn<Schema>,
       ) => Promise<void> | void)
     | undefined
   readonly onSubmitSuccess?:
     | ((
         data: SubmitResult,
-        values: FieldValues<Schema>,
+        values: TransformedValues<Schema>,
         form: UseFormReturn<Schema>,
       ) => Promise<void> | void)
     | undefined
@@ -61,7 +61,7 @@ export interface OnSubmitCallbacks<Schema extends TSchema, SubmitResult = void> 
     | ((
         data: SubmitResult | undefined,
         error: unknown,
-        values: FieldValues<Schema>,
+        values: TransformedValues<Schema>,
         form: UseFormReturn<Schema>,
       ) => Promise<void> | void)
     | undefined
@@ -87,6 +87,9 @@ export interface UseFormProps<Schema extends TSchema, SubmitResult = void>
    * Debug name for the form. Use it to identify the form in the tanstack query devtools.
    */
   readonly debugName?: string
+
+  /** When set to `dialog`, form submission will close the parent dialog on successful submission. */
+  readonly method?: 'dialog'
 }
 
 /**

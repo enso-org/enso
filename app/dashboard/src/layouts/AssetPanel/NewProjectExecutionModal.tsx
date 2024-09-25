@@ -87,6 +87,7 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
   const nowZonedDateTime = now(getLocalTimeZone())
   const minFirstOccurrence = nowZonedDateTime
   const form = Form.useForm({
+    method: 'dialog',
     schema: createUpsertExecutionSchema(getText),
     defaultValues: {
       repeatInterval: 'weekly',
@@ -95,12 +96,12 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
       maxDurationMinutes: MAX_DURATION_DEFAULT_MINUTES,
     },
     onSubmit: async (values) => {
-      const { date: newDate, ...rest } = values
+      const { minute, hour, day, date: newDate, ...rest } = values
       const time: ProjectScheduleTime = {
-        minute: newDate.minute,
-        hours: [newDate.hour],
-        days: [],
-        dates: [newDate.day],
+        minute,
+        hours: hour != null ? [hour] : [],
+        days: day != null ? [day] : [],
+        dates: newDate != null ? [newDate] : [],
       }
       await createProjectExecution([{ projectId: item.id, time, ...rest }, item.title])
     },
@@ -150,7 +151,7 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
   return (
     <Dialog title={getText('newProjectExecution')} {...(defaultOpen != null && { defaultOpen })}>
       {({ close }) => (
-        <Form form={form} method="dialog" className="w-full">
+        <Form form={form} className="w-full">
           <Selector
             form={form}
             isRequired
