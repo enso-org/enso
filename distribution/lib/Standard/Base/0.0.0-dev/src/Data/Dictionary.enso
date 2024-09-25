@@ -180,6 +180,7 @@ type Dictionary key value
              import Standard.Examples
 
              Examples.dictionary.remove "A"
+    @key key_widget
     remove : Any -> Dictionary ! No_Such_Key
     remove self key =
         Panic.catch Any (self.remove_builtin key) _->
@@ -201,6 +202,7 @@ type Dictionary key value
              import Standard.Examples
 
              example_at = Examples.dictionary.at "A"
+    @key key_widget
     at : Any -> Any ! No_Such_Key
     at self key = self.get key (Error.throw (No_Such_Key.Error self key))
 
@@ -221,12 +223,14 @@ type Dictionary key value
              import Standard.Examples
 
              example_get = Examples.dictionary.get 2 "zero"
+    @key key_widget
     get : Any -> Any -> Any
     get self key ~if_missing=Nothing = self.get_builtin key if_missing
 
     ## GROUP Logical
        ICON preparation
        Returns True iff the Dictionary contains the given `key`.
+    @key (make_all_selector ..Always)
     contains_key : Any -> Boolean
     contains_key self key = @Builtin_Method "Dictionary.contains_key"
 
@@ -435,14 +439,12 @@ type Dictionary key value
     get_builtin self key ~if_missing = @Builtin_Method "Dictionary.get_builtin"
 
 ## PRIVATE
-key_widget Dictionary -> Widget
-key_widget dict =
+key_widget dict:Dictionary -> Widget =
     values = dict.keys.map k-> Option k.to_text k.pretty
     Single_Choice display=..Always values=values
 
 ## PRIVATE
-key_value_widget : Widget
-key_value_widget =
+key_value_widget -> Widget =
     fqn = Meta.get_qualified_type_name Pair . drop (..Last 5)
     default = 'pair "key" Nothing'
     pair = Option "Pair" fqn+".pair" [["first", make_all_selector], ["second", make_all_selector]]
