@@ -11,6 +11,7 @@ import SvgMask from '#/components/SvgMask'
 
 import * as backendModule from '#/services/Backend'
 
+import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as eventModule from '#/utilities/event'
 import * as fileIcon from '#/utilities/fileIcon'
 import * as indent from '#/utilities/indent'
@@ -23,7 +24,9 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 // ================
 
 /** Props for a {@link FileNameColumn}. */
-export interface FileNameColumnProps extends column.AssetColumnProps {}
+export interface FileNameColumnProps extends column.AssetColumnProps {
+  readonly item: AssetTreeNode<backendModule.FileAsset>
+}
 
 /** The icon and name of a {@link backendModule.FileAsset}.
  * @throws {Error} when the asset is not a {@link backendModule.FileAsset}.
@@ -32,11 +35,6 @@ export default function FileNameColumn(props: FileNameColumnProps) {
   const { item, setItem, selected, state, rowState, setRowState, isEditable } = props
   const { backend, nodeMap } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-
-  if (item.type !== backendModule.AssetType.file) {
-    // eslint-disable-next-line no-restricted-syntax
-    throw new Error('`FileNameColumn` can only display files.')
-  }
   const asset = item.item
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
   const isCloud = backend.type === backendModule.BackendType.remote

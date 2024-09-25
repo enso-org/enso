@@ -98,6 +98,15 @@ add_specs suite_builder = suite_builder.group "Object Comparator" group_builder-
         ((Attach_Warning.Value 1) == (Attach_Warning.Value 1)) . should_be_true
         ((Attach_Warning.Value 1) == (Attach_Warning.Value2 1)) . should_be_true
 
+    group_builder.specify "warnings attached in a comparator should propagate to the operator result" <|
+        Problems.expect_only_warning Illegal_Argument <| ((Attach_Warning.Value 1) < (Attach_Warning.Value 2))
+        Problems.expect_only_warning Illegal_Argument <| ((Attach_Warning.Value 1) >= (Attach_Warning.Value 2))
+        Problems.expect_only_warning Illegal_Argument <|
+            v1 = Attach_Warning.Value 1
+            v2 = Attach_Warning.Value 2
+            r = v1 == v2
+            r
+
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
