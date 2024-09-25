@@ -19,6 +19,7 @@ import {
   PROJECT_REPEAT_INTERVALS,
   REPEAT_INTERVAL_TO_TEXT_ID,
   type ProjectAsset,
+  type ProjectScheduleTime,
 } from 'enso-common/src/services/Backend'
 
 import {
@@ -95,11 +96,11 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
     },
     onSubmit: async (values) => {
       const { date: newDate, ...rest } = values
-      const time = {
+      const time: ProjectScheduleTime = {
         minute: newDate.minute,
-        hour: newDate.hour,
-        day: undefined,
-        date: newDate.day,
+        hours: [newDate.hour],
+        days: [],
+        dates: [newDate.day],
       }
       await createProjectExecution([{ projectId: item.id, time, ...rest }, item.title])
     },
@@ -185,7 +186,11 @@ export default function NewProjectExecutionModal(props: NewProjectExecutionModal
               <Text>
                 {getText(
                   'repeatsAtX',
-                  repeatTimes.map((time) => toCalendarDate(time).toString()).join(', '),
+                  repeatTimes
+                    .map((time) =>
+                      toCalendarDate(time).toDate(getLocalTimeZone()).toLocaleDateString(),
+                    )
+                    .join(', '),
                 )}
               </Text>
             </div>
