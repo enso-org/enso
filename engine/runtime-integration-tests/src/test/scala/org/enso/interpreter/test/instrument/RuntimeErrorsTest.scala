@@ -719,8 +719,8 @@ class RuntimeErrorsTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
-    val catchId    = metadata.addItem(46, 42, "aa") // Panic.catch Any ...
-    val throwId    = metadata.addItem(63, 14, "ab") // (Panic.throw 42)
+    val catchId    = metadata.addItem(46, 42, "aa")
+    val throwId    = metadata.addItem(63, 14, "ab")
 
     val code =
       """from Standard.Base import all
@@ -731,6 +731,13 @@ class RuntimeErrorsTest
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
+
+    metadata.assertInCode(
+      catchId,
+      contents,
+      "Panic.catch Any (Panic.throw 42) _.payload"
+    )
+    metadata.assertInCode(throwId, contents, "Panic.throw 42")
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
