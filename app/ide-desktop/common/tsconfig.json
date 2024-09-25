@@ -4,7 +4,10 @@
     "lib": ["DOM", "es2023"],
     "allowJs": false,
     "checkJs": false,
-    "skipLibCheck": false
+    "skipLibCheck": false,
+    "noEmit": false,
+    "resolveJsonModule": true,
   },
-  "include": ["./src/", "./src/text/english.json", "../types/"]
+  "include": ["src", "./src/text/english.json"],
+  "exclude": []
 }

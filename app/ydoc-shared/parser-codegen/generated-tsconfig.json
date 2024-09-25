@@ -1,6 +1,6 @@
 {
-  "include": ["*.ts"],
-  "exclude": ["generated"],
+  "include": ["generated/ast.ts"],
+  "excludes": [],
   "compilerOptions": {
     "types": ["node"],
     "lib": ["es2023"],
@@ -13,6 +13,6 @@
     "verbatimModuleSyntax": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
-    "strictNullChecks": true,
+    "strictNullChecks": true
   }
 }

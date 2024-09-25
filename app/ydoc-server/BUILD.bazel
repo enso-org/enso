@@ -14,7 +14,8 @@ ts_project(
     name = "tsc",
     composite = True,
     tsconfig = ":tsconfig",
-    deps = npm_link_targets(),
+    out_dir = "dist",
+    deps = npm_link_targets() + ["//app/ydoc-shared:tsconfig"],
 )
 
 npm_package(

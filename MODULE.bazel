@@ -14,7 +14,7 @@ node.toolchain(node_version = "20.11.1")
 
 ## Npm
 npm = use_extension("@aspect_rules_js//npm:extensions.bzl", "npm", dev_dependency = True)
-npm.npm_translate_lock(name = "npm", pnpm_lock = "//:pnpm-lock.yaml", verify_node_modules_ignored = "//:.bazelignore")
+npm.npm_translate_lock(name = "npm", pnpm_lock = "//:pnpm-lock.yaml", verify_node_modules_ignored = "//:.bazelignore", npmrc="//:.npmrc")
 use_repo(npm, "npm")
 
 ## TypeScript

@@ -25,10 +25,8 @@
     "typecheck": "vue-tsc --noEmit -p tsconfig.app.json",
     "lint": "eslint .",
     "format": "prettier --version && prettier --write src/ && eslint . --fix",
-    "clean-old-generated-directory": "rimraf src/generated",
-    "generate-ast-schema": "cargo run -p enso-parser-schema > shared/ast/generated/ast-schema.json",
-    "generate-ast-types": "tsx ./parser-codegen/index.ts shared/ast/generated/ast-schema.json shared/ast/generated/ast.ts",
-    "preinstall": "npm run clean-old-generated-directory && npm run generate-ast-schema && npm run generate-ast-types && npm run generate-metadata && npm run download-fonts",
+    "build-rust-ffi": "wasm-pack build ./rust-ffi --release --target web && wasm-pack build ./rust-ffi --out-dir node-pkg --target nodejs",
+    "preinstall": "corepack pnpm run generate-metadata && corepack pnpm run download-fonts",
     "postinstall": "playwright install",
     "generate-metadata": "node scripts/generateIconMetadata.js",
     "download-fonts": "node scripts/downloadFonts.js"

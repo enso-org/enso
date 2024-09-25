@@ -3,11 +3,8 @@
   "include": [
     "src",
     "e2e",
-    "../types",
     "./src/**/*.json",
     "./e2e/**/*.json",
-    "../../utils.ts",
-    ".prettierrc.cjs",
     "*.ts"
   ],
   "exclude": ["./dist", "vitest.config.ts"],

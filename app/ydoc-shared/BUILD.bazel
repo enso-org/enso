@@ -8,12 +8,15 @@ ts_config(
     name = "tsconfig",
     src = "tsconfig.json",
     deps = ["//app:tsconfig"],
+    visibility = ["//visibility:public"],
 )
 
 ts_project(
     name = "tsc",
     composite = True,
     tsconfig = ":tsconfig",
+    out_dir = "dist",
+    srcs = glob(["src/**/*.ts"]),
     deps = npm_link_targets(),
 )
 

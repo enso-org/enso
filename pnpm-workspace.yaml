@@ -5,6 +5,7 @@ packages:
   - app/rust-ffi
   - app/ydoc-server
   - app/ydoc-shared
+  - app/ydoc-shared/parser-codegen
   - app/ydoc-server-nodejs
   - app/ydoc-server-polyglot
   - lib/js/runner

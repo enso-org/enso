@@ -1,0 +1,34 @@
+{
+    "name": "parser-codegen",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "author": {
+        "name": "Enso Team",
+        "email": "contact@enso.org"
+    },
+    "scripts": {
+        "clean": "rimraf --glob generated/*.{json,ts}",
+        "compile": "corepack pnpm run generate:ast-schema && corepack pnpm run generate:ast-types",
+        "generate:ast-schema": "cargo run -p enso-parser-schema > generated/ast-schema.json",
+        "generate:ast-types": "vite-node index.ts generated/ast-schema.json generated/ast.ts",
+        "generate:ast-types-lazy": "vite-node index.ts generated/ast-schema.json generated/ast.ts --if-changed",
+        "postinstall": "corepack pnpm run generate:ast-schema && corepack pnpm run generate:ast-types-lazy"
+    },
+    "exports": {
+    "./*": {
+      "source": "./generated/ast.ts",
+      "types": "./generated/ast.d.ts",
+      "import": "./generated/ast.js"
+    }
+  },
+    "dependencies": {
+        "change-case": "^4.1.2"
+    },
+    "devDependencies": {
+        "@types/node": "^20.11.21",
+        "typescript": "^5.5.3",
+        "rimraf": "^6.0.1",
+        "vite-node": "^2.0.4"
+    }
+}

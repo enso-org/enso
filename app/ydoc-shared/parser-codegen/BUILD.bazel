@@ -1,0 +1,47 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+load("@aspect_rules_js//npm:defs.bzl", "npm_package")
+load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary")
+load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
+
+npm_link_all_packages(name = "node_modules")
+
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.json",
+    deps = [],
+)
+
+ts_project(
+    name = "tsc",
+    tsconfig = ":tsconfig",
+    srcs = glob(["*.ts"]),
+    deps = npm_link_targets(),
+)
+
+js_binary(
+    name = "bin",
+    data = [
+        ":tsc",
+        "package.json",
+    ],
+    entry_point = "index.js",
+)
+
+js_run_binary(
+    name = "generate_ast_typedefs",
+    tool = ":bin",
+    srcs = ["generated/ast-schema.json"],
+    args = ["$(location generated/ast-schema.json)"],
+    stdout = "generated/ast.ts",
+    visibility = ["//visibility:public"],
+)
+
+npm_package(
+    name = "pkg",
+    srcs = [
+        "package.json",
+        ":generate_ast_typedefs",
+    ],
+    visibility = ["//visibility:public"],
+)

@@ -1,6 +1,7 @@
 {
   "extends": "../tsconfig.json",
   "include": ["src/**/*.ts"],
+  "exclude": ["parser-codegen"],
   "compilerOptions": {
     "composite": true,
     "noEmit": false,

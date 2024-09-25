@@ -17,7 +17,7 @@ for (let i = 2; i < process.argv.length; i++) {
 const schemaPath = positionalArgs[0]
 const outputPath = positionalArgs[1]
 
-if (!schemaPath || !outputPath) usage()
+if (!schemaPath) usage()
 
 function usage(): never {
   console.error(
@@ -32,13 +32,17 @@ hash.update(schemaContents)
 const schemaHash = hash.digest()
 
 const runCodegen = async () => {
-  console.log(`Generating ${outputPath} from ${schemaPath}.`)
+  console.error(`Generating ${outputPath} from ${schemaPath}.`)
   // load codegen lazily only when necessary, since it has a large loading time cost
   const codegen = await import('./codegen.js')
   const schema: Schema.Schema = JSON.parse(schemaContents)
   const code = codegen.implement(schema)
-  await fs.writeFile(outputPath, code)
-  await fs.writeFile(`${outputPath}.schema-digest`, schemaHash)
+  if (outputPath != null) {
+    await fs.writeFile(outputPath, code)
+    await fs.writeFile(`${outputPath}.schema-digest`, schemaHash)
+  } else {
+    console.log(code)
+  }
 }
 
 const checkSchemaChanged = async () => {
