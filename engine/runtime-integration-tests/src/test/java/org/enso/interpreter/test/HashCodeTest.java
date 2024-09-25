@@ -154,11 +154,11 @@ public class HashCodeTest {
   }
 
   private static boolean isTrue(EqualsAndInfo obj) {
-    return obj.equals();
+    return obj.isTrue();
   }
 
   private static boolean isFalse(EqualsAndInfo obj) {
-    return !obj.equals();
+    return !obj.isTrue();
   }
 
   private static boolean isNothing(Object obj) {
