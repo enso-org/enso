@@ -774,7 +774,7 @@ class RuntimeErrorsTest
             "throw"
           )
         ),
-        Api.ExpressionUpdate.Payload.Panic("Integer", Seq(throwId, xId)),
+        Api.ExpressionUpdate.Payload.Panic("Integer", Seq(throwId, catchId)),
         builtin = false
       ),
       TestMessages.update(
