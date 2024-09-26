@@ -256,6 +256,7 @@ type Snowflake_Dialect
     ## PRIVATE
        Checks if a feature is supported by the dialect.
     is_feature_supported self feature:Feature -> Boolean =
+        _ = feature
         True
 
     ## PRIVATE
