@@ -5,6 +5,7 @@ from Standard.Table import Value_Type, Bits
 from Standard.Table.Errors import Loss_Of_Decimal_Precision, Loss_Of_Integer_Precision, Missing_Input_Columns, Conversion_Failure
 
 from Standard.Database.Errors import Unsupported_Database_Operation, Unsupported_Database_Type
+import Standard.Database.Feature.Feature
 
 from Standard.Test import all
 
@@ -24,6 +25,9 @@ type Lazy_Ref
     Value ~get
 
 add_specs suite_builder setup =
+    if setup.is_feature_supported Feature.Column_operations then (add_conversion_specs suite_builder setup)
+
+add_conversion_specs suite_builder setup =
     prefix = setup.prefix
     materialize = setup.materialize
     supports_dates = setup.test_selection.date_time
