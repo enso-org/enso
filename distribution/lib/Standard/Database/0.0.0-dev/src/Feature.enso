@@ -4,4 +4,4 @@ from Standard.Base import all
 type Feature
     Select_columns
     Filter
-    FeatureC
+    Aggregate

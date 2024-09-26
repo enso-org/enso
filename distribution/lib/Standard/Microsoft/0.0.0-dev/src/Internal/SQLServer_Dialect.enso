@@ -243,6 +243,7 @@ type SQLSever_Dialect
         case feature of
             Feature.Select_columns -> False
             Feature.Filter -> False
+            Feature.Aggregate -> False
             _ -> True
 
     ## PRIVATE

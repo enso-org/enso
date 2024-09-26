@@ -1999,7 +1999,8 @@ type DB_Table
     @columns Widget_Helpers.make_aggregate_column_vector_selector
     aggregate : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> Vector Aggregate_Column -> Boolean -> Problem_Behavior -> DB_Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
     aggregate self (group_by : Vector | Text | Integer | Regex = []) (columns : Vector = []) (error_on_missing_columns : Boolean = False) (on_problems : Problem_Behavior = ..Report_Warning) =
-        Aggregate_Helper.aggregate self group_by columns error_on_missing_columns on_problems
+        if self.connection.dialect.is_feature_supported Feature.Aggregate . not then Error.throw (Unsupported_Database_Operation.Error "aggregate") else
+            Aggregate_Helper.aggregate self group_by columns error_on_missing_columns on_problems
 
     ## ALIAS pivot, unpivot
        GROUP Standard.Base.Calculations
