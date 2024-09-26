@@ -1341,12 +1341,13 @@ type DB_Table
     @columns Widget_Helpers.make_column_name_multi_selector
     distinct : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Case_Sensitivity -> Problem_Behavior -> DB_Table ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Equality
     distinct self columns=self.column_names case_sensitivity:Case_Sensitivity=..Default on_problems:Problem_Behavior=..Report_Warning =
-        key_columns = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=True error_on_missing_columns=True on_problems=on_problems . catch No_Output_Columns _->
-            Error.throw No_Input_Columns_Selected
-        key_columns.if_not_error <|
-            problem_builder = Problem_Builder.new
-            new_table = self.connection.dialect.prepare_distinct self key_columns case_sensitivity problem_builder
-            problem_builder.attach_problems_before on_problems new_table
+        if self.connection.dialect.is_feature_supported Feature.Distinct . not then Error.throw (Unsupported_Database_Operation.Error "distinct") else
+            key_columns = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=True error_on_missing_columns=True on_problems=on_problems . catch No_Output_Columns _->
+                Error.throw No_Input_Columns_Selected
+            key_columns.if_not_error <|
+                problem_builder = Problem_Builder.new
+                new_table = self.connection.dialect.prepare_distinct self key_columns case_sensitivity problem_builder
+                problem_builder.attach_problems_before on_problems new_table
 
     ## GROUP Standard.Base.Selections
        ICON preparation

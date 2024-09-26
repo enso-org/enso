@@ -8,3 +8,4 @@ type Feature
     Sort
     Join
     Union
+    Distinct

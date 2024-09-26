@@ -247,6 +247,7 @@ type SQLSever_Dialect
             Feature.Sort -> False
             Feature.Join -> False
             Feature.Union -> False
+            Feature.Distinct -> False
             _ -> True
 
     ## PRIVATE
