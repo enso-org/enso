@@ -772,6 +772,9 @@ importers:
       '@types/node':
         specifier: ^20.11.21
         version: 20.11.21
+      '@types/ws':
+        specifier: ^8.5.5
+        version: 8.5.10
       typescript:
         specifier: ^5.5.3
         version: 5.5.3
@@ -886,25 +889,6 @@ importers:
       vitest:
         specifier: ^1.3.1
         version: 1.6.0(@types/node@20.11.21)(jsdom@24.1.0)(lightningcss@1.25.1)
-
-  app/ydoc-shared/parser-codegen:
-    dependencies:
-      change-case:
-        specifier: ^4.1.2
-        version: 4.1.2
-    devDependencies:
-      '@types/node':
-        specifier: ^20.11.21
-        version: 20.11.21
-      rimraf:
-        specifier: ^6.0.1
-        version: 6.0.1
-      typescript:
-        specifier: ^5.5.3
-        version: 5.5.3
-      vite-node:
-        specifier: ^2.0.4
-        version: 2.0.4(@types/node@20.11.21)(lightningcss@1.25.1)
 
   lib/js/runner:
     dependencies:

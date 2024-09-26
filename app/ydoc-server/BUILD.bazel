@@ -15,6 +15,8 @@ ts_project(
     composite = True,
     tsconfig = ":tsconfig",
     out_dir = "dist",
+    root_dir = "src",
+    srcs = glob(["src/**/*.ts"]),
     deps = npm_link_targets() + ["//app/ydoc-shared:tsconfig"],
 )
 

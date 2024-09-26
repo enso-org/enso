@@ -11,7 +11,7 @@
 import debug from 'debug'
 import type { Server } from 'http'
 import type { Http2SecureServer } from 'http2'
-import type WebSocket from 'isomorphic-ws'
+import type { WebSocket } from 'isomorphic-ws'
 import type { IncomingMessage } from 'node:http'
 import { ConnectionData, docName } from './auth'
 import { deserializeIdMap } from './serialization'
