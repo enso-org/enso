@@ -125,6 +125,7 @@ export const Form = forwardRef(function Form<
   schema: typeof components.schema
   useForm: typeof components.useForm
   useField: typeof components.useField
+  makeUseField: typeof components.makeUseField
   Submit: typeof components.Submit
   Reset: typeof components.Reset
   Field: typeof components.Field
@@ -143,6 +144,7 @@ export const Form = forwardRef(function Form<
 Form.schema = components.schema
 Form.useForm = components.useForm
 Form.useField = components.useField
+Form.makeUseField = components.makeUseField
 Form.useFormSchema = components.useFormSchema
 Form.Submit = components.Submit
 Form.Reset = components.Reset

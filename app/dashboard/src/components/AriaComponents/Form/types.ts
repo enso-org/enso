@@ -109,7 +109,9 @@ export type UseFormRegister<Schema extends components.TSchema> = <
  */
 export interface UseFormRegisterReturn<
   Schema extends components.TSchema,
-  TFieldName extends components.FieldPath<Schema> = components.FieldPath<Schema>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  TFieldName extends components.FieldPath<Schema, Constraint> = components.FieldPath<Schema, any>,
+  Constraint = unknown,
 > extends Omit<reactHookForm.UseFormRegisterReturn<TFieldName>, 'onBlur' | 'onChange'> {
   // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
   readonly onChange: <Value>(value: Value) => Promise<boolean | void> | void

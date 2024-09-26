@@ -19,8 +19,10 @@ import { CheckboxGroupProvider } from './CheckboxContext'
 /**
  * Props for the {@link CheckboxGroupProps} component.
  */
-export interface CheckboxGroupProps<Schema extends TSchema, TFieldName extends FieldPath<Schema>>
-  extends FieldStateProps<AriaCheckboxGroupProps, Schema, TFieldName>,
+export interface CheckboxGroupProps<
+  Schema extends TSchema,
+  TFieldName extends FieldPath<Schema, readonly string[]>,
+> extends FieldStateProps<AriaCheckboxGroupProps, Schema, TFieldName, readonly string[]>,
     FieldProps,
     FieldVariantProps,
     Omit<VariantProps<typeof CHECKBOX_GROUP_STYLES>, 'disabled' | 'invalid'>,
@@ -41,7 +43,7 @@ const CHECKBOX_GROUP_STYLES = tv({
  */
 // eslint-disable-next-line no-restricted-syntax
 export const CheckboxGroup = forwardRef(
-  <Schema extends TSchema, TFieldName extends FieldPath<Schema>>(
+  <Schema extends TSchema, TFieldName extends FieldPath<Schema, readonly string[]>>(
     props: CheckboxGroupProps<Schema, TFieldName>,
     ref: ForwardedRef<HTMLFieldSetElement>,
   ): ReactElement => {

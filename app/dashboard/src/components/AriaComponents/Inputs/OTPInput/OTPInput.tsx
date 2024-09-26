@@ -26,8 +26,8 @@ import type { TestIdProps } from '../../types'
 /**
  * Props for an {@link OTPInput}.
  */
-export interface OtpInputProps<Schema extends TSchema, TFieldName extends FieldPath<Schema>>
-  extends FieldStateProps<Omit<OTPInputProps, 'children' | 'render'>, Schema, TFieldName>,
+export interface OtpInputProps<Schema extends TSchema, TFieldName extends FieldPath<Schema, string>>
+  extends FieldStateProps<Omit<OTPInputProps, 'children' | 'render'>, Schema, TFieldName, string>,
     FieldProps,
     FieldVariantProps,
     Omit<VariantProps<typeof STYLES>, 'disabled' | 'invalid'>,
@@ -87,7 +87,7 @@ const SLOT_STYLES = tv({
  */
 export const OTPInput = forwardRef(function OTPInput<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema>,
+  TFieldName extends FieldPath<Schema, string>,
 >(props: OtpInputProps<Schema, TFieldName>, ref: ForwardedRef<HTMLFieldSetElement>) {
   const {
     maxLength,

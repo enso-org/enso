@@ -100,7 +100,8 @@ export interface UseFormProps<Schema extends TSchema, SubmitResult = void>
  * Register function for a form field.
  */
 export type UseFormRegister<Schema extends TSchema> = <
-  TFieldName extends FieldPath<Schema> = FieldPath<Schema>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  TFieldName extends FieldPath<Schema, any> = FieldPath<Schema>,
 >(
   name: TFieldName,
   options?: reactHookForm.RegisterOptions<FieldValues<Schema>, TFieldName>,
@@ -160,7 +161,8 @@ export type FormInstance<Schema extends TSchema> = UseFormReturn<Schema>
 export interface FormWithValueValidation<
   BaseValueType,
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema>,
+  TFieldName extends FieldPath<Schema, Constraint>,
+  Constraint,
   // It is not ideal to have this as a parameter as it can be edited, but this is the simplest way
   // to avoid distributive conditional types to affect the error message. We want distributivity
   // to happen, just not for the error message itself.
@@ -229,8 +231,9 @@ export interface FieldProps {
 export interface FormFieldProps<
   BaseValueType,
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema>,
-> extends FormWithValueValidation<BaseValueType, Schema, TFieldName> {
+  TFieldName extends FieldPath<Schema, Constraint>,
+  Constraint,
+> extends FormWithValueValidation<BaseValueType, Schema, TFieldName, Constraint> {
   readonly name: TFieldName
   readonly value?: BaseValueType extends FieldValues<Schema> ? FieldValues<Schema>[TFieldName]
   : never
@@ -247,11 +250,12 @@ export type FieldStateProps<
   // eslint-disable-next-line no-restricted-syntax
   BaseProps extends { value?: unknown },
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema>,
-> = FormFieldProps<BaseProps['value'], Schema, TFieldName> & {
+  TFieldName extends FieldPath<Schema, Constraint>,
+  Constraint,
+> = FormFieldProps<BaseProps['value'], Schema, TFieldName, Constraint> & {
   // to avoid conflicts with the FormFieldProps we need to omit the FormFieldProps from the BaseProps
   [K in keyof Omit<
     BaseProps,
-    keyof FormFieldProps<BaseProps['value'], Schema, TFieldName>
+    keyof FormFieldProps<BaseProps['value'], Schema, TFieldName, Constraint>
   >]: BaseProps[K]
 }

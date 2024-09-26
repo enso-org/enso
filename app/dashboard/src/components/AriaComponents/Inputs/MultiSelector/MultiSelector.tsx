@@ -25,18 +25,20 @@ import { omit, unsafeRemoveUndefined } from 'enso-common/src/utilities/data/obje
 import { MultiSelectorOption } from './MultiSelectorOption'
 
 /** * Props for the MultiSelector component. */
-export interface MultiSelectorProps<Schema extends TSchema, TFieldName extends FieldPath<Schema>>
-  extends FieldStateProps<
+export interface MultiSelectorProps<
+  Schema extends TSchema,
+  TFieldName extends FieldPath<Schema, readonly T[]>,
+  T,
+> extends FieldStateProps<
       Omit<ListBoxItemProps, 'children' | 'value'> & { value: FieldValues<Schema>[TFieldName] },
       Schema,
-      TFieldName
+      TFieldName,
+      readonly T[]
     >,
     FieldProps,
     Omit<VariantProps<typeof MULTI_SELECTOR_STYLES>, 'disabled' | 'invalid'> {
-  readonly items: readonly Extract<FieldValues<Schema>[TFieldName], readonly unknown[]>[number][]
-  readonly itemToString?: (
-    item: Extract<FieldValues<Schema>[TFieldName], readonly unknown[]>[number],
-  ) => string
+  readonly items: readonly T[]
+  readonly itemToString?: (item: T) => string
   readonly columns?: number
   readonly className?: string
   readonly style?: CSSProperties
@@ -86,8 +88,9 @@ export const MULTI_SELECTOR_STYLES = tv({
  */
 export const MultiSelector = forwardRef(function MultiSelector<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema>,
->(props: MultiSelectorProps<Schema, TFieldName>, ref: ForwardedRef<HTMLFieldSetElement>) {
+  TFieldName extends FieldPath<Schema, readonly T[]>,
+  T,
+>(props: MultiSelectorProps<Schema, TFieldName, T>, ref: ForwardedRef<HTMLFieldSetElement>) {
   const {
     name,
     items,
@@ -106,7 +109,8 @@ export const MultiSelector = forwardRef(function MultiSelector<
 
   const privateInputRef = useRef<HTMLDivElement>(null)
 
-  const { fieldState, formInstance } = Form.useField({
+  const useTArrayField = Form.makeUseField<readonly T[]>()
+  const { fieldState, formInstance } = useTArrayField({
     name,
     isDisabled,
     form,

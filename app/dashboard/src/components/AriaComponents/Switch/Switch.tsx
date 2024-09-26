@@ -19,11 +19,12 @@ import { TEXT_STYLE } from '../Text'
 /**
  * Props for the {@Switch} component.
  */
-export interface SwitchProps<Schema extends TSchema, TFieldName extends FieldPath<Schema>>
+export interface SwitchProps<Schema extends TSchema, TFieldName extends FieldPath<Schema, boolean>>
   extends FieldStateProps<
       Omit<AriaSwitchProps, 'children' | 'size' | 'value'> & { value: boolean },
       Schema,
-      TFieldName
+      TFieldName,
+      boolean
     >,
     FieldProps,
     Omit<VariantProps<typeof SWITCH_STYLES>, 'disabled' | 'invalid'> {
@@ -83,7 +84,8 @@ export const Switch = forwardRef(function Switch<
 
   const switchRef = useRef<HTMLInputElement>(null)
 
-  const { fieldState, formInstance, field } = Form.useField({
+  const useBooleanField = Form.makeUseField<boolean>()
+  const { fieldState, formInstance, field } = useBooleanField({
     name,
     isDisabled,
     form,
