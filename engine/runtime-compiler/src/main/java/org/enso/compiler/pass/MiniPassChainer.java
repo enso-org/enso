@@ -3,8 +3,9 @@ package org.enso.compiler.pass;
 import java.util.List;
 import org.enso.compiler.core.IR;
 
-public final class MiniPassManager {
-  private MiniPassManager() {}
+/** Utility class for chaining mini passes together. */
+public final class MiniPassChainer {
+  private MiniPassChainer() {}
 
   /**
    * Chains a list of mini passes into a single pass that applies them in order.
