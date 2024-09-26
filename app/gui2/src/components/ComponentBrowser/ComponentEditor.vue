@@ -59,6 +59,7 @@ const rootStyle = computed(() => {
       v-model:selection="fieldContent.selection"
       autocomplete="off"
       class="inputField"
+      :acceptOnEnter="false"
       @pointerdown.stop
       @pointerup.stop
       @click.stop

@@ -10,9 +10,14 @@ import { computed, ref, watch, type StyleValue } from 'vue'
 
 const [model, modifiers] = defineModel<string>()
 const [selection] = defineModel<Range | undefined>('selection')
-const props = defineProps<{
+const {
+  autoSelect = false,
+  placeholder = '',
+  acceptOnEnter = true,
+} = defineProps<{
   autoSelect?: boolean
   placeholder?: string | undefined
+  acceptOnEnter?: boolean
 }>()
 const emit = defineEmits<{
   input: [value: string | undefined]
@@ -34,7 +39,7 @@ function onInput() {
 const inputNode = ref<HTMLInputElement>()
 useAutoBlur(inputNode)
 function onFocus() {
-  if (props.autoSelect) {
+  if (autoSelect) {
     inputNode.value?.select()
   }
 }
@@ -49,13 +54,14 @@ const cssFont = computed(() => {
 const ADDED_WIDTH_PX = 2
 
 const getTextWidth = (text: string) => getTextWidthByFont(text, cssFont.value)
-const inputWidth = computed(
-  () => getTextWidth(innerModel.value || (props.placeholder ?? '')) + ADDED_WIDTH_PX,
-)
+const inputWidth = computed(() => getTextWidth(innerModel.value || placeholder) + ADDED_WIDTH_PX)
 const inputStyle = computed<StyleValue>(() => ({ width: `${inputWidth.value}px` }))
 
-function onEnterDown() {
-  inputNode.value?.blur()
+function onEnterDown(event: KeyboardEvent) {
+  if (acceptOnEnter) {
+    event.stopPropagation()
+    inputNode.value?.blur()
+  }
 }
 
 function readInputFieldSelection() {
@@ -104,7 +110,7 @@ defineExpose({
     ref="inputNode"
     v-model="innerModel"
     class="AutoSizedInput input"
-    :placeholder="placeholder ?? ''"
+    :placeholder="placeholder"
     :style="inputStyle"
     @pointerdown.stop
     @click.stop
@@ -112,7 +118,7 @@ defineExpose({
     @keydown.delete.stop
     @keydown.arrow-left.stop
     @keydown.arrow-right.stop
-    @keydown.enter.stop="onEnterDown"
+    @keydown.enter="onEnterDown"
     @input="onInput"
     @change="onChange"
     @focus="onFocus"
