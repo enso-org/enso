@@ -13,3 +13,4 @@ type Feature
     Integration_tests
     Add_row_number
     Make_table_from
+    Column_operations

@@ -147,9 +147,9 @@ type Missing_Values_Data
 
    Arguments:
    - create_connection_fn: A function that creates an appropriate Connection to the database backend.
-add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn : (Nothing -> Any)) default_connection =
+add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn : (Nothing -> Any)) default_connection setup =
 
-    Default_Ordering_Spec.add_specs suite_builder prefix create_connection_fn
+    Default_Ordering_Spec.add_specs suite_builder prefix create_connection_fn setup
     Names_Length_Limits_Spec.add_specs suite_builder prefix create_connection_fn
 
     suite_builder.group (prefix + "Basic Table Access") group_builder->

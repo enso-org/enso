@@ -138,9 +138,11 @@ type DB_Table
        - selector: The name or index of the column to get.
     @selector Widget_Helpers.make_column_name_selector
     at : Integer | Text -> DB_Column ! No_Such_Column | Index_Out_Of_Bounds
-    at self (selector:(Integer | Text)=0) = case selector of
-        _ : Integer -> self.make_column (self.internal_columns.at selector)
-        _ -> self.get selector (Error.throw (No_Such_Column.Error selector))
+    at self (selector:(Integer | Text)=0) = 
+        if self.connection.dialect.is_feature_supported Feature.Column_operations . not then Error.throw (Unsupported_Database_Operation.Error "at") else
+            case selector of
+                _ : Integer -> self.make_column (self.internal_columns.at selector)
+                _ -> self.get selector (Error.throw (No_Such_Column.Error selector))
 
     ## ICON select_column
        Returns the column with the given name or index.
@@ -151,10 +153,11 @@ type DB_Table
     @selector Widget_Helpers.make_column_name_selector
     get : Integer | Text -> Any -> DB_Column | Any
     get self (selector:(Integer | Text)=0) ~if_missing=Nothing =
-        internal_column = case selector of
-            _ : Integer -> self.internal_columns.get selector if_missing=Nothing
-            _ : Text -> self.internal_columns.find (p -> p.name == selector) if_missing=Nothing
-        if internal_column.is_nothing then if_missing else self.make_column internal_column
+        if self.connection.dialect.is_feature_supported Feature.Column_operations . not then Error.throw (Unsupported_Database_Operation.Error "get") else
+            internal_column = case selector of
+                _ : Integer -> self.internal_columns.get selector if_missing=Nothing
+                _ : Text -> self.internal_columns.find (p -> p.name == selector) if_missing=Nothing
+            if internal_column.is_nothing then if_missing else self.make_column internal_column.get
 
     ## ALIAS cell value, get cell
        GROUP Standard.Base.Selections
