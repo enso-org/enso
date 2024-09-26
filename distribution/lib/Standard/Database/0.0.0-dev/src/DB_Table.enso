@@ -691,27 +691,29 @@ type DB_Table
     @column (Widget_Helpers.make_column_name_selector add_expression=True)
     @filter Widget_Helpers.make_filter_condition_selector
     filter : (DB_Column | Text | Integer) -> (Filter_Condition | (Any -> Boolean)) -> Problem_Behavior -> DB_Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type
-    filter self column (filter : Filter_Condition | (Any -> Boolean) = Filter_Condition.Equal True) on_problems:Problem_Behavior=..Report_Warning = case column of
-        _ : DB_Column ->
-            mask filter_column = case Helpers.check_integrity self filter_column of
-                False ->
-                    Error.throw (Integrity_Error.Error "DB_Column "+filter_column.name)
-                True ->
-                    new_filters = self.context.where_filters + [filter_column.expression]
-                    new_ctx = self.context.set_where_filters new_filters
-                    self.updated_context new_ctx
+    filter self column (filter : Filter_Condition | (Any -> Boolean) = Filter_Condition.Equal True) on_problems:Problem_Behavior=..Report_Warning = 
+        if self.connection.dialect.is_feature_supported Feature.Filter . not then Error.throw (Unsupported_Database_Operation.Error "filter") else
+            case column of
+                _ : DB_Column ->
+                    mask filter_column = case Helpers.check_integrity self filter_column of
+                        False ->
+                            Error.throw (Integrity_Error.Error "DB_Column "+filter_column.name)
+                        True ->
+                            new_filters = self.context.where_filters + [filter_column.expression]
+                            new_ctx = self.context.set_where_filters new_filters
+                            self.updated_context new_ctx
 
-            filter_condition = Filter_Condition.resolve_auto_scoped filter
-            case filter_condition of
-                _ : Filter_Condition ->
-                    resolved = (self:Table_Ref).resolve_condition filter_condition
-                    mask (make_filter_column column resolved on_problems)
-                _ : Function ->
-                    Error.throw (Unsupported_Database_Operation.Error "Filtering with a custom predicate")
-        _ : Expression -> self.filter (self.evaluate_expression column on_problems) filter on_problems
-        _ ->
-            table_at = self.at column
-            self.filter table_at filter on_problems
+                    filter_condition = Filter_Condition.resolve_auto_scoped filter
+                    case filter_condition of
+                        _ : Filter_Condition ->
+                            resolved = (self:Table_Ref).resolve_condition filter_condition
+                            mask (make_filter_column column resolved on_problems)
+                        _ : Function ->
+                            Error.throw (Unsupported_Database_Operation.Error "Filtering with a custom predicate")
+                _ : Expression -> self.filter (self.evaluate_expression column on_problems) filter on_problems
+                _ ->
+                    table_at = self.at column
+                    self.filter table_at filter on_problems
 
     ## PRIVATE
        ALIAS filter rows

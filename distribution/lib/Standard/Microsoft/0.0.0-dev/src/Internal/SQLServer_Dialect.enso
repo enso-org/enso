@@ -242,6 +242,7 @@ type SQLSever_Dialect
     is_feature_supported self feature:Feature -> Boolean =
         case feature of
             Feature.Select_columns -> False
+            Feature.Filter -> False
             _ -> True
 
     ## PRIVATE
