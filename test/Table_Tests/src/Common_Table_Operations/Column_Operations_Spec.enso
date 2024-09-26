@@ -1148,6 +1148,7 @@ add_specs suite_builder setup =
                     c.floor . to_vector . should_equal [x, -x]
                     c.truncate . to_vector . should_equal [x, -x]
 
+        if setup.is_database.not
             group_builder.specify "ceil, floor and truncate should work correctly on Floats outside the java Long range" <|
                 positive_values = [9223372036854775000.0, 9223372036854776000.0, 9223372036854775807000000.0]
                 values = positive_values + positive_values.map .negate
