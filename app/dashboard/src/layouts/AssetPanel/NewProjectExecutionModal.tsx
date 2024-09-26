@@ -341,7 +341,7 @@ function NewProjectExecutionModalInner(props: NewProjectExecutionModalProps) {
           </Selector>
         </>
       )}
-      <Switch form={form} name="multiSelect" />
+      <Switch form={form} label={getText('advancedModeLabel')} name="multiSelect" />
 
       <Form.FormError />
       <ButtonGroup>

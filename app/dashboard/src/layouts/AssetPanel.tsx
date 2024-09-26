@@ -23,7 +23,7 @@ import { twMerge } from '#/utilities/tailwindMerge'
 // === AssetPanelTab ===
 // =====================
 
-const ASSET_PANEL_TABS = ['information', 'versions', 'sessions', 'schedules'] as const
+const ASSET_PANEL_TABS = ['settings', 'versions', 'sessions', 'schedules'] as const
 const TABS_SCHEMA = z.enum(ASSET_PANEL_TABS)
 
 /** Determines the content of the {@link AssetPanel}. */
@@ -78,17 +78,17 @@ export default function AssetPanel(props: AssetPanelProps) {
   const [initialized, setInitialized] = useState(false)
   const initializedRef = useRef(initialized)
   initializedRef.current = initialized
-  const [tabRaw, setTab] = useState(() => localStorage.get('assetPanelTab') ?? 'information')
+  const [tabRaw, setTab] = useState(() => localStorage.get('assetPanelTab') ?? 'settings')
   const tab = (() => {
     if (!isCloud) {
-      return 'information'
+      return 'settings'
     } else if (
       (item?.item.type === AssetType.secret || item?.item.type === AssetType.directory) &&
       tabRaw === 'versions'
     ) {
-      return 'information'
+      return 'settings'
     } else if (item?.item.type !== AssetType.project && tabRaw === 'sessions') {
-      return 'information'
+      return 'settings'
     } else {
       return tabRaw
     }
@@ -138,12 +138,12 @@ export default function AssetPanel(props: AssetPanelProps) {
             <div className="h-4 bg-primary/5" />
             <TabBar className="grow-0">
               <TabBar.Tab
-                id="information"
-                labelId="information"
-                isActive={tab === 'information'}
+                id="settings"
+                labelId="settings"
+                isActive={tab === 'settings'}
                 icon={null}
               >
-                {getText('information')}
+                {getText('settings')}
               </TabBar.Tab>
               {isCloud &&
                 item.item.type !== AssetType.secret &&
@@ -178,7 +178,7 @@ export default function AssetPanel(props: AssetPanelProps) {
                 </TabBar.Tab>
               )}
             </TabBar>
-            <TabPanel id="information" className="p-4 pl-asset-panel-l">
+            <TabPanel id="settings" className="p-4 pl-asset-panel-l">
               <AssetProperties
                 key={item.item.id}
                 backend={backend}
