@@ -23,7 +23,6 @@ import {
 } from 'enso-common/src/services/Backend'
 
 import {
-  Button,
   ButtonGroup,
   DatePicker,
   Dialog,
@@ -231,9 +230,9 @@ function NewProjectExecutionModalInner(props: NewProjectExecutionModalProps) {
       <Form.FormError />
       <ButtonGroup>
         <Form.Submit />
-        <Button formnovalidate variant="outline">
+        <Form.Submit formnovalidate variant="outline">
           {getText('cancel')}
-        </Button>
+        </Form.Submit>
       </ButtonGroup>
     </Form>
   )
