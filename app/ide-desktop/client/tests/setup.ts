@@ -3,7 +3,7 @@ import * as fs from 'node:fs'
 const POSSIBLE_EXEC_PATHS = [
   '../../../dist/ide/linux-unpacked/enso',
   '../../../dist/ide/win-unpacked/Enso.exe',
-  '../../../dist/ide/macos-unpacked/enso',
+  '../../../dist/ide/mac-arm64/Enso.app/Contents/MacOS/Enso',
 ]
 
 /** Setup for all tests: checks if and where electron exec is */
