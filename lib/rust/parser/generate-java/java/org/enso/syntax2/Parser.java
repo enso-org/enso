@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
+import org.graalvm.nativeimage.ImageInfo;
 import org.slf4j.LoggerFactory;
 
 public final class Parser {
@@ -51,8 +52,12 @@ public final class Parser {
     if (worker == null) {
       finalizationManager.runPendingFinalizers();
       worker = Worker.create();
-      finalizationManager.attachFinalizer(worker, worker.finalizer());
-      threadWorker.set(worker);
+      if (!ImageInfo.inImageBuildtimeCode()) {
+        // At build-time, we eagerly free parser buffers; runtime should start out with an empty
+        // `finalizationManager`.
+        finalizationManager.attachFinalizer(worker, worker.finalizer());
+        threadWorker.set(worker);
+      }
     }
     return worker;
   }
@@ -164,10 +169,15 @@ public final class Parser {
       var privateState = state.getAndSet(0);
       if (privateState == 0) privateState = allocState();
       var result = stateConsumer.apply(privateState);
-      // We don't need to check the value before setting here: A state may be freed by another
-      // thread, but is only allocated by its associated `Worker`, so after taking it above, the
-      // shared value remains 0 until we restore it.
-      state.set(privateState);
+      if (ImageInfo.inImageBuildtimeCode()) {
+        // At build-time, eagerly free buffers. We don't want them included in the heap snapshot!
+        freeState(privateState);
+      } else {
+        // We don't need to check the value before setting here: A state may be freed by another
+        // thread, but is only allocated by its associated `Worker`, so after taking it above, the
+        // shared value remains 0 until we restore it.
+        state.set(privateState);
+      }
       return result;
     }
 
@@ -180,21 +190,18 @@ public final class Parser {
     }
 
     ByteBuffer parseInputLazy(CharSequence input) {
-      return withState(
-          state -> {
-            byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
-            ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
-            inputBuf.put(inputBytes);
-            return parseTreeLazy(state, inputBuf);
-          });
+      byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
+      ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
+      inputBuf.put(inputBytes);
+      return withState(state -> parseTreeLazy(state, inputBuf));
     }
 
     Tree parse(CharSequence input) {
+      byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
+      ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
+      inputBuf.put(inputBytes);
       return withState(
           state -> {
-            byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
-            ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
-            inputBuf.put(inputBytes);
             var serializedTree = parseTree(state, inputBuf);
             var base = getLastInputBase(state);
             var metadata = getMetadata(state);
