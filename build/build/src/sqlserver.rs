@@ -193,7 +193,7 @@ impl SQLServer {
 
         // Wait until container is ready.
         let check_line = |line: &str| {
-            debug!("ERR: {}", line);
+            debug!("SQLSERVER_LOG: {}", line);
             line.contains("The tempdb database has")
         };
         let stdout = process_lines_until(stdout, &check_line).await?;
