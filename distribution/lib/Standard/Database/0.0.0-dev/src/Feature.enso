@@ -12,3 +12,4 @@ type Feature
     Text_cleanse
     Integration_tests
     Add_row_number
+    Make_table_from

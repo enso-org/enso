@@ -251,6 +251,7 @@ type SQLSever_Dialect
             Feature.Text_cleanse -> False
             Feature.Integration_tests -> False
             Feature.Add_row_number -> False
+            Feature.Make_table_from -> False
             _ -> True
 
     ## PRIVATE

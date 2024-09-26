@@ -1071,12 +1071,13 @@ type DB_Table
        - value_column_name: The name to use for the second column.
     make_table_from_dictionary : Dictionary Any Any -> Text -> Text -> Table
     make_table_from_dictionary self dict key_column_name value_column_name =
-        total_size = dict.size * 2
+        if self.connection.dialect.is_feature_supported Feature.Make_table_from . not then Error.throw (Unsupported_Database_Operation.Error "make_table_from_dictionary") else
+            total_size = dict.size * 2
 
-        if dict.is_empty then Error.throw (Illegal_Argument.Error "Dictionary cannot be empty") else
-            if total_size > MAX_LITERAL_ELEMENT_COUNT then Error.throw (Illegal_Argument.Error "Dictionary is too large ("+dict.size.to_text+" entries): materialize a table into the database instead") else
-                keys_and_values = dict.to_vector
-                self.make_table_from_vectors [keys_and_values.map .first, keys_and_values.map .second] [key_column_name, value_column_name]
+            if dict.is_empty then Error.throw (Illegal_Argument.Error "Dictionary cannot be empty") else
+                if total_size > MAX_LITERAL_ELEMENT_COUNT then Error.throw (Illegal_Argument.Error "Dictionary is too large ("+dict.size.to_text+" entries): materialize a table into the database instead") else
+                    keys_and_values = dict.to_vector
+                    self.make_table_from_vectors [keys_and_values.map .first, keys_and_values.map .second] [key_column_name, value_column_name]
 
     ## PRIVATE
        A helper that creates a literal table from `Vector`s.
@@ -1090,8 +1091,9 @@ type DB_Table
        - column_names: The names of the columns of the new table.
     make_table_from_vectors : Vector (Vector Any) -> Vector Text -> DB_Table
     make_table_from_vectors self column_vectors column_names =
-        literal_table_name = self.connection.base_connection.table_naming_helper.generate_random_table_name "enso-literal-"
-        make_literal_table self.connection column_vectors column_names literal_table_name
+        if self.connection.dialect.is_feature_supported Feature.Make_table_from . not then Error.throw (Unsupported_Database_Operation.Error "make_table_from_vectors") else
+            literal_table_name = self.connection.base_connection.table_naming_helper.generate_random_table_name "enso-literal-"
+            make_literal_table self.connection column_vectors column_names literal_table_name
 
     ## PRIVATE
 
