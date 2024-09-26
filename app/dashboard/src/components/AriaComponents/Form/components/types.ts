@@ -7,6 +7,7 @@ import type * as React from 'react'
 import type * as reactHookForm from 'react-hook-form'
 import type * as z from 'zod'
 
+import type { Path } from '#/utilities/objectPath'
 import type { FormEvent } from 'react'
 import type * as schemaModule from './schema'
 
@@ -22,7 +23,10 @@ export type TransformedValues<Schema extends TSchema | undefined> =
  * Field path type.
  * @alias reactHookForm.FieldPath
  */
-export type FieldPath<Schema extends TSchema> = reactHookForm.FieldPath<FieldValues<Schema>>
+export type FieldPath<Schema extends TSchema, Constraint = unknown> = Extract<
+  Path<FieldValues<Schema>, Constraint>,
+  reactHookForm.FieldPath<FieldValues<Schema>>
+>
 
 /**
  * Schema type
@@ -125,6 +129,8 @@ export interface UseFormRegisterReturn<
  * Return type of the useForm hook.
  * @alias reactHookForm.UseFormReturn
  */
+// @ts-expect-error This is type-safe, we are just using a narrower definition of `FieldPath` in
+// `UseFormRegister<Schema>`.
 export interface UseFormReturn<Schema extends TSchema>
   extends Omit<
     reactHookForm.UseFormReturn<FieldValues<Schema>, unknown, TransformedValues<Schema>>,

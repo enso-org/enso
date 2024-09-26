@@ -65,7 +65,7 @@ export const SWITCH_STYLES = tv({
 // eslint-disable-next-line no-restricted-syntax
 export const Switch = forwardRef(function Switch<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema>,
+  TFieldName extends FieldPath<Schema, boolean>,
 >(props: SwitchProps<Schema, TFieldName>, ref: ForwardedRef<HTMLFieldSetElement>) {
   const {
     label,

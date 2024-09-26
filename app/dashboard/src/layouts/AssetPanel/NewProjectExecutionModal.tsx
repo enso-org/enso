@@ -30,6 +30,7 @@ import {
   Form,
   Input,
   Selector,
+  Switch,
   Text,
 } from '#/components/AriaComponents'
 import { backendMutationOptions } from '#/hooks/backendHooks'
@@ -43,28 +44,32 @@ const REPEAT_TIMES_COUNT = 5
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 /** Create the form schema for this page. */
 function createUpsertExecutionSchema(getText: GetText) {
-  return z
-    .object({
-      repeatInterval: z.enum(PROJECT_REPEAT_INTERVALS),
-      date: z.instanceof(ZonedDateTime, { message: getText('pleaseSelectATime') }),
-      maxDurationMinutes: z
-        .number()
-        .int()
-        .min(MAX_DURATION_MINIMUM_MINUTES)
-        .max(MAX_DURATION_MAXIMUM_MINUTES),
-      parallelMode: z.enum(PROJECT_PARALLEL_MODES),
-    })
-    .transform(({ date, repeatInterval, ...rest }) => {
-      const utcDate = toTimeZone(date, 'UTC')
-      return {
-        repeatInterval,
-        ...(repeatInterval === 'monthly' && { date: utcDate.day }),
-        ...(repeatInterval === 'weekly' && { day: getDayOfWeek(utcDate, 'en-US') }),
-        ...(repeatInterval !== 'hourly' && { hour: utcDate.hour }),
-        minute: utcDate.minute,
-        ...rest,
-      }
-    })
+  return (
+    z
+      .object({
+        multiSelect: z.boolean(),
+        repeatInterval: z.enum(PROJECT_REPEAT_INTERVALS),
+        date: z.instanceof(ZonedDateTime, { message: getText('pleaseSelectATime') }),
+        maxDurationMinutes: z
+          .number()
+          .int()
+          .min(MAX_DURATION_MINIMUM_MINUTES)
+          .max(MAX_DURATION_MAXIMUM_MINUTES),
+        parallelMode: z.enum(PROJECT_PARALLEL_MODES),
+      })
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      .transform(({ date, repeatInterval, multiSelect: _multiSelect, ...rest }) => {
+        const utcDate = toTimeZone(date, 'UTC')
+        return {
+          repeatInterval,
+          ...(repeatInterval === 'monthly' && { date: utcDate.day }),
+          ...(repeatInterval === 'weekly' && { day: getDayOfWeek(utcDate, 'en-US') }),
+          ...(repeatInterval !== 'hourly' && { hour: utcDate.hour }),
+          minute: utcDate.minute,
+          ...rest,
+        }
+      })
+  )
 }
 /* eslint-enable @typescript-eslint/no-magic-numbers */
 
@@ -121,6 +126,7 @@ function NewProjectExecutionModalInner(props: NewProjectExecutionModalProps) {
   const repeatInterval = form.watch('repeatInterval', 'weekly')
   const parallelMode = form.watch('parallelMode', 'restart')
   const date = form.watch('date', nowZonedDateTime)
+  const multiSelect = form.watch('multiSelect', false)
 
   const createProjectExecution = useMutation(
     backendMutationOptions(backend, 'createProjectExecution'),
@@ -162,57 +168,65 @@ function NewProjectExecutionModalInner(props: NewProjectExecutionModalProps) {
 
   return (
     <Form form={form} className="w-full">
-      <Selector
-        form={form}
-        isRequired
-        name="repeatInterval"
-        label={getText('repeatIntervalLabel')}
-        items={PROJECT_REPEAT_INTERVALS}
-      >
-        {(interval) => getText(REPEAT_INTERVAL_TO_TEXT_ID[interval])}
-      </Selector>
-      <div className="flex w-full flex-col">
-        <Selector
-          form={form}
-          isRequired
-          name="parallelMode"
-          label={getText('parallelModeLabel')}
-          items={PROJECT_PARALLEL_MODES}
-        >
-          {(interval) => getText(PARALLEL_MODE_TO_TEXT_ID[interval])}
-        </Selector>
-        <Text>{getText(PARALLEL_MODE_TO_DESCRIPTION_ID[parallelMode])}</Text>
-      </div>
-      {repeatInterval !== 'hourly' && (
-        <div className="flex flex-col">
-          <DatePicker
+      {!multiSelect && (
+        <>
+          <Selector
             form={form}
             isRequired
-            name="date"
-            label={getText('firstOccurrenceLabel')}
-            noCalendarHeader
-            minValue={minFirstOccurrence}
-            maxValue={maxFirstOccurrence}
+            name="repeatInterval"
+            label={getText('repeatIntervalLabel')}
+            items={PROJECT_REPEAT_INTERVALS}
+          >
+            {(interval) => getText(REPEAT_INTERVAL_TO_TEXT_ID[interval])}
+          </Selector>
+          <div className="flex w-full flex-col">
+            <Selector
+              form={form}
+              isRequired
+              name="parallelMode"
+              label={getText('parallelModeLabel')}
+              items={PROJECT_PARALLEL_MODES}
+            >
+              {(interval) => getText(PARALLEL_MODE_TO_TEXT_ID[interval])}
+            </Selector>
+            <Text>{getText(PARALLEL_MODE_TO_DESCRIPTION_ID[parallelMode])}</Text>
+          </div>
+          {repeatInterval !== 'hourly' && (
+            <div className="flex flex-col">
+              <DatePicker
+                form={form}
+                isRequired
+                name="date"
+                label={getText('firstOccurrenceLabel')}
+                noCalendarHeader
+                minValue={minFirstOccurrence}
+                maxValue={maxFirstOccurrence}
+              />
+              <Text>
+                {getText(
+                  'repeatsAtX',
+                  repeatTimes
+                    .map((time) =>
+                      toCalendarDate(time).toDate(getLocalTimeZone()).toLocaleDateString(),
+                    )
+                    .join(', '),
+                )}
+              </Text>
+            </div>
+          )}
+          <Input
+            form={form}
+            name="maxDurationMinutes"
+            type="number"
+            defaultValue={MAX_DURATION_DEFAULT_MINUTES}
+            min={MAX_DURATION_MINIMUM_MINUTES}
+            max={MAX_DURATION_MAXIMUM_MINUTES}
+            label={getText('maxDurationMinutesLabel')}
           />
-          <Text>
-            {getText(
-              'repeatsAtX',
-              repeatTimes
-                .map((time) => toCalendarDate(time).toDate(getLocalTimeZone()).toLocaleDateString())
-                .join(', '),
-            )}
-          </Text>
-        </div>
+        </>
       )}
-      <Input
-        form={form}
-        name="maxDurationMinutes"
-        type="number"
-        defaultValue={MAX_DURATION_DEFAULT_MINUTES}
-        min={MAX_DURATION_MINIMUM_MINUTES}
-        max={MAX_DURATION_MAXIMUM_MINUTES}
-        label={getText('maxDurationMinutesLabel')}
-      />
+      {multiSelect && <></>}
+      <Switch form={form} name="multiSelect" />
 
       <Form.FormError />
       <ButtonGroup>

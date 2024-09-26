@@ -95,7 +95,7 @@ export interface DatePickerProps<Schema extends TSchema, TFieldName extends Fiel
 /** A date picker. */
 export const DatePicker = forwardRef(function DatePicker<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema>,
+  TFieldName extends FieldPath<Schema, DateValue>,
 >(props: DatePickerProps<Schema, TFieldName>, ref: ForwardedRef<HTMLFieldSetElement>) {
   const {
     noResetButton = false,
