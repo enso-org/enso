@@ -791,6 +791,11 @@ class Compiler(
     ir: IRModule,
     moduleContext: ModuleContext
   ): IRModule = {
+    context.log(
+      Level.FINEST,
+      "Passing module {0} with method body passes",
+      moduleContext.module.getName
+    )
     passManager.runPassesOnModule(ir, moduleContext, passes.functionBodyPasses)
   }
 
@@ -798,6 +803,11 @@ class Compiler(
     ir: IRModule,
     moduleContext: ModuleContext
   ): IRModule = {
+    context.log(
+      Level.FINEST,
+      "Passing module {0} with global typing passes",
+      moduleContext.module.getName
+    )
     passManager.runPassesOnModule(ir, moduleContext, passes.globalTypingPasses)
   }
 
