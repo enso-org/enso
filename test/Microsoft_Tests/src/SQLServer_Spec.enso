@@ -8,6 +8,7 @@ from Standard.Table.Errors import Invalid_Column_Names, Inexact_Type_Coercion, D
 
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
+import Standard.Database.Feature.Feature
 import Standard.Database.SQL_Type.SQL_Type
 import Standard.Database.Internal.Replace_Params.Replace_Params
 from Standard.Database import all
@@ -87,65 +88,66 @@ add_specs suite_builder =
             suite_builder.group "[SQLServer] Database tests" pending=message (_-> Nothing)
         connection_builder ->
             add_sqlserver_specs suite_builder connection_builder
-            suite_builder.group "[SQLServer] Info" group_builder->
-                default_connection = Database.connect get_configured_connection_details
-                data = SQLServer_Info_Data.setup default_connection
+            default_connection = Database.connect get_configured_connection_details
+            if default_connection.dialect.is_feature_supported Feature.Integration_tests then
+                suite_builder.group "[SQLServer] Info" group_builder->
+                    data = SQLServer_Info_Data.setup default_connection
 
-                group_builder.teardown <|
-                    data.teardown
+                    group_builder.teardown <|
+                        data.teardown
 
-                group_builder.specify "should return Table information" <|
-                    i = data.t.column_info
-                    i.at "Column" . to_vector . should_equal ["strs", "ints", "bools", "reals", "floats", "tinyints", "smallints", "bigints", "times", "dates", "datetimes", "smalldatetimes", "datetime2s", "datetimeoffsets"]
-                    i.at "Items Count" . to_vector . should_equal [3, 1, 2, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2]
-                    i.at "Value Type" . to_vector . should_equal [Value_Type.Char 255, Value_Type.Integer ..Bits_32, Value_Type.Boolean, Value_Type.Float ..Bits_32, Value_Type.Float, Value_Type.Integer Bits.Bits_16, Value_Type.Integer Bits.Bits_16, Value_Type.Integer Bits.Bits_64, Value_Type.Time, Value_Type.Date, Value_Type.Date_Time False, Value_Type.Date_Time False, Value_Type.Date_Time False, Value_Type.Date_Time True]
+                    group_builder.specify "should return Table information" <|
+                        i = data.t.column_info
+                        i.at "Column" . to_vector . should_equal ["strs", "ints", "bools", "reals", "floats", "tinyints", "smallints", "bigints", "times", "dates", "datetimes", "smalldatetimes", "datetime2s", "datetimeoffsets"]
+                        i.at "Items Count" . to_vector . should_equal [3, 1, 2, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2]
+                        i.at "Value Type" . to_vector . should_equal [Value_Type.Char 255, Value_Type.Integer ..Bits_32, Value_Type.Boolean, Value_Type.Float ..Bits_32, Value_Type.Float, Value_Type.Integer Bits.Bits_16, Value_Type.Integer Bits.Bits_16, Value_Type.Integer Bits.Bits_64, Value_Type.Time, Value_Type.Date, Value_Type.Date_Time False, Value_Type.Date_Time False, Value_Type.Date_Time False, Value_Type.Date_Time True]
 
-                group_builder.specify "should return Table information, also for aggregated results" <|
-                    i = data.t.aggregate columns=[Aggregate_Column.Sum "ints", Aggregate_Column.Count_Distinct "bools"] . column_info
-                    i.at "Column" . to_vector . should_equal ["Sum ints", "Count Distinct bools"]
-                    i.at "Items Count" . to_vector . should_equal [1, 1]
-                    i.at "Value Type" . to_vector . should_equal [Value_Type.Integer ..Bits_32, Value_Type.Integer ..Bits_32]
+                    group_builder.specify "should return Table information, also for aggregated results" <|
+                        i = data.t.aggregate columns=[Aggregate_Column.Sum "ints", Aggregate_Column.Count_Distinct "bools"] . column_info
+                        i.at "Column" . to_vector . should_equal ["Sum ints", "Count Distinct bools"]
+                        i.at "Items Count" . to_vector . should_equal [1, 1]
+                        i.at "Value Type" . to_vector . should_equal [Value_Type.Integer ..Bits_32, Value_Type.Integer ..Bits_32]
 
-                group_builder.specify "should infer standard types correctly" <|
-                    data.t.at "strs" . value_type . is_text . should_be_true
-                    data.t.at "ints" . value_type . is_integer . should_be_true
-                    data.t.at "bools" . value_type . is_boolean . should_be_true
-                    data.t.at "floats" . value_type . is_floating_point . should_be_true
+                    group_builder.specify "should infer standard types correctly" <|
+                        data.t.at "strs" . value_type . is_text . should_be_true
+                        data.t.at "ints" . value_type . is_integer . should_be_true
+                        data.t.at "bools" . value_type . is_boolean . should_be_true
+                        data.t.at "floats" . value_type . is_floating_point . should_be_true
 
-                group_builder.specify "should preserve SQLServer types when table is materialized, where possible" pending="TODO" <|
-                    name = Name_Generator.random_name "types-test"
-                    Problems.assume_no_problems <|
-                        data.connection.execute_update 'CREATE TABLE "#'+name+'" ("int4" int4, "int2" int2, "txt-limited" varchar(10), "txt-fixed" char(3))'
-                    t1 = data.connection.query (SQL_Query.Table_Name name)
-                    t1.at "int4" . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
-                    t1.at "int2" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
-                    t1.at "txt-limited" . value_type . should_equal (Value_Type.Char size=10 variable_length=True)
-                    t1.at "txt-fixed" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
+                    group_builder.specify "should preserve SQLServer types when table is materialized, where possible" pending="TODO" <|
+                        name = Name_Generator.random_name "types-test"
+                        Problems.assume_no_problems <|
+                            data.connection.execute_update 'CREATE TABLE "#'+name+'" ("int4" int4, "int2" int2, "txt-limited" varchar(10), "txt-fixed" char(3))'
+                        t1 = data.connection.query (SQL_Query.Table_Name name)
+                        t1.at "int4" . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
+                        t1.at "int2" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
+                        t1.at "txt-limited" . value_type . should_equal (Value_Type.Char size=10 variable_length=True)
+                        t1.at "txt-fixed" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
 
-                    in_memory = t1.read
-                    in_memory.at "int4" . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
-                    in_memory.at "int2" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
-                    in_memory.at "txt-limited" . value_type . should_equal (Value_Type.Char size=10 variable_length=True)
-                    in_memory.at "txt-fixed" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
+                        in_memory = t1.read
+                        in_memory.at "int4" . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
+                        in_memory.at "int2" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
+                        in_memory.at "txt-limited" . value_type . should_equal (Value_Type.Char size=10 variable_length=True)
+                        in_memory.at "txt-fixed" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
 
-                group_builder.specify "test datetime2 precision round trip" <|
-                    name = "#" + (Name_Generator.random_name "datetime2-test")
-                    Problems.assume_no_problems <|
-                        data.connection.execute 'CREATE TABLE "'+name+'" ("dt2" DATETIME2)'
-                    t = data.connection.query (SQL_Query.Table_Name name)
-                    row1 = [Date_Time.new 2021 1 1 12 13 14 500 1 1]
-                    row2 = [Date_Time.new 2021 1 1 9 12 12 987 654 321]
-                    row3 = [Nothing]
-                    source_table = Table.from_rows ["dt2"] [row1, row2, row3]
-                    t.update_rows source_table update_action=Update_Action.Insert
-                    ## SQLServer only supports precision to 100 nanoseconds
-                    expected_row1 = [Date_Time.new 2021 1 1 12 13 14 500 1 0]
-                    expected_row2 = [Date_Time.new 2021 1 1 9 12 12 987 654 300]
-                    expected_row3 = [Nothing]
-                    expected_table = Table.from_rows ["dt2"] [expected_row1, expected_row2, expected_row3]
-                    returned_table = t.read
-                    returned_table.should_equal expected_table
-                    data.connection.execute 'DROP TABLE "'+name+'"'
+                    group_builder.specify "test datetime2 precision round trip" <|
+                        name = "#" + (Name_Generator.random_name "datetime2-test")
+                        Problems.assume_no_problems <|
+                            data.connection.execute 'CREATE TABLE "'+name+'" ("dt2" DATETIME2)'
+                        t = data.connection.query (SQL_Query.Table_Name name)
+                        row1 = [Date_Time.new 2021 1 1 12 13 14 500 1 1]
+                        row2 = [Date_Time.new 2021 1 1 9 12 12 987 654 321]
+                        row3 = [Nothing]
+                        source_table = Table.from_rows ["dt2"] [row1, row2, row3]
+                        t.update_rows source_table update_action=Update_Action.Insert
+                        ## SQLServer only supports precision to 100 nanoseconds
+                        expected_row1 = [Date_Time.new 2021 1 1 12 13 14 500 1 0]
+                        expected_row2 = [Date_Time.new 2021 1 1 9 12 12 987 654 300]
+                        expected_row3 = [Nothing]
+                        expected_table = Table.from_rows ["dt2"] [expected_row1, expected_row2, expected_row3]
+                        returned_table = t.read
+                        returned_table.should_equal expected_table
+                        data.connection.execute 'DROP TABLE "'+name+'"'
 
 type Lazy_Ref
    Value ~get
