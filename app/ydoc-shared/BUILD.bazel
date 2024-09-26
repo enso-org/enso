@@ -1,6 +1,7 @@
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
 load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary")
 
 npm_link_all_packages(name = "node_modules")
 
@@ -16,8 +17,10 @@ ts_project(
     composite = True,
     tsconfig = ":tsconfig",
     out_dir = "dist",
+    root_dir = "src",
     srcs = glob(["src/**/*.ts"]),
-    deps = npm_link_targets(),
+    deps = npm_link_targets() + [":generate_ast_typedefs"],
+    visibility = ["//visibility:public"],
 )
 
 npm_package(
@@ -26,5 +29,38 @@ npm_package(
         "package.json",
         ":tsc",
     ],
+    visibility = ["//visibility:public"],
+)
+
+# parser-codegen
+
+ts_config(
+    name = "parser-codegen-tsconfig",
+    src = "parser-codegen/tsconfig.json",
+    deps = [],
+)
+
+ts_project(
+    name = "parser-codegen-tsc",
+    tsconfig = ":parser-codegen-tsconfig",
+    srcs = glob(["parser-codegen/*.ts"]),
+    deps = npm_link_targets(),
+)
+
+js_binary(
+    name = "parser-codegen-bin",
+    data = [
+        ":parser-codegen-tsc",
+        "package.json",
+    ],
+    entry_point = "parser-codegen/index.js",
+)
+
+js_run_binary(
+    name = "generate_ast_typedefs",
+    tool = ":parser-codegen-bin",
+    srcs = ["src/ast/generated/ast-schema.json"],
+    args = ["$(location src/ast/generated/ast-schema.json)"],
+    stdout = "src/ast/generated/ast.ts",
     visibility = ["//visibility:public"],
 )

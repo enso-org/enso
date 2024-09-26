@@ -10,9 +10,13 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "compile": "tsc",
-    "typecheck": "tsc",
-    "format": "prettier --version && prettier --write src/ && eslint . --fix"
+    "format": "prettier --version && prettier --write src/ && eslint . --fix",
+    "clean": "rimraf --glob generated/*.{json,ts}",
+    "compile": "corepack pnpm run generate:ast-schema && corepack pnpm run generate:ast-types",
+    "generate:ast-schema": "cargo run -p enso-parser-schema > src/ast/generated/ast-schema.json",
+    "generate:ast-types": "vite-node index.ts src/ast/generated/ast-schema.json src/ast/generated/ast.ts",
+    "generate:ast-types-lazy": "vite-node parser-codegen/index.ts src/ast/generated/ast-schema.json src/ast/generated/ast.ts --if-changed",
+    "postinstall": "corepack pnpm run generate:ast-schema && corepack pnpm run generate:ast-types-lazy"
   },
   "exports": {
     "./ast": {
@@ -30,7 +34,6 @@
     "@noble/hashes": "^1.4.0",
     "@open-rpc/client-js": "^1.8.1",
     "@types/debug": "^4.1.12",
-    "parser-codegen": "workspace:*",
     "debug": "^4.3.6",
     "fast-diff": "^1.3.0",
     "hash-wasm": "^4.11.0",
@@ -39,7 +42,8 @@
     "partysocket": "^1.0.1",
     "rust-ffi": "workspace:*",
     "yjs": "^13.6.7",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "change-case": "^4.1.2"
   },
   "devDependencies": {
     "@fast-check/vitest": "^0.0.8",
@@ -48,6 +52,7 @@
     "typescript": "^5.5.3",
     "vite-node": "^2.0.4",
     "vite-plugin-wasm": "^3.3.0",
-    "vitest": "^1.3.1"
+    "vitest": "^1.3.1",
+    "rimraf": "^6.0.1"
   }
 }
