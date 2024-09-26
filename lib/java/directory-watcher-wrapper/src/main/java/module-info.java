@@ -6,4 +6,5 @@ module org.enso.directory.watcher.wrapper {
 
   exports io.methvin.watcher;
   exports io.methvin.watchservice;
+  exports io.methvin.watchservice.jna;
 }
