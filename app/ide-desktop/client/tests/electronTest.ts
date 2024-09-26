@@ -10,7 +10,7 @@ import { _electron, expect, type Page, test } from '@playwright/test'
 export function electronTest(name: string, body: (page: Page) => Promise<void> | void) {
   test(name, async () => {
     const app = await _electron.launch({
-      executablePath: process.env.ENSO_TEST_EXEC_PATH,
+      executablePath: process.env.ENSO_TEST_EXEC_PATH ?? '',
       env: { ...process.env, ['ENSO_TEST']: name },
     })
     const page = await app.firstWindow()
@@ -27,9 +27,14 @@ export async function loginAsTestUser(page: Page) {
   // Login screen
   await expect(page.getByRole('textbox', { name: 'email' })).toBeVisible()
   await expect(page.getByRole('textbox', { name: 'password' })).toBeVisible()
-  await page.keyboard.insertText(process.env.ENSO_TEST_USER ?? '')
+  if (process.env.ENSO_TEST_USER == null || process.env.ENSO_TEST_USER_PASSWORD == null) {
+    throw Error(
+      'Cannot log in; ENSO_TEST_USER and ENSO_TEST_USER_PASSWORD env variables are not provided',
+    )
+  }
+  await page.keyboard.insertText(process.env.ENSO_TEST_USER)
   await page.keyboard.press('Tab')
-  await page.keyboard.insertText(process.env.ENSO_TEST_USER_PASSWORD ?? '')
+  await page.keyboard.insertText(process.env.ENSO_TEST_USER_PASSWORD)
   await page.keyboard.press('Enter')
 
   // Accept terms screen
