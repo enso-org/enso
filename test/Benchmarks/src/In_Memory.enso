@@ -4,6 +4,7 @@ from Standard.Table import Column
 from Standard.Table.Value_Type import all
 from Standard.Test import Bench, Faker
 
+polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 
 options = Bench.options
 
@@ -33,12 +34,17 @@ collect_benches = Bench.build builder->
 
     data = Data.create vector_size faker
 
+    Java_Storage.doubleIntDivInit
+
     builder.group "In_Memory" options group_builder->
         float_col = Column.from_vector "floats" data.floats Value_Type.Float
         int_col = Column.from_vector "ints" data.ints Value_Type.Integer
-        
+
         group_builder.specify "col_div_float_int" <|
             q = float_col * int_col
             _ = [q]
+
+        group_builder.specify "bare_array_div_float_int" <|
+            Java_Storage.doubleIntDiv
 
 main = collect_benches . run_main

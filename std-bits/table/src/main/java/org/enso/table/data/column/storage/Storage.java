@@ -3,6 +3,7 @@ package org.enso.table.data.column.storage;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Random;
 import java.util.function.BiFunction;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
@@ -444,5 +445,28 @@ public abstract class Storage<T> implements ColumnStorage {
   @Override
   public Object getItemAsObject(long index) {
     return getItemBoxed((int) index);
+  }
+
+  private static final int SIZE = 5000000;
+  private static double doubles[] = new double[SIZE];
+  private static int ints[] = new int[SIZE];
+  private static double out[] = new double[SIZE];
+  private static Random random = null;
+  public static void doubleIntDivInit() {
+    random = new Random(1644575867);
+    int minimum = -1000000000;
+    int maximum = 1000000000;
+    for (int i = 0; i < SIZE; ++i) {
+      doubles[i] = minimum + random.nextDouble() * (maximum - minimum);
+    }
+    for (int i = 0; i < SIZE; ++i) {
+      ints[i] = minimum + random.nextInt() * (maximum - minimum);
+    }
+  }
+
+  public static void doubleIntDiv() {
+    for (int i = 0; i < SIZE; ++i) {
+      out[i] = doubles[i] / ints[i];
+    }
   }
 }
