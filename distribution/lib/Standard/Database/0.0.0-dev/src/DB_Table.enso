@@ -1459,7 +1459,8 @@ type DB_Table
     @on Widget_Helpers.make_join_condition_selector
     join : DB_Table -> Join_Kind -> Join_Condition | Text | Vector (Join_Condition | Text) -> Text -> Problem_Behavior -> DB_Table
     join self right (join_kind : Join_Kind = ..Left_Outer) (on : Join_Condition | Text | Vector (Join_Condition | Text) = (default_join_condition self join_kind)) (right_prefix:Text="Right ") (on_problems:Problem_Behavior=..Report_Warning) =
-        self.join_or_cross_join right join_kind on right_prefix on_problems
+        if self.connection.dialect.is_feature_supported Feature.Join . not then Error.throw (Unsupported_Database_Operation.Error "join") else
+            self.join_or_cross_join right join_kind on right_prefix on_problems
 
     ## PRIVATE
        Implementation of both `join` and `cross_join`.

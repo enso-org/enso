@@ -6,3 +6,4 @@ type Feature
     Filter
     Aggregate
     Sort
+    Join
