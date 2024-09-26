@@ -142,6 +142,21 @@ object CallArgument {
       name.map(List(_, value)).getOrElse(List(value))
 
     /** @inheritdoc */
+    override def withNewChildren(newChildren: List[IR]): IR = {
+      if (newChildren.size == 1) {
+        copy(value = newChildren.head.asInstanceOf[Expression])
+      } else if (newChildren.size == 2) {
+        val n = newChildren.head.asInstanceOf[Name]
+        val v = newChildren(1).asInstanceOf[Expression]
+        copy(name = Some(n), value = v)
+      } else {
+        throw new IllegalArgumentException(
+          "CallArgument.Specified must have either one or two children"
+        )
+      }
+    }
+
+    /** @inheritdoc */
     override def showCode(indent: Int): String = {
       if (name.isDefined) {
         s"(${name.get.showCode(indent)} = ${value.showCode(indent)})"
