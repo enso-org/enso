@@ -1,7 +1,5 @@
 package org.enso.pkg
 
-import com.oracle.truffle.api.CompilerDirectives
-
 import scala.jdk.CollectionConverters._
 
 /** Represents a qualified name of a source item.
@@ -15,7 +13,6 @@ case class QualifiedName(path: List[String], item: String) {
   private lazy val qualifiedNameString: String =
     (path :+ item).mkString(QualifiedName.separator)
 
-  @CompilerDirectives.TruffleBoundary
   override def toString: String =
     qualifiedNameString
 
@@ -31,7 +28,6 @@ case class QualifiedName(path: List[String], item: String) {
     * @param name the name of a child node.
     * @return a new qualified name based on this name.
     */
-  @CompilerDirectives.TruffleBoundary
   def createChild(name: String): QualifiedName =
     QualifiedName(path :+ item, name)
 

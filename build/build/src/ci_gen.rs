@@ -437,7 +437,7 @@ pub struct UploadIde;
 impl JobArchetype for UploadIde {
     fn job(&self, target: Target) -> Job {
         RunStepsBuilder::new(
-            "ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}",
+            "ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}} --gui-sign-artifacts true",
         )
         .cleaning(RELEASE_CLEANING_POLICY)
         .customize(with_packaging_steps(target.0))
