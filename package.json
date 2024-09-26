@@ -53,6 +53,66 @@
         "dependencies": {
           "events": "^3.3.0"
         }
+      },
+      "react-error-boundary": {
+        "dependencies": {
+          "@types/react": "*"
+        }
+      },
+      "react-aria-components": {
+        "dependencies": {
+          "@types/react": "*"
+        }
+      },
+      "react-aria": {
+        "dependencies": {
+          "@types/react": "*"
+        }
+      },
+      "input-otp": {
+        "dependencies": {
+          "@types/react": "*"
+        }
+      },
+      "@tanstack/react-query": {
+        "dependencies": {
+          "@types/react": "*"
+        }
+      },
+      "@react-types/shared": {
+        "dependencies": {
+          "@types/react": "*"
+        }
+      },
+      "@monaco-editor/react": {
+        "dependencies": {
+          "@types/react": "*"
+        }
+      },
+      "@stripe/react-stripe-js": {
+        "dependencies": {
+          "@types/react": "*"
+        }
+      },
+      "react-toastify": {
+        "dependencies": {
+          "@types/react": "*"
+        }
+      },
+      "react-hook-form": {
+        "dependencies": {
+          "@types/react": "*"
+        }
+      },
+      "@hookform/resolvers": {
+        "dependencies": {
+          "zod": "*"
+        }
+      },
+      "enso-support": {
+        "dependencies": {
+          "@types/ws": "^8.5.5"
+        }
       }
     },
     "onlyBuiltDependencies": ["fsevents"]
