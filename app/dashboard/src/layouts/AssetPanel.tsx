@@ -113,6 +113,7 @@ export default function AssetPanel(props: AssetPanelProps) {
         isVisible ? 'min-w-side-panel' : 'min-w-0',
       )}
       onClick={(event) => {
+        // Prevent deselecting Assets Table rows.
         event.stopPropagation()
       }}
     >

@@ -612,7 +612,7 @@ public abstract class SortVectorNode extends Node {
     }
 
     int compareValuesWithDefaultComparator(Object x, Object y) {
-      if (equalsNode.execute(frame, x, y)) {
+      if (equalsNode.execute(frame, x, y).isTrue()) {
         return 0;
       } else {
         // Check if x < y

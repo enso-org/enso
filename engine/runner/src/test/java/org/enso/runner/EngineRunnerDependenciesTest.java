@@ -7,7 +7,6 @@ import org.apache.commons.cli.CommandLine;
 import org.enso.runner.common.LanguageServerApi;
 import org.enso.runner.common.ProfilingConfig;
 import org.enso.runner.common.WrongOption;
-import org.junit.Ignore;
 import org.junit.Test;
 import scala.Option;
 
@@ -16,9 +15,6 @@ public class EngineRunnerDependenciesTest {
   public EngineRunnerDependenciesTest() {}
 
   @Test
-  // ignored for now as engine-runner still has "Runtime" dependency on language-server and that one
-  // appears in test classpath - remove once language-server is packaged as its own JAR file
-  @Ignore
   public void unableToLoadClassFromLanguageServerProject() {
     try {
       var b = new CommandLine.Builder();

@@ -6,9 +6,10 @@ import * as setAssetHooks from '#/hooks/setAssetHooks'
 import type * as column from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
 
-import * as backendModule from '#/services/Backend'
+import type * as backendModule from '#/services/Backend'
 
 import { useSetIsAssetPanelTemporarilyVisible } from '#/providers/DriveProvider'
+import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
@@ -19,7 +20,9 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 // ====================
 
 /** Props for a {@link DatalinkNameColumn}. */
-export interface DatalinkNameColumnProps extends column.AssetColumnProps {}
+export interface DatalinkNameColumnProps extends column.AssetColumnProps {
+  readonly item: AssetTreeNode<backendModule.DatalinkAsset>
+}
 
 /** The icon and name of a {@link backendModule.DatalinkAsset}.
  * @throws {Error} when the asset is not a {@link backendModule.DatalinkAsset}.
@@ -27,11 +30,6 @@ export interface DatalinkNameColumnProps extends column.AssetColumnProps {}
 export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
   const { item, setItem, selected, rowState, setRowState, isEditable } = props
   const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
-
-  if (item.type !== backendModule.AssetType.datalink) {
-    // eslint-disable-next-line no-restricted-syntax
-    throw new Error('`DatalinkNameColumn` can only display Datalinks.')
-  }
   const asset = item.item
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 

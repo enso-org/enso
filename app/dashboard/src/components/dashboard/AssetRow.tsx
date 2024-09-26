@@ -212,11 +212,12 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
     setItem(rawItem)
   }, [rawItem])
 
+  const rawItemRef = useSyncRef(rawItem)
   React.useEffect(() => {
     // Mutation is HIGHLY INADVISABLE in React, however it is useful here as we want to update the
     // parent's state while avoiding re-rendering the parent.
-    rawItem.item = asset
-  }, [asset, rawItem])
+    rawItemRef.current.item = asset
+  }, [asset, rawItemRef])
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
   React.useEffect(() => {
@@ -777,8 +778,6 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
                 }}
               >
                 {columns.map((column) => {
-                  // This is a React component even though it does not contain JSX.
-                  // eslint-disable-next-line no-restricted-syntax
                   const Render = columnModule.COLUMN_RENDERER[column]
                   return (
                     <td key={column} className={columnUtils.COLUMN_CSS_CLASS[column]}>

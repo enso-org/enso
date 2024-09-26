@@ -57,6 +57,7 @@ import * as projectManager from '#/services/ProjectManager'
 import { baseName } from '#/utilities/fileInfo'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
+import { tryFindSelfPermission } from '#/utilities/permissions'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { usePrefetchQuery } from '@tanstack/react-query'
@@ -251,12 +252,7 @@ function DashboardInner(props: DashboardProps) {
   const doOpenShareModal = eventCallbacks.useEventCallback(() => {
     if (assetManagementApiRef.current != null && selectedProject != null) {
       const asset = assetManagementApiRef.current.getAsset(selectedProject.id)
-      const self =
-        asset?.permissions?.find(
-          backendModule.isUserPermissionAnd(
-            (permissions) => permissions.user.userId === user.userId,
-          ),
-        ) ?? null
+      const self = tryFindSelfPermission(user, asset?.permissions)
 
       if (asset != null && self != null) {
         setModal(

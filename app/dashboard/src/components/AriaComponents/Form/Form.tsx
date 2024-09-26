@@ -41,6 +41,7 @@ export const Form = forwardRef(function Form<
     gap,
     method,
     canSubmitOffline = false,
+    testId = props['data-testid'],
     ...formProps
   } = props
 
@@ -61,8 +62,6 @@ export const Form = forwardRef(function Form<
       return result
     },
   )
-
-  const testId = props['testId'] ?? props['data-testid'] ?? 'form'
 
   const innerForm = components.useForm<Schema, SubmitResult>(
     form ?? {

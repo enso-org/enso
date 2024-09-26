@@ -133,20 +133,18 @@ export default function Labels(props: LabelsProps) {
                 </div>
               )
             })}
-            <ariaComponents.Button
-              size="xsmall"
-              variant="outline"
-              className="pl-1 pr-2"
-              /* eslint-disable-next-line no-restricted-syntax */
-              icon={<SvgMask src={PlusIcon} alt="" className="ml-auto size-[8px]" />}
-              onPress={(event) => {
-                if (event.target instanceof HTMLElement) {
-                  setModal(<NewLabelModal backend={backend} eventTarget={event.target} />)
-                }
-              }}
-            >
-              {getText('newLabelButtonLabel')}
-            </ariaComponents.Button>
+            <ariaComponents.DialogTrigger>
+              <ariaComponents.Button
+                size="xsmall"
+                variant="outline"
+                className="pl-1 pr-2"
+                /* eslint-disable-next-line no-restricted-syntax */
+                icon={<SvgMask src={PlusIcon} alt="" className="ml-auto size-[8px]" />}
+              >
+                {getText('newLabelButtonLabel')}
+              </ariaComponents.Button>
+              <NewLabelModal backend={backend} />
+            </ariaComponents.DialogTrigger>
           </div>
         </div>
       )}

@@ -96,7 +96,9 @@ export const Switch = forwardRef(function Switch<
     disabled: isDisabled,
     required: isRequired,
     ...(props.onBlur && { onBlur: props.onBlur }),
-    ...(props.onChange && { onChange: props.onChange }),
+    ...(props.onChange && {
+      onChange: (event: { target: { value: boolean } }) => props.onChange?.(event.target.value),
+    }),
   })
 
   const {

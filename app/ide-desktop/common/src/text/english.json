@@ -172,6 +172,8 @@
   "getDefaultVersionBackendError": "No default $0 version found",
   "duplicateUserGroupError": "This user group already exists",
   "getCustomerPortalUrlBackendError": "Could not get customer portal URL",
+  "duplicateLabelError": "This label already exists.",
+  "emptyStringError": "This value must not be empty.",
 
   "directoryAssetType": "folder",
   "projectAssetType": "project",

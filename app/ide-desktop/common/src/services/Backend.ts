@@ -712,7 +712,7 @@ export interface LChColor {
   readonly lightness: number
   readonly chroma: number
   readonly hue: number
-  readonly alpha?: number
+  readonly alpha?: number | undefined
 }
 
 /** A pre-selected list of colors to be used in color pickers. */
@@ -754,7 +754,7 @@ export const COLOR_STRING_TO_COLOR = new Map(
 export const INITIAL_COLOR_COUNTS = new Map(COLORS.map(color => [lChColorToCssColor(color), 0]))
 
 /** The color that is used for the least labels. Ties are broken by order. */
-export function leastUsedColor(labels: Iterable<Label>) {
+export function getLeastUsedColor(labels: Iterable<Label>) {
   const colorCounts = new Map(INITIAL_COLOR_COUNTS)
   for (const label of labels) {
     const colorString = lChColorToCssColor(label.color)

@@ -143,12 +143,6 @@ object DistributionPackage {
       distributionRoot / "component",
       cacheFactory.make("module jars")
     )
-    // Put runner.jar into a nested directory, so that it is outside of the default
-    // module-path.
-    IO.copyFile(
-      file("runner.jar"),
-      distributionRoot / "component" / "runner" / "runner.jar"
-    )
 
     val parser = targetDir / Platform.dynamicLibraryFileName("enso_parser")
     copyFilesIncremental(
