@@ -29,6 +29,7 @@ import Standard.Database.SQL_Type.SQL_Type
 from Standard.Database.Dialect import Temp_Table_Style
 from Standard.Database.Dialect_Flags import all
 from Standard.Database.Errors import SQL_Error, Unsupported_Database_Operation
+from Standard.Database.Feature import Feature
 from Standard.Database.Internal.JDBC_Connection import JDBC_Connection
 
 import project.Database.Redshift.Internal.Redshift_Error_Mapper.Redshift_Error_Mapper
@@ -186,9 +187,13 @@ type Redshift_Dialect
 
     ## PRIVATE
        Checks if an operation is supported by the dialect.
-    is_supported : Text -> Boolean
-    is_supported self operation =
-        self.dialect_operations.is_supported operation
+    is_operation_supported self operation:Text -> Boolean =
+        self.dialect_operations.is_operation_supported operation
+
+    ## PRIVATE
+       Checks if a feature is supported by the dialect.
+    is_feature_supported self feature:Feature -> Boolean =
+        True
 
     ## PRIVATE
        The default table types to use when listing tables.

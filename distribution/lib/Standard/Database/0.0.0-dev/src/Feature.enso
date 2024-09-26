@@ -1,0 +1,7 @@
+from Standard.Base import all
+
+## PRIVATE
+type Feature
+    FeatureA
+    FeatureB
+    FeatureC
