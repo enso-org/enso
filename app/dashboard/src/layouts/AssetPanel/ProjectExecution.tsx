@@ -12,7 +12,7 @@ import UpgradeIcon from '#/assets/upgrade.svg'
 import { DialogTrigger } from '#/components/aria'
 import { Button, ButtonGroup, CloseButton, Text } from '#/components/AriaComponents'
 import { backendMutationOptions } from '#/hooks/backendHooks'
-import ConfirmDeleteModalNew from '#/modals/ConfirmDeleteModalNew'
+import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
@@ -63,13 +63,13 @@ export default function ProjectExecution(props: ProjectExecutionProps) {
   const time = projectExecution.time
   const minuteString = time.minute === 0 ? '' : `:${String(time.minute).padStart(2, '0')}`
   const timeString =
-    time.hour != null ?
+    time.hours?.[0] != null ?
       // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-      time.hour > 11 ?
+      time.hours[0] > 11 ?
         // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-        `${time.hour % 12 || 12}${minuteString} pm`
+        `${time.hours[0] % 12 || 12}${minuteString} pm`
         // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-      : `${time.hour || 12}${minuteString} am`
+      : `${time.hours[0] || 12}${minuteString} am`
     : `xx${minuteString || ':00'}`
 
   const styles = PROJECT_EXECUTION_STYLES({
@@ -94,8 +94,8 @@ export default function ProjectExecution(props: ProjectExecutionProps) {
     <div className={styles.base()}>
       <div className={styles.timeContainer()}>
         <Text elementType="time" className={styles.time()}>
-          {time.date != null && `${time.date + 1} `}
-          {time.day != null && `${getText(DAY_TEXT_IDS[time.day] ?? 'monday')} `}
+          {time.dates?.[0] != null && `${time.dates[0] + 1} `}
+          {time.days?.[0] != null && `${getText(DAY_TEXT_IDS[time.days[0]] ?? 'monday')} `}
           {timeString}
         </Text>
         <Button
@@ -130,7 +130,7 @@ export default function ProjectExecution(props: ProjectExecutionProps) {
             tooltip={getText('delete')}
             tooltipPlacement="top left"
           />
-          <ConfirmDeleteModalNew
+          <ConfirmDeleteModal
             actionText={getText('deleteThisProjectExecution')}
             doDelete={async () => {
               await deleteProjectExecution([projectExecution.projectExecutionId, item.title])
