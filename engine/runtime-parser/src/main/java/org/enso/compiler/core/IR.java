@@ -72,6 +72,17 @@ public interface IR {
   List<IR> children();
 
   /**
+   * Replaces the children of this node with the provided list of new children.
+   *
+   * @param newChildren the new (ordered) children to replace the existing children with.
+   * @return a copy of this node with the new children.
+   */
+  default IR withNewChildren(List<IR> newChildren) {
+    throw new UnsupportedOperationException(
+        "withNewChildren not implemented for " + this.getClass());
+  }
+
+  /**
    * Applies the callback to nodes in the preorder walk of the tree of this node.
    *
    * @param ir the node to traverse
