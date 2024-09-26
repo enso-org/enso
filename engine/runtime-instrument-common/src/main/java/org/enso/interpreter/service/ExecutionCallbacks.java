@@ -151,6 +151,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     return null;
   }
 
+  @CompilerDirectives.TruffleBoundary
   @Override
   public void setExecutionEnvironment(IdExecutionService.Info info) {
     ExecutionEnvironment nodeEnvironment = expressionConfigs.get(info.getId());

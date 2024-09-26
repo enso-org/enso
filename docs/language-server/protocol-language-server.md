@@ -3660,7 +3660,9 @@ interface ExecutionContextRecomputeParameters {
 
   /** The execution configurations for particular expressions.
    *
-   *  The provided expressions will be invalidated from the cache with the dependencies.
+   *  The provided expressions will be invalidated from the cache with the
+   *  dependencies. The result of the execution will stay in the cache until the
+   *  cache is invalidated by editing the node or other means.
    */
   expressionConfigs?: ExpressionConfig[];
 }

@@ -145,7 +145,7 @@ public final class EnsoContext {
     this.isPrivateCheckDisabled = getOption(RuntimeOptions.DISABLE_PRIVATE_CHECK_KEY);
     this.isStaticTypeAnalysisEnabled = getOption(RuntimeOptions.ENABLE_STATIC_ANALYSIS_KEY);
     this.contextExecutionEnvironment = getOption(EnsoLanguage.EXECUTION_ENVIRONMENT);
-    this.threadExecutionEnvironment = ThreadLocal.withInitial(() -> contextExecutionEnvironment);
+    this.threadExecutionEnvironment = initializeThreadExecutionEnvironment();
     this.assertionsEnabled = shouldAssertionsBeEnabled();
     this.shouldWaitForPendingSerializationJobs =
         getOption(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY);
@@ -216,6 +216,11 @@ public final class EnsoContext {
         run.accept(preinit);
       }
     }
+  }
+
+  @TruffleBoundary
+  private ThreadLocal<ExecutionEnvironment> initializeThreadExecutionEnvironment() {
+    return ThreadLocal.withInitial(this::getExecutionEnvironment);
   }
 
   /** Checks if the working directory is as expected and reports a warning if not. */
@@ -873,6 +878,7 @@ public final class EnsoContext {
     return contextExecutionEnvironment;
   }
 
+  @TruffleBoundary
   public ExecutionEnvironment getThreadExecutionEnvironment() {
     return threadExecutionEnvironment.get();
   }
