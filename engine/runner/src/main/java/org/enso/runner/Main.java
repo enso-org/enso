@@ -219,7 +219,7 @@ public class Main {
             .numberOfArgs(1)
             .argName("file")
             .longOpt(PROFILING_PATH)
-            .desc("The path to the Language Server profiling file.")
+            .desc("The path to the profiling file.")
             .build();
     var lsProfilingTimeOption =
         cliOptionBuilder()
@@ -1208,7 +1208,7 @@ public class Main {
           try {
             sampler.stop();
           } catch (IOException ex) {
-            logger.info("Error stopping sampler", ex);
+            logger.error("Error stopping sampler", ex);
           }
           return BoxedUnit.UNIT;
         });
