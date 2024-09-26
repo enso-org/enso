@@ -2,7 +2,7 @@ import org.enso.base.file_format.FileFormatSPI;
 import org.enso.table.read.DelimitedFormatSPI;
 import org.enso.table.read.ExcelFormatSPI;
 
-module enso.std.table {
+module org.enso.std.table {
   requires java.xml;
   requires jdk.xml.dom;
   requires com.ibm.icu;
@@ -13,7 +13,7 @@ module enso.std.table {
   requires org.apache.xmlbeans;
   requires org.graalvm.collections;
   requires org.graalvm.polyglot;
-  requires org.enso.polyglot.common_utils;
+  requires org.enso.common.polyglot.core.utils;
   requires org.enso.std.base;
   requires univocity.parsers;
 

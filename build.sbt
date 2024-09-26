@@ -4353,29 +4353,17 @@ lazy val `std-base` = project
       "org.graalvm.polyglot"       % "polyglot"         % graalMavenPackagesVersion,
       "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion
     ),
-    modulePath := {
-      val updateReport = (Compile / update).value
-      val requiredModIds = Seq(
-        "org.graalvm.polyglot"       % "polyglot"            % graalMavenPackagesVersion,
-        "org.graalvm.sdk"            % "collections"         % graalMavenPackagesVersion,
-        "com.ibm.icu"                % "icu4j"               % icuVersion,
-        "com.fasterxml.jackson.core" % "jackson-databind"    % jacksonVersion,
-        "com.fasterxml.jackson.core" % "jackson-annotations" % jacksonVersion,
-        "com.fasterxml.jackson.core" % "jackson-core"        % jacksonVersion
-      )
-      val externalRequiredMods = JPMSUtils.filterModulesFromUpdate(
-        updateReport,
-        requiredModIds,
-        streams.value.log,
-        moduleName.value,
-        scalaBinaryVersion.value,
-        shouldContainAll = true
-      )
-      val ourRequiredMods =
-        (`common-polyglot-core-utils` / Compile / exportedProducts).value
-          .map(_.data)
-      externalRequiredMods ++ ourRequiredMods
-    },
+    Compile / moduleDependencies ++= Seq(
+      "org.graalvm.polyglot"       % "polyglot"            % graalMavenPackagesVersion,
+      "org.graalvm.sdk"            % "collections"         % graalMavenPackagesVersion,
+      "com.ibm.icu"                % "icu4j"               % icuVersion,
+      "com.fasterxml.jackson.core" % "jackson-databind"    % jacksonVersion,
+      "com.fasterxml.jackson.core" % "jackson-annotations" % jacksonVersion,
+      "com.fasterxml.jackson.core" % "jackson-core"        % jacksonVersion
+    ),
+    Compile / internalModuleDependencies := Seq(
+      (`common-polyglot-core-utils` / Compile / exportedModule).value
+    ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
       val _ensureCoreIsCompiled =
@@ -4502,34 +4490,21 @@ lazy val `std-table` = project
       "org.antlr"                % "antlr4-runtime"          % antlrVersion,
       "org.apache.logging.log4j" % "log4j-to-slf4j"          % "2.18.0" // org.apache.poi uses log4j
     ),
-    modulePath := {
-      val updateReport = (Compile / update).value
-      val requiredModIds = Seq(
-        "org.graalvm.polyglot" % "polyglot"          % graalMavenPackagesVersion,
-        "org.antlr"            % "antlr4-runtime"    % antlrVersion,
-        "com.univocity"        % "univocity-parsers" % univocityParsersVersion,
-        "org.apache.poi"       % "poi"               % poiOoxmlVersion,
-        "org.apache.poi"       % "poi-ooxml"         % poiOoxmlVersion,
-        "org.apache.poi"       % "poi-ooxml-lite"    % poiOoxmlVersion,
-        "org.apache.xmlbeans"  % "xmlbeans"          % xmlbeansVersion,
-        "org.graalvm.sdk"      % "collections"       % graalMavenPackagesVersion,
-        "com.ibm.icu"          % "icu4j"             % icuVersion
-      )
-      val externalRequiredMods = JPMSUtils.filterModulesFromUpdate(
-        updateReport,
-        requiredModIds,
-        streams.value.log,
-        moduleName.value,
-        scalaBinaryVersion.value,
-        shouldContainAll = true
-      )
-      val ourRequiredMods =
-        (`common-polyglot-core-utils` / Compile / exportedProducts).value
-          .map(_.data) ++
-        (`std-base` / Compile / exportedProducts).value
-          .map(_.data)
-      externalRequiredMods ++ ourRequiredMods
-    },
+    Compile / moduleDependencies ++= Seq(
+      "org.graalvm.polyglot" % "polyglot"          % graalMavenPackagesVersion,
+      "org.antlr"            % "antlr4-runtime"    % antlrVersion,
+      "com.univocity"        % "univocity-parsers" % univocityParsersVersion,
+      "org.apache.poi"       % "poi"               % poiOoxmlVersion,
+      "org.apache.poi"       % "poi-ooxml"         % poiOoxmlVersion,
+      "org.apache.poi"       % "poi-ooxml-lite"    % poiOoxmlVersion,
+      "org.apache.xmlbeans"  % "xmlbeans"          % xmlbeansVersion,
+      "org.graalvm.sdk"      % "collections"       % graalMavenPackagesVersion,
+      "com.ibm.icu"          % "icu4j"             % icuVersion
+    ),
+    Compile / internalModuleDependencies := Seq(
+      (`common-polyglot-core-utils` / Compile / exportedModule).value,
+      (`std-base` / Compile / exportedModule).value
+    ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
       val _ = StdBits
@@ -4613,32 +4588,21 @@ lazy val `std-database` = project
     Compile / packageBin / artifactPath :=
       `database-polyglot-root` / "std-database.jar",
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % "provided",
-      "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
-      "org.xerial"           % "sqlite-jdbc"             % sqliteVersion,
-      "org.postgresql"       % "postgresql"              % postgresVersion
+      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
+      "org.xerial"       % "sqlite-jdbc"             % sqliteVersion,
+      "org.postgresql"   % "postgresql"              % postgresVersion
     ),
-    modulePath := {
-      val externalModIds = libraryDependencies.value ++ Seq(
-        "org.graalvm.sdk"            % "collections"         % graalMavenPackagesVersion,
-        "com.fasterxml.jackson.core" % "jackson-databind"    % jacksonVersion,
-        "com.fasterxml.jackson.core" % "jackson-annotations" % jacksonVersion,
-        "com.fasterxml.jackson.core" % "jackson-core"        % jacksonVersion
-      )
-      val externalMods = JPMSUtils.filterModulesFromUpdate(
-        (Compile / update).value,
-        externalModIds,
-        streams.value.log,
-        moduleName.value,
-        scalaBinaryVersion.value,
-        shouldContainAll = true
-      )
-      val ourMods =
-        (`std-base` / Compile / exportedProducts).value.map(_.data) ++
-        (`common-polyglot-core-utils` / Compile / exportedProducts).value
-          .map(_.data)
-      externalMods ++ ourMods
-    },
+    Compile / moduleDependencies ++= Seq(
+      "org.graalvm.sdk"            % "collections"         % graalMavenPackagesVersion,
+      "org.graalvm.polyglot"       % "polyglot"            % graalMavenPackagesVersion,
+      "com.fasterxml.jackson.core" % "jackson-databind"    % jacksonVersion,
+      "com.fasterxml.jackson.core" % "jackson-annotations" % jacksonVersion,
+      "com.fasterxml.jackson.core" % "jackson-core"        % jacksonVersion
+    ),
+    Compile / internalModuleDependencies := Seq(
+      (`common-polyglot-core-utils` / Compile / exportedModule).value,
+      (`std-base` / Compile / exportedModule).value
+    ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
       val _ = StdBits
@@ -4676,32 +4640,22 @@ lazy val `std-aws` = project
       "software.amazon.awssdk" % "sso"                   % awsJavaSdkV2Version,
       "software.amazon.awssdk" % "ssooidc"               % awsJavaSdkV2Version
     ),
-    modulePath := {
-      val externalModIds = Seq(
-        "com.amazon.redshift"    % "redshift-jdbc42" % redshiftVersion,
-        "software.amazon.awssdk" % "auth"            % awsJavaSdkV2Version,
-        "software.amazon.awssdk" % "s3"              % awsJavaSdkV2Version,
-        "software.amazon.awssdk" % "sso"             % awsJavaSdkV2Version,
-        "software.amazon.awssdk" % "ssooidc"         % awsJavaSdkV2Version,
-        "software.amazon.awssdk" % "http-client-spi" % awsJavaSdkV2Version,
-        "software.amazon.awssdk" % "regions"         % awsJavaSdkV2Version,
-        "software.amazon.awssdk" % "sdk-core"        % awsJavaSdkV2Version,
-        "software.amazon.awssdk" % "profiles"        % awsJavaSdkV2Version,
-        "software.amazon.awssdk" % "aws-core"        % awsJavaSdkV2Version
-      )
-      val externalMods = JPMSUtils.filterModulesFromUpdate(
-        (Compile / update).value,
-        externalModIds,
-        streams.value.log,
-        moduleName.value,
-        scalaBinaryVersion.value,
-        shouldContainAll = true
-      )
-      val ourMods =
-        (`std-base` / Compile / exportedProducts).value.map(_.data) ++
-        (`std-database` / Compile / exportedProducts).value.map(_.data)
-      externalMods ++ ourMods
-    },
+    Compile / moduleDependencies ++= Seq(
+      "com.amazon.redshift"    % "redshift-jdbc42" % redshiftVersion,
+      "software.amazon.awssdk" % "auth"            % awsJavaSdkV2Version,
+      "software.amazon.awssdk" % "s3"              % awsJavaSdkV2Version,
+      "software.amazon.awssdk" % "sso"             % awsJavaSdkV2Version,
+      "software.amazon.awssdk" % "ssooidc"         % awsJavaSdkV2Version,
+      "software.amazon.awssdk" % "http-client-spi" % awsJavaSdkV2Version,
+      "software.amazon.awssdk" % "regions"         % awsJavaSdkV2Version,
+      "software.amazon.awssdk" % "sdk-core"        % awsJavaSdkV2Version,
+      "software.amazon.awssdk" % "profiles"        % awsJavaSdkV2Version,
+      "software.amazon.awssdk" % "aws-core"        % awsJavaSdkV2Version
+    ),
+    Compile / internalModuleDependencies := Seq(
+      (`std-base` / Compile / exportedModule).value,
+      (`std-database` / Compile / exportedModule).value
+    ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
       val _ = StdBits
