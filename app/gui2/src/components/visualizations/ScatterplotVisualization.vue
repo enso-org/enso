@@ -296,7 +296,6 @@ const yLabelLeft = computed(
     getTextWidthBySizeAndFamily(data.value.axis.y.label, LABEL_FONT_STYLE) / 2,
 )
 const yLabelTop = computed(() => -margin.value.left + 15)
-const showYLabelText = computed(() => !data.value.is_multi_series)
 const xTickFormat = computed(() => {
   switch (data.value.x_value_type) {
     case 'Time':
@@ -307,6 +306,35 @@ const xTickFormat = computed(() => {
       return '%d/%m/%Y %H:%M:%S'
   }
 })
+const seriesLabels = computed(() =>
+  Object.keys(data.value.axis)
+    .filter((s) => s != 'x')
+    .map((s) => {
+      return data.value.axis[s as keyof AxesConfiguration].label
+    }),
+)
+const isCustomColorAndAxis = computed(() => {
+  return seriesLabels.value.length <= 2
+})
+
+const showYLabelText = computed(() => {
+  if (data.value.is_multi_series) {
+    return isCustomColorAndAxis
+  }
+  return true
+})
+const yLabelText = computed(() => {
+  if (!data.value.is_multi_series) {
+    return data.value.axis.y.label
+  }
+  if (isCustomColorAndAxis.value) {
+    return yAxisSelected.value
+  } else return null
+})
+
+const colorList = computed(() =>
+  isCustomColorAndAxis.value ? ['red', 'green'] : d3.schemeCategory10,
+)
 
 watchEffect(() => {
   const boundsExpression =
@@ -619,7 +647,7 @@ watchPostEffect(() => {
   const plotData = getPlotData(data.value) as Point[]
   const series = Object.keys(data.value.axis).filter((s) => s != 'x')
   const colorScale = (d: string) => {
-    const color = d3.scaleOrdinal(d3.schemeCategory10).domain(series)
+    const color = d3.scaleOrdinal(colorList.value).domain(series)
     if (data.value.is_multi_series) {
       return color(d)
     }
@@ -658,26 +686,21 @@ watchPostEffect(() => {
 
 watchPostEffect(() => {
   if (data.value.is_multi_series) {
-    const seriesLabels = Object.keys(data.value.axis)
-      .filter((s) => s != 'x')
-      .map((s) => {
-        return data.value.axis[s as keyof AxesConfiguration].label
-      })
     const formatLabel = (string: string) =>
       string.length > 10 ? `${string.substr(0, 10)}...` : string
 
     const color = d3
       .scaleOrdinal<string>()
-      .domain(seriesLabels)
-      .range(d3.schemeCategory10)
-      .domain(seriesLabels)
+      .domain(seriesLabels.value)
+      .range(colorList.value)
+      .domain(seriesLabels.value)
 
     d3Legend.value.selectAll('circle').remove()
     d3Legend.value.selectAll('text').remove()
 
     d3Legend.value
       .selectAll('dots')
-      .data(seriesLabels)
+      .data(seriesLabels.value)
       .enter()
       .append('circle')
       .attr('cx', function (d, i) {
@@ -689,7 +712,7 @@ watchPostEffect(() => {
 
     d3Legend.value
       .selectAll('labels')
-      .data(seriesLabels)
+      .data(seriesLabels.value)
       .enter()
       .append('text')
       .attr('x', function (d, i) {
@@ -760,6 +783,7 @@ function zoomToSelected(override?: boolean) {
 }
 
 useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSelected() }))
+const yAxisSelected = ref('none')
 
 config.setToolbar([
   {
@@ -777,6 +801,24 @@ config.setToolbar([
     title: 'Zoom to Selected',
     disabled: () => brushExtent.value == null,
     onClick: zoomToSelected,
+  },
+  {
+    selected: yAxisSelected,
+    title: 'Y Axis Label',
+    options: {
+      none: {
+        icon: 'not_paragraph',
+        label: 'No Y Axis Label',
+      },
+      [seriesLabels.value[0] as string]: {
+        icon: 'text',
+        label: seriesLabels.value[0] as string,
+      },
+      [seriesLabels.value[1] as string]: {
+        icon: 'text',
+        label: seriesLabels.value[1] as string,
+      },
+    },
   },
 ])
 </script>
@@ -807,7 +849,7 @@ config.setToolbar([
           text-anchor="end"
           :x="yLabelLeft"
           :y="yLabelTop"
-          v-text="data.axis.y.label"
+          v-text="yLabelText"
         ></text>
         <g ref="pointsNode" clip-path="url(#clip)"></g>
         <g ref="zoomNode" class="zoom" :width="boxWidth" :height="boxHeight" fill="none">
