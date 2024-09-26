@@ -56,11 +56,9 @@ add_order_specs suite_builder setup =
     prefix = setup.prefix
     create_connection_fn = setup.create_connection_func
     test_selection = setup.test_selection
-    sort_pending = if test_selection.order_by.not then
-        "ToDo: sort is not yet supported by this backend."
     pending_collation = "Need more reliable testing for collation locale support"
 
-    suite_builder.group prefix+"Table.sort" pending=sort_pending group_builder->
+    suite_builder.group prefix+"Table.sort" group_builder->
         data = Data.setup create_connection_fn setup.table_builder
 
         group_builder.teardown <|
