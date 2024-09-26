@@ -2,6 +2,6 @@ from Standard.Base import all
 
 ## PRIVATE
 type Feature
-    FeatureA
+    Select_columns
     FeatureB
     FeatureC

@@ -68,7 +68,7 @@ type Test_Setup
          Note that it has less guarantees about column types, but is faster.
        - is_integer_type: A predicate specifying if the given backend treats the
          given type as an integer type. See `SQL_Type_Mapping.is_integer_type` for more information.
-    Config prefix table_fn empty_table_fn (table_builder : (Vector Any -> (Any|Nothing)) -> Any) materialize is_database test_selection aggregate_test_selection create_connection_func light_table_builder is_integer_type=(.is_integer)
+    Config prefix table_fn empty_table_fn (table_builder : (Vector Any -> (Any|Nothing)) -> Any) materialize is_database test_selection aggregate_test_selection create_connection_func light_table_builder is_integer_type=(.is_integer) is_feature_supported
 
     ## Specifies if the given Table backend supports custom Enso types.
 

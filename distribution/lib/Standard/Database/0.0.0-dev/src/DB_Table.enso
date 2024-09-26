@@ -47,6 +47,7 @@ from Standard.Table.Table import make_fill_nothing_default_widget
 
 import project.Connection.Connection.Connection
 import project.DB_Column.DB_Column
+import project.Feature.Feature
 import project.Internal.Aggregate_Helper
 import project.Internal.Base_Generator
 import project.Internal.Common.Database_Join_Helper
@@ -284,8 +285,9 @@ type DB_Table
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     select_columns :  Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> Boolean -> Case_Sensitivity -> Boolean -> Problem_Behavior -> DB_Table ! No_Output_Columns | Missing_Input_Columns
     select_columns self (columns : (Vector | Text | Integer | Regex | By_Type) = [self.columns.first.name]) (reorder:Boolean=False) (case_sensitivity:Case_Sensitivity=..Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=..Report_Warning) =
-        new_columns = self.columns_helper.select_columns columns case_sensitivity reorder error_on_missing_columns on_problems
-        self.updated_columns (new_columns.map _.as_internal)
+        if self.connection.dialect.is_feature_supported Feature.Select_columns . not then Error.throw (Unsupported_Database_Operation.Error "select_columns") else
+            new_columns = self.columns_helper.select_columns columns case_sensitivity reorder error_on_missing_columns on_problems
+            self.updated_columns (new_columns.map _.as_internal)
 
     ## PRIVATE
        ALIAS select fields by type

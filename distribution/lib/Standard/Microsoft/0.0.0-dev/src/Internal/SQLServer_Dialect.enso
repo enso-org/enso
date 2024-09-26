@@ -1,5 +1,3 @@
-private
-
 from Standard.Base import all hiding First, Last
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
@@ -242,8 +240,9 @@ type SQLSever_Dialect
     ## PRIVATE
        Checks if a feature is supported by the dialect.
     is_feature_supported self feature:Feature -> Boolean =
-        _ = feature
-        False
+        case feature of
+            Feature.Select_columns -> False
+            _ -> True
 
     ## PRIVATE
        The default table types to use when listing tables.
