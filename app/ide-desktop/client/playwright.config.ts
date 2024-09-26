@@ -8,6 +8,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   workers: 1,
   timeout: 60000,
+  reportSlowTests: { max: 5, threshold: 60000 },
   globalSetup: './tests/setup.ts',
   expect: {
     timeout: 5000,
