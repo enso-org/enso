@@ -196,8 +196,9 @@ list (directory:(Text | File)=enso_project.root) (name_filter:Text="") recursive
          Data.fetch URL . body . write file
 @uri Text_Input
 @format Data_Read_Helpers.format_widget_with_raw_response
+@headers Header.default_widget
 fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> File_Format -> Any ! Request_Error | HTTP_Error
-fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) (format = Auto_Detect) =
+fetch (uri:(URI | Text)) (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) (format = Auto_Detect) =
     Data_Read_Helpers.fetch_following_data_links uri method headers (Data_Read_Helpers.handle_legacy_format "fetch" "format" format)
 
 ## ALIAS http post, upload
@@ -321,9 +322,10 @@ fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (
          form_data = Dictionary.from_vector [["key", "val"], ["a_file", test_file]]
          response = Data.post url_post (Request_Body.Form_Data form_data url_encoded=True)
 @uri Text_Input
+@headers Header.default_widget
 @response_format Data_Read_Helpers.format_widget_with_raw_response
 post : (URI | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> File_Format -> Any ! Request_Error | HTTP_Error
-post (uri:(URI | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) (response_format = Auto_Detect) =
+post (uri:(URI | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=..Post) (headers:(Vector (Header | Pair Text Text))=[]) (response_format = Auto_Detect) =
     response = HTTP.post uri body method headers
     Data_Read_Helpers.decode_http_response_following_data_links response (Data_Read_Helpers.handle_legacy_format "post" "response_format" response_format)
 

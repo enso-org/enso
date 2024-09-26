@@ -3,11 +3,18 @@ import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Enso_Cloud.Enso_Secret.Derived_Secret_Value
 import project.Enso_Cloud.Enso_Secret.Enso_Secret
+import project.Meta
+import project.Metadata.Display
+import project.Metadata.Widget
 import project.Nothing.Nothing
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Ordering import all
 from project.Data.Text.Extensions import all
 from project.Enso_Cloud.Enso_Secret import as_hideable_value
+from project.Metadata import make_single_choice
+from project.Metadata.Choice import Option
+from project.Metadata.Widget import Single_Choice, Vector_Editor
+from project.Widget_Helpers import make_text_secret_selector
 
 polyglot java import org.graalvm.collections.Pair as Java_Pair
 
@@ -212,6 +219,19 @@ type Header
     to_java_pair : Java_Pair
     to_java_pair self =
         Java_Pair.create self.name (as_hideable_value self.value)
+
+    ## PRIVATE
+    default_widget (display : Display = ..When_Modified) -> Widget =
+        fqn = "Header"
+        secret_selector = make_text_secret_selector
+        values = [Option "Custom" fqn+".new '' ''"] +
+            [Option "Accept" fqn+".accept '*/*'"] +
+            [Option "Authorization" fqn+".authorization ''" [["value", secret_selector]]] +
+            [Option "HTTP Basic Auth" fqn+".authorization_basic '' ''" [["user", secret_selector], ["pass", secret_selector]]] +
+            [Option "Bearer Auth" fqn+".authorization_bearer ''" [["token", secret_selector]]] +
+            [Option "Content-Type" fqn+".content_type ''" [["value", make_single_choice [["Custom", "*"], "application/json", "application/octet-stream", "application/x-www-form-urlencoded", "multipart/form-data", "text/csv", "text/html", "text/plain", "text/xml"]], ["encoding", Encoding.default_widget]]]
+        item_editor = Single_Choice values=values display=..Always
+        Vector_Editor item_editor item_default='Header.new "header" "value"' display=display
 
 ## PRIVATE
 type Header_Comparator
