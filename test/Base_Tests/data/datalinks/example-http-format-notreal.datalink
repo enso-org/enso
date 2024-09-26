@@ -1,0 +1,12 @@
+{
+    "type": "HTTP",
+    "libraryName": "Standard.Base",
+    "method": "GET",
+    "uri": "http://http-test-helper.local/testfiles/js.txt",
+    "format": {
+        "type": "format",
+        "subType": "notreal",
+        "delimiter": " ",
+        "headers": false
+    }
+}

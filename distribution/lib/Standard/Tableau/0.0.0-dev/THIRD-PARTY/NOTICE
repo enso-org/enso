@@ -1,0 +1,12 @@
+Enso
+Copyright 2020 - 2024 New Byte Order sp. z o. o.
+
+'jna', licensed under the Apache-2.0, is distributed with the Tableau.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `net.java.dev.jna.jna-5.14.0`.
+
+
+'jna-platform', licensed under the Apache-2.0, is distributed with the Tableau.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `net.java.dev.jna.jna-platform-5.14.0`.
+

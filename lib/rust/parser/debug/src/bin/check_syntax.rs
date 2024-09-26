@@ -14,24 +14,41 @@
 
 use enso_parser::prelude::*;
 
+use clap::Parser;
+
+
+
+use std::path::Path;
+use std::path::PathBuf;
+
 
 
 struct WithSourcePath<T> {
-    path:  String,
+    path:  PathBuf,
     value: T,
 }
 
+#[derive(Parser)]
+struct Cli {
+    /// Files to check. If none specified, code will be read from standard input.
+    files: Vec<PathBuf>,
+
+    /// Only check if the parser fails to parse the input.
+    #[arg(short, long)]
+    smoke_test: bool,
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let args = std::env::args().skip(1);
+    let cli = Cli::parse();
     let mut to_read = vec![];
     let mut to_parse = vec![];
-    if args.len() == 0 {
+    if cli.files.is_empty() {
         use std::io::Read;
         let mut data = String::new();
         std::io::stdin().read_to_string(&mut data).unwrap();
         to_parse.push(WithSourcePath { path: "<stdin>".into(), value: data });
     } else {
-        to_read.extend(args);
+        to_read.extend(cli.files);
     };
     let cores = std::thread::available_parallelism()
         .unwrap_or(std::num::NonZeroUsize::new(1).unwrap())
@@ -79,7 +96,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         None => break,
                     }
                 };
-                let results = check_file(source, &mut parser);
+                let results = check_file(source, &mut parser, cli.smoke_test);
                 to_print.lock().unwrap().push(results);
             }
         }));
@@ -109,27 +126,37 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 fn check_file(
     file: WithSourcePath<String>,
     parser: &mut enso_parser::Parser,
+    smoke_test: bool,
 ) -> WithSourcePath<Vec<String>> {
     let mut code = file.value.as_str();
     if let Some((_meta, code_)) = enso_parser::metadata::parse(code) {
         code = code_;
     }
     let ast = parser.run(code);
+    let mut messages = if smoke_test { vec![] } else { collect_messages(&ast, &file.path) };
+    if ast.code() != code {
+        messages.push(format!(
+            "Internal error: AST does not match source code. File: {}",
+            file.path.display()
+        ));
+    }
+    WithSourcePath { path: file.path, value: messages }
+}
+
+fn collect_messages(ast: &enso_parser::syntax::Tree, path: impl AsRef<Path>) -> Vec<String> {
     let errors = RefCell::new(vec![]);
     let warnings = RefCell::new(vec![]);
     ast.visit_trees(|tree| {
-        match &*tree.variant {
+        match &tree.variant {
             enso_parser::syntax::tree::Variant::Invalid(err) => {
                 let error = format!("{}: {}", err.error.message, tree.code());
                 errors.borrow_mut().push((error, tree.span.clone()));
             }
-            enso_parser::syntax::tree::Variant::OprApp(enso_parser::syntax::tree::OprApp {
-                opr: Err(e),
-                ..
-            }) => {
-                let error = format!("Consecutive operators: {:?}", e.operators);
-                errors.borrow_mut().push((error, tree.span.clone()));
-            }
+            enso_parser::syntax::tree::Variant::OprApp(app) =>
+                if let enso_parser::syntax::tree::OprApp { opr: Err(e), .. } = &**app {
+                    let error = format!("Consecutive operators: {:?}", e.operators);
+                    errors.borrow_mut().push((error, tree.span.clone()));
+                },
             enso_parser::syntax::tree::Variant::TextLiteral(text) =>
                 for element in &text.elements {
                     if let enso_parser::syntax::tree::TextElement::Escape { token } = element {
@@ -156,15 +183,19 @@ fn check_file(
     warnings.borrow_mut().sort_unstable_by_key(|(_, span)| sort_key(span));
     let mut messages = vec![];
     for (message, span) in &*errors.borrow() {
-        messages.push(format!("E {}: {}", fmt_location(&file.path, span), &message));
+        messages.push(format!("E {}: {}", fmt_location(path.as_ref().display(), span), &message));
     }
     for (warning, span) in &*warnings.borrow() {
-        messages.push(format!("W {}: {}", fmt_location(&file.path, span), warning.message()));
+        messages.push(format!(
+            "W {}: {}",
+            fmt_location(path.as_ref().display(), span),
+            warning.message()
+        ));
     }
-    WithSourcePath { path: file.path, value: messages }
+    messages
 }
 
-fn fmt_location(path: &str, span: &enso_parser::source::Span) -> String {
+fn fmt_location(path: impl Display, span: &enso_parser::source::Span) -> String {
     let start = span.left_offset.code.position_after().start;
     let end = start + span.code_length;
     format!("{path} {}:{}-{}:{}", start.line + 1, start.col16, end.line + 1, end.col16)

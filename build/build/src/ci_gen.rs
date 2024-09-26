@@ -111,6 +111,13 @@ pub mod secret {
     /// Static token for admin requests on our Lambdas.
     pub const ENSO_ADMIN_TOKEN: &str = "ENSO_ADMIN_TOKEN";
 
+    // === Enso Cloud Test Account ===
+    pub const ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID: &str =
+        "ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID";
+    pub const ENSO_CLOUD_COGNITO_USER_POOL_ID: &str = "ENSO_CLOUD_COGNITO_USER_POOL_ID";
+    pub const ENSO_CLOUD_COGNITO_REGION: &str = "ENSO_CLOUD_COGNITO_REGION";
+    pub const ENSO_CLOUD_TEST_ACCOUNT_USERNAME: &str = "ENSO_CLOUD_TEST_ACCOUNT_USERNAME";
+    pub const ENSO_CLOUD_TEST_ACCOUNT_PASSWORD: &str = "ENSO_CLOUD_TEST_ACCOUNT_PASSWORD";
 
     // === Apple Code Signing & Notarization ===
     pub const APPLE_CODE_SIGNING_CERT: &str = "APPLE_CODE_SIGNING_CERT";
@@ -234,8 +241,7 @@ pub fn cleaning_step(
 }
 
 /// Data needed to generate a typical sequence of CI steps invoking `./run` script.
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive_where(Debug)]
 pub struct RunStepsBuilder {
     /// The command passed to `./run` script.
     pub run_command: String,
@@ -244,7 +250,7 @@ pub struct RunStepsBuilder {
     /// Customize the step that runs the command.
     ///
     /// Allows replacing the run step with one or more custom steps.
-    #[derivative(Debug = "ignore")]
+    #[derive_where(skip)]
     pub customize:   Option<Box<dyn FnOnce(Step) -> Vec<Step>>>,
 }
 
@@ -339,7 +345,6 @@ pub fn runs_on(os: OS, runner_type: RunnerType) -> Vec<RunnerLabel> {
         (OS::Linux, RunnerType::GitHubHosted) => vec![RunnerLabel::LinuxLatest],
         (OS::MacOS, RunnerType::SelfHosted) => vec![RunnerLabel::SelfHosted, RunnerLabel::MacOS],
         (OS::MacOS, RunnerType::GitHubHosted) => vec![RunnerLabel::MacOSLatest],
-        _ => panic!("Unsupported OS and runner type combination: {os} {runner_type}."),
     }
 }
 
@@ -432,7 +437,7 @@ pub struct UploadIde;
 impl JobArchetype for UploadIde {
     fn job(&self, target: Target) -> Job {
         RunStepsBuilder::new(
-            "ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}",
+            "ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}} --gui-sign-artifacts true",
         )
         .cleaning(RELEASE_CLEANING_POLICY)
         .customize(with_packaging_steps(target.0))
@@ -540,7 +545,7 @@ pub fn add_backend_checks(
 ) {
     workflow.add(target, job::CiCheckBackend { graal_edition });
     workflow.add(target, job::JvmTests { graal_edition });
-    workflow.add(target, job::StandardLibraryTests { graal_edition });
+    workflow.add(target, job::StandardLibraryTests { graal_edition, cloud_tests_enabled: false });
 }
 
 pub fn workflow_call_job(name: impl Into<String>, path: impl Into<String>) -> Job {
@@ -644,19 +649,19 @@ pub fn gui() -> Result<Workflow> {
         workflow.add_customized(target, job::PackageIde, |job| {
             job.needs.insert(project_manager_job.clone());
         });
-        workflow.add(target, job::NewGuiBuild);
+        workflow.add(target, job::GuiBuild);
     }
     Ok(workflow)
 }
 
 pub fn gui_tests() -> Result<Workflow> {
     let on = typical_check_triggers();
-    let mut workflow = Workflow { name: "GUI Tests".into(), on, ..default() };
+    let mut workflow = Workflow { name: "GUI Check".into(), on, ..default() };
     workflow.add(PRIMARY_TARGET, job::CancelWorkflow);
     workflow.add(PRIMARY_TARGET, job::Lint);
     workflow.add(PRIMARY_TARGET, job::WasmTest);
     workflow.add(PRIMARY_TARGET, job::NativeTest);
-    workflow.add(PRIMARY_TARGET, job::GuiTest);
+    workflow.add(PRIMARY_TARGET, job::GuiCheck);
     Ok(workflow)
 }
 
@@ -702,8 +707,12 @@ pub fn extra_nightly_tests() -> Result<Workflow> {
 
     // We run the extra tests only on Linux, as they should not contain any platform-specific
     // behavior.
-    let target = (OS::Linux, Arch::X86_64);
+    let target = PRIMARY_TARGET;
     workflow.add(target, job::SnowflakeTests {});
+    workflow.add(target, job::StandardLibraryTests {
+        graal_edition:       graalvm::Edition::Community,
+        cloud_tests_enabled: true,
+    });
     Ok(workflow)
 }
 
@@ -740,11 +749,11 @@ fn benchmark_workflow(
         wrap_expression(format!("true == inputs.{just_check_input_name}")),
     );
 
-    for graal_edition in [graalvm::Edition::Community, graalvm::Edition::Enterprise] {
-        let job_name = format!("{name} ({graal_edition})");
-        let job = benchmark_job(&job_name, command_line, timeout_minutes, graal_edition);
-        workflow.add_job(job);
-    }
+    let graal_edition = graalvm::Edition::Community;
+    let job_name = format!("{name} ({graal_edition})");
+    let job = benchmark_job(&job_name, command_line, timeout_minutes, graal_edition);
+    workflow.add_job(job);
+
     Ok(workflow)
 }
 

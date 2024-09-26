@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { usePointer } from '@/composables/events'
-import { isNumericLiteral } from 'shared/ast/tree'
 import { computed, ref, watch, type CSSProperties, type ComponentInstance } from 'vue'
+import { isNumericLiteral } from 'ydoc-shared/ast/tree'
 import AutoSizedInput from './AutoSizedInput.vue'
 
 const props = defineProps<{
@@ -28,6 +28,8 @@ const lastValidValue = ref<string>()
 watch(editedValue, (newValue) => {
   if (newValue == '' || isNumericLiteral(newValue)) {
     lastValidValue.value = newValue
+  } else if (isNumericLiteral('0' + newValue)) {
+    lastValidValue.value = '0' + newValue
   }
 })
 const valueString = computed(() => (props.modelValue != null ? props.modelValue.toString() : ''))

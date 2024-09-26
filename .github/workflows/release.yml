@@ -16,7 +16,7 @@ on:
         required: true
         type: string
 jobs:
-  enso-build-ci-gen-draft-release-linux-x86_64:
+  enso-build-ci-gen-draft-release-linux-amd64:
     name: Create a release draft.
     runs-on:
       - self-hosted
@@ -26,7 +26,7 @@ jobs:
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.10.2
+          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -47,11 +47,11 @@ jobs:
     outputs:
       ENSO_RELEASE_ID: ${{ steps.prepare.outputs.ENSO_RELEASE_ID }}
       ENSO_VERSION: ${{ steps.prepare.outputs.ENSO_VERSION }}
-  enso-build-ci-gen-job-deploy-runtime-linux-x86_64:
-    name: Upload Runtime to ECR (linux, x86_64)
+  enso-build-ci-gen-job-deploy-runtime-linux-amd64:
+    name: Upload Runtime to ECR (linux, amd64)
     needs:
-      - enso-build-ci-gen-draft-release-linux-x86_64
-      - enso-build-ci-gen-job-upload-backend-linux-x86_64
+      - enso-build-ci-gen-draft-release-linux-amd64
+      - enso-build-ci-gen-job-upload-backend-linux-amd64
     runs-on:
       - self-hosted
       - Linux
@@ -60,7 +60,7 @@ jobs:
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.10.2
+          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -98,12 +98,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
-      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-x86_64.outputs.ENSO_RELEASE_ID }}
-      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-x86_64.outputs.ENSO_VERSION }}
-  enso-build-ci-gen-job-upload-backend-linux-x86_64:
-    name: Upload Backend (linux, x86_64)
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_VERSION }}
+  enso-build-ci-gen-job-upload-backend-linux-amd64:
+    name: Upload Backend (linux, amd64)
     needs:
-      - enso-build-ci-gen-draft-release-linux-x86_64
+      - enso-build-ci-gen-draft-release-linux-amd64
     runs-on:
       - self-hosted
       - Linux
@@ -112,7 +112,7 @@ jobs:
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.10.2
+          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -146,12 +146,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
-      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-x86_64.outputs.ENSO_RELEASE_ID }}
-      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-x86_64.outputs.ENSO_VERSION }}
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_VERSION }}
   enso-build-ci-gen-job-upload-backend-macos-aarch64:
     name: Upload Backend (macos, aarch64)
     needs:
-      - enso-build-ci-gen-draft-release-linux-x86_64
+      - enso-build-ci-gen-draft-release-linux-amd64
     runs-on:
       - self-hosted
       - macOS
@@ -161,7 +161,7 @@ jobs:
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.10.2
+          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -195,12 +195,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
-      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-x86_64.outputs.ENSO_RELEASE_ID }}
-      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-x86_64.outputs.ENSO_VERSION }}
-  enso-build-ci-gen-job-upload-backend-macos-x86_64:
-    name: Upload Backend (macos, x86_64)
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_VERSION }}
+  enso-build-ci-gen-job-upload-backend-macos-amd64:
+    name: Upload Backend (macos, amd64)
     needs:
-      - enso-build-ci-gen-draft-release-linux-x86_64
+      - enso-build-ci-gen-draft-release-linux-amd64
     runs-on:
       - macos-12
     steps:
@@ -208,7 +208,7 @@ jobs:
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.10.2
+          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -242,12 +242,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
-      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-x86_64.outputs.ENSO_RELEASE_ID }}
-      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-x86_64.outputs.ENSO_VERSION }}
-  enso-build-ci-gen-job-upload-backend-windows-x86_64:
-    name: Upload Backend (windows, x86_64)
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_VERSION }}
+  enso-build-ci-gen-job-upload-backend-windows-amd64:
+    name: Upload Backend (windows, amd64)
     needs:
-      - enso-build-ci-gen-draft-release-linux-x86_64
+      - enso-build-ci-gen-draft-release-linux-amd64
     runs-on:
       - self-hosted
       - Windows
@@ -256,7 +256,7 @@ jobs:
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.10.2
+          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -290,17 +290,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
-      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-x86_64.outputs.ENSO_RELEASE_ID }}
-      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-x86_64.outputs.ENSO_VERSION }}
-  enso-build-ci-gen-publish-release-linux-x86_64:
-    name: Publish release (linux, x86_64)
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_VERSION }}
+  enso-build-ci-gen-publish-release-linux-amd64:
+    name: Publish release (linux, amd64)
     needs:
-      - enso-build-ci-gen-draft-release-linux-x86_64
-      - enso-build-ci-gen-job-deploy-runtime-linux-x86_64
-      - enso-build-ci-gen-upload-ide-linux-x86_64
+      - enso-build-ci-gen-draft-release-linux-amd64
+      - enso-build-ci-gen-job-deploy-runtime-linux-amd64
+      - enso-build-ci-gen-upload-ide-linux-amd64
       - enso-build-ci-gen-upload-ide-macos-aarch64
-      - enso-build-ci-gen-upload-ide-macos-x86_64
-      - enso-build-ci-gen-upload-ide-windows-x86_64
+      - enso-build-ci-gen-upload-ide-macos-amd64
+      - enso-build-ci-gen-upload-ide-windows-amd64
     runs-on:
       - self-hosted
       - Linux
@@ -309,7 +309,7 @@ jobs:
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.10.2
+          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -346,13 +346,13 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.ARTEFACT_S3_ACCESS_KEY_ID }}
       AWS_REGION: us-west-1
       AWS_SECRET_ACCESS_KEY: ${{ secrets.ARTEFACT_S3_SECRET_ACCESS_KEY }}
-      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-x86_64.outputs.ENSO_RELEASE_ID }}
-      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-x86_64.outputs.ENSO_VERSION }}
-  enso-build-ci-gen-upload-ide-linux-x86_64:
-    name: Build IDE (linux, x86_64)
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_VERSION }}
+  enso-build-ci-gen-upload-ide-linux-amd64:
+    name: Build IDE (linux, amd64)
     needs:
-      - enso-build-ci-gen-draft-release-linux-x86_64
-      - enso-build-ci-gen-job-upload-backend-linux-x86_64
+      - enso-build-ci-gen-draft-release-linux-amd64
+      - enso-build-ci-gen-job-upload-backend-linux-amd64
     runs-on:
       - self-hosted
       - Linux
@@ -361,7 +361,7 @@ jobs:
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.10.2
+          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -380,7 +380,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}
+      - run: ./run ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}} --gui-sign-artifacts true
         env:
           ENSO_CLOUD_API_URL: ${{ vars.ENSO_CLOUD_API_URL }}
           ENSO_CLOUD_CHAT_URL: ${{ vars.ENSO_CLOUD_CHAT_URL }}
@@ -407,12 +407,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
-      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-x86_64.outputs.ENSO_RELEASE_ID }}
-      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-x86_64.outputs.ENSO_VERSION }}
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_VERSION }}
   enso-build-ci-gen-upload-ide-macos-aarch64:
     name: Build IDE (macos, aarch64)
     needs:
-      - enso-build-ci-gen-draft-release-linux-x86_64
+      - enso-build-ci-gen-draft-release-linux-amd64
       - enso-build-ci-gen-job-upload-backend-macos-aarch64
     runs-on:
       - self-hosted
@@ -423,7 +423,7 @@ jobs:
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.10.2
+          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -442,7 +442,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}
+      - run: ./run ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}} --gui-sign-artifacts true
         env:
           APPLEID: ${{ secrets.APPLE_NOTARIZATION_USERNAME }}
           APPLEIDPASS: ${{ secrets.APPLE_NOTARIZATION_PASSWORD }}
@@ -476,13 +476,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
-      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-x86_64.outputs.ENSO_RELEASE_ID }}
-      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-x86_64.outputs.ENSO_VERSION }}
-  enso-build-ci-gen-upload-ide-macos-x86_64:
-    name: Build IDE (macos, x86_64)
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_VERSION }}
+  enso-build-ci-gen-upload-ide-macos-amd64:
+    name: Build IDE (macos, amd64)
     needs:
-      - enso-build-ci-gen-draft-release-linux-x86_64
-      - enso-build-ci-gen-job-upload-backend-macos-x86_64
+      - enso-build-ci-gen-draft-release-linux-amd64
+      - enso-build-ci-gen-job-upload-backend-macos-amd64
     runs-on:
       - macos-12
     steps:
@@ -490,7 +490,7 @@ jobs:
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.10.2
+          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -509,7 +509,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}
+      - run: ./run ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}} --gui-sign-artifacts true
         env:
           APPLEID: ${{ secrets.APPLE_NOTARIZATION_USERNAME }}
           APPLEIDPASS: ${{ secrets.APPLE_NOTARIZATION_PASSWORD }}
@@ -543,13 +543,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
-      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-x86_64.outputs.ENSO_RELEASE_ID }}
-      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-x86_64.outputs.ENSO_VERSION }}
-  enso-build-ci-gen-upload-ide-windows-x86_64:
-    name: Build IDE (windows, x86_64)
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_VERSION }}
+  enso-build-ci-gen-upload-ide-windows-amd64:
+    name: Build IDE (windows, amd64)
     needs:
-      - enso-build-ci-gen-draft-release-linux-x86_64
-      - enso-build-ci-gen-job-upload-backend-windows-x86_64
+      - enso-build-ci-gen-draft-release-linux-amd64
+      - enso-build-ci-gen-job-upload-backend-windows-amd64
     runs-on:
       - self-hosted
       - Windows
@@ -558,7 +558,7 @@ jobs:
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.10.2
+          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -577,7 +577,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}
+      - run: ./run ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}} --gui-sign-artifacts true
         env:
           ENSO_CLOUD_API_URL: ${{ vars.ENSO_CLOUD_API_URL }}
           ENSO_CLOUD_CHAT_URL: ${{ vars.ENSO_CLOUD_CHAT_URL }}
@@ -606,8 +606,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
-      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-x86_64.outputs.ENSO_RELEASE_ID }}
-      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-x86_64.outputs.ENSO_VERSION }}
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-amd64.outputs.ENSO_VERSION }}
 env:
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"
   ENSO_EDITION: ${{ inputs.version }}

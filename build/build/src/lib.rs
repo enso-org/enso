@@ -1,18 +1,3 @@
-// === Features ===
-#![feature(try_blocks)]
-#![feature(hash_set_entry)]
-#![feature(type_alias_impl_trait)]
-#![feature(trait_alias)]
-#![feature(let_chains)]
-#![feature(exit_status_error)]
-#![feature(async_closure)]
-#![feature(associated_type_bounds)]
-#![feature(result_flattening)]
-#![feature(associated_type_defaults)]
-#![feature(duration_constants)]
-#![feature(slice_take)]
-#![feature(future_join)]
-#![feature(trait_upcasting)]
 // === Non-Standard Linter Configuration ===
 #![warn(trivial_casts)]
 #![warn(unused_qualifications)]
@@ -36,6 +21,7 @@ pub mod aws;
 pub mod changelog;
 pub mod ci;
 pub mod ci_gen;
+pub mod cloud_tests;
 pub mod config;
 pub mod context;
 pub mod engine;
@@ -67,7 +53,7 @@ pub fn get_enso_version(build_sbt_contents: &str) -> Result<Version> {
         // The `expect` below will not fail due to the regex definition, as is ensured by unit test.
         .expect("Missing subcapture #1 with version despite matching the regex.")
         .as_str();
-    Version::parse(version_string).anyhow_err()
+    Ok(Version::parse(version_string)?)
 }
 
 pub fn get_string_assignment_value(
@@ -91,17 +77,17 @@ pub fn get_string_assignment_value(
 
 /// Get version of Enso from the `build.sbt` file contents.
 pub fn get_graal_version(build_sbt_contents: &str) -> Result<Version> {
-    get_string_assignment_value(build_sbt_contents, "graalVersion")?.parse2()
+    Ok(get_string_assignment_value(build_sbt_contents, "graalVersion")?.parse()?)
 }
 
 /// Get version of GraalVM packages from the `build.sbt` file contents.
 pub fn get_graal_packages_version(build_sbt_contents: &str) -> Result<Version> {
-    get_string_assignment_value(build_sbt_contents, "graalMavenPackagesVersion")?.parse2()
+    Ok(get_string_assignment_value(build_sbt_contents, "graalMavenPackagesVersion")?.parse()?)
 }
 
 /// Get version of GraalVM packages from the `build.sbt` file contents.
 pub fn get_flatbuffers_version(build_sbt_contents: &str) -> Result<Version> {
-    get_string_assignment_value(build_sbt_contents, "flatbuffersVersion")?.parse2()
+    Ok(get_string_assignment_value(build_sbt_contents, "flatbuffersVersion")?.parse()?)
 }
 
 #[cfg(test)]

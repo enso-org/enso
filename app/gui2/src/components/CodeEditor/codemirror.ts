@@ -43,9 +43,9 @@ import {
 } from '@lezer/common'
 import { styleTags, tags } from '@lezer/highlight'
 import { EditorView } from 'codemirror'
-import type { Diagnostic as LSDiagnostic } from 'shared/languageServerTypes'
-import { tryGetSoleValue } from 'shared/util/data/iterable'
-import type { SourceRangeEdit } from 'shared/util/data/text'
+import type { Diagnostic as LSDiagnostic } from 'ydoc-shared/languageServerTypes'
+import { tryGetSoleValue } from 'ydoc-shared/util/data/iterable'
+import type { SourceRangeEdit } from 'ydoc-shared/util/data/text'
 
 export function lsDiagnosticsToCMDiagnostics(
   source: string,

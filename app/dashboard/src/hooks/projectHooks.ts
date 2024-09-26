@@ -21,6 +21,7 @@ import {
   type LaunchedProjectId,
 } from '#/providers/ProjectsProvider'
 
+import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import * as backendModule from '#/services/Backend'
 import type LocalBackend from '#/services/LocalBackend'
 import type RemoteBackend from '#/services/RemoteBackend'
@@ -28,6 +29,14 @@ import type RemoteBackend from '#/services/RemoteBackend'
 // ====================================
 // === createGetProjectDetailsQuery ===
 // ====================================
+/** Default interval for refetching project status when the project is opened. */
+const OPENED_INTERVAL_MS = 30_000
+/** Interval when we open a cloud project.
+ * Since opening a cloud project is a long operation, we want to check the status less often. */
+const CLOUD_OPENING_INTERVAL_MS = 5_000
+/** Interval when we open a local project or when we want to sync the project status as soon as
+ * possible. */
+const ACTIVE_SYNC_INTERVAL_MS = 100
 
 /** Options for {@link createGetProjectDetailsQuery}. */
 export interface CreateOpenedProjectQueryOptions {
@@ -37,6 +46,41 @@ export interface CreateOpenedProjectQueryOptions {
   readonly title: backendModule.Asset<backendModule.AssetType.project>['title']
   readonly remoteBackend: RemoteBackend
   readonly localBackend: LocalBackend | null
+}
+
+/** Return a function to update a project asset in the TanStack Query cache. */
+function useSetProjectAsset() {
+  const queryClient = reactQuery.useQueryClient()
+  return eventCallbacks.useEventCallback(
+    (
+      backendType: backendModule.BackendType,
+      assetId: backendModule.AssetId,
+      parentId: backendModule.DirectoryId,
+      transform: (asset: backendModule.ProjectAsset) => backendModule.ProjectAsset,
+    ) => {
+      const listDirectoryQuery = queryClient.getQueryCache().find<
+        | {
+            parentId: backendModule.DirectoryId
+            children: readonly backendModule.AnyAsset<backendModule.AssetType>[]
+          }
+        | undefined
+      >({
+        queryKey: [backendType, 'listDirectory', parentId],
+        exact: false,
+      })
+
+      if (listDirectoryQuery?.state.data) {
+        listDirectoryQuery.setData({
+          ...listDirectoryQuery.state.data,
+          children: listDirectoryQuery.state.data.children.map((child) =>
+            child.id === assetId && child.type === backendModule.AssetType.project ?
+              transform(child)
+            : child,
+          ),
+        })
+      }
+    },
+  )
 }
 
 /** Project status query.  */
@@ -51,14 +95,6 @@ export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOp
     meta: { persist: false },
     gcTime: 0,
     refetchInterval: ({ state }) => {
-      /** Default interval for refetching project status when the project is opened. */
-      const openedIntervalMS = 30_000
-      /** Interval when we open a cloud project.
-       * Since opening a cloud project is a long operation, we want to check the status less often. */
-      const cloudOpeningIntervalMS = 5_000
-      /** Interval when we open a local project or when we want to sync the project status as soon as
-       * possible. */
-      const activeSyncIntervalMS = 100
       const states = [backendModule.ProjectState.opened, backendModule.ProjectState.closed]
 
       if (state.status === 'error') {
@@ -67,17 +103,17 @@ export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOp
       }
       if (isLocal) {
         if (state.data?.state.type === backendModule.ProjectState.opened) {
-          return openedIntervalMS
+          return OPENED_INTERVAL_MS
         } else {
-          return activeSyncIntervalMS
+          return ACTIVE_SYNC_INTERVAL_MS
         }
       } else {
         if (state.data == null) {
-          return activeSyncIntervalMS
+          return ACTIVE_SYNC_INTERVAL_MS
         } else if (states.includes(state.data.state.type)) {
-          return openedIntervalMS
+          return OPENED_INTERVAL_MS
         } else {
-          return cloudOpeningIntervalMS
+          return CLOUD_OPENING_INTERVAL_MS
         }
       }
     },
@@ -93,8 +129,9 @@ export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOp
 }
 createGetProjectDetailsQuery.getQueryKey = (id: LaunchedProjectId) => ['project', id] as const
 createGetProjectDetailsQuery.createPassiveListener = (id: LaunchedProjectId) =>
-  reactQuery.queryOptions<backendModule.Project>({
+  reactQuery.queryOptions<backendModule.Project | null>({
     queryKey: createGetProjectDetailsQuery.getQueryKey(id),
+    initialData: null,
   })
 
 // ==============================
@@ -107,6 +144,7 @@ export function useOpenProjectMutation() {
   const session = authProvider.useFullUserSession()
   const remoteBackend = backendProvider.useRemoteBackendStrict()
   const localBackend = backendProvider.useLocalBackend()
+  const setProjectAsset = useSetProjectAsset()
 
   return reactQuery.useMutation({
     mutationKey: ['openProject'],
@@ -138,17 +176,25 @@ export function useOpenProjectMutation() {
         title,
       )
     },
-    onMutate: ({ id }) => {
+    onMutate: ({ type, id, parentId }) => {
       const queryKey = createGetProjectDetailsQuery.getQueryKey(id)
 
       client.setQueryData(queryKey, { state: { type: backendModule.ProjectState.openInProgress } })
+      setProjectAsset(type, id, parentId, (asset) => ({
+        ...asset,
+        projectState: { ...asset.projectState, type: backendModule.ProjectState.openInProgress },
+      }))
 
       void client.cancelQueries({ queryKey })
     },
-    onSuccess: (_, { id }) =>
-      client.resetQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) }),
-    onError: (_, { id }) =>
-      client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) }),
+    onSuccess: async (_, { type, id, parentId }) => {
+      await client.resetQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
+      await client.invalidateQueries({ queryKey: [type, 'listDirectory', parentId] })
+    },
+    onError: async (_, { type, id, parentId }) => {
+      await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
+      await client.invalidateQueries({ queryKey: [type, 'listDirectory', parentId] })
+    },
   })
 }
 
@@ -161,6 +207,7 @@ export function useCloseProjectMutation() {
   const client = reactQuery.useQueryClient()
   const remoteBackend = backendProvider.useRemoteBackendStrict()
   const localBackend = backendProvider.useLocalBackend()
+  const setProjectAsset = useSetProjectAsset()
 
   return reactQuery.useMutation({
     mutationKey: ['closeProject'],
@@ -171,17 +218,28 @@ export function useCloseProjectMutation() {
 
       return backend.closeProject(id, title)
     },
-    onMutate: ({ id }) => {
+    onMutate: ({ type, id, parentId }) => {
       const queryKey = createGetProjectDetailsQuery.getQueryKey(id)
 
       client.setQueryData(queryKey, { state: { type: backendModule.ProjectState.closing } })
+      setProjectAsset(type, id, parentId, (asset) => ({
+        ...asset,
+        projectState: { ...asset.projectState, type: backendModule.ProjectState.closing },
+      }))
 
       void client.cancelQueries({ queryKey })
     },
-    onSuccess: (_, { id }) =>
-      client.resetQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) }),
-    onError: (_, { id }) =>
-      client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) }),
+    onSuccess: async (_, { type, id, parentId }) => {
+      await client.resetQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
+      setProjectAsset(type, id, parentId, (asset) => ({
+        ...asset,
+        projectState: { ...asset.projectState, type: backendModule.ProjectState.closed },
+      }))
+    },
+    onError: async (_, { type, id, parentId }) => {
+      await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
+      await client.invalidateQueries({ queryKey: [type, 'listDirectory', parentId] })
+    },
   })
 }
 
@@ -230,11 +288,17 @@ export function useOpenProject() {
   const addLaunchedProject = useAddLaunchedProject()
   const closeAllProjects = useCloseAllProjects()
   const openProjectMutation = useOpenProjectMutation()
+
+  const enableMultitabs = useFeatureFlag('enableMultitabs')
+
   return eventCallbacks.useEventCallback((project: LaunchedProject) => {
-    // Since multiple tabs cannot be opened at the sametime, the opened projects need to be closed first.
-    if (projectsStore.getState().launchedProjects.length > 0) {
-      closeAllProjects()
+    if (!enableMultitabs) {
+      // Since multiple tabs cannot be opened at the same time, the opened projects need to be closed first.
+      if (projectsStore.getState().launchedProjects.length > 0) {
+        closeAllProjects()
+      }
     }
+
     const existingMutation = client.getMutationCache().find({
       mutationKey: ['openProject'],
       predicate: (mutation) => mutation.options.scope?.id === project.id,
@@ -299,7 +363,7 @@ export function useCloseProject() {
       .getMutationCache()
       .findAll({
         mutationKey: ['closeProject'],
-        // this is unsafe, but we can't do anything about it
+        // This is unsafe, but we cannot do anything about it.
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         predicate: (mutation) => mutation.state.variables?.id === project.id,
       })

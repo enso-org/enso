@@ -9,12 +9,13 @@ from Standard.Table import Join_Kind, Table
 
 import project.Column_Description.Column_Description
 import project.DB_Table.DB_Table
+import project.Internal.DDL_Transaction
 import project.Internal.In_Transaction.In_Transaction
 import project.Internal.IR.Query.Query
 import project.Update_Action.Update_Action
-from project.Errors import SQL_Error, Rows_Already_Present, Unmatched_Rows
+from project.Errors import Rows_Already_Present, SQL_Error, Unmatched_Rows
 from project.Internal.Upload.Helpers.Argument_Checks import all
-from project.Internal.Upload.Helpers.Check_Queries import check_multiple_rows_match, check_for_null_keys_if_any_keys_set
+from project.Internal.Upload.Helpers.Check_Queries import check_for_null_keys_if_any_keys_set, check_multiple_rows_match
 from project.Internal.Upload.Helpers.Constants import dry_run_row_limit
 from project.Internal.Upload.Helpers.Error_Helpers import handle_upload_errors
 from project.Internal.Upload.Operations.Internal_Core import internal_upload_table
@@ -24,23 +25,22 @@ common_update_table (source_table : DB_Table | Table) (target_table : DB_Table) 
     check_target_table_for_update target_table <|
         connection = target_table.connection
         Panic.recover SQL_Error <| handle_upload_errors <|
-            connection.jdbc_connection.run_within_transaction <|
-                effective_key_columns = if key_columns.is_nothing then [] else key_columns
-                check_update_arguments_structure_match source_table target_table effective_key_columns update_action error_on_missing_columns on_problems <|
-                    tmp_table_name = connection.base_connection.table_naming_helper.generate_random_table_name "enso-temp-source-table-"
-                    dry_run = Context.Output.is_enabled.not
-                    row_limit = if dry_run then dry_run_row_limit else Nothing
-                    check_for_null_keys_if_any_keys_set source_table effective_key_columns <| Context.Output.with_enabled <|
-                        structure_hint = target_table.select_columns source_table.column_names reorder=True . columns . map c->
-                            Column_Description.Value c.name c.value_type
-                        # We ignore non-critical problems in `internal_upload_table` because we already checked the structure.
-                        tmp_table = internal_upload_table source_table connection tmp_table_name primary_key=effective_key_columns structure_hint=structure_hint temporary=True on_problems=Problem_Behavior.Ignore row_limit=row_limit
+            effective_key_columns = if key_columns.is_nothing then [] else key_columns
+            check_update_arguments_structure_match source_table target_table effective_key_columns update_action error_on_missing_columns on_problems <|
+                tmp_table_name = connection.base_connection.table_naming_helper.generate_random_table_name "enso-temp-source-table-"
+                dry_run = Context.Output.is_enabled.not
+                row_limit = if dry_run then dry_run_row_limit else Nothing
+                structure_hint = target_table.select_columns source_table.column_names reorder=True . columns . map c->
+                    Column_Description.Value c.name c.value_type
+                # We ignore non-critical problems in `internal_upload_table` because we already checked the structure.
+                tmp_table_uploader = internal_upload_table source_table connection tmp_table_name primary_key=effective_key_columns structure_hint=structure_hint temporary=True remove_after_transaction=True on_problems=Problem_Behavior.Ignore row_limit=row_limit
+                DDL_Transaction.run_transaction_with_tables connection [tmp_table_uploader.table_description] _-> Context.Output.with_enabled <|
+                    ## The table was only created but not yet uploaded.
+                       Now we are in transaction so we can atomically check the source_table and only after it meets criteria - upload that table contents to tmp.
+                    check_for_null_keys_if_any_keys_set source_table effective_key_columns <|
+                        tmp_table = tmp_table_uploader.perform_upload
                         tmp_table.if_not_error <|
                             resulting_table = append_to_existing_table tmp_table target_table update_action effective_key_columns dry_run=dry_run
-                            ## We don't need to drop the table if append panics, because
-                               all of this happens within a transaction, so in case the
-                               above fails, the whole transaction will be rolled back.
-                            connection.drop_table tmp_table.name
                             if dry_run.not then resulting_table else
                                 warning = Dry_Run_Operation.Warning "Only a dry run of `update_rows` was performed - the target table has been returned unchanged.  Press the Write button ▶ to update the actual table."
                                 Warning.attach warning resulting_table

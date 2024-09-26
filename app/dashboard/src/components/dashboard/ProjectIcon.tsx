@@ -1,6 +1,4 @@
 /** @file An interactive button indicating the status of a project. */
-import * as React from 'react'
-
 import * as reactQuery from '@tanstack/react-query'
 
 import ArrowUpIcon from '#/assets/arrow_up.svg'
@@ -24,6 +22,8 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 // =================
 // === Constants ===
 // =================
+
+export const CLOSED_PROJECT_STATE = { type: backendModule.ProjectState.closed } as const
 
 /** The corresponding {@link spinner.SpinnerState} for each {@link backendModule.ProjectState},
  * when using the remote backend. */
@@ -59,28 +59,27 @@ const LOCAL_SPINNER_STATE: Readonly<Record<backendModule.ProjectState, spinner.S
 /** Props for a {@link ProjectIcon}. */
 export interface ProjectIconProps {
   readonly backend: Backend
+  readonly isDisabled: boolean
   readonly isOpened: boolean
   readonly item: backendModule.ProjectAsset
 }
 
 /** An interactive icon indicating the status of a project. */
 export default function ProjectIcon(props: ProjectIconProps) {
-  const { backend, item, isOpened } = props
+  const { backend, item, isOpened, isDisabled } = props
 
   const openProject = projectHooks.useOpenProject()
   const closeProject = projectHooks.useCloseProject()
   const openProjectTab = projectHooks.useOpenEditor()
 
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useFullUserSession()
   const { getText } = textProvider.useText()
 
-  const {
-    data: projectState,
-    isLoading,
-    isError,
-  } = reactQuery.useQuery({
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const itemProjectState = item.projectState ?? CLOSED_PROJECT_STATE
+  const { data: projectState, isError } = reactQuery.useQuery({
     ...projectHooks.createGetProjectDetailsQuery.createPassiveListener(item.id),
-    select: (data) => data.state,
+    select: (data) => data?.state,
     enabled: isOpened,
   })
   const status = projectState?.type
@@ -89,18 +88,14 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const isCloud = backend.type === backendModule.BackendType.remote
 
   const isOtherUserUsingProject =
-    isCloud && item.projectState.openedBy != null && item.projectState.openedBy !== user.email
+    isCloud && itemProjectState.openedBy != null && itemProjectState.openedBy !== user.email
 
   const state = (() => {
     // Project is closed, show open button
     if (!isOpened) {
-      return backendModule.ProjectState.closed
-    } else if (!isLoading && status == null) {
-      // Project is opened, but not yet queried.
-      return backendModule.ProjectState.openInProgress
-    } else if (isLoading) {
-      return backendModule.ProjectState.openInProgress
+      return (projectState ?? itemProjectState).type
     } else if (status == null) {
+      // Project is opened, but not yet queried.
       return backendModule.ProjectState.openInProgress
     } else if (status === backendModule.ProjectState.closed) {
       // Project is opened locally, but not on the backend yet.
@@ -113,8 +108,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const spinnerState = (() => {
     if (!isOpened) {
       return spinner.SpinnerState.initial
-    } else if (isLoading) {
-      return spinner.SpinnerState.loadingSlow
     } else if (isError) {
       return spinner.SpinnerState.initial
     } else if (status == null) {
@@ -141,6 +134,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     case backendModule.ProjectState.new:
     case backendModule.ProjectState.closing:
     case backendModule.ProjectState.closed:
+    case backendModule.ProjectState.created:
       return (
         <ariaComponents.Button
           size="custom"
@@ -149,11 +143,10 @@ export default function ProjectIcon(props: ProjectIconProps) {
           aria-label={getText('openInEditor')}
           tooltipPlacement="left"
           extraClickZone="xsmall"
-          isDisabled={projectState?.type === backendModule.ProjectState.closing}
+          isDisabled={isDisabled || projectState?.type === backendModule.ProjectState.closing}
           onPress={doOpenProject}
         />
       )
-    case backendModule.ProjectState.created:
     case backendModule.ProjectState.openInProgress:
     case backendModule.ProjectState.scheduled:
     case backendModule.ProjectState.provisioned:
@@ -164,7 +157,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
             size="large"
             variant="icon"
             extraClickZone="xsmall"
-            isDisabled={isOtherUserUsingProject}
+            isDisabled={isDisabled || isOtherUserUsingProject}
             icon={StopIcon}
             aria-label={getText('stopExecution')}
             tooltipPlacement="left"
@@ -189,11 +182,10 @@ export default function ProjectIcon(props: ProjectIconProps) {
               size="large"
               variant="icon"
               extraClickZone="xsmall"
-              isDisabled={isOtherUserUsingProject}
+              isDisabled={isDisabled || isOtherUserUsingProject}
               icon={StopIcon}
               aria-label={getText('stopExecution')}
               tooltipPlacement="left"
-              tooltip={isOtherUserUsingProject ? getText('otherUserIsUsingProjectError') : null}
               className={tailwindMerge.twMerge(isRunningInBackground && 'text-green')}
               onPress={doCloseProject}
             />
@@ -213,6 +205,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
               extraClickZone="xsmall"
               icon={ArrowUpIcon}
               aria-label={getText('openInEditor')}
+              isDisabled={isDisabled}
               tooltipPlacement="right"
               onPress={doOpenProjectTab}
             />

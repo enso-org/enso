@@ -1,12 +1,7 @@
 package org.enso.compiler.test.context
 
 import org.enso.compiler.Passes
-import org.enso.compiler.context.{
-  ChangesetBuilder,
-  FreshNameSupply,
-  InlineContext,
-  ModuleContext
-}
+import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.{ExternalID, IR, Identifier}
 import org.enso.compiler.core.ir.{CallArgument, Expression, Function}
 import org.enso.compiler.core.ir.expression.Application
@@ -15,6 +10,7 @@ import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.test.CompilerTestSetup
 import org.enso.compiler.context.LocalScope
+import org.enso.interpreter.instrument.ChangesetBuilder
 import org.enso.text.buffer.Rope
 import org.enso.text.editing.JavaEditorAdapter
 import org.enso.text.editing.model.{Position, Range, TextEdit}
@@ -488,7 +484,7 @@ class ChangesetBuilderTest
 
   def freshInlineContext: InlineContext =
     buildInlineContext(
-      localScope       = Some(LocalScope.root),
+      localScope       = Some(LocalScope.createEmpty),
       freshNameSupply  = Some(new FreshNameSupply),
       isInTailPosition = Some(false)
     )

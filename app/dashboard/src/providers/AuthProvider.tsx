@@ -86,20 +86,22 @@ export type UserSession = FullUserSession | PartialUserSession
  *
  * See `Cognito` for details on each of the authentication functions. */
 interface AuthContextType {
-  readonly signUp: (
-    email: string,
-    password: string,
-    organizationId: string | null,
-  ) => Promise<boolean>
+  readonly signUp: (email: string, password: string, organizationId: string | null) => Promise<void>
   readonly authQueryKey: reactQuery.QueryKey
-  readonly confirmSignUp: (email: string, code: string) => Promise<boolean>
+  readonly confirmSignUp: (email: string, code: string) => Promise<void>
   readonly setUsername: (username: string) => Promise<boolean>
   readonly signInWithGoogle: () => Promise<boolean>
   readonly signInWithGitHub: () => Promise<boolean>
-  readonly signInWithPassword: (email: string, password: string) => Promise<boolean>
-  readonly forgotPassword: (email: string) => Promise<boolean>
+  readonly signInWithPassword: (
+    email: string,
+    password: string,
+  ) => Promise<{
+    readonly challenge: cognitoModule.UserSessionChallenge
+    readonly user: cognitoModule.CognitoUser
+  }>
+  readonly forgotPassword: (email: string) => Promise<void>
   readonly changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>
-  readonly resetPassword: (email: string, code: string, password: string) => Promise<boolean>
+  readonly resetPassword: (email: string, code: string, password: string) => Promise<void>
   readonly signOut: () => Promise<void>
   /**
    * @deprecated Never use this function. Prefer particular functions like `setUsername` or `deleteUser`.
@@ -120,6 +122,7 @@ interface AuthContextType {
   readonly isUserDeleted: () => boolean
   /** Return `true` if the user is soft deleted. */
   readonly isUserSoftDeleted: () => boolean
+  readonly cognito: cognitoModule.Cognito
 }
 
 const AuthContext = React.createContext<AuthContextType | null>(null)
@@ -167,7 +170,7 @@ function createUsersMeQuery(
 /** Props for an {@link AuthProvider}. */
 export interface AuthProviderProps {
   readonly shouldStartInOfflineMode: boolean
-  readonly authService: authServiceModule.AuthService | null
+  readonly authService: authServiceModule.AuthService
   /** Callback to execute once the user has authenticated successfully. */
   readonly onAuthenticated: (accessToken: string | null) => void
   readonly children: React.ReactNode
@@ -178,7 +181,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   const { authService, onAuthenticated } = props
   const { children } = props
   const remoteBackend = backendProvider.useRemoteBackendStrict()
-  const { cognito } = authService ?? {}
+  const { cognito } = authService
   const { session, sessionQueryKey } = sessionProvider.useSession()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
@@ -198,23 +201,19 @@ export default function AuthProvider(props: AuthProviderProps) {
   }, [])
 
   const performLogout = async () => {
-    if (cognito != null) {
-      await cognito.signOut()
+    await cognito.signOut()
 
-      const parentDomain = location.hostname.replace(/^[^.]*\./, '')
-      document.cookie = `logged_in=no;max-age=0;domain=${parentDomain}`
-      gtagEvent('cloud_sign_out')
-      cognito.saveAccessToken(null)
-      localStorage.clearUserSpecificEntries()
-      sentry.setUser(null)
+    const parentDomain = location.hostname.replace(/^[^.]*\./, '')
+    document.cookie = `logged_in=no;max-age=0;domain=${parentDomain}`
+    gtagEvent('cloud_sign_out')
+    cognito.saveAccessToken(null)
+    localStorage.clearUserSpecificEntries()
+    sentry.setUser(null)
 
-      await queryClient.invalidateQueries({ queryKey: sessionQueryKey })
-      await queryClient.clearWithPersister()
+    await queryClient.invalidateQueries({ queryKey: sessionQueryKey })
+    await queryClient.clearWithPersister()
 
-      return Promise.resolve()
-    } else {
-      return Promise.reject()
-    }
+    return Promise.resolve()
   }
 
   const logoutMutation = reactQuery.useMutation({
@@ -293,116 +292,91 @@ export default function AuthProvider(props: AuthProviderProps) {
 
   const signUp = useEventCallback(
     async (username: string, password: string, organizationId: string | null) => {
-      if (cognito == null) {
-        return false
+      gtagEvent('cloud_sign_up')
+      const result = await cognito.signUp(username, password, organizationId)
+
+      if (result.err) {
+        throw new Error(result.val.message)
       } else {
-        gtagEvent('cloud_sign_up')
-        const result = await cognito.signUp(username, password, organizationId)
-        if (result.ok) {
-          toastSuccess(getText('signUpSuccess'))
-          navigate(appUtils.LOGIN_PATH)
-        } else {
-          toastError(result.val.message)
-        }
-        return result.ok
+        return
       }
     },
   )
 
   const confirmSignUp = useEventCallback(async (email: string, code: string) => {
-    if (cognito == null) {
-      return false
-    } else {
-      gtagEvent('cloud_confirm_sign_up')
-      const result = await cognito.confirmSignUp(email, code)
-      if (result.err) {
-        switch (result.val.type) {
-          case cognitoModule.CognitoErrorType.userAlreadyConfirmed: {
-            break
-          }
-          case cognitoModule.CognitoErrorType.userNotFound: {
-            toastError(getText('confirmSignUpError'))
-            navigate(appUtils.LOGIN_PATH)
-            return false
-          }
-          default: {
-            throw new errorModule.UnreachableCaseError(result.val.type)
-          }
+    gtagEvent('cloud_confirm_sign_up')
+    const result = await cognito.confirmSignUp(email, code)
+
+    if (result.err) {
+      switch (result.val.type) {
+        case cognitoModule.CognitoErrorType.userAlreadyConfirmed:
+        case cognitoModule.CognitoErrorType.userNotFound: {
+          return
+        }
+        default: {
+          throw new errorModule.UnreachableCaseError(result.val.type)
         }
       }
-      toastSuccess(getText('confirmSignUpSuccess'))
-      navigate(appUtils.LOGIN_PATH)
-      return result.ok
     }
   })
 
   const signInWithPassword = useEventCallback(async (email: string, password: string) => {
-    if (cognito == null) {
-      return false
-    } else {
-      gtagEvent('cloud_sign_in', { provider: 'Email' })
-      const result = await cognito.signInWithPassword(email, password)
-      if (result.ok) {
-        toastSuccess(getText('signInWithPasswordSuccess'))
-        void queryClient.invalidateQueries({ queryKey: sessionQueryKey })
-        navigate(appUtils.DASHBOARD_PATH)
-      } else {
-        if (result.val.type === cognitoModule.CognitoErrorType.userNotFound) {
-          // It may not be safe to pass the user's password in the URL.
-          navigate(`${appUtils.REGISTRATION_PATH}?${new URLSearchParams({ email }).toString()}`)
-        }
-        toastError(result.val.message)
+    gtagEvent('cloud_sign_in', { provider: 'Email' })
+
+    const result = await cognito.signInWithPassword(email, password)
+
+    if (result.ok) {
+      const user = result.unwrap()
+
+      const challenge = user.challengeName ?? 'NO_CHALLENGE'
+
+      if (['SMS_MFA', 'SOFTWARE_TOKEN_MFA'].includes(challenge)) {
+        // eslint-disable-next-line no-restricted-syntax
+        return { challenge, user } as const
       }
-      return result.ok
+
+      return queryClient
+        .invalidateQueries({ queryKey: sessionQueryKey })
+        .then(() => ({ challenge, user }) as const)
+    } else {
+      throw new Error(result.val.message)
     }
   })
 
   const setUsername = useEventCallback(async (username: string) => {
-    if (cognito == null) {
-      return false
+    gtagEvent('cloud_user_created')
+
+    if (userData?.type === UserSessionType.full) {
+      await updateUserMutation.mutateAsync({ username: username })
     } else {
-      gtagEvent('cloud_user_created')
+      const organizationId = await cognito.organizationId()
+      const email = session?.email ?? ''
 
-      if (userData?.type === UserSessionType.full) {
-        await updateUserMutation.mutateAsync({ username: username })
-      } else {
-        const organizationId = await cognito.organizationId()
-        const email = session?.email ?? ''
-
-        await createUserMutation.mutateAsync({
-          userName: username,
-          userEmail: backendModule.EmailAddress(email),
-          organizationId:
-            organizationId != null ? backendModule.OrganizationId(organizationId) : null,
-        })
-      }
-
-      return true
+      await createUserMutation.mutateAsync({
+        userName: username,
+        userEmail: backendModule.EmailAddress(email),
+        organizationId:
+          organizationId != null ? backendModule.OrganizationId(organizationId) : null,
+      })
     }
+
+    return true
   })
 
   const deleteUser = useEventCallback(async () => {
-    if (cognito == null) {
-      return false
-    } else {
-      await deleteUserMutation.mutateAsync()
+    await deleteUserMutation.mutateAsync()
 
-      toastSuccess(getText('deleteUserSuccess'))
+    toastSuccess(getText('deleteUserSuccess'))
 
-      return true
-    }
+    return true
   })
 
   const restoreUser = useEventCallback(async () => {
-    if (cognito == null) {
-      return false
-    } else {
-      await restoreUserMutation.mutateAsync()
+    await restoreUserMutation.mutateAsync()
 
-      toastSuccess(getText('restoreUserSuccess'))
+    toastSuccess(getText('restoreUserSuccess'))
 
-      return true
-    }
+    return true
   })
 
   /**
@@ -422,47 +396,36 @@ export default function AuthProvider(props: AuthProviderProps) {
   })
 
   const forgotPassword = useEventCallback(async (email: string) => {
-    if (cognito == null) {
-      return false
+    const result = await cognito.forgotPassword(email)
+    if (result.ok) {
+      navigate(appUtils.LOGIN_PATH)
+      return
     } else {
-      const result = await cognito.forgotPassword(email)
-      if (result.ok) {
-        toastSuccess(getText('forgotPasswordSuccess'))
-        navigate(appUtils.LOGIN_PATH)
-      } else {
-        toastError(result.val.message)
-      }
-      return result.ok
+      throw new Error(result.val.message)
     }
   })
 
   const resetPassword = useEventCallback(async (email: string, code: string, password: string) => {
-    if (cognito == null) {
-      return false
+    const result = await cognito.forgotPasswordSubmit(email, code, password)
+
+    if (result.ok) {
+      navigate(appUtils.LOGIN_PATH)
+      return
     } else {
-      const result = await cognito.forgotPasswordSubmit(email, code, password)
-      if (result.ok) {
-        toastSuccess(getText('resetPasswordSuccess'))
-        navigate(appUtils.LOGIN_PATH)
-      } else {
-        toastError(result.val.message)
-      }
-      return result.ok
+      throw new Error(result.val.message)
     }
   })
 
   const changePassword = useEventCallback(async (oldPassword: string, newPassword: string) => {
-    if (cognito == null) {
-      return false
+    const result = await cognito.changePassword(oldPassword, newPassword)
+
+    if (result.ok) {
+      toastSuccess(getText('changePasswordSuccess'))
     } else {
-      const result = await cognito.changePassword(oldPassword, newPassword)
-      if (result.ok) {
-        toastSuccess(getText('changePasswordSuccess'))
-      } else {
-        toastError(result.val.message)
-      }
-      return result.ok
+      toastError(result.val.message)
     }
+
+    return result.ok
   })
 
   const isUserMarkedForDeletion = useEventCallback(
@@ -521,45 +484,40 @@ export default function AuthProvider(props: AuthProviderProps) {
   }, [userData, onAuthenticated])
 
   const value: AuthContextType = {
-    signUp: withLoadingToast(signUp),
-    confirmSignUp: withLoadingToast(confirmSignUp),
+    signUp,
+    confirmSignUp,
     setUsername,
     isUserMarkedForDeletion,
     isUserDeleted,
     isUserSoftDeleted,
     restoreUser,
     deleteUser,
+    cognito,
     signInWithGoogle: useEventCallback(() => {
-      if (cognito == null) {
-        return Promise.resolve(false)
-      } else {
-        gtagEvent('cloud_sign_in', { provider: 'Google' })
-        return cognito
-          .signInWithGoogle()
-          .then(() => queryClient.invalidateQueries({ queryKey: sessionQueryKey }))
-          .then(
-            () => true,
-            () => false,
-          )
-      }
+      gtagEvent('cloud_sign_in', { provider: 'Google' })
+
+      return cognito
+        .signInWithGoogle()
+        .then(() => queryClient.invalidateQueries({ queryKey: sessionQueryKey }))
+        .then(
+          () => true,
+          () => false,
+        )
     }),
     signInWithGitHub: useEventCallback(() => {
-      if (cognito == null) {
-        return Promise.resolve(false)
-      } else {
-        gtagEvent('cloud_sign_in', { provider: 'GitHub' })
-        return cognito
-          .signInWithGitHub()
-          .then(() => queryClient.invalidateQueries({ queryKey: sessionQueryKey }))
-          .then(
-            () => true,
-            () => false,
-          )
-      }
+      gtagEvent('cloud_sign_in', { provider: 'GitHub' })
+
+      return cognito
+        .signInWithGitHub()
+        .then(() => queryClient.invalidateQueries({ queryKey: sessionQueryKey }))
+        .then(
+          () => true,
+          () => false,
+        )
     }),
-    signInWithPassword: signInWithPassword,
-    forgotPassword: withLoadingToast(forgotPassword),
-    resetPassword: withLoadingToast(resetPassword),
+    signInWithPassword,
+    forgotPassword,
+    resetPassword,
     changePassword: withLoadingToast(changePassword),
     refetchSession: usersMeQuery.refetch,
     session: userData,
@@ -710,15 +668,6 @@ export function usePartialUserSession() {
   return session
 }
 
-// ================================
-// === useNonPartialUserSession ===
-// ================================
-
-/** A React context hook returning the user session for a user that can perform actions. */
-export function useNonPartialUserSession() {
-  return useFullUserSession()
-}
-
 // ======================
 // === useUserSession ===
 // ======================
@@ -728,9 +677,11 @@ export function useUserSession() {
   return useAuth().session
 }
 
-/**
- * A React context hook returning the user session for a user that is fully logged in.
- */
+// ==========================
+// === useFullUserSession ===
+// ==========================
+
+/** A React context hook returning the user session for a user that is fully logged in. */
 export function useFullUserSession(): FullUserSession {
   const { session } = useAuth()
 

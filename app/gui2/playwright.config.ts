@@ -29,6 +29,7 @@ function checkAvailablePort(port: number) {
 
 const portFromEnv = parseInt(process.env.PLAYWRIGHT_PORT ?? '', 10)
 const PORT = Number.isFinite(portFromEnv) ? portFromEnv : await findFreePortInRange(4300, 4999)
+console.log(`Selected playwright server port: ${PORT}`)
 // Make sure to set the env to actual port that is being used. This is necessary for workers to
 // pick up the same configuration.
 process.env.PLAYWRIGHT_PORT = `${PORT}`
@@ -114,10 +115,10 @@ export default defineConfig({
     },
     command:
       process.env.CI || process.env.PROD ?
-        `npx vite build && npx vite preview --port ${PORT} --strictPort`
-      : `npx vite dev --port ${PORT}`,
+        `corepack pnpm build && corepack pnpm exec vite preview --port ${PORT} --strictPort`
+      : `corepack pnpm exec vite dev --port ${PORT}`,
     // Build from scratch apparently can take a while on CI machines.
-    timeout: 120 * 1000,
+    timeout: 240 * 1000,
     port: PORT,
     // We use our special, mocked version of server, thus do not want to re-use user's one.
     reuseExistingServer: false,

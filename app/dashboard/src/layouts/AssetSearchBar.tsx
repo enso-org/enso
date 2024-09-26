@@ -19,6 +19,7 @@ import SvgMask from '#/components/SvgMask'
 
 import type Backend from '#/services/Backend'
 
+import { useSuggestions } from '#/providers/DriveProvider'
 import * as array from '#/utilities/array'
 import AssetQuery from '#/utilities/AssetQuery'
 import * as eventModule from '#/utilities/event'
@@ -93,7 +94,7 @@ function Tags(props: InternalTagsProps) {
           : [
               <FocusRing key={key}>
                 <ariaComponents.Button
-                  variant="bar"
+                  variant="outline"
                   size="xsmall"
                   className="min-w-12"
                   onPress={() => {
@@ -120,16 +121,16 @@ export interface AssetSearchBarProps {
   readonly isCloud: boolean
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  readonly suggestions: readonly Suggestion[]
 }
 
 /** A search bar containing a text input, and a list of suggestions. */
 export default function AssetSearchBar(props: AssetSearchBarProps) {
-  const { backend, isCloud, query, setQuery, suggestions: rawSuggestions } = props
+  const { backend, isCloud, query, setQuery } = props
   const { getText } = textProvider.useText()
   const { modalRef } = modalProvider.useModalRef()
   /** A cached query as of the start of tabbing. */
   const baseQuery = React.useRef(query)
+  const rawSuggestions = useSuggestions()
   const [suggestions, setSuggestions] = React.useState(rawSuggestions)
   const suggestionsRef = React.useRef(rawSuggestions)
   const [selectedIndices, setSelectedIndices] = React.useState<ReadonlySet<number>>(
@@ -141,7 +142,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
   const querySource = React.useRef(QuerySource.external)
   const rootRef = React.useRef<HTMLLabelElement | null>(null)
   const searchRef = React.useRef<HTMLInputElement | null>(null)
-  const labels = backendHooks.useBackendListTags(backend) ?? []
+  const labels = backendHooks.useBackendQuery(backend, 'listTags', []).data ?? []
   areSuggestionsVisibleRef.current = areSuggestionsVisible
 
   React.useEffect(() => {
@@ -282,22 +283,25 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
       {(innerProps) => (
         <aria.Label
           data-testid="asset-search-bar"
-          {...aria.mergeProps<aria.LabelProps>()(innerProps, {
-            className:
-              'z-1 group relative flex grow max-w-[60em] items-center gap-asset-search-bar rounded-full px-1.5 py-1 text-primary',
-            ref: rootRef,
-            onFocus: () => {
-              setAreSuggestionsVisible(true)
-            },
-            onBlur: (event) => {
-              if (!event.currentTarget.contains(event.relatedTarget)) {
-                if (querySource.current === QuerySource.tabbing) {
-                  querySource.current = QuerySource.external
+          {...aria.mergeProps<aria.LabelProps & React.RefAttributes<HTMLLabelElement>>()(
+            innerProps,
+            {
+              className:
+                'z-1 group relative flex grow max-w-[60em] items-center gap-asset-search-bar rounded-full px-1.5 py-1 text-primary',
+              ref: rootRef,
+              onFocus: () => {
+                setAreSuggestionsVisible(true)
+              },
+              onBlur: (event) => {
+                if (!event.currentTarget.contains(event.relatedTarget)) {
+                  if (querySource.current === QuerySource.tabbing) {
+                    querySource.current = QuerySource.external
+                  }
+                  setAreSuggestionsVisible(false)
                 }
-                setAreSuggestionsVisible(false)
-              }
+              },
             },
-          })}
+          )}
         >
           <div className="relative size-4 placeholder" />
           <div

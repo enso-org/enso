@@ -1,7 +1,13 @@
 /** @file A styled button representing a tab on a sidebar. */
-import * as React from 'react'
+import { Button, type ButtonProps } from '#/components/AriaComponents'
+import { tv } from '#/utilities/tailwindVariants'
 
-import * as ariaComponent from '#/components/AriaComponents'
+const SIDEBAR_TAB_BUTTON_STYLES = tv({
+  base: 'z-1 font-medium',
+  variants: {
+    isActive: { true: 'bg-white opacity-100' },
+  },
+})
 
 // ========================
 // === SidebarTabButton ===
@@ -13,28 +19,30 @@ export interface SidebarTabButtonProps {
   readonly isDisabled?: boolean
   readonly autoFocus?: boolean
   /** When `true`, the button is not faded out even when not hovered. */
-  readonly active?: boolean
+  readonly isActive?: boolean
   readonly icon: string
   readonly label: string
-  readonly onPress: ariaComponent.ButtonProps['onPress']
+  readonly onPress: ButtonProps['onPress']
 }
 
 /** A styled button representing a tab on a sidebar. */
 export default function SidebarTabButton(props: SidebarTabButtonProps) {
-  const { isDisabled = false, active = false, icon, label, onPress } = props
+  const { isDisabled = false, isActive = false, icon, label, onPress } = props
+
+  const styles = SIDEBAR_TAB_BUTTON_STYLES({ isActive })
 
   return (
-    <ariaComponent.Button
-      onPress={onPress}
+    <Button
       icon={icon}
-      variant="ghost"
+      variant="ghost-fading"
       loaderPosition="icon"
       size="medium"
       isDisabled={isDisabled}
       rounded="full"
-      className={active ? 'bg-white opacity-100' : ''}
+      className={styles}
+      onPress={onPress}
     >
       {label}
-    </ariaComponent.Button>
+    </Button>
   )
 }

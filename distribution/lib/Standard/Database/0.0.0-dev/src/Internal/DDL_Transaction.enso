@@ -1,0 +1,133 @@
+from Standard.Base import all
+import Standard.Base.Data.Vector.Builder as Vector_Builder
+import Standard.Base.Data.Vector.No_Wrap
+import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Runtime.Context
+
+import project.Column_Description.Column_Description
+import project.DB_Table.DB_Table
+import project.Internal.In_Transaction.In_Transaction
+import project.SQL_Query.SQL_Query
+from project.Internal.Upload.Operations.Internal_Core import internal_create_table_structure
+
+## PRIVATE
+   Level of support of DDL statements inside of a transaction.
+type Support_Level
+    ## PRIVATE
+       DDL statements are allowed inside of transactions.
+    Allowed
+
+    ## PRIVATE
+       DDL statements are not allowed inside of transactions.
+    Unsupported
+
+    ## PRIVATE
+       DDL statements are allowed inside of transactions, but they are ignored.
+    Ignored
+
+    ## PRIVATE
+       DDL statements are allowed inside of transactions,
+       but they cause a commit of the current transaction.
+    Causes_Commit
+
+    ## PRIVATE
+    get_from connection -> Support_Level =
+        connection.jdbc_connection.with_metadata metadata->
+            if metadata.supportsDataDefinitionAndDataManipulationTransactions.not then Support_Level.Unsupported else
+                if metadata.dataDefinitionIgnoredInTransactions then Support_Level.Ignored else
+                    if metadata.dataDefinitionCausesTransactionCommit then Support_Level.Causes_Commit else
+                        Support_Level.Allowed
+
+## PRIVATE
+type Transactional_Table_Description
+    ## PRIVATE
+    Value name:Text temporary:Boolean (structure : Vector Column_Description) (primary_key : Vector Text | Nothing) (remove_after_transaction:Boolean) (on_problems:Problem_Behavior)
+
+    ## PRIVATE
+       This operation creates the tables regardless of the Output Context setting.
+       It is the responsibility of the caller to ensure that the operation may proceed.
+    private create self connection -> DB_Table = Context.Output.with_enabled <|
+        created_name = internal_create_table_structure connection self.name self.structure primary_key=self.primary_key temporary=self.temporary on_problems=self.on_problems
+        connection.query (SQL_Query.Table_Name created_name)
+
+## PRIVATE
+   A helper that runs the provided code in a transaction, having first created the specified tables.
+   The callback is ran with a vector of created table references passed as an argument.
+
+   This helper method ensures that we can perform operations creating permanent
+   or temporary tables with transactions. Some databases do not support DDL
+   statements within transactions, so as an approximation we create the tables
+   before starting the transaction and if the transaction is rolled-back, we
+   ensure to try to drop these tables.
+
+   If a given database does allow DDL inside of transactions, we perform the
+   whole operation inside of transaction, to get better guarantees in case of
+   severe failures (network disconnection, process being killed etc.).
+run_transaction_with_tables connection (tables : Vector Transactional_Table_Description) (callback : Vector DB_Table -> Any) -> Any =
+    support_level = Support_Level.get_from connection
+    if support_level == Support_Level.Allowed then create_tables_inside_transaction connection tables callback else
+        create_tables_outside_transaction connection tables callback
+
+## PRIVATE
+private create_tables_inside_transaction connection (tables : Vector Transactional_Table_Description) (callback : Vector DB_Table -> Any) -> Any =
+    connection.jdbc_connection.run_within_transaction <|
+        created = tables.map on_problems=No_Wrap t-> t.create connection
+        created.if_not_error <|
+            result = callback created
+
+            ## We drop the temporary tables after the main transaction is finished.
+               We don't have to worry about error handling - if the `callback` throws,
+               the transaction will be rolled back and tables will be destroyed automatically.
+            cleanup_transaction_scoped_tables connection tables . if_not_error result
+
+## PRIVATE
+private create_tables_outside_transaction connection (tables : Vector Transactional_Table_Description) (callback : Vector DB_Table -> Any) -> Any =
+    # We save created tables as we go - if we fail when creating nth table, we need to remember the first n-1 tables to drop them.
+    already_created_tables = Vector_Builder.new capacity=tables.length
+    handle_panic caught_panic =
+        cleanup_tables_silently connection already_created_tables.to_vector
+        Panic.throw caught_panic
+
+    Panic.catch Any handler=handle_panic <|
+        created = tables.map on_problems=No_Wrap t->
+            table = t.create connection
+            # We only register a table for cleanup if it was successfully created.
+            table.if_not_error <|
+                already_created_tables.append table.name
+                table
+
+        # If there were no errors, we now run the callback inside of a proper transaction.
+        result = created.if_not_error <|
+            connection.jdbc_connection.run_within_transaction <|
+                if connection.dialect.should_check_table_integrity_at_beginning_of_transaction then
+                    created.each check_table_integrity
+                callback created
+
+        ## If the operation failed, we clean up all the tables we created.
+           Otherwise, we only clean up the temporary tables at the end.
+        cleanup_errors = if result.is_error then cleanup_tables_silently connection already_created_tables.to_vector else
+            cleanup_transaction_scoped_tables connection tables
+        cleanup_errors.if_not_error result
+
+## PRIVATE
+private cleanup_tables_silently connection table_names = Context.Output.with_enabled <|
+    table_names.each (name-> connection.drop_table name if_exists=True . catch)
+
+## PRIVATE
+private cleanup_transaction_scoped_tables connection tables = Context.Output.with_enabled <|
+    tables.each (t-> if t.remove_after_transaction then connection.drop_table t.name if_exists=True)
+
+## PRIVATE
+   A helper that checks if the table was not modified between its creation and entering the transaction.
+   Only applicable to `create_tables_outside_transaction`.
+check_table_integrity created_table =
+    ## We use a trick here - `is_trivial_query` checks if the current table definition and the one returned by `connection.query` are matching.
+       This allows us to ensure that in the short time between creating the table outside transaction and entering the transaction, no one else modified the table structure.
+       Additionally, we check that no other actors inserted any data into the table - the table was newly created so the row count should be 0.
+       TODO: this performs 2 DB queries, it could be optimized to do the check in just 1.
+    was_changed_in_the_meantime = created_table.is_trivial_query.not || (created_table.row_count != 0)
+    if was_changed_in_the_meantime then
+        ## Technically we could try recovery - restart the whole creation process from beginning.
+           But this should be an extremely rare occurrence and hard to test - so it's likely better to
+           keep it simple and just tell the user to retry.
+        Panic.throw (Illegal_State.Error "During a table modification operation, unexpected external table modifications occurred, breaking operation invariants. The operation was aborted. Please retry.")

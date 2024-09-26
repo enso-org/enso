@@ -1,10 +1,12 @@
+import { NodeId } from '@/stores/graph'
+import { GraphDb } from '@/stores/graph/graphDatabase'
 import {
   SuggestionKind,
   type SuggestionEntry,
   type Typename,
 } from '@/stores/suggestionDatabase/entry'
 import type { Icon } from '@/util/iconName'
-import type { MethodPointer } from 'shared/languageServerTypes'
+import type { MethodPointer } from 'ydoc-shared/languageServerTypes'
 
 const typeNameToIconLookup: Record<string, Icon> = {
   'Standard.Base.Data.Text.Text': 'text_input',
@@ -41,5 +43,22 @@ export function displayedIconOf(
     return typeNameToIcon(actualType)
   } else {
     return DEFAULT_ICON
+  }
+}
+
+export function iconOfNode(node: NodeId, graphDb: GraphDb) {
+  const expressionInfo = graphDb.getExpressionInfo(node)
+  const suggestionEntry = graphDb.getNodeMainSuggestion(node)
+  const nodeType = graphDb.nodeIdToNode.get(node)?.type
+  switch (nodeType) {
+    default:
+    case 'component':
+      return displayedIconOf(
+        suggestionEntry,
+        expressionInfo?.methodCall?.methodPointer,
+        expressionInfo?.typename ?? 'Unknown',
+      )
+    case 'output':
+      return 'data_output'
   }
 }

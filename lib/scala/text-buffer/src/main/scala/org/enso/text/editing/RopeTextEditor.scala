@@ -3,8 +3,7 @@ package org.enso.text.editing
 import org.enso.text.buffer.Rope
 import org.enso.text.editing.model.TextEdit
 
-/** Instance of the [[TextEditor]] type class for the [[Rope]] type.
-  */
+/** Instance of the [[TextEditor]] type class for the [[Rope]] type. */
 object RopeTextEditor extends TextEditor[Rope] {
 
   /** Edits a buffer.
@@ -27,7 +26,7 @@ object RopeTextEditor extends TextEditor[Rope] {
       if (diff.range.start.character > 0)
         buffer.lines
           .drop(diff.range.start.line)
-          .codePoints
+          .characters
           .take(diff.range.start.character)
       else
         Rope.empty
@@ -36,11 +35,11 @@ object RopeTextEditor extends TextEditor[Rope] {
   }
 
   private def cutOutTail(buffer: Rope, diff: TextEdit): Rope = {
-    val codePoints = buffer.lines
+    val characters = buffer.lines
       .drop(diff.range.end.line)
-      .codePoints
-    if (codePoints.length < diff.range.end.character) Rope.empty
-    else codePoints.drop(diff.range.end.character)
+      .characters
+    if (characters.length < diff.range.end.character) Rope.empty
+    else characters.drop(diff.range.end.character)
   }
 
   /** Returns a number of lines in a buffer.

@@ -13,11 +13,20 @@ async function assertTypeLabelOnNode(
   node: Locator,
   type: { full: string; short: string },
 ) {
+  // Ensure the visualization button won't be covered by any other parts of another node (e.g. a comment).
+  await bringNodeToFront(page, node)
   await node.hover({ position: { x: 8, y: 8 } })
   await locate.toggleVisualizationButton(node).click()
   const targetLabel = node.locator('.node-type').first()
   await expect(targetLabel).toHaveText(type.short)
   await expect(targetLabel).toHaveAttribute('title', type.full)
+  await locate.toggleVisualizationButton(node).click()
+  await actions.deselectNodes(page)
+}
+
+async function bringNodeToFront(page: Page, node: Locator) {
+  await node.click({ position: { x: 8, y: 8 } })
+  await page.keyboard.press('Escape')
 }
 
 async function assertTypeLabelOnNodeByBinding(

@@ -9,11 +9,23 @@ polyglot java import org.sqlite.SQLiteException
 type SQLite_Error_Mapper
 
     ## PRIVATE
-    is_primary_key_violation : SQL_Error -> Boolean
-    is_primary_key_violation error =
+    is_duplicate_primary_key_violation : SQL_Error -> Boolean
+    is_duplicate_primary_key_violation error =
         case error.java_exception of
             sqlite_exception : SQLiteException ->
                 sqlite_exception.getResultCode == SQLiteErrorCode.SQLITE_CONSTRAINT_PRIMARYKEY
+
+    ## PRIVATE
+       SQLite does not mind SQLite NULL primary keys.
+    is_null_primary_key_violation : SQL_Error -> Boolean
+    is_null_primary_key_violation _ = False
+
+    ## PRIVATE
+    is_table_already_exists_error : SQL_Error -> Boolean
+    is_table_already_exists_error error =
+        case error.java_exception of
+            sqlite_exception : SQLiteException ->
+                (sqlite_exception.getResultCode == SQLiteErrorCode.SQLITE_ERROR) && (sqlite_exception.getMessage.match ".*\(table .* already exists\)")
 
     ## PRIVATE
     transform_custom_errors : SQL_Error -> Any

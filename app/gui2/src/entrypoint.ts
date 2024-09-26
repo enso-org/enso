@@ -5,7 +5,6 @@ import { isOnLinux } from 'enso-common/src/detect'
 import * as commonQuery from 'enso-common/src/queryClient'
 import * as dashboard from 'enso-dashboard'
 import 'enso-dashboard/src/tailwind.css'
-import { isDevMode } from 'shared/util/detect'
 import { lazyVueInReact } from 'veaury'
 import { type App } from 'vue'
 
@@ -14,6 +13,7 @@ import { AsyncApp } from './asyncApp'
 
 const INITIAL_URL_KEY = `Enso-initial-url`
 const SCAM_WARNING_TIMEOUT = 1000
+export const isDevMode = process.env.NODE_ENV === 'development'
 
 function printScamWarning() {
   if (isDevMode) return
@@ -69,12 +69,19 @@ function main() {
     localStorage.setItem(INITIAL_URL_KEY, location.href)
   }
 
+  const resolveEnvUrl = (url: string | undefined) =>
+    url?.replace('__HOSTNAME__', window.location.hostname)
+
   const config = configValue(mergeConfig(baseConfig, urlParams()))
   const supportsVibrancy = config.window.vibrancy
   const shouldUseAuthentication = config.authentication.enabled
-  const projectManagerUrl = config.engine.projectManagerUrl || PROJECT_MANAGER_URL
-  const ydocUrl = config.engine.ydocUrl === '' ? YDOC_SERVER_URL : config.engine.ydocUrl
+  const projectManagerUrl =
+    (config.engine.projectManagerUrl || resolveEnvUrl(PROJECT_MANAGER_URL)) ?? null
+  const ydocUrl = (config.engine.ydocUrl || resolveEnvUrl(YDOC_SERVER_URL)) ?? null
   const initialProjectName = config.startup.project || null
+  const urlWithoutStartupProject = new URL(location.toString())
+  urlWithoutStartupProject.searchParams.delete('startup.project')
+  history.replaceState(null, '', urlWithoutStartupProject)
   const queryClient = commonQuery.createQueryClient()
 
   const registerPlugins = (app: App) => {

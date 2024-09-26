@@ -49,8 +49,6 @@ const ALL_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
     const devMode = true
     const clientBundlerOpts = clientBundler.bundlerOptionsFromEnv(devMode)
     clientBundlerOpts.outdir = path.resolve(IDE_DIR_PATH)
-    // Eslint is wrong here; `clientBundlerOpts.plugins` is actually `undefined`.
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     ;(clientBundlerOpts.plugins ??= []).push({
       name: 'enso-on-rebuild',
       setup: build => {
@@ -93,10 +91,10 @@ const ELECTRON_FLAGS =
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   process.env.ELECTRON_FLAGS == null ? [] : String(process.env.ELECTRON_FLAGS).split(' ')
 const ELECTRON_ARGS = [
-  path.join(IDE_DIR_PATH, 'index.cjs'),
+  path.join(IDE_DIR_PATH, 'index.mjs'),
   ...ELECTRON_FLAGS,
   '--',
-  ...process.argv.slice(2),
+  ...process.argv.slice(2).map(arg => `'${arg}'`),
 ]
 
 process.on('SIGINT', () => {

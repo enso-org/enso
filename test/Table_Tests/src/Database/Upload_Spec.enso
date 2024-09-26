@@ -65,7 +65,6 @@ database_table_builder name_prefix args primary_key=[] connection =
      database, so features relying on persistence cannot really be tested.
 add_specs suite_builder setup make_new_connection persistent_connector=True =
     prefix = setup.prefix
-    snowflake_pending = if prefix.contains "Snowflake" then "Table Upload / Update is not yet fully implemented for Snowflake backend. TODO: https://github.com/enso-org/enso/issues/10609"
     data = Data.setup make_new_connection
     suite_builder.group prefix+"(Upload_Spec) Creating an empty table" group_builder->
         group_builder.specify "should allow to specify the column names and types" <|
@@ -336,7 +335,7 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
                     tmp_connection.close
                     data.connection.query (SQL_Query.Table_Name name) . at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
 
-        group_builder.specify "should not create any table if upload fails" pending=snowflake_pending <|
+        group_builder.specify "should not create any table if upload fails" <|
             normal_column = Column.from_vector "Y" ((100+0).up_to (100+1000)).to_vector
             exploding_column = make_mock_column "X" (0.up_to 1000).to_vector 512
             exploding_table = Table.new [normal_column, exploding_column]
@@ -359,19 +358,61 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
             db_table_2 = t1.select_into_database_table data.connection (Name_Generator.random_name "primary-key-2")
             Panic.with_finalizer (data.connection.drop_table db_table_2.name) <|
                 db_table_2.at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
-                db_table_2.get_primary_key . should_equal ["X"]
+                db_table_2.get_primary_key . should_equal Nothing
 
             db_table_3 = t1.select_into_database_table data.connection (Name_Generator.random_name "primary-key-3") primary_key=Nothing
             Panic.with_finalizer (data.connection.drop_table db_table_3.name) <|
                 db_table_3.at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
                 db_table_3.get_primary_key . should_equal Nothing
 
+            db_table_4 = t1.select_into_database_table data.connection (Name_Generator.random_name "primary-key-4")
+            Panic.with_finalizer (data.connection.drop_table db_table_4.name) <|
+                db_table_4.at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
+                db_table_4.get_primary_key . should_equal Nothing
+
         group_builder.specify "should ensure that primary key columns are valid" <|
             run_with_and_without_output <|
                 r1 = data.in_memory_table.select_into_database_table data.connection (Name_Generator.random_name "primary-key-4") primary_key=["X", "nonexistent"]
                 r1.should_fail_with Missing_Input_Columns
 
-        group_builder.specify "should fail if the primary key is not unique" pending=snowflake_pending <|
+        if data.connection.dialect.dialect_flags.primary_key.allows_nulls then
+            group_builder.specify "should not fail if the primary key contains nulls" <|
+                t1 = Table.new [['X', [1, Nothing, 3]], ['Y', [4, 5, Nothing]]]
+                run_with_and_without_output <|
+                    r2 = t1.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-1") temporary=True primary_key=['X']
+                    r2.row_count . should_equal 3
+
+        if data.connection.dialect.dialect_flags.primary_key.allows_nulls.not then
+            group_builder.specify "should fail if the primary key contains nulls" <|
+                t1 = Table.new [['X', [1, Nothing, 3]], ['Y', [4, 5, Nothing]]]
+                run_with_and_without_output <|
+                    r1 = t1.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-0") temporary=True
+                    r1.row_count . should_equal 3
+
+                    r2 = t1.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-1") temporary=True primary_key=['X']
+                    r2.should_fail_with Null_Values_In_Key_Columns
+                    r2.catch . example_row . should_equal [Nothing, 5]
+
+                    r3 = t1.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-2") temporary=True primary_key=['Y']
+                    r3.should_fail_with Null_Values_In_Key_Columns
+                    r3.catch . example_row . should_equal [3, Nothing]
+
+                    r4 = t1.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-3") temporary=True primary_key=['X', 'Y']
+                    r4.should_fail_with Null_Values_In_Key_Columns
+                    r4.catch . example_row . should_equal [Nothing, 5]
+
+                large_with_null = (0.up_to 1010).to_vector + [Nothing]
+                big_table = Table.new [['X', large_with_null+large_with_null]]
+                Context.Output.with_disabled <|
+                    r5 = big_table.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-4") temporary=True primary_key=['X']
+                    r5.column_names . should_equal ['X']
+                    r5.row_count . should_equal 1000
+                Context.Output.with_enabled <|
+                    r5 = big_table.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-5") temporary=True primary_key=['X']
+                    r5.should_fail_with Null_Values_In_Key_Columns
+
+        snowflake_constraints_pending = if prefix.contains "Snowflake" then "Disabled until https://github.com/enso-org/enso/issues/10737 is resolved."
+        group_builder.specify "should fail if the primary key is not unique" pending=snowflake_constraints_pending <|
             t1 = Table.new [["X", [1, 2, 1]], ["Y", ['b', 'b', 'a']]]
 
             run_with_and_without_output <|
@@ -525,7 +566,51 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
                 r1 = db_table.select_into_database_table data.connection (Name_Generator.random_name "copied-table") temporary=True primary_key=["nonexistent"]
                 r1.should_fail_with Missing_Input_Columns
 
-        group_builder.specify "should fail when the primary key is not unique" pending=snowflake_pending <|
+        if data.connection.dialect.dialect_flags.primary_key.allows_nulls then
+            group_builder.specify "should fail when the primary key contains nulls" <|
+                t = Table.new [['X', [1, Nothing, 3]], ['Y', [4, 5, Nothing]]]
+                db_table = t.select_into_database_table data.connection (Name_Generator.random_name "source-table-nulls-1") temporary=True
+                Problems.assume_no_problems db_table
+
+                run_with_and_without_output <|
+                    r2 = db_table.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-2") temporary=True primary_key=['X']
+                    r2.row_count . should_equal 3
+
+        if data.connection.dialect.dialect_flags.primary_key.allows_nulls.not then
+            group_builder.specify "should fail when the primary key contains nulls" <|
+                t = Table.new [['X', [1, Nothing, 3]], ['Y', [4, 5, Nothing]]]
+                db_table = t.select_into_database_table data.connection (Name_Generator.random_name "source-table-nulls-1") temporary=True
+                Problems.assume_no_problems db_table
+
+                run_with_and_without_output <|
+                    r1 = db_table.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-1") temporary=True
+                    r1.row_count . should_equal 3
+
+                    r2 = db_table.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-2") temporary=True primary_key=['X']
+                    r2.should_fail_with Null_Values_In_Key_Columns
+                    r2.catch . example_row . should_equal [Nothing, 5]
+
+                    r3 = db_table.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-3") temporary=True primary_key=['Y']
+                    r3.should_fail_with Null_Values_In_Key_Columns
+                    r3.catch . example_row . should_equal [3, Nothing]
+
+                    r4 = db_table.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-4") temporary=True primary_key=['X', 'Y']
+                    r4.should_fail_with Null_Values_In_Key_Columns
+                    r4.catch . example_row . should_equal [Nothing, 5]
+
+                large_with_null = (0.up_to 1010).to_vector + [Nothing]
+                big_table = Table.new [['X', large_with_null+large_with_null]]
+                db_table_2 = big_table.select_into_database_table data.connection (Name_Generator.random_name "source-table-nulls-2") temporary=True primary_key=Nothing
+                Context.Output.with_disabled <|
+                    r5 = db_table_2.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-5") temporary=True primary_key=['X']
+                    r5.column_names . should_equal ['X']
+                    r5.row_count . should_equal 1000
+                Context.Output.with_enabled <|
+                    r5 = db_table_2.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-6") temporary=True primary_key=['X']
+                    r5.should_fail_with Null_Values_In_Key_Columns
+
+        snowflake_constraints_pending = if prefix.contains "Snowflake" then "Disabled until https://github.com/enso-org/enso/issues/10737 is resolved."
+        group_builder.specify "should fail when the primary key is not unique" pending=snowflake_constraints_pending <|
             t = Table.new [["X", [1, 2, 1]], ["Y", ['b', 'b', 'a']]]
             db_table = t.select_into_database_table data.connection (Name_Generator.random_name "source-table") temporary=True primary_key=Nothing
             Problems.assume_no_problems db_table
@@ -592,7 +677,7 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
             preexisting2.at "X" . to_vector . should_equal [42]
 
     suite_builder.group prefix+"(Upload_Spec) Appending an in-memory table to a Database table" group_builder->
-        test_table_append group_builder data in_memory_table_builder (database_table_builder "target-table")
+        test_table_append setup group_builder data in_memory_table_builder (database_table_builder "target-table")
 
         group_builder.specify "will issue a friendly error if using in-memory table as target" <|
             t1 = Table.new [["X", [1, 2, 3]]]
@@ -602,7 +687,7 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
             r1.to_display_text.should_contain "in-memory tables are immutable"
 
     suite_builder.group prefix+"(Upload_Spec) Appending a Database table to a Database table" group_builder->
-        test_table_append group_builder data (database_table_builder "source-table") (database_table_builder "target-table")
+        test_table_append setup group_builder data (database_table_builder "source-table") (database_table_builder "target-table")
 
     suite_builder.group prefix+"(Upload_Spec) Deleting rows from a Database table (source=in-memory)" group_builder->
         test_table_delete group_builder data in_memory_table_builder (database_table_builder "target-table")
@@ -747,8 +832,7 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
         tests group_builder data make_new_connection (database_table_builder "ec-tests-table") " (from Database table)" persistent_connector
 
 
-test_table_append group_builder (data : Data) source_table_builder target_table_builder =
-    snowflake_pending = if group_builder.name.contains "Snowflake" then "Table Upload / Update is not yet fully implemented for Snowflake backend. TODO: https://github.com/enso-org/enso/issues/10609"
+test_table_append setup group_builder (data : Data) source_table_builder target_table_builder =
     group_builder.specify "should be able to append new rows to a table" <|
         dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"] connection=data.connection
         src = source_table_builder [["X", [4, 5, 6]], ["Y", ['d', 'e', 'f']]] connection=data.connection
@@ -930,7 +1014,8 @@ test_table_append group_builder (data : Data) source_table_builder target_table_
             r5 = dest.update_rows src update_action=Update_Action.Align_Records key_columns=[]
             r5.should_fail_with Illegal_Argument
 
-    group_builder.specify "should fail if the key is not unique in the input table" pending=snowflake_pending <|
+    snowflake_constraints_pending = if group_builder.name.contains "Snowflake" then "Disabled until https://github.com/enso-org/enso/issues/10737 is resolved."
+    group_builder.specify "should fail if the key is not unique in the input table" pending=snowflake_constraints_pending <|
         d1 = target_table_builder [["X", [0, 10, 100]]] primary_key=["X"] connection=data.connection
         d2 = target_table_builder [["X", [0, 10, 100]]] connection=data.connection
         src = source_table_builder [["X", [1, 1, 3]]] connection=data.connection
@@ -1043,6 +1128,10 @@ test_table_append group_builder (data : Data) source_table_builder target_table_
         r1 = dest.update_rows src key_columns=[] update_action=Update_Action.Insert
         # We may want a more specific error for missing columns without defaults, but for now it's just a SQL error.
         r1.should_fail_with SQL_Error
+
+        # No rows should have been inserted:
+        dest.row_count . should_equal 0
+
         data.connection.drop_table dest_name
 
     group_builder.specify "should fail if the source table is missing some columns, if asked to" <|
@@ -1096,7 +1185,7 @@ test_table_append group_builder (data : Data) source_table_builder target_table_
             r2 = in_memory_table.update_rows t
             r2.should_fail_with Illegal_Argument
 
-    group_builder.specify "should warn if type widening occurs" pending=snowflake_pending <|
+    group_builder.specify "should warn if type widening occurs" <|
         dest = target_table_builder [["X", [3.25, 4.25, 10.0]]] connection=data.connection
         src = source_table_builder [["X", [1, 2, 0]]] connection=data.connection
 
@@ -1110,7 +1199,8 @@ test_table_append group_builder (data : Data) source_table_builder target_table_
 
         result = dest.update_rows src update_action=Update_Action.Insert key_columns=[]
         warning = Problems.expect_warning Inexact_Type_Coercion result
-        warning.requested_type.is_integer . should_be_true
+
+        setup.is_integer_type warning.requested_type . should_be_true
         warning.actual_type.is_floating_point . should_be_true
 
         result.column_names . should_equal ["X"]
@@ -1146,7 +1236,7 @@ test_table_append group_builder (data : Data) source_table_builder target_table_
                 result = dest.update_rows src update_action=Update_Action.Insert key_columns=[]
                 result.should_fail_with Column_Type_Mismatch
 
-    group_builder.specify "should not leave behind any garbage temporary tables if the upload fails" pending=snowflake_pending <|
+    group_builder.specify "should not leave behind any garbage temporary tables if the upload fails" <|
         dest_name = Name_Generator.random_name "dest-table"
         # We will make the upload fail by violating the NOT NULL constraint.
         dest = data.connection.create_table dest_name [Column_Description.Value "X" Value_Type.Integer [Column_Constraint.Not_Null]] temporary=True primary_key=[] . should_succeed

@@ -37,7 +37,7 @@ public class SecretsHandler implements CloudHandler {
     String parentId =
         root.has("parentDirectoryId")
             ? root.get("parentDirectoryId").asText()
-            : AssetStore.ROOT_DIRECTORY_ID;
+            : AssetStore.HOME_DIRECTORY_ID;
 
     if (assetStore.exists(parentId, name)) {
       exchange.sendResponse(400, "{\"code\": \"resource_already_exists\"}");

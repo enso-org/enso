@@ -1,11 +1,7 @@
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import { initializePrefixes, nodeFromAst, primaryApplicationSubject } from '@/util/ast/node'
-import { initializeFFI } from 'shared/ast/ffi'
+import { nodeFromAst, primaryApplicationSubject } from '@/util/ast/node'
 import { expect, test } from 'vitest'
-
-await initializeFFI()
-initializePrefixes()
 
 test.each`
   line                               | pattern      | rootExpr   | documentation
@@ -20,7 +16,7 @@ test.each`
   expect(node?.pattern?.code()).toBe(pattern)
   expect(node?.rootExpr.code()).toBe(rootExpr)
   expect(node?.innerExpr.code()).toBe(rootExpr)
-  expect(node?.documentation).toBe(documentation)
+  expect(node?.docs?.documentation()).toBe(documentation)
 })
 
 test.each(['## Documentation only'])("'%s' should not be a node", (line) => {

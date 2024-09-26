@@ -1,9 +1,15 @@
 /** @file Settings tab for viewing and editing roles for all users in the organization. */
 import * as React from 'react'
 
+import { useMutation } from '@tanstack/react-query'
+
 import * as mimeTypes from '#/data/mimeTypes'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import {
+  backendMutationOptions,
+  useBackendQuery,
+  useListUserGroupsWithUsers,
+} from '#/hooks/backendHooks'
 import * as billingHooks from '#/hooks/billing'
 import * as scrollHooks from '#/hooks/scrollHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -43,12 +49,16 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
   const { getText } = textProvider.useText()
   const { user } = authProvider.useFullUserSession()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const users = backendHooks.useBackendListUsers(backend)
-  const userGroups = backendHooks.useBackendListUserGroupsWithUsers(backend)
+  const { data: users } = useBackendQuery(backend, 'listUsers', [])
+  const userGroups = useListUserGroupsWithUsers(backend)
   const rootRef = React.useRef<HTMLDivElement>(null)
   const bodyRef = React.useRef<HTMLTableSectionElement>(null)
-  const changeUserGroup = backendHooks.useBackendMutation(backend, 'changeUserGroup')
-  const deleteUserGroup = backendHooks.useBackendMutation(backend, 'deleteUserGroup')
+  const changeUserGroup = useMutation(
+    backendMutationOptions(backend, 'changeUserGroup'),
+  ).mutateAsync
+  const deleteUserGroup = useMutation(
+    backendMutationOptions(backend, 'deleteUserGroup'),
+  ).mutateAsync
   const usersMap = React.useMemo(
     () => new Map((users ?? []).map((otherUser) => [otherUser.userId, otherUser])),
     [users],
@@ -90,7 +100,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
               if (!groups.includes(userGroupId)) {
                 try {
                   const newUserGroups = [...groups, userGroupId]
-                  await changeUserGroup.mutateAsync([
+                  await changeUserGroup([
                     newUser.userId,
                     { userGroups: newUserGroups },
                     newUser.name,
@@ -108,7 +118,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
 
   const doDeleteUserGroup = async (userGroup: backendModule.UserGroupInfo) => {
     try {
-      await deleteUserGroup.mutateAsync([userGroup.id, userGroup.groupName])
+      await deleteUserGroup([userGroup.id, userGroup.groupName])
     } catch (error) {
       toastAndLog('deleteUserGroupError', error, userGroup.groupName)
     }
@@ -122,11 +132,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
       const intermediateUserGroups =
         otherUser.userGroups?.filter((userGroupId) => userGroupId !== userGroup.id) ?? null
       const newUserGroups = intermediateUserGroups?.length === 0 ? null : intermediateUserGroups
-      await changeUserGroup.mutateAsync([
-        otherUser.userId,
-        { userGroups: newUserGroups ?? [] },
-        otherUser.name,
-      ])
+      await changeUserGroup([otherUser.userId, { userGroups: newUserGroups ?? [] }, otherUser.name])
     } catch (error) {
       toastAndLog('removeUserFromUserGroupError', error, otherUser.name, userGroup.groupName)
     }
@@ -139,7 +145,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
           {shouldDisplayPaywall && (
             <paywallComponents.PaywallDialogButton
               feature="userGroupsFull"
-              variant="bar"
+              variant="outline"
               size="medium"
               rounded="full"
               iconPosition="end"
@@ -151,7 +157,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
           {!shouldDisplayPaywall && (
             <ariaComponents.Button
               size="medium"
-              variant="bar"
+              variant="outline"
               onPress={(event) => {
                 const rect = event.target.getBoundingClientRect()
                 const position = { pageX: rect.left, pageY: rect.top }
@@ -204,7 +210,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
               <aria.Row className="h-row">
                 <aria.Cell
                   ref={(element) => {
-                    if (element != null) {
+                    if (element instanceof HTMLTableCellElement) {
                       element.colSpan = 2
                     }
                   }}
@@ -215,6 +221,14 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
                       state={statelessSpinner.SpinnerState.loadingMedium}
                     />
                   </div>
+                </aria.Cell>
+              </aria.Row>
+            : userGroups.length === 0 ?
+              <aria.Row className="h-row">
+                <aria.Cell className="col-span-2 px-2.5 placeholder">
+                  {isAdmin ?
+                    getText('youHaveNoUserGroupsAdmin')
+                  : getText('youHaveNoUserGroupsNonAdmin')}
                 </aria.Cell>
               </aria.Row>
             : (userGroup) => (

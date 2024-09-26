@@ -5,6 +5,7 @@ import * as reactQuery from '@tanstack/react-query'
 import invariant from 'tiny-invariant'
 
 import type * as text from 'enso-common/src/text'
+import * as tabBar from 'enso-common/src/utilities/style/tabBar'
 
 import * as projectHooks from '#/hooks/projectHooks'
 
@@ -82,39 +83,10 @@ export default function TabBar(props: TabBarProps) {
           selectedTabRef.current = element
           const bounds = element.getBoundingClientRect()
           const rootBounds = backgroundElement.getBoundingClientRect()
-          const tabLeft = bounds.left - rootBounds.left + TAB_RADIUS_PX
-          const tabRight = bounds.right - rootBounds.left - TAB_RADIUS_PX
-          const rightSegments = [
-            'M 0 0',
-            `L ${rootBounds.width + window.outerWidth} 0`,
-            `L ${rootBounds.width + window.outerWidth} ${rootBounds.height}`,
-            `L ${tabRight + TAB_RADIUS_PX} ${rootBounds.height}`,
-            `A ${TAB_RADIUS_PX} ${TAB_RADIUS_PX} 0 0 1 ${tabRight} ${rootBounds.height - TAB_RADIUS_PX}`,
-          ]
-          const leftSegments = [
-            `A ${TAB_RADIUS_PX} ${TAB_RADIUS_PX} 0 0 1 ${tabLeft - TAB_RADIUS_PX} ${rootBounds.height}`,
-            `L 0 ${rootBounds.height}`,
-            'Z',
-          ]
-          const segments = [
-            ...rightSegments,
-            `L ${tabRight} ${TAB_RADIUS_PX}`,
-            `A ${TAB_RADIUS_PX} ${TAB_RADIUS_PX} 0 0 0 ${tabRight - TAB_RADIUS_PX} 0`,
-            `L ${tabLeft + TAB_RADIUS_PX} 0`,
-            `A ${TAB_RADIUS_PX} ${TAB_RADIUS_PX} 0 0 0 ${tabLeft} ${TAB_RADIUS_PX}`,
-            `L ${tabLeft} ${rootBounds.height - TAB_RADIUS_PX}`,
-            ...leftSegments,
-          ]
-          backgroundElement.style.clipPath = `path("${segments.join(' ')}")`
-          const rootSegments = [
-            ...rightSegments,
-            `A ${TAB_RADIUS_PX} ${TAB_RADIUS_PX} 0 0 1 ${tabRight - TAB_RADIUS_PX} ${rootBounds.height}`,
-            `L ${tabLeft + TAB_RADIUS_PX} ${rootBounds.height}`,
-            `A ${TAB_RADIUS_PX} ${TAB_RADIUS_PX} 0 0 1 ${tabLeft} ${rootBounds.height - TAB_RADIUS_PX}`,
-            ...leftSegments,
-          ]
+          const { clipPath, rootClipPath } = tabBar.barClipPath(bounds, rootBounds, TAB_RADIUS_PX)
+          backgroundElement.style.clipPath = clipPath
           if (rootElement) {
-            rootElement.style.clipPath = `path("${rootSegments.join(' ')}")`
+            rootElement.style.clipPath = rootClipPath
           }
         }
       }
@@ -214,18 +186,7 @@ export function Tab(props: InternalTabProps) {
       const element = ref.current
       if (element) {
         const bounds = element.getBoundingClientRect()
-        const segments = [
-          `M 0 ${bounds.height}`,
-          `A ${TAB_RADIUS_PX} ${TAB_RADIUS_PX} 0 0 0 ${TAB_RADIUS_PX} ${bounds.height - TAB_RADIUS_PX}`,
-          `L ${TAB_RADIUS_PX} ${TAB_RADIUS_PX}`,
-          `A ${TAB_RADIUS_PX} ${TAB_RADIUS_PX} 0 0 1 ${TAB_RADIUS_PX * 2} 0`,
-          `L ${bounds.width - TAB_RADIUS_PX * 2} 0`,
-          `A ${TAB_RADIUS_PX} ${TAB_RADIUS_PX} 0 0 1 ${bounds.width - TAB_RADIUS_PX} ${TAB_RADIUS_PX}`,
-          `L ${bounds.width - TAB_RADIUS_PX} ${bounds.height - TAB_RADIUS_PX}`,
-          `A ${TAB_RADIUS_PX} ${TAB_RADIUS_PX} 0 0 0 ${bounds.width} ${bounds.height}`,
-          'Z',
-        ]
-        element.style.clipPath = `path("${segments.join(' ')}")`
+        element.style.clipPath = tabBar.tabClipPath(bounds, TAB_RADIUS_PX)
       }
     }
   })
@@ -246,14 +207,13 @@ export function Tab(props: InternalTabProps) {
     }
   }, [actuallyActive, id, setSelectedTab])
 
-  const { isLoading, data } = reactQuery.useQuery<backend.Project>(
+  const { isLoading, data } = reactQuery.useQuery<backend.Project | null>(
     project?.id ?
       projectHooks.createGetProjectDetailsQuery.createPassiveListener(project.id)
     : { queryKey: ['__IGNORE__'], queryFn: reactQuery.skipToken },
   )
 
-  const isFetching =
-    (isLoading || (data && data.state.type !== backend.ProjectState.opened)) ?? false
+  const isFetching = isLoading || data == null || data.state.type !== backend.ProjectState.opened
 
   React.useEffect(() => {
     if (!isFetching && isLoadingRef.current) {
@@ -266,14 +226,16 @@ export function Tab(props: InternalTabProps) {
     <aria.Tab
       data-testid={props['data-testid']}
       ref={(element) => {
-        ref.current = element
-        if (element) {
+        if (element instanceof HTMLDivElement) {
+          ref.current = element
           if (actuallyActive) {
             setSelectedTab(element)
           }
           resizeObserver.disconnect()
           resizeObserver.observe(element)
           updateClipPath()
+        } else {
+          ref.current = null
         }
       }}
       id={id}

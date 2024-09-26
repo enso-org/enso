@@ -95,7 +95,7 @@ pub mod endpoints {
             .json::<serde_json::Value>()
             .await?;
         debug!("{}", serde_json::to_string_pretty(&body)?);
-        serde_json::from_value(body).anyhow_err()
+        Ok(serde_json::from_value(body)?)
     }
 
     #[context("Failed to finalize upload of the artifact `{}`.", artifact_name.as_ref())]

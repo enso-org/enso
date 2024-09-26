@@ -3,17 +3,29 @@
 import { defaultEquality } from '@/util/equals'
 import { debouncedWatch } from '@vueuse/core'
 import { nop } from 'lib0/function'
-import type { ComputedRef, MaybeRefOrGetter, Ref, WatchSource, WritableComputedRef } from 'vue'
 import {
   callWithErrorHandling,
   computed,
+  ComputedRef,
+  DeepReadonly,
   effect,
   effectScope,
   isRef,
+  MaybeRefOrGetter,
   queuePostFlushCb,
+  reactive,
+  ReactiveEffect,
+  ReactiveEffectOptions,
+  ReactiveEffectRunner,
+  Ref,
+  shallowReactive,
   shallowRef,
+  toRaw,
   toValue,
   watch,
+  WatchSource,
+  WatchStopHandle,
+  WritableComputedRef,
 } from 'vue'
 
 /** Cast watch source to an observable ref. */
@@ -26,6 +38,26 @@ export function evalWatchSource<T>(src: WatchSource<T>): T {
   return isRef(src) ? src.value : src()
 }
 
+/**
+ * Create a `ReactiveEffect`. This is similar to the `effect` function, but doesn't immediately run the created effect.
+ */
+export function lazyEffect<T = any>(
+  fn: () => T,
+  options?: ReactiveEffectOptions,
+): ReactiveEffectRunner<T> {
+  if ((fn as ReactiveEffectRunner).effect instanceof ReactiveEffect) {
+    fn = (fn as ReactiveEffectRunner).effect.fn
+  }
+
+  const e = new ReactiveEffect(fn)
+  if (options) {
+    Object.assign(e, options)
+  }
+  const runner = e.run.bind(e) as ReactiveEffectRunner
+  runner.effect = e
+  return runner
+}
+
 export type OnCleanup = (fn: () => void) => void
 export type StopEffect = () => void
 
@@ -36,8 +68,9 @@ export type StopEffect = () => void
  */
 export class LazySyncEffectSet {
   _dirtyRunners = new Set<() => void>()
-  _scope = effectScope()
   _boundFlush = this.flush.bind(this)
+
+  constructor(private _scope = effectScope()) {}
 
   /**
    * Add an effect to the lazy set. The effect will run once immediately, and any subsequent runs
@@ -61,13 +94,12 @@ export class LazySyncEffectSet {
           cleanup = fn
         }
 
-        const runner = effect(
+        const runner = lazyEffect(
           () => {
             callCleanup()
             fn(onCleanup)
           },
           {
-            lazy: true,
             scheduler: () => {
               if (this._dirtyRunners.size === 0) queuePostFlushCb(this._boundFlush)
               this._dirtyRunners.add(runner)
@@ -100,6 +132,48 @@ export class LazySyncEffectSet {
   stop() {
     this._scope.stop()
   }
+}
+
+/**
+ * Supports dynamically creating watchers that will be scheduled with the same priority as a watcher created where
+ * `useWatchContext` is called.
+ *
+ * Watchers created during a component's `setup` are scheduled according to the component hierarchy; all watchers of a
+ * parent component are run before any watchers of a child component. If a watcher isn't created during `setup`, e.g.
+ * because it is created in a `watchEffect` handler, it will not have any associated instance, and will run after all
+ * other pre-flush jobs, including all jobs associated with descendants.
+ *
+ * Calling this function during a component's `setup` captures the component instance's watch context, and provides an
+ * API for dynamically creating watchers that will be scheduled as if they'd been created directly by the component.
+ */
+export function useWatchContext(): { watchEffect: (f: () => void) => WatchStopHandle } {
+  const queued = new Set<object>()
+  const jobs = reactive(new Array<() => void>())
+  watch(jobs, () => {
+    while (jobs.length > 0) {
+      const job = jobs.pop()!
+      // Do not run scheduled job if it's stopped. It's consistent with vue's "watchEffect" (checked in tests)
+      if (queued.delete(job)) {
+        job()
+      }
+    }
+  })
+  function watchEffect(f: () => void) {
+    const runner = effect(f, {
+      scheduler: () => {
+        if (!queued.has(runner)) {
+          jobs.push(runner)
+          queued.add(runner)
+        }
+      },
+      allowRecurse: true,
+    })
+    return () => {
+      runner.effect.stop()
+      queued.delete(runner)
+    }
+  }
+  return { watchEffect }
 }
 
 /**
@@ -154,9 +228,23 @@ export function debouncedGetter<T>(
 }
 
 /** Update `target` to have the same entries as `newState`. */
-export function syncSet<T>(target: Set<T>, newState: Set<T>) {
-  for (const oldKey of target) if (!newState.has(oldKey)) target.delete(oldKey)
-  for (const newKey of newState) if (!target.has(newKey)) target.add(newKey)
+export function syncSet<T>(target: Set<T>, newState: Readonly<Set<T>>) {
+  syncSetDiff(target, target, newState)
+}
+
+/**
+ * Apply differences from `oldState` to `newState` to target.
+ *
+ * This can be used to update a reactive `target` without incurring a reactive dependency on the object being mutated,
+ * by passing the underlying raw set as `oldState`.
+ */
+export function syncSetDiff<T>(
+  target: Set<T>,
+  oldState: DeepReadonly<Set<T>> | Readonly<Set<T>>,
+  newState: Readonly<Set<T>>,
+) {
+  for (const oldKey of oldState) if (!newState.has(oldKey as T)) target.delete(oldKey as T)
+  for (const newKey of newState) if (!oldState.has(newKey as any)) target.add(newKey)
 }
 
 /** Type of the parameter of `toValue`. */
@@ -199,5 +287,61 @@ export function useBufferedWritable<T>(raw: {
   return computed({
     get: () => (pendingWrite.value ? pendingWrite.value.pending : toValue(raw.get)),
     set: (value: T) => (pendingWrite.value = { pending: value }),
+  })
+}
+
+declare const brandNonReactiveView: unique symbol
+
+/** Marks a readonly non-reactive view of data that may elsewhere be used reactively. */
+export type NonReactiveView<T> = DeepReadonly<T> & { [brandNonReactiveView]: never }
+
+/** Returns a readonly non-reactive view of a potentially-reactive value. */
+export function nonReactiveView<T>(value: T): NonReactiveView<T> {
+  return toRaw(value) as NonReactiveView<T>
+}
+
+/**
+ * Given a non-reactive view of a value, return a reactive view.
+ *
+ * The type parameter can be specified to cast away the `DeepReadonly` added when converting to a `NonReactiveView`.
+ * Note that if the specified type is not exactly the type of the value that was cast to `NonReactiveView`, this could
+ * cast away `readonly` attributes that were present in the original type.
+ */
+export function resumeReactivity<T>(view: NonReactiveView<DeepReadonly<T>>): T {
+  return reactive(view) as T
+}
+
+/**
+ * Given a non-reactive view of a value, return a shallowly-reactive view.
+ *
+ *
+ * The type parameter can be specified to cast away the `DeepReadonly` added when converting to a `NonReactiveView`.
+ * Note that if the specified type is not exactly the type of the value that was cast to `NonReactiveView`, this could
+ * cast away `readonly` attributes that were present in the original type.
+ */
+export function resumeShallowReactivity<T>(view: NonReactiveView<DeepReadonly<T>>): T {
+  return shallowReactive(view) as T
+}
+
+/** Return a writable computed that reads/writes either `left` or `right` depending on the value of `select`
+ *
+ * `true` means `left`, `false` means `right`.
+ */
+export function useSelectRef<T>(
+  select: ToValue<boolean>,
+  left: Ref<T>,
+  right: Ref<T>,
+): WritableComputedRef<T> {
+  return computed({
+    get() {
+      return toValue(select) ? left.value : right.value
+    },
+    set(v: T) {
+      if (toValue(select)) {
+        left.value = v
+      } else {
+        right.value = v
+      }
+    },
   })
 }

@@ -1,12 +1,5 @@
 COMP_PATH=$(dirname "$0")/../component
 
-EXTRA_OPTS="-Dgraal.PrintGraph=Network"
-for opt in "$@"; do
-  if [ "$opt" = "--dump-graphs" ]; then
-    EXTRA_OPTS="$EXTRA_OPTS -Dgraal.Dump=Truffle:1"
-  fi
-done
-
 JAVA_OPTS="--add-opens=java.base/java.nio=ALL-UNNAMED $JAVA_OPTS"
-exec java --module-path $COMP_PATH $EXTRA_OPTS $JAVA_OPTS -m org.enso.runtime/org.enso.EngineRunnerBootLoader "$@"
+exec java --module-path $COMP_PATH $JAVA_OPTS -m org.enso.runner/org.enso.runner.Main "$@"
 exit

@@ -13,7 +13,7 @@ proc-macro2 = { workspace = true }
 quote = { workspace = true }
 regex = { workspace = true }
 serde_yaml = { workspace = true }
-syn_1 = { workspace = true }
+syn = { workspace = true }
 derive_more = { workspace = true }
 
 [lints]

@@ -4,7 +4,7 @@ import org.yaml.snakeyaml.nodes.Tag
 import org.enso.semver.SemVer
 import org.enso.editions.{EditionName, Editions}
 import org.enso.pkg.validation.NameValidation
-import org.enso.yaml.{YamlDecoder, YamlEncoder}
+import org.enso.scala.yaml.{YamlDecoder, YamlEncoder}
 import org.yaml.snakeyaml.{DumperOptions, Yaml}
 import org.yaml.snakeyaml.error.YAMLException
 import org.yaml.snakeyaml.nodes.{MappingNode, Node}

@@ -13,10 +13,7 @@ import {
   type IdentifierOrOperatorIdentifier,
   type QualifiedName,
 } from '@/util/qualifiedName'
-import { initializeFFI } from 'shared/ast/ffi'
 import { expect, test } from 'vitest'
-
-await initializeFFI()
 
 const validIdentifiers = [
   'A',
@@ -33,11 +30,10 @@ const validIdentifiers = [
   '+',
   '<=>',
   '*',
-  '.',
   '!=',
 ]
 const invalidIdentifiers = ['', '1', '1Abc', '1_', 'abA!', '$a', 'a$']
-// These are not valid identifiers but currently pass the qualified name regex: ['_', '.*']
+// These are not valid identifiers but currently pass the qualified name regex: ['_', '.*', '.']
 
 test.each(validIdentifiers)("'%s' is a valid identifier", (name) =>
   expect(unwrap(tryIdentifierOrOperatorIdentifier(name))).toStrictEqual(

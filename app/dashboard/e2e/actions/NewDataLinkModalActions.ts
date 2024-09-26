@@ -1,6 +1,7 @@
 /** @file Actions for a "new Data Link" modal. */
 import type * as test from 'playwright/test'
 
+import { TEXT } from '../actions'
 import type * as baseActions from './BaseActions'
 import BaseActions from './BaseActions'
 import DrivePageActions from './DrivePageActions'
@@ -11,7 +12,7 @@ import DrivePageActions from './DrivePageActions'
 
 /** Locate the "new data link" modal. */
 function locateNewDataLinkModal(page: test.Page) {
-  return page.getByRole('heading').and(page.getByText('Create Datalink')).locator('..')
+  return page.getByRole('dialog').filter({ has: page.getByText('Create Datalink') })
 }
 
 // ===============================
@@ -30,7 +31,7 @@ export default class NewDataLinkModalActions extends BaseActions {
   /** Interact with the "name" input - for example, to set the name using `.fill("")`. */
   withNameInput(callback: baseActions.LocatorCallback) {
     return this.step('Interact with "name" input', async (page) => {
-      const locator = locateNewDataLinkModal(page).getByLabel('Name')
+      const locator = locateNewDataLinkModal(page).getByPlaceholder(TEXT.datalinkNamePlaceholder)
       await callback(locator)
     })
   }

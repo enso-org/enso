@@ -2,14 +2,10 @@ import { prepareCollapsedInfo } from '@/components/GraphEditor/collapsing'
 import { GraphDb, type NodeId } from '@/stores/graph/graphDatabase'
 import { assert } from '@/util/assert'
 import { Ast, RawAst } from '@/util/ast'
-import { initializePrefixes } from '@/util/ast/node'
 import { unwrap } from '@/util/data/result'
 import { tryIdentifier } from '@/util/qualifiedName'
-import { initializeFFI } from 'shared/ast/ffi'
 import { expect, test } from 'vitest'
-
-await initializeFFI()
-initializePrefixes()
+import { watchEffect } from 'vue'
 
 function setupGraphDb(code: string, graphDb: GraphDb) {
   const { root, toRaw, getSpan } = Ast.parseExtended(code)
@@ -18,7 +14,9 @@ function setupGraphDb(code: string, graphDb: GraphDb) {
   assert(func instanceof Ast.Function)
   const rawFunc = toRaw.get(func.id)
   assert(rawFunc?.type === RawAst.Tree.Type.Function)
-  graphDb.readFunctionAst(func, rawFunc, code, getSpan, new Set())
+  graphDb.updateExternalIds(root)
+  graphDb.updateNodes(func, { watchEffect })
+  graphDb.updateBindings(func, rawFunc, code, getSpan)
 }
 
 interface TestCase {

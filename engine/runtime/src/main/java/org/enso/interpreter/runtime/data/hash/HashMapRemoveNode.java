@@ -102,7 +102,7 @@ public abstract class HashMapRemoveNode extends Node {
     if (isNan(obj1, interop) && isNan(obj2, interop)) {
       return true;
     } else {
-      return equalsNode.execute(frame, obj1, obj2);
+      return equalsNode.execute(frame, obj1, obj2).isTrue();
     }
   }
 

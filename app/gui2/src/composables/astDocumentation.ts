@@ -1,7 +1,7 @@
 import { type GraphStore } from '@/stores/graph'
 import { type ToValue } from '@/util/reactivity'
-import type { Ast } from 'shared/ast'
 import { computed, toValue } from 'vue'
+import type { Ast } from 'ydoc-shared/ast'
 
 export function useAstDocumentation(graphStore: GraphStore, ast: ToValue<Ast | undefined>) {
   return {
@@ -11,12 +11,7 @@ export function useAstDocumentation(graphStore: GraphStore, ast: ToValue<Ast | u
         const astValue = toValue(ast)
         if (!astValue) return
         if (value.trimStart() !== '') {
-          graphStore.edit(
-            (edit) =>
-              edit.getVersion(astValue).getOrInitDocumentation().setDocumentationText(value),
-            true,
-            true,
-          )
+          graphStore.getMutable(astValue).getOrInitDocumentation().setDocumentationText(value)
         } else {
           // Remove the documentation node.
           const documented = astValue.documentingAncestor()

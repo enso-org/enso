@@ -2,7 +2,7 @@ import { usePlacement } from '@/components/ComponentBrowser/placement'
 import { createContextStore } from '@/providers'
 import type { PortId } from '@/providers/portInfo'
 import type { WidgetUpdate } from '@/providers/widgetRegistry'
-import { GraphDb, type NodeId } from '@/stores/graph/graphDatabase'
+import { GraphDb, nodeIdFromOuterExpr, type NodeId } from '@/stores/graph/graphDatabase'
 import {
   addImports,
   detectImportConflicts,
@@ -17,27 +17,19 @@ import { type ProjectStore } from '@/stores/project'
 import { type SuggestionDbStore } from '@/stores/suggestionDatabase'
 import { assert, bail } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import type { AstId } from '@/util/ast/abstract'
-import { MutableModule, isAstId, isIdentifier, type Identifier } from '@/util/ast/abstract'
+import type { AstId, Identifier, MutableModule } from '@/util/ast/abstract'
+import { isAstId, isIdentifier } from '@/util/ast/abstract'
 import { RawAst, visitRecursive } from '@/util/ast/raw'
+import { reactiveModule } from '@/util/ast/reactive'
 import { partition } from '@/util/data/array'
 import { Rect } from '@/util/data/rect'
 import { Err, Ok, mapOk, unwrap, type Result } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import { normalizeQualifiedName, tryQualifiedName } from '@/util/qualifiedName'
+import { useWatchContext } from '@/util/reactivity'
 import { computedAsync } from '@vueuse/core'
 import { map, set } from 'lib0'
 import { iteratorFilter } from 'lib0/iterator'
-import { SourceDocument } from 'shared/ast/sourceDocument'
-import type { ExpressionUpdate, Path as LsPath, MethodPointer } from 'shared/languageServerTypes'
-import { reachable } from 'shared/util/data/graph'
-import type {
-  LocalUserActionOrigin,
-  Origin,
-  SourceRangeKey,
-  VisualizationMetadata,
-} from 'shared/yjsModel'
-import { defaultLocalOrigin, sourceRangeKey, visMetadataEquals } from 'shared/yjsModel'
 import {
   computed,
   markRaw,
@@ -47,9 +39,24 @@ import {
   shallowReactive,
   toRef,
   watch,
+  watchEffect,
   type Ref,
   type ShallowRef,
 } from 'vue'
+import { SourceDocument } from 'ydoc-shared/ast/sourceDocument'
+import type {
+  ExpressionUpdate,
+  Path as LsPath,
+  MethodPointer,
+} from 'ydoc-shared/languageServerTypes'
+import { reachable } from 'ydoc-shared/util/data/graph'
+import type {
+  LocalUserActionOrigin,
+  Origin,
+  SourceRangeKey,
+  VisualizationMetadata,
+} from 'ydoc-shared/yjsModel'
+import { defaultLocalOrigin, sourceRangeKey, visMetadataEquals } from 'ydoc-shared/yjsModel'
 
 const FALLBACK_BINDING_PREFIX = 'node'
 
@@ -81,20 +88,16 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
   (proj: ProjectStore, suggestionDb: SuggestionDbStore) => {
     proj.setObservedFileName('Main.enso')
 
-    const syncModule = computed(
-      () => proj.module && markRaw(new MutableModule(proj.module.doc.ydoc)),
-    )
-
     const nodeRects = reactive(new Map<NodeId, Rect>())
     const nodeHoverAnimations = reactive(new Map<NodeId, number>())
     const vizRects = reactive(new Map<NodeId, Rect>())
     // The currently visible nodes' areas (including visualization).
     const visibleNodeAreas = computed(() => {
-      const existing = iteratorFilter(nodeRects.entries(), ([id]) => db.nodeIdToNode.has(id))
+      const existing = iteratorFilter(nodeRects.entries(), ([id]) => db.isNodeId(id))
       return Array.from(existing, ([id, rect]) => vizRects.get(id) ?? rect)
     })
     function visibleArea(nodeId: NodeId): Rect | undefined {
-      if (!db.nodeIdToNode.has(nodeId)) return
+      if (!db.isNodeId(nodeId)) return
       return vizRects.get(nodeId) ?? nodeRects.get(nodeId)
     }
 
@@ -105,91 +108,80 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     )
     const portInstances = shallowReactive(new Map<PortId, Set<PortViewInstance>>())
     const editedNodeInfo = ref<NodeEditInfo>()
-    const methodAst = ref<Result<Ast.Function>>(Err('AST not yet initialized'))
 
     const moduleSource = reactive(SourceDocument.Empty())
-    const moduleRoot = ref<Ast.Ast>()
-    const topLevel = ref<Ast.BodyBlock>()
+    const moduleRoot = ref<Ast.BodyBlock>()
+    const syncModule = computed(() => moduleRoot.value?.module as Ast.MutableModule | undefined)
 
-    watch(syncModule, (syncModule, _, onCleanup) => {
-      if (!syncModule) return
-      let moduleChanged = true
-      const handle = syncModule.observe((update) => {
-        moduleSource.applyUpdate(syncModule, update)
-        handleModuleUpdate(syncModule, moduleChanged, update)
-        moduleChanged = false
-      })
-      onCleanup(() => {
-        syncModule.unobserve(handle)
-        moduleSource.clear()
-      })
+    watch(
+      () => proj.module,
+      (projModule, _, onCleanup) => {
+        if (!projModule) return
+        const module = reactiveModule(projModule.doc.ydoc, onCleanup)
+        const handle = module.observe((update) => {
+          const root = module.root()
+          if (root instanceof Ast.BodyBlock) {
+            moduleRoot.value = root
+            moduleSource.applyUpdate(module, update)
+            db.updateExternalIds(root)
+            // We can cast maps of unknown metadata fields to `NodeMetadata` because all `NodeMetadata` fields are optional.
+            const nodeMetadataUpdates = update.metadataUpdated as any as {
+              id: AstId
+              changes: Ast.NodeMetadata
+            }[]
+            for (const { id, changes } of nodeMetadataUpdates) db.updateMetadata(id, changes)
+          } else {
+            moduleRoot.value = undefined
+          }
+        })
+        onCleanup(() => {
+          module.unobserve(handle)
+          moduleSource.clear()
+        })
+      },
+    )
+
+    const methodAst = computed<Result<Ast.Function>>(() =>
+      syncModule.value ? getExecutedMethodAst(syncModule.value) : Err('AST not yet initialized'),
+    )
+
+    const watchContext = useWatchContext()
+
+    const afterUpdate: (() => void)[] = []
+
+    /** `func` callback will be executed once after next call to `updateNodes`. */
+    function doAfterUpdate(func: () => void) {
+      afterUpdate.push(func)
+    }
+
+    watchEffect(() => {
+      if (!methodAst.value.ok) return
+      db.updateNodes(methodAst.value.value, watchContext)
+      for (const cb of afterUpdate) {
+        cb()
+      }
+      afterUpdate.length = 0
     })
 
-    let toRaw = new Map<SourceRangeKey, RawAst.Tree.Function>()
-    function handleModuleUpdate(
-      module: Ast.Module,
-      moduleChanged: boolean,
-      update: Ast.ModuleUpdate,
-    ) {
-      const root = module.root()
-      if (!root) return
-      if (moduleRoot.value != root) {
-        moduleRoot.value = root
-      }
-      if (root instanceof Ast.BodyBlock && topLevel.value != root) {
-        topLevel.value = root
-      }
-      // We can cast maps of unknown metadata fields to `NodeMetadata` because all `NodeMetadata` fields are optional.
-      const nodeMetadataUpdates = update.metadataUpdated as any as {
-        id: AstId
-        changes: Ast.NodeMetadata
-      }[]
-      const dirtyNodeSet = new Set(
-        (function* () {
-          yield* update.nodesUpdated
-          yield* update.nodesAdded
-        })(),
-      )
-      if (moduleChanged || dirtyNodeSet.size !== 0 || update.nodesDeleted.size !== 0) {
-        db.updateExternalIds(root)
-        toRaw = new Map()
-        visitRecursive(Ast.parseEnso(moduleSource.text), (node) => {
-          if (node.type === RawAst.Tree.Type.Function) {
-            const start = node.whitespaceStartInCodeParsed + node.whitespaceLengthInCodeParsed
-            const end = start + node.childrenLengthInCodeParsed
-            toRaw.set(sourceRangeKey([start, end]), node)
-            return false
-          }
-          return true
-        })
-        updateState(dirtyNodeSet)
-      }
-      if (nodeMetadataUpdates.length !== 0) {
-        for (const { id, changes } of nodeMetadataUpdates) db.updateMetadata(id, changes)
-      }
-    }
-
-    function updateState(dirtyNodes?: Set<AstId>) {
-      const module = proj.module
-      if (!module) return
-      const textContentLocal = moduleSource.text
-      if (!textContentLocal) return
-      if (!syncModule.value) return
-      methodAst.value = getExecutedMethodAst(syncModule.value)
-      if (methodAst.value.ok) {
-        const methodSpan = moduleSource.getSpan(methodAst.value.value.id)
-        assert(methodSpan != null)
-        const rawFunc = toRaw.get(sourceRangeKey(methodSpan))
-        assert(rawFunc != null)
-        db.readFunctionAst(
-          methodAst.value.value,
-          rawFunc,
-          textContentLocal,
-          (id) => moduleSource.getSpan(id),
-          dirtyNodes ?? new Set(),
-        )
-      }
-    }
+    watchEffect(() => {
+      if (!methodAst.value.ok || !moduleSource.text) return
+      const method = methodAst.value.value
+      const toRaw = new Map<SourceRangeKey, RawAst.Tree.Function>()
+      visitRecursive(Ast.parseEnso(moduleSource.text), (node) => {
+        if (node.type === RawAst.Tree.Type.Function) {
+          const start = node.whitespaceStartInCodeParsed + node.whitespaceLengthInCodeParsed
+          const end = start + node.childrenLengthInCodeParsed
+          toRaw.set(sourceRangeKey([start, end]), node)
+          return false
+        }
+        return true
+      })
+      const methodSpan = moduleSource.getSpan(method.id)
+      assert(methodSpan != null)
+      const rawFunc = toRaw.get(sourceRangeKey(methodSpan))
+      const getSpan = (id: AstId) => moduleSource.getSpan(id)
+      db.updateBindings(method, rawFunc, moduleSource.text, getSpan)
+    })
 
     function getExecutedMethodAst(module?: Ast.Module): Result<Ast.Function> {
       const executionStackTop = proj.executionContext.getStackTop()
@@ -275,11 +267,11 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       edit: MutableModule,
       newImports: RequiredImport[],
     ): DetectedConflict[] | undefined {
-      const topLevel = edit.getVersion(moduleRoot.value!)
-      if (!(topLevel instanceof Ast.MutableBodyBlock)) {
+      if (!moduleRoot.value) {
         console.error(`BUG: Cannot add required imports: No BodyBlock module root.`)
         return
       }
+      const topLevel = edit.getVersion(moduleRoot.value)
       const existingImports = readImports(topLevel)
 
       const conflicts = []
@@ -305,11 +297,11 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       existingImports?: Import[] | undefined,
     ) {
       if (!imports.length) return
-      const topLevel = edit.getVersion(moduleRoot.value!)
-      if (!(topLevel instanceof Ast.MutableBodyBlock)) {
+      if (!moduleRoot.value) {
         console.error(`BUG: Cannot add required imports: No BodyBlock module root.`)
         return
       }
+      const topLevel = edit.getVersion(moduleRoot.value)
       const existingImports_ = existingImports ?? readImports(topLevel)
 
       const importsToAdd = filterOutRedundantImports(existingImports_, imports)
@@ -318,23 +310,27 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     }
 
     function deleteNodes(ids: Iterable<NodeId>) {
-      edit(
-        (edit) => {
-          for (const id of ids) {
-            const node = db.nodeIdToNode.get(id)
-            if (!node) continue
-            if (node.type !== 'component') continue
-            const usages = db.getNodeUsages(id)
-            for (const usage of usages) updatePortValue(edit, usage, undefined)
-            const outerExpr = edit.getVersion(node.outerExpr)
-            if (outerExpr) Ast.deleteFromParentBlock(outerExpr)
-            nodeRects.delete(id)
-            nodeHoverAnimations.delete(id)
+      edit((edit) => {
+        const deletedNodes = new Set()
+        for (const id of ids) {
+          const node = db.nodeIdToNode.get(id)
+          if (!node) continue
+          if (node.type !== 'component') continue
+          const usages = db.getNodeUsages(id)
+          for (const usage of usages) {
+            const nodeId = getPortPrimaryInstance(usage)?.nodeId
+            // Skip ports on already deleted nodes.
+            if (nodeId && deletedNodes.has(nodeId)) continue
+
+            updatePortValue(edit, usage, undefined)
           }
-        },
-        true,
-        true,
-      )
+          const outerExpr = edit.getVersion(node.outerExpr)
+          if (outerExpr) Ast.deleteFromParentBlock(outerExpr)
+          nodeRects.delete(id)
+          nodeHoverAnimations.delete(id)
+          deletedNodes.add(id)
+        }
+      })
     }
 
     function setNodeContent(
@@ -364,10 +360,6 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       })
     }
 
-    function transact(fn: () => void) {
-      syncModule.value!.transact(fn)
-    }
-
     const undoManager = {
       undo() {
         proj.module?.undoManager.undo()
@@ -383,20 +375,16 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     function setNodePosition(nodeId: NodeId, position: Vec2) {
       const nodeAst = syncModule.value?.tryGet(db.idFromExternal(nodeId))
       if (!nodeAst) return
-      const oldPos = nodeAst.nodeMetadata.get('position')
-      if (oldPos?.x !== position.x || oldPos?.y !== position.y) {
-        editNodeMetadata(nodeAst, (metadata) =>
-          metadata.set('position', { x: position.x, y: position.y }),
-        )
-      }
+      const metadata = nodeAst.mutableNodeMetadata()
+      const oldPos = metadata.get('position')
+      if (oldPos?.x !== position.x || oldPos?.y !== position.y)
+        metadata.set('position', { x: position.x, y: position.y })
     }
 
     function overrideNodeColor(nodeId: NodeId, color: string | undefined) {
       const nodeAst = syncModule.value?.tryGet(db.idFromExternal(nodeId))
       if (!nodeAst) return
-      editNodeMetadata(nodeAst, (metadata) => {
-        metadata.set('colorOverride', color)
-      })
+      nodeAst.mutableNodeMetadata().set('colorOverride', color)
     }
 
     function getNodeColorOverride(node: NodeId) {
@@ -409,7 +397,6 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       const empty: VisualizationMetadata = {
         identifier: null,
         visible: false,
-        fullscreen: false,
         width: null,
         height: null,
       }
@@ -421,16 +408,14 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     function setNodeVisualization(nodeId: NodeId, vis: Partial<VisualizationMetadata>) {
       const nodeAst = syncModule.value?.tryGet(db.idFromExternal(nodeId))
       if (!nodeAst) return
-      editNodeMetadata(nodeAst, (metadata) => {
-        const data: Partial<VisualizationMetadata> = {
-          identifier: vis.identifier ?? metadata.get('visualization')?.identifier ?? null,
-          visible: vis.visible ?? metadata.get('visualization')?.visible ?? false,
-          fullscreen: vis.fullscreen ?? metadata.get('visualization')?.fullscreen ?? false,
-          width: vis.width ?? metadata.get('visualization')?.width ?? null,
-          height: vis.height ?? metadata.get('visualization')?.height ?? null,
-        }
-        metadata.set('visualization', normalizeVisMetadata(data))
-      })
+      const metadata = nodeAst.mutableNodeMetadata()
+      const data: Partial<VisualizationMetadata> = {
+        identifier: vis.identifier ?? metadata.get('visualization')?.identifier ?? null,
+        visible: vis.visible ?? metadata.get('visualization')?.visible ?? false,
+        width: vis.width ?? metadata.get('visualization')?.width ?? null,
+        height: vis.height ?? metadata.get('visualization')?.height ?? null,
+      }
+      metadata.set('visualization', normalizeVisMetadata(data))
     }
 
     function updateNodeRect(nodeId: NodeId, rect: Rect) {
@@ -453,13 +438,14 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       nodesToPlace.length = 0
       batchEdits(() => {
         for (const nodeId of nodesToProcess) {
-          const nodeAst = syncModule.value?.get(db.idFromExternal(nodeId))
           const rect = nodeRects.get(nodeId)
-          if (!rect || !nodeAst || nodeAst.nodeMetadata.get('position') != null) continue
+          if (!rect) continue
+          const nodeAst = syncModule.value?.get(db.idFromExternal(nodeId))
+          if (!nodeAst) continue
+          const metadata = nodeAst.mutableNodeMetadata()
+          if (metadata.get('position') != null) continue
           const position = placeNode([], rect.size)
-          editNodeMetadata(nodeAst, (metadata) =>
-            metadata.set('position', { x: position.x, y: position.y }),
-          )
+          metadata.set('position', { x: position.x, y: position.y })
           nodeRects.set(nodeId, new Rect(position, rect.size))
         }
       }, 'local:autoLayout')
@@ -566,11 +552,9 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
      *
      *  @param skipTreeRepair - If the edit is certain not to produce incorrect or non-canonical syntax, this may be set
      *  to `true` for better performance.
-     *  @param direct - Apply all changes directly to the synchronized module; they will be committed even if the callback
-     *  exits by throwing an exception.
      */
-    function edit<T>(f: (edit: MutableModule) => T, skipTreeRepair?: boolean, direct?: boolean): T {
-      const edit = direct ? syncModule.value : syncModule.value?.edit()
+    function edit<T>(f: (edit: MutableModule) => T, skipTreeRepair?: boolean): T {
+      const edit = syncModule.value?.edit()
       assert(edit != null)
       let result
       edit.transact(() => {
@@ -580,18 +564,21 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
           assert(root instanceof Ast.BodyBlock)
           Ast.repair(root, edit)
         }
-        if (!direct) syncModule.value!.applyEdit(edit)
+        syncModule.value!.applyEdit(edit)
       })
       return result!
+    }
+
+    /** Obtain a version of the given `Ast` for direct mutation. The `ast` must exist in the current module.
+     *  This can be more efficient than creating and committing an edit, but skips tree-repair and cannot be aborted.
+     */
+    function getMutable<T extends Ast.Ast>(ast: T): Ast.Mutable<T> {
+      return syncModule.value!.getVersion(ast)
     }
 
     function batchEdits(f: () => void, origin: Origin = defaultLocalOrigin) {
       assert(syncModule.value != null)
       syncModule.value.transact(f, origin)
-    }
-
-    function editNodeMetadata(ast: Ast.Ast, f: (metadata: Ast.MutableNodeMetadata) => void) {
-      edit((edit) => f(edit.getVersion(ast).mutableNodeMetadata()), true, true)
     }
 
     const viewModule = computed(() => syncModule.value!)
@@ -643,8 +630,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       const body = func.bodyExpressions()
       const result: NodeId[] = []
       for (const expr of body) {
-        const id = expr?.id
-        const nodeId = db.getOuterExpressionNodeId(id)
+        const nodeId = nodeIdFromOuterExpr(expr)
         if (nodeId && ids.has(nodeId)) result.push(nodeId)
       }
       return result
@@ -720,9 +706,9 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     })
 
     return proxyRefs({
-      transact,
       db: markRaw(db),
       mockExpressionUpdate,
+      doAfterUpdate,
       editedNodeInfo,
       moduleSource,
       nodeRects,
@@ -739,13 +725,13 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       pickInCodeOrder,
       ensureCorrectNodeOrder,
       batchEdits,
+      getMutable,
       overrideNodeColor,
       getNodeColorOverride,
       setNodeContent,
       setNodePosition,
       setNodeVisualization,
       undoManager,
-      topLevel,
       updateNodeRect,
       updateNodeHoverAnim,
       updateVizRect,
@@ -756,7 +742,6 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       isPortEnabled,
       updatePortValue,
       setEditedNode,
-      updateState,
       startEdit,
       commitEdit,
       edit,

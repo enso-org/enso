@@ -11,7 +11,7 @@ use zip::read::ZipFile;
 pub use ::zip::*;
 
 pub fn open(path: impl AsRef<Path>) -> Result<ZipArchive<std::fs::File>> {
-    ZipArchive::new(crate::fs::open(path)?).anyhow_err()
+    Ok(ZipArchive::new(crate::fs::open(path)?)?)
 }
 
 #[context("Failed to extract in-memory archive to {}.", output_dir.as_ref().display())]

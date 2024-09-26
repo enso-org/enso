@@ -40,8 +40,8 @@ type SQLServer_Info_Data
 
     setup default_connection = SQLServer_Info_Data.Value <|
         connection = default_connection
-        tinfo = Name_Generator.random_name "Tinfo"
-        connection.execute_update 'Create Table "'+tinfo+'" ("strs" VARCHAR(255), "ints" INTEGER, "bools" BIT, "reals" REAL, "floats" FLOAT, "tinyints" TINYINT, "smallints" SMALLINT, "bigints" BIGINT, "times" TIME, "dates" DATE, "datetimes" DATETIME, "smalldatetimes" SMALLDATETIME, "datetime2s" DATETIME2, "datetimeoffsets" DATETIMEOFFSET)'
+        tinfo = "#" + (Name_Generator.random_name "Tinfo")
+        connection.execute 'Create Table "'+tinfo+'" ("strs" VARCHAR(255), "ints" INTEGER, "bools" BIT, "reals" REAL, "floats" FLOAT, "tinyints" TINYINT, "smallints" SMALLINT, "bigints" BIGINT, "times" TIME, "dates" DATE, "datetimes" DATETIME, "smalldatetimes" SMALLDATETIME, "datetime2s" DATETIME2, "datetimeoffsets" DATETIMEOFFSET)'
         t = connection.query (SQL_Query.Table_Name tinfo)
         row1 = ["a", Nothing, False, 1.2, 1.2, 0, 0, 0, Time_Of_Day.new 12 12 12 1 1 1, Date.new 2021 1 1, Date_Time.new 2021 1 1 12 12 12 500 1 1, Date_Time.new 2021 1 1 12 12 12 1 1 1, Date_Time.new 2021 1 1 12 12 12 1 1 1, Date_Time.new 2021 1 1 12 12 12 1 1 1]
         row2 = ["abc", Nothing, Nothing, 1.3, 1.3, 255, 32767, 9223372036854775807, Time_Of_Day.new 7 12 12 1 1 1, Date.new 1999 1 1, Date_Time.new 1999 1 1 12 12 12 1 1 1, Date_Time.new 1999 1 1 12 12 12 1 1 1, Date_Time.new 1999 1 1 12 12 12 1 1 1, Date_Time.new 1999 1 1 12 12 12 1 1 1]
@@ -56,7 +56,7 @@ type SQLServer_Info_Data
         [connection, tinfo, t]
 
     teardown self =
-        self.connection.execute_update 'DROP TABLE "'+self.tinfo+'"'
+        self.connection.execute 'DROP TABLE "'+self.tinfo+'"'
         self.connection.close
 
 get_configured_connection_details =
@@ -84,7 +84,7 @@ add_specs suite_builder =
             message = "SQLServer test database is not configured. See README.md for instructions."
             suite_builder.group "[SQLServer] Database tests" pending=message (_-> Nothing)
         connection_builder ->
-            _ = connection_builder
+            add_sqlserver_specs suite_builder connection_builder
             suite_builder.group "[SQLServer] Info" group_builder->
                 default_connection = Database.connect get_configured_connection_details
                 data = SQLServer_Info_Data.setup default_connection
@@ -127,9 +127,9 @@ add_specs suite_builder =
                     in_memory.at "txt-fixed" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
 
                 group_builder.specify "test datetime2 precision round trip" <|
-                    name = Name_Generator.random_name "datetime2-test"
+                    name = "#" + (Name_Generator.random_name "datetime2-test")
                     Problems.assume_no_problems <|
-                        data.connection.execute_update 'CREATE TABLE "'+name+'" ("dt2" DATETIME2)'
+                        data.connection.execute 'CREATE TABLE "'+name+'" ("dt2" DATETIME2)'
                     t = data.connection.query (SQL_Query.Table_Name name)
                     row1 = [Date_Time.new 2021 1 1 12 13 14 500 1 1]
                     row2 = [Date_Time.new 2021 1 1 9 12 12 987 654 321]
@@ -143,7 +143,15 @@ add_specs suite_builder =
                     expected_table = Table.from_rows ["dt2"] [expected_row1, expected_row2, expected_row3]
                     returned_table = t.read
                     returned_table.should_equal expected_table
-                    data.connection.execute_update 'DROP TABLE "'+name+'"'
+                    data.connection.execute 'DROP TABLE "'+name+'"'
+
+type Lazy_Ref
+   Value ~get
+
+add_sqlserver_specs suite_builder create_connection_fn =
+    prefix = "[SQLServer] "
+    default_connection = Lazy_Ref.Value (create_connection_fn Nothing)
+    Common_Spec.add_specs suite_builder prefix create_connection_fn default_connection
 
 main filter=Nothing =
     suite = Test.build suite_builder->

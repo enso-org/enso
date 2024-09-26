@@ -75,7 +75,7 @@ export default function SettingsInputEntry(props: SettingsInputEntryProps) {
         key={value}
         name={FIELD_NAME}
         defaultValue={value}
-        className="flex h-row gap-settings-entry"
+        className="flex h-row items-center gap-settings-entry"
         {...(validate ? { validate: (newValue) => validate(newValue, context) } : {})}
       >
         <aria.Label className="text my-auto w-organization-settings-label">

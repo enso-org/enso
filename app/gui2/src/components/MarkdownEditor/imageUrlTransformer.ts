@@ -1,7 +1,7 @@
 import { createContextStore } from '@/providers'
 import type { ToValue } from '@/util/reactivity'
-import { mapOk, Ok, type Result } from 'shared/util/data/result'
 import { toValue } from 'vue'
+import { mapOk, Ok, type Result } from 'ydoc-shared/util/data/result'
 
 export type TransformUrlResult = Result<{ url: string; dispose?: () => void }>
 export type UrlTransformer = (url: string) => Promise<TransformUrlResult>

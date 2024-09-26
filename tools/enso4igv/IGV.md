@@ -56,11 +56,15 @@ to _finish_ the installation.
 
 Build an instance of the Enso runtime engine (see
 [Running Enso](../../docs/CONTRIBUTING.md#running-enso)) using and then launch
-it with special `--dump-graphs` option:
+it the following system properties:
 
 ```bash
-enso$ sbt runEngineDistribution --dump-graphs --run yourprogram.enso
+enso$ env JAVA_OPTS='-Dgraal.Dump=Truffle:2 -Dgraal.PrintGraph=File' ./built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso --run yourprogram.enso
 ```
+
+See
+[Graal system props docs](https://github.com/oracle/graal/blob/master/compiler/docs/Debugging.md#jvmci-and-compiler-specific-options)
+for the description of the `graal` system properties.
 
 When executed on [GraalVM 22.3.1](http://graalvm.org) these options instruct the
 _Graal/Truffle compiler_ to dump files into `graal_dumps/_sometimestamp_`
@@ -73,10 +77,10 @@ speed_.
 As an example you can download
 [sieve.enso](https://github.com/jtulach/sieve/blob/5b32450da35415322e683bb9769aa45f0d71f1df/enso/sieve.enso)
 which computes hundred thousand of prime numbers repeatedly and measures time of
-each round. Download the file and launch Enso with `--dump-graphs` argument:
+each round. Download the file and launch Enso with:
 
 ```bash
-enso$ ./built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso --dump-graphs --run sieve.enso
+enso$ env JAVA_OPTS='-Dgraal.Dump=Truffle:2 -Dgraal.PrintGraph=File' ./built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso --run yourprogram.enso
 ```
 
 Bunch of files in `graal_dumps/*` subdirectory is going to be generated:

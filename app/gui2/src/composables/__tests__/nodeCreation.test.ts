@@ -1,10 +1,7 @@
 import { insertNodeStatements } from '@/composables/nodeCreation'
 import { Ast } from '@/util/ast'
-import { identifier } from 'shared/ast'
-import { initializeFFI } from 'shared/ast/ffi'
 import { expect, test } from 'vitest'
-
-await initializeFFI()
+import { identifier } from 'ydoc-shared/ast'
 
 test.each([
   ['node1 = 123', '*'],

@@ -1,6 +1,7 @@
 package org.enso.projectmanager.boot.command
 
 import org.enso.jsonrpc.{Id, JsonProtocol, Protocol}
+import org.enso.logging.config.LoggerSetup
 import org.enso.projectmanager.boot.Globals.SuccessExitCode
 import org.enso.projectmanager.requesthandler.FailureMapper
 import zio.{Console, ExitCode, ZAny, ZIO}
@@ -9,7 +10,8 @@ final class CommandHandler(protocol: Protocol) {
 
   def printJson[E: FailureMapper](
     result: ZIO[ZAny, E, Any]
-  ): ZIO[ZAny, Throwable, ExitCode] =
+  ): ZIO[ZAny, Throwable, ExitCode] = {
+    consoleLoggingOff *>
     result
       .foldZIO(
         e => {
@@ -29,5 +31,13 @@ final class CommandHandler(protocol: Protocol) {
         }
       )
       .map(_ => SuccessExitCode)
+  }
+
+  private def consoleLoggingOff: ZIO[ZAny, Throwable, Unit] =
+    ZIO.attempt {
+      val loggerSetup = LoggerSetup.get()
+      // sets up only the default (file) logger
+      loggerSetup.setup()
+    }
 
 }

@@ -309,6 +309,9 @@ type Value_Type
             Value_Type.Float _ -> True
             Value_Type.Decimal _ _ -> True
             _ -> False
+        Value_Type.Decimal _ _ -> case target_type of
+            Value_Type.Float _ -> True
+            _ -> False
         Value_Type.Char self_size self_variable_length -> case target_type of
             Value_Type.Char target_size target_variable_length ->
                 ## If the source is variable_length, lets try and load it and warn about truncation.
@@ -479,6 +482,12 @@ type Value_Type
             _ -> []
         JS_Object.from_pairs <|
             [["type", "Value_Type"], ["constructor", constructor_name], ["display_text", display_text_value]] + additional_fields
+
+    ## PRIVATE
+       Provides the constructor name 
+    to_name : Text
+    to_name self = 
+        Meta.meta self . constructor . name
 
     ## GROUP Standard.Base.Metadata
        ICON metadata

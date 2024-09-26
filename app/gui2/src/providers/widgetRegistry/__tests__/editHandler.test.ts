@@ -1,10 +1,9 @@
-import type { GraphNavigator } from '@/providers/graphNavigator'
 import { InteractionHandler } from '@/providers/interactionHandler'
 import type { PortId } from '@/providers/portInfo'
 import { useCurrentEdit, type CurrentEdit } from '@/providers/widgetTree'
-import { assert } from 'shared/util/assert'
 import { expect, test, vi, type Mock } from 'vitest'
 import { proxyRefs } from 'vue'
+import { assert } from 'ydoc-shared/util/assert'
 import { WidgetEditHandler, type WidgetEditHooks } from '../editHandler'
 
 // If widget's name is a prefix of another widget's name, then it is its ancestor.
@@ -130,7 +129,6 @@ test.each`
   'Handling clicks in WidgetEditHandlers case $name',
   ({ widgets, edited, propagatingHandlers, nonPropagatingHandlers, expectedHandlerCalls }) => {
     const event = new MouseEvent('pointerdown') as PointerEvent
-    const navigator = {} as GraphNavigator
     const interactionHandler = new InteractionHandler()
     const widgetTree = proxyRefs(useCurrentEdit())
 
@@ -144,24 +142,22 @@ test.each`
       (id) =>
         propagatingHandlersSet.has(id) ?
           {
-            pointerdown: vi.fn((e, nav) => {
+            pointerdown: vi.fn((e) => {
               expect(e).toBe(event)
-              expect(nav).toBe(navigator)
               return false
             }),
           }
         : nonPropagatingHandlersSet.has(id) ?
           {
-            pointerdown: vi.fn((e, nav) => {
+            pointerdown: vi.fn((e) => {
               expect(e).toBe(event)
-              expect(nav).toBe(navigator)
             }),
           }
         : {},
       widgetTree,
     )
     handlers.get(edited)?.handler.start()
-    interactionHandler.handlePointerEvent(event, 'pointerdown', navigator)
+    interactionHandler.handlePointerEvent(event, 'pointerdown')
     const handlersCalled = new Set<string>()
     for (const [id, { interaction }] of handlers)
       if ((interaction.pointerdown as Mock | undefined)?.mock.lastCall) handlersCalled.add(id)

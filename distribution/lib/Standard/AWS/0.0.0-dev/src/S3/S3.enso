@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Network.HTTP.Response_Body.Response_Body
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
@@ -11,6 +12,7 @@ import project.Errors.S3_Bucket_Not_Found
 import project.Errors.S3_Error
 import project.Errors.S3_Key_Not_Found
 import project.Internal.Request_Body
+import project.S3.S3_File.S3_File
 
 polyglot java import java.io.IOException
 polyglot java import org.enso.aws.BucketLocator
@@ -29,30 +31,125 @@ polyglot java import software.amazon.awssdk.services.s3.model.S3Exception
 polyglot java import software.amazon.awssdk.services.s3.S3Client
 
 ## ICON data_input
+
    Gets the list of the S3 bucket names.
 
    Arguments:
-   - credentials: AWS credentials. If not provided, the default credentials will
-     be used.
+   - credentials: The credentials to use to access S3. If not specified, the
+     default credentials are used.
+
+   Returns:
+   - A vector of bucket names (as Text).
+
+   ! Error Conditions
+   - If the credentials are invalid or access to S3 is denied, then an
+     `AWS_SDK_Error` will be raised.
+@credentials AWS_Credential.default_widget
 list_buckets : AWS_Credential -> Vector Text ! S3_Error
-list_buckets credentials:AWS_Credential=AWS_Credential.Default = handle_s3_errors <|
+list_buckets credentials:AWS_Credential=..Default = handle_s3_errors <|
     client = make_client credentials
     buckets = client.listBuckets.buckets
     buckets.map b->b.name
 
-## GROUP Standard.Base.Input
-   ICON data_input
+## ICON data_input
+
    Gets the list of the items inside a bucket.
 
    Arguments:
    - bucket: the name of the bucket.
    - prefix: the prefix of keys to match.
    - max_count: the maximum number of items to return. The default is 1000.
+   - credentials: The credentials to use to access the S3 bucket. If not
+     specified, the default credentials are used.
+
+   Returns:
+   - A vector of object keys (as Text) (including the prefix).
+
+   ! Error Conditions
+   - If the credentials are invalid or access to S3 is denied, then an
+     `AWS_SDK_Error` will be raised.
+   - If the bucket does not exist, an `S3_Bucket_Not_Found` error is thrown.
+   - If more items are available than the `max_count` parameter, a
+     `More_Records_Available` warning is attached to the result.
+@credentials AWS_Credential.default_widget
+list_objects : Text -> Text -> AWS_Credential -> Integer -> Vector S3_File ! S3_Error
+list_objects (bucket : Text = Missing_Argument.throw "bucket") prefix:Text="" credentials:AWS_Credential=..Default max_count:Integer=1000 =
+    names = read_bucket bucket prefix credentials delimiter="" max_count=max_count . second
+    names.map name-> S3_File.new "s3://"+bucket+"/"+name credentials
+
+## PRIVATE
+   ADVANCED
+   ICON data_input
+
+   Gets an object from an S3 bucket.
+   Returns a raw stream which can be read once.
+
+   Arguments:
+   - bucket: the name of the bucket.
+   - key: the key of the object.
    - credentials: AWS credentials. If not provided, the default credentials will
      be used.
-list_objects : Text -> Text -> AWS_Credential -> Integer -> Vector Text ! S3_Error
-list_objects bucket prefix="" credentials:AWS_Credential=AWS_Credential.Default max_count=1000 =
-    read_bucket bucket prefix credentials delimiter="" max_count=max_count . second
+   - delimiter: The delimiter to use for deducing the filename from the path.
+get_object : Text -> Text -> AWS_Credential -> Text -> Response_Body ! S3_Error
+get_object bucket key credentials:AWS_Credential=AWS_Credential.Default delimiter="/" = handle_s3_errors bucket=bucket key=key <|
+    request = GetObjectRequest.builder.bucket bucket . key key . build
+
+    client = make_client_for_bucket bucket credentials
+    response = client.getObject request
+
+    inner_response = response.response
+    s3_uri = URI.parse (uri_prefix + bucket + "/") / key
+    content_type = inner_response.contentType
+    name = filename_from_content_disposition inner_response.contentDisposition . if_nothing <|
+        key.split delimiter . last
+    metadata = File_Format_Metadata.Value path=key name=name content_type=content_type
+
+    input_stream = Input_Stream.new response (handle_io_errors s3_uri)
+    Response_Body.Raw_Stream input_stream metadata s3_uri
+
+## ADVANCED
+   ICON data_input
+
+   Gets the metadata of a bucket or object.
+
+   Arguments:
+   - bucket: the name of the bucket.
+   - prefix: the prefix of keys to match.
+   - credentials: The credentials to use to access the S3 bucket. If not
+     specified, the default credentials are used.
+
+   Returns:
+   - A Dictionary of the associated metadata of a bucket or object.
+
+   ! Error Conditions
+   - If the credentials are invalid or access to S3 is denied, then an
+     `AWS_SDK_Error` will be raised.
+   - If the bucket does not exist, an `S3_Bucket_Not_Found` error is thrown.
+   - If the object does not exist, an `S3_Key_Not_Found` error is thrown.
+@credentials AWS_Credential.default_widget
+head : Text -> Text -> AWS_Credential -> Dictionary Text Any ! S3_Error
+head (bucket : Text = Missing_Argument.throw "bucket") key:Text="" credentials:AWS_Credential=AWS_Credential.Default =
+    response = raw_head bucket key credentials
+    pairs = response.sdkFields.map f-> [f.memberName, f.getValueOrDefault response]
+    Dictionary.from_vector pairs
+
+## PRIVATE
+   Gets the raw metadata of a bucket or object.
+
+   Arguments:
+   - bucket: the name of the bucket.
+   - key: the key of the object.
+   - credentials: AWS credentials.
+raw_head : Text -> Text -> AWS_Credential -> Dictionary Text Any ! S3_Error
+raw_head bucket key credentials =
+    client = make_client_for_bucket bucket credentials
+    case key == "" of
+        True ->
+            request = HeadBucketRequest.builder.bucket bucket . build
+            handle_s3_errors bucket=bucket <| client.headBucket request
+        False ->
+            request = HeadObjectRequest.builder.bucket bucket . key key . build
+            handle_s3_errors bucket=bucket key=key <| client.headObject request
 
 ## PRIVATE
    Reads an S3 bucket returning a pair of vectors, one with common prefixes and
@@ -86,67 +183,6 @@ read_bucket bucket prefix="" credentials:AWS_Credential=AWS_Credential.Default d
                     @Tail_Call iterator new_request new_count result common_prefixes False
 
     iterator request 0 [] [] True
-
-## ADVANCED
-   ICON data_input
-   Gets the metadata of a bucket or object.
-
-   Arguments:
-   - bucket: the name of the bucket.
-   - key: the key of the object.
-   - credentials: AWS credentials. If not provided, the default credentials will
-     be used.
-head : Text -> Text -> AWS_Credential -> Dictionary Text Any ! S3_Error
-head bucket key="" credentials:AWS_Credential=AWS_Credential.Default =
-    response = raw_head bucket key credentials
-    pairs = response.sdkFields.map f-> [f.memberName, f.getValueOrDefault response]
-    Dictionary.from_vector pairs
-
-## PRIVATE
-   Gets the raw metadata of a bucket or object.
-
-   Arguments:
-   - bucket: the name of the bucket.
-   - key: the key of the object.
-   - credentials: AWS credentials.
-raw_head : Text -> Text -> AWS_Credential -> Dictionary Text Any ! S3_Error
-raw_head bucket key credentials =
-    client = make_client_for_bucket bucket credentials
-    case key == "" of
-        True ->
-            request = HeadBucketRequest.builder.bucket bucket . build
-            handle_s3_errors bucket=bucket <| client.headBucket request
-        False ->
-            request = HeadObjectRequest.builder.bucket bucket . key key . build
-            handle_s3_errors bucket=bucket key=key <| client.headObject request
-
-## ADVANCED
-   ICON data_input
-   Gets an object from an S3 bucket.
-   Returns a raw stream which can be read once.
-
-   Arguments:
-   - bucket: the name of the bucket.
-   - key: the key of the object.
-   - credentials: AWS credentials. If not provided, the default credentials will
-     be used.
-   - delimiter: The delimiter to use for deducing the filename from the path.
-get_object : Text -> Text -> AWS_Credential -> Text -> Response_Body ! S3_Error
-get_object bucket key credentials:AWS_Credential=AWS_Credential.Default delimiter="/" = handle_s3_errors bucket=bucket key=key <|
-    request = GetObjectRequest.builder.bucket bucket . key key . build
-
-    client = make_client_for_bucket bucket credentials
-    response = client.getObject request
-
-    inner_response = response.response
-    s3_uri = URI.parse (uri_prefix + bucket + "/") / key
-    content_type = inner_response.contentType
-    name = filename_from_content_disposition inner_response.contentDisposition . if_nothing <|
-        key.split delimiter . last
-    metadata = File_Format_Metadata.Value path=key name=name content_type=content_type
-
-    input_stream = Input_Stream.new response (handle_io_errors s3_uri)
-    Response_Body.Raw_Stream input_stream metadata s3_uri
 
 ## PRIVATE
 put_object (bucket : Text) (key : Text) credentials:AWS_Credential=AWS_Credential.Default request_body = handle_s3_errors bucket=bucket key=key <|

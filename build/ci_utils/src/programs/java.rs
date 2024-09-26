@@ -51,6 +51,9 @@ impl AsRef<OsStr> for Option {
 pub struct Java;
 
 impl Program for Java {
+    type Command = Command;
+    type Version = Version;
+
     fn executable_name(&self) -> &'static str {
         "java"
     }
@@ -77,11 +80,11 @@ mod tests {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Deref)]
 pub struct LanguageVersion(pub u8);
 
-impl std::str::FromStr for LanguageVersion {
+impl FromStr for LanguageVersion {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        s.parse2::<u8>().map(LanguageVersion)
+        Ok(LanguageVersion(s.parse()?))
     }
 }
 

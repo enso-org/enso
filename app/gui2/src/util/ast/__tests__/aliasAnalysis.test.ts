@@ -28,11 +28,8 @@
 import { assertDefined } from '@/util/assert'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { MappedKeyMap, MappedSet } from '@/util/containers'
-import { initializeFFI } from 'shared/ast/ffi'
-import { sourceRangeKey, type SourceRange } from 'shared/yjsModel'
 import { expect, test } from 'vitest'
-
-await initializeFFI()
+import { sourceRangeKey, type SourceRange } from 'ydoc-shared/yjsModel'
 
 /** The type of annotation. */
 enum AnnotationType {
@@ -79,8 +76,6 @@ function parseAnnotations(annotatedCode: string): {
       usageName: string | undefined,
       offset: number,
     ) => {
-      console.log(`Processing annotated identifier ${match}.`)
-
       // Sanity check: either both binding prefix and name are present, or both usage prefix and name are present.
       // Otherwise, we have an internal error in the regex.
       expect(bindingPrefix != null).toBe(bindingName != null)
@@ -140,7 +135,6 @@ class TestCase {
           `Duplicate binding with id ${annotation.id} at [${range}].`,
         ).toBe(false)
         prefixBindings.set(annotation.id, range)
-        console.debug(`Binding ${annotation.id}@[${range}]`)
         testCase.expectedAliases.set(range, [])
       }
     }
@@ -176,15 +170,12 @@ class TestCase {
     for (const [source, targets] of this.expectedAliases) {
       const foundTargets = analyzer.aliases.get(source)
       assertDefined(foundTargets, `Expected binding ${this.prettyPrint(source)} not found.`)
-      console.log(`Found expected binding ${this.prettyPrint(source)}`)
-
       for (const target of targets) {
         const foundConnection = foundTargets.has(target)
         // assert(foundConnection, `Expected connection [${source}] -> [${target}] not found.`)
         expect(foundConnection, `Expected connection [${source}] -> [${target}] not found.`).toBe(
           true,
         )
-        console.log(`Found expected connection [${source}] -> [${target}]`)
       }
     }
 
@@ -193,9 +184,6 @@ class TestCase {
         analyzer.unresolvedSymbols.has(unresolvedSymbol),
         `Expected unresolved symbol usage ${this.prettyPrint(unresolvedSymbol)} not observed.`,
       ).toBe(true)
-      console.log(
-        `Found expected unresolved symbol usage at ${this.prettyPrint(unresolvedSymbol)}.`,
-      )
     }
 
     expect(this.expectedUnresolvedSymbols.size, 'Unresolved symbols count mismatch.').toBe(

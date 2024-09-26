@@ -27,7 +27,7 @@ use reqwest::Response;
 ///
 /// See also [`RepoRef`] for a non-owning equivalent.
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize, derive_more::Display)]
-#[display(fmt = "{owner}/{name}")]
+#[display("{owner}/{name}")]
 pub struct Repo {
     /// Owner - an organization's or user's name.
     pub owner: String,
@@ -46,7 +46,7 @@ impl IsRepo for Repo {
 }
 
 /// Parse from strings in format "owner/name". Opposite of [`Display`].
-impl std::str::FromStr for Repo {
+impl FromStr for Repo {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
@@ -78,7 +78,7 @@ impl Repo {
 ///
 /// Particularly useful for defining `const` repositories.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize, derive_more::Display)]
-#[display(fmt = "{owner}/{name}")]
+#[display("{owner}/{name}")]
 pub struct RepoRef<'a> {
     /// Owner - an organization's or user's name.
     pub owner: &'a str,
@@ -161,11 +161,11 @@ pub trait IsRepo: Display {
 /// A handle to a specific GitHub repository.
 ///
 /// It includes a client (so also an authentication token) and a repository.
-#[derive(Derivative, Clone)]
-#[derivative(Debug)]
+#[derive(Clone)]
+#[derive_where(Debug; Repo)]
 pub struct Handle<Repo> {
     /// Octocrab client (includes authentication token).
-    #[derivative(Debug = "ignore")]
+    #[derive_where(skip)]
     pub octocrab: Octocrab,
     /// Repository designation.
     pub repo:     Repo,

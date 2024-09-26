@@ -8,84 +8,125 @@ import Standard.Base.Runtime.Context
 from Standard.Table import Join_Kind, Table
 
 import project.DB_Table.DB_Table
+import project.Internal.DDL_Transaction
 import project.Internal.IR.Query.Query
 from project.Errors import SQL_Error
 from project.Internal.Upload.Helpers.Argument_Checks import check_delete_rows_arguments
 from project.Internal.Upload.Helpers.Check_Queries import check_duplicate_key_matches_for_delete, check_for_null_keys
 from project.Internal.Upload.Helpers.Constants import dry_run_row_limit
-from project.Internal.Upload.Operations.Internal_Core import internal_upload_in_memory_table, internal_upload_table
+from project.Internal.Upload.Operations.Internal_Core import internal_upload_in_memory_table, internal_upload_table, Table_Upload_Operation
 
 ## PRIVATE
-common_delete_rows target_table key_values_to_delete key_columns allow_duplicate_matches =
+common_delete_rows (target_table : DB_Table) (key_values_to_delete : Table | DB_Table) (key_columns : Vector Text) (allow_duplicate_matches : Boolean) -> Integer =
     check_delete_rows_arguments target_table key_values_to_delete key_columns <|
         connection = target_table.connection
-        Panic.recover SQL_Error <| connection.jdbc_connection.run_within_transaction <|
-            dry_run = Context.Output.is_enabled.not
-            check_for_null_keys key_values_to_delete key_columns <| Context.Output.with_enabled <|
-                source = prepare_source_table_for_delete_matching key_values_to_delete connection key_columns dry_run
-                source_db_table = source.db_table
-                source_db_table.if_not_error <|
-                    check_duplicate_key_matches_for_delete target_table source_db_table key_columns allow_duplicate_matches <|
-                        affected_row_count = case dry_run of
-                            True ->
-                                # On dry run, we just compute the row count by joining.
-                                target_table.join source_db_table on=key_columns join_kind=Join_Kind.Inner . row_count
-                            False ->
-                                # On a real run, we get the row count from the DELETE statement return value.
-                                if source.tmp_table_name.is_nothing then
-                                    Panic.throw (Illegal_State.Error "Impossible. This is a bug in the Database library.")
+        dry_run = Context.Output.is_enabled.not
+        Panic.recover SQL_Error <| Context.Output.with_enabled <|
+            case dry_run of
+                True ->
+                    source = Delete_Rows_Dry_Run_Source.prepare connection key_values_to_delete key_columns
+                    source.run_in_transaction connection source_db_table_uploader-> dry_run_message_suffix->
+                        ## We check NULL values in source table (key_values_to_delete) and only if that passes we
+                           perform the actual upload into the temporary table.
+                           Both check and upload are done in a transaction, so we can be sure there are no external changes to the table visible.
+                           The check is needed as otherwise the upload would fail due to NULL constraint violations.
+                        check_for_null_keys key_values_to_delete key_columns <|
+                            source_db_table = source_db_table_uploader.materialize
+                            check_duplicate_key_matches_for_delete target_table source_db_table key_columns allow_duplicate_matches <|
+                                affected_row_count = target_table.join source_db_table on=key_columns join_kind=Join_Kind.Inner . row_count
+                                warning = Dry_Run_Operation.Warning "Only a dry run of `delete_rows` was performed - the target table has not been changed. Press the Write button ▶ to update the actual table."+dry_run_message_suffix
+                                Warning.attach warning affected_row_count
+                False ->
+                    source = Delete_Rows_Source.prepare connection key_values_to_delete key_columns
+                    source.run_in_transaction connection source_table_name-> source_db_table_uploader->
+                        check_for_null_keys key_values_to_delete key_columns <|
+                            source_db_table = source_db_table_uploader.materialize
+                            check_duplicate_key_matches_for_delete target_table source_db_table key_columns allow_duplicate_matches <|
                                 delete_statement = connection.dialect.generate_sql <|
-                                    Query.Delete_Matching_Rows target_table.name source.tmp_table_name key_columns
-                                connection.execute_update delete_statement
-
-                        ## We don't need to drop the table if update panics, because
-                           all of this happens within a transaction, so in case the
-                           above fails, the whole transaction will be rolled back.
-                        source.drop_temporary_table connection
-                        if dry_run.not then affected_row_count else
-                            suffix = source.dry_run_message_suffix
-                            warning = Dry_Run_Operation.Warning "Only a dry run of `delete_rows` was performed - the target table has not been changed. Press the Write button ▶ to update the actual table."+suffix
-                            Warning.attach warning affected_row_count
+                                    Query.Delete_Matching_Rows target_table.name source_table_name key_columns
+                                affected_row_count = connection.execute_update delete_statement
+                                affected_row_count
 
 ## PRIVATE
-   Prepares the source table for the delete operation.
-
-   It selects only the key columns and ensures keys are distinct to avoid primary key clashes.
-   In dry-run mode, if the table is an SQL query, it is kept as is to avoid copying data.
-   In real mode, the table is copied into a temporary table to simplify the DELETE FROM query.
-   If the source table is in-memory, it is uploaded in either mode, but in dry-run mode only a sample of the rows is processed.
-prepare_source_table_for_delete_matching (key_values_to_delete : DB_Table | Table) connection key_columns dry_run =
-    ## We select only the key columns and discard anything else.
-       We also call distinct to ensure that we will not have primary-key
-       duplicate issues when uploading the temporary table.
-    prepared_table = key_values_to_delete.select_columns key_columns . distinct
-    case dry_run of
-        True ->
-            case prepared_table of
-                _ : DB_Table ->
-                    Delete_Rows_Source.Value prepared_table Nothing
-                _ : Table ->
-                    tmp_table_name = connection.base_connection.table_naming_helper.generate_random_table_name "enso-temp-keys-table-"
-                    uploaded_table = internal_upload_in_memory_table prepared_table connection tmp_table_name primary_key=key_columns temporary=True structure_hint=Nothing on_problems=Problem_Behavior.Report_Error row_limit=dry_run_row_limit
-
-                    row_limit_exceeded = prepared_table.row_count > dry_run_row_limit
-                    dry_run_message_suffix = case row_limit_exceeded of
-                        False -> ""
-                        True  -> " (Only the first "+dry_run_row_limit.to_text+" distinct rows out of "+prepared_table.row_count.to_text+" were used for the dry run. The count rows affected by the actual operation may be larger once it is run with Output context enabled.)"
-                    Delete_Rows_Source.Value uploaded_table tmp_table_name dry_run_message_suffix=dry_run_message_suffix
-
-        False ->
-            tmp_table_name = connection.base_connection.table_naming_helper.generate_random_table_name "enso-temp-keys-table-"
-            copied_table = internal_upload_table prepared_table connection tmp_table_name primary_key=key_columns temporary=True on_problems=Problem_Behavior.Report_Error row_limit=Nothing
-            Delete_Rows_Source.Value copied_table tmp_table_name
+    We select only the key columns and discard anything else.
+    We also call distinct to ensure that we will not have primary-key duplicate
+    issues when uploading the temporary table.
+common_preprocess_source_table (key_values_to_delete : DB_Table | Table) key_columns =
+    key_values_to_delete.select_columns key_columns . distinct
 
 ## PRIVATE
 type Delete_Rows_Source
     ## PRIVATE
-    Value (db_table : DB_Table) (tmp_table_name : Nothing | Text) (dry_run_message_suffix : Text = "")
+       A temporary table created as source for actual delete operation.
+       It is used even when running from DB, because the Delete matching rows operation requires a named table.
+    Temporary_DB_Table (recipe : Table_Upload_Operation) (tmp_table_name : Text)
 
     ## PRIVATE
-       Drops a temporarily created table, if there was one.
-    drop_temporary_table self connection =
-        if self.tmp_table_name.is_nothing.not then
-            connection.drop_table self.tmp_table_name
+    prepare connection (key_values_to_delete : DB_Table | Table) key_columns =
+        prepared_table = common_preprocess_source_table key_values_to_delete key_columns
+        tmp_table_name = connection.base_connection.table_naming_helper.generate_random_table_name "enso-temp-keys-table-"
+        copied_table = internal_upload_table prepared_table connection tmp_table_name primary_key=key_columns temporary=True remove_after_transaction=True on_problems=Problem_Behavior.Report_Error row_limit=Nothing
+        Delete_Rows_Source.Temporary_DB_Table copied_table tmp_table_name
+
+    ## PRIVATE
+       Runs the provided callback in transaction, having first created an empty temporary table.
+       The user must call `materialize` on `Source_DB_Table_Uploader` to actually upload the table contents - after verifying that the preconditions are met.
+       The callback gets the `Source_DB_Table_Uploader` name and reference as arguments.
+    run_in_transaction self connection (callback : Text -> Source_DB_Table_Uploader -> Integer) -> Integer =
+        DDL_Transaction.run_transaction_with_tables connection [self.recipe.table_description] _-> Context.Output.with_enabled <|
+            callback self.tmp_table_name (Source_DB_Table_Uploader.Temporary_DB_Table self.recipe)
+
+type Delete_Rows_Dry_Run_Source
+    ## PRIVATE
+       The variant running from an existing DB query - in dry run mode we can
+       avoid materializing a temporary table if the query is already in DB.
+    Existing_DB_Query (db_table : DB_Table)
+
+    ## PRIVATE
+       A temporary table created for dry-run.
+       This variant is used when running delete with an in-memory table as a source.
+       The in-memory table has to be uploaded (at least in part) to DB to be able to run the check.
+    Temporary_Table (recipe : Table_Upload_Operation) (dry_run_message_suffix : Text)
+
+    ## PRIVATE
+    prepare connection (key_values_to_delete : DB_Table | Table) key_columns =
+        prepared_table = common_preprocess_source_table key_values_to_delete key_columns
+        case prepared_table of
+            _ : DB_Table ->
+                Delete_Rows_Dry_Run_Source.Existing_DB_Query prepared_table
+            _ : Table ->
+                tmp_table_name = connection.base_connection.table_naming_helper.generate_random_table_name "enso-temp-keys-table-"
+                upload_recipe = internal_upload_in_memory_table prepared_table connection tmp_table_name primary_key=key_columns temporary=True remove_after_transaction=True structure_hint=Nothing on_problems=Problem_Behavior.Report_Error row_limit=dry_run_row_limit
+                row_limit_exceeded = prepared_table.row_count > dry_run_row_limit
+                dry_run_message_suffix = case row_limit_exceeded of
+                    False -> ""
+                    True  -> " (Only the first "+dry_run_row_limit.to_text+" distinct rows out of "+prepared_table.row_count.to_text+" were used for the dry run. The count rows affected by the actual operation may be larger once it is run with Output context enabled.)"
+                Delete_Rows_Dry_Run_Source.Temporary_Table upload_recipe dry_run_message_suffix
+
+    ## PRIVATE
+       Runs the provided callback in transaction, having first created empty temporary tables.
+       The user must call `materialize` on `Source_DB_Table_Uploader` to actually upload the table contents - after verifying that the preconditions are met.
+       The callback gets the `Source_DB_Table_Uploader`, as well as a (possibly empty) suffix to add to the dry-run message.
+    run_in_transaction self connection (callback : Source_DB_Table_Uploader -> Text -> Integer) -> Integer = case self of
+        Delete_Rows_Dry_Run_Source.Existing_DB_Query db_table ->
+            connection.jdbc_connection.run_within_transaction <| Context.Output.with_enabled <|
+                callback (Source_DB_Table_Uploader.Existing_DB_Query db_table) ""
+        Delete_Rows_Dry_Run_Source.Temporary_Table recipe dry_run_message_suffix ->
+            DDL_Transaction.run_transaction_with_tables connection [recipe.table_description] _-> Context.Output.with_enabled <|
+                callback (Source_DB_Table_Uploader.Temporary_DB_Table recipe) dry_run_message_suffix
+
+## PRIVATE
+type Source_DB_Table_Uploader
+    ## PRIVATE
+    Existing_DB_Query (db_table : DB_Table)
+
+    ## PRIVATE
+    Temporary_DB_Table (recipe : Table_Upload_Operation)
+
+    ## PRIVATE
+       Performs an upload of the source table (if needed) and returns a reference to it.
+       This method should be called after the invariant checks have passed -
+       otherwise the upload itself could fail due to NULL constraint violations.
+    materialize self -> DB_Table = case self of
+        Source_DB_Table_Uploader.Existing_DB_Query db_table -> db_table
+        Source_DB_Table_Uploader.Temporary_DB_Table recipe -> recipe.perform_upload

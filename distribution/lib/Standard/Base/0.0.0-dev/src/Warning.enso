@@ -255,36 +255,6 @@ type Warning
     origin : Vector Stack_Trace_Element
     origin self = @Builtin_Method "Warning.origin"
 
-    ## PRIVATE
-       ADVANCED
-
-       A list of locations where the warning was reassigned in the order of
-       latest-first.
-
-       Warnings are reassigned whenever they interact with specific language
-       elements:
-       - When pattern matching, the warnings of the scrutinee will be reassigned
-         to the `case` expression result.
-       - When calling a method, warnings assigned to `self` will be reassigned to
-         the method return value.
-       - When calling a polyglot function or method, warnings assigned to any
-         arguments will be accumulated in the return value.
-       - The standard library methods reassign warnings such that their dataflow
-         nature is preserved.
-    reassignments : Vector Stack_Trace_Element
-    reassignments self =
-        Vector.from_polyglot_array self.get_reassignments . map r->
-            loc = case Polyglot.has_source_location r of
-                False -> Nothing
-                True -> Source_Location.Value (Polyglot.get_source_location r)
-            Stack_Trace_Element.Value (Polyglot.get_executable_name r) loc
-
-    ## PRIVATE
-
-       Builtin method for getting the list of locations where the warnings was reassigned.
-       Should use `Warning.reassignments` instead.
-    get_reassignments : Array Any
-    get_reassignments self = @Builtin_Method "Warning.get_reassignments"
 
 ## PRIVATE
 

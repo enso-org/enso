@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.callable;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
@@ -24,14 +25,15 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.ArrayRope;
+import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicSentinel;
-import org.enso.interpreter.runtime.error.Warning;
-import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
+import org.enso.interpreter.runtime.warning.AppendWarningNode;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
+import org.enso.interpreter.runtime.warning.WithWarnings;
 
 @GenerateUncached
 @ReportPolymorphism
@@ -129,9 +131,16 @@ public abstract class IndirectInvokeMethodNode extends Node {
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
       int thisArgumentPosition,
-      @Cached IndirectInvokeMethodNode childDispatch) {
+      @Cached IndirectInvokeMethodNode childDispatch,
+      @Cached AppendWarningNode appendWarningNode,
+      @CachedLibrary(limit = "3") WarningsLibrary warnsLib) {
     arguments[thisArgumentPosition] = self.getValue();
-    ArrayRope<Warning> warnings = self.getReassignedWarningsAsRope(this, false);
+    EnsoHashMap warnings;
+    try {
+      warnings = warnsLib.getWarnings(self, false);
+    } catch (UnsupportedMessageException e) {
+      throw CompilerDirectives.shouldNotReachHere(e);
+    }
     Object result =
         childDispatch.execute(
             frame,
@@ -144,7 +153,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
             argumentsExecutionMode,
             isTail,
             thisArgumentPosition);
-    return WithWarnings.appendTo(EnsoContext.get(this), result, warnings);
+    return appendWarningNode.executeAppend(null, result, warnings);
   }
 
   @Specialization

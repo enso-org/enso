@@ -7,11 +7,11 @@ import * as React from 'react'
 
 import * as stripeReact from '@stripe/react-stripe-js'
 import type * as stripeJs from '@stripe/stripe-js'
-import * as reactQuery from '@tanstack/react-query'
 
 import * as text from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
+import { useCreatePaymentMethodMutation } from '../api/createPaymentMethod'
 
 /**
  * Props for {@link AddPaymentMethodForm}.
@@ -44,6 +44,8 @@ export const ADD_PAYMENT_METHOD_FORM_SCHEMA = ariaComponents.Form.schema.object(
       (data) => data?.error == null,
       (data) => ({ message: data?.error?.message ?? 'This field is required' }),
     ),
+  cardElement: ariaComponents.Form.schema.custom<stripeJs.StripeCardElement | null>(),
+  stripeInstance: ariaComponents.Form.schema.custom<stripeJs.Stripe>(),
 })
 
 /**
@@ -52,52 +54,33 @@ export const ADD_PAYMENT_METHOD_FORM_SCHEMA = ariaComponents.Form.schema.object(
 export function AddPaymentMethodForm<
   Schema extends typeof ADD_PAYMENT_METHOD_FORM_SCHEMA = typeof ADD_PAYMENT_METHOD_FORM_SCHEMA,
 >(props: AddPaymentMethodFormProps<Schema>) {
-  const { stripeInstance, elements, onSubmit, submitText, form } = props
+  const { stripeInstance, onSubmit, submitText, form } = props
 
   const { getText } = text.useText()
 
-  const [cardElement, setCardElement] = React.useState<stripeJs.StripeCardElement | null>(() =>
-    elements.getElement(stripeReact.CardElement),
-  )
-
   const dialogContext = ariaComponents.useDialogContext()
 
-  const createPaymentMethodMutation = reactQuery.useMutation({
-    mutationFn: async () => {
-      if (!cardElement) {
-        throw new Error('Unexpected error')
-      } else {
-        return stripeInstance
-          .createPaymentMethod({ type: 'card', card: cardElement })
-          .then((result) => {
-            if (result.error) {
-              throw new Error(result.error.message)
-            } else {
-              return result
-            }
-          })
-      }
-    },
-  })
+  const createPaymentMethodMutation = useCreatePaymentMethodMutation()
 
   // No idea if it's safe or not, but outside of the function everything is fine
-  // but for some reason ts fails to infer the `card` field from the schema (it should always be there)
+  // but for some reason TypeScript fails to infer the `card` field from the schema (it should always be there)
   // eslint-disable-next-line no-restricted-syntax
   const formInstance = ariaComponents.Form.useForm(
-    form ?? { schema: ADD_PAYMENT_METHOD_FORM_SCHEMA },
+    form ?? {
+      schema: ADD_PAYMENT_METHOD_FORM_SCHEMA,
+      onSubmit: ({ cardElement }) =>
+        createPaymentMethodMutation.mutateAsync({ stripeInstance, cardElement }),
+      onSubmitSuccess: ({ paymentMethod }) => onSubmit?.(paymentMethod.id),
+    },
   ) as unknown as ariaComponents.FormInstance<typeof ADD_PAYMENT_METHOD_FORM_SCHEMA>
 
+  const cardElement = ariaComponents.Form.useWatch({
+    control: formInstance.control,
+    name: 'cardElement',
+  })
+
   return (
-    <ariaComponents.Form
-      method="dialog"
-      form={formInstance}
-      onSubmit={() =>
-        createPaymentMethodMutation.mutateAsync().then(async ({ paymentMethod }) => {
-          await onSubmit?.(paymentMethod.id)
-          cardElement?.clear()
-        })
-      }
-    >
+    <ariaComponents.Form method="dialog" form={formInstance}>
       <ariaComponents.Form.Field name="card" fullWidth label={getText('bankCardLabel')}>
         <stripeReact.CardElement
           options={{
@@ -110,7 +93,8 @@ export function AddPaymentMethodForm<
           }}
           onEscape={() => dialogContext?.close()}
           onReady={(element) => {
-            setCardElement(element)
+            formInstance.setValue('cardElement', element)
+            formInstance.setValue('stripeInstance', stripeInstance)
           }}
           onChange={(event) => {
             if (event.error?.message != null) {

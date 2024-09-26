@@ -30,9 +30,7 @@ import org.enso.common.MethodNames;
 import org.enso.compiler.suggestions.SimpleUpdate;
 import org.enso.interpreter.instrument.Endpoint;
 import org.enso.interpreter.instrument.MethodCallsCache;
-import org.enso.interpreter.instrument.NotificationHandler;
 import org.enso.interpreter.instrument.RuntimeCache;
-import org.enso.interpreter.instrument.Timer;
 import org.enso.interpreter.instrument.UpdatesSynchronizationState;
 import org.enso.interpreter.instrument.VisualizationHolder;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
@@ -47,6 +45,8 @@ import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.instrument.NotificationHandler;
+import org.enso.interpreter.runtime.instrument.Timer;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.service.error.FailedToApplyEditsException;
@@ -202,7 +202,7 @@ public final class ExecutionService {
 
     Object p = context.getThreadManager().enter();
     try {
-      execute.getCallTarget().call(call);
+      execute.getCallTarget().call(substituteMissingArguments(call));
     } finally {
       context.getThreadManager().leave(p);
       eventNodeFactory.ifPresent(EventBinding::dispose);
@@ -259,6 +259,28 @@ public final class ExecutionService {
         onComputedCallback,
         onCachedCallback,
         onExecutedVisualizationCallback);
+  }
+
+  /**
+   * Replace missing arguments of the provided function call with {@link
+   * org.enso.interpreter.node.expression.builtin.Nothing} to make sure that the function call can
+   * be invoked.
+   *
+   * @param functionCall the function call to update
+   * @return a function call with the updated arguments
+   */
+  private FunctionCallInstrumentationNode.FunctionCall substituteMissingArguments(
+      FunctionCallInstrumentationNode.FunctionCall functionCall) {
+    var arguments = functionCall.getArguments().clone();
+    var argumentInfos = functionCall.getFunction().getSchema().getArgumentInfos();
+    for (var i = 0; i < arguments.length; i++) {
+      if (arguments[i] == null && !argumentInfos[i].hasDefaultValue()) {
+        arguments[i] = context.getBuiltins().nothing();
+      }
+    }
+
+    return new FunctionCallInstrumentationNode.FunctionCall(
+        functionCall.getFunction(), functionCall.getState(), arguments);
   }
 
   /**

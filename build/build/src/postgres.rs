@@ -186,7 +186,7 @@ impl Postgresql {
         let mut cmd = Docker.run_cmd(&opts)?;
         cmd.stderr(Stdio::piped());
         cmd.kill_on_drop(true);
-        let mut child = cmd.spawn().anyhow_err()?;
+        let mut child = cmd.spawn()?;
         let stderr = child
             .stderr
             .ok_or_else(|| anyhow!("Failed to access standard output of the spawned process!"))?;

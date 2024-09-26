@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
+import org.enso.interpreter.node.expression.builtin.meta.EqualsAndInfo;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeNodeGen;
@@ -53,6 +54,8 @@ public class HashCodeTest {
   @AfterClass
   public static void disposeContext() {
     context.close();
+    context = null;
+    unwrappedValues = null;
   }
 
   /**
@@ -94,9 +97,9 @@ public class HashCodeTest {
     ContextUtils.executeInContext(
         context,
         () -> {
-          long firstHash = hashCodeNode.execute(firstValue);
-          long secondHash = hashCodeNode.execute(secondValue);
-          Object valuesAreEqual = equalsNode.execute(null, firstValue, secondValue);
+          var firstHash = hashCodeNode.execute(firstValue);
+          var secondHash = hashCodeNode.execute(secondValue);
+          var valuesAreEqual = equalsNode.execute(null, firstValue, secondValue);
           // if o1 == o2 then hash(o1) == hash(o2)
           if (isTrue(valuesAreEqual)) {
             assertEquals(
@@ -150,12 +153,12 @@ public class HashCodeTest {
         });
   }
 
-  private static boolean isTrue(Object obj) {
-    return obj instanceof Boolean objBool && objBool;
+  private static boolean isTrue(EqualsAndInfo obj) {
+    return obj.isTrue();
   }
 
-  private static boolean isFalse(Object obj) {
-    return obj instanceof Boolean objBool && !objBool;
+  private static boolean isFalse(EqualsAndInfo obj) {
+    return !obj.isTrue();
   }
 
   private static boolean isNothing(Object obj) {

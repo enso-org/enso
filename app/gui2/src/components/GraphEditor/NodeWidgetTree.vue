@@ -8,7 +8,7 @@ import { useGraphStore, type NodeId } from '@/stores/graph'
 import type { NodeType } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
 import type { Vec2 } from '@/util/data/vec2'
-import { displayedIconOf } from '@/util/getIconName'
+import { iconOfNode } from '@/util/getIconName'
 import { computed, toRef, watch } from 'vue'
 import { DisplayIcon } from './widgets/WidgetIcon.vue'
 
@@ -100,21 +100,7 @@ const widgetTree = provideWidgetTree(
   () => emit('openFullMenu'),
 )
 
-const expressionInfo = computed(() => graph.db.getExpressionInfo(props.ast.externalId))
-const suggestionEntry = computed(() => graph.db.nodeMainSuggestion.lookup(props.nodeId))
-const topLevelIcon = computed(() => {
-  switch (props.nodeType) {
-    default:
-    case 'component':
-      return displayedIconOf(
-        suggestionEntry.value,
-        expressionInfo.value?.methodCall?.methodPointer,
-        expressionInfo.value?.typename ?? 'Unknown',
-      )
-    case 'output':
-      return 'data_output'
-  }
-})
+const topLevelIcon = computed(() => iconOfNode(props.nodeId, graph.db))
 
 watch(toRef(widgetTree, 'currentEdit'), (edit) => edit && selectNode())
 </script>

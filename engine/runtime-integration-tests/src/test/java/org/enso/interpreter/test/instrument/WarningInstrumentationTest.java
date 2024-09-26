@@ -62,7 +62,9 @@ public class WarningInstrumentationTest {
 
   @After
   public void disposeContext() {
+    instrument = null;
     context.close();
+    context = null;
   }
 
   @Test

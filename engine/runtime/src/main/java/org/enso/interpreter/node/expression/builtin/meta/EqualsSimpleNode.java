@@ -21,157 +21,161 @@ import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.enso.polyglot.common_utils.Core_Text_Utils;
 
 @GenerateUncached
 @ReportPolymorphism
-public abstract class EqualsSimpleNode extends Node {
+abstract class EqualsSimpleNode extends Node {
 
-  public static EqualsSimpleNode build() {
+  static EqualsSimpleNode build() {
     return EqualsSimpleNodeGen.create();
   }
 
-  public abstract boolean execute(VirtualFrame frame, Object self, Object right);
+  static EqualsSimpleNode getUncached() {
+    return EqualsSimpleNodeGen.getUncached();
+  }
+
+  abstract EqualsAndInfo execute(VirtualFrame frame, Object self, Object right);
 
   @Specialization
-  boolean equalsBoolBool(boolean self, boolean other) {
-    return self == other;
+  EqualsAndInfo equalsBoolBool(boolean self, boolean other) {
+    return EqualsAndInfo.valueOf(self == other);
   }
 
   @Specialization
-  boolean equalsBoolDouble(boolean self, double other) {
-    return false;
+  EqualsAndInfo equalsBoolDouble(boolean self, double other) {
+    return EqualsAndInfo.FALSE;
   }
 
   @Specialization
-  boolean equalsBoolLong(boolean self, long other) {
-    return false;
+  EqualsAndInfo equalsBoolLong(boolean self, long other) {
+    return EqualsAndInfo.FALSE;
   }
 
   @Specialization
-  boolean equalsBoolBigInt(boolean self, EnsoBigInteger other) {
-    return false;
+  EqualsAndInfo equalsBoolBigInt(boolean self, EnsoBigInteger other) {
+    return EqualsAndInfo.FALSE;
   }
 
   @Specialization
-  boolean equalsBoolText(boolean self, Text other) {
-    return false;
+  EqualsAndInfo equalsBoolText(boolean self, Text other) {
+    return EqualsAndInfo.FALSE;
   }
 
   @Specialization
-  boolean equalsBoolInterop(
+  EqualsAndInfo equalsBoolInterop(
       boolean self,
       Object other,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     try {
-      return self == interop.asBoolean(other);
+      return EqualsAndInfo.valueOf(self == interop.asBoolean(other));
     } catch (UnsupportedMessageException ex) {
-      return false;
+      return EqualsAndInfo.FALSE;
     }
   }
 
   @Specialization
-  boolean equalsInteropBool(
+  EqualsAndInfo equalsInteropBool(
       TruffleObject self,
       boolean other,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     try {
-      return other == interop.asBoolean(self);
+      return EqualsAndInfo.valueOf(other == interop.asBoolean(self));
     } catch (UnsupportedMessageException ex) {
-      return false;
+      return EqualsAndInfo.FALSE;
     }
   }
 
   @Specialization
-  boolean equalsLongLong(long self, long other) {
-    return self == other;
+  EqualsAndInfo equalsLongLong(long self, long other) {
+    return EqualsAndInfo.valueOf(self == other);
   }
 
   @Specialization
-  boolean equalsLongBool(long self, boolean other) {
-    return false;
+  EqualsAndInfo equalsLongBool(long self, boolean other) {
+    return EqualsAndInfo.FALSE;
   }
 
   @Specialization
-  boolean equalsLongDouble(long self, double other) {
-    return (double) self == other;
+  EqualsAndInfo equalsLongDouble(long self, double other) {
+    return EqualsAndInfo.valueOf((double) self == other);
   }
 
   @Specialization
-  boolean equalsLongText(long self, Text other) {
-    return false;
+  EqualsAndInfo equalsLongText(long self, Text other) {
+    return EqualsAndInfo.FALSE;
   }
 
   @Specialization
-  @TruffleBoundary
-  boolean equalsLongBigInt(long self, EnsoBigInteger other) {
+  @TruffleBoundary(allowInlining = true)
+  EqualsAndInfo equalsLongBigInt(long self, EnsoBigInteger other) {
     if (BigIntegerOps.fitsInLong(other.getValue())) {
-      return BigInteger.valueOf(self).compareTo(other.getValue()) == 0;
+      return EqualsAndInfo.valueOf(BigInteger.valueOf(self).compareTo(other.getValue()) == 0);
     } else {
-      return false;
+      return EqualsAndInfo.FALSE;
     }
   }
 
   @Specialization
-  boolean equalsLongInterop(
+  EqualsAndInfo equalsLongInterop(
       long self,
       Object other,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     try {
-      return self == interop.asLong(other);
+      return EqualsAndInfo.valueOf(self == interop.asLong(other));
     } catch (UnsupportedMessageException ex) {
-      return false;
+      return EqualsAndInfo.FALSE;
     }
   }
 
   @Specialization
-  boolean equalsDoubleDouble(double self, double other) {
+  EqualsAndInfo equalsDoubleDouble(double self, double other) {
     if (Double.isNaN(self) || Double.isNaN(other)) {
-      return false;
+      return EqualsAndInfo.FALSE;
     } else {
-      return self == other;
+      return EqualsAndInfo.valueOf(self == other);
     }
   }
 
   @Specialization
-  boolean equalsDoubleLong(double self, long other) {
-    return self == (double) other;
+  EqualsAndInfo equalsDoubleLong(double self, long other) {
+    return EqualsAndInfo.valueOf(self == (double) other);
   }
 
   @Specialization
-  boolean equalsDoubleBool(double self, boolean other) {
-    return false;
+  EqualsAndInfo equalsDoubleBool(double self, boolean other) {
+    return EqualsAndInfo.FALSE;
   }
 
   @Specialization
-  boolean equalsDoubleText(double self, Text other) {
-    return false;
+  EqualsAndInfo equalsDoubleText(double self, Text other) {
+    return EqualsAndInfo.FALSE;
   }
 
   @Specialization
-  boolean equalsDoubleInterop(
+  EqualsAndInfo equalsDoubleInterop(
       double self,
       Object other,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop) {
     try {
       if (iop.fitsInDouble(other)) {
-        return self == iop.asDouble(other);
+        return EqualsAndInfo.valueOf(self == iop.asDouble(other));
       }
       if (iop.fitsInBigInteger(other)) {
         if (Double.isNaN(self)) {
-          return false;
+          return EqualsAndInfo.FALSE;
         }
         if (Double.isInfinite(self)) {
-          return false;
+          return EqualsAndInfo.FALSE;
         }
-        return equalsDoubleBigInteger(self, asBigInteger(iop, other));
+        return EqualsAndInfo.valueOf(equalsDoubleBigInteger(self, asBigInteger(iop, other)));
       } else {
-        return false;
+        return EqualsAndInfo.FALSE;
       }
     } catch (UnsupportedMessageException ex) {
-      return false;
+      return EqualsAndInfo.FALSE;
     }
   }
 
@@ -183,77 +187,77 @@ public abstract class EqualsSimpleNode extends Node {
   }
 
   @Specialization(guards = {"isBigInteger(iop, self)", "isBigInteger(iop, other)"})
-  @TruffleBoundary
-  boolean other(
+  @TruffleBoundary(allowInlining = true)
+  EqualsAndInfo other(
       Object self,
       Object other,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop) {
-    return asBigInteger(iop, self).equals(asBigInteger(iop, other));
+    return EqualsAndInfo.valueOf(asBigInteger(iop, self).equals(asBigInteger(iop, other)));
   }
 
   @Specialization(guards = "isBigInteger(iop, self)")
-  boolean equalsBigIntDouble(
+  EqualsAndInfo equalsBigIntDouble(
       Object self,
       double other,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop) {
     if (Double.isNaN(other)) {
-      return false;
+      return EqualsAndInfo.FALSE;
     }
     if (Double.isInfinite(other)) {
-      return false;
+      return EqualsAndInfo.FALSE;
     }
-    return equalsDoubleBigInteger(other, asBigInteger(iop, self));
+    return EqualsAndInfo.valueOf(equalsDoubleBigInteger(other, asBigInteger(iop, self)));
   }
 
   @Specialization(guards = "isBigInteger(iop, self)")
-  @TruffleBoundary
-  boolean equalsBigIntLong(
+  @TruffleBoundary(allowInlining = true)
+  EqualsAndInfo equalsBigIntLong(
       Object self, long other, @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop) {
     var v = asBigInteger(iop, self);
     if (BigIntegerOps.fitsInLong(v)) {
-      return v.compareTo(BigInteger.valueOf(other)) == 0;
+      return EqualsAndInfo.valueOf(v.compareTo(BigInteger.valueOf(other)) == 0);
     } else {
-      return false;
+      return EqualsAndInfo.FALSE;
     }
   }
 
   @Specialization
-  boolean equalsBigIntText(EnsoBigInteger self, Text other) {
-    return false;
+  EqualsAndInfo equalsBigIntText(EnsoBigInteger self, Text other) {
+    return EqualsAndInfo.FALSE;
   }
 
   @TruffleBoundary
   @Specialization(guards = {"isBigInteger(iop, self)", "!isPrimitiveValue(other)"})
-  boolean equalsBigIntInterop(
+  EqualsAndInfo equalsBigIntInterop(
       Object self,
       Object other,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop) {
     try {
       var otherBigInteger = InteropLibrary.getUncached().asBigInteger(other);
-      return asBigInteger(iop, self).equals(otherBigInteger);
+      return EqualsAndInfo.valueOf(asBigInteger(iop, self).equals(otherBigInteger));
     } catch (UnsupportedMessageException ex) {
-      return false;
+      return EqualsAndInfo.FALSE;
     }
   }
 
   @Specialization(guards = {"selfText.is_normalized()", "otherText.is_normalized()"})
-  boolean equalsTextText(Text selfText, Text otherText) {
-    return selfText.toString().compareTo(otherText.toString()) == 0;
+  EqualsAndInfo equalsTextText(Text selfText, Text otherText) {
+    return EqualsAndInfo.valueOf(selfText.toString().compareTo(otherText.toString()) == 0);
   }
 
   @Specialization
-  boolean equalsTextLong(Text selfText, long otherLong) {
-    return false;
+  EqualsAndInfo equalsTextLong(Text selfText, long otherLong) {
+    return EqualsAndInfo.FALSE;
   }
 
   @Specialization
-  boolean equalsTextDouble(Text selfText, double otherDouble) {
-    return false;
+  EqualsAndInfo equalsTextDouble(Text selfText, double otherDouble) {
+    return EqualsAndInfo.FALSE;
   }
 
   @Specialization
-  boolean equalsTextBigInt(Text self, EnsoBigInteger other) {
-    return false;
+  EqualsAndInfo equalsTextBigInt(Text self, EnsoBigInteger other) {
+    return EqualsAndInfo.FALSE;
   }
 
   /**
@@ -261,11 +265,10 @@ public abstract class EqualsSimpleNode extends Node {
    * String, it is not equal. Otherwise the two strings are compared according to the
    * lexicographical order, handling Unicode normalization. See {@code Text_Utils.compare_to}.
    */
-  @TruffleBoundary
   @Specialization(
       guards = {"selfInterop.isString(selfString)"},
       limit = "3")
-  boolean equalsStrings(
+  EqualsAndInfo equalsStrings(
       Object selfString,
       Object otherString,
       @CachedLibrary("selfString") InteropLibrary selfInterop,
@@ -276,37 +279,46 @@ public abstract class EqualsSimpleNode extends Node {
       selfJavaString = selfInterop.asString(selfString);
       otherJavaString = otherInterop.asString(otherString);
     } catch (UnsupportedMessageException e) {
-      return false;
+      return EqualsAndInfo.FALSE;
     }
+    return EqualsAndInfo.valueOf(compareStrings(selfJavaString, otherJavaString));
+  }
+
+  @TruffleBoundary
+  private static boolean compareStrings(String selfJavaString, String otherJavaString) {
     return Core_Text_Utils.equals(selfJavaString, otherJavaString);
   }
 
   @Specialization(guards = "isPrimitive(self, interop) != isPrimitive(other, interop)")
-  boolean equalsDifferent(
+  EqualsAndInfo equalsDifferent(
       Object self,
       Object other,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
-    return false;
+    return EqualsAndInfo.FALSE;
   }
 
   /** Equals for Atoms and AtomConstructors */
   @Specialization
-  boolean equalsAtomConstructors(AtomConstructor self, AtomConstructor other) {
-    return self == other;
+  EqualsAndInfo equalsAtomConstructors(AtomConstructor self, AtomConstructor other) {
+    return EqualsAndInfo.valueOf(self == other);
   }
 
   @Specialization
-  boolean equalsAtoms(
+  EqualsAndInfo equalsAtoms(
       VirtualFrame frame,
       Atom self,
       Atom other,
       @Cached EqualsAtomNode equalsAtomNode,
       @Shared("isSameObjectNode") @Cached IsSameObjectNode isSameObjectNode) {
-    return isSameObjectNode.execute(self, other) || equalsAtomNode.execute(frame, self, other);
+    if (isSameObjectNode.execute(self, other)) {
+      return EqualsAndInfo.TRUE;
+    } else {
+      return equalsAtomNode.execute(frame, self, other);
+    }
   }
 
   @Specialization
-  boolean equalsReverseLong(
+  EqualsAndInfo equalsReverseLong(
       VirtualFrame frame,
       TruffleObject self,
       long other,
@@ -316,7 +328,7 @@ public abstract class EqualsSimpleNode extends Node {
   }
 
   @Specialization
-  boolean equalsReverseDouble(
+  EqualsAndInfo equalsReverseDouble(
       VirtualFrame frame,
       TruffleObject self,
       double other,
@@ -326,7 +338,7 @@ public abstract class EqualsSimpleNode extends Node {
   }
 
   @Specialization
-  boolean equalsReverseBigInt(
+  EqualsAndInfo equalsReverseBigInt(
       VirtualFrame frame,
       TruffleObject self,
       EnsoBigInteger other,
@@ -336,7 +348,7 @@ public abstract class EqualsSimpleNode extends Node {
   }
 
   @Specialization(guards = "isNotPrimitive(self, other, interop, warnings)")
-  boolean equalsComplex(
+  EqualsAndInfo equalsComplex(
       VirtualFrame frame,
       Object self,
       Object other,
@@ -344,7 +356,11 @@ public abstract class EqualsSimpleNode extends Node {
       @Shared("isSameObjectNode") @Cached IsSameObjectNode isSameObjectNode,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
       @CachedLibrary(limit = "5") WarningsLibrary warnings) {
-    return isSameObjectNode.execute(self, other) || equalsComplex.execute(frame, self, other);
+    if (isSameObjectNode.execute(self, other)) {
+      return EqualsAndInfo.TRUE;
+    } else {
+      return equalsComplex.execute(frame, self, other);
+    }
   }
 
   static boolean isNotPrimitive(

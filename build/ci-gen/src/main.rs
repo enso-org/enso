@@ -37,7 +37,7 @@ async fn main() -> Result {
 
     // Ensure that generated files are properly formatted.
     enso_build::web::install(&repo_root).await?;
-    enso_build::web::run_script(&repo_root, enso_build::web::Script::Format).await?;
+    enso_build::web::run_script(&repo_root, enso_build::web::Script::FormatWorkflows).await?;
 
     Ok(())
 }

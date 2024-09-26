@@ -3,7 +3,6 @@ use crate::prelude::*;
 use crate::project::IsTarget;
 use crate::project::IsWatchable;
 
-use derivative::Derivative;
 use ide_ci::github::Repo;
 use octocrab::models::AssetId;
 use octocrab::models::RunId;
@@ -11,16 +10,11 @@ use octocrab::models::RunId;
 
 
 /// Denotes an external source from which a target artifact can be obtained.
-#[derive(Clone, Derivative)]
-#[derivative(Debug)]
+#[derive(Clone, Debug)]
 pub enum ExternalSource {
-    #[derivative(Debug = "transparent")]
     OngoingCiRun(OngoingCiRunSource),
-    #[derivative(Debug = "transparent")]
     CiRun(CiRunSource),
-    #[derivative(Debug = "transparent")]
     LocalFile(PathBuf),
-    #[derivative(Debug = "transparent")]
     Release(ReleaseSource),
 }
 
@@ -37,17 +31,15 @@ pub struct BuildSource<Target: IsTarget> {
     pub input:                  Target::BuildInput,
     /// Whether to upload the resulting artifact as CI artifact.
     pub should_upload_artifact: bool,
+    pub should_sign_artifacts:  bool,
 }
 
 /// Describes how to get a target.
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub enum Source<Target: IsTarget> {
     /// Build the target locally from the sources.
-    #[derivative(Debug = "transparent")]
     BuildLocally(BuildSource<Target>),
     /// Download the target from an external source.
-    #[derivative(Debug = "transparent")]
     External(ExternalSource),
 }
 
@@ -56,22 +48,16 @@ pub struct OngoingCiRunSource {
     pub artifact_name: String,
 }
 
-#[derive(Clone, Derivative)]
-#[derivative(Debug)]
+#[derive(Clone, Debug)]
 pub struct CiRunSource {
-    #[derivative(Debug(format_with = "std::fmt::Display::fmt"))]
     pub repository:    Repo,
-    #[derivative(Debug(format_with = "std::fmt::Display::fmt"))]
     pub run_id:        RunId,
     pub artifact_name: String,
 }
 
-#[derive(Clone, Derivative)]
-#[derivative(Debug)]
+#[derive(Clone, Debug)]
 pub struct ReleaseSource {
-    #[derivative(Debug(format_with = "std::fmt::Display::fmt"))]
     pub repository: Repo,
-    #[derivative(Debug(format_with = "std::fmt::Display::fmt"))]
     pub asset_id:   AssetId,
 }
 

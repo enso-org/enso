@@ -413,20 +413,17 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
 
       val ir =
         """
-          |a -> (b = f _ 1) -> f a
+          |\a (b = f _ 1) -> f a
           |""".stripMargin.preprocessExpression.get.desugar
 
       ir shouldBe an[Function.Lambda]
-      val bArgFn = ir
-        .asInstanceOf[Function.Lambda]
-        .body
-        .asInstanceOf[Function.Lambda]
-      val bArg1 =
-        bArgFn.arguments.head.asInstanceOf[DefinitionArgument.Specified]
+      val irFn = ir.asInstanceOf[Function.Lambda]
+      val bArg =
+        irFn.arguments.tail.head.asInstanceOf[DefinitionArgument.Specified]
 
-      bArg1.defaultValue shouldBe defined
-      bArg1.defaultValue.get shouldBe an[Function.Lambda]
-      val default = bArg1.defaultValue.get.asInstanceOf[Function.Lambda]
+      bArg.defaultValue shouldBe defined
+      bArg.defaultValue.get shouldBe an[Function.Lambda]
+      val default = bArg.defaultValue.get.asInstanceOf[Function.Lambda]
       val defaultArgName = default.arguments.head
         .asInstanceOf[DefinitionArgument.Specified]
         .name
@@ -498,7 +495,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
 
       val ir =
         """
-          |(x = _) -> x
+          |\ x=_ -> x
           |""".stripMargin.preprocessExpression.get.desugar
 
       ir shouldBe an[Function.Lambda]

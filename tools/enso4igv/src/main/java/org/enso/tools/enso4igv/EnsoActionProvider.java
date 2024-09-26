@@ -81,11 +81,14 @@ public final class EnsoActionProvider implements ActionProvider {
 
                 var b = ProcessBuilder.getLocal();
                 b.setExecutable(file.getPath());
-                b.setArguments(prepareArguments(script, isGraalVM));
+                b.setArguments(prepareArguments(script));
                 b.setWorkingDirectory(script.getParent());
                 b.setRedirectErrorStream(true);
 
                 var env = b.getEnvironment();
+                if (isGraalVM && isIGVConnected()) {
+                    env.setVariable("JAVA_OPTS", "-Dgraal.Dump=Truffle:2");
+                }
                 var path = env.getVariable("PATH");
                 if (path != null && java != null) {
                     var javaBinDir = FileUtil.toFile(java.getParent());
@@ -133,14 +136,14 @@ public final class EnsoActionProvider implements ActionProvider {
         });
     }
 
-    private static List<String> prepareArguments(File script, boolean isGraalVM) {
+    private static boolean isIGVConnected() {
+        return Modules.getDefault().findCodeNameBase("org.graalvm.visualizer.connection") != null;
+    }
+
+    private static List<String> prepareArguments(File script) {
         var list = new ArrayList<String>();
         list.add("--run");
         list.add(script.getPath());
-        var isIGV = Modules.getDefault().findCodeNameBase("org.graalvm.visualizer.connection") != null;
-        if (isGraalVM && isIGV) {
-            list.add("--dump-graphs");
-        }
         return list;
     }
 

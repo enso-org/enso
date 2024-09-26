@@ -127,7 +127,7 @@ make_format_chooser include_number:Boolean=True include_date:Boolean=True includ
    Creates a Multiple_Choice Widget for selecting data cleanse operations.
 make_data_cleanse_vector_selector : Display -> Widget
 make_data_cleanse_vector_selector display:Display=Display.Always =
-    patterns = ['Leading_Whitespace', 'Trailing_Whitespace', 'Duplicate_Whitespace', 'All_Whitespace', 'Leading_Numbers', 'Trailing_Numbers', 'Non_ASCII', 'Tabs', 'Letters', 'Numbers', 'Punctuation', 'Symbols']
+    patterns = ['Leading_Whitespace', 'Trailing_Whitespace', 'Duplicate_Whitespace', 'All_Whitespace', "Newlines", 'Leading_Numbers', 'Trailing_Numbers', 'Non_ASCII', 'Tabs', 'Letters', 'Numbers', 'Punctuation', 'Symbols']
     options = patterns.map f-> Option f (".." + f)
     Widget.Multiple_Choice values=options display=display
 
@@ -139,7 +139,7 @@ make_any_selector display:Display=..Always add_text:Boolean=False add_regex:Bool
         if add_text then builder.append (Option "<Text Value>" '""')
         if add_regex then builder.append (Option "<Regular Expression>" '(regex "^$")')
         if add_named_pattern then
-            patterns = ["Leading_Whitespace", "Trailing_Whitespace", "All_Whitespace", "Leading_Numbers", "Trailing_Numbers", "Non_ASCII", "Tabs", "Letters", "Numbers", "Punctuation", "Symbols"]
+            patterns = ["Leading_Whitespace", "Trailing_Whitespace", "All_Whitespace", "Newlines", "Leading_Numbers", "Trailing_Numbers", "Non_ASCII", "Tabs", "Letters", "Numbers", "Punctuation", "Symbols"]
             patterns.each p-> builder.append (Option "<"+p+">" "Named_Pattern."+p)
         if add_number then builder.append (Option "<Number Value>" "0")
         if add_boolean then builder.append (Option "<True/False>" "True")

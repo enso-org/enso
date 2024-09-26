@@ -16,7 +16,7 @@ import org.enso.compiler.core.ir.expression.{errors, warnings, Case, Foreign}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis
-import org.enso.compiler.pass.analyse.alias.{Info => AliasInfo}
+import org.enso.compiler.pass.analyse.alias.{AliasMetadata => AliasInfo}
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.resolve.{ExpressionAnnotations, IgnoredBindings}
@@ -130,7 +130,7 @@ case object UnusedBindings extends IRPass {
     * @param context the inline context in which linting is taking place
     * @return `function`, with any lints attached
     */
-  def lintFunction(
+  private def lintFunction(
     function: Function,
     context: InlineContext
   ): Function = {
@@ -172,7 +172,7 @@ case object UnusedBindings extends IRPass {
     * @param context the inline context in which linting is taking place
     * @return `argument`, with any lints attached
     */
-  def lintFunctionArgument(
+  private def lintFunctionArgument(
     argument: DefinitionArgument,
     context: InlineContext
   ): DefinitionArgument = {
@@ -199,11 +199,10 @@ case object UnusedBindings extends IRPass {
             _,
             _,
             _,
-            _,
             _
           ) =>
         s
-      case s @ DefinitionArgument.Specified(name, _, default, _, _, _, _) =>
+      case s @ DefinitionArgument.Specified(name, _, default, _, _, _) =>
         if (!isIgnored && !isUsed) {
           val nameToReport = name match {
             case literal: Name.Literal =>
@@ -225,7 +224,7 @@ case object UnusedBindings extends IRPass {
     */
   def lintCase(cse: Case, context: InlineContext): Case = {
     cse match {
-      case expr @ Case.Expr(scrutinee, branches, _, _, _, _) =>
+      case expr @ Case.Expr(scrutinee, branches, _, _, _) =>
         expr.copy(
           scrutinee = runExpression(scrutinee, context),
           branches  = branches.map(lintCaseBranch(_, context))
@@ -257,7 +256,7 @@ case object UnusedBindings extends IRPass {
     */
   def lintPattern(pattern: Pattern): Pattern = {
     pattern match {
-      case n @ Pattern.Name(name, _, _, _) =>
+      case n @ Pattern.Name(name, _, _) =>
         val isIgnored = name
           .unsafeGetMetadata(
             IgnoredBindings,
@@ -277,7 +276,7 @@ case object UnusedBindings extends IRPass {
         if (!isIgnored && !isUsed) {
           n.addDiagnostic(warnings.Unused.PatternBinding(name))
         } else pattern
-      case cons @ Pattern.Constructor(_, fields, _, _, _) =>
+      case cons @ Pattern.Constructor(_, fields, _, _) =>
         if (!cons.isDesugared) {
           throw new CompilerError(
             "Nested patterns should not be present during linting."
@@ -287,7 +286,7 @@ case object UnusedBindings extends IRPass {
         cons.copy(
           fields = fields.map(lintPattern)
         )
-      case typed @ Pattern.Type(name, _, _, _, _) =>
+      case typed @ Pattern.Type(name, _, _, _) =>
         val isIgnored = name
           .unsafeGetMetadata(
             IgnoredBindings,

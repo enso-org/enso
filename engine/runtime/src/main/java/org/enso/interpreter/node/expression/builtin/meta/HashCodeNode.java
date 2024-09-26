@@ -1,6 +1,5 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
-import com.google.common.base.Objects;
 import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
@@ -25,6 +24,7 @@ import com.oracle.truffle.api.profiles.LoopConditionProfile;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
+import java.util.Objects;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
@@ -45,11 +45,11 @@ import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.atom.StructsLibrary;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.State;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.enso.polyglot.common_utils.Core_Text_Utils;
 
 /**
@@ -130,7 +130,7 @@ public abstract class HashCodeNode extends Node {
       @Shared("hashCodeNode") @Cached HashCodeNode hashCodeNode) {
     long nameHash = hashCodeNode.execute(unresolvedSymbol.getName());
     long scopeHash = hashCodeNode.execute(unresolvedSymbol.getScope());
-    return Objects.hashCode(nameHash, scopeHash);
+    return Objects.hash(nameHash, scopeHash);
   }
 
   @Specialization
@@ -171,8 +171,13 @@ public abstract class HashCodeNode extends Node {
       // Nothing should be equal to `null`
       return 0;
     } else {
-      return hashCodeNode.execute(type.getQualifiedName().toString());
+      return hashCodeNode.execute(getQualifiedTypeName(type));
     }
+  }
+
+  @TruffleBoundary
+  private static String getQualifiedTypeName(Type type) {
+    return type.getQualifiedName().toString();
   }
 
   @NeverDefault

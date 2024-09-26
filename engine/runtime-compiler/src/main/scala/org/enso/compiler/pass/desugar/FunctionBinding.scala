@@ -95,15 +95,14 @@ case object FunctionBinding extends IRPass {
     */
   def desugarExpression(ir: Expression): Expression = {
     ir.transformExpressions {
-      case Function.Binding(
-            name,
+      case functionBinding @ Function.Binding(
+            _,
             args,
             body,
             _,
             location,
             canBeTCO,
-            passData,
-            diagnostics
+            _
           ) =>
         if (args.isEmpty) {
           throw new CompilerError("The arguments list should not be empty.")
@@ -117,16 +116,16 @@ case object FunctionBinding extends IRPass {
           .asInstanceOf[Function.Lambda]
           .copy(canBeTCO = canBeTCO, location = location)
 
-        Expression.Binding(name, lambda, location, passData, diagnostics)
+        new Expression.Binding(functionBinding, lambda)
     }
   }
 
   /** Performs desugaring on a module definition.
     *
-    * @param definition the module definition to desugar
+    * @param moduleDefinition the module definition to desugar
     * @return `definition`, with any function definition sugar removed
     */
-  def desugarModuleSymbol(
+  private def desugarModuleSymbol(
     moduleDefinition: Definition
   ): Definition = {
     moduleDefinition match {
@@ -150,19 +149,17 @@ case object FunctionBinding extends IRPass {
             isPrivate,
             _,
             _,
-            _,
             _
           ) if isPrivate && methRef.methodName.name == conversionMethodName =>
         errors.Conversion(meth, errors.Conversion.DeclaredAsPrivate)
 
-      case meth @ definition.Method.Binding(
+      case methodBinding @ definition.Method.Binding(
             methRef,
             args,
             isPrivate,
             body,
-            loc,
-            passData,
-            diagnostics
+            _,
+            _
           ) =>
         val methodName = methRef.methodName.name
 
@@ -173,24 +170,18 @@ case object FunctionBinding extends IRPass {
               new Function.Lambda(List(arg), body, None)
             )
 
-          new definition.Method.Explicit(
-            methRef,
-            newBody,
-            isPrivate,
-            loc,
-            passData,
-            diagnostics
-          )
+          new definition.Method.Explicit(methodBinding, newBody)
         } else {
           if (args.isEmpty)
-            errors.Conversion(meth, errors.Conversion.MissingArgs)
+            errors.Conversion(methodBinding, errors.Conversion.MissingArgs)
           else if (args.head.ascribedType.isEmpty) {
             errors.Conversion(
               args.head,
               errors.Conversion.MissingSourceType(args.head.name.name)
             )
           } else {
-            assert(!isPrivate, "Should be handled by previous match")
+            org.enso.common.Asserts
+              .assertInJvm(!isPrivate, "Should be handled by previous match")
             val firstArg :: restArgs = args
             val firstArgumentType    = firstArg.ascribedType.get
             val firstArgumentName    = firstArg.name
@@ -271,13 +262,10 @@ case object FunctionBinding extends IRPass {
                       new Function.Lambda(List(arg), body, None)
                     )
                   Right(
-                    definition.Method.Conversion(
-                      methRef,
+                    new definition.Method.Conversion(
+                      methodBinding,
                       firstArgumentType,
-                      newBody,
-                      loc,
-                      passData,
-                      diagnostics
+                      newBody
                     )
                   )
               }

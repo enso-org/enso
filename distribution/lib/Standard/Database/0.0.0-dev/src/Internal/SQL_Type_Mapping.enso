@@ -138,7 +138,7 @@ default_sql_type_to_text sql_type =
                 ""
         _ : Integer ->
             if sql_type.scale.is_nothing then "(" + sql_type.precision.to_text + ")" else
-                " (" + sql_type.precision.to_text + "," + sql_type.scale.to_text + ")"
+                "(" + sql_type.precision.to_text + "," + sql_type.scale.to_text + ")"
     sql_type.name.trim + suffix
 
 ## PRIVATE

@@ -13,9 +13,10 @@ import org.enso.compiler.core.ir.{
 }
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedModuleMethod}
-import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.{CompilerError, IR}
 import org.enso.compiler.core.ir.expression.{Application, Operator}
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.analyse.alias.graph.Graph
 import org.enso.compiler.pass.desugar.ComplexType
 import org.enso.compiler.pass.resolve.{
   IgnoredBindings,
@@ -23,6 +24,8 @@ import org.enso.compiler.pass.resolve.{
   ModuleAnnotations,
   TypeSignatures
 }
+
+import java.util.function.Consumer
 
 import scala.annotation.{tailrec, unused}
 
@@ -78,7 +81,7 @@ object AutomaticParallelism extends IRPass {
     ir: Expression,
     parallelismStatus: ParallelismStatus,
     id: Int,
-    assignment: Option[alias.Graph.Id],
+    assignment: Option[Graph.Id],
     dependencies: Set[Int],
     blockAssignment: Option[BlockAssignment]
   )
@@ -215,7 +218,7 @@ object AutomaticParallelism extends IRPass {
               AliasAnalysis,
               "Alias analysis left a binding behind"
             )
-            .asInstanceOf[alias.Info.Occurrence]
+            .asInstanceOf[alias.AliasMetadata.Occurrence]
           line.copy(assignment = Some(aaInfo.id))
         case _ => line
       }
@@ -228,18 +231,23 @@ object AutomaticParallelism extends IRPass {
       line.assignment.map { _ -> line.id }
     }: _*)
     val linesWithDeps = segment.parallelizable.map { line =>
-      val deps = line.ir.preorder
-        .collect { case n: Name.Literal =>
-          n
-        }
-        .flatMap(_.getMetadata(AliasAnalysis))
-        .collect { case occ: alias.Info.Occurrence =>
-          occ
-        }
-        .flatMap(occ => occ.graph.defLinkFor(occ.id))
-        .flatMap(link => depMap.get(link.target))
-        .filter(_ != line.id)
-      line.copy(dependencies = Set(deps: _*))
+      val builder = Set.newBuilder[Int]
+      IR.preorder(
+        line.ir,
+        {
+          case n: Name.Literal =>
+            for {
+              occ @ alias.AliasMetadata.Occurrence(_, _) <-
+                n.getMetadata(AliasAnalysis)
+              link <- occ.graph.defLinkFor(occ.id)
+              id   <- depMap.get(link.target)
+              if id != line.id
+            } builder.addOne(id)
+          case _ =>
+        }: Consumer[IR]
+      )
+
+      line.copy(dependencies = builder.result())
     }
     segment.copy(parallelizable = linesWithDeps)
   }

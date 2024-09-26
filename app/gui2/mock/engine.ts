@@ -1,7 +1,9 @@
 import { Pattern } from '@/util/ast/match'
 import type { MockYdocProviderImpl } from '@/util/crdt'
+import type { WebSocketHandler } from '@/util/net'
+import type { QualifiedName } from '@/util/qualifiedName'
 import * as random from 'lib0/random'
-import * as Ast from 'shared/ast'
+import * as Ast from 'ydoc-shared/ast'
 import {
   Builder,
   EnsoUUID,
@@ -9,8 +11,8 @@ import {
   OutboundPayload,
   VisualizationContext,
   VisualizationUpdate,
-} from 'shared/binaryProtocol'
-import { ErrorCode } from 'shared/languageServer'
+} from 'ydoc-shared/binaryProtocol'
+import { ErrorCode } from 'ydoc-shared/languageServer'
 import type {
   ContextId,
   ExpressionId,
@@ -19,11 +21,10 @@ import type {
   Uuid,
   VisualizationConfiguration,
   response,
-} from 'shared/languageServerTypes'
-import type { SuggestionEntry } from 'shared/languageServerTypes/suggestions'
-import { uuidToBits } from 'shared/uuid'
-import type { MockTransportData, WebSocketHandler } from 'src/util/net'
-import type { QualifiedName } from 'src/util/qualifiedName'
+} from 'ydoc-shared/languageServerTypes'
+import type { SuggestionEntry } from 'ydoc-shared/languageServerTypes/suggestions'
+import type { MockTransportData } from 'ydoc-shared/util/net'
+import { uuidToBits } from 'ydoc-shared/uuid'
 import * as Y from 'yjs'
 import { mockFsDirectoryHandle, type FileTree } from '../src/util/convert/fsAccess'
 import mockDb from '../stories/mockSuggestions.json' assert { type: 'json' }

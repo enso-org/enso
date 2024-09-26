@@ -1119,9 +1119,9 @@ type Integer
        of bits in the operands.
 
        > Example
-         Computing the bitwise conjunction of 2_01101101 and 2_11110000.
+         Computing the bitwise conjunction of 0b01101101 and 0b11110000.
 
-             2_01101101.bit_and 2_11110000
+             0b01101101.bit_and 0b11110000
     bit_and self that:Integer -> Integer = integer_bit_and self that
 
     ## GROUP Bitwise
@@ -1131,9 +1131,9 @@ type Integer
        The bitwise compliment negates the value of each bit in the operand.
 
        > Example
-         Bitwise negation of 2_0110.
+         Bitwise negation of 0b0110.
 
-             2_0110.bit_not
+             0b0110.bit_not
     bit_not self -> Integer = integer_bit_not self
 
     ## GROUP Bitwise
@@ -1148,9 +1148,9 @@ type Integer
        bits in the operands.
 
        > Example
-         Computing the bitwise disjunction of 2_01101101 and 2_11110000.
+         Computing the bitwise disjunction of 0b01101101 and 0b11110000.
 
-             2_01101101.bit_or 2_11110000
+             0b01101101.bit_or 0b11110000
     bit_or self that:Integer -> Integer = integer_bit_or self that
 
     ## GROUP Bitwise
@@ -1164,9 +1164,9 @@ type Integer
        corresponding bits in the operands.
 
        > Example
-         Computing the bitwise exclusive or of 2_01101101 and 2_11110000.
+         Computing the bitwise exclusive or of 0b01101101 and 0b11110000.
 
-             2_01101101.bit_xor 2_11110000
+             0b01101101.bit_xor 0b11110000
     bit_xor self that:Integer -> Integer = integer_bit_xor self that
 
     ## GROUP Bitwise

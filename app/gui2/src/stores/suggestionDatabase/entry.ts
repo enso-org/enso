@@ -11,16 +11,16 @@ import {
   qnSegments,
   qnSplit,
 } from '@/util/qualifiedName'
-import type { MethodPointer } from 'shared/languageServerTypes'
+import type { MethodPointer } from 'ydoc-shared/languageServerTypes'
 import type {
   SuggestionEntryArgument,
   SuggestionEntryScope,
-} from 'shared/languageServerTypes/suggestions'
+} from 'ydoc-shared/languageServerTypes/suggestions'
 export type {
   SuggestionEntryArgument,
   SuggestionEntryScope,
   SuggestionId,
-} from 'shared/languageServerTypes/suggestions'
+} from 'ydoc-shared/languageServerTypes/suggestions'
 
 /** An alias type for typename (for entry fields like `returnType`).
  *
@@ -76,7 +76,8 @@ export function entryQn(entry: SuggestionEntry): QualifiedName {
   if (entry.kind == SuggestionKind.Module) {
     return entry.definedIn
   } else {
-    return qnJoin(entry.memberOf ?? entry.definedIn, entry.name)
+    const owner = entryOwnerQn(entry)
+    return owner ? qnJoin(owner, entry.name) : entry.name
   }
 }
 
@@ -89,6 +90,14 @@ export function entryMethodPointer(entry: SuggestionEntry): MethodPointer | unde
     module: entry.definedIn,
     definedOnType: entry.memberOf,
     name: entry.name,
+  }
+}
+
+export function entryOwnerQn(entry: SuggestionEntry): QualifiedName | null {
+  if (entry.kind == SuggestionKind.Module) {
+    return qnParent(entry.definedIn)
+  } else {
+    return entry.memberOf ?? entry.definedIn
   }
 }
 

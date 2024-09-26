@@ -19,6 +19,7 @@ import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{
   Resolution,
   ResolutionNotFound,
+  ResolvedExtensionMethod,
   ResolvedModule,
   ResolvedModuleMethod
 }
@@ -27,7 +28,7 @@ import org.enso.compiler.core.ConstantsNames
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis}
-import org.enso.compiler.pass.analyse.alias.{Info => AliasInfo}
+import org.enso.compiler.pass.analyse.alias.{AliasMetadata => AliasInfo}
 
 /** Resolves name occurences in non-pattern contexts.
   *
@@ -237,11 +238,27 @@ case object GlobalNames extends IRPass {
                       app
                     }
                   case Right(values) =>
-                    values.foldLeft(lit)((lit, value) =>
-                      lit.updateMetadata(
-                        new MetadataPair(this, BindingsMap.Resolution(value))
+                    val containsErrors = values.exists {
+                      case ResolvedExtensionMethod(modRef, _)
+                          if bindings.currentModule.getName == modRef.getName =>
+                        // The resolved method is a static method in the current module,
+                        // but it is called without the type name, so it is an unresolved
+                        // symbol.
+                        true
+                      case _ => false
+                    }
+                    if (containsErrors) {
+                      errors.Resolution(
+                        lit,
+                        errors.Resolution.ResolverError(ResolutionNotFound)
                       )
-                    )
+                    } else {
+                      values.foldLeft(lit)((lit, value) =>
+                        lit.updateMetadata(
+                          new MetadataPair(this, BindingsMap.Resolution(value))
+                        )
+                      )
+                    }
                 }
 
               } else {

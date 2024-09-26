@@ -20,6 +20,7 @@ import Standard.Test.Test_Environment
 
 import enso_dev.Table_Tests
 import enso_dev.Table_Tests.Database.Common.Common_Spec
+import enso_dev.Table_Tests.Database.Common.IR_Spec
 import enso_dev.Table_Tests.Database.Transaction_Spec
 import enso_dev.Table_Tests.Database.Upload_Spec
 import enso_dev.Table_Tests.Database.Helpers.Name_Generator
@@ -184,11 +185,11 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
             # The integer column is treated as NUMBER(38, 0) in Snowflake so the value type reflects that:
             i.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Decimal 38 0, Value_Type.Boolean, Value_Type.Float]
 
-        group_builder.specify "should return Table information, also for aggregated results" pending="TODO: fix https://github.com/enso-org/enso/issues/10611" <|
+        group_builder.specify "should return Table information, also for aggregated results" <|
             i = data.t.aggregate columns=[Aggregate_Column.Concatenate "strs", Aggregate_Column.Sum "ints", Aggregate_Column.Count_Distinct "bools"] . column_info
             i.at "Column" . to_vector . should_equal ["Concatenate strs", "Sum ints", "Count Distinct bools"]
             i.at "Items Count" . to_vector . should_equal [1, 1, 1]
-            i.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Decimal 38 0, Value_Type.Decimal 38 0]
+            i.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Decimal 38 0, Value_Type.Decimal 18 0]
 
         group_builder.specify "should infer standard types correctly" <|
             data.t.at "strs" . value_type . is_text . should_be_true
@@ -321,11 +322,11 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
             m2.at "ś"   . to_vector . should_equal ["A"]
             m2.at "ś 1" . to_vector . should_equal [2]
 
-            r3 = default_connection.get.query 'SELECT 1 AS "A", 2 AS "A"'
+            r3 = default_connection.get.query (SQL_Query.Raw_SQL 'SELECT 1 AS "A", 2 AS "A"')
             r3.should_fail_with Illegal_Argument
             r3.catch.cause . should_be_a Duplicate_Output_Column_Names
 
-            r4 = default_connection.get.query 'SELECT 1 AS ""'
+            r4 = default_connection.get.query (SQL_Query.Raw_SQL 'SELECT 1 AS ""')
             r4.should_fail_with Illegal_Argument
             r4.catch.to_display_text . should_contain "The provided custom SQL query is invalid and may suffer data corruption"
             r4.catch.to_display_text . should_contain "The name '' is invalid"
@@ -393,64 +394,65 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
         group_builder.specify "should round-trip timestamptz column, preserving instant but converting to UTC" <|
             table_name = Name_Generator.random_name "TimestampTZ"
             table = default_connection.get.create_table table_name [Column_Description.Value "A" (Value_Type.Date_Time with_timezone=True), Column_Description.Value "rowid" Value_Type.Integer] primary_key=[]
+            table.should_succeed
+            Panic.with_finalizer (default_connection.get.drop_table table.name) <|
+                dt1 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.utc)
+                dt2 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.parse "US/Hawaii")
+                dt3 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.parse "Europe/Warsaw")
+                v = [dt1, dt2, dt3]
 
-            dt1 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.utc)
-            dt2 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.parse "US/Hawaii")
-            dt3 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.parse "Europe/Warsaw")
-            v = [dt1, dt2, dt3]
+                Problems.assume_no_problems <|
+                    table.update_rows (Table.new [["A", v], ["rowid", (0.up_to v.length).to_vector]]) update_action=Update_Action.Insert
 
-            Problems.assume_no_problems <|
-                table.update_rows (Table.new [["A", v], ["rowid", (0.up_to v.length).to_vector]]) update_action=Update_Action.Insert
+                returned_v =
+                    dt1_offset = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.new 0)
+                    dt2_offset = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.new -10)
+                    dt3_offset = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.new 2)
+                    [dt1_offset, dt2_offset, dt3_offset]
+                table.sort "rowid" . at "A" . to_vector . should_equal returned_v
 
-            returned_v =
-                dt1_offset = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.new 0)
-                dt2_offset = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.new -10)
-                dt3_offset = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.new 2)
-                [dt1_offset, dt2_offset, dt3_offset]
-            table.sort "rowid" . at "A" . to_vector . should_equal returned_v
-
-            ## We also check how the timestamp column behaves with interpolations:
-            v.each my_dt-> Test.with_clue "("+my_dt.to_text+") " <|
-                    t2 = table.filter "A" (Filter_Condition.Equal to=my_dt)
-                    t2.row_count . should_equal 1
+                ## We also check how the timestamp column behaves with interpolations:
+                v.each my_dt-> Test.with_clue "("+my_dt.to_text+") " <|
+                        t2 = table.filter "A" (Filter_Condition.Equal to=my_dt)
+                        t2.row_count . should_equal 1
 
         group_builder.specify "will round-trip timestamp column without timezone by converting it to UTC" <|
             table_name = Name_Generator.random_name "Timestamp"
             table = default_connection.get.create_table table_name [Column_Description.Value "A" (Value_Type.Date_Time with_timezone=False)] primary_key=[]
             Problems.assume_no_problems table
+            Panic.with_finalizer (default_connection.get.drop_table table.name) <|
+                dt1 = Date_Time.new 2022 05 04 15 30
+                dt2 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.utc)
+                dt3 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.parse "US/Hawaii")
+                dt4 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.parse "Europe/Warsaw")
+                v = [dt1, dt2, dt3, dt4]
 
-            dt1 = Date_Time.new 2022 05 04 15 30
-            dt2 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.utc)
-            dt3 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.parse "US/Hawaii")
-            dt4 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.parse "Europe/Warsaw")
-            v = [dt1, dt2, dt3, dt4]
+                source_table = Table.new [["A", v]]
+                source_table.at "A" . value_type . should_equal (Value_Type.Date_Time with_timezone=True)
+                w = Problems.expect_only_warning Inexact_Type_Coercion <|
+                    table.update_rows source_table update_action=Update_Action.Insert
+                w.requested_type . should_equal (source_table.at "A" . value_type)
+                w.actual_type . should_equal (table.at "A" . value_type)
+                w.to_display_text . should_equal "The type Date_Time (with timezone) has been coerced to Date_Time (without timezone). Some information may be lost."
 
-            source_table = Table.new [["A", v]]
-            source_table.at "A" . value_type . should_equal (Value_Type.Date_Time with_timezone=True)
-            w = Problems.expect_only_warning Inexact_Type_Coercion <|
-                table.update_rows source_table update_action=Update_Action.Insert
-            w.requested_type . should_equal (source_table.at "A" . value_type)
-            w.actual_type . should_equal (table.at "A" . value_type)
-            w.to_display_text . should_equal "The type Date_Time (with timezone) has been coerced to Date_Time (without timezone). Some information may be lost."
+                # When uploading we want to just strip the timezone information and treat every timestamp as LocalDateTime.
+                # This is verified by checking the text representation in the DB: it should show the same local time in all 4 cases, regardless of original timezone.
+                local_dt = "2022-05-04 15:30:00.000000000"
+                table.at "A" . cast Value_Type.Char . to_vector . should_equal [local_dt, local_dt, local_dt, local_dt]
 
-            # When uploading we want to just strip the timezone information and treat every timestamp as LocalDateTime.
-            # This is verified by checking the text representation in the DB: it should show the same local time in all 4 cases, regardless of original timezone.
-            local_dt = "2022-05-04 15:30:00.000000000"
-            table.at "A" . cast Value_Type.Char . to_vector . should_equal [local_dt, local_dt, local_dt, local_dt]
+                # Then when downloaded, it should be interpreted at the 'system default' timezone.
+                materialized_table = table.read
+                materialized_table.at "A" . to_vector . should_equal [dt1, dt1, dt1, dt1]
 
-            # Then when downloaded, it should be interpreted at the 'system default' timezone.
-            materialized_table = table.read
-            materialized_table.at "A" . to_vector . should_equal [dt1, dt1, dt1, dt1]
+                # The Inexact_Type_Coercion warning is silenced for this case:
+                Problems.assume_no_problems materialized_table
 
-            # The Inexact_Type_Coercion warning is silenced for this case:
-            Problems.assume_no_problems materialized_table
-
-            # We also check how the timestamp column behaves with interpolations:
-            # Given that we lost timezone - all entries match.
-            v.each my_dt-> Test.with_clue my_dt.to_text+": " <|
-                t2 = table.filter "A" (Filter_Condition.Equal to=my_dt)
-                t2.row_count . should_equal 4
-                t2.at "A" . to_vector . should_equal [dt1, dt1, dt1, dt1]
+                # We also check how the timestamp column behaves with interpolations:
+                # Given that we lost timezone - all entries match.
+                v.each my_dt-> Test.with_clue my_dt.to_text+": " <|
+                    t2 = table.filter "A" (Filter_Condition.Equal to=my_dt)
+                    t2.row_count . should_equal 4
+                    t2.at "A" . to_vector . should_equal [dt1, dt1, dt1, dt1]
 
     suite_builder.group "[Snowflake] math functions" group_builder->
         group_builder.specify "round, trunc, ceil, floor" <|
@@ -463,7 +465,7 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
 
             col . cast Value_Type.Float . round 1 . value_type . should_equal Value_Type.Float
             col . cast Value_Type.Integer . round 1 . value_type . should_equal (Value_Type.Decimal 38 0)
-            col . cast Value_Type.Decimal . round 1 . value_type . should_equal (Value_Type.Decimal 38 0)
+            col . cast Value_Type.Decimal . round 1 . value_type . should_equal (Value_Type.Decimal 38 1)
 
             col . cast Value_Type.Float . round use_bankers=True . value_type . should_equal Value_Type.Float
             col . cast Value_Type.Integer . round use_bankers=True . value_type . should_equal Value_Type.Float
@@ -528,10 +530,10 @@ add_snowflake_specs suite_builder create_connection_fn db_name =
         default_connection.get.base_connection.create_literal_table (Table.new columns) "literal_table"
     materialize = .read
 
-    Common_Spec.add_specs suite_builder prefix create_connection_fn
+    Common_Spec.add_specs suite_builder prefix create_connection_fn default_connection
 
     common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=True order_by_unicode_normalization_by_default=True allows_mixed_type_comparisons=False text_length_limited_columns=True fixed_length_text_columns=False different_size_integer_types=False removes_trailing_whitespace_casting_from_char_to_varchar=False supports_decimal_type=True supported_replace_params=supported_replace_params run_advanced_edge_case_tests_by_default=False supports_date_time_without_timezone=True supports_nanoseconds_in_time=True is_nan_comparable=True distinct_returns_first_row_from_group_if_ordered=False
-    aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config first_last=False first_last_row_order=False aggregation_problems=False text_concat=False
+    aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config first_last_row_order=False aggregation_problems=False text_concat=False
     agg_in_memory_table = ((Project_Description.new enso_dev.Table_Tests).data / "data.csv") . read
 
     agg_table_fn = _->
@@ -545,6 +547,7 @@ add_snowflake_specs suite_builder create_connection_fn db_name =
     snowflake_specific_spec suite_builder default_connection db_name setup
     Common_Table_Operations.Main.add_specs suite_builder setup
     Upload_Spec.add_specs suite_builder setup create_connection_fn
+    IR_Spec.add_specs suite_builder setup prefix default_connection.get
 
 ## PRIVATE
 is_snowflake_integer value_type = case value_type of

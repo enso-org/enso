@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Dry_Run_Operation
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
 import Standard.Base.Runtime.Context as Execution_Context
@@ -18,7 +19,9 @@ import project.DB_Table as DB_Table_Module
 import project.DB_Table.DB_Table
 import project.Dialect.Dialect
 import project.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
+import project.Internal.DDL_Transaction
 import project.Internal.Hidden_Table_Registry
+import project.Internal.In_Transaction.In_Transaction
 import project.Internal.IR.Context.Context
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Query.Query
@@ -199,8 +202,7 @@ type Connection
 
        Arguments:
        - query: name of the table or sql statement to query.
-         If supplied as `Text`, the name is checked against the `tables` list to
-         determine if it is a table or a query.
+         If supplied as `Text` it is treated as a table name.
        - alias: optionally specify a friendly alias for the query.
 
        ! Error Conditions
@@ -211,19 +213,14 @@ type Connection
          - If provided with a `Table_Name` or a text short-hand and the table is
            not found, a `Table_Not_Found` error is raised.
     @query make_table_name_selector
-    query : Text | SQL_Query -> Text -> DB_Table ! Table_Not_Found | SQL_Error
-    query self query alias="" = case query of
-        _ : Text ->
-            result = self.query alias=alias <|
-                if self.table_exists query then (SQL_Query.Table_Name query) else
-                    SQL_Query.Raw_SQL query
-            result.catch SQL_Error sql_error->
-                case self.dialect.is_probably_a_query query of
-                    True -> result
-                    False ->
-                        Error.throw (Table_Not_Found.Error query sql_error treated_as_query=True extra_message="")
+    query : SQL_Query -> Text -> DB_Table ! Table_Not_Found | SQL_Error
+    query self query:SQL_Query alias="" = case query of
+        SQL_Query.Table_Name name ->
+            table_naming_helper = self.base_connection.table_naming_helper
+            table_naming_helper.verify_table_name name <|
+                make_table_for_name self name alias
         SQL_Query.Raw_SQL raw_sql -> handle_sql_errors <| alias.if_not_error <|
-            self.jdbc_connection.ensure_query_has_no_holes raw_sql . if_not_error <|
+            self.dialect.ensure_query_has_no_holes self.jdbc_connection raw_sql . if_not_error <|
                 columns = self.fetch_columns raw_sql Statement_Setter.null
                 name = if alias == "" then (UUID.randomUUID.to_text) else alias
                 ctx = Context.for_query raw_sql name
@@ -239,20 +236,13 @@ type Connection
                 r = DB_Table_Module.make_table self name columns ctx on_problems=Problem_Behavior.Report_Error
                 r.catch Any error->
                     Error.throw (Illegal_Argument.Error "The provided custom SQL query is invalid and may suffer data corruption when being processed, especially if it contains aliased column names, it may not be interpreted correctly. Please ensure the names are unique. The original error was: "+error.to_display_text cause=error)
-        SQL_Query.Table_Name name ->
-            case self.table_naming_helper.is_table_name_valid name of
-                True -> make_table_for_name self name alias
-                False ->
-                    Error.throw (Table_Not_Found.Error name related_query_error=Nothing treated_as_query=False extra_message="")
-
 
     ## PRIVATE
        Execute the query and load the results into memory as a Table.
 
        Arguments:
        - query: name of the table or sql statement to query.
-         If supplied as `Text`, the name is checked against the `tables` list to
-         determine if it is a table or a query.
+         If supplied as `Text` it is treated as a table name.
        - limit: the maximum number of rows to read.
 
        ? Side Effects
@@ -264,8 +254,8 @@ type Connection
          results, the `read` should be wrapped in an execution context check.
     @query make_table_name_selector
     @limit Rows_To_Read.default_widget
-    read : Text | SQL_Query -> Rows_To_Read -> Table ! Table_Not_Found
-    read self query (limit : Rows_To_Read = ..First_With_Warning 1000) =
+    read : SQL_Query -> Rows_To_Read -> Table ! Table_Not_Found
+    read self query:SQL_Query (limit : Rows_To_Read = ..First_With_Warning 1000) =
         self.query query . read max_rows=limit
 
     ## PRIVATE
@@ -373,6 +363,7 @@ type Connection
         Execution_Context.Output.if_enabled disabled_message="Executing update queries is forbidden as the Output context is disabled." panic=False <|
             statement_setter = self.dialect.get_statement_setter
             self.jdbc_connection.with_prepared_statement query statement_setter stmt->
+                check_statement_is_allowed self stmt
                 result = case self.supports_large_update.get of
                     True -> Panic.catch UnsupportedOperationException stmt.executeLargeUpdate _->
                         self.supports_large_update.put False
@@ -380,6 +371,24 @@ type Connection
                     False -> stmt.executeUpdate
                 SQL_Warning_Helper.process_warnings stmt <|
                     result
+
+    ## PRIVATE
+       ADVANCED
+
+       Executes a raw query. If the query was inserting, updating or
+       deleting rows, the number of affected rows is returned; otherwise it
+       returns 0 for other types of queries (like creating or altering tables).
+
+       Arguments:
+       - query: either raw SQL code as Text or an instance of SQL_Statement
+         representing the query to execute.
+    execute : Text | SQL_Statement -> Integer
+    execute self query =
+        Execution_Context.Output.if_enabled disabled_message="Executing update queries is forbidden as the Output context is disabled." panic=False <|
+            result = self.jdbc_connection.execute query
+            stmt = result.second
+            check_statement_is_allowed self stmt
+            stmt.getUpdateCount
 
     ## PRIVATE
        Drops a table.
@@ -491,7 +500,9 @@ make_schema_selector connection include_any:Boolean=False =
 make_table_name_selector : Connection -> Widget
 make_table_name_selector connection =
     tables_to_display = connection.tables.at "Name" . to_vector
-    Single_Choice display=Display.Always values=(tables_to_display.map t-> Option t t.pretty)
+    table_name_values = tables_to_display.map t-> Option t t.pretty
+    values = table_name_values + [Option '<Table_Name>' '..Table_Name ""', Option '<Raw_SQL>' '..Raw_SQL ""']
+    Single_Choice display=Display.Always values=values
 
 ## PRIVATE
 make_structure_creator : Widget
@@ -513,5 +524,19 @@ make_table_for_name connection name alias internal_temporary_keep_alive_referenc
            warning. We do not want to fail, as we do want to allow the user to
            access any table already present in the database.
         DB_Table_Module.make_table connection name columns ctx on_problems=Problem_Behavior.Report_Warning
-    result.catch SQL_Error sql_error->
-        Error.throw (Table_Not_Found.Error name sql_error treated_as_query=False extra_message="")
+    result.catch SQL_Error _->
+        Error.throw (Table_Not_Found.Error name)
+
+## PRIVATE
+private check_statement_is_allowed connection stmt =
+    trimmed = stmt.to_text.trim.to_case ..Lower
+    is_ddl_regex = "\s*(?:create|alter|drop).*".to_regex case_insensitive=True
+    is_ddl = is_ddl_regex.matches trimmed
+    if is_ddl && In_Transaction.is_in_transaction then
+        support_level = DDL_Transaction.Support_Level.get_from connection
+        if support_level != DDL_Transaction.Support_Level.Allowed then
+            message = case support_level of
+                DDL_Transaction.Support_Level.Unsupported -> "This Database does not allow DDL statements inside of transactions."
+                DDL_Transaction.Support_Level.Ignored -> "This Database ignores DDL statements inside of transactions, please execute such statements outside of a transaction."
+                DDL_Transaction.Support_Level.Causes_Commit -> "This Database commits open transactions when DDL statements are executed. To prevent from accidentally committing an unfinished transaction, the execution was blocked."
+            Panic.throw (Illegal_State.Error message)

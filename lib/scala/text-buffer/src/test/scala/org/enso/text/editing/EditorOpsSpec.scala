@@ -19,13 +19,37 @@ class EditorOpsSpec extends AnyFlatSpec with Matchers with EitherValues {
     //when
     val result = EditorOps.applyEdits(testSnippet, diffs)
     //then
-    result.map(_.toString) mustBe Right("""
-                                          |main =
-                                          |    apply = arg f -> f arg
-                                          |    adder = a b -> a + b
-                                          |    plusOne = apply (f = adder 1)
-                                          |    result = plusOne 10
-                                          |    result""".stripMargin)
+    result.map(_.toString) mustBe Right(
+      """
+        |main =
+        |    apply = arg f -> f arg
+        |    adder = a b -> a + b
+        |    plusOne = apply (f = adder 1)
+        |    result = plusOne 10
+        |    result""".stripMargin
+    )
+  }
+
+  it should "be able to apply diffs with unicode symbols" in {
+    //given
+    val oldKeyEmoji       = "\uD83D\uDDDD"
+    val signaturePosition = Range(Position(2, 12), Position(2, 13))
+    val signatureDiff     = TextEdit(signaturePosition, oldKeyEmoji)
+    val bodyPosition      = Range(Position(2, 22), Position(2, 23))
+    val bodyDiff          = TextEdit(bodyPosition, oldKeyEmoji)
+    val diffs             = List(signatureDiff, bodyDiff)
+    //when
+    val result = EditorOps.applyEdits(testSnippet, diffs)
+    //then
+    result.map(_.toString) mustBe Right(
+      """
+        |main =
+        |    apply = 🗝 f -> f 🗝
+        |    adder = a b -> a + b
+        |    plusOne = apply (f = adder 1)
+        |    result = plusOne 10
+        |    result""".stripMargin
+    )
   }
 
   it should "take into account applied so far edits when validate next diff" in {
@@ -86,4 +110,16 @@ class EditorOpsSpec extends AnyFlatSpec with Matchers with EitherValues {
     result.map(_.toString) mustBe Right("foo")
   }
 
+  it should "be able to edit text with unicode symbols" in {
+    //given
+    val oldKeyEmoji       = "\uD83D\uDDDD"
+    val variationSelector = "\uFE0F"
+    val codeToEdit        = Rope(s"$oldKeyEmoji$variationSelector")
+    val range             = Range(Position(0, 2), Position(0, 2))
+    val diff              = TextEdit(range, "xyz")
+    //when
+    val result = EditorOps.applyEdits(codeToEdit, Seq(diff))
+    //then
+    result.map(_.toString) mustBe Right("\uD83D\uDDDDxyz\uFE0F")
+  }
 }

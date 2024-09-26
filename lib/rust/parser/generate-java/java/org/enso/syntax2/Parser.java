@@ -2,9 +2,11 @@ package org.enso.syntax2;
 
 import java.io.File;
 import java.net.URISyntaxException;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import org.slf4j.LoggerFactory;
 
 public final class Parser implements AutoCloseable {
   private static void initializeLibraries() {
@@ -44,10 +46,11 @@ public final class Parser implements AutoCloseable {
       }
       System.load(path.getAbsolutePath());
     } catch (NullPointerException | IllegalArgumentException | LinkageError e) {
-      if (searchFromDirToTop(e, root, "target", "rust", "debug", name)) {
+      if (searchFromDirToTop(e, root, "target", "rust", "parser-jni", name)) {
         return;
       }
-      if (searchFromDirToTop(e, new File(".").getAbsoluteFile(), "target", "rust", "debug", name)) {
+      if (searchFromDirToTop(
+          e, new File(".").getAbsoluteFile(), "target", "rust", "parser-jni", name)) {
         return;
       }
       throw new IllegalStateException("Cannot load parser from " + root, e);
@@ -74,10 +77,10 @@ public final class Parser implements AutoCloseable {
     return false;
   }
 
-  private long state;
+  private long stateUnlessClosed;
 
   private Parser(long stateIn) {
-    state = stateIn;
+    stateUnlessClosed = stateIn;
   }
 
   private static native long allocState();
@@ -114,7 +117,16 @@ public final class Parser implements AutoCloseable {
     return isIdentOrOperator(inputBuf);
   }
 
+  private long getState() {
+    if (stateUnlessClosed != 0) {
+      return stateUnlessClosed;
+    } else {
+      throw new IllegalStateException("Parser used after close()");
+    }
+  }
+
   public ByteBuffer parseInputLazy(CharSequence input) {
+    var state = getState();
     byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
     ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
     inputBuf.put(inputBytes);
@@ -122,6 +134,7 @@ public final class Parser implements AutoCloseable {
   }
 
   public Tree parse(CharSequence input) {
+    var state = getState();
     byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
     ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
     inputBuf.put(inputBytes);
@@ -130,7 +143,13 @@ public final class Parser implements AutoCloseable {
     var metadata = getMetadata(state);
     serializedTree.order(ByteOrder.LITTLE_ENDIAN);
     var message = new Message(serializedTree, input, base, metadata);
-    return Tree.deserialize(message);
+    try {
+      return Tree.deserialize(message);
+    } catch (BufferUnderflowException | IllegalArgumentException e) {
+      LoggerFactory.getLogger(this.getClass())
+          .error("Unrecoverable parser failure for: {}", input, e);
+      throw e;
+    }
   }
 
   public static String getWarningMessage(Warning warning) {
@@ -139,7 +158,7 @@ public final class Parser implements AutoCloseable {
 
   @Override
   public void close() {
-    freeState(state);
-    state = 0;
+    freeState(stateUnlessClosed);
+    stateUnlessClosed = 0;
   }
 }

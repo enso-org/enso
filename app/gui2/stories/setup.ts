@@ -2,16 +2,16 @@ import '@/assets/base.css'
 import { provideGuiConfig } from '@/providers/guiConfig'
 import { provideVisualizationConfig } from '@/providers/visualizationConfig'
 import { Vec2 } from '@/util/data/vec2'
-import { MockTransport } from '@/util/net'
+import { MockWebSocketTransport } from '@/util/net'
 import type { QualifiedName } from '@/util/qualifiedName'
 import { defineSetupVue3 } from '@histoire/plugin-vue'
 import * as random from 'lib0/random'
-import type { LibraryComponentGroup, Uuid, response } from 'shared/languageServerTypes'
+import { ref } from 'vue'
+import type { LibraryComponentGroup, Uuid, response } from 'ydoc-shared/languageServerTypes'
 import type {
   SuggestionEntry,
   SuggestionsDatabaseUpdate,
-} from 'shared/languageServerTypes/suggestions'
-import { ref } from 'vue'
+} from 'ydoc-shared/languageServerTypes/suggestions'
 import CustomBackground from './histoire/CustomBackground.vue'
 import mockDb from './mockSuggestions.json' assert { type: 'json' }
 import './story.css'
@@ -31,7 +31,7 @@ export function placeholderGroups(): LibraryComponentGroup[] {
   ]
 }
 
-MockTransport.addMock('engine', async (method, data, transport) => {
+MockWebSocketTransport.addMock('engine', async (method, data, transport) => {
   switch (method) {
     case 'session/initProtocolConnection':
       return {
@@ -81,42 +81,33 @@ export const setupVue3 = defineSetupVue3(({ app, addWrapper }) => {
         project: 'Mock Project',
         displayedProjectName: 'Mock Project',
       },
-      engine: { rpcUrl: 'mock://engine', dataUrl: 'mock://data' },
+      engine: {
+        rpcUrl: 'mock://engine',
+        dataUrl: 'mock://data',
+        ydocUrl: 'mock://ydoc',
+        namespace: 'local',
+        projectManagerUrl: 'mock://projectmanager',
+      },
+      window: {
+        topBarOffset: 96,
+        vibrancy: false,
+      },
+      authentication: {
+        enabled: false,
+        email: '',
+      },
     }),
     app,
   )
   // Required for visualization stories.
   provideVisualizationConfig._mock(
     {
-      fullscreen: false,
-      scale: 1,
-      width: 200,
-      height: 150,
-      hide() {},
-      isCircularMenuVisible: false,
-      isBelowToolbar: false,
-      nodeSize: new Vec2(200, 150),
-      currentType: {
-        module: { kind: 'Builtin' },
-        name: 'Current Type',
-      },
-      icon: 'braces',
-      types: [
-        {
-          module: { kind: 'Builtin' },
-          name: 'Example',
-        },
-        {
-          module: { kind: 'Builtin' },
-          name: 'Types',
-        },
-        {
-          module: { kind: 'Builtin' },
-          name: 'Here',
-        },
-      ],
-      updateType() {},
-      addNode() {},
+      size: new Vec2(200, 150),
+      createNodes() {},
+      nodeType: 'component',
+      setPreprocessor: () => {},
+      setToolbar: () => {},
+      setToolbarOverlay: () => {},
     },
     app,
   )

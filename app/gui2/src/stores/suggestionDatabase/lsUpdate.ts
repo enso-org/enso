@@ -24,7 +24,7 @@ import {
   type IdentifierOrOperatorIdentifier,
   type QualifiedName,
 } from '@/util/qualifiedName'
-import * as lsTypes from 'shared/languageServerTypes/suggestions'
+import * as lsTypes from 'ydoc-shared/languageServerTypes/suggestions'
 
 interface UnfinishedEntry {
   kind: SuggestionKind

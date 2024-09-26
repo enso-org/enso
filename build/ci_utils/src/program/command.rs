@@ -81,7 +81,7 @@ pub trait MyCommand<P: Program>: BorrowMut<Command> + From<Command> + Into<Comma
     }
 
     fn spawn(&mut self) -> Result<Child> {
-        self.borrow_mut().spawn().anyhow_err()
+        self.borrow_mut().spawn()
     }
 }
 
@@ -295,10 +295,18 @@ impl Debug for Command {
     }
 }
 
+pub fn default_status_checker(status: ExitStatus) -> Result {
+    if status.success() {
+        Ok(())
+    } else {
+        bail!("process exited unsuccessfully: {status}")
+    }
+}
+
 impl Command {
     pub fn new<S: AsRef<OsStr>>(program: S) -> Command {
         let inner = tokio::process::Command::new(program);
-        let status_checker = Arc::new(|status: ExitStatus| status.exit_ok().anyhow_err());
+        let status_checker = Arc::new(default_status_checker);
         Self { inner, status_checker, pretty_name: None }
     }
 
@@ -461,7 +469,21 @@ pub fn spawn_log_processor(
                 match String::from_utf8(line_bytes) {
                     Ok(line) => {
                         let line = line.trim_end_matches('\r');
-                        info!("{prefix} {line}");
+                        let mut command = false;
+                        if let Some(command_at) = line.find("::") {
+                            if let Some(group_at) = line.find("group") {
+                                // we support: `::group` and `::endgroup` right now
+                                if command_at < group_at && group_at < command_at + 10 {
+                                    let line_without_prefix = &line[command_at..];
+                                    // intentionally using println to avoid info!'s prefix
+                                    println!("{line_without_prefix}");
+                                    command = true;
+                                }
+                            }
+                        }
+                        if !command {
+                            info!("{prefix} {line}");
+                        }
                     }
                     Err(e) => {
                         error!("{prefix} Failed to decode a line from output: {e}");

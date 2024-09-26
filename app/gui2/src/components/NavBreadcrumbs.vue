@@ -9,6 +9,7 @@ import { ref } from 'vue'
 export interface BreadcrumbItem {
   label: string
   active: boolean
+  isCurrentTop: boolean
 }
 const renameError = useToast.error()
 const projectNameEdited = ref(false)
@@ -36,6 +37,7 @@ async function renameBreadcrumb(index: number, newName: string) {
           v-if="index > 0"
           name="arrow_right_head_only"
           :disabled="!breadcrumb.active"
+          :class="{ nonInteractive: breadcrumb.isCurrentTop }"
           class="arrow"
         />
         <NavBreadcrumb
@@ -43,9 +45,11 @@ async function renameBreadcrumb(index: number, newName: string) {
           :active="breadcrumb.active"
           :editing="index === 0 && projectNameEdited"
           :title="index === 0 ? 'Project Name' : ''"
+          :class="{ nonInteractive: breadcrumb.isCurrentTop }"
           class="clickable"
           @click.stop="stackNavigator.handleBreadcrumbClick(index)"
           @update:modelValue="renameBreadcrumb(index, $event)"
+          @focusout="projectNameEdited = false"
         />
       </template>
     </div>
@@ -63,8 +67,6 @@ async function renameBreadcrumb(index: number, newName: string) {
   gap: 12px;
   padding-left: 8px;
   padding-right: 10px;
-  padding-top: 4px;
-  padding-bottom: 4px;
 }
 
 .NavBreadcrumbs {
@@ -77,7 +79,7 @@ async function renameBreadcrumb(index: number, newName: string) {
   color: #666666;
 }
 
-.inactive {
-  opacity: 0.4;
+.nonInteractive {
+  pointer-events: none;
 }
 </style>

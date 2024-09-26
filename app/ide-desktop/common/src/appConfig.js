@@ -19,7 +19,7 @@ export async function readEnvironmentFromFile() {
   const filePath = path.join(url.fileURLToPath(new URL('../..', import.meta.url)), fileName)
   const buildInfo = await (async () => {
     try {
-      return await import('../../../../build.json', { assert: { type: 'json' } })
+      return await import('../../../../build.json', { with: { type: 'json' } })
     } catch {
       return { commit: '', version: '', engineVersion: '', name: '' }
     }

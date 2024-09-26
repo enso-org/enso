@@ -11,11 +11,19 @@
  */
 
 import { assert } from '@/util/assert'
-import { LazySyncEffectSet } from '@/util/reactivity'
+import { LazySyncEffectSet, NonReactiveView } from '@/util/reactivity'
 import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
 import * as set from 'lib0/set'
-import { computed, effectScope, reactive, toRaw, type ComputedRef, type DebuggerOptions } from 'vue'
+import {
+  computed,
+  effectScope,
+  onScopeDispose,
+  reactive,
+  toRaw,
+  type ComputedRef,
+  type DebuggerOptions,
+} from 'vue'
 
 export type OnDelete = (cleanupFn: () => void) => void
 
@@ -71,9 +79,24 @@ export class ReactiveDb<K, V>
    * @param key - The key for which to retrieve the value.
    * @returns The value associated with the key, or undefined if the key is not found.
    */
-  /** Same as `Map.get` */
   get(key: K): V | undefined {
     return this._internal.get(key)
+  }
+
+  /**
+   * Retrieves the value corresponding to a specified key, without creating any reactive dependency for the lookup or
+   * any subsequent access to the data.
+   *
+   * This can be useful to read a reactive value for the purpose of incrementally updating it, without creating a cyclic
+   * dependency.
+   *
+   * @param key - The key for which to retrieve the value.
+   * @returns The value associated with the key, or undefined if the key is not found.
+   */
+  getUntracked(key: K): NonReactiveView<V> | undefined {
+    const value = toRaw(this._internal).get(key)
+    if (value === undefined) return
+    return value as NonReactiveView<V>
   }
 
   /**
@@ -203,14 +226,18 @@ export class ReactiveIndex<K, V, IK, IV> {
   constructor(db: ReactiveDb<K, V>, indexer: Indexer<K, V, IK, IV>) {
     this.forward = reactive(map.create())
     this.reverse = reactive(map.create())
-    this.effects = new LazySyncEffectSet()
-    db.on('entryAdded', (key, value, onDelete) => {
-      const stopEffect = this.effects.lazyEffect((onCleanup) => {
-        const keyValues = indexer(key, value)
-        keyValues.forEach(([key, value]) => this.writeToIndex(key, value))
-        onCleanup(() => keyValues.forEach(([key, value]) => this.removeFromIndex(key, value)))
+    const scope = effectScope()
+    this.effects = new LazySyncEffectSet(scope)
+    scope.run(() => {
+      const handler = db.on('entryAdded', (key, value, onDelete) => {
+        const stopEffect = this.effects.lazyEffect((onCleanup) => {
+          const keyValues = indexer(key, value)
+          keyValues.forEach(([key, value]) => this.writeToIndex(key, value))
+          onCleanup(() => keyValues.forEach(([key, value]) => this.removeFromIndex(key, value)))
+        })
+        onDelete(() => stopEffect())
       })
-      onDelete(() => stopEffect())
+      onScopeDispose(() => db.off('entryAdded', handler))
     })
   }
 
@@ -338,16 +365,20 @@ export class ReactiveMapping<K, V, M> {
    */
   constructor(db: ReactiveDb<K, V>, indexer: Mapper<K, V, M>, debugOptions?: DebuggerOptions) {
     this.computed = reactive(map.create())
-    db.on('entryAdded', (key, value, onDelete) => {
-      const scope = effectScope()
-      const mappedValue = scope.run(() =>
-        computed(() => scope.run(() => indexer(key, value)), debugOptions),
-      )! // This non-null assertion is SAFE, as the scope is initially active.
-      this.computed.set(key, mappedValue)
-      onDelete(() => {
-        scope.stop()
-        this.computed.delete(key)
+    const scope = effectScope()
+    scope.run(() => {
+      const handler = db.on('entryAdded', (key, value, onDelete) => {
+        const scope = effectScope()
+        const mappedValue = scope.run(() =>
+          computed(() => scope.run(() => indexer(key, value)), debugOptions),
+        )! // This non-null assertion is SAFE, as the scope is initially active.
+        this.computed.set(key, mappedValue)
+        onDelete(() => {
+          scope.stop()
+          this.computed.delete(key)
+        })
       })
+      onScopeDispose(() => db.off('entryAdded', handler))
     })
   }
 

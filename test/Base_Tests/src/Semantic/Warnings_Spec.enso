@@ -46,16 +46,6 @@ get_foo x = x.foo
 
 unwrap x = Integer.from x
 
-reassign_test x =
-    consed = Wrap.Value x
-    reconsed = rewrap consed
-    i = unwrap reconsed
-    rereconsed = Wrap.Value i
-    x1 = get_foo rereconsed
-    prim_sum = 1 + x1
-    r = poly_sum prim_sum 1
-    r
-
 baz value = Warning.attach value "I have warned you"
 bar value = baz value
 foo value = bar value
@@ -164,21 +154,6 @@ add_specs suite_builder = suite_builder.group "Dataflow Warnings" group_builder-
         warning_stack = Warning.get_all warned . first . origin
         relevant = warning_stack . drop (..Last current.length)
         relevant.map .name . should_equal (['baz', 'bar', 'foo'].map ('Warnings_Spec.'+))
-
-    group_builder.specify "should attach reassignment info in the last-reassigned-first order" <|
-        x = Warning.attach "warn!" 1
-        r = reassign_test x
-        warn = Warning.get_all r . first
-        reassignments = warn.reassignments.map .name
-        expected_stack = []
-            + [ 'Warnings_Spec.poly_sum' ]
-            + [ 'Integer.+' ]
-            + [ 'Warnings_Spec.get_foo' ]
-            + [ 'Wrap.Value' ]
-            + [ 'Integer.from' ]
-            + [ 'Warnings_Spec.rewrap' ]
-            + [ 'Wrap.Value' ]
-        reassignments.should_equal expected_stack.to_vector
 
     group_builder.specify "should allow to set all warnings" <|
         warned = Warning.attach 1 <| Warning.attach 2 <| Warning.attach 3 <| Warning.attach 4 "foo"
@@ -439,13 +414,13 @@ add_specs suite_builder = suite_builder.group "Dataflow Warnings" group_builder-
         Warning.get_all result_4 . map (x-> x.value.to_text) . should_equal ["Baz!", "Baz!", "Baz!"]
 
     group_builder.specify "should only report the first 100 unique warnings" <|
-        vec = (0.up_to 500).map(e -> Warning.attach "Foo!" e)
-        vec_plus_1 = vec.map(e -> e+1)
+        vec = (0.up_to 500).map e-> Warning.attach "Foo!" e
+        vec_plus_1 = vec.map e-> e+1
         Warning.get_all vec_plus_1 . length . should_equal 100
         Warning.limit_reached vec . should_equal True
 
         warn = Warning.attach "Boo!" 42
-        vec_2 = (0.up_to 500).map(e -> if (e < 30) then Warning.attach "Foo!" e else (warn + e))
+        vec_2 = (0.up_to 500).map e-> if e<30 then Warning.attach "Foo!" e else warn+e
         Warning.get_all vec_2 . length . should_equal 31
         Warning.limit_reached vec_2 . should_equal False
 

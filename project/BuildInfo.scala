@@ -5,7 +5,7 @@ import scala.sys.process._
 
 object BuildInfo {
 
-  /** Writes build-time information to a Scala object that can be used by the
+  /** Writes build-time information to a Java class that can be used by the
     * components.
     *
     * If the `ENSO_RELEASE_MODE` environment variable is set to `true`, will set
@@ -34,28 +34,53 @@ object BuildInfo {
   ): Seq[File] = {
     val gitInfo   = getGitInformation(log).getOrElse(fallbackGitInformation)
     val isRelease = isReleaseMode
+    val className = file.getName.stripSuffix(".java")
     val fileContents =
       s"""
-         |package buildinfo
+         |package org.enso.version;
          |
-         |object Info {
+         |final class ${className} {
+         |  private GeneratedVersion() {}
          |
-         |  // Versions
-         |  val defaultDevEnsoVersion = "$defaultDevEnsoVersion"
-         |  val ensoVersion           = "$ensoVersion"
-         |  val scalacVersion         = "$scalacVersion"
-         |  val graalVersion          = "$graalVersion"
-         |  val currentEdition        = "$currentEdition"
+         |  static String defaultDevEnsoVersion() {
+         |    return "${defaultDevEnsoVersion}";
+         |  }
          |
-         |  // Git Info
-         |  val commit            = "${gitInfo.commitHash}"
-         |  val ref               = "${gitInfo.ref}"
-         |  val isDirty           = ${gitInfo.isDirty}
-         |  val latestCommitDate  = "${gitInfo.latestCommitDate}"
+         |  static String ensoVersion() {
+         |    return "${ensoVersion}";
+         |  }
          |
-         |  // Release mode, set to true if the environment variable
-         |  // `ENSO_RELEASE_MODE` is set to `true` at build time.
-         |  val isRelease = $isRelease
+         |  static String scalacVersion() {
+         |    return "${scalacVersion}";
+         |  }
+         |
+         |  static String graalVersion() {
+         |    return "${graalVersion}";
+         |  }
+         |
+         |  static String currentEdition() {
+         |    return "${currentEdition}";
+         |  }
+         |
+         |  static String commit() {
+         |    return "${gitInfo.commitHash}";
+         |  }
+         |
+         |  static String ref() {
+         |    return "${gitInfo.ref}";
+         |  }
+         |
+         |  static boolean isDirty() {
+         |    return ${gitInfo.isDirty};
+         |  }
+         |
+         |  static String latestCommitDate() {
+         |    return "${gitInfo.latestCommitDate}";
+         |  }
+         |
+         |  static boolean isRelease() {
+         |    return ${isRelease};
+         |  }
          |}
          |""".stripMargin
     IO.write(file, fileContents)

@@ -2,12 +2,14 @@
 import { computed, ref, shallowRef } from 'vue'
 
 import { usePointer } from '@/composables/events'
+import { useKeyboard } from '@/composables/keyboard'
 import { useNavigator } from '@/composables/navigator'
 import type { Vec2 } from '@/util/data/vec2'
 
 const viewportNode = ref<HTMLElement>()
 
-const navigator = useNavigator(viewportNode)
+const keyboard = useKeyboard()
+const navigator = useNavigator(viewportNode, keyboard)
 
 const selectionAnchor = shallowRef<Vec2>()
 
@@ -24,12 +26,7 @@ const scaledSelectionAnchor = computed(() => selectionAnchor.value?.scale(naviga
 </script>
 
 <template>
-  <div
-    ref="viewportNode"
-    style="cursor: none; height: 100%"
-    v-on.="navigator.pointerEvents"
-    v-on..="selection.events"
-  >
+  <div ref="viewportNode" style="cursor: none; height: 100%" v-on="selection.events">
     <slot
       :scaledMousePos="scaledMousePos"
       :scaledSelectionAnchor="scaledSelectionAnchor"

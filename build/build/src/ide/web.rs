@@ -11,12 +11,11 @@ use anyhow::Context;
 use ide_ci::env::known::electron_builder::WindowsSigningCredentials;
 use ide_ci::program::command::FallibleManipulator;
 use ide_ci::program::command::Manipulator;
-use ide_ci::programs::node::NpmCommand;
-use ide_ci::programs::Npm;
+use ide_ci::programs::node::PnpmCommand;
+use ide_ci::programs::Pnpm;
 use sha2::Digest;
 use std::process::Stdio;
 use tempfile::TempDir;
-
 
 // ==============
 // === Export ===
@@ -46,6 +45,7 @@ pub mod env {
         ENSO_BUILD_PROJECT_MANAGER, PathBuf;
         ENSO_BUILD_GUI, PathBuf;
         ENSO_BUILD_ICONS, PathBuf;
+        ENSO_BUILD_SIGN, bool;
         /// List of files that should be copied to the Gui.
         ENSO_BUILD_GUI_WASM_ARTIFACTS, Vec<PathBuf>;
         ENSO_BUILD_GUI_ASSETS, PathBuf;
@@ -162,31 +162,12 @@ pub struct RemoveEmptyCscEnvVars;
 impl Manipulator for RemoveEmptyCscEnvVars {
     fn apply<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) {
         for var in ide_ci::env::known::electron_builder::CI_CSC_SECRETS {
-            if let Ok(value) = std::env::var(var)
-                && value.is_empty()
-            {
-                command.env_remove(var);
+            match std::env::var(var) {
+                Ok(value) if value.is_empty() => {
+                    command.env_remove(var);
+                }
+                _ => {}
             }
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub enum Workspaces {
-    Icons,
-    IdeDesktop,
-    Content,
-    /// The Electron client.
-    Enso,
-}
-
-impl AsRef<OsStr> for Workspaces {
-    fn as_ref(&self) -> &OsStr {
-        match self {
-            Workspaces::Icons => OsStr::new("enso-icons"),
-            Workspaces::IdeDesktop => OsStr::new("enso-ide-desktop"),
-            Workspaces::Content => OsStr::new("enso-content"),
-            Workspaces::Enso => OsStr::new("enso"),
         }
     }
 }
@@ -196,7 +177,6 @@ pub fn target_os_flag(os: OS) -> Result<&'static str> {
         OS::Windows => Ok("--win"),
         OS::Linux => Ok("--linux"),
         OS::MacOS => Ok("--mac"),
-        _ => bail!("Not supported target for Electron client: {os}."),
     }
 }
 
@@ -230,12 +210,12 @@ impl FallibleManipulator for ProjectManagerInfo {
     }
 }
 
-#[derive(Clone, Derivative)]
-#[derivative(Debug)]
+#[derive(Clone)]
+#[derive_where(Debug)]
 pub struct IdeDesktop {
     pub build_sbt: generated::RepoRootBuildSbt,
     pub repo_root: generated::RepoRoot,
-    #[derivative(Debug = "ignore")]
+    #[derive_where(skip)]
     pub octocrab:  Octocrab,
     pub cache:     ide_ci::cache::Cache,
 }
@@ -254,10 +234,8 @@ impl IdeDesktop {
         }
     }
 
-    pub fn npm(&self) -> Result<NpmCommand> {
-        let mut command = Npm.cmd()?;
-        command.arg("--color").arg("always");
-        command.arg("--yes");
+    pub fn pnpm(&self) -> Result<PnpmCommand> {
+        let mut command = Pnpm.cmd()?;
         command.current_dir(&self.repo_root);
         command.stdin(Stdio::null()); // nothing in that process subtree should require input
         Ok(command)
@@ -269,10 +247,9 @@ impl IdeDesktop {
     }
 
     pub async fn build_icons(&self, output_path: impl AsRef<Path>) -> Result<IconsArtifacts> {
-        self.npm()?
-            .workspace(Workspaces::Icons)
+        self.pnpm()?
             .set_env(env::ENSO_BUILD_ICONS, output_path.as_ref())?
-            .run("build")
+            .run("build:icons")
             .run_ok()
             .await?;
         Ok(IconsArtifacts(output_path.as_ref().into()))
@@ -293,6 +270,7 @@ impl IdeDesktop {
         output_path: impl AsRef<Path>,
         target_os: OS,
         target: Option<String>,
+        sign: bool,
     ) -> Result {
         let output_path = output_path.as_ref();
         let electron_config = output_path.join("electron-builder.json");
@@ -307,12 +285,13 @@ impl IdeDesktop {
 
         crate::web::install(&self.repo_root).await?;
         let pm_bundle = ProjectManagerInfo::new(project_manager)?;
-        self.npm()?
+        let sign_artifacts = &sign;
+        self.pnpm()?
             .set_env(env::ENSO_BUILD_GUI, gui.as_ref())?
             .set_env(env::ENSO_BUILD_IDE, output_path)?
+            .set_env(env::ENSO_BUILD_SIGN, sign_artifacts)?
             .try_applying(&pm_bundle)?
-            .workspace(Workspaces::Enso)
-            .run("build")
+            .run("build:ide")
             .run_ok()
             .await?;
 
@@ -326,17 +305,17 @@ impl IdeDesktop {
             None => vec![],
         };
 
-        self.npm()?
+
+        self.pnpm()?
             .try_applying(&icons)?
             .apply(&RemoveEmptyCscEnvVars)
             // .env("DEBUG", "electron-builder")
             .set_env(env::ENSO_BUILD_GUI, gui.as_ref())?
             .set_env(env::ENSO_BUILD_IDE, output_path)?
+            .set_env(env::ENSO_BUILD_SIGN, sign_artifacts)?
             .set_env(env::ENSO_BUILD_PROJECT_MANAGER, project_manager.as_ref())?
             .set_env(enso_install_config::ENSO_BUILD_ELECTRON_BUILDER_CONFIG, &electron_config)?
-            .workspace(Workspaces::Enso)
-            // .args(["--loglevel", "verbose"])
-            .run("dist")
+            .run("dist:ide")
             .arg("--")
             .arg(target_os_flag(target_os)?)
             .args(target_args)

@@ -3,19 +3,22 @@
 import react from '@vitejs/plugin-react'
 import vue from '@vitejs/plugin-vue'
 import { getDefines, readEnvironmentFromFile } from 'enso-common/src/appConfig'
+import * as tailwindConfig from 'enso-dashboard/tailwind.config'
 import { fileURLToPath } from 'node:url'
 import postcssNesting from 'postcss-nesting'
 import tailwindcss from 'tailwindcss'
 import tailwindcssNesting from 'tailwindcss/nesting'
 import { defineConfig, type Plugin } from 'vite'
 import VueDevTools from 'vite-plugin-vue-devtools'
-// @ts-expect-error
-import * as tailwindConfig from 'enso-dashboard/tailwind.config'
-import { createGatewayServer } from './ydoc-server'
-const projectManagerUrl = 'ws://127.0.0.1:30535'
+import wasm from 'vite-plugin-wasm'
 
+const dynHostnameWsUrl = (port: number) => JSON.stringify(`ws://__HOSTNAME__:${port}`)
+const projectManagerUrl = dynHostnameWsUrl(process.env.E2E === 'true' ? 30536 : 30535)
 const IS_CLOUD_BUILD = process.env.CLOUD_BUILD === 'true'
-const POLYGLOT_YDOC_SERVER = process.env.POLYGLOT_YDOC_SERVER
+const YDOC_SERVER_URL =
+  process.env.ENSO_POLYGLOT_YDOC_SERVER ? JSON.stringify(process.env.ENSO_POLYGLOT_YDOC_SERVER)
+  : process.env.NODE_ENV === 'development' ? dynHostnameWsUrl(5976)
+  : undefined
 
 await readEnvironmentFromFile()
 
@@ -28,13 +31,20 @@ export default defineConfig({
   publicDir: fileURLToPath(new URL('./public', import.meta.url)),
   envDir: fileURLToPath(new URL('.', import.meta.url)),
   plugins: [
-    VueDevTools(),
-    vue(),
+    wasm(),
+    ...(process.env.NODE_ENV === 'development' ? [await VueDevTools()] : []),
+    vue({
+      customElement: ['**/components/visualizations/**', '**/components/shared/**'],
+      template: {
+        compilerOptions: {
+          isCustomElement: (tag) => tag.startsWith('enso-'),
+        },
+      },
+    }),
     react({
       include: fileURLToPath(new URL('../dashboard/**/*.tsx', import.meta.url)),
       babel: { plugins: ['@babel/plugin-syntax-import-attributes'] },
     }),
-    gatewayServer(),
     ...(process.env.NODE_ENV === 'development' ? [await projectManagerShim()] : []),
   ],
   optimizeDeps: {
@@ -45,8 +55,10 @@ export default defineConfig({
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Resource-Policy': 'same-origin',
     },
+    ...(process.env.GUI_HOSTNAME ? { host: process.env.GUI_HOSTNAME } : {}),
   },
   resolve: {
+    conditions: ['source'],
     alias: {
       '/src/entrypoint.ts': fileURLToPath(new URL(entrypoint, import.meta.url)),
       shared: fileURLToPath(new URL('./shared', import.meta.url)),
@@ -56,15 +68,17 @@ export default defineConfig({
   define: {
     ...getDefines(),
     IS_CLOUD_BUILD: JSON.stringify(IS_CLOUD_BUILD),
-    PROJECT_MANAGER_URL: JSON.stringify(projectManagerUrl),
-    YDOC_SERVER_URL: JSON.stringify(POLYGLOT_YDOC_SERVER),
-    RUNNING_VITEST: false,
+    PROJECT_MANAGER_URL: projectManagerUrl,
+    YDOC_SERVER_URL: YDOC_SERVER_URL,
     'import.meta.vitest': false,
     // Single hardcoded usage of `global` in aws-amplify.
     'global.TYPED_ARRAY_SUPPORT': true,
   },
   esbuild: {
     dropLabels: process.env.NODE_ENV === 'development' ? [] : ['DEV'],
+    supported: {
+      'top-level-await': true,
+    },
   },
   assetsInclude: ['**/*.yaml', '**/*.svg'],
   css: {
@@ -85,17 +99,6 @@ export default defineConfig({
     chunkSizeWarningLimit: 700,
   },
 })
-
-function gatewayServer(): Plugin {
-  return {
-    name: 'gateway-server',
-    configureServer({ httpServer }) {
-      if (httpServer == null || POLYGLOT_YDOC_SERVER != undefined) return
-      createGatewayServer(httpServer, undefined)
-    },
-  }
-}
-
 async function projectManagerShim(): Promise<Plugin> {
   const module = await import('./project-manager-shim-middleware')
   return {

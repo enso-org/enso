@@ -14,6 +14,7 @@ import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.VariableElement;
 import javax.tools.Diagnostic;
+import javax.tools.Diagnostic.Kind;
 import org.apache.commons.lang3.StringUtils;
 import org.enso.interpreter.dsl.AcceptsWarning;
 import org.enso.interpreter.dsl.Builtin;
@@ -160,12 +161,16 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
     paramss.forEach(
         (k, v) -> {
           if (v.size() != elements.size()) {
-            throw new RuntimeException(
-                "Restriction: Specialized methods have to have equal number of parameters.\n"
-                    + "Expected "
-                    + elements.size()
-                    + ", got "
-                    + v.size());
+            processingEnv
+                .getMessager()
+                .printMessage(
+                    Kind.ERROR,
+                    "Restriction: Specialized methods have to have equal number of parameters.\n"
+                        + "Expected "
+                        + elements.size()
+                        + ", got "
+                        + v.size(),
+                    elements.get(0));
           }
 
           MethodParameter p = v.get(0);

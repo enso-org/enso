@@ -33,9 +33,9 @@ pub const EMPTY_ARGS: [&str; 0] = [];
 // `Sized + 'static` bounds are due to using `Self` as type parameter for `Command` constructor.
 #[async_trait]
 pub trait Program: Sized + 'static {
-    type Command: MyCommand<Self> + Send + Sync + IsCommandWrapper = Command;
+    type Command: MyCommand<Self> + Send + Sync + IsCommandWrapper;
 
-    type Version: version::IsVersion = Version;
+    type Version: version::IsVersion;
 
     /// The name used to find and invoke the program.
     ///
@@ -63,7 +63,7 @@ pub trait Program: Sized + 'static {
     ///
     /// The lookup locations are program-defined, they typically include Path environment variable
     /// and program-specific default locations.
-    fn lookup(&self) -> anyhow::Result<Location<Self>> {
+    fn lookup(&self) -> Result<Location<Self>> {
         Resolver::<Self>::new(self.executable_names(), self.default_locations())?
             .lookup()
             .map(Location::new)
@@ -112,7 +112,7 @@ pub trait Program: Sized + 'static {
     }
 
     fn handle_exit_status(status: std::process::ExitStatus) -> Result {
-        status.exit_ok().anyhow_err()
+        default_status_checker(status)
     }
 
     /// Command that prints to stdout the version of given program.
@@ -183,6 +183,9 @@ impl<T> ProgramExt for T where T: Program {}
 #[derive(Clone, Debug)]
 pub struct Unknown(pub String);
 impl Program for Unknown {
+    type Command = Command;
+    type Version = Version;
+
     fn executable_name(&self) -> &str {
         &self.0
     }

@@ -35,7 +35,7 @@ export interface MembersTableProps {
 /** A list of members in the organization. */
 export default function MembersTable(props: MembersTableProps) {
   const { backend, populateWithSelf = false, draggable = false, allowDelete = false } = props
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useFullUserSession()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [selectedKeys, setSelectedKeys] = React.useState<aria.Selection>(new Set())
@@ -44,11 +44,11 @@ export default function MembersTable(props: MembersTableProps) {
   const bodyRef = React.useRef<HTMLTableSectionElement>(null)
   const userWithPlaceholder = React.useMemo(() => ({ isPlaceholder: false, ...user }), [user])
 
-  const backendListUsers = backendHooks.useBackendListUsers(backend)
+  const { data: allUsers } = backendHooks.useBackendQuery(backend, 'listUsers', [])
 
   const users = React.useMemo(
-    () => backendListUsers ?? (populateWithSelf ? [userWithPlaceholder] : null),
-    [backendListUsers, populateWithSelf, userWithPlaceholder],
+    () => allUsers ?? (populateWithSelf ? [userWithPlaceholder] : null),
+    [allUsers, populateWithSelf, userWithPlaceholder],
   )
   const usersMap = React.useMemo(
     () => new Map((users ?? []).map((member) => [member.userId, member])),
@@ -132,11 +132,11 @@ export default function MembersTable(props: MembersTableProps) {
         <aria.TableHeader className="sticky top h-row">
           <aria.Column
             isRowHeader
-            className="w-members-name-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0"
+            className="w-48 border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0"
           >
             {getText('name')}
           </aria.Column>
-          <aria.Column className="w-members-email-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
+          <aria.Column className="w-48 border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
             {getText('email')}
           </aria.Column>
           {/* Delete button. */}

@@ -8,14 +8,13 @@ import org.enso.interpreter.test.instruments.{
 }
 import org.enso.interpreter.test.instruments.CodeLocationsTestInstrument.LocationsEventListener
 import org.enso.polyglot.debugger.{
-  DebugServerInfo,
   DebuggerSessionManagerEndpoint,
   ReplExecutor,
   SessionManager
 }
+import org.enso.common.DebugServerInfo
 import org.enso.common.LanguageInfo
 import org.enso.common.RuntimeOptions
-
 import org.enso.polyglot.{Function, PolyglotContext}
 import org.graalvm.polyglot.{Context, Value}
 import org.scalatest.Assertions
@@ -28,7 +27,7 @@ import java.io.{
   PipedOutputStream,
   PrintStream
 }
-import java.nio.file.Paths
+import java.nio.file.{Path, Paths}
 import java.util.UUID
 import java.util.logging.Level
 
@@ -104,43 +103,101 @@ class ReplaceableSessionManager extends SessionManager {
 class InterpreterContext(
   contextModifiers: Context#Builder => Context#Builder = bldr => bldr
 ) {
-  val output         = new ByteArrayOutputStream()
-  val err            = new ByteArrayOutputStream()
-  val inOut          = new PipedOutputStream()
-  val inOutPrinter   = new PrintStream(inOut, true)
-  val in             = new PipedInputStream(inOut)
-  val sessionManager = new ReplaceableSessionManager
+  var _ctx: Context                              = _
+  var _err: ByteArrayOutputStream                = _
+  var _output: ByteArrayOutputStream             = new ByteArrayOutputStream()
+  var _in: PipedInputStream                      = _
+  var _inOut: PipedOutputStream                  = _
+  var _inOutPrinter: PrintStream                 = _
+  var _sessionManager: ReplaceableSessionManager = new ReplaceableSessionManager
+  var _languageHome: Path                        = _
+  val edition                                    = "0.0.0-dev"
+  def ctx(): Context = {
+    if (_ctx == null) {
+      _output       = new ByteArrayOutputStream()
+      _err          = new ByteArrayOutputStream()
+      _inOut        = new PipedOutputStream()
+      _inOutPrinter = new PrintStream(_inOut, true)
+      _in           = new PipedInputStream(_inOut)
 
-  val languageHome = Paths
-    .get("../../test/micro-distribution/component")
-    .toFile
-    .getAbsolutePath
-  val edition = "0.0.0-dev"
+      _languageHome = Paths
+        .get("../../test/micro-distribution/component")
 
-  val ctx = contextModifiers(
-    Context
-      .newBuilder(LanguageInfo.ID)
-      .allowExperimentalOptions(true)
-      .allowAllAccess(true)
-      .allowCreateThread(false)
-      .out(output)
-      .err(err)
-      .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
-      .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
-      .option(RuntimeOptions.STRICT_ERRORS, "false")
-      .environment("NO_COLOR", "true")
-      .logHandler(System.err)
-      .in(in)
-      .option(RuntimeOptions.LANGUAGE_HOME_OVERRIDE, languageHome)
-      .option(RuntimeOptions.EDITION_OVERRIDE, edition)
-      .option("engine.WarnInterpreterOnly", "false")
-      .serverTransport { (uri, peer) =>
-        if (uri.toString == DebugServerInfo.URI) {
-          new DebuggerSessionManagerEndpoint(sessionManager, peer)
-        } else null
-      }
-  ).build()
-  lazy val executionContext = new PolyglotContext(ctx)
+      _ctx = contextModifiers(
+        Context
+          .newBuilder(LanguageInfo.ID)
+          .allowExperimentalOptions(true)
+          .allowAllAccess(true)
+          .allowCreateThread(false)
+          .out(_output)
+          .err(_err)
+          .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+          .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
+          .option(RuntimeOptions.STRICT_ERRORS, "false")
+          .environment("NO_COLOR", "true")
+          .logHandler(System.err)
+          .in(_in)
+          .option(
+            RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
+            _languageHome.toFile.getAbsolutePath
+          )
+          .option(RuntimeOptions.EDITION_OVERRIDE, edition)
+          .option("engine.WarnInterpreterOnly", "false")
+          .serverTransport { (uri, peer) =>
+            if (uri.toString == DebugServerInfo.URI) {
+              new DebuggerSessionManagerEndpoint(_sessionManager, peer)
+            } else null
+          }
+      ).build()
+    }
+    _ctx
+  }
+
+  def err(): ByteArrayOutputStream = {
+    assert(_ctx != null)
+    _err
+  }
+
+  def output(): ByteArrayOutputStream = {
+    _output
+  }
+
+  def in(): PipedInputStream = {
+    assert(_ctx != null)
+    _in
+  }
+
+  def inOut(): PipedOutputStream = {
+    assert(_ctx != null)
+    _inOut;
+  }
+
+  def inOutPrinter(): PrintStream = {
+    assert(_ctx != null)
+    _inOutPrinter
+  }
+
+  def sessionManager(): ReplaceableSessionManager = {
+    _sessionManager
+  }
+
+  def languageHome(): Path = {
+    assert(_ctx != null)
+    _languageHome
+  }
+
+  def close(): Unit = {
+    if (_ctx != null) {
+      _ctx.close()
+      _ctx = null
+    }
+
+    _output.reset()
+    if (_err != null) _err.close()
+    if (_in != null) _in.close()
+    if (_inOut != null) _inOut.close()
+  }
+  lazy val executionContext = new PolyglotContext(ctx())
 }
 
 trait InterpreterRunner {
@@ -154,7 +211,10 @@ trait InterpreterRunner {
   def withLocationsInstrumenter(
     test: LocationsInstrumenter => Unit
   )(implicit interpreterContext: InterpreterContext): Unit = {
-    val instrument = interpreterContext.ctx.getEngine.getInstruments
+    val instrument = interpreterContext
+      .ctx()
+      .getEngine
+      .getInstruments
       .get(CodeLocationsTestInstrument.INSTRUMENT_ID)
       .lookup(classOf[CodeLocationsTestInstrument])
     val instrumenter = LocationsInstrumenter(instrument)
@@ -166,7 +226,10 @@ trait InterpreterRunner {
   def withIdsInstrumenter(
     test: IdsInstrumenter => Unit
   )(implicit interpreterContext: InterpreterContext): Unit = {
-    val instrument = interpreterContext.ctx.getEngine.getInstruments
+    val instrument = interpreterContext
+      .ctx()
+      .getEngine
+      .getInstruments
       .get(CodeIdsTestInstrument.INSTRUMENT_ID)
       .lookup(classOf[CodeIdsTestInstrument])
     val instrumenter = IdsInstrumenter(instrument)
@@ -185,7 +248,7 @@ trait InterpreterRunner {
   def getMain(
     code: String
   )(implicit interpreterContext: InterpreterContext): MainMethod = {
-    interpreterContext.output.reset()
+    interpreterContext.output().reset()
     val module = InterpreterException.rethrowPolyglot(
       interpreterContext.executionContext.evalModule(code, "Test")
     )
@@ -206,52 +269,52 @@ trait InterpreterRunner {
   def consumeErr(implicit
     interpreterContext: InterpreterContext
   ): List[String] = {
-    val result = interpreterContext.err.toString
-    interpreterContext.err.reset()
+    val result = interpreterContext.err().toString
+    interpreterContext.err().reset()
     result.linesIterator.toList
   }
 
   def consumeErrBytes(implicit
     interpreterContext: InterpreterContext
   ): Array[Byte] = {
-    val result = interpreterContext.err.toByteArray
-    interpreterContext.err.reset()
+    val result = interpreterContext.err().toByteArray
+    interpreterContext.err().reset()
     result
   }
 
   def consumeOut(implicit
     interpreterContext: InterpreterContext
   ): List[String] = {
-    val result = interpreterContext.output.toString
-    interpreterContext.output.reset()
+    val result = interpreterContext.output().toString
+    interpreterContext.output().reset()
     result.linesIterator.toList
   }
 
   def consumeOutBytes(implicit
     interpreterContext: InterpreterContext
   ): Array[Byte] = {
-    val result = interpreterContext.output.toByteArray
-    interpreterContext.output.reset()
+    val result = interpreterContext.output().toByteArray
+    interpreterContext.output().reset()
     result
   }
 
   def feedInput(
     string: String
   )(implicit interpreterContext: InterpreterContext): Unit = {
-    interpreterContext.inOutPrinter.println(string)
+    interpreterContext.inOutPrinter().println(string)
   }
 
   def feedBytes(
     input: Array[Byte]
   )(implicit interpreterContext: InterpreterContext): Unit = {
-    interpreterContext.inOut.write(input)
-    interpreterContext.inOut.flush()
+    interpreterContext.inOut().write(input)
+    interpreterContext.inOut().flush()
   }
 
   def setSessionManager(
     manager: SessionManager
   )(implicit interpreterContext: InterpreterContext): Unit =
-    interpreterContext.sessionManager.setSessionManager(manager)
+    interpreterContext.sessionManager().setSessionManager(manager)
 
   // For Enso raw text blocks inside scala multiline strings
   val rawTQ = "\"\"\""

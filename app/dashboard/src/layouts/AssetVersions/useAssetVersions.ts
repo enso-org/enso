@@ -20,7 +20,7 @@ export interface UseAssetVersionsParams {
 /** Fetches the versions of the selected project asset. */
 export function useAssetVersions(params: UseAssetVersionsParams) {
   const { enabled = true, title, assetId, backend, onError } = params
-  const { queryKey = ['assetVersions', assetId, title] } = params
+  const { queryKey = [backend.type, 'listAssetVersions', assetId, title] } = params
 
   return reactQuery.useQuery({
     queryKey,

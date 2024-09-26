@@ -5,9 +5,9 @@ import { useProjectStore } from '@/stores/project'
 import { Ast } from '@/util/ast'
 import { Err, Ok, type Result } from '@/util/data/result'
 import { useToast } from '@/util/toast'
-import { PropertyAccess } from 'shared/ast'
-import type { ExpressionId } from 'shared/languageServerTypes'
 import { computed, ref, watchEffect } from 'vue'
+import { PropertyAccess } from 'ydoc-shared/ast'
+import type { ExpressionId } from 'ydoc-shared/languageServerTypes'
 import NodeWidget from '../NodeWidget.vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -52,7 +52,7 @@ export const FunctionName: unique symbol = Symbol.for('WidgetInput:FunctionName'
 declare module '@/providers/widgetRegistry' {
   export interface WidgetInput {
     [FunctionName]?: {
-      /** Id of expression which is accepted by Lanugage Server's
+      /** Id of expression which is accepted by Language Server's
        * [`refactoring/renameSymbol` method](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#refactoringrenamesymbol)
        */
       editableName: ExpressionId
@@ -63,7 +63,7 @@ declare module '@/providers/widgetRegistry' {
 function isFunctionName(
   input: WidgetInput,
 ): input is WidgetInput & { value: Ast.Ast; [FunctionName]: { editableName: ExpressionId } } {
-  return WidgetInput.isToken(input) && FunctionName in input
+  return WidgetInput.isAst(input) && FunctionName in input
 }
 
 export const widgetDefinition = defineWidget(
@@ -82,7 +82,7 @@ export const widgetDefinition = defineWidget(
     <NodeWidget v-if="operator" :input="WidgetInput.FromAst(operator)" />
     <AutoSizedInput
       v-model="displayedName"
-      class="FunctionName"
+      class="FunctionName widgetApplyPadding"
       @change="newNameAccepted"
       @pointerdown.stop
       @click.stop

@@ -8,7 +8,6 @@ use crate::prelude::*;
 
 use anyhow::Context;
 use chrono::Datelike;
-use derivative::Derivative;
 use ide_ci::define_env_var;
 use ide_ci::env::accessor::TypedVariable;
 use ide_ci::github;
@@ -51,7 +50,7 @@ pub const RC_BUILD_PREFIX: &str = "rc";
 
 /// Check if the given GitHub release matches the provided kind.
 pub fn is_release_of_kind(release: &Release, kind: Kind) -> bool {
-    matches!(release.tag_name.parse2(), Ok(version) if kind.matches(&version))
+    matches!(release.tag_name.parse(), Ok(version) if kind.matches(&version))
 }
 
 /// List all releases in the GitHub repository that are of a given kind.
@@ -76,14 +75,12 @@ pub async fn latest_nightly_release(repo: &github::repo::Handle<impl IsRepo>) ->
 /// Keeps the version of Enso, edition name and whether this version should be treated as a release.
 ///
 /// Basically this is everything that is needed to define the version of the build.
-#[derive(Clone, Derivative, Serialize, Deserialize, Deref, PartialEq, Eq)]
-#[derivative(Debug)]
+#[derive(Clone, Serialize, Deserialize, Deref, PartialEq, Eq, Debug)]
 pub struct Versions {
     /// The version of Enso.
     ///
     /// Currently it also doubles as the edition name. In future we might want to separate them.
     #[deref]
-    #[derivative(Debug(format_with = "std::fmt::Display::fmt"))]
     pub version: Version,
 
     /// Whether this version should be treated as a release.
@@ -117,7 +114,7 @@ impl Versions {
     }
 
     pub fn local_prerelease() -> Result<Prerelease> {
-        Prerelease::new(LOCAL_BUILD_PREFIX).anyhow_err()
+        Ok(Prerelease::new(LOCAL_BUILD_PREFIX)?)
     }
 
     /// Get a git tag that should be applied to a commit released as this version.
@@ -202,7 +199,7 @@ pub fn increment_rc_version(version: &Version) -> Result<Version> {
     ensure!(Kind::Rc.matches(version), "Version is not an RC version: {}.", version);
     match version.pre.split('.').collect_vec().as_slice() {
         [RC_BUILD_PREFIX, index] => {
-            let index = index.parse2::<u32>().context("Parsing RC index.")?;
+            let index = index.parse::<u32>().context("Parsing RC index.")?;
             let pre = generate_rc_prerelease(index + 1)?;
             Ok(Version { pre, ..version.clone() })
         }
@@ -233,7 +230,7 @@ pub fn same_core_version(a: &Version, b: &Version) -> bool {
 }
 
 pub fn generate_rc_prerelease(index: u32) -> Result<Prerelease> {
-    Prerelease::from_str(&format!("{RC_BUILD_PREFIX}.{index}"))
+    Ok(Prerelease::from_str(&format!("{RC_BUILD_PREFIX}.{index}"))?)
 }
 
 #[instrument(ret)]

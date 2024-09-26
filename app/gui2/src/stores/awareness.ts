@@ -1,7 +1,7 @@
 import { Vec2 } from '@/util/data/vec2'
-import type { StackItem } from 'shared/languageServerTypes'
 import { reactive } from 'vue'
 import { Awareness as YjsAwareness } from 'y-protocols/awareness'
+import type { StackItem } from 'ydoc-shared/languageServerTypes'
 import * as Y from 'yjs'
 
 // === Public types ===

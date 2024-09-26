@@ -1,4 +1,3 @@
-import type { GraphNavigator } from '@/providers/graphNavigator'
 import type { Interaction, InteractionHandler } from '@/providers/interactionHandler'
 import { injectInteractionHandler } from '@/providers/interactionHandler'
 import type { PortId } from '@/providers/portInfo'
@@ -6,8 +5,8 @@ import type { WidgetInput } from '@/providers/widgetRegistry'
 import { injectWidgetTree, type CurrentEdit } from '@/providers/widgetTree'
 import type { Ast } from '@/util/ast'
 import { ArgumentInfoKey } from '@/util/callTree'
-import { assertDefined } from 'shared/util/assert'
 import { computed, markRaw, onBeforeUnmount, shallowRef, type ShallowRef } from 'vue'
+import { assertDefined } from 'ydoc-shared/util/assert'
 
 declare const brandWidgetId: unique symbol
 /** Uniquely identifies a widget type. */
@@ -69,10 +68,9 @@ export abstract class WidgetEditHandlerParent {
     return this.hooks.addItem?.() ?? this.parent?.addItem() ?? false
   }
 
-  protected pointerdown(event: PointerEvent, navigator: GraphNavigator): boolean | void {
-    if (this.hooks.pointerdown && this.hooks.pointerdown(event, navigator) !== false) return true
-    else
-      return this.activeChild.value ? this.activeChild.value.pointerdown(event, navigator) : false
+  protected pointerdown(event: PointerEvent): boolean | void {
+    if (this.hooks.pointerdown && this.hooks.pointerdown(event) !== false) return true
+    else return this.activeChild.value ? this.activeChild.value.pointerdown(event) : false
   }
 
   isActive() {
@@ -106,7 +104,7 @@ export abstract class WidgetEditHandlerParent {
 
   protected tryResume(argumentId: string, widgetId: WidgetId, portId: PortId) {
     const widgetInstance: WidgetInstanceId = `${argumentId}||${widgetId}`
-    const ancestor = this.activeAncestor() ?? this.root().tryResumeRoot()
+    const ancestor = this.activeAncestor() ?? this.root().tryResumeRoot(widgetInstance)
     if (!ancestor?.resumableDescendants?.has(widgetInstance)) return
     const resumeHook = ancestor.resumableDescendants.get(widgetInstance)
     ancestor.resumableDescendants.delete(widgetInstance)
@@ -116,8 +114,11 @@ export abstract class WidgetEditHandlerParent {
     resumeHook?.()
   }
 
-  protected tryTakeResumableDescendants(other: WidgetEditHandlerParent) {
-    if (!other.activeChild.value && other.resumableDescendants) {
+  protected tryTakeResumableDescendants(
+    other: WidgetEditHandlerParent,
+    widgetInstance: WidgetInstanceId,
+  ) {
+    if (!other.activeChild.value && other.resumableDescendants?.has(widgetInstance)) {
       const resumable = other.resumableDescendants
       other.resumableDescendants = undefined
       this.resumableDescendants = resumable
@@ -147,10 +148,10 @@ export class WidgetEditHandlerRoot extends WidgetEditHandlerParent implements In
     })
   }
 
-  tryResumeRoot() {
+  tryResumeRoot(widgetInstance: WidgetInstanceId) {
     const current = this.interactionHandler.getCurrent()
     if (current instanceof WidgetEditHandlerRoot) {
-      if (this.tryTakeResumableDescendants(current)) return this
+      if (this.tryTakeResumableDescendants(current, widgetInstance)) return this
     }
   }
 
@@ -162,15 +163,15 @@ export class WidgetEditHandlerRoot extends WidgetEditHandlerParent implements In
     this.onEnd()
   }
 
-  pointerdown(event: PointerEvent, navigator: GraphNavigator) {
-    return super.pointerdown(event, navigator)
+  override pointerdown(event: PointerEvent) {
+    return super.pointerdown(event)
   }
 
-  protected root() {
+  protected override root() {
     return this
   }
 
-  isActive() {
+  override isActive() {
     return this.interactionHandler.isActive(this)
   }
 

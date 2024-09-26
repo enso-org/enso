@@ -1,12 +1,13 @@
 /** @file The input for viewing and changing the user's profile picture. */
 import * as React from 'react'
 
+import { useMutation } from '@tanstack/react-query'
+
 import DefaultUserIcon from '#/assets/default_user.svg'
 
-import * as backendHooks from '#/hooks/backendHooks'
+import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as authProvider from '#/providers/AuthProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
@@ -27,26 +28,17 @@ export interface ProfilePictureInputProps {
 export default function ProfilePictureInput(props: ProfilePictureInputProps) {
   const { backend } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { setUser } = authProvider.useAuth()
-  const user = backendHooks.useBackendUsersMe(backend)
+  const { data: user } = useBackendQuery(backend, 'usersMe', [])
   const { getText } = textProvider.useText()
 
-  const uploadUserPictureMutation = backendHooks.useBackendMutation(backend, 'uploadUserPicture')
+  const uploadUserPicture = useMutation(backendMutationOptions(backend, 'uploadUserPicture')).mutate
 
-  const doUploadUserPicture = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const doUploadUserPicture = (event: React.ChangeEvent<HTMLInputElement>) => {
     const image = event.target.files?.[0]
     if (image == null) {
       toastAndLog('noNewProfilePictureError')
     } else {
-      try {
-        const newUser = await uploadUserPictureMutation.mutateAsync([
-          { fileName: image.name },
-          image,
-        ])
-        setUser(newUser)
-      } catch (error) {
-        toastAndLog(null, error)
-      }
+      uploadUserPicture([{ fileName: image.name }, image])
     }
     // Reset selected files, otherwise the file input will do nothing if the same file is
     // selected again. While technically not undesired behavior, it is unintuitive for the user.

@@ -43,12 +43,11 @@ pub fn extract_files_sync<R: Read>(
 // ===============
 
 /// A `tar` archive.
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive_where(Debug)]
 pub struct Archive {
     /// The path that the `file` originated from. This is stored for error reporting.
     path: Box<Path>,
-    #[derivative(Debug = "ignore")]
+    #[derive_where(skip)]
     file: tar::Archive<GzDecoder<File>>,
 }
 

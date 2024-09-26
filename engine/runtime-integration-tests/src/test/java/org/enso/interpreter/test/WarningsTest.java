@@ -3,15 +3,16 @@ package org.enso.interpreter.test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.error.Warning;
-import org.enso.interpreter.runtime.error.WarningsLibrary;
-import org.enso.interpreter.runtime.error.WithWarnings;
+import org.enso.interpreter.runtime.warning.AppendWarningNode;
+import org.enso.interpreter.runtime.warning.Warning;
+import org.enso.interpreter.runtime.warning.WithWarnings;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
@@ -33,11 +34,7 @@ public class WarningsTest {
   public static void initEnsoContext() {
     ctx = ContextUtils.createDefaultContext();
     generator = ValuesGenerator.create(ctx, ValuesGenerator.Language.ENSO);
-    ensoContext =
-        (EnsoContext)
-            ctx.getBindings(LanguageInfo.ID)
-                .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
-                .asHostObject();
+    ensoContext = ContextUtils.leakContext(ctx);
     var module =
         ctx.eval(
             "enso",
@@ -51,33 +48,41 @@ public class WarningsTest {
 
   @AfterClass
   public static void disposeContext() {
-    ensoContext = null;
+    generator.dispose();
     ctx.close();
+    ctx = null;
+    ensoContext.shutdown();
+    ensoContext = null;
   }
 
   @Test
   public void doubleWithWarningsWrap() {
-    var warn1 = Warning.create(ensoContext, "w1", this);
-    var warn2 = Warning.create(ensoContext, "w2", this);
-    var value = 42L;
+    ContextUtils.executeInContext(
+        ctx,
+        () -> {
+          var warn1 = Warning.create(ensoContext, "w1", this);
+          var warn2 = Warning.create(ensoContext, "w2", this);
+          var value = 42L;
 
-    var with1 = WithWarnings.wrap(ensoContext, value, warn1);
-    var with2 = WithWarnings.wrap(ensoContext, with1, warn2);
+          var with1 =
+              (WithWarnings) AppendWarningNode.getUncached().executeAppend(null, value, warn1);
+          var with2 =
+              (WithWarnings) AppendWarningNode.getUncached().executeAppend(null, with1, warn2);
 
-    assertEquals(value, with1.getValue());
-    assertEquals(value, with2.getValue());
-    Assert.assertArrayEquals(
-        new Object[] {warn1}, with1.getWarningsArray(WarningsLibrary.getUncached(), false));
-    Assert.assertArrayEquals(
-        new Object[] {warn1, warn2}, with2.getWarningsArray(WarningsLibrary.getUncached(), false));
+          assertEquals(value, with1.getValue());
+          assertEquals(value, with2.getValue());
+          Assert.assertArrayEquals(new Object[] {warn1}, with1.getWarningsArray(false));
+          Assert.assertArrayEquals(new Object[] {warn1, warn2}, with2.getWarningsArray(false));
+          return null;
+        });
   }
 
   @Test
   public void wrapAndUnwrap() {
     var value = 42;
-    WithWarnings without;
+    Object without;
     try {
-      without = WithWarnings.wrap(ensoContext, 42, new Warning[0]);
+      without = AppendWarningNode.getUncached().executeAppend(null, 42, new Warning[0]);
     } catch (AssertionError e) {
       // OK
       return;
@@ -143,17 +148,50 @@ public class WarningsTest {
     assertEquals("Types without and with warnings are the same", type, warningType);
     assertTrue("It is an exception. Type: " + type, warning2.isException());
     try {
-      warning2.throwException();
+      throw warning2.throwException();
     } catch (PolyglotException ex) {
       if (ex.getMessage() == null) {
         assertEquals(generator.typeError(), type);
         assertEquals(generator.typeError(), warningType);
       } else {
-        assertThat(
-            "Warning found for " + type,
-            ex.getMessage(),
-            AllOf.allOf(containsString("warn:once"), containsString("warn:twice")));
+        try {
+          assertThat(
+              "Warning found for " + type,
+              ex.getMessage(),
+              AllOf.allOf(containsString("warn:once"), containsString("warn:twice")));
+        } catch (AssertionError err) {
+          if (type != null && v.equals(warning1) && v.equals(warning2)) {
+            assertEquals(
+                "Cannot attach warnings to Error - check it is an error",
+                "Standard.Base.Error.Error",
+                type.getMetaQualifiedName());
+            return;
+          }
+          throw err;
+        }
       }
     }
+  }
+
+  @Test
+  public void warningOnAnError() throws Exception {
+    var code =
+        """
+    from Standard.Base import Integer, Warning, Error
+    import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+    from Standard.Base.Errors.Common import Out_Of_Range
+
+    err_warn -> Integer ! Illegal_Argument =
+        v = Warning.attach (Out_Of_Range.Error "qewr") 12
+        case v of
+            _ : Integer -> Error.throw (Illegal_Argument.Error "asdf")
+    """;
+
+    var module = ctx.eval(LanguageInfo.ID, code);
+    var errorWithWarning = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "err_warn");
+    assertFalse("Something is returned", errorWithWarning.isNull());
+    assertTrue("But it represents an exception object", errorWithWarning.isException());
+    assertEquals(
+        "Standard.Base.Error.Error", errorWithWarning.getMetaObject().getMetaQualifiedName());
   }
 }

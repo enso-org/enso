@@ -1,0 +1,57 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.System.File.Generic.Writable_File.Writable_File
+import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
+import Standard.Base.System.Input_Stream.Input_Stream
+from Standard.Base.Metadata.Choice import Option
+
+import project.Hyper_File.Hyper_File
+
+## Read the file to a `Hyper_File` object.
+type Tableau_Format
+    ## Read the file to a `Hyper_File` object.
+
+       Arguments:
+       - schema: The schema to read or `*` for all schemas.
+    Hyper_File (schema:Text='*')
+
+    ## PRIVATE
+       Resolve an unresolved constructor to the actual type.
+    resolve : Function -> Tableau_Format | Nothing
+    resolve constructor =
+        Panic.catch Any (constructor:Tableau_Format) _->Nothing
+
+    ## PRIVATE
+       ADVANCED
+       If the File_Format supports reading from the file, return a configured instance.
+    for_read : File_Format_Metadata -> Tableau_Format | Nothing
+    for_read file:File_Format_Metadata =
+        case file.guess_extension of
+            ".hyper" -> Tableau_Format.Hyper_File
+            _ -> Nothing
+
+    ## PRIVATE
+       If this File_Format should be used for writing to that file, return a configured instance.
+       Not currently supported.
+    for_file_write : Writable_File -> Tableau_Format | Nothing
+    for_file_write file:Writable_File =
+        _ = [file]
+        Nothing
+
+    ## PRIVATE
+    get_dropdown_options : Vector Option
+    get_dropdown_options = [Option "Tableau Hyper" "..Hyper_File"]
+
+    ## PRIVATE
+       Implements the `File.read` for this `File_Format`
+    read : File -> Problem_Behavior -> Any
+    read self file on_problems:Problem_Behavior =
+        _ = [on_problems]
+        Hyper_File.new file self.schema
+
+    ## PRIVATE
+       Implements decoding the format from a stream.
+    read_stream : Input_Stream -> File_Format_Metadata -> Any
+    read_stream self stream:Input_Stream (metadata : File_Format_Metadata) =
+        _ = [stream, metadata]
+        Error.throw (Illegal_Argument.Error "Cannot connect to a Hyper file backed by a stream. Save it to a local file first.")

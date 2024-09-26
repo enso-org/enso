@@ -9,10 +9,10 @@ import { unwrap } from '@/util/data/result'
 import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
 import { EditorSelection } from '@codemirror/state'
 import { createDebouncer } from 'lib0/eventloop'
-import { MutableModule } from 'shared/ast'
-import { textChangeToEdits, type SourceRangeEdit } from 'shared/util/data/text'
-import { rangeEncloses, type Origin } from 'shared/yjsModel'
 import { computed, onMounted, onUnmounted, ref, shallowRef, watch, watchEffect } from 'vue'
+import { MutableModule } from 'ydoc-shared/ast'
+import { textChangeToEdits, type SourceRangeEdit } from 'ydoc-shared/util/data/text'
+import { rangeEncloses, type Origin } from 'ydoc-shared/yjsModel'
 
 // Use dynamic imports to aid code splitting. The codemirror dependency is quite large.
 const {
@@ -342,6 +342,10 @@ onMounted(() => {
   width: 100%;
   height: 100%;
   font-family: var(--font-mono);
+  backdrop-filter: var(--blur-app-bg);
+  background-color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.4);
 }
 
 :deep(.ͼ1 .cm-scroller) {

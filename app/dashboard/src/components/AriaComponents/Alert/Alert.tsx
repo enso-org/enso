@@ -1,25 +1,27 @@
 /** @file Alert component. */
-import * as React from 'react'
+import { type ForwardedRef, type HTMLAttributes, type PropsWithChildren } from 'react'
 
-import * as mergeRefs from '#/utilities/mergeRefs'
-import * as twv from '#/utilities/tailwindVariants'
+import SvgMask from '#/components/SvgMask'
+
+import { forwardRef } from '#/utilities/react'
+import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 
 // =================
 // === Constants ===
 // =================
 
-export const ALERT_STYLES = twv.tv({
-  base: 'flex flex-col items-stretch',
+export const ALERT_STYLES = tv({
+  base: 'flex items-stretch gap-2',
   variants: {
     fullWidth: { true: 'w-full' },
     variant: {
       custom: '',
-      outline: 'border border-2 bg-transparent border-primary/30 text-primary',
-      neutral: 'border border-2 bg-gray-100 border-gray-800 text-primary',
-      error: 'border border-2 bg-red-100 border-danger text-primary',
-      info: 'border border-2 bg-blue-100 border-blue-800 text-blue-800',
-      success: 'border border-2 bg-green-100 border-green-800 text-green-800',
-      warning: 'border border-2 bg-yellow-100 border-yellow-800 text-yellow-800',
+      outline: 'border border-0.5 bg-transparent border-primary/20 text-primary',
+      neutral: 'border border-0.5 bg-gray-100 border-gray-800 text-primary',
+      error: 'border border-0.5 bg-red-100 border-danger text-primary',
+      info: 'border border-0.5 bg-blue-100 border-blue-800 text-blue-800',
+      success: 'border border-0.5 bg-green-100 border-green-800 text-green-800',
+      warning: 'border border-0.5 bg-yellow-100 border-yellow-800 text-yellow-800',
     },
     rounded: {
       none: 'rounded-none',
@@ -37,11 +39,16 @@ export const ALERT_STYLES = twv.tv({
       large: 'px-4 pt-2 pb-2',
     },
   },
+  slots: {
+    iconContainer: 'flex items-center justify-center w-6 h-6',
+    children: 'flex flex-col items-stretch',
+    icon: 'flex items-center justify-center w-6 h-6 mr-2',
+  },
   defaultVariants: {
     fullWidth: true,
     variant: 'error',
     size: 'medium',
-    rounded: 'large',
+    rounded: 'xlarge',
   },
 })
 
@@ -51,33 +58,60 @@ export const ALERT_STYLES = twv.tv({
 
 /** Props for an {@link Alert}. */
 export interface AlertProps
-  extends React.PropsWithChildren,
-    twv.VariantProps<typeof ALERT_STYLES>,
-    React.HTMLAttributes<HTMLDivElement> {}
+  extends PropsWithChildren,
+    VariantProps<typeof ALERT_STYLES>,
+    HTMLAttributes<HTMLDivElement> {
+  /**
+   * The icon to display in the Alert
+   */
+  readonly icon?: React.ReactElement | string | null | undefined
+}
 
 /** Alert component. */
-export const Alert = React.forwardRef(function Alert(
+// eslint-disable-next-line no-restricted-syntax
+export const Alert = forwardRef(function Alert(
   props: AlertProps,
-  ref: React.ForwardedRef<HTMLDivElement>,
+  ref: ForwardedRef<HTMLDivElement>,
 ) {
-  const { children, className, variant, size, rounded, fullWidth, ...containerProps } = props
+  const {
+    children,
+    className,
+    variant,
+    size,
+    rounded,
+    fullWidth,
+    icon,
+    variants = ALERT_STYLES,
+    ...containerProps
+  } = props
 
   if (variant === 'error') {
     containerProps.tabIndex = -1
     containerProps.role = 'alert'
   }
 
+  const classes = variants({
+    variant,
+    size,
+    rounded,
+    fullWidth,
+  })
+
   return (
-    <div
-      className={ALERT_STYLES({ variant, size, className, rounded, fullWidth })}
-      ref={mergeRefs.mergeRefs(ref, (e) => {
-        if (variant === 'error') {
-          e?.focus()
-        }
-      })}
-      {...containerProps}
-    >
-      {children}
+    <div className={classes.base({ className })} ref={ref} {...containerProps}>
+      {icon != null &&
+        (() => {
+          if (typeof icon === 'string') {
+            // eslint-disable-next-line no-restricted-syntax
+            return (
+              <div className={classes.iconContainer()}>
+                <SvgMask src={icon} />
+              </div>
+            )
+          }
+          return <div className={classes.iconContainer()}>{icon}</div>
+        })()}
+      <div className={classes.children()}>{children}</div>
     </div>
   )
 })

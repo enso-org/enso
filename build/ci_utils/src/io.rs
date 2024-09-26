@@ -21,7 +21,7 @@ pub mod web;
 /// Inputs content is discarded.
 pub async fn read_length(mut read: impl AsyncRead + Unpin) -> Result<u64> {
     let mut sink = tokio::io::sink();
-    tokio::io::copy(&mut read, &mut sink).anyhow_err().await
+    Ok(tokio::io::copy(&mut read, &mut sink).await?)
 }
 
 /// Get the the response body as a byte stream.
@@ -142,11 +142,11 @@ mod tests {
         mirror_directory(foo.parent().unwrap(), foo.parent().unwrap().with_file_name("dest2"))
             .await?;
 
-        tokio::process::Command::new(r"C:\msys64\usr\bin\ls.exe")
+        assert!(tokio::process::Command::new(r"C:\msys64\usr\bin\ls.exe")
             .arg("-laR")
             .status()
             .await?
-            .exit_ok()?;
+            .success());
 
         Ok(())
     }

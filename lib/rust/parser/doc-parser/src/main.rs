@@ -51,7 +51,7 @@ fn extract_docs(_filename: &str, mut code: &str) -> Vec<String> {
     }
     let ast = enso_parser::Parser::new().run(code);
     let docs = RefCell::new(vec![]);
-    ast.visit_trees(|tree| match &*tree.variant {
+    ast.visit_trees(|tree| match &tree.variant {
         enso_parser::syntax::tree::Variant::Documented(doc) => {
             docs.borrow_mut().push(doc.documentation.clone());
         }

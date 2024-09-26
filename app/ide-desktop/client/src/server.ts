@@ -1,7 +1,6 @@
 /** @file A simple HTTP server which serves application data to the Electron web-view. */
 
 import * as mkcert from 'mkcert'
-import * as fsSync from 'node:fs'
 import * as fs from 'node:fs/promises'
 import * as http from 'node:http'
 import * as path from 'node:path'
@@ -15,12 +14,16 @@ import type * as vite from 'vite'
 import * as projectManagement from '@/projectManagement'
 import * as common from 'enso-common'
 import GLOBAL_CONFIG from 'enso-common/src/config.json' assert { type: 'json' }
-import * as ydocServer from 'enso-gui2/ydoc-server'
+import * as ydocServer from 'ydoc-server'
 
 import * as contentConfig from '@/contentConfig'
 import * as paths from '@/paths'
+import { pathToFileURL } from 'node:url'
 
 const logger = contentConfig.logger
+
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+ydocServer.configureAllDebugLogs(process.env.ENSO_YDOC_LS_DEBUG === 'true', logger.log.bind(logger))
 
 // =================
 // === Constants ===
@@ -92,7 +95,7 @@ export class Server {
 
   /** Create a simple HTTP server. */
   constructor(public config: Config) {
-    this.projectsRootDirectory = projectManagement.getProjectsDirectory()
+    this.projectsRootDirectory = projectManagement.getProjectsDirectory().replace(/\\/g, '/')
   }
 
   /** Server constructor. */
@@ -137,39 +140,28 @@ export class Server {
               reject(err)
             }
             const server = httpsServer ?? httpServer
-            // Prepare the YDoc server access point for the new Vue-based GUI.
-            // TODO[ao]: This is very ugly quickfix to make our rust-ffi WASM
-            // working both in browser and in ydocs server. Doing it properly
-            // is tracked in https://github.com/enso-org/enso/issues/8931
-            const assets = path.join(paths.ASSETS_PATH, 'assets')
-            const bundledFiles = fsSync.existsSync(assets) ? await fs.readdir(assets) : []
-            const rustFFIWasmName = bundledFiles.find(name => /rust_ffi_bg-.*\.wasm/.test(name))
-            const rustFFIWasmPath =
-              process.env.ELECTRON_DEV_MODE === 'true' ?
-                path.resolve('../../gui2/rust-ffi/pkg/rust_ffi_bg.wasm')
-              : rustFFIWasmName == null ? null
-              : path.join(assets, rustFFIWasmName)
-            if (server && rustFFIWasmPath != null) {
-              await ydocServer.createGatewayServer(server, rustFFIWasmPath)
+            if (server) {
+              await ydocServer.createGatewayServer(server)
             } else {
               logger.warn('YDocs server is not run, new GUI may not work properly!')
             }
             logger.log(`Server started on port ${this.config.port}.`)
             logger.log(`Serving files from '${path.join(process.cwd(), this.config.dir)}'.`)
-            resolve()
             if (process.env.ELECTRON_DEV_MODE === 'true') {
-              // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports, @typescript-eslint/no-var-requires
-              const vite = require('vite') as typeof import('vite')
-              void vite
-                .createServer({
-                  server: {
-                    middlewareMode: true,
-                    hmr: server ? { server } : {},
-                  },
-                  configFile: process.env.GUI_CONFIG_PATH ?? false,
-                })
-                .then(devServer => (this.devServer = devServer))
+              // eslint-disable-next-line no-restricted-syntax
+              const vite = (await import(
+                pathToFileURL(process.env.NODE_MODULES_PATH + '/vite/dist/node/index.js').href
+                // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+              )) as typeof import('vite')
+              this.devServer = await vite.createServer({
+                server: {
+                  middlewareMode: true,
+                  hmr: server ? { server } : {},
+                },
+                configFile: process.env.GUI_CONFIG_PATH ?? false,
+              })
             }
+            resolve()
           })()
         },
       )
@@ -316,11 +308,11 @@ export class Server {
 
       const resource = hasExtension ? requestUrl : '/index.html'
 
-      // `preload.cjs` must be specialcased here as it is loaded by electron from the root,
+      // `preload.mjs` must be specialcased here as it is loaded by electron from the root,
       // in contrast to all assets loaded by the window, which are loaded from `assets/` via
       // this server.
       const resourceFile =
-        resource === '/preload.cjs.map' ? paths.APP_PATH + resource : this.config.dir + resource
+        resource === '/preload.mjs.map' ? paths.APP_PATH + resource : this.config.dir + resource
       for (const [header, value] of common.COOP_COEP_CORP_HEADERS) {
         response.setHeader(header, value)
       }

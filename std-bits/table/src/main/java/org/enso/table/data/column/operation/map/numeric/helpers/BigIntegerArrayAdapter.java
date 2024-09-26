@@ -9,6 +9,15 @@ public interface BigIntegerArrayAdapter {
 
   int size();
 
+  default BigIntegerStorage intoStorage() {
+    int n = size();
+    BigInteger[] values = new BigInteger[n];
+    for (int i = 0; i < n; i++) {
+      values[i] = getItem(i);
+    }
+    return new BigIntegerStorage(values, n);
+  }
+
   static BigIntegerArrayAdapter fromStorage(BigIntegerStorage storage) {
     return new BigIntegerStorageAsBigInteger(storage);
   }
@@ -32,6 +41,11 @@ public interface BigIntegerArrayAdapter {
     @Override
     public int size() {
       return storage.size();
+    }
+
+    @Override
+    public BigIntegerStorage intoStorage() {
+      return storage;
     }
   }
 

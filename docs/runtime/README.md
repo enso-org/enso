@@ -50,5 +50,6 @@ broken up as follows:
 - [**Searcher:**](./searcher.md) An explanation of how the searcher works.
 - [**Instruments:**](./instruments.md) An explanation of how we compile Truffle
   instrumentation.
+- [**Compiler IR:**](./compiler-ir.md) An explanation of the Enso compiler IR.
 - [**IR Caching:**](./ir-caching.md) An explanation of how we cache the compiler
   IR to reduce startup times.

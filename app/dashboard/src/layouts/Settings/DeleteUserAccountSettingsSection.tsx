@@ -2,7 +2,6 @@
 import * as React from 'react'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
@@ -18,7 +17,6 @@ import ConfirmDeleteUserModal from '#/modals/ConfirmDeleteUserModal'
 /** Settings tab for deleting the current user. */
 export default function DeleteUserAccountSettingsSection() {
   const { signOut, deleteUser } = authProvider.useAuth()
-  const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
 
   return (
@@ -32,22 +30,17 @@ export default function DeleteUserAccountSettingsSection() {
             {getText('dangerZone')}
           </aria.Heading>
           <div className="flex gap-2">
-            <ariaComponents.Button
-              size="medium"
-              variant="delete"
-              onPress={() => {
-                setModal(
-                  <ConfirmDeleteUserModal
-                    doDelete={async () => {
-                      await deleteUser()
-                      await signOut()
-                    }}
-                  />,
-                )
-              }}
-            >
-              {getText('deleteUserAccountButtonLabel')}
-            </ariaComponents.Button>
+            <ariaComponents.DialogTrigger>
+              <ariaComponents.Button size="medium" variant="delete">
+                {getText('deleteUserAccountButtonLabel')}
+              </ariaComponents.Button>
+              <ConfirmDeleteUserModal
+                doDelete={async () => {
+                  await deleteUser()
+                  await signOut()
+                }}
+              />
+            </ariaComponents.DialogTrigger>
             <aria.Text className="my-auto">{getText('deleteUserAccountWarning')}</aria.Text>
           </div>
         </div>

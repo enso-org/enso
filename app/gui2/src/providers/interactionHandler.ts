@@ -1,5 +1,4 @@
 import { createContextStore } from '@/providers'
-import type { GraphNavigator } from '@/providers/graphNavigator'
 import { shallowRef, watch, type WatchSource } from 'vue'
 
 export { injectFn as injectInteractionHandler, provideFn as provideInteractionHandler }
@@ -69,12 +68,11 @@ export class InteractionHandler {
     event: PointerEvent,
     handlerName: Interaction[HandlerName] extends InteractionEventHandler | undefined ? HandlerName
     : never,
-    graphNavigator: GraphNavigator,
   ): boolean {
     if (!this.currentInteraction.value) return false
     const handler = this.currentInteraction.value[handlerName]
     if (!handler) return false
-    const handled = handler.bind(this.currentInteraction.value)(event, graphNavigator) !== false
+    const handled = handler.bind(this.currentInteraction.value)(event) !== false
     if (handled) {
       event.stopImmediatePropagation()
       event.preventDefault()
@@ -83,7 +81,7 @@ export class InteractionHandler {
   }
 }
 
-type InteractionEventHandler = (event: PointerEvent, navigator: GraphNavigator) => boolean | void
+type InteractionEventHandler = (event: PointerEvent) => boolean | void
 
 export interface Interaction {
   /** Called when the interaction is explicitly canceled, e.g. with the `Esc` key. */
