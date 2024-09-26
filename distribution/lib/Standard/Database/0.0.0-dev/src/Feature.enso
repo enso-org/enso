@@ -9,3 +9,4 @@ type Feature
     Join
     Union
     Distinct
+    Text_cleanse

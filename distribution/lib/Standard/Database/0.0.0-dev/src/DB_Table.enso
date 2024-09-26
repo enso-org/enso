@@ -2928,8 +2928,9 @@ type DB_Table
     @remove make_data_cleanse_vector_selector
     text_cleanse : Vector (Integer | Text | Regex | By_Type) -> Vector Named_Pattern -> DB_Table
     text_cleanse self from:(Vector (Integer | Text | Regex | By_Type)) remove =
-        transformer col = col.text_cleanse remove
-        Table_Helpers.replace_columns_with_transformed_columns self from transformer
+        if self.connection.dialect.is_feature_supported Feature.Text_cleanse . not then Error.throw (Unsupported_Database_Operation.Error "text_cleanse") else
+            transformer col = col.text_cleanse remove
+            Table_Helpers.replace_columns_with_transformed_columns self from transformer
 
     ## ALIAS cumulative, count, sum, total, minimum, maximum, sum, mean, product, variance, standard deviation
        GROUP Standard.Base.Values
