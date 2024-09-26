@@ -440,13 +440,14 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
           nodeIds,
           (id) => db.nodeIdToNode.get(id)?.type === 'input',
         )
+        const nonInputNodesSortedByLines = pickInCodeOrder(new Set(nonInputNodes))
         const inputNodesSortedByArgIndex = inputNodes.sort((a, b) => {
           const nodeA = db.nodeIdToNode.get(a)
           const nodeB = db.nodeIdToNode.get(b)
           if (!nodeA || !nodeB) return 0
           return (nodeA.argIndex ?? 0) - (nodeB.argIndex ?? 0)
         })
-        const nodesToProcess = [...nonInputNodes, ...inputNodesSortedByArgIndex]
+        const nodesToProcess = [...nonInputNodesSortedByLines, ...inputNodesSortedByArgIndex]
         nodesToPlace.length = 0
         batchEdits(() => {
           for (const nodeId of nodesToProcess) {
