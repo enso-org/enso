@@ -333,7 +333,7 @@ type DB_Column
             prepare_operand operand = case operand of
                 other_column : DB_Column ->
                     if Helpers.check_integrity self other_column then other_column.expression else
-                        Error.throw <| Error "Cannot use columns coming from different contexts in one expression without a join."
+                        Error.throw (Integrity_Error.Error "DB_Column "+other_column.name)
                 sql_expression : SQL_Expression ->
                     sql_expression
                 constant ->
