@@ -3,7 +3,7 @@ package org.enso.compiler.pass.desugar
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.ir.expression.{Application, Operator}
 import org.enso.compiler.core.ir.{Expression, Module}
-import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.{IRPass, MiniPassFactory}
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   DataflowAnalysis,
@@ -16,7 +16,9 @@ import org.enso.compiler.pass.analyse.{
   *
   * - Nothing
   */
-case object OperatorToFunction extends IRPass {
+case object OperatorToFunction
+    extends IRPass
+    with MiniPassFactory[OperatorToFunctionMini] {
 
   /** A purely desugaring pass has no analysis output. */
   override type Metadata = IRPass.Metadata.Empty
@@ -83,4 +85,14 @@ case object OperatorToFunction extends IRPass {
         operatorBinary.diagnostics
       )
     }
+
+  override def createForModuleCompilation(
+    moduleContext: ModuleContext
+  ): OperatorToFunctionMini =
+    new OperatorToFunctionMini()
+
+  override def createForInlineCompilation(
+    inlineContext: InlineContext
+  ): OperatorToFunctionMini =
+    new OperatorToFunctionMini()
 }
