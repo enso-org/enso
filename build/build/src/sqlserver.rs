@@ -213,7 +213,7 @@ mod tests {
         let config = Configuration {
             sqlserver_container: ContainerId("something".into()),
             endpoint:            EndpointConfiguration::deduce()?,
-            version:             "latest".into(),
+            version:             "2022-latest".into(),
             user:                "test".into(),
             password:            "<YourStrong@Passw0rd>".into(),
             database_name:       "test".into(),
