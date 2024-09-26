@@ -32,7 +32,8 @@ public final class FinalizationManager {
       while (true) {
         try {
           var ref = referenceQueue.remove();
-          if (ref instanceof FinalizationReference finalizationReference) {
+          if (ref instanceof FinalizationReference) {
+            var finalizationReference = (FinalizationReference)ref;
             finalizationReference.finalize.run();
             finalizers.remove(finalizationReference);
           }
