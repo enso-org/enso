@@ -5,23 +5,9 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ForkJoinPool;
 import org.enso.compiler.core.ir.Module;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 public class EnsoParserMultiThreadedTest {
-  private EnsoParser parser;
-
-  @Before
-  public void initParser() throws Exception {
-    parser = new EnsoParser();
-  }
-
-  @After
-  public void closeParser() throws Exception {
-    parser.close();
-  }
-
   @Test
   public void stressLoadFromManyThreads() throws Exception {
     List<Callable<Module>> cases = new ArrayList<>();
@@ -36,7 +22,7 @@ public class EnsoParserMultiThreadedTest {
               .replace("%n", "" + number);
       cases.add(
           () -> {
-            return parser.compile(code);
+            return EnsoParser.compile(code);
           });
     }
 
