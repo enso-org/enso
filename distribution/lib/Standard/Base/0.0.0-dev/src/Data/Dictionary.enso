@@ -4,6 +4,7 @@ import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Errors.Common.Missing_Argument
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.No_Such_Key.No_Such_Key
 import project.Meta
@@ -163,7 +164,8 @@ type Dictionary key value
     @key (make_all_selector ..Always)
     @value (make_all_selector ..Always)
     insert : Any -> Any -> Dictionary
-    insert self key value = @Builtin_Method "Dictionary.insert"
+    insert self key=(Missing_Argument.throw "key") value=(Missing_Argument.throw "value") =
+        self.insert_builtin key value
 
     ## GROUP Selections
        ICON table_clean
@@ -182,7 +184,7 @@ type Dictionary key value
              Examples.dictionary.remove "A"
     @key key_widget
     remove : Any -> Dictionary ! No_Such_Key
-    remove self key =
+    remove self key=(Missing_Argument.throw "key") =
         Panic.catch Any (self.remove_builtin key) _->
             Error.throw (No_Such_Key.Error self key)
 
