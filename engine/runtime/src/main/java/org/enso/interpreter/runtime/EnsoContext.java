@@ -470,24 +470,32 @@ public final class EnsoContext {
   public synchronized EnsoClassPath findClassPath(Package<TruffleFile> pkg) {
     org.enso.interpreter.runtime.EnsoClassPath l = classPaths.get(pkg);
     if (l == null) {
-      var ch = pkg.polyglotDir().resolve("java");
-      var requires = Arrays.asList(pkg.getConfig().requires());
-      var parents =
-          requires.stream()
-              .map(
-                  n -> {
-                    var name = LibraryName.fromModuleName(n);
-                    if (name.isDefined()) {
-                      var ln = name.get();
-                      var lib = this.packageRepository.getPackageForLibrary(ln);
-                      if (lib.isDefined()) {
-                        return findClassPath(lib.get());
+      if (pkg != null) {
+        var polyDir = pkg.polyglotDir();
+        if (polyDir == null) {
+          throw new NullPointerException("No polyglot dir for " + pkg);
+        }
+        var ch = polyDir.resolve("java");
+        var requires = Arrays.asList(pkg.getConfig().requires());
+        var parents =
+            requires.stream()
+                .map(
+                    n -> {
+                      var name = LibraryName.fromModuleName(n);
+                      if (name.isDefined()) {
+                        var ln = name.get();
+                        var lib = this.packageRepository.getPackageForLibrary(ln);
+                        if (lib.isDefined()) {
+                          return findClassPath(lib.get());
+                        }
                       }
-                    }
-                    return findClassPath(null);
-                  })
-              .toList();
-      l = EnsoClassPath.create(Paths.get(ch.toUri()), parents);
+                      return findClassPath(null);
+                    })
+                .toList();
+        l = EnsoClassPath.create(Paths.get(ch.toUri()), parents);
+      } else {
+        l = EnsoClassPath.EMPTY;
+      }
       classPaths.put(pkg, l);
     }
     return l;
@@ -574,8 +582,8 @@ public final class EnsoContext {
       var fqn = binaryName.toString();
       try {
         var hostSymbol = lookupHostSymbol(cp.loader, fqn);
-        if (hostSymbol != null) {
-          return (TruffleObject) hostSymbol;
+        if (hostSymbol instanceof TruffleObject truffleSymbol) {
+          return truffleSymbol;
         }
       } catch (ClassNotFoundException | RuntimeException | InteropException ex) {
         collectedExceptions.add(ex);
@@ -599,10 +607,14 @@ public final class EnsoContext {
       throws ClassNotFoundException, UnknownIdentifierException, UnsupportedMessageException {
     try {
       if (findGuestJava() == null) {
+        Class<?> clazz;
         if (loader == null) {
-          throw new ClassNotFoundException(fqn);
+          var baseModule = Object.class.getModule();
+          clazz = Class.forName(baseModule, fqn);
+        } else {
+          clazz = loader.loadClass(fqn);
         }
-        return environment.asHostSymbol(loader.loadClass(fqn));
+        return environment.asHostSymbol(clazz);
       } else {
         return InteropLibrary.getUncached().readMember(findGuestJava(), fqn);
       }

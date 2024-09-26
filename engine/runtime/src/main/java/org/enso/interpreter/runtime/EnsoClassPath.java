@@ -8,7 +8,7 @@ import java.util.List;
 
 /** Representation of an Enso library class path. */
 public final class EnsoClassPath {
-  private static final EnsoClassPath EMPTY = new EnsoClassPath(null, null, null);
+  static final EnsoClassPath EMPTY = new EnsoClassPath(null, null, null);
   private final ModuleLayer.Controller cntrl;
   private final ModuleLayer layer;
   final ClassLoader loader;
