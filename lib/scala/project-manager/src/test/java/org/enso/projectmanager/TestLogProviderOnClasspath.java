@@ -12,8 +12,9 @@ import org.junit.Test;
 import org.slf4j.spi.SLF4JServiceProvider;
 
 /**
- * In the `runtime/Test` testing suite, {@link }org.enso.logger.TestLogProvider} should be among the
- * logging providers, because it is explicitly chosen as the logging provider for the tests.
+ * In the `runtime/Test` testing suite, {@link
+ * org.enso.logging.service.logback.test.provider.TestLogProvider} should be among the logging
+ * providers, because it is explicitly chosen as the logging provider for the tests.
  *
  * <p>Note that the same test is in the `runtime/Test` project.
  */

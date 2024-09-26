@@ -20,6 +20,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.data.atom.AtomNewInstanceNode;
 import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
@@ -61,7 +62,11 @@ public abstract class CatchPanicNode extends Node {
       @CachedLibrary(limit = "3") InteropLibrary interop) {
     try {
       // Note [Tail call]
-      return thunkExecutorNode.executeThunk(frame, action, state, BaseNode.TailStatus.NOT_TAIL);
+      var ret = thunkExecutorNode.executeThunk(frame, action, state, BaseNode.TailStatus.NOT_TAIL);
+      if (ret instanceof PanicSentinel sentinel) {
+        throw sentinel.getPanic();
+      }
+      return ret;
     } catch (PanicException e) {
       panicBranchProfile.enter();
       Object payload = e.getPayload();
