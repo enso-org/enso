@@ -29,7 +29,7 @@ export async function loginAsTestUser(page: Page) {
   await expect(page.getByRole('textbox', { name: 'password' })).toBeVisible()
   if (process.env.ENSO_TEST_USER == null || process.env.ENSO_TEST_USER_PASSWORD == null) {
     throw Error(
-      'Cannot log in; ENSO_TEST_USER and ENSO_TEST_USER_PASSWORD env variables are not provided',
+      'Cannot log in; `ENSO_TEST_USER` and `ENSO_TEST_USER_PASSWORD` env variables are not provided',
     )
   }
   await page.keyboard.insertText(process.env.ENSO_TEST_USER)

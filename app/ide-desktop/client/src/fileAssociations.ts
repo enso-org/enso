@@ -81,14 +81,12 @@ function getClientArguments(args = process.argv): readonly string[] {
     }
   } else {
     // Drop the leading executable name and known electron options.
-    return args
-      .slice(1)
-      .filter(
-        option =>
-          option !== '--no-sandbox' &&
-          !option.startsWith('--inspect') &&
-          !option.startsWith('--remote-debugging-port'),
-      )
+    return (
+      args
+        .slice(1)
+        // Omitting $ in --inspect and --remote-debugging-port is intentional.
+        .filter(option => !/^--no-sandbox$|^--inspect|^--remote-debugging-port/.test(option))
+    )
   }
 }
 
