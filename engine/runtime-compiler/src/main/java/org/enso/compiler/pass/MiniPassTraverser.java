@@ -3,6 +3,7 @@ package org.enso.compiler.pass;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.CompilerError;
 import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Module;
 
 public final class MiniPassTraverser {
@@ -15,9 +16,18 @@ public final class MiniPassTraverser {
    *     {@link MiniPassFactory#createForModuleCompilation(ModuleContext)}.
    * @return Transformed module IR.
    */
-  public static Module compileWithMiniPass(Module moduleIr, MiniIRPass miniPass) {
+  public static Module compileModuleWithMiniPass(Module moduleIr, MiniIRPass miniPass) {
     var newModuleIr = compileRecursively(moduleIr, miniPass);
     return (Module) newModuleIr;
+  }
+
+  public static Expression compileInlineWithMiniPass(Expression exprIr, MiniIRPass miniPass) {
+    miniPass.prepare(exprIr);
+    var newIr = compileRecursively(exprIr, miniPass);
+    if (!miniPass.checkPostCondition(newIr)) {
+      throw new CompilerError("Post condition failed after applying mini pass " + miniPass);
+    }
+    return (Expression) newIr;
   }
 
   private static IR compileRecursively(IR ir, MiniIRPass miniPass) {

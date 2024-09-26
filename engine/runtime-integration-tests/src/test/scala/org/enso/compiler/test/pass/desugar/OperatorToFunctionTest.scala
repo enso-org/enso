@@ -9,6 +9,7 @@ import org.enso.compiler.core.ir.{
   Name
 }
 import org.enso.compiler.core.ir.expression.{Application, Operator}
+import org.enso.compiler.pass.MiniPassTraverser
 import org.enso.compiler.pass.desugar.OperatorToFunction
 import org.enso.compiler.test.CompilerTest
 
@@ -49,19 +50,18 @@ class OperatorToFunctionTest extends CompilerTest {
   }
 
   // === The Tests ============================================================
+  val opName =
+    Name.Literal("=:=", isMethod = true, None)
+  val left     = Empty(None)
+  val right    = Empty(None)
+  val rightArg = CallArgument.Specified(None, Empty(None), None)
+
+  val (operator, operatorFn) = genOprAndFn(opName, left, right)
+
+  val oprArg   = CallArgument.Specified(None, operator, None)
+  val oprFnArg = CallArgument.Specified(None, operatorFn, None)
 
   "Operators" should {
-    val opName =
-      Name.Literal("=:=", isMethod = true, None)
-    val left     = Empty(None)
-    val right    = Empty(None)
-    val rightArg = CallArgument.Specified(None, Empty(None), None)
-
-    val (operator, operatorFn) = genOprAndFn(opName, left, right)
-
-    val oprArg   = CallArgument.Specified(None, operator, None)
-    val oprFnArg = CallArgument.Specified(None, operatorFn, None)
-
     "be translated to functions" in {
       OperatorToFunction.runExpression(operator, ctx) shouldEqual operatorFn
     }
@@ -87,6 +87,31 @@ class OperatorToFunctionTest extends CompilerTest {
         recursiveIR,
         ctx
       ) shouldEqual recursiveIRResult
+    }
+  }
+
+  "Operators mini pass" should {
+    "be translated to functions" in {
+      val miniPass = OperatorToFunction.createForInlineCompilation(ctx)
+      val miniRes =
+        MiniPassTraverser.compileInlineWithMiniPass(operator, miniPass)
+      miniRes shouldEqual operatorFn
+    }
+
+    "be translated recursively" in {
+      val recursiveIR =
+        Operator.Binary(oprArg, opName, rightArg, None)
+      val recursiveIRResult = Application.Prefix(
+        opName,
+        List(oprFnArg, rightArg),
+        hasDefaultsSuspended = false,
+        None
+      )
+
+      val miniPass = OperatorToFunction.createForInlineCompilation(ctx)
+      val miniRes =
+        MiniPassTraverser.compileInlineWithMiniPass(recursiveIR, miniPass)
+      miniRes shouldEqual recursiveIRResult
     }
   }
 }
