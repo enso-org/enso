@@ -244,6 +244,7 @@ type SQLSever_Dialect
             Feature.Select_columns -> False
             Feature.Filter -> False
             Feature.Aggregate -> False
+            Feature.Sort -> False
             _ -> True
 
     ## PRIVATE

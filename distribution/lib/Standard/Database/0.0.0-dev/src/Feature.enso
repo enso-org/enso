@@ -5,3 +5,4 @@ type Feature
     Select_columns
     Filter
     Aggregate
+    Sort
