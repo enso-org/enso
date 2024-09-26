@@ -33,7 +33,7 @@ public final class FinalizationManager {
         try {
           var ref = referenceQueue.remove();
           if (ref instanceof FinalizationReference) {
-            var finalizationReference = (FinalizationReference)ref;
+            var finalizationReference = (FinalizationReference) ref;
             finalizationReference.finalize.run();
             finalizers.remove(finalizationReference);
           }
