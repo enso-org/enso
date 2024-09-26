@@ -5,7 +5,7 @@ import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Set;
 
-public final class FinalizationManager {
+final class FinalizationManager {
   private final ReferenceQueue<Object> referenceQueue = new ReferenceQueue<>();
   private final Set<FinalizationReference> finalizers =
       Collections.synchronizedSet(Collections.newSetFromMap(new IdentityHashMap<>()));
@@ -18,28 +18,34 @@ public final class FinalizationManager {
    * @param referent Object whose lifetime determines when the finalizer will be run.
    * @param finalize Callback to run after {@code referent} has been garbage-collected.
    */
-  public <T> void attachFinalizer(T referent, Runnable finalize) {
+  <T> void attachFinalizer(T referent, Runnable finalize) {
     finalizers.add(new FinalizationReference(referent, finalize, referenceQueue));
   }
 
-  public FinalizerRunner createRunner() {
-    return this.new FinalizerRunner();
+  void runPendingFinalizers() {
+    var ref = referenceQueue.poll();
+    while (ref != null) {
+      runFinalizer(ref);
+      ref = referenceQueue.poll();
+    }
   }
 
-  public class FinalizerRunner implements Runnable {
-    @Override
-    public void run() {
-      while (true) {
-        try {
-          var ref = referenceQueue.remove();
-          if (ref instanceof FinalizationReference) {
-            var finalizationReference = (FinalizationReference) ref;
-            finalizationReference.finalize.run();
-            finalizers.remove(finalizationReference);
-          }
-        } catch (InterruptedException ignored) {
-        }
-      }
+  /**
+   * @return The finalizers that have been registered, and have not yet been run.
+   *     <p>This does not de-register the finalizers; they will still be run as usual after their
+   *     reference objects become unreachable.
+   */
+  Iterable<Runnable> getRegisteredFinalizers() {
+    synchronized (finalizers) {
+      return finalizers.stream().map(ref -> ref.finalize).toList();
+    }
+  }
+
+  private void runFinalizer(Reference<?> ref) {
+    if (ref instanceof FinalizationReference) {
+      var finalizationReference = (FinalizationReference) ref;
+      finalizationReference.finalize.run();
+      finalizers.remove(finalizationReference);
     }
   }
 

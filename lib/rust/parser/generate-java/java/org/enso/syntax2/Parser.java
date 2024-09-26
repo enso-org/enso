@@ -1,14 +1,14 @@
 package org.enso.syntax2;
 
 import java.io.File;
-import java.lang.ref.Reference;
-import java.lang.ref.SoftReference;
 import java.net.URISyntaxException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 import org.slf4j.LoggerFactory;
 
 public final class Parser {
@@ -45,21 +45,23 @@ public final class Parser {
   /* Worker-thread state */
 
   private static final FinalizationManager finalizationManager = new FinalizationManager();
-  private static final Thread finalizationThread = new Thread(finalizationManager.createRunner());
 
   private static Worker getWorker() {
-    var threadWorker = worker.get();
-    if (threadWorker != null) {
-      var reusableWorker = threadWorker.get();
-      if (reusableWorker != null) return reusableWorker;
+    var worker = threadWorker.get();
+    if (worker == null) {
+      finalizationManager.runPendingFinalizers();
+      worker = Worker.create();
+      finalizationManager.attachFinalizer(worker, worker.finalizer());
+      threadWorker.set(worker);
     }
-    var newWorker = Worker.create();
-    finalizationManager.attachFinalizer(newWorker, newWorker.finalizer());
-    worker.set(new SoftReference<>(newWorker));
-    return newWorker;
+    return worker;
   }
 
-  private static final ThreadLocal<Reference<Worker>> worker = new ThreadLocal<>();
+  private static final ThreadLocal<Worker> threadWorker = new ThreadLocal<>();
+
+  public static void freeAll() {
+    for (var finalizer : finalizationManager.getRegisteredFinalizers()) finalizer.run();
+  }
 
   private static class Worker {
     private static void initializeLibraries() {
@@ -130,23 +132,43 @@ public final class Parser {
       return false;
     }
 
-    private final long state;
+    private final AtomicLong state = new AtomicLong(0);
 
-    private Worker() {
-      state = allocState();
+    private Worker() {}
+
+    private static class Finalizer implements Runnable {
+      private final AtomicLong state;
+
+      private Finalizer(AtomicLong state) {
+        this.state = state;
+      }
+
+      @Override
+      public void run() {
+        freeState(state.getAndSet(0));
+      }
     }
 
-    /**
-     * @return A function that can be called to free the associated resources. The function *must
-     *     not* be called more than once.
-     */
     Runnable finalizer() {
-      return () -> freeState(state);
+      return new Finalizer(state);
     }
 
     static Worker create() {
       initializeLibraries();
       return new Worker();
+    }
+
+    private <T> T withState(Function<Long, T> stateConsumer) {
+      // Take the state for the duration of the operation so that it can't be freed by another
+      // thread.
+      var privateState = state.getAndSet(0);
+      if (privateState == 0) privateState = allocState();
+      var result = stateConsumer.apply(privateState);
+      // We don't need to check the value before setting here: A state may be freed by another
+      // thread, but is only allocated by its associated `Worker`, so after taking it above, the
+      // shared value remains 0 until we restore it.
+      state.set(privateState);
+      return result;
     }
 
     long isIdentOrOperator(CharSequence input) {
@@ -158,28 +180,34 @@ public final class Parser {
     }
 
     ByteBuffer parseInputLazy(CharSequence input) {
-      byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
-      ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
-      inputBuf.put(inputBytes);
-      return parseTreeLazy(state, inputBuf);
+      return withState(
+          state -> {
+            byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
+            ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
+            inputBuf.put(inputBytes);
+            return parseTreeLazy(state, inputBuf);
+          });
     }
 
     Tree parse(CharSequence input) {
-      byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
-      ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
-      inputBuf.put(inputBytes);
-      var serializedTree = parseTree(state, inputBuf);
-      var base = getLastInputBase(state);
-      var metadata = getMetadata(state);
-      serializedTree.order(ByteOrder.LITTLE_ENDIAN);
-      var message = new Message(serializedTree, input, base, metadata);
-      try {
-        return Tree.deserialize(message);
-      } catch (BufferUnderflowException | IllegalArgumentException e) {
-        LoggerFactory.getLogger(this.getClass())
-            .error("Unrecoverable parser failure for: {}", input, e);
-        throw e;
-      }
+      return withState(
+          state -> {
+            byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
+            ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
+            inputBuf.put(inputBytes);
+            var serializedTree = parseTree(state, inputBuf);
+            var base = getLastInputBase(state);
+            var metadata = getMetadata(state);
+            serializedTree.order(ByteOrder.LITTLE_ENDIAN);
+            var message = new Message(serializedTree, input, base, metadata);
+            try {
+              return Tree.deserialize(message);
+            } catch (BufferUnderflowException | IllegalArgumentException e) {
+              LoggerFactory.getLogger(this.getClass())
+                  .error("Unrecoverable parser failure for: {}", input, e);
+              throw e;
+            }
+          });
     }
   }
 

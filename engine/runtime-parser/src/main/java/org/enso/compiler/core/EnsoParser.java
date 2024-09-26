@@ -27,4 +27,13 @@ public final class EnsoParser {
     var tree = Parser.parse(src);
     return TreeToIr.MODULE.translateInline(tree);
   }
+
+  /**
+   * Free retained state of all parsers. Parser buffers are retained per-thread for reuse; this
+   * function drops those reusable buffers. If the parser is used again after this call, it will
+   * allocate new buffers as needed.
+   */
+  public static void freeAll() {
+    Parser.freeAll();
+  }
 }
