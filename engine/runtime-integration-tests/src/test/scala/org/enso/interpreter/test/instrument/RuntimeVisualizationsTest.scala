@@ -1351,6 +1351,17 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
     )
 
+    val attachVisualizationResponses =
+      context.receiveNIgnoreExpressionUpdates(2)
+
+    attachVisualizationResponses.filter(
+      _.payload.isInstanceOf[Api.VisualizationAttached]
+    ) shouldEqual List(
+      Api.Response(requestId, Api.VisualizationAttached()),
+      Api.Response(requestId, Api.VisualizationAttached())
+    )
+
+    // Modify the file
     context.send(
       Api.Request(
         Api.EditFileNotification(
@@ -1367,23 +1378,17 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
     )
 
-    val responses =
-      context.receiveNIgnoreExpressionUpdates(7)
+    val editFileResponses =
+      context.receiveNIgnoreExpressionUpdates(5)
 
-    responses should contain allOf (
-      Api.Response(requestId, Api.VisualizationAttached()),
+    editFileResponses should contain(
       context.executionComplete(contextId)
     )
 
-    responses.filter(
-      _.payload.isInstanceOf[Api.VisualizationAttached]
-    ) shouldEqual List(
-      Api.Response(requestId, Api.VisualizationAttached()),
-      Api.Response(requestId, Api.VisualizationAttached())
-    )
-
     val visualizationUpdatesResponses =
-      responses.filter(_.payload.isInstanceOf[Api.VisualizationUpdate])
+      (attachVisualizationResponses ::: editFileResponses).filter(
+        _.payload.isInstanceOf[Api.VisualizationUpdate]
+      )
     val expectedExpressionId = context.Main.idMainX
     val visualizationUpdates = visualizationUpdatesResponses.map(
       _.payload.asInstanceOf[Api.VisualizationUpdate]
