@@ -352,9 +352,9 @@ export type ProjectRepeatInterval = (typeof PROJECT_REPEAT_INTERVALS)[number]
 
 /** The times during each interval to trigger executions. */
 export interface ProjectScheduleTime {
-  readonly dates?: number[]
-  readonly days?: number[]
-  readonly hours?: number[]
+  readonly dates?: readonly number[]
+  readonly days?: readonly number[]
+  readonly hours?: readonly number[]
   readonly minute: number
 }
 

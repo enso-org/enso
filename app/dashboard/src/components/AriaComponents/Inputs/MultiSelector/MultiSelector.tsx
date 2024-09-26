@@ -38,7 +38,7 @@ export interface MultiSelectorProps<
     FieldProps,
     Omit<VariantProps<typeof MULTI_SELECTOR_STYLES>, 'disabled' | 'invalid'> {
   readonly items: readonly T[]
-  readonly itemToString?: (item: T) => string
+  readonly children?: (item: T) => string
   readonly columns?: number
   readonly className?: string
   readonly style?: CSSProperties
@@ -94,7 +94,7 @@ export const MultiSelector = forwardRef(function MultiSelector<
   const {
     name,
     items,
-    itemToString = String,
+    children = String,
     isDisabled = false,
     columns,
     form,
@@ -177,7 +177,7 @@ export const MultiSelector = forwardRef(function MultiSelector<
                 }}
               >
                 {items.map((item, i) => (
-                  <MultiSelectorOption key={i} id={i} value={{ item }} label={itemToString(item)} />
+                  <MultiSelectorOption key={i} id={i} value={{ item }} label={children(item)} />
                 ))}
               </ListBox>
             )

@@ -19,7 +19,6 @@ import {
   PROJECT_REPEAT_INTERVALS,
   REPEAT_INTERVAL_TO_TEXT_ID,
   type ProjectAsset,
-  type ProjectScheduleTime,
 } from 'enso-common/src/services/Backend'
 
 import {
@@ -28,12 +27,14 @@ import {
   Dialog,
   Form,
   Input,
+  MultiSelector,
   Selector,
   Switch,
   Text,
 } from '#/components/AriaComponents'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useText, type GetText } from '#/providers/TextProvider'
+import { DAY_3_LETTER_TEXT_IDS } from 'enso-common/src/utilities/data/dateTime'
 
 const MAX_DURATION_DEFAULT_MINUTES = 60
 const MAX_DURATION_MINIMUM_MINUTES = 1
@@ -41,34 +42,89 @@ const MAX_DURATION_MAXIMUM_MINUTES = 180
 const REPEAT_TIMES_COUNT = 5
 
 /* eslint-disable @typescript-eslint/no-magic-numbers */
+const DATES: readonly number[] = [...Array(31).keys()]
+const DAYS: readonly number[] = [...Array(7).keys()]
+const HOURS: readonly number[] = [...Array(24).keys()]
+
 /** Create the form schema for this page. */
 function createUpsertExecutionSchema(getText: GetText) {
-  return (
-    z
-      .object({
-        multiSelect: z.boolean(),
-        repeatInterval: z.enum(PROJECT_REPEAT_INTERVALS),
-        date: z.instanceof(ZonedDateTime, { message: getText('pleaseSelectATime') }),
-        maxDurationMinutes: z
-          .number()
-          .int()
-          .min(MAX_DURATION_MINIMUM_MINUTES)
-          .max(MAX_DURATION_MAXIMUM_MINUTES),
-        parallelMode: z.enum(PROJECT_PARALLEL_MODES),
-      })
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      .transform(({ date, repeatInterval, multiSelect: _multiSelect, ...rest }) => {
+  return z
+    .object({
+      multiSelect: z.boolean(),
+      repeatInterval: z.enum(PROJECT_REPEAT_INTERVALS),
+      dates: z
+        .number()
+        .int()
+        .min(0)
+        .max(30)
+        .array()
+        .transform((arr) => arr.sort((a, b) => a - b))
+        .readonly(),
+      days: z
+        .number()
+        .int()
+        .min(0)
+        .max(6)
+        .array()
+        .transform((arr) => arr.sort((a, b) => a - b))
+        .readonly(),
+      hours: z
+        .number()
+        .int()
+        .min(0)
+        .max(23)
+        .array()
+        .transform((arr) => arr.sort((a, b) => a - b))
+        .readonly(),
+      minute: z.number(),
+      date: z.instanceof(ZonedDateTime, { message: getText('pleaseSelectATime') }),
+      maxDurationMinutes: z
+        .number()
+        .int()
+        .min(MAX_DURATION_MINIMUM_MINUTES)
+        .max(MAX_DURATION_MAXIMUM_MINUTES),
+      parallelMode: z.enum(PROJECT_PARALLEL_MODES),
+    })
+    .transform(
+      ({
+        date,
+        repeatInterval,
+        multiSelect,
+        maxDurationMinutes,
+        parallelMode,
+        dates,
+        days,
+        hours,
+        minute,
+      }) => {
         const utcDate = toTimeZone(date, 'UTC')
-        return {
-          repeatInterval,
-          ...(repeatInterval === 'monthly' && { date: utcDate.day }),
-          ...(repeatInterval === 'weekly' && { day: getDayOfWeek(utcDate, 'en-US') }),
-          ...(repeatInterval !== 'hourly' && { hour: utcDate.hour }),
-          minute: utcDate.minute,
-          ...rest,
+        if (multiSelect) {
+          return {
+            repeatInterval,
+            maxDurationMinutes,
+            parallelMode,
+            time: {
+              ...(repeatInterval === 'monthly' && { dates: [utcDate.day] }),
+              ...(repeatInterval === 'weekly' && { days: [getDayOfWeek(utcDate, 'en-US')] }),
+              ...(repeatInterval !== 'hourly' && { hours: [utcDate.hour] }),
+              minute: utcDate.minute,
+            },
+          }
+        } else {
+          return {
+            repeatInterval,
+            maxDurationMinutes,
+            parallelMode,
+            time: {
+              ...(repeatInterval === 'monthly' && { dates }),
+              ...(repeatInterval === 'weekly' && { days }),
+              ...(repeatInterval !== 'hourly' && { hours }),
+              minute,
+            },
+          }
         }
-      })
-  )
+      },
+    )
 }
 /* eslint-enable @typescript-eslint/no-magic-numbers */
 
@@ -106,20 +162,18 @@ function NewProjectExecutionModalInner(props: NewProjectExecutionModalProps) {
     method: 'dialog',
     schema: createUpsertExecutionSchema(getText),
     defaultValues: {
+      multiSelect: false,
       repeatInterval: 'weekly',
       parallelMode: 'restart',
       date: minFirstOccurrence,
       maxDurationMinutes: MAX_DURATION_DEFAULT_MINUTES,
+      dates: [],
+      days: [],
+      hours: [],
+      minute: 0,
     },
     onSubmit: async (values) => {
-      const { minute, hour, day, date: newDate, ...rest } = values
-      const time: ProjectScheduleTime = {
-        minute,
-        hours: hour != null ? [hour] : [],
-        days: day != null ? [day] : [],
-        dates: newDate != null ? [newDate] : [],
-      }
-      await createProjectExecution([{ projectId: item.id, time, ...rest }, item.title])
+      await createProjectExecution([{ projectId: item.id, ...values }, item.title])
     },
   })
   const repeatInterval = form.watch('repeatInterval', 'weekly')
@@ -224,7 +278,69 @@ function NewProjectExecutionModalInner(props: NewProjectExecutionModalProps) {
           />
         </>
       )}
-      {multiSelect && <></>}
+      {multiSelect && (
+        <>
+          <Selector
+            form={form}
+            name="repeatInterval"
+            label={getText('repeatIntervalLabel')}
+            items={PROJECT_REPEAT_INTERVALS}
+          >
+            {(interval) => getText(REPEAT_INTERVAL_TO_TEXT_ID[interval])}
+          </Selector>
+          {repeatInterval === 'monthly' && (
+            <MultiSelector
+              form={form}
+              isRequired
+              name="dates"
+              label={getText('datesLabel')}
+              items={DATES}
+              columns={10}
+            >
+              {(n) => String(n + 1)}
+            </MultiSelector>
+          )}
+          {repeatInterval === 'weekly' && (
+            <MultiSelector
+              form={form}
+              isRequired
+              name="days"
+              label={getText('daysLabel')}
+              items={DAYS}
+            >
+              {(n) => getText(DAY_3_LETTER_TEXT_IDS[n] ?? 'monday3')}
+            </MultiSelector>
+          )}
+          {repeatInterval !== 'hourly' && (
+            <MultiSelector
+              form={form}
+              isRequired
+              name="hours"
+              label={getText('hoursLabel')}
+              items={HOURS}
+              columns={12}
+            />
+          )}
+          <Input
+            form={form}
+            required
+            name="minute"
+            label={getText('minuteLabel')}
+            type="number"
+            min={0}
+            max={59}
+          />
+          <Selector
+            form={form}
+            isRequired
+            name="parallelMode"
+            label={getText('parallelModeLabel')}
+            items={PROJECT_PARALLEL_MODES}
+          >
+            {(interval) => getText(PARALLEL_MODE_TO_TEXT_ID[interval])}
+          </Selector>
+        </>
+      )}
       <Switch form={form} name="multiSelect" />
 
       <Form.FormError />
