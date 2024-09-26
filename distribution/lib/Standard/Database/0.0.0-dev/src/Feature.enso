@@ -7,3 +7,4 @@ type Feature
     Aggregate
     Sort
     Join
+    Union

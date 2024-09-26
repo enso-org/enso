@@ -1848,86 +1848,87 @@ type DB_Table
     @columns_to_keep Columns_To_Keep.default_widget
     union : (DB_Table | Vector DB_Table) -> Columns_To_Keep -> Match_Columns -> Problem_Behavior -> DB_Table
     union self tables:(DB_Table | Vector) (columns_to_keep : Columns_To_Keep = ..In_Any_Warn_On_Missing) (match_columns : Match_Columns = ..By_Name) (on_problems : Problem_Behavior = ..Report_Warning) =
-        all_tables = case tables of
-            v : Vector -> [self] + (v.map t-> DB_Table.from t)
-            single_table -> [self, single_table]
-        Helpers.ensure_same_connection "table" all_tables <|
-            ## We keep separate problem builders, because if we are reporting `No_Output_Columns`,
-               we only want to add a cause coming from unification; matching reports problems that would not fit this error.
-            problem_builder_for_matching = Problem_Builder.new
-            problem_builder_for_unification = Problem_Builder.new
-            matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns columns_to_keep problem_builder_for_matching
-            dialect = self.connection.dialect
-            type_mapping = dialect.get_type_mapping
-            merged_columns = matched_column_sets.map column_set->
-                sql_type_from_value_type value_type =
-                    type_mapping.value_type_to_sql value_type Problem_Behavior.Report_Error . catch Inexact_Type_Coercion error->
-                        Panic.throw <|
-                            Illegal_State.Error "Unexpected inexact type coercion in Union. The union logic should only operate in types supported by the given backend. This is a bug in the Database library. The coercion was: "+error.to_display_text cause=error
-                case Table_Helpers.unify_result_type_for_union column_set all_tables problem_builder_for_unification of
-                    Union_Result_Type.Common_Type common_type ->
-                        [column_set, sql_type_from_value_type common_type, common_type]
-                    Union_Result_Type.Fallback_To_Text ->
-                        [column_set, sql_type_from_value_type Value_Type.Char, Value_Type.Char]
-                    Union_Result_Type.No_Types_To_Unify ->
-                        ## If the column is all nulls, we still need to give it some type.
-                           For DB `Mixed` is not available, so a portable type to use is `Char`.
-                        [column_set, SQL_Type.null, Value_Type.Char]
+        if self.connection.dialect.is_feature_supported Feature.Union . not then Error.throw (Unsupported_Database_Operation.Error "union") else
+            all_tables = case tables of
+                v : Vector -> [self] + (v.map t-> DB_Table.from t)
+                single_table -> [self, single_table]
+            Helpers.ensure_same_connection "table" all_tables <|
+                ## We keep separate problem builders, because if we are reporting `No_Output_Columns`,
+                  we only want to add a cause coming from unification; matching reports problems that would not fit this error.
+                problem_builder_for_matching = Problem_Builder.new
+                problem_builder_for_unification = Problem_Builder.new
+                matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns columns_to_keep problem_builder_for_matching
+                dialect = self.connection.dialect
+                type_mapping = dialect.get_type_mapping
+                merged_columns = matched_column_sets.map column_set->
+                    sql_type_from_value_type value_type =
+                        type_mapping.value_type_to_sql value_type Problem_Behavior.Report_Error . catch Inexact_Type_Coercion error->
+                            Panic.throw <|
+                                Illegal_State.Error "Unexpected inexact type coercion in Union. The union logic should only operate in types supported by the given backend. This is a bug in the Database library. The coercion was: "+error.to_display_text cause=error
+                    case Table_Helpers.unify_result_type_for_union column_set all_tables problem_builder_for_unification of
+                        Union_Result_Type.Common_Type common_type ->
+                            [column_set, sql_type_from_value_type common_type, common_type]
+                        Union_Result_Type.Fallback_To_Text ->
+                            [column_set, sql_type_from_value_type Value_Type.Char, Value_Type.Char]
+                        Union_Result_Type.No_Types_To_Unify ->
+                            ## If the column is all nulls, we still need to give it some type.
+                              For DB `Mixed` is not available, so a portable type to use is `Char`.
+                            [column_set, SQL_Type.null, Value_Type.Char]
 
-            problem_builder_for_matching.attach_problems_before on_problems <| problem_builder_for_unification.attach_problems_before on_problems <|
-                if merged_columns.is_empty then problem_builder_for_unification.raise_no_output_columns_with_cause else
-                    queries = all_tables.map_with_index i-> t->
-                        columns_to_select = merged_columns.map description->
-                            column_set  = description.at 0
-                            sql_type    = description.at 1
+                problem_builder_for_matching.attach_problems_before on_problems <| problem_builder_for_unification.attach_problems_before on_problems <|
+                    if merged_columns.is_empty then problem_builder_for_unification.raise_no_output_columns_with_cause else
+                        queries = all_tables.map_with_index i-> t->
+                            columns_to_select = merged_columns.map description->
+                                column_set  = description.at 0
+                                sql_type    = description.at 1
+                                result_type = description.at 2
+                                column_name = column_set.name
+                                ## We assume that the type for this expression will never be queried - it is
+                                  just used internally to build the Union operation and never exposed externally.
+                                infer_return_type _ = SQL_Type_Reference.null
+                                case column_set.column_indices.at i of
+                                    corresponding_column_index : Integer ->
+                                        column = t.at corresponding_column_index
+                                        internal_named_column = column.as_internal.rename column_name
+                                        ## We cast if the result type is different.
+                                          This is a bit on the safe side. In some cases the cast is not needed
+                                          (for example, most databases will allow union of int2 and int4 without casts; or SQLite does not need casts at all).
+                                          However, we do this for simplicity as determining the rules when the cast is needed or not is adding a lot of complication.
+                                          This is a possible future improvement to make queries lighter, but the benefit is unlikely to be worth it.
+                                        needs_cast = column.value_type != result_type
+                                        if needs_cast.not then internal_named_column else
+                                            dialect.make_cast internal_named_column sql_type infer_return_type
+                                    Nothing ->
+                                        typ = SQL_Type_Reference.from_constant SQL_Type.null
+                                        expr = SQL_Expression.Literal "NULL"
+                                        null_column = Internal_Column.Value column_name typ expr
+                                        if sql_type == SQL_Type.null then null_column else
+                                            dialect.make_cast null_column sql_type infer_return_type
+                            pairs = columns_to_select.map c->
+                                [c.name, c.expression]
+                            Query.Select pairs t.context
+
+                        table_name_deduplicator = self.connection.base_connection.table_naming_helper.create_unique_name_strategy
+                        table_name_deduplicator.mark_used (all_tables.map .name)
+                        union_alias = table_name_deduplicator.make_unique <|
+                            all_tables.map .name . join "_"
+                        new_from = From_Spec.Union queries union_alias
+                        new_ctx = Context.for_subquery new_from
+                        ## TODO [RW] The result type is currently fetched
+                          independently for each column, instead we should fetch it
+                          for all columns at once.
+                          See #6118.
+                        infer_return_type expression =
+                            SQL_Type_Reference.new self.connection new_ctx expression
+                        new_columns = merged_columns.map description->
+                            column_set = description.first
                             result_type = description.at 2
-                            column_name = column_set.name
-                            ## We assume that the type for this expression will never be queried - it is
-                               just used internally to build the Union operation and never exposed externally.
-                            infer_return_type _ = SQL_Type_Reference.null
-                            case column_set.column_indices.at i of
-                                corresponding_column_index : Integer ->
-                                    column = t.at corresponding_column_index
-                                    internal_named_column = column.as_internal.rename column_name
-                                    ## We cast if the result type is different.
-                                       This is a bit on the safe side. In some cases the cast is not needed
-                                       (for example, most databases will allow union of int2 and int4 without casts; or SQLite does not need casts at all).
-                                       However, we do this for simplicity as determining the rules when the cast is needed or not is adding a lot of complication.
-                                       This is a possible future improvement to make queries lighter, but the benefit is unlikely to be worth it.
-                                    needs_cast = column.value_type != result_type
-                                    if needs_cast.not then internal_named_column else
-                                        dialect.make_cast internal_named_column sql_type infer_return_type
-                                Nothing ->
-                                    typ = SQL_Type_Reference.from_constant SQL_Type.null
-                                    expr = SQL_Expression.Literal "NULL"
-                                    null_column = Internal_Column.Value column_name typ expr
-                                    if sql_type == SQL_Type.null then null_column else
-                                        dialect.make_cast null_column sql_type infer_return_type
-                        pairs = columns_to_select.map c->
-                            [c.name, c.expression]
-                        Query.Select pairs t.context
+                            name = column_set.name
+                            expression = SQL_Expression.Column union_alias name
+                            input_column = Internal_Column.Value name (infer_return_type expression) expression
+                            dialect.adapt_unified_column input_column result_type infer_return_type
 
-                    table_name_deduplicator = self.connection.base_connection.table_naming_helper.create_unique_name_strategy
-                    table_name_deduplicator.mark_used (all_tables.map .name)
-                    union_alias = table_name_deduplicator.make_unique <|
-                        all_tables.map .name . join "_"
-                    new_from = From_Spec.Union queries union_alias
-                    new_ctx = Context.for_subquery new_from
-                    ## TODO [RW] The result type is currently fetched
-                       independently for each column, instead we should fetch it
-                       for all columns at once.
-                       See #6118.
-                    infer_return_type expression =
-                        SQL_Type_Reference.new self.connection new_ctx expression
-                    new_columns = merged_columns.map description->
-                        column_set = description.first
-                        result_type = description.at 2
-                        name = column_set.name
-                        expression = SQL_Expression.Column union_alias name
-                        input_column = Internal_Column.Value name (infer_return_type expression) expression
-                        dialect.adapt_unified_column input_column result_type infer_return_type
-
-                    DB_Table.Value union_alias self.connection new_columns new_ctx
+                        DB_Table.Value union_alias self.connection new_columns new_ctx
 
     ## ALIAS group by, summarize, count, count distinct, sum, average, mean, median, percentile, mode, standard deviation, variance, minimum, maximum, first, last, shortest, longest
        GROUP Standard.Base.Calculations
