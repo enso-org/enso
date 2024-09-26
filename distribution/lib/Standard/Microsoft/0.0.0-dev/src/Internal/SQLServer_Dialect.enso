@@ -249,6 +249,8 @@ type SQLSever_Dialect
             Feature.Union -> False
             Feature.Distinct -> False
             Feature.Text_cleanse -> False
+            Feature.Integration_tests -> False
+            Feature.Add_row_number -> False
             _ -> True
 
     ## PRIVATE

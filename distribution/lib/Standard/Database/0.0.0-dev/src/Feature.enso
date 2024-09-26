@@ -10,3 +10,5 @@ type Feature
     Union
     Distinct
     Text_cleanse
+    Integration_tests
+    Add_row_number
