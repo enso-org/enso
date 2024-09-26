@@ -1,5 +1,12 @@
 # Next Release
 
+#### Enso IDE
+
+- [Rows and Columns may be now removed in Table Input Widget][11151]. The option
+  is available in right-click context menu.
+
+[11151]: https://github.com/enso-org/enso/pull/11151
+
 # Enso 2024.4
 
 #### Enso IDE
@@ -23,6 +30,7 @@
 - [Fixed "rename project" button being broken after not changing project
   name][11103]
 - [Numbers starting with dot (`.5`) are accepted in Numeric Widget][11108]
+- [Add support for interacting with graph editor using touch devices.][11056]
 
 [10774]: https://github.com/enso-org/enso/pull/10774
 [10814]: https://github.com/enso-org/enso/pull/10814
@@ -35,6 +43,7 @@
 [11030]: https://github.com/enso-org/enso/pull/11030
 [11103]: https://github.com/enso-org/enso/pull/11103
 [11108]: https://github.com/enso-org/enso/pull/11108
+[11056]: https://github.com/enso-org/enso/pull/11056
 
 #### Enso Standard Library
 
@@ -51,6 +60,8 @@
 - [Add `Text.to_decimal`.][10874]
 - [Added .floor, .ceil, .trunc to the in-memory `Decimal` column.][10887]
 - [Added vectorized .round to the in-memory `Decimal` column.][10912]
+- [`select_into_database_table` no longer defaults the primary key to the first
+  column][11120]
 
 [10614]: https://github.com/enso-org/enso/pull/10614
 [10660]: https://github.com/enso-org/enso/pull/10660
@@ -62,6 +73,7 @@
 [10874]: https://github.com/enso-org/enso/pull/10874
 [10887]: https://github.com/enso-org/enso/pull/10887
 [10912]: https://github.com/enso-org/enso/pull/10912
+[11120]: https://github.com/enso-org/enso/pull/11120
 
 #### Enso Language & Runtime
 

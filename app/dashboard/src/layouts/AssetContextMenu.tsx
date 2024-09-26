@@ -137,8 +137,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     false
 
   const canExecute =
-    !isCloud ||
-    (self?.permission != null && permissions.PERMISSION_ACTION_CAN_EXECUTE[self.permission])
+    category.type !== 'trash' &&
+    (!isCloud || (self != null && permissions.PERMISSION_ACTION_CAN_EXECUTE[self.permission]))
 
   const isOtherUserUsingProject =
     isCloud &&

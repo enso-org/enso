@@ -13,6 +13,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -959,12 +962,21 @@ public class Main {
   }
 
   private static MessageTransport replTransport() {
-    var repl = new Repl(makeTerminalForRepl());
+    ThreadFactory factory = (r) -> new Thread(r, "Initialize Enso Terminal");
+    var executor = Executors.newSingleThreadExecutor(factory);
+    var futureRepl = executor.submit(() -> new Repl(makeTerminalForRepl()));
     MessageTransport transport =
-        (uri, peer) ->
-            DebugServerInfo.URI.equals(uri.toString())
-                ? new DebuggerSessionManagerEndpoint(repl, peer)
-                : null;
+        (uri, peer) -> {
+          if (DebugServerInfo.URI.equals(uri.toString())) {
+            try {
+              var repl = futureRepl.get();
+              return new DebuggerSessionManagerEndpoint(repl, peer);
+            } catch (InterruptedException | ExecutionException ex) {
+              logger.error("Cannot initialize REPL transport", ex);
+            }
+          }
+          return null;
+        };
     return transport;
   }
 
@@ -1358,7 +1370,7 @@ public class Main {
         }
         commandAndArgs.add(component.getPath());
         commandAndArgs.add("-m");
-        commandAndArgs.add("org.enso.runtime/org.enso.EngineRunnerBootLoader");
+        commandAndArgs.add("org.enso.runner/org.enso.runner.Main");
         var it = line.iterator();
         while (it.hasNext()) {
           var op = it.next();

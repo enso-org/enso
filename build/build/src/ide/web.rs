@@ -45,6 +45,7 @@ pub mod env {
         ENSO_BUILD_PROJECT_MANAGER, PathBuf;
         ENSO_BUILD_GUI, PathBuf;
         ENSO_BUILD_ICONS, PathBuf;
+        ENSO_BUILD_SIGN, bool;
         /// List of files that should be copied to the Gui.
         ENSO_BUILD_GUI_WASM_ARTIFACTS, Vec<PathBuf>;
         ENSO_BUILD_GUI_ASSETS, PathBuf;
@@ -269,6 +270,7 @@ impl IdeDesktop {
         output_path: impl AsRef<Path>,
         target_os: OS,
         target: Option<String>,
+        sign: bool,
     ) -> Result {
         let output_path = output_path.as_ref();
         let electron_config = output_path.join("electron-builder.json");
@@ -283,9 +285,11 @@ impl IdeDesktop {
 
         crate::web::install(&self.repo_root).await?;
         let pm_bundle = ProjectManagerInfo::new(project_manager)?;
+        let sign_artifacts = &sign;
         self.pnpm()?
             .set_env(env::ENSO_BUILD_GUI, gui.as_ref())?
             .set_env(env::ENSO_BUILD_IDE, output_path)?
+            .set_env(env::ENSO_BUILD_SIGN, sign_artifacts)?
             .try_applying(&pm_bundle)?
             .run("build:ide")
             .run_ok()
@@ -301,12 +305,14 @@ impl IdeDesktop {
             None => vec![],
         };
 
+
         self.pnpm()?
             .try_applying(&icons)?
             .apply(&RemoveEmptyCscEnvVars)
             // .env("DEBUG", "electron-builder")
             .set_env(env::ENSO_BUILD_GUI, gui.as_ref())?
             .set_env(env::ENSO_BUILD_IDE, output_path)?
+            .set_env(env::ENSO_BUILD_SIGN, sign_artifacts)?
             .set_env(env::ENSO_BUILD_PROJECT_MANAGER, project_manager.as_ref())?
             .set_env(enso_install_config::ENSO_BUILD_ELECTRON_BUILDER_CONFIG, &electron_config)?
             .run("dist:ide")

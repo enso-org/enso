@@ -1,11 +1,11 @@
 <script lang="ts">
-import SvgButton from '@/components/SvgButton.vue'
 import { useEvent } from '@/composables/events'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
 import { Ast } from '@/util/ast'
 import { tryNumberToEnso } from '@/util/ast/abstract'
+import { Pattern } from '@/util/ast/match'
 import { getTextWidthBySizeAndFamily } from '@/util/measurement'
-import { VisualizationContainer, defineKeybinds } from '@/util/visualizationBuiltins'
+import { defineKeybinds } from '@/util/visualizationBuiltins'
 import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
 
 export const name = 'Scatter Plot'
@@ -54,7 +54,10 @@ interface Data {
   focus: Focus | undefined
   points: PointsConfiguration
   data: Point[]
+  isTimeSeries: boolean
+  x_value_type: string
   is_multi_series?: boolean
+  get_row_method: string
 }
 
 interface Focus {
@@ -64,13 +67,14 @@ interface Focus {
 }
 
 interface Point {
-  x: number
+  x: number | DateObj | Date
   y: number
   label?: string
   color?: string
   shape?: string
   size?: number
   series?: string
+  row_number: number
 }
 
 interface PointsConfiguration {
@@ -80,6 +84,7 @@ interface PointsConfiguration {
 enum ScaleType {
   Linear = 'linear',
   Logarithmic = 'logarithmic',
+  Time = 'time',
 }
 
 interface AxisConfiguration {
@@ -97,15 +102,21 @@ interface Color {
   green: number
   blue: number
 }
+
+interface DateObj {
+  day?: number
+  month?: number
+  year?: number
+  hour?: number
+  minute?: number
+  second?: number
+}
 </script>
 
 <script setup lang="ts">
 const d3 = await import('d3')
 
 const props = defineProps<{ data: Partial<Data> | number[] }>()
-const emit = defineEmits<{
-  'update:preprocessor': [module: string, method: string, ...args: string[]]
-}>()
 
 const config = useVisualizationConfig()
 
@@ -132,27 +143,51 @@ const SHAPE_TO_SYMBOL: Record<string, d3.SymbolType> = {
   triangle: d3.symbolTriangle,
 }
 
-const SCALE_TO_D3_SCALE: Record<ScaleType, () => d3.ScaleContinuousNumeric<number, number>> = {
-  [ScaleType.Linear]: () => d3.scaleLinear(),
-  [ScaleType.Logarithmic]: () => d3.scaleLog(),
+const createDateTime = (x: DateObj) => {
+  const dateTime = new Date()
+  if (x.day != null) dateTime.setDate(x.day)
+  if (x.month != null) dateTime.setMonth(x.month)
+  if (x.year != null) dateTime.setFullYear(x.year)
+  if (x.hour != null) dateTime.setHours(x.hour)
+  if (x.minute != null) dateTime.setMinutes(x.minute)
+  if (x.second != null) dateTime.setSeconds(x.second)
+  return dateTime
 }
 
 const data = computed<Data>(() => {
   let rawData = props.data
   const unfilteredData =
-    Array.isArray(rawData) ? rawData.map((y, index) => ({ x: index, y })) : rawData.data ?? []
-  const data: Point[] = unfilteredData.filter(
-    (point) =>
-      typeof point.x === 'number' &&
-      !Number.isNaN(point.x) &&
-      typeof point.y === 'number' &&
-      !Number.isNaN(point.y),
-  )
+    Array.isArray(rawData) ?
+      // eslint-disable-next-line camelcase
+      rawData.map((y, index) => ({ x: index, y, row_number: index }))
+    : rawData.data ?? []
+  let data: Point[]
+  // eslint-disable-next-line camelcase
+  const isTimeSeries: boolean =
+    'x_value_type' in rawData ?
+      rawData.x_value_type === 'Time' ||
+      rawData.x_value_type === 'Date' ||
+      rawData.x_value_type === 'Date_Time'
+    : false
+  // eslint-disable-next-line camelcase
+  if (isTimeSeries) {
+    data = unfilteredData
+      .filter((point) => typeof point.y === 'number' && !Number.isNaN(point.y))
+      .map((point) => ({ ...point, x: createDateTime(point.x as DateObj) }))
+  } else {
+    data = unfilteredData.filter(
+      (point) =>
+        typeof point.x === 'number' &&
+        !Number.isNaN(point.x) &&
+        typeof point.y === 'number' &&
+        !Number.isNaN(point.y),
+    )
+  }
   if (Array.isArray(rawData)) {
     rawData = {}
   }
   const axis: AxesConfiguration = rawData.axis ?? {
-    x: { label: '', scale: ScaleType.Linear },
+    x: { label: '', scale: isTimeSeries ? ScaleType.Time : ScaleType.Linear },
     y: { label: '', scale: ScaleType.Linear },
   }
   const points = rawData.points ?? { labels: 'visible' }
@@ -160,7 +195,20 @@ const data = computed<Data>(() => {
   // eslint-disable-next-line camelcase
   const is_multi_series: boolean = !!rawData.is_multi_series
   // eslint-disable-next-line camelcase
-  return { axis, points, data, focus, is_multi_series }
+  const get_row_method: string = rawData.get_row_method || 'get_row'
+  return {
+    axis,
+    points,
+    data,
+    focus,
+    // eslint-disable-next-line camelcase
+    is_multi_series,
+    // eslint-disable-next-line camelcase
+    x_value_type: rawData.x_value_type || '',
+    // eslint-disable-next-line camelcase
+    get_row_method,
+    isTimeSeries,
+  }
 })
 
 const containerNode = ref<HTMLElement>()
@@ -183,17 +231,24 @@ const brushExtent = ref<d3.BrushSelection>()
 const limit = ref(DEFAULT_LIMIT)
 const focus = ref<Focus>()
 const shouldAnimate = ref(false)
-const xDomain = ref([0, 1])
-const yDomain = ref([0, 1])
+const xDomain = ref<number[] | Date[]>([0, 1])
+const yDomain = ref<number[] | Date[]>([0, 1])
 const selectionEnabled = ref(false)
 
 const isBrushing = computed(() => brushExtent.value != null)
+
+function axisD3Scale(axis: AxisConfiguration | undefined) {
+  return axis?.scale === ScaleType.Logarithmic ? d3.scaleLog() : d3.scaleLinear()
+}
+
 const xScale = computed(() =>
   axisD3Scale(data.value.axis.x).domain(xDomain.value).range([0, boxWidth.value]),
 )
 const yScale = computed(() =>
   axisD3Scale(data.value.axis.y).domain(yDomain.value).range([boxHeight.value, 0]),
 )
+
+const xScaleTime = computed(() => d3.scaleTime().domain(xDomain.value).range([0, boxWidth.value]))
 
 const symbol: d3.Symbol<unknown, Point> = d3.symbol()
 
@@ -211,21 +266,22 @@ const margin = computed(() => {
     return { top: 10, right: 10, bottom: 35, left: 55 }
   }
 })
-const width = computed(() =>
-  config.fullscreen ?
-    containerNode.value?.parentElement?.clientWidth ?? 0
-  : Math.max(config.width ?? 0, config.nodeSize.x),
-)
-
-const height = computed(() =>
-  config.fullscreen ?
-    containerNode.value?.parentElement?.clientHeight ?? 0
-  : config.height ?? (config.nodeSize.x * 3) / 4,
-)
+const width = computed(() => config.size.x)
+const height = computed(() => config.size.y)
 
 const boxWidth = computed(() => Math.max(0, width.value - margin.value.left - margin.value.right))
 const boxHeight = computed(() => Math.max(0, height.value - margin.value.top - margin.value.bottom))
-const xTicks = computed(() => boxWidth.value / 40)
+const xTicks = computed(() => {
+  switch (data.value.x_value_type) {
+    case 'Time':
+    case 'Date':
+    case 'Date_Time':
+      return boxWidth.value / 80
+    default:
+      return boxWidth.value / 40
+  }
+})
+
 const yTicks = computed(() => boxHeight.value / 20)
 const xLabelLeft = computed(
   () =>
@@ -241,12 +297,21 @@ const yLabelLeft = computed(
 )
 const yLabelTop = computed(() => -margin.value.left + 15)
 const showYLabelText = computed(() => !data.value.is_multi_series)
+const xTickFormat = computed(() => {
+  switch (data.value.x_value_type) {
+    case 'Time':
+      return '%H:%M:%S'
+    case 'Date':
+      return '%d/%m/%Y'
+    default:
+      return '%d/%m/%Y %H:%M:%S'
+  }
+})
 
 watchEffect(() => {
   const boundsExpression =
     bounds.value != null ? Ast.Vector.tryBuild(bounds.value, tryNumberToEnso) : undefined
-  emit(
-    'update:preprocessor',
+  config.setPreprocessor(
     'Standard.Visualization.Scatter_Plot',
     'process_to_json_text',
     boundsExpression?.code() ?? 'Nothing',
@@ -272,15 +337,14 @@ const extremesAndDeltas = computed(() => {
     const allYValues = series.flatMap((s) =>
       data.value.data.map((d) => d[s as keyof Point]),
     ) as number[]
-
     yMin = Math.min(...allYValues)
     yMax = Math.max(...allYValues)
   } else {
     ;[yMin = 0, yMax = 0] = d3.extent(data.value.data, (point) => point.y)
   }
 
-  const [xMin = 0, xMax = 0] = d3.extent(data.value.data, (point) => point.x)
-  const dx = xMax - xMin
+  const [xMin = 0, xMax = 0] = d3.extent(data.value.data, (point) => point.x as number)
+  const dx = Number(xMax) - Number(xMin)
   const dy = yMax - yMin
   const paddingX = 0.1 * dx
   const paddingY = 0.1 * dy
@@ -441,16 +505,6 @@ function matchShape(d: Point) {
   return d.shape != null ? SHAPE_TO_SYMBOL[d.shape] ?? d3.symbolCircle : d3.symbolCircle
 }
 
-/** Construct either a linear or a logarithmic D3 scale.
- *
- * The scale kind is selected depending on update contents.
- *
- * @param axis Axis information as received in the visualization update.
- * @returns D3 scale. */
-function axisD3Scale(axis: AxisConfiguration | undefined) {
-  return axis?.scale != null ? SCALE_TO_D3_SCALE[axis.scale]() : d3.scaleLinear()
-}
-
 watchEffect(() => {
   // Update the axes in d3.
   const { xMin, xMax, yMin, yMax, paddingX, paddingY, dx, dy } = extremesAndDeltas.value
@@ -461,7 +515,7 @@ watchEffect(() => {
     xDomain.value = [focus_.x - newPaddingX, focus_.x + newPaddingX]
     yDomain.value = [focus_.y - newPaddingY, focus_.y + newPaddingY]
   } else {
-    xDomain.value = [xMin - paddingX, xMax + paddingX]
+    xDomain.value = [Number(xMin) - paddingX, Number(xMax) + paddingX]
     yDomain.value = [yMin - paddingY, yMax + paddingY]
   }
 })
@@ -472,12 +526,16 @@ watchEffect(() => {
 
 // === Update x axis ===
 
-watchPostEffect(() =>
-  d3XAxis.value
-    .transition()
-    .duration(animationDuration.value)
-    .call(d3.axisBottom(xScale.value).ticks(xTicks.value)),
-)
+watchPostEffect(() => {
+  const xCallVal =
+    data.value.isTimeSeries ?
+      d3
+        .axisBottom<Date>(xScaleTime.value)
+        .ticks(xTicks.value)
+        .tickFormat(d3.timeFormat(xTickFormat.value))
+    : d3.axisBottom(xScale.value).ticks(xTicks.value)
+  return d3XAxis.value.transition().duration(animationDuration.value).call(xCallVal)
+})
 
 // === Update y axis ===
 
@@ -494,6 +552,7 @@ function getPlotData(data: Data) {
     const series = Object.keys(axis).filter((s) => s != 'x')
     const transformedData = series.flatMap((s) =>
       data.data.map((d) => ({
+        ...d,
         x: d.x,
         y: d[s as keyof Point],
         series: s,
@@ -504,6 +563,42 @@ function getPlotData(data: Data) {
   return data.data
 }
 
+function getAstPattern(selector?: number, action?: string) {
+  if (action && selector != null) {
+    return Pattern.new((ast) =>
+      Ast.App.positional(
+        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(action)!),
+        Ast.tryNumberToEnso(selector, ast.module)!,
+      ),
+    )
+  }
+}
+
+function createNode(rowNumber: number) {
+  const selector = data.value.get_row_method
+  const pattern = getAstPattern(rowNumber, selector)
+  if (pattern) {
+    config.createNodes({
+      content: pattern,
+      commit: true,
+    })
+  }
+}
+
+function formatXPoint(x: Date | number | DateObj) {
+  if (data.value.isTimeSeries && x instanceof Date) {
+    switch (data.value.x_value_type) {
+      case 'Time':
+        return x.toTimeString()
+      case 'Date':
+        return x.toDateString()
+      default:
+        return x.toString()
+    }
+  }
+  return x
+}
+
 function getTooltipMessage(point: Point) {
   if (data.value.is_multi_series) {
     const axis = data.value.axis
@@ -511,15 +606,15 @@ function getTooltipMessage(point: Point) {
       point.series && point.series in axis ?
         axis[point.series as keyof AxesConfiguration].label
       : ''
-    return `${point.x}, ${point.y}, ${label}`
+    return `${formatXPoint(point.x)}, ${point.y}, ${label}- Double click to inspect point`
   }
-  return `${point.x}, ${point.y}`
+  return `${formatXPoint(point.x)}, ${point.y}- Double click to inspect point`
 }
 
 // === Update contents ===
 
 watchPostEffect(() => {
-  const xScale_ = xScale.value
+  const xScale_ = data.value.isTimeSeries ? xScaleTime.value : xScale.value
   const yScale_ = yScale.value
   const plotData = getPlotData(data.value) as Point[]
   const series = Object.keys(data.value.axis).filter((s) => s != 'x')
@@ -537,6 +632,9 @@ watchPostEffect(() => {
     .call((data) => {
       return data.append('title').text((d) => getTooltipMessage(d))
     })
+    .on('dblclick', (d) => {
+      createNode(d.srcElement.__data__.row_number)
+    })
     .transition()
     .duration(animationDuration.value)
     .attr(
@@ -544,7 +642,7 @@ watchPostEffect(() => {
       symbol.type(matchShape).size((d) => (d.size ?? 0.15) * SIZE_SCALE_MULTIPLER),
     )
     .style('fill', (d) => colorScale(d.series || ''))
-    .attr('transform', (d) => `translate(${xScale_(d.x)}, ${yScale_(d.y)})`)
+    .attr('transform', (d) => `translate(${xScale_(Number(d.x))}, ${yScale_(d.y)})`)
   if (data.value.points.labels === VISIBLE_POINTS) {
     d3Points.value
       .selectAll<SVGPathElement, unknown>('text')
@@ -553,7 +651,7 @@ watchPostEffect(() => {
       .transition()
       .duration(animationDuration.value)
       .text((d) => d.label ?? '')
-      .attr('x', (d) => xScale_(d.x) + POINT_LABEL_PADDING_X_PX)
+      .attr('x', (d) => xScale_(Number(d.x)) + POINT_LABEL_PADDING_X_PX)
       .attr('y', (d) => yScale_(d.y) + POINT_LABEL_PADDING_Y_PX)
   }
 })
@@ -633,8 +731,8 @@ function zoomToSelected(override?: boolean) {
     bounds.value = undefined
     limit.value = DEFAULT_LIMIT
     xDomain.value = [
-      extremesAndDeltas.value.xMin - extremesAndDeltas.value.paddingX,
-      extremesAndDeltas.value.xMax + extremesAndDeltas.value.paddingX,
+      Number(extremesAndDeltas.value.xMin) - extremesAndDeltas.value.paddingX,
+      Number(extremesAndDeltas.value.xMax) + extremesAndDeltas.value.paddingX,
     ]
     yDomain.value = [
       extremesAndDeltas.value.yMin - extremesAndDeltas.value.paddingY,
@@ -662,59 +760,62 @@ function zoomToSelected(override?: boolean) {
 }
 
 useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSelected() }))
+
+config.setToolbar([
+  {
+    icon: 'select',
+    title: 'Enable Selection',
+    toggle: selectionEnabled,
+  },
+  {
+    icon: 'show_all',
+    title: 'Fit All',
+    onClick: () => zoomToSelected(false),
+  },
+  {
+    icon: 'find',
+    title: 'Zoom to Selected',
+    disabled: () => brushExtent.value == null,
+    onClick: zoomToSelected,
+  },
+])
 </script>
 
 <template>
-  <VisualizationContainer :belowToolbar="true">
-    <template #toolbar>
-      <SvgButton
-        name="select"
-        title="Enable Selection"
-        @click="selectionEnabled = !selectionEnabled"
-      />
-      <SvgButton name="show_all" title="Fit All" @click.stop="zoomToSelected(false)" />
-      <SvgButton
-        name="zoom"
-        title="Zoom to Selected"
-        :disabled="brushExtent == null"
-        @click.stop="zoomToSelected"
-      />
-    </template>
-    <div ref="containerNode" class="ScatterplotVisualization">
-      <svg :width="width" :height="height">
-        <g ref="legendNode"></g>
-        <g :transform="`translate(${margin.left}, ${margin.top})`">
-          <defs>
-            <clipPath id="clip">
-              <rect :width="boxWidth" :height="boxHeight"></rect>
-            </clipPath>
-          </defs>
-          <g ref="xAxisNode" class="axis-x" :transform="`translate(0, ${boxHeight})`"></g>
-          <g ref="yAxisNode" class="axis-y"></g>
-          <text
-            v-if="data.axis.x.label"
-            class="label label-x"
-            text-anchor="end"
-            :x="xLabelLeft"
-            :y="xLabelTop"
-            v-text="data.axis.x.label"
-          ></text>
-          <text
-            v-if="showYLabelText"
-            class="label label-y"
-            text-anchor="end"
-            :x="yLabelLeft"
-            :y="yLabelTop"
-            v-text="data.axis.y.label"
-          ></text>
-          <g ref="pointsNode" clip-path="url(#clip)"></g>
-          <g ref="zoomNode" class="zoom" :width="boxWidth" :height="boxHeight" fill="none">
-            <g ref="brushNode" class="brush"></g>
-          </g>
+  <div ref="containerNode" class="ScatterplotVisualization">
+    <svg :width="width" :height="height">
+      <g ref="legendNode"></g>
+      <g :transform="`translate(${margin.left}, ${margin.top})`">
+        <defs>
+          <clipPath id="clip">
+            <rect :width="boxWidth" :height="boxHeight"></rect>
+          </clipPath>
+        </defs>
+        <g ref="xAxisNode" class="axis-x" :transform="`translate(0, ${boxHeight})`"></g>
+        <g ref="yAxisNode" class="axis-y"></g>
+        <text
+          v-if="data.axis.x.label"
+          class="label label-x"
+          text-anchor="end"
+          :x="xLabelLeft"
+          :y="xLabelTop"
+          v-text="data.axis.x.label"
+        ></text>
+        <text
+          v-if="showYLabelText"
+          class="label label-y"
+          text-anchor="end"
+          :x="yLabelLeft"
+          :y="yLabelTop"
+          v-text="data.axis.y.label"
+        ></text>
+        <g ref="pointsNode" clip-path="url(#clip)"></g>
+        <g ref="zoomNode" class="zoom" :width="boxWidth" :height="boxHeight" fill="none">
+          <g ref="brushNode" class="brush"></g>
         </g>
-      </svg>
-    </div>
-  </VisualizationContainer>
+      </g>
+    </svg>
+  </div>
 </template>
 
 <style scoped>

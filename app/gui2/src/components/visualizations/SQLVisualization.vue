@@ -37,7 +37,6 @@ interface Error {
 
 <script setup lang="ts">
 import { DEFAULT_THEME, type RGBA, type Theme } from '@/components/visualizations/builtins'
-import { VisualizationContainer } from '@/util/visualizationBuiltins'
 import { computed } from 'vue'
 const sqlFormatter = await import('sql-formatter')
 
@@ -123,13 +122,11 @@ function renderRegularInterpolation(value: string, fgColor: RGBA, bgColor: RGBA)
 </script>
 
 <template>
-  <VisualizationContainer :belowToolbar="true">
-    <div class="sql-visualization scrollable">
-      <pre v-if="data.error" class="sql" v-text="data.error"></pre>
-      <!-- eslint-disable-next-line vue/no-v-html This is SAFE, beause it is not user input. -->
-      <pre v-else class="sql" v-html="formatted"></pre>
-    </div>
-  </VisualizationContainer>
+  <div class="sql-visualization scrollable">
+    <pre v-if="data.error" class="sql" v-text="data.error"></pre>
+    <!-- eslint-disable-next-line vue/no-v-html This is SAFE, beause it is not user input. -->
+    <pre v-else class="sql" v-html="formatted"></pre>
+  </div>
 </template>
 
 <style scoped>
