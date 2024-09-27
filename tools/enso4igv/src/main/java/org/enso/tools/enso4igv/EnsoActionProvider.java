@@ -1,6 +1,7 @@
 package org.enso.tools.enso4igv;
 
 import com.sun.jdi.connect.Connector;
+import java.awt.GraphicsEnvironment;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -35,6 +36,7 @@ import org.openide.util.ImageUtilities;
 import org.openide.util.NbBundle;
 import org.openide.util.NbPreferences;
 import org.openide.util.RequestProcessor;
+import org.openide.windows.IOProvider;
 
 @NbBundle.Messages({
     "CTL_EnsoWhere=Enso Executable Location",
@@ -66,6 +68,7 @@ public final class EnsoActionProvider implements ActionProvider {
         var fo = lkp.lookup(FileObject.class);
         var script = FileUtil.toFile(fo);
 
+        var io = IOProvider.getDefault().getIO(script.getName(), false);
         var  dd = DialogDisplayer.getDefault();
 
         var prefs = NbPreferences.forModule(EnsoActionProvider.class);
@@ -123,11 +126,15 @@ public final class EnsoActionProvider implements ActionProvider {
         var waitForProcessFuture = builderFuture.thenCompose((builder) -> {
             var cf = new CompletableFuture<Integer>();
             var descriptor = new ExecutionDescriptor()
-                .frontWindow(true).controllable(true)
-                .controllable(true)
+                .frontWindow(true)
                 .postExecution((exitCode) -> {
                     cf.complete(exitCode);
                 });
+            if (GraphicsEnvironment.isHeadless()) {
+                descriptor = descriptor.inputOutput(io);
+            } else {
+                descriptor = descriptor.controllable(true);
+            }
             var launch = COMMAND_DEBUG_SINGLE.equals(action) || COMMAND_DEBUG.equals(action) ?
                 new DebugAndLaunch(fo, builder, params) : builder;
             var service = ExecutionService.newService(launch, descriptor, script.getName());
