@@ -249,11 +249,18 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   }, [item.item.id, updateAssetRef])
 
   React.useEffect(() => {
-    if (isSoleSelected) {
+    if (isSoleSelected && item.item.id !== driveStore.getState().assetPanelProps?.item?.item.id) {
       setAssetPanelProps({ backend, item, setItem })
       setIsAssetPanelTemporarilyVisible(false)
     }
-  }, [item, isSoleSelected, backend, setAssetPanelProps, setIsAssetPanelTemporarilyVisible])
+  }, [
+    item,
+    isSoleSelected,
+    backend,
+    setAssetPanelProps,
+    setIsAssetPanelTemporarilyVisible,
+    driveStore,
+  ])
 
   const doDelete = React.useCallback(
     (forever = false) => {
