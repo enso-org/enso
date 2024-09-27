@@ -1,130 +1,59 @@
 package org.enso.compiler.pass.desugar
 
-import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
+import org.enso.compiler.context.{CompilerContext, FreshNameSupply}
+import org.enso.compiler.core.{CompilerError, IR}
+import org.enso.compiler.core.ir.expression.{Application, Case, Operator}
 import org.enso.compiler.core.ir.{
   CallArgument,
   DefinitionArgument,
   Expression,
   Function,
   IdentifiedLocation,
-  Module,
-  Name
+  Name,
+  ProcessingPass
 }
-import org.enso.compiler.core.CompilerError
-import org.enso.compiler.core.ir.expression.{Application, Case, Operator}
-import org.enso.compiler.pass.{IRPass, MiniPassFactory}
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  DataflowAnalysis,
-  DemandAnalysis,
-  TailCall
-}
-import org.enso.compiler.pass.lint.UnusedBindings
-import org.enso.compiler.pass.optimise.LambdaConsolidate
-import org.enso.compiler.pass.resolve.{
-  DocumentationComments,
-  IgnoredBindings,
-  OverloadsResolution
-}
+import org.enso.compiler.pass.{IRPass, MiniIRPass}
 
-/** This pass translates `_` arguments at application sites to lambda functions.
-  *
-  * This pass has no configuration.
-  *
-  * This pass requires the context to provide:
-  *
-  * - A [[FreshNameSupply]]
-  */
-case object LambdaShorthandToLambda
-    extends IRPass
-    with MiniPassFactory[LambdaShorthandToLambdaMini] {
-  override type Metadata = IRPass.Metadata.Empty
-  override type Config   = IRPass.Configuration.Default
+class LambdaShorthandToLambdaMini(
+  protected val freshNameSupply: FreshNameSupply
+) extends MiniIRPass[ShouldSkipMeta] {
 
-  override lazy val precursorPasses: Seq[IRPass] = List(
-    ComplexType,
-    DocumentationComments,
-    FunctionBinding,
-    GenerateMethodBodies,
-    OperatorToFunction,
-    SectionsToBinOp
-  )
-  override lazy val invalidatedPasses: Seq[IRPass] = List(
-    AliasAnalysis,
-    DataflowAnalysis,
-    DemandAnalysis,
-    IgnoredBindings,
-    LambdaConsolidate,
-    OverloadsResolution,
-    TailCall,
-    UnusedBindings
-  )
-
-  /** Desugars underscore arguments to lambdas for a module.
-    *
-    * @param ir the Enso IR to process
-    * @param moduleContext a context object that contains the information needed
-    *                      to process a module
-    * @return `ir`, possibly having made transformations or annotations to that
-    *         IR.
-    */
-  override def runModule(
-    ir: Module,
-    moduleContext: ModuleContext
-  ): Module = {
-    val new_bindings = ir.bindings.map { case a =>
-      a.mapExpressions(
-        runExpression(
-          _,
-          InlineContext(
-            moduleContext,
-            freshNameSupply = moduleContext.freshNameSupply,
-            compilerConfig  = moduleContext.compilerConfig
-          )
-        )
-      )
+  override def prepare(ir: IR): Unit = {
+    ir match {
+      case Application.Prefix(_, args, _, _, _) =>
+        args.foreach {
+          case CallArgument.Specified(_, blank: Name.Blank, _, _) =>
+            blank.passData.update(this, new ShouldSkipMeta(true))
+          case _ => ()
+        }
+      case Application.Sequence(items, _, _) =>
+        items.foreach {
+          case blank: Name.Blank =>
+            blank.passData.update(this, new ShouldSkipMeta(true))
+          case _ => ()
+        }
+      case Case.Expr(scrutinee, _, _, _, _) =>
+        scrutinee match {
+          case blank: Name.Blank =>
+            blank.passData.update(this, new ShouldSkipMeta(true))
+        }
+      case _ => ()
     }
-    ir.copy(bindings = new_bindings)
   }
 
-  /** Desugars underscore arguments to lambdas for an arbitrary expression.
-    *
-    * @param ir the Enso IR to process
-    * @param inlineContext a context object that contains the information needed
-    *                      for inline evaluation
-    * @return `ir`, possibly having made transformations or annotations to that
-    *         IR.
-    */
-  override def runExpression(
-    ir: Expression,
-    inlineContext: InlineContext
-  ): Expression = {
-    val freshNameSupply = inlineContext.freshNameSupply.getOrElse(
-      throw new CompilerError(
-        "Desugaring underscore arguments to lambdas requires a fresh name " +
-        "supply."
-      )
-    )
-
-    desugarExpression(ir, freshNameSupply)
+  override def transformIr(ir: IR): IR = {
+    ir match {
+      case name: Name          => desugarName(name)
+      case app: Application    => desugarApplication(app)
+      case caseExpr: Case.Expr => desugarCaseExpr(caseExpr)
+      case _                   => ir
+    }
   }
 
-  // === Pass Internals =======================================================
-
-  /** Performs lambda shorthand desugaring on an arbitrary expression.
-    *
-    * @param ir the expression to desugar
-    * @param freshNameSupply the compiler's fresh name supply
-    * @return `ir`, with any lambda shorthand arguments desugared
-    */
-  def desugarExpression(
-    ir: Expression,
-    freshNameSupply: FreshNameSupply
-  ): Expression = {
-    ir.transformExpressions {
-      case app: Application    => desugarApplication(app, freshNameSupply)
-      case caseExpr: Case.Expr => desugarCaseExpr(caseExpr, freshNameSupply)
-      case name: Name          => desugarName(name, freshNameSupply)
+  private def getMeta(ir: IR): Option[ShouldSkipMeta] = {
+    ir.passData.get(this) match {
+      case Some(meta: ShouldSkipMeta) => Some(meta)
+      case _                          => None
     }
   }
 
@@ -132,31 +61,37 @@ case object LambdaShorthandToLambda
     * `_` into the `id` function.
     *
     * @param name the name to desugar
-    * @param supply the compiler's fresh name supply
     * @return `name`, desugared where necessary
     */
-  private def desugarName(name: Name, supply: FreshNameSupply): Expression = {
+  private def desugarName(name: Name): Expression = {
     name match {
       case blank: Name.Blank =>
-        val newName = supply.newName()
+        getMeta(blank) match {
+          case Some(meta) if meta.shouldSkip =>
+            // Unset the metadata and skip
+            blank.passData.remove(this)
+            name
+          case _ =>
+            val newName = freshNameSupply.newName()
 
-        new Function.Lambda(
-          List(
-            DefinitionArgument.Specified(
-              name = Name.Literal(
-                newName.name,
-                isMethod = false,
-                None
+            new Function.Lambda(
+              List(
+                DefinitionArgument.Specified(
+                  name = Name.Literal(
+                    newName.name,
+                    isMethod = false,
+                    None
+                  ),
+                  ascribedType = None,
+                  defaultValue = None,
+                  suspended    = false,
+                  location     = None
+                )
               ),
-              ascribedType = None,
-              defaultValue = None,
-              suspended    = false,
-              location     = None
+              newName,
+              blank.location
             )
-          ),
-          newName,
-          blank.location
-        )
+        }
       case _ => name
     }
   }
@@ -168,8 +103,7 @@ case object LambdaShorthandToLambda
     * @return `application`, with any lambda shorthand arguments desugared
     */
   private def desugarApplication(
-    application: Application,
-    freshNameSupply: FreshNameSupply
+    application: Application
   ): Expression = {
     application match {
       case p @ Application.Prefix(fn, args, _, _, _) =>
@@ -180,10 +114,7 @@ case object LambdaShorthandToLambda
         val updatedArgs =
           args
             .zip(argIsUnderscore)
-            .map(updateShorthandArg(_, freshNameSupply))
-            .map { case s @ CallArgument.Specified(_, value, _, _) =>
-              s.copy(value = desugarExpression(value, freshNameSupply))
-            }
+            .map(updateShorthandArg)
 
         // Generate a definition arg instance for each shorthand arg
         val defArgs = updatedArgs.zip(argIsUnderscore).map {
@@ -206,8 +137,7 @@ case object LambdaShorthandToLambda
           val newName = newFn.name
           (newFn, Some(newName))
         } else {
-          val newFn = desugarExpression(fn, freshNameSupply)
-          (newFn, None)
+          (fn, None)
         }
 
         val processedApp = p.copy(
@@ -248,8 +178,7 @@ case object LambdaShorthandToLambda
           case lam: Function.Lambda => lam.copy(location = p.location)
           case result               => result
         }
-      case f @ Application.Force(tgt, _, _) =>
-        f.copy(target = desugarExpression(tgt, freshNameSupply))
+
       case vector @ Application.Sequence(items, _, _) =>
         var bindings: List[Name] = List()
         val newItems = items.map {
@@ -263,7 +192,7 @@ case object LambdaShorthandToLambda
               )
             bindings ::= name
             name
-          case it => desugarExpression(it, freshNameSupply)
+          case it => it
         }
         val newVec = vector.copy(newItems)
         val locWithoutId =
@@ -278,8 +207,7 @@ case object LambdaShorthandToLambda
           )
           new Function.Lambda(List(defArg), body, locWithoutId)
         }
-      case tSet @ Application.Typeset(expr, _, _) =>
-        tSet.copy(expression = expr.map(desugarExpression(_, freshNameSupply)))
+
       case _: Operator =>
         throw new CompilerError(
           "Operators should be desugared by the point of underscore " +
@@ -315,8 +243,7 @@ case object LambdaShorthandToLambda
     *         a given position is shorthand, otherwise [[None]].
     */
   private def updateShorthandArg(
-    argAndIsShorthand: (CallArgument, Boolean),
-    freshNameSupply: FreshNameSupply
+    argAndIsShorthand: (CallArgument, Boolean)
   ): CallArgument = {
     val arg         = argAndIsShorthand._1
     val isShorthand = argAndIsShorthand._2
@@ -388,17 +315,11 @@ case object LambdaShorthandToLambda
     * lambda (`x -> case x of`).
     *
     * @param caseExpr the case expression to desugar
-    * @param freshNameSupply the compiler's supply of fresh names
     * @return `caseExpr`, with any lambda shorthand desugared
     */
   private def desugarCaseExpr(
-    caseExpr: Case.Expr,
-    freshNameSupply: FreshNameSupply
+    caseExpr: Case.Expr
   ): Expression = {
-    val newBranches = caseExpr.branches.map(
-      _.mapExpressions(expr => desugarExpression(expr, freshNameSupply))
-    )
-
     caseExpr.scrutinee match {
       case nameBlank: Name.Blank =>
         val scrutineeName =
@@ -419,8 +340,7 @@ case object LambdaShorthandToLambda
         )
 
         val newCaseExpr = caseExpr.copy(
-          scrutinee = scrutineeName,
-          branches  = newBranches
+          scrutinee = scrutineeName
         )
 
         new Function.Lambda(
@@ -429,35 +349,27 @@ case object LambdaShorthandToLambda
           newCaseExpr,
           caseExpr.location
         )
-      case x =>
-        caseExpr.copy(
-          scrutinee = desugarExpression(x, freshNameSupply),
-          branches  = newBranches
-        )
+
+      case _ => caseExpr
     }
   }
+}
 
-  override def createForModuleCompilation(
-    moduleContext: ModuleContext
-  ): LambdaShorthandToLambdaMini = {
-    val freshNameSupply = moduleContext.freshNameSupply.getOrElse(
-      throw new CompilerError(
-        "Desugaring underscore arguments to lambdas requires a fresh name " +
-        "supply."
-      )
-    )
-    new LambdaShorthandToLambdaMini(freshNameSupply)
-  }
+class ShouldSkipMeta(
+  val shouldSkip: Boolean
+) extends IRPass.IRMetadata {
 
-  override def createForInlineCompilation(
-    inlineContext: InlineContext
-  ): LambdaShorthandToLambdaMini = {
-    val freshNameSupply = inlineContext.freshNameSupply.getOrElse(
-      throw new CompilerError(
-        "Desugaring underscore arguments to lambdas requires a fresh name " +
-        "supply."
-      )
-    )
-    new LambdaShorthandToLambdaMini(freshNameSupply)
-  }
+  override val metadataName: String = "LambdaShorthandToLambdaMini.Meta"
+
+  override def duplicate(): Option[Metadata] = Some(
+    new ShouldSkipMeta(shouldSkip)
+  )
+
+  override def prepareForSerialization(
+    compiler: CompilerContext
+  ): ProcessingPass.Metadata = this
+
+  override def restoreFromSerialization(
+    compiler: CompilerContext
+  ): Option[ProcessingPass.Metadata] = Some(this)
 }
