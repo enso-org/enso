@@ -1,12 +1,12 @@
 /** @file Available actions for the login page. */
 import * as test from '@playwright/test'
 
-import { TEXT, VALID_EMAIL, VALID_PASSWORD } from '../actions'
+import { TEXT, VALID_EMAIL, VALID_PASSWORD, passAgreementsDialog } from '../actions'
 import BaseActions, { type LocatorCallback } from './BaseActions'
 import DrivePageActions from './DrivePageActions'
 import ForgotPasswordPageActions from './ForgotPasswordPageActions'
 import RegisterPageActions from './RegisterPageActions'
-import SetupPageActions from './SetupPageActions'
+import SetupUsernamePageActions from './SetupUsernamePageActions'
 
 // ========================
 // === LoginPageActions ===
@@ -35,9 +35,10 @@ export default class LoginPageActions extends BaseActions {
 
   /** Perform a login as a new user (a user that does not yet have a username). */
   loginAsNewUser(email = VALID_EMAIL, password = VALID_PASSWORD) {
-    return this.step('Login (as new user)', () => this.loginInternal(email, password)).into(
-      SetupPageActions,
-    )
+    return this.step('Login (as new user)', async (page) => {
+      await this.loginInternal(email, password)
+      await passAgreementsDialog({ page })
+    }).into(SetupUsernamePageActions)
   }
 
   /** Perform a failing login. */

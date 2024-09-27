@@ -34,7 +34,7 @@ import {
   PRICE_CURRENCY,
   TRIAL_DURATION_DAYS,
 } from '../../../constants'
-import { ADD_PAYMENT_METHOD_FORM_SCHEMA, AddPaymentMethodForm } from '../../AddPaymentMethodForm'
+import { AddPaymentMethodForm, createAddPaymentMethodFormSchema } from '../../AddPaymentMethodForm'
 import { StripeProvider } from '../../StripeProvider'
 import { PlanFeatures } from './PlanFeatures'
 
@@ -80,8 +80,9 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
   const createPaymentMethodMutation = useCreatePaymentMethodMutation()
 
   const form = Form.useForm({
+    mode: 'onChange',
     schema: (z) =>
-      ADD_PAYMENT_METHOD_FORM_SCHEMA.extend({
+      createAddPaymentMethodFormSchema(z, getText).extend({
         seats: z
           .number()
           .int()
@@ -96,7 +97,6 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
       }),
     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     defaultValues: { seats: 1, period: 12, agree: [] },
-    mode: 'onChange',
     onSubmit: async ({ cardElement, stripeInstance, seats, period }) => {
       const res = await createPaymentMethodMutation.mutateAsync({
         cardElement,
