@@ -9,6 +9,7 @@ import type { SecretId } from '#/services/Backend'
 
 /** Props for a {@link UpsertSecretModal}. */
 export interface UpsertSecretModalProps {
+  readonly noDialog?: boolean
   readonly id: SecretId | null
   readonly name: string | null
   readonly defaultOpen?: boolean
@@ -17,57 +18,60 @@ export interface UpsertSecretModalProps {
 
 /** A modal for creating and editing a secret. */
 export default function UpsertSecretModal(props: UpsertSecretModalProps) {
-  const { id, name: nameRaw, defaultOpen, doCreate } = props
+  const { noDialog = false, id, name: nameRaw, defaultOpen, doCreate } = props
   const { getText } = useText()
 
   const isCreatingSecret = id == null
   const isNameEditable = nameRaw == null
 
-  return (
-    <Dialog
-      title={isCreatingSecret ? getText('newSecret') : getText('editSecret')}
-      modalProps={defaultOpen == null ? {} : { defaultOpen }}
-      isDismissable={false}
+  const content = (
+    <Form
+      testId="upsert-secret-modal"
+      method="dialog"
+      schema={(z) =>
+        z.object({ name: z.string().min(1, getText('emptyStringError')), value: z.string() })
+      }
+      defaultValues={{ name: nameRaw ?? '', value: '' }}
+      onSubmit={async ({ name, value }) => {
+        await doCreate(name, value)
+      }}
     >
-      <Form
-        testId="upsert-secret-modal"
-        method="dialog"
-        schema={(z) =>
-          z.object({ name: z.string().min(1, getText('emptyStringError')), value: z.string() })
-        }
-        defaultValues={{ name: nameRaw ?? '', value: '' }}
-        onSubmit={async ({ name, value }) => {
-          await doCreate(name, value)
-        }}
-      >
-        {({ form }) => (
-          <>
-            <Input
-              form={form}
-              name="name"
-              autoFocus
-              autoComplete="off"
-              disabled={!isNameEditable}
-              label={getText('name')}
-              placeholder={getText('secretNamePlaceholder')}
-            />
-            <Password
-              form={form}
-              name="value"
-              autoFocus={!isNameEditable}
-              autoComplete="off"
-              label={getText('value')}
-              placeholder={
-                isNameEditable ? getText('secretValuePlaceholder') : getText('secretValueHidden')
-              }
-            />
-            <ButtonGroup>
-              <Form.Submit>{isCreatingSecret ? getText('create') : getText('update')}</Form.Submit>
-              <Form.Submit formnovalidate />
-            </ButtonGroup>
-          </>
-        )}
-      </Form>
-    </Dialog>
+      {({ form }) => (
+        <>
+          <Input
+            form={form}
+            name="name"
+            autoFocus={isNameEditable}
+            autoComplete="off"
+            isDisabled={!isNameEditable}
+            label={getText('name')}
+            placeholder={getText('secretNamePlaceholder')}
+          />
+          <Password
+            form={form}
+            name="value"
+            autoFocus={!isNameEditable}
+            autoComplete="off"
+            label={getText('value')}
+            placeholder={
+              isNameEditable ? getText('secretValuePlaceholder') : getText('secretValueHidden')
+            }
+          />
+          <ButtonGroup>
+            <Form.Submit>{isCreatingSecret ? getText('create') : getText('update')}</Form.Submit>
+            <Form.Submit formnovalidate variant="outline" />
+          </ButtonGroup>
+        </>
+      )}
+    </Form>
   )
+  return noDialog ? content : (
+      <Dialog
+        title={isCreatingSecret ? getText('newSecret') : getText('editSecret')}
+        modalProps={defaultOpen == null ? {} : { defaultOpen }}
+        isDismissable={false}
+      >
+        {content}
+      </Dialog>
+    )
 }

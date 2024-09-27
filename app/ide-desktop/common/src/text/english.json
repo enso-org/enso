@@ -258,6 +258,7 @@
   "pendingInvitation": "Pending Invitation",
   "versions": "Versions",
   "datalink": "Datalink",
+  "secret": "Secret",
   "createDatalink": "Create Datalink",
   "resetAll": "Reset All",
   "openHelpChat": "Open Help Chat",

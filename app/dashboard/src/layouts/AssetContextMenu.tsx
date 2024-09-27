@@ -32,11 +32,14 @@ import Separator from '#/components/styled/Separator'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
 import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
-import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
 import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 
+import {
+  useSetAssetPanelProps,
+  useSetIsAssetPanelTemporarilyVisible,
+} from '#/providers/DriveProvider'
 import { normalizePath } from '#/utilities/fileInfo'
 import { mapNonNullish } from '#/utilities/nullable'
 import * as object from '#/utilities/object'
@@ -78,6 +81,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
+  const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
+  const setAssetPanelProps = useSetAssetPanelProps()
   const openProject = projectHooks.useOpenProject()
   const closeProject = projectHooks.useCloseProject()
   const openProjectMutation = projectHooks.useOpenProjectMutation()
@@ -311,27 +316,16 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 }}
               />
             )}
-          {asset.type === backendModule.AssetType.secret &&
+          {(asset.type === backendModule.AssetType.secret ||
+            asset.type === backendModule.AssetType.datalink) &&
             canEditThisAsset &&
             remoteBackend != null && (
               <ContextMenuEntry
                 hidden={hidden}
                 action="edit"
                 doAction={() => {
-                  setModal(
-                    <UpsertSecretModal
-                      defaultOpen
-                      id={asset.id}
-                      name={asset.title}
-                      doCreate={async (_name, value) => {
-                        try {
-                          await remoteBackend.updateSecret(asset.id, { value }, asset.title)
-                        } catch (error) {
-                          toastAndLog(null, error)
-                        }
-                      }}
-                    />,
-                  )
+                  setIsAssetPanelTemporarilyVisible(true)
+                  setAssetPanelProps({ backend, item, setItem })
                 }}
               />
             )}

@@ -26,6 +26,7 @@ import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 
 import type { Category } from '#/layouts/CategorySwitcher/Category'
+import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
@@ -72,7 +73,8 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     ownsThisAsset ||
     self?.permission === permissions.PermissionAction.admin ||
     self?.permission === permissions.PermissionAction.edit
-  const isDatalink = item.item.type === backendModule.AssetType.datalink
+  const isSecret = item.type === backendModule.AssetType.secret
+  const isDatalink = item.type === backendModule.AssetType.datalink
   const isDatalinkDisabled = datalinkValue === editedDatalinkValue || !isDatalinkSubmittable
   const isCloud = backend.type === backendModule.BackendType.remote
   const path =
@@ -84,6 +86,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
   const getDatalinkMutation = useMutation(backendMutationOptions(backend, 'getDatalink'))
   const updateAssetMutation = useMutation(backendMutationOptions(backend, 'updateAsset'))
+  const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
   const getDatalink = getDatalinkMutation.mutateAsync
 
   React.useEffect(() => {
@@ -254,6 +257,25 @@ export default function AssetProperties(props: AssetPropertiesProps) {
         </div>
       )}
 
+      {isSecret && (
+        <div className="pointer-events-auto flex flex-col items-start gap-side-panel-section">
+          <aria.Heading
+            level={2}
+            className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug"
+          >
+            {getText('secret')}
+          </aria.Heading>
+          <UpsertSecretModal
+            noDialog
+            id={item.item.id}
+            name={item.item.title}
+            doCreate={async (name, value) => {
+              await updateSecretMutation.mutateAsync([item.item.id, { value }, name])
+            }}
+          />
+        </div>
+      )}
+
       {isDatalink && (
         <div className="pointer-events-auto flex flex-col items-start gap-side-panel-section">
           <aria.Heading
@@ -276,39 +298,33 @@ export default function AssetProperties(props: AssetPropertiesProps) {
               {canEditThisAsset && (
                 <ariaComponents.ButtonGroup>
                   <ariaComponents.Button
-                    size="medium"
                     variant="submit"
                     isDisabled={isDatalinkDisabled}
                     {...(isDatalinkDisabled ?
                       { title: 'Edit the Datalink before updating it.' }
                     : {})}
-                    onPress={() => {
-                      void (async () => {
-                        if (item.item.type === backendModule.AssetType.datalink) {
-                          const oldDatalinkValue = datalinkValue
-                          try {
-                            setDatalinkValue(editedDatalinkValue)
-                            await createDatalinkMutation.mutateAsync([
-                              {
-                                datalinkId: item.item.id,
-                                name: item.item.title,
-                                parentDirectoryId: null,
-                                value: editedDatalinkValue,
-                              },
-                            ])
-                          } catch (error) {
-                            toastAndLog(null, error)
-                            setDatalinkValue(oldDatalinkValue)
-                            setEditedDatalinkValue(oldDatalinkValue)
-                          }
-                        }
-                      })()
+                    onPress={async () => {
+                      const oldDatalinkValue = datalinkValue
+                      try {
+                        setDatalinkValue(editedDatalinkValue)
+                        await createDatalinkMutation.mutateAsync([
+                          {
+                            datalinkId: item.item.id,
+                            name: item.item.title,
+                            parentDirectoryId: null,
+                            value: editedDatalinkValue,
+                          },
+                        ])
+                      } catch (error) {
+                        toastAndLog(null, error)
+                        setDatalinkValue(oldDatalinkValue)
+                        setEditedDatalinkValue(oldDatalinkValue)
+                      }
                     }}
                   >
                     {getText('update')}
                   </ariaComponents.Button>
                   <ariaComponents.Button
-                    size="medium"
                     variant="outline"
                     isDisabled={isDatalinkDisabled}
                     onPress={() => {
