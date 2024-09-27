@@ -1670,8 +1670,9 @@ type DB_Table
     @key_columns Widget_Helpers.make_column_name_multi_selector
     merge : DB_Table -> (Vector (Integer | Text | Regex) | Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
     merge self lookup_table:DB_Table key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex) add_new_columns:Boolean=False allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
-        Helpers.ensure_same_connection "table" [self, lookup_table] <|
-            Lookup_Query_Helper.build_lookup_query self lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
+        if self.connection.dialect.is_feature_supported Feature.Merge . not then Error.throw (Unsupported_Database_Operation.Error "merge") else
+            Helpers.ensure_same_connection "table" [self, lookup_table] <|
+                Lookup_Query_Helper.build_lookup_query self lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
 
     ## ALIAS find replace
        GROUP Standard.Base.Text

@@ -255,6 +255,7 @@ type SQLSever_Dialect
             Feature.Column_operations -> False
             Feature.Set -> False
             Feature.Replace -> False
+            Feature.Merge -> False
             _ -> True
 
     ## PRIVATE
