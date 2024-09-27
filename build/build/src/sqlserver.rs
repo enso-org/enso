@@ -109,17 +109,6 @@ impl Configuration {
     }
 }
 
-/// Retrieve input from asynchronous reader line by line and feed them into the given function.
-pub async fn process_lines<R: AsyncRead + Unpin>(reader: R, f: impl Fn(String)) -> Result<R> {
-    debug!("Started line processor.");
-    let mut reader = BufReader::new(reader);
-    let mut line = String::new();
-    while reader.read_line(&mut line).await? != 0 {
-        f(std::mem::take(&mut line));
-    }
-    Ok(reader.into_inner())
-}
-
 pub async fn process_lines_until<R: AsyncRead + Unpin>(
     reader: R,
     f: &impl Fn(&str) -> bool,
@@ -193,8 +182,8 @@ impl SQLServer {
 
         // Wait until container is ready.
         let check_line = |line: &str| {
-            debug!("ERR: {}", line);
-            line.contains("The tempdb database has")
+            debug!("SQLSERVER_LOG: {}", line.trim_end().trim_start());
+            line.contains("SQL Server is now ready for client connections")
         };
         let stdout = process_lines_until(stdout, &check_line).await?;
         // Put back stream we've been reading and pack the whole thing back for the caller.
@@ -213,7 +202,7 @@ mod tests {
         let config = Configuration {
             sqlserver_container: ContainerId("something".into()),
             endpoint:            EndpointConfiguration::deduce()?,
-            version:             "latest".into(),
+            version:             "2022-latest".into(),
             user:                "test".into(),
             password:            "<YourStrong@Passw0rd>".into(),
             database_name:       "test".into(),

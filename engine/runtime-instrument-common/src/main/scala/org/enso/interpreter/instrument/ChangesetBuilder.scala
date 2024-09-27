@@ -13,7 +13,6 @@ import org.enso.text.editing.{IndexedSource, TextEditor}
 
 import java.util.UUID
 import scala.collection.mutable
-import scala.util.Using
 
 /** The changeset of a module containing the computed list of invalidated
   * expressions.
@@ -97,14 +96,12 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
           }
 
           val source = Source.newBuilder("enso", value, null).build
-          Using(new EnsoParser) { compiler =>
-            compiler
-              .generateIRInline(compiler.parse(source.getCharacters()))
-              .flatMap(_ match {
-                case ir: Literal => Some(ir.setLocation(oldIr.location))
-                case _           => None
-              })
-          }.get
+          EnsoParser
+            .compileInline(source.getCharacters())
+            .flatMap(_ match {
+              case ir: Literal => Some(ir.setLocation(oldIr.location))
+              case _           => None
+            })
         }
 
         oldIr match {

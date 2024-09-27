@@ -18,7 +18,7 @@ import project.Internal.IR.Context.Context
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
-from project.Errors import Unsupported_Database_Operation
+from project.Errors import Aggregagtion_Requires_Order
 
 ## PRIVATE
    Creates an `Internal_Column` that will represent the computed aggregate.
@@ -278,4 +278,4 @@ map_column_inputs f:Function aggregate_column:Aggregate_Column -> Aggregate_Colu
 is_non_empty_selector v = v.is_nothing.not && v.not_empty
 
 ## PRIVATE
-throw_ordering_required op_name = Error.throw (Unsupported_Database_Operation.Error ("`" + op_name + "` aggregation requires at least one `order_by` column."))
+throw_ordering_required op_name = Error.throw (Aggregagtion_Requires_Order.Error op_name)

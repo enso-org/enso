@@ -53,6 +53,7 @@ export type MutationMethod = DefineBackendMethods<
   | 'openProject'
   | 'removeUser'
   | 'resendInvitation'
+  | 'restoreUser'
   | 'undoDeleteAsset'
   | 'updateAsset'
   | 'updateDirectory'
@@ -120,7 +121,10 @@ const INVALIDATE_ALL_QUERIES = Symbol('invalidate all queries')
 const INVALIDATION_MAP: Partial<
   Record<MutationMethod, readonly (backendQuery.BackendMethods | typeof INVALIDATE_ALL_QUERIES)[]>
 > = {
+  createUser: ['usersMe'],
   updateUser: ['usersMe'],
+  deleteUser: ['usersMe'],
+  restoreUser: ['usersMe'],
   uploadUserPicture: ['usersMe'],
   updateOrganization: ['getOrganization'],
   uploadOrganizationPicture: ['getOrganization'],
@@ -204,10 +208,8 @@ export function backendMutationOptions<Method extends MutationMethod>(
     meta: {
       invalidates: [
         ...(options?.meta?.invalidates ?? []),
-        ...(INVALIDATION_MAP[method]?.flatMap((queryMethod) =>
-          queryMethod === INVALIDATE_ALL_QUERIES ?
-            [[backend?.type]]
-          : [[backend?.type, queryMethod], ...(queryMethod === 'usersMe' ? [[queryMethod]] : [])],
+        ...(INVALIDATION_MAP[method]?.map((queryMethod) =>
+          queryMethod === INVALIDATE_ALL_QUERIES ? [backend?.type] : [backend?.type, queryMethod],
         ) ?? []),
       ],
       awaitInvalidates: options?.meta?.awaitInvalidates ?? true,

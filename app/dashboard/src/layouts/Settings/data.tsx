@@ -1,10 +1,10 @@
 /** @file Metadata for rendering each settings section. */
-import * as React from 'react'
+import type { ReactNode } from 'react'
 
-import type * as reactQuery from '@tanstack/react-query'
+import type { QueryClient } from '@tanstack/react-query'
 import isEmail from 'validator/lib/isEmail'
 
-import type * as text from 'enso-common/src/text'
+import type { TextId } from 'enso-common/src/text'
 
 import ComputerIcon from '#/assets/computer.svg'
 import CreditCardIcon from '#/assets/credit_card.svg'
@@ -13,36 +13,35 @@ import LogIcon from '#/assets/log.svg'
 import PeopleIcon from '#/assets/people.svg'
 import PeopleSettingsIcon from '#/assets/people_settings.svg'
 import SettingsIcon from '#/assets/settings.svg'
-
-import * as inputBindings from '#/configurations/inputBindings'
-
-import type * as billing from '#/hooks/billing'
-import type * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-
-import type * as textProvider from '#/providers/TextProvider'
-
-import ActivityLogSettingsSection from '#/layouts/Settings/ActivityLogSettingsSection'
-import ChangePasswordForm from '#/layouts/Settings/ChangePasswordForm'
-import DeleteUserAccountSettingsSection from '#/layouts/Settings/DeleteUserAccountSettingsSection'
-import KeyboardShortcutsSettingsSection from '#/layouts/Settings/KeyboardShortcutsSettingsSection'
-import MembersSettingsSection from '#/layouts/Settings/MembersSettingsSection'
-import MembersTable from '#/layouts/Settings/MembersTable'
-import OrganizationProfilePictureInput from '#/layouts/Settings/OrganizationProfilePictureInput'
-import ProfilePictureInput from '#/layouts/Settings/ProfilePictureInput'
-import SettingsTabType from '#/layouts/Settings/SettingsTabType'
-import UserGroupsSettingsSection from '#/layouts/Settings/UserGroupsSettingsSection'
-
 import { Button, ButtonGroup } from '#/components/AriaComponents'
-import * as menuEntry from '#/components/MenuEntry'
-
+import { ACTION_TO_TEXT_ID } from '#/components/MenuEntry'
+import { BINDINGS } from '#/configurations/inputBindings'
+import type { PaywallFeatureName } from '#/hooks/billing'
+import type { ToastAndLogCallback } from '#/hooks/toastAndLogHooks'
+import type { GetText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import * as backend from '#/services/Backend'
+import {
+  EmailAddress,
+  HttpsUrl,
+  isUserOnPlanWithOrganization,
+  type OrganizationInfo,
+  type User,
+} from '#/services/Backend'
 import type LocalBackend from '#/services/LocalBackend'
 import type RemoteBackend from '#/services/RemoteBackend'
-
 import { normalizePath } from '#/utilities/fileInfo'
-import * as object from '#/utilities/object'
+import { unsafeEntries } from '#/utilities/object'
+import ActivityLogSettingsSection from './ActivityLogSettingsSection'
+import ChangePasswordForm from './ChangePasswordForm'
+import DeleteUserAccountSettingsSection from './DeleteUserAccountSettingsSection'
+import KeyboardShortcutsSettingsSection from './KeyboardShortcutsSettingsSection'
+import MembersSettingsSection from './MembersSettingsSection'
+import MembersTable from './MembersTable'
+import OrganizationProfilePictureInput from './OrganizationProfilePictureInput'
+import ProfilePictureInput from './ProfilePictureInput'
 import { SetupTwoFaForm } from './SetupTwoFaForm'
+import SettingsTabType from './TabType'
+import UserGroupsSettingsSection from './UserGroupsSettingsSection'
 
 // =========================
 // === SettingsEntryType ===
@@ -171,7 +170,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     settingsTab: SettingsTabType.organization,
     icon: PeopleSettingsIcon,
     organizationOnly: true,
-    visible: ({ user }) => backend.isUserOnPlanWithOrganization(user),
+    visible: ({ user }) => isUserOnPlanWithOrganization(user),
     sections: [
       {
         nameId: 'organizationSettingsSection',
@@ -194,7 +193,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             nameId: 'organizationEmailSettingsInput',
             getValue: (context) => context.organization?.email ?? '',
             setValue: async (context, newValue) => {
-              const newEmail = backend.EmailAddress(newValue)
+              const newEmail = EmailAddress(newValue)
               const oldEmail = context.organization?.email ?? null
               if (oldEmail !== newEmail) {
                 await context.updateOrganization([{ email: newEmail }])
@@ -211,7 +210,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             nameId: 'organizationWebsiteSettingsInput',
             getValue: (context) => context.organization?.website ?? '',
             setValue: async (context, newValue) => {
-              const newWebsite = backend.HttpsUrl(newValue)
+              const newWebsite = HttpsUrl(newValue)
               const oldWebsite = context.organization?.website ?? null
               if (oldWebsite !== newWebsite) {
                 await context.updateOrganization([{ website: newWebsite }])
@@ -332,7 +331,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     settingsTab: SettingsTabType.members,
     icon: PeopleIcon,
     organizationOnly: true,
-    visible: ({ user }) => backend.isUserOnPlanWithOrganization(user),
+    visible: ({ user }) => isUserOnPlanWithOrganization(user),
     feature: 'inviteUser',
     sections: [
       {
@@ -346,7 +345,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     settingsTab: SettingsTabType.userGroups,
     icon: PeopleSettingsIcon,
     organizationOnly: true,
-    visible: ({ user }) => backend.isUserOnPlanWithOrganization(user),
+    visible: ({ user }) => isUserOnPlanWithOrganization(user),
     feature: 'userGroups',
     sections: [
       {
@@ -390,16 +389,14 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             type: SettingsEntryType.custom,
             aliasesId: 'keyboardShortcutsSettingsCustomEntryAliases',
             getExtraAliases: (context) => {
-              const rebindableBindings = object
-                .unsafeEntries(inputBindings.BINDINGS)
-                .flatMap((kv) => {
-                  const [k, v] = kv
-                  if (v.rebindable === false) {
-                    return []
-                  } else {
-                    return menuEntry.ACTION_TO_TEXT_ID[k]
-                  }
-                })
+              const rebindableBindings = unsafeEntries(BINDINGS).flatMap((kv) => {
+                const [k, v] = kv
+                if (v.rebindable === false) {
+                  return []
+                } else {
+                  return ACTION_TO_TEXT_ID[k]
+                }
+              })
               return rebindableBindings.map((binding) => context.getText(binding))
             },
             render: KeyboardShortcutsSettingsSection,
@@ -413,7 +410,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     settingsTab: SettingsTabType.activityLog,
     icon: LogIcon,
     organizationOnly: true,
-    visible: ({ user }) => backend.isUserOnPlanWithOrganization(user),
+    visible: ({ user }) => isUserOnPlanWithOrganization(user),
     sections: [
       {
         nameId: 'activityLogSettingsSection',
@@ -466,19 +463,19 @@ export const ALL_SETTINGS_TABS = SETTINGS_DATA.flatMap((section) =>
 /** Metadata describing inputs passed to every settings entry. */
 export interface SettingsContext {
   readonly accessToken: string
-  readonly user: backend.User
+  readonly user: User
   readonly backend: RemoteBackend
   readonly localBackend: LocalBackend | null
-  readonly organization: backend.OrganizationInfo | null
+  readonly organization: OrganizationInfo | null
   readonly updateUser: (variables: Parameters<Backend['updateUser']>) => Promise<void>
   readonly updateOrganization: (
     variables: Parameters<Backend['updateOrganization']>,
-  ) => Promise<backend.OrganizationInfo | null | undefined>
+  ) => Promise<OrganizationInfo | null | undefined>
   readonly updateLocalRootPath: (rootPath: string) => void
   readonly resetLocalRootPath: () => void
-  readonly toastAndLog: toastAndLogHooks.ToastAndLogCallback
-  readonly getText: textProvider.GetText
-  readonly queryClient: reactQuery.QueryClient
+  readonly toastAndLog: ToastAndLogCallback
+  readonly getText: GetText
+  readonly queryClient: QueryClient
 }
 
 // ==============================
@@ -488,7 +485,7 @@ export interface SettingsContext {
 /** Metadata describing a settings entry that is an input. */
 export interface SettingsInputEntryData {
   readonly type: SettingsEntryType.input
-  readonly nameId: text.TextId & `${string}SettingsInput`
+  readonly nameId: TextId & `${string}SettingsInput`
   readonly getValue: (context: SettingsContext) => string
   readonly setValue: (context: SettingsContext, value: string) => Promise<void>
   readonly validate?: (value: string, context: SettingsContext) => string | true
@@ -503,9 +500,9 @@ export interface SettingsInputEntryData {
 /** Metadata describing a settings entry that needs custom rendering. */
 export interface SettingsCustomEntryData {
   readonly type: SettingsEntryType.custom
-  readonly aliasesId?: text.TextId & `${string}SettingsCustomEntryAliases`
+  readonly aliasesId?: TextId & `${string}SettingsCustomEntryAliases`
   readonly getExtraAliases?: (context: SettingsContext) => readonly string[]
-  readonly render: (context: SettingsContext) => React.ReactNode
+  readonly render: (context: SettingsContext) => ReactNode
   readonly getVisible?: (context: SettingsContext) => boolean
 }
 
@@ -522,13 +519,13 @@ export type SettingsEntryData = SettingsCustomEntryData | SettingsInputEntryData
 
 /** Metadata describing a settings section. */
 export interface SettingsSectionData {
-  readonly nameId: text.TextId & `${string}SettingsSection`
+  readonly nameId: TextId & `${string}SettingsSection`
   /** The first column is column 1, not column 0. */
   readonly column?: number
   readonly heading?: false
   readonly focusArea?: false
   readonly columnClassName?: string
-  readonly aliases?: text.TextId[]
+  readonly aliases?: TextId[]
   readonly entries: readonly SettingsEntryData[]
 }
 
@@ -538,14 +535,14 @@ export interface SettingsSectionData {
 
 /** Metadata describing a settings tab. */
 export interface SettingsTabData {
-  readonly nameId: text.TextId & `${string}SettingsTab`
+  readonly nameId: TextId & `${string}SettingsTab`
   readonly settingsTab: SettingsTabType
   readonly icon: string
   readonly visible?: (context: SettingsContext) => boolean
   readonly organizationOnly?: true
   /** The feature behind which this settings tab is locked. If the user cannot access the feature,
    * a paywall is shown instead of the settings tab. */
-  readonly feature?: billing.PaywallFeatureName
+  readonly feature?: PaywallFeatureName
   readonly sections: readonly SettingsSectionData[]
   readonly onPress?: (context: SettingsContext) => Promise<void> | void
 }
@@ -556,7 +553,7 @@ export interface SettingsTabData {
 
 /** Metadata describing a settings tab section. */
 export interface SettingsTabSectionData {
-  readonly nameId: text.TextId & `${string}SettingsTabSection`
+  readonly nameId: TextId & `${string}SettingsTabSection`
   readonly tabs: readonly SettingsTabData[]
 }
 

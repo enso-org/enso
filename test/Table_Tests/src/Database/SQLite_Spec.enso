@@ -9,7 +9,7 @@ from Standard.Table.Errors import Invalid_Column_Names, Duplicate_Output_Column_
 
 import Standard.Database.Internal.Replace_Params.Replace_Params
 from Standard.Database import all
-from Standard.Database.Errors import SQL_Error, Unsupported_Database_Operation
+from Standard.Database.Errors import SQL_Error, Unsupported_Database_Operation, Unsupported_Database_Type
 
 from Standard.Test import all
 
@@ -306,7 +306,7 @@ sqlite_specific_spec suite_builder prefix create_connection_func setup =
 
         group_builder.specify "Does not support making a constant column from a Date" <|
             t = table_builder [["x", ["1", "2", "3"]]] connection=data.connection
-            t.at "x" . const (Date.new 12 4 12) . should_fail_with Unsupported_Database_Operation
+            t.at "x" . const (Date.new 12 4 12) . should_fail_with Unsupported_Database_Type
 
 type Lazy_Ref
    Value ~get

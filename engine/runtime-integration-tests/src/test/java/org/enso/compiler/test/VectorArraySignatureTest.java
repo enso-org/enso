@@ -19,25 +19,10 @@ import org.enso.compiler.core.ir.Function;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.expression.Comment;
 import org.enso.compiler.core.ir.module.scope.Definition;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import scala.Function1;
 
 public class VectorArraySignatureTest {
-  private static EnsoParser ensoCompiler;
-
-  @BeforeClass
-  public static void initEnsoParser() {
-    ensoCompiler = new EnsoParser();
-  }
-
-  @AfterClass
-  public static void closeEnsoParser() throws Exception {
-    ensoCompiler.close();
-    ensoCompiler = null;
-  }
-
   @Test
   public void testParseVectorAndArray() throws Exception {
     var p = Paths.get("../../distribution/").toFile().getCanonicalFile();
@@ -81,8 +66,7 @@ public class VectorArraySignatureTest {
     var vectorSrc = Files.readString(vectorAndArray[1]);
 
     var arrayIR =
-        ensoCompiler
-            .compile(arraySrc)
+        EnsoParser.compile(arraySrc)
             .preorder()
             .filter(
                 (v) -> {
@@ -95,8 +79,7 @@ public class VectorArraySignatureTest {
                 })
             .head();
     var vectorIR =
-        ensoCompiler
-            .compile(vectorSrc)
+        EnsoParser.compile(vectorSrc)
             .preorder()
             .filter(
                 (v) -> {

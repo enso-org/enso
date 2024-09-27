@@ -138,8 +138,10 @@ export function PlanSelector(props: PlanSelectorProps) {
                         const { data: session } = await refetchSession()
                         if (session && 'user' in session && session.user.plan === newPlan) {
                           onSubscribeSuccess?.(newPlan, paymentMethodId)
-                          // Invalidate all queries as the user has changed the plan.
-                          await queryClient.invalidateQueries({ queryKey: ['usersMe'] })
+                          // Invalidate "users me" query as the user has changed the plan.
+                          await queryClient.invalidateQueries({
+                            queryKey: [backend.type, 'usersMe'],
+                          })
                           break
                         } else {
                           const timePassedMs = Number(new Date()) - startEpochMs
