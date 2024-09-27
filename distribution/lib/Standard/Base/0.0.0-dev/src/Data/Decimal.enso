@@ -1145,9 +1145,11 @@ type Decimal
              Decimal.parse "123.456.789,87654" locale=Locale.italy
              # => 123456789.87654
     parse : Text -> Locale | Nothing -> Decimal ! Number_Parse_Error
-    parse text locale:(Locale | Nothing)=Nothing -> Decimal ! Number_Parse_Error = case locale of
-        Nothing -> Decimal.from_text text
-        Locale.Value java_locale -> Panic.catch ParseException ((NumberFormat.getInstance java_locale).parse text) _->
+    parse text locale:Locale=Locale.default format:Text="" -> Decimal ! Number_Parse_Error =
+        symbols = DecimalFormatSymbols.new locale.java_locale
+        number_format = DecimalFormat.new format symbols
+        number_format.setParseBigDecimal True
+        Panic.catch ParseException (Decimal.Value (number_format.parse text)) _->
             Error.throw (Number_Parse_Error.Error text)
 
     ## PRIVATE
