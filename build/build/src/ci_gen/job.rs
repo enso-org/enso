@@ -14,6 +14,7 @@ use crate::ide::web::env::VITE_ENSO_AG_GRID_LICENSE_KEY;
 use crate::ide::web::env::VITE_ENSO_MAPBOX_API_TOKEN;
 
 use ide_ci::actions::workflow::definition::cancel_workflow_action;
+use ide_ci::actions::workflow::definition::shell;
 use ide_ci::actions::workflow::definition::Access;
 use ide_ci::actions::workflow::definition::Job;
 use ide_ci::actions::workflow::definition::JobArchetype;
@@ -528,7 +529,11 @@ impl JobArchetype for PackageIde {
         RunStepsBuilder::new(
             "ide build --backend-source current-ci-run --gui-upload-artifact false --gui-sign-artifacts false",
         )
-        .customize(with_packaging_steps(target.0))
+        .customize(move |step| {
+            let mut steps = prepare_packaging_steps(target.0, step);
+            steps.push(shell("corepack pnpm -r --filter enso exec playwright test"));
+            steps
+        })
         .build_job("Package New IDE", target)
     }
 }
