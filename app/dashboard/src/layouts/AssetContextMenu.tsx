@@ -74,7 +74,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { backend, category, hasPasteData, pasteData, nodeMap } = state
 
   const { user } = authProvider.useFullUserSession()
-  const { setModal, unsetModal } = modalProvider.useSetModal()
+  const { setModal } = modalProvider.useSetModal()
   const remoteBackend = backendProvider.useRemoteBackend()
   const localBackend = backendProvider.useLocalBackend()
   const { getText } = textProvider.useText()
@@ -163,7 +163,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               action="undelete"
               label={getText('restoreFromTrashShortcut')}
               doAction={() => {
-                unsetModal()
                 dispatchAssetEvent({ type: AssetEventType.restore, ids: new Set([asset.id]) })
               }}
             />
@@ -193,7 +192,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               hidden={hidden}
               action="useInNewProject"
               doAction={() => {
-                unsetModal()
                 dispatchAssetListEvent({
                   type: AssetListEventType.newProject,
                   parentId: item.directoryId,
@@ -213,7 +211,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 hidden={hidden}
                 action="open"
                 doAction={() => {
-                  unsetModal()
                   openProject({
                     id: asset.id,
                     title: asset.title,
@@ -228,7 +225,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               hidden={hidden}
               action="run"
               doAction={() => {
-                unsetModal()
                 openProjectMutation.mutate({
                   id: asset.id,
                   title: asset.title,
@@ -244,7 +240,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               hidden={hidden}
               action="openInFileBrowser"
               doAction={() => {
-                unsetModal()
                 systemApi.showItemInFolder(path)
               }}
             />
@@ -257,7 +252,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 hidden={hidden}
                 action="close"
                 doAction={() => {
-                  unsetModal()
                   closeProject({
                     id: asset.id,
                     title: asset.title,
@@ -272,7 +266,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               hidden={hidden}
               action="uploadToCloud"
               doAction={async () => {
-                unsetModal()
                 if (remoteBackend == null) {
                   toastAndLog('offlineUploadFilesError')
                 } else {
@@ -312,7 +305,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 action="rename"
                 doAction={() => {
                   setRowState(object.merger({ isEditingName: true }))
-                  unsetModal()
                 }}
               />
             )}
@@ -365,7 +357,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                       />,
                     )
                   } else {
-                    unsetModal()
                     doDelete()
                   }
                 } else {
@@ -419,12 +410,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               action="label"
               doAction={() => {
                 setModal(
-                  <ManageLabelsModal
-                    backend={backend}
-                    item={asset}
-                    setItem={setAsset}
-                    eventTarget={eventTarget}
-                  />,
+                  <ManageLabelsModal backend={backend} item={asset} eventTarget={eventTarget} />,
                 )
               }}
             />
@@ -435,7 +421,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               hidden={hidden}
               action="duplicate"
               doAction={() => {
-                unsetModal()
                 dispatchAssetListEvent({
                   type: AssetListEventType.copy,
                   newParentId: item.directoryId,
@@ -450,10 +435,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             <ContextMenuEntry
               hidden={hidden}
               action="copyAsPath"
-              doAction={() => {
-                unsetModal()
-                copyMutation.mutate()
-              }}
+              doAction={copyMutation.mutateAsync}
             />
           )}
           {!isRunningProject && !isOtherUserUsingProject && (
@@ -467,11 +449,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               isDisabled={asset.type === backendModule.AssetType.secret}
               action="download"
               doAction={() => {
-                unsetModal()
-                dispatchAssetEvent({
-                  type: AssetEventType.download,
-                  ids: new Set([asset.id]),
-                })
+                dispatchAssetEvent({ type: AssetEventType.download, ids: new Set([asset.id]) })
               }}
             />
           )}

@@ -148,7 +148,6 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
                 key={uniqueString.uniqueString()}
                 backend={backend}
                 item={asset}
-                setItem={setAsset}
                 eventTarget={plusButtonRef.current}
               />,
             )
