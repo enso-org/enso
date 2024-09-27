@@ -342,9 +342,10 @@ post (uri:(URI | Text)) (body:Request_Body=..Empty) (method:HTTP_Method=..Post) 
      Defaults to `HTTP_Method.Get`.
    - headers: The headers to send with the request. Defaults to an empty vector.
 @uri Text_Input
+@headers Header.default_widget
 download : (URI | Text) -> Writable_File -> HTTP_Method -> Vector (Header | Pair Text Text) -> File ! Request_Error | HTTP_Error
-download (uri:(URI | Text)) file:Writable_File (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) =
-    Context.Output.if_enabled disabled_message="Downloading to a file is forbidden as the Output context is disabled." panic=False <|
+download (uri:(URI | Text)) file:Writable_File (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) =
+    Context.Output.if_enabled disabled_message="As writing is disabled, cannot download to a file. Press the Write button ▶ to perform the operation." panic=False <|
         response = HTTP.fetch uri method headers
         case Data_Link.is_data_link response.body.metadata of
             True ->

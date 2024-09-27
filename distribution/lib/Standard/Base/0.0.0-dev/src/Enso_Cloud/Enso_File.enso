@@ -211,7 +211,7 @@ type Enso_File
          value. The value is returned from this method.
     with_output_stream : Vector File_Access -> (Output_Stream -> Any ! File_Error) -> Any ! File_Error
     with_output_stream self (open_options : Vector) action =
-        Context.Output.if_enabled disabled_message="Writing to an Enso_File is forbidden as the Output context is disabled." panic=False <|
+        Context.Output.if_enabled disabled_message="As writing is disabled, cannot write to a file. Press the Write button ▶ to perform the operation." panic=False <|
             is_data_link = Data_Link.is_data_link self
             open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && is_data_link
             if open_as_data_link then Data_Link_Helpers.write_data_link_as_stream self open_options action else
