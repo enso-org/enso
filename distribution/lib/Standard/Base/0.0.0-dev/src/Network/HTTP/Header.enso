@@ -224,12 +224,15 @@ type Header
     default_widget (display : Display = ..When_Modified) -> Widget =
         fqn = "Header"
         secret_selector = make_text_secret_selector
-        values = [Option "Custom" fqn+".new '' ''"] +
-            [Option "Accept" fqn+".accept '*/*'"] +
-            [Option "Authorization" fqn+".authorization ''" [["value", secret_selector]]] +
-            [Option "HTTP Basic Auth" fqn+".authorization_basic '' ''" [["user", secret_selector], ["pass", secret_selector]]] +
-            [Option "Bearer Auth" fqn+".authorization_bearer ''" [["token", secret_selector]]] +
-            [Option "Content-Type" fqn+".content_type ''" [["value", content_type_widget], ["encoding", Encoding.default_widget]]]
+
+        custom = [Option "Custom" fqn+".new '' ''"]
+        accept = [Option "Accept" fqn+".accept '*/*'"]
+        authorization = [Option "Authorization" fqn+".authorization ''" [["value", secret_selector]]]
+        basic_auth = [Option "HTTP Basic Auth" fqn+".authorization_basic '' ''" [["user", secret_selector], ["pass", secret_selector]]]
+        bearer_auth = [Option "Bearer Auth" fqn+".authorization_bearer ''" [["token", secret_selector]]]
+        content_type = [Option "Content-Type" fqn+".content_type ''" [["value", content_type_widget], ["encoding", Encoding.default_widget]]]
+        values = custom + accept + authorization + basic_auth + bearer_auth + content_type
+
         item_editor = Single_Choice values=values display=..Always
         Vector_Editor item_editor item_default='Header.new "header" "value"' display=display
 
