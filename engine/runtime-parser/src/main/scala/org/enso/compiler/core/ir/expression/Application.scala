@@ -161,6 +161,17 @@ object Application {
     /** @inheritdoc */
     override def children: List[IR] = function :: arguments
 
+    override def withNewChildren(newChildren: List[IR]): IR = {
+      newChildren match {
+        case (func: Expression) :: args =>
+          copy(
+            function  = func,
+            arguments = args.map(_.asInstanceOf[CallArgument])
+          )
+        case _ => throw new IllegalArgumentException("Invalid children list")
+      }
+    }
+
     /** @inheritdoc */
     override def showCode(indent: Int): String = {
       val argStr = arguments.map(_.showCode(indent)).mkString(" ")
