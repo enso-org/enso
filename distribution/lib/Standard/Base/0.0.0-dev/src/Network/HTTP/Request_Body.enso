@@ -1,11 +1,21 @@
 import project.Any.Any
 import project.Data.Dictionary.Dictionary
+import project.Data.Pair.Pair
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
+import project.Errors.Common.Missing_Argument
+import project.Meta
+import project.Metadata.Widget
 import project.Network.HTTP.Header.Header
 import project.Nothing.Nothing
 import project.System.File.File
 from project.Data.Boolean import Boolean, False, True
+from project.Data.Json import key_value_widget
+from project.Data.Text.Extensions import all
+from project.Metadata.Choice import Option
+from project.Metadata.Widget import File_Browse, Single_Choice, Text_Input, Vector_Editor
+from project.Network.HTTP.Header import content_type_widget
+from project.Widget_Helpers import make_all_selector
 
 ## The HTTP POST request body.
 type Request_Body
@@ -16,19 +26,22 @@ type Request_Body
        - text: The plain text in the request body.
        - encoding: the text encoding to send as a Content-Encoding header
        - content_type: the content_type to send as a Content-Type header
-    Text (text:Text) (encoding:(Encoding|Nothing)=Nothing) (content_type:(Text|Nothing)=Nothing)
+    @encoding Encoding.default_widget
+    @content_type content_type_widget
+    Text (text:Text="") (encoding:(Encoding|Nothing)=Nothing) (content_type:(Text|Nothing)=Nothing)
 
     ## Request body with an object to be sent as JSON.
 
        Arguments:
        - x: The object to convert to JSON using `.to_json`.
-    Json (x:Any)
+    @x make_all_with_json
+    Json (x:Any=(Missing_Argument.throw "x"))
 
     ## Request body with an object to be sent as a binary file.
 
        Arguments:
        - file: The file to send.
-    Binary (file:File)
+    Binary (file:File=(Missing_Argument.throw "file"))
 
     ## Request body with form data.
 
@@ -36,7 +49,8 @@ type Request_Body
        - form_data: the form fields (text or file) to be sent
        - url_encoded: if true, use a URL-encoded form; otherwise, use a
          multi-part encoding.
-    Form_Data (form_data:(Dictionary Text (Text | File))) (url_encoded:Boolean=False)
+    @form_data dictionary_widget
+    Form_Data (form_data:Dictionary=(Missing_Argument.throw "form_data")) (url_encoded:Boolean=False)
 
     ## Empty request body; used for GET
     Empty
@@ -61,3 +75,18 @@ Request_Body.from (that:File) = Request_Body.Binary that
 
 ## PRIVATE
 Request_Body.from (that:Any) = Request_Body.Json that
+
+## PRIVATE
+make_all_with_json =
+    base_selector = make_all_selector Request_Body
+    values = [Option "JSON Object" key_value_widget] + base_selector.values
+    Single_Choice display=..Always values=values
+
+## PRIVATE
+dictionary_widget -> Widget =
+    fqn = Meta.get_qualified_type_name Pair . drop (..Last 5)
+    default = 'pair "key" ""'
+    value_editor = Single_Choice display=..Always values=[Option "Text" '""', Option "File" "File.new ''"]
+    pair = Option "Pair" fqn+".pair" [["first", Text_Input], ["second", value_editor]]
+    item_editor = Single_Choice display=..Always values=[pair]
+    Vector_Editor item_editor=item_editor display=..Always item_default=default

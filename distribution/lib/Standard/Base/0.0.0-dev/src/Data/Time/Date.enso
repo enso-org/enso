@@ -826,6 +826,11 @@ type Date
     format self format:Date_Time_Formatter=Date_Time_Formatter.iso_date =
         format.format_date self
 
+    ## PRIVATE
+       Convert to a Enso code representation of this Date.
+    pretty : Text
+    pretty self = "(Date.new " + self.year.to_text + " " + self.month.to_text + " " + self.day.to_text + ")"
+
 ## PRIVATE
 week_days_between start end =
     ## We split the interval into 3 periods: the first week (containing the
