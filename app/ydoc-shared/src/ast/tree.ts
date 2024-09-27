@@ -1931,7 +1931,7 @@ export class Function extends Ast {
       expression: unspaced(statement),
     }))
     const argumentDefinitions = argumentNames.map(name => ({
-      pattern: spaced(Ident.new(module, name))
+      pattern: spaced(Ident.new(module, name)),
     }))
     const body = BodyBlock.new(statements_, module)
     return MutableFunction.new(module, name, argumentDefinitions, body)
