@@ -254,6 +254,7 @@ type SQLSever_Dialect
             Feature.Make_table_from -> False
             Feature.Column_operations -> False
             Feature.Set -> False
+            Feature.Sample -> False
             Feature.Replace -> False
             Feature.Merge -> False
             _ -> True
