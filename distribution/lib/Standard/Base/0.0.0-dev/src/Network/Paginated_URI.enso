@@ -1,0 +1,102 @@
+import project.Any.Any
+import project.Data.Numbers.Integer
+import project.Data.Pair.Pair
+import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Errors.Common.Missing_Argument
+import project.Network.HTTP.Header.Header
+import project.Network.HTTP.HTTP
+import project.Network.HTTP.HTTP_Error.HTTP_Error
+import project.Network.HTTP.HTTP_Method.HTTP_Method
+import project.Network.HTTP.Request.Request
+import project.Network.HTTP.Request_Error
+import project.Network.HTTP.Response.Response
+import project.Network.URI.URI
+import project.Nothing.Nothing
+import project.Panic.Caught_Panic
+import project.Panic.Panic
+import project.Warning.Warning
+from project.Data.Text.Extensions import all
+from project.Logging import all
+from project.System.File_Format import Auto_Detect, File_Format
+
+## URI with pagination information.
+type Paginated_URI
+    ## Defines a Paged URI
+
+       Arguments:
+       - initial_uri: The URI of the first page.
+       - max_pages: The maximum number of pages to fetch.
+       - retries: The number of retries to attempt if a request fails.
+       - next_step: A function that takes the current URI and returns the next URI.
+    Paged_API initial_uri:URI=(Missing_Argument.throw "initial_uri") max_pages:Integer=10 retries:Integer=3 next_step=Paginated_URI.next_uri
+
+    ## Fetches a paginated resource.
+    fetch : HTTP_Method -> Vector (Header | Pair Text Text) -> File_Format -> Vector Any ! Request_Error | HTTP_Error
+    fetch self (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) (format = Auto_Detect) =
+        inner_fetch uri headers left current =
+            if left==0 then Warning.attach (More_Pages.Warning self.max_pages) current else
+                uri.log_message "Fetching page "+(self.max_pages-left+1).to_text+" of "+self.max_pages.to_text+" - "+uri.to_text
+                raw_response = HTTP.fetch uri method headers
+                next = self.next_step uri headers raw_response
+                decoded = raw_response.decode format
+                if next.is_nothing then current + [decoded] else
+                    @Tail_Call inner_fetch next.first next.second (left-1) (current + [decoded])
+
+        inner_fetch self.initial_uri headers self.max_pages []
+
+    ## Method to get the next URI.
+    next_uri : URI -> Vector (Header | Pair Text Text) -> Response -> Pair URI Vector ! Nothing
+    next_uri current_uri:URI current_headers raw_response:Response =
+        host = current_uri.host.to_case ..Lower
+        case host of
+            "api.github.com" -> Paginated_URI.next_github_uri current_uri current_headers raw_response
+            _ -> Nothing
+
+    ## Method to get the next URI for GitHub.
+    next_github_uri : URI -> Vector (Header | Pair Text Text) -> Response -> Pair URI Vector ! Nothing
+    next_github_uri current_uri:URI current_headers raw_response:Response =
+        _ = [current_uri, current_headers]
+        link = raw_response.headers_by_name "Link" . get 0
+        if link.is_nothing then Nothing else
+            parts = link.split ','
+            next_link = parts.find (_.contains 'rel="next"') if_missing=Nothing
+            if next_link.is_nothing then Nothing else
+                next_uri = next_link.take (..Before ';') . trim what=' <>'
+                Pair.Value (URI.from next_uri) current_headers
+
+## PRIVATE
+   Indicates that there are more pages to fetch.
+type More_Pages
+    ## PRIVATE
+    Warning pages:Integer
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self =
+        "The API has more than the maximum of "+self.pages.to_text+" pages."
+
+## PRIVATE
+   Fetch with a retry mechanism.
+fetch_with_retries : URI -> HTTP_Method -> Vector (Header | Pair Text Text) -> Integer -> Request ! Request_Error | HTTP_Error
+fetch_with_retries uri method headers retries = case retries of
+    0 -> HTTP.fetch uri method headers
+    _ ->
+        result = Panic.catch Any c->(panic_handler uri c) <|
+            (HTTP.fetch uri method headers) . catch Any e->(error_handler uri e)
+        if result.is_nothing.not then result else
+            fetch_with_retries uri method headers (retries-1)
+
+## PRIVATE
+   Handler for panics.
+panic_handler : URI -> Caught_Panic -> Nothing
+panic_handler uri caught_panic =
+    uri.log_message (caught_panic.payload.to_display_text) ..Warning
+    Nothing
+
+## PRIVATE
+   Handler for errors.
+error_handler : URI -> Any -> Nothing
+error_handler uri error =
+    uri.log_message (error.to_display_text) ..Warning
+    Nothing

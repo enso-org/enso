@@ -136,16 +136,16 @@ type HTTP
 
     ## PRIVATE
        Static helper for get-like methods
-    fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Response ! Request_Error | HTTP_Error
-    fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) =
+    fetch : URI -> HTTP_Method -> Vector (Header | Pair Text Text) -> Response ! Request_Error | HTTP_Error
+    fetch (uri:URI) (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) =
         check_method fetch_methods method <|
             request = Request.new method uri (parse_headers headers) Request_Body.Empty
             HTTP.new.request request
 
     ## PRIVATE
        Static helper for post-like methods
-    post : (URI | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Response ! Request_Error | HTTP_Error
-    post (uri:(URI | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) =
+    post : URI -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Response ! Request_Error | HTTP_Error
+    post (uri:URI) (body:Request_Body=..Empty) (method:HTTP_Method=..Post) (headers:(Vector (Header | Pair Text Text))=[]) =
         check_method post_methods method <|
             request = Request.new method uri (parse_headers headers) body
             HTTP.new.request request
