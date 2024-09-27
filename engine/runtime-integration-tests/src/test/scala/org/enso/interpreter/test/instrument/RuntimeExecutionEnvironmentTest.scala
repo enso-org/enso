@@ -188,7 +188,7 @@ class RuntimeExecutionEnvironmentTest
         IF_ENABLED_METH_CALL,
         Api.ExpressionUpdate.Payload
           .Panic(
-            "Forbidden operation: The Output context is disabled.",
+            "The Output context is disabled.",
             Seq(idRes)
           ),
         false
