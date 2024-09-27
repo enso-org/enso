@@ -4,8 +4,6 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Table.Internal.Java_Exports
 from Standard.Table import Bits, Column, Value_Type
 
-from project.Errors import Unsupported_Database_Operation
-
 polyglot java import java.sql.ResultSet
 polyglot java import org.enso.database.JDBCUtils
 polyglot java import org.enso.table.problems.ProblemAggregator
