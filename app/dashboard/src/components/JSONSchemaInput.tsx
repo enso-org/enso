@@ -1,10 +1,9 @@
 /** @file A dynamic wizard for creating an arbitrary type of Datalink. */
 import { Fragment, type JSX, useState } from 'react'
 
-import { Input, Text } from '#/components/aria'
+import { Checkbox, Input, Text } from '#/components/aria'
 import { Button, Dropdown } from '#/components/AriaComponents'
 import Autocomplete from '#/components/Autocomplete'
-import Checkbox from '#/components/styled/Checkbox'
 import FocusRing from '#/components/styled/FocusRing'
 import { useBackendQuery } from '#/hooks/backendHooks'
 import { useRemoteBackendStrict } from '#/providers/BackendProvider'
