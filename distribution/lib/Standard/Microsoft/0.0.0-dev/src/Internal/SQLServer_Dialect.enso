@@ -254,6 +254,7 @@ type SQLSever_Dialect
             Feature.Make_table_from -> False
             Feature.Column_operations -> False
             Feature.Set -> False
+            Feature.Replace -> False
             _ -> True
 
     ## PRIVATE

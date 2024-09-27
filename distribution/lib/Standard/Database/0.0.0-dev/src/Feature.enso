@@ -15,3 +15,5 @@ type Feature
     Make_table_from
     Column_operations
     Set
+    Sample
+    Replace
