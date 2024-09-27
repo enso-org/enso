@@ -1,8 +1,8 @@
 /** @file A dynamic wizard for creating an arbitrary type of Datalink. */
 import { Fragment, type JSX, useState } from 'react'
 
-import { Checkbox, Input, Text } from '#/components/aria'
-import { Button, Dropdown } from '#/components/AriaComponents'
+import { Input } from '#/components/aria'
+import { Button, Checkbox, Dropdown, Text } from '#/components/AriaComponents'
 import Autocomplete from '#/components/Autocomplete'
 import FocusRing from '#/components/styled/FocusRing'
 import { useBackendQuery } from '#/hooks/backendHooks'
@@ -24,6 +24,7 @@ export interface JSONSchemaInputProps {
   readonly schema: object
   readonly path: string
   readonly getValidator: (path: string) => (value: unknown) => boolean
+  readonly isAbsent?: boolean
   readonly value: NonNullable<unknown> | null
   readonly onChange: (value: NonNullable<unknown> | null) => void
 }
@@ -31,7 +32,7 @@ export interface JSONSchemaInputProps {
 /** A dynamic wizard for creating an arbitrary type of Datalink. */
 export default function JSONSchemaInput(props: JSONSchemaInputProps) {
   const { dropdownTitle, readOnly = false, defs, schema, path, getValidator } = props
-  const { value, onChange } = props
+  const { isAbsent = false, value, onChange } = props
   // The functionality for inputting `enso-secret`s SHOULD be injected using a plugin,
   // but it is more convenient to avoid having plugin infrastructure.
   const remoteBackend = useRemoteBackendStrict()
@@ -39,7 +40,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
   const [autocompleteText, setAutocompleteText] = useState(() =>
     typeof value === 'string' ? value : null,
   )
-  const [selectedChildIndex, setSelectedChildIndex] = useState<number | null>(null)
+  const [selectedChildIndex, setSelectedChildIndex] = useState<number>(0)
   const isSecret =
     'type' in schema &&
     schema.type === 'string' &&
@@ -47,6 +48,8 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
     schema.format === 'enso-secret'
   const { data: secrets } = useBackendQuery(remoteBackend, 'listSecrets', [], { enabled: isSecret })
   const autocompleteItems = isSecret ? secrets?.map((secret) => secret.path) ?? null : null
+  const validityClassName =
+    isAbsent || getValidator(path)(value) ? 'border-primary/20' : 'border-red-700/60'
 
   // NOTE: `enum` schemas omitted for now as they are not yet used.
   if ('const' in schema) {
@@ -60,12 +63,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
           if ('format' in schema && schema.format === 'enso-secret') {
             const isValid = typeof value === 'string' && value !== ''
             children.push(
-              <div
-                className={twMerge(
-                  'w-full rounded-default border-0.5',
-                  getValidator(path)(value) ? 'border-primary/20' : 'border-red-700/60',
-                )}
-              >
+              <div className={twMerge('w-full rounded-default border-0.5', validityClassName)}>
                 <Autocomplete
                   items={autocompleteItems ?? []}
                   itemToKey={(item) => item}
@@ -92,7 +90,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                   size={1}
                   className={twMerge(
                     'focus-child text w-full grow rounded-input border-0.5 bg-transparent px-input-x read-only:read-only',
-                    getValidator(path)(value) ? 'border-primary/20' : 'border-red-700/60',
+                    validityClassName,
                   )}
                   placeholder={getText('enterText')}
                   onChange={(event) => {
@@ -115,7 +113,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                 size={1}
                 className={twMerge(
                   'focus-child text w-full grow rounded-input border-0.5 bg-transparent px-input-x read-only:read-only',
-                  getValidator(path)(value) ? 'border-primary/20' : 'border-red-700/60',
+                  validityClassName,
                 )}
                 placeholder={getText('enterNumber')}
                 onChange={(event) => {
@@ -139,7 +137,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                 size={1}
                 className={twMerge(
                   'focus-child min-6- text40 w-full grow rounded-input border-0.5 bg-transparent px-input-x read-only:read-only',
-                  getValidator(path)(value) ? 'border-primary/20' : 'border-red-700/60',
+                  validityClassName,
                 )}
                 placeholder={getText('enterInteger')}
                 onChange={(event) => {
@@ -154,6 +152,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
         case 'boolean': {
           children.push(
             <Checkbox
+              name="input"
               isReadOnly={readOnly}
               isSelected={typeof value === 'boolean' && value}
               onChange={onChange}
@@ -176,11 +175,11 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
           )
           if (constantValueOfSchema(defs, schema).length !== 1) {
             children.push(
-              <div className="grid auto-cols-[max-content_auto] items-center gap-json-schema rounded-default border-0.5 border-primary/20 p-json-schema-object-input">
+              <div className="gap-2 rounded-default border-0.5 border-primary/20 p-2">
                 {propertyDefinitions.map((definition) => {
                   const { key, schema: childSchema } = definition
                   const isOptional = !requiredProperties.includes(key)
-                  const isPresent = value != null && key in value
+                  const isPresent = !isAbsent && value != null && key in value
                   return constantValueOfSchema(defs, childSchema).length === 1 ?
                       null
                     : <Fragment key={key}>
@@ -190,7 +189,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                           isDisabled={!isOptional}
                           isActive={!isOptional || isPresent}
                           className={twMerge(
-                            'col-start-1 inline-block justify-self-start whitespace-nowrap rounded-full px-button-x',
+                            'my-0.5 inline-block justify-self-start whitespace-nowrap rounded-full px-2 text-2xs',
                             isOptional && 'hover:bg-hover-bg',
                           )}
                           onPress={() => {
@@ -216,45 +215,44 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                           {'title' in childSchema ? String(childSchema.title) : key}
                         </Button>
 
-                        {isPresent && (
-                          <div className="col-start-2">
-                            <JSONSchemaInput
-                              readOnly={readOnly}
-                              defs={defs}
-                              schema={childSchema}
-                              path={`${path}/properties/${key}`}
-                              getValidator={getValidator}
-                              // This is SAFE, as `value` is an untyped object.
-                              // eslint-disable-next-line no-restricted-syntax
-                              value={(value as Record<string, unknown>)[key] ?? null}
-                              onChange={(newValue) => {
-                                if (typeof newValue === 'function') {
-                                  const unsafeValue: unknown = newValue(
+                        <div>
+                          <JSONSchemaInput
+                            readOnly={readOnly}
+                            defs={defs}
+                            schema={childSchema}
+                            path={`${path}/properties/${key}`}
+                            getValidator={getValidator}
+                            isAbsent={!isPresent}
+                            // This is SAFE, as `value` is an untyped object.
+                            // eslint-disable-next-line no-restricted-syntax
+                            value={((value ?? {}) as Record<string, unknown>)[key] ?? null}
+                            onChange={(newValue) => {
+                              if (typeof newValue === 'function') {
+                                const unsafeValue: unknown = newValue(
+                                  // This is SAFE; but there is no way to tell TypeScript that an object
+                                  // has an index signature.
+                                  // eslint-disable-next-line no-restricted-syntax
+                                  (value as Readonly<Record<string, unknown>>)[key] ?? null,
+                                )
+                                // The value MAY be `null`, but it is better than the value being a
+                                // function (which is *never* the intended result).
+                                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                                newValue = unsafeValue!
+                              }
+                              onChange(
+                                (
+                                  typeof value === 'object' &&
                                     // This is SAFE; but there is no way to tell TypeScript that an object
                                     // has an index signature.
                                     // eslint-disable-next-line no-restricted-syntax
-                                    (value as Readonly<Record<string, unknown>>)[key] ?? null,
-                                  )
-                                  // The value MAY be `null`, but it is better than the value being a
-                                  // function (which is *never* the intended result).
-                                  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                                  newValue = unsafeValue!
-                                }
-                                onChange(
-                                  (
-                                    typeof value === 'object' &&
-                                      // This is SAFE; but there is no way to tell TypeScript that an object
-                                      // has an index signature.
-                                      // eslint-disable-next-line no-restricted-syntax
-                                      (value as Readonly<Record<string, unknown>>)[key] === newValue
-                                  ) ?
-                                    value
-                                  : { ...value, [key]: newValue },
-                                )
-                              }}
-                            />
-                          </div>
-                        )}
+                                    (value as Readonly<Record<string, unknown>>)[key] === newValue
+                                ) ?
+                                  value
+                                : { ...value, [key]: newValue },
+                              )
+                            }}
+                          />
+                        </div>
                       </Fragment>
                 })}
               </div>,
@@ -279,9 +277,8 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
     }
     if ('anyOf' in schema && Array.isArray(schema.anyOf)) {
       const childSchemas = schema.anyOf.flatMap(singletonObjectOrNull)
-      const selectedChildSchema =
-        selectedChildIndex == null ? null : childSchemas[selectedChildIndex]
-      const selectedChildPath = `${path}/anyOf/${selectedChildIndex ?? 0}`
+      const selectedChildSchema = childSchemas[selectedChildIndex]
+      const selectedChildPath = `${path}/anyOf/${selectedChildIndex}`
       const childValue =
         selectedChildSchema == null ? [] : constantValueOfSchema(defs, selectedChildSchema)
       if (

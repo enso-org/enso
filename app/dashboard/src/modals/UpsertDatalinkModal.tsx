@@ -29,7 +29,7 @@ export default function UpsertDatalinkModal(props: UpsertDatalinkModalProps) {
   const { getText } = useText()
 
   return (
-    <Dialog size="xlarge" title={getText('createDatalink')} isDismissable={false}>
+    <Dialog title={getText('createDatalink')} isDismissable={false}>
       <Form
         method="dialog"
         schema={(z) =>
