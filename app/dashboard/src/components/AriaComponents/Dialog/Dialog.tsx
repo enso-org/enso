@@ -11,9 +11,9 @@ import * as suspense from '#/components/Suspense'
 import * as mergeRefs from '#/utilities/mergeRefs'
 
 import { useDimensions } from '#/hooks/dimensionsHooks'
+import { motion } from '#/utilities/motion'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
-import { motion } from 'framer-motion'
 import * as dialogProvider from './DialogProvider'
 import * as dialogStackProvider from './DialogStackProvider'
 import type * as types from './types'
@@ -194,10 +194,9 @@ export function Dialog(props: DialogProps) {
   }
 
   const dialogId = aria.useId()
-  const dialogLayoutId = `dialog-${dialogId}`
   const titleId = `${dialogId}-title`
 
-  const [contentDimensionsRef, { width: dialogWidth, height: dialogHeight }] = useDimensions()
+  const [contentDimensionsRef, { height: dialogHeight }] = useDimensions()
   const dialogRef = React.useRef<HTMLDivElement>(null)
   const overlayState = React.useRef<aria.OverlayTriggerState | null>(null)
   const root = portal.useStrictPortalContext()
@@ -260,10 +259,8 @@ export function Dialog(props: DialogProps) {
               type={TYPE_TO_DIALOG_TYPE[type]}
             >
               <MotionDialog
-                layout
-                layoutId={dialogLayoutId}
-                animate={{ width: dialogWidth, height: dialogHeight }}
                 id={dialogId}
+                animate={{ height: dialogHeight }}
                 ref={mergeRefs.mergeRefs(dialogRef, (element) => {
                   if (element) {
                     // This is a workaround for the `data-testid` attribute not being
