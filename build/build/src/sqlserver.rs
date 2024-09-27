@@ -182,7 +182,7 @@ impl SQLServer {
 
         // Wait until container is ready.
         let check_line = |line: &str| {
-            debug!("SQLSERVER_LOG: {}", line.trim_end());
+            debug!("SQLSERVER_LOG: {}", line.trim_end().trim_start());
             line.contains("SQL Server is now ready for client connections")
         };
         let stdout = process_lines_until(stdout, &check_line).await?;
