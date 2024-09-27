@@ -2,6 +2,7 @@ package org.enso.compiler.test.pass.desugar
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext}
+import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{
   CallArgument,
   DefinitionArgument,
@@ -12,8 +13,13 @@ import org.enso.compiler.core.ir.{
 }
 import org.enso.compiler.core.ir.expression.{Application, Case}
 import org.enso.compiler.pass.desugar.LambdaShorthandToLambda
-import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
-import org.enso.compiler.test.CompilerTest
+import org.enso.compiler.pass.{
+  MiniPassTraverser,
+  PassConfiguration,
+  PassGroup,
+  PassManager
+}
+import org.enso.compiler.test.{CompilerTest, CompilerTests}
 
 class LambdaShorthandToLambdaTest extends CompilerTest {
 
@@ -44,6 +50,12 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
     def desugar(implicit inlineContext: InlineContext): Expression = {
       LambdaShorthandToLambda.runExpression(ir, inlineContext)
     }
+
+    def desugarMini(implicit inlineContext: InlineContext): Expression = {
+      val miniPass =
+        LambdaShorthandToLambda.createForInlineCompilation(inlineContext)
+      MiniPassTraverser.compileInlineWithMiniPass(ir, miniPass)
+    }
   }
 
   /** Makes an inline context.
@@ -52,6 +64,20 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
     */
   def mkInlineContext: InlineContext = {
     buildInlineContext(freshNameSupply = Some(new FreshNameSupply))
+  }
+
+  private def desugarWithMegaPass(
+    code: String
+  ): IR = {
+    implicit val ctx: InlineContext = mkInlineContext
+    code.preprocessExpression.get.desugar
+  }
+
+  private def desugarWithMiniPass(
+    code: String
+  ): IR = {
+    implicit val ctx: InlineContext = mkInlineContext
+    code.preprocessExpression.get.desugarMini
   }
 
   // === The Tests ============================================================
@@ -575,4 +601,45 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
       secondLamArgName shouldEqual appArg2Name
     }
   }
+
+  "Mini lambda shorthand pass" should {
+    "Produce same results as mega pass" in {
+      val codeInputs = List(
+        "_.length",
+        "foo a _ b _",
+        "foo (a = _) b _",
+        "_ a b",
+        "if _ then a",
+        """
+          |case _ of
+          |    Nil -> 0
+          |""".stripMargin,
+        "(10 + _)",
+        "(_ +)",
+        "(_ + _)",
+        "(+ _)",
+        "[1, _, (3 + 4), _]",
+        "a _ (fn _ c)",
+        "a _ (fn (t = _) c)",
+        "\\a (b = f _ 1) -> f a",
+        """
+          |case _ of
+          |    Nil -> f _ b
+          |""".stripMargin,
+        "x = _",
+        "\\ x=_ -> x",
+        "(_ + 5) 5",
+        "(f _ _ b) b"
+      )
+
+      codeInputs.zipWithIndex.foreach { case (code, idx) =>
+        val testName = "test-" + idx
+        val msg      = s"Code that failed to compile: `$code`"
+        val megaIr   = desugarWithMegaPass(code)
+        val miniIr   = desugarWithMiniPass(code)
+        CompilerTests.assertEqualsIR(msg, testName, megaIr, miniIr)
+      }
+    }
+  }
+
 }

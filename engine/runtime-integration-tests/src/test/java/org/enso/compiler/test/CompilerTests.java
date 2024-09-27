@@ -38,7 +38,8 @@ public abstract class CompilerTests {
     assertEqualsIR(msg, null, old, now);
   }
 
-  public static void assertEqualsIR(String msg, String testName, IR old, IR now) throws IOException {
+  public static void assertEqualsIR(String msg, String testName, IR old, IR now)
+      throws IOException {
     Function<IR, String> filter = f -> simplifyIR(f, true, true, false);
     String ir1 = filter.apply(old);
     String ir2 = filter.apply(now);
