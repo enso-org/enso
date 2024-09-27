@@ -48,21 +48,23 @@ public final class Parser {
   private static final FinalizationManager finalizationManager = new FinalizationManager();
 
   private static Worker getWorker() {
-    var worker = threadWorker.get();
-    if (worker == null) {
-      finalizationManager.runPendingFinalizers();
-      worker = Worker.create();
-      if (!ImageInfo.inImageBuildtimeCode()) {
-        // At build-time, we eagerly free parser buffers; runtime should start out with an empty
-        // `finalizationManager`.
-        finalizationManager.attachFinalizer(worker, worker.finalizer());
-        threadWorker.set(worker);
-      }
+    finalizationManager.runPendingFinalizers();
+    return threadWorker.get();
+  }
+
+  private static Worker createWorker() {
+    var worker = Worker.create();
+    if (!ImageInfo.inImageBuildtimeCode()) {
+      // At build-time, we eagerly free parser buffers; runtime should start out with an empty
+      // `finalizationManager`.
+      finalizationManager.attachFinalizer(worker, worker.finalizer());
+      threadWorker.set(worker);
     }
     return worker;
   }
 
-  private static final ThreadLocal<Worker> threadWorker = new ThreadLocal<>();
+  private static final ThreadLocal<Worker> threadWorker =
+      ThreadLocal.withInitial(Parser::createWorker);
 
   public static void freeAll() {
     for (var finalizer : finalizationManager.getRegisteredFinalizers()) finalizer.run();
