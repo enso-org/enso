@@ -60,7 +60,6 @@ public final class EnsoActionProvider implements ActionProvider {
         var fo = lkp.lookup(FileObject.class);
         var script = FileUtil.toFile(fo);
 
-        var io = IOProvider.getDefault().getIO(script.getName(), false);
         var  dd = DialogDisplayer.getDefault();
 
         var prefs = NbPreferences.forModule(EnsoActionProvider.class);
@@ -108,7 +107,7 @@ public final class EnsoActionProvider implements ActionProvider {
             var cf = new CompletableFuture<Integer>();
             var descriptor = new ExecutionDescriptor()
                 .frontWindow(true).controllable(true)
-                .inputOutput(io)
+                .controllable(true)
                 .postExecution((exitCode) -> {
                     cf.complete(exitCode);
                 });
@@ -120,12 +119,20 @@ public final class EnsoActionProvider implements ActionProvider {
         });
 
         waitForProcessFuture.thenAcceptBoth(builderFuture, (exitCode, builder) -> {
-            if (exitCode != 0) {
-                var msg = Bundle.MSG_ExecutionError(builder.getDescription(), exitCode);
-                var md = new NotifyDescriptor.Message(msg, NotifyDescriptor.ERROR_MESSAGE);
-                dd.notifyLater(md);
+            boolean success;
+            if (exitCode != null) {
+                if (exitCode != 0) {
+                    var msg = Bundle.MSG_ExecutionError(builder.getDescription(), exitCode);
+                    var md = new NotifyDescriptor.Message(msg, NotifyDescriptor.ERROR_MESSAGE);
+                    dd.notifyLater(md);
+                    success = false;
+                } else {
+                    success = true;
+                }
+            } else {
+                success = false;
             }
-            process.finished(exitCode == 0);
+            process.finished(success);
         }).exceptionally((ex) -> {
             process.finished(false);
             if (ex instanceof CompletionException && ex.getCause() instanceof CancellationException) {
