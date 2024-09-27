@@ -2,6 +2,7 @@ package org.enso.compiler.pass;
 
 import java.util.Set;
 import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.ProcessingPass;
 
 /**
  * Mini IR pass operates on a single IR element at a time. The {@link org.enso.compiler.Compiler}
@@ -22,7 +23,7 @@ import org.enso.compiler.core.IR;
  * using modular and efficient tree transformations</a>. PDF available at <a
  * href="https://infoscience.epfl.ch/server/api/core/bitstreams/8ab72c0a-8aa6-4dee-a704-3504938dc316/content">infoscience.epfl.ch</a>
  */
-public abstract class MiniIRPass {
+public abstract class MiniIRPass<T extends IRPass.IRMetadata> implements ProcessingPass {
 
   /** Set of mini passes that should run before this mini pass. */
   public Set<MiniIRPass> runsAfter() {
