@@ -82,6 +82,7 @@ const DIALOG_STYLES = tv({
         header: 'p-0 max-h-0 min-h-0 h-0 border-0 z-1',
         content: 'isolate',
       },
+      none: {},
     },
     rounded: {
       none: { base: '' },
@@ -271,23 +272,27 @@ export function Dialog(props: DialogProps) {
                 {(opts) => {
                   return (
                     <dialogProvider.DialogProvider value={{ close: opts.close, dialogId }}>
-                      <aria.Header className={styles.header({ scrolledToTop: isScrolledToTop })}>
-                        <ariaComponents.CloseButton
-                          className={styles.closeButton()}
-                          onPress={opts.close}
-                        />
+                      {(closeButton !== 'none' || title != null) && (
+                        <aria.Header className={styles.header({ scrolledToTop: isScrolledToTop })}>
+                          {closeButton !== 'none' && (
+                            <ariaComponents.CloseButton
+                              className={styles.closeButton()}
+                              onPress={opts.close}
+                            />
+                          )}
 
-                        {title != null && (
-                          <ariaComponents.Text.Heading
-                            id={titleId}
-                            level={2}
-                            className={styles.heading()}
-                            weight="semibold"
-                          >
-                            {title}
-                          </ariaComponents.Text.Heading>
-                        )}
-                      </aria.Header>
+                          {title != null && (
+                            <ariaComponents.Text.Heading
+                              id={titleId}
+                              level={2}
+                              className={styles.heading()}
+                              weight="semibold"
+                            >
+                              {title}
+                            </ariaComponents.Text.Heading>
+                          )}
+                        </aria.Header>
+                      )}
 
                       <div
                         ref={(ref) => {

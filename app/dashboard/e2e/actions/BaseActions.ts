@@ -65,6 +65,7 @@ export default class BaseActions implements Promise<void> {
       }
     })
   }
+
   /** Proxies the `then` method of the internal {@link Promise}. */
   async then<T, E>(
     // The following types are copied almost verbatim from the type definitions for `Promise`.

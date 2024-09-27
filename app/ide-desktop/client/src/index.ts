@@ -356,6 +356,9 @@ class App {
           enableBlinkFeatures: argGroups.chrome.options.enableBlinkFeatures.value,
           disableBlinkFeatures: argGroups.chrome.options.disableBlinkFeatures.value,
           spellcheck: false,
+          ...(process.env.ENSO_TEST != null && process.env.ENSO_TEST !== '' ?
+            { partition: 'test' }
+          : {}),
         }
         const windowPreferences: electron.BrowserWindowConstructorOptions = {
           webPreferences,

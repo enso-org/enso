@@ -226,7 +226,7 @@ impl BuiltEnso {
                     user:                "sa".to_string(),
                     password:            "enso_test_password_<YourStrong@Passw0rd>".to_string(),
                     endpoint:            SQLServerEndpointConfiguration::deduce()?,
-                    version:             "latest".to_string(),
+                    version:             "2022-latest".to_string(),
                 };
                 let sqlserver = SQLServer::start(config).await?;
                 Some(sqlserver)

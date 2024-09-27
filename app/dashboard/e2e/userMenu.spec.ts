@@ -1,23 +1,19 @@
 /** @file Test the user menu. */
-import * as test from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
-import * as actions from './actions'
+import { mockAllAndLogin, TEXT } from './actions'
 
-test.test('user menu', ({ page }) =>
-  actions
-    .mockAllAndLogin({ page })
+test('user menu', ({ page }) =>
+  mockAllAndLogin({ page })
     .openUserMenu()
     .do(async (thePage) => {
-      await test.expect(actions.locateUserMenu(thePage)).toBeVisible()
-    }),
-)
+      await expect(thePage.getByLabel(TEXT.userMenuLabel).locator('visible=true')).toBeVisible()
+    }))
 
-test.test('download app', ({ page }) =>
-  actions
-    .mockAllAndLogin({ page })
+test('download app', ({ page }) =>
+  mockAllAndLogin({ page })
     .openUserMenu()
     .userMenu.downloadApp(async (download) => {
       await download.cancel()
-      test.expect(download.url()).toMatch(/^https:[/][/]objects.githubusercontent.com/)
-    }),
-)
+      expect(download.url()).toMatch(/^https:[/][/]objects.githubusercontent.com/)
+    }))

@@ -62,7 +62,7 @@
       "request": "launch",
       "name": "Dashboard (E2E UI)",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["run", "--filter", "enso-dashboard", "test:e2e:debug"],
+      "runtimeArgs": ["run", "--filter", "enso-dashboard", "test-dev:e2e"],
       "outputCapture": "std"
     },
     {

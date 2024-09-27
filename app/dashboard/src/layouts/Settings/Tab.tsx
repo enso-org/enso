@@ -1,18 +1,15 @@
 /** @file Rendering for a settings section. */
-import * as React from 'react'
+import { Suspense, useMemo } from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
+import { twMerge } from 'tailwind-merge'
 
-import * as billing from '#/hooks/billing'
-
-import * as authProvider from '#/providers/AuthProvider'
-
-import type * as settingsData from '#/layouts/Settings/settingsData'
-import SettingsPaywall from '#/layouts/Settings/SettingsPaywall'
-import SettingsSection from '#/layouts/Settings/SettingsSection'
-
-import * as errorBoundary from '#/components/ErrorBoundary'
-import * as loader from '#/components/Loader'
+import { ErrorBoundary } from '#/components/ErrorBoundary'
+import { Loader } from '#/components/Loader'
+import { usePaywall } from '#/hooks/billing'
+import { useFullUserSession } from '#/providers/AuthProvider'
+import type { SettingsContext, SettingsSectionData, SettingsTabData } from './data'
+import SettingsPaywall from './Paywall'
+import SettingsSection from './Section'
 
 // ===================
 // === SettingsTab ===
@@ -20,8 +17,8 @@ import * as loader from '#/components/Loader'
 
 /** Props for a {@link SettingsTab}. */
 export interface SettingsTabProps {
-  readonly context: settingsData.SettingsContext
-  readonly data: settingsData.SettingsTabData
+  readonly context: SettingsContext
+  readonly data: SettingsTabData
   readonly onInteracted: () => void
 }
 
@@ -29,14 +26,14 @@ export interface SettingsTabProps {
 export default function SettingsTab(props: SettingsTabProps) {
   const { context, data, onInteracted } = props
   const { sections } = data
-  const { user } = authProvider.useFullUserSession()
-  const { isFeatureUnderPaywall } = billing.usePaywall({ plan: user.plan })
+  const { user } = useFullUserSession()
+  const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })
   const paywallFeature =
     data.feature != null && isFeatureUnderPaywall(data.feature) ? data.feature : null
-  const [columns, classes] = React.useMemo<
-    [readonly (readonly settingsData.SettingsSectionData[])[], readonly string[]]
+  const [columns, classes] = useMemo<
+    [readonly (readonly SettingsSectionData[])[], readonly string[]]
   >(() => {
-    const resultColumns: settingsData.SettingsSectionData[][] = []
+    const resultColumns: SettingsSectionData[][] = []
     const resultClasses: string[] = []
     for (const section of sections) {
       const columnNumber = section.column ?? 1
@@ -79,7 +76,7 @@ export default function SettingsTab(props: SettingsTabProps) {
           {columns.map((sectionsInColumn, i) => (
             <div
               key={i}
-              className={tailwindMerge.twMerge(
+              className={twMerge(
                 'flex h-fit flex-1 flex-col gap-settings-subsection pb-12',
                 classes[i],
               )}
@@ -92,11 +89,9 @@ export default function SettingsTab(props: SettingsTabProps) {
         </div>
 
     return (
-      <errorBoundary.ErrorBoundary>
-        <React.Suspense fallback={<loader.Loader size="medium" minHeight="h64" />}>
-          {content}
-        </React.Suspense>
-      </errorBoundary.ErrorBoundary>
+      <ErrorBoundary>
+        <Suspense fallback={<Loader size="medium" minHeight="h64" />}>{content}</Suspense>
+      </ErrorBoundary>
     )
   }
 }

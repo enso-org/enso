@@ -5,10 +5,10 @@ import { Header } from '#/components/aria'
 import { ButtonGroup } from '#/components/AriaComponents'
 import FocusArea from '#/components/styled/FocusArea'
 import SidebarTabButton from '#/components/styled/SidebarTabButton'
-import { SETTINGS_DATA, type SettingsContext } from '#/layouts/Settings/settingsData'
-import type SettingsTabType from '#/layouts/Settings/SettingsTabType'
 import { useText } from '#/providers/TextProvider'
 import { twMerge } from '#/utilities/tailwindMerge'
+import { SETTINGS_DATA, type SettingsContext } from './data'
+import type SettingsTabType from './TabType'
 
 // =======================
 // === SettingsSidebar ===

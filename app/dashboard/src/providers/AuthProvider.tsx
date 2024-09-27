@@ -140,11 +140,11 @@ function createUsersMeQuery(
   performLogout: () => Promise<void>,
 ) {
   return reactQuery.queryOptions({
-    queryKey: ['usersMe', session?.clientId] as const,
+    queryKey: [remoteBackend.type, 'usersMe', session?.clientId] as const,
     queryFn: async () => {
       if (session == null) {
         // eslint-disable-next-line no-restricted-syntax
-        return null
+        return Promise.resolve(null)
       }
       try {
         const user = await remoteBackend.usersMe()
@@ -186,9 +186,6 @@ export default function AuthProvider(props: AuthProviderProps) {
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
   const { unsetModal } = modalProvider.useSetModal()
-  // This must not be `hooks.useNavigate` as `goOffline` would be inaccessible,
-  // and the function call would error.
-  // eslint-disable-next-line no-restricted-properties
   const navigate = router.useNavigate()
   const toastId = React.useId()
 
@@ -217,22 +214,19 @@ export default function AuthProvider(props: AuthProviderProps) {
   }
 
   const logoutMutation = reactQuery.useMutation({
-    mutationKey: ['usersMe', 'logout', session?.clientId] as const,
-    mutationFn: () => performLogout(),
-    onMutate: () => {
-      // If the User Menu is still visible, it breaks when `userSession` is set to `null`.
-      unsetModal()
-    },
+    mutationKey: [remoteBackend.type, 'usersMe', 'logout', session?.clientId] as const,
+    mutationFn: performLogout,
+    // If the User Menu is still visible, it breaks when `userSession` is set to `null`.
+    onMutate: unsetModal,
     onSuccess: () => toast.toast.success(getText('signOutSuccess')),
     onError: () => toast.toast.error(getText('signOutError')),
     meta: { invalidates: [sessionQueryKey], awaitInvalidates: true },
   })
 
-  const usersMeQueryOptions = createUsersMeQuery(session, remoteBackend, () =>
-    performLogout().then(() => {
-      toast.toast.info(getText('userNotAuthorizedError'))
-    }),
-  )
+  const usersMeQueryOptions = createUsersMeQuery(session, remoteBackend, async () => {
+    await performLogout()
+    toast.toast.info(getText('userNotAuthorizedError'))
+  })
 
   const usersMeQuery = reactQuery.useSuspenseQuery(usersMeQueryOptions)
   const userData = usersMeQuery.data
@@ -343,11 +337,13 @@ export default function AuthProvider(props: AuthProviderProps) {
     }
   })
 
+  const refetchSession = usersMeQuery.refetch
+
   const setUsername = useEventCallback(async (username: string) => {
     gtagEvent('cloud_user_created')
 
     if (userData?.type === UserSessionType.full) {
-      await updateUserMutation.mutateAsync({ username: username })
+      await updateUserMutation.mutateAsync({ username })
     } else {
       const organizationId = await cognito.organizationId()
       const email = session?.email ?? ''
@@ -359,6 +355,12 @@ export default function AuthProvider(props: AuthProviderProps) {
           organizationId != null ? backendModule.OrganizationId(organizationId) : null,
       })
     }
+    // Wait until the backend returns a value from `users/me`,
+    // otherwise the rest of the steps are skipped.
+    // This only happens on specific devices, and (seemingly) only when using
+    // the Vite development server, not with the built application bundle.
+    // i.e. PROD=1
+    await refetchSession()
 
     return true
   })
@@ -519,7 +521,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     forgotPassword,
     resetPassword,
     changePassword: withLoadingToast(changePassword),
-    refetchSession: usersMeQuery.refetch,
+    refetchSession,
     session: userData,
     signOut: logoutMutation.mutateAsync,
     setUser,

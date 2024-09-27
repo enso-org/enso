@@ -11,25 +11,10 @@ import java.util.function.Function;
 import org.enso.compiler.core.EnsoParser;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Module;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 
 public abstract class CompilerTests {
-
-  protected static EnsoParser ensoCompiler;
-
-  @BeforeClass
-  public static void initEnsoParser() {
-    ensoCompiler = new EnsoParser();
-  }
-
-  @AfterClass
-  public static void closeEnsoParser() throws Exception {
-    ensoCompiler.close();
-  }
-
   protected static Module parse(CharSequence code) {
-    Module ir = ensoCompiler.compile(code);
+    Module ir = EnsoParser.compile(code);
     assertNotNull("IR was generated", ir);
     return ir;
   }

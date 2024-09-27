@@ -220,9 +220,7 @@ export default function Registration() {
                       </Button>
                     }
                   >
-                    <Checkbox testId="terms-of-service-checkbox" value="agree">
-                      {getText('licenseAgreementCheckbox')}
-                    </Checkbox>
+                    <Checkbox value="agree">{getText('licenseAgreementCheckbox')}</Checkbox>
                   </Checkbox.Group>
 
                   <Checkbox.Group
@@ -238,9 +236,7 @@ export default function Registration() {
                       </Button>
                     }
                   >
-                    <Checkbox testId="privacy-policy-checkbox" value="agree">
-                      {getText('privacyPolicyCheckbox')}
-                    </Checkbox>
+                    <Checkbox value="agree">{getText('privacyPolicyCheckbox')}</Checkbox>
                   </Checkbox.Group>
 
                   <Form.Submit size="large" icon={CreateAccountIcon} fullWidth>

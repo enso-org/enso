@@ -634,6 +634,9 @@ importers:
       '@electron/notarize':
         specifier: 2.1.0
         version: 2.1.0
+      '@playwright/test':
+        specifier: ^1.45.0
+        version: 1.45.0
       '@types/mime-types':
         specifier: ^2.1.1
         version: 2.1.4
@@ -682,6 +685,9 @@ importers:
       fast-glob:
         specifier: ^3.2.12
         version: 3.3.2
+      playwright:
+        specifier: ^1.45.0
+        version: 1.45.0
       portfinder:
         specifier: ^1.0.32
         version: 1.0.32
