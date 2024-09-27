@@ -531,7 +531,7 @@ impl JobArchetype for PackageIde {
         )
         .customize(move |step| {
             let mut steps = prepare_packaging_steps(target.0, step);
-            steps.push(shell("corepack pnpm -r --filter enso exec playwright test"));
+            steps.push(shell("corepack pnpm -r --filter enso exec playwright test").with_env("DEBUG", "pw:browser log:"));
             steps
         })
         .build_job("Package New IDE", target)
