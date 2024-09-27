@@ -4,12 +4,11 @@ import { useCallback, useMemo, useState, type Dispatch, type SetStateAction } fr
 import { useMutation } from '@tanstack/react-query'
 
 import { Heading, Text } from '#/components/aria'
-import { Button, ButtonGroup, Input } from '#/components/AriaComponents'
+import { ButtonGroup, Form, Input } from '#/components/AriaComponents'
 import ColorPicker from '#/components/ColorPicker'
 import Label from '#/components/dashboard/Label'
 import Modal from '#/components/Modal'
 import FocusArea from '#/components/styled/FocusArea'
-import FocusRing from '#/components/styled/FocusRing'
 import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useSetModal } from '#/providers/ModalProvider'
@@ -22,7 +21,6 @@ import {
   type AnyAsset,
   type LChColor,
 } from '#/services/Backend'
-import { submitForm } from '#/utilities/event'
 import { merge } from '#/utilities/object'
 import { regexEscape } from '#/utilities/string'
 import { twMerge } from '#/utilities/tailwindMerge'
@@ -59,11 +57,32 @@ export default function ManageLabelsModal<Asset extends AnyAsset = AnyAsset>(
   const toastAndLog = useToastAndLog()
   const { data: allLabels } = useBackendQuery(backend, 'listTags', [])
   const [labels, setLabelsRaw] = useState(item.labels ?? [])
-  const [query, setQuery] = useState('')
   const [color, setColor] = useState<LChColor | null>(null)
   const leastUsedColor = useMemo(() => findLeastUsedColor(allLabels ?? []), [allLabels])
   const position = useMemo(() => eventTarget?.getBoundingClientRect(), [eventTarget])
   const labelNames = useMemo(() => new Set(labels), [labels])
+
+  const form = Form.useForm({
+    schema: (z) => z.object({ name: z.string() }),
+    defaultValues: { name: '' },
+    onSubmit: async ({ name }) => {
+      const labelName = LabelName(name)
+      setLabels((oldLabels) => [...oldLabels, labelName])
+      try {
+        await createTag([{ value: labelName, color: color ?? leastUsedColor }])
+        unsetModal()
+        setLabels((newLabels) => {
+          void associateTag([item.id, newLabels, item.title])
+          return newLabels
+        })
+      } catch (error) {
+        toastAndLog(null, error)
+        setLabels((oldLabels) => oldLabels.filter((oldLabel) => oldLabel !== name))
+      }
+    },
+  })
+
+  const query = Form.useWatch({ control: form.control, name: 'name' })
   const regex = useMemo(() => new RegExp(regexEscape(query), 'i'), [query])
   const canSelectColor = useMemo(
     () => query !== '' && (allLabels ?? []).filter((label) => regex.test(label.value)).length === 0,
@@ -103,22 +122,6 @@ export default function ManageLabelsModal<Asset extends AnyAsset = AnyAsset>(
     }
   }
 
-  const doSubmit = async () => {
-    unsetModal()
-    const labelName = LabelName(query)
-    setLabels((oldLabels) => [...oldLabels, labelName])
-    try {
-      await createTag([{ value: labelName, color: color ?? leastUsedColor }])
-      setLabels((newLabels) => {
-        void associateTag([item.id, newLabels, item.title])
-        return newLabels
-      })
-    } catch (error) {
-      toastAndLog(null, error)
-      setLabels((oldLabels) => oldLabels.filter((oldLabel) => oldLabel !== query))
-    }
-  }
-
   return (
     <Modal
       centered={eventTarget == null}
@@ -128,10 +131,7 @@ export default function ManageLabelsModal<Asset extends AnyAsset = AnyAsset>(
         tabIndex={-1}
         style={
           position != null ?
-            {
-              left: position.left + window.scrollX,
-              top: position.top + window.scrollY,
-            }
+            { left: position.left + window.scrollX, top: position.top + window.scrollY }
           : {}
         }
         className="sticky w-manage-labels-modal"
@@ -144,13 +144,7 @@ export default function ManageLabelsModal<Asset extends AnyAsset = AnyAsset>(
         }}
       >
         <div className="absolute h-full w-full rounded-default bg-selected-frame backdrop-blur-default" />
-        <form
-          className="relative flex flex-col gap-modal rounded-default p-modal"
-          onSubmit={(event) => {
-            event.preventDefault()
-            void doSubmit()
-          }}
-        >
+        <Form form={form} className="relative flex flex-col gap-modal rounded-default p-modal">
           <Heading level={2} className="flex h-row items-center gap-modal-tabs px-modal-tab-bar-x">
             <Text className="text text-sm font-bold">{getText('labels')}</Text>
           </Heading>
@@ -158,42 +152,15 @@ export default function ManageLabelsModal<Asset extends AnyAsset = AnyAsset>(
             <FocusArea direction="horizontal">
               {(innerProps) => (
                 <ButtonGroup className="relative" {...innerProps}>
-                  <FocusRing within>
-                    <div
-                      className={twMerge(
-                        'flex grow items-center rounded-full border border-primary/10 px-input-x',
-                        (
-                          canSelectColor &&
-                            color != null &&
-                            color.lightness <= MAXIMUM_DARK_LIGHTNESS
-                        ) ?
-                          'text-tag-text placeholder-tag-text'
-                        : 'text-primary',
-                      )}
-                      style={
-                        !canSelectColor || color == null ?
-                          {}
-                        : {
-                            backgroundColor: lChColorToCssColor(color),
-                          }
-                      }
-                    >
-                      <Input
-                        name="search-labels"
-                        autoFocus
-                        type="text"
-                        size="custom"
-                        placeholder={getText('labelSearchPlaceholder')}
-                        className="text grow bg-transparent"
-                        onChange={(event) => {
-                          setQuery(event.currentTarget.value)
-                        }}
-                      />
-                    </div>
-                  </FocusRing>
-                  <Button variant="submit" isDisabled={!canCreateNewLabel} onPress={submitForm}>
-                    {getText('create')}
-                  </Button>
+                  <Input
+                    form={form}
+                    name="name"
+                    autoFocus
+                    type="text"
+                    size="small"
+                    placeholder={getText('labelSearchPlaceholder')}
+                  />
+                  <Form.Submit isDisabled={!canCreateNewLabel}>{getText('create')}</Form.Submit>
                 </ButtonGroup>
               )}
             </FocusArea>
@@ -224,7 +191,7 @@ export default function ManageLabelsModal<Asset extends AnyAsset = AnyAsset>(
               </div>
             )}
           </FocusArea>
-        </form>
+        </Form>
       </div>
     </Modal>
   )
