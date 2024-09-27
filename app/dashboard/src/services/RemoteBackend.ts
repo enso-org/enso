@@ -1209,11 +1209,11 @@ export default class RemoteBackend extends Backend {
   /** Create a payment checkout session.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async createCheckoutSession(
-    params: backend.CreateCheckoutSessionRequestParams,
+    params: backend.CreateCheckoutSessionRequestBody,
   ): Promise<backend.CheckoutSession> {
     const response = await this.post<backend.CheckoutSession>(
       remoteBackendPaths.CREATE_CHECKOUT_SESSION_PATH,
-      params satisfies backend.CreateCheckoutSessionRequestBody,
+      params,
     )
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'createCheckoutSessionBackendError', params.plan)

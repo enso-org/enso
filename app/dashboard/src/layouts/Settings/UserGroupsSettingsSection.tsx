@@ -3,35 +3,33 @@ import * as React from 'react'
 
 import { useMutation } from '@tanstack/react-query'
 
-import * as mimeTypes from '#/data/mimeTypes'
-
+import { Cell, Column, Row, Table, TableBody, TableHeader, useDragAndDrop } from '#/components/aria'
+import { Button, ButtonGroup } from '#/components/AriaComponents'
+import { PaywallDialogButton } from '#/components/Paywall'
+import StatelessSpinner, { SpinnerState } from '#/components/StatelessSpinner'
+import { USER_MIME_TYPE } from '#/data/mimeTypes'
 import {
   backendMutationOptions,
   useBackendQuery,
   useListUserGroupsWithUsers,
 } from '#/hooks/backendHooks'
-import * as billingHooks from '#/hooks/billing'
-import * as scrollHooks from '#/hooks/scrollHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-
-import * as authProvider from '#/providers/AuthProvider'
-import * as modalProvider from '#/providers/ModalProvider'
-import * as textProvider from '#/providers/TextProvider'
-
-import UserGroupRow from '#/layouts/Settings/UserGroupRow'
-import UserGroupUserRow from '#/layouts/Settings/UserGroupUserRow'
-
-import * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
-import * as paywallComponents from '#/components/Paywall'
-import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
-
+import { usePaywall } from '#/hooks/billing'
+import { useStickyTableHeaderOnScroll } from '#/hooks/scrollHooks'
+import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import NewUserGroupModal from '#/modals/NewUserGroupModal'
-
+import { useFullUserSession } from '#/providers/AuthProvider'
+import { useSetModal } from '#/providers/ModalProvider'
+import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import * as backendModule from '#/services/Backend'
-
-import * as tailwindMerge from '#/utilities/tailwindMerge'
+import {
+  isPlaceholderUserGroupId,
+  isUserGroupId,
+  type User,
+  type UserGroupInfo,
+} from '#/services/Backend'
+import { twMerge } from '#/utilities/tailwindMerge'
+import UserGroupRow from './UserGroupRow'
+import UserGroupUserRow from './UserGroupUserRow'
 
 // =================================
 // === UserGroupsSettingsSection ===
@@ -45,10 +43,10 @@ export interface UserGroupsSettingsSectionProps {
 /** Settings tab for viewing and editing organization members. */
 export default function UserGroupsSettingsSection(props: UserGroupsSettingsSectionProps) {
   const { backend } = props
-  const { setModal } = modalProvider.useSetModal()
-  const { getText } = textProvider.useText()
-  const { user } = authProvider.useFullUserSession()
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const { setModal } = useSetModal()
+  const { getText } = useText()
+  const { user } = useFullUserSession()
+  const toastAndLog = useToastAndLog()
   const { data: users } = useBackendQuery(backend, 'listUsers', [])
   const userGroups = useListUserGroupsWithUsers(backend)
   const rootRef = React.useRef<HTMLDivElement>(null)
@@ -66,36 +64,39 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
   const isLoading = userGroups == null || users == null
   const isAdmin = user.isOrganizationAdmin
 
-  const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
+  const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })
 
   const isUnderPaywall = isFeatureUnderPaywall('userGroupsFull')
   const userGroupsLeft = isUnderPaywall ? 1 - (userGroups?.length ?? 0) : Infinity
   const shouldDisplayPaywall = isUnderPaywall ? userGroupsLeft <= 0 : false
 
-  const { onScroll: onUserGroupsTableScroll, shadowClassName } =
-    scrollHooks.useStickyTableHeaderOnScroll(rootRef, bodyRef, { trackShadowClass: true })
+  const { onScroll: onUserGroupsTableScroll, shadowClassName } = useStickyTableHeaderOnScroll(
+    rootRef,
+    bodyRef,
+    { trackShadowClass: true },
+  )
 
-  const { dragAndDropHooks } = aria.useDragAndDrop({
+  const { dragAndDropHooks } = useDragAndDrop({
     isDisabled: !isAdmin,
     getDropOperation: (target, types, allowedOperations) =>
       (
         allowedOperations.includes('copy') &&
-        types.has(mimeTypes.USER_MIME_TYPE) &&
+        types.has(USER_MIME_TYPE) &&
         target.type === 'item' &&
         typeof target.key === 'string' &&
-        backendModule.isUserGroupId(target.key) &&
-        !backendModule.isPlaceholderUserGroupId(target.key)
+        isUserGroupId(target.key) &&
+        !isPlaceholderUserGroupId(target.key)
       ) ?
         'copy'
       : 'cancel',
     onItemDrop: (event) => {
-      if (typeof event.target.key === 'string' && backendModule.isUserGroupId(event.target.key)) {
+      if (typeof event.target.key === 'string' && isUserGroupId(event.target.key)) {
         const userGroupId = event.target.key
         for (const item of event.items) {
-          if (item.kind === 'text' && item.types.has(mimeTypes.USER_MIME_TYPE)) {
-            void item.getText(mimeTypes.USER_MIME_TYPE).then(async (text) => {
+          if (item.kind === 'text' && item.types.has(USER_MIME_TYPE)) {
+            void item.getText(USER_MIME_TYPE).then(async (text) => {
               // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-              const newUser: backendModule.User = JSON.parse(text)
+              const newUser: User = JSON.parse(text)
               const groups = usersMap.get(newUser.userId)?.userGroups ?? []
               if (!groups.includes(userGroupId)) {
                 try {
@@ -116,7 +117,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
     },
   })
 
-  const doDeleteUserGroup = async (userGroup: backendModule.UserGroupInfo) => {
+  const doDeleteUserGroup = async (userGroup: UserGroupInfo) => {
     try {
       await deleteUserGroup([userGroup.id, userGroup.groupName])
     } catch (error) {
@@ -124,10 +125,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
     }
   }
 
-  const doRemoveUserFromUserGroup = async (
-    otherUser: backendModule.User,
-    userGroup: backendModule.UserGroupInfo,
-  ) => {
+  const doRemoveUserFromUserGroup = async (otherUser: User, userGroup: UserGroupInfo) => {
     try {
       const intermediateUserGroups =
         otherUser.userGroups?.filter((userGroupId) => userGroupId !== userGroup.id) ?? null
@@ -141,9 +139,9 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
   return (
     <>
       {isAdmin && (
-        <ariaComponents.ButtonGroup verticalAlign="center">
+        <ButtonGroup verticalAlign="center">
           {shouldDisplayPaywall && (
-            <paywallComponents.PaywallDialogButton
+            <PaywallDialogButton
               feature="userGroupsFull"
               variant="outline"
               size="medium"
@@ -152,10 +150,10 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
               tooltip={getText('userGroupsPaywallMessage')}
             >
               {getText('newUserGroup')}
-            </paywallComponents.PaywallDialogButton>
+            </PaywallDialogButton>
           )}
           {!shouldDisplayPaywall && (
-            <ariaComponents.Button
+            <Button
               size="medium"
               variant="outline"
               onPress={(event) => {
@@ -165,7 +163,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
               }}
             >
               {getText('newUserGroup')}
-            </ariaComponents.Button>
+            </Button>
           )}
 
           {isUnderPaywall && (
@@ -175,40 +173,40 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
               : getText('userGroupsLimitMessage', userGroupsLeft)}
             </span>
           )}
-        </ariaComponents.ButtonGroup>
+        </ButtonGroup>
       )}
       <div
         ref={rootRef}
-        className={tailwindMerge.twMerge(
+        className={twMerge(
           'overflow-auto overflow-x-hidden transition-all lg:mb-2',
           shadowClassName,
         )}
         onScroll={onUserGroupsTableScroll}
       >
-        <aria.Table
+        <Table
           aria-label={getText('userGroups')}
           className="w-full max-w-3xl table-fixed self-start rounded-rows"
           dragAndDropHooks={dragAndDropHooks}
         >
-          <aria.TableHeader className="sticky top h-row">
-            <aria.Column
+          <TableHeader className="sticky top h-row">
+            <Column
               isRowHeader
               className="w-full border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0"
             >
               {getText('userGroup')}
-            </aria.Column>
+            </Column>
             {/* Delete button. */}
-            <aria.Column className="relative border-0" />
-          </aria.TableHeader>
-          <aria.TableBody
+            <Column className="relative border-0" />
+          </TableHeader>
+          <TableBody
             ref={bodyRef}
             items={userGroups ?? []}
             dependencies={[isLoading, userGroups]}
             className="select-text"
           >
             {isLoading ?
-              <aria.Row className="h-row">
-                <aria.Cell
+              <Row className="h-row">
+                <Cell
                   ref={(element) => {
                     if (element instanceof HTMLTableCellElement) {
                       element.colSpan = 2
@@ -216,21 +214,18 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
                   }}
                 >
                   <div className="flex justify-center">
-                    <StatelessSpinner
-                      size={32}
-                      state={statelessSpinner.SpinnerState.loadingMedium}
-                    />
+                    <StatelessSpinner size={32} state={SpinnerState.loadingMedium} />
                   </div>
-                </aria.Cell>
-              </aria.Row>
+                </Cell>
+              </Row>
             : userGroups.length === 0 ?
-              <aria.Row className="h-row">
-                <aria.Cell className="col-span-2 px-2.5 placeholder">
+              <Row className="h-row">
+                <Cell className="col-span-2 px-2.5 placeholder">
                   {isAdmin ?
                     getText('youHaveNoUserGroupsAdmin')
                   : getText('youHaveNoUserGroupsNonAdmin')}
-                </aria.Cell>
-              </aria.Row>
+                </Cell>
+              </Row>
             : (userGroup) => (
                 <>
                   <UserGroupRow userGroup={userGroup} doDeleteUserGroup={doDeleteUserGroup} />
@@ -245,8 +240,8 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
                 </>
               )
             }
-          </aria.TableBody>
-        </aria.Table>
+          </TableBody>
+        </Table>
       </div>
     </>
   )

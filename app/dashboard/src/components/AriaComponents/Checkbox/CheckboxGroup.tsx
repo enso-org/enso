@@ -69,7 +69,7 @@ export const CheckboxGroup = forwardRef(
     const formInstance = (form ?? Form.useFormContext()) as FormInstance<Schema>
 
     const styles = variants({ fullWidth, className })
-    const testId = props['data-testid'] ?? props.testId ?? 'CheckboxGroup'
+    const testId = props['data-testid'] ?? props.testId
 
     return (
       <Form.Controller

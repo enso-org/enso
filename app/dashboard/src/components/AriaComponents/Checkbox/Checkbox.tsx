@@ -91,6 +91,7 @@ export const CHECKBOX_STYLES = tv({
       'outline -outline-offset-2 outline-transparent group-focus-visible:outline-offset-0 group-focus-visible:outline-primary',
       'border-primary group-selected:border-transparent',
       'group-pressed:border',
+      'shrink-0',
     ],
   },
   defaultVariants: {
@@ -206,7 +207,7 @@ export const Checkbox = forwardRef(function Checkbox<
     size,
   })
 
-  const testId = props['data-testid'] ?? props['testId'] ?? 'Checkbox'
+  const testId = props['data-testid'] ?? props['testId']
 
   return (
     <AriaCheckbox

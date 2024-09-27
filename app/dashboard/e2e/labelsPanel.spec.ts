@@ -19,20 +19,20 @@ test.test('labels', async ({ page }) => {
   // Empty labels panel
   await test.expect(locateLabelsPanel(page)).toBeVisible()
 
-  // "Create label" modal
+  // "New Label" modal
   await locateNewLabelButton(page).click()
   await test.expect(locateNewLabelModal(page)).toBeVisible()
   await page.press('body', 'Escape')
   await test.expect(locateNewLabelModal(page)).not.toBeVisible()
   await locateNewLabelButton(page).click()
 
-  // "Create label" modal with name set
+  // "New Label" modal with name set
   await locateNewLabelModalNameInput(page).fill('New Label')
   await test.expect(locateNewLabelModal(page)).toHaveText(/^New Label/)
 
   await page.press('body', 'Escape')
 
-  // "Create label" modal with color set
+  // "New Label" modal with color set
   // The exact number is allowed to vary; but to click the fourth color, there must be at least
   // four colors.
   await locateNewLabelButton(page).click()
@@ -42,7 +42,7 @@ test.test('labels', async ({ page }) => {
   await locateNewLabelModalColorButtons(page).nth(4).click({ force: true })
   await test.expect(locateNewLabelModal(page)).toBeVisible()
 
-  // "Create label" modal with name and color set
+  // "New Label" modal with name and color set
   await locateNewLabelModalNameInput(page).fill('New Label')
   await test.expect(locateNewLabelModal(page)).toHaveText(/^New Label/)
 

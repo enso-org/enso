@@ -1,9 +1,9 @@
 /** @file Rendering for a settings section. */
 import { Text } from '#/components/AriaComponents'
 import FocusArea from '#/components/styled/FocusArea'
-import type { SettingsContext, SettingsSectionData } from '#/layouts/Settings/settingsData'
-import SettingsEntry from '#/layouts/Settings/SettingsEntry'
 import { useText } from '#/providers/TextProvider'
+import type { SettingsContext, SettingsSectionData } from './data'
+import SettingsEntry from './Entry'
 
 // =======================
 // === SettingsSection ===

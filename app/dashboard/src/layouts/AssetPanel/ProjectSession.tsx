@@ -1,31 +1,26 @@
 /** @file Displays information describing a specific version of an asset. */
-import * as React from 'react'
+import { useState } from 'react'
 
 import LogsIcon from '#/assets/logs.svg'
-import { DialogTrigger } from '#/components/AriaComponents'
-import Button from '#/components/styled/Button'
+import { Button, DialogTrigger } from '#/components/AriaComponents'
 import ProjectLogsModal from '#/modals/ProjectLogsModal'
 import { useText } from '#/providers/TextProvider'
-import type * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
+import type { ProjectSession as BackendProjectSession, ProjectAsset } from '#/services/Backend'
 import { formatDateTime } from '#/utilities/dateTime'
-
-// ======================
-// === ProjectSession ===
-// ======================
 
 /** Props for a {@link ProjectSession}. */
 export interface ProjectSessionProps {
   readonly backend: Backend
-  readonly project: backendModule.ProjectAsset
-  readonly projectSession: backendModule.ProjectSession
+  readonly project: ProjectAsset
+  readonly projectSession: BackendProjectSession
 }
 
 /** Displays information describing a specific version of an asset. */
 export default function ProjectSession(props: ProjectSessionProps) {
   const { backend, project, projectSession } = props
   const { getText } = useText()
-  const [isOpen, setIsOpen] = React.useState(false)
+  const [isOpen, setIsOpen] = useState(false)
 
   return (
     <div className="flex w-full flex-1 shrink-0 select-none flex-row gap-4 rounded-2xl p-2">
@@ -34,7 +29,7 @@ export default function ProjectSession(props: ProjectSessionProps) {
       </div>
       <div className="flex items-center gap-1">
         <DialogTrigger isOpen={isOpen} onOpenChange={setIsOpen}>
-          <Button active image={LogsIcon} alt={getText('showLogs')} onPress={() => {}} />
+          <Button isActive icon={LogsIcon} aria-label={getText('showLogs')} />
 
           <ProjectLogsModal
             isOpen={isOpen}
