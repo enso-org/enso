@@ -1352,7 +1352,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
     )
 
     val attachVisualizationResponses =
-      context.receiveNIgnoreExpressionUpdates(2)
+      context.receiveNIgnoreExpressionUpdates(4)
 
     attachVisualizationResponses.filter(
       _.payload.isInstanceOf[Api.VisualizationAttached]
@@ -1379,7 +1379,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
     )
 
     val editFileResponses =
-      context.receiveNIgnoreExpressionUpdates(5)
+      context.receiveNIgnoreExpressionUpdates(3)
 
     editFileResponses should contain(
       context.executionComplete(contextId)
