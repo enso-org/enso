@@ -421,7 +421,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
 
     function updateNodeRect(nodeId: NodeId, rect: Rect) {
       nodeRects.set(nodeId, rect)
-      if (rect.pos.equals(Vec2.Zero)) {
+      if (rect.pos.equals(Vec2.Infinity)) {
         nodesToPlace.push(nodeId)
       }
     }

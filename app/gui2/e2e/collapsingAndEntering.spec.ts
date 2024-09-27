@@ -88,11 +88,9 @@ test('Collapsing nodes', async ({ page }) => {
     module: 'local.Mock_Project',
     name: 'collapsed',
     isStatic: true,
-    aliases: [],
     arguments: [{ name: 'five', reprType: 'Any', isSuspended: false, hasDefault: false }],
     selfType: 'local.Mock_Project',
     returnType: 'Standard.Base.Any.Any',
-    documentation: [],
     annotations: [],
   })
   const collapsedNode = locate.graphNodeByBinding(page, 'prod')
@@ -102,8 +100,8 @@ test('Collapsing nodes', async ({ page }) => {
   await expect(collapsedNode.locator('.WidgetTopLevelArgument')).toHaveText('five')
 
   await locate.graphNodeIcon(collapsedNode).dblclick()
-  await actions.ensureNoCircularMenusVisibleDueToHovering(page)
-  await expect(locate.graphNode(page)).toHaveCount(4)
+  await expect(locate.graphNode(page)).toHaveCount(5)
+  await expect(locate.inputNode(page)).toHaveCount(1)
   await expect(locate.graphNodeByBinding(page, 'ten')).toExist()
   await expect(locate.graphNodeByBinding(page, 'sum')).toExist()
   await expect(locate.graphNodeByBinding(page, 'prod')).toExist()
@@ -114,7 +112,8 @@ test('Collapsing nodes', async ({ page }) => {
   // Wait till node is selected.
   await expect(locate.graphNodeByBinding(page, 'ten').and(page.locator('.selected'))).toHaveCount(1)
   await page.keyboard.press(COLLAPSE_SHORTCUT)
-  await expect(locate.graphNode(page)).toHaveCount(4)
+  await expect(locate.graphNode(page)).toHaveCount(5)
+  await expect(locate.inputNode(page)).toHaveCount(1)
 
   const secondCollapsedNode = locate.graphNodeByBinding(page, 'ten')
   await expect(secondCollapsedNode.locator('.WidgetToken')).toHaveText(['Main', '.', 'collapsed1'])
@@ -122,6 +121,23 @@ test('Collapsing nodes', async ({ page }) => {
   await secondCollapsedNode.dblclick()
   await expect(locate.graphNode(page)).toHaveCount(2)
   await expect(locate.graphNodeByBinding(page, 'ten')).toExist()
+})
+
+test('Input node', async ({ page }) => {
+  await actions.goToGraph(page)
+  await enterToFunc2(page)
+
+  const inputNode = locate.inputNode(page)
+  await expect(inputNode).toHaveCount(1)
+  // Output node with identifier should have the icon and an identifier
+  await expect(inputNode.locator('.WidgetIcon')).toHaveCount(1)
+  await expect(inputNode.locator('.WidgetToken')).toContainText('a')
+
+  await inputNode.click()
+  await page.keyboard.press('Delete')
+  await expect(inputNode).toHaveCount(1)
+  await inputNode.locator('.More').click({})
+  await expect(inputNode.getByTestId('removeNode')).toHaveClass(/(?<=^| )disabled(?=$| )/)
 })
 
 test('Output node', async ({ page }) => {
@@ -145,11 +161,31 @@ test('Output node is not collapsed', async ({ page }) => {
   await actions.goToGraph(page)
   await enterToFunc2(page)
 
+  await locate.outputNode(page).click({ modifiers: ['Shift'] })
   await locate
     .graphNodeByBinding(page, 'r')
     .locator('.grab-handle')
     .click({ modifiers: ['Shift'] })
-  await locate.outputNode(page).click({ modifiers: ['Shift'] })
+
+  await page.getByLabel('Group Selected Components').click()
+  await expect(locate.graphNodeByBinding(page, 'r').locator('.WidgetToken')).toHaveText([
+    'Main',
+    '.',
+    'collapsed',
+    'a',
+  ])
+  await expect(locate.inputNode(page)).toHaveCount(1)
+})
+
+test('Input node is not collapsed', async ({ page }) => {
+  await actions.goToGraph(page)
+  await enterToFunc2(page)
+
+  await locate
+    .graphNodeByBinding(page, 'r')
+    .locator('.grab-handle')
+    .click({ modifiers: ['Shift'] })
+  await locate.inputNode(page).click({ modifiers: ['Shift'] })
 
   await page.getByLabel('Group Selected Components').click()
   await expect(locate.graphNodeByBinding(page, 'r').locator('.WidgetToken')).toHaveText([
@@ -162,7 +198,7 @@ test('Output node is not collapsed', async ({ page }) => {
 })
 
 async function expectInsideMain(page: Page) {
-  await actions.expectNodePositionsInitialized(page, 72)
+  await actions.expectNodePositionsInitialized(page, -16)
   await expect(locate.graphNode(page)).toHaveCount(MAIN_FILE_NODES)
   await expect(locate.graphNodeByBinding(page, 'five')).toExist()
   await expect(locate.graphNodeByBinding(page, 'ten')).toExist()
@@ -177,16 +213,18 @@ async function expectInsideMain(page: Page) {
 }
 
 async function expectInsideFunc1(page: Page) {
-  await actions.expectNodePositionsInitialized(page, 216)
-  await expect(locate.graphNode(page)).toHaveCount(3)
+  await actions.expectNodePositionsInitialized(page, -88)
+  await expect(locate.graphNode(page)).toHaveCount(4)
+  await expect(locate.inputNode(page)).toHaveCount(1)
   await expect(locate.graphNodeByBinding(page, 'f2')).toExist()
   await expect(locate.graphNodeByBinding(page, 'result')).toExist()
   await expect(locate.outputNode(page)).toHaveCount(1)
 }
 
 async function expectInsideFunc2(page: Page) {
-  await actions.expectNodePositionsInitialized(page, 144)
-  await expect(locate.graphNode(page)).toHaveCount(2)
+  await actions.expectNodePositionsInitialized(page, -88)
+  await expect(locate.graphNode(page)).toHaveCount(3)
+  await expect(locate.inputNode(page)).toHaveCount(1)
   await expect(locate.graphNodeByBinding(page, 'r')).toExist()
   await expect(locate.outputNode(page)).toHaveCount(1)
 }

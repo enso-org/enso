@@ -401,7 +401,7 @@ export class GraphDb {
     const oldNode = this.nodeIdToNode.getUntracked(nodeId)
     if (oldNode == null) {
       const nodeMeta = newNode.rootExpr.nodeMetadata
-      const pos = nodeMeta.get('position') ?? { x: 0, y: 0 }
+      const pos = nodeMeta.get('position') ?? { x: Infinity, y: Infinity }
       const metadataFields = {
         position: new Vec2(pos.x, pos.y),
         vis: nodeMeta.get('visualization'),
