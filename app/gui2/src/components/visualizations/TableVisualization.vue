@@ -1,19 +1,17 @@
 <script lang="ts">
 import icons from '@/assets/icons.svg'
-import { default as TableVizToolbar, type SortModel } from '@/components/TableVizToolbar.vue'
-import AgGridTableView from '@/components/widgets/AgGridTableView.vue'
+import AgGridTableView from '@/components/shared/AgGridTableView.vue'
+import { SortModel, useTableVizToolbar } from '@/components/visualizations/tableVizToolbar'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
-import { VisualizationContainer, useVisualizationConfig } from '@/util/visualizationBuiltins'
-import '@ag-grid-community/styles/ag-grid.css'
-import '@ag-grid-community/styles/ag-theme-alpine.css'
+import { useVisualizationConfig } from '@/util/visualizationBuiltins'
 import type {
   CellClassParams,
   CellClickedEvent,
+  ColDef,
   ICellRendererParams,
   SortChangedEvent,
-} from 'ag-grid-community'
-import type { ColDef } from 'ag-grid-enterprise'
+} from 'ag-grid-enterprise'
 import { computed, onMounted, ref, shallowRef, watchEffect, type Ref } from 'vue'
 
 export const name = 'Table'
@@ -83,18 +81,11 @@ interface UnknownTable {
   link_value_type: string
 }
 
-export enum TextFormatOptions {
-  Partial,
-  On,
-  Off,
-}
+export type TextFormatOptions = 'full' | 'partial' | 'off'
 </script>
 
 <script setup lang="ts">
 const props = defineProps<{ data: Data }>()
-const emit = defineEmits<{
-  'update:preprocessor': [module: string, method: string, ...args: string[]]
-}>()
 const config = useVisualizationConfig()
 
 const INDEX_FIELD_NAME = '#'
@@ -133,11 +124,7 @@ const defaultColDef: Ref<ColDef> = ref({
 const rowData = ref<Record<string, any>[]>([])
 const columnDefs: Ref<ColDef[]> = ref([])
 
-const textFormatterSelected = ref<TextFormatOptions>(TextFormatOptions.Partial)
-
-const updateTextFormat = (option: TextFormatOptions) => {
-  textFormatterSelected.value = option
-}
+const textFormatterSelected = ref<TextFormatOptions>('partial')
 
 const isRowCountSelectorVisible = computed(() => rowCount.value >= 1000)
 
@@ -223,7 +210,7 @@ function formatText(params: ICellRendererParams) {
       (url: string) => `<a href="${url}" target="_blank" class="link">${url}</a>`,
     )
 
-  if (textFormatterSelected.value === TextFormatOptions.Off) {
+  if (textFormatterSelected.value === 'off') {
     return htmlEscaped.replace(/^\s+|\s+$/g, '&nbsp;')
   }
 
@@ -239,7 +226,7 @@ function formatText(params: ICellRendererParams) {
   }
 
   const replaceSpaces =
-    textFormatterSelected.value === TextFormatOptions.On ?
+    textFormatterSelected.value === 'full' ?
       htmlEscaped.replaceAll(' ', '<span style="color: #df8800">&#183;</span>')
     : htmlEscaped.replace(/ \s+|^ +| +$/g, function (match: string) {
         return `<span style="color: #df8800">${match.replaceAll(' ', '&#183;')}</span>`
@@ -251,13 +238,12 @@ function formatText(params: ICellRendererParams) {
   )
 
   const renderOtherWhitespace = (match: string) => {
-    return textFormatterSelected.value === TextFormatOptions.On && match != ' ' ?
+    return textFormatterSelected.value === 'full' && match != ' ' ?
         '<span style="color: #df8800">&#9744;</span>'
       : match
   }
   const newString = replaceReturns.replace(/[\s]/g, function (match: string) {
-    const mapping =
-      textFormatterSelected.value === TextFormatOptions.On ? fullMappings : partialMappings
+    const mapping = textFormatterSelected.value === 'full' ? fullMappings : partialMappings
     return mapping[match as keyof typeof mapping] || renderOtherWhitespace(match)
   })
   return `<span > ${newString} <span>`
@@ -266,8 +252,7 @@ function formatText(params: ICellRendererParams) {
 function setRowLimit(newRowLimit: number) {
   if (newRowLimit !== rowLimit.value) {
     rowLimit.value = newRowLimit
-    emit(
-      'update:preprocessor',
+    config.setPreprocessor(
       'Standard.Visualization.Table.Visualization',
       'prepare_visualization',
       newRowLimit.toString(),
@@ -602,56 +587,60 @@ function checkSortAndFilter(e: SortChangedEvent) {
 onMounted(() => {
   setRowLimit(1000)
 })
+
+// ===============
+// === Toolbar ===
+// ===============
+
+config.setToolbar(
+  useTableVizToolbar({
+    textFormatterSelected,
+    filterModel,
+    sortModel,
+    isDisabled: () => !isCreateNodeEnabled.value,
+    isFilterSortNodeEnabled,
+    createNodes: config.createNodes,
+  }),
+)
 </script>
 
 <template>
-  <VisualizationContainer :belowToolbar="true" :overflow="true" :toolbarOverflow="true">
-    <template #toolbar>
-      <TableVizToolbar
-        :filterModel="filterModel"
-        :sortModel="sortModel"
-        :isDisabled="!isCreateNodeEnabled"
-        :isFilterSortNodeEnabled="isFilterSortNodeEnabled"
-        @changeFormat="(i) => updateTextFormat(i)"
-      />
-    </template>
-    <div ref="rootNode" class="TableVisualization" @wheel.stop @pointerdown.stop>
-      <div class="table-visualization-status-bar">
-        <select
-          v-if="isRowCountSelectorVisible"
-          @change="setRowLimit(Number(($event.target as HTMLOptionElement).value))"
-        >
-          <option
-            v-for="limit in selectableRowLimits"
-            :key="limit"
-            :value="limit"
-            v-text="limit"
-          ></option>
-        </select>
-        <template v-if="showRowCount">
-          <span
-            v-if="isRowCountSelectorVisible && isTruncated"
-            v-text="` of ${rowCount} rows (Sorting/Filtering disabled).`"
-          ></span>
-          <span v-else-if="isRowCountSelectorVisible" v-text="' rows.'"></span>
-          <span v-else-if="rowCount === 1" v-text="'1 row.'"></span>
-          <span v-else v-text="`${rowCount} rows.`"></span>
-        </template>
-      </div>
-      <!-- TODO[ao]: Suspence in theory is not needed here (the entire visualization is inside
-       suspense), but for some reason it causes reactivity loop - see https://github.com/enso-org/enso/issues/10782 -->
-      <Suspense>
-        <AgGridTableView
-          class="scrollable grid"
-          :columnDefs="columnDefs"
-          :rowData="rowData"
-          :defaultColDef="defaultColDef"
-          :textFormatOption="textFormatterSelected"
-          @sortOrFilterUpdated="(e) => checkSortAndFilter(e)"
-        />
-      </Suspense>
+  <div ref="rootNode" class="TableVisualization" @wheel.stop @pointerdown.stop>
+    <div class="table-visualization-status-bar">
+      <select
+        v-if="isRowCountSelectorVisible"
+        @change="setRowLimit(Number(($event.target as HTMLOptionElement).value))"
+      >
+        <option
+          v-for="limit in selectableRowLimits"
+          :key="limit"
+          :value="limit"
+          v-text="limit"
+        ></option>
+      </select>
+      <template v-if="showRowCount">
+        <span
+          v-if="isRowCountSelectorVisible && isTruncated"
+          v-text="` of ${rowCount} rows (Sorting/Filtering disabled).`"
+        ></span>
+        <span v-else-if="isRowCountSelectorVisible" v-text="' rows.'"></span>
+        <span v-else-if="rowCount === 1" v-text="'1 row.'"></span>
+        <span v-else v-text="`${rowCount} rows.`"></span>
+      </template>
     </div>
-  </VisualizationContainer>
+    <!-- TODO[ao]: Suspence in theory is not needed here (the entire visualization is inside
+     suspense), but for some reason it causes reactivity loop - see https://github.com/enso-org/enso/issues/10782 -->
+    <Suspense>
+      <AgGridTableView
+        class="scrollable grid"
+        :columnDefs="columnDefs"
+        :rowData="rowData"
+        :defaultColDef="defaultColDef"
+        :textFormatOption="textFormatterSelected"
+        @sortOrFilterUpdated="(e) => checkSortAndFilter(e)"
+      />
+    </Suspense>
+  </div>
 </template>
 
 <style scoped>

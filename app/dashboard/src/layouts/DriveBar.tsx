@@ -16,6 +16,7 @@ import { Button, ButtonGroup, DialogTrigger, useVisualTooltip } from '#/componen
 import AssetEventType from '#/events/AssetEventType'
 import { useOffline } from '#/hooks/offlineHooks'
 import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
+import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
 import AssetSearchBar from '#/layouts/AssetSearchBar'
 import { useDispatchAssetEvent } from '#/layouts/AssetsTable/EventListProvider'
 import { isCloudCategory, type Category } from '#/layouts/CategorySwitcher/Category'
@@ -66,6 +67,12 @@ export default function DriveBar(props: DriveBarProps) {
   const { backend, query, setQuery, category } = props
   const { doEmptyTrash, doCreateProject, doCreateDirectory } = props
   const { doCreateSecret, doCreateDatalink, doUploadFiles } = props
+
+  const [startModalDefaultOpen, , resetStartModalDefaultOpen] = useSearchParamsState(
+    'startModalDefaultOpen',
+    false,
+  )
+
   const { unsetModal } = useSetModal()
   const { getText } = useText()
   const inputBindings = useInputBindings()
@@ -202,7 +209,12 @@ export default function DriveBar(props: DriveBarProps) {
             className="grow-0"
             {...createAssetsVisualTooltip.targetProps}
           >
-            <DialogTrigger>
+            <DialogTrigger
+              defaultOpen={startModalDefaultOpen}
+              onClose={() => {
+                resetStartModalDefaultOpen(true)
+              }}
+            >
               <Button
                 size="medium"
                 variant="accent"

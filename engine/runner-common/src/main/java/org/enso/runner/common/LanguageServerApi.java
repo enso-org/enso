@@ -20,6 +20,9 @@ public abstract class LanguageServerApi {
     var it =
         ServiceLoader.load(LanguageServerApi.class, LanguageServerApi.class.getClassLoader())
             .iterator();
+    if (!it.hasNext()) {
+      throw new WrongOption("No language server implementation found");
+    }
     var impl = it.next();
     impl.runLanguageServer(line, config, logLevel);
   }

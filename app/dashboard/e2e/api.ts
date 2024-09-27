@@ -24,6 +24,8 @@ const HTTP_STATUS_NO_CONTENT = 204
 const HTTP_STATUS_BAD_REQUEST = 400
 /** The HTTP status code representing a URL that does not exist. */
 const HTTP_STATUS_NOT_FOUND = 404
+/** A user id that is a path glob. */
+const GLOB_USER_ID = backend.UserId('*')
 /** An asset ID that is a path glob. */
 const GLOB_ASSET_ID: backend.AssetId = backend.DirectoryId('*')
 /** A directory ID that is a path glob. */
@@ -32,6 +34,8 @@ const GLOB_DIRECTORY_ID = backend.DirectoryId('*')
 const GLOB_PROJECT_ID = backend.ProjectId('*')
 /** A tag ID that is a path glob. */
 const GLOB_TAG_ID = backend.TagId('*')
+/** A checkout session ID that is a path glob. */
+const GLOB_CHECKOUT_SESSION_ID = backend.CheckoutSessionId('*')
 /* eslint-enable no-restricted-syntax */
 const BASE_URL = 'https://mock/'
 
@@ -92,6 +96,9 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     website: null,
     subscription: {},
   }
+  let totalSeats = 1
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let subscriptionDuration = 0
 
   let isOnline = true
   let currentUser: backend.User | null = defaultUser
@@ -116,6 +123,13 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     },
   ]
 
+  const checkoutSessionsMap = new Map<
+    backend.CheckoutSessionId,
+    {
+      readonly body: backend.CreateCheckoutSessionRequestBody
+      readonly status: backend.CheckoutSessionStatus
+    }
+  >()
   usersMap.set(defaultUser.userId, defaultUser)
 
   const addAsset = <T extends backend.AnyAsset>(asset: T) => {
@@ -257,6 +271,25 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     }
   }
 
+  const createCheckoutSession = (
+    body: backend.CreateCheckoutSessionRequestBody,
+    rest: Partial<backend.CheckoutSessionStatus> = {},
+  ) => {
+    const id = backend.CheckoutSessionId(`checkoutsession-${uniqueString.uniqueString()}`)
+    const status = rest.status ?? 'trialing'
+    const paymentStatus = status === 'trialing' ? 'no_payment_needed' : 'unpaid'
+    const checkoutSessionStatus = {
+      status,
+      paymentStatus,
+      ...rest,
+    } satisfies backend.CheckoutSessionStatus
+    checkoutSessionsMap.set(id, { body, status: checkoutSessionStatus })
+    return {
+      id,
+      clientSecret: '',
+    } satisfies backend.CheckoutSession
+  }
+
   const addUser = (name: string, rest: Partial<backend.User> = {}) => {
     const organizationId = currentOrganization?.id ?? defaultOrganizationId
     const user: backend.User = {
@@ -287,7 +320,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     }
   }
 
-  const addUserGroup = (name: string, rest: Partial<backend.UserGroupInfo>) => {
+  const addUserGroup = (name: string, rest?: Partial<backend.UserGroupInfo>) => {
     const userGroup: backend.UserGroupInfo = {
       id: backend.UserGroupId(`usergroup-${uniqueString.uniqueString()}`),
       groupName: name,
@@ -308,10 +341,10 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     }
   }
 
+  // FIXME[sb]: Add missing endpoints:
   // addPermission,
   // deletePermission,
-  // addUserGroupToUser,
-  // deleteUserGroupFromUser,
+
   const addUserGroupToUser = (userId: backend.UserId, userGroupId: backend.UserGroupId) => {
     const user = usersMap.get(userId)
     if (user == null || user.userGroups?.includes(userGroupId) === true) {
@@ -432,7 +465,9 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     }
 
     await page.route(BASE_URL + '**', (_route, request) => {
-      throw new Error(`Missing route handler for '${request.url().replace(BASE_URL, '')}'.`)
+      throw new Error(
+        `Missing route handler for '${request.method()} ${request.url().replace(BASE_URL, '')}'.`,
+      )
     })
 
     // === Mock Cognito endpoints ===
@@ -589,8 +624,10 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       }
 
       const assetId = request.url().match(/[/]assets[/]([^?/]+)/)?.[1]
-      // eslint-disable-next-line no-restricted-syntax
-      const asset = assetId != null ? assetMap.get(assetId as backend.AssetId) : null
+      // This could be an id for an arbitrary asset, but pretend it's a
+      // `DirectoryId` to make TypeScript happy.
+      const asset =
+        assetId != null ? assetMap.get(backend.DirectoryId(decodeURIComponent(assetId))) : null
       if (asset == null) {
         if (assetId == null) {
           await route.fulfill({
@@ -626,13 +663,11 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       }
     })
 
-    await get(remoteBackendPaths.INVITATION_PATH + '*', async (route) => {
-      await route.fulfill({
-        json: {
-          invitations: [],
-          availableLicenses: 0,
-        } satisfies backend.ListInvitationsResponseBody,
-      })
+    await get(remoteBackendPaths.INVITATION_PATH + '*', (): backend.ListInvitationsResponseBody => {
+      return {
+        invitations: [],
+        availableLicenses: totalSeats - usersMap.size,
+      }
     })
     await post(remoteBackendPaths.INVITE_USER_PATH + '*', async (route) => {
       await route.fulfill()
@@ -704,7 +739,12 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         new URL(request.url()).searchParams.entries(),
       ) as never
 
-      const file = addFile(searchParams.file_name)
+      const file = addFile(
+        searchParams.file_name,
+        searchParams.parent_directory_id == null ?
+          {}
+        : { parentId: searchParams.parent_directory_id },
+      )
 
       return { path: '', id: file.id, project: null } satisfies backend.FileInfo
     })
@@ -719,6 +759,33 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
 
     // === Other endpoints ===
 
+    await post(remoteBackendPaths.CREATE_CHECKOUT_SESSION_PATH + '*', async (_route, request) => {
+      // The type of the body sent by this app is statically known.
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const body: backend.CreateCheckoutSessionRequestBody = await request.postDataJSON()
+      return createCheckoutSession(body)
+    })
+    await get(
+      remoteBackendPaths.getCheckoutSessionPath(GLOB_CHECKOUT_SESSION_ID) + '*',
+      (_route, request) => {
+        const checkoutSessionId = request.url().match(/[/]payments[/]subscriptions[/]([^/?]+)/)?.[1]
+        if (checkoutSessionId == null) {
+          throw new Error('GetCheckoutSession: Missing checkout session ID in path')
+        } else {
+          const result = checkoutSessionsMap.get(backend.CheckoutSessionId(checkoutSessionId))
+          if (result) {
+            if (currentUser) {
+              object.unsafeMutable(currentUser).plan = result.body.plan
+            }
+            totalSeats = result.body.quantity
+            subscriptionDuration = result.body.interval
+            return result.status
+          } else {
+            throw new Error('GetCheckoutSession: Unknown checkout session ID')
+          }
+        }
+      },
+    )
     await patch(remoteBackendPaths.updateAssetPath(GLOB_ASSET_ID), (_route, request) => {
       const assetId = request.url().match(/[/]assets[/]([^?]+)/)?.[1] ?? ''
       // The type of the body sent by this app is statically known.
@@ -781,7 +848,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       }
     })
     await delete_(remoteBackendPaths.deleteAssetPath(GLOB_ASSET_ID), async (route, request) => {
-      const assetId = request.url().match(/[/]assets[/]([^?]+)/)?.[1] ?? ''
+      const assetId = decodeURIComponent(request.url().match(/[/]assets[/]([^?]+)/)?.[1] ?? '')
       // This could be an id for an arbitrary asset, but pretend it's a
       // `DirectoryId` to make TypeScript happy.
       deleteAsset(backend.DirectoryId(assetId))
@@ -798,7 +865,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       undeleteAsset(body.assetId)
       await route.fulfill({ status: HTTP_STATUS_NO_CONTENT })
     })
-    await post(remoteBackendPaths.CREATE_USER_PATH + '*', async (route, request) => {
+    await post(remoteBackendPaths.CREATE_USER_PATH + '*', async (_route, request) => {
       // The type of the body sent by this app is statically known.
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const body: backend.CreateUserRequestBody = await request.postDataJSON()
@@ -811,14 +878,38 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         name: body.userName,
         organizationId,
         userId: backend.UserId(`user-${uniqueString.uniqueString()}`),
-        isEnabled: false,
+        isEnabled: true,
         rootDirectoryId,
         userGroups: null,
-        plan: backend.Plan.enterprise,
         isOrganizationAdmin: true,
       }
-      await route.fulfill({ json: currentUser })
+      return currentUser
     })
+    await post(remoteBackendPaths.CREATE_USER_GROUP_PATH + '*', async (_route, request) => {
+      // The type of the body sent by this app is statically known.
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const body: backend.CreateUserGroupRequestBody = await request.postDataJSON()
+      const userGroup = addUserGroup(body.name)
+      return userGroup
+    })
+    await put(
+      remoteBackendPaths.changeUserGroupPath(GLOB_USER_ID) + '*',
+      async (route, request) => {
+        const userId = backend.UserId(
+          decodeURIComponent(request.url().match(/[/]users[/]([^?/]+)/)?.[1] ?? ''),
+        )
+        // The type of the body sent by this app is statically known.
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const body: backend.ChangeUserGroupRequestBody = await request.postDataJSON()
+        const user = usersMap.get(userId)
+        if (!user) {
+          await route.fulfill({ status: HTTP_STATUS_BAD_REQUEST })
+        } else {
+          object.unsafeMutable(user).userGroups = body.userGroups
+          return user
+        }
+      },
+    )
     await put(remoteBackendPaths.UPDATE_CURRENT_USER_PATH + '*', async (_route, request) => {
       // The type of the body sent by this app is statically known.
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -827,8 +918,12 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         currentUser = { ...currentUser, name: body.username }
       }
     })
-    await get(remoteBackendPaths.USERS_ME_PATH + '*', () => {
-      return currentUser
+    await get(remoteBackendPaths.USERS_ME_PATH + '*', (route) => {
+      if (currentUser == null) {
+        return route.fulfill({ status: HTTP_STATUS_NOT_FOUND })
+      } else {
+        return currentUser
+      }
     })
     await patch(remoteBackendPaths.UPDATE_ORGANIZATION_PATH + '*', async (route, request) => {
       // The type of the body sent by this app is statically known.
@@ -900,8 +995,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       const body: backend.CreateDirectoryRequestBody = request.postDataJSON()
       const title = body.title
       const id = backend.DirectoryId(`directory-${uniqueString.uniqueString()}`)
-      const parentId =
-        body.parentId ?? backend.DirectoryId(`directory-${uniqueString.uniqueString()}`)
+      const parentId = body.parentId ?? defaultDirectoryId
       const json: backend.CreatedDirectory = { title, id, parentId }
       addDirectory(title, {
         description: null,
@@ -977,6 +1071,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     createLabel,
     addLabel,
     setLabels,
+    createCheckoutSession,
     addUser,
     deleteUser,
     addUserGroup,

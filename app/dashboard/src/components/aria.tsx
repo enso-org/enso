@@ -3,7 +3,6 @@ import type { Mutable } from 'enso-common/src/utilities/data/object'
 import * as aria from 'react-aria'
 
 export type * from '@react-types/shared'
-// @ts-expect-error The conflicting exports are props types ONLY.
 export * from 'react-aria'
 // @ts-expect-error The conflicting exports are props types ONLY.
 export * from 'react-aria-components'

@@ -1,14 +1,18 @@
 /** @file A select menu with a dropdown. */
-import * as React from 'react'
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type HTMLInputTypeAttribute,
+  type KeyboardEvent,
+  type MutableRefObject,
+} from 'react'
 
 import CloseIcon from '#/assets/cross.svg'
-
+import { Button, Input, Text } from '#/components/AriaComponents'
 import FocusRing from '#/components/styled/FocusRing'
-import Input from '#/components/styled/Input'
-
-import { Button, Text } from '#/components/AriaComponents'
-import * as tailwindMerge from '#/utilities/tailwindMerge'
-import { twMerge } from 'tailwind-merge'
+import { twJoin, twMerge } from '#/utilities/tailwindMerge'
 
 // =================
 // === Constants ===
@@ -24,8 +28,8 @@ const ZWSP = '\u200b'
 /** Base props for a {@link Autocomplete}. */
 interface InternalBaseAutocompleteProps<T> {
   readonly multiple?: boolean
-  readonly type?: React.HTMLInputTypeAttribute
-  readonly inputRef?: React.MutableRefObject<HTMLInputElement | null>
+  readonly type?: HTMLInputTypeAttribute
+  readonly inputRef?: MutableRefObject<HTMLFieldSetElement | null>
   readonly placeholder?: string
   readonly values: readonly T[]
   readonly autoFocus?: boolean
@@ -53,7 +57,7 @@ interface InternalMultipleAutocompleteProps<T> extends InternalBaseAutocompleteP
   readonly multiple: true
   /** This is `null` when multiple values are selected, causing the input to switch to a
    * {@link HTMLTextAreaElement}. */
-  readonly inputRef?: React.MutableRefObject<HTMLInputElement | null>
+  readonly inputRef?: MutableRefObject<HTMLFieldSetElement | null>
   readonly setValues: (value: readonly T[]) => void
   readonly itemsToString: (items: readonly T[]) => string
 }
@@ -82,35 +86,25 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
   const { multiple, type = 'text', inputRef: rawInputRef, placeholder, values, setValues } = props
   const { text, setText, autoFocus = false, items, itemToKey, children, itemsToString } = props
   const { matches } = props
-  const [isDropdownVisible, setIsDropdownVisible] = React.useState(false)
-  const [selectedIndex, setSelectedIndex] = React.useState<number | null>(null)
-  const valuesSet = React.useMemo(() => new Set(values), [values])
+  const [isDropdownVisible, setIsDropdownVisible] = useState(false)
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
+  const valuesSet = useMemo(() => new Set(values), [values])
   const canEditText = setText != null && values.length === 0
   // We are only interested in the initial value of `canEditText` in effects.
-  const canEditTextRef = React.useRef(canEditText)
+  const canEditTextRef = useRef(canEditText)
   const isMultipleAndCustomValue = multiple === true && text != null
-  const matchingItems = React.useMemo(
+  const matchingItems = useMemo(
     () => (text == null ? items : items.filter((item) => matches(item, text))),
     [items, matches, text],
   )
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!canEditTextRef.current) {
       setIsDropdownVisible(true)
     }
   }, [])
 
-  React.useEffect(() => {
-    const onClick = () => {
-      setIsDropdownVisible(false)
-    }
-    document.addEventListener('click', onClick)
-    return () => {
-      document.removeEventListener('click', onClick)
-    }
-  }, [])
-
-  const fallbackInputRef = React.useRef<HTMLInputElement>(null)
+  const fallbackInputRef = useRef<HTMLFieldSetElement>(null)
   const inputRef = rawInputRef ?? fallbackInputRef
 
   // This type is a little too wide but it is unavoidable.
@@ -137,7 +131,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
     )
   }
 
-  const onKeyDown = (event: React.KeyboardEvent) => {
+  const onKeyDown = (event: KeyboardEvent) => {
     switch (event.key) {
       case 'ArrowUp': {
         event.preventDefault()
@@ -186,7 +180,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
   }
 
   return (
-    <div className="relative h-6 w-full">
+    <div className={twJoin('relative isolate h-6 w-full', isDropdownVisible && 'z-1')}>
       <div
         onKeyDown={onKeyDown}
         className={twMerge(
@@ -200,13 +194,14 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
           <div className="relative z-1 flex flex-1 rounded-full">
             {canEditText ?
               <Input
+                name="autocomplete"
                 type={type}
                 ref={inputRef}
                 autoFocus={autoFocus}
-                size={1}
+                size="custom"
                 value={text ?? ''}
                 autoComplete="off"
-                placeholder={placeholder == null ? placeholder : placeholder}
+                {...(placeholder == null ? {} : { placeholder })}
                 className="text grow rounded-full bg-transparent px-button-x"
                 onFocus={() => {
                   setIsDropdownVisible(true)
@@ -223,7 +218,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
               />
             : <div
                 tabIndex={-1}
-                className="text grow cursor-pointer whitespace-nowrap bg-transparent px-button-x"
+                className="text w-full grow cursor-pointer overflow-auto whitespace-nowrap bg-transparent px-button-x scroll-hidden"
                 onClick={() => {
                   setIsDropdownVisible(true)
                 }}
@@ -250,7 +245,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
           </div>
         </FocusRing>
         <div
-          className={tailwindMerge.twMerge(
+          className={twMerge(
             'relative z-1 grid h-max w-full rounded-b-xl transition-grid-template-rows duration-200',
             isDropdownVisible && matchingItems.length !== 0 ? 'grid-rows-1fr' : 'grid-rows-0fr',
           )}
@@ -261,7 +256,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
             {matchingItems.map((item, index) => (
               <div
                 key={itemToKey(item)}
-                className={tailwindMerge.twMerge(
+                className={twMerge(
                   'text relative cursor-pointer whitespace-nowrap px-input-x last:rounded-b-xl hover:bg-hover-bg',
                   valuesSet.has(item) && 'bg-hover-bg',
                   index === selectedIndex && 'bg-black/5',

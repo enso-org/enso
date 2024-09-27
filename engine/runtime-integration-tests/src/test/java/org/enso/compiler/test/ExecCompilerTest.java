@@ -308,6 +308,27 @@ public class ExecCompilerTest {
   }
 
   @Test
+  public void inlineWithBlanks() throws Exception {
+    var code =
+        """
+    remap rows:Map -> Map =
+        rows.map (_.set_u 5)
+
+    type Map
+        M v u=3
+
+        map self fn = Map.M (fn self)
+        set_u self i = Map.M self.v i
+
+    run n = remap (Map.M n)
+    """;
+    var module = ctx.eval(LanguageInfo.ID, code);
+    var run = module.invokeMember("eval_expression", "run");
+    assertTrue("run is a function", run.canExecute());
+    assertEquals("(M (M 10 5) 3)", run.execute(10).toString());
+  }
+
+  @Test
   public void inlineReturnSignatureOnLocalFunction() throws Exception {
     var module =
         ctx.eval(

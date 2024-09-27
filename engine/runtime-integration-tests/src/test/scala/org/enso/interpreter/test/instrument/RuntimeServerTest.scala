@@ -9,6 +9,7 @@ import org.enso.common.MethodNames
 import org.enso.polyglot.data.TypeGraph
 import org.enso.common.RuntimeOptions
 import org.enso.polyglot.RuntimeServerInfo
+import org.enso.polyglot.debugger.IdExecutionService
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
@@ -74,6 +75,22 @@ class RuntimeServerTest
       .getBindings(LanguageInfo.ID)
       .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
       .asHostObject[EnsoContext]
+
+    private def ensureInstrumentsAvailable() = {
+      val instruments = context.getEngine.getInstruments
+      if (instruments.get(IdExecutionService.INSTRUMENT_ID) == null) {
+        throw new IllegalStateException(
+          "RuntimeServerTest cannot be initialized: IdExecutionService instrument must be available on module-path"
+        )
+      }
+      if (instruments.get(RuntimeServerInfo.INSTRUMENT_NAME) == null) {
+        throw new IllegalStateException(
+          "RuntimeServerTest cannot be initialized: RuntimeServer instrument must be available on module-path"
+        )
+      }
+    }
+
+    ensureInstrumentsAvailable()
 
     def writeMain(contents: String): File =
       Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
@@ -1155,6 +1172,127 @@ class RuntimeServerTest
         Api.MethodCall(
           Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main.T", "C")
         )
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "send method pointer updates of when autoscope constructor changes to a value" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+    val idA      = metadata.addItem(44, 3, "aa")
+
+    val code =
+      """type Xyz
+        |
+        |type T
+        |    A
+        |
+        |main =
+        |    a = test Xyz
+        |    a
+        |
+        |test t:(Xyz | T) = t
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    metadata.assertInCode(idA, code, "Xyz")
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveN(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        idA,
+        "Enso_Test.Test.Main.Xyz"
+      ),
+      context.executionComplete(contextId)
+    )
+
+    // Modify the file /Xyz/..A/
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            model.TextEdit(
+              model.Range(model.Position(6, 13), model.Position(6, 16)),
+              "..A"
+            )
+          ),
+          execute = true,
+          idMap   = None
+        )
+      )
+    )
+
+    context.receiveN(3) should contain theSameElementsAs Seq(
+      TestMessages.pending(contextId, idA),
+      TestMessages.update(
+        contextId,
+        idA,
+        "Enso_Test.Test.Main.T",
+        Api.MethodCall(
+          Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main.T", "A")
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+
+    // Modify the file /..A/Xyz/
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            model.TextEdit(
+              model.Range(model.Position(6, 13), model.Position(6, 16)),
+              "Xyz"
+            )
+          ),
+          execute = true,
+          idMap   = None
+        )
+      )
+    )
+
+    context.receiveN(3) should contain theSameElementsAs Seq(
+      TestMessages.pending(contextId, idA),
+      TestMessages.update(
+        contextId,
+        idA,
+        "Enso_Test.Test.Main.Xyz"
       ),
       context.executionComplete(contextId)
     )
@@ -3926,7 +4064,6 @@ class RuntimeServerTest
         contextId,
         idMainA,
         ConstantsGen.TEXT,
-        Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "hie")),
         fromCache   = false,
         typeChanged = true
       ),

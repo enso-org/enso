@@ -1,9 +1,8 @@
 <script lang="ts">
-import SvgButton from '@/components/SvgButton.vue'
 import { useEvent } from '@/composables/events'
 import { getTextWidthBySizeAndFamily } from '@/util/measurement'
 import { defineKeybinds } from '@/util/shortcuts'
-import { VisualizationContainer, useVisualizationConfig } from '@/util/visualizationBuiltins'
+import { useVisualizationConfig } from '@/util/visualizationBuiltins'
 import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
 
 export const name = 'Histogram'
@@ -246,20 +245,8 @@ const margin = computed(() => ({
   bottom: MARGIN + (axis.value?.x?.label ? AXIS_LABEL_HEIGHT : 0),
   left: MARGIN + (axis.value?.y?.label ? AXIS_LABEL_HEIGHT : 0),
 }))
-const width = ref(Math.max(config.width ?? 0, config.nodeSize.x))
-watchPostEffect(() => {
-  width.value =
-    config.fullscreen ?
-      containerNode.value?.parentElement?.clientWidth ?? 0
-    : Math.max(config.width ?? 0, config.nodeSize.x)
-})
-const height = ref(config.height ?? (config.nodeSize.x * 3) / 4)
-watchPostEffect(() => {
-  height.value =
-    config.fullscreen ?
-      containerNode.value?.parentElement?.clientHeight ?? 0
-    : config.height ?? (config.nodeSize.x * 3) / 4
-})
+const width = computed(() => config.size.x)
+const height = computed(() => config.size.y)
 const boxWidth = computed(() => Math.max(0, width.value - margin.value.left - margin.value.right))
 const boxHeight = computed(() => Math.max(0, height.value - margin.value.top - margin.value.bottom))
 const xLabelTop = computed(() => boxHeight.value + margin.value.bottom - AXIS_LABEL_HEIGHT / 2)
@@ -568,63 +555,70 @@ useEvent(document, 'click', endBrushing)
 useEvent(document, 'auxclick', endBrushing)
 useEvent(document, 'contextmenu', endBrushing)
 useEvent(document, 'scroll', endBrushing)
+
+config.setToolbar([
+  {
+    icon: 'show_all',
+    title: 'Fit All',
+    onClick: () => zoomToSelected(false),
+  },
+  {
+    icon: 'find',
+    title: 'Zoom to Selected',
+    onClick: () => zoomToSelected(true),
+  },
+])
 </script>
 
 <template>
-  <VisualizationContainer :belowToolbar="true">
-    <template #toolbar>
-      <SvgButton name="show_all" title="Fit All" @click="zoomToSelected(false)" />
-      <SvgButton name="find" title="Zoom to Selected" @click="zoomToSelected(true)" />
-    </template>
-    <div ref="containerNode" class="HistogramVisualization" @pointerdown.stop>
-      <svg :width="width" :height="height">
-        <rect
-          class="color-legend"
-          :width="COLOR_LEGEND_WIDTH"
-          :height="boxHeight"
-          :transform="`translate(${margin.left - COLOR_LEGEND_WIDTH}, ${margin.top})`"
-          :style="{ fill: 'url(#color-legend-gradient)' }"
-        />
-        <g :transform="`translate(${margin.left}, ${margin.top})`">
-          <defs>
-            <clipPath id="histogram-clip-path">
-              <rect :width="boxWidth" :height="boxHeight"></rect>
-            </clipPath>
-            <linearGradient
-              id="color-legend-gradient"
-              ref="colorLegendGradientNode"
-              x1="0%"
-              y1="100%"
-              x2="0%"
-              y2="0%"
-            ></linearGradient>
-          </defs>
-          <g ref="xAxisNode" class="axis-x" :transform="`translate(0, ${boxHeight})`"></g>
-          <g ref="yAxisNode" class="axis-y"></g>
-          <text
-            v-if="axis.x?.label"
-            class="label label-x"
-            text-anchor="end"
-            :x="xLabelLeft"
-            :y="xLabelTop"
-            v-text="axis.x?.label"
-          ></text>
-          <text
-            v-if="axis.y?.label"
-            class="label label-y"
-            text-anchor="end"
-            :x="yLabelLeft"
-            :y="yLabelTop"
-            v-text="axis.y?.label"
-          ></text>
-          <g ref="plotNode" clip-path="url(#histogram-clip-path)"></g>
-          <g ref="zoomNode" class="zoom">
-            <g ref="brushNode" class="brush"></g>
-          </g>
+  <div ref="containerNode" class="HistogramVisualization" @pointerdown.stop>
+    <svg :width="width" :height="height">
+      <rect
+        class="color-legend"
+        :width="COLOR_LEGEND_WIDTH"
+        :height="boxHeight"
+        :transform="`translate(${margin.left - COLOR_LEGEND_WIDTH}, ${margin.top})`"
+        :style="{ fill: 'url(#color-legend-gradient)' }"
+      />
+      <g :transform="`translate(${margin.left}, ${margin.top})`">
+        <defs>
+          <clipPath id="histogram-clip-path">
+            <rect :width="boxWidth" :height="boxHeight"></rect>
+          </clipPath>
+          <linearGradient
+            id="color-legend-gradient"
+            ref="colorLegendGradientNode"
+            x1="0%"
+            y1="100%"
+            x2="0%"
+            y2="0%"
+          ></linearGradient>
+        </defs>
+        <g ref="xAxisNode" class="axis-x" :transform="`translate(0, ${boxHeight})`"></g>
+        <g ref="yAxisNode" class="axis-y"></g>
+        <text
+          v-if="axis.x?.label"
+          class="label label-x"
+          text-anchor="end"
+          :x="xLabelLeft"
+          :y="xLabelTop"
+          v-text="axis.x?.label"
+        ></text>
+        <text
+          v-if="axis.y?.label"
+          class="label label-y"
+          text-anchor="end"
+          :x="yLabelLeft"
+          :y="yLabelTop"
+          v-text="axis.y?.label"
+        ></text>
+        <g ref="plotNode" clip-path="url(#histogram-clip-path)"></g>
+        <g ref="zoomNode" class="zoom">
+          <g ref="brushNode" class="brush"></g>
         </g>
-      </svg>
-    </div>
-  </VisualizationContainer>
+      </g>
+    </svg>
+  </div>
 </template>
 
 <style scoped>

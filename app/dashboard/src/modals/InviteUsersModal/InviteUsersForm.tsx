@@ -144,14 +144,10 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
         })
       }}
     >
-      <ariaComponents.Text disableLineHeightCompensation>
-        {getText('inviteFormDescription')}
-      </ariaComponents.Text>
-
       <ariaComponents.ResizableContentEditableInput
         ref={inputRef}
         name="emails"
-        aria-label={getText('inviteEmailFieldLabel')}
+        label={getText('inviteEmailFieldLabel')}
         placeholder={getText('inviteEmailFieldPlaceholder')}
         description={getText('inviteEmailFieldDescription')}
       />

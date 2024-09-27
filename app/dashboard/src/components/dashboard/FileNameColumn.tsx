@@ -5,28 +5,28 @@ import { backendMutationOptions } from '#/hooks/backendHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
-
 import type * as column from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
 import SvgMask from '#/components/SvgMask'
 
 import * as backendModule from '#/services/Backend'
 
+import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as eventModule from '#/utilities/event'
 import * as fileIcon from '#/utilities/fileIcon'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as string from '#/utilities/string'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
-import { isOnMacOS } from 'enso-common/src/detect'
 
 // ================
 // === FileName ===
 // ================
 
 /** Props for a {@link FileNameColumn}. */
-export interface FileNameColumnProps extends column.AssetColumnProps {}
+export interface FileNameColumnProps extends column.AssetColumnProps {
+  readonly item: AssetTreeNode<backendModule.FileAsset>
+}
 
 /** The icon and name of a {@link backendModule.FileAsset}.
  * @throws {Error} when the asset is not a {@link backendModule.FileAsset}.
@@ -35,12 +35,6 @@ export default function FileNameColumn(props: FileNameColumnProps) {
   const { item, setItem, selected, state, rowState, setRowState, isEditable } = props
   const { backend, nodeMap } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const inputBindings = inputBindingsProvider.useInputBindings()
-
-  if (item.type !== backendModule.AssetType.file) {
-    // eslint-disable-next-line no-restricted-syntax
-    throw new Error('`FileNameColumn` can only display files.')
-  }
   const asset = item.item
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
   const isCloud = backend.type === backendModule.BackendType.remote
@@ -74,12 +68,6 @@ export default function FileNameColumn(props: FileNameColumnProps) {
     }
   }
 
-  const handleClick = inputBindings.handler({
-    editName: () => {
-      setIsEditing(true)
-    },
-  })
-
   return (
     <div
       className={tailwindMerge.twMerge(
@@ -92,9 +80,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         }
       }}
       onClick={(event) => {
-        if (handleClick(event)) {
-          // Already handled.
-        } else if (eventModule.isSingleClick(event) && isOnMacOS() && selected) {
+        if (eventModule.isSingleClick(event) && selected) {
           if (!isCloud) {
             setIsEditing(true)
           }

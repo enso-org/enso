@@ -26,19 +26,22 @@ add_row_number table name from step group_by order_by on_problems:Problem_Behavi
         Error.throw (Illegal_Argument.Error "The row number has exceeded the 64-bit integer range. BigInteger numbering is currently not supported. Please use a smaller start/step.")
 
     problem_builder.attach_problems_before on_problems <| Panic.catch ArithmeticException handler=handle_arithmetic_exception <| Panic.catch Unsupported_Argument_Types handler=handle_arithmetic_exception <|
-        no_order_no_group = grouping_columns.is_empty && ordering.is_empty
-        new_column = case no_order_no_group of
-            True -> make_range_column name from step table.row_count
-            False ->
-                ordering_columns = ordering.map c->c.column.java_column
-                directions = ordering.map c->c.associated_selector.direction.to_sign
-                grouping_java_columns = grouping_columns.map c->c.java_column
-                new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
-                    AddRowNumber.create_numbering from step grouping_java_columns ordering_columns directions java_problem_aggregator
-                Column.from_storage name new_storage
-
+        new_column = create_column table name from step grouping_columns ordering on_problems
         renamed_table = rename_columns_if_needed table name on_problems Table.new
         renamed_table.set new_column name set_mode=Set_Mode.Add
+
+## PRIVATE
+create_column table name from step grouping_columns ordering on_problems =
+    no_order_no_group = grouping_columns.is_empty && ordering.is_empty
+    case no_order_no_group of
+        True -> make_range_column name from step table.row_count
+        False ->
+            ordering_columns = ordering.map c->c.column.java_column
+            directions = ordering.map c->c.associated_selector.direction.to_sign
+            grouping_java_columns = grouping_columns.map c->c.java_column
+            new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+                AddRowNumber.create_numbering from step grouping_java_columns ordering_columns directions java_problem_aggregator
+            Column.from_storage name new_storage
 
 ## PRIVATE
    If the table already contains a column called `name` it will be renamed to a

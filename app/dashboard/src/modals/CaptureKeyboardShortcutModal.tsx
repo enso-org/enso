@@ -67,7 +67,6 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
   return (
     <Modal centered className="bg-dim">
       <form
-        data-testid="confirm-delete-modal"
         ref={(element) => {
           element?.focus()
         }}

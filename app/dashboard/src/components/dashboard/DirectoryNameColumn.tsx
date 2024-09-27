@@ -9,7 +9,6 @@ import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import { useDriveStore } from '#/providers/DriveProvider'
-import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
@@ -17,22 +16,24 @@ import type * as column from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
 import SvgMask from '#/components/SvgMask'
 
-import * as backendModule from '#/services/Backend'
+import type * as backendModule from '#/services/Backend'
 
+import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as string from '#/utilities/string'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import * as validation from '#/utilities/validation'
-import { isOnMacOS } from 'enso-common/src/detect'
 
 // =====================
 // === DirectoryName ===
 // =====================
 
 /** Props for a {@link DirectoryNameColumn}. */
-export interface DirectoryNameColumnProps extends column.AssetColumnProps {}
+export interface DirectoryNameColumnProps extends column.AssetColumnProps {
+  readonly item: AssetTreeNode<backendModule.DirectoryAsset>
+}
 
 /** The icon and name of a {@link backendModule.DirectoryAsset}.
  * @throws {Error} when the asset is not a {@link backendModule.DirectoryAsset}.
@@ -43,14 +44,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   const { doToggleDirectoryExpansion, expandedDirectoryIds } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
-  const inputBindings = inputBindingsProvider.useInputBindings()
   const driveStore = useDriveStore()
-
-  if (item.type !== backendModule.AssetType.directory) {
-    // eslint-disable-next-line no-restricted-syntax
-    throw new Error('`DirectoryNameColumn` can only display folders.')
-  }
-
   const asset = item.item
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
@@ -61,6 +55,10 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {
       setRowState(object.merger({ isEditingName }))
+    }
+
+    if (!isEditingName) {
+      driveStore.setState({ newestFolderId: null })
     }
   }
 
@@ -73,12 +71,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         const oldTitle = asset.title
         setAsset(object.merger({ title: newTitle }))
         try {
-          const updated = await updateDirectoryMutation.mutateAsync([
-            asset.id,
-            { title: newTitle },
-            asset.title,
-          ])
-          setAsset(object.merger(updated))
+          await updateDirectoryMutation.mutateAsync([asset.id, { title: newTitle }, asset.title])
         } catch (error) {
           toastAndLog('renameFolderError', error)
           setAsset(object.merger({ title: oldTitle }))
@@ -86,12 +79,6 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       }
     }
   }
-
-  const handleClick = inputBindings.handler({
-    editName: () => {
-      setIsEditing(true)
-    },
-  })
 
   return (
     <div
@@ -105,11 +92,8 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         }
       }}
       onClick={(event) => {
-        if (handleClick(event)) {
-          // Already handled.
-        } else if (
+        if (
           eventModule.isSingleClick(event) &&
-          isOnMacOS() &&
           selected &&
           driveStore.getState().selectedKeys.size === 1
         ) {

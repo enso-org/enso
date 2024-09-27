@@ -137,8 +137,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     false
 
   const canExecute =
-    !isCloud ||
-    (self?.permission != null && permissions.PERMISSION_ACTION_CAN_EXECUTE[self.permission])
+    category.type !== 'trash' &&
+    (!isCloud || (self != null && permissions.PERMISSION_ACTION_CAN_EXECUTE[self.permission]))
 
   const isOtherUserUsingProject =
     isCloud &&
@@ -320,6 +320,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 doAction={() => {
                   setModal(
                     <UpsertSecretModal
+                      defaultOpen
                       id={asset.id}
                       name={asset.title}
                       doCreate={async (_name, value) => {
@@ -361,8 +362,18 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               label={isCloud ? getText('moveToTrashShortcut') : getText('deleteShortcut')}
               doAction={() => {
                 if (isCloud) {
-                  unsetModal()
-                  doDelete()
+                  if (asset.type === backendModule.AssetType.directory) {
+                    setModal(
+                      <ConfirmDeleteModal
+                        defaultOpen
+                        actionText={getText('trashTheAssetTypeTitle', asset.type, asset.title)}
+                        doDelete={doDelete}
+                      />,
+                    )
+                  } else {
+                    unsetModal()
+                    doDelete()
+                  }
                 } else {
                   setModal(
                     <ConfirmDeleteModal
@@ -451,7 +462,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               }}
             />
           )}
-          {!isOtherUserUsingProject && (
+          {!isRunningProject && !isOtherUserUsingProject && (
             <ContextMenuEntry hidden={hidden} action="cut" doAction={doCut} />
           )}
           {(isCloud ?

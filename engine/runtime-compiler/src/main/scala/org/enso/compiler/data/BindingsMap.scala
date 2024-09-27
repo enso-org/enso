@@ -428,12 +428,12 @@ object BindingsMap {
     exportedAs: Option[String],
     symbols: List[String]
   ) {
-    assert(
+    org.enso.common.Asserts.assertInJvm(
       symbols.forall(!_.contains(".")),
       "Not expected fully qualified names as symbols"
     )
     if (exportedAs.isDefined) {
-      assert(
+      org.enso.common.Asserts.assertInJvm(
         !exportedAs.get.contains("."),
         "Not expected fully qualified name as `exportedAs`"
       )
@@ -492,8 +492,8 @@ object BindingsMap {
     exports: List[ir.module.scope.Export.Module],
     targets: List[ImportTarget]
   ) {
-    assert(targets.nonEmpty)
-    assert(
+    org.enso.common.Asserts.assertInJvm(targets.nonEmpty)
+    org.enso.common.Asserts.assertInJvm(
       areTargetsConsistent(),
       "All targets must be either static methods or conversion methods"
     )
