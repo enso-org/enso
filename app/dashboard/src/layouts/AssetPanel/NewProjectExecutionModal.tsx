@@ -221,6 +221,9 @@ function NewProjectExecutionModalInner(props: NewProjectExecutionModalProps) {
 
   return (
     <Form form={form} className="w-full">
+      <div className="self-end">
+        <Switch form={form} label={getText('advancedModeLabel')} name="multiSelect" />
+      </div>
       {!multiSelect && (
         <>
           <Selector
@@ -282,6 +285,7 @@ function NewProjectExecutionModalInner(props: NewProjectExecutionModalProps) {
         <>
           <Selector
             form={form}
+            isRequired
             name="repeatInterval"
             label={getText('repeatIntervalLabel')}
             items={PROJECT_REPEAT_INTERVALS}
@@ -341,7 +345,6 @@ function NewProjectExecutionModalInner(props: NewProjectExecutionModalProps) {
           </Selector>
         </>
       )}
-      <Switch form={form} label={getText('advancedModeLabel')} name="multiSelect" />
 
       <Form.FormError />
       <ButtonGroup>

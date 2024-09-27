@@ -30,6 +30,7 @@ export interface SwitchProps<Schema extends TSchema, TFieldName extends FieldPat
     Omit<VariantProps<typeof SWITCH_STYLES>, 'disabled' | 'invalid'> {
   readonly className?: string
   readonly style?: CSSProperties
+  readonly labelPosition?: 'before' | 'after' | undefined
 }
 
 export const SWITCH_STYLES = tv({
@@ -79,6 +80,7 @@ export const Switch = forwardRef(function Switch<
     description,
     error,
     size,
+    labelPosition = 'after',
     ...ariaSwitchProps
   } = props
 
@@ -101,20 +103,14 @@ export const Switch = forwardRef(function Switch<
     }),
   })
 
-  const {
-    base,
-    thumb,
-    background,
-    label: labelStyle,
-    switch: switchStyles,
-  } = SWITCH_STYLES({ size, disabled: fieldProps.disabled })
+  const styles = SWITCH_STYLES({ size, disabled: fieldProps.disabled })
 
   return (
     <Form.Field
       ref={ref}
       form={formInstance}
       name={name}
-      className={base({ className })}
+      className={styles.base({ className })}
       fullWidth
       description={description}
       error={error}
@@ -130,16 +126,18 @@ export const Switch = forwardRef(function Switch<
         ref={mergeRefs(switchRef, fieldRef)}
         {...mergeProps<AriaSwitchProps>()(ariaSwitchProps, fieldProps, {
           defaultSelected: field.value,
-          className: switchStyles(),
+          className: styles.switch(),
           onChange: field.onChange,
           onBlur: field.onBlur,
         })}
       >
-        <div className={background()} role="presentation">
-          <span className={thumb()} />
+        {labelPosition === 'before' && <div className={styles.label()}>{label}</div>}
+
+        <div className={styles.background()} role="presentation">
+          <span className={styles.thumb()} />
         </div>
 
-        <div className={labelStyle()}>{label}</div>
+        {labelPosition === 'after' && <div className={styles.label()}>{label}</div>}
       </AriaSwitch>
     </Form.Field>
   )
