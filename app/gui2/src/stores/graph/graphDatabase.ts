@@ -363,15 +363,10 @@ export class GraphDb {
       }
       currentNodeIds.add(nodeId)
     }
-    args.forEach((argAstNodes, index) => {
-      // Argument identifier is either the first or second node in the argument definition.
-      // If the first node is a token, it usually means the argument has a type annotation, like '(x: Number)'.
-      // More complex cases are not handled at the moment.
-      const [first, second] = argAstNodes
-      const argAst = first?.node instanceof Ast.Ast ? first.node : second?.node
-      if (!argAst || !(argAst instanceof Ast.Ast)) return
-      const nodeId = asNodeId(argAst.externalId)
-      update(nodeId, argAst, true, false, index)
+    args.forEach((argDef, index) => {
+      const argPattern = argDef.pattern.node
+      const nodeId = asNodeId(argPattern.externalId)
+      update(nodeId, argPattern, true, false, index)
     })
     body.forEach((outerAst, index) => {
       const nodeId = nodeIdFromOuterExpr(outerAst)

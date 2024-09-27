@@ -1834,9 +1834,26 @@ export function isNumericLiteral(code: string) {
   return is_numeric_literal(code)
 }
 
-/** The actual contents of an `ArgumentDefinition` are complex, but probably of more interest to the compiler than the
- *  GUI. We just need to represent them faithfully and create the simple cases. */
-type ArgumentDefinition<T extends TreeRefs = RawRefs> = (T['ast'] | T['token'])[]
+export interface ArgumentDefinition<T extends TreeRefs = RawRefs> {
+  open?: T['token'] | undefined
+  open2?: T['token'] | undefined
+  suspension?: T['token'] | undefined
+  pattern: T['ast']
+  type?: ArgumentType<T> | undefined
+  close2?: T['token'] | undefined
+  defaultValue?: ArgumentDefault<T> | undefined
+  close?: T['token'] | undefined
+}
+
+interface ArgumentDefault<T extends TreeRefs = RawRefs> {
+  equals: T['token']
+  expression: T['ast']
+}
+
+interface ArgumentType<T extends TreeRefs = RawRefs> {
+  operator: T['token']
+  type: T['ast']
+}
 
 export interface FunctionFields {
   name: NodeChild<AstId>
@@ -1864,7 +1881,7 @@ export class Function extends Ast {
   get argumentDefinitions(): ArgumentDefinition<ConcreteRefs>[] {
     return this.fields
       .get('argumentDefinitions')
-      .map(raw => raw.map(part => this.module.getConcrete(part)))
+      .map(def => mapRefs(def, rawToConcrete(this.module)))
   }
 
   static concrete(
@@ -1913,7 +1930,9 @@ export class Function extends Ast {
     const statements_: OwnedBlockLine[] = statements.map(statement => ({
       expression: unspaced(statement),
     }))
-    const argumentDefinitions = argumentNames.map(name => [spaced(Ident.new(module, name))])
+    const argumentDefinitions = argumentNames.map(name => ({
+      pattern: spaced(Ident.new(module, name))
+    }))
     const body = BodyBlock.new(statements_, module)
     return MutableFunction.new(module, name, argumentDefinitions, body)
   }
@@ -1934,7 +1953,23 @@ export class Function extends Ast {
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
     const { name, argumentDefinitions, equals, body } = getAll(this.fields)
     yield name
-    for (const def of argumentDefinitions) yield* def
+    for (const def of argumentDefinitions) {
+      const { open, open2, suspension, pattern, type, close2, defaultValue, close } = def
+      if (open) yield open
+      if (open2) yield open2
+      if (suspension) yield suspension
+      yield pattern
+      if (type) {
+        yield type.operator
+        yield type.type
+      }
+      if (defaultValue) {
+        yield defaultValue.equals
+        yield defaultValue.expression
+      }
+      if (close2) yield close2
+      if (close) yield close
+    }
     yield { whitespace: equals.whitespace ?? ' ', node: this.module.getToken(equals.node) }
     if (body) yield preferSpacedIf(body, this.module.tryGet(body.node) instanceof BodyBlock)
   }
