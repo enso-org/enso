@@ -229,7 +229,7 @@ type Header
             [Option "Authorization" fqn+".authorization ''" [["value", secret_selector]]] +
             [Option "HTTP Basic Auth" fqn+".authorization_basic '' ''" [["user", secret_selector], ["pass", secret_selector]]] +
             [Option "Bearer Auth" fqn+".authorization_bearer ''" [["token", secret_selector]]] +
-            [Option "Content-Type" fqn+".content_type ''" [["value", make_single_choice [["Custom", "*"], "application/json", "application/octet-stream", "application/x-www-form-urlencoded", "multipart/form-data", "text/csv", "text/html", "text/plain", "text/xml"]], ["encoding", Encoding.default_widget]]]
+            [Option "Content-Type" fqn+".content_type ''" [["value", content_type_widget], ["encoding", Encoding.default_widget]]]
         item_editor = Single_Choice values=values display=..Always
         Vector_Editor item_editor item_default='Header.new "header" "value"' display=display
 
@@ -249,3 +249,7 @@ type Header_Comparator
 
 ## PRIVATE
 Comparable.from (that:Header) = Comparable.new that Header_Comparator
+
+## PRIVATE
+content_type_widget -> Widget =
+    make_single_choice [["Custom", "*"], "application/json", "application/octet-stream", "application/x-www-form-urlencoded", "multipart/form-data", "text/csv", "text/html", "text/plain", "text/xml"]

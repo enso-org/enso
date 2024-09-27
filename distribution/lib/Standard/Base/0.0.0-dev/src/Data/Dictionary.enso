@@ -452,3 +452,6 @@ key_value_widget -> Widget =
     pair = Option "Pair" fqn+".pair" [["first", make_all_selector], ["second", make_all_selector]]
     item_editor = Single_Choice display=..Always values=[pair]
     Vector_Editor item_editor=item_editor display=..Always item_default=default
+
+## PRIVATE
+Dictionary.from (that:Vector) = Dictionary.from_vector that
