@@ -369,7 +369,6 @@ lazy val enso = (project in file("."))
     `test-utils`,
     `text-buffer`,
     `version-output`,
-    yaml,
     `ydoc-server`
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
@@ -440,7 +439,7 @@ val circeVersion              = "0.14.7"
 val circeGenericExtrasVersion = "0.14.3"
 val circe = Seq("circe-core", "circe-generic", "circe-parser")
   .map("io.circe" %% _ % circeVersion)
-val snakeyamlVersion = "2.2"
+val snakeyamlVersion = "2.3"
 
 // === Commons ================================================================
 
@@ -908,15 +907,6 @@ lazy val `syntax-rust-definition` = project
     Compile / resourceGenerators += generateRustParserLib,
     Compile / javaSource := baseDirectory.value / "generate-java" / "java",
     Compile / compile / javacOptions ++= Seq("-source", "11", "-target", "11")
-  )
-
-lazy val yaml = (project in file("lib/java/yaml"))
-  .settings(
-    frgaalJavaCompilerSetting,
-    version := "0.1",
-    libraryDependencies ++= Seq(
-      "org.yaml" % "snakeyaml" % snakeyamlVersion % "provided"
-    )
   )
 
 lazy val `scala-yaml` = (project in file("lib/scala/yaml"))
@@ -3616,7 +3606,6 @@ lazy val `engine-runner` = project
     }.value
   )
   .dependsOn(`version-output`)
-  .dependsOn(yaml)
   .dependsOn(pkg)
   .dependsOn(cli)
   .dependsOn(`profiling-utils`)
