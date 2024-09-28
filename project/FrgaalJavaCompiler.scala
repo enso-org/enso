@@ -141,6 +141,10 @@ object FrgaalJavaCompiler {
     val out    = output.getSingleOutputAsPath().get()
     val shared = sources0.fold(out)(asCommon).asInstanceOf[Path]
 
+    log.debug(
+      s"[FrgaalJavaCompiler] sources0: ${sources0} shared: ${shared}"
+    )
+
     val allSources = if (shouldCompileModuleInfo) {
       val moduleInfo = javaSourceDir.toPath.resolve("module-info.java").toFile
       if (!moduleInfo.exists()) {
@@ -197,7 +201,15 @@ object FrgaalJavaCompiler {
       inATargetDir
     }
 
-    val (withTarget, noTarget) = sources0.partition(checkTarget)
+    val (withTarget, noTarget) = sources0
+      .filter(_.toString().endsWith("module-info.java"))
+      .partition(checkTarget)
+    log.debug(
+      s"[FrgaalJavaCompiler] withTarget: ${withTarget}"
+    )
+    log.debug(
+      s"[FrgaalJavaCompiler] noTarget: ${noTarget}"
+    )
     val in = if (noTarget.isEmpty) {
       None
     } else {
@@ -208,6 +220,9 @@ object FrgaalJavaCompiler {
         )
       )
     }
+    log.debug(
+      s"[FrgaalJavaCompiler] input sources are under: ${in}"
+    )
     val generated = if (withTarget.isEmpty) {
       None
     } else {
@@ -220,12 +235,18 @@ object FrgaalJavaCompiler {
         )
       )
     }
+    log.debug(
+      s"[FrgaalJavaCompiler] computed find under for ${generated}"
+    )
 
     if (shared.toFile().exists()) {
       val ensoMarker = new File(shared.toFile(), ENSO_SOURCES)
       val ensoConfig = new File(
         shared.toFile(),
         ENSO_SOURCES + "-" + out.getFileName().toString()
+      )
+      log.debug(
+        s"[FrgaalJavaCompiler] writing compiler configuration into ${ensoConfig}"
       )
       val ensoProperties = new java.util.Properties()
 
@@ -302,7 +323,9 @@ object FrgaalJavaCompiler {
           " You should attach the debugger now."
         )
       }
-      log.debug("[frgaal] Running " + (exe +: forkArgs).mkString(" "))
+      log.debug(
+        "[FrgaalJavaCompiler] Running " + (exe +: forkArgs).mkString(" ")
+      )
       try {
         exitCode = Process(exe +: forkArgs, cwd) ! javacLogger
       } finally {
