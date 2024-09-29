@@ -32,7 +32,7 @@ public class EnsoSourcesTest {
   }
 
   @Test
-  public void verifyScalaOnlyModularPropject() throws Exception {
+  public void verifyScalaOnlyModularProject() throws Exception {
     var url = EnsoSourcesTest.class.getProtectionDomain().getCodeSource().getLocation();
     var where = new File(url.toURI());
     var rootDir = findParentDir(where, "lib", "scala", "edition-updater");
