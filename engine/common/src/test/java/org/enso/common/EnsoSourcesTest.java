@@ -52,6 +52,27 @@ public class EnsoSourcesTest {
         "No Java tests in this project. Checking " + testEnsoSources, testEnsoSources.exists());
   }
 
+  @Test
+  public void verifyWrappersProject() throws Exception {
+    var url = EnsoSourcesTest.class.getProtectionDomain().getCodeSource().getLocation();
+    var where = new File(url.toURI());
+    var rootDir = findParentDir(where, "lib", "java", "fansi-wrapper");
+    var updaterDir = file(rootDir, "lib", "java", "fansi-wrapper");
+    var mainEnsoSources = file(updaterDir, ".enso-sources-classes");
+    assertTrue(
+        "This file should exists: "
+            + mainEnsoSources
+            + " - have you compiled fansi-wrapper project?",
+        mainEnsoSources.exists());
+    var mainSrc = loadProps(mainEnsoSources);
+    var mainInput = mainSrc.get("input");
+    assertEquals(
+        "Points to src/main/java", file(updaterDir, "src", "main", "java").toString(), mainInput);
+    var testEnsoSources = file(updaterDir, ".enso-sources-test-classes");
+    assertFalse(
+        "No Java tests in this project. Checking " + testEnsoSources, testEnsoSources.exists());
+  }
+
   private Properties loadProps(File src) throws IOException {
     var props = new Properties();
     props.load(new FileInputStream(src));

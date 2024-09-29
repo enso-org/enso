@@ -218,6 +218,7 @@ object FrgaalJavaCompiler {
       s"[FrgaalJavaCompiler] noTarget: ${noTarget}"
     )
     val in = if (noTarget.isEmpty) {
+      log.debug(s"No target. Using location of ${moduleInfoAndSources._1}")
       moduleInfoAndSources._1.map(asPath(_).getParent()).headOption
     } else {
       Some(
@@ -228,7 +229,7 @@ object FrgaalJavaCompiler {
       )
     }
     log.debug(
-      s"[FrgaalJavaCompiler] input sources are under: ${in}"
+      s"[FrgaalJavaCompiler] input sources are at: ${in}"
     )
     val generated = if (withTarget.isEmpty) {
       None
@@ -243,7 +244,7 @@ object FrgaalJavaCompiler {
       )
     }
     log.debug(
-      s"[FrgaalJavaCompiler] computed find under for ${generated}"
+      s"[FrgaalJavaCompiler] generated code is at ${generated}"
     )
 
     if (shared.toFile().exists()) {
