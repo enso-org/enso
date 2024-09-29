@@ -1,8 +1,7 @@
 package org.enso.common;
 
 public final class Asserts {
-  private Asserts() {
-  }
+  private Asserts() {}
 
   public static void assertInJvm(boolean check) {
     assert check;

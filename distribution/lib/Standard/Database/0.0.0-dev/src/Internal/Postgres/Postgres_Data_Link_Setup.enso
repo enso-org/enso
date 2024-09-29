@@ -21,7 +21,7 @@ type Postgres_Data_Link_Setup
 
     ## PRIVATE
     save_as_data_link self destination on_existing_file:Existing_File_Behavior = case self of
-        Postgres_Data_Link_Setup.Available details -> Context.Output.if_enabled disabled_message="Saving a connection to data link requires the Output context." panic=False <|
+        Postgres_Data_Link_Setup.Available details -> Context.Output.if_enabled disabled_message="As writing is disabled, cannot save to a Data Link. Press the Write button ▶ to perform the operation." panic=False <|
             case destination of
                 _ : Enso_File ->
                     replace_existing = case on_existing_file of

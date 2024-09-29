@@ -6,48 +6,34 @@ import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Location;
 import org.enso.compiler.core.ir.Module;
 import org.enso.syntax2.Parser;
-import org.enso.syntax2.Tree;
 
-public final class EnsoParser implements AutoCloseable {
-  private final Parser parser;
+public final class EnsoParser {
+  private EnsoParser() {}
 
-  public EnsoParser() {
-    Parser p;
-    try {
-      p = Parser.create();
-    } catch (LinkageError err) {
-      err.printStackTrace();
-      throw err;
+  public static Module compile(CharSequence src) {
+    return compile(src, null);
+  }
+
+  public static Module compile(CharSequence src, Map<Location, UUID> idMap) {
+    var tree = Parser.parse(src);
+    var treeToIr = TreeToIr.MODULE;
+    if (idMap != null) {
+      treeToIr = new TreeToIr(idMap);
     }
-    this.parser = p;
+    return treeToIr.translate(tree);
   }
 
-  @Override
-  public void close() throws Exception {
-    if (parser != null) {
-      parser.close();
-    }
+  public static scala.Option<Expression> compileInline(CharSequence src) {
+    var tree = Parser.parse(src);
+    return TreeToIr.MODULE.translateInline(tree);
   }
 
-  public Module compile(CharSequence src) {
-    var tree = parser.parse(src);
-    return generateIR(tree);
-  }
-
-  public Tree parse(CharSequence src) {
-    return parser.parse(src);
-  }
-
-  public Module generateIR(Tree t) {
-    return TreeToIr.MODULE.translate(t);
-  }
-
-  public Module generateModuleIr(Tree t, Map<Location, UUID> idMap) {
-    var treeToIr = new TreeToIr(idMap);
-    return treeToIr.translate(t);
-  }
-
-  public scala.Option<Expression> generateIRInline(Tree t) {
-    return TreeToIr.MODULE.translateInline(t);
+  /**
+   * Free retained state of all parsers. Parser buffers are retained per-thread for reuse; this
+   * function drops those reusable buffers. If the parser is used again after this call, it will
+   * allocate new buffers as needed.
+   */
+  public static void freeAll() {
+    Parser.freeAll();
   }
 }
