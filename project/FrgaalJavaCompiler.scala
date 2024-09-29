@@ -137,12 +137,20 @@ object FrgaalJavaCompiler {
       }
       ap
     }
-
-    val out    = output.getSingleOutputAsPath().get()
-    val shared = sources0.fold(out)(asCommon).asInstanceOf[Path]
+    val moduleInfoAndSources =
+      sources0.partition(_.toString().endsWith("module-info.java"))
+    val sourcesNoModuleInfo = moduleInfoAndSources._2
+    val out                 = output.getSingleOutputAsPath().get()
+    val shared              = sources0.fold(out)(asCommon).asInstanceOf[Path]
 
     log.debug(
-      s"[FrgaalJavaCompiler] sources0: ${sources0} shared: ${shared}"
+      s"[FrgaalJavaCompiler] sources0: ${sources0}"
+    )
+    log.debug(
+      s"[FrgaalJavaCompiler] sourcesNoModuleInfo: ${sourcesNoModuleInfo}"
+    )
+    log.debug(
+      s"[FrgaalJavaCompiler] shared: ${shared}"
     )
 
     val allSources = if (shouldCompileModuleInfo) {
@@ -201,8 +209,7 @@ object FrgaalJavaCompiler {
       inATargetDir
     }
 
-    val (withTarget, noTarget) = sources0
-      .filter(_.toString().endsWith("module-info.java"))
+    val (withTarget, noTarget) = sourcesNoModuleInfo
       .partition(checkTarget)
     log.debug(
       s"[FrgaalJavaCompiler] withTarget: ${withTarget}"
@@ -211,11 +218,11 @@ object FrgaalJavaCompiler {
       s"[FrgaalJavaCompiler] noTarget: ${noTarget}"
     )
     val in = if (noTarget.isEmpty) {
-      None
+      moduleInfoAndSources._1.map(asPath(_).getParent()).headOption
     } else {
       Some(
         findUnder(
-          1,
+          3,
           noTarget.tail.fold(asPath(noTarget.head))(asCommon).asInstanceOf[Path]
         )
       )
