@@ -101,7 +101,7 @@ type Image
     @path (Widget.Text_Input display=Display.Always)
     write : Writable_File  -> (Write_Flag | Vector) -> Nothing ! File_Error
     write self path:Writable_File flags=[] =
-        Context.Output.if_enabled disabled_message="Writing the image to a file is forbidden as the Output context is disabled." panic=False <|
+        Context.Output.if_enabled disabled_message="As writing is disabled, cannot write to a file. Press the Write button ▶ to perform the operation." panic=False <|
             write_flags = case flags of
                 _ : Vector -> flags
                 _ -> [flags]

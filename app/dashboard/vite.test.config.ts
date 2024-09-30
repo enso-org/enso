@@ -1,20 +1,30 @@
 /** @file Configuration for vite. */
-import * as vite from 'vite'
+import { fileURLToPath } from 'node:url'
 
-import * as appConfig from 'enso-common/src/appConfig'
+import { defineConfig, mergeConfig } from 'vite'
+
+import { loadTestEnvironmentVariables } from 'enso-common/src/appConfig'
 
 // =====================
 // === Configuration ===
 // =====================
 
-appConfig.loadTestEnvironmentVariables()
+loadTestEnvironmentVariables()
 
 const CONFIG = (await import('./vite.config')).default
 
-export default vite.mergeConfig(
+export default mergeConfig(
   CONFIG,
-  vite.defineConfig({
+  defineConfig({
     resolve: {
+      alias: {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        '@stripe/stripe-js/pure': fileURLToPath(new URL('./e2e/mock/stripe.ts', import.meta.url)),
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        '@stripe/react-stripe-js': fileURLToPath(
+          new URL('./e2e/mock/react-stripe.tsx', import.meta.url),
+        ),
+      },
       extensions: [
         '.mock.mjs',
         '.mock.js',

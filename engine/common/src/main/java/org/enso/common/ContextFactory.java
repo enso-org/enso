@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
-
 import org.enso.logger.Converter;
 import org.enso.logger.JulHandler;
 import org.enso.logging.config.LoggerSetup;
@@ -52,7 +51,7 @@ public final class ContextFactory {
   private String checkForWarnings;
   private int warningsLimit = 100;
   private java.util.Map<String, String> options = java.util.Collections.emptyMap();
-    private boolean enableDebugServer;
+  private boolean enableDebugServer;
 
   private ContextFactory() {}
 

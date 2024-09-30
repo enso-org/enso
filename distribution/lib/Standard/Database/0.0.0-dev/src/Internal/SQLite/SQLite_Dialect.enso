@@ -117,7 +117,7 @@ type SQLite_Dialect
         Nothing ->
             Order_Descriptor.Value internal_column.expression sort_direction collation=Nothing
         _ ->
-            if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation.Error "Natural ordering is not supported by the SQLite backend. You may need to materialize the Table to perform this operation.") else
+            if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation.Error "Natural ordering") else
                 case text_ordering.case_sensitivity of
                     Case_Sensitivity.Default ->
                         Order_Descriptor.Value internal_column.expression sort_direction collation=Nothing
@@ -125,7 +125,7 @@ type SQLite_Dialect
                         Order_Descriptor.Value internal_column.expression sort_direction collation="BINARY"
                     Case_Sensitivity.Insensitive locale -> case locale == Locale.default of
                         False ->
-                            Error.throw (Unsupported_Database_Operation.Error "Case insensitive ordering with custom locale is not supported by the SQLite backend. You may need to materialize the Table to perform this operation.")
+                            Error.throw (Unsupported_Database_Operation.Error "Case insensitive ordering with custom locale")
                         True ->
                             Order_Descriptor.Value internal_column.expression sort_direction collation="NOCASE"
 
@@ -310,7 +310,7 @@ type SQLite_Dialect
     prepare_metadata_for_period : Date_Period | Time_Period -> Value_Type -> Any
     prepare_metadata_for_period self period operation_input_type =
         _ = [period, operation_input_type]
-        Error.throw (Unsupported_Database_Operation.Error "SQLite backend does not support date/time operations.")
+        Error.throw (Unsupported_Database_Operation.Error "Date/time operations.")
 
     ## PRIVATE
        Returns true if the `replace` parameters are suppoerted by this backend.
@@ -404,7 +404,7 @@ make_dialect_operations =
 
 ## PRIVATE
 unsupported name =
-    Error.throw (Unsupported_Database_Operation.Error name+" is not supported by SQLite backend. You may need to materialize the table and perform the operation in-memory.")
+    Error.throw (Unsupported_Database_Operation.Error name)
 
 ## PRIVATE
 agg_count_is_null = Base_Generator.lift_unary_op "COUNT_IS_NULL" arg->

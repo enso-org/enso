@@ -21,42 +21,6 @@ import org.enso.common.CompilationStage
 trait CompilerTestSetup {
   // === IR Utilities =========================================================
 
-  /** An extension method to allow converting string source code to IR as a
-    * module.
-    *
-    * @param source the source code to convert
-    */
-  implicit private class ToIrModule(source: String) {
-
-    /** Converts program text to a top-level Enso module.
-      *
-      * @return the [[IR]] representing [[source]]
-      */
-    def toIrModule: Module = {
-      val compiler = new EnsoParser()
-      try compiler.compile(source)
-      finally compiler.close()
-    }
-  }
-
-  /** An extension method to allow converting string source code to IR as an
-    * expression.
-    *
-    * @param source the source code to convert
-    */
-  implicit private class ToIrExpression(source: String) {
-
-    /** Converts the program text to an Enso expression.
-      *
-      * @return the [[IR]] representing [[source]], if it is a valid expression
-      */
-    def toIrExpression: Option[Expression] = {
-      val compiler = new EnsoParser()
-      try compiler.generateIRInline(compiler.parse(source))
-      finally compiler.close()
-    }
-  }
-
   /** Provides an extension method allowing the running of a specified list of
     * passes on the provided IR.
     *
@@ -112,7 +76,7 @@ trait CompilerTestSetup {
       * @return IR appropriate for testing the alias analysis pass as a module
       */
     def preprocessModule(implicit moduleContext: ModuleContext): Module = {
-      source.toIrModule.runPasses(passManager, moduleContext)
+      EnsoParser.compile(source).runPasses(passManager, moduleContext)
     }
 
     /** Translates the source code into appropriate IR for testing this pass
@@ -123,7 +87,9 @@ trait CompilerTestSetup {
     def preprocessExpression(implicit
       inlineContext: InlineContext
     ): Option[Expression] = {
-      source.toIrExpression.map(_.runPasses(passManager, inlineContext))
+      EnsoParser
+        .compileInline(source)
+        .map(_.runPasses(passManager, inlineContext))
     }
   }
 

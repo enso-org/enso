@@ -72,7 +72,7 @@ flush_caches = CloudAPI.flushCloudCaches
 ## PRIVATE
    Performs a standard request to the Enso Cloud API,
    parsing the result as JSON.
-http_request_as_json (method : HTTP_Method) (url : URI) (body : Request_Body = Request_Body.Empty) (additional_headers : Vector = []) (error_handlers : Dictionary Text (Any -> Any) = Dictionary.empty) (retries : Integer = 3) -> Any ! Enso_Cloud_Error =
+http_request_as_json (method : HTTP_Method) (url : URI) (body : Request_Body = ..Empty) (additional_headers : Vector = []) (error_handlers : Dictionary Text (Any -> Any) = Dictionary.empty) (retries : Integer = 3) -> Any ! Enso_Cloud_Error =
     response = http_request method url body additional_headers error_handlers retries
     response.decode_as_json.catch Invalid_JSON error->
         Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
@@ -87,7 +87,7 @@ http_request_as_json (method : HTTP_Method) (url : URI) (body : Request_Body = R
    Custom error handlers can be provided as a mapping from error codes
    (defined in the cloud project) to functions that take the full JSON payload
    and return a custom error.
-http_request (method : HTTP_Method) (url : URI) (body : Request_Body = Request_Body.Empty) (additional_headers : Vector = []) (error_handlers : Dictionary Text (Any -> Any) = Dictionary.empty) (retries : Integer = 3) -> Response ! Enso_Cloud_Error = method.if_not_error <| url.if_not_error <| body.if_not_error <| additional_headers.if_not_error <|
+http_request (method : HTTP_Method) (url : URI) (body : Request_Body = ..Empty) (additional_headers : Vector = []) (error_handlers : Dictionary Text (Any -> Any) = Dictionary.empty) (retries : Integer = 3) -> Response ! Enso_Cloud_Error = method.if_not_error <| url.if_not_error <| body.if_not_error <| additional_headers.if_not_error <|
     all_headers = [authorization_header] + additional_headers
     as_connection_error err = Error.throw (Enso_Cloud_Error.Connection_Error err)
 

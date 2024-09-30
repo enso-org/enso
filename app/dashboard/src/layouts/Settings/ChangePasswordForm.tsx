@@ -1,15 +1,12 @@
 /** @file A form for changing the user's password. */
-import * as React from 'react'
-
 import * as z from 'zod'
 
 import { ButtonGroup, Form, Input } from '#/components/AriaComponents'
+import { passwordSchema, passwordWithPatternSchema } from '#/pages/authentication/schemas'
 import { useAuth, useFullUserSession } from '#/providers/AuthProvider'
 import { type GetText, useText } from '#/providers/TextProvider'
-
-import SettingsAriaInput from '#/layouts/Settings/SettingsAriaInput'
-import { passwordSchema, passwordWithPatternSchema } from '#/pages/authentication/schemas'
 import { PASSWORD_REGEX } from '#/utilities/validation'
+import SettingsAriaInput from './AriaInput'
 
 /** Create the schema for this form. */
 function createChangePasswordFormSchema(getText: GetText) {

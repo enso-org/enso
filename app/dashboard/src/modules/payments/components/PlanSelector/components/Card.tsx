@@ -5,8 +5,6 @@
  */
 import * as React from 'react'
 
-import * as twv from 'tailwind-variants'
-
 import type * as text from 'enso-common/src/text'
 
 import Check from '#/assets/check_mark.svg'
@@ -15,11 +13,12 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
+import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 
 /**
  * Card props
  */
-export interface CardProps extends React.PropsWithChildren, twv.VariantProps<typeof CARD_STYLES> {
+export interface CardProps extends React.PropsWithChildren, VariantProps<typeof CARD_STYLES> {
   /**
    * Card title
    */
@@ -38,7 +37,7 @@ export interface CardProps extends React.PropsWithChildren, twv.VariantProps<typ
   readonly className?: string
 }
 
-export const CARD_STYLES = twv.tv({
+export const CARD_STYLES = tv({
   base: 'flex flex-col border-0.5',
   variants: {
     elevated: {
