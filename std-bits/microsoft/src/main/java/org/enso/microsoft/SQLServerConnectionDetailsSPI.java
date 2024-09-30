@@ -7,7 +7,7 @@ public class SQLServerConnectionDetailsSPI extends DatabaseConnectionDetailsSPI 
 
   @Override
   protected String getModuleName() {
-    return "Standard.Microsoft.SQLServer_Details";
+    return "Standard.Microsoft.Connection.SQLServer_Details";
   }
 
   @Override
