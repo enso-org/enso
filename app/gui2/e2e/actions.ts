@@ -21,7 +21,7 @@ export async function goToGraph(page: Page, closeDocPanel: boolean = true) {
     await expect(page.getByTestId('rightDock')).toBeHidden()
   }
   // Wait for position initialization
-  await expectNodePositionsInitialized(page, 72)
+  await expectNodePositionsInitialized(page, -16)
 }
 
 export async function expectNodePositionsInitialized(page: Page, yPos: number) {
