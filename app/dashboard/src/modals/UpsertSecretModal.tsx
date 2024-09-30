@@ -59,7 +59,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
           />
           <ButtonGroup>
             <Form.Submit>{isCreatingSecret ? getText('create') : getText('update')}</Form.Submit>
-            <Form.Submit formnovalidate />
+            <Form.Submit cancel />
           </ButtonGroup>
         </>
       )}

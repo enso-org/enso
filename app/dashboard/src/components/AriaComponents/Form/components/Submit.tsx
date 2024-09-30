@@ -25,19 +25,13 @@ interface SubmitButtonBaseProps {
   // We do not need to know the form fields.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly form?: FormInstance<any>
-  /**
-   * Prop that allows to close the parent dialog without submitting the form.
-   *
-   * This looks tricky, but it's recommended by MDN as a receipt for closing the dialog without submitting the form.
-   * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dialog#closing_a_dialog_with_a_required_form_input
-   */
-  readonly formnovalidate?: boolean
+  readonly cancel?: boolean
 }
 
 /**
  * Props for the Submit component.
  */
-export type SubmitProps = Omit<ButtonProps, 'href' | 'variant'> & SubmitButtonBaseProps
+export type SubmitProps = Omit<ButtonProps, 'formnovalidate' | 'href' | 'variant'> & SubmitButtonBaseProps
 
 /**
  * Submit button for forms.
@@ -49,11 +43,11 @@ export function Submit(props: SubmitProps): JSX.Element {
 
   const {
     size = 'medium',
-    formnovalidate = false,
+    cancel = false,
     loading = false,
-    children = formnovalidate ? getText('cancel') : getText('submit'),
-    variant = formnovalidate ? 'outline' : 'submit',
-    testId = formnovalidate ? 'form-cancel-button' : 'form-submit-button',
+    children = cancel ? getText('cancel') : getText('submit'),
+    variant = cancel ? 'outline' : 'submit',
+    testId = cancel ? 'form-cancel-button' : 'form-submit-button',
     ...buttonProps
   } = props
 
@@ -61,8 +55,8 @@ export function Submit(props: SubmitProps): JSX.Element {
   const form = useFormContext(props.form)
   const { formState } = form
 
-  const isLoading = formnovalidate ? false : loading || formState.isSubmitting
-  const type = formnovalidate || isLoading ? 'button' : 'submit'
+  const isLoading = cancel ? false : loading || formState.isSubmitting
+  const type = cancel || isLoading ? 'button' : 'submit'
 
   return (
     <Button
@@ -75,7 +69,7 @@ export function Submit(props: SubmitProps): JSX.Element {
       loading={isLoading}
       testId={testId}
       onPress={() => {
-        if (formnovalidate) {
+        if (cancel) {
           dialogContext?.close()
         }
       }}
