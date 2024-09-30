@@ -25,9 +25,9 @@ export interface SelectionMenuOption extends Button {
 }
 
 export interface SelectionMenu {
-  selected: Ref<number | string | symbol>
+  selected: Ref<string>
   title?: string
-  options: Record<number | string | symbol, SelectionMenuOption>
+  options: Record<string, SelectionMenuOption>
 }
 
 export type ToolbarItem = ActionButton | ToggleButton | SelectionMenu

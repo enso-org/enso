@@ -350,7 +350,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run ide build --backend-source current-ci-run --gui-upload-artifact false --gui-sign-artifacts false
+      - run: ./run ide build --backend-source current-ci-run --gui-upload-artifact false
         env:
           ENSO_CLOUD_API_URL: ${{ vars.ENSO_CLOUD_API_URL }}
           ENSO_CLOUD_CHAT_URL: ${{ vars.ENSO_CLOUD_CHAT_URL }}
@@ -413,7 +413,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run ide build --backend-source current-ci-run --gui-upload-artifact false --gui-sign-artifacts false
+      - run: ./run ide build --backend-source current-ci-run --gui-upload-artifact false
         env:
           APPLEID: ${{ secrets.APPLE_NOTARIZATION_USERNAME }}
           APPLEIDPASS: ${{ secrets.APPLE_NOTARIZATION_PASSWORD }}
@@ -483,7 +483,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run ide build --backend-source current-ci-run --gui-upload-artifact false --gui-sign-artifacts false
+      - run: ./run ide build --backend-source current-ci-run --gui-upload-artifact false
         env:
           ENSO_CLOUD_API_URL: ${{ vars.ENSO_CLOUD_API_URL }}
           ENSO_CLOUD_CHAT_URL: ${{ vars.ENSO_CLOUD_CHAT_URL }}

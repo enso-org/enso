@@ -16,6 +16,15 @@ export const PLAN_TO_TEXT_ID: Readonly<Record<backendModule.Plan, text.TextId>> 
   [backendModule.Plan.team]: 'teamPlanName',
   [backendModule.Plan.enterprise]: 'enterprisePlanName',
 } satisfies { [Plan in backendModule.Plan]: `${Plan}PlanName` }
+/**
+ * The text id for the plan name.
+ */
+export const PLAN_TO_UPGRADE_LABEL_ID: Readonly<Record<backendModule.Plan, text.TextId>> = {
+  [backendModule.Plan.free]: 'freePlanUpgradeLabel',
+  [backendModule.Plan.solo]: 'soloPlanUpgradeLabel',
+  [backendModule.Plan.team]: 'teamPlanUpgradeLabel',
+  [backendModule.Plan.enterprise]: 'enterprisePlanUpgradeLabel',
+} satisfies { [Plan in backendModule.Plan]: `${Plan}PlanUpgradeLabel` }
 
 export const PRICE_CURRENCY = 'USD'
 export const PRICE_BY_PLAN: Readonly<Record<backendModule.Plan, number>> = {

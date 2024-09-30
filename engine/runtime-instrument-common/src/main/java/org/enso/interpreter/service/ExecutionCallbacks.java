@@ -209,11 +209,16 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
       var typeOfNode = TypeOfNode.getUncached();
       Object typeResult = value == null ? null : typeOfNode.execute(value);
       if (typeResult instanceof Type t) {
-        resultType = t.getQualifiedName().toString();
+        resultType = getTypeQualifiedName(t);
       } else {
         resultType = null;
       }
     }
     return resultType;
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private static String getTypeQualifiedName(Type t) {
+    return t.getQualifiedName().toString();
   }
 }

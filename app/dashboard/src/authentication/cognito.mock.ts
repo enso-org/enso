@@ -82,7 +82,13 @@ export class Cognito {
     private readonly logger: loggerProvider.Logger,
     private readonly supportsDeepLinks: boolean,
     private readonly amplifyConfig: service.AmplifyConfig,
-  ) {}
+  ) {
+    const username = localStorage.getItem(MOCK_EMAIL_KEY)
+    if (username != null) {
+      this.isSignedIn = true
+      mockEmail = username
+    }
+  }
 
   /** Save the access token to a file for further reuse. */
   saveAccessToken() {

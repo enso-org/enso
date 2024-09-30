@@ -99,7 +99,7 @@ public class EqualsTest {
 
   private static boolean equalityCheck(VirtualFrame frame) {
     var args = frame.getArguments();
-    return equalsNode.execute(frame, args[0], args[1]);
+    return equalsNode.execute(frame, args[0], args[1]).isTrue();
   }
 
   private boolean equalityCheck(Object first, Object second) {
@@ -135,7 +135,7 @@ public class EqualsTest {
     executeInContext(
         context,
         () -> {
-          Object uncachedRes = EqualsNode.getUncached().execute(null, firstVal, secondVal);
+          Object uncachedRes = EqualsNode.getUncached().execute(null, firstVal, secondVal).isTrue();
           Object cachedRes = equalityCheck(firstVal, secondVal);
           assertEquals(
               "Result from uncached EqualsNode should be the same as result from its cached"
