@@ -10,7 +10,7 @@ overrides:
   '@types/react': ^18.0.27
   ws: ^8.18.0
 
-packageExtensionsChecksum: 275f877c684d778634db9159907257e2
+packageExtensionsChecksum: a2c61d54c0d49b09629651395dc2b9f2
 
 pnpmfileChecksum: yrev2pk43cjl5fkasomnhoqkcu
 
@@ -12162,6 +12162,7 @@ snapshots:
 
   enso-support@https://codeload.github.com/enso-org/enso-bot/tar.gz/aa903b6e639a31930ee4fff55c5639e4471fa48d:
     dependencies:
+      '@types/validator': 13.12.0
       '@types/ws': 8.5.10
       better-sqlite3: 8.7.0
       discord.js: 14.15.3

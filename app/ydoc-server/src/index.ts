@@ -11,7 +11,7 @@
 import debug from 'debug'
 import type { Server } from 'http'
 import type { Http2SecureServer } from 'http2'
-import type { WebSocket } from 'isomorphic-ws'
+import type WS from 'isomorphic-ws'
 import type { IncomingMessage } from 'node:http'
 import { ConnectionData, docName } from './auth'
 import { deserializeIdMap } from './serialization'
@@ -37,11 +37,11 @@ export async function createGatewayServer(
   httpServer: Server | Http2SecureServer,
   overrideLanguageServerUrl?: string,
 ) {
-  const { WebSocketServer } = await import('isomorphic-ws')
+  const { WebSocketServer } = (await import('isomorphic-ws')).default
   const { parse } = await import('node:url')
 
   const wss = new WebSocketServer({ noServer: true })
-  wss.on('connection', (ws: WebSocket, _request: IncomingMessage, data: ConnectionData) => {
+  wss.on('connection', (ws: WS.WebSocket, _request: IncomingMessage, data: ConnectionData) => {
     ws.on('error', onWebSocketError)
     setupGatewayClient(ws, overrideLanguageServerUrl ?? data.lsUrl, data.doc)
   })

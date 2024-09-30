@@ -16,6 +16,9 @@ ts_project(
     composite = True,
     resolve_json_module = True,
     tsconfig = ":tsconfig",
+    out_dir = "dist",
+    root_dir = "src",
+    srcs = glob(["src/**/*.ts", "src/**/*.tsx", "src/**/*.json"]),
     deps = npm_link_targets()
 )
 

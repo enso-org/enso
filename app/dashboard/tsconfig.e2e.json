@@ -1,18 +1,16 @@
 {
   "extends": "../tsconfig.json",
   "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "src/**/*.json",
+    "e2e",
+    "playwright.config.ts",
+    "./e2e/**/*.json",
   ],
-  "exclude": ["./dist", "vitest.config.ts"],
+  "exclude": [],
   "compilerOptions": {
     "composite": true,
     "resolveJsonModule": true,
     "noEmit": false,
     "outDir": "dist",
-    "rootDir": "src",
-    "paths": { "#/*": ["./src/*"] },
     "target": "ESNext",
     "lib": ["ESNext", "DOM", "DOM.Iterable", "ES2023"]
   }

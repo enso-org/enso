@@ -6,7 +6,6 @@
     "composite": true,
     "noEmit": false,
     "rootDir": "src",
-    "outDir": "dist",
-    "paths": { "#/*": ["./src/*"] }
+    "outDir": "dist"
   }
 }

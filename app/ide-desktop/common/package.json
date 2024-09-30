@@ -4,25 +4,21 @@
   "type": "module",
   "main": "./src/index.js",
   "exports": {
-    ".": "./src/index.js",
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    },
+    "./src/text": {
+      "source": "./src/text/index.ts",
+      "types": "./src/text/index.d.ts",
+      "import": "./src/text/index.js"
+    },
     "./src/config.json": "./src/config.json",
-    "./src/appConfig": "./src/appConfig.js",
-    "./src/buildUtils": "./src/buildUtils.js",
-    "./src/detect": "./src/detect.ts",
-    "./src/gtag": "./src/gtag.ts",
-    "./src/load": "./src/load.ts",
-    "./src/backendQuery": "./src/backendQuery.ts",
-    "./src/queryClient": "./src/queryClient.ts",
-    "./src/utilities/data/array": "./src/utilities/data/array.ts",
-    "./src/utilities/data/dateTime": "./src/utilities/data/dateTime.ts",
-    "./src/utilities/data/newtype": "./src/utilities/data/newtype.ts",
-    "./src/utilities/data/object": "./src/utilities/data/object.ts",
-    "./src/utilities/style/tabBar": "./src/utilities/style/tabBar.ts",
-    "./src/utilities/uniqueString": "./src/utilities/uniqueString.ts",
-    "./src/text": "./src/text/index.ts",
-    "./src/utilities/permissions": "./src/utilities/permissions.ts",
-    "./src/services/Backend": "./src/services/Backend.ts",
-    "./src/types": "./src/types.d.ts"
+    "./src/*": {
+      "source": "./src/*.ts",
+      "types": "./src/*.d.ts",
+      "import": "./src/*.js"
+    }
   },
   "scripts": {
     "test": "vitest run"

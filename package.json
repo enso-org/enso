@@ -111,7 +111,8 @@
       },
       "enso-support": {
         "dependencies": {
-          "@types/ws": "^8.5.5"
+          "@types/ws": "^8.5.5",
+          "@types/validator": "^13.11.7"
         }
       },
       "@aws-crypto/sha256-browser": {
