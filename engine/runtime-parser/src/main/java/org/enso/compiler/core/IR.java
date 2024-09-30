@@ -80,6 +80,9 @@ public interface IR {
    *     size.
    */
   default IR withNewChildren(List<IR> newChildren) {
+    if (children().isEmpty()) {
+      throw new IllegalArgumentException("Cannot replace children of a leaf node.");
+    }
     throw new UnsupportedOperationException(
         "withNewChildren not implemented for " + this.getClass());
   }
