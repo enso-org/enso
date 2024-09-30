@@ -1120,6 +1120,8 @@ type Decimal
        ! Error Conditions
 
          - If `text` is incorrectly formatted, a `Number_Parse_Error` is thrown.
+         - If `format` is incorrectly formatted (or does not match the `locale`,
+           an `Illegal_Argument` is thrown.
 
        > Example
          Parse a `Decimal` with no local specifier.
@@ -1144,13 +1146,15 @@ type Decimal
 
              Decimal.parse "123.456.789,87654" locale=Locale.italy
              # => 123456789.87654
-    parse : Text -> Locale | Nothing -> Decimal ! Number_Parse_Error
-    parse text locale:Locale=Locale.default format:Text="" -> Decimal ! Number_Parse_Error =
-        symbols = DecimalFormatSymbols.new locale.java_locale
-        number_format = DecimalFormat.new format symbols
-        number_format.setParseBigDecimal True
-        Panic.catch ParseException (Decimal.Value (number_format.parse text)) _->
-            Error.throw (Number_Parse_Error.Error text)
+    parse : Text -> Locale | Nothing -> Decimal ! Number_Parse_Error ! Illegal_Argument
+    parse text locale:Locale=Locale.default format:Text="" -> Decimal ! Number_Parse_Error ! Illegal_Argument =
+        Illegal_Argument.handle_java_exception <|
+            # `getInstance` returns `DecimalFormat` or a subclass of `DecimalFormat`.
+            decimal_format = NumberFormat.getInstance locale.java_locale
+            decimal_format.applyLocalizedPattern format
+            decimal_format.setParseBigDecimal True
+            Panic.catch ParseException (Decimal.Value (decimal_format.parse text)) _->
+                Error.throw (Number_Parse_Error.Error text)
 
     ## PRIVATE
     precision : Integer
