@@ -665,7 +665,6 @@ lazy val componentModulesPaths =
       "com.google.protobuf"    % "protobuf-java"                % googleProtobufVersion,
       "commons-cli"            % "commons-cli"                  % commonsCliVersion,
       "commons-io"             % "commons-io"                   % commonsIoVersion,
-      "net.java.dev.jna"       % "jna"                          % jnaVersion,
       "org.yaml"               % "snakeyaml"                    % snakeyamlVersion,
       "org.eclipse.jgit"       % "org.eclipse.jgit"             % jgitVersion,
       "com.typesafe"           % "config"                       % typesafeConfigVersion,
@@ -1197,7 +1196,6 @@ lazy val `scala-libs-wrapper` = project
       "org.scala-lang"   % "scala-reflect" % scalacVersion,
       "org.jline"        % "jline"         % jlineVersion,
       "org.slf4j"        % "slf4j-api"     % slf4jVersion,
-      "net.java.dev.jna" % "jna"           % jnaVersion
     ),
     assembly / assemblyExcludedJars := {
       JPMSUtils.filterModulesFromClasspath(
@@ -2303,7 +2301,6 @@ lazy val `language-server` = (project in file("engine/language-server"))
         "org.jline"              % "jline"                        % jlineVersion,
         "org.apache.tika"        % "tika-core"                    % tikaVersion,
         "com.ibm.icu"            % "icu4j"                        % icuVersion,
-        "net.java.dev.jna"       % "jna"                          % jnaVersion,
         "org.netbeans.api"       % "org-openide-util-lookup"      % netbeansApiVersion
       )
     },
@@ -2322,6 +2319,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       (`logging-service-logback` / Test / exportedModule).value,
       (`version-output` / Compile / exportedModule).value,
       (`scala-libs-wrapper` / Compile / exportedModule).value,
+      (`jna-wrapper` / Compile / exportedModule).value,
       (`akka-wrapper` / Compile / exportedModule).value,
       (`language-server-deps-wrapper` / Compile / exportedModule).value,
       (`fansi-wrapper` / Compile / exportedModule).value,
