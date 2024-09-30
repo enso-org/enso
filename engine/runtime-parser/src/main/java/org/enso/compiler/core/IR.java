@@ -76,6 +76,8 @@ public interface IR {
    *
    * @param newChildren the new (ordered) children to replace the existing children with.
    * @return a copy of this node with the new children.
+   * @throws IllegalArgumentException if newChildren are given in wrong type, wrong order, or wrong
+   *     size.
    */
   default IR withNewChildren(List<IR> newChildren) {
     throw new UnsupportedOperationException(
