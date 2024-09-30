@@ -16,7 +16,7 @@ public class SnowflakeConnectionDetailsSPI extends DatabaseConnectionDetailsSPI 
 
   @Override
   protected String getCodeForDefaultConstructor() {
-    return "(Snowflake_Details.Snowflake)";
+    return "..Snowflake";
   }
 
   @Override

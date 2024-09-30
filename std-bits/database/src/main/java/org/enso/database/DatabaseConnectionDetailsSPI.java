@@ -1,5 +1,8 @@
 package org.enso.database;
 
+import org.enso.base.polyglot.EnsoMeta;
+import org.graalvm.polyglot.Value;
+
 import java.util.ServiceLoader;
 
 public abstract class DatabaseConnectionDetailsSPI {
@@ -25,6 +28,23 @@ public abstract class DatabaseConnectionDetailsSPI {
               };
             })
         .toArray(String[][]::new);
+  }
+
+  /**
+   * Returns an array of all the types that implement the `DatabaseConnectionDetailsSPI` interface.
+   *
+   * @param refresh whether to refresh the list of types
+   * @return an array of all the types that implement the `DatabaseConnectionDetailsSPI` interface
+   */
+  public static Value[] get_types(boolean refresh) {
+    if (refresh) {
+      loader.reload();
+    }
+    return loader.stream().map(provider -> provider.get().getTypeObject()).toArray(Value[]::new);
+  }
+
+  public Value getTypeObject() {
+    return EnsoMeta.getType(getModuleName(), getTypeName());
   }
 
   /** The module in which the connection details type is defined. */

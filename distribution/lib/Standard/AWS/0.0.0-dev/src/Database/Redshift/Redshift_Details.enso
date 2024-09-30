@@ -30,6 +30,12 @@ type Redshift_Details
     Redshift (host:Text) (port:Integer=5439) (schema:Text='') (db_user:Text='') (credentials:Credentials|AWS_Credential=AWS_Credential.Profile) (use_ssl:SSL_Mode=SSL_Mode.Require) (client_cert:Client_Certificate|Nothing=Nothing)
 
     ## PRIVATE
+       Attempt to resolve the constructor.
+    resolve : Function -> Redshift_Details | Nothing
+    resolve constructor =
+        Panic.catch Any (constructor:Redshift_Details) _->Nothing
+
+    ## PRIVATE
        Build the Connection resource.
 
        Arguments:

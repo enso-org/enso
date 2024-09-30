@@ -15,7 +15,14 @@ type SQLServer_Details
        - port: The port to connect to.
        - credentials: The credentials to use for the connection.
        - database: The name of the database to connect to.
-    SQLServer host:Text port:Text credentials:Credentials database:Text="master"
+    @credentials Credentials.default_widget
+    SQLServer host:Text port:Integer credentials:Credentials database:Text="master"
+
+    ## PRIVATE
+       Attempt to resolve the constructor.
+    resolve : Function -> SQLServer_Details | Nothing
+    resolve constructor =
+        Panic.catch Any (constructor:SQLServer_Details) _->Nothing
 
     ## PRIVATE
        Build the Connection resource.
@@ -34,7 +41,7 @@ type SQLServer_Details
        Provides the jdbc url for the connection.
     jdbc_url : Text
     jdbc_url self =
-        'jdbc:sqlserver://' + self.host + ':' + self.port
+        'jdbc:sqlserver://' + self.host + ':' + self.port.to_text
 
     ## PRIVATE
        Provides the properties for the connection.

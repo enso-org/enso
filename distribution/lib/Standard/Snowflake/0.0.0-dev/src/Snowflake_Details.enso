@@ -22,6 +22,12 @@ type Snowflake_Details
     Snowflake account:Text credentials:Credentials database:Text="SNOWFLAKE" schema:Text="PUBLIC" warehouse:Text=""
 
     ## PRIVATE
+       Attempt to resolve the constructor.
+    resolve : Function -> Snowflake_Details | Nothing
+    resolve constructor =
+        Panic.catch Any (constructor:Snowflake_Details) _->Nothing
+
+    ## PRIVATE
        Build the Connection resource.
 
        Arguments:

@@ -20,8 +20,9 @@ polyglot java import org.enso.database.DatabaseConnectionDetailsSPI
    - options: Additional custom connection options for the JDBC connection.
 @details connection_details_widget
 connect : Connection_Details -> Connection_Options -> Connection ! SQL_Error
-connect details options=Connection_Options.Value =
-    details.connect options
+connect details options:Connection_Options=..Value = case details of
+    _ : Function -> (resolve_constructor details) . connect options
+    _ -> details.connect options
 
 ## PRIVATE
 connection_details_widget : Widget
@@ -33,3 +34,14 @@ connection_details_widget =
         code = pair.second
         Option name code
     Single_Choice display=Display.Always values=choices
+
+## PRIVATE
+resolve_constructor : Function -> Any
+resolve_constructor constructor =
+    types = Vector.from_polyglot_array (DatabaseConnectionDetailsSPI.get_types False)
+    try_next idx =
+        if idx >= types.length then constructor else
+            db_type = types.at idx
+            resolved = db_type.resolve constructor
+            if resolved.is_nothing then @Tail_Call try_next (idx + 1) else resolved
+    try_next 0

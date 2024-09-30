@@ -7,7 +7,7 @@ public class SQLServerConnectionDetailsSPI extends DatabaseConnectionDetailsSPI 
 
   @Override
   protected String getModuleName() {
-    return "Standard.Mircosoft.SQLServer_Details";
+    return "Standard.Microsoft.SQLServer_Details";
   }
 
   @Override
@@ -17,7 +17,7 @@ public class SQLServerConnectionDetailsSPI extends DatabaseConnectionDetailsSPI 
 
   @Override
   protected String getCodeForDefaultConstructor() {
-    return "(SQLServer_Details.SQLServer)";
+    return "..SQLServer";
   }
 
   @Override
