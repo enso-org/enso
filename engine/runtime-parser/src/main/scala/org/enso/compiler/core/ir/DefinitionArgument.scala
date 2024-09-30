@@ -216,6 +216,13 @@ object DefinitionArgument {
     override def children: List[IR] =
       name :: ascribedType.toList ++ defaultValue.toList
 
+    override def withNewChildren(newChildren: List[IR]): IR = {
+      throw new IllegalArgumentException(
+        "Trying to replace children of a DefinitionArgument.Specified. This must be " +
+        "handled manually as we cannot determine the order of the children."
+      )
+    }
+
     /** @inheritdoc */
     override def showCode(indent: Int): String = {
       val withoutLazy =
