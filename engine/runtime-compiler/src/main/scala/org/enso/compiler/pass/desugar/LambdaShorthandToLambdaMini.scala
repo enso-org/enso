@@ -20,9 +20,14 @@ class LambdaShorthandToLambdaMini(
 
   override def prepare(ir: IR): Unit = {
     ir match {
-      case Application.Prefix(_, args, _, _, _) =>
+      case Application.Prefix(fn, args, _, _, _) =>
         args.foreach {
           case CallArgument.Specified(_, blank: Name.Blank, _, _) =>
+            blank.passData.update(this, new ShouldSkipMeta(true))
+          case _ => ()
+        }
+        fn match {
+          case blank: Name.Blank =>
             blank.passData.update(this, new ShouldSkipMeta(true))
           case _ => ()
         }
