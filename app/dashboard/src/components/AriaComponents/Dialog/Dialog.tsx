@@ -29,7 +29,7 @@ export interface DialogProps
     Omit<VariantProps<typeof DIALOG_STYLES>, 'scrolledToTop'> {}
 
 const OVERLAY_STYLES = tv({
-  base: 'fixed inset-0 isolate flex items-center justify-center bg-primary/20',
+  base: 'fixed inset-0 isolate flex items-center justify-center bg-primary/20 z-tooltip',
   variants: {
     isEntering: { true: 'animate-in fade-in duration-200 ease-out' },
     isExiting: { true: 'animate-out fade-out duration-200 ease-in' },
