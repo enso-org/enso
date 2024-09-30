@@ -32,7 +32,7 @@ export interface ResetProps extends Omit<ariaComponents.ButtonProps, 'loading'> 
 export function Reset(props: ResetProps): React.JSX.Element {
   const { getText } = useText()
   const {
-    variant = 'ghost-fading',
+    variant = 'outline',
     size = 'medium',
     testId = 'form-reset-button',
     children = getText('reset'),
