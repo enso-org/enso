@@ -225,10 +225,10 @@ export default function AssetProperties(props: AssetPropertiesProps) {
           <table>
             <tbody>
               <tr data-testid="asset-panel-permissions" className="h-row">
-                <td className="text my-auto min-w-side-panel-label p">
+                <td className="text my-auto min-w-side-panel-label p-0">
                   <aria.Label className="text inline-block">{getText('sharedWith')}</aria.Label>
                 </td>
-                <td className="w-full p">
+                <td className="flex w-full gap-1 p-0">
                   <SharedWithColumn
                     isReadonly={isReadonly}
                     item={item}
@@ -238,10 +238,10 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                 </td>
               </tr>
               <tr data-testid="asset-panel-labels" className="h-row">
-                <td className="text my-auto min-w-side-panel-label p">
+                <td className="text my-auto min-w-side-panel-label p-0">
                   <aria.Label className="text inline-block">{getText('labels')}</aria.Label>
                 </td>
-                <td className="w-full p">
+                <td className="flex w-full gap-1 p-0">
                   {item.item.labels?.map((value) => {
                     const label = labels.find((otherLabel) => otherLabel.value === value)
                     return label == null ? null : (
