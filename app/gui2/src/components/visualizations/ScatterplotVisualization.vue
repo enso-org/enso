@@ -599,14 +599,14 @@ function getAstPatternFilterAndSort(
         makeFilterPattern(ast.module, series[1]!, minY, maxY),
       ),
     )
-    for (const s in series) {
+    for (let s of series) {
       pattern = Ast.OprApp.new(
         ast.module,
         pattern,
         '.',
         Ast.App.positional(
           Ast.Ident.new(ast.module, Ast.identifier('filter')!),
-          makeFilterPattern(ast.module, series[s]!, minY, maxY),
+          makeFilterPattern(ast.module, s!, minY, maxY),
         ),
       )
     }
@@ -614,31 +614,25 @@ function getAstPatternFilterAndSort(
   })
 }
 const createNewFilterNode = () => {
-  if (!data.value.isTimeSeries) {
-    const seriesLabels = Object.keys(data.value.axis)
-      .filter((s) => s != 'x')
-      .map((s) => {
-        return data.value.axis[s as keyof AxesConfiguration].label
-      })
-    const xColName = data.value.axis.x.label
-    const xItems = data.value.data.map((d) => d.x)
-    const minX = Math.min(...(xItems as number[]))
-    const maxX = Math.max(...(xItems as number[]))
-    const yItems = data.value.data.map((d) => {
-      const { x, label, color, shape, size, row_number, series, ...rest } = d
-      return rest
-    })
-    const yItemsVal = yItems.map((k) => Object.values(k)).flat(1)
-    const minY = Math.min(...yItemsVal)
-    const maxY = Math.max(...yItemsVal)
-    const pattern = getAstPatternFilterAndSort(seriesLabels, xColName, minX, maxX, minY, maxY)
-    if (pattern) {
-      config.createNodes({
-        content: pattern,
-        commit: true,
-      })
-    }
-  }
+  const seriesLabels = Object.keys(data.value.axis)
+    .filter((s) => s != 'x')
+    .map((s) => data.value.axis[s as keyof AxesConfiguration].label)
+  const xColName = data.value.axis.x.label
+  const xItems = data.value.data.map((d) => d.x as number)
+  const minX = Math.min(...xItems)
+  const maxX = Math.max(...xItems)
+  const yItems = data.value.data.map((d) => {
+    const { x, label, color, shape, size, row_number, series, ...rest } = d
+    return rest
+  })
+  const yItemsVal = yItems.map((k) => Object.values(k)).flat(1)
+  const minY = Math.min(...yItemsVal)
+  const maxY = Math.max(...yItemsVal)
+  const pattern = getAstPatternFilterAndSort(seriesLabels, xColName, minX, maxX, minY, maxY)
+  config.createNodes({
+    content: pattern,
+    commit: true,
+  })
 }
 
 function getAstPattern(selector?: number, action?: string) {
