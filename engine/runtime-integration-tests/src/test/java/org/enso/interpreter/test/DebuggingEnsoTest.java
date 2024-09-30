@@ -483,7 +483,6 @@ public class DebuggingEnsoTest {
     }
   }
 
-  @Ignore("https://github.com/enso-org/enso/issues/10675")
   @Test
   public void testAtomFieldAreReadable_MultipleConstructors() {
     var fooFunc =

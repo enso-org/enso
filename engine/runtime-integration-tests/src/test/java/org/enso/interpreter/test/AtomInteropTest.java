@@ -90,7 +90,6 @@ public class AtomInteropTest {
     assertThat(anyType.getMetaSimpleName(), is("Any"));
   }
 
-  @Ignore("https://github.com/enso-org/enso/issues/10675")
   @Test
   public void atomMembersAreConstructorFields_ManyConstructors() {
     var myTypeAtom =
