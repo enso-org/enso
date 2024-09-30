@@ -21,7 +21,8 @@ from project.Metadata import Display, Widget
 
 polyglot java import org.enso.base.Array_Utils
 
-## GROUP Output
+## ALIAS export, save, output, to_file
+   GROUP Output
    ICON data_output
    Writes (or appends) the text to the specified file using the supplied
    encoding. The behavior specified in the `existing_file` parameter will be
