@@ -43,6 +43,7 @@ type Header
              import Standard.Base.Network.HTTP.Header.Header
 
              example_new = Header.new "My_Header" "my header's value"
+    @value make_text_secret_selector
     new : Text -> Text | Enso_Secret | Derived_Secret_Value -> Header
     new name:Text value:(Text | Enso_Secret | Derived_Secret_Value) = Header.Value name value
 
@@ -87,6 +88,7 @@ type Header
              import Standard.Base.Network.HTTP.Header.Header
 
              example_auth = Header.authorization "foo"
+    @value make_text_secret_selector
     authorization : Text | Enso_Secret | Derived_Secret_Value -> Header
     authorization (value : Text | Enso_Secret | Derived_Secret_Value) = Header.Value "Authorization" value
 
@@ -103,6 +105,8 @@ type Header
              import Standard.Base.Network.HTTP.Header.Header
 
              example_auth_basic = Header.authorization_basic "user" "pass"
+    @user make_text_secret_selector
+    @pass make_text_secret_selector
     authorization_basic : Text | Enso_Secret | Derived_Secret_Value -> Text | Enso_Secret | Derived_Secret_Value -> Header
     authorization_basic (user : Text | Enso_Secret | Derived_Secret_Value) (pass : Text | Enso_Secret | Derived_Secret_Value) =
         pair = (Derived_Secret_Value.from user) + (Derived_Secret_Value.from ":") + (Derived_Secret_Value.from pass)
@@ -114,6 +118,7 @@ type Header
 
        Arguments:
        - token: The token.
+    @token make_text_secret_selector
     authorization_bearer : Text | Enso_Secret | Derived_Secret_Value -> Header
     authorization_bearer (token : Text | Enso_Secret | Derived_Secret_Value) =
         value = ((Derived_Secret_Value.from "Bearer ") + (Derived_Secret_Value.from token))
@@ -134,6 +139,8 @@ type Header
              import Standard.Base.Network.HTTP.Header.Header
 
              example_content_type = Header.content_type "my_type"
+    @value make_content_type_widget
+    @encoding Encoding.default_widget
     content_type : Text -> Encoding | Nothing -> Header
     content_type value:Text encoding:(Encoding | Nothing)=Nothing =
         charset = if encoding.is_nothing then "" else "; charset="+encoding.character_set_name
@@ -203,7 +210,6 @@ type Header
              example_header_text_plain = Header.text_plain
     text_plain : Header
     text_plain = Header.content_type "text/plain"
-
 
     ## PRIVATE
        Convert to a display representation of this Header.
