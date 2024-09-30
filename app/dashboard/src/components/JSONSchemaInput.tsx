@@ -239,16 +239,19 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                                 newValue = unsafeValue!
                               }
+                              const fullObject =
+                                value ?? constantValueOfSchema(defs, childSchema, true)[0]
                               onChange(
                                 (
-                                  typeof value === 'object' &&
+                                  typeof fullObject === 'object' &&
                                     // This is SAFE; but there is no way to tell TypeScript that an object
                                     // has an index signature.
                                     // eslint-disable-next-line no-restricted-syntax
-                                    (value as Readonly<Record<string, unknown>>)[key] === newValue
+                                    (fullObject as Readonly<Record<string, unknown>>)[key] ===
+                                      newValue
                                 ) ?
-                                  value
-                                : { ...value, [key]: newValue },
+                                  fullObject
+                                : { ...fullObject, [key]: newValue },
                               )
                             }}
                           />
