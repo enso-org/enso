@@ -1,5 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Data.Numbers.Number_Parse_Error
+import Standard.Base.Metadata.Widget.Text_Input
+import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import Standard.Database.Connection.Connection_Options.Connection_Options
@@ -18,8 +20,9 @@ type Snowflake_Details
        - database: The name of the database to connect to.
        - schema: The name of the schema to connect to.
        - warehouse: The name of the warehouse to use.
+    @account (Text_Input display=..Always)
     @credentials Credentials.default_widget
-    Snowflake account:Text credentials:Credentials database:Text="SNOWFLAKE" schema:Text="PUBLIC" warehouse:Text=""
+    Snowflake (account:Text=(Missing_Argument.throw "account")) (credentials:Credentials=(Missing_Argument.throw "credentials")) database:Text="SNOWFLAKE" schema:Text="PUBLIC" warehouse:Text=""
 
     ## PRIVATE
        Attempt to resolve the constructor.
