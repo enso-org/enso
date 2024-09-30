@@ -280,6 +280,21 @@ object Pattern {
     /** @inheritdoc */
     override def children: List[IR] = constructor :: fields
 
+    override def withNewChildren(newChildren: List[IR]): IR = {
+      newChildren match {
+        case newConstructor :: newFields =>
+          copy(
+            constructor = newConstructor.asInstanceOf[IRName],
+            fields      = newFields.map(_.asInstanceOf[Pattern])
+          )
+        case _ =>
+          throw new IllegalArgumentException(
+            "Expected a single child for the constructor and a list of " +
+            "children for the fields."
+          )
+      }
+    }
+
     /** @inheritdoc */
     override def showCode(indent: Int): String = {
       val fieldsStr =

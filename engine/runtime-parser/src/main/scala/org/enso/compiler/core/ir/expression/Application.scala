@@ -495,6 +495,12 @@ object Application {
     /** @inheritdoc */
     override def children: List[IR] = items
 
+    override def withNewChildren(newChildren: List[IR]): IR = {
+      copy(
+        items = newChildren.map(_.asInstanceOf[Expression])
+      )
+    }
+
     /** @inheritdoc */
     override def showCode(indent: Int): String = {
       val itemsStr = items.map(_.showCode(indent)).mkString(", ")

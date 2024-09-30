@@ -296,6 +296,17 @@ object Expression {
     /** @inheritdoc */
     override def children: List[IR] = List(name, expression)
 
+    override def withNewChildren(newChildren: List[IR]): IR = {
+      newChildren match {
+        case List(newName: Name, newExpression: Expression) =>
+          copy(name = newName, expression = newExpression)
+        case _ =>
+          throw new IllegalArgumentException(
+            s"Invalid children list for Binding: $newChildren"
+          )
+      }
+    }
+
     /** @inheritdoc */
     override def showCode(indent: Int): String =
       s"${name.showCode(indent)} = ${expression.showCode(indent)}"
