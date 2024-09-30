@@ -276,7 +276,7 @@ type SQL_Generator
                 id = dialect.wrap_identifier name
                 target ++ "." ++ id ++ "=" ++ source ++ "." ++ id
             SQL_Builder.code "DELETE FROM " ++ target ++ " WHERE EXISTS (SELECT 1 FROM " ++ source ++ " WHERE " ++ conditions ++ ")"
-        _ -> Error.throw <| Unsupported_Database_Operation.Error "Unsupported query type: "+query.to_text
+        _ -> Error.throw <| Unsupported_Database_Operation.Error query.to_text
 
 ## PRIVATE
    Builds code for a whole query.
@@ -571,7 +571,7 @@ length = lift_unary_op "LENGTH" str->
 
 ## PRIVATE
 make_case_sensitive = lift_unary_op "MAKE_CASE_SENSITIVE" _->
-    Error.throw <| Unsupported_Database_Operation.Error ("Case sensitive operations are not currently supported by this connection.")
+    Error.throw <| Unsupported_Database_Operation.Error ("Case sensitive operations")
 
 ## PRIVATE
 simple_equals_ignore_case = Base_Generator.lift_binary_op "EQUALS_IGNORE_CASE" a-> b->

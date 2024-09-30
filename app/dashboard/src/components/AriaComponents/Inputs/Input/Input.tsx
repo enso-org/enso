@@ -12,8 +12,6 @@ import {
   type Ref,
 } from 'react'
 
-import type { VariantProps } from 'tailwind-variants'
-
 import * as aria from '#/components/aria'
 import {
   Form,
@@ -30,7 +28,7 @@ import SvgMask from '#/components/SvgMask'
 import { useAutoFocus } from '#/hooks/autoFocusHooks'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
-import type { ExtractFunction } from '#/utilities/tailwindVariants'
+import type { ExtractFunction, VariantProps } from '#/utilities/tailwindVariants'
 import { omit } from 'enso-common/src/utilities/data/object'
 import { INPUT_STYLES } from '../variants'
 

@@ -9,7 +9,7 @@ import org.graalvm.polyglot.proxy.ProxyExecutable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class ParserPolyfill implements AutoCloseable, ProxyExecutable, Polyfill {
+public final class ParserPolyfill implements ProxyExecutable, Polyfill {
 
   private static final Logger log = LoggerFactory.getLogger(ParserPolyfill.class);
 
@@ -19,21 +19,10 @@ public final class ParserPolyfill implements AutoCloseable, ProxyExecutable, Pol
 
   private static final String PARSER_JS = "parser.js";
 
-  private final Parser parser;
-
-  public ParserPolyfill() {
-    Parser p;
-    try {
-      p = Parser.create();
-    } catch (LinkageError e) {
-      log.error("Failed to create parser", e);
-      throw e;
-    }
-    this.parser = p;
-  }
+  public ParserPolyfill() {}
 
   @Override
-  public final void initialize(Context ctx) {
+  public void initialize(Context ctx) {
     Source parserJs =
         Source.newBuilder("js", ParserPolyfill.class.getResource(PARSER_JS)).buildLiteral();
 
@@ -50,7 +39,7 @@ public final class ParserPolyfill implements AutoCloseable, ProxyExecutable, Pol
       case PARSE_TREE -> {
         var input = arguments[1].asString();
 
-        yield parser.parseInputLazy(input);
+        yield Parser.parseInputLazy(input);
       }
 
       case XX_HASH_128 -> {
@@ -62,15 +51,10 @@ public final class ParserPolyfill implements AutoCloseable, ProxyExecutable, Pol
       case IS_IDENT_OR_OPERATOR -> {
         var input = arguments[1].asString();
 
-        yield parser.isIdentOrOperator(input);
+        yield Parser.isIdentOrOperator(input);
       }
 
       default -> throw new IllegalStateException(command);
     };
-  }
-
-  @Override
-  public void close() {
-    parser.close();
   }
 }

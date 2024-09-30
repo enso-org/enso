@@ -37,7 +37,6 @@ public class ParserPolyfillTest extends ExecutorSetup {
   public void tearDown() throws InterruptedException {
     super.tearDown();
     context.close();
-    parser.close();
   }
 
   @Test
