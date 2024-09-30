@@ -97,6 +97,7 @@
   "devDependencies": {
     "@codemirror/theme-one-dark": "^6.1.2",
     "@danmarshall/deckgl-typings": "^4.9.28",
+    "@babel/plugin-syntax-import-attributes": "^7.24.7",
     "@eslint/eslintrc": "^3.0.2",
     "@eslint/js": "^8.57.0",
     "@histoire/plugin-vue": "^0.17.12",

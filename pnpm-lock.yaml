@@ -10,7 +10,7 @@ overrides:
   '@types/react': ^18.0.27
   ws: ^8.18.0
 
-packageExtensionsChecksum: 01403fe73fa196dac949354c2faa20a1
+packageExtensionsChecksum: 275f877c684d778634db9159907257e2
 
 pnpmfileChecksum: yrev2pk43cjl5fkasomnhoqkcu
 
@@ -420,6 +420,9 @@ importers:
         specifier: ^3.23.8
         version: 3.23.8
     devDependencies:
+      '@babel/plugin-syntax-import-attributes':
+        specifier: ^7.24.7
+        version: 7.24.7(@babel/core@7.25.2)
       '@codemirror/theme-one-dark':
         specifier: ^6.1.2
         version: 6.1.2
@@ -7767,6 +7770,7 @@ snapshots:
       '@aws-crypto/util': 1.2.2
       '@aws-sdk/types': 3.598.0
       '@aws-sdk/util-locate-window': 3.568.0
+      '@aws-sdk/util-utf8-browser': 3.259.0
       tslib: 2.6.3
 
   '@aws-crypto/sha256-js@1.2.2':
@@ -12158,6 +12162,7 @@ snapshots:
 
   enso-support@https://codeload.github.com/enso-org/enso-bot/tar.gz/aa903b6e639a31930ee4fff55c5639e4471fa48d:
     dependencies:
+      '@types/ws': 8.5.10
       better-sqlite3: 8.7.0
       discord.js: 14.15.3
       validator: 13.12.0

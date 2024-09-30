@@ -1,6 +1,7 @@
 {
   "extends": "../tsconfig.json",
   "include": ["src/**/*.ts"],
+  "exclude": ["dist"],
   "references": [{ "path": "../ydoc-server" }],
   "compilerOptions": {
     "composite": true,

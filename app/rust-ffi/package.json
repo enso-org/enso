@@ -8,6 +8,7 @@
     "compile": "wasm-pack build . --release --out-dir pkg --target bundler",
     "postinstall": "corepack pnpm compile"
   },
-  "main":"rust-ffi-bindgen.js",
-  "typings": "rust-ffi-bindgen.d.ts"
+  "exports": {
+    ".": "./pkg/rust_ffi.js"
+  }
 }

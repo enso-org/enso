@@ -113,9 +113,16 @@
         "dependencies": {
           "@types/ws": "^8.5.5"
         }
+      },
+      "@aws-crypto/sha256-browser": {
+        "dependencies": {
+          "@aws-sdk/util-utf8-browser": "*"
+        }
       }
     },
-    "onlyBuiltDependencies": ["fsevents"]
+    "onlyBuiltDependencies": [
+      "fsevents"
+    ]
   },
   "packageManager": "pnpm@9.4.0+sha256.b6fd0bfda555e7e584ad7e56b30c68b01d5a04f9ee93989f4b93ca8473c49c74"
 }

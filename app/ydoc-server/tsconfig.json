@@ -7,7 +7,6 @@
     "noEmit": false,
     "rootDir": "src",
     "outDir": "dist",
-    "types": ["node", "ws"],
     "paths": { "#/*": ["./src/*"] }
   }
 }
