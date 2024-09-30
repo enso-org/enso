@@ -250,7 +250,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
             isDropdownVisible && matchingItems.length !== 0 ? 'grid-rows-1fr' : 'grid-rows-0fr',
           )}
         >
-          <div className="relative max-h-60 w-full overflow-y-auto overflow-x-hidden rounded-b-xl">
+          <div className="relative max-h-60 w-full overflow-auto rounded-b-xl">
             {/* FIXME: "Invite" modal does not take into account the height of the autocomplete,
              * so the suggestions may go offscreen. */}
             {matchingItems.map((item, index) => (
