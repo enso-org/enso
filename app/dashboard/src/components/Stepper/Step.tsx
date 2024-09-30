@@ -5,13 +5,13 @@
 import * as React from 'react'
 
 import { AnimatePresence, motion } from 'framer-motion'
-import * as tvw from 'tailwind-variants'
 
 import DoneIcon from '#/assets/check_mark.svg'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
 
+import { tv } from '#/utilities/tailwindVariants'
 import * as stepperProvider from './StepperProvider'
 import type { RenderStepProps } from './types'
 import type * as stepperState from './useStepperState'
@@ -31,7 +31,7 @@ export interface StepProps extends RenderStepProps {
   readonly children?: StepProp<React.ReactNode>
 }
 
-const STEP_STYLES = tvw.tv({
+const STEP_STYLES = tv({
   base: 'relative flex items-center gap-2 select-none',
   slots: {
     icon: 'w-6 h-6 border-0.5 flex-none border-current rounded-full flex items-center justify-center transition-colors duration-200',
