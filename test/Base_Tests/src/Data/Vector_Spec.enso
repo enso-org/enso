@@ -85,7 +85,7 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         "Can't run Python tests, Python is not installed."
 
     group_builder.specify "text bytes" <|
-        "Lore".utf_8 . should_equal []
+        "Lore".utf_8 . should_equal [76, 111, 114, 101]
 
     group_builder.specify "should allow vector creation with a programmatic constructor" <|
         Vector.new 100 (ix -> ix + 1) . fold 0 (+) . should_equal 5050
