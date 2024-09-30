@@ -7,6 +7,7 @@ import static org.enso.persist.PerUtils.raise;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -219,7 +220,7 @@ final class PerInputImpl implements Input {
     res = cache.resolveObject(res);
     var prev = cache.putObjectAt(at, res);
     if (prev != null) {
-      var bothObjectsAreTheSame = Objects.equals(res, prev);
+      var bothObjectsAreTheSame = gentlyEquals(res, prev);
       var sb = new StringBuilder();
       sb.append("Adding at ").append(at).append(" object:\n  ");
       dumpObject(sb, res);
@@ -234,6 +235,29 @@ final class PerInputImpl implements Input {
       }
     }
     return res;
+  }
+
+  private static Class<?> irClass;
+  private static Comparator STRUCTURE_COMPARATOR;
+
+  @SuppressWarnings("unchecked")
+  private static boolean gentlyEquals(Object o1, Object o2) {
+    if (Objects.equals(o1, o2)) {
+      return true;
+    }
+    try {
+      if (STRUCTURE_COMPARATOR == null) {
+        irClass = Class.forName("org.enso.compiler.core.IR");
+        var comparatorField = irClass.getField("STRUCTURE_COMPARATOR");
+        STRUCTURE_COMPARATOR = (java.util.Comparator) comparatorField.get(null);
+      }
+      if (irClass.isInstance(o1) && irClass.isInstance(o2)) {
+        return STRUCTURE_COMPARATOR.compare(o1, o2) == 0;
+      }
+    } catch (ReflectiveOperationException ex) {
+      PerUtils.LOG.warn("Cannot compare " + o1.getClass(), ex);
+    }
+    return false;
   }
 
   private static void dumpObject(StringBuilder sb, Object obj) {
