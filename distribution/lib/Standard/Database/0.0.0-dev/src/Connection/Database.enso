@@ -19,6 +19,7 @@ polyglot java import org.enso.database.DatabaseConnectionDetailsSPI
    - details: `Connection_Details` specifying the database to connect to.
    - options: Additional custom connection options for the JDBC connection.
 @details connection_details_widget
+@options Connection_Options.default_widget
 connect : Connection_Details -> Connection_Options -> Connection ! SQL_Error
 connect details options:Connection_Options=..Value = case details of
     _ : Function -> (resolve_constructor details) . connect options
