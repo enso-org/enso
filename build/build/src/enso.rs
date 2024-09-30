@@ -253,7 +253,7 @@ impl BuiltEnso {
         let futures = std_tests.into_iter().map(|test_path| {
             let command: std::result::Result<Command, anyhow::Error> =
                 self.run_test(test_path, ir_caches, environment_overrides.clone());
-            async move { command?.run_ok_preserve_stdout().await }
+            async move { command?.run_ok().await }
         });
 
         // We need to join all the test tasks here, as they require postgres and httpbin alive.
