@@ -68,7 +68,7 @@ get_configured_connection_details =
     resolved_password = if password.starts_with "enso://" then Enso_Secret.get password else password
     credentials = Credentials.Username_And_Password user resolved_password
     if database.is_nothing then Nothing else
-        SQLServer_Details.SQLServer host port credentials database
+        SQLServer_Details.SQLServer host credentials port database
 
 ## Returns a function that takes anything and returns a new connection.
    The function creates a _new_ connection on each invocation

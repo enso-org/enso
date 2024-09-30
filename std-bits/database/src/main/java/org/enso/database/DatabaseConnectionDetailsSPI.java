@@ -1,9 +1,8 @@
 package org.enso.database;
 
+import java.util.ServiceLoader;
 import org.enso.base.polyglot.EnsoMeta;
 import org.graalvm.polyglot.Value;
-
-import java.util.ServiceLoader;
 
 public abstract class DatabaseConnectionDetailsSPI {
   private static final ServiceLoader<DatabaseConnectionDetailsSPI> loader =

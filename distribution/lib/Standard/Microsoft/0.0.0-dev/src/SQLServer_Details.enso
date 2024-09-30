@@ -1,6 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Data.Numbers.Number_Parse_Error
+import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Metadata.Widget.Text_Input
 
 import Standard.Database.Connection.Connection_Options.Connection_Options
 import Standard.Database.Connection.Credentials.Credentials
@@ -12,11 +14,12 @@ type SQLServer_Details
 
        Arguments:
        - host: The name of the server to connect to.
-       - port: The port to connect to.
        - credentials: The credentials to use for the connection.
+       - port: The port to connect to (defaults to 1433).
        - database: The name of the database to connect to.
+    @host (Text_Input display=..Always)
     @credentials Credentials.default_widget
-    SQLServer host:Text port:Integer credentials:Credentials database:Text="master"
+    SQLServer (host:Text=(Missing_Argument.throw "host")) (credentials:Credentials=(Missing_Argument.throw "credentials")) port:Integer=1433 database:Text="master"
 
     ## PRIVATE
        Attempt to resolve the constructor.
@@ -33,7 +36,7 @@ type SQLServer_Details
     connect self options =
         properties = options.merge self.jdbc_properties
         make_new database =
-            SQLServer_Details.SQLServer self.host self.port self.credentials (database.if_nothing self.database) . connect options
+            SQLServer_Details.SQLServer self.host self.credentials self.port (database.if_nothing self.database) . connect options
 
         SQLServer_Connection.create self.jdbc_url properties make_new
 
