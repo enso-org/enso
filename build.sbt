@@ -665,7 +665,6 @@ lazy val componentModulesPaths =
       "com.google.protobuf"    % "protobuf-java"                % googleProtobufVersion,
       "commons-cli"            % "commons-cli"                  % commonsCliVersion,
       "commons-io"             % "commons-io"                   % commonsIoVersion,
-      "net.java.dev.jna"       % "jna"                          % jnaVersion,
       "org.yaml"               % "snakeyaml"                    % snakeyamlVersion,
       "org.eclipse.jgit"       % "org.eclipse.jgit"             % jgitVersion,
       "com.typesafe"           % "config"                       % typesafeConfigVersion,
@@ -720,6 +719,7 @@ lazy val componentModulesPaths =
     (`zio-wrapper` / Compile / exportedModuleBin).value,
     (`language-server-deps-wrapper` / Compile / exportedModuleBin).value,
     (`directory-watcher-wrapper` / Compile / exportedModuleBin).value,
+    (`jna-wrapper` / Compile / exportedModuleBin).value,
     (`ydoc-server` / Compile / exportedModuleBin).value,
     (`library-manager` / Compile / exportedModuleBin).value,
     (`logging-config` / Compile / exportedModuleBin).value,
@@ -1193,10 +1193,9 @@ lazy val `scala-libs-wrapper` = project
       "net.java.dev.jna"                       % "jna"                   % jnaVersion
     ),
     Compile / moduleDependencies ++= scalaLibrary ++ Seq(
-      "org.scala-lang"   % "scala-reflect" % scalacVersion,
-      "org.jline"        % "jline"         % jlineVersion,
-      "org.slf4j"        % "slf4j-api"     % slf4jVersion,
-      "net.java.dev.jna" % "jna"           % jnaVersion
+      "org.scala-lang" % "scala-reflect" % scalacVersion,
+      "org.jline"      % "jline"         % jlineVersion,
+      "org.slf4j"      % "slf4j-api"     % slf4jVersion
     ),
     assembly / assemblyExcludedJars := {
       JPMSUtils.filterModulesFromClasspath(
@@ -1296,6 +1295,34 @@ lazy val `language-server-deps-wrapper` = project
     }
   )
 
+lazy val `jna-wrapper` = project
+  .in(file("lib/java/jna-wrapper"))
+  .enablePlugins(JPMSPlugin)
+  .settings(
+    modularFatJarWrapperSettings,
+    autoScalaLibrary := false,
+    libraryDependencies ++= Seq(
+      "net.java.dev.jna" % "jna" % jnaVersion
+    ),
+    javaModuleName := "org.enso.jna.wrapper",
+    Compile / patchModules := {
+      val jna = JPMSUtils.filterModulesFromUpdate(
+        update.value,
+        scalaLibrary ++
+        Seq(
+          "net.java.dev.jna" % "jna" % jnaVersion
+        ),
+        streams.value.log,
+        moduleName.value,
+        scalaBinaryVersion.value,
+        shouldContainAll = true
+      )
+      Map(
+        javaModuleName.value -> jna
+      )
+    }
+  )
+
 lazy val `directory-watcher-wrapper` = project
   .in(file("lib/java/directory-watcher-wrapper"))
   .enablePlugins(JPMSPlugin)
@@ -1323,8 +1350,10 @@ lazy val `directory-watcher-wrapper` = project
       )
     },
     Compile / moduleDependencies ++= Seq(
-      "net.java.dev.jna" % "jna"       % jnaVersion,
-      "org.slf4j"        % "slf4j-api" % "1.7.36"
+      "org.slf4j" % "slf4j-api" % "1.7.36"
+    ),
+    Compile / internalModuleDependencies := Seq(
+      (`jna-wrapper` / Compile / exportedModule).value
     ),
     Compile / patchModules := {
       val scalaLibs = JPMSUtils.filterModulesFromUpdate(
@@ -2272,7 +2301,6 @@ lazy val `language-server` = (project in file("engine/language-server"))
         "org.jline"              % "jline"                        % jlineVersion,
         "org.apache.tika"        % "tika-core"                    % tikaVersion,
         "com.ibm.icu"            % "icu4j"                        % icuVersion,
-        "net.java.dev.jna"       % "jna"                          % jnaVersion,
         "org.netbeans.api"       % "org-openide-util-lookup"      % netbeansApiVersion
       )
     },
@@ -2291,6 +2319,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       (`logging-service-logback` / Test / exportedModule).value,
       (`version-output` / Compile / exportedModule).value,
       (`scala-libs-wrapper` / Compile / exportedModule).value,
+      (`jna-wrapper` / Compile / exportedModule).value,
       (`akka-wrapper` / Compile / exportedModule).value,
       (`language-server-deps-wrapper` / Compile / exportedModule).value,
       (`fansi-wrapper` / Compile / exportedModule).value,
