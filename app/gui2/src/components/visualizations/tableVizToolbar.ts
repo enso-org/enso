@@ -140,7 +140,7 @@ function useSortFilterNodesButton({
   }
 
   const createNodesButton: ToolbarItem = {
-    icon: 'add',
+    icon: 'add-to-graph_editor',
     title:
       "Create new component(s) with the current grid's sort and filters applied to the workflow",
     disabled: isDisabled,
