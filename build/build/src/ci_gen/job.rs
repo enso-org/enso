@@ -531,7 +531,11 @@ impl JobArchetype for PackageIde {
         )
         .customize(move |step| {
             let mut steps = prepare_packaging_steps(target.0, step);
-            steps.push(shell("corepack pnpm -r --filter enso exec playwright test").with_env("DEBUG", "pw:browser log:"));
+            steps.push(
+                shell("corepack pnpm -r --filter enso exec playwright test")
+                    .with_env("DEBUG", "pw:browser log:")
+                    .with_secret_exposed_as(secret::ENSO_CLOUD_TEST_ACCOUNT_USERNAME, "ENSO_TEST_USER")
+                    .with_secret_exposed_as(secret::ENSO_CLOUD_TEST_ACCOUNT_PASSWORD, "ENSO_TEST_USER_PASSWORD"));
             steps
         })
         .build_job("Package New IDE", target)
