@@ -720,6 +720,7 @@ lazy val componentModulesPaths =
     (`zio-wrapper` / Compile / exportedModuleBin).value,
     (`language-server-deps-wrapper` / Compile / exportedModuleBin).value,
     (`directory-watcher-wrapper` / Compile / exportedModuleBin).value,
+    (`jna-wrapper` / Compile / exportedModuleBin).value,
     (`ydoc-server` / Compile / exportedModuleBin).value,
     (`library-manager` / Compile / exportedModuleBin).value,
     (`logging-config` / Compile / exportedModuleBin).value,
@@ -1296,6 +1297,34 @@ lazy val `language-server-deps-wrapper` = project
     }
   )
 
+lazy val `jna-wrapper` = project
+  .in(file("lib/java/jna-wrapper"))
+  .enablePlugins(JPMSPlugin)
+  .settings(
+    modularFatJarWrapperSettings,
+    autoScalaLibrary := false,
+    libraryDependencies ++= Seq(
+      "net.java.dev.jna" % "jna" % jnaVersion
+    ),
+    javaModuleName := "org.enso.jna.wrapper",
+    Compile / patchModules := {
+      val jna = JPMSUtils.filterModulesFromUpdate(
+        update.value,
+        scalaLibrary ++
+        Seq(
+          "net.java.dev.jna" % "jna" % jnaVersion
+        ),
+        streams.value.log,
+        moduleName.value,
+        scalaBinaryVersion.value,
+        shouldContainAll = true
+      )
+      Map(
+        javaModuleName.value -> jna
+      )
+    }
+  )
+
 lazy val `directory-watcher-wrapper` = project
   .in(file("lib/java/directory-watcher-wrapper"))
   .enablePlugins(JPMSPlugin)
@@ -1323,8 +1352,10 @@ lazy val `directory-watcher-wrapper` = project
       )
     },
     Compile / moduleDependencies ++= Seq(
-      "net.java.dev.jna" % "jna"       % jnaVersion,
-      "org.slf4j"        % "slf4j-api" % "1.7.36"
+      "org.slf4j" % "slf4j-api" % "1.7.36"
+    ),
+    Compile / internalModuleDependencies := Seq(
+      (`jna-wrapper` / Compile / exportedModule).value
     ),
     Compile / patchModules := {
       val scalaLibs = JPMSUtils.filterModulesFromUpdate(
