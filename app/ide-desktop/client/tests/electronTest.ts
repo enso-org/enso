@@ -11,6 +11,7 @@ export function electronTest(name: string, body: (page: Page) => Promise<void> |
   test(name, async () => {
     const app = await _electron.launch({
       executablePath: process.env.ENSO_TEST_EXEC_PATH ?? '',
+      args: process.env.ENSO_TEST_APP_ARGS != null ? process.env.ENSO_TEST_APP_ARGS.split(',') : [],
       env: { ...process.env, ['ENSO_TEST']: name },
     })
     const page = await app.firstWindow()

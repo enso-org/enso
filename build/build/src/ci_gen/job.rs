@@ -531,11 +531,13 @@ impl JobArchetype for PackageIde {
         )
         .customize(move |step| {
             let mut steps = prepare_packaging_steps(target.0, step);
-            steps.push(
-                shell("corepack pnpm -r --filter enso exec playwright test")
-                    .with_env("DEBUG", "pw:browser log:")
-                    .with_secret_exposed_as(secret::ENSO_CLOUD_TEST_ACCOUNT_USERNAME, "ENSO_TEST_USER")
-                    .with_secret_exposed_as(secret::ENSO_CLOUD_TEST_ACCOUNT_PASSWORD, "ENSO_TEST_USER_PASSWORD"));
+            let test_step = shell("corepack pnpm -r --filter enso exec playwright test")
+            .with_env("DEBUG", "pw:browser log:")
+            .with_secret_exposed_as(secret::ENSO_CLOUD_TEST_ACCOUNT_USERNAME, "ENSO_TEST_USER")
+            .with_secret_exposed_as(secret::ENSO_CLOUD_TEST_ACCOUNT_PASSWORD, "ENSO_TEST_USER_PASSWORD");
+            // See https://askubuntu.com/questions/1512287/obsidian-appimage-the-suid-sandbox-helper-binary-was-found-but-is-not-configu
+            let test_step = if target.0 == OS::Linux { test_step.with_env("ENSO_TEST_APP_ARGS", "--no-sandbox")} else { test_step };
+            steps.push(test_step);
             steps
         })
         .build_job("Package New IDE", target)

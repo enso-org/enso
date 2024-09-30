@@ -368,6 +368,9 @@ jobs:
       - run: corepack pnpm -r --filter enso exec playwright test
         env:
           DEBUG: "pw:browser log:"
+          ENSO_TEST_APP_ARGS: --no-sandbox
+          ENSO_TEST_USER: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_USERNAME }}
+          ENSO_TEST_USER_PASSWORD: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_PASSWORD }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
@@ -435,6 +438,8 @@ jobs:
       - run: corepack pnpm -r --filter enso exec playwright test
         env:
           DEBUG: "pw:browser log:"
+          ENSO_TEST_USER: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_USERNAME }}
+          ENSO_TEST_USER_PASSWORD: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_PASSWORD }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
@@ -498,6 +503,8 @@ jobs:
       - run: corepack pnpm -r --filter enso exec playwright test
         env:
           DEBUG: "pw:browser log:"
+          ENSO_TEST_USER: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_USERNAME }}
+          ENSO_TEST_USER_PASSWORD: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_PASSWORD }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
