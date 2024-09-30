@@ -30,7 +30,6 @@ interface InternalLabelProps extends Readonly<React.PropsWithChildren> {
   readonly draggable?: boolean
   readonly color: backend.LChColor
   readonly title?: string
-  readonly className?: string
   readonly onPress: (event: aria.PressEvent | React.MouseEvent<HTMLButtonElement>) => void
   readonly onContextMenu?: (event: React.MouseEvent<HTMLElement>) => void
   readonly onDragStart?: (event: React.DragEvent<HTMLElement>) => void
@@ -39,22 +38,12 @@ interface InternalLabelProps extends Readonly<React.PropsWithChildren> {
 /** An label that can be applied to an asset. */
 export default function Label(props: InternalLabelProps) {
   const { active = false, isDisabled = false, color, negated = false, draggable, title } = props
-  const { className = 'text-tag-text', onPress, onDragStart, onContextMenu } = props
+  const { onPress, onDragStart, onContextMenu } = props
   const { children: childrenRaw } = props
   const focusDirection = focusDirectionProvider.useFocusDirection()
   const handleFocusMove = focusHooks.useHandleFocusMove(focusDirection)
-  const textClass =
-    /\btext-/.test(className) ?
-      '' // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    : color.lightness <= 50 ? 'text-tag-text'
-    : 'text-primary'
-
-  const children =
-    typeof childrenRaw !== 'string' ? childrenRaw : (
-      <ariaComponents.Text truncate="1" className="max-w-24" color="invert" variant="body">
-        {childrenRaw}
-      </ariaComponents.Text>
-    )
+  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+  const isLight = color.lightness > 50
 
   return (
     <FocusRing within placement="after">
@@ -76,8 +65,6 @@ export default function Label(props: InternalLabelProps) {
             'focus-child relative flex h-6 items-center whitespace-nowrap rounded-inherit px-[7px] opacity-75 transition-all after:pointer-events-none after:absolute after:inset after:rounded-full hover:opacity-100 focus:opacity-100',
             active && 'active',
             negated && 'after:border-2 after:border-delete',
-            className,
-            textClass,
           )}
           style={{ backgroundColor: backend.lChColorToCssColor(color) }}
           onClick={(event) => {
@@ -90,7 +77,17 @@ export default function Label(props: InternalLabelProps) {
           onContextMenu={onContextMenu}
           onKeyDown={handleFocusMove}
         >
-          {children}
+          {typeof childrenRaw !== 'string' ?
+            childrenRaw
+          : <ariaComponents.Text
+              truncate="1"
+              className="max-w-24"
+              color={isLight ? 'primary' : 'invert'}
+              variant="body"
+            >
+              {childrenRaw}
+            </ariaComponents.Text>
+          }
         </button>
       </div>
     </FocusRing>

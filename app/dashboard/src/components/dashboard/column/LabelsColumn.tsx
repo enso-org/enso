@@ -74,11 +74,6 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
             active={!temporarilyRemovedLabels.has(label)}
             isDisabled={temporarilyRemovedLabels.has(label)}
             negated={temporarilyRemovedLabels.has(label)}
-            className={
-              temporarilyRemovedLabels.has(label) ?
-                'relative before:absolute before:inset before:h-full before:w-full before:rounded-full before:border-2 before:border-delete'
-              : ''
-            }
             onContextMenu={(event) => {
               event.preventDefault()
               event.stopPropagation()
@@ -129,7 +124,6 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
             isDisabled
             key={label}
             color={labelsByName.get(label)?.color ?? backendModule.COLORS[0]}
-            className="pointer-events-none"
             onPress={() => {}}
           >
             {label}
