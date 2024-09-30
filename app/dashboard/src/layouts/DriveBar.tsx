@@ -27,8 +27,10 @@ import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import {
   useCanCreateAssets,
   useCanDownload,
+  useDriveStore,
   useIsAssetPanelVisible,
   useSetIsAssetPanelPermanentlyVisible,
+  useSetIsAssetPanelTemporarilyVisible,
 } from '#/providers/DriveProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { useSetModal } from '#/providers/ModalProvider'
@@ -73,12 +75,14 @@ export default function DriveBar(props: DriveBarProps) {
     false,
   )
 
+  const driveStore = useDriveStore()
   const { unsetModal } = useSetModal()
   const { getText } = useText()
   const inputBindings = useInputBindings()
   const dispatchAssetEvent = useDispatchAssetEvent()
   const canCreateAssets = useCanCreateAssets()
   const isAssetPanelVisible = useIsAssetPanelVisible()
+  const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
   const setIsAssetPanelPermanentlyVisible = useSetIsAssetPanelPermanentlyVisible()
   const createAssetButtonsRef = React.useRef<HTMLDivElement>(null)
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)
@@ -164,7 +168,14 @@ export default function DriveBar(props: DriveBarProps) {
           icon={RightPanelIcon}
           aria-label={isAssetPanelVisible ? getText('openAssetPanel') : getText('closeAssetPanel')}
           onPress={() => {
-            setIsAssetPanelPermanentlyVisible(!isAssetPanelVisible)
+            const isAssetPanelTemporarilyVisible =
+              driveStore.getState().isAssetPanelTemporarilyVisible
+            if (isAssetPanelTemporarilyVisible) {
+              setIsAssetPanelTemporarilyVisible(false)
+              setIsAssetPanelPermanentlyVisible(false)
+            } else {
+              setIsAssetPanelPermanentlyVisible(!isAssetPanelVisible)
+            }
           }}
         />
       </div>
