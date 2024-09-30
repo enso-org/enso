@@ -129,7 +129,7 @@ test('Input node', async ({ page }) => {
 
   const inputNode = locate.inputNode(page)
   await expect(inputNode).toHaveCount(1)
-  // Output node with identifier should have the icon and an identifier
+  // Input node with identifier should have the icon and an identifier.
   await expect(inputNode.locator('.WidgetIcon')).toHaveCount(1)
   await expect(inputNode.locator('.WidgetToken')).toContainText('a')
 

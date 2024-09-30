@@ -63,7 +63,7 @@ export function prepareCollapsedInfo(
   const leaves = new Set(selected)
   const inputSet: Set<Identifier> = new Set()
   let output: Output | null = null
-  for (const [targetExprId, sourceExprIds] of graphDb.allConnections.allReverse()) {
+  for (const [targetExprId, sourceExprIds] of graphDb.connections.allReverse()) {
     const targetNode = graphDb.getExpressionNodeId(targetExprId)
     if (targetNode == null) continue
     for (const sourceExprId of sourceExprIds) {

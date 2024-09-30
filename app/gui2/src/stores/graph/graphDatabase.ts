@@ -134,7 +134,7 @@ export class BindingsDb {
 
 export class GraphDb {
   nodeIdToNode = new ReactiveDb<NodeId, Node>()
-  private readonly blockNodeLines = new Map<NodeId, { data: NodeInfo; stop: WatchStopHandle }>()
+  private readonly nodeSources = new Map<NodeId, { data: NodeSource; stop: WatchStopHandle }>()
   private highestZIndex = 0
   private readonly idToExternalMap = reactive(new Map<Ast.AstId, ExternalId>())
   private readonly idFromExternalMap = reactive(new Map<ExternalId, Ast.AstId>())
@@ -159,15 +159,8 @@ export class GraphDb {
   })
 
   connections = new ReactiveIndex(this.bindings.bindings, (alias, info) => {
-    const srcNode = this.getPatternExpressionNodeId(alias)
-    return Array.from(this.connectionsFromBindings(info, alias, srcNode))
-  })
-
-  /** Same as {@link GraphDb.connections}, but also includes connections without source node,
-   * e.g. input arguments of the collapsed function.
-   */
-  allConnections = new ReactiveIndex(this.bindings.bindings, (alias, info) => {
-    const srcNode = this.getPatternExpressionNodeId(alias)
+    const srcNode = this.getPatternExpressionNodeId(alias) ?? this.getExpressionNodeId(alias)
+    if (srcNode == null) return []
     return Array.from(this.connectionsFromBindings(info, alias, srcNode))
   })
 
@@ -341,9 +334,9 @@ export class GraphDb {
       isOutput: boolean,
       argIndex: number | undefined,
     ) => {
-      const oldNode = nonReactiveView(this.blockNodeLines.get(nodeId)?.data)
+      const oldNode = nonReactiveView(this.nodeSources.get(nodeId)?.data)
       if (oldNode) {
-        const node = resumeShallowReactivity<NodeInfo>(oldNode)
+        const node = resumeShallowReactivity<NodeSource>(oldNode)
         if (oldNode.isOutput !== isOutput) node.isOutput = isOutput
         if (oldNode.isInput !== isInput) node.isInput = isInput
         if (oldNode.argIndex !== argIndex) node.argIndex = argIndex
@@ -359,7 +352,7 @@ export class GraphDb {
             data.argIndex,
           ),
         )
-        this.blockNodeLines.set(nodeId, { data, stop })
+        this.nodeSources.set(nodeId, { data, stop })
       }
       currentNodeIds.add(nodeId)
     }
@@ -374,11 +367,11 @@ export class GraphDb {
       const isLastInBlock = index === body.length - 1
       update(nodeId, outerAst, false, isLastInBlock, undefined)
     })
-    for (const [nodeId, info] of this.blockNodeLines.entries()) {
+    for (const [nodeId, info] of this.nodeSources.entries()) {
       if (!currentNodeIds.has(nodeId)) {
         info.stop()
         this.nodeIdToNode.delete(nodeId)
-        this.blockNodeLines.delete(nodeId)
+        this.nodeSources.delete(nodeId)
       }
     }
   }
@@ -431,7 +424,6 @@ export class GraphDb {
       if (oldNode.primarySubject !== primarySubject) node.primarySubject = primarySubject
       if (!recordEqual(oldNode.prefixes, prefixes)) node.prefixes = prefixes
       syncSetDiff(node.conditionalPorts, oldNode.conditionalPorts, conditionalPorts)
-      if (oldNode.argIndex !== argIndex) node.argIndex = argIndex
       // Ensure new fields can't be added to `NodeAstData` without this code being updated.
       const _allFieldsHandled = {
         type,
@@ -554,10 +546,17 @@ export class GraphDb {
   }
 }
 
-interface NodeInfo {
+/** Source code data of the specific node. */
+interface NodeSource {
+  /** The outer AST of the node (see {@link NodeDataFromAst.outerExpr}). */
   outerAst: Ast.Ast
+  /** Whether the node is `output` of the function or not. Mutually exclusive with `isInput`.
+   * Output node is the last node in a function body and has no pattern. */
   isOutput: boolean
+  /** Whether the node is `input` of the function or not. Mutually exclusive with `isOutput`.
+   * Input node is a function argument. */
   isInput: boolean
+  /** The index of the argument in the function's argument list, if the node is an input node. */
   argIndex: number | undefined
 }
 
