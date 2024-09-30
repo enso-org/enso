@@ -70,7 +70,6 @@ export default function ManageLabelsModal<Asset extends AnyAsset = AnyAsset>(
 
   const query = Form.useWatch({ control: form.control, name: 'name' })
   const labels = Form.useWatch({ control: form.control, name: 'labels' })
-  const labelNames = useMemo(() => new Set(labels), [labels])
 
   const regex = useMemo(() => new RegExp(regexEscape(query), 'i'), [query])
   const canSelectColor = useMemo(
@@ -81,18 +80,6 @@ export default function ManageLabelsModal<Asset extends AnyAsset = AnyAsset>(
 
   const createTag = useMutation(backendMutationOptions(backend, 'createTag')).mutateAsync
   const associateTag = useMutation(backendMutationOptions(backend, 'associateTag')).mutateAsync
-
-  const doToggleLabel = async (name: LabelName, override?: boolean) => {
-    const newLabels =
-      override ?? labelNames.has(name) ?
-        labels.filter((label) => label !== name)
-      : [...labels, name]
-    try {
-      await associateTag([item.id, newLabels.map(LabelName), item.title])
-    } catch (error) {
-      toastAndLog(null, error)
-    }
-  }
 
   return (
     <Modal
@@ -150,6 +137,9 @@ export default function ManageLabelsModal<Asset extends AnyAsset = AnyAsset>(
                 form={form}
                 name="labels"
                 className="max-h-manage-labels-list overflow-auto"
+                onChange={async (values) => {
+                  await associateTag([item.id, values.map(LabelName), item.title])
+                }}
                 {...innerProps}
               >
                 <>
@@ -158,24 +148,11 @@ export default function ManageLabelsModal<Asset extends AnyAsset = AnyAsset>(
                     .map((label) => {
                       const isActive = labels.includes(label.value)
                       return (
-                        <div key={label.id} className="flex h-row items-center">
-                          <Checkbox
-                            value={String(label.value)}
-                            isSelected={isActive}
-                            onChange={(isSelected) => {
-                              void doToggleLabel(label.value, isSelected)
-                            }}
-                          />
-                          <Label
-                            active={isActive}
-                            color={label.color}
-                            onPress={() => {
-                              void doToggleLabel(label.value)
-                            }}
-                          >
+                        <Checkbox key={label.id} value={String(label.value)} isSelected={isActive}>
+                          <Label active={isActive} color={label.color} onPress={() => {}}>
                             {label.value}
                           </Label>
-                        </div>
+                        </Checkbox>
                       )
                     })}
                 </>
