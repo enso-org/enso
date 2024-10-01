@@ -761,12 +761,14 @@ type Float
          Parse the text "7.6" into a float number.
 
              Float.parse "7.6"
-    parse : Text -> Locale | Nothing -> Float ! Number_Parse_Error
-    parse text locale=Nothing = case locale of
-        Nothing -> Panic.catch NumberFormatException (Double.parseDouble text) _->
-            Error.throw (Number_Parse_Error.Error text)
-        Locale.Value java_locale -> Panic.catch ParseException ((NumberFormat.getInstance java_locale).parse text) _->
-            Error.throw (Number_Parse_Error.Error text)
+    parse : Text -> Locale | Nothing -> Float ! Number_Parse_Error ! Illegal_Argument
+    parse text locale:Locale=Locale.default format:Text="" -> Float ! Number_Parse_Error ! Illegal_Argument =
+        Illegal_Argument.handle_java_exception <|
+            # `getInstance` returns `DecimalFormat` or a subclass of `DecimalFormat`.
+            decimal_format = NumberFormat.getInstance locale.java_locale
+            decimal_format.applyLocalizedPattern format
+            Panic.catch ParseException (decimal_format.parse text) _->
+                Error.throw (Number_Parse_Error.Error text)
 
     ## ICON input_number
 
