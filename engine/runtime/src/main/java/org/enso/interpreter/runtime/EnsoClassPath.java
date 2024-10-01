@@ -37,7 +37,7 @@ public final class EnsoClassPath {
                 })
             .map(mod -> mod.descriptor().name())
             .toList();
-    if (moduleNames.isEmpty()) {
+    if (moduleNames.isEmpty() && parents.isEmpty()) {
       return EMPTY;
     } else {
       var finder = ModuleFinder.of(locations.toArray(new Path[0]));
@@ -59,7 +59,8 @@ public final class EnsoClassPath {
         cntrl = ModuleLayer.defineModulesWithOneLoader(cfg, parentLayers, parentLoader);
       }
       var layer = cntrl.layer();
-      var loader = layer.findLoader(moduleNames.get(0));
+      var loader =
+          !moduleNames.isEmpty() ? layer.findLoader(moduleNames.get(0)) : parents.get(0).loader;
       return new EnsoClassPath(cntrl, layer, loader);
     }
   }
