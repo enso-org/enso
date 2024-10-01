@@ -61,7 +61,7 @@ type SQLServer_Info_Data
 
 get_configured_connection_details =
     host = Environment.get "ENSO_SQLSERVER_HOST" if_missing="localhost"
-    port = Environment.get "ENSO_SQLSERVER_PORT" if_missing="1433"
+    port = Integer.parse (Environment.get "ENSO_SQLSERVER_PORT" if_missing="1433")
     user = Environment.get "ENSO_SQLSERVER_USER" if_missing="sa"
     password = Environment.get "ENSO_SQLSERVER_PASSWORD" if_missing="<YourStrong@Passw0rd>"
     database = Environment.get "ENSO_SQLSERVER_DATABASE"
