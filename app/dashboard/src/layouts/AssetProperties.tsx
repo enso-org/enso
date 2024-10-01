@@ -25,8 +25,10 @@ import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 
+import { useSpotlight } from '#/hooks/spotlightHooks'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
+import { useDriveStore, useSetAssetPanelProps } from '#/providers/DriveProvider'
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
@@ -35,6 +37,9 @@ import * as permissions from '#/utilities/permissions'
 // === AssetProperties ===
 // =======================
 
+/** Possible elements in this screen to spotlight on. */
+export type AssetPropertiesSpotlight = 'datalink' | 'description' | 'secret'
+
 /** Props for an {@link AssetPropertiesProps}. */
 export interface AssetPropertiesProps {
   readonly backend: Backend
@@ -42,11 +47,12 @@ export interface AssetPropertiesProps {
   readonly setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AnyAssetTreeNode>>
   readonly category: Category
   readonly isReadonly?: boolean
+  readonly spotlightOn: AssetPropertiesSpotlight | undefined
 }
 
 /** Display and modify the properties of an asset. */
 export default function AssetProperties(props: AssetPropertiesProps) {
-  const { backend, item, setItem, category } = props
+  const { backend, item, setItem, category, spotlightOn } = props
   const { isReadonly = false } = props
 
   const { user } = authProvider.useFullUserSession()
@@ -65,6 +71,34 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     () => datalinkValidator.validateDatalink(datalinkValue),
     [datalinkValue],
   )
+  const driveStore = useDriveStore()
+  const setAssetPanelProps = useSetAssetPanelProps()
+  const closeSpotlight = () => {
+    const assetPanelProps = driveStore.getState().assetPanelProps
+    if (assetPanelProps != null) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { spotlightOn: unusedSpotlightOn, ...rest } = assetPanelProps
+      setAssetPanelProps(rest)
+    }
+  }
+  const descriptionRef = React.useRef<HTMLDivElement>(null)
+  const descriptionSpotlight = useSpotlight({
+    ref: descriptionRef,
+    enabled: spotlightOn === 'description',
+    close: closeSpotlight,
+  })
+  const secretRef = React.useRef<HTMLDivElement>(null)
+  const secretSpotlight = useSpotlight({
+    ref: secretRef,
+    enabled: spotlightOn === 'secret',
+    close: closeSpotlight,
+  })
+  const datalinkRef = React.useRef<HTMLDivElement>(null)
+  const datalinkSpotlight = useSpotlight({
+    ref: datalinkRef,
+    enabled: spotlightOn === 'datalink',
+    close: closeSpotlight,
+  })
 
   const labels = useBackendQuery(backend, 'listTags', []).data ?? []
   const self = permissions.tryFindSelfPermission(user, item.item.permissions)
@@ -126,6 +160,9 @@ export default function AssetProperties(props: AssetPropertiesProps) {
 
   return (
     <>
+      {descriptionSpotlight.spotlightElement}
+      {secretSpotlight.spotlightElement}
+      {datalinkSpotlight.spotlightElement}
       <div className="pointer-events-auto flex flex-col items-start gap-side-panel">
         <aria.Heading
           level={2}
@@ -145,8 +182,10 @@ export default function AssetProperties(props: AssetPropertiesProps) {
           )}
         </aria.Heading>
         <div
+          ref={descriptionRef}
           data-testid="asset-panel-description"
-          className="self-stretch py-side-panel-description-y"
+          className="self-stretch rounded-default py-side-panel-description-y"
+          {...descriptionSpotlight.props}
         >
           {!isEditingDescription ?
             <aria.Text className="text">{item.item.description}</aria.Text>
@@ -258,7 +297,11 @@ export default function AssetProperties(props: AssetPropertiesProps) {
       )}
 
       {isSecret && (
-        <div className="pointer-events-auto flex flex-col items-start gap-side-panel-section">
+        <div
+          ref={secretRef}
+          className="pointer-events-auto flex flex-col items-start gap-side-panel-section rounded-default"
+          {...secretSpotlight.props}
+        >
           <aria.Heading
             level={2}
             className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug"
@@ -277,7 +320,11 @@ export default function AssetProperties(props: AssetPropertiesProps) {
       )}
 
       {isDatalink && (
-        <div className="pointer-events-auto flex flex-col items-start gap-side-panel-section">
+        <div
+          ref={datalinkRef}
+          className="pointer-events-auto flex flex-col items-start gap-side-panel-section rounded-default"
+          {...datalinkSpotlight.props}
+        >
           <aria.Heading
             level={2}
             className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug"

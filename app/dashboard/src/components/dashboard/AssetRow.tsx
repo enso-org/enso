@@ -32,8 +32,6 @@ import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import { isCloudCategory } from '#/layouts/CategorySwitcher/Category'
 import * as localBackend from '#/services/LocalBackend'
 
-import EditAssetDescriptionModal from '#/modals/EditAssetDescriptionModal'
-
 import * as backendModule from '#/services/Backend'
 
 import { backendMutationOptions } from '#/hooks/backendHooks'
@@ -201,7 +199,6 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   const getDatalinkMutation = useMutation(backendMutationOptions(backend, 'getDatalink'))
   const createPermissionMutation = useMutation(backendMutationOptions(backend, 'createPermission'))
   const associateTagMutation = useMutation(backendMutationOptions(backend, 'associateTag'))
-  const editDescriptionMutation = useMutation(backendMutationOptions(backend, 'updateAsset'))
 
   const setSelected = useEventCallback((newSelected: boolean) => {
     const { selectedKeys } = driveStore.getState()
@@ -268,26 +265,6 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
     },
     [doDeleteRaw, item.item],
   )
-
-  const doTriggerDescriptionEdit = useEventCallback(() => {
-    setModal(
-      <EditAssetDescriptionModal
-        doChangeDescription={async (description) => {
-          if (description !== asset.description) {
-            setAsset(object.merger({ description }))
-
-            // eslint-disable-next-line no-restricted-syntax
-            return editDescriptionMutation.mutateAsync([
-              asset.id,
-              { description, parentDirectoryId: null },
-              item.item.title,
-            ])
-          }
-        }}
-        initialDescription={asset.description}
-      />,
-    )
-  })
 
   const clearDragState = React.useCallback(() => {
     setIsDraggedOver(false)
@@ -687,7 +664,6 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
                         doCut={doCut}
                         doPaste={doPaste}
                         doDelete={doDelete}
-                        doTriggerDescriptionEdit={doTriggerDescriptionEdit}
                       />,
                     )
                   }
@@ -829,7 +805,6 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
               doCut={doCut}
               doPaste={doPaste}
               doDelete={doDelete}
-              doTriggerDescriptionEdit={doTriggerDescriptionEdit}
             />
           )}
         </>

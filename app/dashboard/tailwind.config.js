@@ -343,7 +343,8 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
       },
       zIndex: {
         1: '1',
-        tooltip: '2',
+        spotlight: '2',
+        tooltip: '3',
       },
       backdropBlur: {
         xs: '2px',

@@ -59,7 +59,6 @@ export interface AssetContextMenuProps {
   readonly doDelete: () => void
   readonly doCopy: () => void
   readonly doCut: () => void
-  readonly doTriggerDescriptionEdit: () => void
   readonly doPaste: (
     newParentKey: backendModule.DirectoryId,
     newParentId: backendModule.DirectoryId,
@@ -69,7 +68,7 @@ export interface AssetContextMenuProps {
 /** The context menu for an arbitrary {@link backendModule.Asset}. */
 export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { innerProps, rootDirectoryId, event, eventTarget, hidden = false } = props
-  const { doTriggerDescriptionEdit, doCopy, doCut, doPaste, doDelete } = props
+  const { doCopy, doCut, doPaste, doDelete } = props
   const { item, setItem, state, setRowState } = innerProps
   const { backend, category, hasPasteData, pasteData, nodeMap } = state
 
@@ -321,7 +320,17 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 action="edit"
                 doAction={() => {
                   setIsAssetPanelTemporarilyVisible(true)
-                  setAssetPanelProps({ backend, item, setItem })
+                  const assetPanelProps = { backend, item, setItem }
+                  switch (asset.type) {
+                    case backendModule.AssetType.secret: {
+                      setAssetPanelProps({ ...assetPanelProps, spotlightOn: 'secret' })
+                      break
+                    }
+                    case backendModule.AssetType.datalink: {
+                      setAssetPanelProps({ ...assetPanelProps, spotlightOn: 'datalink' })
+                      break
+                    }
+                  }
                 }}
               />
             )}
@@ -331,7 +340,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               action="editDescription"
               label={getText('editDescriptionShortcut')}
               doAction={() => {
-                doTriggerDescriptionEdit()
+                setIsAssetPanelTemporarilyVisible(true)
+                setAssetPanelProps({ backend, item, setItem, spotlightOn: 'description' })
               }}
             />
           )}

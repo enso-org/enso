@@ -5,7 +5,7 @@ import * as z from 'zod'
 
 import { TabPanel, Tabs } from '#/components/aria'
 import ProjectSessions from '#/layouts/AssetProjectSessions'
-import AssetProperties from '#/layouts/AssetProperties'
+import AssetProperties, { type AssetPropertiesSpotlight } from '#/layouts/AssetProperties'
 import AssetVersions from '#/layouts/AssetVersions/AssetVersions'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import TabBar, { Tab } from '#/layouts/TabBar'
@@ -54,6 +54,7 @@ export interface AssetPanelContextProps {
   readonly backend: Backend | null
   readonly item: AnyAssetTreeNode | null
   readonly setItem: Dispatch<SetStateAction<AnyAssetTreeNode>> | null
+  readonly spotlightOn?: AssetPropertiesSpotlight
 }
 
 /** Props for an {@link AssetPanel}. */
@@ -166,6 +167,7 @@ export default function AssetPanel(props: AssetPanelProps) {
                 item={item}
                 setItem={setItem}
                 category={category}
+                spotlightOn={contextProps?.spotlightOn}
               />
             </TabPanel>
             <TabPanel id="versions" className="p-4 pl-asset-panel-l">
