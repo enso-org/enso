@@ -1,5 +1,4 @@
 /** @file Hooks for reactively watching node dimensions. */
-
 import { useCallback, useLayoutEffect, useState } from 'react'
 
 /** Dimensions object for {@link useDimensions}. */
@@ -17,6 +16,7 @@ interface DimensionObject {
 /** Arguments for {@link useDimensions}. */
 interface UseDimensionsArgs {
   readonly liveMeasure?: boolean
+  readonly observePosition?: boolean
 }
 
 /** Turn a bounding box to a {@link DimensionObject}. */
@@ -40,7 +40,10 @@ function getDimensionObject(node: HTMLElement | SVGElement): DimensionObject {
 }
 
 /** Reactively watch dimensions of a node. */
-export function useDimensions({ liveMeasure = true }: UseDimensionsArgs = {}): [
+export function useDimensions({
+  liveMeasure = true,
+  observePosition = true,
+}: UseDimensionsArgs = {}): [
   ref: (node: HTMLElement | SVGElement | null) => void,
   dimensions: DimensionObject,
   element: HTMLElement | SVGElement | null,
@@ -70,20 +73,63 @@ export function useDimensions({ liveMeasure = true }: UseDimensionsArgs = {}): [
       }
       measure()
 
+      // See https://stackoverflow.com/a/74481932 for the `IntersectionObserver` code.
       if (liveMeasure) {
         const resizeObserver = new ResizeObserver(measure)
+        const child = !observePosition ? null : node.appendChild(document.createElement('div'))
+        const updateChildPosition = (boundingBox = child?.getBoundingClientRect()) => {
+          if (child && boundingBox) {
+            const wasChanged = boundingBox.left !== -1 || boundingBox.top !== -1
+            child.style.marginLeft = `${parseFloat(child.style.marginLeft || '0') - boundingBox.left - 1}px`
+            child.style.marginTop = `${parseFloat(child.style.marginTop || '0') - boundingBox.top - 1}px`
+            if (wasChanged) {
+              // On Firefox, `IntersectionObserver`s fire inconsistently when an element's
+              // position is changed too quickly.
+              requestAnimationFrame(() => {
+                updateChildPosition()
+                measure()
+              })
+            }
+          }
+        }
+        if (child) {
+          child.classList.add('__use-dimensions-observer')
+          child.style.position = 'fixed'
+          child.style.pointerEvents = 'none'
+          child.style.height = '2px'
+          child.style.width = '2px'
+          updateChildPosition()
+        }
+        const intersectionObserver =
+          !child ? null : (
+            new IntersectionObserver(
+              (entries) => {
+                if (entries[0]) {
+                  measure()
+                  updateChildPosition() // entries[0].boundingClientRect)
+                }
+              },
+              // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+              { threshold: [0, 0.125, 0.375, 0.625, 0.875, 1] },
+            )
+          )
         window.addEventListener('resize', measure)
         window.addEventListener('scroll', measure)
         resizeObserver.observe(node)
+        if (child) {
+          intersectionObserver?.observe(child)
+        }
 
         return () => {
+          child?.remove()
           window.removeEventListener('resize', measure)
           window.removeEventListener('scroll', measure)
-          resizeObserver.unobserve(node)
+          resizeObserver.disconnect()
+          intersectionObserver?.disconnect()
         }
       }
     }
-  }, [liveMeasure, node])
+  }, [liveMeasure, node, observePosition])
 
   return [ref, dimensions, node]
 }

@@ -1,9 +1,9 @@
 /** @file Hooks for showing an overlay with a cutout for a rectangular element. */
-import { useDimensions } from '#/hooks/dimensionsHooks'
-import { convertCSSUnitString } from '#/utilities/convertCSSUnits'
-import { forwardRef } from '#/utilities/react'
 import { useEffect, useLayoutEffect, useState, type CSSProperties, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
+
+import { useDimensions } from '#/hooks/dimensionsHooks'
+import { convertCSSUnitString } from '#/utilities/convertCSSUnits'
 
 /** Default padding around the spotlight element. */
 const DEFAULT_PADDING_PX = 8
@@ -50,7 +50,8 @@ interface SpotlightProps {
   readonly paddingPx?: number | undefined
 }
 
-const Spotlight = forwardRef(function Spotlight(props: SpotlightProps) {
+/** A spotlight element. */
+function Spotlight(props: SpotlightProps) {
   const { element, close, backgroundElement, paddingPx = 0 } = props
   const [dimensionsRef, { top: topRaw, left: leftRaw, height, width }] = useDimensions()
   const top = topRaw - paddingPx
@@ -99,9 +100,15 @@ const Spotlight = forwardRef(function Spotlight(props: SpotlightProps) {
   return createPortal(
     <div
       onClick={close}
-      className="absolute z-spotlight h-screen w-screen bg-dim"
-      style={{ clipPath }}
+      style={{
+        position: 'absolute',
+        zIndex: 2,
+        height: '100vh',
+        width: '100vw',
+        backgroundColor: 'lch(0 0 0 / 25%)',
+        clipPath,
+      }}
     />,
     backgroundElement,
   )
-})
+}

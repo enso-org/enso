@@ -163,7 +163,11 @@ export default function AssetProperties(props: AssetPropertiesProps) {
       {descriptionSpotlight.spotlightElement}
       {secretSpotlight.spotlightElement}
       {datalinkSpotlight.spotlightElement}
-      <div className="pointer-events-auto flex flex-col items-start gap-side-panel">
+      <div
+        ref={descriptionRef}
+        className="pointer-events-auto flex flex-col items-start gap-side-panel rounded-default"
+        {...descriptionSpotlight.props}
+      >
         <aria.Heading
           level={2}
           className="flex h-side-panel-heading items-center gap-side-panel-section py-side-panel-heading-y text-lg leading-snug"
@@ -182,10 +186,8 @@ export default function AssetProperties(props: AssetPropertiesProps) {
           )}
         </aria.Heading>
         <div
-          ref={descriptionRef}
           data-testid="asset-panel-description"
-          className="self-stretch rounded-default py-side-panel-description-y"
-          {...descriptionSpotlight.props}
+          className="self-stretch py-side-panel-description-y"
         >
           {!isEditingDescription ?
             <aria.Text className="text">{item.item.description}</aria.Text>
