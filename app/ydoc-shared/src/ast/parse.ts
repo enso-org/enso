@@ -158,7 +158,22 @@ class Abstractor {
       }
       case RawAst.Tree.Type.Function: {
         const name = this.abstractTree(tree.name)
-        const argumentDefinitions = Array.from(tree.args, arg => this.abstractChildren(arg))
+        const argumentDefinitions = Array.from(tree.args, arg => ({
+          open: arg.open && this.abstractToken(arg.open),
+          open2: arg.open2 && this.abstractToken(arg.open2),
+          suspension: arg.suspension && this.abstractToken(arg.suspension),
+          pattern: this.abstractTree(arg.pattern),
+          type: arg.typeNode && {
+            operator: this.abstractToken(arg.typeNode.operator),
+            type: this.abstractTree(arg.typeNode.typeNode),
+          },
+          close2: arg.close2 && this.abstractToken(arg.close2),
+          defaultValue: arg.default && {
+            equals: this.abstractToken(arg.default.equals),
+            expression: this.abstractTree(arg.default.expression),
+          },
+          close: arg.close && this.abstractToken(arg.close),
+        }))
         const equals = this.abstractToken(tree.equals)
         const body = tree.body !== undefined ? this.abstractTree(tree.body) : undefined
         node = Function.concrete(this.module, name, argumentDefinitions, equals, body)

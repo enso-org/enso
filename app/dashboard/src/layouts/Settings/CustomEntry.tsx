@@ -1,11 +1,9 @@
 /** @file Rendering for an {@link settingsData.SettingsCustomEntryData}. */
-import * as React from 'react'
+import type * as settingsData from './data'
 
-import type * as settingsData from '#/layouts/Settings/settingsData'
-
-// ==========================
+// ===========================
 // === SettingsCustomEntry ===
-// ==========================
+// ===========================
 
 /** Props for a {@link SettingsCustomEntry}. */
 export interface SettingsCustomEntryProps {

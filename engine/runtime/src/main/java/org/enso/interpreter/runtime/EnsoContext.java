@@ -44,6 +44,7 @@ import java.util.logging.Level;
 import org.enso.common.LanguageInfo;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.Compiler;
+import org.enso.compiler.core.EnsoParser;
 import org.enso.compiler.data.CompilerConfig;
 import org.enso.compiler.dump.IRDumper;
 import org.enso.distribution.DistributionManager;
@@ -297,6 +298,7 @@ public final class EnsoContext {
     packageRepository.shutdown();
     guestJava = null;
     topScope = null;
+    EnsoParser.freeAll();
   }
 
   private boolean shouldAssertionsBeEnabled() {

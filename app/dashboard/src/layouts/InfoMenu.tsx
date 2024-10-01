@@ -1,23 +1,15 @@
 /** @file A menu containing info about the app. */
-import * as React from 'react'
-
-import * as common from 'enso-common'
+import { PRODUCT_NAME } from 'enso-common'
 
 import LogoIcon from '#/assets/enso_logo.svg'
-
-import * as authProvider from '#/providers/AuthProvider'
-import * as modalProvider from '#/providers/ModalProvider'
-import * as textProvider from '#/providers/TextProvider'
-
-import * as aria from '#/components/aria'
+import { Popover, Text } from '#/components/AriaComponents'
 import MenuEntry from '#/components/MenuEntry'
-import Modal from '#/components/Modal'
 import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
-
 import AboutModal from '#/modals/AboutModal'
-
-import * as tailwindMerge from '#/utilities/tailwindMerge'
+import { useAuth } from '#/providers/AuthProvider'
+import { useSetModal } from '#/providers/ModalProvider'
+import { useText } from '#/providers/TextProvider'
 
 // ================
 // === InfoMenu ===
@@ -31,63 +23,33 @@ export interface InfoMenuProps {
 /** A menu containing info about the app. */
 export default function InfoMenu(props: InfoMenuProps) {
   const { hidden = false } = props
-  const { signOut, session } = authProvider.useAuth()
-  const { setModal } = modalProvider.useSetModal()
-  const { getText } = textProvider.useText()
-  const [initialized, setInitialized] = React.useState(false)
-
-  React.useLayoutEffect(() => {
-    // Change the CSS from the initial state to the final state after the first render.
-    // This ensures that the CSS transition triggers.
-    setInitialized(true)
-  }, [])
+  const { signOut, session } = useAuth()
+  const { setModal } = useSetModal()
+  const { getText } = useText()
 
   return (
-    <Modal hidden={hidden} className="absolute size-full overflow-hidden bg-dim">
-      <div
-        {...(!hidden ? { 'data-testid': 'info-menu' } : {})}
-        className={tailwindMerge.twMerge(
-          'absolute right-2.5 top-2.5 flex flex-col gap-user-menu rounded-default bg-selected-frame backdrop-blur-default transition-all duration-user-menu',
-          initialized ? 'w-user-menu p-user-menu' : 'size-row-h',
-        )}
-        onClick={(event) => {
-          event.stopPropagation()
-        }}
-      >
-        <div
-          className={tailwindMerge.twMerge(
-            'flex items-center gap-icons overflow-hidden transition-all duration-user-menu',
-            initialized && 'px-menu-entry',
-          )}
-        >
-          <SvgMask src={LogoIcon} className="pointer-events-none h-7 w-7" />
-          <aria.Text className="text">{common.PRODUCT_NAME}</aria.Text>
-        </div>
-        <div
-          className={tailwindMerge.twMerge(
-            'grid transition-all duration-user-menu',
-            initialized ? 'grid-rows-1fr' : 'grid-rows-0fr',
-          )}
-        >
-          <FocusArea direction="vertical">
-            {(innerProps) => (
-              <div
-                aria-label={getText('infoMenuLabel')}
-                className="flex flex-col overflow-hidden"
-                {...innerProps}
-              >
-                <MenuEntry
-                  action="aboutThisApp"
-                  doAction={() => {
-                    setModal(<AboutModal />)
-                  }}
-                />
-                {session && <MenuEntry action="signOut" doAction={signOut} />}
-              </div>
-            )}
-          </FocusArea>
-        </div>
+    <Popover {...(!hidden ? { testId: 'info-menu' } : {})} size="xxsmall">
+      <div className="mb-2 flex items-center gap-icons overflow-hidden px-menu-entry transition-all duration-user-menu">
+        <SvgMask src={LogoIcon} className="pointer-events-none h-7 w-7 text-primary" />
+        <Text>{PRODUCT_NAME}</Text>
       </div>
-    </Modal>
+      <FocusArea direction="vertical">
+        {(innerProps) => (
+          <div
+            aria-label={getText('infoMenuLabel')}
+            className="flex flex-col overflow-hidden"
+            {...innerProps}
+          >
+            <MenuEntry
+              action="aboutThisApp"
+              doAction={() => {
+                setModal(<AboutModal />)
+              }}
+            />
+            {session && <MenuEntry action="signOut" doAction={signOut} />}
+          </div>
+        )}
+      </FocusArea>
+    </Popover>
   )
 }

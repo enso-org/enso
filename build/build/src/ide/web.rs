@@ -262,6 +262,7 @@ impl IdeDesktop {
         ?project_manager,
         ?target_os,
         ?target,
+        ?sign,
         err))]
     pub async fn dist(
         &self,

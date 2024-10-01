@@ -32,6 +32,7 @@ export project.Data.Numeric.Rounding_Mode.Rounding_Mode
 export project.Data.Ordering.Comparable
 export project.Data.Ordering.Natural_Order
 export project.Data.Ordering.Ordering
+export project.Data.Pair.pair
 export project.Data.Pair.Pair
 export project.Data.Range.Extensions.down_to
 export project.Data.Range.Extensions.up_to

@@ -294,3 +294,12 @@ struct State {
     output:   Vec<u8>,
     metadata: Option<enso_parser::metadata::Metadata>,
 }
+
+mod static_trait_check {
+    fn assert_send<T: Send>() {}
+    fn assert_state_send() {
+        // Require `State` to be `Send`-safe so that in Java it can be deallocated (or potentially
+        // reused) by any thread.
+        assert_send::<super::State>()
+    }
+}

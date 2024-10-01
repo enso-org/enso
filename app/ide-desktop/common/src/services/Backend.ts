@@ -685,7 +685,7 @@ export const COLOR_STRING_TO_COLOR = new Map(
 export const INITIAL_COLOR_COUNTS = new Map(COLORS.map(color => [lChColorToCssColor(color), 0]))
 
 /** The color that is used for the least labels. Ties are broken by order. */
-export function getLeastUsedColor(labels: Iterable<Label>) {
+export function findLeastUsedColor(labels: Iterable<Label>) {
   const colorCounts = new Map(INITIAL_COLOR_COUNTS)
   for (const label of labels) {
     const colorString = lChColorToCssColor(label.color)
@@ -1146,6 +1146,8 @@ export interface CreateUserGroupRequestBody {
 export interface CreateCheckoutSessionRequestBody {
   readonly plan: Plan
   readonly paymentMethodId: string
+  readonly quantity: number
+  readonly interval: number
 }
 
 /** URL query string parameters for the "list directory" endpoint. */
@@ -1173,16 +1175,6 @@ export interface UploadPictureRequestParams {
 export interface ListVersionsRequestParams {
   readonly versionType: VersionType
   readonly default: boolean
-}
-
-/**
- * POST request body for the "create checkout session" endpoint.
- */
-export interface CreateCheckoutSessionRequestParams {
-  readonly plan: Plan
-  readonly paymentMethodId: string
-  readonly quantity: number
-  readonly interval: number
 }
 
 // ==============================
@@ -1503,9 +1495,7 @@ export default abstract class Backend {
   /** Return a list of backend or IDE versions. */
   abstract listVersions(params: ListVersionsRequestParams): Promise<readonly Version[]>
   /** Create a payment checkout session. */
-  abstract createCheckoutSession(
-    params: CreateCheckoutSessionRequestParams,
-  ): Promise<CheckoutSession>
+  abstract createCheckoutSession(body: CreateCheckoutSessionRequestBody): Promise<CheckoutSession>
   /** Get the status of a payment checkout session. */
   abstract getCheckoutSession(sessionId: CheckoutSessionId): Promise<CheckoutSessionStatus>
   /** List events in the organization's audit log. */
