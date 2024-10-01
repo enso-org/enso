@@ -129,7 +129,8 @@ function relativePortSceneRect(): Rect | undefined {
   const nodeClientRect = Rect.FromDomRect(rootDomNode.getBoundingClientRect())
   const exprSceneRect = navigator.clientToSceneRect(exprClientRect)
   const exprNodeRect = navigator.clientToSceneRect(nodeClientRect)
-  return exprSceneRect.offsetBy(exprNodeRect.pos.inverse())
+  const rect = exprSceneRect.offsetBy(exprNodeRect.pos.inverse())
+  return rect.isFinite() ? rect : undefined
 }
 
 watch(

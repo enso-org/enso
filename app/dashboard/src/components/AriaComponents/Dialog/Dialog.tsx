@@ -29,7 +29,7 @@ export interface DialogProps
     Omit<VariantProps<typeof DIALOG_STYLES>, 'scrolledToTop'> {}
 
 const OVERLAY_STYLES = tv({
-  base: 'fixed inset-0 isolate flex items-center justify-center bg-primary/20',
+  base: 'fixed inset-0 isolate flex items-center justify-center bg-primary/20 z-tooltip',
   variants: {
     isEntering: { true: 'animate-in fade-in duration-200 ease-out' },
     isExiting: { true: 'animate-out fade-out duration-200 ease-in' },
@@ -82,6 +82,7 @@ const DIALOG_STYLES = tv({
         header: 'p-0 max-h-0 min-h-0 h-0 border-0 z-1',
         content: 'isolate',
       },
+      none: {},
     },
     rounded: {
       none: { base: '' },
@@ -271,23 +272,27 @@ export function Dialog(props: DialogProps) {
                 {(opts) => {
                   return (
                     <dialogProvider.DialogProvider value={{ close: opts.close, dialogId }}>
-                      <aria.Header className={styles.header({ scrolledToTop: isScrolledToTop })}>
-                        <ariaComponents.CloseButton
-                          className={styles.closeButton()}
-                          onPress={opts.close}
-                        />
+                      {(closeButton !== 'none' || title != null) && (
+                        <aria.Header className={styles.header({ scrolledToTop: isScrolledToTop })}>
+                          {closeButton !== 'none' && (
+                            <ariaComponents.CloseButton
+                              className={styles.closeButton()}
+                              onPress={opts.close}
+                            />
+                          )}
 
-                        {title != null && (
-                          <ariaComponents.Text.Heading
-                            id={titleId}
-                            level={2}
-                            className={styles.heading()}
-                            weight="semibold"
-                          >
-                            {title}
-                          </ariaComponents.Text.Heading>
-                        )}
-                      </aria.Header>
+                          {title != null && (
+                            <ariaComponents.Text.Heading
+                              id={titleId}
+                              level={2}
+                              className={styles.heading()}
+                              weight="semibold"
+                            >
+                              {title}
+                            </ariaComponents.Text.Heading>
+                          )}
+                        </aria.Header>
+                      )}
 
                       <div
                         ref={(ref) => {

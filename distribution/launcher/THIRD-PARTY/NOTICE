@@ -21,6 +21,16 @@ The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.chuusai.shapeless_2.13-2.3.10`.
 
 
+'jsoniter-scala-core_2.13', licensed under the MIT License, is distributed with the launcher.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.github.plokhotnyuk.jsoniter-scala.jsoniter-scala-core_2.13-2.28.5`.
+
+
+'jsoniter-scala-macros_2.13', licensed under the MIT License, is distributed with the launcher.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.github.plokhotnyuk.jsoniter-scala.jsoniter-scala-macros_2.13-2.28.5`.
+
+
 'akka-actor_2.13', licensed under the Apache-2.0, is distributed with the launcher.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.typesafe.akka.akka-actor_2.13-2.6.20`.
@@ -86,14 +96,34 @@ The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `io.circe.circe-parser_2.13-0.14.7`.
 
 
+'java-diff-utils', licensed under the The Apache Software License, Version 2.0, is distributed with the launcher.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.github.java-diff-utils.java-diff-utils-4.12`.
+
+
+'jna', licensed under the Apache-2.0, is distributed with the launcher.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `net.java.dev.jna.jna-5.14.0`.
+
+
 'commons-compress', licensed under the Apache-2.0, is distributed with the launcher.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `org.apache.commons.commons-compress-1.23.0`.
 
 
+'jline', licensed under the The BSD License, is distributed with the launcher.
+The license file can be found at `licenses/BSD-3-Clause`.
+Copyright notices related to this dependency can be found in the directory `org.jline.jline-3.23.0`.
+
+
 'scala-java8-compat_2.13', licensed under the Apache-2.0, is distributed with the launcher.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `org.scala-lang.modules.scala-java8-compat_2.13-1.0.0`.
+
+
+'scala-compiler', licensed under the Apache-2.0, is distributed with the launcher.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.scala-lang.scala-compiler-2.13.11`.
 
 
 'scala-library', licensed under the Apache-2.0, is distributed with the launcher.
@@ -128,5 +158,5 @@ Copyright notices related to this dependency can be found in the directory `org.
 
 'snakeyaml', licensed under the Apache License, Version 2.0, is distributed with the launcher.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `org.yaml.snakeyaml-2.2`.
+Copyright notices related to this dependency can be found in the directory `org.yaml.snakeyaml-2.3`.
 

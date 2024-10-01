@@ -5,7 +5,7 @@ from Standard.Table.Aggregate_Column.Aggregate_Column import all
 import Standard.Table.Expression.Expression_Error
 from Standard.Table.Errors import all
 
-from Standard.Database.Errors import Unsupported_Database_Operation
+from Standard.Database.Errors import Unsupported_Database_Operation, Aggregagtion_Requires_Order
 
 from Standard.Test import all
 
@@ -1434,14 +1434,14 @@ add_specs suite_builder setup =
                     materialized.column_count . should_equal 1
                     materialized.columns.first.name . should_equal "Sum A"
                     materialized.columns.first.to_vector . should_equal [6]
-                problems = [Unsupported_Database_Operation.Error "`First` aggregation requires at least one `order_by` column.", Unsupported_Database_Operation.Error "`Last` aggregation requires at least one `order_by` column."]
+                problems = [Aggregagtion_Requires_Order.Error "First", Aggregagtion_Requires_Order.Error "Last"]
                 Problems.test_problem_handling action problems tester
 
             group_builder.specify "will include unsupported feature problem in No_Output_Columns" <|
                 table = table_builder [["A", [1,2,Nothing,3]]]
                 r1 = table.aggregate columns=[First ignore_nothing=False "A"]
                 r1.should_fail_with No_Output_Columns
-                r1.catch.cause . should_be_a Unsupported_Database_Operation
+                r1.catch.cause . should_be_a Aggregagtion_Requires_Order.Error
                 r1.to_display_text . should_contain "No columns in the result"
                 r1.to_display_text . should_contain "`First`"
 
@@ -1680,8 +1680,6 @@ add_specs suite_builder setup =
                 result.columns.first.to_vector . should_equal [6]
                 warnings = Problems.get_attached_warnings result
                 warnings.length . should_equal error_count
-                warnings.each warning->
-                    warning.should_be_a Unsupported_Database_Operation.Error
 
             if test_selection.first_last_row_order.not then
                 group_builder.specify "with First and Last in row order" <|

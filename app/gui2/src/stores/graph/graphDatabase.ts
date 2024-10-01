@@ -7,7 +7,7 @@ import { Ast, RawAst } from '@/util/ast'
 import type { AstId, NodeMetadata } from '@/util/ast/abstract'
 import { autospaced, MutableModule } from '@/util/ast/abstract'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
-import { nodeFromAst, nodeRootExpr } from '@/util/ast/node'
+import { inputNodeFromAst, nodeFromAst, nodeRootExpr } from '@/util/ast/node'
 import { MappedKeyMap, MappedSet } from '@/util/containers'
 import { tryGetIndex } from '@/util/data/array'
 import { recordEqual } from '@/util/data/object'
@@ -134,7 +134,7 @@ export class BindingsDb {
 
 export class GraphDb {
   nodeIdToNode = new ReactiveDb<NodeId, Node>()
-  private readonly blockNodeLines = new Map<NodeId, { data: BlockLine; stop: WatchStopHandle }>()
+  private readonly nodeSources = new Map<NodeId, { data: NodeSource; stop: WatchStopHandle }>()
   private highestZIndex = 0
   private readonly idToExternalMap = reactive(new Map<Ast.AstId, ExternalId>())
   private readonly idFromExternalMap = reactive(new Map<ExternalId, Ast.AstId>())
@@ -159,18 +159,8 @@ export class GraphDb {
   })
 
   connections = new ReactiveIndex(this.bindings.bindings, (alias, info) => {
-    const srcNode = this.getPatternExpressionNodeId(alias)
-    // Display connection starting from existing node.
-    //TODO[ao]: When implementing input nodes, they should be taken into account here.
+    const srcNode = this.getPatternExpressionNodeId(alias) ?? this.getExpressionNodeId(alias)
     if (srcNode == null) return []
-    return Array.from(this.connectionsFromBindings(info, alias, srcNode))
-  })
-
-  /** Same as {@link GraphDb.connections}, but also includes connections without source node,
-   * e.g. input arguments of the collapsed function.
-   */
-  allConnections = new ReactiveIndex(this.bindings.bindings, (alias, info) => {
-    const srcNode = this.getPatternExpressionNodeId(alias)
     return Array.from(this.connectionsFromBindings(info, alias, srcNode))
   })
 
@@ -336,41 +326,70 @@ export class GraphDb {
   ) {
     const currentNodeIds = new Set<NodeId>()
     const body = [...functionAst_.bodyExpressions()]
+    const args = functionAst_.argumentDefinitions
+    const update = (
+      nodeId: NodeId,
+      ast: Ast.Ast,
+      isInput: boolean,
+      isOutput: boolean,
+      argIndex: number | undefined,
+    ) => {
+      const oldNode = nonReactiveView(this.nodeSources.get(nodeId)?.data)
+      if (oldNode) {
+        const node = resumeShallowReactivity<NodeSource>(oldNode)
+        if (oldNode.isOutput !== isOutput) node.isOutput = isOutput
+        if (oldNode.isInput !== isInput) node.isInput = isInput
+        if (oldNode.argIndex !== argIndex) node.argIndex = argIndex
+        if (oldNode.outerAst.id !== ast.id) node.outerAst = ast
+      } else {
+        const data = shallowReactive({ isOutput, outerAst: ast, isInput, argIndex })
+        const stop = watchEffect(() =>
+          this.updateNodeStructure(
+            nodeId,
+            data.outerAst,
+            data.isOutput,
+            data.isInput,
+            data.argIndex,
+          ),
+        )
+        this.nodeSources.set(nodeId, { data, stop })
+      }
+      currentNodeIds.add(nodeId)
+    }
+    args.forEach((argDef, index) => {
+      const argPattern = argDef.pattern.node
+      const nodeId = asNodeId(argPattern.externalId)
+      update(nodeId, argPattern, true, false, index)
+    })
     body.forEach((outerAst, index) => {
       const nodeId = nodeIdFromOuterExpr(outerAst)
       if (!nodeId) return
       const isLastInBlock = index === body.length - 1
-      const oldNode = nonReactiveView(this.blockNodeLines.get(nodeId)?.data)
-      if (oldNode) {
-        const node = resumeShallowReactivity<BlockLine>(oldNode)
-        if (oldNode.isLastInBlock !== isLastInBlock) node.isLastInBlock = isLastInBlock
-        if (oldNode.outerAst.id !== outerAst.id) node.outerAst = outerAst
-      } else {
-        const data = shallowReactive({ isLastInBlock, outerAst })
-        const stop = watchEffect(() =>
-          this.updateNodeStructure(nodeId, data.outerAst, data.isLastInBlock),
-        )
-        this.blockNodeLines.set(nodeId, { data, stop })
-      }
-      currentNodeIds.add(nodeId)
+      update(nodeId, outerAst, false, isLastInBlock, undefined)
     })
-    for (const [nodeId, info] of this.blockNodeLines.entries()) {
+    for (const [nodeId, info] of this.nodeSources.entries()) {
       if (!currentNodeIds.has(nodeId)) {
         info.stop()
         this.nodeIdToNode.delete(nodeId)
-        this.blockNodeLines.delete(nodeId)
+        this.nodeSources.delete(nodeId)
       }
     }
   }
 
   /** Scan a node's content from its outer expression down to, but not including, its inner expression. */
-  private updateNodeStructure(nodeId: NodeId, nodeAst: Ast.Ast, isLastInBlock: boolean) {
-    const newNode = nodeFromAst(nodeAst, isLastInBlock)
+  private updateNodeStructure(
+    nodeId: NodeId,
+    ast: Ast.Ast,
+    isOutput: boolean,
+    isInput: boolean,
+    argIndex?: number,
+  ) {
+    const newNode = isInput ? inputNodeFromAst(ast, argIndex ?? 0) : nodeFromAst(ast, isOutput)
     if (!newNode) return
     const oldNode = this.nodeIdToNode.getUntracked(nodeId)
     if (oldNode == null) {
       const nodeMeta = newNode.rootExpr.nodeMetadata
-      const pos = nodeMeta.get('position') ?? { x: 0, y: 0 }
+      const pos = nodeMeta.get('position') ?? { x: Infinity, y: Infinity }
       const metadataFields = {
         position: new Vec2(pos.x, pos.y),
         vis: nodeMeta.get('visualization'),
@@ -392,6 +411,7 @@ export class GraphDb {
         prefixes,
         conditionalPorts,
         docs,
+        argIndex,
       } = newNode
       const node = resumeReactivity(oldNode)
       if (oldNode.type !== type) node.type = type
@@ -415,6 +435,7 @@ export class GraphDb {
         prefixes,
         conditionalPorts,
         docs,
+        argIndex,
       } satisfies NodeDataFromAst
     }
   }
@@ -516,6 +537,7 @@ export class GraphDb {
       rootExpr: Ast.parse(code ?? '0'),
       innerExpr: Ast.parse(code ?? '0'),
       zIndex: this.highestZIndex,
+      argIndex: undefined,
     }
     const bindingId = pattern.id
     this.nodeIdToNode.set(id, node)
@@ -524,16 +546,25 @@ export class GraphDb {
   }
 }
 
-interface BlockLine {
+/** Source code data of the specific node. */
+interface NodeSource {
+  /** The outer AST of the node (see {@link NodeDataFromAst.outerExpr}). */
   outerAst: Ast.Ast
-  isLastInBlock: boolean
+  /** Whether the node is `output` of the function or not. Mutually exclusive with `isInput`.
+   * Output node is the last node in a function body and has no pattern. */
+  isOutput: boolean
+  /** Whether the node is `input` of the function or not. Mutually exclusive with `isOutput`.
+   * Input node is a function argument. */
+  isInput: boolean
+  /** The index of the argument in the function's argument list, if the node is an input node. */
+  argIndex: number | undefined
 }
 
 declare const brandNodeId: unique symbol
 
 /** An unique node identifier, shared across all clients. It is the ExternalId of node's root expression. */
 export type NodeId = string & ExternalId & { [brandNodeId]: never }
-export type NodeType = 'component' | 'output'
+export type NodeType = 'component' | 'output' | 'input'
 export function asNodeId(id: ExternalId): NodeId
 export function asNodeId(id: ExternalId | undefined): NodeId | undefined
 export function asNodeId(id: ExternalId | undefined): NodeId | undefined {
@@ -567,6 +598,8 @@ export interface NodeDataFromAst {
   conditionalPorts: Set<Ast.AstId>
   /** An AST node containing the node's documentation comment. */
   docs: Ast.Documented | undefined
+  /** The index of the argument in the function's argument list, if the node is an input node. */
+  argIndex: number | undefined
 }
 
 export interface NodeDataFromMetadata {

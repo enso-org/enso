@@ -176,6 +176,11 @@ The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `io.circe.circe-parser_2.13-0.14.7`.
 
 
+'java-diff-utils', licensed under the The Apache Software License, Version 2.0, is distributed with the project-manager.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.github.java-diff-utils.java-diff-utils-4.12`.
+
+
 'helidon-builder-api', licensed under the Apache 2.0, is distributed with the project-manager.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `io.helidon.builder.helidon-builder-api-4.0.8`.
@@ -341,6 +346,11 @@ The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `jakarta.inject.jakarta.inject-api-2.0.1`.
 
 
+'jna', licensed under the Apache-2.0, is distributed with the project-manager.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `net.java.dev.jna.jna-5.14.0`.
+
+
 'commons-compress', licensed under the Apache-2.0, is distributed with the project-manager.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `org.apache.commons.commons-compress-1.23.0`.
@@ -349,6 +359,11 @@ Copyright notices related to this dependency can be found in the directory `org.
 'commons-lang3', licensed under the Apache License, Version 2.0, is distributed with the project-manager.
 The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `org.apache.commons.commons-lang3-3.12.0`.
+
+
+'jline', licensed under the The BSD License, is distributed with the project-manager.
+The license file can be found at `licenses/BSD-3-Clause`.
+Copyright notices related to this dependency can be found in the directory `org.jline.jline-3.23.0`.
 
 
 'reactive-streams', licensed under the CC0, is distributed with the project-manager.
@@ -364,6 +379,11 @@ Copyright notices related to this dependency can be found in the directory `org.
 'scala-parser-combinators_2.13', licensed under the Apache-2.0, is distributed with the project-manager.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `org.scala-lang.modules.scala-parser-combinators_2.13-1.1.2`.
+
+
+'scala-compiler', licensed under the Apache-2.0, is distributed with the project-manager.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.scala-lang.scala-compiler-2.13.11`.
 
 
 'scala-library', licensed under the Apache-2.0, is distributed with the project-manager.
@@ -398,5 +418,5 @@ Copyright notices related to this dependency can be found in the directory `org.
 
 'snakeyaml', licensed under the Apache License, Version 2.0, is distributed with the project-manager.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `org.yaml.snakeyaml-2.2`.
+Copyright notices related to this dependency can be found in the directory `org.yaml.snakeyaml-2.3`.
 

@@ -81,11 +81,7 @@ interface UnknownTable {
   link_value_type: string
 }
 
-export enum TextFormatOptions {
-  On,
-  Partial,
-  Off,
-}
+export type TextFormatOptions = 'full' | 'partial' | 'off'
 </script>
 
 <script setup lang="ts">
@@ -128,7 +124,7 @@ const defaultColDef: Ref<ColDef> = ref({
 const rowData = ref<Record<string, any>[]>([])
 const columnDefs: Ref<ColDef[]> = ref([])
 
-const textFormatterSelected = ref<TextFormatOptions>(TextFormatOptions.Partial)
+const textFormatterSelected = ref<TextFormatOptions>('partial')
 
 const isRowCountSelectorVisible = computed(() => rowCount.value >= 1000)
 
@@ -214,7 +210,7 @@ function formatText(params: ICellRendererParams) {
       (url: string) => `<a href="${url}" target="_blank" class="link">${url}</a>`,
     )
 
-  if (textFormatterSelected.value === TextFormatOptions.Off) {
+  if (textFormatterSelected.value === 'off') {
     return htmlEscaped.replace(/^\s+|\s+$/g, '&nbsp;')
   }
 
@@ -230,7 +226,7 @@ function formatText(params: ICellRendererParams) {
   }
 
   const replaceSpaces =
-    textFormatterSelected.value === TextFormatOptions.On ?
+    textFormatterSelected.value === 'full' ?
       htmlEscaped.replaceAll(' ', '<span style="color: #df8800">&#183;</span>')
     : htmlEscaped.replace(/ \s+|^ +| +$/g, function (match: string) {
         return `<span style="color: #df8800">${match.replaceAll(' ', '&#183;')}</span>`
@@ -242,13 +238,12 @@ function formatText(params: ICellRendererParams) {
   )
 
   const renderOtherWhitespace = (match: string) => {
-    return textFormatterSelected.value === TextFormatOptions.On && match != ' ' ?
+    return textFormatterSelected.value === 'full' && match != ' ' ?
         '<span style="color: #df8800">&#9744;</span>'
       : match
   }
   const newString = replaceReturns.replace(/[\s]/g, function (match: string) {
-    const mapping =
-      textFormatterSelected.value === TextFormatOptions.On ? fullMappings : partialMappings
+    const mapping = textFormatterSelected.value === 'full' ? fullMappings : partialMappings
     return mapping[match as keyof typeof mapping] || renderOtherWhitespace(match)
   })
   return `<span > ${newString} <span>`

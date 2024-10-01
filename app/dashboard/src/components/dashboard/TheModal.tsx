@@ -17,10 +17,10 @@ export default function TheModal() {
     <AnimatePresence>
       {modal && (
         <motion.div
-          initial={{ opacity: 1 }}
+          initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           /* eslint-disable-next-line @typescript-eslint/no-magic-numbers */
-          exit={{ opacity: 0.8 }}
+          exit={{ opacity: 0 }}
           /* eslint-disable-next-line @typescript-eslint/no-magic-numbers */
           transition={{ duration: 0.2 }}
         >

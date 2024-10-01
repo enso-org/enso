@@ -1,8 +1,6 @@
 /** @file A horizontal selector. */
 import * as React from 'react'
 
-import type * as twv from 'tailwind-variants'
-
 import { mergeProps, type RadioGroupProps } from '#/components/aria'
 import type { FieldComponentProps } from '#/components/AriaComponents'
 import {
@@ -19,7 +17,7 @@ import { AnimatedBackground } from '#/components/AnimatedBackground'
 import RadioGroup from '#/components/styled/RadioGroup'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
-import { tv } from '#/utilities/tailwindVariants'
+import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import { SelectorOption } from './SelectorOption'
 
 /** * Props for the Selector component. */
@@ -30,7 +28,7 @@ export interface SelectorProps<Schema extends TSchema, TFieldName extends FieldP
       TFieldName
     >,
     FieldProps,
-    Omit<twv.VariantProps<typeof SELECTOR_STYLES>, 'disabled' | 'invalid'>,
+    Omit<VariantProps<typeof SELECTOR_STYLES>, 'disabled' | 'invalid' | 'variants'>,
     FieldVariantProps {
   readonly items: readonly FieldValues<Schema>[TFieldName][]
   readonly children?: (item: FieldValues<Schema>[TFieldName]) => string

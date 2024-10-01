@@ -9,7 +9,7 @@ import StatelessSpinner, * as spinnerModule from '#/components/StatelessSpinner'
 import SvgMask from '#/components/SvgMask'
 
 import { forwardRef } from '#/utilities/react'
-import type { VariantProps } from '#/utilities/tailwindVariants'
+import type { ExtractFunction, VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
 import { TEXT_STYLE } from '../Text'
 
@@ -68,7 +68,7 @@ export interface BaseButtonProps<Render>
   /** Defaults to `full`. When `full`, the entire button will be replaced with the loader.
    * When `icon`, only the icon will be replaced with the loader. */
   readonly loaderPosition?: 'full' | 'icon'
-  readonly styles?: typeof BUTTON_STYLES
+  readonly styles?: ExtractFunction<typeof BUTTON_STYLES> | undefined
 }
 
 export const BUTTON_STYLES = tv({
@@ -104,7 +104,7 @@ export const BUTTON_STYLES = tv({
     loading: { true: { base: 'cursor-wait' } },
     fullWidth: { true: 'w-full' },
     size: {
-      custom: { base: '', extraClickZone: '', icon: 'h-full' },
+      custom: { base: '', extraClickZone: '', icon: 'h-full w-unset min-w-[1.906cap]' },
       hero: { base: 'px-8 py-4 text-lg font-bold', content: 'gap-[0.75em]' },
       large: {
         base: TEXT_STYLE({
@@ -322,7 +322,7 @@ export const Button = forwardRef(function Button(
 
   const goodDefaults = {
     ...(isLink ? { rel: 'noopener noreferrer' } : { type: 'button' as const }),
-    'data-testid': testId ?? (isLink ? 'link' : 'button'),
+    'data-testid': testId,
   }
 
   const isIconOnly = (children == null || children === '' || children === false) && icon != null
@@ -380,15 +380,7 @@ export const Button = forwardRef(function Button(
     }
   }
 
-  const {
-    base,
-    content,
-    wrapper,
-    loader,
-    extraClickZone,
-    icon: iconClasses,
-    text: textClasses,
-  } = variants({
+  const styles = variants({
     isDisabled,
     isActive,
     loading: isLoading,
@@ -410,7 +402,7 @@ export const Button = forwardRef(function Button(
         return null
       } else if (isLoading && loaderPosition === 'icon') {
         return (
-          <span className={iconClasses()}>
+          <span className={styles.icon()}>
             <StatelessSpinner state={spinnerModule.SpinnerState.loadingMedium} size={16} />
           </span>
         )
@@ -419,21 +411,21 @@ export const Button = forwardRef(function Button(
         const actualIcon = typeof icon === 'function' ? icon(render) : icon
 
         if (typeof actualIcon === 'string') {
-          return <SvgMask src={actualIcon} className={iconClasses()} />
+          return <SvgMask src={actualIcon} className={styles.icon()} />
         } else {
-          return <span className={iconClasses()}>{actualIcon}</span>
+          return <span className={styles.icon()}>{actualIcon}</span>
         }
       }
     })()
     // Icon only button
     if (isIconOnly) {
-      return <span className={extraClickZone()}>{iconComponent}</span>
+      return <span className={styles.extraClickZone()}>{iconComponent}</span>
     } else {
       // Default button
       return (
         <>
           {iconComponent}
-          <span className={textClasses()}>
+          <span className={styles.text()}>
             {/* @ts-expect-error any here is safe because we transparently pass it to the children, and ts infer the type outside correctly */}
             {typeof children === 'function' ? children(render) : children}
           </span>
@@ -456,26 +448,23 @@ export const Button = forwardRef(function Button(
           }
         },
         className: aria.composeRenderProps(className, (classNames, states) =>
-          base({ className: classNames, ...states }),
+          styles.base({ className: classNames, ...states }),
         ),
       })}
     >
-      {/* @ts-expect-error any here is safe because we transparently pass it to the children, and ts infer the type outside correctly */}
-      {(render) => (
-        <>
-          <span className={wrapper()}>
-            <span ref={contentRef} className={content({ className: contentClassName })}>
-              {/* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */}
-              {childrenFactory(render)}
-            </span>
-
-            {isLoading && loaderPosition === 'full' && (
-              <span ref={loaderRef} className={loader()}>
-                <StatelessSpinner state={spinnerModule.SpinnerState.loadingMedium} size={16} />
-              </span>
-            )}
+      {(render: aria.ButtonRenderProps | aria.LinkRenderProps) => (
+        <span className={styles.wrapper()}>
+          <span ref={contentRef} className={styles.content({ className: contentClassName })}>
+            {/* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */}
+            {childrenFactory(render)}
           </span>
-        </>
+
+          {isLoading && loaderPosition === 'full' && (
+            <span ref={loaderRef} className={styles.loader()}>
+              <StatelessSpinner state={spinnerModule.SpinnerState.loadingMedium} size={16} />
+            </span>
+          )}
+        </span>
       )}
     </Tag>
   )

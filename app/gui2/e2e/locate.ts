@@ -81,6 +81,9 @@ export function graphNodeIcon(node: Node) {
 export function selectedNodes(page: Page | Locator): Node {
   return page.locator('.GraphNode.selected') as Node
 }
+export function inputNode(page: Page | Locator): Node {
+  return page.locator('.GraphNode.inputNode') as Node
+}
 export function outputNode(page: Page | Locator): Node {
   return page.locator('.GraphNode.outputNode') as Node
 }

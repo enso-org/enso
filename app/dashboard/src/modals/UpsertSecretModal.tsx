@@ -32,7 +32,9 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
       <Form
         testId="upsert-secret-modal"
         method="dialog"
-        schema={(z) => z.object({ name: z.string().min(1), value: z.string() })}
+        schema={(z) =>
+          z.object({ name: z.string().min(1, getText('emptyStringError')), value: z.string() })
+        }
         defaultValues={{ name: nameRaw ?? '', value: '' }}
         onSubmit={async ({ name, value }) => {
           await doCreate(name, value)

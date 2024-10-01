@@ -17,9 +17,7 @@ import * as dialogStackProvider from './DialogStackProvider'
 import * as utlities from './utilities'
 import * as variants from './variants'
 
-/**
- * Props for the Popover component.
- */
+/** Props for a {@link Popover}. */
 export interface PopoverProps
   extends Omit<aria.PopoverProps, 'children'>,
     twv.VariantProps<typeof POPOVER_STYLES> {
@@ -30,7 +28,7 @@ export interface PopoverProps
 }
 
 export const POPOVER_STYLES = twv.tv({
-  base: 'shadow-md w-full overflow-clip',
+  base: 'shadow-xl w-full overflow-clip z-tooltip',
   variants: {
     isEntering: {
       true: 'animate-in fade-in placement-bottom:slide-in-from-top-1 placement-top:slide-in-from-bottom-1 placement-left:slide-in-from-right-1 placement-right:slide-in-from-left-1 ease-out duration-200',
@@ -40,6 +38,7 @@ export const POPOVER_STYLES = twv.tv({
     },
     size: {
       auto: { base: 'w-[unset]', dialog: 'p-2.5' },
+      xxsmall: { base: 'max-w-[206px]', dialog: 'p-2' },
       xsmall: { base: 'max-w-xs', dialog: 'p-2.5' },
       small: { base: 'max-w-sm', dialog: 'p-3.5' },
       medium: { base: 'max-w-md', dialog: 'p-3.5' },
@@ -103,7 +102,10 @@ export function Popover(props: PopoverProps) {
       }
       UNSTABLE_portalContainer={root}
       placement={placement}
-      style={{ zIndex: 'unset' }}
+      style={{
+        // Unset the default z-index set by react-aria-components.
+        zIndex: '',
+      }}
       shouldCloseOnInteractOutside={() => false}
       {...ariaPopoverProps}
     >

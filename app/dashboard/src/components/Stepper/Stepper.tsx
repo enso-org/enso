@@ -6,13 +6,13 @@
 import * as React from 'react'
 
 import { AnimatePresence, motion } from 'framer-motion'
-import * as tvw from 'tailwind-variants'
 
 import * as eventCallback from '#/hooks/eventCallbackHooks'
 
 import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Suspense } from '#/components/Suspense'
 
+import { tv } from '#/utilities/tailwindVariants'
 import { Step } from './Step'
 import { StepContent } from './StepContent'
 import * as stepperProvider from './StepperProvider'
@@ -37,7 +37,7 @@ export interface StepperProps {
     | undefined
 }
 
-const STEPPER_STYLES = tvw.tv({
+const STEPPER_STYLES = tv({
   base: 'flex flex-col items-center w-full gap-4',
   slots: {
     steps: 'flex items-center justify-between w-full',
@@ -73,7 +73,7 @@ export function Stepper(props: StepperProps) {
     totalSteps,
   } satisfies BaseRenderProps
 
-  const classes = STEPPER_STYLES({})
+  const styles = STEPPER_STYLES({})
 
   const style = typeof props.style === 'function' ? props.style(baseRenderProps) : props.style
 
@@ -96,7 +96,7 @@ export function Stepper(props: StepperProps) {
 
   return (
     <div
-      className={classes.base({
+      className={styles.base({
         className:
           typeof props.className === 'function' ?
             props.className(baseRenderProps)
@@ -107,7 +107,7 @@ export function Stepper(props: StepperProps) {
       <stepperProvider.StepperProvider
         value={{ totalSteps, currentStep, goToStep, nextStep, previousStep, state }}
       >
-        <div className={classes.steps()}>
+        <div className={styles.steps()}>
           {Array.from({ length: totalSteps }).map((_, index) => {
             const renderStepProps = {
               index,
@@ -124,14 +124,14 @@ export function Stepper(props: StepperProps) {
             } satisfies RenderStepProps
 
             return (
-              <div key={index} className={classes.step({})}>
+              <div key={index} className={styles.step({})}>
                 {renderStep(renderStepProps)}
               </div>
             )
           })}
         </div>
 
-        <div className={classes.content()}>
+        <div className={styles.content()}>
           <AnimatePresence initial={false} mode="sync" custom={direction}>
             <motion.div
               key={currentStep}

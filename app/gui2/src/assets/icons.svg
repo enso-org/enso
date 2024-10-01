@@ -26,6 +26,10 @@
     <rect y="7" width="16" height="2" fill="currentColor"></rect>
   </symbol>
 
+  <symbol id="add-to-graph_editor" viewBox="0 0 16 16" width="16" height="16" fill="none">
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M2.5 0H4.5V12H16V16H0V12H2.5V0ZM11.5 2H9.5V5H6.5V7H9.5V10H11.5V7H14.5V5H11.5V2Z" fill="currentColor"></path>
+  </symbol>
+
   <symbol id="array_new" viewBox="0 0 16 16" width="16" height="16" fill="none">
     <rect x="2" y="6" width="3" height="3" fill="currentColor"></rect>
     <rect opacity="0.8" x="6" y="6" width="3" height="3" fill="currentColor"></rect>
@@ -400,6 +404,10 @@
 
   <symbol id="graph_editor" viewBox="0 0 16 16" width="16" height="16" fill="none">
     <path d="M2 4.5C2 3.11929 3.11929 2 4.5 2 5.88071 2 7 3.11929 7 4.5 7 5.88071 5.88071 7 4.5 7 3.11929 7 2 5.88071 2 4.5ZM9 4.5C9 3.11929 10.1193 2 11.5 2 12.8807 2 14 3.11929 14 4.5 14 5.88071 12.8807 7 11.5 7 10.1193 7 9 5.88071 9 4.5ZM2 11.5C2 10.1193 3.11929 9 4.5 9 5.88071 9 7 10.1193 7 11.5 7 12.8807 5.88071 14 4.5 14 3.11929 14 2 12.8807 2 11.5ZM9 11.5C9 10.1193 10.1193 9 11.5 9 12.8807 9 14 10.1193 14 11.5 14 12.8807 12.8807 14 11.5 14 10.1193 14 9 12.8807 9 11.5Z" fill="currentColor"></path>
+  </symbol>
+
+  <symbol id="graph_editor" viewBox="0 0 16 16" width="16" height="16" fill="none">
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M0 0H16V4H13.5V6H16V10H9V6H11.5V4H4.5V6H7V10H4.5V12H16V16H0V12H2.5V10H0V6H2.5V4H0V0Z" fill="currentColor"></path>
   </symbol>
 
   <symbol id="group" viewBox="0 0 16 16" width="16" height="16" fill="none">

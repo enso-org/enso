@@ -68,8 +68,7 @@ assume_default_locale locale ~action =
     case locale == Locale.default of
         True -> action
         False ->
-            msg = "Custom locales are not supported for operations in the Database backend. If you want to use them, you need to materialize the table first."
-            Error.throw (Unsupported_Database_Operation.Error msg)
+            Error.throw (Unsupported_Database_Operation.Error "Custom locales")
 
 ## PRIVATE
 
