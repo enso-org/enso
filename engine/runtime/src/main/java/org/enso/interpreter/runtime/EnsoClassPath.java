@@ -3,6 +3,7 @@ package org.enso.interpreter.runtime;
 import java.lang.module.Configuration;
 import java.lang.module.ModuleFinder;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -20,12 +21,26 @@ public final class EnsoClassPath {
   }
 
   static EnsoClassPath create(Path file, List<EnsoClassPath> parents) {
-    java.lang.module.ModuleFinder finder = ModuleFinder.of(file);
+    java.util.List<Path> locations = new ArrayList<>();
+
     java.util.List<java.lang.String> moduleNames =
-        finder.findAll().stream().map(mod -> mod.descriptor().name()).toList();
+        ModuleFinder.of(file).findAll().stream()
+            .filter(
+                (mod) -> {
+                  if (ModuleLayer.boot().findModule(mod.descriptor().name()).isPresent()) {
+                    return false;
+                  } else {
+                    var uri = mod.location().get();
+                    locations.add(Path.of(uri));
+                    return true;
+                  }
+                })
+            .map(mod -> mod.descriptor().name())
+            .toList();
     if (moduleNames.isEmpty()) {
       return EMPTY;
     } else {
+      var finder = ModuleFinder.of(locations.toArray(new Path[0]));
       ModuleLayer.Controller cntrl;
       if (parents.isEmpty()) {
         var parent = ModuleLayer.boot();
