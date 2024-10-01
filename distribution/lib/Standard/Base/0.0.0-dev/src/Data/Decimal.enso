@@ -1116,6 +1116,7 @@ type Decimal
        Arguments:
        - text: The text to parse into a `Decimal`.
        - locale: The locale that specifies the format to use when parsing.
+       - format: The Java-style format to use to parse the string.
 
        ! Error Conditions
 
@@ -1146,6 +1147,12 @@ type Decimal
 
              Decimal.parse "123.456.789,87654" locale=Locale.italy
              # => 123456789.87654
+
+       > Example
+         Parse a `Decimal` with an explicit negative number format.
+
+             Decimal.parse "(123,456,789.654)" format="###,###.##;(###,###.##)"
+             # => -123456789.654
     parse : Text -> Locale | Nothing -> Decimal ! Number_Parse_Error ! Illegal_Argument
     parse text locale:Locale=Locale.default format:Text="" -> Decimal ! Number_Parse_Error ! Illegal_Argument =
         Illegal_Argument.handle_java_exception <|
