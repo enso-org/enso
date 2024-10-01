@@ -175,7 +175,7 @@ type Response
     decode_as_json self (encoding : Encoding | Infer = Infer) =
         self.body.decode_as_json encoding
 
-    ## ALIAS to_file
+    ## ALIAS export, save, output, to_file
        GROUP Output
        ICON data_download
        Write response body to a File.
