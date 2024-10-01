@@ -17,6 +17,7 @@ module org.enso.std.database {
   requires com.fasterxml.jackson.databind;
 
   uses DatabaseConnectionDetailsSPI;
+  uses java.sql.Driver;
 
   exports org.enso.database;
 
@@ -28,4 +29,6 @@ module org.enso.std.database {
       PostgresDataLinkSPI;
   provides FileFormatSPI with
       SQLiteFormatSPI;
+
+  opens org.enso.database.dryrun;
 }

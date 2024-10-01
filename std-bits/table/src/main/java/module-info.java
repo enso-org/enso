@@ -31,4 +31,5 @@ module org.enso.std.table {
   opens org.enso.table.data.table;
   opens org.enso.table.data.table.problems;
   opens org.enso.table.error;
+  opens org.enso.table.data.column.storage.type;
 }
