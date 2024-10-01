@@ -1,6 +1,7 @@
 package org.enso.interpreter.instrument.job;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.interop.ExceptionType;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import java.nio.charset.StandardCharsets;
@@ -39,6 +40,15 @@ public final class VisualizationResult {
       }
     } catch (UnsupportedMessageException ignore) {
       throw CompilerDirectives.shouldNotReachHere(ignore);
+    }
+  }
+
+  public static boolean isInterruptedException(Throwable ex) {
+    var iop = InteropLibrary.getUncached();
+    try {
+      return iop.getExceptionType(ex) == ExceptionType.INTERRUPT;
+    } catch (UnsupportedMessageException e) {
+      throw CompilerDirectives.shouldNotReachHere(e);
     }
   }
 
