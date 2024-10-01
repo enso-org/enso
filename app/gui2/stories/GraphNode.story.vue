@@ -48,6 +48,7 @@ const node = computed((): Node => {
     conditionalPorts: new Set(),
     type: 'component',
     docs: undefined,
+    argIndex: undefined,
   }
 })
 

@@ -262,7 +262,7 @@ type File
                 just_file_options = open_options.filter opt-> opt.is_a File_Access
                 Managed_Resource.bracket (new_input_stream self just_file_options) (_.close) action
 
-    ## ALIAS load, open
+    ## ALIAS load, open, import
        GROUP Input
        ICON data_input
        Read a file using the specified file format

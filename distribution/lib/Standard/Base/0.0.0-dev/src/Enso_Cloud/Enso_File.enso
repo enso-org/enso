@@ -256,7 +256,7 @@ type Enso_File
                         Error.throw (Illegal_Argument.Error "Only files can be opened as a stream.")
                 response.if_not_error <| response.body.with_stream action
 
-    ## ALIAS load, open
+    ## ALIAS load, open, import
        GROUP Input
        ICON data_input
        Read a file using the specified file format

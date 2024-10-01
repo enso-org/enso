@@ -35,7 +35,7 @@ const hoveredPort = computed(() => (mouseAnchor.value ? selection?.hoveredPort :
 const isSuggestion = computed(() => 'suggestion' in props.edge && props.edge.suggestion)
 
 const connectedSourceNode = computed(
-  () => props.edge.source && graph.db.getPatternExpressionNodeId(props.edge.source),
+  () => props.edge.source && graph.getSourceNodeId(props.edge.source),
 )
 
 const sourceNode = computed(() => {

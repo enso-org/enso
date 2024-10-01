@@ -28,6 +28,8 @@ export function usePlacement(nodeRects: ToValue<Iterable<Rect>>, screenBounds: T
       previousNodeDictatedPlacement(nodeSize, environment(selectedNodeRects), gap),
     collapse: (selectedNodeRects: Iterable<Rect>, nodeSize: Vec2 = DEFAULT_NODE_SIZE): Vec2 =>
       collapsedNodePlacement(nodeSize, environment(selectedNodeRects), gap),
+    input: (nonInputNodeRects: Iterable<Rect>, nodeSize: Vec2 = DEFAULT_NODE_SIZE): Vec2 =>
+      inputNodePlacement(nodeSize, { ...environment([]), nonInputNodeRects }, gap),
   }
 }
 
@@ -38,6 +40,10 @@ interface NonDictatedEnvironment {
 
 export interface Environment extends NonDictatedEnvironment {
   selectedNodeRects: Iterable<Rect>
+}
+
+export interface InputNodeEnvironment extends Environment {
+  nonInputNodeRects: Iterable<Rect>
 }
 
 function themeGap(): Vec2 {
@@ -119,6 +125,26 @@ export function mouseDictatedPlacement(
   return mousePosition.add(new Vec2(nodeRadius, nodeRadius))
 }
 
+/** The new node should appear above non-input nodes, left aligned to the leftmost node and vertically aligned with the other input nodes. */
+export function inputNodePlacement(
+  nodeSize: Vec2,
+  { nonInputNodeRects, nodeRects }: InputNodeEnvironment,
+  gap = themeGap(),
+): Vec2 {
+  let topMostY
+  let leftMostX
+  for (const rect of nonInputNodeRects) {
+    topMostY = topMostY == null ? rect.top : Math.min(topMostY, rect.top)
+    leftMostX = leftMostX == null ? rect.left : Math.min(leftMostX, rect.left)
+  }
+  assert(
+    topMostY != null && leftMostX != null,
+    'inputNodePlacement works only if at least one non-input node is present.',
+  )
+  const initialPosition = new Vec2(leftMostX, topMostY - nodeSize.y - gap.y)
+  return seekHorizontal(new Rect(initialPosition, nodeSize), nodeRects, gap)
+}
+
 /** The new node should appear at the average Y-position of selected nodes and with the X-position of the leftmost node.
  *
  * If the desired place is already occupied by non-selected node, it should be moved down to the closest free space.
@@ -155,7 +181,7 @@ export function collapsedNodePlacement(
   return seekVertical(new Rect(initialPosition, nodeSize), nonSelectedNodeRects, gap)
 }
 
-/** Given a preferred location for a node, adjust the top as much as necessary for it not to collide with any of the
+/** Given a preferred location for a node, adjust the top as low as necessary for it not to collide with any of the
  *  provided `otherRects`. */
 export function seekVertical(preferredRect: Rect, otherRects: Iterable<Rect>, gap = themeGap()) {
   const initialRect = orDefaultSize(preferredRect)
