@@ -9,10 +9,10 @@ import org.enso.compiler.core.ir.ProcessingPass;
  * traverses the whole IR tree bottom-up from leaves to the root. For each IR element:
  *
  * <ol>
- *   <li>The {@link #prepare(IR)} method is called to prepare the pass for the current IR element.
- *       This method is called when the {@link org.enso.compiler.Compiler} traverses the element
- *       from top to bottom. This is useful for mini passes that need to build some information
- *       about the current IR element before transforming it.
+ *   <li>The {@link #prepare(IR, IR)} method is called to prepare the pass for the current IR
+ *       element. This method is called when the {@link org.enso.compiler.Compiler} traverses the
+ *       element from top to bottom. This is useful for mini passes that need to build some
+ *       information about the current IR element before transforming it.
  *   <li>The {@link #transformIr(IR)} method is called to transform the current IR element. This
  *       method is called when the {@link org.enso.compiler.Compiler} traverses the element from
  *       bottom to top. All the children of the current IR element are already transformed when this
@@ -34,9 +34,10 @@ public abstract class MiniIRPass implements ProcessingPass {
    * Prepare the pass for the provided IR element. This method is called when the {@link
    * org.enso.compiler.Compiler} traverses the IR element from top to bottom.
    *
-   * @param ir IR element to be prepared for transformation.
+   * @param current IR element to be prepared for transformation.
+   * @param parent Parent IR of the {@code current} IR element. May be {@code null}.
    */
-  public MiniIRPass prepare(IR ir) {
+  public MiniIRPass prepare(IR current, IR parent) {
     return this;
   }
 

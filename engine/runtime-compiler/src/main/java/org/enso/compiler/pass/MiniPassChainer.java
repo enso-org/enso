@@ -41,9 +41,9 @@ class ChainedMiniPass extends MiniIRPass {
   }
 
   @Override
-  public MiniIRPass prepare(IR ir) {
-    firstPass = firstPass.prepare(ir);
-    secondPass = secondPass.prepare(ir);
+  public MiniIRPass prepare(IR current, IR parent) {
+    firstPass = firstPass.prepare(current, parent);
+    secondPass = secondPass.prepare(current, parent);
     return this;
   }
 

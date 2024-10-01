@@ -18,8 +18,8 @@ class LambdaShorthandToLambdaMini(
   private val shouldSkipBlanks: Boolean = false
 ) extends MiniIRPass {
 
-  override def prepare(ir: IR): LambdaShorthandToLambdaMini = {
-    ir match {
+  override def prepare(current: IR, parent: IR): LambdaShorthandToLambdaMini = {
+    current match {
       case Application.Prefix(fn, args, _, _, _) =>
         val hasBlankArg = args.exists {
           case CallArgument.Specified(_, _: Name.Blank, _, _) => true
