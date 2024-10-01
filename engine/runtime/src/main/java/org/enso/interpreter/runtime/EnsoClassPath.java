@@ -56,7 +56,7 @@ public final class EnsoClassPath {
         var parentLoader = ModuleLayer.boot().findLoader("java.base");
         var cfg =
             Configuration.resolveAndBind(finder, parentCfgs, ModuleFinder.ofSystem(), moduleNames);
-        cntrl = ModuleLayer.defineModulesWithManyLoaders(cfg, parentLayers, parentLoader);
+        cntrl = ModuleLayer.defineModulesWithOneLoader(cfg, parentLayers, parentLoader);
       }
       var layer = cntrl.layer();
       var loader = layer.findLoader(moduleNames.get(0));
