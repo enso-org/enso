@@ -22,7 +22,7 @@ type Connection_Options
        Widget to design connection options.
     default_widget : Widget
     default_widget =
-        fqn = Meta.get_qualified_type_name Pair . drop (..Last 5)
+        fqn = Meta.get_qualified_type_name Pair . take (..Before_Last '.')
         default = 'pair "key" "value"'
         pair = Option "Pair" fqn+".pair" [["first", Text_Input], ["second", make_text_secret_selector]]
         item_editor = Single_Choice display=..Always values=[pair]

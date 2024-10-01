@@ -84,7 +84,7 @@ make_all_with_json =
 
 ## PRIVATE
 dictionary_widget -> Widget =
-    fqn = Meta.get_qualified_type_name Pair . drop (..Last 5)
+    fqn = Meta.get_qualified_type_name Pair . take (..Before_Last '.')
     default = 'pair "key" ""'
     value_editor = Single_Choice display=..Always values=[Option "Text" '""', Option "File" "File.new ''"]
     pair = Option "Pair" fqn+".pair" [["first", Text_Input], ["second", value_editor]]
