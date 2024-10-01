@@ -20,4 +20,15 @@ module org.enso.std.table {
   provides FileFormatSPI with
       ExcelFormatSPI,
       DelimitedFormatSPI;
+
+  //
+  // opening up for reflection from Enso code
+  //
+  opens org.enso.table.problems;
+  opens org.enso.table.data.column.storage;
+  opens org.enso.table.data.column.storage.numeric;
+  opens org.enso.table.data.column.builder;
+  opens org.enso.table.data.table;
+  opens org.enso.table.data.table.problems;
+  opens org.enso.table.error;
 }
