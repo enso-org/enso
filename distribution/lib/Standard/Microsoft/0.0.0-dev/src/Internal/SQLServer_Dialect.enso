@@ -257,6 +257,7 @@ type SQLSever_Dialect
             Feature.Sample -> False
             Feature.Replace -> False
             Feature.Merge -> False
+            Feature.Cross_join -> False
             _ -> True
 
     ## PRIVATE
