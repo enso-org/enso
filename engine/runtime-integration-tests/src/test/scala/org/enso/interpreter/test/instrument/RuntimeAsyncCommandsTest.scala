@@ -3,9 +3,10 @@ package org.enso.interpreter.test.instrument
 import org.enso.interpreter.test.Metadata
 import org.enso.common.LanguageInfo
 import org.enso.common.RuntimeOptions
+import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.polyglot.runtime.Runtime.Api.ExpressionUpdate.Payload
+import org.enso.polyglot.runtime.Runtime.Api.{MethodCall, MethodPointer}
 import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
 import org.graalvm.polyglot.Context
 import org.scalatest.BeforeAndAfterEach
@@ -244,13 +245,13 @@ class RuntimeAsyncCommandsTest
     diagnostic.stack should not be empty
   }
 
-  it should "interrupt running execution context and recompute" in {
+  it should "interrupt running execution context without raising Panic" in {
     val moduleName = "Enso_Test.Test.Main"
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
 
     val metadata = new Metadata
-    metadata.addItem(194, 7)
+    val vId      = metadata.addItem(194, 7)
     val code =
       """from Standard.Base import all
         |polyglot java import java.lang.Thread
@@ -314,22 +315,24 @@ class RuntimeAsyncCommandsTest
     context.send(
       Api.Request(requestId, Api.RecomputeContextRequest(contextId, None, None))
     )
-    val responses = context.receiveN(
-      4
+    val responses = context.receiveNIgnoreStdLib(
+      3
     )
-    responses should contain allOf (
+
+    responses should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        vId,
+        ConstantsGen.INTEGER,
+        methodCall = Some(
+          MethodCall(
+            MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "loop"),
+            Vector(1)
+          )
+        )
+      ),
       context.executionComplete(contextId)
     )
-    val updatesWithInterruptPanic = responses
-      .collect {
-        case response if response.payload.isInstanceOf[Api.ExpressionUpdates] =>
-          response.payload.asInstanceOf[Api.ExpressionUpdates]
-      }
-      .flatMap(_.updates)
-      .map(_.payload)
-      .filter(_.isInstanceOf[Payload.Panic])
-
-    updatesWithInterruptPanic.length shouldEqual 0
   }
 }
