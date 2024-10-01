@@ -503,16 +503,14 @@ fn extract_github_command(line: &str) -> Option<String> {
             || remaining.starts_with("group")
             || remaining.starts_with("endgroup")
         {
-            Some(trimmed.to_string())
-        } else {
-            if (line.contains("group")) {
-                print!("GROUP??? '{line}'")
-            }
-            None
+            return Some(trimmed.to_string())
         }
-    } else {
-        None
+    };
+
+    if line.contains("group") {
+        info!("GROUP??? '{line}'")
     }
+    None
 }
 
 pub trait Manipulator {
