@@ -25,6 +25,7 @@ import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSpotlight } from '#/hooks/spotlightHooks'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
@@ -55,11 +56,35 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   const { backend, item, setItem, category, spotlightOn } = props
   const { isReadonly = false } = props
 
+  const setAssetPanelProps = useSetAssetPanelProps()
+  const closeSpotlight = useEventCallback(() => {
+    const assetPanelProps = driveStore.getState().assetPanelProps
+    if (assetPanelProps != null) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { spotlightOn: unusedSpotlightOn, ...rest } = assetPanelProps
+      setAssetPanelProps(rest)
+    }
+  })
   const { user } = authProvider.useFullUserSession()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const localBackend = backendProvider.useLocalBackend()
-  const [isEditingDescription, setIsEditingDescription] = React.useState(false)
+  const [isEditingDescriptionRaw, setIsEditingDescriptionRaw] = React.useState(false)
+  const isEditingDescription = isEditingDescriptionRaw || spotlightOn === 'description'
+  const setIsEditingDescription = React.useCallback(
+    (valueOrUpdater: React.SetStateAction<boolean>) => {
+      setIsEditingDescriptionRaw((currentValue) => {
+        if (typeof valueOrUpdater === 'function') {
+          valueOrUpdater = valueOrUpdater(currentValue)
+        }
+        if (!valueOrUpdater) {
+          closeSpotlight()
+        }
+        return valueOrUpdater
+      })
+    },
+    [closeSpotlight],
+  )
   const [queuedDescription, setQueuedDescripion] = React.useState<string | null>(null)
   const [description, setDescription] = React.useState('')
   const [datalinkValue, setDatalinkValue] = React.useState<NonNullable<unknown> | null>(null)
@@ -72,15 +97,6 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     [datalinkValue],
   )
   const driveStore = useDriveStore()
-  const setAssetPanelProps = useSetAssetPanelProps()
-  const closeSpotlight = () => {
-    const assetPanelProps = driveStore.getState().assetPanelProps
-    if (assetPanelProps != null) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { spotlightOn: unusedSpotlightOn, ...rest } = assetPanelProps
-      setAssetPanelProps(rest)
-    }
-  }
   const descriptionRef = React.useRef<HTMLDivElement>(null)
   const descriptionSpotlight = useSpotlight({
     ref: descriptionRef,
