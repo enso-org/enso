@@ -101,6 +101,25 @@ object FileSystemManagementApi {
       }
   }
 
+  case object FileSystemReadPath extends Method("filesystem/readPath") {
+
+    case class Params(path: File)
+
+    type Result = Unused.type
+    val Result = Unused
+
+    implicit val hasParams
+      : HasParams.Aux[this.type, FileSystemReadPath.Params] =
+      new HasParams[this.type] {
+        type Params = FileSystemReadPath.Params
+      }
+
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
+  }
+
   case object FileSystemWritePath extends Method("filesystem/writePath") {
 
     case class Params(path: File)
