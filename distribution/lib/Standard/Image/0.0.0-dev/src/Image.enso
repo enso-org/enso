@@ -46,6 +46,7 @@ type Image
         Image.Value (Java_Image.from_vector values rows channels)
 
     ## UNSTABLE
+       ALIAS load, open, import
        ICON data_input
 
        Read an image from a file.
@@ -79,6 +80,7 @@ type Image
             Error.throw (File_Error.IO_Error location 'Failed to read the file')
 
     ## UNSTABLE
+       ALIAS export, save, output, to_file
        ICON data_output
 
        Write an image to a file.
