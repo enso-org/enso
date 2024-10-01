@@ -29,11 +29,15 @@ public final class EnsoClassPath {
                 (mod) -> {
                   if (ModuleLayer.boot().findModule(mod.descriptor().name()).isPresent()) {
                     return false;
-                  } else {
-                    var uri = mod.location().get();
-                    locations.add(Path.of(uri));
-                    return true;
                   }
+                  for (var p : parents) {
+                    if (p.layer.findModule(mod.descriptor().name()).isPresent()) {
+                      return false;
+                    }
+                  }
+                  var uri = mod.location().get();
+                  locations.add(Path.of(uri));
+                  return true;
                 })
             .map(mod -> mod.descriptor().name())
             .toList();
