@@ -3,18 +3,26 @@
 //!
 //! The JSON schema data will be emitted to standard output.
 
-// === Non-Standard Linter Configuration ===
-#![deny(unconditional_recursion)]
-#![warn(missing_docs)]
-#![warn(trivial_casts)]
-#![warn(unused_qualifications)]
-
-
+use std::fs;
+use std::env;
+use std::path::Path;
 
 // =========================
 // === Schema Generation ===
 // =========================
 
-fn main() {
-    serde_json::to_writer_pretty(std::io::stdout(), &enso_parser_schema::schema()).unwrap()
+fn main() -> std::io::Result<()> {
+    let args: Vec<_> = env::args().collect();
+    let schema = enso_parser_schema::schema();
+    if args.len() == 2 {
+        let path = Path::new(&args[1]);
+        if let Some(directory) = path.parent() {
+            fs::create_dir_all(&directory)?;
+        }
+        let file = fs::File::create(path)?;
+        serde_json::to_writer_pretty(file, &schema)?;
+    } else {
+        serde_json::to_writer_pretty(std::io::stdout(), &schema)?;
+    }
+    Ok(())
 }

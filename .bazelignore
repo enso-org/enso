@@ -19,6 +19,7 @@ app/ydoc-server/node_modules
 app/ydoc-server-nodejs/node_modules
 app/ydoc-server-polyglot/node_modules
 app/ydoc-shared/node_modules
+app/ydoc-shared/parser-codegen/generated
 app/ydoc-shared/parser-codegen/node_modules
 lib/js/runner/node_modules
 

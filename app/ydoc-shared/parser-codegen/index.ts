@@ -1,61 +1,25 @@
-import * as crypto from 'node:crypto'
 import * as fs from 'node:fs/promises'
 import * as process from 'node:process'
+import * as codegen from './codegen.js'
 import type * as Schema from './schema.js'
 
-const positionalArgs = []
-let doChangeDetection = false
-
-for (let i = 2; i < process.argv.length; i++) {
-  const nextArg = process.argv[i]!
-  if (nextArg === '--if-changed') doChangeDetection = true
-  else if (nextArg.startsWith('--')) usage()
-  else if (positionalArgs.length > 2) usage()
-  else positionalArgs.push(nextArg)
-}
-
-const schemaPath = positionalArgs[0]
-const outputPath = positionalArgs[1]
+const schemaPath = process.argv[1]
+const outputPath = process.argv[2]
 
 if (!schemaPath) usage()
 
 function usage(): never {
-  console.error(
-    'Usage: parser-codegen [flags] <schemaPath> <outputPath>\n  flags:\n  --if-changed: only generate if schema is outdated',
-  )
+  console.error('Usage: parser-codegen <schemaPath> [<outputPath>]')
   process.exit(1)
 }
 
+console.error(`Generating ${outputPath} from ${schemaPath}.`)
+
 const schemaContents = await fs.readFile(schemaPath, 'utf8')
-var hash = crypto.createHash('sha1')
-hash.update(schemaContents)
-const schemaHash = hash.digest()
-
-const runCodegen = async () => {
-  console.error(`Generating ${outputPath} from ${schemaPath}.`)
-  // load codegen lazily only when necessary, since it has a large loading time cost
-  const codegen = await import('./codegen.js')
-  const schema: Schema.Schema = JSON.parse(schemaContents)
-  const code = codegen.implement(schema)
-  if (outputPath != null) {
-    await fs.writeFile(outputPath, code)
-    await fs.writeFile(`${outputPath}.schema-digest`, schemaHash)
-  } else {
-    console.log(code)
-  }
-}
-
-const checkSchemaChanged = async () => {
-  try {
-    const lastDigest = await fs.readFile(`${outputPath}.schema-digest`)
-    return !lastDigest.equals(schemaHash)
-  } catch (e) {
-    return true
-  }
-}
-
-if (!doChangeDetection || (await checkSchemaChanged())) {
-  await runCodegen()
+const schema: Schema.Schema = JSON.parse(schemaContents)
+const code = codegen.implement(schema)
+if (outputPath != null) {
+  await fs.writeFile(outputPath, code)
 } else {
-  console.log('No schema changes detected since last code generation.')
+  console.log(code)
 }
