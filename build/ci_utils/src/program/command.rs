@@ -469,13 +469,8 @@ pub fn spawn_log_processor(
                 match String::from_utf8(line_bytes) {
                     Ok(line) => {
                         let line = line.trim_end_matches('\r');
-                        let is_likely_special_github_command = line.starts_with("::");
-                        if is_likely_special_github_command {
-                            // Intentionally using println to avoid info!'s prefix for GitHub
-                            // commands. See https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/workflow-commands-for-github-actions
-                            // We may catch some false positives - but logging them without the
-                            // prefix should not a problem.
-                            println!("{line}");
+                        if let Some(special_command) = extract_github_command(line) {
+                            println!("{special_command}");
                         } else {
                             info!("{prefix} {line}");
                         }
@@ -495,6 +490,25 @@ pub fn spawn_log_processor(
         }
         .inspect_err(|e| error!("Fatal error while processing process output: {e}")),
     )
+}
+
+/// Checks if the line contains a GitHub command and extracts it from the line if it does.
+/// Currently only error and group commands are supported. All commands are documented at https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/workflow-commands-for-github-actions
+fn extract_github_command(line: &str) -> Option<String> {
+    // We remove a possible [info] prefix that is added by sbt.
+    let trimmed = line.strip_prefix("[info] ").unwrap_or(line);
+    if let Some(remaining) = line.strip_prefix("::") {
+        if remaining.starts_with("error")
+            || remaining.starts_with("group")
+            || remaining.starts_with("endgroup")
+        {
+            Some(trimmed.to_string())
+        } else {
+            None
+        }
+    } else {
+        None
+    }
 }
 
 pub trait Manipulator {
