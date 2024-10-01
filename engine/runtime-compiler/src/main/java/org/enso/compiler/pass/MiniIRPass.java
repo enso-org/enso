@@ -36,8 +36,8 @@ public abstract class MiniIRPass<T extends IRPass.IRMetadata> implements Process
    *
    * @param ir IR element to be prepared for transformation.
    */
-  public void prepare(IR ir) {
-    // nop
+  public MiniIRPass<T> prepare(IR ir) {
+    return this;
   }
 
   /**

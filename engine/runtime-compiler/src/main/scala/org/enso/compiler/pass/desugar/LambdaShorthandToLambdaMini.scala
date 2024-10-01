@@ -1,6 +1,6 @@
 package org.enso.compiler.pass.desugar
 
-import org.enso.compiler.context.{CompilerContext, FreshNameSupply}
+import org.enso.compiler.context.FreshNameSupply
 import org.enso.compiler.core.{CompilerError, IR}
 import org.enso.compiler.core.ir.expression.{Application, Case, Operator}
 import org.enso.compiler.core.ir.{
@@ -9,40 +9,41 @@ import org.enso.compiler.core.ir.{
   Expression,
   Function,
   IdentifiedLocation,
-  Name,
-  ProcessingPass
+  Name
 }
 import org.enso.compiler.pass.{IRPass, MiniIRPass}
 
 class LambdaShorthandToLambdaMini(
-  protected val freshNameSupply: FreshNameSupply
-) extends MiniIRPass[ShouldSkipMeta] {
+  protected val freshNameSupply: FreshNameSupply,
+  private val shouldSkipBlanks: Boolean = false
+) extends MiniIRPass[IRPass.IRMetadata] {
 
-  override def prepare(ir: IR): Unit = {
+  override def prepare(ir: IR): LambdaShorthandToLambdaMini = {
     ir match {
       case Application.Prefix(fn, args, _, _, _) =>
-        args.foreach {
-          case CallArgument.Specified(_, blank: Name.Blank, _, _) =>
-            blank.passData.update(this, new ShouldSkipMeta(true))
-          case _ => ()
+        val hasBlankArg = args.exists {
+          case CallArgument.Specified(_, _: Name.Blank, _, _) => true
+          case _                                              => false
         }
-        fn match {
-          case blank: Name.Blank =>
-            blank.passData.update(this, new ShouldSkipMeta(true))
-          case _ => ()
+        val hasBlankFn = fn.isInstanceOf[Name.Blank]
+        if (hasBlankArg || hasBlankFn) {
+          new LambdaShorthandToLambdaMini(freshNameSupply, true)
+        } else {
+          this
         }
       case Application.Sequence(items, _, _) =>
-        items.foreach {
-          case blank: Name.Blank =>
-            blank.passData.update(this, new ShouldSkipMeta(true))
-          case _ => ()
+        val hasBlankItem = items.exists {
+          case _: Name.Blank => true
+          case _             => false
         }
-      case Case.Expr(scrutinee, _, _, _, _) =>
-        scrutinee match {
-          case blank: Name.Blank =>
-            blank.passData.update(this, new ShouldSkipMeta(true))
+        if (hasBlankItem) {
+          new LambdaShorthandToLambdaMini(freshNameSupply, true)
+        } else {
+          this
         }
-      case _ => ()
+      case Case.Expr(_: Name.Blank, _, _, _, _) =>
+        new LambdaShorthandToLambdaMini(freshNameSupply, true)
+      case _ => this
     }
   }
 
@@ -55,13 +56,6 @@ class LambdaShorthandToLambdaMini(
     }
   }
 
-  private def getMeta(ir: IR): Option[ShouldSkipMeta] = {
-    ir.passData.get(this) match {
-      case Some(meta: ShouldSkipMeta) => Some(meta)
-      case _                          => None
-    }
-  }
-
   /** Desugars an arbitrary name occurrence, turning isolated occurrences of
     * `_` into the `id` function.
     *
@@ -70,33 +64,26 @@ class LambdaShorthandToLambdaMini(
     */
   private def desugarName(name: Name): Expression = {
     name match {
-      case blank: Name.Blank =>
-        getMeta(blank) match {
-          case Some(meta) if meta.shouldSkip =>
-            // Unset the metadata and skip
-            blank.passData.remove(this)
-            name
-          case _ =>
-            val newName = freshNameSupply.newName()
+      case blank: Name.Blank if !shouldSkipBlanks =>
+        val newName = freshNameSupply.newName()
 
-            new Function.Lambda(
-              List(
-                DefinitionArgument.Specified(
-                  name = Name.Literal(
-                    newName.name,
-                    isMethod = false,
-                    None
-                  ),
-                  ascribedType = None,
-                  defaultValue = None,
-                  suspended    = false,
-                  location     = None
-                )
+        new Function.Lambda(
+          List(
+            DefinitionArgument.Specified(
+              name = Name.Literal(
+                newName.name,
+                isMethod = false,
+                None
               ),
-              newName,
-              blank.location
+              ascribedType = None,
+              defaultValue = None,
+              suspended    = false,
+              location     = None
             )
-        }
+          ),
+          newName,
+          blank.location
+        )
       case _ => name
     }
   }
@@ -104,7 +91,6 @@ class LambdaShorthandToLambdaMini(
   /** Desugars lambda shorthand arguments to an arbitrary function application.
     *
     * @param application the function application to desugar
-    * @param freshNameSupply the compiler's supply of fresh names
     * @return `application`, with any lambda shorthand arguments desugared
     */
   private def desugarApplication(
@@ -358,23 +344,4 @@ class LambdaShorthandToLambdaMini(
       case _ => caseExpr
     }
   }
-}
-
-class ShouldSkipMeta(
-  val shouldSkip: Boolean
-) extends IRPass.IRMetadata {
-
-  override val metadataName: String = "LambdaShorthandToLambdaMini.Meta"
-
-  override def duplicate(): Option[Metadata] = Some(
-    new ShouldSkipMeta(shouldSkip)
-  )
-
-  override def prepareForSerialization(
-    compiler: CompilerContext
-  ): ProcessingPass.Metadata = this
-
-  override def restoreFromSerialization(
-    compiler: CompilerContext
-  ): Option[ProcessingPass.Metadata] = Some(this)
 }

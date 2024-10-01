@@ -5,8 +5,6 @@ import org.enso.compiler.core.CompilerError;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Module;
-import org.enso.compiler.core.ir.Name;
-import scala.Option;
 
 public final class MiniPassTraverser {
   private MiniPassTraverser() {}
@@ -24,16 +22,16 @@ public final class MiniPassTraverser {
   }
 
   public static Expression compileInlineWithMiniPass(Expression exprIr, MiniIRPass miniPass) {
-    miniPass.prepare(exprIr);
-    var newIr = compileRecursively(exprIr, miniPass);
-    if (!miniPass.checkPostCondition(newIr)) {
-      throw new CompilerError("Post condition failed after applying mini pass " + miniPass);
+    var preparedMiniPass = miniPass.prepare(exprIr);
+    var newIr = compileRecursively(exprIr, preparedMiniPass);
+    if (!preparedMiniPass.checkPostCondition(newIr)) {
+      throw new CompilerError("Post condition failed after applying mini pass " + preparedMiniPass);
     }
     return (Expression) newIr;
   }
 
   private static IR compileRecursively(IR ir, MiniIRPass miniPass) {
-    miniPass.prepare(ir);
+    var preparedMiniPass = miniPass.prepare(ir);
     IR newIr;
     if (ir.children().isEmpty()) {
       newIr = ir;
@@ -42,21 +40,21 @@ public final class MiniPassTraverser {
           ir.children()
               .map(
                   child -> {
-                    var newChild = compileRecursively(child, miniPass);
+                    var newChild = compileRecursively(child, preparedMiniPass);
                     if (newChild == null) {
                       throw new IllegalStateException("Mini pass returned null");
                     }
-                    if (!miniPass.checkPostCondition(newChild)) {
+                    if (!preparedMiniPass.checkPostCondition(newChild)) {
                       throw new CompilerError(
-                          "Post condition failed after applying mini pass " + miniPass);
+                          "Post condition failed after applying mini pass " + preparedMiniPass);
                     }
                     return newChild;
                   });
       newIr = ir.withNewChildren(transformedChildren);
     }
-    var transformedIr = miniPass.transformIr(newIr);
-    if (!miniPass.checkPostCondition(transformedIr)) {
-      throw new CompilerError("Post condition failed after applying mini pass " + miniPass);
+    var transformedIr = preparedMiniPass.transformIr(newIr);
+    if (!preparedMiniPass.checkPostCondition(transformedIr)) {
+      throw new CompilerError("Post condition failed after applying mini pass " + preparedMiniPass);
     }
     return transformedIr;
   }

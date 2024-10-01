@@ -2,6 +2,7 @@ package org.enso.compiler.pass;
 
 import java.util.List;
 import org.enso.compiler.core.IR;
+import org.enso.compiler.pass.IRPass.IRMetadata;
 
 /** Utility class for chaining mini passes together. */
 public final class MiniPassChainer {
@@ -13,13 +14,11 @@ public final class MiniPassChainer {
    * @param passes Ordered list of mini passes.
    * @return Chained mini pass that applies all the provided mini passes in the given order.
    */
-  public static MiniIRPass chain(List<MiniIRPass> passes) {
-    return new MiniIRPass() {
+  public static <T extends IRMetadata> MiniIRPass<T> chain(List<MiniIRPass<T>> passes) {
+    return new MiniIRPass<T>() {
       @Override
-      public void prepare(IR ir) {
-        for (var miniPass : passes) {
-          miniPass.prepare(ir);
-        }
+      public MiniIRPass<T> prepare(IR ir) {
+        throw new UnsupportedOperationException("unimplemented");
       }
 
       @Override
@@ -38,12 +37,12 @@ public final class MiniPassChainer {
     };
   }
 
-  public static MiniIRPass chain(MiniIRPass firstPass, MiniIRPass secondPass) {
-    return new MiniIRPass() {
+  public static <T extends IRMetadata> MiniIRPass<T> chain(
+      MiniIRPass<T> firstPass, MiniIRPass<T> secondPass) {
+    return new MiniIRPass<T>() {
       @Override
-      public void prepare(IR ir) {
-        firstPass.prepare(ir);
-        secondPass.prepare(ir);
+      public MiniIRPass<T> prepare(IR ir) {
+        throw new UnsupportedOperationException("unimplemented");
       }
 
       @Override
