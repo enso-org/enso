@@ -470,6 +470,7 @@ pub fn spawn_log_processor(
                     Ok(line) => {
                         let line = line.trim_end_matches('\r');
                         if let Some(special_command) = extract_github_command(line) {
+                            // intentionally using println to avoid info!'s prefix
                             println!("{special_command}");
                         } else {
                             info!("{prefix} {line}");
@@ -496,7 +497,7 @@ pub fn spawn_log_processor(
 /// Currently only error and group commands are supported. All commands are documented at https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/workflow-commands-for-github-actions
 fn extract_github_command(line: &str) -> Option<String> {
     // We remove a possible [info] prefix that is added by sbt.
-    let trimmed = line.strip_prefix("[info] ").unwrap_or(line);
+    let trimmed = line.trim_start().strip_prefix("[info]").unwrap_or(line).trim_start();
     if let Some(remaining) = trimmed.strip_prefix("::") {
         if remaining.starts_with("error")
             || remaining.starts_with("group")
@@ -504,6 +505,9 @@ fn extract_github_command(line: &str) -> Option<String> {
         {
             Some(trimmed.to_string())
         } else {
+            if (line.contains("group")) {
+                print!("GROUP??? '{line}'")
+            }
             None
         }
     } else {
