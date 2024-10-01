@@ -24,12 +24,32 @@ module org.enso.std.table {
   //
   // opening up for reflection from Enso code
   //
+  opens org.enso.table.aggregations;
+  opens org.enso.table.expressions;
+  opens org.enso.table.formatting;
+  opens org.enso.table.excel;
   opens org.enso.table.problems;
+  opens org.enso.table.parsing;
+  opens org.enso.table.parsing.problems;
   opens org.enso.table.data.column.storage;
   opens org.enso.table.data.column.storage.numeric;
   opens org.enso.table.data.column.builder;
+  opens org.enso.table.data.column.operation;
+  opens org.enso.table.data.column.operation.cast;
+  opens org.enso.table.data.column.operation.map;
+  opens org.enso.table.data.column.operation.unary;
+  opens org.enso.table.data.column.storage.type;
+  opens org.enso.table.data.mask;
+  opens org.enso.table.data.index;
   opens org.enso.table.data.table;
   opens org.enso.table.data.table.problems;
+  opens org.enso.table.data.table.join;
+  opens org.enso.table.data.table.join.conditions;
+  opens org.enso.table.data.table.join.lookup;
   opens org.enso.table.error;
-  opens org.enso.table.data.column.storage.type;
+  opens org.enso.table.read;
+  opens org.enso.table.operations;
+  opens org.enso.table.util;
+  opens org.enso.table.util.problems;
+  opens org.enso.table.write;
 }
