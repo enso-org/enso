@@ -2,7 +2,6 @@ package org.enso.compiler.pass;
 
 import java.util.List;
 import org.enso.compiler.core.IR;
-import org.enso.compiler.pass.IRPass.IRMetadata;
 
 /** Utility class for chaining mini passes together. */
 public final class MiniPassChainer {
@@ -15,46 +14,47 @@ public final class MiniPassChainer {
    * @return Chained mini pass that applies all the provided mini passes in the given order.
    */
   public static MiniIRPass chain(List<MiniIRPass> passes) {
-    return new MiniIRPass() {
-      @Override
-      public MiniIRPass prepare(IR ir) {
-        throw new UnsupportedOperationException("unimplemented");
-      }
-
-      @Override
-      public IR transformIr(IR ir) {
-        IR transformedIr = ir;
-        for (var miniPass : passes) {
-          transformedIr = miniPass.transformIr(transformedIr);
-        }
-        return transformedIr;
-      }
-
-      @Override
-      public boolean checkPostCondition(IR ir) {
-        return passes.stream().allMatch(pass -> pass.checkPostCondition(ir));
-      }
-    };
+    if (passes.size() < 2) {
+      throw new IllegalArgumentException("At least two mini passes are required to chain them");
+    }
+    MiniIRPass chainedPass = null;
+    for (int i = 0; i < passes.size() - 1; i++) {
+      var currPass = passes.get(i);
+      var nextPass = passes.get(i + 1);
+      chainedPass = chain(currPass, nextPass);
+    }
+    return chainedPass;
   }
 
-  public static <T extends IRMetadata> MiniIRPass chain(
-      MiniIRPass firstPass, MiniIRPass secondPass) {
-    return new MiniIRPass() {
-      @Override
-      public MiniIRPass prepare(IR ir) {
-        throw new UnsupportedOperationException("unimplemented");
-      }
+  public static MiniIRPass chain(MiniIRPass firstPass, MiniIRPass secondPass) {
+    return new ChainedMiniPass(firstPass, secondPass);
+  }
+}
 
-      @Override
-      public IR transformIr(IR ir) {
-        IR firstResult = firstPass.transformIr(ir);
-        return secondPass.transformIr(firstResult);
-      }
+class ChainedMiniPass extends MiniIRPass {
+  private MiniIRPass firstPass;
+  private MiniIRPass secondPass;
 
-      @Override
-      public boolean checkPostCondition(IR ir) {
-        return firstPass.checkPostCondition(ir) && secondPass.checkPostCondition(ir);
-      }
-    };
+  ChainedMiniPass(MiniIRPass firstPass, MiniIRPass secondPass) {
+    this.firstPass = firstPass;
+    this.secondPass = secondPass;
+  }
+
+  @Override
+  public MiniIRPass prepare(IR ir) {
+    firstPass = firstPass.prepare(ir);
+    secondPass = secondPass.prepare(ir);
+    return this;
+  }
+
+  @Override
+  public IR transformIr(IR ir) {
+    var transformedIr = firstPass.transformIr(ir);
+    return secondPass.transformIr(transformedIr);
+  }
+
+  @Override
+  public boolean checkPostCondition(IR ir) {
+    return firstPass.checkPostCondition(ir) && secondPass.checkPostCondition(ir);
   }
 }
