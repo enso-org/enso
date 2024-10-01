@@ -1,12 +1,23 @@
 package org.enso.compiler.test.core.ir
 
+import org.enso.compiler.context.InlineContext
 import org.enso.compiler.core.ir.CallArgument
 import org.enso.compiler.core.ir.Name.Literal
-import org.enso.compiler.core.ir.expression.Application
+import org.enso.compiler.core.ir.expression.{Application, Operator}
+import org.enso.compiler.pass.{PassConfiguration, PassManager}
+import org.enso.compiler.test.CompilerTest
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpecLike
 
-class IRTest extends AnyWordSpecLike with Matchers {
+class IRTest extends CompilerTest with Matchers {
+  val passConfig: PassConfiguration = PassConfiguration()
+
+  implicit val passManager: PassManager =
+    new PassManager(List(), passConfig)
+
+  private def mkInlineContext: InlineContext = {
+    buildInlineContext()
+  }
+
   "Children IR" should {
     "not work for IR with no children" in {
       val lit = Literal("lit", isMethod = false, location = None)
@@ -69,6 +80,29 @@ class IRTest extends AnyWordSpecLike with Matchers {
       a[IllegalArgumentException] should be thrownBy (
         app.withNewChildren(List(otherCallArg, otherFuncLiteral))
       )
+    }
+
+    "binary operator with new children" in {
+      implicit val inlineCtx: InlineContext = mkInlineContext
+      val ir =
+        """
+          |1 + 2
+          |""".stripMargin.preprocessExpression.get
+      ir shouldBe a[Operator.Binary]
+      val binOpIr = ir.asInstanceOf[Operator.Binary]
+      binOpIr.children should have size 3
+      val newBinOp = binOpIr.withNewChildren(
+        List(
+          binOpIr.left,
+          Literal("-", false, None),
+          binOpIr.right
+        )
+      )
+      newBinOp.children should have size 3
+      newBinOp
+        .asInstanceOf[Operator.Binary]
+        .operator
+        .name shouldEqual "-"
     }
   }
 }
