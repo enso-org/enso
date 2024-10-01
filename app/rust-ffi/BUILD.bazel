@@ -19,14 +19,14 @@ rust_shared_library(
 )
 
 rust_wasm_bindgen(
-    name = "rust-ffi",
+    name = "rust_ffi",
     target = "bundler",
     wasm_file = ":rust_lib",
 )
 
 copy_to_directory(
     name = "rust-ffi-dist",
-    srcs = [":rust-ffi"],
+    srcs = [":rust_ffi"],
     out = "dist",
 )
 
