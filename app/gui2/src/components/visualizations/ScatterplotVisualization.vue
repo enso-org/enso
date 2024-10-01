@@ -328,7 +328,7 @@ const yLabelText = computed(() => {
     return data.value.axis.y.label
   }
   if (isCustomColorAndAxis.value) {
-    return yAxisSelected.value
+    return yAxisSelected.value === 'none' ? null : yAxisSelected.value
   } else return null
 })
 
@@ -784,6 +784,18 @@ function zoomToSelected(override?: boolean) {
 
 useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSelected() }))
 const yAxisSelected = ref('none')
+const makeSeriesLabelOptions = () => {
+  const seriesOptions: { [key: string]: { icon: string; label: string } } = {}
+
+  seriesLabels.value.forEach((label) => {
+    seriesOptions[label] = {
+      icon: 'text',
+      label: label,
+    }
+  })
+
+  return seriesOptions
+}
 
 config.setToolbar([
   {
@@ -810,14 +822,7 @@ config.setToolbar([
         icon: 'not_paragraph',
         label: 'No Y Axis Label',
       },
-      [seriesLabels.value[0] as string]: {
-        icon: 'text',
-        label: seriesLabels.value[0] as string,
-      },
-      [seriesLabels.value[1] as string]: {
-        icon: 'text',
-        label: seriesLabels.value[1] as string,
-      },
+      ...makeSeriesLabelOptions(),
     },
   },
 ])
