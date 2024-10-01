@@ -471,9 +471,10 @@ pub fn spawn_log_processor(
                         let line = line.trim_end_matches('\r');
                         let is_likely_special_github_command = line.starts_with("::");
                         if is_likely_special_github_command {
-                            // Intentionally using println to avoid info!'s prefix for GitHub commands.
-                            // See https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/workflow-commands-for-github-actions
-                            // We may catch some false positives - but logging them without the prefix should not a problem.
+                            // Intentionally using println to avoid info!'s prefix for GitHub
+                            // commands. See https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/workflow-commands-for-github-actions
+                            // We may catch some false positives - but logging them without the
+                            // prefix should not a problem.
                             println!("{line}");
                         } else {
                             info!("{prefix} {line}");
