@@ -587,17 +587,9 @@ function getAstPatternFilterAndSort(
   maxY: number,
 ) {
   return Pattern.new((ast) => {
-    let pattern = Ast.OprApp.new(
-      ast.module,
-      Ast.App.positional(
-        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('filter')!),
-        makeFilterPattern(ast.module, xColName, minX, maxX),
-      ),
-      '.',
-      Ast.App.positional(
-        Ast.Ident.new(ast.module, Ast.identifier('filter')!),
-        makeFilterPattern(ast.module, series[1]!, minY, maxY),
-      ),
+    let pattern: Ast.Owned<Ast.MutableOprApp> | Ast.Owned<Ast.MutableApp> = Ast.App.positional(
+      Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('filter')!),
+      makeFilterPattern(ast.module, xColName, minX, maxX),
     )
     for (let s of series) {
       pattern = Ast.OprApp.new(
