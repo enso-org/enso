@@ -45,6 +45,10 @@ public final class VisualizationResult {
 
   public static boolean isInterruptedException(Throwable ex) {
     var iop = InteropLibrary.getUncached();
+    return isInterruptedException(ex, iop);
+  }
+
+  private static boolean isInterruptedException(Object ex, InteropLibrary iop) {
     try {
       var interrupt = iop.getExceptionType(ex) == ExceptionType.INTERRUPT;
       if (interrupt) {
@@ -52,7 +56,7 @@ public final class VisualizationResult {
       }
       try {
         var cause = iop.getExceptionCause(ex);
-        return cause != null && iop.getExceptionType(cause) == ExceptionType.INTERRUPT;
+        return cause != null && isInterruptedException(cause, iop);
       } catch (UnsupportedMessageException e) {
         return false;
       }

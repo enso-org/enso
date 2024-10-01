@@ -249,8 +249,6 @@ class RuntimeAsyncCommandsTest
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
 
-    println("new context")
-
     val metadata = new Metadata
     metadata.addItem(194, 7)
     val code =
