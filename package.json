@@ -25,7 +25,7 @@
     "ci:lint": "corepack pnpm run -r lint",
     "ci:test": "corepack pnpm run -r --parallel test",
     "ci:typecheck": "corepack pnpm run -r typecheck",
-    "postinstall": "bazelisk run //:write_all"
+    "postinstall": "bazel run //:write_all"
   },
   "//": "Workspaces kept only to show deprecated message when running a script. Remove once everyone is familiar with pnpm.",
   "workspaces": [
