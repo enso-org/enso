@@ -10,7 +10,6 @@
   "exports": {
     ".": "./src/index.tsx",
     "./tailwind.config": "./tailwind.config.js",
-    "./src/platform": "./src/platform.ts",
     "./src/tailwind.css": "./src/tailwind.css"
   },
   "scripts": {

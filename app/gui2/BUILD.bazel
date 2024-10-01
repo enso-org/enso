@@ -16,6 +16,7 @@ SRCS = [
     ":tsconfig_node",
     "vite.config.ts",
     "package.json",
+    "index.html",
 ] + glob(["src/**", "shared/**", "public/**", "project-manager-shim-middleware/**"])
 
 # BUILD_DEPS = [":node_modules/" + d for d in [
@@ -37,7 +38,7 @@ js_library(
 
 vite_bin.vite(
     name = "build",
-    srcs = SRCS + [":vite.config"],
+    srcs = SRCS + [":vite.config"] + npm_link_targets(),
     args = ["build"],
     chdir = package_name(),
     out_dirs = ["dist"]

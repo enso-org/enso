@@ -21,8 +21,12 @@ ts_project(
 npm_package(
     name = "pkg",
     srcs = [
-        "package.json",
         ":tsc",
+        "package.json",
+        # Technically these two files are not an output of the tsc, so we must list them explicitly.
+        # At the same time, d.ts files are considered an output of the tsc, so we don't list them here.
+        "src/index.js",
+        "src/appConfig.js",
     ],
     visibility = ["//visibility:public"],
 )
