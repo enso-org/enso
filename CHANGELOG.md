@@ -66,6 +66,7 @@
 - [`select_into_database_table` no longer defaults the primary key to the first
   column.][11120]
 - [Added `format` parameter to `Decimal.parse`.][11205]
+- [Added `format` parameter to `Float.parse`.][11229]
 
 [10614]: https://github.com/enso-org/enso/pull/10614
 [10660]: https://github.com/enso-org/enso/pull/10660
@@ -79,6 +80,7 @@
 [10912]: https://github.com/enso-org/enso/pull/10912
 [11120]: https://github.com/enso-org/enso/pull/11120
 [11205]: https://github.com/enso-org/enso/pull/11205
+[11229]: https://github.com/enso-org/enso/pull/11229
 
 #### Enso Language & Runtime
 
