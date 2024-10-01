@@ -3,8 +3,8 @@ import * as process from 'node:process'
 import * as codegen from './codegen.js'
 import type * as Schema from './schema.js'
 
-const schemaPath = process.argv[1]
-const outputPath = process.argv[2]
+const schemaPath = process.argv[2]
+const outputPath = process.argv[3]
 
 if (!schemaPath) usage()
 
