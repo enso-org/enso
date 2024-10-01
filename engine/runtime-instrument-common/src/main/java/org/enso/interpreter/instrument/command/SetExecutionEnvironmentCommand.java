@@ -50,7 +50,9 @@ public class SetExecutionEnvironmentCommand extends AsynchronousCommand {
               var oldEnvironmentName =
                   ctx.executionService().getContext().getExecutionEnvironment().getName();
               if (!oldEnvironmentName.equals(executionEnvironment.name())) {
-                ctx.jobControlPlane().abortJobs(contextId);
+                ctx.jobControlPlane()
+                    .abortJobs(
+                        contextId, "set execution environment to " + executionEnvironment.name());
                 ctx.locking()
                     .withWriteCompilationLock(
                         this.getClass(),
