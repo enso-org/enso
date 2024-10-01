@@ -332,10 +332,6 @@ const yLabelText = computed(() => {
   } else return null
 })
 
-const colorList = computed(() =>
-  isCustomColorAndAxis.value ? ['red', 'green'] : d3.schemeCategory10,
-)
-
 watchEffect(() => {
   const boundsExpression =
     bounds.value != null ? Ast.Vector.tryBuild(bounds.value, tryNumberToEnso) : undefined
@@ -647,7 +643,7 @@ watchPostEffect(() => {
   const plotData = getPlotData(data.value) as Point[]
   const series = Object.keys(data.value.axis).filter((s) => s != 'x')
   const colorScale = (d: string) => {
-    const color = d3.scaleOrdinal(colorList.value).domain(series)
+    const color = d3.scaleOrdinal(d3.schemeCategory10).domain(series)
     if (data.value.is_multi_series) {
       return color(d)
     }
@@ -692,7 +688,7 @@ watchPostEffect(() => {
     const color = d3
       .scaleOrdinal<string>()
       .domain(seriesLabels.value)
-      .range(colorList.value)
+      .range(d3.schemeCategory10)
       .domain(seriesLabels.value)
 
     d3Legend.value.selectAll('circle').remove()
@@ -816,7 +812,7 @@ config.setToolbar([
   },
   {
     selected: yAxisSelected,
-    title: 'Y Axis Label',
+    title: 'Choose Y Axis Label',
     options: {
       none: {
         icon: 'not_paragraph',
