@@ -1605,12 +1605,13 @@ type DB_Table
          The ordering of rows in the resulting table is not specified.
     cross_join : DB_Table -> Integer | Nothing -> Text -> Problem_Behavior -> DB_Table
     cross_join self right:DB_Table right_row_limit=100 right_prefix:Text="Right " on_problems:Problem_Behavior=..Report_Warning =
-        limit_problems = case right_row_limit.is_nothing.not && (right.row_count > right_row_limit) of
-            True ->
-                [Cross_Join_Row_Limit_Exceeded.Error right_row_limit right.row_count]
-            False -> []
-        on_problems.attach_problems_before limit_problems <|
-            self.join_or_cross_join right join_kind=Join_Kind_Cross on=[] right_prefix on_problems
+        if self.connection.dialect.is_feature_supported Feature.Cross_join . not then Error.throw (Unsupported_Database_Operation.Error "cross_join") else
+            limit_problems = case right_row_limit.is_nothing.not && (right.row_count > right_row_limit) of
+                True ->
+                    [Cross_Join_Row_Limit_Exceeded.Error right_row_limit right.row_count]
+                False -> []
+            on_problems.attach_problems_before limit_problems <|
+                self.join_or_cross_join right join_kind=Join_Kind_Cross on=[] right_prefix on_problems
 
     ## ALIAS lookup
        GROUP Standard.Base.Calculations
