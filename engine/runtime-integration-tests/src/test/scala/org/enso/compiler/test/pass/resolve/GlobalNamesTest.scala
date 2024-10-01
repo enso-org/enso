@@ -2,7 +2,7 @@ package org.enso.compiler.test.pass.resolve
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.{EnsoParser, IR}
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Function
@@ -84,7 +84,7 @@ class GlobalNamesTest extends CompilerTest {
                  |add_one x = x + 1
                  |
                  |""".stripMargin
-    val parsed       = code.toIrModule
+    val parsed       = EnsoParser.compile(code)
     val moduleMapped = passManager.runPassesOnModule(parsed, ctx, group1)
     ModuleTestUtils.unsafeSetIr(both._2, moduleMapped)
 

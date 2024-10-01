@@ -11,8 +11,6 @@ import org.enso.compiler.data.CompilerConfig
 import org.enso.common.CompilationStage
 import org.enso.compiler.phase.exports.ExportsResolution
 
-import scala.util.Using
-
 /** A phase responsible for initializing the builtins' IR from the provided
   * source.
   */
@@ -44,9 +42,7 @@ object BuiltinsIrBuilder {
       freshNameSupply = Some(freshNameSupply),
       compilerConfig  = CompilerConfig(warningsEnabled = false)
     )
-    val initialIr = Using(new EnsoParser) { compiler =>
-      compiler.compile(module.getCharacters)
-    }.get
+    val initialIr = EnsoParser.compile(module.getCharacters)
     val irAfterModDiscovery = passManager.runPassesOnModule(
       initialIr,
       moduleContext,

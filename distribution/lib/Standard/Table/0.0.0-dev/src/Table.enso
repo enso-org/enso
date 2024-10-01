@@ -185,8 +185,7 @@ type Table
                  row_3 =  [ 3     , True  , 'c'   ]
                  Table.from_rows header [row_1, row_2, row_3]
     @header (Widget.Vector_Editor item_editor=Widget.Text_Input item_default='"Column"')
-    from_rows : Vector -> Vector -> Table
-    from_rows header rows =
+    from_rows header:Vector rows:Vector -> Table =
         columns = header.map_with_index i-> name-> [name, rows.map (_.at i)]
         Table.new columns
 
@@ -993,7 +992,7 @@ type Table
             Warning.with_suspended new_names names->
                 Table.new (self.columns.map c-> c.rename (names.at c.name))
 
-    ## ALIAS rename
+    ## ALIAS rename, header
        GROUP Standard.Base.Metadata
        ICON table_edit
        Returns a new table with the columns renamed based on entries in the
@@ -3026,7 +3025,8 @@ type Table
     row_count : Integer
     row_count self = self.java_table.rowCount
 
-    ## ICON data_input
+    ## PRIVATE
+       ICON data_input
        Returns a materialized dataframe containing rows of this table.
 
        In the in-memory backend, this returns the same table, truncated to
@@ -3282,7 +3282,8 @@ type Table
         mask = OrderMask.reverse self.row_count
         Table.Value <| self.java_table.applyMask mask
 
-    ## GROUP Standard.Base.Output
+    ## ALIAS export, save, output, to_file
+       GROUP Standard.Base.Output
        ICON data_output
        This function writes a table from memory into a file.
 

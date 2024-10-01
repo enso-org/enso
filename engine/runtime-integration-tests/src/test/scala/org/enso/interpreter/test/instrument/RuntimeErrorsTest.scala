@@ -714,6 +714,93 @@ class RuntimeErrorsTest
     context.consumeOut shouldEqual Seq("42")
   }
 
+  it should "catch panic when instrumented" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+    val metadata   = new Metadata
+    val catchId    = metadata.addItem(46, 42, "aa")
+    val throwId    = metadata.addItem(63, 14, "ab")
+
+    val code =
+      """from Standard.Base import all
+        |
+        |main =
+        |    x = Panic.catch Any (Panic.throw 42) _.payload
+        |    IO.println x
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    metadata.assertInCode(
+      catchId,
+      contents,
+      "Panic.catch Any (Panic.throw 42) _.payload"
+    )
+    metadata.assertInCode(throwId, contents, "Panic.throw 42")
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      4
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.panic(
+        contextId,
+        throwId,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Panic",
+            "Standard.Base.Panic.Panic",
+            "throw"
+          )
+        ),
+        Api.ExpressionUpdate.Payload.Panic("Integer", Seq(throwId, catchId)),
+        builtin = false
+      ),
+      TestMessages.update(
+        contextId,
+        catchId,
+        ConstantsGen.INTEGER,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Panic",
+            "Standard.Base.Panic.Panic",
+            "catch"
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual Seq("42")
+  }
+
   it should "return dataflow errors continuing execution" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()

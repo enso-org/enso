@@ -40,6 +40,7 @@ export function computeNodeColor(
   getTypeName: () => string | undefined,
 ) {
   if (getType() === 'output') return 'var(--output-node-color)'
+  if (getType() === 'input') return 'var(--output-node-color)'
   const group = getGroup()
   if (group) return groupColorStyle(group)
   const typeName = getTypeName()

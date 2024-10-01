@@ -67,6 +67,7 @@ function ColorPicker(props: ColorPickerProps, ref: React.ForwardedRef<HTMLDivEle
       ref={ref}
       {...radioGroupProps}
       orientation="horizontal"
+      className="flex flex-col"
       onChange={(value) => {
         const color = backend.COLOR_STRING_TO_COLOR.get(value)
         if (color != null) {

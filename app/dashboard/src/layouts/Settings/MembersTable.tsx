@@ -1,23 +1,25 @@
 /** @file A list of members in the organization. */
-import * as React from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
-import * as mimeTypes from '#/data/mimeTypes'
-
-import * as backendHooks from '#/hooks/backendHooks'
-import * as scrollHooks from '#/hooks/scrollHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-
-import * as authProvider from '#/providers/AuthProvider'
-import * as textProvider from '#/providers/TextProvider'
-
-import UserRow from '#/layouts/Settings/UserRow'
-
-import * as aria from '#/components/aria'
-
+import {
+  Column,
+  Table,
+  TableBody,
+  TableHeader,
+  Text,
+  useDragAndDrop,
+  type Selection,
+} from '#/components/aria'
+import { USER_MIME_TYPE } from '#/data/mimeTypes'
+import { useBackendQuery } from '#/hooks/backendHooks'
+import { useStickyTableHeaderOnScroll } from '#/hooks/scrollHooks'
+import { useToastAndLog } from '#/hooks/toastAndLogHooks'
+import { useFullUserSession } from '#/providers/AuthProvider'
+import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import * as backendModule from '#/services/Backend'
-
-import * as tailwindMerge from '#/utilities/tailwindMerge'
+import { UserId, type User } from '#/services/Backend'
+import { twMerge } from '#/utilities/tailwindMerge'
+import UserRow from './UserRow'
 
 // ====================
 // === MembersTable ===
@@ -35,53 +37,51 @@ export interface MembersTableProps {
 /** A list of members in the organization. */
 export default function MembersTable(props: MembersTableProps) {
   const { backend, populateWithSelf = false, draggable = false, allowDelete = false } = props
-  const { user } = authProvider.useFullUserSession()
-  const { getText } = textProvider.useText()
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const [selectedKeys, setSelectedKeys] = React.useState<aria.Selection>(new Set())
-  const rootRef = React.useRef<HTMLTableElement>(null)
-  const scrollContainerRef = React.useRef<HTMLDivElement>(null)
-  const bodyRef = React.useRef<HTMLTableSectionElement>(null)
-  const userWithPlaceholder = React.useMemo(() => ({ isPlaceholder: false, ...user }), [user])
+  const { user } = useFullUserSession()
+  const { getText } = useText()
+  const toastAndLog = useToastAndLog()
+  const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set())
+  const rootRef = useRef<HTMLTableElement>(null)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const bodyRef = useRef<HTMLTableSectionElement>(null)
+  const userWithPlaceholder = useMemo(() => ({ isPlaceholder: false, ...user }), [user])
 
-  const { data: allUsers } = backendHooks.useBackendQuery(backend, 'listUsers', [])
+  const { data: allUsers } = useBackendQuery(backend, 'listUsers', [])
 
-  const users = React.useMemo(
+  const users = useMemo(
     () => allUsers ?? (populateWithSelf ? [userWithPlaceholder] : null),
     [allUsers, populateWithSelf, userWithPlaceholder],
   )
-  const usersMap = React.useMemo(
+  const usersMap = useMemo(
     () => new Map((users ?? []).map((member) => [member.userId, member])),
     [users],
   )
 
-  const { onScroll, shadowClassName } = scrollHooks.useStickyTableHeaderOnScroll(
-    scrollContainerRef,
-    bodyRef,
-    { trackShadowClass: true },
-  )
+  const { onScroll, shadowClassName } = useStickyTableHeaderOnScroll(scrollContainerRef, bodyRef, {
+    trackShadowClass: true,
+  })
 
-  const { dragAndDropHooks } = aria.useDragAndDrop({
+  const { dragAndDropHooks } = useDragAndDrop({
     getItems: (keys) =>
       [...keys].flatMap((key) => {
-        const userId = backendModule.UserId(String(key))
+        const userId = UserId(String(key))
         const member = usersMap.get(userId)
-        return member != null ? [{ [mimeTypes.USER_MIME_TYPE]: JSON.stringify(member) }] : []
+        return member != null ? [{ [USER_MIME_TYPE]: JSON.stringify(member) }] : []
       }),
     renderDragPreview: (items) => {
       return (
         <div className="flex flex-col rounded-default bg-white backdrop-blur-default">
           {items.flatMap((item) => {
-            const payload = item[mimeTypes.USER_MIME_TYPE]
+            const payload = item[USER_MIME_TYPE]
             if (payload == null) {
               return []
             } else {
               // This is SAFE. The type of the payload is known as it is set in `getItems` above.
               // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-              const member: backendModule.User = JSON.parse(payload)
+              const member: User = JSON.parse(payload)
               return [
                 <div key={member.userId} className="flex h-row items-center px-cell-x">
-                  <aria.Text className="text">{member.name}</aria.Text>
+                  <Text className="text">{member.name}</Text>
                 </div>,
               ]
             }
@@ -91,7 +91,7 @@ export default function MembersTable(props: MembersTableProps) {
     },
   })
 
-  React.useEffect(() => {
+  useEffect(() => {
     const onClick = (event: Event) => {
       if (event.target instanceof Node && rootRef.current?.contains(event.target) === false) {
         setSelectedKeys(new Set())
@@ -103,7 +103,7 @@ export default function MembersTable(props: MembersTableProps) {
     }
   }, [])
 
-  const doDeleteUser = async (userToDelete: backendModule.User) => {
+  const doDeleteUser = async (userToDelete: User) => {
     try {
       await Promise.resolve()
       throw new Error('Not implemented yet')
@@ -116,10 +116,10 @@ export default function MembersTable(props: MembersTableProps) {
   return (
     <div
       ref={scrollContainerRef}
-      className={tailwindMerge.twMerge('overflow-auto overflow-x-hidden', shadowClassName)}
+      className={twMerge('overflow-auto overflow-x-hidden', shadowClassName)}
       onScroll={onScroll}
     >
-      <aria.Table
+      <Table
         ref={rootRef}
         aria-label={getText('users')}
         selectionMode={draggable ? 'multiple' : 'none'}
@@ -129,25 +129,20 @@ export default function MembersTable(props: MembersTableProps) {
         className="w-settings-main-section max-w-full table-fixed self-start rounded-rows"
         {...(draggable ? { dragAndDropHooks } : {})}
       >
-        <aria.TableHeader className="sticky top h-row">
-          <aria.Column
+        <TableHeader className="sticky top h-row">
+          <Column
             isRowHeader
             className="w-48 border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0"
           >
             {getText('name')}
-          </aria.Column>
-          <aria.Column className="w-48 border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
+          </Column>
+          <Column className="w-48 border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
             {getText('email')}
-          </aria.Column>
+          </Column>
           {/* Delete button. */}
-          {allowDelete && <aria.Column className="w border-0" />}
-        </aria.TableHeader>
-        <aria.TableBody
-          ref={bodyRef}
-          items={users ?? []}
-          dependencies={[users]}
-          className="select-text"
-        >
+          {allowDelete && <Column className="w border-0" />}
+        </TableHeader>
+        <TableBody ref={bodyRef} items={users ?? []} dependencies={[users]} className="select-text">
           {(member) => (
             <UserRow
               id={member.userId}
@@ -156,8 +151,8 @@ export default function MembersTable(props: MembersTableProps) {
               doDeleteUser={!allowDelete ? null : doDeleteUser}
             />
           )}
-        </aria.TableBody>
-      </aria.Table>
+        </TableBody>
+      </Table>
     </div>
   )
 }

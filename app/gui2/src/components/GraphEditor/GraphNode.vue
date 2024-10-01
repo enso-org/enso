@@ -82,6 +82,12 @@ const navigator = injectGraphNavigator(true)
 const nodeId = computed(() => asNodeId(props.node.rootExpr.externalId))
 const potentialSelfArgumentId = computed(() => props.node.primarySubject)
 
+const nodePosition = computed(() => {
+  // Positions of nodes that are not yet placed are set to `Infinity`.
+  if (props.node.position.equals(Vec2.Infinity)) return Vec2.Zero
+  return props.node.position
+})
+
 onUnmounted(() => graph.unregisterNodeRect(nodeId.value))
 
 const rootNode = ref<HTMLElement>()
@@ -187,7 +193,7 @@ watchEffect(() => {
   }
   const inZone = (pos: Vec2 | undefined) =>
     pos != null &&
-    pos.sub(props.node.position).x <
+    pos.sub(nodePosition.value).x <
       CONTENT_PADDING + ICON_WIDTH + GRAB_HANDLE_X_MARGIN_L + GRAB_HANDLE_X_MARGIN_R
   const hovered =
     menuHovered.value ||
@@ -234,7 +240,7 @@ watch(isVisualizationPreviewed, (newVal, oldVal) => {
 })
 
 const transform = computed(() => {
-  const { x, y } = props.node.position
+  const { x, y } = nodePosition.value
   return `translate(${x}px, ${y}px)`
 })
 
@@ -413,6 +419,7 @@ watchEffect(() => {
       selected,
       selectionVisible,
       ['executionState-' + executionState]: true,
+      inputNode: props.node.type === 'input',
       outputNode: props.node.type === 'output',
       menuVisible,
       menuFull,
@@ -425,7 +432,7 @@ watchEffect(() => {
     <Teleport v-if="navigator && !edited && graphNodeSelections" :to="graphNodeSelections">
       <GraphNodeSelection
         :data-node-id="nodeId"
-        :nodePosition="props.node.position"
+        :nodePosition="nodePosition"
         :nodeSize="graphSelectionSize"
         :class="{ draggable: true, dragged: isDragged }"
         :selected
@@ -472,7 +479,7 @@ watchEffect(() => {
       v-if="isVisualizationVisible"
       :nodeSize="nodeSize"
       :scale="navigator?.scale ?? 1"
-      :nodePosition="props.node.position"
+      :nodePosition="nodePosition"
       :isCircularMenuVisible="menuVisible"
       :currentType="props.node.vis?.identifier"
       :dataSource="{ type: 'node', nodeId: props.node.rootExpr.externalId }"
@@ -639,8 +646,10 @@ watchEffect(() => {
   position: absolute;
   bottom: 100%;
   width: calc(max(100%, 800px));
+  max-width: max-content;
   margin-bottom: var(--node-vertical-gap);
-  left: 0;
+  /* Allow space for the input arrow. */
+  left: 24px;
   transition: left 0.1s ease-out;
 }
 .menuFull .beforeNode {

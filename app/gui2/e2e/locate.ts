@@ -81,6 +81,9 @@ export function graphNodeIcon(node: Node) {
 export function selectedNodes(page: Page | Locator): Node {
   return page.locator('.GraphNode.selected') as Node
 }
+export function inputNode(page: Page | Locator): Node {
+  return page.locator('.GraphNode.inputNode') as Node
+}
 export function outputNode(page: Page | Locator): Node {
   return page.locator('.GraphNode.outputNode') as Node
 }
@@ -95,7 +98,7 @@ function componentLocator(locatorStr: string) {
 
 export const graphEditor = componentLocator('.GraphEditor')
 export const codeEditor = componentLocator('.CodeEditor')
-export const anyVisualization = componentLocator('.GraphVisualization > *')
+export const anyVisualization = componentLocator('.GraphVisualization')
 export const loadingVisualization = componentLocator('.LoadingVisualization')
 export const circularMenu = componentLocator('.CircularMenu')
 export const addNewNodeButton = componentLocator('.PlusButton')
@@ -141,15 +144,26 @@ export function bottomDock(page: Page) {
 
 export const navBreadcrumb = componentLocator('.NavBreadcrumb')
 export const componentBrowserInput = componentLocator('.ComponentEditor')
-export const jsonVisualization = componentLocator('.JSONVisualization')
-export const tableVisualization = componentLocator('.TableVisualization')
-export const scatterplotVisualization = componentLocator('.ScatterplotVisualization')
-export const histogramVisualization = componentLocator('.HistogramVisualization')
-export const heatmapVisualization = componentLocator('.HeatmapVisualization')
-export const sqlVisualization = componentLocator('.SqlVisualization')
-export const geoMapVisualization = componentLocator('.GeoMapVisualization')
-export const imageBase64Visualization = componentLocator('.ImageBase64Visualization')
-export const warningsVisualization = componentLocator('.WarningsVisualization')
+
+function visualizationLocator(visSelector: string) {
+  // Playwright pierces shadow roots, but not within a single XPath.
+  // Locate the visualization content, then locate the descendant.
+  const visLocator = componentLocator(visSelector)
+  return (page: Locator | Page, filter?: (f: Filter) => { selector: string }) => {
+    const hostLocator = page.locator('.VisualizationHostContainer')
+    return visLocator(hostLocator, filter)
+  }
+}
+
+export const jsonVisualization = visualizationLocator('.JSONVisualization')
+export const tableVisualization = visualizationLocator('.TableVisualization')
+export const scatterplotVisualization = visualizationLocator('.ScatterplotVisualization')
+export const histogramVisualization = visualizationLocator('.HistogramVisualization')
+export const heatmapVisualization = visualizationLocator('.HeatmapVisualization')
+export const sqlVisualization = visualizationLocator('.SqlVisualization')
+export const geoMapVisualization = visualizationLocator('.GeoMapVisualization')
+export const imageBase64Visualization = visualizationLocator('.ImageBase64Visualization')
+export const warningsVisualization = visualizationLocator('.WarningsVisualization')
 
 // === Edge locators ===
 

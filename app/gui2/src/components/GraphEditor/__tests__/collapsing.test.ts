@@ -199,15 +199,15 @@ main =
   setupGraphDb(initialCode, graphDb)
   const nodes = Array.from(graphDb.nodeIdToNode.keys())
   const { extracted, refactored } = unwrap(
-    prepareCollapsedInfo(new Set(nodes.slice(1, 2)), graphDb),
+    prepareCollapsedInfo(new Set(nodes.slice(2, 3)), graphDb),
   )
-  expect(extracted.ids).toEqual(new Set(nodes.slice(1, 2)))
+  expect(extracted.ids).toEqual(new Set(nodes.slice(2, 3)))
   expect(extracted.inputs).toEqual(['input', 'four'])
   expect(extracted.output).toEqual({
-    node: nodes[1],
+    node: nodes[2],
     identifier: 'sum',
   })
-  expect(refactored.id).toEqual(nodes[1])
+  expect(refactored.id).toEqual(nodes[2])
   expect(refactored.pattern).toEqual('sum')
   expect(refactored.arguments).toEqual(['input', 'four'])
 })

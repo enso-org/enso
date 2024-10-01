@@ -67,7 +67,7 @@ type S3_File
          value. The value is returned from this method.
     with_output_stream : Vector File_Access -> (Output_Stream -> Any ! File_Error) -> Any ! File_Error
     with_output_stream self (open_options : Vector) action = if self.is_directory then Error.throw (S3_Error.Error "S3 directory cannot be opened as a stream." self.uri) else
-        Context.Output.if_enabled disabled_message="Writing to an S3_File is forbidden as the Output context is disabled." panic=False <|
+        Context.Output.if_enabled disabled_message="As writing is disabled, cannot write to S3. Press the Write button ▶ to perform the operation." panic=False <|
             open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && (Data_Link.is_data_link self)
             if open_as_data_link then Data_Link_Helpers.write_data_link_as_stream self open_options action else
                 if open_options.contains File_Access.Append then Error.throw (S3_Error.Error "S3 does not support appending to a file. Instead you may read it, modify and then write the new contents." self.uri) else
@@ -106,7 +106,7 @@ type S3_File
                 response_body = translate_file_errors self <| S3.get_object self.s3_path.bucket self.s3_path.key self.credentials delimiter=S3_Path.delimiter
                 response_body.with_stream action
 
-    ## ALIAS load, open
+    ## ALIAS load, open, import
        GROUP Standard.Base.Input
        ICON data_input
 
@@ -251,7 +251,7 @@ type S3_File
     copy_to : File_Like -> Boolean -> Any ! S3_Error | File_Error
     copy_to self (destination : File_Like) (replace_existing : Boolean = False) = Data_Link_Helpers.disallow_links_in_copy self destination <|
         if self.is_directory then Error.throw (S3_Error.Error "Copying S3 folders is currently not implemented." self.uri) else
-            Context.Output.if_enabled disabled_message="Copying an S3_File is forbidden as the Output context is disabled." panic=False <|
+            Context.Output.if_enabled disabled_message="As writing is disabled, cannot copy to a file. Press the Write button ▶ to perform the operation." panic=False <|
                 destination_writable = Writable_File.from destination
                 case destination_writable.file of
                     # Special shortcut for more efficient handling of S3 file copying (no need to move the data to our machine)
@@ -292,7 +292,7 @@ type S3_File
     move_to self (destination : File_Like) (replace_existing : Boolean = False) =
         if self.is_directory then Error.throw (S3_Error.Error "Moving S3 folders is currently not implemented." self.uri) else
             Data_Link_Helpers.disallow_links_in_move self destination <|
-                Context.Output.if_enabled disabled_message="File moving is forbidden as the Output context is disabled." panic=False <|
+                Context.Output.if_enabled disabled_message="As writing is disabled, cannot move the file. Press the Write button ▶ to perform the operation." panic=False <|
                     r = self.copy_to destination replace_existing=replace_existing
                     r.if_not_error <|
                         # If source and destination are the same, we do not want to delete the file
@@ -341,7 +341,7 @@ type S3_File
          will occur.
     delete_if_exists : Boolean -> Nothing
     delete_if_exists self (recursive : Boolean = False) =
-        Context.Output.if_enabled disabled_message="Deleting an S3_File is forbidden as the Output context is disabled." panic=False <|
+        Context.Output.if_enabled disabled_message="As writing is disabled, cannot delete the file. Press the Write button ▶ to perform the operation." panic=False <|
             case self.is_directory of
                 True ->
                     # This is a temporary simplified implementation to ensure cleaning up after tests

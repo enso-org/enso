@@ -1,8 +1,7 @@
 <script lang="ts">
-import SvgButton from '@/components/SvgButton.vue'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
-import { useVisualizationConfig, VisualizationContainer } from '@/util/visualizationBuiltins'
+import { useVisualizationConfig } from '@/util/visualizationBuiltins'
 import { computed } from 'vue'
 
 export const name = 'Warnings'
@@ -24,28 +23,25 @@ type Data = string[]
 const props = defineProps<{ data: Data }>()
 
 const config = useVisualizationConfig()
+
+config.setToolbar([
+  {
+    icon: 'not_exclamation',
+    title: 'Remove Warnings',
+    disabled: () => props.data.length === 0,
+    onClick: () => config.createNodes({ content: removeWarnings.value, commit: true }),
+    dataTestid: 'remove-warnings-button',
+  },
+])
 </script>
 
 <template>
-  <VisualizationContainer :belowToolbar="true">
-    <template #toolbar>
-      <SvgButton
-        name="not_exclamation"
-        data-testid="remove-warnings-button"
-        title="Remove Warnings"
-        :disabled="props.data.length === 0"
-        @click="config.createNodes({ content: removeWarnings, commit: true })"
-      />
-    </template>
-    <template #default>
-      <div class="WarningsVisualization">
-        <ul>
-          <li v-if="props.data.length === 0">There are no warnings.</li>
-          <li v-for="(warning, index) in props.data" :key="index" v-text="warning"></li>
-        </ul>
-      </div>
-    </template>
-  </VisualizationContainer>
+  <div class="WarningsVisualization">
+    <ul>
+      <li v-if="props.data.length === 0">There are no warnings.</li>
+      <li v-for="(warning, index) in props.data" :key="index" v-text="warning"></li>
+    </ul>
+  </div>
 </template>
 
 <style scoped>

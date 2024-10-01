@@ -14,8 +14,9 @@ import SvgMask from '#/components/SvgMask'
 
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
-import * as backendModule from '#/services/Backend'
+import type * as backendModule from '#/services/Backend'
 
+import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
@@ -26,7 +27,9 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 // =====================
 
 /** Props for a {@link SecretNameColumn}. */
-export interface SecretNameColumnProps extends column.AssetColumnProps {}
+export interface SecretNameColumnProps extends column.AssetColumnProps {
+  readonly item: AssetTreeNode<backendModule.SecretAsset>
+}
 
 /** The icon and name of a {@link backendModule.SecretAsset}.
  * @throws {Error} when the asset is not a {@link backendModule.SecretAsset}.
@@ -36,12 +39,6 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
   const { backend } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { setModal } = modalProvider.useSetModal()
-
-  if (item.type !== backendModule.AssetType.secret) {
-    // eslint-disable-next-line no-restricted-syntax
-    throw new Error('`SecretNameColumn` can only display secrets.')
-  }
-
   const asset = item.item
 
   const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))

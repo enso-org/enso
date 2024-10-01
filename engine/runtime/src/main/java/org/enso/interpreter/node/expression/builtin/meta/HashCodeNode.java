@@ -171,8 +171,13 @@ public abstract class HashCodeNode extends Node {
       // Nothing should be equal to `null`
       return 0;
     } else {
-      return hashCodeNode.execute(type.getQualifiedName().toString());
+      return hashCodeNode.execute(getQualifiedTypeName(type));
     }
+  }
+
+  @TruffleBoundary
+  private static String getQualifiedTypeName(Type type) {
+    return type.getQualifiedName().toString();
   }
 
   @NeverDefault

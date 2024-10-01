@@ -20,12 +20,11 @@ import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
     type = "Dictionary",
-    name = "insert",
+    name = "insert_builtin",
     description =
         """
         Returns newly created hash map with the given key value mapping.
-        """,
-    autoRegister = false)
+        """)
 @GenerateUncached
 public abstract class HashMapInsertNode extends Node {
 

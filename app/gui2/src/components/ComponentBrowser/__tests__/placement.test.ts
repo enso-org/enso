@@ -1,9 +1,11 @@
 import {
   collapsedNodePlacement,
+  inputNodePlacement,
   mouseDictatedPlacement,
   nonDictatedPlacement,
   previousNodeDictatedPlacement,
   type Environment,
+  type InputNodeEnvironment,
 } from '@/components/ComponentBrowser/placement'
 import * as iterable from '@/util/data/iterable'
 import { chain, map, range } from '@/util/data/iterable'
@@ -420,6 +422,38 @@ describe('Collapsed node placement', () => {
       gap,
     )
     expect(result).toEqual(new Vec2(1000, 744))
+  })
+})
+
+describe('Input node placement', () => {
+  function environment(inputNodeRects: Rect[], nonInputNodeRects: Rect[]): InputNodeEnvironment {
+    return {
+      screenBounds,
+      nodeRects: [...inputNodeRects, ...nonInputNodeRects],
+      nonInputNodeRects: nonInputNodeRects,
+      selectedNodeRects: [],
+    }
+  }
+
+  test('No input nodes, single component', () => {
+    const X = 1100
+    const Y = 700
+    const nonInputNodeRects = [rectAt(X, Y)]
+    const result = inputNodePlacement(size, environment([], nonInputNodeRects), gap)
+    expect(result).toEqual(new Vec2(X, 656))
+  })
+
+  test('No input nodes, two components', () => {
+    const nonInputNodeRects = [rectAt(1000, 600), rectAt(1300, 800)]
+    const result = inputNodePlacement(size, environment([], nonInputNodeRects), gap)
+    expect(result).toEqual(new Vec2(1000, 556))
+  })
+
+  test('One input node, two components', () => {
+    const nonInputNodeRects = [rectAt(1000, 600), rectAt(1300, 800)]
+    const inputNodeRects = [rectAt(1000, 556)]
+    const result = inputNodePlacement(size, environment(inputNodeRects, nonInputNodeRects), gap)
+    expect(result).toEqual(new Vec2(1124, 556))
   })
 })
 

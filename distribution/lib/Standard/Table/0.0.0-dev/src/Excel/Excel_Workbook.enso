@@ -210,7 +210,7 @@ type Excel_Workbook
         _ = [alias]
         self.read query headers=headers
 
-    ## ALIAS get, range, sheet, worksheet
+    ## ALIAS get, range, sheet, worksheet, import, load, open
        GROUP Standard.Base.Input
        ICON data_input
        Read a range into a Table.

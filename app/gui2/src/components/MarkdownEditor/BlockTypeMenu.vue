@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { blockTypeToBlockName, type BlockType } from '@/components/MarkdownEditor/formatting'
 import SelectionDropdown from '@/components/SelectionDropdown.vue'
-import SvgIcon from '@/components/SvgIcon.vue'
 import type { Icon } from '@/util/iconName'
 
 const blockType = defineModel<BlockType>({ required: true })
@@ -26,13 +25,15 @@ const blockTypesOrdered: BlockType[] = [
   'number',
   'quote',
 ]
+
+const blockTypeOptions = Object.fromEntries(
+  blockTypesOrdered.map((key) => [
+    key,
+    { icon: blockTypeIcon[key], label: blockTypeToBlockName[key] },
+  ]),
+)
 </script>
 
 <template>
-  <SelectionDropdown v-model="blockType" :values="blockTypesOrdered">
-    <template #default="{ value }">
-      <SvgIcon :name="blockTypeIcon[value]" />
-      <div class="iconLabel" v-text="blockTypeToBlockName[value]" />
-    </template>
-  </SelectionDropdown>
+  <SelectionDropdown v-model="blockType" :options="blockTypeOptions" labelButton />
 </template>

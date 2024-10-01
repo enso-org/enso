@@ -2280,7 +2280,8 @@ type Column
                 if storage.isNothing index then Nothing else
                     java_to_enso <| storage.getItem index
 
-    ## ICON data_input
+    ## PRIVATE
+       ICON data_input
        Returns a column containing rows of this column.
 
        Arguments:

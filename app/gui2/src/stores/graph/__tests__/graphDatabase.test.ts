@@ -65,6 +65,7 @@ test('Reading graph from definition', () => {
   db.updateBindings(func, rawFunc, code, getSpan)
 
   expect(Array.from(db.nodeIdToNode.keys())).toEqual([
+    eid('parameter'),
     eid('node1Content'),
     eid('node2Content'),
     eid('node3Content'),
@@ -92,14 +93,14 @@ test('Reading graph from definition', () => {
     'node1',
   )
 
-  // Commented the connection from input node, as we don't support them yet.
   expect(Array.from(db.connections.allForward(), ([key]) => key)).toEqual([
+    id('parameter'),
     id('node1Id'),
     id('node2Id'),
   ])
-  // expect(Array.from(db.connections.lookup(id('parameter')))).toEqual([id('node1LParam)])
+  expect(Array.from(db.connections.lookup(id('parameter')))).toEqual([id('node1LParam')])
   expect(Array.from(db.connections.lookup(id('node1Id')))).toEqual([id('node2LParam')])
-  // expect(db.getOutputPortIdentifier(id('parameter'))).toBe('a')
+  expect(db.getOutputPortIdentifier(id('parameter'))).toBe('a')
   expect(db.getOutputPortIdentifier(id('node1Id'))).toBe('node1')
   expect(Array.from(db.nodeDependents.lookup(asNodeId(eid('node1Content'))))).toEqual([
     eid('node2Content'),

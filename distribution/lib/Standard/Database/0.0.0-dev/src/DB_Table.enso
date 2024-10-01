@@ -620,7 +620,7 @@ type DB_Table
                     Warning.with_suspended new_names names->
                         self.updated_columns (self.internal_columns.map c-> c.rename (names.at c.name))
 
-    ## ALIAS rename
+    ## ALIAS rename, header
        GROUP Standard.Base.Metadata
        ICON table_edit
        Returns a new table with the columns renamed based on entries in the
@@ -2599,7 +2599,8 @@ type DB_Table
         table = self.connection.read_statement sql
         table.at column_name . at 0
 
-    ## GROUP Standard.Base.Input
+    ## ALIAS load, import
+       GROUP Standard.Base.Input
        ICON data_input
        Returns a materialized dataframe containing rows of this table.
 
@@ -2765,7 +2766,8 @@ type DB_Table
     to_text : Text
     to_text self = "(Database Table "+self.name.to_text+")"
 
-    ## GROUP Standard.Base.Output
+    ## ALIAS export, save, output, to_file
+       GROUP Standard.Base.Output
        ICON data_output
        This function writes the table into a file.
 

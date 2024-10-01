@@ -31,6 +31,12 @@ type Postgres
     Server (host:Text=default_postgres_host) (port:Integer=default_postgres_port) (database:Text=default_postgres_database) (schema:Text="") (credentials:(Credentials|Nothing)=Nothing) (use_ssl:SSL_Mode=SSL_Mode.Prefer) (client_cert:(Client_Certificate|Nothing)=Nothing)
 
     ## PRIVATE
+       Attempt to resolve the constructor.
+    resolve : Function -> Postgres | Nothing
+    resolve constructor =
+        Panic.catch Any (constructor:Postgres) _->Nothing
+
+    ## PRIVATE
        Build the Connection resource.
 
        Arguments:

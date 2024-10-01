@@ -162,7 +162,7 @@ type Response_Body
     to_text : Text
     to_text self = "Response_Body"
 
-    ## ALIAS to_file
+    ## ALIAS export, save, output, to_file
        GROUP Output
        ICON data_output
        Write response body to a File.

@@ -9,9 +9,10 @@ import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import JsonValueWidget from '@/components/visualizations/JSONVisualization/JsonValueWidget.vue'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
-import { useVisualizationConfig, VisualizationContainer } from '@/util/visualizationBuiltins'
+import { useVisualizationConfig } from '@/util/visualizationBuiltins'
+import { computed } from 'vue'
 
-const props = defineProps<{ data: unknown }>()
+const { data } = defineProps<{ data: unknown }>()
 
 const config = useVisualizationConfig()
 
@@ -19,7 +20,7 @@ type ConstructivePattern = (placeholder: Ast.Owned) => Ast.Owned
 
 const JSON_OBJECT_TYPE = 'Standard.Base.Data.Json.JS_Object'
 
-const isClickThroughEnabled = config.nodeType === JSON_OBJECT_TYPE
+const isClickThroughEnabled = computed(() => config.nodeType === JSON_OBJECT_TYPE)
 
 function projector(parentPattern: ConstructivePattern | undefined) {
   const style = {
@@ -55,15 +56,13 @@ function createProjection(path: (string | number)[][]) {
 </script>
 
 <template>
-  <VisualizationContainer :belowToolbar="true">
-    <div class="JSONVisualization">
-      <JsonValueWidget
-        :data="props.data"
-        :class="{ viewonly: !isClickThroughEnabled }"
-        @createProjection="createProjection"
-      />
-    </div>
-  </VisualizationContainer>
+  <div class="JSONVisualization">
+    <JsonValueWidget
+      :data="data"
+      :class="{ viewonly: !isClickThroughEnabled }"
+      @createProjection="createProjection"
+    />
+  </div>
 </template>
 
 <style scoped>
