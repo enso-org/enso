@@ -31,7 +31,8 @@ interface SubmitButtonBaseProps {
 /**
  * Props for the Submit component.
  */
-export type SubmitProps = Omit<ButtonProps, 'formnovalidate' | 'href' | 'variant'> & SubmitButtonBaseProps
+export type SubmitProps = Omit<ButtonProps, 'formnovalidate' | 'href' | 'variant'> &
+  SubmitButtonBaseProps
 
 /**
  * Submit button for forms.
