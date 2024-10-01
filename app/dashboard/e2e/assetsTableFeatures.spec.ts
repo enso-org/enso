@@ -8,8 +8,6 @@ const PASS_TIMEOUT = 5_000
 test.test('extra columns should stick to right side of assets table', ({ page }) =>
   actions
     .mockAllAndLogin({ page })
-    .driveTable.toggleColumn.accessedByProjects()
-    .driveTable.toggleColumn.accessedData()
     .withAssetsTable(async (table) => {
       await table.evaluate((element) => {
         let scrollableParent: HTMLElement | SVGElement | null = element
@@ -51,13 +49,11 @@ test.test('extra columns should stick to top of scroll container', async ({ page
     },
   })
 
-  await actions.locateAccessedByProjectsColumnToggle(page).click()
-  await actions.locateAccessedDataColumnToggle(page).click()
   await actions.locateAssetsTable(page).evaluate((element) => {
     let scrollableParent: HTMLElement | SVGElement | null = element
     while (
       scrollableParent != null &&
-      scrollableParent.scrollWidth <= scrollableParent.clientWidth
+      scrollableParent.scrollHeight <= scrollableParent.clientHeight
     ) {
       scrollableParent = scrollableParent.parentElement
     }
@@ -75,7 +71,7 @@ test.test('extra columns should stick to top of scroll container', async ({ page
         let scrollableParent: HTMLElement | SVGElement | null = element
         while (
           scrollableParent != null &&
-          scrollableParent.scrollWidth <= scrollableParent.clientWidth
+          scrollableParent.scrollHeight <= scrollableParent.clientHeight
         ) {
           scrollableParent = scrollableParent.parentElement
         }
