@@ -74,14 +74,15 @@ public interface IR {
   /**
    * Replaces the children of this node with the provided list of new children.
    *
-   * @param newChildren the new (ordered) children to replace the existing children with.
+   * @param newChildren the new (ordered) children to replace the existing children with. Must have
+   *     the same size as {@link #children()}.
    * @return a copy of this node with the new children.
    * @throws IllegalArgumentException if newChildren are given in wrong type, wrong order, or wrong
    *     size.
    */
   default IR withNewChildren(List<IR> newChildren) {
-    if (children().isEmpty()) {
-      throw new IllegalArgumentException("Cannot replace children of a leaf node.");
+    if (newChildren.size() != children().size()) {
+      throw new IllegalArgumentException("New children must have the same size as the old ones.");
     }
     throw new UnsupportedOperationException(
         "withNewChildren not implemented for " + this.getClass());
