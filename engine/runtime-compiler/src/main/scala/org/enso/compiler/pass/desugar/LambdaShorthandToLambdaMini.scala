@@ -11,12 +11,12 @@ import org.enso.compiler.core.ir.{
   IdentifiedLocation,
   Name
 }
-import org.enso.compiler.pass.{IRPass, MiniIRPass}
+import org.enso.compiler.pass.MiniIRPass
 
 class LambdaShorthandToLambdaMini(
   protected val freshNameSupply: FreshNameSupply,
   private val shouldSkipBlanks: Boolean = false
-) extends MiniIRPass[IRPass.IRMetadata] {
+) extends MiniIRPass {
 
   override def prepare(ir: IR): LambdaShorthandToLambdaMini = {
     ir match {

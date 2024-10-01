@@ -23,7 +23,7 @@ import org.enso.compiler.core.ir.ProcessingPass;
  * using modular and efficient tree transformations</a>. PDF available at <a
  * href="https://infoscience.epfl.ch/server/api/core/bitstreams/8ab72c0a-8aa6-4dee-a704-3504938dc316/content">infoscience.epfl.ch</a>
  */
-public abstract class MiniIRPass<T extends IRPass.IRMetadata> implements ProcessingPass {
+public abstract class MiniIRPass implements ProcessingPass {
 
   /** Set of mini passes that should run before this mini pass. */
   public Set<MiniIRPass> runsAfter() {
@@ -36,7 +36,7 @@ public abstract class MiniIRPass<T extends IRPass.IRMetadata> implements Process
    *
    * @param ir IR element to be prepared for transformation.
    */
-  public MiniIRPass<T> prepare(IR ir) {
+  public MiniIRPass prepare(IR ir) {
     return this;
   }
 

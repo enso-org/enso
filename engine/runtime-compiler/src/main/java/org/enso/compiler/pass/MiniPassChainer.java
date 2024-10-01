@@ -14,10 +14,10 @@ public final class MiniPassChainer {
    * @param passes Ordered list of mini passes.
    * @return Chained mini pass that applies all the provided mini passes in the given order.
    */
-  public static <T extends IRMetadata> MiniIRPass<T> chain(List<MiniIRPass<T>> passes) {
-    return new MiniIRPass<T>() {
+  public static MiniIRPass chain(List<MiniIRPass> passes) {
+    return new MiniIRPass() {
       @Override
-      public MiniIRPass<T> prepare(IR ir) {
+      public MiniIRPass prepare(IR ir) {
         throw new UnsupportedOperationException("unimplemented");
       }
 
@@ -37,11 +37,11 @@ public final class MiniPassChainer {
     };
   }
 
-  public static <T extends IRMetadata> MiniIRPass<T> chain(
-      MiniIRPass<T> firstPass, MiniIRPass<T> secondPass) {
-    return new MiniIRPass<T>() {
+  public static <T extends IRMetadata> MiniIRPass chain(
+      MiniIRPass firstPass, MiniIRPass secondPass) {
+    return new MiniIRPass() {
       @Override
-      public MiniIRPass<T> prepare(IR ir) {
+      public MiniIRPass prepare(IR ir) {
         throw new UnsupportedOperationException("unimplemented");
       }
 
