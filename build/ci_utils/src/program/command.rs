@@ -504,12 +504,12 @@ fn extract_github_command(line: &str) -> Option<String> {
             || remaining.starts_with("group")
             || remaining.starts_with("endgroup")
         {
-            return Some(trimmed.to_string())
+            return Some(trimmed.to_string());
         }
     };
 
     if line.contains("group") {
-        info!("GROUP??? line='{line}', trimmed={trimmed}, tmp={tmp}")
+        info!("GROUP??? line='{line}', trimmed={trimmed}, tmp={tmp:?}")
     }
     None
 }
