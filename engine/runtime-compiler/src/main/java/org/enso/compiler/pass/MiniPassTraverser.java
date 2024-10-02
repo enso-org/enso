@@ -17,21 +17,21 @@ public final class MiniPassTraverser {
    * @return Transformed module IR.
    */
   public static Module compileModuleWithMiniPass(Module moduleIr, MiniIRPass miniPass) {
-    var newModuleIr = compileRecursively(moduleIr, null, miniPass);
+    var newModuleIr = compileRecursively(moduleIr, miniPass);
     return (Module) newModuleIr;
   }
 
   public static Expression compileInlineWithMiniPass(Expression exprIr, MiniIRPass miniPass) {
-    var preparedMiniPass = miniPass.prepare(exprIr, null);
-    var newIr = compileRecursively(exprIr, null, preparedMiniPass);
+    var preparedMiniPass = miniPass.prepare(exprIr);
+    var newIr = compileRecursively(exprIr, preparedMiniPass);
     if (!preparedMiniPass.checkPostCondition(newIr)) {
       throw new CompilerError("Post condition failed after applying mini pass " + preparedMiniPass);
     }
     return (Expression) newIr;
   }
 
-  private static IR compileRecursively(IR ir, IR parent, MiniIRPass miniPass) {
-    var preparedMiniPass = miniPass.prepare(ir, parent);
+  private static IR compileRecursively(IR ir, MiniIRPass miniPass) {
+    var preparedMiniPass = miniPass.prepare(ir);
     IR newIr;
     if (ir.children().isEmpty()) {
       newIr = ir;
@@ -40,7 +40,7 @@ public final class MiniPassTraverser {
           ir.children()
               .map(
                   child -> {
-                    var newChild = compileRecursively(child, ir, preparedMiniPass);
+                    var newChild = compileRecursively(child, preparedMiniPass);
                     if (newChild == null) {
                       throw new IllegalStateException("Mini pass returned null");
                     }
