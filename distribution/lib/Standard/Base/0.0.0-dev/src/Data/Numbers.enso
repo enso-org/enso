@@ -747,7 +747,7 @@ type Float
     to_decimal self -> Decimal = Decimal.from_float self
 
     ## ALIAS from text
-       GROUP conversions
+       GROUP Conversions
        ICON convert
 
        Parses a string into a `Float`, returning a `Number_Parse_Error` if the
@@ -761,11 +761,12 @@ type Float
        ! Error Conditions
 
          - If `text` is incorrectly formatted, a `Number_Parse_Error` is thrown.
-         - If `format` is incorrectly formatted (or does not match the `locale`,
-           an `Illegal_Argument` is thrown.
+         - If `format` is incorrectly formatted (or uses digit separators that
+           differ from the ones specified by the locale), an `Illegal_Argument`
+           is thrown.
 
        > Example
-         Parse a `Float` with no local specifier.
+         Parse a `Float` with no locale specifier.
 
              Float.parse "123456789.87654"
              # => 123456789.87654
