@@ -4540,6 +4540,7 @@ lazy val `std-table` = project
 
 lazy val `std-image` = project
   .in(file("std-bits") / "image")
+  .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
@@ -4549,9 +4550,15 @@ lazy val `std-image` = project
     Compile / packageBin / artifactPath :=
       `image-polyglot-root` / "std-image.jar",
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % "provided",
-      "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
-      "org.openpnp"          % "opencv"                  % opencvVersion
+      "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided",
+      "org.openpnp"          % "opencv"   % opencvVersion
+    ),
+    Compile / moduleDependencies ++= Seq(
+      "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion,
+      "org.openpnp"          % "opencv"   % opencvVersion
+    ),
+    Compile / internalModuleDependencies := Seq(
+      (`std-base` / Compile / exportedModule).value
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
