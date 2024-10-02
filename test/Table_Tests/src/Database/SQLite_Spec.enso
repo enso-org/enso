@@ -330,8 +330,6 @@ sqlite_spec suite_builder prefix create_connection_func persistent_connector =
 
     materialize = .read
 
-    Common_Spec.add_specs suite_builder prefix create_connection_func default_connection
-
     common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=False natural_ordering=False case_insensitive_ordering=True case_insensitive_ascii_only=True is_nan_and_nothing_distinct=False date_time=False supported_replace_params=supported_replace_params different_size_integer_types=False length_restricted_text_columns=False char_max_size_after_substring=..Reset run_advanced_edge_case_tests_by_default=True
 
     ## For now `advanced_stats`, `text_shortest_longest` and
@@ -351,7 +349,11 @@ sqlite_spec suite_builder prefix create_connection_func persistent_connector =
     empty_agg_table_fn = _ ->
         (agg_in_memory_table.take (..First 0)).select_into_database_table default_connection.get (Name_Generator.random_name "Agg_Empty") primary_key=Nothing temporary=True
 
-    setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table_fn empty_agg_table_fn table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection create_connection_func=create_connection_func light_table_builder=light_table_builder
+    is_feature_supported_fn = feature -> default_connection.get.dialect.is_feature_supported feature
+
+    setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table_fn empty_agg_table_fn table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection create_connection_func=create_connection_func light_table_builder=light_table_builder is_feature_supported=is_feature_supported_fn
+    
+    Common_Spec.add_specs suite_builder prefix create_connection_func default_connection setup
     sqlite_specific_spec suite_builder prefix create_connection_func setup
     Common_Table_Operations.Main.add_specs suite_builder setup
     Upload_Spec.add_specs suite_builder setup create_connection_func persistent_connector=persistent_connector
