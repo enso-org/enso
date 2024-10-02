@@ -225,9 +225,19 @@ function formatText(params: ICellRendererParams) {
     '\t': '<span style="color: #df8800; white-space: break-spaces;">&#8594;  |</span>',
   }
 
+  const replaceSpacesNotInLinks = (text: string) => {
+    return text.replace(/(<a[^>]*>.*?<\/a>|[^<]+)/g, (match) => {
+      if (match.startsWith('<a')) {
+        return match
+      } else {
+        return match.replace(/ /g, '<span style="color: #df8800">&#183;</span>')
+      }
+    })
+  }
+
   const replaceSpaces =
     textFormatterSelected.value === 'full' ?
-      htmlEscaped.replaceAll(' ', '<span style="color: #df8800">&#183;</span>')
+      replaceSpacesNotInLinks(htmlEscaped)
     : htmlEscaped.replace(/ \s+|^ +| +$/g, function (match: string) {
         return `<span style="color: #df8800">${match.replaceAll(' ', '&#183;')}</span>`
       })
