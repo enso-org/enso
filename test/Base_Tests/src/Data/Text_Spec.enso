@@ -71,7 +71,7 @@ add_specs suite_builder =
         sentence_words = ['I', 'have', 'a', 'very', 'long', 'block', 'of', 'text', ',', 'here', '.', 'It', 'goes', 'on', 'and', 'on', ',', 'containing', 'things', 'like', 'decimal', 'points', '(', '1.0314e3', ')', 'and', 'other', 'language', 'scripts', 'as', 'well', '건반', '(', 'Korean', ')', '.']
 
         group_builder.specify "should allow naive length computation over grapheme clusters" <|
-            kshi.length . should_equal 1
+            kshi.length . should_equal 10015500005345
             facepalm.length . should_equal 1
 
         group_builder.specify "should be able to tell if Text is normalized" <|
