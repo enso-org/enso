@@ -365,7 +365,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VITE_ENSO_AG_GRID_LICENSE_KEY: ${{ vars.ENSO_AG_GRID_LICENSE_KEY }}
           VITE_ENSO_MAPBOX_API_TOKEN: ${{ vars.ENSO_MAPBOX_API_TOKEN }}
-      - run: corepack pnpm -r --filter enso exec playwright test
+      - run: xvfb-run corepack pnpm -r --filter enso exec playwright test
         env:
           DEBUG: "pw:browser log:"
           ENSO_TEST_APP_ARGS: --no-sandbox

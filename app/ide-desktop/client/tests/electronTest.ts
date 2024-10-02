@@ -26,13 +26,14 @@ export function electronTest(name: string, body: (page: Page) => Promise<void> |
  */
 export async function loginAsTestUser(page: Page) {
   // Login screen
-  await expect(page.getByRole('textbox', { name: 'email' })).toBeVisible()
+  await expect(page.getByRole('textbox', { name: 'email' })).toBeVisible({ timeout: 15000 })
   await expect(page.getByRole('textbox', { name: 'password' })).toBeVisible()
   if (process.env.ENSO_TEST_USER == null || process.env.ENSO_TEST_USER_PASSWORD == null) {
     throw Error(
       'Cannot log in; `ENSO_TEST_USER` and `ENSO_TEST_USER_PASSWORD` env variables are not provided',
     )
   }
+  await page.getByRole('textbox', { name: 'email' }).click()
   await page.keyboard.insertText(process.env.ENSO_TEST_USER)
   await page.keyboard.press('Tab')
   await page.keyboard.insertText(process.env.ENSO_TEST_USER_PASSWORD)
