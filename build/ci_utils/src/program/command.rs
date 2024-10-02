@@ -496,6 +496,11 @@ pub fn spawn_log_processor(
 /// Checks if the line contains a GitHub command and extracts it from the line if it does.
 /// Currently only error and group commands are supported. All commands are documented at https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/workflow-commands-for-github-actions
 fn extract_github_command(line: &str) -> Option<String> {
+    if line.contains("group") {
+        let bytes = line.as_bytes();
+        info!("GROUP? line='{line}', bytes={bytes:?}");
+    }
+
     // We remove a possible [info] prefix that is added by sbt.
     let trimmed = line.trim_start().strip_prefix("[info]").unwrap_or(line).trim_start();
     let tmp = trimmed.strip_prefix("::");
