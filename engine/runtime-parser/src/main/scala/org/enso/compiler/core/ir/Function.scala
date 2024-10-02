@@ -193,20 +193,6 @@ object Function {
     /** @inheritdoc */
     override def children: List[IR] = arguments :+ body
 
-    override def withNewChildren(newChildren: List[IR]): IR = {
-      newChildren match {
-        case newArguments :+ (newBody: Expression) =>
-          copy(
-            arguments = newArguments.map(_.asInstanceOf[DefinitionArgument]),
-            body      = newBody
-          )
-        case _ =>
-          throw new IllegalArgumentException(
-            "Lambda expects a list of arguments followed by a body"
-          )
-      }
-    }
-
     /** @inheritdoc */
     override def showCode(indent: Int): String = {
       val args = arguments.map(_.showCode(indent)).mkString(" ")

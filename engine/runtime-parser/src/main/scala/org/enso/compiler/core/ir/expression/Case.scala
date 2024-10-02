@@ -145,20 +145,6 @@ object Case {
     /** @inheritdoc */
     override def children: List[IR] = scrutinee :: branches.toList
 
-    override def withNewChildren(newChildren: List[IR]): IR = {
-      newChildren match {
-        case (newScrutinee: Expression) :: newBranches =>
-          copy(
-            scrutinee = newScrutinee,
-            branches  = newBranches.map(_.asInstanceOf[Branch])
-          )
-        case _ =>
-          throw new IllegalArgumentException(
-            "Case.Expr expects at least one child"
-          )
-      }
-    }
-
     /** @inheritdoc */
     override def showCode(indent: Int): String = {
       val newIndent = indent + indentLevel
@@ -286,20 +272,6 @@ object Case {
 
     /** @inheritdoc */
     override def children: List[IR] = List(pattern, expression)
-
-    override def withNewChildren(newChildren: List[IR]): IR = {
-      newChildren match {
-        case (newPattern: Pattern) :: (newExpression: Expression) :: Nil =>
-          copy(
-            pattern    = newPattern,
-            expression = newExpression
-          )
-        case _ =>
-          throw new IllegalArgumentException(
-            "Case.Branch expects exactly two children"
-          )
-      }
-    }
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = {
