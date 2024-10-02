@@ -1,10 +1,9 @@
 package org.enso.interpreter.instrument;
 
-import org.enso.interpreter.runtime.state.ExecutionEnvironment;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import org.enso.interpreter.runtime.state.ExecutionEnvironment;
 
 public final class ExpressionExecutionState {
 
