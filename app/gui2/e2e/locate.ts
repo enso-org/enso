@@ -44,24 +44,24 @@ function or(a: (page: Locator | Page) => Locator, b: (page: Locator | Page) => L
   return (page: Locator | Page) => a(page).or(b(page))
 }
 
-/** TODO: Add docs */
+/** Show/hide visualization button */
 export function toggleVisualizationButton(page: Locator | Page) {
   return page.getByLabel('Visualization', { exact: true })
 }
 
-/** TODO: Add docs */
+/** Visualization Selector button */
 export function toggleVisualizationSelectorButton(page: Locator | Page) {
   return page.getByLabel('Visualization Selector')
 }
 
 // === Fullscreen ===
 
-/** TODO: Add docs */
+/** Enter fullscreen */
 export function enterFullscreenButton(page: Locator | Page) {
   return page.getByLabel('Fullscreen')
 }
 
-/** TODO: Add docs */
+/** Exit fullscreen */
 export function exitFullscreenButton(page: Locator | Page) {
   return page.getByLabel('Exit Fullscreen')
 }
@@ -71,29 +71,31 @@ export const toggleFullscreenButton = or(enterFullscreenButton, exitFullscreenBu
 // === Nodes ===
 
 declare const nodeLocatorBrand: unique symbol
+
+/** A locator which resolves to graph nodes only */
 export type Node = Locator & { [nodeLocatorBrand]: never }
 
-/** TODO: Add docs */
+/** All nodes in graph */
 export function graphNode(page: Page | Locator): Node {
   return page.locator('.GraphNode') as Node
 }
-/** TODO: Add docs */
+/** Node with given binding (name) */
 export function graphNodeByBinding(page: Locator | Page, binding: string): Node {
   return graphNode(page).filter({ has: page.locator('.binding', { hasText: binding }) }) as Node
 }
-/** TODO: Add docs */
+/** Icon inside the node */
 export function graphNodeIcon(node: Node) {
   return node.locator('.nodeCategoryIcon')
 }
-/** TODO: Add docs */
+/** All selected nodes */
 export function selectedNodes(page: Page | Locator): Node {
   return page.locator('.GraphNode.selected') as Node
 }
-/** TODO: Add docs */
+/** All input nodes */
 export function inputNode(page: Page | Locator): Node {
   return page.locator('.GraphNode.inputNode') as Node
 }
-/** TODO: Add docs */
+/** All output nodes  */
 export function outputNode(page: Page | Locator): Node {
   return page.locator('.GraphNode.outputNode') as Node
 }
@@ -117,7 +119,11 @@ export const nodeOutputPort = componentLocator('.outputPortHoverArea')
 export const smallPlusButton = componentLocator('.SmallPlusButton')
 export const lexicalContent = componentLocator('.LexicalContent')
 
-/** TODO: Add docs */
+/**
+ * A not-selected variant of Component Browser Entry.
+ *
+ * It may be covered by selected one due to way we display them.
+ */
 export function componentBrowserEntry(
   page: Locator | Page,
   filter?: (f: Filter) => { selector: string },
@@ -127,7 +133,7 @@ export function componentBrowserEntry(
   )
 }
 
-/** TODO: Add docs */
+/** A selected variant of Component Browser Entry */
 export function componentBrowserSelectedEntry(
   page: Locator | Page,
   filter?: (f: Filter) => { selector: string },
@@ -137,12 +143,12 @@ export function componentBrowserSelectedEntry(
   )
 }
 
-/** TODO: Add docs */
+/** A not-selected variant of Component Browser entry with given label */
 export function componentBrowserEntryByLabel(page: Locator | Page, label: string) {
   return componentBrowserEntry(page).filter({ has: page.getByText(label) })
 }
 
-/** TODO: Add docs */
+/** Right-docked panel */
 export function rightDock(page: Page) {
   return page.getByTestId('rightDock')
 }
@@ -152,7 +158,7 @@ export function rightDockRoot(page: Page) {
   return page.getByTestId('rightDockRoot')
 }
 
-/** TODO: Add docs */
+/** Bottom-docked panel */
 export function bottomDock(page: Page) {
   return page.getByTestId('bottomDock')
 }
@@ -182,14 +188,14 @@ export const warningsVisualization = visualizationLocator('.WarningsVisualizatio
 
 // === Edge locators ===
 
-/** TODO: Add docs */
+/** All edges going from a node with given binding. */
 export async function edgesFromNodeWithBinding(page: Page, binding: string) {
   const node = graphNodeByBinding(page, binding).first()
   const nodeId = await node.getAttribute('data-node-id')
   return page.locator(`[data-source-node-id="${nodeId}"]`)
 }
 
-/** TODO: Add docs */
+/** All edges going to a node with given binding. */
 export async function edgesToNodeWithBinding(page: Page, binding: string) {
   const node = graphNodeByBinding(page, binding).first()
   const nodeId = await node.getAttribute('data-node-id')
@@ -200,7 +206,7 @@ export async function edgesToNodeWithBinding(page: Page, binding: string) {
 
 /**
  * Returns a location that can be clicked to activate an output port.
- *  Using a `Locator` would be better, but `position` option of `click` doesn't work.
+ * Using a `Locator` would be better, but `position` option of `click` doesn't work.
  */
 export async function outputPortCoordinates(node: Locator) {
   const outputPortArea = await node.locator('.outputPortHoverArea').boundingBox()

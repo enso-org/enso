@@ -9,7 +9,7 @@ import { isIdentifier, type AstId, type Identifier } from '@/util/ast/abstract'
 import { Err, Ok, type Result } from '@/util/data/result'
 import { qnLastSegment, type QualifiedName } from '@/util/qualifiedName'
 import { useToast } from '@/util/toast'
-import { computed, proxyRefs, readonly, ref, watch, type ComputedRef } from 'vue'
+import { computed, proxyRefs, readonly, ref, type ComputedRef } from 'vue'
 
 /** Information how the component browser is used, needed for proper input initializing. */
 export type Usage =

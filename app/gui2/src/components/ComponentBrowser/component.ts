@@ -23,13 +23,16 @@ interface ComponentLabel {
   matchedRanges?: Range[] | undefined
 }
 
+/**
+ * A model of component suggestion displayed in the Component Browser.
+ */
 export interface Component extends ComponentLabel {
   suggestionId: SuggestionId
   icon: Icon
   group?: number | undefined
 }
 
-/** TODO: Add docs */
+/** @returns the displayed label of given suggestion entry with information of highlighted ranges. */
 export function labelOfEntry(entry: SuggestionEntry, match: MatchResult): ComponentLabelInfo {
   if (entry.memberOf && entry.selfType == null) {
     const ownerLastSegmentStart = qnLastSegmentIndex(entry.memberOf) + 1
@@ -69,13 +72,18 @@ function formatLabel(labelInfo: ComponentLabelInfo): ComponentLabel {
       }
 }
 
+/**
+ * Suggestion entry with matching information.
+ */
 export interface MatchedSuggestion {
   id: SuggestionId
   entry: SuggestionEntry
   match: MatchResult
 }
 
-/** TODO: Add docs */
+/**
+ * A suggestion comparator. The "lower" suggestion should be first in Component Browser's list.
+ */
 export function compareSuggestions(a: MatchedSuggestion, b: MatchedSuggestion): number {
   const matchCompare = a.match.score - b.match.score
   if (matchCompare !== 0) return matchCompare
@@ -89,13 +97,15 @@ export function compareSuggestions(a: MatchedSuggestion, b: MatchedSuggestion): 
   return a.id - b.id
 }
 
-export interface ComponentInfo {
+interface ComponentInfo {
   id: number
   entry: SuggestionEntry
   match: MatchResult
 }
 
-/** TODO: Add docs */
+/**
+ * Create {@link Component} from information about suggestion and matching.
+ */
 export function makeComponent({ id, entry, match }: ComponentInfo): Component {
   return {
     ...formatLabel(labelOfEntry(entry, match)),
@@ -105,7 +115,9 @@ export function makeComponent({ id, entry, match }: ComponentInfo): Component {
   }
 }
 
-/** TODO: Add docs */
+/**
+ * Create {@link Component} list from filtered suggestions.
+ */
 export function makeComponentList(db: SuggestionDb, filtering: Filtering): Component[] {
   function* matchSuggestions() {
     for (const [id, entry] of db.entries()) {

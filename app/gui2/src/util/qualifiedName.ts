@@ -18,24 +18,24 @@ const identifierRegexPart = '(?:(?:[a-zA-Z_][0-9]*)+|[!$%&*+,-./:;<=>?@\\^|~]+)'
 const qnRegex = new RegExp(`^${identifierRegexPart}(?:\\.${identifierRegexPart})*$`)
 const mainSegmentRegex = new RegExp(`^(${identifierRegexPart}\\.${identifierRegexPart})\\.Main`)
 
-/** TODO: Add docs */
+/** Returns the string if it's a valid {@link Identifier}. */
 export function tryIdentifier(str: string): Result<Identifier> {
   return isIdentifier(str) ? Ok(str) : Err(`"${str}" is not a valid identifier`)
 }
 
-/** TODO: Add docs */
+/** Returns the string if it's a valid {@link IdIdentifierOrOperatorIdentifierentifier}. */
 export function tryIdentifierOrOperatorIdentifier(
   str: string,
 ): Result<IdentifierOrOperatorIdentifier> {
   return isIdentifierOrOperatorIdentifier(str) ? Ok(str) : Err(`"${str}" is not a valid identifier`)
 }
 
-/** TODO: Add docs */
+/** Checks if the string is a valid {@link QualifiedName} */
 export function isQualifiedName(str: string): str is QualifiedName {
   return qnRegex.test(str)
 }
 
-/** TODO: Add docs */
+/** Returns the string if it's a valid {@link QualifiedName} */
 export function tryQualifiedName(str: string): Result<QualifiedName> {
   return isQualifiedName(str) ? Ok(str) : Err(`"${str}" is not a valid qualified name`)
 }
@@ -75,22 +75,22 @@ export function qnParent(name: QualifiedName): QualifiedName | null {
   return separator > 1 ? (name.substring(0, separator) as QualifiedName) : null
 }
 
-/** TODO: Add docs */
+/** Create new name by joining segments of two qualified names */
 export function qnJoin(left: QualifiedName, right: QualifiedName): QualifiedName {
   return `${left}.${right}` as QualifiedName
 }
 
-/** TODO: Add docs */
+/** Create {@link QualifiedName} from list of segments. */
 export function qnFromSegments(segments: Iterable<IdentifierOrOperatorIdentifier>): QualifiedName {
   return [...segments].join('.') as QualifiedName
 }
 
-/** TODO: Add docs */
+/** Return typed list of {@link QualifiedName} segments */
 export function qnSegments(name: QualifiedName): IdentifierOrOperatorIdentifier[] {
   return name.split('.').map((segment) => segment as IdentifierOrOperatorIdentifier)
 }
 
-/** TODO: Add docs */
+/** Returns substring of a qualified name. `start` and `end` are indexes of segments. */
 export function qnSlice(
   name: QualifiedName,
   start?: number | undefined,

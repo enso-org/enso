@@ -35,8 +35,8 @@ type ReactiveDBNotification<K, V> = {
  * Represents a reactive database adapter that extends the behaviors of `Map`.
  * It emits an `entryAdded` event when a new entry is added to the database,
  * facilitating reactive tracking of database insertions and deletions.
- * @typeParam K - The key type for the database entries.
- * @typeParam V - The value type for the database entries.
+ * @template K - The key type for the database entries.
+ * @template V - The value type for the database entries.
  */
 export class ReactiveDb<K, V>
   extends ObservableV2<ReactiveDBNotification<K, V>>
@@ -192,10 +192,10 @@ export type Indexer<K, V, IK, IV> = (key: K, value: V) => [IK, IV][]
  * Utilizes both forward and reverse mapping for efficient lookups and reverse lookups.
  * The index updates not only after key/value change from db, but also on any change of
  * reactive dependency.
- * @typeParam K - The key type of the ReactiveDb.
- * @typeParam V - The value type of the ReactiveDb.
- * @typeParam IK - The key type of the index.
- * @typeParam IV - The value type of the index.
+ * @template K - The key type of the ReactiveDb.
+ * @template V - The value type of the ReactiveDb.
+ * @template IK - The key type of the index.
+ * @template IV - The value type of the index.
  */
 export class ReactiveIndex<K, V, IK, IV> {
   /** Forward map from index keys to a set of index values */
@@ -334,9 +334,9 @@ export type Mapper<K, V, IV> = (key: K, value: V) => IV | undefined
  * It can be thought of as a collection of `computed` values per each key in the `ReactiveDb`. The
  * mapping is automatically updated when any of its dependencies change, and is properly cleaned up
  * when any key is removed from {@link ReactiveDb}. Only accessed keys are ever actually computed.
- * @typeParam K - The key type of the ReactiveDb.
- * @typeParam V - The value type of the ReactiveDb.
- * @typeParam M - The type of a mapped value.
+ * @template K - The key type of the ReactiveDb.
+ * @template V - The value type of the ReactiveDb.
+ * @template M - The type of a mapped value.
  */
 export class ReactiveMapping<K, V, M> {
   /** Forward map from index keys to a mapped computed value */

@@ -1,6 +1,6 @@
 import { parse_doc_to_json } from 'ydoc-shared/ast/ffi'
 
-/** TODO: Add docs */
+/** Parse Enso documentation. */
 export function parseDocs(docs: string): Doc.Section[] {
   const json = parse_doc_to_json(docs)
   return JSON.parse(json)

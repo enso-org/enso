@@ -16,7 +16,12 @@ const orDefaultSize = (rect: Rect) => {
   return new Rect(rect.pos, new Vec2(width, height))
 }
 
-/** TODO: Add docs */
+/**
+ * A composable with logic related to nodes placement.
+ * @returns object with three functions: `place` specifying a free place for new node. `collapse`
+ * returning position for new collapsed node, and `input` returning default position for next
+ * input component.
+ */
 export function usePlacement(nodeRects: ToValue<Iterable<Rect>>, screenBounds: ToValue<Rect>) {
   const gap = themeGap()
   const environment = (selectedNodeRects: Iterable<Rect>) => ({

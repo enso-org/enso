@@ -1,4 +1,4 @@
-/** TODO: Add docs */
+/** Same as `===` operator - used as functino parameter, */
 export function defaultEquality(a: unknown, b: unknown): boolean {
   return a === b
 }

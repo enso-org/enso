@@ -2,7 +2,7 @@ import type { ElementHandle } from 'playwright'
 
 /**
  * Returns text content of the element, including CSS ::before and ::after content in the element's tree.
- *  Currently whitespace produced around pseudo-elements is unspecified; block/inline logic is not implemented.
+ * Currently whitespace produced around pseudo-elements is unspecified; block/inline logic is not implemented.
  */
 export function computedContent(element: ElementHandle<HTMLElement | SVGElement>): Promise<string> {
   return element.evaluate<string>((element) => {

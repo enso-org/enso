@@ -3,7 +3,7 @@ import { type ToValue } from '@/util/reactivity'
 import { computed, toValue } from 'vue'
 import type { Ast } from 'ydoc-shared/ast'
 
-/** TODO: Add docs */
+/** A composable for reactively retrieving and setting documentation from given Ast node. */
 export function useAstDocumentation(graphStore: GraphStore, ast: ToValue<Ast | undefined>) {
   return {
     documentation: {

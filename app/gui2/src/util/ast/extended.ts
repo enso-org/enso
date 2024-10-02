@@ -164,10 +164,8 @@ class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends boolea
   }
 
   /**
-   * Recursively visit AST nodes in depth-first order. The children of a node will be skipped when
-   * `visit` callback returns `false`.
-   * @param node Root node of the tree to walk. It will be visited first.
-   * @param visit Callback that is called for each node. If it returns `false`, the children of that
+   * Recursively visit AST nodes in depth-first order.
+   * @param visitor Callback that is called for each node. If it returns `false`, the children of that
    * node will be skipped, and the walk will continue to the next sibling.
    */
   visitRecursive(visitor: (t: AstExtended<Tree | Token, HasIdMap>) => boolean) {

@@ -110,7 +110,11 @@ function retrieveColumnsDefinitions(columnsAst: Ast.Vector) {
   return transposeResult(Array.from(columnsAst.values(), readColumn))
 }
 
-/** TODO: Add docs */
+/**
+ * Check if given ast is a `Table.new` call which may be handled by the TableEditorWidget.
+ *
+ * This widget may handle table definitions filled with literals or `Nothing` values.
+ */
 export function tableNewCallMayBeHandled(call: Ast.Ast) {
   const columnsAst = retrieveColumnsAst(call)
   if (!columnsAst.ok) return false

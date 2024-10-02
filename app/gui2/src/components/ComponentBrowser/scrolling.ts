@@ -7,7 +7,13 @@ export type ScrollTarget =
   | { type: 'selected' }
   | { type: 'offset'; offset: number }
 
-/** TODO: Add docs */
+/**
+ * Scrolling for the Component Browser List.
+ *
+ * The scrolling may be a bit different depending on if we want to scroll to selection (and then
+ * stick to it), or top/specific offset. The scroll value should be updated by setting
+ * `targetScroll` value, or by calling `scrollWithTransition` if we want transitive scroll.
+ */
 export function useScrolling(selectedPos: ToValue<number>) {
   const targetScroll = ref<ScrollTarget>({ type: 'top' })
   const targetScrollPosition = computed(() => {

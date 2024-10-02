@@ -127,7 +127,6 @@ export type Operand<HasIdMap extends boolean = true> =
  * an operator application (of this specific operator if provided), `this` will be returned as
  * a single operand.
  * @param ast the subtree which we assume is an operator application chain.
- * @param code the code from which the entire AST was generated.
  * @param expectedOpr if specified, the chain will be of specific operator.
  */
 export function* operandsOfLeftAssocOprChain<HasIdMap extends boolean = true>(

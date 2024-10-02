@@ -21,7 +21,10 @@ export function useAutoBlur(root: ToValue<HTMLElement | SVGElement | undefined>)
 
 const autoBlurRoots = new Set<HTMLElement | SVGElement | MathMLElement>()
 
-/** TODO: Add docs */
+/**
+ * This function should be called on application mount to make all {@link useAutoBlur} work
+ * properly.
+ */
 export function registerAutoBlurHandler() {
   useEvent(
     window,

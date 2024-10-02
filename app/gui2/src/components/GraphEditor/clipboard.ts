@@ -26,7 +26,7 @@ interface CopiedNode {
   metadata?: NodeMetadataFields
 }
 
- * @internal
+/** @internal */
 export async function nodesFromClipboardContent(
   clipboardItems: ClipboardItems,
 ): Promise<CopiedNode[]> {
@@ -54,7 +54,7 @@ function getClipboard(): ExtendedClipboard {
   return (window.navigator as any).mockClipboard ?? window.navigator.clipboard
 }
 
-/** TODO: Add docs */
+/** A composable for handling copying and pasting nodes in the GraphEditor. */
 export function useGraphEditorClipboard(
   graphStore: GraphStore,
   selected: ToValue<Set<NodeId>>,
@@ -150,13 +150,13 @@ const spreadsheetDecoder: ClipboardDecoder<CopiedNode[]> = {
 
 const toTable = computed(() => Pattern.parse('__.to Table'))
 
-/** TODO: Add docs */
+/** Create Enso Expression generating table from this tsvData. */
 export function tsvTableToEnsoExpression(tsvData: string) {
   const textLiteral = Ast.TextLiteral.new(tsvData)
   return toTable.value.instantiate(textLiteral.module, [textLiteral]).code()
 }
 
- * @internal
+/** @internal */
 export function isSpreadsheetTsv(htmlContent: string) {
   // This is a very general criterion that can have some false-positives (e.g. pasting rich text that includes a table).
   // However, due to non-standardized browser HTML sanitization it is difficult to precisely recognize spreadsheet
@@ -173,7 +173,7 @@ export function isSpreadsheetTsv(htmlContent: string) {
 export type MimeType = 'text/plain' | 'text/html' | typeof ENSO_MIME_TYPE
 export type MimeData = Partial<Record<MimeType, string>>
 
-/** TODO: Add docs */
+/** Write data to clipboard */
 export function writeClipboard(data: MimeData) {
   const dataBlobs = Object.fromEntries(
     Object.entries(data).map(([type, typeData]) => [type, new Blob([typeData], { type })]),

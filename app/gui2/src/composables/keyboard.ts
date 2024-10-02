@@ -1,8 +1,9 @@
 import { isMacLike, useEvent } from '@/composables/events'
 import { proxyRefs, ref } from 'vue'
 
+/** {@link useKeyboard} composable object */
 export type KeyboardComposable = ReturnType<typeof useKeyboard>
-/** TODO: Add docs */
+/** Composable containing reactive flags for modifier's press state. */
 export function useKeyboard() {
   const state = {
     alt: ref(false),

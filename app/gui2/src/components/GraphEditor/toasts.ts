@@ -2,7 +2,10 @@ import { useEvent } from '@/composables/events'
 import { type ProjectStore } from '@/stores/project'
 import { useToast } from '@/util/toast'
 
-/** TODO: Add docs */
+/**
+ * A composable which sets up several toasts for project management, and creates one for message
+ * about user's action error.
+ */
 export function useGraphEditorToasts(projectStore: ProjectStore) {
   const toastStartup = useToast.info({ autoClose: false })
   const toastConnectionLost = useToast.error({ autoClose: false })

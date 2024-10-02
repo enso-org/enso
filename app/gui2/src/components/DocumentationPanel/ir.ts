@@ -59,7 +59,9 @@ export interface Example {
   body: Doc.HtmlString
 }
 
-/** TODO: Add docs */
+/**
+ * Placeholder constructor.
+ */
 export function placeholder(text: string): Placeholder {
   return { kind: 'Placeholder', text }
 }
@@ -97,7 +99,9 @@ function filterSections(sections: Iterable<Doc.Section>): Sections {
 
 // === Lookup ===
 
-/** TODO: Add docs */
+/**
+ * The main function for getting documentation page for given entry.
+ */
 export function lookupDocumentation(db: SuggestionDb, id: SuggestionId): Docs {
   const entry = db.get(id)
   if (!entry)

@@ -373,9 +373,7 @@ function extractVisualizationDataFromDataFrame(parsedData: DataFrame) {
 /**
  * Extracts the data form the given `parsedData`. Checks the type of input data and prepares our
  * internal data  (`GeoPoints') for consumption in deck.gl.
- * @param parsedData         - All the parsed data to create points from.
- * @param preparedDataPoints - List holding data points to push the GeoPoints into.
- * @param ACCENT_COLOR        - accent color of IDE if element doesn't specify one.
+ * @param parsedData - All the parsed data to create points from.
  */
 function extractDataPoints(parsedData: Data) {
   if ('df_latitude' in parsedData && 'df_longitude' in parsedData) {
