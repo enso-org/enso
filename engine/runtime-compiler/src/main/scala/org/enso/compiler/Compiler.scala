@@ -35,6 +35,7 @@ import org.enso.compiler.phase.exports.{
   ExportsResolution
 }
 import org.enso.syntax2.Tree
+import org.enso.syntax2.Parser
 
 import java.io.PrintStream
 import java.util.concurrent.{
@@ -69,7 +70,6 @@ class Compiler(
     if (config.outputRedirect.isDefined)
       new PrintStream(config.outputRedirect.get)
     else context.getOut
-  private lazy val ensoCompiler: EnsoParser = new EnsoParser()
 
   /** Java accessor */
   def getConfig(): CompilerConfig = config
@@ -598,11 +598,8 @@ class Compiler(
     )
 
     val src   = context.getCharacters(module)
-    val idMap = context.getIdMap(module)
-    val tree  = ensoCompiler.parse(src)
-    val expr =
-      if (idMap == null) ensoCompiler.generateIR(tree)
-      else ensoCompiler.generateModuleIr(tree, idMap.values)
+    val idMap = Option(context.getIdMap(module))
+    val expr  = EnsoParser.compile(src, idMap.map(_.values).orNull)
 
     val exprWithModuleExports =
       if (context.isSynthetic(module))
@@ -685,9 +682,8 @@ class Compiler(
     inlineContext: InlineContext
   ): Option[(InlineContext, Expression)] = {
     val newContext = inlineContext.copy(freshNameSupply = Some(freshNameSupply))
-    val tree       = ensoCompiler.parse(srcString)
 
-    ensoCompiler.generateIRInline(tree).map { ir =>
+    EnsoParser.compileInline(srcString).map { ir =>
       val compilerOutput = runCompilerPhasesInline(ir, newContext)
       runErrorHandlingInline(compilerOutput, newContext)
       (newContext, compilerOutput)
@@ -700,7 +696,7 @@ class Compiler(
     * @return A Tree representation of `source`
     */
   def parseInline(source: CharSequence): Tree =
-    ensoCompiler.parse(source)
+    Parser.parse(source)
 
   /** Enhances the provided IR with import/export statements for the provided list
     * of fully qualified names of modules. The statements are considered to be "synthetic" i.e. compiler-generated.
@@ -791,6 +787,11 @@ class Compiler(
     ir: IRModule,
     moduleContext: ModuleContext
   ): IRModule = {
+    context.log(
+      Level.FINEST,
+      "Passing module {0} with method body passes",
+      moduleContext.module.getName
+    )
     passManager.runPassesOnModule(ir, moduleContext, passes.functionBodyPasses)
   }
 
@@ -798,6 +799,11 @@ class Compiler(
     ir: IRModule,
     moduleContext: ModuleContext
   ): IRModule = {
+    context.log(
+      Level.FINEST,
+      "Passing module {0} with global typing passes",
+      moduleContext.module.getName
+    )
     passManager.runPassesOnModule(ir, moduleContext, passes.globalTypingPasses)
   }
 

@@ -212,15 +212,15 @@ impl JobArchetype for JvmTests {
 }
 
 fn enable_cloud_tests(step: Step) -> Step {
-    step.with_secret_exposed_as(
+    step.with_variable_exposed_as(
         secret::ENSO_CLOUD_COGNITO_USER_POOL_ID,
         crate::cloud_tests::env::ci_config::ENSO_CLOUD_COGNITO_USER_POOL_ID,
     )
-    .with_secret_exposed_as(
+    .with_variable_exposed_as(
         secret::ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID,
         crate::cloud_tests::env::ci_config::ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID,
     )
-    .with_secret_exposed_as(
+    .with_variable_exposed_as(
         secret::ENSO_CLOUD_COGNITO_REGION,
         crate::cloud_tests::env::ci_config::ENSO_CLOUD_COGNITO_REGION,
     )
@@ -526,7 +526,7 @@ pub struct PackageIde;
 impl JobArchetype for PackageIde {
     fn job(&self, target: Target) -> Job {
         RunStepsBuilder::new(
-            "ide build --backend-source current-ci-run --gui-upload-artifact false --gui-sign-artifacts false",
+            "ide build --backend-source current-ci-run --gui-upload-artifact false",
         )
         .customize(with_packaging_steps(target.0))
         .build_job("Package New IDE", target)

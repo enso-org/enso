@@ -105,7 +105,6 @@ export const args: Arguments = await yargs(process.argv.slice(2))
       type: 'boolean',
       description: 'Should signing/notarization be performed (defaults to true)',
       default: true,
-      coerce: (p: string) => p === 'true',
     },
   }).argv
 

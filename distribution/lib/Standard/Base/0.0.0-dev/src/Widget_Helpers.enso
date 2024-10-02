@@ -132,6 +132,12 @@ make_data_cleanse_vector_selector display:Display=Display.Always =
     Widget.Multiple_Choice values=options display=display
 
 ## PRIVATE
+   Creates a Single_Choice Widget for Any selectors with all types enabled.
+make_all_selector : Display -> Widget
+make_all_selector display:Display=..Always -> Widget =
+    make_any_selector display add_text=True add_number=True add_boolean=True add_date=True add_time=True add_date_time=True add_nothing=True
+
+## PRIVATE
    Creates a Single_Choice Widget for Any selectors.
 make_any_selector : Display -> Boolean -> Boolean -> Boolean -> Boolean -> Boolean -> Boolean -> Boolean -> Boolean -> Boolean -> Widget
 make_any_selector display:Display=..Always add_text:Boolean=False add_regex:Boolean=False add_named_pattern:Boolean=False add_number:Boolean=False add_boolean:Boolean=False add_date:Boolean=False add_time:Boolean=False add_date_time:Boolean=False add_nothing:Boolean=False =

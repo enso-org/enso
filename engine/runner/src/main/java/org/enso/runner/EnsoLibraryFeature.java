@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashSet;
 import java.util.TreeSet;
+import org.enso.compiler.core.EnsoParser;
 import org.enso.compiler.core.ir.module.scope.imports.Polyglot;
 import org.enso.pkg.PackageManager$;
 import org.graalvm.nativeimage.hosted.Feature;
@@ -45,14 +46,14 @@ public final class EnsoLibraryFeature implements Feature {
     */
 
     var classes = new TreeSet<String>();
-    try (var parser = new org.enso.compiler.core.EnsoParser()) {
+    try {
       for (var p : libs) {
         var result = PackageManager$.MODULE$.Default().loadPackage(p.toFile());
         if (result.isSuccess()) {
           var pkg = result.get();
           for (var src : pkg.listSourcesJava()) {
             var code = Files.readString(src.file().toPath());
-            var ir = parser.compile(code);
+            var ir = EnsoParser.compile(code);
             for (var imp : asJava(ir.imports())) {
               if (imp instanceof Polyglot poly && poly.entity() instanceof Polyglot.Java entity) {
                 var name = new StringBuilder(entity.getJavaName());

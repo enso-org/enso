@@ -6,6 +6,7 @@ import org.enso.common.RuntimeOptions
 import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.Runtime.Api.{MethodCall, MethodPointer}
 import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
 import org.graalvm.polyglot.Context
 import org.scalatest.BeforeAndAfterEach
@@ -352,5 +353,96 @@ class RuntimeAsyncCommandsTest
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("True")
+  }
+
+  it should "interrupt running execution context without raising Panic" in {
+    val moduleName = "Enso_Test.Test.Main"
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+
+    val metadata = new Metadata
+    val vId      = metadata.addItem(194, 7)
+    val code =
+      """from Standard.Base import all
+        |polyglot java import java.lang.Thread
+        |
+        |loop n s=0 =
+        |    if (s > n) then s else
+        |        Thread.sleep 100
+        |        loop n s+1
+        |
+        |main =
+        |    IO.println "started"
+        |    v = loop 50
+        |    v
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receiveNIgnoreExpressionUpdates(
+      1
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId))
+    )
+
+    // wait for program to start
+    var isProgramStarted = false
+    var iteration        = 0
+    while (!isProgramStarted && iteration < 100) {
+      val out = context.consumeOut
+      Thread.sleep(200)
+      isProgramStarted = out == List("started")
+      iteration += 1
+    }
+    if (!isProgramStarted) {
+      fail("Program start timed out")
+    }
+
+    // recompute/interrupt
+    context.send(
+      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None, None))
+    )
+    val responses = context.receiveNIgnoreStdLib(
+      3
+    )
+
+    responses should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        vId,
+        ConstantsGen.INTEGER,
+        methodCall = Some(
+          MethodCall(
+            MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "loop"),
+            Vector(1)
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
   }
 }

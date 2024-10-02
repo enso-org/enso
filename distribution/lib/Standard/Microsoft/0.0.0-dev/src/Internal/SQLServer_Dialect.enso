@@ -468,7 +468,7 @@ make_order_descriptor internal_column sort_direction text_ordering =
             Order_Descriptor.Value (Internals_Access.column_expression internal_column) sort_direction nulls_order=nulls collation=Nothing
         _ ->
             ## In the future we can modify this error to suggest using a custom defined collation.
-            if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation.Error "Natural ordering is currently not supported. You may need to materialize the Table to perform this operation.") else
+            if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation.Error "Natural ordering") else
                 case text_ordering.case_sensitivity of
                     Case_Sensitivity.Default ->
                         Order_Descriptor.Value (Internals_Access.column_expression internal_column) sort_direction nulls_order=nulls collation=Nothing
@@ -476,7 +476,7 @@ make_order_descriptor internal_column sort_direction text_ordering =
                         Order_Descriptor.Value (Internals_Access.column_expression internal_column) sort_direction nulls_order=nulls collation="ucs_basic"
                     Case_Sensitivity.Insensitive locale -> case locale == Locale.default of
                         False ->
-                            Error.throw (Unsupported_Database_Operation.Error "Case insensitive ordering with custom locale is currently not supported. You may need to materialize the Table to perform this operation.")
+                            Error.throw (Unsupported_Database_Operation.Error "Case insensitive ordering with custom locale")
                         True ->
                             upper = SQL_Expression.Operation "UPPER" [Internals_Access.column_expression internal_column]
                             folded_expression = SQL_Expression.Operation "LOWER" [upper]
