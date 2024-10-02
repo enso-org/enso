@@ -29,7 +29,7 @@ import org.enso.compiler.core.ir.{
   Warning
 }
 import org.enso.compiler.core.CompilerError
-import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.{IRPass, MiniPassFactory}
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.resolve.{ExpressionAnnotations, GlobalNames}
 
@@ -43,7 +43,7 @@ import org.enso.compiler.pass.resolve.{ExpressionAnnotations, GlobalNames}
   *
   * - The tail position of its expression, where relevant.
   */
-case object TailCall extends IRPass {
+case object TailCall extends IRPass with MiniPassFactory[TailCallMini] {
 
   /** The annotation metadata type associated with IR nodes by this pass. */
   override type Metadata = TailPosition
@@ -60,6 +60,24 @@ case object TailCall extends IRPass {
   )
 
   override lazy val invalidatedPasses: Seq[IRPass] = List()
+
+  override def createForInlineCompilation(
+    inlineContext: InlineContext
+  ): TailCallMini = {
+    inlineContext.isInTailPosition.getOrElse(
+      throw new CompilerError(
+        "Information about the tail position for an inline expression " +
+        "must be known by the point of tail call analysis."
+      )
+    )
+    new TailCallMini()
+  }
+
+  override def createForModuleCompilation(
+    moduleContext: ModuleContext
+  ): TailCallMini = {
+    new TailCallMini()
+  }
 
   /** Analyses tail call state for expressions in a module.
     *

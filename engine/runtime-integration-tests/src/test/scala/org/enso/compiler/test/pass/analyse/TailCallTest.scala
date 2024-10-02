@@ -16,7 +16,12 @@ import org.enso.compiler.core.ir.expression.Case
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.TailCall.TailPosition
 import org.enso.compiler.pass.analyse.{AliasAnalysis, TailCall}
-import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
+import org.enso.compiler.pass.{
+  MiniPassTraverser,
+  PassConfiguration,
+  PassGroup,
+  PassManager
+}
 import org.enso.compiler.test.CompilerTest
 import org.enso.compiler.context.LocalScope
 
@@ -68,6 +73,12 @@ class TailCallTest extends CompilerTest {
     def analyse(implicit context: ModuleContext) = {
       TailCall.runModule(ir, context)
     }
+
+    def analyseMini(implicit context: ModuleContext) = {
+      val miniPass =
+        TailCall.createForModuleCompilation(context)
+      MiniPassTraverser.compileModuleWithMiniPass(ir, miniPass)
+    }
   }
 
   /** Adds an extension method to preprocess source code as an Enso expression.
@@ -84,14 +95,46 @@ class TailCallTest extends CompilerTest {
     def analyse(implicit context: InlineContext): Expression = {
       TailCall.runExpression(ir, context)
     }
+
+    def analyseMini(implicit context: InlineContext) = {
+      val miniPass =
+        TailCall.createForInlineCompilation(context)
+      MiniPassTraverser.compileInlineWithMiniPass(ir, miniPass)
+    }
+  }
+
+  private def analyseWithMegaPass(
+    code: String
+  ): Module = {
+    implicit val ctx: ModuleContext = mkModuleContext
+    code.preprocessModule.analyse
+  }
+
+  private def analyseWithMiniPass(
+    code: String
+  ): Module = {
+    implicit val ctx: ModuleContext = mkModuleContext
+    code.preprocessModule.analyseMini
+  }
+
+  private def analyseInlineWithMegaPass(
+    code: String
+  ): Expression = {
+    implicit val ctx: InlineContext = mkTailContext
+    code.preprocessExpression.get.analyse
+  }
+
+  private def analyseInlineWithMiniPass(
+    code: String
+  ): Expression = {
+    implicit val ctx: InlineContext = mkTailContext
+    code.preprocessExpression.get.analyseMini
   }
 
   // === The Tests ============================================================
 
   "Tail call analysis on modules" should {
-    implicit val ctx: ModuleContext = mkModuleContext
-
-    val ir =
+    val code =
       """
         |Foo.bar = a -> b -> c ->
         |    d = a + b
@@ -103,18 +146,39 @@ class TailCallTest extends CompilerTest {
         |type MyAtom a b c
         |
         |Foo.from (that : Bar) = undefined
-        |""".stripMargin.preprocessModule.analyse
+        |""".stripMargin
 
     "mark methods as tail" in {
-      ir.bindings.head.getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
+      val megaIr = analyseWithMegaPass(code)
+      megaIr.bindings.head.getMetadata(TailCall) shouldEqual Some(
+        TailPosition.Tail
+      )
+      val miniIr = analyseWithMiniPass(code)
+      miniIr.bindings.head.getMetadata(TailCall) shouldEqual Some(
+        TailPosition.Tail
+      )
     }
 
     "mark atoms as tail" in {
-      ir.bindings(1).getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
+      val megaIr = analyseWithMegaPass(code)
+      val miniIr = analyseWithMiniPass(code)
+      megaIr.bindings(1).getMetadata(TailCall) shouldEqual Some(
+        TailPosition.Tail
+      )
+      miniIr.bindings(1).getMetadata(TailCall) shouldEqual Some(
+        TailPosition.Tail
+      )
     }
 
     "mark conversions as tail" in {
-      ir.bindings(2).getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
+      val megaIr = analyseWithMegaPass(code)
+      val miniIr = analyseWithMiniPass(code)
+      megaIr.bindings(2).getMetadata(TailCall) shouldEqual Some(
+        TailPosition.Tail
+      )
+      miniIr.bindings(2).getMetadata(TailCall) shouldEqual Some(
+        TailPosition.Tail
+      )
     }
   }
 
@@ -125,17 +189,19 @@ class TailCallTest extends CompilerTest {
         |""".stripMargin
 
     "mark the expression as tail if the context requires it" in {
-      implicit val ctx: InlineContext = mkTailContext
-      val ir                          = code.preprocessExpression.get.analyse
+      val megaIr = analyseInlineWithMegaPass(code)
+      val miniIr = analyseInlineWithMiniPass(code)
 
-      ir.getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
+      megaIr.getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
+      miniIr.getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
     }
 
     "not mark the expression as tail if the context doesn't require it" in {
-      implicit val ctx: InlineContext = mkNoTailContext
-      val ir                          = code.preprocessExpression.get.analyse
+      val megaIr = analyseInlineWithMegaPass(code)
+      val miniIr = analyseInlineWithMiniPass(code)
 
-      ir.getMetadata(TailCall) shouldEqual Some(TailPosition.NotTail)
+      megaIr.getMetadata(TailCall) shouldEqual Some(TailPosition.NotTail)
+      miniIr.getMetadata(TailCall) shouldEqual Some(TailPosition.NotTail)
     }
 
     "mark the value of a tail assignment as non-tail" in {
