@@ -4700,6 +4700,7 @@ lazy val `std-aws` = project
 
 lazy val `std-snowflake` = project
   .in(file("std-bits") / "snowflake")
+  .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
@@ -4730,6 +4731,7 @@ lazy val `std-snowflake` = project
 
 lazy val `std-microsoft` = project
   .in(file("std-bits") / "microsoft")
+  .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
@@ -4739,8 +4741,7 @@ lazy val `std-microsoft` = project
     Compile / packageBin / artifactPath :=
       `std-microsoft-polyglot-root` / "std-microsoft.jar",
     libraryDependencies ++= Seq(
-      "org.netbeans.api"        % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "com.microsoft.sqlserver" % "mssql-jdbc"              % mssqlserverJDBCVersion
+      "com.microsoft.sqlserver" % "mssql-jdbc" % mssqlserverJDBCVersion
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value

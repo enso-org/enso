@@ -30,6 +30,7 @@ module org.enso.std.base {
   exports org.enso.base.file_format;
   exports org.enso.base.enso_cloud;
   exports org.enso.base.enso_cloud.audit;
+  exports org.enso.base.lookup;
   exports org.enso.base.numeric;
   exports org.enso.base.polyglot;
   exports org.enso.base.time;

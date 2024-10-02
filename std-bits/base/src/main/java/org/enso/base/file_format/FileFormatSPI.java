@@ -2,13 +2,15 @@ package org.enso.base.file_format;
 
 import java.util.ArrayList;
 import java.util.Objects;
+import java.util.ServiceLoader;
 import java.util.stream.Collectors;
 import org.enso.base.lookup.Lookup;
 import org.enso.base.polyglot.EnsoMeta;
 import org.graalvm.polyglot.Value;
 
 public abstract class FileFormatSPI {
-  private static final Lookup<FileFormatSPI> loader = Lookup.lookup(FileFormatSPI.class);
+  private static final Lookup<FileFormatSPI> loader =
+      Lookup.lookup((l) -> ServiceLoader.load(l, FileFormatSPI.class));
 
   public static Value[] get_types(boolean refresh) {
     if (refresh) {

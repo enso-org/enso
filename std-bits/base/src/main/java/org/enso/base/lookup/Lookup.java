@@ -5,14 +5,15 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ServiceLoader;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 public final class Lookup<T> implements Iterable<T> {
-  private final Class<T> service;
+  private final Function<ModuleLayer, ServiceLoader<T>> factory;
   private List<ServiceLoader.Provider<T>> found;
 
-  private Lookup(Class<T> service) {
-    this.service = service;
+  private Lookup(Function<ModuleLayer, ServiceLoader<T>> factory) {
+    this.factory = factory;
   }
 
   @Override
@@ -37,7 +38,7 @@ public final class Lookup<T> implements Iterable<T> {
     if (System.getProperties().get("enso.class.path") instanceof Collection<?> layers) {
       for (var obj : layers) {
         if (obj instanceof ModuleLayer layer) {
-          ServiceLoader.load(layer, service).stream()
+          factory.apply(layer).stream()
               .forEach(
                   (p) -> {
                     arr.add(p);
@@ -48,7 +49,7 @@ public final class Lookup<T> implements Iterable<T> {
     return arr;
   }
 
-  public static <S> Lookup<S> lookup(Class<S> service) {
-    return new Lookup<>(service);
+  public static <S> Lookup<S> lookup(Function<ModuleLayer, ServiceLoader<S>> factory) {
+    return new Lookup<>(factory);
   }
 }
