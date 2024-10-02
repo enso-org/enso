@@ -21,7 +21,7 @@ add_specs suite_builder =
         group_builder.specify "writing Excel" <|
             t = Table.new [["X", [1, 2, 3]], ["Y", ["a", "b", "c"]]]
 
-            f = Enso_File.root / ("write-test-"+Temporary_Directory.timestamp_text+".xlsx")
+            f = Enso_File.home / ("write-test-"+Temporary_Directory.timestamp_text+".xlsx")
             t.write f . should_equal f
             Panic.with_finalizer f.delete_if_exists <|
                 workbook = f.read

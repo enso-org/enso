@@ -4,6 +4,7 @@ from Standard.Base import all
 import Standard.Base.Enso_Cloud.Data_Link.Data_Link
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Context
 from Standard.Base.Enso_Cloud.Data_Link_Helpers import data_link_extension, secure_value_to_json
 
@@ -21,7 +22,7 @@ type Postgres_Data_Link_Setup
 
     ## PRIVATE
     save_as_data_link self destination on_existing_file:Existing_File_Behavior = case self of
-        Postgres_Data_Link_Setup.Available details -> Context.Output.if_enabled disabled_message="Saving a connection to data link requires the Output context." panic=False <|
+        Postgres_Data_Link_Setup.Available details -> Context.Output.if_enabled disabled_message="As writing is disabled, cannot save to a Data Link. Press the Write button ▶ to perform the operation." panic=False <|
             case destination of
                 _ : Enso_File ->
                     replace_existing = case on_existing_file of
@@ -53,7 +54,7 @@ prepare_credentials data_link_location:Enso_File details:Postgres -> JS_Object |
             secret_password = case credentials.password of
                 secret : Enso_Secret -> secret
                 plain_text_password : Text ->
-                    secret_location = data_link_location.parent.if_nothing Enso_File.root
+                    secret_location = data_link_location.parent.if_nothing (Error.throw (Illegal_State.Error "Trying to create a secret to store the Data Link password, but the provided data link location: "+data_link_location.to_text+" does not have a parent directory. This should not happen."))
                     location_name = if data_link_location.name.ends_with data_link_extension then data_link_location.name.drop (..Last data_link_extension.length) else data_link_location.name
 
                     create_fresh_secret ix =
